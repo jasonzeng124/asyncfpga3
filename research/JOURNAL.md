@@ -1,0 +1,4287 @@
+# Research journal
+
+Newest entry last. Format and rules: `research/PROGRAM.md`.
+
+## 2026-10-25 -- branch created
+Branched from `devin/1789854262-reconvergent-fusion` (PR #1, 14 commits ahead of
+main, unmerged). Toolchain: none yet in the cloud; `cloud/setup-toolchain.sh` has
+never run there. First job: get it working and get `cells/verify/toolchain.sh`
+passing on all fingerprints, including Devin's three new patches.
+
+Note: the owner's local toolchain carries only main's 4 patches plus a
+pybindings change (now `patches/nextpnr-xilinx-pybindings.patch`), not
+ff-timing / lut-perm-sink / place-weight. A board build on that machine needs
+a rebuild first.
+
+## Session 2026-10-25 18:16 -- cloud toolchain builds, passes every fingerprint and is cached; the inherited branch is red on two gates
+Toolchain: patches sha 789a7120c912d393, nextpnr-xilinx sha256 9c732bc6303458df (bfdeaf7c + all 8 patches), chipdb sha256 64c9d2a43de684ef   Seeds: flow.sh default + NEXTPNR_SEED 1,2,3,4
+Did:
+- Made `cloud/setup-toolchain.sh` work from cold on the cloud image (4 fixes, one commit each):
+  apt env assignment under an empty `$SUDO`; prjxray pip ran outside the checkout
+  (`-e third_party/fasm`) and as the wrong interpreter (`pip3` is /usr/bin's, `python3` is
+  /usr/local 3.11), now its own import-guarded block; Cython; fasm's antlr C++ parser does not
+  compile here (antlr4 tool 4.9.2 vs runtime 4.10), so it falls back to fasm's textX parser;
+  nextpnr's CMake picked Python 3.13 headers while Boost.Python is built for 3.12, now pinned
+  via sysconfig. `cells/verify/toolchain.sh` was not touched: 9/9 fingerprints ok.
+- The owner's new cache step published `toolchain-cache/d7ce266cff0c8e1e` (branch fallback; gh
+  has no valid token here). The next session should restore it instead of rebuilding.
+- `cells/check.sh` on claude/research (= Devin's PR #1 tip plus research files): SOME GATES FAILED.
+  Both failures are inherited, not caused by this session, and bisected:
+  1. **flow.sh: placement fails** (`Unable to find legal placement` for a LUT in
+     `bdspine_upipe_many_stage_3__u_rdly_chain` group, RLOC_COL -1), also with BD_NO_TIGHTEN=1,
+     4/4 seeds, same cell. **origin/main passes flow.sh with this same binary**, as do ff80891,
+     f4a51c8, 9e609ca~1 and 9e609ca. 431917a, c197434, 1295656 and HEAD fail. bcaf7fe can't be
+     tested with this binary (its older rloc-group fingerprint is MISSING, as it should be).
+     With `--placer sa` the design places but routing then fails: `No wire found for port O6 on
+     source cell upipe.many.stage[3].u.rdly.chain.g[4].u`, a delay-chain side-tap LUT in the
+     same group. So the multi-column/slot-ordered RLOC packing in the committed
+     `nextpnr-xilinx-rloc-group.patch` puts a chain LUT on a BEL it cannot drive out of. Either
+     the committed patch is not the one the README's routed numbers were made with, or the
+     cloud chipdb differs. tighten.py, teeth.sh and rule E then fail downstream (no SDF).
+  2. **run_sim.sh arc-only (BD_ROUTE_PS=0): tb_link and tb_ctl FAIL** (tb_link: every token
+     reads XX). Both pass at BD_ROUTE_PS=354. main and 9e609ca~1 pass both regimes under this
+     iverilog 12.0, so the simulator is not the cause; 9e609ca is the first bad commit.
+     Mechanism, from an event trace: stage 0's node is high for only 124 ps (8016 to 8140 ps),
+     because stage 1's node rises one SDELAY element plus one controller arc (112 ps) later and
+     the testbench source returns to zero at once. The latch's x->0 fall arc (124-152 ps) loses
+     that race and stage 0 captures X. This is the fill race 9e609ca's own message describes;
+     one SDELAY element does not cover it with zero routing. Control: probe copies of the
+     benches with `.SDELAY(2)` (and 3) pass in both regimes; `.SDELAY(1)` fails. rtl/ is frozen
+     and the default only sets the placeholder (rule I sizes SDELAY on a route), so the default
+     was NOT changed: that needs a routed GLS run, which didn't fit in this session.
+- Unit tests: `pytest bdc/ cells/verify/` passes 94 and skips 4 (fixtures not yet copied at
+  the time). An earlier run with 16 failures was iverilog still being installed by apt.
+Measured:
+| what | result | n | vs previous |
+|---|---|---|---|
+| toolchain.sh fingerprints | 9/9 ok | 1 build | first cloud build |
+| flow.sh, origin/main, BD_NO_TIGHTEN=1 | PASS | 1 (default seed) | -- |
+| flow.sh, HEAD, BD_NO_TIGHTEN=1 | placement FAIL | 5 (default, seeds 1-4) | README rows claim routed results |
+| tb_link / tb_ctl, BD_ROUTE_PS=0, SDELAY=1 | FAIL | deterministic | main: PASS |
+| tb_link / tb_ctl, BD_ROUTE_PS=0 and 354, SDELAY=2 | PASS | deterministic | -- |
+Does NOT show: that SDELAY=2 is the right default on a route, or that it is enough under
+routing scatter (sim only); that the RLOC failure is a patch bug and not a chipdb difference
+(the owner's local binary was never compared); that fasm2frames with the textX parser makes a
+correct bitstream (not run; nothing reached a bitstream this session). No speed numbers.
+Next:
+1. Restore the cached toolchain (`cloud/setup-toolchain.sh` should fetch d7ce266cff0c8e1e).
+2. Fix the RLOC placement failure: dump the BEL the g[4]/g[6] chain LUTs land on in the SA
+   run (`--placer sa`, then the routed JSON), check against the patch's slot-to-BEL mapping
+   for side-tap LUT2s sharing a site with LUT1s (O5/O6 fracture). Compare against the owner's
+   local binary if a sha is recorded in build/toolchain.log on their machine.
+3. Then SDELAY: change the bd_pipe default 1 -> 2 only with a routed GLS of xorshift_round
+   across 4 seeds showing it (rules in CLAUDE.md for cells/rtl/).
+
+## Session 2026-10-25 19:21 -- flow.sh green again: MUXF7/F8 LUTs no longer RLOC-stamped; in-site mux wires pass the zero-arc gate
+Toolchain: patches 789a7120c912d393, nextpnr sha256 9c732bc6303458df, yosys v0.62 (cloud cache d7ce266cff0c8e1e)   Seeds: 1 2 3 4
+### progress 19:30
+- Root cause of the inherited placement failure: this yosys maps soak_top's two 8-input
+  functions to 4 LUT6 + 2 MUXF7 + 1 MUXF8 each. rloc_stamp v8 (stamp_datapath) gave those LUTs
+  side slots in columns 0 and 1 of one group (seen in soak.json: four `lk1...lut0/lut1` LUT6s at
+  (col,slot) (0,10) (0,11) (0,12) (1,12)); an F8 tree lives in one SLICE, so no anchor is legal.
+  Not a patch bug and not a chipdb bug. Fix: stamp_datapath skips any LUT driving a MUXF7/F8
+  I0/I1 (8 LUTs here); unit test added, fails on the old code.
+- v4/v5 (which did place) then failed the zero-INTERCONNECT gate on exactly 12 arcs, all
+  LUT->F7 / F7->F8 site wires. New verify/zero_arcs.py exempts only a SELMUX2_1 data pin fed from
+  the same routed SLICE; three negative controls FAIL it.
+- BD_NO_TIGHTEN=1 flow.sh (v8 default): PASS on seeds 1-4, four distinct bitstreams, 0 groups
+  dropped (was: placement FAIL 5/5).
+### progress 19:45
+- Arc-only tb_link/tb_ctl: every real bd_pipe instance (emit.py, soak_top.v) sets SDELAY, and
+  rule I audits every pipe controller on a route, so the rtl default only reaches unsized uses.
+  The two zero-routing benches now size their own boundary (`BD_TB_SDELAY`, 2) with the measured
+  reason in a comment; rtl/ untouched. Both PASS in both regimes; control at SDELAY=1 still FAILs.
+- `cells/check.sh`: **ALL GATES PASS** (first time on this branch in the cloud). pytest 99 passed.
+### progress 19:45 (routed xorshift_round)
+`bdc/fusion_bench.py --route --kernels xorshift_round --caps 4 --no-baseline --seeds 3 --route-seeds 4`
+(fusion on, cap 4; resize route plus fresh seeds 4/5/6, four distinct bitstreams). Every route:
+tighten pass, skew pass, both GLS pass, gate.log has ANNOTATE_DONE and no SDF warning or error.
+
+| xorshift_round fusion on cap 4 | mean | range | n | vs README row |
+|---|---|---|---|---|
+| routed latency | 7.73 ns | 7.61-7.90 | 4 | 7.6-7.9 |
+| fast-source interval | 5.68 ns | 5.60-5.81 | 4 | 5.35-5.83 |
+| stalled-consumer interval | 13.84 ns | 13.72-14.02 | 4 | 13.4-13.7 |
+| LUT sites incl. harness | 217 | 217 | 4 | 218 |
+
+So the cloud toolchain reproduces the owner's routed numbers within route scatter. That is the
+toolchain agreeing with itself, not with silicon.
+- Draft PR #2 claude/research -> main opened.
+- Started: `hw/build_bench.sh gcd` (tighten loop), aiming for a cloud-built kernel bitstream
+  -> routed GLS -> BOARD-QUEUE.
+### progress 19:55
+- `hw/build_hw.sh gcd_hw` (the routed-GLS target) was broken on this branch: its
+  `--probe n138,n136_u,n135__2` names channels that op fusion (the emitter default) folds into
+  select1's fused cell, and emit.py refuses them. Now only n138 is probed by default; the cmp
+  probes and gcd_rig.v's `GCD_RIG_CMP_PROBE` come back with BDC_OP_FUSION=0 (emission checked
+  both ways). With fusion on, cmp_seen is 0 by construction, which voids cmp_bad.
+- Running: gcd_bench_gen tighten loop (main tree), gcd_hw converge (scratch worktree).
+### progress 20:10 (gcd_hw placement)
+- Same bug class as soak_top, larger: gcd_hw's data path has 21 CARRY4 and 35 MUXF7. Stamped
+  LUTs drove CARRY4 S/DI, so nextpnr dropped 5 bank groups ("member already has an absolute-z
+  constraint") and placement failed. rloc_stamp now leaves every LUT on a CARRY4 S/DI or a
+  MUXF7/F8 data input to its site (1112 LUTs in gcd_hw). Unit test fails on the old code;
+  soak_top's seed-1 bitstream is byte-identical (cmp) to the MUXF-only fix.
+- After that: 0 groups dropped, yet placement still fails (latch `lat.odd.u` of ulink_n64__2).
+  Geometry: 48 of the 90 v8 spine groups use three columns, and the {-1,0,1} -> dx {-1,0,3}
+  pattern holds at only 4 of 22 logic columns. 8-9-tile groups in 25-row runs give roughly 30-40
+  legal homes for 48 groups. So v8 does not fit gcd_hw. Not a bug in any one cell; v8 was only
+  ever measured on xorshift_round. Next: gcd_hw with BD_RLOC=v4.
+### progress 20:20 (gcd_hw, v4)
+- `BD_RLOC=v4 hw/build_hw.sh gcd_hw` places and routes (5 min). Rule E converge then gives up
+  after iteration 2: 118 select gates, 6 violated, and the same three links (ulink_n31, n164,
+  n165) measure short again after being padded (margins 76-400 ps, needing 3-4 more elements
+  each). converge.sh's own verdict: the padding moves the route as fast as it fixes it. This is
+  the "rule E blocks tightening" lead, reproduced in the cloud on gcd. No GLS (no converged
+  build). Running: the same build with v6 and with v2.
+### progress 20:30 (gcd_hw, rule E convergence)
+- v6 and v2 placements behave like v4: same short links (v6: 17 then 14 violated, adds
+  ulink_n90__0; v2: 6 then 6). In every case the failure is n31/n164/n165.
+- Why it chases: rule E's guardband is proportional (0.772*req vs 1.155*sel). umux20 (v2):
+  iteration 1 raw +1818 ps, guarded -621; after +2 elements on n165 the request moved +542 ps
+  but the select moved +716 ps (5286 -> 6002), guarded -1029. Exact padding is inside route
+  noise. Added `CONVERGE_HEADROOM=K` to converge.sh (pad K elements beyond the deficit;
+  default 0 = unchanged) since too long only costs time. Running v4 with K=3 and K=6.
+### progress 20:45 (rule E's knob was the wrong link)
+- Headroom did not help: v4 with K=3 and K=6 (n165 at 8 and 11 elements) still has the same 6
+  violations. Six extra elements (~2.5 ns nominal) moved umux20's request by +609 ps, i.e. the
+  pad was not on the measured path at all.
+- Cause, in skew.py's attribution: it pads the LAUNCH's link, assuming the launch is the C node
+  of the link whose req/data pair is checked. On gcd_hw the launch is umux20's OUTPUT pipe
+  (ulink_n165 stage[0], the shared acknowledge); its DELAY pads stage[1]'s req_out, which is on
+  neither leg. The link that owns the checked request is the mux's select channel ulink_n166__1
+  (ctl_req vs s). Same for umux19 (n164 -> n166__0) and umux2 (n31 -> n32__2).
+- Fix: skew.py takes the knob from the measured request path (the storage crossing nearest the
+  request pin, only if the path leaves it through its rdly chain or its req_out C node, in a
+  pipe's last stage); otherwise the violation is reported, not padded.
+- Gate hole found and closed: converge.sh declared CONVERGED whenever the pad file was empty,
+  including when every violation was unattributed. It now also requires rule E's own
+  "0 violated".
+- check.sh: ALL GATES PASS with both changes (soak rule E 3/3, 0 violated). pytest verify/ 49 pass.
+- Running: gcd_hw converge with the fixed knob, v4 and v6.
+### progress 21:00 (gcd_hw converges)
+- With the knob fix, `BD_RLOC=v4 hw/build_hw.sh gcd_hw` CONVERGES in 2 iterations: pads
+  ulink_n166__0=12, ulink_n166__1=13, ulink_n32__2=11 (36 elements added), rule E 0/118 violated.
+  v6 still does not converge (17 -> 9 violated, n166__0 and n90__0 short again): v6 placement is
+  worse for gcd's selects.
+- tighten.py on that route (`--osc dhk --osc invhk`, the harness's free-running housekeeping
+  ring): rules A, H, I 0 violations; the 38 reported problems are all rule D, the documented
+  screen (check.sh: "on gcd it calls 38 of 39 branches violations").
+- cloud/setup-toolchain.sh: apt `time` added (gls/run.sh needs /usr/bin/time; the cache key is
+  unchanged).
+- Running: routed GLS of this route (16 vectors), and seeds 2/3/4 with the converged pads.
+### progress 21:20 (gcd_hw routed GLS)
+- Route 1 (converge's final route, build_hw default seed, pads n166__0=12/n166__1=13/n32__2=11,
+  routed.json md5 13643a10, sdf md5 e9bbd1f2): `gls/build.sh gcd_hw`, `vvp gate.vvp` ->
+  ANNOTATE_DONE, 0 SDF warnings/errors (11 min); `gls/run.sh gcd_hw` (TEND 150 us): **16/16
+  vectors complete laps with errs=0**, including 5, 6, 7, 8, 11, 12, 13 (the board's historical
+  seven). Laps per vector 19 to 2626. Expected values re-checked here against math.gcd: 16/16,
+  none degenerate.
+- Same pads on fresh seeds: seed 2 and 4 rule E 0 violated; seed 3 rule E 1 violated (umux2,
+  -29 ps guarded on +2292 raw, wants +1 on n32__2). Rules A/H/I 0 on all four; D 38 (screen).
+  So the converged pads are marginal on 1 route in 4. Taking the longer number: pads +1/+1/+2
+  (13/14/13) are being re-checked on 4 seeds (default, 2, 3, 4), then GLS on each.
+### progress 21:40
+- Pads 13/14/13 (`cells/hw/gcd_hw_pads.json`, committed): seeds d/2/3/4, four distinct bitstreams,
+  rule E 0/118 violated on all four, rules A/H/I 0, D 38 (screen). GLS of all four running.
+  Reproduce one route: `cd cells && BDC_SELECT_PADS=hw/gcd_hw_pads.json BD_RLOC=v4 [NEXTPNR_SEED=N]
+  ./hw/build_hw.sh gcd_hw`.
+### progress 21:50 (gcd_hw top of the ladder -> BOARD-QUEUE #1)
+GLS of all four 13/14/13 routes (seeds d, 2, 3, 4): each gate ANNOTATE_DONE with 0 SDF
+warnings/errors; each 16/16 vectors with errs=0 and laps>0. Board queue entry #1 with the
+default-seed bitstream committed (`research/board/gcd_hw_03e82630.bit`).
+
+| gcd_hw (v4, pads 13/14/13) per 150 us GLS window | laps mean | range | n | ns/lap upper bound |
+|---|---|---|---|---|
+| vec 0 (a=0) | 2689.5 | 2650-2719 | 4 | 56 |
+| vec 4 (1,1) | 328.8 | 325-333 | 4 | 456 |
+| vec 6 (gcd.c's main pair, deepest k-loop) | 25.0 | 24-26 | 4 | 6000 |
+| vec 12 (2^31-1, 2) | 19.2 | 19-20 | 4 | 7792 |
+| vec 13 (1000000, 999999) | 28.2 | 28-29 | 4 | 5310 |
+(ns/lap = 150 us / laps, so it includes the window's reset and settling; it is an upper bound
+on latency, not a measurement of it. All 16 vectors are in r2/*.gls_run.log in the session.)
+### progress 23:00 (benches; owner: no board for a long time)
+- Owner's PROGRAM.md update (1acd25b): no board for the foreseeable future, so strengthen the
+  off-board evidence: 8+ seeds with the worst one reported, routed GLS at corners and under delay
+  scatter, negative controls for every check, the August silicon failures as regressions. One
+  bitstream is already committed (BOARD-QUEUE #1); no more will be.
+- `hw/build_bench.sh xorshift` (tighten loop, rule A outer, rule E inner, with the fixed rule E
+  knob): CONVERGED after 4 iterations; rule A 0 on the final route; 39 measured sizes.
+- `hw/build_bench.sh gcd`: NOT converged in 6 iterations (62 min). Rule A violations per
+  iteration 5, 74, 23, 12, 18, 10, 8, a different set each time (compute units ucmpi*/uori4/
+  uselect1/ushrsi3, merges, DACK lines). The script falls back to emit.py's estimate sizes and
+  still writes a bitstream, and its iteration-0 route already had 5 rule A violations. So the
+  gcd bench bitstream it produces does not pass rule A. This is the route-sensitivity problem
+  CLAUDE.md describes (rule A tightening to exact sizes, 2 of 8 fail). Not fixed here; noted for
+  a later lead (tightening with headroom, or sizing against several routes at once, as
+  resize.sh does for xorshift_round).
+- gls/gen.py: opt-in delay perturbation (GLS_DELAY_SCALE, GLS_SCATTER + _SEED, GLS_SCALE_INST
+  for a targeted fault). With none set, the generated netlist, baked netlist, SDF and name map
+  are byte-identical to before (cmp). Running: negative control, uselect1's 94-link matched
+  delay scaled to 0 on the default-seed gcd_hw route.
+### progress 23:30 (gcd_hw GLS negative controls)
+On the default-seed route (pads 13/14/13), baked GLS via GLS_SCALE_INST:
+| fault | arcs scaled | vectors correct | note |
+|---|---|---|---|
+| none | 0 | 16/16 | as above |
+| uselect1.udly x0 (its 94-link, 45 ns chain) | 374 | 16/16 | not a failure of the check: rule A says the request trails the data by 38.6 ns with the chain; 94 links is grossly oversized for these vectors ("tighten to 14") |
+| every compute unit's udly x0 (50 units) | 4270 | 1/16 | 15 vectors: one WRONG answer, then the ring wedges (laps=1, errs=1). Vector 0 (a=0) is the C's early return and touches no datapath |
+So the routed GLS does catch a bundling fault, when the fault is real on the vectors' paths. The
+single-unit control shows how much slack the emitted estimates carry (a speed lead: tighten the
+compute chains, which `build_bench.sh gcd` could not do stably).
+- Seeds 5 and 6 (pads 13/14/13): rule E 0, A/H/I 0. Running: seeds 7, 8; GLS corner
+  (x0.9, x1.1) and scatter (sigma 8.5% x3 draws, 17% x2, 25% x2) sweeps.
+### progress 23:25 (gcd_hw: 8 seeds, corners, scatter -- first failure is NOT seen by any audit)
+- Seeds 5, 6, 7, 8 (pads 13/14/13): rule E 0, A/H/I 0, D 38 on each. **8/8 routes** (d, 2-8) clean
+  on every audit, 8 distinct bitstreams. GLS on d, 2, 3, 4: 16/16 each (seeds 5-8 not yet GLS'd).
+- GLS perturbation sweep on the default-seed route (baked run, 16 vectors, TEND 150 us):
+
+| delays | vectors correct |
+|---|---|
+| x0.90 (fast corner) | 16/16 |
+| x1.10 (slow corner) | 16/16 |
+| scatter sigma 8.5% (median ring scatter), 3 draws | 16/16, 16/16, 16/16 |
+| scatter sigma 17%, 2 draws | 16/16, 16/16 |
+| scatter sigma 25%, 2 draws | **11/16** (draw 1), 16/16 (draw 2) |
+
+- The sigma-25% draw-1 failure is liveness, not data: vectors 6, 9, 11, 14, 15 complete no gcd
+  (laps=0, errs=0). No wrong answer anywhere.
+- **No audit sees it.** The same perturbed delays written back into an SDF (scratch tool
+  perturb_sdf.py, same regexes and draw order as gen.py) pass rule E (0/118), A, H, I (0 each);
+  D 38 as always.
+- Localised on vector 6 (tb_wedge + probe.vh): a true deadlock about 200 ns after the rig's
+  reset releases (450 -> ~655 ns), no control node X. The loop-header muxes umux0/1/2 hold valid
+  back-edge data (n_trueResult_22/24/26: req=1, ack=0; ulink_n_trueResult_22 really passed a
+  token), but control_merge2 never delivers the next index (its inputs n_trueResult_18/28 idle),
+  and source n33's fork waits on one output. So a CONTROL token is lost in the first loop
+  iteration. Not yet found where; candidates are a timing relation none of A/D/E/H/I models,
+  for example a multi-input change on a LUT C-element when per-arc delays diverge by tens of
+  percent.
+- Running: sigma 20% x3 draws, 25% x2 more, 25% on the seed-2 route x2.
+### progress 00:00 (the first margin to fail under scatter: bd_arbiter's A0 fork)
+- More scatter draws: sigma 20% x3 -> 11/16 (draw 1), 16/16, 16/16; sigma 25% draws 3, 4 ->
+  16/16, 16/16. Draw 1 fails at both 20% and 25% (same random sequence, smaller amplitude).
+  Total at >=20%: 2 failing of 7 draws on the default-seed route.
+- Bisection with GLS_SCATTER_ONLY (each arc keeps its draw-1 factor): of 355 kernel units, the
+  deadlock needs ucontrol_merge2 alone (the loop-header control merge, bdc_amerge2_0 = bd_arbiter
+  between loop entry and back edge). Of its 21 cells it needs exactly two together:
+  **uarb1.ua2.u** (A2 = C(g2, A0)) and **uarb1.ustate$LUT6** (q, held while A0 is high). Either
+  alone passes.
+- What the draw did to them: A0 (the fork ack, one net) reaches ustate's hold pin at 777 ps
+  (x0.52) but ua2 at 2378 ps (x1.59), 1.6 ns of skew between two branches of the same net.
+  So q unfreezes at A0-fall and starts the next grant long before ua2 has seen A0 fall. bd_arb.v
+  says the handover ordering is "a post-route check, not a defect" and that alternation holds by
+  "one arc of margin, not by construction". **No such post-route check exists**: rules A, D, E,
+  H and I do not look inside the arbiter, and all pass on this perturbed SDF.
+- Confirmed with no scatter (GLS_SCALE_INST on every arc into ua2): x1.6 -> 5 correct laps;
+  x2.5 (A0 about 2.2 ns later at ua2) -> deadlock; x4 -> deadlock. The nominal margin on this
+  route is therefore roughly 0.9-2.2 ns of extra A0->ua2 delay.
+- Realism: the two A0 branches share one net and much of its route, so independent per-arc
+  scatter overstates their divergence; nominally the margin is positive on 8/8 routes (all pass
+  GLS where run). But it is an unaudited timing dependency in a cell every kernel with a loop
+  emits, and its margin is not measured anywhere.
+- **Next (goal 1, highest value):** add the missing post-route check, call it rule J. For every
+  bd_arbiter, the A0 fall must reach ua1/ua2 (plus their C-element arc) before q's re-decision
+  can raise R0 and bring A0 back up, with the guardband. Prove it can fail (ua2 x2.5 above is a
+  ready negative control), then run it on all 8 gcd_hw routes and on xorshift/the benches.
+### progress 00:30 (rule J: verify/arb_fork.py)
+- Exact race from a time-ordered trace (ua2 arcs x2.5, no scatter): client 1 acked (608.8 ns);
+  A0 falls (659.3); ustate sees it, q flips to client 2 (660.9), g2 rises (661.3); **ua2 =
+  C(g2, A0) rises at 662.7 because A0's fall has not reached it yet**; client 2 drops r2, g2 and
+  R0 fall, and the merge's gated delay flushes before z_req ever rises. The control token is gone.
+  This is the very handover bug bd_arb.v's hold was added for; the hold only works if A0 reaches
+  ua_k no later than q -> ugrant -> g_k does.
+- New audit `cells/verify/arb_fork.py` (rule J): per arbiter and client, late = A0 -> ua_k +
+  ua_k's A0 arc; early = A0 -> ustate + ustate arc + q -> ugrant + grant arc + g_k -> ua_k +
+  ua_k's g arc; guarded = 0.772*early - 1.155*late > 0. Pins resolved from the routed JSON; rst
+  is told from A0 by fanout. Exit 1 on violation, 2 on an unresolved arbiter.
+- Validation against GLS (default-seed route, same delays in both):
+
+| delays | rule J raw (worst) | rule J guarded | GLS vector 6 |
+|---|---|---|---|
+| sigma 25% draw 1 (merge2) | -1090 | -1921 | deadlock |
+| ua2 x2.5 (merge2) | -607 | -1944 | deadlock |
+| ua2 x1.6 (merge2) | +344 | -696 | 5 correct laps |
+| nominal (merge2) | +864 | +48 | correct |
+
+  Raw sign predicts the GLS outcome in all four cases. The guard flags x1.6 as well, as intended.
+- **On the 8 nominal routes: guarded violations on 3 (d: -96, 5: -150, 6: -80; worst is always
+  ucontrol_merge9 client 1); raw positive on all 8.** BOARD-QUEUE #1 is the d route, so it is
+  downgraded: it does not pass every check.
+- Next: a placement fix. Put each bd_arbiter's ustate, ugrant, ua1 and ua2 in one slice
+  (rloc_stamp) so A0's branches into them are near-equal and the grant path decides. Then rule J
+  and GLS again on 8 seeds. An rtl alternative (hold q on the acks rather than A0) does not work
+  as such: the idle client's ack does not change when A0 falls, so it cannot be observed.
+### progress 00:50 (rule J with shared route credit; arbiter grouping measured, rejected)
+- `BD_RLOC_ARB=1` (one SLICE per arbiter), 8 seeds, pads 13/14/13: rules A/E/H/I 0 on all eight.
+  Rule J WITHOUT a shared-route credit: still short on 3 of 8 (d -288, 7 -198, 8 -102). Packing
+  the four LUTs into one slice does not shorten A0, which comes from far away (merge9's arbiter
+  sits at X2, the die edge). Most of each branch is the same wire.
+- The flaw was in rule J, not the route: it guarded each leg's full A0 interconnect (x0.772 vs
+  x1.155) as if the branches were independent wires. arb_fork.py now walks each net's ROUTING
+  tree to where the two sinks diverge (physical site pins, since the route is post-permutation)
+  and leaves the shared prefix unguarded, like skew.py's divergence point. Its delay is an
+  ESTIMATE (each sink's interconnect times its shared-pip fraction, the smaller of the two),
+  because the routed JSON has no per-pip delays.
+- Validation still holds: draw-1 scatter -> guarded -1698 (GLS deadlock); ua2 x2.5 -> -1516
+  (deadlock); ua2 x1.6 -> -267 (GLS passes; flagged, conservative); nominal -> pass.
+
+| rule J, 8 seeds each | violated | worst guarded | worst raw |
+|---|---|---|---|
+| v4, pads 13/14/13 (BOARD-QUEUE #1 config) | 0/8 | +272 (seed 6) | +718 |
+| same + BD_RLOC_ARB=1 | 0/8 | +280 (seed 6) | +618 |
+
+  Grouping buys nothing, so it stays opt-in and off. BOARD-QUEUE #1 is restored with that caveat.
+- What the sigma-25% deadlock was: gen.py's scatter draws one factor per SINK interconnect,
+  so two sinks sharing 0.6-1.1 ns of one physical wire get independent factors. The deadlock
+  needed A0's two branches to diverge by ~1.6 ns. A per-wire scatter model would be more
+  physical, and is the next improvement to the GLS perturbation (it needs per-pip delays,
+  which the SDF does not have).
+### summary so far (01:00)
+Measured (toolchain patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62):
+
+| what | result | n | vs previous |
+|---|---|---|---|
+| cells/check.sh | ALL GATES PASS | 3 runs | was red (flow.sh placement, arc-only sims) |
+| flow.sh (soak, v8), BD_NO_TIGHTEN | PASS | seeds 1-4 | was placement FAIL 5/5 |
+| xorshift_round fusion cap 4, routed | 4/4 routes pass audits + both GLS; latency 7.73 ns (7.61-7.90), fast interval 5.68 ns (5.60-5.81) | 4 | README 7.6-7.9 / 5.35-5.83 |
+| gcd_hw (v4, pads 13/14/13): rule E | 0/118 violated on every route | 8 seeds | never converged before (v2/v4/v6) |
+| gcd_hw: tighten A/H/I | 0 violations every route (D 38 = screen) | 8 | -- |
+| gcd_hw: rule J (new) | 0/8 violated, worst guarded +272 ps, raw >= +718 | 8 | new check |
+| gcd_hw: routed GLS | 16/16 vectors, errs=0, every route; gate clean | 8 | first cloud kernel GLS |
+| gcd_hw GLS x0.9 / x1.1 | 16/16 / 16/16 | 1 route | -- |
+| gcd_hw GLS scatter 8.5% / 17% / 20% / 25% | 3/3, 2/2, 2/3, 3/4 draws all-correct | 1 route (+2 draws on seed 2) | first-failing: bd_arbiter A0 fork |
+| GLS negative control (all compute delays x0) | 1/16 (the a=0 early return) | 1 | proves GLS can fail |
+| build_bench.sh xorshift | converged | 1 | -- |
+| build_bench.sh gcd | rule A not converged in 6 iterations | 1 | open |
+
+Does NOT show: anything on silicon (no board for the foreseeable future); that rule J's shared-route
+credit is exact (it is a pip-fraction estimate); that the per-sink scatter model is physical (it
+is not: shared wires get independent factors, which is what made the 25% deadlock possible); that
+the other kernels' benches pass rule A/E/J or GLS (only gcd_hw has a GLS rig); xorshift bench GLS.
+Next:
+1. A per-WIRE scatter model in gls/gen.py (one factor per route segment, shared by every sink
+   that uses it); that needs per-pip delays, so start from nextpnr's chipdb or a pip-count model,
+   and check that it reproduces nominal exactly at sigma 0.
+2. Rule J into the standard audit path (build_hw/converge, check.sh once a design with an
+   arbiter is in the gate); run it on xorshift's and the other benches' routes.
+3. gcd bench rule A non-convergence (tightening with headroom, or sizing against several routes).
+4. Speed: uselect1's 94-link (45 ns) chain is 6.7 ns longer than its whole request path needs on
+   these vectors (rule A: "tighten to 14"); gcd_hw's compute chains are emit.py estimates.
+### progress 01:30 (rule J in the standard paths)
+- Rule J on the bench routes still on disk: xorshift_bench_gen (2 arbiters) pass, gcd_bench_gen
+  (9 arbiters, the non-converged fallback build) pass.
+- converge.sh: a run whose rule E converged is now NOT SHIPPABLE (exit 1) if rule J fails or
+  cannot resolve an arbiter on the same route. tighten_loop.sh: same check on the final bitstream's
+  route, exit 1. A design with no arbiter passes trivially (soak_top). Re-ran `BD_RLOC=v4
+  hw/build_hw.sh gcd_hw` from scratch: rule J line printed, CONVERGED after 2 iterations at the
+  same pads as the first run (12/13/11), so converge is reproducible on the default seed.
+### progress 02:00 (wire-model scatter)
+GLS on the default-seed gcd_hw route, GLS_SCATTER_MODE=wire (one factor per pip, shared by every
+sink using it; arc = mean over its path; cell IOPATHs still one draw each):
+
+| per-pip sigma | draws | vectors correct |
+|---|---|---|
+| 17% | 1 | 16/16 |
+| 25% | 4 | 16/16 x4 (per-arc mode: 3/4 draws) |
+| 35% | 3 | 16/16 x3 |
+
+Caveat: averaging over ~9 pips makes an arc's effective spread about sigma/3, so these sigmas
+are not comparable to per-arc mode's. What the two modes do show together: the only failure
+mechanism found needs two branches of one net to diverge by ~1.6 ns. Per-arc mode makes that
+possible; a model where shared wire scatters together does not reach it even at 35% per pip.
+Rule J watches that margin directly on every route.
+### progress 02:30 (gcd bench: rule A sizing converges with 600 ps of search slack)
+`BD_TIGHTEN_SLACK=<ps> hw/build_bench.sh gcd` (tighten.py --slack on the sizing proposals only;
+the rule A gate on each route runs without it):
+
+| slack | rule A violations per iteration | outcome |
+|---|---|---|
+| 0 (earlier) | 5, 74, 23, 12, 18, 10, 8 | no sized build passed; falls back to estimates |
+| 300 ps | 5, 53, 15, 6, 4, 3, 5 | no sized build passed |
+| 600 ps | 2, 25, 13, 2, 1, 0, 2; restored best: 0 | **sized build passes rule A on its route** |
+
+The 600 ps build carries 208.6 ns of matched delay against the unsized estimate's 572.9 ns
+(2.75x less). On its final route: rule E 0/118 violated, rule J pass, 213 measured sizes. ONE
+route; fresh seeds 2/3/4 with the sizes fixed are running. No speed number: the bench reads its
+cycles through the PS, which has no GLS model, and there is no board.
+### progress 02:45 (gcd bench sized at 600 ps slack: does NOT survive fresh seeds)
+Rebuilt with the 213 sizes fixed (`BD_SIZES=... NEXTPNR_SEED=s hw/build_bench.sh gcd`):
+
+| seed | build_bench rule A gate | audits on the route it reached |
+|---|---|---|
+| 2 | SIZES REJECTED (3 cells), no bitstream | A 2, H 1, I 0, E 0, J pass |
+| 3 | SIZES REJECTED (1 cell), no bitstream | A 0 / I 1, E 0, J pass |
+| 4 | SIZES REJECTED (2 cells), no bitstream | A 2, E 1, J pass |
+
+So the 600 ps result is a property of the route it was sized on (0 of 3 fresh routes accept
+it), the failure CLAUDE.md describes for xorshift ("rebuilds violate rule A 2 times in 8").
+Negative result, not shippable. To make a sized gcd bench robust, size against several routes
+at once (resize.sh's --seeds approach for xorshift_round) rather than one route plus slack.
+
+## Session 2026-10-26 04:13 -- (in progress)
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, yosys v0.62   Seeds: TBD
+- Took the lock at 04:13 (previous holder's lock dated 02:43, past 90 min). Toolchain restored
+  from cache, toolchain.sh all ok. Machine: 4 cores, 15 GB.
+- Plan: (1) per-cell matched-delay sizes for gcd_hw (the GLS-able rig), sized against several
+  routes, then GLS laps vs the emit.py-estimate baseline: the only speed lead the routed GLS can
+  check end to end; (2) in parallel, routed GLS of gcd_hw seeds 5-8 (8/8 GLS for BOARD-QUEUE #1)
+  and slow/fast corners on more than one route.
+### progress 04:30 (gcd_hw sizing hook works; seeds 5/6 audits reproduced)
+- `BD_SIZES` for gcd_hw (16ee9c8): checked in synth.log that the sized build elaborates bdc_gcd with
+  the file's values (DELAY_USELECT1 = 15 against the default 94); unset, gcd_rig.v is unchanged.
+- `BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4 BD_TIGHTEN_SEEDS="2 3" BD_TIGHTEN_SLACK=300
+  hw/tighten_loop.sh gcd_hw 8` (running): unsized route 547.7 ns of matched delay built, 166.9 ns
+  needed, rule A 0. Pass 1 (207 sizes): 103.6 ns built, rule A 54 violations, rejected and
+  ratcheting, as the loop expects on its first pass.
+- Seeds 5 and 6 (pads 13/14/13) rebuilt: rule E 0/118, A/H/I 0, rule J pass, as in the last
+  session. GLS (nominal, x0.9, x1.1) running; then seeds 7, 8.
+### progress 05:00 (gcd_hw seeds 5/6 GLS; sizing loop reaches rule A 0 on its route)
+- Seeds 5, 6 (pads 13/14/13): GLS gate ANNOTATE_DONE, 0 SDF warnings/errors; **16/16 vectors,
+  errs=0, laps>0 on both** (vec 6: 24/24 laps, vec 12: 19/18, vec 13: 28/27 per 150 us, in line with
+  d/2/3/4). So 6 of 8 seeds now have nominal GLS. x0.9/x1.1 on them and seeds 7/8 running.
+- gcd_hw sizing: rule A violations per pass 54, 7, 5, 0. Pass 4 on the default seed: **163.8 ns
+  built (unsized 547.7 ns, 3.3x less), rule A 0**. It is now being rebuilt under seeds 2 and 3
+  (BD_TIGHTEN_SEEDS) before it counts as a candidate.
+### progress 05:45 (collatz: first routed GLS of a loop kernel besides gcd; subagent, reviewed and committed here)
+- `bdc/fusion_bench.py --mlir <frontend mlir> --route --nextpnr-seeds ...` (new): zero-delay RTL check,
+  then per pinned seed flow.sh, tighten.py (A/H/I/B/C/D), skew.py (E), arb_fork.py (J), and routed
+  GLS (fast source and stalled consumer), one invocation at a time, oracle = simcheck.REFS (the
+  kernels' C, transcribed) on simcheck.VECTORS + 8 seeded random vectors, `$fatal` on mismatch,
+  bd_monitor on the protocol. Audits are recorded, not enforced, so a violating route still runs.
+- zero_arcs.py (flow.sh gate) blocked every collatz route: 64 CARRY4 S<k> arcs at 0 ps. All were
+  LUT O6 -> CARRY4 S<k> in the same SLICE with the LUT letter matching k, the hard-wired propagate
+  input (delay carried by the CARRY4 S->O/CO IOPATH, 210-472 ps). That case is now accepted with
+  the same same-site test as the F7/F8 exception; DI/CIN/CYINIT stay checked. Negative control:
+  swapping S0/S1 sink names in a copy of the SDF makes it fail (32 arcs). pytest verify/ 52 pass.
+
+| collatz, 4 seeds (1-4) | rule E violated | rule J | A/H/I | GLS fast / stalled |
+|---|---|---|---|---|
+| emit placeholders | 4, 3, 4, 5 of 18 (umux0/1/2) | 4/4 ok | 0 | pass, pass, **FAIL, FAIL** |
+| + rule E pads (research/data/collatz_rulee_sizes.vh) | 0 on all 4 | 4/4 ok | 0 | pass on all 4 |
+
+- The seed-3 GLS failure is the rule E violation itself: umux0's join sees vector 1's request at
+  5100.798 ns while its select (ulink_n14__0) settles at 5101.033 ns, the -235 ps raw deficit skew.py
+  reports on that route. So routed GLS and rule E agree, and rule E is load-bearing on collatz.
+- Latency (padded, 4 seeds): **158.2 ns per loop iteration (156.3-160.2)**, slope of latency against
+  Collatz steps over 16 vectors; n=1 40.9 ns (39.8-41.3); n=27 (111 steps) 17.57 us (17.37-17.79).
+  Zero-delay RTL: 18.4 ns per iteration.
+- Negative control: one expected value changed (n=27: 111 -> 112) fails both RTL and routed GLS.
+- Does NOT show: tightened delays (placeholders + 3 pads; the 158 ns is not a speed result); the pads
+  were derived from and re-checked on the same seeds 1-4 (fresh seeds still owed); corners or
+  scatter; rule D (tighten.py exits 1 on the 6 ucond_br screens, which rule E passes); check.sh
+  not re-run after the zero_arcs change; isprime/ipow (the mode has their vectors, not run).
+### progress 06:15 (gcd_hw seeds 5/6 at both corners)
+- Seeds 5 and 6 (pads 13/14/13), routed GLS with every delay x0.9 and x1.1: **16/16 vectors,
+  errs=0, laps>0 at both corners on both routes** (laps scale about 1/factor, e.g. seed 6 vec 6:
+  26 / 24 / 22). Corners were on 1 route before; now 3. Seeds 7/8 running.
+- gcd_hw sizing, rule A per pass: 54, 7, 5, 0 (rejected by fresh seeds 2 and 3), 2, 1, ...: one new
+  binding cell per route, chain 170.8 ns at pass 6.
+### progress 06:50 (gcd_hw: 8/8 seeds pass nominal routed GLS; sizing run 1 did not converge)
+- Seeds 7, 8 (pads 13/14/13): rule E 0/118, A/H/I 0, rule J pass, gate clean, **16/16 vectors errs=0**.
+  BOARD-QUEUE #1's configuration now has nominal routed GLS on all 8 seeds (d, 2-8), and x0.9/x1.1 on
+  d, 5, 6 (7/8 corners running).
+- Sizing run 1 (`tighten_loop.sh gcd_hw 8`, seeds d + fresh 2 3, slack 300): rule A per pass 54, 7, 5,
+  0*, 2, 1, 0*, 0* (* = passed its own route, then rejected by a fresh seed: 2 rejected pass 4 with 7
+  cells, seed 3 pass 7 with 2, seed 2 pass 8 with 1). Chain 163.8 -> 171.5 ns. No candidate accepted
+  in 8 passes, so it shipped nothing (fallback to emit's estimate, as designed). Resumed from the
+  ratchet (BD_RESUME=1, 10 more passes); the requirement is still rising by 1-3 cells per new route.
+### progress 07:05 (gcd_hw corners on 5 routes)
+- Seeds 7, 8: routed GLS x0.9 and x1.1, 16/16 errs=0 on both. **Corners now pass on 5 of 8 routes
+  (d, 5, 6, 7, 8); nominal on 8/8.** Running: per-arc scatter (8.5% x2 draws, 17% x2) on the seed-8
+  route; the run-1 pass-8 sizes (171.5 ns, rule A 0 on the default seed only) built and GLS'd on the
+  default seed, to see whether 3.2x less matched delay buys laps at all (exploratory: those sizes
+  failed a fresh seed and are not a candidate).
+### progress 07:45 (gcd_hw sizing is worth ~2.2x in routed GLS; seed-8 scatter clean)
+Exploratory, ONE route, NOT a candidate: run 1's pass-8 sizes (`sizes.8.vh`, 207 sizes, 171.5 ns of
+matched delay against 547.7 unsized) rebuilt on build_hw's default seed (pads 13/14/13, v4):
+rule E 0/118, A/H/I 0, rule J pass, GLS gate clean, **16/16 vectors errs=0**. These sizes were
+rejected by fresh seed 2 (rule A, 1 cell), so they are not shippable.
+
+| laps per 150 us GLS window | unsized (seed 5) | sized pass 8 (seed d) | ratio |
+|---|---|---|---|
+| vec 0 (a=0, no loop) | 2509 | 4432 | 1.77 |
+| vec 4 (1,1) | 323 | 733 | 2.27 |
+| vec 6 (gcd.c's pair) | 24 | 53 | 2.2 |
+| vec 12 (2^31-1, 2) | 19 | 44 | 2.3 |
+| vec 13 (1000000, 999999) | 28 | 63 | 2.25 |
+(unsized seeds d/2-8 agree within a lap or two on vecs 6/12/13: 24-26, 18-20, 27-29.)
+
+So the matched delay is on the critical cycle, and sizing it to the route buys about 2.2x laps in the
+routed GLS, the same size of effect as the board's 1.99x for rule-A-only sizing of xorshift in August.
+What stops it shipping is the route-sensitivity long tail: each fresh route finds 1-2 more cells short.
+- Seed-8 route, per-arc scatter: 8.5% draws 1, 2 and 17% draw 1: 16/16 each (17% draw 2 running).
+### progress 08:20 (scatter on a second route; sized route at corners; ratchet + 1 link)
+- Seed-8 route (unsized, pads 13/14/13), per-arc scatter 8.5% x2 and 17% x2 draws: 16/16 on all four.
+- The exploratory sized route (pass-8 sizes, default seed): x0.9 and x1.1 also 16/16.
+- New candidate "r1" = the resumed loop's ratchet (207 sizes) + 1 link on every cell (taking the longer
+  number instead of chasing one binding cell per route): rules E/A/H/I/J clean on seeds d and 2 so far;
+  seeds 3-8 running (two worktrees). The resumed loop itself is still finding 1-2 short cells per fresh route.
+### progress 08:55 (gcd_hw multi-seed sizing converges)
+- Resumed loop (`BD_RESUME=1 ... tighten_loop.sh gcd_hw 10`): pass 7 passed rule A on its own route
+  AND on fresh seeds 2 and 3, ACCEPTED, then CONVERGED (proposal stopped moving). **182.1 ns of matched
+  delay (unsized 547.7), 207 sizes, rule J pass on the final route.** Committed as
+  research/data/gcd_hw_sizes_L7.vh. Total passes across both runs: 8 + 7 builds plus 2 fresh-seed
+  builds each.
+- Candidate r1 (an earlier ratchet + 1 link everywhere, research/data/gcd_hw_sizes_r1.vh; 198 links more
+  than L7 in total but 1 cell shorter): rules E/A/H/I/J clean on **7 seeds (d, 2, 3, 4, 5, 7, 8)**;
+  seed 6 running. GLS of r1 on d and 2 running. L7 on fresh seeds 4-8 running.
+### progress 09:20 (collatz pads on fresh seeds and corners; isprime routed GLS; subagent, reviewed)
+- `cells/check.sh`: ALL GATES PASS with the zero_arcs CARRY4-S change (flow.sh: "12 in-site F7/F8 mux /
+  CARRY4 S input wire(s) are 0 ps by construction").
+- collatz with research/data/collatz_rulee_sizes.vh on FRESH seeds 5-8: A/H/I 0, rule E 0/18, rule J ok,
+  GLS fast and stalled pass on all 4; 160.4 ns per iteration (157.0-164.2). **All 8 seeds: 159.3 ns
+  (156.3-164.2).** Seed 1 at x0.9 and x1.1: both GLS pass (n=27 latency 15.66 / 19.08 us, so the scale
+  took effect). Uniform scaling cannot flip a race's sign; scatter on collatz not run.
+- isprime: default BD_DSP=1 has no routed GLS (cells/gls has no DSP48E1 model: gen.py KeyError); its
+  audits on 4 seeds: A/H/I 0, rule E 16-18/86 violated, rule J 0/14. With BD_DSP=0 (LUT multiplier):
+  fusion_bench's routed_signals() now finds a result bit no net name carries (out0_data[31], folded into
+  $PACKER_GND_NET since the answer is 0 or 1) through the leaf pin it reaches.
+
+| isprime BD_DSP=0 | rule E violated /86 | A/H/I | GLS fast/stalled |
+|---|---|---|---|
+| placeholders, seeds 1-4 | 16, 23, 21, 16 (worst raw -960..-1690 ps) | 0 | pass, **deadlock (n=4)**, **deadlock (n=4)**, **out-of-phase out0_req** |
+| + pads (research/data/isprime_rulee_sizes.vh), seeds 1-8 (5-8 fresh) | 5, 3, 2, 2, 3, 2, 3, 0 | 0, except seed 1 rule I 1 | pass on all 8 |
+
+  Remaining rule E violations all have POSITIVE raw margins and fail only after the guardband:
+  ucond_br16 on 7/8 (raw +4.5..+7.9 ns, guarded -1.1..-4.1 ns; request crosses 4 storage stages, ~25 ns,
+  so the proportional guard grows with it; skew.py: no link DELAY is on the request path, nothing to
+  pad), and umux2/4/7 (raw +0.9..+2.0 ns, guarded -16..-539 ps, paddable: a second round).
+  Latency over 8 seeds (fast): n=91 5.74 us (5.62-5.92), n=97 7.76 us (7.60-8.00), n=997 38.55 us
+  (37.66-39.83).
+- Does NOT show: isprime's shipped (DSP) build in GLS; isprime passing the audits (it does not: rule E
+  guarded on 7/8, rule I on 1); scatter on either kernel.
+### progress 09:45 (L7 fails a fresh seed; r1 clean on 8/8; candidate R2)
+- L7 (the loop's converged sizes, validated on d/2/3) on fresh seed 4: **rule A 1 violation** (ucmpi3
+  14 links, margin -96 ps, wants 15). A three-seed acceptance is not enough on gcd_hw; the long tail
+  continues on fresh routes. L7 is not a candidate; its remaining seeds were stopped.
+- r1 (ratchet + 1 link everywhere): rules E/A/H/I/J clean on **all 8 seeds (d, 2-8)**. r1 has ucmpi3 at
+  15 already, but uori4 at 18 where an L7 route asked for 19. Taking the longer number:
+  **R2 = max(L7, r1) per cell** (research/data/gcd_hw_sizes_R2.vh) is the shipping candidate; its 8-seed
+  audit is running. GLS of r1 on d/2/3/4 is running (r1 and R2 differ by one link on one cell, but a
+  netlist change is a new route, so R2 gets its own GLS).
+### progress 10:20 (r1 in routed GLS: 16/16 at ~2.1x; R2 audits 5/8 clean so far)
+- r1 sizes, routed GLS nominal, seeds d and 3: gate clean, **16/16 vectors errs=0** on both.
+  laps per 150 us: vec 0 4603/4872, vec 4 653/684, vec 6 51/52, vec 12 41/41, vec 13 59/61
+  (unsized, 8 seeds: vec 6 24-26, vec 12 18-20, vec 13 27-29), i.e. **~2.1x**.
+- R2 (= max(L7, r1)): rules E/A/H/I/J clean on seeds d, 2, 3, 4, 5 so far. Queued: R2 routed GLS
+  (nominal, x0.9, x1.1) on seeds d, 2, 3, 4, 5, 6.
+### progress 10:50 (R2 sizes: every audit clean on 8/8 seeds)
+`BD_SIZES=research/data/gcd_hw_sizes_R2.vh BDC_SELECT_PADS=$PWD/hw/gcd_hw_pads.json BD_RLOC=v4
+[NEXTPNR_SEED=s] hw/build_hw.sh gcd_hw`, seeds d and 2-8:
+
+| seed | rule E /118 | A | H | I | J | matched delay built | worst rule-A guarded margin |
+|---|---|---|---|---|---|---|---|
+| d | 0 | 0 | 0 | 0 | pass | 200.2 ns | +918 ps |
+| 2 | 0 | 0 | 0 | 0 | pass | 200.1 | +190 |
+| 3 | 0 | 0 | 0 | 0 | pass | 200.9 | +769 |
+| 4 | 0 | 0 | 0 | 0 | pass | 200.5 | +253 |
+| 5 | 0 | 0 | 0 | 0 | pass | 198.6 | +916 |
+| 6 | 0 | 0 | 0 | 0 | pass | 200.1 | +1051 |
+| 7 | 0 | 0 | 0 | 0 | pass | 199.4 | +400 |
+| 8 | 0 | 0 | 0 | 0 | pass | 199.4 | +241 |
+
+Mean 199.9 ns of matched delay (unsized 547.7 ns on the same pads: 2.74x less); worst seed's worst
+margin +190 ps after the guardband. r1 (one link less on uori4) also passed x0.9 on d and 3. R2 routed
+GLS (nominal + corners) running on d, 2, 3 first, then 4, 5, 6.
+### progress 11:40 (R2 in routed GLS: 16/16 on 3 seeds at ~1.95x laps)
+| laps per 150 us | unsized (8 seeds) | R2 seed d | R2 seed 2 | R2 seed 3 |
+|---|---|---|---|---|
+| vec 4 (1,1) | 323-333 | 623 | 664 | 650 |
+| vec 6 | 24-26 | 47 | 48 | 48 |
+| vec 12 | 18-20 | 38 | 38 | 39 |
+| vec 13 | 27-29 | 55 | 57 | 55 |
+All three: gate clean (ANNOTATE_DONE, 0 SDF warnings), **16/16 vectors errs=0**. R2 is a little slower
+than r1/the exploratory pass-8 sizes (vec 6: 47-48 vs 51-53) because it carries the most headroom.
+r1 also passed x0.9 and x1.1 on d and 3. R2 corners and seeds 4, 5, 6 running.
+### progress 12:30 (DSP48E1 GLS model; ipow and isprime with DSPs; isprime pad round 2; ucond_br16; subagent, reviewed)
+- **cells/gls DSP48E1 model** (prims.v `DSP48E1_DSP48E1`, gen.py `dsp_config()`): models exactly the
+  configuration flow.sh's DSP cascade uses (no pipeline registers, INMODE/ALUMODE/CARRYIN* 0, OPMODE X=Y=M
+  with Z in {000, 001, 101}, A direct or cascade, 25x18 signed multiply) and REFUSES anything else by name
+  (checked by injecting PREG=1, a flipped OPMODE inversion and a dropped ALUMODE inversion: each exits 1).
+  Timing: the SDF's per-bit IOPATHs, each set to its (input group, output group) maximum (on this chipdb
+  each group has one value anyway: A->P 5400, B->P 3850, PCIN->P 1710 ps). Checks: unit test against the
+  UG479 equations, 200 random operands x 6 configurations PASS, 1200 mismatches with `-DGLS_DSP_FAULT=5`;
+  gate ANNOTATE_DONE with 0 warnings and claimed = emitted IOPATHs (isprime 80004, 38682 of them DSP);
+  renaming one DSP arc's pin in the SDF yields an SDF WARNING (the arcs really are matched). Fault
+  injection in routed GLS fails ipow ("got 13 expected 3") and isprime (n=9).
+  **Non-DSP designs unchanged:** old and new gen.py on the seed-5 gcd_hw route give byte-identical
+  netlist.v, netlist_baked.v, annot.sdf, names.map (cmp).
+- ipow BD_DSP=1 (shipped config), placeholder lengths, seeds 1-4: A/H/I 0, rule J 0/4, **rule E 3-4/24
+  violated on every seed (worst raw -279..-2295 ps; umux1/2/3)**, routed GLS fast+stalled pass on all 4;
+  96.9 ns per loop iteration (95.7-98.2; iterations = bit length of e). 4 of its 8 random vectors expect 0
+  (power wraps): weak vectors; 12 of 16 non-zero. GLS passing with raw rule E deficits up to -2.3 ns says
+  this GLS does not exercise those races; rule E is the evidence there. fusion_bench: a channel with no
+  bd_link latch reading it (ipow's b enters a loop-entry mux) now keeps bd_source's default 3000 ps setup,
+  recorded as None (unmeasured).
+- isprime BD_DSP=1 seed 1 GLS: all 18 values right (incl. 97, 113, 997, which need the DSP d*d), then a
+  protocol $fatal (out0 X pulse) on a route with 16 rule E violations: the same signature as collatz's
+  rule E failures.
+- isprime BD_DSP=0 second pad round (research/data/isprime_rulee2_sizes.vh), seeds 1 (re-check) and fresh
+  9-12: rule E 0, 3, 2, 3, 0 of 86; rule I 1 on seed 9; GLS pass on all 5. Remaining: ucond_br16 (raw
+  +6.2..+8.6 ns), umux1 (paddable), ulink_n_index_71 SDELAY (rule I).
+- **ucond_br16 is a rule E measurement artifact (analysis only, no rule changed).** skew.py measures the
+  select from ulink_n18__1's latch outputs, and its request path from there runs through ucond_br16's OWN
+  select pin and ack, round the loop (ufork6, ufork30, ulink_n76 C node and latch) to the NEXT token's
+  request: a lap, not the bundled request. The right common launch is ulink_n18__1's C node (latch enable
+  -> select, 1 crossing; ucmpi2 join -> its delay -> ucond_br16_j -> request, 2 crossings): raw +31.8 ns,
+  guarded +16.7 ns there. skew.py never evaluates it: it ranks launches by select crossings and keeps
+  cand[:4], and the 32-bit latch bank alone supplies 64 zero-crossing candidates (C node is #96 of 2061).
+  The error direction is a FALSE violation (conservative). Fix candidate: always evaluate the C node of
+  the select's feeding link; needs a negative control showing rule E can still fail there.
+### progress 13:20 (R2 -> BOARD-QUEUE #2)
+- R2 seed 5 routed GLS: gate clean, 16/16 (vec 6 53 laps, vec 12 43, vec 13 61). R2 seed d, 2, 3 at
+  x0.9 and x1.1: 16/16 each. R2 now has nominal routed GLS on 4 seeds and corners on 3, every audit on 8:
+  BOARD-QUEUE #2 written (rebuild command + md5s, no bitstream committed). Seeds 4/6 GLS and corners on 5
+  still running.
+### progress 14:30 (R2: routed GLS + corners on 6 seeds)
+- R2 seeds 4, 5, 6: gate clean, nominal 16/16 (vec 6: 48 / 53 / 54 laps; vec 12: 39 / 43 / 44), x0.9
+  16/16, x1.1 16/16. **R2 now passes nominal, x0.9 and x1.1 routed GLS on 6 seeds (d, 2-6)**, every audit
+  on 8. Running: seeds 7, 8; per-arc scatter (8.5% x2, 17% x2, 25% x1) on the R2 default-seed route.
+### progress 15:40 (R2: 7 seeds full GLS, scatter clean to 25%; collatz sizing started)
+- R2 seed 7: gate clean, 16/16 at nominal (vec 6 50 laps), x0.9 and x1.1. **7 seeds (d, 2-7) pass nominal +
+  both corners.** Seed 8 running.
+- R2 per-arc scatter, default-seed route: 8.5% x2, 17% x2, 25% x1 all 16/16. Seed-2 route (the worst rule A
+  margin, +190 ps): 8.5% x2, 17% x2 all 16/16; 25% running. (Unsized seed d failed 1 of 2 draws at >=20%
+  via the bd_arbiter A0 fork, now watched by rule J.)
+- Next speed lead started: collatz sizing. tighten.py on the 8 padded collatz routes says the placeholders
+  are generous (e.g. uaddi0 80 links, "tighten to 24"). Running a ratchet over seeds 1-4 (per-cell max of
+  every route's proposal, never below the rule E pads) until rules A and E are clean on all four; then
+  fresh seeds with headroom, as for gcd_hw.
+### progress 16:50 (R2: routed GLS 16/16 on all 8 seeds, ~2.0x)
+| laps per 150 us GLS window | R2, seeds d,2,3,4,5,6,7,8 | mean | unsized (seeds d,2-8) | ratio of means |
+|---|---|---|---|---|
+| vec 6 (gcd.c's pair) | 47 48 48 48 53 54 50 48 | 49.5 | 24-26 (seeds 5-8: 24 24 25 24) | ~2.0x |
+| vec 12 (2^31-1, 2) | 38 38 39 39 43 44 40 39 | 40.0 | 18-20 | ~2.1x |
+| vec 13 (1000000, 999999) | 55 57 55 56 61 64 59 56 | 57.9 | 27-29 | ~2.1x |
+Worst seed (fewest laps): d at 47/38/55, still 1.9x the best unsized seed. Every R2 route: gate clean,
+16/16 errs=0. x0.9/x1.1 16/16 on d, 2-7 (seed 8 corners running). Scatter on R2 d: 8.5% x2, 17% x2, 20% x2,
+25% x1 all 16/16; seed 2: 8.5% x2, 17% x2, 25% x1 all 16/16.
+- collatz sizing ratchet (seeds 1-4): pass 1 latency 0.52-0.55x of the padded build on every vector and
+  seed (GLS passes) but rule A 3-4 per seed; pass 2 rule A 1-3; pass 3 rule A 1-3 and rule E 1-2 (shorter
+  compute chains make requests earlier, so the select pads must grow): the merge now also takes skew.py's
+  fix asks (current + ask + 1). Continuing.
+### progress 17:45 (collatz sizing ratchet converges on seeds 1-4)
+- Ratchet (fusion_bench --sizes, seeds 1-4, merge = per-cell max of every route's tighten.py proposal,
+  never below the rule E pads, plus skew.py's fix asks as current+ask+1 from pass 3 on): rule A per seed
+  (3,3,4,4) -> (1,2,1,3) -> (1,2,1,3)+E(1,2,0,0) -> (0,1,2,2) -> (1,1,0,1) -> **(0,0,0,0), rule E 0 on all**
+  (pass 6, research/data/collatz_sizes_S5.vh). The binding cells move every pass (control merges, then
+  muxes, uselect0), as on gcd_hw.
+- Candidate CR = S5 + 1 link on every cell (research/data/collatz_sizes_CR.vh), being validated on seeds 1-8
+  with every audit and routed GLS. R2 seed 8 x0.9 16/16; R2 d scatter 20% x2 and 25% draw 2 16/16.
+- R2 seed 8 x1.1 16/16: **R2 passes nominal, x0.9 and x1.1 routed GLS on all 8 seeds.** Running: wire-mode scatter (per pip, 25% x1, 35% x2) on R2 seed 2.
+### progress 18:30 (rule E finds more with the C-node launch; R2 on hold; ipow/isprime DSP pads)
+- **skew.py (rule E): the select's feeding-link C node is now always among the launches evaluated** (subagent's
+  "Part A", committed here). The verdict was and stays the MIN guarded margin over every launch evaluated,
+  so this can only make rule E stricter. Why: launches are ranked by select crossings and only cand[:4]
+  evaluated; a 32-bit latch bank fills those with its own outputs and the C node, where request and select
+  really diverge, could sit at #96. Subagent's comparison of every gate's worst row (old -> new): soak_top 3
+  gates 0 changed; collatz 18 gates 12 stricter; ipow 24/16 stricter; xorshift 24/14 stricter; isprime 86/58
+  stricter (one new violation, ucond_br31 -178 ps); **gcd_hw BOARD-QUEUE #1 recipe seeds 1-8: 28 stricter,
+  0 verdicts changed, worst guarded margin per seed unchanged (174-520 ps)**; nowhere more permissive.
+  Negative control: isprime with ucmpi2's delay removed: ucond_br16 flagged (raw -16.3 ns) in old and new.
+  pytest verify 52 pass. NOT committed: the subagent's opt-in "Part B" (stop the request walk at the gate's
+  own pins, which clears the isprime ucond_br16 false violation): it also loosens rows whose binding launch
+  is not the C node (gcd_hw ucond_br23/28/41, +66..+1449 ps), so it removes more than the artifact.
+- **R2 under the new rule E: seeds 2 and 6 violate** (seed 2: ucond_br42 -520, ucond_br46 -167, ucond_br10
+  -10 ps guarded, raw +2.3..+3.9 ns, from ulink_n145__3 / ulink_n1__1 C nodes; seed 6: 8 rows). Seeds d, 3,
+  4, 5, 7, 8: 0. So the sized design has select margins the old rule E did not measure. BOARD-QUEUE #2 is ON
+  HOLD; building R3 = R2 + skew.py's asks + 1 from all 8 routes, to be re-audited on 8 seeds and GLS'd.
+- Subagent round 4 (ipow and isprime, BD_DSP=1, all audits on the OLD skew.py): ipow two pad rounds, rule E
+  clean on 5 of 8 fresh routes (seed 12 still -568 ps guarded), GLS 8/8, 101.0 ns per iteration (99.0-102.6),
+  vectors now non-degenerate except one deliberate wrap (65536^2). isprime: two rounds, rule E clean on 3 of 8
+  fresh routes (ucond_br16 artifact plus umux6/7/9), **first rule J violation seen in the wild**: seed 11
+  ucontrol_merge3.uarb1 client 2, raw +956, guarded -45 ps, no knob; GLS 8/8. Neither kernel is clean.
+- collatz CR (= S5 + 1 link everywhere): rules E/H/I/J clean on 8/8 but **rule A 1 on 7 of 8**, always
+  ucontrol_merge1 (6 links; margins -125..-1022 ps): the extra link elsewhere moved its data peak later.
+  Ratcheting CR on its own 8 routes (CR2).
+- R2 d scatter 25% draws 2-4 also 16/16.
+### progress 19:30 (R3, collatz 8-seed ratchet, wire scatter)
+- R2 seed 2 (tightest rule A route), GLS_SCATTER_MODE=wire (one factor per pip): 25% x1, 35% x2 all 16/16.
+- R3 (R2 + C-node rule E asks + 1 on ulink_n112__1, n145__3, n1__1, n94__1) under the new rule E: seeds d, 2,
+  5, 6, 7 clean on every audit; **seed 3: ucond_br33 -83 ps guarded (raw +2863), asks +1 on ulink_n106__1**.
+  The rule E long tail now, as rule A had: each route finds one more paddable link.
+- collatz: CR's 8 routes pass the new rule E (0 on all). T1 = CR + ucontrol_merge1 9: rules A 0 on 8/8, rule E
+  0 on 7/8 (seed 4: 2, padding in T2). Running T2 on 8 seeds.
+### progress 21:30 (collatz sized: 1.56x per iteration, every audit + routed GLS clean on 8 seeds; gcd_hw R4)
+- **collatz T3** (research/data/collatz_sizes_T3.vh, 42 sizes): the ratchet continued on 8 seeds from CR
+  (T1: ucontrol_merge1 9; T2 = T1 because the ratchet's merge dropped a rule E ask for a link with no
+  size macro -- fixed: it now falls back to the kernel's DELAY default; T3: ulink_n1__1 0 -> 2).
+  `fusion_bench.py --mlir .../collatz/... --sizes research/data/collatz_sizes_T3.vh --route
+  --nextpnr-seeds 1 2 3 4 5 6 7 8`: rules A/E(new, C-node launches)/H/I/J 0 on all 8, gate clean on all 8,
+  **routed GLS fast + stalled pass on all 8**.
+
+| collatz, ns per loop iteration (slope over 16 vectors) | seeds 1..8 | mean | range |
+|---|---|---|---|
+| padded (rule E pads only) | 156.3 160.2 156.6 159.6 158.6 164.2 161.9 157.0 | 159.3 | 156.3-164.2 |
+| **T3 (route-measured sizes)** | 98.3 101.3 106.1 107.5 99.6 103.4 102.6 99.3 | **102.3** | 98.3-107.5 |
+  1.56x (worst T3 seed 107.5 vs best padded 156.3: still 1.45x). Zero-delay RTL is 18.4 ns, so ~84 ns of
+  each iteration is still routing and the remaining delay lines. Merge script committed as
+  research/data/collatz_ratchet_merge.py (scratch tool, not a flow).
+- gcd_hw R4 (= R3 + rule E ask on n106__1 + umux10/umux6 headroom): every audit clean on 7 of 8 seeds;
+  seed 7: ucond_br42/45 -64/-222 ps guarded (raw +4.4 ns) from yet another link (ulink_n155__1). New:
+  `skew.py --slack <ps>` (706f697) prices fixes for gates within <ps> of the guard, to buy headroom across
+  routes instead of chasing one link per route; measuring R4's 8 routes at --slack 500 to build R5.
+- The sandbox disk filled (GLS build dirs, ~900 MB each); cleaned. One slack measurement (R4 seed 8)
+  failed on it and is being rerun.
+### progress 23:00 (collatz T3 robustness; R5; xorshift ratchet started)
+- collatz T3, seeds 1 and 4: routed GLS at x0.9, x1.1, per-arc scatter 8.5% x2 and 17% x1: fast and stalled
+  pass on all 10 runs.
+- gcd_hw R5 = R4 + `skew.py --slack 500` asks over R4's 8 routes (links n129__0/1, n151__1, n155__1, n32__0,
+  n59__3, n8__1, n90__0; research/data/gcd_hw_sizes_R5.vh). Audit running: d and 5 clean so far. **Seed 2:
+  nextpnr placement failed** ("post-placement validity check failed for Bel SLICE_X18Y90/A5FF (no cell)"),
+  a placer legality failure on this netlist+seed, not an audit result; seed 9 substituted. First time this
+  error is recorded here; worth a look if it recurs (RLOC v4 groups vs packing).
+- xorshift (frontend kernel, fusion_bench --mlir, placeholders fail rule E per the subagent) ratchet started
+  on 8 seeds with the collatz procedure.
+### progress 00:30 (R5 audits: 7/7 placed routes clean)
+- gcd_hw R5 under the C-node rule E: rules E/A/H/I/J clean on seeds d, 3, 4, 5, 6, 7, 8 (seed 2 did not place,
+  see above; seed 9 running as its substitute). The --slack 500 step closed the long tail seen R2 -> R3 -> R4
+  (one new short steer link per route). R5 routed GLS (nominal + corners) running on d, 3, 5, 6.
+- xorshift ratchet: placeholders fail rule E on 8/8 seeds (1-6 each; GLS passes 8/8); pass 1: rule A 4-8,
+  rule E 2-8 per seed (shorter compute makes requests earlier; pads catching up). Continuing.
+### progress 01:30 (xorshift sized: 1.70x per round, every audit + routed GLS clean on 8 seeds)
+- **xorshift T3** (research/data/xorshift_sizes_T3.vh), fusion_bench --mlir .../xorshift/... (the frontend
+  kernel, fork fusion + cap 4), ratchet over seeds 1-8 from placeholders (rule E fix asks + rule A proposals,
+  per-cell max), 3 passes: rules A/E(C-node)/H/I/J 0 on all 8, gate clean on all 8, routed GLS fast+stalled
+  pass on all 8.
+
+| xorshift, ns per round (slope over 6 vectors, rounds 0-4) | seeds 1..8 | mean | range |
+|---|---|---|---|
+| placeholders (FAIL rule E on 8/8: 1-6 gates each) | 102.2 103.0 102.3 102.9 102.0 100.8 105.4 101.5 | 102.5 | 100.8-105.4 |
+| **T3** | 61.6 60.1 61.6 61.4 61.4 59.1 59.4 56.8 | **60.2** | 56.8-61.6 |
+  1.70x, against a baseline that is itself unsafe (it needs rule E pads, which add delay), so the speedup
+  over a SAFE unsized build is larger. Only 6 vectors (simcheck's; fusion_bench adds random ones only for
+  collatz/isprime/ipow): a thin oracle, though non-degenerate.
+- gcd_hw R5: seed 9 clean too: every audit clean on 8 placed routes (d, 3-9; seed 2 unplaceable).
+- xorshift T3 re-validated with 14 vectors (simcheck's 6 + 8 seeded random nonzero states, rounds 0-8;
+  fusion_bench commit above), seeds 1-8 rerouted: rules A/E/H/I/J 0 (tighten.py's exit 1 is rule D's 8
+  screens), GLS fast+stalled pass on all 8. Per round over 14 vectors: **64.3 ns (60.7-65.9)** (the 6-vector
+  fit said 60.2; the wider round range is the better fit).
+### progress 02:30 (ipow DSP pads clean on fresh seeds; isprime DSP: rule E and GLS agree on a real failure; rule J in the wild)
+Subagent round 5 (committed rule E, BD_DSP=1, the shipped config), reviewed:
+- **ipow** with research/data/ipow_dsp1_rulee3_sizes.vh (placeholders + 4 select-link pads), FRESH seeds
+  13-16: rules A/E/H/I/J 0, gate clean, GLS fast+stalled pass (17 vectors, 16 non-zero + the deliberate
+  65536^2 wrap); 103.4 ns per iteration (101.6-106.1). Pads only, compute at placeholders: a ratchet run
+  on ipow (my loop, seeds 1-8, from these pads) is in progress.
+- **isprime** with research/data/isprime_dsp1_rulee3_sizes.vh, fresh seeds 13-16: rule E 4, 0, 4, 1 of 86;
+  **seed 13: umux1 raw -676 ps (negative BEFORE the guardband) and routed GLS FAILS** (out0 req out of
+  phase, X pulse; all values seen before were correct). So on a route where rule E reports a raw-negative
+  margin, the routed GLS fails too: another case where rule E is load-bearing and GLS agrees.
+  Seed 15: rule J violated on ucontrol_merge5.uarb1 client 2 (raw +1010, guarded -103 ps, shared 591 ps):
+  the second arbiter-fork violation found in the wild (both isprime); no delay knob, placement only.
+  The ucond_br16 false violation remains on seed 13 only (raw +8.5 ns).
+  Remaining paddable asks: ulink_n29__1 +9, ulink_n66__2 +5.
+### progress 03:30 (rule J survey over 168 routes; isprime DSP round 4)
+Subagent round 6, reviewed:
+- isprime BD_DSP=1 round-4 pads (research/data/isprime_dsp1_rulee4_sizes.vh; n29__1 21, n66__2 17), fresh
+  seeds 17-20: A/H/I/J 0, rule E 1/0/0/0 (seed 17: umux11 raw +1329, guarded -1094, asks +4 on ulink_n79__1),
+  gate clean, GLS fast+stalled pass on 4/4; ucond_br16 not flagged on any. n=997 39.72 us (39.62-39.77).
+- **Rule J survey** (arb_fork.py on 168 routed SDFs, 1562 arbiter x client rows; script + rows in
+  research/data/ruleJ_survey/): **minimum RAW margin +618 ps over all rows** -- the arbiter's handover
+  ordering holds on every route; both violations ever seen (isprime DSP1, -45 and -103 ps) exist only after
+  the 0.772/1.155 guardband. The tail is set by how far A0 travels (A0 > 2 ns: min -103, median +590; < 1 ns:
+  min +204, median +711) and by arbiter count (isprime 7 arbiters: ~1 route in 8 fails, a fifth within
+  200 ps; gcd_hw 9 arbiters: 0 of 40 fail, worst +185; 2-arbiter kernels: none below +272). So: seed selection
+  suffices for gcd_hw and the 2-arbiter kernels; isprime has a systematic guardband tail. Candidate fix is
+  placement (BD_RLOC_ARB=1 grouping, which flow.sh cannot enable today); note that on gcd_hw (2026-10-26
+  00:50) grouping changed the worst rule J margin by +8 ps only, because A0 itself comes from far away.
+### progress 04:20 (BOARD-QUEUE #2 is now R5)
+- R5 routed GLS: d, 3, 7, 9 16/16 at nominal (vec 6: 47, 42, 48, 48 laps), d and 7 also x0.9/x1.1 16/16.
+  BOARD-QUEUE #2 rewritten for R5 (rebuild command, md5s ce596deb / 7be3c1cf / a9c4e265). Seeds 5, 6 GLS
+  still running.
+- ipow ratchet: placeholder + rule E pads are already clean on 8/8 (it0); T1 = pads + it0's tightened
+  proposals, running.
+- R5 seeds 3 and 9 also pass x0.9/x1.1: R5 routed GLS nominal + both corners 16/16 on d, 3, 7, 9.
+### progress 15:42 (correction: this session's progress times)
+- The "### progress HH:MM" times in this session's entry after the first few were ESTIMATES and drifted far
+  from real time (e.g. the note headed "04:20" was written around 15:15 UTC). The commit times in
+  `git log` are the true ones. From here on every heading comes from `date -u +%H:%M` (PROGRAM.md, 17edbba).
+### progress 15:54 (arbiter grouping fixes isprime's rule J tail; flow.sh opt-in)
+Subagent round 7, reviewed:
+- cells/flow.sh: opt-in BD_RLOC_ARB (rloc_stamp.py --arb-groups, as build_hw.sh). Unset: same seed gives a
+  byte-identical soak.fasm/xdc/rloc.log, and soak.json/sdf/routed.json identical after path normalisation.
+- isprime BD_DSP=1, round-5 pads (research/data/isprime_dsp1_rulee5_sizes.vh), seeds 21-24, grouping off vs on:
+  rule J worst guarded -105 (violation, merge7) -> **+142 ps (0 violations)**; rule E violations 9 -> 3 (clean
+  seeds 0/4 -> 2/4); GLS passes in both arms; n=997 latency 40.95 -> 39.02 us. Raw margins barely move; the
+  shared part of A0's route doubles (median 243 -> 489 ps), and the guard applies only past the split. Unlike
+  gcd_hw (+8 ps) because isprime's A0 nets are long (median 1.1-1.2 ns, max 3.0 ns).
+- Grouping is INCOMPLETE: 4 of 7 arbiters grouped; ucontrol_merge7 (4-input merge, a tree of 3 arbiters) is
+  not -- stamp_arbiters() only uniquifies one level below a singly-instantiated module. Fix next.
+### progress 16:11 (collatz and xorshift sized builds hold on FRESH seeds)
+- collatz T3 and xorshift T3 (both ratcheted on seeds 1-8) on fresh seeds 9-12: rules A/E/H/I/J 0 and
+  routed GLS fast+stalled pass on 4/4 each (xorshift with the 14-vector set). So both now pass every check
+  on 12 routes, 4 of them never seen by the sizing loop.
+- gcd_hw R5 seed 5 routed GLS 16/16 (vec 6 49 laps): nominal GLS on 5 seeds (d, 3, 5, 7, 9).
+### progress 16:31 (isprime: all 7 arbiters grouped; rule J clean on fresh seeds; only ucond_br16 remains)
+Subagent round 8, reviewed and committed:
+- rloc_stamp.py --arb-groups (only under BD_RLOC_ARB): (a) an arbiter LUT already claimed by a spine group
+  leaves it for its own bdarb_ group (isprime's 4-input merge, bdc_amerge4, had all 12 LUTs in v8 spine
+  groups, which is why it was skipped, not depth); (b) uniquification repeats until every module holding an
+  arbiter is instantiated once. Stamped netlists unchanged for soak_top v8/v4, gcd_hw v4 (on and off) and
+  isprime off; changed only where intended (isprime v8+arb: 4 -> 7 grouped; soak_top v8+arb: 0 -> 1). 4 new
+  unit tests (2 fail on the old code); pytest verify 56 pass.
+- isprime BD_DSP=1, BD_RLOC_ARB=1, research/data/isprime_dsp1_rulee6_sizes.vh, FRESH seeds 25-28: 7/7 arbiters
+  grouped; rules A/H/I/J 0 (rule J worst +266 ps); rule E 0 on 2 seeds, and on the other 2 ONLY ucond_br16
+  (raw +8.1/+8.4 ns, the launch-selection false violation; no knob); GLS fast+stalled pass 4/4; n=997
+  38.97 us (38.39-39.49). Groups are tile-sized: 1-2 arbiters per seed straddle the tile's two slices.
+- Decision kept: skew.py's Part B (which would clear ucond_br16) stays out; isprime is reported as not
+  clean on rule E rather than loosening the audit.
+### progress 17:05 (container restart)
+- The container restarted around 16:40-17:00 UTC; every background job died (ipow ratchet at pass 3, R5 GLS
+  seed 6, both subagents: August-failure regressions, gcd RTZ tail analysis). Toolchain still in place,
+  toolchain.sh all ok. Restarting them.
+### progress 17:08 (gcd critical cycle, hop by hop: where a lap goes; RTZ = 36%)
+Subagent round 9 (analysis, one route: gcd_hw R5, default seed, all audits clean, GLS gate clean; tools in
+research/tools/rtz/): VCD of every routed net for one 3154.3 ns lap of vector 6, back-traced event by event
+(5229 hops, each matched exactly: t_in + wire + arc = t_out).
+- **Falling (return-to-zero) edges are 35.7% of the critical path** (1126 of 3154 ns); wire is 79% (2501 ns)
+  vs cell arcs 654 ns. Rise: compute matched delays 956 ns, gates 334, link rdly 244, link C nodes 203.
+  Fall: link rdly 227 (no fast fall), compute udly 223 (FASTFALL already), C nodes 221, gates 197.
+- One ctz-loop iteration (28 per lap) = 43.0 ns: rise 26.9 (uori4's 19-link delay 10.4 alone), fall 16.1
+  (umux15 3.1, ulink_n151__0 rdly 2.8, ulink_n145__3 rdly 2.5 at full cost on the fall). One wire,
+  ucond_br45_j -> ucond_br45, costs 1.77 ns on each edge.
+- **The board's "23-cycle RTZ tail" (cells/hw/README.md) is not the kernel's:** its output RTZ in this rig is
+  ~14 ns (~1.5 board cycles). The tail is a gen_bench harness interaction (its FSM's S_RTZ waits on a
+  synchronised o_req); a routed GLS of gcd_bench_gen would settle it (not run). rtz_cost_results.tsv now shows
+  12.1, not 23.
+- Speed proposals, each to be gated by audits + GLS on >=4 seeds: (P1) fast fall for bd_link rdly and
+  mux/merge output delays (~7.6% lap, frozen rtl/: needs routed-GLS justification); (P2) uori4 19 -> 13
+  links (rule A here says so, but R5 keeps 19 because other routes asked for it); (P3) RLOC-group each steer
+  join with its steer (~5% lap from one wire on the ctz ring); (P4) two-phase links on loop rings (removes
+  the falling lap, large change).
+### progress 17:34 (August silicon failures as board-free regression tests; FASM audit on every build)
+Subagent (August regressions), reviewed; cells/check.sh ALL GATES PASS end to end with everything applied
+(17m39s, in its worktree); pytest verify 75 pass here.
+- **verify/fasm_audit.py, now run by flow.sh and build_hw.sh after routing (exit 0 pass, 1 mismatch, 2 cannot
+  check; any nonzero stops the build):** reads every LUT site's INIT and every DSP48E1 register/const-pin bit
+  back out of the FASM and checks it against the yosys netlist (hierarchical names resolved strictly).
+  Catches the three August FASM-writer bugs: lut-pinmap (run-together X_ORIG_PORT; emulated unpatched writer:
+  58 corrupted LUT sites on a gcd_hw route, 90 on ipow), dsp-constpins (packer half and inversion half, 24 and
+  24 on the probe), dsp-areg (4 on the probe). Gate verify/fasm/check.sh runs a probe with each encoding plus
+  each bug re-applied as a negative control. PASS on soak, gcd_hw (8925 sites), collatz, xorshift, ipow DSP.
+  Note: toolchain.sh's dsp-areg fingerprint ("ZAREG_2_ACASCREG_1") CANNOT fail -- the string is already in
+  unpatched fasm.cc; not changed (toolchain.sh is frozen against weakening; the FASM audit now covers it).
+- verify/cdc_fsm.py + cdc_bench.sh (gate): the bench FSM reads the kernel only through a two-flop
+  synchroniser; on all 6 kernels; the August wiring and a one-flop version both fail it. 5 unit tests.
+- verify/harness_pss.sh (gate): the synthesised bench harness passes tb_gcd_bench_gen (guards the hist[]
+  memory-inference class; the specific August bug does not reproduce on yosys 0.62, so this guards the class).
+- tb_gcd_bench_gen drives out0_data to X outside req-up..ack-up; verify/bench_window.sh re-applies the August
+  late read (isprime 0x80000000) and checks that it fails.
+- Not reproducible without the board: the gcd_hw sweep stale-result (settle window) and the cmpb probe's stale
+  operands (an instrument's silicon timing; the probe no longer exists with fusion on).
+- Anomaly, R5 seed 6 GLS: the first `vvp gate.vvp` printed 4 SDF errors ("Invalid/malformed IOPATH" at
+  annot.sdf:94016, "Too many errors"); a rerun on the identical files (routed.json/sdf md5 = the route's,
+  annot.sdf unchanged since its write at 17:22) gives ANNOTATE_DONE with 0 warnings/errors. Most likely the
+  first gate read the file before it was completely on disk (this was right after the container restart). The
+  vector runs use netlist_baked.v from the same gen.py run, so they stand; flagged here in case it recurs.
+### progress 17:48 (correction: the "restart" did not kill everything; R5 seed 6 GLS discarded)
+- After the container notice, some pre-restart jobs were in fact still running: the old ipow loop (already at
+  pass 4) and the old R5 GLS chain (which finished seed 6 at 17:38). My restarted duplicates wrote into the
+  same directories, so **both R5 seed 6 GLS results are discarded** (the transient gate parse error above is
+  explained by this: two gen.py runs, nominal and x1.1, writing the same annot.sdf). Seed 6 is being rerun in a
+  fresh worktree. The duplicate ipow loop was killed; the surviving loop redoes pass 3 from T3 (same inputs).
+  Rule kept: after a restart notice, check `ps` before restarting anything.
+### progress 18:46 (R5 routed GLS on 6 seeds)
+- R5 seed 6 rerun in a fresh worktree: every audit clean, gate clean, 16/16 at nominal (vec 6 50 laps), x0.9,
+  x1.1. R5 now: every audit clean on 8 placed routes; routed GLS nominal + both corners 16/16 on 6 (d, 3, 5,
+  6, 7, 9). BOARD-QUEUE #2 updated.
+- ipow ratchet pass 3: rules A+E clean on seeds 1, 5, 6, 7; A <= 2 and E <= 4 elsewhere; pass 4 running.
+### progress 19:47
+- R5 seed 4: every audit clean, gate clean, 16/16 at nominal (vec 6 45 laps), x0.9, x1.1. R5 routed GLS
+  (nominal + corners) now on 7 seeds (d, 3, 4, 5, 6, 7, 9); seed 8 running.
+- ipow ratchet pass 4: rules A+E clean on 7 of 8 seeds (seed 1: rule A 1); pass 5 running.
+### progress 20:38 (R5 complete: every audit + routed GLS with corners on all 8 placed routes)
+| R5, laps per 150 us | d | 3 | 4 | 5 | 6 | 7 | 8 | 9 | mean | unsized |
+|---|---|---|---|---|---|---|---|---|---|---|
+| vec 6 | 47 | 42 | 45 | 49 | 50 | 48 | 49 | 48 | 47.3 | 24-26 |
+| vec 12 | 38 | 34 | 37 | 39 | 41 | 39 | 39 | 38 | 38.1 | 18-20 |
+| vec 13 | 56 | 49 | 53 | 57 | 59 | 56 | 57 | 56 | 55.4 | 27-29 |
+Every route: rules A/E(C-node)/H/I/J 0, gate clean, 16/16 errs=0 at nominal, x0.9 and x1.1. Worst seed (3)
+still 1.6x the best unsized seed. BOARD-QUEUE #2 updated.
+### progress 20:54 (ipow sized, with DSPs: 1.36x per iteration, every audit + routed GLS clean on 8 seeds)
+- **ipow T6** (research/data/ipow_dsp1_sizes_T6.vh; BD_DSP=1, the shipped config; routed GLS through the new
+  DSP48E1 model): ratchet over seeds 1-8 from the rule E pads (research/data/ipow_dsp1_rulee3_sizes.vh, which
+  were already clean at placeholder compute), 6 passes (rule A per pass: 3-6, 3-5, 0-2, 0-1, 0-1, 0): rules
+  A/E(C-node)/H/I/J 0, gate clean, GLS fast+stalled pass on all 8 (17 vectors, one deliberate wrap).
+
+| ipow, ns per loop iteration (slope vs bit length of e) | seeds 1..8 | mean | range |
+|---|---|---|---|
+| placeholder compute + rule E pads | 103.6 105.4 103.0 107.6 105.4 105.7 106.1 107.6 | 105.6 | 103.0-107.6 |
+| **T6 (route-measured sizes)** | 73.8 77.7 79.7 76.0 78.0 78.7 78.8 76.8 | **77.4** | 73.8-79.7 |
+  1.36x (worst T6 seed 79.7 vs best baseline 103.0: 1.29x). Smaller gain than collatz/xorshift: the DSP
+  cascade's own arcs (A->P 5.4 ns per DSP) dominate the multiply and are not a delay line.
+- R5 seed 4 per-arc scatter 8.5%: 16/16 (17%, 25% x2 running).
+### progress 21:18 (ipow T6 on fresh seeds: rule I short on 2 of 4; T7)
+- ipow T6 on fresh seeds 9-12: GLS pass 4/4, rules A/E/H/J clean on 11 and 12, but **rule I short on seeds 9
+  and 10** (ulink_n13 stage[1] -20/-11 ps, falseResult_11 stage[1] -179 ps; SDELAY asks). So T6 (validated on
+  the 8 seeds it was ratcheted on) is not yet a fresh-seed-safe size set -- same lesson as gcd L7.
+- T7 = T6 + those routes' proposals + 1 link on each raised cell (ulink_n13 SDELAY 2 -> 4, falseResult_11
+  SDELAY 0 -> 2; research/data/ipow_dsp1_sizes_T7.vh); validating on 8 more fresh seeds 13-20.
+- R5 seed 4 scatter: 8.5%, 17%, 25% draw 1 all 16/16.
+### progress 21:40 (P3 steer-join grouping: safe, no speedup -- negative result; round-9 hop corrected)
+- Correction to the round-9 trace: the 1.77 ns hop is uori4's delay-chain end (g[18]/O6) -> ucond_br45_j/A3,
+  not ucond_br45_j -> ucond_br45 (the back-tracer labels a hop by its receiving cell). The join -> steer net is
+  already the 295 ps minimum on every route.
+- P3 implemented as an opt-in (rloc_stamp --steer-join-groups / BD_RLOC_STEERJ; default off byte-identical; 4
+  unit tests) and A/B'd on gcd_hw R5, seeds d/3/4/5 both arms: every audit clean in both arms, routed GLS 16/16
+  (ON arm also x0.9/x1.1 on 2 seeds). 37/38 steers land with their join; the join->steer wire unchanged (295 ps),
+  the uori4->join wire moves with placement (775-2504 off, 776-1899 on). Lap change per seed on vec 6: +2.0,
+  -15.2, -3.6, +1.2% (mean -4.2%, carried by one seed whose OFF route was the slowest; OFF alone spans 16%).
+  **Not a speedup; not committed** (diff kept as research/data/p3_steer_join_groups.diff).
+- R5 scatter: seed 4 8.5/17/25/25% all 16/16; seed 3 17% 16/16.
+### progress 22:02 (ipow T7 on 8 fresh seeds; T8; P1 fast fall reviewed, check.sh running)
+- ipow T7 on fresh seeds 13-20: every audit clean and GLS pass on 7 of 8; seed 19 rule I short (ulink_n17__0
+  stage[1] SDELAY, -366 ps). Rule I has the same long tail rule A and E had. T8 = T7 + 1 on every SDELAY (15) +
+  that ask (research/data/ipow_dsp1_sizes_T8.vh); validating on fresh seeds 21-28.
+- Subagent: P1 (fast fall on bd_link rdly and rtl bd_mux output delay, opt-in BDC_LINK_FASTFALL=1, default
+  byte-identical) with a NEW tighten.py rule F ("a fast-fall line is flushed before its input can rise again":
+  an undrained line lets the next token's request skip links -- unaudited until now, for the existing compute
+  FASTFALL lines too). A/B on gcd_hw R5 seeds d/3/4/5: every audit incl. F clean in both arms; routed GLS 16/16;
+  laps +8.2% (vec 6), +8.1% (12), +8.4% (13); ON-arm corners and 17% scatter clean on 2 routes. Being checked
+  with cells/check.sh before commit.
+- gcd_hw R5 with BD_RLOC_ARB=1 (seeds d, 3) running, to see whether arbiter grouping speeds gcd as it did isprime.
+### progress 22:10 (P1 committed: fast fall on link/mux request delays, opt-in; rule F)
+- Committed: rtl/bd_link.v RFAST and rtl/bd_mux.v FASTFALL parameters (default 0, unchanged netlists; stated
+  reason in each header), bdc/emit.py BDC_LINK_FASTFALL=1 (refused for kernels with memory), tighten.py rule F
+  + rule I padding-estimate fix, 2 tests. cells/check.sh ALL GATES PASS with it applied (run here in a clean
+  worktree); pytest verify 77 pass. Default-off identity: emitted Verilog cmp-identical for 8 kernels; gcd_hw
+  R5 default seed fasm/frames byte-identical, SDF md5 a9c4e265 (= BOARD-QUEUE #2's).
+- Evidence for the rtl/ change (routed GLS, gcd_hw R5, seeds d/3/4/5 per arm): every audit incl. F clean;
+  laps OFF -> ON: vec 6 45.75 -> 49.5 (+8.2%), vec 12 37.0 -> 40.0 (+8.1%), vec 13 53.75 -> 58.25 (+8.4%), vec 4
+  +1.7%; ON corners x0.9/x1.1 and 17% scatter clean on d and 3. Rule F worst margin: new lines >= +2.7 ns; the
+  existing compute line ucontrol_merge12.udly is the tightest (+770..+1341 ps).
+- Not yet: rule F re-run on previously claimed routes (BOARD-QUEUE #1/#2, collatz/xorshift/ipow sizes); P1 as a
+  BOARD-QUEUE candidate (needs 8 seeds + corners).
+### progress 22:43 (ipow T8: 7/8 fresh; T9 with compute headroom; arbiter grouping on gcd)
+- ipow T8 on fresh seeds 21-28: every audit + GLS clean on 7 of 8; seed 24 rule A ushrsi0 (28 links, -146 ps).
+  T9 = T8 + 1 link on every compute cell (14) + that ask (research/data/ipow_dsp1_sizes_T9.vh), the recipe that
+  closed gcd (r1/R2); validating on fresh seeds 29-36.
+- gcd_hw R5 with BD_RLOC_ARB=1, default seed: every audit clean, GLS 16/16, laps vec 6 47 (ungrouped 47), x0.9
+  16/16. No speedup on gcd (isprime's gain came from its long A0 nets). Seed 3 running.
+- gcd_hw R5 + BD_RLOC_ARB=1: seeds d and 3 every audit clean, GLS 16/16 (d also x0.9/x1.1); vec 6 laps 47 / 46
+  vs ungrouped 47 / 42. Two seeds, within route scatter: no demonstrated speedup on gcd; not pursued.
+### progress 23:25 (ipow T9: clean on 8 fresh seeds)
+- **ipow T9** (research/data/ipow_dsp1_sizes_T9.vh = T8 + 1 link on every compute cell), FRESH seeds 29-36 (none
+  ever fed the ratchet): rules A/E/H/I/J 0, routed GLS fast+stalled pass on all 8 (seed 36's log, written after
+  the tighten.py update, also shows rule F 0). **76.2 ns per iteration (74.6-78.6)** vs 105.6 for pads-only
+  compute: **1.39x**; the headroom costs nothing measurable (T6 77.4 on other seeds). T6/T7/T8 each failed one
+  fresh route in four-to-eight; T9 is the first ipow size set clean on a full fresh 8.
+### progress 23:28 (link fast fall on xorshift: -9% per round)
+- xorshift T3 sizes + BDC_LINK_FASTFALL=1 (13 fast-fall instances emitted), seeds 1-4, 14 vectors: rules
+  A/E/F/H/I/J 0, routed GLS fast+stalled pass on 4/4. Per round: **65.4 -> 59.5 ns (-9.0%)** vs T3 without fast
+  fall on the same seeds (65.9/64.4/65.4/65.7 -> 59.6/59.7/59.9/58.7). Combined with sizing: 102.5 -> 59.5 ns
+  per round vs the placeholder build (1.72x). collatz the same way running.
+### progress 23:31 (rule E: opt-in removal of the own-gate lap; a fwd() bug found)
+Subagent round 11, reviewed, committed as OPT-IN only (skew.py --own-gate-laps-off-strict; default off):
+- For a gate where Part A added a feeding-link C node, the request walk from that link's latch-output (lap)
+  launches may not expand through the gate's own pins. Flag off: -v output byte-identical (soak, gcd R5, isprime,
+  negctl); check.sh's rule E gate identical. Over 96 routes: 174 rows change, every one verified to be a lap
+  through the gate's own select (path replay, t_req match, strict margin never lower), 0 others move. isprime
+  rule-E-clean routes 13 -> 23 of 50 (ucond_br16: 53 VIOL -> ok, all now binding at the C node, min +9.5 ns).
+  Negative controls still flag: ucmpi2-delay-removed isprime (ucond_br14-17 ~ -20 ns, both arms); uori4 delay
+  zeroed in a gcd R5 SDF (ucond_br41-46 -1.4..-3.6 ns, both arms). pytest verify 75 pass here.
+- **Side finding, pre-existing, NOT fixed:** skew.py fwd() can overwrite a storage node that seeded a level with a
+  later within-level arrival without re-expanding it, so pred/tab disagree; path_to() replay -- used by the
+  divergence point t_c (shared-route credit) and req_knob() -- can follow a wrong chain on lap paths. A wrong t_c
+  could over-credit (permissive). Effect on committed verdicts not yet measured: next round. Until then the
+  strict flag stays off by default.
+### progress 23:46 (link fast fall on collatz: -12% per iteration)
+- collatz T3 sizes + BDC_LINK_FASTFALL=1 (17 fast-fall instances), seeds 1-4: rules A/E/F/H/I/J 0, routed GLS fast+
+  stalled pass on 4/4. Per iteration 98.3/101.3/106.1/107.5 -> 92.8/93.3/87.4/90.8 ns: **103.3 -> 91.1 (-11.8%)**.
+  With sizing: 159.3 (padded) -> 91.1 ns per iteration, 1.75x. gcd_hw R5 + BD_RLOC_ARB seed 3 x0.9/x1.1 16/16.
+- Next: fast fall needs the same fresh-seed / 8-seed / corners treatment as the sizes before it is a default or a
+  board candidate (subagent doing gcd_hw R5+FF to 8 seeds; ipow+FF running).
+### progress 23:50 (link fast fall on ipow: -6% per iteration)
+- ipow T9 + BDC_LINK_FASTFALL=1 (11 instances, BD_DSP=1), seeds 29-32: rules A/E/F/H/I/J 0, GLS fast+stalled pass
+  4/4. Per iteration 74.6/77.9/74.9/77.1 -> 71.3/70.3/74.3/71.0: **76.1 -> 71.7 ns (-5.8%)**; with sizing 105.6 ->
+  71.7 (1.47x). Smallest gain of the three kernels (fewest link/mux delays on its cycle; the DSP cascade dominates).
+| link fast fall, 4 seeds each | without | with | change |
+|---|---|---|---|
+| gcd_hw R5, vec 6 laps (more = faster) | 45.75 | 49.5 | +8.2% |
+| collatz T3, ns/iteration | 103.3 | 91.1 | -11.8% |
+| xorshift T3, ns/round | 65.4 | 59.5 | -9.0% |
+| ipow T9 (DSP), ns/iteration | 76.1 | 71.7 | -5.8% |
+### progress 23:56 (collatz and xorshift with link fast fall: 8 seeds clean)
+- collatz T3 + FF, seeds 1-8: rules A/E/F/H/I/J 0, GLS fast+stalled pass on 8/8; **92.1 ns/iteration (87.4-95.6)**
+  (T3 alone 102.3; padded 159.3: 1.73x overall).
+- xorshift T3 + FF, seeds 1-8 (14 vectors): same, **60.0 ns/round (58.7-62.1)** (T3 alone 64.3; placeholders
+  102.5: 1.71x overall).
+- ipow T9 + FF seeds 33-36 running (29-32 clean, 71.7 ns).
+### progress 00:07 (collatz + FF: corners and scatter clean)
+- collatz T3 + link fast fall, seeds 1 and 4: routed GLS at x0.9, x1.1, per-arc scatter 8.5% x2 and 17% x1: fast and
+  stalled pass on all 10 runs.
+- xorshift T3 + link fast fall, seeds 1 and 4: x0.9, x1.1, scatter 8.5% x2 and 17%: fast+stalled pass on all 10 runs.
+### progress 00:11 (ipow + FF on 8 seeds; collatz64 vectors)
+- ipow T9 + link fast fall, seeds 29-36: rules A/E/F/H/I/J 0, GLS fast+stalled pass on 8/8 (per-iteration numbers in
+  the commit message).
+- fusion_bench: collatz64 gets 8 seeded random vectors whose trajectory peak exceeds 2^31 (the reason the 64-bit
+  kernel exists); simcheck had 3. A first collatz64 routed GLS (placeholders, 3 vectors) is running; it will be rerun
+  with the 11.
+  ipow T9 + FF over seeds 29-36: **72.2 ns/iteration (70.3-74.3)** (T9 alone 76.2; pads-only 105.6: 1.46x).
+### progress 00:26 (collatz64: first routed GLS -- fails, and rule E agrees)
+- collatz64 (64-bit datapath), placeholder lengths, seeds 1-4: rules A/F/H/I/J 0 but **rule E 3-4 violated on every
+  seed** (umux0/umux1; two rows raw-negative, -210 and -810 ps), and **routed GLS fails on all 4** (fast and
+  stalled): every value checked was correct, then "req fell out of phase on out0" -- the select-deficit signature
+  seen on collatz and isprime. Rule E and routed GLS agree again. Ratchet (rule E pads + rule A sizes, seeds 1-8,
+  11 vectors) running; seeds 5-8 at placeholders with 11 vectors also running.
+### progress 00:42 (rule F holds retroactively; P1 -> BOARD-QUEUE #3)
+- Rule F (committed tighten.py) re-run on every route already claimed: gcd_hw R5 (8), BOARD-QUEUE #1 (3 incl. the
+  committed route, sdf md5 6f8b99e6), collatz (12), xorshift (20), ipow (16): **0 violations, worst +463 ps**. No
+  shipped claim changes.
+- P1 (R5 + link fast fall) on 8 routes (d, 3-9): every audit clean, fasm_audit PASS, routed GLS 16/16 at nominal on
+  8, corners on 6, 17% scatter on 2; vec 6 50.0 laps (46-52) vs 45.75 without. Written up as BOARD-QUEUE #3. #2's
+  entry now says to check routed.json/sdf md5s, since the .bit md5 is not reproducible (header bytes).
+### progress 01:12 (sizing ratchet is now a tool: bdc/size_kernel.py)
+- `bdc/size_kernel.py` (+ 11 tests) replaces the scratch loops and `research/data/collatz_ratchet_merge.py`: ratchet
+  (per-cell max of T<k>, tighten --emit, rule E asks as current+N+1, dut.v default fallback; never lowers), stops
+  NOT CONVERGED instead of padding when F/J fail or a merge changes nothing; `--headroom` (+1 link per compute cell);
+  `--fresh-seeds` validation. Enforces A/B/C/F/H/I/K/L, E, J and routed GLS fast+stalled; D reported only. Its merge
+  reproduces the scratch xorshift T1-T3 byte for byte on the scratch inputs.
+- xorshift from placeholders, seeds 1-4, defaults (no FF): converged at it4 (4/4 clean); T4H on fresh seeds 9-12
+  every enforced rule 0, GLS pass: **66.5 ns/round (65.1-67.6)**; T3 on the same 4 fresh seeds 64.4. 4 seeds per arm
+  cannot split headroom from scatter. Data: `research/data/size_kernel_xorshift/`.
+- **Routed GLS passed on every route of it1-it3, where static audits found 2-9 violations per seed** (short delays):
+  GLS is not a substitute for the audits, again.
+- Method weakness, not fixed: UCONTROL_MERGE1 went 12 -> 1 (it0 proposals) -> 32 (tighten prices rule-A padding with
+  the 124 ps cell arc rather than the ~419 ps per-link hop) and "never lower" keeps 32 although routes then say 4.
+  Costs nothing measurable on training seeds (64.9 vs 65.4) -- inference, not proof that it is off the critical cycle.
+### progress 01:31 (tighten.py: rule A link pricing)
+- Rule A turned a deficit into links at chain_ps/n -- at n=1 the bare 124 ps LUT arc, so ucontrol_merge1 was told
+  "PAD to 32" when a routed link costs ~419 ps. The same average priced *tighten-to* proposals, in the unsafe
+  direction: uxori1 (xorshift it1 seed 1) margin 425 ps, real link 489 ps, old proposal "tighten to 2" (64 ps short).
+- Fix: price at the cell's own routed chain (LUT arc + hop, from the SDF); without one, pad at the route's cheapest
+  link and tighten at its dearest (both err longer); old price only if the route has no 2+ link chain. Re-priced on
+  the 16 xorshift it1-it4 routes: only ucontrol_merge1 it1 32->11 and uxori2 it1 7->6 get smaller (each <= what all
+  later routes ask); violation counts unchanged in every old/new log. 5 tests, 4 fail on a chain/n mutant.
+- No shipped claim is touched: verdicts come from measured margins, not proposals, and every claimed sizes file was
+  re-audited after its last merge. Rules H/B/C still price at chain/n (not changed). New sizes not yet routed.
+### progress 01:34 (container restart; jobs re-launched)
+- Restart at ~01:30 killed every job. BQ#3 FF default-seed reproduction had finished: md5s match (routed.json
+  f9c4597d, sdf 61e14755), rules E/A/H/I/J 0, gate ANNOTATE_DONE with 0 SDF warn/err, nominal GLS 16/16 correct
+  (errs=0). Corners and wire scatter re-launched on the same build (md5 re-checked first).
+- After the restart `cells/verify/toolchain.sh` failed with its default TC path (resolved to a /home/jayjay
+  path); with TC=/root/dev2/lib/fpgatoolchain it passes, nextpnr 9c732bc6303458df, unchanged.
+- collatz64 ratchet restarted at it1 (T1 = it0 merge: rule E 3-6 per seed on all 8, rule A 0).
+### progress 01:47 (skew.py walk fix; strict stays opt-in)
+- skew.py's level walk let a seeded storage output (or the launch at level 0) be re-relaxed through its own cell arc
+  inside the same level, overwriting its tab entry and predecessor; replays then broke and t_c fell back to 0. Fix:
+  skip seeded nodes inside their level (2 tests, both fail with the skip removed). On 96 routes / 12918 walks:
+  t_req, t_sel, t_c, guarded margins and every verdict unchanged; only the padding target (req_knob) moves on 122
+  rows. check.sh's rule E gate output is byte-identical.
+- Consequence: isprime ucond_br16's lap (54 violated rows) now names a knob, so --select-pads would ask 4 links on
+  ulink_n78 (isprime_dsp1_pad5 s21). The subagent recommends making --own-gate-laps-off-strict the default.
+  **Not done:** that would relax a safety audit on static evidence only (no GLS or board test of the lap argument);
+  over-padding only costs isprime latency, which is not a claimed number. Strict stays opt-in until a routed-GLS
+  negative control shows a lap row can be ignored safely.
+### progress 02:16 (BQ#3 route reproduced; wire scatter to 35% clean)
+- BQ#3 (gcd_hw R5 + link fast fall), default seed rebuilt independently: routed.json/sdf md5s identical to the
+  committed evidence; rules A/E/H/I/J 0; gate ANNOTATE_DONE, 0 SDF warn/err; routed GLS 16/16 errs=0 at nominal,
+  x0.9, x1.1, wire scatter 25% x1 and 35% x2. Added to BOARD-QUEUE #3.
+- collatz64 ratchet it1: rule A 4-12 / rule E 6-7 per seed, GLS fails (out0 out of phase) on all 8 -- audits and
+  GLS agree; it2 running.
+### progress 02:21 (owner: board-fidelity GLS is THE priority -- re-planned)
+- Read the owner's cbb347e/eb4380c/976cf90 (PROGRAM.md "THE priority", CLAUDE.md, TC default fix). Speed work stops;
+  the collatz64 ratchet keeps running only as an idle-core filler (renice +10). Rule gates stay exactly as they are
+  until the new GLS passes acceptance.
+- prjxray-db zynq7 (commit 0a0added, 2021-12-14) sparse-cloned to /root/dev2/lib/xray/prjxray-db (91 MB): tile_type
+  pip/wire delays at 4 corners + R/C, timings/*.sdf, segbits, xc7z010clg400-1. prjxray.timing imports from the
+  openxc7-src checkout via PYTHONPATH. (pip-installing fasm/sdf-timing from git was refused by the session; not
+  needed so far.)
+- Four workstreams (subagents, shared brief): F1 prjxray RC-tree delay calculator -> min:typ:max SDF for gen.py, hand
+  checks, comparison with nextpnr's SDF, ring validation; F2 netlist from FASM (fasm2bels or focused converter),
+  equivalence on BQ#3's route, lut-pinmap negative control; F3 transport/hazard LUT model, metastability,
+  correlated + per-wire variation from the ring data, with negative controls; F4 acceptance suite: inventory of every
+  silicon measurement and August failure with its reproducible bitstream/route, harness, baseline on today's GLS.
+- Committed before the redirect (rule tooling, now "heuristics"): rule A link pricing (e68dcd6), skew walk fix
+  (9b6596d), size_kernel tool (54e0247). BQ#3 reproduction + scatter clean (cbe2206).
+### progress 03:06 (tighten.py: rules H/B/C share rule A's link pricing)
+- One pricing function for A/H/B/C (pad at own link cost, else route min; tighten never deeper than the old price).
+  On 52 routes (16 xorshift, the RAM soak, 35 gcd_hw): per-section VIOLATION counts and exit codes identical; of
+  ~8000 proposals 0 got smaller, 4 rule H tightens got 1 link longer. First draft priced tightens at the own step
+  only and would have taken 12 gcd_hw rule-H lines to 0 links unsafely (the hop into the line is lost too) -- caught
+  by the A/B and fixed. Rules B/C rest on one route (soak). Heuristic tooling; no gate changed.
+- Coordination slip: I put two subagents in the same worktree (wt_aug); one's checkout wiped the other's uncommitted
+  edits, which it rebuilt from copies. Each workstream now gets its own worktree.
+### progress 03:08 (F1: prjxray delay calculator -- nextpnr misses the site input-pin delay)
+- `cells/gls/fid/xray_delay.py`: nextpnr routed.json -> prjxray node model -> RC tree with prjxray timing.py ->
+  SDF (FAST_MIN:SLOW_MIN:SLOW_MAX) on nextpnr's SDF as template; gen.py GLS_SDF_FIELD=min|typ|max, build.sh GLS_SDF.
+  Default reproduces old gen outputs byte for byte (ro_top). Zynq7 db was fuzzed on xc7z020-1 (= board's -1); the
+  4-tuple is [FAST_MIN, FAST_MAX, SLOW_MIN, SLOW_MAX]; timings/*.sdf groups are (fast)(slow), not rise/fall.
+- Mapping proven by re-deriving nextpnr's getPipDelay from the resolved pips: within 1 ps on 41091/41096 (gcd),
+  7746/7749, 2444/2444, 8365/8456 arcs (misses: one pad route-through); wrong-pip negative control drops it to 483/2444.
+  Hand Elmore checks agree to 0.1 ps (buffered pip, fanout-6 with/without branches, synthetic pass-transistor chain).
+- vs nextpnr, slow max: interconnect median x1.44 (+287 ps), growing with length (+166 ps at 1 pip, +727 at 13+).
+  The biggest class is the **site input-pin delay nextpnr never charges** (+338 ps mean; LUT A1/A2 ~0.51 ns, A6
+  ~0.005 ns), then fanout loading (25 ps median at fanout 1, 327 ps at 64+), OUTMUX; minus nextpnr's 25 ps site pips
+  and 35 ps tie epsilon. Cell arcs equal except CK->Q (303 vs 340) and DSP (A->P 3841 vs 5400). Clock nets untrusted.
+- Rings (across routes only; per-ring board periods for n=128 are not in the repo and that route predates the
+  lut-perm-sink patch): no measured ring is above slow max (worst 0.72 of it); the board sits at ~0.35-0.41 of the
+  [fast min, slow max] band on long rings, 0.25-0.58 on short ones. A fixed band position reproduces the measured
+  0.938 slope and +309 of the +988 ps offset. Model spread is about half the measured ring scatter.
+- Not shown: per-ring agreement, a full GLS run on the new SDF (only ANNOTATE_DONE/0 warnings on ro_top and gcd).
+### progress 03:28 (F2: GLS netlist from the bitstream -- equivalent on BQ#3's route)
+- `cells/gls/fid/fasm2net.py`: .bit -> bitread/bit2fasm (8 s) -> per-sink upstream trace over active pips, pseudo
+  pips, tileconn joins and default IMUX pseudo pips -> nextpnr-shaped JSON that gen.py runs unchanged, plus the
+  SDF re-keyed onto bels. Site models SLICEL/M (LUT6/5, F7/F8, CARRY4, FF), BUFGCTRL, BUFHCE, OLOGIC, IOB33, BSCAN;
+  latch/LUTRAM/DSP/BRAM refused, not guessed. Every configured feature not consumed is listed (none on gcd_hw).
+  fasm2frames/xc7frames2bit of the shipped FASM is byte-identical to the shipped payload.
+- BQ#3 route (bit b40e4e41, json f9c4597d, sdf 61e14755): `fasm_equiv.py` EQUIVALENT -- 10136/10136 LUT functions,
+  all 34975 driver->sink pairs, 12092/12092 nets with the same pip set; GLS from the bits 16/16, all SUMMARY lines
+  byte-identical to the routed-JSON GLS; gate ANNOTATE_DONE, 0 SDF warn/err.
+- Negative control: the *real* unpatched lut-pinmap writer changes 58 INITs on this route but 0 functions (every
+  run-together pin is on GND, on all 19 gcd_hw routes in scratch) -- the August bug cannot recur from today's flow.
+  Injecting its mechanism on live pins (97 pins / 81 LUTs under ucmpi*): fasm_equiv NOT EQUIVALENT (81 functions),
+  FASM-built GLS 0/16 (no gcd completes; the August "absent result" signature) while routed-JSON GLS stays 16/16.
+  Hard-test caveat: an injection, not the August bitstream (none archived).
+- Not shown: delays (still nextpnr's), DSP/latch sites, corners/scatter on the FASM netlist, other designs.
+### progress 04:01 (F2 phase 2: DSP48E1 + latches from the bits; DSP bitstream bugs detected)
+- fasm2net decodes DSP48E1 (register bits, control pins through routing with DSP_GND/VCC bits and inverters) and
+  LDCE/LDPE; anything outside the modelled configuration is refused by name. gen.py now emits a real latch
+  (SLICE_LATX in prims.v) for LDCE/LDPE -- before, it simulated one as an edge-triggered flop. No current design
+  instantiates LDCE (bd_latch keeps storage on LUTs), so no committed result changes.
+- ipow BD_DSP=1 fresh7 seed13: bits EQUIVALENT (6 DSPs, same decoded words); GLS from routed JSON, .fasm and .bit
+  identical latencies. Controls via `bit_control.py ROUTE KIND` (one CONTROL line, exit 0/1/2): dsp_constpins and
+  dsp_constpins_inv (real unpatched writers) decode INMODE 11111 / ALUMODE 1100 / OPMODE6 1 on all 6 DSPs -- matching
+  the patch README's board measurement -- NOT EQUIVALENT, GLS refuses ("A input gated to zero"). dsp_areg: the real
+  writer is harmless on this route, so the bug was injected; detected. Caveat: refused, not simulated as numbers.
+- xorshift fresh seed9: the real unpatched lut-pinmap writer changes 1 reachable LUT function (a harness C-element,
+  1 of 8 input rows) that equivalence catches and **GLS does not** (vectors never reach it); live-pin injection
+  fails GLS. Equivalence is the stronger bitstream check; GLS alone is not enough.
+- Possible nextpnr defect (not on board, no shipped design affected): LDCE with .CLR(1'b0) is packed as VCC +
+  IS_CLR_INVERTED, but a slice SR has no inverter, so the latch is held cleared (bits and both GLS agree).
+### progress 04:15 (collatz64: ratchet converged at T4 -- filler work)
+- collatz64 (64-bit datapath, 11 vectors incl. 8 with trajectory peak > 2^31), from placeholders: it0-it3 failed
+  (rule E 3-7 and rule A up to 12 per seed; routed GLS failed on all 8 at it0/it1 with "req out of phase on out0",
+  agreeing with rule E). **it4 (T4): rules A/E/F/H/I/J 0 and routed GLS fast+stalled pass on all 8 seeds** (rule D
+  screen 6 per seed, informational). T4H (+1 link on 10 compute cells) on fresh seeds 9-16 running.
+  Data: research/data/collatz64_sizes_T4{,H}.vh. Tool: scratch loop in wt_coll (8977190 tighten/skew), not
+  size_kernel.py -- the run began before the tool landed.
+### progress 04:32 (F4: acceptance inventory + harness; baseline on today's GLS)
+- research/data/fid/inventory.{json,md}: 17 silicon items graded with source lines. **No August measured bitstream
+  or route is archived, none has a recorded md5.** HARD: ring128 (n=128, self-checking readback, 0.052% repeat) --
+  blocked, per-ring data only on the owner's machine; lut-pinmap (emulated on BQ#1's route, sdf 6f8b99e6 matches,
+  and on an August-shaped BDC_OP_FUSION=0 route); dsp_constpins(_inv) (emulated on ipow T9 seed 29); dsp_areg
+  (property only). SOFT: the 5-ring routes, abs_negative (cause revised), bench_hang (5/8 stochastic), isprime late
+  read, every kernel timing (routes not archived), mem_dco edge_cap only. EXCLUDED: cmpb probe (stale operands).
+- cells/gls/fid/acceptance.py with --sdf-cmd (F1) and --netlist-cmd (F2) hooks; hard/soft reported apart, exit 1
+  only on a hard mismatch, blocked != pass. Baseline (today's GLS): every runnable hard bitstream test MISMATCHES --
+  it passes bitstreams the board failed because it never reads the FASM. On the fusion-on gcd route the 58 corrupted
+  sites are all latch odd-bit LUTs and the sim passes even with them corrupted, so that route cannot discriminate;
+  the fusion-off route can: with a FASM-reading stand-in, unpatched completes 9/16, the missing 7 (5-8, 11-13,
+  errs=0) are exactly BOARD-QUEUE #1's August list (patches/README says 7/16 -- records disagree; vector set soft).
+- Soft cross-route rings: today's SDF reads ~+9.5% slow at 127 links on both August routes (which agree to 0.3%).
+- ro_many_measure.py gains RO_OFFLINE/RO_MEAS_TSV so the owner can export the per-ring table without a board
+  (BOARD-QUEUE owner-side request updated with the command).
+
+## Session 2026-10-27 06:13 -- (in progress) board-fidelity GLS: F1+F2 integration, F3 silicon-like model; audit rows answered
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh from cache, 2m35s, all fingerprints ok)
+### progress 06:13 (start; audit read)
+- Lock was 2 h old (dead); taken. 4 cores, 15 GB. The prjxray-db clone xray_delay.py defaults to was lost with the
+  container; the toolchain's own copy (openXC7 prjxray-db 0.8.2) has tile_type_*.json and timings -- an F5
+  subagent checks whether it equals 0a0added before switching the default.
+- Audit (origin/claude/audit REPORT.md) rows on this branch, answered:
+  - bd_prims_sim.v 56/124 as rise/fall (REFUTED, still present): handed to the F3 subagent with the re-run list
+    (tb_arb_overlap, arb_mtbf, null-gen tbs). Open until that lands.
+  - BQ#1/#2 routed.json md5s do not reproduce (REFUTED): BOARD-QUEUE now says compare the SDF md5 only; #2's
+    recorded routed.json md5 was probably from another build. No claim depended on it (the sdf md5s match).
+  - BQ#3 "~9% more laps" (OVERSTATED): it compared 8 routes with 4. Same 8 routes: +5.8% (vec 6), +6.0%, +5.8%.
+    Title and body corrected.
+  - xorshift "102.5 -> 60.0 (1.71x)" (REFUTED as a comparison): 102.5 is a 6-vector fit, 60.0 a 14-vector fit,
+    and the vector set alone moves the slope 6.9%. **Withdrawn**; the placeholder baseline was never fitted on 14
+    vectors, so the true ratio is unknown until it is (queued as filler work).
+  - ipow 1.39x/1.46x/1.47x, collatz 1.75x (UNVERIFIED): different seed sets in numerator and denominator. Collatz on
+    the same seeds is 1.737x (audit). Treat the ipow ratios as unverified until re-measured on one seed set.
+  - collatz64 T4 provenance (OVERSTATED): the T4 run used 8977190's tighten/skew (no rule F, older rule E) and the
+    journal's "11 vectors" for it is right only for the later runs. The audit's seed-3 re-run with current tools is
+    clean. **Re-run of all 8 seeds with current tools queued** (filler).
+  - dsp_areg control "DETECTED" (OVERSTATED): agreed -- it is detected only by decoder refusal of an injected state
+    the old writer never produced. README and bit_control's CONTROL line now say so; it stays a property, not a
+    hard acceptance test (inventory already said "property only").
+  - fasm_equiv misses unrouted GND-tied A6 pins that read VCC on silicon (NOT EQUIVALENT on BQ#1 per audit):
+    harmless on that route (functions ignore the pin), but the checker must classify it; handed to the F5 subagent.
+  - GLS "sample at fire" early edge and inertial LUT paths (CONFIRMED defects): F3 subagent builds an opt-in
+    transport per-pin LUT model and reproduces the audit's 1130->1244 and XOR3 examples.
+### progress 06:16 (rule F: the fall still in flight on the ripple wire)
+- Audit rules.md #4 (CONFIRMED gap): rule F's t_flush was the latest stage OUTPUT fall, but a re-rise that reaches
+  stage i's side tap before the fall has crossed the ripple wire into stage i passes straight through and skips the
+  links before it. tighten.py now also takes, per stage, latest ripple-input arrival minus fastest side tap. The
+  audit's example (arcs 124, hop 600, tap 295) gives t_flush 724 instead of 419. 2 new tests fail on the old code;
+  one old test asserted a pass on exactly such a line (1000 ps ripple, 10 ps taps) and is now a failing case.
+  cells/verify tests 92/92.
+- **Not yet re-run on routes**: no claimed fast-fall route is on disk after the container restart. BQ#3's route is
+  being rebuilt by the F5 subagent; rule F on it (and the fast-fall table's gcd/collatz/xorshift/ipow routes) must
+  be re-checked before BQ#3 stands. Until then BQ#3's "rule F worst +888 ps" is the old rule's number.
+### progress 06:18 (bd_link_dc uack: classified FASTFALL, so rule F audits it)
+- Audit rules.md side note: in the opt-in bd_link_dc family uack is FASTFALL(1), but tighten.py classed every
+  `.uack` tap as FASTRISE by name, so those lines escaped rule F and were walked with the wrong edge sense. Now a
+  `.uack` is FASTRISE only when its link has no `ctl.ub` (the dc controller). 2 tests; 94/94 in cells/verify.
+  No claimed design uses BD_LINK_DC (only cells/tb and flow.sh's BD_SYN_DEFS), so no claim changes; not run on a
+  routed dc design.
+### progress 07:40 (collatz64 T4 re-checked with current tools: clean on 8 seeds)
+- Answers the audit's provenance row. `bdc/size_kernel.py --start research/data/collatz64_sizes_T4.vh --seeds 1-8
+  --max-iter 1` at 818e90e (current tighten/skew/arb_fork; rule F's in-flight fix landed later but collatz64 has no
+  fast-fall line, so rule F has no rows), 11 vectors from the C oracle:
+  | collatz64 T4 | ns/iteration | n |
+  |---|---|---|
+  | seeds 1-8, routed GLS fast+stalled pass, A/B/C/F/H/I/E/J 0 | mean 102.65, range 99.7-104.8 (worst seed 3: 104.8) | 8 |
+- **Coverage hole, same on all 8 seeds (identical list):** rule H skips 6 controllers ("no path from this node
+  back to its own data": the four ulink_n21 lanes, n7, n8) and rule I skips 22 stages ("data enters from outside the
+  design, or from no link stage that also requests"). Those stages are covered by routed GLS only. So "clean" means
+  clean where the rules look. Data: research/data/collatz64_T4_recheck/ (log, seed-1 tighten.log, sdf md5s).
+- Does NOT show: fresh seeds (all 8 were T4's fitting seeds -- the T4H fresh-seed run is still the validation and
+  was not repeated); corners; anything on the board.
+### progress 08:23 (xorshift placeholder baseline refitted on the 14-vector set)
+- Replaces the withdrawn 6-vector-vs-14-vector comparison. Placeholder sizes, seeds 1-8, 14 vectors, 9452a14:
+  | xorshift, ns/round, seeds 1-8, 14 vectors | mean | range | n |
+  |---|---|---|---|
+  | placeholders | 105.37 | 103.5-108.6 | 8 |
+  | T3 (journal 1008, same seeds and vectors) | 64.3 | -- | 8 |
+  | T3 + link fast fall (journal 1008) | 60.0 | 58.7-62.1 | 8 |
+  Same-seed, same-vector ratios: **1.64x (T3), 1.76x (T3+FF)**. (The withdrawn figure was 1.71x.)
+- Caveats: the placeholder design itself is NOT clean (rule E 1-6 violated per seed; routed GLS passes), so the
+  baseline is the unsized reference, not a verified design. The T3+FF number predates today's rule F fix and must
+  be re-audited before it is quoted as verified. Tool version differs between the arms (T3 measured at the 10-26
+  tools). Data: research/data/xorshift_placeholder_14vec/.
+### progress 08:47 (F3: opt-in silicon-like primitive model GLS_MODEL=fid -- landed except bd_prims_sim)
+- Subagent F3, write-up research/data/fid/f3_model.md. Opt-in (GLS_MODEL=fid / -DGLS_FID); default GLS unchanged:
+  gen.py outputs md5-identical on a fresh arb_mtbf route (json 43e15fb7, sdf 814299ac), also with GLS_SCATTER=0.1 in
+  arc and wire mode, and a 3 us routed GLS with old vs new prims.v has identical histories on all 124,240 signals.
+  Only arb_mtbf was checked this way.
+- LUT/MUXF7/F8 transport per input pin: the audit's examples now come out right (1130 edge lands at 1254, was 1244;
+  XOR3 cone settles 1224, was 1124 -> a request at 1200 has -24 ps, was +76). Narrow pulses and a 30 ps two-input
+  XOR hazard pass. No published 7-series pulse-filter figure found (only Alfke's posts), so every pulse passes.
+- Metastability: same-LUT loops and flops resolve near-simultaneous arrivals randomly with an exponential tail
+  (tau/window ASSUMED: 150 ps LUT loop, 75 ps flop, >= the 57/51/73 ps of Beer et al. ASYNC 2010). Arbiter race x200:
+  default r1 200/200, fid 125/75, no settled double grant (transient overlaps <= 26 ps). Routed arb_mtbf 20 us:
+  99 / 94 resolver events (seeds 1/2), no x.
+- Variation: GLS_SCATTER_REGION (per 10x10-slice block) on top of per-wire scatter; region 0.16 + wire 0.126 gives
+  8.33% median ring scatter on ro_many_top's 128 rings (target 8.5%); per-wire alone 0.65%. The split is not
+  identifiable without the per-ring board data. GLS_SDF_FIELD=band places delays inside an arc's fast/slow range.
+- Library hazard census: every multi-input hazard in cells/rtl state LUTs is excluded by the 4-phase protocol, is
+  the arbitration race, or is the existing bundling constraint; 11 cell tbs under fid: 0 library resolver events.
+- Controls: cells/gls/fid/f3/run_f3.sh -- each tb must FAIL on the default model and PASS on fid; re-run here: all ok.
+- **Held back:** the bd_prims_sim.v one-corner fix (audit REFUTED row) turns check.sh's run_sim gate red
+  (tb_arb_overlap's "hazard must appear arc-only" was a corner-mix artefact; tb_ctl's decoupled ATTEMPT now
+  deadlocks instead of losing data, and the bench waits forever). Sent back to make both benches assert what is true
+  without weakening them. bd_arb.v's "rising grant wins by 16 ps" header is unproven under one corner.
+- Does NOT show: no full kernel (gcd_hw/BQ#3) GLS under fid yet; CARRY4/DSP/latch/BUFG/flop clock pins still
+  sample-at-fire; multi-cell loops get no resolver; taus unmeasured.
+
+## Session 2026-10-27 10:12 -- (in progress) board-fidelity GLS: the full stack (bits netlist + prjxray SDF + fid primitives) on BQ#3; one-corner cell sims
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh from cache, 2m06s, all fingerprints ok)
+### progress 10:17 (start; audit read)
+- Lock 08:23 (109 min, dead); taken. 4 cores, 15 GB. Fresh container: no routes on disk; prjxray-db zynq7 re-cloned
+  at 0a0added (91 MB) to the path xray_delay.py defaults to.
+- Audit pass 5 rows on this branch: 6119060 xorshift re-baseline CONFIRMED (seeds 5-8 sized means unpublished --
+  noted); 9452a14 collatz64 "clean" OVERSTATED as coverage wording (rule H audits 29 of 35 controllers, rule I 12 of
+  34 stages; agreed, this is the correct reading of the progress note); 5567170 fid model OVERSTATED in parts:
+  OUTMUX not modelled in xray_delay (subagent S2 on it), per-pin LUT arcs add little because prjxray's A1..A6->O6 are
+  equal (agreed: the gain is transport, not per-pin), metastability window pessimistic (a request 360 ps later
+  still wins 75/200 -- stated assumption, to be revisited), and f3_model.md lists bd_prims_sim.v/tb_end.v as changed
+  but they are not in the commit (true: held back; subagent S1 redoes it now). Still open from earlier passes: BQ#3
+  rule A `ushrsi1` -36 ps at one consistent fast corner with interval semantics -- this is what the full-stack GLS at
+  the fast corner is for (below).
+- Plan: main thread runs the integrated stack on BQ#3's default-seed route at FAST_MIN, SLOW_MAX and band; S1 lands
+  the single-corner bd_prims_sim.v; S2 fixes OUTMUX in xray_delay.py and the A6 GND/VCC class in fasm_equiv.py.
+- build_fid.sh now takes GLS_SDF (re-keyed in place of nextpnr's SDF) and GLS_MODEL=fid, read as gls/build.sh reads
+  them; default output unchanged (both only add when set).
+### progress 10:53 (full stack runs on BQ#3; S1 and S2 landed)
+- Routes rebuilt from scratch and reproduced: BQ#3 (sdf 61e14755, routed.json f9c4597d), BQ#1 (sdf 6f8b99e6).
+- **Full stack** = netlist decoded from the .bit (fasm2net) + prjxray RC-tree SDF (xray_delay) + GLS_MODEL=fid
+  primitives, on BQ#3's default-seed route, SLOW_MAX column, 150 us per vector: **16/16 vectors, errs=0**, both before
+  (sdf f71b407c) and after (ef6d6e77) S2's routing-BEL fix. Equivalence of the bits vs routed JSON: EQUIVALENT.
+  Laps per 150 us at SLOW_MAX: vec 6 33, vec 12 27, vec 13 39 (nextpnr-SDF nominal on this route: 51/42/60 per the
+  audit's own run) -- the prjxray slow corner runs this route ~1.55x slower than nextpnr's SDF. The OUTMUX charge moved
+  laps by <1% (vec 0 3122 -> 3096): the loop's critical cycle is mostly O6 paths.
+- 16133 sink pins get 0 ps interconnect in the re-keyed SDF: 15845 are VCC ties (unused LUT pins), the rest are
+  in-site hops (LUT -> F7/F8/CARRY4/FF D) whose delay is in the cell arc or the routing-BEL charge. Recorded, not a gap
+  on a live path as far as checked.
+- S2 landed: xray_delay charges every slice routing-BEL mux from slicel/slicem.sdf (hand check exact at 4
+  corners); fasm_equiv: the audit's 3 A6 pins on BQ#1 are HARMLESS, a function that reads one is NOT EQUIVALENT.
+- S1 landed: bd_prims_sim.v at one corner; run_sim suite 27/27 at slow max and fast min, route 0 and 354; 11 negative
+  controls fail as intended. Closes the audit's REFUTED bd_prims_sim row. Open from it: bd_pipe_deco (an attempt,
+  not a library cell) livelocks at slow max; the semi trigger-1 race is magnitude-dependent, not root-caused.
+- lut_pinmap control on today's BQ#1 route: the real unpatched writer changes 58 INITs; one of them
+  (ucontrol_merge12, SLICE_X22Y84/B6LUT under an F7AMUX) is written with no INIT at all, so equivalence now says NOT
+  EQUIVALENT (earlier: "0 functions change"). Whether it changes a vector is queued (full stack on the bug bitstream).
+- August-shaped route rebuilt: BDC_OP_FUSION=0 BD_NO_TIGHTEN=1 BD_RLOC=v4 (sdf c647eb1a); the pad-converge recipe does
+  not converge on it (ulink_n32__2 measured short again after padding), so SELECT_PAD=4 as F4 recorded.
+  lut_pinmap control: NOT EQUIVALENT (LUT FUNCTION DIFFERS). Full stack on good vs bug bitstream queued -- the hard test.
+### progress 11:19 (fast corner, rule F re-check, rings, DSP controls under the full stack)
+- **BQ#3 full stack at FAST_MIN: 16/16, errs=0** (laps vec 6 91, vec 12 75, vec 13 108; ~2.75x the SLOW_MAX laps).
+  With SLOW_MAX (above) that is both consistent prjxray corners passing on the netlist decoded from the bits. Answers
+  the audit's tcheck row 40 in part: the -36 ps on ushrsi1 needs req at FAST_MIN and data at FAST_MAX at once
+  (Vivado's OCV box, ~24% spread inside one corner); no single corner fails, and within-die variation is being
+  injected as measured-size scatter instead (queued: region 0.16 + wire 0.126 at min/max/band, and a 2x tail).
+  Whether the OCV box or the measured ring scatter is the right size for within-die spread is open: the ring scatter
+  (8.5% median) is the only silicon datum and it bounds within-die spread from above for long rings.
+- **Rule F re-run with the in-flight fix** on today's BQ#3 route: 65 fast-fall lines, worst +888 ps
+  (ucontrol_merge12.udly) -- the same number as before the fix, so BQ#3's figure stands. BQ#1: 29 lines, worst +1343.
+  research/data/fid/bq3_tighten_today.log.gz.
+- **Rings after the OUTMUX fix** (research/data/fid/rings_outmux.md, today's ro_top route, across routes = soft):
+  all 10 measured periods lie inside [FAST_MIN, SLOW_MAX]; band position 0.36/0.37 at 127 links on both August
+  routes, 0.25-0.58 on short rings. Unchanged by the fix (ro_top's rings route no O5 through an OUTMUX).
+- soak_fid.py takes GLS_SDF and GLS_MODEL=fid too. **ipow T9 seed 29 (BD_DSP=1) full stack at SLOW_MAX, good bits:
+  PASS fast + stalled**, latencies 1.54x nextpnr's SDF. dsp_constpins / dsp_constpins_inv unpatched writers:
+  DETECTED -- but by the decoder REFUSING the configuration (INMODE 11111 etc.), not by simulating the gated product.
+  Graded: hard datum, detection mechanism = refusal (weaker than a simulated wrong answer; same caveat the audit gave
+  dsp_areg). Note: today's fusion_bench defaults fastfall on, so this seed-29 route is not F4's route.
+### progress 11:47 (HARD acceptance item reproduced by the full stack: lut-pinmap on the August-shaped netlist)
+- Full stack (bits-decoded netlist + prjxray SDF + fid primitives), SLOW_MAX, nofuse route (BDC_OP_FUSION=0
+  BD_NO_TIGHTEN=1 BD_RLOC=v4, sdf c647eb1a):
+  | bits | equivalence | vectors complete | errs | never complete |
+  |---|---|---|---|---|
+  | patched (as built) | EQUIVALENT | 16/16 | 0 | - |
+  | unpatched lut-pinmap writer (fasm_audit --write-unpatched pinmap) | NOT EQUIVALENT | 9/16 | 0 | 5,6,7,8,11,12,13 |
+  The failure is absent results, not wrong ones (the board's signature), and the dead set is exactly BOARD-QUEUE
+  #1's recorded August list. **First hard acceptance item MATCHED by the full board-fidelity stack** (before: today's
+  GLS MISMATCHED it, baseline.md). Caveat (inventory): an emulated defect on a rebuilt route, not the August
+  bitstream; which vectors fail is soft (patches/README says 7/16 complete -- the records disagree), that it fails is
+  the hard claim. The GLS reads the bits, so this is the sim detecting it, not the equivalence checker.
+- Also 16/16 errs=0: BQ#3 at band 0.38 (laps v6/v12/v13 55/45/64 -- 8% MORE than nextpnr's SDF predicts, 51/42/60);
+  BQ#1 at SLOW_MAX (16/12/18). Table: research/data/fid/fullstack.md (regenerated as runs land).
+- Audit r5 3g (metastability window pessimistic): agreed and kept as is for now -- TAU=WIN=150 ps is a stress
+  setting that exercises both outcomes far more often than silicon would; fid meta-event counts are not rates. A
+  silicon-sized window needs the board (hw/arb_mtbf).
+### progress 12:07 (OOM lost two vectors; BQ#1 bug bits; 8-seed full stack queued)
+- **Lost data, recorded:** a full-stack vvp is ~3.1 GB RSS and its iverilog compile ~3.7 GB; four sims plus a compile
+  overran 15 GB and the OOM killer silently truncated BQ#1 FAST_MIN vectors 6 and 14 (run_fid printed "no verdict
+  line"; every other completed run was checked: no other truncation). The run is discarded and re-queued; at most 3
+  vvp-class jobs at once from now on. A truncated log must never be read as a pass: run_fid's "no verdict line" is
+  the tell.
+- BQ#1 route, unpatched lut-pinmap bits (58 INITs changed, one LUT left with no INIT), full stack SLOW_MAX: **16/16,
+  errs=0**, laps within 1-6% of the patched bits' (vec 6 16 vs 16). So the bug is harmless on this fusion-on route in
+  the full stack too, as F4 found with a LUT-only reader: this route does not discriminate, the nofuse one does.
+- BQ#3 seeds 3-8 rebuilt (sdf b238ca95, a0d20c19, c71ed2cb, a1abd66d, ec9a75df, a81e16ee; seed 9 building);
+  full stack at FAST_MIN and SLOW_MAX queued for each, after the scatter draws.
+- Subagent S3: acceptance.py `--stack full`, so the harness itself runs the hard items on the full stack.
+
+(The 2026-10-27 10:12 session ended without a closing note after progress 12:07; its lock went stale at 12:50.
+Its queued 8-seed full-stack runs and the S3 harness change are not on the branch: no results from them exist.)
+
+## Session 2026-10-28 23:11 -- (in progress) board-fidelity GLS: 8-seed full stack on BQ#3, scatter draws, acceptance --stack full
+### progress 23:11 (start)
+- Lock 12:50 on 10-27 (34 h old, dead); taken. 4 cores, 15 GB. Fresh container again: no routes on disk.
+- Audit: no new pass since 10-27 12:42 (pass 6 queued, unpublished); every research row was answered last session.
+- Plan: rebuild BQ#3 seeds d,3-9 (one nextpnr per core, at most 3 vvp-class jobs), full stack at FAST_MIN and
+  SLOW_MAX on each, then region 0.16 + wire 0.126 scatter draws; subagent S3 redoes acceptance.py --stack full.
+### progress 23:17 (toolchain up; 8 BQ#3 routes building; S3, S4 out)
+- cloud/setup-toolchain.sh from cache: EXIT 0, all fingerprints ok; patches 789a7120c912d393, nextpnr 9c732bc6303458df.
+  prjxray-db zynq7 re-cloned at 0a0added.
+- cells/gls/fid/seeds_fid.py: worktree per seed, build_hw.sh with the BQ#3 recipe, xray_delay SDF, build_fid +
+  run_fid per column, one row per run; a vector without a SUMMARY line makes the run INCOMPLETE (the OOM lesson).
+  Default-seed rebuild: sdf 61e14755, BQ#3's recorded md5 (routed.json f1b7814f, path-dependent as recorded).
+- S4 (new): model the DSP48E1 in the configurations the unpatched constpins writers produce instead of refusing
+  them, so the dsp hard items fail by a simulated wrong product, not by decoder refusal (audit r3 1).
+### progress 23:40 (S4 landed: DSP constpins items now fail by simulated wrong products; 8 routes up)
+- S4 (14d7b81): the bits-built GLS simulates the combinational DSP48E1 modes the unpatched constpins writers leave
+  (INMODE 11111, ALUMODE 1100, OPMODE6=1) instead of refusing them. ipow T9 seed 29 BD_DSP=1 soak route:
+  dsp_constpins and dsp_constpins_inv DETECTED by GLS FAIL (15/17 vectors wrong, every product 0); good bits PASS
+  with the same latencies; default-configuration gen.py/fasm2net outputs md5-identical to HEAD. Hand check against
+  the UG479 formulas 7680/0 mismatches, fault control 7680/7680 (re-run here).
+  **Hard-item mismatch, recorded:** the board before the patch had 965/2016 ipow products right (48%) and one mult2
+  DSP fully right; the model gives all zeros. Same bug, different route and vector set, so the *fraction* is soft --
+  but "every product 0" cannot give 48%. Either silicon does not compute X AND Z with M=0 here, or the board's ipow
+  used the DSP differently (e.g. some products not routed through the gated A). Next: read the August ipow/mult2
+  records for which DSPs and operands were right; check which of the 5 INMODE/ALUMODE/OPMODE6 pins the board's
+  route actually left without a tile bit (dsp_constpins depends entirely on "no bit reads 1").
+- All 8 BQ#3 routes (d,3-9) built and every build_hw gate passed; xray SDFs complete. Full stack at FAST_MIN and
+  SLOW_MAX running 2 at a time (~2 min per vector); region 0.16 + wire 0.126 (1x) and 0.32 + 0.252 (2x) draws at
+  band 0.38 in a third slot.
+- Note: gls/prims.v and gen.py changed (S4) while the sweep runs from the main tree; gcd_hw has no DSP and the
+  default netlist text is unchanged, so runs before and after are comparable.
+### progress 23:53 (DSP gated-logic mode now x; S5 CARRY4/latch transport held until the sweep compiles)
+- 007e895: S4's model assumed a gated multiplier hands the ALU two zero partial products, so the unpatched constpins
+  config (X AND Z on M) gave every product 0 -- contradicted by the board's 965/2016 right. UG479 fixes only their
+  sum, so that case now simulates every output bit as x (MUNK). Re-run: dsp_constpins --good --gls DETECTED, bug
+  bits "vector 1: out0 got xxxxxxxx expected 00000003" in both harnesses, good bits PASS.
+- First full-stack vectors on today's routes: default seed FAST_MIN vec 6 = 91 laps, the same as last session's
+  bq3_min (reproduced); seed 3 FAST_MIN vec 6 = 89; 0 errs so far everywhere, including the first region+wire draw.
+- S5 returned: CARRY4 and SLICE_LATX per-pin transport under GLS_FID (default preprocessed text and a 124k-event
+  VCD byte-identical; tb_f3_carry fails 5/5 on default, tb_f3_latch 2/5, both pass on fid; x-semantics check
+  can fail). NOT applied yet: the running sweep compiles prims.v from this tree, and mixing models inside one
+  8-seed table would make it unreadable. Applied after the last sweep compile.
+  S5 finding: the DEFAULT CARRY4 chains CO1..3/O1..3 off its own path-delayed CO outputs, so every output moves at
+  max(own arc, upstream CO arc): CIN->CO3 lands at 271 ps instead of the SDF's 114. Reading: prjxray's CIN->CO0
+  (271) includes the slice output driver to general routing, while CO3->COUT is the dedicated chain, so 114 < 271 is
+  not acausal; the internal ripple does not pass through the CO0 output pin. So the default GLS is PESSIMISTIC on
+  carry ripple and the fid model (per-pin arcs, as nextpnr's timing analysis) is the faithful one. Not changing the
+  default model (it is the shipped gate; pessimism there is safe).
+- No board-queue change.
+### progress 00:27 (sweep restarted on 78de9c2 from a frozen worktree; first rows)
+- Stopped the sweep after ~30 min and restarted it from a detached worktree at 78de9c2 (S5's CARRY4/latch transport
+  in), so every row of the 8-seed table is one model and later commits cannot change it mid-run.
+- Rows so far (full stack: bits netlist + prjxray SDF + fid; laps vec 6/12/13 per 150 us):
+  | seed | column | sdf / xray sdf | verdict | laps 6/12/13 |
+  |---|---|---|---|---|
+  | d | SLOW_MAX | 61e14755 / ef6d6e77 | PASS 16/16 errs 0 | 33/27/39 (identical to last session's, before S5) |
+  | d | band 0.38, region 0.16 + wire 0.126, draw 1 | same | PASS 16/16 errs 0 | 53/42/62 (no scatter: 55/45/64) |
+### progress 01:15 (6/32 full-stack runs, all PASS)
+- seed d max: sdf 61e14755 xray ef6d6e77 PASS 16/16 errs 0 laps 33/27/39
+- seed d band_s0.16-0.126-1: sdf 61e14755 xray ef6d6e77 PASS 16/16 errs 0 laps 53/42/62
+- seed d min: sdf 61e14755 xray ef6d6e77 PASS 16/16 errs 0 laps 91/75/108
+- seed d band_s0.32-0.252-1: sdf 61e14755 xray ef6d6e77 PASS 16/16 errs 0 laps 50/39/59
+- seed 3 min: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 89/72/103
+- seed 3 max: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 32/26/38
+### progress 02:00 (S3 landed: acceptance.py --stack full; end-to-end lut-pinmap run started)
+- 87100ea: acceptance.py --stack full (bits netlist + prjxray SDF at --corner min/max/band + fid primitives);
+  test_acceptance 16/16; refusal-only detection reported as MATCH (WEAK); identical bitstreams or an unchanged
+  writer can never MATCH. Default stack unchanged on the paths that run without routes.
+- Nofuse route rebuilt by S3: sdf c647eb1a (the journal's), bit 951e767b. Running now from a worktree at 87100ea:
+  `acceptance.py --stack full --corner max --items lutpinmap_gcd_nofuse` (expected several hours, one vvp).
+  Last session's hand run on this route: patched 16/16, unpatched 9/16 with 5-8,11-13 never complete.
+- Sweep: 9/32 runs done, all PASS.
+### progress 02:31 (12/32 sweep rows PASS; acceptance retried after an OOM)
+- The first --stack full acceptance run died in the fid compile (iverilog exit 137, OOM: three 2.5 GB vvps plus the
+  3.7 GB compile). The harness reported ERROR, not a pass. Paused the scatter driver (seeds d and 3 done, both
+  draws) to make room; retried; it is in its ANNOTATE gate now. Scatter for seeds 4-9 resumes after.
+- seed 4 max: sdf a0d20c19 xray e9bb3663 PASS 16/16 errs 0 laps 31/24/36
+- seed 3 band_s0.16-0.126-1: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 54/43/63
+- seed 4 min: sdf a0d20c19 xray e9bb3663 PASS 16/16 errs 0 laps 83/66/98
+- seed 3 band_s0.32-0.252-1: sdf b238ca95 xray 6dc1edca PASS 16/16 errs 0 laps 53/43/63
+- seed 5 max: sdf c71ed2cb xray f3ca9bea PASS 16/16 errs 0 laps 34/27/40
+- seed 5 min: sdf c71ed2cb xray f3ca9bea PASS 16/16 errs 0 laps 93/76/109
+### progress 03:53 (seed 7 "livelock" was a decoder bug, fixed: 54f2ce6)
+- BQ#3 seed 7 (sdf ec9a75df) full stack: vector 1 never completed (0 laps, errs 0) at FAST_MIN and SLOW_MAX; the
+  bits-vs-JSON check said NOT EQUIVALENT (17 LUT functions differ, all $PACKER_GND_NET$LUT$* LUT1 buffers).
+  Traced: nextpnr routes GND out of an UNUSED LUT (GND_WIRE -> SITEWIRE/SLICE_X18Y95/A -> always-on
+  CLBLL_LOGIC_OUTS12 ppip -> SE6/EE2 -> IMUX1 -> the GND LUT's A3). The pips are in the bits; the source LUT and
+  its whole tile have no bits, so fasm2net never decoded the slice, the source node floated, and the IMUX fell back
+  to its VCC default ("pip driven from a floating node", 65 on seed 7, 8 on seed 5, 0 on d/3/4/6/8). The GND LUTs
+  then output 1. A decoder defect, not a design or toolchain one: on silicon an LUT with no INIT bit outputs 0,
+  which is what nextpnr relies on.
+- Fix: decode every CLB tile; an unconfigured LUT6's O6 resolves to constant 0 (const/unused-lut). fasm_equiv also
+  folds a json-only always-ppip that only feeds dead-route pips into that dead route. Seed 7: EQUIVALENT; seed d
+  decode md5-identical before/after; lut_pinmap and lut_pinmap_live controls on seed 7 still DETECTED with the good
+  bits passing. The nofuse acceptance route had no floating pips (unaffected).
+- Seed 7's old rows (FAIL 15/16, vector 1) and seed 5's (PASS) are kept in the scratch dirs as *_olddecoder and
+  are superseded; both seeds re-run on a frozen worktree at 54f2ce6 (same fid model as 78de9c2; only the decoder
+  differs, and it is byte-identical on the other seeds).
+- Lesson: an equivalence verdict of NOT EQUIVALENT on a shipped-recipe route is a stop sign for the sim result,
+  whichever side is wrong; seeds_fid.py should put the equivalence verdict in its row (next).
+### progress 03:56 (hard item MATCHED by the harness itself: acceptance.py --stack full)
+- `acceptance.py --stack full --corner max --items lutpinmap_gcd_nofuse` (worktree at 87100ea; nofuse route sdf
+  c647eb1a, xray sdf b2036378, patched bit 951e767b, unpatched 66379152; 126 FASM lines differ):
+  **[MATCH]** patched 16/16 (EQUIVALENT), unpatched 9/16 (NOT EQUIVALENT: LUT FUNCTION DIFFERS), never complete
+  5,6,7,8,11,12,13 -- the same set as last session's hand run and BOARD-QUEUE #1's August list. No hand step.
+  Log and JSON: research/data/fid/acceptance_full_nofuse_max.{log,json}.
+  Note: the patched FASM re-assembled here differs from the build's .bit (the harness used the build's own .bit;
+  bitstreams are known not to be byte-reproducible, see BQ#3 "bit ... not reproducible").
+- Scatter draws resumed for seeds 4,6,8,9,7,5 on the fixed decoder (54f2ce6).
+### progress 04:35 (sweep 19/32 + re-runs; still no real failure)
+- Seed 8 SLOW_MAX 34/28/40, FAST_MIN 94/76/109, both PASS; seed 4 region+wire 1x PASS 47/37/55; seed 9 decodes
+  EQUIVALENT with no floating pips (its rows on the 78de9c2 decoder stand). Seeds 5 and 7 re-running.
+### progress 05:02 (DSP hard items MATCH on the full stack, non-weak)
+- `acceptance.py --stack full --corner max --items dsp_constpins,dsp_constpins_inv` (worktree dc2f93f; ipow T9
+  seed 29 BD_DSP=1 soak route, routed.json e7a27380, sdf 5ef854a9, xray sdf bc6cb638): **both [MATCH], not WEAK**:
+  good bits PASS both harnesses; the unpatched writers' bits FAIL with "vector 1: out0 got xxxxxxxx expected
+  00000003" (dsp_model MUNK: a logic ALUMODE on a gated multiplier is unknown). Before today these were detected
+  only by the decoder refusing the configuration (audit r3 1, graded weak). Data:
+  research/data/fid/acceptance_full_dsp_max.{log,json}.
+  Still soft: the board's 965/2016 correct products; the model now says "unknown", which neither predicts nor
+  contradicts a fraction. dsp_constpins still rests on "a control pin with no tile bit reads 1".
+- Seed 7 FAST_MIN on the fixed decoder: PASS 16/16, laps 87/70/101. Seed 9: SLOW_MAX 32/26/38, FAST_MIN 88/71/103.
+- Running: acceptance lut-pinmap at FAST_MIN; seed 7 SLOW_MAX and seed 5 re-runs; scatter draws.
+### progress 05:04 (soft ring items through the harness: inside the band, band 0.38 within a few %)
+- ro_top rebuilt today (sdf 4875ce2b; ring periods from the xray SDF of the bits-decoded netlist, no sim), acceptance
+  ring5_a/ring5_b --stack full at min/max/band: every measured period lies inside [FAST_MIN, SLOW_MAX] (min under-
+  predicts by 33-54%, max over-predicts by 39-99%); at band 0.38 the long rings land within +-4% (127 links: +1.8%
+  route A; 63 links: +1.3% / -3.6%), short rings -18.5..+16.7% (7 and 31 links, where per-route scatter is largest:
+  the board itself showed 25% route-to-route at 7 links). SOFT (across routes; the measured routes are gone), and
+  0.38 was fitted to these same rings last session, so the band agreement is a consistency check, not a prediction.
+  Logs: research/data/fid/acceptance_full_ring5_{min,max,band}.log.
+### progress 05:40 (S6 landed; gen.py SETUPHOLD bug fixed: the default flop check was silent on 284/326 flops)
+- 923305d (S6): under fid, SLICE_FFX input pins are transport, CK runts judged against an ASSUMED 70 ps min pulse
+  width (no source: prjxray-db has no WIDTH check; DS187 unreachable), SR inside the aperture is resolved
+  metastably; BUFGCTRL I0->O transport. run_f3 all ok (tb_f3_ff 8/8 fail default, pass fid; mutated control
+  differs 318/3000); default preprocessed text identical.
+- 666ea57: gen.py's SETUPHOLD regex dropped every line with a negative number, i.e. all D and CE checks (84 of
+  1218 parsed on BQ#3 d). Fixed; BQ#3 default seed, default GLS: 16/16, no violations, laps 51/42/60 (record).
+  Every gen.py-based gate is now stricter on flops; other kernels' gates not yet re-run.
+- DSP items at FAST_MIN: both MATCH too (good bits PASS, bug bits x).
+### progress 06:25 (S7 landed: dsp_areg is a property test; decoder rule narrowed)
+- d4896fe (S7): registered DSP48E1 decode + model; on verify/fasm/probe.v's route the patched FASM's AREG=1 DSP
+  simulates 1 A stage, the unpatched writer's decodes AREG=2/ACASCREG=1 with CEA1 tied 0 (yosys's AREG=1 mapping),
+  so A never loads and P is 0 every cycle (full GLS vs a probe.v oracle: 197/197 vs 102/197). Mutant decoder and
+  mutant model each break it, so the property can fail both ways. S7's reading of the board record: the August
+  A/B on the areg patch ran while constpins gated A to 0, so the board could not see AREG at all -- the
+  "bit-identical before/after" is explained by that, not by "read ms later". Still unverified on silicon.
+- 2nd decoder fix (after S7 flagged it): an all-zero LUT is const 0 only in a slice with no configuration; a real
+  LUT whose INIT expands to 0 stays a cell. ipow --good passes again; seeds 5/7 still EQUIVALENT; d identical.
+- Sweep: 26 rows, all PASS; seed 5 FAST_MIN 93/76/109 on the fixed decoder.
+### progress 06:28 (BQ#3: 8 seeds x 2 corners on the full stack, 16/16 PASS each)
+| BQ#3 full stack (bits netlist + prjxray SDF + fid) | n | pass | laps vec 6 mean (range) | vec 12 | vec 13 |
+|---|---|---|---|---|---|
+| FAST_MIN | 8 | 8 | 89.6 (83-94) | 72.6 (66-76) | 104.9 (98-109) |
+| SLOW_MAX | 8 | 8 | 32.8 (31-34) | 26.2 (24-28) | 38.5 (36-40) |
+| band 0.38 + region 0.16/wire 0.126 | 4 (d,3,4,6) | 4 | 51.5 (47-54) | 41.0 | 60.2 |
+| band 0.38 + 2x scatter (0.32/0.252) | 4 (d,3,4,6) | 4 | 49.0 (44-53) | 38.8 | 57.5 |
+Seeds: d,3,4,5,6,7,8,9. nextpnr-SDF nominal on the same 8 routes (BQ#3 record): vec 6 mean 50.0. Worst seed at
+SLOW_MAX: 4 (31/24/36). Data research/data/fid/bq3_fullstack_8seed.tsv; BOARD-QUEUE #3 updated.
+Does NOT show: silicon; scatter on seeds 5,7,8,9 (running); the board-fidelity sim is not yet accepted (ring128
+blocked on the owner's raw data), so the rule gates stay.
+### progress 06:50 (dsp_areg acceptance MATCH; disk filled and was cleaned; BQ#2 8-seed full stack started)
+- 781eeae (S8): acceptance.py --items dsp_areg runs the property on verify/fasm/probe.v's route: **[MATCH]** in both
+  stacks (patched X1Y14 1/1 stage; unpatched decodes AREG=2/BREG=2 with CE*1 tied 0, no product). Also: .bit md5
+  guards now compare payloads from the sync word (xc7frames2bit writes the frames path into the header, so the
+  old "bitstreams identical" guard could never fire). inventory.md now has a generator (inventory_md.py --check).
+- Hard acceptance items on the full stack, as of now: lutpinmap_gcd_nofuse MATCH (SLOW_MAX; FAST_MIN running),
+  dsp_constpins MATCH x2 corners, dsp_constpins_inv MATCH x2, dsp_areg MATCH (property, one route), ring128 BLOCKED
+  (owner's raw per-ring data), lutpinmap_gcd (BQ#1 fusion route, where the bug is harmless) not run.
+- The scratch disk reached 92% (each compiled full-stack sim is ~600 MB); 30 finished sims deleted, seeds_fid now
+  deletes its .vvp after parsing. A BQ#2 sweep launched during the full-disk window ran twice on one dir and
+  produced BUILD_FAIL/INCOMPLETE rows; discarded, relaunched once (default-seed sdf a9c4e265 = BQ#2's record).
+### progress 07:47 (lut-pinmap MATCH at FAST_MIN too; acceptance status table)
+- acceptance --stack full --corner min, lutpinmap_gcd_nofuse: [MATCH], patched 16/16, unpatched 9/16, never
+  complete 5,6,7,8,11,12,13 (same set as SLOW_MAX). research/data/fid/acceptance_status.md summarises every item:
+  all runnable hard items MATCH at both corners; ring128 BLOCKED (owner data), so not accepted and gates stay.
+### progress 08:01 (BQ#2 full stack started passing; BQ#3 scatter on seed 8)
+- BQ#2 default seed (sdf a9c4e265, BQ#2's recorded md5), full stack SLOW_MAX: PASS 16/16, EQUIVALENT, laps
+  31/25/36 (BQ#3 same seed: 33/27/39, so fast fall is +6% at SLOW_MAX too). BQ#3 seed 8: 1x and 2x scatter PASS
+  (51/41/59, 46/37/53). seeds_fid now serialises compiles machine-wide (the BQ#2 relaunch).
+- S9 (new): a distribution-level ring128 check from the published per-length summary quantiles (formal branch's
+  ro_many_2026-08-23_summary.csv); the per-ring table is still missing.
+### progress 08:31 (ring128 at the distribution level: soft MISMATCH, and a re-reading of "short rings are slow")
+S9's ring128_summary (commit above): the full-stack model is a soft MISMATCH against the published 128-ring
+  quantiles (4/7 vs the emulated August denominator, 6/7 vs today's nextpnr). The 7-link "slower than predicted"
+  effect reappears for every delay model once the old nextpnr's in-tile under-charge is emulated in the
+  denominator, so it is most likely an artefact of the August SDF, not silicon; and with that denominator the F3
+  region scatter (0.16) looks double-counted (wire-only fits the shape). Not acted on yet: region 0.16 stays the
+  injected scatter (too much scatter only makes GLS stricter); revisit when the per-ring data arrives.
+### progress 09:21 (first full-stack failure: BQ#3 seed 9 under 2x within-die scatter)
+- BQ#3 scatter draws done: 1x (region 0.16 + wire 0.126) PASS on all 8 seeds; 2x (0.32 + 0.252) PASS on d,3,4,
+  5,6,7,8 and **FAIL on seed 9** (sdf 74511ca2, draw 1): vectors 2,3,9,11,13,15 each produce lap 1 with
+  "mism=x", OK then ERR 120 ps later, then no further lap in 150 us; errs 6. Bits EQUIVALENT. Not yet known
+  whether this is a genuine bundling margin at the 2x tail (the "which margin fails first" PROGRAM asks for) or a
+  model artefact (e.g. 1 + 0.32 N clamped at 0 for N < -3.1). Subagent S10 is tracing the X back.
+  Until explained, BQ#3's claim is "1x scatter clean on 8 seeds, 2x clean on 7 of 8".
+- Draft PR #2 description updated. BQ#1 8-seed full stack queued behind the scatter driver (now starting).
+### progress 10:21 (seed 9 at 2x scatter: a GENUINE bundling violation from correlated variation; rules blind to it)
+- S10 traced the X (vector 13): ucond_br23..27 steer on select n74_data, the output of fused unit urig.udut.uori2;
+  in the draw the request n74_req rose at 449409 ps and n74_data settled at 452494 (request led data by 3085 ps;
+  at the five steer pins the select is late by 1646-2940 ps). bd_steer computes req & s with no storage, so the X
+  (the select's datapath had not yet computed) enters the C-elements/latches and the handshake stays X. On
+  silicon: a token steered on a stale select. Not clamping (one clamped arc, on a VCC-tied pin), not the
+  metastability resolver (META_X off), no flops involved. Data-dependent: 6 of 16 vectors.
+- Mechanism: region factors are one die map (md5(seed, region), route-independent). Seed 9 placed uori2's matched
+  delay (BD_SZ_URIG_UDUT_UORI2 = 19, X34-35 Y21-23, region factor 0.20 at 2x) ~30 slice rows from the comparator's
+  CARRY4 chain it tracks (X30-31 Y50-52, factor 1.45). Bisection on the same draw: margin roughly linear in scale;
+  1x -1449 ps (safe), 1.3125x -82 ps, 1.375x +195 ps (fails) -> **threshold ~1.33x the calibrated scatter**
+  (region sigma ~0.21), i.e. a ~2.8x speed ratio between the two regions. Log-normal factors at 2x: still fails.
+- The rules do not see it: rule A gives uori2 +1510 ps after its guard (17th of 50); rule A's tightest line is
+  ushli0 (+289 ps) and it did not fail in this draw (why: not determined). None of the rules model correlated
+  variation between a chain and a distant datapath.
+- Reading: the 2x point (2.8-3.5x region speed ratio on one die) is beyond what the ring data supports, and S9
+  suggests even 1x region scatter is double-counted; so BQ#3 stays queued. But it exposes a real robustness
+  weakness: **matched delays placed far from the datapath they track.** Next leads: (a) a post-route screen for
+  chain/datapath distance (report it, rank by it), (b) place each bd_delay chain next to its datapath (RLOC /
+  placement), never shortening it; (c) run every candidate at a fixed set of region draws with log-normal factors
+  and report the scale at which it first fails (a margin in units of the calibrated scatter).
+### progress 11:30 (BQ#2 full stack 7/16 runs PASS; BQ#3 seed 7 passes 2x)
+- BQ#2: d/3/4 at both corners and 5 SLOW_MAX: all PASS 16/16, EQUIVALENT (vec 6 SLOW_MAX 28-32, FAST_MIN 77-86).
+- BQ#3 seed 7 at 2x scatter: PASS (59/47/70). Seed 5 scatter running; then BQ#1's sweep.
+### progress 12:07 (worker restart; sweeps survived)
+- The session's worker restarted (~12:05); the detached sweep drivers survived, S11's background jobs did not
+  (asked to resume). BQ#2: 5 FAST_MIN 88/71/102, 6 SLOW_MAX 33/27/39, both PASS (10/16 runs, all PASS).
+  BQ#3 seed 5 1x scatter PASS.
+
+## Session 2026-10-29 14:41 -- (in progress) fid resolver fixed (r16); BQ#1-3 full stack + scatter; gcd_ps formal target (BQ#4) through the full stack; FOR-RESEARCH C1 answered
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df   Seeds: (BQ#2 6,7,8,9 routing)
+- Lock 12:07 (2 h 34 min, dead); taken. 4 cores, 15 GB. toolchain.sh ok. Audit read (pass 11a, db195be4): two open
+  rows on research files: r16 (FID_RESOLVE "applied late, not lost" REFUTED) and r18 (arb_double_ack CONFIRMED in
+  the fid model; research's arbiter tests blind to it; bd_prims_sim.v has no BD_FID path although f3_model.md and
+  fid_core.vh say it does -- `git log -S BD_FID` on bd_prims_sim.v is empty, so that path was never committed).
+- 055edd7: FID_RESOLVE rewritten so the feedback pin is evaluated from the node's committed state (FB6/FB5 masks
+  from gen.py); no echo window, nothing ignored. A drive away from the held value during a resolution ends it.
+  tb_f3_follow (new, in run_f3.sh): old resolver loses the 200 ps follow pulse 40/40 (the audit's number), new one
+  latches 40/40 (600 and 200 ps) and resolves the 150 ps follow runt both ways (30/10); default model FAILs it.
+  All other F3 benches unchanged (tb_f3_meta A 125/75, B 119/81). Not yet re-run on a routed design.
+- setup-toolchain.sh now clones prjxray-db 0a0added (zynq7) for xray_delay.py (every session re-cloned it by hand;
+  this one lost a first BQ#2 route pass to the missing db).
+### progress 15:11 (first routed run of the new resolver OOM-killed; relaunched at 2 sims)
+- BQ#2 seeds 6-9 routed (build_hw PASS incl. fasm_audit; xray SDFs made). gen.py finds 4711 LUT state nodes on
+  seed 6 (loop delay 125/330/1742 ps). The first full-stack compile under 055edd7 was OOM-killed: iverilog now
+  peaks ~5.5 GB (was ~3.7) and each vvp ~3.7 GB (was ~3.1), from the forced-feedback trees on every state node.
+  Relaunched with --sim-jobs 2 (seeds_fid docstring updated). No result yet.
+- chain_dist.py (7833f62): matched delays vs their datapath on BQ#2 routes: far distance median 14-16, p90 26-35,
+  max 51-63 slices; uori2 (the seed-9 BQ#3 bundle) is 16 on seed 6. A screen, gates nothing.
+- Literature (a9a409b, meta_sources.md): no 7-series source for TAU/WIN, TAU_FF, aperture, CK MPW or LUT pulse
+  rejection. Measured flop tau 35-75 ps at 130-65 nm puts TAU_FF 75 at the slow (pessimistic) end. A datasheet
+  CK minimum pulse width (~0.5 ns, unconfirmed) would make 70-500 ps CK runts spec violations; not acted on.
+- Running: S12 (arbiter near-tie double-ack under the new resolver + gcd_hw grant->A0 round trips); BQ#3 8 reroutes.
+### progress 15:25 (audit r18 answered with data: model requirement derived, gcd_hw's arbiters clear it)
+- 089d00e + 7d21f37 (S12): bd_arbiter near tie re-measured under the 055edd7 resolver (tb_f3_arbtie, own bench
+  built the gen.py way). Double acks persist, rarer: TLOOP 424 S=600 303/9200 (r18 old resolver 1097/10440),
+  clean from S=1095 (was 1200); TLOOP 200 clean from 915 (was 1000). Grants never overlap. Requirement derived
+  and checked: RT + a >= trp_max + GP + c - skew (predicts 1088/909 vs measured 1080-1095/905-915), so
+  bd_arb.v's "one loop delay" consumer obligation is NOT sufficient in the model. The hold-release race
+  (re-request at A0-fall) gives the same failure and the same threshold.
+  On BQ#2 seed 6 (prjxray FAST_MIN; static lower bounds; arb_roundtrip.py / arb_holdreach.py): all 18 ack
+  C-elements of the 9 arbiters clear it, worst margin 878 ps (merge9.uarb1); re-requests clear the hold window
+  by >= 399 ps. --naive negative control flags 3. run_f3.sh +3 arms, rc 0.
+  Reading for r18: the mechanism is real in the model and silicon-plausible; its cutoff rests on the assumed
+  TAU (878 ps ~ 5.9 TAU); gcd_hw is not exposed on this route. bd_arb.v's comment is now known to understate
+  the obligation; cells/rtl is frozen, so the correction lives in arbtie.md (no RTL change: the cell is fine,
+  the comment's rule is too weak).
+- BQ#2 seeds 6/7 SLOW_MAX under the new resolver: vectors 0-1 PASS so far (seed 6 laps 3070/1907); ~3.5 min per
+  vector, 8 sims at 2 at a time, ~4 h. BQ#3 8 reroutes in progress (for the same re-run).
+### progress 16:12 (BQ#3 rerouted, md5 reproduced; arbiter check on 12 routes; chain distance alone does not predict)
+- BQ#3 8 seeds rerouted (all build_hw PASS; default sdf 61e14755 = the record). arb_roundtrip: 0/18 below the
+  arbiter requirement on all 8 (worst 691 ps, seed d; BQ#2 worst 878).
+- chain_dist on the 8 BQ#3 routes: far median 11-18, p90 27-43. Seed 9's uori2 (the 2x-scatter failure) is 33,
+  the largest uori2 of the 8 seeds, with the traced bbox X34-35 Y21-23, but only 7th on its own route: six
+  farther chains survived the same draw. Distance alone does not rank failures; next: weight by rule A's margin
+  and datapath delay (the exposure is margin / (delay x regional speed difference)).
+- BQ#2 seeds 6, 7 SLOW_MAX: 13/16 vectors done each, all completed with errs 0 so far.
+### progress 16:43 (first routed results under the 055edd7 resolver: unchanged)
+- BQ#2 full stack, SLOW_MAX, new resolver: seed 6 PASS 16/16 errs 0 laps 33/27/39 (EQUIVALENT) -- identical
+  to last session's old-resolver row (33/27/39); seed 7 PASS 16/16 laps 31/25/36. FAST_MIN and seeds 8/9 running,
+  then BQ#3 x8 x2 corners on the new resolver.
+- S13 started: region/wire scatter applied to the nextpnr-named SDF, then rule A, as a static predictor of the
+  seed-9 2x-scatter failure (rule A was blind to it on the unscaled SDF: uori2 +1510 ps).
+### progress 19:46 (BQ#2 seeds 6, 7 both corners PASS under the new resolver)
+| BQ#2 full stack, 055edd7 resolver | sdf | xray sdf | verdict | laps v6/v12/v13 |
+|---|---|---|---|---|
+| seed 6 SLOW_MAX | c4ec8664 | 1f7f03ea | PASS 16/16 errs 0, EQUIVALENT | 33/27/39 |
+| seed 6 FAST_MIN | c4ec8664 | 1f7f03ea | PASS 16/16 errs 0, EQUIVALENT | 93/76/109 |
+| seed 7 SLOW_MAX | ae90c9ef | 042034d2 | PASS 16/16 errs 0, EQUIVALENT | 31/25/36 |
+| seed 7 FAST_MIN | ae90c9ef | 042034d2 | PASS 16/16 errs 0, EQUIVALENT | 86/69/100 |
+FAST_MIN sims take ~2 h each (vs ~1 h SLOW_MAX). Seeds 8, 9 next, then BQ#3 x8 x2 corners.
+### progress 19:47 (NEGATIVE: rule A on a scatter-scaled SDF does not predict the GLS failure)
+- S13 (research/tools/scatter_ruleA/, data scatter_ruleA_seed9_mc.txt): scale_sdf.py imports gen.py and reproduces
+  its scatter factors exactly (draw 1, 2x: 44567/44567 IOPATH, 50148/50148 INTERCONNECT identical to the GLS's
+  annot.sdf), maps them to nextpnr names, and tighten.py (rule A) runs on the scaled xray-band SDF.
+  On BQ#3 seed 9, draw 1, uori2 is the worst rule-A cell and the mechanism matches the GLS (chain 7839 -> 1549 ps,
+  data 5234 -> 5764). But rule A's zero crossing is ~0.74x guarded / ~0.97x raw against the GLS's 1.31-1.38x
+  (same slope, ~1.3 ns pessimistic offset). Across BQ#3 seeds, draw 1: rule A flags 6/8 routes at 1x (GLS passes
+  all 8) and 8/8 at 2x (GLS fails only seed 9); seed 9's raw -3976 overlaps passing seeds 3 and 4. Monte Carlo on
+  seed 9: 34/38 draws negative at 1x. Verdict: correct factors, unusable predictor; rule A's one-sided worst case
+  cannot separate fail from pass under correlated variation. Rule A stays a proposer, not a judge. Only the GLS
+  can rank these draws.
+### progress 21:48 (BQ#2 SLOW_MAX on seeds 6-9 all PASS under the new resolver)
+- BQ#2 seed 8 SLOW_MAX PASS 16/16 laps 31/25/37 (sdf b7733e23); seed 9 SLOW_MAX PASS 16/16 laps 31/25/36
+  (sdf 4a9b218e); both EQUIVALENT. Seeds 8, 9 FAST_MIN running, then BQ#3.
+### progress 23:19 (owner's PROGRAM change ea7dafa read and followed)
+- Owner commit ea7dafa (one session a day; the "use far more parallelism"/"most subagents" text removed) landed
+  mid-session; my lock push was rejected as non-fast-forward, the remote LOCK was still this session's, so it was
+  rebased on top, not a lock conflict. From here: the main thread stays on the full-stack GLS, no new subagents
+  unless a lead needs one; background sims keep the machine busy.
+- BQ#2 seed 8 FAST_MIN PASS 16/16 laps 87/70/102. Seed 9 FAST_MIN 12/16 vectors, then BQ#3.
+### progress 23:56 (BQ#2 full stack complete: 8 seeds x 2 corners PASS)
+- BQ#2 seed 9 FAST_MIN PASS 16/16 laps 86/69/100. With last session's d,3,4,5 (old resolver): BQ#2 passes the full
+  stack on 8 seeds at both corners (16/16 runs). BOARD-QUEUE #2 updated; data bq2_fullstack_s6-9.tsv.
+- The chain now runs BQ#3 x8 x2 corners on the new resolver (~1.5 h per pair of sims, ~12 h).
+### progress 01:57 (BQ#3 on the new resolver: first rows identical to the old)
+- BQ#3 d SLOW_MAX PASS 33/27/39 (sdf 61e14755); seed 4 SLOW_MAX PASS 31/24/36 (sdf a0d20c19, xray e9bb3663) --
+  both identical to the old-resolver rows of bq3_fullstack_8seed.tsv. So far the 055edd7 resolver changes no
+  gcd_hw result (6 of 6 comparable runs identical or new passes).
+### progress 03:38 (worker restart; detached chain survived)
+- The session worker restarted (~03:35); the detached sim chain survived. BQ#3 new-resolver rows so far: d max
+  33/27/39, d min 91/75/108, 3 max 32/26/38, 4 max 31/24/36 -- all PASS 16/16, EQUIVALENT, all identical to the
+  old-resolver rows.
+### progress 14:28 (BQ#3 seed-9 2x-scatter failure reproduces on the new resolver)
+- BQ#3 seed 9, band 0.38, region 0.32 + wire 0.252, draw 1, resolver 055edd7: FAIL, errs 6, the same six vectors
+  (2,3,9,11,13,15: one lap with an error, then stall) as on the old resolver; bits EQUIVALENT. The failure is the
+  uori2 bundling violation, not a resolver artefact. BQ#3 new-resolver sweep: 15/16 corner runs PASS so far,
+  all identical to the old rows (seed 9 FAST_MIN running).
+### progress 15:18 (BQ#3 full stack on the new resolver: 16/16 corner runs PASS, all identical)
+| BQ#3 full stack, resolver 055edd7 | n | pass | vec 6 laps mean (range) | vs old resolver |
+|---|---|---|---|---|
+| SLOW_MAX | 8 (d,3-9) | 8 | 32.75 (31-34) | identical per seed |
+| FAST_MIN | 8 | 8 | 89.6 (83-94) | identical per seed |
+| 2x scatter, seed 9 draw 1 | 1 | 0 | 53 (vec 13: 1) | same failure, same 6 vectors |
+Reading: the resolver fix (audit r16) changes no gcd_hw result on 20 comparable runs (BQ#2 + BQ#3); resolver
+events evidently never land in the follow-pulse case on these routes. BOARD-QUEUE #3 updated. Data:
+research/data/fid/bq3_fullstack_newresolver.tsv. Running: BQ#2 within-die scatter 1x and 2x, draw 1, seeds 6-9.
+### progress 16:34 (BQ#2 within-die scatter: first rows pass; worker restart, drivers survived)
+- BQ#2 band 0.38 + scatter, draw 1, new resolver: seed 6 1x (0.16/0.126) PASS 16/16 laps 51/42/61; seed 8 2x
+  (0.32/0.252) PASS 16/16 laps 46/36/53. Remaining seeds running (two serial drivers).
+### progress 17:46 (second full-stack failure: BQ#2 seed 6 at 2x scatter; suspect uori3, same mechanism)
+- BQ#2 seed 6, band 0.38 + region 0.32 / wire 0.252, draw 1 (new resolver): FAIL errs 3, vectors 7, 8, 12 (one lap
+  with mism=x, then stall); bits EQUIVALENT. Same signature as BQ#3 seed 9's uori2 failure (same draw 1).
+- Suspect: urig.udut.uori3. Rule A on this draw's exactly scaled SDF (research/tools/scatter_ruleA) puts uori3 at
+  -3325 ps, far below the next cell (ushrsi0 -1306); uori3's chain (X12-13 Y53-55) is in region (1,5), factor
+  0.49 at 2x, its datapath (X0-5 Y56-76) in regions (0,5)/(0,6) at 1.56/1.54: a ~3.1x speed ratio. chain_dist had
+  it at 28 slices on this route. Running: vectors 12/7/8 with uori3's 20 chain LUTs scaled x2.03 (undoing the
+  region factor) -- if they pass, uori3 is the cause.
+- BQ#2 1x draw 1: seeds 6, 7 PASS (51/42/61, 53/42/61). 2x draw 1: seed 8 PASS (46/36/53), seed 6 FAIL.
+- gen.py quirk found: under GLS_SCATTER_ONLY, a non-matching cell ARC drops its region factor (perturb) but a
+  non-matching INTERCONNECT arc keeps it (wire path), so SCATTER_ONLY does not isolate region effects. Not fixed
+  yet (no result depends on it: SCATTER_ONLY was only used without region scatter).
+### progress 18:13 (BQ#2 seed-6 2x failure CONFIRMED as uori3's chain/datapath region split)
+- Intervention on the failing draw (GLS_SCALE_INST on uori3's 20 chain LUTs x2.03 = 1/0.492, cell arcs AND
+  interconnect, which needed 9c39512): vectors 12, 7, 8 PASS 39/175/146 laps, errs 0 (unfixed: 1 lap, errs 1 each;
+  the first attempt before 9c39512 scaled only the 120 cell arcs and still failed). Only that chain's speed was
+  changed, so uori3 is the cause.
+- Two genuine full-stack failures now, both fused "ori" compute units (uori2 on BQ#3 seed 9, uori3 on BQ#2 seed 6),
+  both at 2x region scatter with draw 1, both a ~3x speed ratio between a matched chain and its datapath 20-30
+  slices away. Neither recipe fails at 1x. Lead (b) from 2026-10-29 now has two data points: keep each matched
+  chain inside its datapath's region (placement), never shorten it.
+### progress 18:21 (chain-region placement prototype: routes, rule A clean, chains closer)
+- BD_CHAIN_REGIONS (cells/hw/chain_regions.py + chain_regions_preplace.py) on BQ#2 seed 6: rectangles of
+  +-2 cols / +-3 rows did not legalize (ucmpi1's chain); +-4 / +-6 routes. Iterated from the previous pass's route:
+  | BQ#2 seed 6 | chain-to-datapath centroid distance, mean / max (slices) | chains > 15 slices off |
+  |---|---|---|
+  | unconstrained (sdf c4ec8664) | 12.9 / 49.1 | 16/50 |
+  | pass 2 (regions from unconstrained) | 9.8 / 37.8 | 9/50 |
+  | pass 3 (regions from pass 2; file research/data/fid/chain_regions/) | 9.0 / 25.9 | 11/50 |
+  Rule A on pass 2: 46 cells, none negative, worst +1055 (unconstrained worst +914); rule D screen lines unchanged
+  (38). build_hw + fasm_audit PASS on both. One seed only.
+- Queued (after the BQ#2 scatter drivers): pass-3 route full stack at both corners + 2x draws 1-3, and the
+  unconstrained seed-6 route at 2x draws 2-3, i.e. does the constraint remove 2x failures. Not yet a claim.
+- BQ#2 scatter so far: 1x PASS seeds 6, 7; 2x PASS seed 8, FAIL seed 6 (uori3, confirmed).
+### progress 19:01 (BQ#2 scatter: 2x seed 7 PASS; seed 9 2x OOM-killed, requeued)
+- BQ#2 2x draw 1: seed 7 PASS 16/16 laps 54/42/63; seed 8 1x PASS 49/39/57. Seed 9's 2x compile was OOM-killed
+  (my side builds overlapped two sims; INCOMPLETE, never a pass) and is requeued after the chain-region GLS.
+  Lesson repeated: one compile (5.5 GB) + two vvp (3.7 GB each) is the ceiling on 15 GB; side jobs must wait.
+### progress 20:04 (BQ#2 1x scatter 4/4 PASS; chain-region route SLOW_MAX PASS)
+- BQ#2 1x (region 0.16 + wire 0.126) draw 1: PASS on seeds 6, 7, 8, 9 (vec 6 laps 51/53/49/50).
+- Chain-region route (BQ#2 seed 6 pass 3, sdf d5cc5f09 reproduces the pass-3 build): SLOW_MAX PASS 16/16 laps
+  31/25/37 (unconstrained 33/27/39, -6% on vec 6; one seed).
+### progress 20:38 (NEGATIVE: chain-only regions do not fix the 2x failure -- the datapath moves)
+- Chain-region route (BQ#2 seed 6 pass 3, sdf d5cc5f09): corners PASS (SLOW_MAX 31/25/37, FAST_MIN 85/69/100;
+  unconstrained 33/27/39 and 93/76/109), but 2x draw 1 FAILS (errs 4: vectors 2, 3, 9, 15, uori2's signature from
+  BQ#3 seed 9). Rule A on this draw's exactly scaled SDF: uori2 -804, ushli0 -165, rest positive.
+- Why: the regions are computed from the previous pass's datapath position, and the datapath moves on the next
+  pass. On pass 3, uori3's chain is again 32 slices from its datapath (X8-9 Y55-57 vs X0-5 Y67-81). Iterating
+  does not converge (centroid distance 12.9 -> 9.8 -> 9.0 mean, but per unit it jumps around).
+- Next: constrain each compute unit's chain AND datapath to one rectangle (a per-unit region), so co-location
+  holds by construction; check legality, rule A, corners, then the 2x draws.
+### progress 20:41 (placement lead parked: per-unit regions do not legalize in this nextpnr)
+- chain_regions.py --unit (chain + datapath + control of each compute unit in one rectangle, ~2x the slices it
+  needs) on BQ#2 seed 6: three tries, all "Unable to find legal placement" on a CARRY4 (uselect1, then uori2 with
+  the rectangle >= CARRY4 count + 2 tall, then uselect1 again with every CARRY4 left unconstrained -- the LUTs
+  packed into a carry cluster still constrain it). Chain-only regions legalize but do not converge (above).
+- Parked. What it would take: in the pre-place script, skip every cell of a carry cluster (needs the cluster
+  parent from the Python API, not probed yet) or a nextpnr patch that pulls a bd_delay chain toward the centroid
+  of a named cell set (soft, like the place-weight patch). Not worth it while the only failures are at 2x the
+  calibrated scatter, which S9 suggests is already double-counted at 1x.
+### progress 21:43 (chain-region route fails 2x draw 2 as well)
+- Chain-region route (BQ#2 s6 pass 3), 2x draw 2: FAIL errs 2 (laps 50/40/60). With draw 1's FAIL, 0/2 2x draws
+  pass on this route; the unconstrained route's draws 2 and 3 are next for the comparison.
+### progress 22:44 (2x draw 2: unconstrained seed 6 errs 15, chain-region route errs 2)
+- BQ#2 seed 6 unconstrained, 2x draw 2: FAIL errs 15 (15 of 16 vectors break in the first laps). Same draw on the
+  chain-region route: FAIL errs 2; draw 3: PASS. Tally so far, 2x: unconstrained 0/2 pass (draws 1,2), chain-
+  region 1/3 (draws 1,2 fail, 3 passes); errs 3+15 vs 4+2+0. Suggestive, n tiny. Draw 3 on the unconstrained
+  route next. At 2x many draws fail on one route; region 0.32 (a ~3x speed spread across one die) is far past the
+  calibrated 0.16, so this is a robustness ranking, not a predicted board failure.
+### progress 23:44 (2x draws 1-3 on BQ#2 seed 6: chain regions make no clear difference)
+| BQ#2 seed 6, band 0.38 + region 0.32 / wire 0.252 | draw 1 | draw 2 | draw 3 | corners (vec 6 laps max/min) |
+|---|---|---|---|---|
+| unconstrained (sdf c4ec8664) | FAIL errs 3 (uori3) | FAIL errs 15 | PASS 62/51/73 | 33 / 93 |
+| chain regions pass 3 (sdf d5cc5f09) | FAIL errs 4 (uori2) | FAIL errs 2 | PASS 52/42/60 | 31 / 85 |
+Reading: 1/3 vs 1/3; fewer errors on draw 2 but more on draw 1; the constrained route is 6-16% slower. No
+robustness gain shown, a speed cost shown. Draw 4 on both running; unless it separates them, the chain-only
+region prototype is a negative result.
+### progress 00:15 (full container restart; draw-4 and seed-9 2x runs restarted)
+- Container restarted (~00:13, uptime 0): disk kept, processes lost (2x draw 4 on both seed-6 routes, BQ#2 seed 9
+  2x draw 1). toolchain.sh ok; partial run dirs removed; both relaunched.
+### progress 01:23 (BQ#2 within-die scatter draw 1 complete: 1x 4/4, 2x 3/4)
+- BQ#2 seed 9 2x draw 1 PASS 16/16 (49/39/58). Draw 1: 1x PASS 4/4 seeds, 2x PASS 3/4 (seed 6 = uori3). BQ#3's
+  record for comparison: 1x 8/8, 2x 7/8. BOARD-QUEUE #2 updated.
+- Chain-region route 2x draw 4 PASS (46/36/53): chain regions 2/4 so far; unconstrained draw 4 running.
+### progress 02:29 (NEGATIVE, final: chain-only regions 2/4 vs unconstrained 2/4 at 2x)
+| BQ#2 seed 6, 2x (0.32/0.252) | d1 | d2 | d3 | d4 | pass |
+|---|---|---|---|---|---|
+| unconstrained | FAIL 3 | FAIL 15 | PASS 62 | PASS 43 | 2/4 |
+| chain regions (pass 3) | FAIL 4 | FAIL 2 | PASS 52 | PASS 46 | 2/4 |
+(errs or vec-6 laps). Same pass rate; slower at the corners (-6% SLOW_MAX, -9% FAST_MIN). BD_CHAIN_REGIONS stays
+an off-by-default tool and is not proposed for any candidate. One route only; at 2x half the draws fail on this
+route either way, i.e. BQ#2 seed 6 tolerates ~2x region scatter about half the time.
+### progress 02:52 (the 2x region-scatter point is mostly a test of implausible die maps)
+- New rows: BQ#2 seed 7 2x draw 2 FAIL errs 3; BQ#3 seed d 2x draw 2 FAIL errs 15.
+- Region factors at sigma 0.32 (linear 1+sigma N, 5x10 regions on xc7z010), whole-die spread per draw:
+  | draw | min | max | max/min | regions < 0.4 |
+  |---|---|---|---|---|
+  | 1 | 0.20 | 1.68 | 8.3 | 4 |
+  | 2 | 0.23 | 1.69 | 7.3 | 2 |
+  | 3 | 0.12 | 1.59 | 13.1 | 2 |
+  | 4 | 0.45 | 1.58 | 3.5 | 0 |
+  On BQ#2 seed 6, draws 1-2 fail on both routes, draw 4 (the only map without a < 0.4 region) passes on both, draw 3
+  splits by route. The two confirmed failures each had a chain in a 0.2/0.49 region. A 3-13x speed spread on one
+  die is far outside anything measured (the ring data's median scatter is 8.5%); the 2x tail is dominated by
+  regions running 2.5-8x faster than nominal, which the linear model allows and silicon does not.
+- Consequence: stop adding 2x linear draws (the ones running finish). A failure at 2x ranks a route's exposure but
+  is not evidence of a board risk. If robustness margins are wanted, scan the scale per draw with log-normal
+  factors (GLS_SCATTER_LOGN=1) and report the failing scale, as the 2026-10-29 bisection did for seed 9 (~1.33x).
+### progress 02:53 (2x sweeps stopped; BQ#1 8-seed full stack started)
+- Stopped the remaining 2x linear draws (low value, above). Started BOARD-QUEUE #1 (fusion on, v4, select pads; the
+  first board candidate) on the full stack: seeds d,3-9 x FAST_MIN/SLOW_MAX, resolver 055edd7. Its full-stack
+  record so far is one route (bq1_max 16/12/18 laps, fullstack.md). Default-seed sdf should be 6f8b99e6.
+### progress 03:27 (container restart again; BQ#1 sims relaunched)
+- Second full container restart (~03:26). BQ#1's 8 routes had completed (default sdf 6f8b99e6 = the BOARD-QUEUE
+  record); seed d's two in-flight sims were lost and the sweep was relaunched (routes reused).
+### progress 06:28 (BQ#1 full stack: first 5 runs PASS)
+- BQ#1 (fusion, v4, select pads; resolver 055edd7): d SLOW_MAX 16/12/18 (sdf 6f8b99e6, = the earlier bq1_max row),
+  d FAST_MIN 45/35/51, 3 SLOW_MAX 16/12/18, 3 FAST_MIN 46/36/52, 4 SLOW_MAX 16/12/18; all 16/16 errs 0, EQUIVALENT.
+### progress 08:59 (BQ#1 full stack 10/16 runs PASS)
+- Added: 6 SLOW_MAX 15/12/17, 4 FAST_MIN 46/36/52, 7 SLOW_MAX 16/12/18, 6 FAST_MIN 44/34/49, 5 SLOW_MAX 16/12/18,
+  7 FAST_MIN 45/35/52; all 16/16 errs 0 EQUIVALENT. Remaining: 5 min, 8, 9.
+### progress 12:12 (BQ#1 full stack complete: 8 seeds x 2 corners PASS)
+| full stack, resolver 055edd7 | SLOW_MAX pass, vec 6 mean (range) | FAST_MIN pass, vec 6 mean (range) |
+|---|---|---|
+| BQ#1 (d,3-9) | 8/8, 15.9 (15-16) | 8/8, 45.9 (44-48) |
+| BQ#2 (d,3-9; d-5 old resolver) | 8/8, ~31-33 | 8/8, ~77-93 |
+| BQ#3 (d,3-9) | 8/8, 32.75 (31-34) | 8/8, 89.6 (83-94) |
+All three board candidates now pass the full stack on 8 seeds at both corners. BOARD-QUEUE #1 updated. Running:
+BQ#1 1x scatter draw 1 on seeds d,3,4,5.
+### progress 13:43 (BQ#1 1x within-die scatter: 3/3 PASS so far)
+- BQ#1 band 0.38 + region 0.16 / wire 0.126, draw 1: d PASS 23/18/26, 6 PASS 23/18/26, 3 PASS 26/21/30.
+### summary 16:09 (session 2026-10-29 14:41, still running)
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df, prjxray-db 0a0added   Seeds: d,3-9 (all three BQs)
+Did: fixed the fid state-node resolver (audit r16: explicit feedback, no echo window; 055edd7); answered audit
+r18 with a near-tie bench, a derived round-trip requirement and a per-arbiter static check on 12 routes; fixed two
+gen.py scatter-knob inconsistencies (9c39512); setup-toolchain.sh now fetches prjxray-db; ran every board candidate
+through the full stack on 8 seeds x 2 corners; confirmed a second correlated-variation failure by intervention;
+tried and rejected two placement fixes and a static predictor.
+Measured:
+| candidate | full stack SLOW_MAX / FAST_MIN (8 seeds) | vec 6 laps mean | 1x scatter | 2x scatter |
+|---|---|---|---|---|
+| BQ#1 | 8/8 / 8/8 | 15.9 / 45.9 | 8/8 | not run |
+| BQ#2 | 8/8 / 8/8 | ~32 / ~88 | 4/4 | 3/4 (draw 1), seed 6 also fails draw 2 |
+| BQ#3 | 8/8 / 8/8 (new resolver; identical to old) | 32.75 / 89.6 | 8/8 (old resolver) | 7/8 (draw 1) |
+Arbiters: 0 of 18 ack C-elements under the model's requirement on any of 12 routes, worst 691 ps.
+Does NOT show: silicon; ring128 acceptance (still blocked), so the rule gates stay; that TAU/WIN/the noise are right
+(no 7-series source); that 2x linear region scatter is physical (it is not: 3-13x die-wide speed spreads); a cure
+for the matched-delay/datapath distance exposure.
+Next: (1) ring128 per-ring data from the owner unblocks acceptance; (2) if robustness margins are wanted, a
+log-normal scale scan per draw (the failing scale) instead of fixed 2x draws; (3) skip carry-cluster members in
+the pre-place script, or a soft nextpnr pull toward a datapath centroid, before trying placement again;
+(4) goal 2 leads (RTZ tail, rule E tightening) once the gates may move.
+### progress 16:10 (log-normal scale scan started)
+- Next (2) started: GLS_SCATTER_LOGN=1 (factors exp(sigma N): no region faster than e^-3sigma), draw 1, region
+  sigma 0.16 / 0.24 / 0.32 with wire 0.126 / 0.189 / 0.252, on the two routes with confirmed linear-2x failures
+  (BQ#3 seed 9, BQ#2 seed 6). seeds_fid tags these runs _logn. Question: at what scale does each first fail when
+  the speed-up tail is bounded like silicon's?
+### progress 17:55 (log-normal scan: BQ#3 seed 9 passes 1x and 1.5x)
+- GLS_SCATTER_LOGN=1, draw 1, BQ#3 seed 9 (linear threshold ~1.33x): sigma 0.16/0.126 PASS 52/42/62, sigma
+  0.24/0.189 (1.5x) PASS 51/41/61. 2x log-normal running (an earlier session saw it fail).
+### progress 18:25 (log-normal: BQ#3 seed 9 fails at 2x -- threshold 1.5-2x, linear ~1.33x)
+- BQ#3 seed 9, log-normal sigma 0.32/0.252: FAIL errs 6 (same six vectors as linear 2x). Its failing scale under
+  log-normal factors is between 1.5x and 2x the calibrated scatter (linear: ~1.33x). BQ#2 seed 6 scan running.
+### progress 19:56 (log-normal: BQ#2 seed 6 passes 1x and 1.5x)
+- BQ#2 seed 6 (linear 2x FAIL, uori3), log-normal draw 1: sigma 0.16 PASS 50/41/59, sigma 0.24 PASS 46/38/55.
+  2x running.
+### progress 20:28 (log-normal scan: both failing routes pass 1.5x, fail 2x)
+| draw 1, GLS_SCATTER_LOGN=1 | 1x (0.16/0.126) | 1.5x (0.24/0.189) | 2x (0.32/0.252) | linear threshold |
+|---|---|---|---|---|
+| BQ#3 seed 9 (uori2) | PASS 52 | PASS 51 | FAIL errs 6 | ~1.33x |
+| BQ#2 seed 6 (uori3) | PASS 50 | PASS 46 | FAIL errs 3 | between 1x and 2x |
+With silicon-like bounded speed-ups (log-normal), the two worst known exposures hold to at least 1.5x the
+calibrated within-die scatter, which S9 already suspects is double-counted. Bisecting 1.75x on both now.
+### progress 21:58 (log-normal 1.75x: BQ#3 seed 9 PASS -> its threshold is 1.75-2x)
+- BQ#3 seed 9, log-normal 0.28/0.2205, draw 1: PASS 16/16 errs 0 (laps 50/40/120). Vector 13 ran 120 laps vs ~60
+  at the other scales, with every result correct (oks = laps); most likely its critical cycle sits in a region
+  this draw makes fast. Noted, not chased. BQ#2 seed 6 at 1.75x running.
+### progress 22:51 (log-normal failing scale bracketed for both known exposures)
+| draw 1, log-normal | 1x | 1.5x | 1.75x | 2x | failing scale |
+|---|---|---|---|---|---|
+| BQ#3 seed 9 (uori2) | PASS | PASS | PASS | FAIL 6 | 1.75-2x |
+| BQ#2 seed 6 (uori3) | PASS | PASS | FAIL 2 | FAIL 3 | 1.5-1.75x |
+Margin over the calibrated within-die scatter, on the worst known route/draw of each candidate: >= 1.5x.
+Next: log-normal 1.5x on draw 2 over all routes (BQ#3 d,3-9; BQ#2 6-9, the routes on disk), to see whether 1.5x
+holds beyond draw 1.
+### progress 01:22 (log-normal 1.5x draw 2: BQ#3 d,3,4,5 PASS)
+- BQ#3 log-normal 0.24/0.189 draw 2: d PASS 53/44/63 (linear 2x draw 2 had FAILED it with errs 15), 3 PASS 44/35/52,
+  4 PASS 56/44/64, 5 PASS 52/42/61. Seeds 6-9 then BQ#2 6-9 running.
+### progress 03:33 (BQ#3 log-normal 1.5x draw 2: 8/8 PASS)
+- BQ#3 log-normal 0.24/0.189 draw 2: d,3,4,5,6,7,8,9 all PASS 16/16 (vec 6 laps 44-56). BOARD-QUEUE #3 updated.
+  BQ#2 seeds 6-9 at the same point running.
+### progress 05:52 (log-normal 1.5x draw 2: 12/12 routes PASS; BQ#1 next)
+- BQ#2 log-normal 0.24/0.189 draw 2: seeds 6, 7, 8, 9 PASS (49/50/45/48 laps vec 6). With BQ#3's 8/8: 12/12 routes
+  clean at 1.5x the calibrated within-die scatter with bounded (log-normal) factors, including both routes that
+  fail linear 2x. BOARD-QUEUE #2 updated. BQ#1 x8 at the same point started.
+### progress 07:53 (BQ#1 log-normal 1.5x draw 2: 4/4 PASS so far)
+- d 26/20/30, 3 27/21/30, 4 25/19/28, 5 28/22/32; all 16/16 errs 0. Seeds 6-9 running.
+### progress 09:54 (log-normal 1.5x draw 2: all 20 candidate routes PASS)
+| log-normal 1.5x (0.24/0.189), draw 2 | routes | pass |
+|---|---|---|
+| BQ#1 | d,3-9 | 8/8 |
+| BQ#2 | 6-9 (on disk) | 4/4 |
+| BQ#3 | d,3-9 | 8/8 |
+Every board candidate holds 1.5x the calibrated within-die scatter on this draw when region speed-ups are bounded
+(log-normal), including the two routes that fail linear 2x. BOARD-QUEUE #1 updated.
+Does NOT show: other draws at 1.5x (one draw per route); whether the calibrated scatter is right (S9: possibly
+double-counted, ring128 per-ring data still needed).
+### progress 09:54 (log-normal 1.5x draw 3 across all 20 routes started; PR #2 description refreshed)
+### progress 12:25 (log-normal 1.5x draw 3: BQ#1 d,3,4,5 PASS)
+- BQ#1 draw 3: d 26/20/30, 3 24/19/28, 4 26/20/29, 5 30/23/34; all 16/16 errs 0.
+### progress 14:19 (log-normal 1.5x draw 3: BQ#1 8/8 PASS)
+- BQ#1 draw 3: all 8 seeds PASS 16/16 (vec 6 laps 24-30). BQ#1 now clean at log-normal 1.5x on draws 2 and 3.
+  BQ#2 6-9 then BQ#3 x8 running.
+### progress 16:59 (log-normal 1.5x draw 3: BQ#2 4/4 PASS)
+- BQ#2 draw 3: 6 59/49/69, 7 50/40/58, 8 59/48/68, 9 50/40/58; all PASS. BQ#3 x8 running.
+### progress 17:31 (owner's new first lead (690f156): a full-width gcd target in gcd_ps)
+- Read PROGRAM.md's new section and formal/FOR-RESEARCH.md (claude/formal) sections 1-3. Stopped the log-normal
+  draw-3 sweep (BQ#1 8/8 and BQ#2 4/4 done, BQ#3 not run) to free the machine for this lead.
+- gcd_ps.v reading (CDC): STATUS.i_ack and STATUS.o_req cross into the PS clock through 2-flop synchronizers
+  (sync_i_ack/sync_o_req); A/B are aclk registers written before the CTRL write that raises the request; the
+  request flop (req_core) is cleared asynchronously by the kernel's i_ack (a 4-phase return, the flop's output is
+  then re-synchronised); o_ack_pl = ctrl_o_ack & o_req_pl (falls with o_req). O_DATA is sampled every clock but
+  only read after o_req is synchronised (stable while o_req is high). No missing synchronizer found by reading;
+  to be confirmed in GLS. Sequencing: the host protocol (poll i_ack, then poll o_req, read, ack) offers the next
+  pair only after the result handshake, i.e. the sequential environment formal needs; no hardware FSM issues
+  calls on in_ack.
+- Plan: build gcd_ps with BQ#1's flags (select pads, v4); audits; a behavioural PS7 (AXI master + FCLK) for the
+  GLS netlist, a testbench running the documented host sequence over operands outside the 16 vectors with
+  expected values from bdc/simcheck.py's ref_gcd (the C transcription); fid GLS at both corners on >= 4 seeds;
+  BOARD-QUEUE item naming one seed's .bit/.fasm as the formal target. Default-seed build running.
+### progress 17:48 (gcd_ps: built, rule A needs padding, GLS harness working; async-flop GLS bug fixed)
+- gcd_ps with BQ#1's flags (select pads, v4) routes on seeds d,3,4,5 (build_hw PASS incl. fasm_audit). Default
+  seed audit: rule A 1 violation (bridge_i.udut.umux21 margin -1567 ps, PAD to 16), rule D 38 (the screen, as on
+  BQ#1), E 0, J ok. BQ#1's own route: rule A 0 -- gcd_hw's 16-vector table lets synthesis merge most operand bits
+  (formal FOR-RESEARCH s1: a_data 18 distinct nets), so its datapath is shorter. gcd_ps therefore needs the
+  sizing step: BD_SIZES now works for gcd_ps (bridge_i.udut.*), and research/tools/pad_sizes.py writes a
+  PAD-ONLY sizes file (only rule-A violators lengthened, max over seeds; nothing shortened). Running.
+- GLS bug found and fixed (231b948): gen.py/prims.v modelled every SLICE_FFX as FDRE/FDSE (synchronous SR) and
+  read FDPE's "PRE" as reset-to-0. gcd_ps's AXI bridge has 67 FDCE + 2 FDPE, so in GLS it never left reset
+  correctly (aw_en = 0, no BVALID ever). gcd_hw has only FDRE/FDSE (306/20), so no earlier result changes;
+  run_f3.sh all ok.
+- GLS harness (cells/gls/ps/): behavioural PS7_PS7 = FCLK0 + AXI3 master running gcd_ps.v's documented host
+  sequence; 24 vectors outside gcd_rig's 16, expected from bdc/simcheck.py ref_gcd (= math.gcd on [0,2^31)).
+  First check (default seed, nextpnr SDF, default model): vectors 0-2 OK (0x7fffffff/0x7ffffffe -> 1,
+  0x7fffffff/0x7fffffff, 0x40000000/0x60000000 -> 0x20000000). Unsized route: rule A violation present, so this
+  is a harness check only, not a claim.
+### progress 17:58 (gcd_ps: full-stack decode works; P1 sizes routing on 8 seeds)
+- fasm2net.py --ps7 (b2315c2): decodes the PSS2 tile into one PS7_PS7 cell (M_AXI_GP0 + FCLK bit pins,
+  cells/gls/ps/ps7_pins.py) and async-SR flops (FDCE/FDPE, CLR/PRE) instead of refusing them. gcd_hw decode is
+  byte-identical before/after. fasm_equiv on the gcd_ps default seed: EQUIVALENT; the only differences are PS7
+  inputs the routed JSON ties to constants (now a named benign kind, not silently ignored).
+- P1 sizes (8018048): umux21 12 -> 16 links (max rule-A "PAD to" over unsized d,3,4,5: -1567/-154/-464 ps, 3
+  clean). First 8-seed launch failed on a missing cells/build/gen (2fed1d0, fixed); relaunched d,3-9.
+### progress 18:20 (gcd_ps P1: every audit clean on 8 seeds; full stack seed d 24/24 at both corners)
+- P1 routes d,3-9 (research/data/gcd_ps/p1_audit_8seed.tsv): rule A 0 on all 8 (umux21 margin mean 1456 ps,
+  range 358-1889, guardband applied), D 38 (screen), E 0, J ok, build_hw PASS incl. fasm_audit. nextpnr reports
+  "PASS at 12.00 MHz" because build_hw.sh passes no --freq for gcd_ps; the number that matters is its fclk0
+  estimate, 343-447 MHz against the board's 100 MHz FCLK0 (xsdb_gcd.tcl's SLCR write).
+- Full stack (bit-decoded netlist + prjxray SDF + fid), seed d, 24 vectors from gen_vectors.py: SLOW_MAX 24/24
+  ok, 0 hang; FAST_MIN 24/24 ok, 0 hang; fasm_equiv EQUIVALENT; gate ANNOTATE_DONE 0 SDF warnings (max).
+  Vector 0 (0x7fffffff, 0x7ffffffe) takes 15.2 us from i_ack to o_req at SLOW_MAX. Seeds 3,4,5 then 6-9
+  running; then the negative control: the UNSIZED routes d (rule A -1567 ps) and 5 (-464) on the same stack.
+- xsdb_gcd.tcl takes an optional vector file; research/board/gcd_ps_vec1000.hex (seed 1; the GLS's 24 are its
+  first 24 lines, byte-identical).
+### progress 18:38 (gcd_ps full stack: seeds d, 3 PASS both corners, 4 SLOW_MAX PASS)
+- d, 3: 24/24 ok at SLOW_MAX and FAST_MIN, EQUIVALENT, gate ANNOTATE_DONE / 0 SDF warnings on all four; 4 SLOW_MAX
+  24/24. Harness negative control (seed d SLOW_MAX netlist, vector file with two expected values corrupted):
+  ok=1 err=2, so the compare can fail. Formal-target artefacts (seed d .bit, .fasm.gz, toolchain) staged.
+### progress 18:50 (gcd_ps full stack: d,3,4 PASS both corners, 5 SLOW_MAX PASS; disk full voided 5 FAST_MIN)
+- 4: 24/24 at both corners, EQUIVALENT, gate clean. 5 SLOW_MAX 24/24.
+- 5 FAST_MIN printed no summary: the session's disk allowance ran out at 18:48 while iverilog wrote its
+  run_baked.vvp (truncated, "syntax error" at load). Not a GLS result; re-queued. Each gcd_ps full-stack job
+  leaves ~1 GB of compiled sims; the drivers now delete them after the run and gate, and the stale binaries of the
+  BQ#1-3 sweeps (results in research/data/fid/*.tsv) were removed: 11 GB free.
+### progress 19:02 (BOARD-QUEUE #4 gcd_ps added; formal target named)
+- Seed 5 FAST_MIN re-run: 24/24, EQUIVALENT. So seeds d,3,4,5 x SLOW_MAX/FAST_MIN: 8/8 runs 24/24, 0 err, 0 hang
+  (research/data/gcd_ps/p1_fullstack.tsv). Longest vector 15.1 us (14.95-15.2) at SLOW_MAX, 5.3 us at FAST_MIN.
+- BOARD-QUEUE #4 written: formal target = P1 seed d, research/board/gcd_ps_e6bb4aec.bit (md5 aa83c8b7) and
+  .fasm.gz (uncompressed md5 2dbf962d); board run = xsdb_gcd.tcl over the 16 golden then 1000 derived vectors.
+  PR #2 description refreshed. Queued: seeds 6-9, unsized negative control (d, 5), +PIPE=1 on seed d, 1x scatter.
+### progress 19:28 (gcd_ps full stack 6 both corners, 7 SLOW_MAX: 24/24; FOR-RESEARCH s3 reading)
+- 6 max/min and 7 max: 24/24, EQUIVALENT; gates clean (5 min's re-run gate too).
+- FOR-RESEARCH s3 (does a LUT loop circulate a runt?), CORRECTED after reading audit T6 (claude/audit
+  audit/findings/T6.md rows 7-8, section 3): the fid resolver only makes the loop's OWN echo impossible (the
+  feedback pin reads the committed state, so the 7 ps runt cannot circulate, by construction); every other LUT pin
+  is transport, so the node's readers still see narrow pulses. At shard B's delays the default fid model (resolver
+  on) still fails: out0_req 5-15 ps pulse trains, then no lap for 11-14 us on 2 of 3 seeds. So fid neither
+  assumes the problem away nor answers s3: what a READER does with a pulse narrower than ~20 ps is not modelled
+  (transport), and that is the H_RUNT question. Only the board, or a measured LUT pulse-rejection width, settles it.
+### progress 19:48 (gcd_ps full stack: 7 and 8 both corners, 9 SLOW_MAX: 24/24)
+- 7 min, 8 max/min, 9 max: 24/24, EQUIVALENT, gates clean. 15 of 16 P1 seed x corner runs done, all 24/24.
+### progress 19:57 (gcd_ps P1 full stack: 16/16 seed x corner runs 24/24)
+- Seeds d,3-9 x SLOW_MAX/FAST_MIN: all 24/24, 0 err, 0 hang, EQUIVALENT, gate clean
+  (research/data/gcd_ps/p1_fullstack.tsv). Longest vector i_ack->o_req: SLOW_MAX mean 15.03 us (14.6-15.4),
+  FAST_MIN 5.32 us (5.2-5.45); worst seed for it is 6 at both corners. BOARD-QUEUE #4 updated to 8 seeds.
+- Next (queued, running): unsized negative control (d: rule A -1567 ps, 5: -464 ps) on the same stack; then
+  +PIPE=1 on seed d (24-vector pairs and formal's (2^19,2^19),(3,5)); then 1x within-die scatter on d,3,4,5.
+### progress 20:17 (gcd_ps negative control: the UNSIZED routes pass the full stack -- rule A is pessimistic here)
+- Unsized seed d (umux21 12 links; rule A margin -1567 ps guarded, req 6692 vs peak 7088, i.e. negative even raw)
+  on the full stack: SLOW_MAX 24/24, FAST_MIN 24/24, EQUIVALENT, gate clean. Unsized seed 5 (-464) SLOW_MAX 24/24.
+  So the control did NOT fail: either rule A over-charges this bundle or the GLS/vectors cannot see it.
+- tighten's pairing for umux21 says why it may over-charge: "paired as one bundled channel (no common source)",
+  request from umux21.uj1 (its join), data from ulink_n_index_97's ctl (the select latch), plus an assumed
+  upstream data lag of 1229 ps. It cannot order the two, so it charges the worst case.
+- To tell the two apart: seed d re-routed with umux21 cut to 8, 4, 1 links (CONTROL ONLY, never shipped;
+  research rule: never shorten a delay to hit a target). Rule A flags all three (-2024/-3670/-4795 ps), so the
+  audit can fail. Their full-stack GLS at both corners is queued; where it first fails measures how much of
+  rule A's charge on this bundle is real.
+### progress 20:45 (FOR-RESEARCH s2 on the gcd_ps full stack: overlapped calls reorder; unsized d and 5 pass)
+- Unsized control complete: seeds d and 5, both corners, 24/24 (rule A -1567 / -464 ps). The shortened-umux21
+  controls (8/4/1 links) are what decides it; queued.
+- +PIPE=1 (host offers pair k+1 right after pair k's i_ack; NOT gcd_ps's protocol), seed d P1, SLOW_MAX, full
+  stack. Formal's pair (2^19, 2^19) then (3, 5): out0 = 1 first, then 0x80000 -- REORDERED, exactly
+  FOR-RESEARCH s2's prediction, now on the bit-decoded gcd_ps target with prjxray delays. The 24 vectors as 12
+  pairs: 2 reordered ((0x7fffffff,0x7ffffffe) overtaken by a==b; the large-prime pair overtaken by an early
+  return), 2 in order, 8 HANG. The same compiled sim in the sequential mode afterwards: 24/24.
+  Caveat on the hangs: this host waits for pair k+1's i_ack before reading k's result, so a hang there can be
+  the host's own deadlock (the kernel may not accept k+1 until k's result is taken). gcd_ps's register
+  interface cannot express a fully concurrent host (a CTRL write with o_ack=1 also rewrites the request flop),
+  so the model now names the wait that timed out (ack0/ack1/out0/out1); re-run queued.
+- What it means for the board: confirms that BQ#1 and BQ#4 must stay sequential; both are (gcd_rig's two-stage
+  env; xsdb_gcd.tcl waits for o_req to fall before the next write).
+### progress 21:05 (pipe FAST_MIN same as SLOW_MAX; 1x scatter seeds d, 3 PASS)
+- +PIPE=1 at FAST_MIN (seed d): formal pair REORDERED (1 then 0x80000), 12 pairs 2/2/8 (reordered/in order/hang),
+  identical to SLOW_MAX; sequential run 24/24.
+- Within-die scatter 1x (band 0.38 + region 0.16 + wire 0.126, draw 1), full stack: seeds d and 3 24/24,
+  EQUIVALENT. 4, 5 running.
+- bdc_muxn3_32 reading (why rule A may over-charge umux21): z_data is a mux on s (the select latch's data),
+  z_req = delay(OR of C(in_k_req, ctl_req & s==k)). s is the output of ulink_n_index_97, whose own request is
+  matched (8 links) after its data, so s settles before ctl_req rises; tighten, finding "no common source",
+  charges s an upstream lag of 1229 ps after the request instead. The shortened-umux21 controls test this.
+### progress 21:30 (why the gcd_ps negative control cannot fail; an out0 bundling monitor)
+- 1x scatter: seeds 4, 5 also 24/24 (4/4; research/data/gcd_ps/p1_scatter1x.tsv). BOARD-QUEUE #4 updated.
+- umux21 cut to 1 link (control route): full stack 24/24 at SLOW_MAX and FAST_MIN. Cause found by reading the
+  generated kernel: umux21's output n170 IS the kernel's out0 (out0_req = n170_req, out0_data = n170_data), and
+  gcd_ps's consumer is the PS: o_data_capture is sampled every FCLK0 and the host reads O_DATA only after o_req
+  has crossed the 2-flop synchronizer and an AXI read, i.e. >= 20 ns after out0_req. So a result that settles
+  after its request is still read right; the PS-harness GLS cannot see an out0 bundling violation, and the
+  unsized "pass" says nothing about rule A. Negative result: through this harness, this bundle's GLS check is
+  blind by construction. (On gcd_hw, out0 goes to the rig's asynchronous compare, where it does matter.)
+- Remedy for the check: cells/gls/ps/gen_bundle_mon.py + build_ps.sh PS_BUNDLE=1, a monitor on the kernel
+  boundary in the bit-decoded netlist (driver pins of core_o_req and bridge_i.o_data_pl[31:0], found via the
+  routed JSON's NEXTPNR_BEL and nets.map): margin = out0_req rise minus the last out0_data change; LATE = a
+  data change while out0_req is high before the host's o_ack. Running on seed d with umux21 at 1, 4, 8, 12
+  (unsized) and 16 (P1) links, both corners. The n4/n8 PS-only controls were dropped (they cannot fail either).
+### progress 21:48 (out0 bundling margin measured at the kernel boundary: P1 12.0/4.1 ns, umux21 at 1 link still +2.05/+0.57 ns)
+- Monitor (PS_BUNDLE=1), seed d, full stack, 24 requests each, min over requests of (out0_req rise - last
+  out0_data change), at the driver pins; no data change while req was high before the host's ack in any run:
+  | umux21 links | SLOW_MAX | FAST_MIN |
+  | 16 (P1, shipped) | +12043 ps | +4112 ps |
+  | 1 (control) | +2054 ps | +566 ps |
+  Rule A charged this bundle "PAD to 13" (needs ~5.5 ns more) at 1 link; the GLS says 1 link already has
+  +566 ps at FAST_MIN with no scatter. Not yet a claim: one seed, no scatter, driver pins only (routing to
+  the consumer excluded), and the monitor's own negative control (umux21's 36 data LUTs and their input wires
+  20x slower, on the 1-link route) is queued; 12/8/4 links running.
+### progress 22:18 (out0 bundling: monotone in umux21 length, monitor's negative control fails; pipe hangs are kernel deadlocks)
+- research/data/gcd_ps/out0_bundle_margin.tsv (seed d, full stack, min over 24 requests, SLOW_MAX / FAST_MIN):
+  1 link +2054/+566, 4 +3114/+960, 8 +6859/+2284, 12 (unsized) +8823/+2992, 16 (P1) +12043/+4112 ps; no late
+  data change in any. Monotone in length, as it should be (the 1/4/8 routes are separate place-and-routes).
+- Monitor negative control: the 1-link route with umux21's 36 data LUTs (and the wires into them, 388 arcs)
+  20x slower: 23 (SLOW_MAX) / 24 (FAST_MIN) late changes, up to 9973 / 6255 ps after out0_req, data X while
+  settling -- and the PS harness still says 24/24 ok. So the monitor can fail, and the harness is blind here.
+- Rule A on this bundle: asks for 13 links at 1 link (-4795 ps); the GLS measures +566 ps at FAST_MIN with no
+  scatter. Rule A over-charges it by most of its request chain, through the "no common source" pairing with the
+  select latch (progress 21:05). One seed, no scatter, driver pins: a lead for a sharper rule, not a size change
+  (the shipped P1 keeps 16; CLAUDE.md: never shorten a delay to hit a target).
+- +PIPE=1 re-run with stage labels (seed d SLOW_MAX): all 8 hangs are "out0": the kernel acknowledged BOTH
+  overlapped pairs and then produced no result within 60 us (the longest single call is 15 us), so they are kernel
+  deadlocks, not this host's. 2 reordered, 2 in order, 8 deadlocked of 12 overlapped pairs: FOR-RESEARCH s2's two
+  predictions (reorder, deadlock) both reproduce on the gcd_ps target's full stack.
+### progress 22:25 (queue: out0 monitor on all 8 P1 seeds; FOR-RESEARCH C1's tb_pipe on BQ#1's full stack)
+- Rule A's mux pairing on gcd_hw R5 (BQ#2 seed 6, tighten.py): all 22 bd_mux bundles pair "by common source" (their
+  own join), not the "no common source" pairing that over-charged gcd_ps's umux21. So the over-charge is not a
+  general speed lead for gcd_hw. (P3, steer-join grouping, was already tried: negative, JOURNAL 10-26 21:40.)
+- Running: the out0 bundling monitor on P1 seeds 3-9 at both corners (the formal target's kernel-boundary
+  contract on every seed), then seed d with 64 vectors (first 64 of gcd_ps_vec1000.hex).
+- Queued after it: formal's FOR-RESEARCH C1 ask, tb_pipe.v (claude/formal formal/tools/pipe/gls/, used read-only from
+  a scratch copy) on the BQ#1 target's board-fidelity stack: netlist decoded from the COMMITTED
+  research/board/gcd_hw_03e82630.bit, prjxray SDF of the same route (nextpnr sdf 6f8b99e6), fid, both corners;
+  +PIPE=0 9/4 (control), +PIPE=1 9/4, 9/9, 15/5, 2/4; in_ack resolved from this route's nets.map instead of the
+  hard-coded n144588. Then BQ#4 scatter to BQ#1's level (1x on 6-9; log-normal 1.5x draw 2 on d,3,4,5).
+### progress 23:23 (out0 bundling on all 8 P1 seeds; 64 vectors 64/64)
+- research/data/gcd_ps/p1_out0_bundle_8seed.tsv: out0 margin at the kernel boundary, P1, every seed: SLOW_MAX mean
+  +12268 ps (11281-13100), FAST_MIN mean +4209 ps (3978-4492, worst seed 5); no late data change on any of the 16
+  runs; PS harness 24/24 on all. Seed d with the first 64 vectors of gcd_ps_vec1000.hex: 64/64 at both corners,
+  min margin identical to the 24-vector run (the minimum is set by the route, not the operands). BOARD-QUEUE #4
+  updated. Now running: FOR-RESEARCH C1's tb_pipe on BQ#1's full stack, then BQ#4 scatter to BQ#1's level.
+### progress 23:32 (FOR-RESEARCH C1 on BQ#1's full stack, SLOW_MAX: reorder and deadlock reproduce)
+- formal's tb_pipe.v (scratch copy, in_ack resolved from this route's nets.map) on the netlist decoded from the
+  COMMITTED research/board/gcd_hw_03e82630.bit (fasm_equiv EQUIVALENT), prjxray SDF SLOW_MAX, fid:
+  +PIPE=0 9/4 (sequential control): LAP 1 mism=0 at idx 9 (4096), LAP 2 mism=0 at idx 4 (1): both right.
+  +PIPE=1 9/4: the only result is LAP 1 mism=0 at idx 4, i.e. 1 = pair 2's gcd; pair 1's 4096 never comes.
+  +PIPE=1 9/9: no result at all (quiet for 100 us).
+  Identical in kind to formal's nextpnr-SDF GLS (FOR-RESEARCH C1) and to the gcd_ps target's +PIPE=1 run.
+- start/in_ack timing, vector 9, sequential: request 697.5 ns, in_ack rises 928.1 ns (+230.6), result 3789.0 ns
+  (+3091.5). The input handshake completes ~2.9 us before the result: gcd_rig.v's header ("acknowledges start only
+  when it is finished") is wrong on the board-fidelity stack too; the rig is safe because its env waits for out0.
+  15/5, 2/4 and FAST_MIN running.
+### progress 23:53 (FOR-RESEARCH C1 on BQ#1's full stack: all five cases as predicted, both corners)
+- research/data/fid/c1_pipe/README.md: SLOW_MAX and FAST_MIN, decoded from the committed BQ#1 bit: sequential 9/4
+  both right; pipelined 9/4 only 1 (pair 2's), 9/9 and 15/5 deadlock, 2/4 only pair 1's. Exactly FOR-RESEARCH
+  C1's table, now on the board-fidelity stack the request named. Rig env control vec 6: 16 laps, 0 errors.
+### progress 23:55 (BQ#4's board script checked offline against a mock board; scatter runs restarted with the monitor)
+- cells/hw/mock_xsdb_gcd.tcl: xsdb_gcd.tcl in tclsh against a fake board (gcd_ps register map, Euclid gcd,
+  instant answers) with injected faults. none: PASS 16/16 and 1000/1000, exit 0; wrong:5 and hang:7: PASS 15/16 /
+  999/1000 + FAIL line, exit 1, one MISMATCH line; deadaxi: liveness pre-check refuses, exit 1. So BQ#4's pass
+  criterion is self-reporting and can fail; and Euclid agrees with the vector file's ref_gcd answers on all 1000.
+  It checks the script, not the design.
+- The BQ#4 scatter extension was restarted with PS_BUNDLE=1 (psbm/run3.sh) so it also measures the out0 margin
+  under scatter: 1x on seeds 6-9, log-normal 1.5x draw 2 on d,3,4,5.
+### progress 00:37 (BQ#4 scatter at BQ#1's level: 1x 8/8, log-normal 1.5x 4/4, out0 margin positive throughout)
+- 1x scatter seeds 6-9: 24/24, EQUIVALENT; out0 margin 5959/7412/7309/7151 ps (band column). Log-normal 1.5x draw 2,
+  seeds d,3,4,5: 24/24, EQUIVALENT, out0 margin 6033/6411/5990/5929 ps, no late change; longest vector 8.85-9.7 us.
+  Tables research/data/gcd_ps/p1_scatter1x.tsv, p1_logn15.tsv; BOARD-QUEUE #4 updated.
+- gcd_ps lead (690f156) status: every item of the owner's list done (audits, full stack at both corners on 8 seeds
+  with derived vectors from outside the 16, BOARD-QUEUE #4 with the formal target's .bit/.fasm and md5s, CDC
+  reading, sequential harness confirmed, FOR-RESEARCH s2/C1 reproduced on both targets' full stacks, s3 read).
+  Beyond it: the out0 bundling monitor and the PS-harness blind spot it exposed; the board script checked offline.
+Next: (1) ring128 per-ring data from the owner still blocks acceptance; (2) the umux21 finding suggests a sharper
+rule A for "no common source" pairs whose data comes from a matched link -- worth a formal look (it would be a
+soundness argument, not a measurement), not a size change; (3) goal 2 leads (rule E tightening, two-phase links)
+once the gates may move.
+### summary of the gcd_ps lead (owner, 690f156), 2026-11-01 17:31 - 11-02 00:40
+Toolchain: nextpnr 9c732bc6303458df, patches 789a7120c912d393 (toolchain.sh ok)   Seeds: d,3-9 (P1); d (controls)
+Did: gcd_ps with BQ#1's flags; pad-only sizing (P1: umux21 12 -> 16); fasm2net --ps7 + async-SR flops; a
+behavioural PS7 running the documented host sequence; derived vectors outside gcd_rig's 16; an out0 bundling
+monitor; FOR-RESEARCH s2/C1 pipelined tests on both targets; the board script checked against a mock board.
+Measured:
+| what | result | n |
+|---|---|---|
+| audits on P1 | rule A/E/J 0, D 38 (screen); umux21 margin mean 1456 ps (358-1889) | 8 seeds |
+| full stack, SLOW_MAX / FAST_MIN | 24/24 each, EQUIVALENT, gate clean; longest vector 15.0 / 5.3 us | 8 seeds x 2 |
+| full stack, 64 vectors | 64/64 at both corners | seed d |
+| 1x within-die scatter | 24/24 | 8 seeds |
+| log-normal 1.5x, draw 2 | 24/24 | 4 seeds (6-9 running) |
+| out0 bundling margin, no scatter | FAST_MIN mean +4.21 ns (worst +3.98), SLOW_MAX mean +12.27 (worst +11.28) | 8 seeds |
+| out0 margin under scatter | >= +5.93 ns (band column) | 8 runs |
+| out0 margin vs umux21 length (seed d, FAST_MIN) | 1: +0.57, 4: +0.96, 8: +2.28, 12: +2.99, 16: +4.11 ns | 5 routes |
+| PS-harness blind spot | umux21 at 1 link, or its data 20x slower: still 24/24 (monitor: 23-24 late) | seed d |
+| pipelined host (gcd_ps) | formal pair reordered; 12 pairs: 2 reordered, 2 in order, 8 deadlocked | seed d x 2 |
+| tb_pipe on BQ#1's bit (C1) | sequential right; 9/4 reorder; 9/9, 15/5 deadlock; 2/4 pair 2 lost | 2 corners |
+Does NOT show: silicon (BOARD-QUEUE #4 is the test); scatter beyond 1.5x or other draws on gcd_ps; out0 timing
+at the consumer pins (the monitor reads driver pins); that rule A's extra charge on umux21 is unsafe to remove
+(one route family, no proof); anything about the arbiter or runt hypotheses beyond what BQ#1-3 already had.
+Next: as in progress 00:37 above.
+### progress 00:39 (CDC survey of every PS harness, by reading)
+- The owner's gcd_ps CDC question applied to every cells/hw/*_ps.v: gcd/ipow/mult/mult2/multn sample STATUS
+  i_ack/o_req through 2-flop synchronizers (sync_i_ack/sync_o_req); mem_arb (sync_lz_req/tok_ack/la_ack) and
+  mem_port (sync_ack) synchronize their acks; mem_bist is fully synchronous (RAMB18E1 on aclk, nothing async
+  crosses); ro_link synchronizes run/rst INTO the ring domain, reads its counters only after the window closed, and
+  its token census is a deliberate asynchronous sample (a mean over reads is the measurement, by design). No
+  missing synchronizer found. Reading only; none of these except gcd_ps has a GLS harness.
+### progress 01:34 (gcd_ps log-normal 1.5x: draws 2 and 3, 8/8 seeds each)
+- Draw 2 seeds 6-9 and draw 3 all 8: 24/24, EQUIVALENT, no late out0 change; out0 margin draw 2 +5.93..+9.07 ns,
+  draw 3 +6.19..+9.95 ns (p1_logn15.tsv, p1_logn15_draw3.tsv). Same coverage as BQ#1 (draws 2 and 3, 8/8).
+  Running: log-normal 2x (region 0.32 + wire 0.252), draw 2, all 8 seeds, to find what fails first.
+### progress 02:12 (gcd_ps survives log-normal 2x on all 8 seeds)
+- Log-normal 2x (region 0.32 + wire 0.252), draw 2: 8/8 seeds 24/24, EQUIVALENT, out0 margin +5.62..+9.81 ns, no
+  late change (p1_logn2x.tsv). For comparison, BQ#3 seed 9 fails between 1.75x and 2x (draw 1) and BQ#2 seed 6
+  between 1.5x and 1.75x. Not a like-for-like comparison (different kernel harness, draw 2 not 1), but no gcd_ps
+  route has shown a scatter failure yet. Running: 3x on all 8 to find what fails first.
+### progress 02:49 (gcd_ps survives log-normal 3x on all 8 seeds; controls queued)
+- Log-normal 3x (region 0.48 + wire 0.378), draw 2: 8/8 seeds 24/24, EQUIVALENT, out0 margin +5.07..+11.78 ns, no
+  late change (p1_logn3x.tsv). Scatter was applied (provenance: scatter 0.378 region 0.48 logn 1; run times move
+  with scale: seed d 131 us at 1.5x, 145 at 2x, 160 at 3x). P1 is BQ#1-type sizing (defaults + one pad), not the
+  tightened R5 of BQ#2/3, which is the expected reason it has more scatter margin.
+- An all-pass scan is only evidence if the same stack can fail on this design: queued the umux21=1-link control
+  route at 3x (does the margin go negative?) and P1 seed d at 5x (region 0.80 + wire 0.63).
+### progress 03:02 (scatter controls on gcd_ps: nothing fails up to log-normal 5x; the scatter does reach the bundle)
+- umux21=1-link control route at log-normal 3x (draw 2): 24/24, out0 margin +269 ps (no scatter, band-free corners:
+  +566 FAST_MIN / +2054 SLOW_MAX), so the scatter moves the monitored bundle toward failure but not past it.
+- P1 seed d at log-normal 5x (region 0.80 + wire 0.63, draw 2): 24/24, EQUIVALENT, out0 margin +4252 ps, run 214 us.
+  Scatter reached every arc (44617 interconnect arcs from the wire model, 24968 with one draw each, region factor
+  on all 113788). So no scatter level tried breaks gcd_ps P1 on these draws; the stack's ability to fail under
+  scatter is shown on gcd_hw R5 (BQ#2 seed 6 at 1.5-1.75x, BQ#3 seed 9 at 1.75-2x), not on this design. The
+  difference is the sizing: P1 keeps bdc's default lengths (plus one pad) where R5 tightened every chain.
+- Does NOT show: that silicon's within-die variation is log-normal or bounded like this; draws other than 2 above 1.5x.
+### progress 03:03 (is it the sizing? BQ#1 at log-normal 3x)
+- To test the explanation that P1's default lengths are why gcd_ps survives 3x-5x while R5 (BQ#2/3) fails at 1.5-2x:
+  BQ#1 (gcd_hw, default lengths, same pads/placement) at log-normal 3x draw 2 on seeds d,3,4,5 (seeds_fid, existing
+  routes). Running.
+### progress 03:26 (formal target's kernel boundary map)
+- research/tools/boundary_map.py: nets crossing a hierarchy prefix in a routed JSON, with driver bel/pin (fasm2net's
+  net names). On the formal target (bridge_i.udut.): 68 in, 36 out once constants (785, incl. packer-legalised
+  constant LUTs) and packer route-through sinks are excluded. Names are yosys's, not the RTL's: the request flop
+  (req_core) is called bridge_i.p_end_req and out0_ack is called n_index_97_ack, so the map gives the pins, and
+  BOARD-QUEUE #4 gives the port reading. research/board/gcd_ps_e6bb4aec.boundary.tsv.
+### progress 03:27 (audit read: T12 independently confirms the gcd_ps target)
+- claude/audit 34c32f11 (T12): with the auditor's own vectors (none from gen_vectors) and own oracle, the gcd_ps
+  target passes nominal and log-normal 2x draw 2 on seed d, EQUIVALENT, out0 margin min 5738 ps = research's row;
+  6f0d3d92: decoded LUT/MUXF of every kernel site agree with the bits, Lean data and nextpnr. No REFUTED or
+  OVERSTATED row on research's gcd_ps work. (Not re-run by the auditor: seeds 3-9, FAST_MIN, 1.5x draws.)
+### progress 04:02 (BQ#1 at log-normal 3x: d, 3 PASS)
+- BQ#1 (gcd_hw, default lengths) log-normal 3x draw 2: seed d PASS 16/16 errs 0 (vec 6 laps 24/18/28), seed 3 PASS
+  16/16 (25/19/28), EQUIVALENT; default-seed sdf 6f8b99e6 again. Consistent with the sizing explanation: both
+  default-length builds (BQ#1, BQ#4) survive 3x where the tightened R5 builds fail at 1.5-2x. Seeds 4, 5 running.
+### progress 04:04 (R6 considered and dropped; all 1000 board vectors queued on the formal target)
+- R6 (R5 with only uori2/uori3 padded, to keep R5's speed with BQ#1's scatter margin) considered and dropped: R5
+  has uori2/3/4 at 19-20 links vs 84 in BQ#1, and covering a 3-sigma log-normal 2x region ratio (~2.6x) by padding
+  alone means roughly doubling those loop-body chains, a large speed cost; co-location was the real cure and
+  region placement does not legalize (JOURNAL 10-31). R5 passes 1.5x on two draws, which is above the measured
+  scatter. Not pursued.
+- Queued after BQ#1's 3x seeds: research/board/gcd_ps_vec1000.hex in 16 chunks of 64 on the formal target (P1
+  seed d), full stack, both corners, out0 monitor on, so every vector the board will run has a GLS verdict first.
+### progress 04:54 (BQ#1 survives log-normal 3x: 4/4; the sizing explanation holds)
+- BQ#1 log-normal 3x draw 2: d, 3, 4, 5 all PASS 16/16 errs 0, EQUIVALENT (vec 6 laps 24/25/21/27 vs ~16 at SLOW_MAX,
+  ~46 at FAST_MIN). Both default-length builds (BQ#1 on gcd_hw, BQ#4 on gcd_ps) survive 3x on every seed tried;
+  both tightened R5 builds (BQ#2, BQ#3) have a seed that fails between 1.5x and 2x. So R5's ~1.9x speed is bought
+  with scatter margin, and the margin it keeps (>=1.5x on draws 2-3) is still above the measured 8.5% ring scatter.
+  The board order in BOARD-QUEUE (#1 first) already matches this.
+### progress 07:21 (all 1000 board vectors pass on the formal target's full stack)
+- research/board/gcd_ps_vec1000.hex on gcd_ps_e6bb4aec (decoded from the committed bit), SLOW_MAX and FAST_MIN, out0
+  monitor on: 1000/1000 ok at each corner, 0 err, 0 hang, 0 id mismatch, out0 min margin 12043 / 4112 ps (the same as
+  the 24- and 64-vector runs: the minimum is set by the route), no late change. research/data/gcd_ps/p1_vec1000_target.tsv;
+  BOARD-QUEUE #4 updated: the board run now has a per-vector GLS prediction for every vector it will run.
+### progress 09:31 (BQ#1 at log-normal 3x: 8/8 seeds)
+- Seeds 6-9 at 3x draw 2: PASS 16/16 errs 0, EQUIVALENT (vec 6 laps 20/23/32/26). BQ#1 at 3x: 8/8 seeds
+  (research/data/fid/bq1_logn3x_draw2.tsv), like BQ#4 (8/8). BOARD-QUEUE #1 updated.
+Next: (1) ring128 per-ring data (owner) unblocks acceptance; (2) a sharper rule A for "no common source" pairs
+(umux21 finding) as a formal soundness question, not a size change; (3) goal 2 (speed) only with a scatter
+budget: R5's 1.9x costs the 3x scatter margin the default lengths keep, so any tightening should be judged by its
+failing scatter scale, not only by rules and corners.
+### progress 09:39 (speed / scatter trade-off: R5 x1.25 routes)
+- research/data/gcd_hw_sizes_R5x125.vh: every R5 size x1.25 rounded up (sum 796 -> 1106 links; none shorter), BQ#2's
+  flags. Question: how much SLOW_MAX speed does it cost, and does it pass log-normal 2x draw 1, where R5 seed 6
+  fails? Arms: R5x1.25 seeds 7,8,9 (+10), R5 seeds 7,8,9 (+10) at the same scatter (R5 seed 6 already FAIL).
+- Seed 6 did not place under R5x1.25 ("post-placement validity check failed for Bel SLICE_X14Y88/A5FF (no cell)",
+  the same nextpnr legality failure R5 seed 2 once hit): seed 10 added to both arms instead.
+- Audits: seeds 7, 8 every rule clean (D 38 screen); seed 9 rule A -32 ps (urig.udut.ucontrol_merge9, 5 links, PAD
+  to 6). So uniform lengthening does not keep rule A by itself: the longer chains move the route, and one bundle
+  ends 32 ps short. Seed 9 is kept in the experiment as a data point, not as a shippable route.
+### progress 10:41 (R5x1.25 seed 8: SLOW_MAX 29 laps vs R5's 31; log-normal 2x draw 1 PASS)
+- R5x1.25 seed 8: SLOW_MAX PASS 16/16 laps 29/23/34 (vectors 6/12/13; R5 seed 8: 31/25/37, i.e. -6..-8%);
+  log-normal 2x draw 1 PASS 16/16 (35/28/42). R5 seed 8 has no log-normal 2x draw 1 row yet (queued). Seeds 7, 9
+  then the R5 arm and seed 10 running.
+### progress 11:39 (R5x1.25 seed 9: SLOW_MAX 28 vs R5 31; log-normal 2x draw 1 PASS)
+- R5x1.25 seed 9: SLOW_MAX PASS 16/16 (28/23/33; R5 seed 9: 31/25/36, -10%); log-normal 2x draw 1 PASS (33/26/39),
+  despite its -32 ps rule A flag. Seed 7, then the R5 arm at the same scatter (seeds 7-9), then seed 10, running.
+### progress 12:52 (R5x1.25 arm done on seeds 7-9: -7..-10% SLOW_MAX laps, log-normal 2x draw 1 3/3 PASS)
+| seed | R5 SLOW_MAX (6/12/13) | R5x1.25 SLOW_MAX | change on vec 6 | R5x1.25 logn 2x d1 |
+|---|---|---|---|---|
+| 7 | 31/25/36 | 28/22/33 | -10% | PASS 50/40/58 |
+| 8 | 31/25/37 | 29/23/34 | -6% | PASS 35/28/42 |
+| 9 | 31/25/36 | 28/23/33 | -10% | PASS 33/26/39 |
+  R5 arm at the same scatter (seeds 7-9; R5 seed 6 FAILS it) now running, then seed 10 for both.
+### progress 14:00 (R5 arm at log-normal 2x draw 1: seeds 7, 8 PASS)
+- R5 seeds 7 (51/39/58) and 8 (41/32/48) PASS log-normal 2x draw 1; seed 6 FAILs it (errs 3). So far R5 2/3 vs
+  R5x1.25 3/3 on the seeds that place: not yet discriminating. R5 seed 9 and seed 10 (both arms) running.
+### progress 15:09 (R5 vs R5x1.25 at log-normal 2x draw 1: not discriminating)
+- R5 seed 9 PASS (45/36/53). At log-normal 2x draw 1: R5 3/4 (seed 6 FAIL; 7, 8, 9 PASS), R5x1.25 3/3 (7, 8, 9; seed 6
+  does not place). On the routes both arms have, both pass, so 2x draw 1 cannot tell them apart; R5's one failure
+  is a route-specific placement (uori3 far from its datapath) that x1.25 could not even be routed on. Seed 10
+  (both arms) running, then log-normal 3x draw 1 on 7-10 of both arms, where failures should be common enough
+  to compare rates. Cost so far: -6..-10% SLOW_MAX laps on vector 6.
+### progress 16:21 (R5x1.25 seed 10; R5 seed 10 routed clean)
+- R5x1.25 seed 10: every audit clean; SLOW_MAX PASS 26/21/31; log-normal 2x draw 1 PASS 38/29/46. R5 seed 10 routed,
+  every audit clean; its SLOW_MAX and 2x runs are running, then 3x draw 1 on 7-10 of both arms.
+### progress 17:33 (R5 vs R5x1.25: 2x does not discriminate; x1.25 costs 10.5% at SLOW_MAX)
+- research/data/fid/r5x125/README.md: on seeds 7-10, R5x1.25 costs -10.5% SLOW_MAX laps (vec 6 31.0 -> 27.75, range
+  -6..-16%), and both arms pass log-normal 2x draw 1 on all four. 3x draw 1 on 7-10 of both arms now running.
+### progress 19:37 (R5x1.25 survives log-normal 3x draw 1 on seeds 7-10)
+- R5x1.25 at log-normal 3x (region 0.48 + wire 0.378) draw 1: seeds 7, 8, 9, 10 all PASS 16/16 errs 0 (vec 6 laps
+  44/28/26/32). R5 arm at the same 3x now running; if R5 fails there, x1.25 buys between 2x and 3x of margin for
+  ~10% speed.
+### progress 20:40 (R5 also passes log-normal 3x draw 1 on seeds 7, 8)
+- R5 seed 7 PASS (47/36/53), seed 8 PASS (34/26/39) at log-normal 3x draw 1. So on the routes both arms have, neither
+  fails at 2x or 3x: R5's known scatter failures (BQ#2 seed 6, BQ#3 seed 9) are specific routes, not a uniform
+  shortfall that x1.25 fixes. Seeds 9, 10 of R5 at 3x running.
+### progress 21:41 (R5 vs R5x1.25 complete: x1.25 trades 10.5% speed for the one 3x failure seen)
+- Log-normal 3x draw 1, seeds 7-10: R5 3/4 (seed 10 FAIL errs 4, vectors 2, 3, 9, 15: one wrong lap then a stall,
+  the same vector set as BQ#3 seed 9's uori2 failure), R5x1.25 4/4. 2x draw 1: 4/4 both on these seeds.
+  research/data/fid/r5x125/README.md.
+- Conclusion (thin: one failure per eight scatter runs): R5's scatter failures are route-specific; a uniform 25%
+  lengthening removed the one seen on seeds 7-10, at -10.5% SLOW_MAX laps (vec 6 31.0 -> 27.75). It also cost a
+  placement (seed 6) and a rule A flag (seed 9, -32 ps), so it is not a drop-in replacement for R5. Not shipped.
+Next: a targeted version (lengthen only the chains whose bundles failed under scatter: uori2/uori3) would keep most
+of R5's speed; it needs the failing-chain list from more draws first. Ring128 data still blocks acceptance.
+### progress 21:42 (R6t: targeted lengthening of uori2/uori3 only)
+- uori2 failed under scatter on two independent routes (BQ#3 seed 9 at 2x, R5 seed 10 at 3x; same vectors 2, 3, 9,
+  15), uori3 on one (BQ#2 seed 6). R6t = R5 with only those two chains x1.25 (19->24, 20->25 links);
+  research/data/gcd_hw_sizes_R6t.vh. Seeds 6-10: audits, SLOW_MAX laps, log-normal 3x draw 1. Running.
+  (Disk: cleared the compiled sims of finished runs, 18 GB free.)
+### progress 21:49 (R6t routes: every audit clean on 5/5 seeds)
+- R6t seeds 6, 7, 8, 9, 10 all place (seed 6 too, unlike R5x1.25) and pass every audit (A/E/J 0, D 38 screen).
+  SLOW_MAX and log-normal 3x draw 1 sims running.
+### progress 00:08 (R6t so far: SLOW_MAX 30-32 laps, log-normal 3x draw 1 PASS on 7, 9)
+- R6t SLOW_MAX vec 6: seed 7 30, 8 32, 9 30 (R5 31/31/31). Log-normal 3x draw 1: seed 7 PASS (44/33/53), 9 PASS
+  (44/34/50). Seeds 6, 8 (3x), 10 running; seed 10 is the one where R5 failed 3x.
+### progress 01:08 (R6t: container restart killed the driver; seed 10 and seed 6 3x relaunched)
+- Done before the restart: SLOW_MAX seeds 6 30, 7 30, 8 32, 9 30 (vec 6); log-normal 3x draw 1 seeds 7, 8, 9 PASS.
+  Lost: seed 10 (8/16 vectors at SLOW_MAX) and seed 6 3x. Relaunched on the existing routes (seed 10 first, seed 6
+  after it; three fid sims at once has OOM'd on 15 GB).
+### progress 01:54 (R6t seed 10 FAILS log-normal 3x: the targeted fix does not buy 3x margin)
+- R6t seed 10: SLOW_MAX PASS 32/26/37; log-normal 3x draw 1 FAIL errs 7 (vectors 1,2,3,9,11,13,15). So the R6t arm at 3x draw 1 is
+  3/4 so far (7, 8, 9 PASS; 6 running), the same rate as R5 (3/4), while R5x1.25 was 4/4.
+- Rule A on this draw's exactly scaled SDF (research/tools/scatter_ruleA/scale_sdf.py, then tighten.py): 10 non-D
+  bundles short at once (ucmpi1 -4638, ushrsi1 -8729, ushrsi2 -8911, ushrsi0 -3310, uori2 -2945, ucmpi8 -917, ...;
+  research/data/fid/r6t/seed10_3x_scaled_ruleA_violations.txt). At 3x the tightened R5 family is short in many
+  bundles on some routes, not in one chain, so lengthening the two chains seen failing at 2x does not cover it.
+  (As recorded 10-31, rule A on a scaled SDF over-reports; the GLS failure is the evidence, the list only says it
+  is broad.)
+- SLOW_MAX: R6t vec 6 30/30/32/30/32 on seeds 6-10 (mean 30.8) vs R5 31.0 (seeds 7-10) and R5x1.25 27.75. R6t is
+  nearly free at SLOW_MAX and passes every audit on 5/5 seeds, but buys no measured scatter margin at 3x.
+### progress 02:33 (queued: R5 vs R5x1.25 at log-normal 3x draw 1 on fresh seeds 11-14)
+- After R6t seed 6: routes and 3x draw 1 runs for seeds 11-14 in both arms (8 runs), to put more than four routes
+  under the R5x1.25 4/4 vs R5 3/4 comparison.
+### progress 02:56 (R6t complete: 4/5 at log-normal 3x, same rate as R5; no speed cost)
+- R6t seed 6 at 3x PASS (40/32/47). R6t at log-normal 3x draw 1: 4/5 (seed 10 fails). research/data/fid/r6t/README.md.
+  Negative result for the targeted fix as a 3x-margin measure; it is speed-neutral and audit-clean, so it is a
+  candidate only if the 2x failures (uori2/uori3) are the concern, which the board would have to show.
+### progress 03:01 (R5x1.25 seeds 11-14: placed, every audit clean)
+- R5x1.25 seeds 11, 12, 13, 14: all place, rules A/E/J 0 (D 38 screen). Their log-normal 3x draw 1 runs, then R5's
+  on the same seeds, are running (~5 h).
+### progress 04:44 (R5x1.25 also fails log-normal 3x on a fresh seed)
+- R5x1.25 3x draw 1: seed 12 FAIL errs 5 (vectors 4, 5, 7, 8, ...), 13 PASS, 14 PASS, 11 running. So R5x1.25 is 6/7
+  at 3x so far, not immune: the earlier 4/4 vs R5's 3/4 was within noise. R5 on seeds 11-14 runs next.
+### progress 05:10 (R5 on fresh seeds 11-14: one rule E violation, one unplaceable)
+- R5 seeds 11, 14 every audit clean; 13: rule E 6 violated, all ulink_n106__1 -> ucond_br34/35/36 (raw +3837, guarded
+  -119 ps, fix +1 element; the same link R3/R4's rule E tail kept finding); 12: does not place (nextpnr post-placement
+  validity check, SLICE_X18Y44/A5FF (no cell); third occurrence: R5 seed 2, R5x1.25 seed 6, R5 seed 12). BOARD-QUEUE
+  #2 now says to build with the default seed as written. The 3x runs on 11, 13, 14 continue (13 kept as a data point).
+- The nextpnr placement failure recurs at about 1 seed in 10 on these netlists: worth a look (RLOC v4 column groups
+  vs packing are the likely interaction) but it fails loudly, so it cannot produce a wrong bitstream.
+### progress 06:56 (speed/scatter study closed: uniform or targeted padding of R5 does not change its 3x failure rate)
+- R5 on fresh seeds at 3x draw 1: 11, 13, 14 PASS. Totals on seeds 7-14 that place: R5 6/7, R5x1.25 7/8, R6t 4/5.
+  Failures are ~1 route in 5-8 for every R5-family variant at 3x, and 0/16 for default lengths (BQ#1 8/8, BQ#4 8/8).
+  research/data/fid/r5x125/README.md, research/data/fid/r6t/README.md.
+- Conclusion (negative): neither the uniform x1.25 (-10.5% speed) nor the targeted uori2/uori3 pad (~0%) moves the
+  tightened sizing's 3x failure rate measurably at this sample size. 3x is twice the 1.5x that R5 holds on every
+  route tried, and ~6x the measured ring scatter. No size change recommended; BOARD-QUEUE order stands.
+Next: the lead list in PROGRAM.md (goal 2) and the ring128 data; nothing queued on the machine now.
+### progress 06:58 (answer to audit RISK row 108: fast-early/slow-late mixing on BQ#1-#4)
+- Audit row 108 (tcheck.md): static fast-early/slow-late mixing gives rule J 7/18 clients negative per route (BQ#1
+  -252, BQ#2 -472, BQ#3 -459 ps) and, with the project band, negative A/E rows; marked RISK, not a refutation.
+- The closest dynamic test this stack has is within-die scatter: log-normal factors per 10x10-slice region and per
+  wire make one branch of a fork fast while another is slow, i.e. a sampled version of the mixing (bounded speed-ups,
+  so not the static worst case). Results on the full stack, every arbiter in the design exercised by the 16 or 24
+  vectors: BQ#1 log-normal 3x draw 2 8/8 routes PASS, 1.5x draws 2-3 16/16; BQ#4 3x 8/8, 5x 1/1; BQ#2/BQ#3 1.5x 16/16,
+  with their 2x-3x failures traced to compute-unit bundles (uori2/uori3, broad rule A shortfall at 3x), not to an
+  arbiter. So the sampled mixing, up to 3x on default lengths, never broke an arbiter fork; the static worst case
+  the audit computes is not refuted by this (sampling is not exhaustive, and the arbiter near-tie model, arbtie.md,
+  is the fid resolver's).
+### progress 07:00 (gcd cost model: GLS corners bracket the August board's per-iteration costs)
+- research/tools/gcd_ps_cost_fit.py fits cells/hw/gcd_cost_fit.py's model (base + k, pre-ctz, main, inner-ctz terms,
+  counters replayed from the C) to GLS latencies (out0_req rise from the bundle monitor minus the CTRL write) on the
+  1000-vector runs of the formal target. Per-iteration ns, SLOW_MAX / FAST_MIN: k 157.7 / 57.2, pre-ctz 154.5 / 54.9,
+  main 218.6 / 76.8, inner ctz 139.7 / 49.6 (residual RMS 40 / 14 ns). The August board fit (gcd_bench_gen):
+  127.1, 108.3, 156.5, 114.6 -- inside the corner bracket on all four terms, at 54-72% of the way from FAST_MIN to
+  SLOW_MAX. The band column (0.38) with 1x scatter, 24 vectors: 103, 95, 121, 77 -- 10-33% FASTER than the board.
+  research/data/gcd_ps/cost_model_vs_board.tsv.
+- Reading, soft (different build: the August bench had other sizes and a pre-patch toolchain era, and a cost model is
+  not the ring data acceptance needs): on this kernel the board sits nearer SLOW_MAX than the band 0.38 that the five
+  rings were fitted to. If it holds on a like-for-like build, the band predictions in BOARD-QUEUE (e.g. "~50-55 laps
+  per 150 us" for #3) are optimistic, and the SLOW_MAX numbers are the safer expectation. Worth a check by the owner
+  when #4 runs: gcd_ps per-call latency is directly comparable with this table.
+### progress 07:01 (queue: target 1000 vectors at band + 1x scatter; BQ#1 3x draw 3)
+- Not pursued: a like-for-like GLS of the August gcd_bench_gen build behind the board cost model. Its bitstream was not
+  kept and its build ran converge.sh's select-pad loop, so a rebuild would be another route; the comparison would stay
+  soft. The nextpnr placement-validity failure (1 seed in ~10) is noted, not chased: it fails loudly.
+- Running: all 1000 BQ#4 vectors on the formal target at band 0.38 + 1x within-die scatter (the board-like point),
+  then BQ#1 at log-normal 3x draw 3 on all 8 seeds.
+### progress 09:40 (formal target: all 1000 board vectors also pass at band + 1x scatter)
+- 1000/1000 ok, 0 err, 0 hang, out0 min margin 7341 ps, no late change, at band 0.38 + region 0.16 + wire 0.126 draw 1.
+  BOARD-QUEUE #4 updated. BQ#1 log-normal 3x draw 3 on 8 seeds now running.
+### progress 13:08 (next lead: a routed full-stack GLS of gcd_bench_gen -- tooling, untested)
+- Why: two open items need the bench harness simulated, which nothing here could do (no AXI host for its
+  register map): the "RTZ tail" (rtz_cost.sh: gcd 12.1 cycles/run vs the null's 5; the 2026-10-30 17:08 trace found
+  the kernel's own output RTZ ~14 ns, so the rest is unexplained) and the soft acceptance item bench_hang (the August
+  harness's 3-bit state register reading an async latch; inventory.md: "no AXI host model for the bench harness").
+- cells/gls/ps/gen_ps7.py now also writes ps7_bench.v: the same AXI3 master (task text shared; ps7_master.v is
+  byte-identical, md5 81d66ef5) running xsdb_bench_gen.tcl's run_batch, reading the bench's own illegal-transition
+  sticky (0x58) after each batch, with +PSTEP to step the FCLK0 period between batches (a phase sweep).
+  build_ps.sh takes PS_DESIGN/PS_HOST/PS_MON_GEN (gcd_ps default unchanged). gen_bench_mon.py: per-run kernel
+  handshake times at driver pins, aclk phase of i_ack/o_req, cycles per FSM segment, illegal transitions.
+- Build: BQ#4's flags and P1 sizes in build_bench.sh. With BD_RLOC=v4 nextpnr cannot place the uori2/uori4 delay
+  columns in the bench ("post-place repair: no valid placement ... uori2.udly.chain.g[0]", then an arch.h:923
+  assertion) on seeds 3 and 4 alike: deterministic, not seed noise (gcd_ps places them; the bench adds 1024 histogram
+  flops). Retrying with v2 (build_bench.sh's default); the kernel then needs its own audits.
+### progress 13:53 (bench routes with v4 once its histogram is compiled out; audits clean)
+- BD_RLOC=v2 routes the bench but misses rule A once (ulink_n_falseResult_25 stage 1, -144 ps) and rule E broadly
+  (ucond_br10-18 need 5-11 pad elements): BQ#1's pads were measured on v4 placement, so v2 is not a like-for-like
+  kernel. Kept v4 and compiled out the bench's 64x16 latency histogram instead (its write data tied to 0, so yosys
+  drops the 1024 flops; HIST reads 0). The histogram only observes; the FSM, synchronisers, AXI slave and kernel
+  are gen_bench.py's. The patch is a sed in the build's worktree, recorded with the data.
+- Route nh3 (NEXTPNR_SEED=3, nextpnr 9c732bc6303458df, toolchain.sh all ok): bit 464c573f, fclk0 est. 108 MHz;
+  build_bench.sh's rule A gate holds; audit_route.sh: rule A/E/F/H/I/J 0, rule D 38 (the screen, as BQ#4).
+- Queued behind BQ#1's last two seeds (memory): full-stack fid GLS of nh3 at both corners, FIXED gcd(48,18) x16 and
+  UNIFORM seed 1 x32. BQ#1 3x draw 3: d,3-7 PASS so far.
+### progress 14:17 (BQ#1: log-normal 3x draw 3 also 8/8)
+- BQ#1 full stack (bits-decoded netlist, prjxray SDF, fid), band 0.38 + log-normal region 0.48 + wire 0.378 (3x the
+  calibrated within-die scatter), draw 3, seeds d,3-9: 8/8 PASS 16/16, errs 0, EQUIVALENT, vec 6 laps 20-30
+  (research/data/fid/bq1_logn3x_draw3.tsv). With draw 2: 16/16 routes x draws at 3x on the default lengths. Does not
+  show: silicon, or more than two draws of one scatter model. BOARD-QUEUE #1 updated.
+### progress 14:53 (bench full-stack GLS: first numbers; August-harness route built)
+- nh3 (fixed harness), SLOW_MAX, bits-decoded netlist EQUIVALENT, gate ANNOTATE_DONE with no SDF warning: FIXED
+  gcd(48,18) x16: completed 16/16, SIG 00020002 = the fold of gcd=6 over 16 runs (derived, not read), illegal-transition
+  sticky 0. latmin/max 170/171, cycles/run 176.06, so the rtz_cost.sh "tail" is 6.06; per run (gen_bench_mon): S_ACK +
+  S_RTZ + S_NEXT = 5 cycles, the null's; kernel output RTZ (bench_o_ack -> o_req fall) 12.7 ns, synchroniser 17.4 ns.
+  i_ack comes 360 ns after the request, o_req 1.665 us. Every run identical to the ps (deterministic sim).
+- Reading (soft): on this route the RTZ tail is the harness's 5 cycles plus mean-vs-min, not the kernel; the board's
+  12.1 (August build, other sizes) is NOT reproduced. FAST_MIN and UNIFORM running.
+- au3: the same build with the synchroniser reverted (cdc_bench.sh's "august" sed, applied to gen_bench.py in the
+  worktree), NEXTPNR_SEED=3, bit 53b40d67; audits A/E/F/H/I/J 0, D 38. On nh3 st[0] is placed 15 rows from st[1:2].
+- Running: phase sweep (139 batches x 2 runs, FCLK0 10000-10276 ps in 2 ps steps: i_ack, ~36 cycles after issue,
+  walks the whole aclk period in ~72 ps steps) on au3, then the same on nh3 as the control.
+### progress 15:22 (bench RTZ tail: the harness floor at both corners; the board's 23/12.1 not reproduced)
+- nh3 fixed harness, full stack: SLOW_MAX UNIFORM seed 1 x32 (full-width random operands): SIG b2d15eed =
+  hw/uniform_oracle.py's (derived from the C), 0 illegal transitions, latency 96-1297 cycles. FAST_MIN FIXED gcd(48,18)
+  x16: SIG 00020002 (derived), latmin = latmax = 63, cycles/run 68.0, tail 5.0.
+- Per run (gen_bench_mon, every run of both batches): S_ACK + S_RTZ + S_NEXT = 5 cycles at SLOW_MAX, 4 at FAST_MIN;
+  kernel output RTZ (bench_o_ack -> o_req fall) 12.7 ns / 4.6 ns, identical for every vector; i_ack comes 359-468 ns
+  (SLOW_MAX, operand-dependent) after the request.
+- So on this route gcd's tail is the null floor (5.0 exact on the board for all four nulls), at both corners and for
+  every input; the kernel's RTZ is absorbed by the o_req synchroniser. The board's gcd tail is NOT reproduced: README
+  says 22.992 exact, rtz_cost_results.tsv 12.142 approx -- both from d741ae57 (2026-08-24), on an unarchived August
+  build, an hour after the lut-pinmap patch was first committed (whether that board's binary had it is not on record).
+  Grade: soft. The board's latmin 122 does sit between the GLS corners (63 / 170), as the cost-model check found.
+- Open hypothesis (cheap to test later): the long tail was a property of that build (e.g. a pre-patch bitstream), not
+  of the kernel. inject_pinmap.py on this bench route + the same monitor would say whether pinmap corruption can lengthen
+  the RTZ. Not run.
+### progress 15:44 (August bench hang mechanism reproduced on the full stack -- control pending)
+- au3 = the bench with the synchroniser reverted (August code), SLOW_MAX phase sweep (2-run FIXED batches, FCLK0
+  10000 + 2k ps; i_ack's phase moves ~72 ps per step): in one window, FCLK0 10010-10044 ps (batches 5-22 of 128),
+  the bench's own illegal-transition sticky fires in 13 batches (S_WAIT_ACK 011 -> 001 in 12, -> 000 in one, which
+  hangs 0/2), and 4 more complete out of protocol (results captured 2-27 cycles after issue). Outside it, 110
+  batches are normal. 001/000 are bitwise mixes of 011 and the intended 100: the mechanism of the August hang, with a
+  different code than the board's 110 (route-dependent). research/data/bench/ (README.md, logs, the two seds).
+- Grade: this reproduces a SOFT acceptance item's mechanism, not its rate or code (no August route). The deciding
+  half is the control: the same sweep on nh3 (synchroniser in) is running; it must show no illegal transition.
+### progress 16:12 (control: the synchronised bench never mixes over the same sweep -> bench_hang mechanism MATCH)
+- nh3 (today's harness), the same SLOW_MAX sweep: 127 batches, FCLK0 10000-10252 ps, 0 illegal transitions, 0 hangs,
+  every SIG derived-correct, no out-of-protocol capture; i_ack's phase covered ~9 of 10 ns.
+- So the full stack reproduces the August bench hang's mechanism and its fix (soft item bench_hang: mechanism MATCH;
+  code and rate need the August route). acceptance_status.md row added. Two routes, not one with/without: noted.
+- Queued (q4): au3 UNIFORM 4x32 random full-width vectors at the nominal 100 MHz (board-like: does the August harness
+  give wrong answers or hangs there?), the window again at 1 ps steps with another metastability seed (skew or
+  metastability?), au3 FAST_MIN sweep.
+### progress 17:31 (bench_hang on more routes: seeds 4-6 of both harnesses building)
+- One route each is a sample (CLAUDE.md), so both harnesses are being built on NEXTPNR_SEED 4, 5, 6 (same flags,
+  nohist, August revert for "au"). So far, all audits clean (A/E/F/H/I/J 0, D 38): au4 10ba5223, nh4 0529f049,
+  au5 d0b647b2. The same phase sweep will run on each. au3 UNIFORM 4x32 at 100 MHz still simulating.
+### progress 17:38 (ring128 on its MEASURED route: band 0.38 MISMATCH; x = 0.288 predicts all 128 rings within 3%)
+- The owner committed the August ro_many_top build and its per-ring periods (db3c299b, research/board/ro_many_aug/):
+  the hard timing test was blocked on exactly this. md5s check; the bits decode EQUIVALENT to the routed JSON.
+- acceptance.py --stack full --items ring128 --ro-many-data (the pre-registered test: median and per-length medians
+  within +/-5%): SLOW_MAX +88.2% (no ring slower: bound holds), FAST_MIN -35.9% (every ring slower: bound holds),
+  **band 0.38: +11.5% median, MISMATCH** (hard). Per ring, silicon sits at x = 0.288 of [FAST_MIN, SLOW_MAX]
+  (p05-p95 0.276-0.303, no length trend). With one global x every held-out split passes: groups 0-7 <-> 8-15,
+  short <-> long, leave-one-length-out; median errors <= 0.6%, worst ring 3.06%. acceptance.py at --band 0.288: MATCH.
+  The route's own nextpnr SDF: p05/p95 -28/+18%, 7-link -16%. research/tools/ring128_fit.py, research/data/fid/ring128/.
+- So the model fix is the band (0.38 -> 0.288), and the within-die residual is 0.76% median |dev| per ring (includes
+  model error), about 1/11 of the "1x" scatter (8.33%), which had been sized to an 8.5% measured against nextpnr's
+  SDF. Every 1x/1.5x/3x scatter result so far ran at ~11x/16x/33x the ring-level variation now on record.
+- Not yet acceptance in full (acceptance_status.md): rings test LUT + wire arcs only; a soft datum (gcd per-iteration
+  costs, another build) puts kernel cells at 0.54-0.72. A cell-type-dependent x is the case that hides a bundling
+  violation (matched delays are LUT chains, datapaths are not), so the gates stay until the verification runs cover it.
+- Not changed yet: gen.py's GLS_SDF_BAND default (0.38) and acceptance.py's --band default. Next: make 0.288 the
+  measured default (0.38 stays reproducible by env), then the cell-type check.
+### progress 17:39 (model fix: band default 0.38 -> 0.288)
+- gen.py GLS_SDF_BAND and acceptance.py --band default 0.288 (the measured route's median; comments cite the data);
+  GLS_SDF_BAND=0.38 reproduces every earlier band result. seeds_fid.py now puts the band value in its tag
+  (band0.288_s...), so rows from before (bare "band") stay unambiguous. test_acceptance.py 30 passed. acceptance.py
+  at the default: ring128 MATCH (exit 0). ring5_a/b ERROR here: their rebuilt ro_top route is not on this container
+  (soft items; not re-run). ring128_summary.py keeps its explicit 0.38 model, as a record of what it tested.
+- Effect on earlier band numbers: at 0.288 ring periods are ~10% shorter than at 0.38 (median ring: 1.114 -> 1.0 of
+  measured), so band-column laps and margins move toward the FAST_MIN side; corners unaffected.
+### progress 17:41 (the cell-type check: GLS_SDF_BAND_CELL)
+- ring128 calibrates SLICE_LUTX and interconnect arcs only. A gcd_hw route's xray SDF also has CARRY4 (1380 IOPATH
+  arcs), SELMUX2_1 (F7/F8, 3603) and SLICE_FFX (326) arcs, with no measured position. Matched delays are LUT chains;
+  datapaths use carries and F7/F8 muxes. So the dangerous reading of the soft gcd cost datum (kernel cells nearer
+  SLOW_MAX) is: uncalibrated cells slow, LUT chains as measured.
+- gen.py GLS_SDF_BAND_CELL=CELLTYPE=b,... (band only): those IOPATH arcs take band b; counts printed; seeds_fid tags
+  it (_c...). Unit check on a (100:200:300) arc: LUT 158, CARRY4 at b=1 300.
+- Running: BQ#2 (R5, the thinnest margins) on its 8 routes (seeds 6-11,13,14), band 0.288 with
+  CARRY4=1,SELMUX2_1=1,SLICE_FFX=1; then BQ#3 and BQ#1. The bench queue (q4) was stopped after its current run.
+### progress 18:14 (cell-type check running; bench routes 4-6 built)
+- GLS_SDF_BAND_CELL took effect on BQ#2 seed 6 (IOPATH arcs moved: CARRY4 1380, SELMUX2_1 3600, SLICE_FFX 326);
+  its 16 vectors are simulating, one sim at a time while au3's UNIFORM run finishes.
+- Bench routes for bench_hang on more seeds, all audits clean (A/E/F/H/I/J 0, D 38): au4 10ba5223, nh4 0529f049,
+  au5 d0b647b2, nh5 f44ff432, au6 ddf4f013, nh6 35715d8c. Their sweeps are queued after the cell-type check.
+### progress 18:20 (bench_hang, board-like: the August harness hangs every UNIFORM batch)
+- au3 at the nominal 100 MHz, UNIFORM seeds 1-4 x 32 (full-width operands, as the board's batches): 4/4 batches HANG
+  after 6, 3, 4, 14 runs, the bench's own sticky 011 -> 001 in each. nh3 (fixed) passed the same UNIFORM batch at both
+  corners (32/32, oracle SIG). research/data/bench/README.md. The board: 5 of 8 runs hung, with code 110.
+### progress 19:16 (cell-type check: BQ#2 seed 6 PASS)
+- BQ#2 (R5) seed 6, band 0.288 with CARRY4/SELMUX2_1/SLICE_FFX at SLOW_MAX: PASS 16/16, errs 0, EQUIVALENT, laps
+  61/50/72 (full SLOW_MAX 33/27/39). Seeds 7-11,13,14 running two at a time, then BQ#3, BQ#1.
+### progress 21:57 (cell-type check: BQ#2 5/5 so far; seed 10's NOT_EQUIVALENT is a constant LUT, fixed in fasm_equiv)
+- BQ#2 under GLS_SDF_BAND_CELL (CARRY4/SELMUX2_1/SLICE_FFX at SLOW_MAX, the rest at 0.288): seeds 6, 7, 8, 9, 10
+  PASS 16/16 errs 0 (laps 57-61 / 46-50 / 66-72). 11, 13, 14 running.
+- Seed 10's rows say NOT_EQUIVALENT, here and in every earlier column (incl. its 3x FAIL that "R5 6/7" counts). By the
+  journal's own rule (2026-10-28 03:53) that is a stop sign, and it was missed then. Traced: two pins the routed JSON
+  ties to GND (on ulink_n_trueResult_4 stage 1's C node and a $PACKER_GND LUT) are driven in the bits by
+  SLICE_X14Y79/A6LUT, which the bits configure with INIT all 0 and all inputs constant: nextpnr routing GND out of an
+  unused LUT, as on BQ#3 seed 7 (the decoder already resolves it to 0 since 54f2ce6). The netlist simulated was
+  functionally the JSON's; fasm_equiv compared driver identity, not value.
+- fasm_equiv.py: a LUT whose INIT is all 0 / all 1 is compared as that constant (pins, routing key, and the bits-only
+  cell is reported as a benign kind). Seed 10 now EQUIVALENT; seed 8 unchanged (EQUIVALENT). Negative controls on
+  seed 8's bits: a live LUT forced to INIT 0 -> NOT EQUIVALENT (DRIVER DIFFERS ...); inverted -> NOT EQUIVALENT
+  (LUT FUNCTION DIFFERS), identical to the old tool; a 1-bit flip of an entry its tied pins never reach is
+  EQUIVALENT under both. test_acceptance.py 30 passed. The running cell check uses the frozen worktree (old verdicts).
+### progress 00:22 (cell-type check: BQ#2 8/8 PASS)
+- BQ#2 (R5 sizes, the tightest shipped candidate), 8 routes (seeds 6-11, 13, 14), LUT + interconnect at the measured
+  0.288 and every CARRY4 / F7F8 / FF arc at SLOW_MAX: 8/8 PASS 16/16, errs 0 (laps vec 6: 55-61, mean 57.1;
+  full SLOW_MAX ~31). research/data/fid/bq2_cellcheck.tsv. So the uncalibrated cell types running at their slow
+  corner against measured-speed LUT chains do not break R5's bundles on any route. BQ#3, then BQ#1, running.
+- Does not show: those cells beyond SLOW_MAX, scatter on top (next: the measured residual as scatter), silicon.
+### progress 00:24 (the measured residual as scatter: "M" = region 0.02 + wire 0.126)
+- f3/ring_scatter.py on ring128's measured route: the old 1x (region 0.16 + wire 0.126) gives 8.37% median |dev|;
+  the board's residual is 0.76% (0.98/0.58/0.73/0.66 at 7/15/31/63). region 0.02 + wire 0.126 gives 1.34%
+  (2.15/1.59/1.16/0.91), the smallest tried at or above the measured value at every length: "M", the scatter
+  PROGRAM.md's verification criterion asks for. ring128/README.md.
+- Plan: the verification runs per candidate (>= 8 seeds): SLOW_MAX, FAST_MIN (done for BQ#1-4), band 0.288 + M,
+  and the cell-type check with M on top. Queued after the running cell checks.
+### progress 02:01 (container restart ~01:45; queue relaunched)
+- Every background job died (verification queue, sims, lock keeper); scratch files and the toolchain survived
+  (toolchain.sh: all patches ok, nextpnr 9c732bc6303458df). Rows that landed before: BQ#3 cell check d, 3 PASS
+  16/16 (laps 60/50/71, 59/48/69). Relaunched only the missing runs (vq2.sh, the frozen worktree at 2945db42).
+### progress 03:36 (owner's next steps 1dd0a675; item 2 started: the August gcd_bench_gen on the full stack)
+- The owner committed research/board/aug/ (every August board build with its .bit, and 331 logs paired to them) and
+  PROGRAM.md "Next, now that ring128 matches": (1) the sim is the gate, uncalibrated cells at 0.288 by default and
+  also gated at the slow-cell corner; (2) fit the datapath band on the August gcd build; (3) shrink matched delays to
+  what the sim proves; (4) every other kernel through the full stack; (5) one ordered board list.
+- Item 2 running: the August gcd_bench_gen (bit f199866ea256, nextpnr d216cb36, the async-latch-hang build) decoded
+  from its bits with its own routed JSON, prjxray SDF of that route, ps7_bench.v (new +VECFILE: one FIXED batch per
+  vector) on the board's 24 gcd_cost vectors x 2 runs, at FAST_MIN, SLOW_MAX, band 0.288, and 0.288 with CARRY4/
+  F7F8/FF at SLOW_MAX. Board: logs/gcd_cost.tsv (latmin/latmax per vector, N=200).
+- The verification queue (cell check BQ#3/BQ#1, then band 0.288 + M, cell + M) continues alongside.
+### progress 05:17 (item 2: the August gcd kernel sits at x = 0.21 on its own build -- faster than the rings' 0.288)
+- The August gcd_bench_gen (f199866ea256) on the full stack, the board's 24 gcd_cost vectors: per vector, x =
+  (board - FAST_MIN)/(SLOW_MAX - FAST_MIN) = 0.209-0.216 (median 0.211, 12 clean vectors >= 100 cycles); the four
+  cost-model terms give 0.196-0.210. research/data/aug_gcd/README.md.
+- So the datapath does NOT sit slower than the rings: the soft 0.54-0.72 came from comparing different builds. Per
+  PROGRAM item 2 the cell default (0.288) stands; it over-predicts this kernel by ~10%. But LUT + wire structures span
+  x 0.21-0.29 on this die, so a matched delay at 0.21 with its datapath at 0.29 is a mix the sim must also gate
+  (next: an instance-level band, delay chains low, the rest high).
+- The August harness hits its race in the sim at SLOW_MAX (10/24 batches), not at FAST_MIN (0/24); reported.
+- Band 0.288 and band + slow cells on this build running.
+### progress 05:19 (GLS_SDF_BAND_INST: matched-delay chains at their own band)
+- gen.py GLS_SDF_BAND_INST=@FILE ("INSTANCE band" lines; IOPATH of those instances and INTERCONNECT into them;
+  wins over GLS_SDF_BAND_CELL; an instance the SDF lacks is an error). research/tools/band_inst_list.py writes the
+  file from the routed JSON (cell regex -> NEXTPNR_BEL; default all bd_delay chain LUTs, '\.chain\.g\[\d+\]\.u$').
+  Checked on BQ#2 seed 6's bits-decoded netlist: 1183 chain BELs, all in the SDF, 8756 arcs moved to 0.21 while the
+  rest stays at 0.288. No effect when unset.
+- The gate this enables (next): delay chains at x = 0.21 (the August gcd kernel's measured position, the low end of
+  LUT + wire on this die), everything else at 0.288, and the same with CARRY4/F7F8/FF at SLOW_MAX on top.
+### progress 06:32 (item 2: uncalibrated cells are off the gcd kernel's critical cycle; x = 0.21 is the delay chains')
+- August gcd build, band 0.288 with CARRY4/F7F8/FF at SLOW_MAX (8514 arcs moved): latency identical to band 0.288 on
+  all 24 vectors, cycle for cycle (sim end time equal to the ps). The kernel's latency is its matched delays +
+  handshake LUTs; the datapath has slack. So the board's x = 0.21 is the RLOC'd delay chains' position, ring128's
+  0.288 LUT + routed hops'. Measured mix: matched delays ~10% faster (vs the model) than routed logic -- the
+  dangerous direction. The gate queued (vq3) runs exactly that corner: chains 0.21, the rest 0.288, cells at
+  SLOW_MAX, + M, on BQ#1-3 x 8 seeds. research/data/aug_gcd/README.md.
+- BQ#3 cell check: seeds 4, 5 PASS (62/50/73, 56/44/65); 6-9 resumed.
+### progress 09:59 (cell-type check: BQ#3 8/8 PASS; the worst-case gate starts)
+- BQ#3 (R5 + fast-fall links), seeds d,3-9, CARRY4/F7F8/FF at SLOW_MAX against LUT + wire at 0.288: 8/8 PASS 16/16,
+  errs 0, EQUIVALENT (laps vec 6: 56-63). research/data/fid/bq3_cellcheck.tsv. With BQ#2's 8/8: 16/16 routes.
+- Now: the combined worst case (delay chains 0.21, CARRY4/F7F8/FF at SLOW_MAX, rest 0.288, + M) on BQ#2's 8 routes;
+  the other kernels' August builds after it.
+### progress 14:59 (worst-case gate: BQ#2 4/4 so far; restart survived; disk cleaned)
+- The combined worst case (delay chains at 0.21 -- 1183 instances, 8756 arcs; CARRY4/F7F8/FF at SLOW_MAX; the rest at
+  0.288; M scatter on top) on BQ#2 (R5, the tightest sizes): seeds 6, 7, 8, 9 PASS 16/16, errs 0, EQUIVALENT (laps
+  vec 6: 60-64). 10, 11 running; 13, 14 next.
+- Container restart ~14:50: this time every job survived (only the watcher died). Disk was at 90%: deleted the
+  regenerable per-run decoder outputs and netlists of finished runs (routes.tsv, pipnames.tsv, fasm_routed.json,
+  routed.json copies, annot.sdf, netlist*.v; never the route dirs or any log) and three idle 1 GB vvps: 17 GB free.
+### progress 17:09 (the combined worst-case gate: BQ#2 8/8 PASS)
+- BQ#2 (R5 sizes, the tightest candidate), 8 routes (6-11, 13, 14): delay chains at 0.21, CARRY4/F7F8/FF at SLOW_MAX,
+  the rest at 0.288, + M scatter: 8/8 PASS 16/16, errs 0, all EQUIVALENT (laps vec 6: 58-64).
+  research/data/fid/bq2_worstcase.tsv. So R5's bundles hold with the matched delays ~10% faster than the routed logic
+  (the measured mix), the uncalibrated cells at their slow corner, and the board's residual as scatter, on every route.
+- Does not show: silicon; mixes beyond those measured (chains below 0.21); BQ#3/BQ#1 (running next, after the
+  August-kernel runs, which now pause the queue: item 2 for ipow/isprime/collatz/collatz64).
+### progress 18:00 (a deadlock cost ~25 min; the other August kernels now running)
+- runk.sh paused the gate's seeds_fid (SIGSTOP) while one of its threads held the shared compile flock, then waited
+  on that flock itself: nothing ran 17:35-18:00. Replaced by runk2.sh, which runs the August kernel builds without
+  the flock (the gate is stopped and nothing else simulates, so memory is not shared) and resumes the gate at the
+  end. Lesson: never SIGSTOP a process that may hold a lock you will wait on; pause between seeds instead.
+- Running: ipow, isprime, collatz, collatz64 August bench builds at FAST_MIN and SLOW_MAX on their board vectors.
+### progress 18:04 (the August ipow bitstream has a live LUT written as constant 0)
+- ipow_bench_gen (August, bit 6dbf3faec62f): bits-vs-JSON NOT EQUIVALENT. Traced: the routed JSON has
+  bridge_i.udut.ushrsi0's LUT at SLICE_X24Y46/C6LUT (CLBLM_R_X17Y46 SLICEM_X0 CLUT) with INIT 0100 (f = I1 & ~I0),
+  driving 9 pins; the August FASM writes CLUT.INIT = 0 there (the .bit agrees with the FASM; its route pips are in
+  both). So the board ran that LUT as constant 0: a FASM-writer defect of that toolchain (d216cb36), not a decoder one.
+  The shape fits the lut-pinmap class (if the pin carrying I1 is taken for I0, f = I0 & ~I0 = 0); the build (08-24
+  06:12) predates the patch's first commit (11:41) though its toolchain.txt stamps it ok. fasm_equiv flags it as it
+  should (DRIVER DIFFERS on the 9 sinks, LUT FUNCTION DIFFERS on the 4 consuming LUTs). The other differences are the
+  benign kinds. gcd_bench_gen was EQUIVALENT.
+- The full stack simulates what the board ran, so the ipow comparison stays valid; whether the defect changed any
+  answer is read from the run against the board's recorded results (aug_x.py checks every result).
+### progress 18:27 (August isprime: NOT EQUIVALENT is nextpnr's GND buffers -- benign by inspection; fasm_equiv not changed)
+- isprime_bench_gen (August): fasm_equiv lists 3 DRIVER DIFFERS, all F7-mux inputs at SLICE_X10Y63 whose JSON drivers
+  are $PACKER_GND_NET$LUT buffers (INIT ..0010, A1 on GND: output 0) and whose bits drivers are INIT-0 LUTs (output
+  0). Same value; benign. The other kinds are the benign ones.
+- Tried to make fasm_equiv fold such buffers (JSON side by name, decoder side by evaluating INIT when every physical
+  pin is constant). It moved differences between categories rather than settling them (5-LUT O5 outputs need the
+  32-bit half; some JSON LUT inputs are undriven nets), so it was reverted: the verdict stays conservative and the
+  August builds' differences are classified by hand here. The sims run on the bits and are checked against the
+  board's results either way.
+### progress 20:39 (another restart ~20:30 killed every job; requeued)
+- Lost: the paused gate driver (BQ#3 worst case had no rows yet), the August runner (isprime SLOW_MAX at 16/18 vectors;
+  kept as a partial log, as FAST_MIN's 16, enough for x), the lock keeper. Relaunched: runk4.sh (collatz, collatz64
+  August builds at both corners, holding the compile flock through compile and run) beside vq5.sh (the gate, one sim
+  while runk4 lives, then two: worst case on BQ#3/BQ#1, band 0.288 + M on BQ#2/3/1, BQ#1 cell check, bench sweeps).
+- isprime vectors trimmed to board latency <= 3000 cycles (18 of 25; the rest run 6k-61k cycles, ~7 h of sim for
+  nothing the x fit needs); collatz/collatz64 all fit.
+### progress 20:39 (item 2: isprime sits at x = 0.222; kernels so far 0.211 / 0.225 / 0.222)
+- August isprime_bench_gen, 16 board vectors at each corner (partial logs: trimmed list, cut by the restart): x =
+  0.222 (0.220-0.226, 12 vectors >= 50 cycles), every result equal to the board's. research/data/aug_kernels/.
+- Three kernels on their own August builds: gcd 0.211, ipow 0.225, isprime 0.222 -- one kernel band ~0.22, against
+  ring128's 0.288. collatz, collatz64 running.
+### progress 00:04 (item 2 done: five kernels at x = 0.211-0.225, rings 0.288; restart again ~23:50)
+- collatz64 (August, EQUIVALENT): x = 0.224 (0.218-0.227), results equal the board's. Five kernels on their own
+  August bitstreams: gcd 0.211, ipow 0.225, isprime 0.222, collatz 0.222, collatz64 0.224. research/data/aug_kernels/.
+- Item 2 answer: the datapath is not slower than the rings; the default (cells at 0.288) stands; kernels' x is their
+  matched delays' (slow cells change no latency), ~10% faster than band 0.288, which the worst-case gate covers.
+- Another container restart (~23:50) killed every job; collatz64 SLOW_MAX had 16/27 (enough). Gate relaunched (vq6:
+  BQ#3 worst case 3-9 (d done), BQ#1 worst case, band + M on all three, BQ#1 cell check, bench sweeps).
+### progress 00:08 (item 5: the ordered board list; a second ring route with predictions committed first)
+- BOARD-QUEUE.md now opens with the owner's ordered list: (1) gcd_ps 1000 vectors, (2) H_RUNT short-pulse test -- not
+  built yet, next, (3) the fastest design the sim accepts (BQ#2 R5 now: worst-case gate 8/8), (4) a ring set on a second
+  route. Each judges itself.
+- (4) built: today's ro_many_top (August recipe, default seed, nextpnr 9c732bc6), bit 8dc4f1ac, bits EQUIVALENT to
+  its routed JSON; research/board/ro_many_2/ holds the bit, xz'd FASM/JSON/SDF, and predicted.tsv (per ring FAST_MIN,
+  SLOW_MAX, band 0.288) written before any run. research/tools/ring2_judge.py applies acceptance.py's criterion; on
+  the first route's data it PASSes at 0.288 and FAILs at 0.38.
+### progress 00:09 (gate trimmed to the worst case; band + M and the plain BQ#1 cell check dropped)
+- The combined worst case (chains 0.21, CARRY4/F7F8/FF SLOW_MAX, the rest 0.288, + M) contains band 0.288 + M except
+  that the chains are faster and the cells slower, i.e. every bundle has less margin; and it contains the plain cell
+  check plus M. Running those separately costs ~12 h of the one machine for nothing a bundling failure could add, so
+  the gate is: SLOW_MAX and FAST_MIN (done, 8/8 each for BQ#1-#4) + the worst case on 8 routes. BQ#3's worst case is
+  running (d PASS), BQ#1 next (vq7.sh). Not strictly monotone in an async circuit; noted, not run.
+### progress 00:14 (item 4 started: every other kernel through the full stack)
+- Configs (Explore agent's survey of the journal, checked against research/data): ipow T9 (BD_DSP=1), collatz T3,
+  xorshift T3, collatz64 T4, isprime rulee6 pads (BD_DSP=1 BD_RLOC_ARB=1; the one without a ratcheted size set, rule E
+  not clean on 2/4 earlier seeds). 4 fresh routes each via bdc/fusion_bench.py --route (its own RTL check, audits and
+  nextpnr-SDF GLS), then per route: soak.fasm assembled to a .bit (bit_control.to_bit), the prjxray SDF, and
+  cells/gls/fid/soak_fid.py ... bit --gate at SLOW_MAX, FAST_MIN and the combined worst case. Running beside the
+  gate (k4.sh, frozen worktree at 841995d1). Oracles: fusion_bench's, from the C.
+### progress 00:35 (item 4: ipow routes; item 3 step 1 queued)
+- ipow T9, 4 fresh routes (seeds 29-32, fusion_bench --route): RTL check and routed nextpnr-SDF GLS fast+stalled pass on
+  all 4; rules E/J 0. tighten.py exits 1 on every seed with 8 violations, all section D (ucond_br2..9 select
+  screens, margins -3.8 to -8.1 ns): the screen, as recorded for T9 and every earlier kernel, not a gate. Their
+  full-stack runs (SLOW_MAX, FAST_MIN, worst case) are running.
+- Item 3 step 1: research/tools/shrink_sizes.py; candidate research/data/gcd_hw_sizes_R5s90.vh = R5 x0.9 (ceil): 19
+  sizes move (the compute udly and select delays >= 10 links, by 1-2 links each); the 1-2 link link/uack sizes stay.
+  Routing on BQ#2's seeds 6,7,8,9,10,11,13,14 (one at a time, holding the compile lock); then the worst-case gate on
+  all 8, then both corners. A failure reverts the step. BQ#1's worst case moved behind it (i3.sh): the board list's
+  item 1 is gcd_ps, which has its own gate.
+### progress 01:19 (H_RUNT rig built and routed; ipow 3/4 routes through the full stack)
+- runt_top (board list item 2; a subagent wrote the RTL/measure/judge/testbench, checked here: runt_tb PASS, its
+  injected defect FAILs): routed at nextpnr 9c732bc6303458df, 2 BUFGs, edge counters fabric-clocked. Predictions from
+  its prjxray SDF (research/tools/runt_predict.py, band 0.288): TEST episode widths -427..+1542 ps vs own loops 211-633
+  ps; committed with the bit before any board run (research/board/runt/). BOARD-QUEUE item 2 now has commands and a
+  self-judging criterion. Not done: a fid GLS of the rig.
+- ipow T9 seeds 29, 30, 31: full stack PASS at SLOW_MAX, FAST_MIN and the combined worst case (EQUIVALENT bits).
+- Item 3 step 1 (s90): 8/8 routed. Audits (informational now): tighten.py needs `--osc dhk --osc invhk` on gcd_hw (the
+  housekeeping ring); rule A 0-2 per route at the old 8.5% guard (raw margins positive), rule E 8 on seed 6, rule J
+  -57 ps guarded on seed 11. The full stack decides; its sims wait for BQ#3's worst case.
+### progress 01:34 (item 4: ipow 12/12; the August "FASM-writer defect" was a checker gap)
+- ipow T9, seeds 29-32 x {SLOW_MAX, FAST_MIN, worst case}: 12/12 PASS (research/data/item4/).
+- Their bits-vs-JSON check first read NOT EQUIVALENT, with exactly the August ipow signature. Traced: ushrsi0's LUT2
+  (f = I1 & ~I0) has BOTH logical inputs on one physical pin (X_ORIG_PORT_A1 'I0I1 ', net $PACKER_GND_NET), so it is
+  constant 0 by its own netlist, and nextpnr's FASM writer correctly writes INIT 0. The August ipow build is the same
+  shape ('I1 I0' on $PACKER_GND_NET at SLICE_X24Y46/C6LUT). **CORRECTION of 18:04 (Nov 4)**: that was not a
+  FASM-writer defect and the board did not run a broken LUT; fasm_equiv judged constness from the INIT string.
+  Fix: lut_const() also folds a LUT whose physical-pin function (gen.py's expansion) is constant. On ipow seed 29 it
+  folds exactly that one cell; all 4 routes EQUIVALENT. Negative control: the bits-side LUT made live (f = A1) -> NOT
+  EQUIVALENT. test_acceptance.py 30 passed. research/data/aug_kernels/README.md corrected.
+### progress 05:22 (BQ#3 worst-case gate 8/8; item 4: collatz, xorshift 12/12 each)
+- BQ#3 (R5 + link fast fall), combined worst case, seeds d,3-9: 8/8 PASS 16/16, EQUIVALENT, laps 58-65 on vec 6
+  (research/data/fid/bq3_worstcase.tsv). BQ#3 is now board list item 3 (fastest design the sim accepts); BQ#2 is
+  its fallback.
+- Item 4: collatz T3 and xorshift T3, 4 routes each x {SLOW_MAX, FAST_MIN, worst}: 12/12 PASS each, bits
+  EQUIVALENT on all 8 routes; audits rule D screens only (6 / 8 per route), E/J 0. collatz64 running (seed 1 3/3).
+- Item 3 step 1 (s90) worst-case sims started (i3.sh); BQ#1's worst case follows the s90 corners.
+### progress 11:08 (item 3 step 1: s90 passes the worst-case gate 8/8 and is not faster; item 4 isprime fixed)
+- s90 (R5 x0.9 ceil), worst case on BQ#2's 8 seeds: 8/8 PASS 16/16, EQUIVALENT (research/data/item3/). Paired laps
+  vs R5's own worst-case rows: 0.999 / 1.000 / 0.996 on vec 6/12/13, per-seed 0.87-1.11: no measurable speedup. Route
+  scatter swamps a 1-2 link cut. s75 (x0.75, 52 sizes) is routed; its worst case runs next, then the corners of the
+  deepest step that passed.
+- isprime: every soak read "SOAK all FAIL: 31 port bits have no same-driver net" before simulating -- a soak_fid
+  harness bug (a constant-driven port bit was always counted missing; isprime returns a bool in an i32). Fixed
+  (e574b300); rerun: seeds 25, 26 PASS at SLOW_MAX, FAST_MIN and the worst case (25 and 26 are the routes with rule E 2).
+- collatz64 T4: 12/12 PASS, 4/4 EQUIVALENT.
+### progress 12:26 (item 4 done: 60/60)
+- isprime (rule-E-6 pads, BD_RLOC_ARB=1), seeds 25-28: 12/12 PASS, 4/4 EQUIVALENT; seeds 25/26 carry rule E 2 and pass
+  the worst case. Item 4: ipow T9, collatz T3, xorshift T3, collatz64 T4, isprime: 60/60 full-stack runs (SLOW_MAX,
+  FAST_MIN, combined worst case; 4 fresh routes each), every route's bits EQUIVALENT (research/data/item4/).
+- Item 3: s75 worst case running (i3b.sh).
+### progress 13:22 (item 3 on xorshift: x0.75 is 1.13x faster and passes 12/12; a shrink_sizes bug found first)
+- shrink_sizes clamped every size to >= 1, so T3's 18 zero sizes (uack, short rdly) became 1: the first xorshift x0.75
+  routed SLOWER than T3 (nominal 3.31 vs 3.22 us on seed 1). Fixed (a 0 stays 0); gcd R5 has no zeros, so s90/s75 are
+  unchanged (regenerated s75 byte-identical below its header).
+- xorshift T3 x0.75 (13 of 47 sizes), seeds 1-4: SLOW_MAX, FAST_MIN and the combined worst case 12/12 PASS, 4/4
+  EQUIVALENT. Paired against T3's item-4 runs: 1.131x at both corners (1.10-1.16), 1.117x in the worst case
+  (1.09-1.15). Audits (informational): rule A 1-2, rule E 0-2 per route. Seeds 5-8 and x0.5 queued.
+- gcd s75: worst case 2/2 so far (seeds 6, 7).
+### progress 14:01 (item 3, xorshift x0.5: 12/12 at 1.46x; the gate's teeth on this flow not yet shown)
+- xorshift T3 x0.5 (20 of 47 sizes), seeds 1-4: SLOW_MAX, FAST_MIN, worst case 12/12 PASS, 4/4 EQUIVALENT. Paired vs T3:
+  1.465x (SLOW_MAX), 1.463x (FAST_MIN), 1.438x (worst case). Old rules: A 4-6, E 2-10, H 0-1 per route.
+- Caution recorded before anything is claimed: each halving has passed, so the gate's ability to FAIL a too-short delay
+  on this kernel/flow is unshown. x0.25 queued, then x0 if needed (CLAUDE.md: a negative control must be able to fail).
+  Not a board candidate until a failing step brackets it.
+### progress 14:24 (disk full at ~14:20: two runs voided, nothing read from them)
+- The scratch disk filled (139 MB free). Two compiled sims were truncated mid-write: xorshift T3 seed 8's worst-case
+  sim_fast.vvp (soak read "FAIL: simulation did not pass"; the vvp has a syntax error at line 3753909) and gcd s75 seed
+  9's worst-case run_baked.vvp (every vector "syntax error"; seeds_fid reads it INCOMPLETE). Neither is a circuit
+  result; both are moved aside (`*diskfull_discarded*`) and rerun. 7.6 GB freed from finished runs' regenerable
+  intermediates; a janitor now clears them below 6 GB free (never a .vvp, never the worst-case fid/ files fasm_equiv
+  reads).
+- gcd s75 worst case so far 4/4 (6, 7, 8, 10; 11 running, 9 rerun); xorshift T3 seeds 5-7 x 3 configs PASS (baseline for the
+  8-route pairing); xorshift x0.25 routing.
+### progress 15:03 (item 3 xorshift: the negative control fails where it should -- x0.25 fails the worst case)
+- xorshift T3 x0.25: nominal routed GLS (nextpnr SDF) FAILS on seeds 3 and 4 (vector 4 out0 05c420c5, expected
+  9dcca8c5 from the C; "PROTOCOL req rose out of phase on out0"; SDFs complete, ANNOTATE_DONE, the sim ran 4 vectors
+  first -- not the disk-full window's truncation). Full stack seed 1: SLOW_MAX PASS, FAST_MIN PASS, **combined worst
+  case FAIL** (protocol error on out0, both fast and stalled modes). So the gate has teeth on this flow, and it is
+  the slow-cell/fast-chain corner of item 1, not either uniform corner, that catches the short delay.
+- Bracket: x0.5 passes (4 routes), x0.25 fails. Queued: x0.5 on seeds 5-8 (8 routes), then x0.375.
+### progress 16:53 (item 3 xorshift: x0.5 holds on 8 routes at 1.44x; x0.25 fails)
+- xorshift T3 x0.5, 8 routes x {SLOW_MAX, FAST_MIN, worst case}: 24/24 PASS, 8/8 EQUIVALENT. Paired vs T3 on the same 8
+  seeds: 1.447x (SLOW_MAX), 1.444x (FAST_MIN), 1.418x (worst case; per-route 1.34-1.47). x0.75: 1.14x / 1.13x.
+- x0.25 FAIL (worst case 0/3; seeds 1, 2 pass both corners). Floor between x0.25 and x0.5; x0.375 running.
+- xorshift T3 seed 8's worst case rerun after the disk-full window: PASS (T3 baseline 12/12 on seeds 5-8).
+### progress 16:55 (item 3 xorshift: x0.375 fails the nominal routed GLS on 4/4 -- the floor is not monotone in f)
+- xorshift T3 x0.375 (20 of 47 sizes): RTL sim PASS, nextpnr-SDF routed GLS FAIL on all 4 seeds ("PROTOCOL req rose out
+  of phase on out0", ~5.04 us, every seed). x0.25 passed that nominal GLS on seeds 1, 2. Elementwise s375 >= s25, so the
+  failure is a RATIO between two delays (ceil rounds small lines differently at each f), not a length floor: uniform
+  scaling is not monotone. The full-stack runs for x0.375 were not run (a step that fails anything is reverted).
+- Result for xorshift: x0.5 is the deepest uniform step that holds (8 routes, 24/24, 1.44x / 1.42x worst case).
+  A per-cell search below it would need the ratio constraint named first.
+- Queued now: x0.5 on collatz T3, ipow T9, collatz64 T4, isprime (their item-4 seeds, paired against item 4).
+### progress 17:42 (owner 1035dcef read: max effort, <= 2 subagents at a time, no scheduled routines)
+- Read and followed: one subagent used this session (the H_RUNT rig, finished); none running; no scheduled routines or
+  reminders created. The lock refresher now rebases before pushing (the owner's commit had made its push non-fast-forward).
+- gcd s75 worst case: 7/7 valid seeds PASS (seed 9 rerunning after the disk-full void); paired laps vs R5 1.07x
+  (1.00-1.17) on those 7. collatz x0.5: seed 1 PASS at all three configs, seed 2 SLOW_MAX PASS; nominal 1.34x.
+### progress 17:54 (item 3: the xorshift floor is a select race on an empty pipe, not the operators)
+- research/data/item3/rc375/: x0.375 fails because ulink_n_index_15's request (SDELAY 1 + DELAY 4) beats its own select
+  (two latches + routed wire, no matched delay) into umux3 when the pipe is empty. The routed req-sel margin orders all
+  16 xorshift routes (base, s50, s375, s25) by pass/fail; link counts alone do not. Rule E flags it (and fails s50
+  guarded); rule D's bd_mux screen misses it (measures from stage[1] only).
+- So x0.5's 1.44x carries thin raw select margins (+0.5..+1.5 ns at the nextpnr SDF) that the full stack accepts. Next
+  experiment: shrink only operator delays (udly) and keep rule E's link fixes -- deeper on the part that sets throughput.
+### progress 18:43 (item 3: operator-only x0.25 fails at the comparator steers; collatz x0.5 fails FAST_MIN)
+- xorshift operator delays only x0.25 (links at T3): routed GLS fails 4/4 (out0 protocol); rule E flags ucond_br2/3/5 --
+  the comparator's matched delay holds back the request of the steers its result selects (ucmpi0 23 -> 6 links). So the
+  per-cell floors differ (the umux3 empty-pipe race, the compare/steer race) and a global factor will not find them.
+- collatz T3 x0.5: seed 2 FAST_MIN fails (fast mode hangs on vector 2; stalled passes); its worst case PASSES -- the
+  combined worst case does not subsume the fast corner (why PROGRAM asks for both corners). Seeds 1, 3 pass so far.
+- Next design: per-cell shrink at the worst-case corner -- run the rule audits on the worst-case-banded SDF with the
+  guardband set to the measured residual, take each line's own margin, shorten by what it allows (minus a slack),
+  then gate the result in the full stack.
+### progress 18:50 (item 3 gcd: R5 x0.75 passes the worst-case gate 8/8 at 1.07x laps)
+- gcd_hw R5 x0.75 (52 sizes; 796 -> 683 links), worst case on BQ#2's 8 seeds: 8/8 PASS 16/16, EQUIVALENT
+  (research/data/item3/s75_worstcase.tsv). Paired laps vs R5: 1.074 on vec 6/12/13 (1.00-1.17). Corners running.
+- collatz x0.5: seed 3's worst case FAILS too (seed 2 FAST_MIN) -- reverted; collatz x0.75 and operator-only x0.5 queued.
+### progress 19:52 (item 3: per-cell sizing at the worst-case corner -- research/tools/corner_sdf.py, corner_audit.py)
+- Built by a subagent, reviewed here: corner_sdf.py collapses the prjxray SDF to one corner with gen.py's per-arc band
+  choice (same CARRY4/SELMUX2_1 arc counts as gen.py's own log on xorshift_s50 seed 1); corner_audit.py runs tighten /
+  skew / arb_fork unchanged (guards patched in-process: rule A max(0.03 t, 50 ps), rule E 0.97/1.03), finds each
+  constraint's lines by zeroing chains one at a time, pads what is short, shrinks the rest, re-audits with predicted
+  delays. Per-link cost: conservative (a shortened line keeps its dearest step; padding credited at the cheapest).
+- Validation against the full stack's own verdicts: flags umux3's empty-pipe race on x0.375 (-686 guarded) and the
+  ucond_br steers on operator-only x0.25 (-820..-1040), proposing the lengths that clear them. On x0.5 (which PASSES the
+  full stack) it still finds -36..-87 ps rows and tighten's bundled rule A -908: the static rules are more pessimistic
+  than the GLS, so its proposals are what the RULES prove at the corner, not the sim's floor. On base T3 seed 1 it
+  shortens kernel links 155 -> 111 (less than x0.5, which passes). collatz x0.5 seed 2's FAST_MIN hang is not explained
+  by any rule at either corner (ucond_br5 sits at ~0 raw at both: a mis-steer would look like that hang).
+- Use: per-cell max over a kernel's base routes -> candidate -> >= 8 routes of the full stack. Most useful where a
+  global x0.5 fails (collatz, ipow). Running on their base routes now.
+### progress 21:13 (item 3: per-cell candidates built; the rules stay more conservative than the full stack)
+- Per-cell max of corner_audit proposals over the base routes: collatz T3 249 -> 200 links (4 routes), ipow T9 332 ->
+  251 (4), xorshift T3 156 -> 135 (4). xorshift's x0.5 (87 links) passes the full stack on 8 routes, so the rule-proven
+  per-cell sizes sit well above the sim's floor: useful where a uniform factor fails (collatz, ipow both fail x0.5), not
+  as the floor itself. collatz_cs (nominal 1.17x) and ipow_cs are in the full stack now; xorshift_cs not run.
+- Uniform x0.5 so far: xorshift PASS (8 routes, 1.44x), collatz FAIL, ipow FAIL (worst case only, 2/4); x0.75 for
+  collatz64 running, isprime queued. Recurring pattern: x0.25 xorshift, x0.5 ipow, operator-only x0.25 xorshift all pass
+  BOTH uniform corners on some routes and fail only the combined worst case.
+### progress 22:19 (item 3: collatz per-cell sizes pass 12/12 at 1.16x)
+- collatz T3 per-cell candidate (research/data/collatz_sizes_T3cs.vh, 249 -> 200 links), seeds 1-4: SLOW_MAX, FAST_MIN,
+  worst case 12/12 PASS, 4/4 EQUIVALENT -- including seed 2 FAST_MIN and seed 3 worst case, where uniform x0.5 failed.
+  Paired vs T3: 1.159x / 1.158x (corners), 1.153x (worst case). Seeds 5-8 to queue (and the T3 baseline on 5-8).
+- collatz64 x0.75 seed 1: 3/3 PASS. gcd s75 corners: 3/3 PASS so far.
+### progress 23:35 (item 3: ipow per-cell holds 12/12 but is only 1.02-1.04x)
+- ipow T9 per-cell (332 -> 251 links), seeds 29-32: 12/12 PASS, 4/4 EQUIVALENT; paired 1.041x / 1.024x (corners), 1.024x
+  (worst case). Rule A at the corner keeps uselect0 (52) and umuli1 (47 -> 36) near T9, and those set the cycle. A
+  between-the-two candidate (x0.5's shrink on the lines corner_audit shows unbound, per-cell lengths elsewhere) is
+  the next ipow step.
+- collatz64 x0.75: seeds 1-2 3/3 PASS each. gcd s75 corners: 6/6 PASS so far.
+### progress 23:50 (item 3: operator-only x0.5 on xorshift is safe and only 1.05-1.07x)
+- xorshift operator delays only x0.5: 12/12 PASS, 4/4 EQUIVALENT; paired 1.073x / 1.054x / 1.053x (max/min/worst). Uniform
+  x0.5 is 1.44x: the link request delays carry most of the cycle -- the same lines that carry the select races.
+### progress 00:09 (container restart at ~00:00 killed every queue; restarted from what was on disk)
+- Lost mid-run, rerun from scratch (nothing read from partial runs): collatz64 x0.75 seed 3 worst + seed 4, collatz
+  per-cell seed 5 worst + seeds 6-8, gcd s75 corners (7 of 16 rows were done: all PASS; the 9 missing rows queued).
+  New soak-only runner skips any config that already has a SOAK_VERDICT. isprime x0.75, collatz T3 seeds 5-8 (baseline)
+  and BQ#1's worst case follow.
+### progress 01:21 (item 3: collatz per-cell holds on 8 routes, 24/24)
+- collatz T3 per-cell (200 links), seeds 5-8 added: 24/24 PASS over 8 routes, 8/8 EQUIVALENT. Speedup 1.16x on seeds 1-4;
+  the T3 baseline on 5-8 is running for the 8-route pairing.
+### progress 01:47 (item 3: collatz64 x0.75 passes 12/12 at 1.17x)
+- collatz64 T4 x0.75, seeds 1-4: 12/12 PASS, 4/4 EQUIVALENT; paired vs T4 1.173x / 1.175x (corners), 1.166x (worst).
+  isprime x0.75 next. Per-kernel so far (deepest step that holds, worst-case speedup): xorshift x0.5 1.42x (8 routes),
+  collatz per-cell 1.15x (8 routes, pairing on 4), collatz64 x0.75 1.17x (4), ipow per-cell 1.02x (4), gcd R5 x0.75 1.07x laps (8).
+### progress 04:33 (item 3: ipow x0.75 passes 12/12 at 1.09x worst case; isprime per-cell queued)
+- ipow T9 x0.75, seeds 29-32: 12/12 PASS, 4/4 EQUIVALENT; 1.113x / 1.100x / 1.090x (max/min/worst) vs T9 -- more than the
+  per-cell candidate (1.02x). isprime x0.75 failed (seed 25 FAST_MIN hang); its per-cell candidate (199 -> 147 links)
+  is next. gcd s75 corners 13/13 PASS so far.
+### progress 06:33 (item 3: isprime per-cell 12/12 at 1.06x; per-kernel summary)
+- isprime per-cell (199 -> 147 links in its 15 sized lines), seeds 25-28: 12/12 PASS, 4/4 EQUIVALENT; 1.056x / 1.063x /
+  1.064x vs base. Per-kernel table in research/data/item3/README.md: xorshift 1.42x (x0.5, 8 routes), collatz 1.155x
+  (per-cell, 8), collatz64 1.17x (x0.75, 4), ipow 1.09x (x0.75, 4), isprime 1.06x (per-cell, 4), gcd R5 x0.75 1.07x laps.
+### progress 07:34 (item 3 gcd: R5 x0.75 passes the whole gate -- worst case 8/8, both corners 16/16)
+- gcd_hw R5 x0.75 (research/data/gcd_hw_sizes_R5s75.vh): SLOW_MAX 8/8, FAST_MIN 8/8, combined worst case 8/8, all 16/16
+  vectors, all EQUIVALENT, BQ#2's seeds. Laps vs R5: 1.074x (worst case, 8 paired), 1.057x / 1.043x (corners, 5 / 4 paired).
+  A board candidate after BQ#3 (whose fast fall it does not carry yet); not yet in BOARD-QUEUE.
+### progress 09:55 (BQ#1 worst case: two compiles OOM-killed; ipow x0.75 on 8 routes)
+- BQ#1 combined worst case: d, 3, 4, 5 PASS; seeds 6 and 7 INCOMPLETE -- their iverilog compiles (6.2 GB RSS) were
+  OOM-killed (dmesg: memcg OOM, task ivl) beside a 4.3 GB gcd sim and two kernel soaks. Not results; both rerun one at a
+  time after the queue. Kernel soak compiles do not take the shared compile lock; the collatz64 T4 baseline is deferred
+  so only one kernel queue runs beside the gcd sims.
+- ipow x0.75 on 8 routes: 24/24, 8/8 EQUIVALENT; paired vs T9 1.135x / 1.132x / 1.129x (max/min/worst).
+### progress 10:04 (item 3: isprime per-cell FAILS on a fifth route -- the 4-route pass did not transfer)
+- isprime per-cell sizes (per-cell max over seeds 25-28), fresh seed 29: SLOW_MAX fast mode hangs on vector 4 (the same
+  symptom as x0.75 on seed 25). Not OOM. So isprime has no item-3 step yet; whether the BASE sizes hold on seed 29 (their
+  rule E was never clean) is the next run. The per-kernel table now lists isprime as none.
+### progress 11:03 (BQ#1 worst case: 5/5 valid seeds PASS; 6, 7, 9 rerun)
+- BQ#1 combined worst case: d, 3, 4, 5, 8 PASS 16/16 (research/data/fid/bq1_worstcase.tsv). Seed 8 reads NOT_EQUIVALENT:
+  two F7-mux inputs driven in the JSON by nextpnr $PACKER_GND_NET buffer LUTs (f = A1, A1 tied GND, so 0) and by const 0
+  in the bits -- the benign GND-buffer class of the August isprime/collatz builds (current fasm_equiv agrees: only that
+  DRIVER DIFFERS kind). Seeds 6, 7, 9 compiles were OOM-killed; rerun one at a time after gcd x0.75 + fast fall.
+- gcd R5 x0.75 + link fast fall: routing (8 seeds).
+### progress 13:09 (item 4 revised: isprime's validated sizes fail FAST_MIN on fresh seed 30)
+- isprime rule-E-6 pad sizes (item 4's 12/12 on seeds 25-28), seed 30: FAST_MIN fast mode hangs on vector 1, the same
+  symptom as the per-cell and x0.75 candidates. Not OOM. So the item-3 isprime failures were not (only) the shrink:
+  the base design itself is not clean. isprime goes back to "needs its select pads fixed" (rule E 2 on seeds 25/26 was
+  the warning). research/data/item4/README.md revised.
+### progress 14:51 (isprime seed 30: a C-element runt at ufork0, not a select race)
+- research/data/item4/isprime_seed30/: ufork0's C-element output start_ack rises; the zero-delay testbench drops p_end_ack
+  in the same ps; it reaches the LUT pin 387 ps later, before the cell's own feedback (421 ps, a routing detour on this
+  route) has latched -> start_ack dips, the testbench takes it as the ack falling, vector 1's token is lost. A runt
+  narrower than the loop -- the H_RUNT question (board list item 2), here in a shipped kernel. No rule audit flags it.
+  A +300 ps patch on that wire makes all 18 fast vectors pass. Board relevance unshown (the board harness answers
+  slower than 0 ps). New audit lead: C-element self-loop vs the fastest external return (forks/joins, not only arbiters).
+- Negative: a self-loop-length screen does not discriminate -- isprime routes carry ~2385 LUT self-loops (latches + C-
+  elements), median ~330 ps at FAST_MIN, max ~700; ufork0's 421 ps is ordinary. The hazard is loop vs the fastest RETURN
+  of an input edge through the environment, which needs the path from each output back to the cell's other inputs
+  (including a zero-delay testbench's). Screen discarded; not committed.
+### progress 15:47 (gcd R5 x0.75 + fast fall: worst case 5/5 so far; GND-buffer equivalence class)
+- s75ff worst case: seeds 6, 7, 8, 9, 10 PASS 16/16; laps 65-71 on vec 6 vs BQ#3's 58-65 on the same seeds.
+- Seed 10 reads NOT_EQUIVALENT: 4 F7-mux inputs fed by $PACKER_GND_NET buffer LUTs (f = A1, A1 tied GND) in the JSON,
+  const 0 in the bits -- the benign class already seen (BQ#1 seed 8, August isprime/collatz). Tried folding those cells by
+  name in fasm_equiv: wrong (891 new DRIVER DIFFERS, because the bits side still sees them as LUTs); reverted. A correct
+  fix folds both sides by the function given tied pins; not done.
+### progress 17:20 (item 3 gcd: R5 x0.75 + link fast fall passes the worst case 8/8 at 1.13x BQ#2)
+- s75ff (R5 x0.75 sizes + BDC_LINK_FASTFALL=1), combined worst case, BQ#2's 8 seeds: 8/8 PASS 16/16 (seed 10's
+  NOT_EQUIVALENT is the benign GND-buffer F7 class). Vec 6 laps 67.8 mean: 1.132x BQ#2 R5 (8 paired), 1.056x R5 x0.75,
+  1.083x BQ#3 (4 common seeds). Corners running; if 16/16 it replaces BQ#3 as board list item 3.
+### progress 23:56 (C-element return-path audit: no internal runt hazard on 169 routes; every negative is the 0 ps testbench port)
+- After a container restart (~23:3x) every queue was dead; requeued (scratch rq.sh): s75ff corners 10/13 max+min and
+  14 min, then BQ#1 worst-case reruns 6/7/9, then collatz64 T4 base 5-8. Lock keeper and janitor restarted.
+- New static audit research/tools/ce_return.py (subagent-built; checked here against the seed-30 README): per C-element
+  LUT (identified by INIT through X_ORIG_PORT and by src bd_ce.v; the two agree on every DUT cell), margin = shortest
+  return from its O6 back to each non-feedback, non-rst input (+ that pin's arc) minus its own loop. Paths through other
+  C-elements are taken structurally (conservative). Ports of a kernel are a 0 ps turnaround (the soak testbench); gcd's
+  on-chip env is class ENV. It reproduces isprime_b ufork0 exactly: seeds 29/30/31/32 = +532/-34/+290/+199 ps FAST_MIN.
+- 169 routes (107 kernel, 62 gcd), FAST_MIN and SLOW_MAX (research/data/ceret/summary.tsv): INTERNAL negatives 0
+  (worst +145 ps xorshift_s25 FAST_MIN, unguarded; plain kernels +170..+366; gcd +180); ENV (gcd) 0 (worst +730).
+  PORT: 22 negative rows on 12 routes, every one ufork0's C-element via start_ack -> start_req == p_end_req -> p_end_ack
+  (the `end` channel is a bare wire from the start fork, research/data/ceret/negatives.tsv).
+- Against the full-stack sims: every isprime failure sits on a flagged route/corner (s75 seed 25 FAST_MIN -9; cs seed 29
+  SLOW_MAX -20; b seed 30 FAST_MIN -34). Not sufficient: xorshift s50 seed 2 (-119), xorshift s75 seeds 1/4 (-9/-86),
+  isprime seed 26 (-21) pass. So the static screen predicts where the sim can fail; the sim's 0 ps environment decides.
+- What it means: no route has an internal C-element runt; the hazard needs an environment that answers faster than the
+  cell's own feedback, and only the testbench does. Margin -9..-130 ps vs a board harness answering through routed logic.
+  Not shown: the board harness's own turnaround (being measured: same tool, return through the routed soak harness).
+  Caveat: the k4 routes record nextpnr only as 0.9.2-100-gbfdeaf7c, not the fingerprint (gcd routes: 9c732bc6303458df).
+### progress 00:01 (board view: the kernel soak harness is open-loop, so ufork0's runt can only happen in the testbench)
+- ce_return.py --env harness (no 0 ps tb edges, returns through the routed soak harness): 107 kernel routes x 2 corners,
+  0 ENV paths, 0 negatives of any class; internal worst unchanged (+145 FAST_MIN). Checked here on isprime_b seed 30:
+  tb mode n_neg_port=1 (ufork0 -34), harness mode 0 paths. Reason (bdc/emit.py emit_top, by design): DUT inputs come from
+  the free-running spine latches, DUT outputs only feed the XOR tree to pin_out; no harness signal follows the handshake.
+- PORT breakdown (research/data/ceret/ufork.txt, 12 routes): wire out 0 (tb reads O6's own net), turnaround 0, so the whole
+  return is the one INTERCONNECT from the harness latch that drives p_end_ack to ufork0's pin (237-439 ps FAST_MIN),
+  racing the C-element's own feedback wire. Placement-dependent, which is why it hits ~1 route in 8.
+- Consequences: (1) the board soak can neither show nor rule out this race; the H_RUNT rig (board list item 2) is the
+  board test of the mechanism. (2) isprime's seed-30/25/29 failures, and the flagged-but-passing xorshift s50/s75,
+  collatz s50, ipow s50 routes, are failures against a zero-delay handshaking environment at start->end, not internal
+  hazards. They stay counted as failures (the sim is the gate; a real handshaking neighbour can answer in ~one wire).
+  (3) The fix belongs at the kernel boundary, not in the shrunk delays: `end` is a bare wire from the start fork, so
+  the environment's ack lands straight on a C-element pin. Candidates: a boundary stage whose C-element's feedback is
+  local, or a placement rule keeping ufork0's feedback short; not built yet.
+### progress 03:28 (item 3 gcd: R5 x0.75 + link fast fall passes both corners 16/16 -> board list item 3)
+- s75ff corners after the restart rerun: 10 max/min, 13 max/min, 14 min all PASS 16/16 errs=0 -> 16/16 runs
+  (research/data/item3/s75ff_corners.tsv). Vec 6 laps mean 35.4 SLOW_MAX (34-38), 96.9 FAST_MIN (91-105); vs R5 x0.75
+  without fast fall on the same seeds 33.4 / 92.0 (1.060x / 1.053x). With the worst case 8/8 (1.132x BQ#2, 1.083x BQ#3),
+  every one of 24 full-stack runs on 8 routes is clean. nextpnr 9c732bc6303458df.
+- BOARD-QUEUE: new section #5 (exact commands, seed 6 md5s, pass criterion); board list item 3 now points to it, with
+  BQ#3 then BQ#2 as fallbacks. Not shown: anything on silicon; the gain over BQ#3 (~8%) is below the route-to-route
+  lap scatter of a single route, so the board comparison needs #3 and #5 measured on the same board session.
+### progress 04:31 (the board bench closes ufork0's loop through >= 2.3 ns: the testbench race cannot happen there)
+- The kernel board harness (cells/hw/gen_bench.py) does close the handshake: start_ack -> the bench's bd_fork C-element
+  -> req_clr -> the request flop's async clear -> start_req == p_end_req -> bd_delay #(.N(2)) upsnk -> p_end_ack. prjxray
+  gives SLICE_FFX no SR->Q arc, so ce_return got --ff-async PS (SR->Q taken as PS ps; 0 = a lower bound).
+- 6 bench routes (cells/hw/build_bench.sh, BD_NO_TIGHTEN=1 with the validated sizes; isprime seeds 25/26/29/30,
+  xorshift x0.5 seeds 1/2; nextpnr 9c732bc6303458df), research/data/ceret/bench_harness.tsv: 0 negatives of any class;
+  ufork0 return 2536-3005 ps vs loop 194-397 at FAST_MIN (margin +2325..+2639 with SR->Q = 0), beyond loop+5000 at
+  SLOW_MAX; worst internal +326 FAST_MIN. These are new routes, not the soak routes the sims ran (bench routes differ).
+- So: on the board's own bench, the start->end return is ~6x ufork0's loop; the soak testbench's 0 ps turnaround is the
+  only environment that loses the race. isprime's 3 failures and the flagged-but-passing kernel routes are testbench
+  artefacts for the board question. They remain sim failures under "the sim is the gate"; whether the gate should model
+  a minimum environment turnaround (e.g. one C-element + wire, the internal worst being +145 ps) is an owner decision,
+  not taken here. What would decide it on silicon: H_RUNT (board list item 2).
+### progress 06:24 (BQ#1 combined worst case 8/8)
+- BQ#1 seeds 6, 7, 9 (compile OOM-killed on 11-06, rerun with --sim-jobs 1): PASS 16/16 errs=0, EQUIVALENT; vec 6
+  laps 30 / 32 / 33. BQ#1 worst case now 8/8 (research/data/fid/bq1_worstcase.tsv; vec 6 mean 32.0, 30-34). Seed 8's
+  NOT_EQUIVALENT is the benign GND-buffer F7 class. So BQ#1, #2, #3 and #5 all pass the combined worst case on 8 routes.
+### progress 11:02 (collatz64: T4 baseline on routes 5-8 clean; x0.75 pairs on 8 routes at 1.18x)
+- collatz64 T4 (validated sizes) seeds 5-8, full stack: 12/12 PASS (SLOW_MAX, FAST_MIN, combined worst case; stalled
+  and fast), bits vs JSON 4/4 EQUIVALENT -> collatz64 base 24/24 on 8 routes (item 4).
+- Item 3 collatz64 x0.75 paired by seed on all 8 routes (sum of stalled latencies, base/step): SLOW_MAX 1.183 (1.12-1.24),
+  FAST_MIN 1.182 (1.12-1.22), worst case 1.177 (1.11-1.25); was 1.166 on 4 routes. nextpnr: k4 routes record only
+  0.9.2-100-gbfdeaf7c (see ceret caveat).
+### progress 12:20 (isprime: every full-stack failure passes with a 300 ps environment turnaround; both 0 ps controls still fail)
+- A/B, informational (gate unchanged): soak_fid with every testbench drive except rst delayed D ps (wire #D, inertial;
+  diff in research/data/item4/envd/). Routes and bits as the failing runs; nextpnr k4 routes (version-only record).
+  D=300: isprime_b seed 30 FAST_MIN PASS, isprime_b seed 30 worst case PASS, isprime_s75 seed 25 FAST_MIN PASS,
+  isprime_cs seed 29 SLOW_MAX PASS. D=0 controls: isprime_b 30 FAST_MIN FAIL (fast hang), isprime_s75 25 FAST_MIN
+  FAIL -- both reproduce. research/data/item4/envd/results.tsv.
+- So isprime's base (rule-E-6 pads) and its x0.75 / per-cell steps fail only through the 0 ps start->end turnaround
+  (with ce_return: the only negative C-element returns on any route). 300 ps is ~1/8 of what the board bench gives
+  (>= 2.5 ns, research/data/ceret/bench_harness.tsv). If the owner accepts a minimum environment turnaround in the
+  gate, isprime's base is 24/24 on 8 routes and its steps can be re-gated; until then they stay failures.
+- Not shown: D values between 0 and 300 (where the threshold is); stalled-mode runs were never failing.
+### progress 12:30 (isprime turnaround threshold: seed 30 passes at 50 ps, as the static -34 ps margin predicts)
+- isprime_b seed 30 FAST_MIN: D = 0 FAIL, 50 / 100 / 200 / 300 PASS; isprime_s75 seed 25 FAST_MIN: D = 0 FAIL, 100 / 300
+  PASS (research/data/item4/envd/results.tsv). ce_return's static margins (-34, -9 ps) say any D above ~34 / ~9 ps closes
+  them; the sim agrees at the points run. So the minimum environment turnaround that clears every isprime failure seen is
+  under 50 ps on these routes -- far below one wire + LUT (~250 ps FAST_MIN) and the bench's >= 2.5 ns.
+- Not shown: the exact threshold between 0 and 50 ps; any route whose static PORT margin is worse (xorshift_s25 seed 1,
+  -130 ps, would need D > ~130).
+### progress 13:28 (the full stack reproduces ce_return's -34 ps margin to within a few ps)
+- isprime_b seed 30 FAST_MIN, testbench drives delayed D: D = 0, 10, 15 FAIL (fast-mode hang); D = 20, 40, 50, 100, 200,
+  300 PASS. The race path crosses two delayed drives (start_req falls, then p_end_ack), so the added turnaround is 2D:
+  30 ps fails, 40 ps passes. ce_return's static FAST_MIN margin for this C-element is -34 ps. The static audit and the
+  bit-decoded full-stack GLS agree to within the 30-40 ps bracket: a quantitative cross-check of both (the audit's
+  arithmetic and the fid resolver's runt-vs-loop rule).
+- For the owner's gate decision: the turnaround that clears every isprime failure seen is ~2 x 17 ps on this route; the
+  worst static PORT margin on any route is -130 ps (xorshift_s25 seed 1, which passed its sims anyway).
+### progress 13:43 (bug: build_bench.sh silently ignored soak-keyed sizes files; guarded)
+- Building xorshift's bench top (cells/hw/build_bench.sh) with BD_SIZES=research/data/xorshift_sizes_T3s50.vh and with
+  T3.vh gave byte-identical SDFs: the sizes files are keyed to the fusion_bench soak top (BD_SZ_UUT_*), the bench names
+  the kernel bridge_i.udut. (BD_SZ_BRIDGE_I_UDUT_*), so no define matched, every chain was built at emit.py's
+  estimate -- while build_bench printed "applying 47 measured delay size(s)". Exactly the "wrong-but-plausible build"
+  its own comment warns about.
+- Fix: build_bench.sh now counts the sizes file's defines that the generated sources use; none -> refuse (exit 1),
+  some -> WARNING. Checked both ways: the soak-keyed file is refused; the re-keyed research/data/xorshift_sizes_T3{,s50}
+  _bench.vh (UUT_ -> BRIDGE_I_UDUT_, UPIPE_* dropped) applies 45/45.
+- Correction to 06:2x's bench audit (research/data/ceret/bench_harness.tsv): those 6 bench routes had no measured
+  sizes either (emit.py estimates). The conclusion is about the harness's return path (bench fork -> async-clear flop
+  -> 2-link delay), which the sizes do not touch; ufork0's loop is placement-dependent either way. Caveat added to the
+  TSV header. The August bench builds (aug_kernels) are probably unaffected (build_bench's default MODE=tighten sizes
+  on the bench itself), but that is not checked here.
+### progress 20:01 (xorshift x0.5 on the board's own bench top: 12/12 full-stack runs, 1.46-1.52x; board list item 4)
+- xorshift_bench_gen (cells/hw/build_bench.sh, the top the board runs) with the re-keyed T3s50 and T3 sizes, NEXTPNR_SEED
+  1-4, BD_SIZES_GATE=0 (rule A: 12-20 cells fail on every bench route of BOTH builds -- informational, PROGRAM item 1),
+  then cells/gls/ps/build_ps.sh ... bit (netlist from each .bit, prjxray SDF, fid, ps7_bench.v host, 17 vectors x 2 runs,
+  expected from simcheck.ref_xorshift) at SLOW_MAX, FAST_MIN and the combined worst case: 24/24 PASS 17/17, no hang,
+  gate clean; bits vs JSON EQUIVALENT except 3 routes' single benign GND-buffer F7/CARRY4 input (checked each).
+- Per round (slope 200->1000 rounds, aclk cycles): x0.5 2.68-2.80 FAST_MIN / 3.78-3.96 worst / 7.48-7.82 SLOW_MAX; T3
+  3.96-4.13 / 5.54-5.81 / 11.06-11.71. Paired base/x0.5: 1.458-1.523 (12 pairs), worst case 1.458-1.512. Same gain as
+  the soak routes (1.42-1.45x).
+- First run voided: TBATCH 200 us was shorter than T3's 1000-round batch (2 x 111 us), so its last vector read HANG with
+  completed=1 and the right answer; re-run at 1 ms. Also voided earlier: the sizes-not-applied builds (d1b44816).
+- BOARD-QUEUE #6 + board list item 4 (ring set moves to 5): exact commands, sdf md5s, and research/tools/
+  xorshift_bench_judge.py (PASS = all 17 oracle points on both builds; checked both ways on synthetic files).
+- Not shown: 8 bench routes (4 here, 8 on the soak top); silicon.
+### progress 00:49 (bench harness clock: the board scripts run the harness at 100 MHz, above the 83.3 MHz it is routed for)
+- xorshift bench seeds 5-8 (full stack, running): base seed 8 SLOW_MAX read latmin 578 / 10857 against latmax 706 /
+  10985 for identical vectors: bit 7 (0x80) dropped in the harness's lat_min register; the batch cycle totals (1424 =
+  2x706+12, 21982 = 2x10985+12) and both answers are right. 2 of 748 readings over 16 routes x corners, both on that
+  route. lat_min's update is synchronous (aclk), so it is a clocked path missing timing: build_bench.sh routes the
+  harness for TARGET_MHZ=83 (its comment: it does not close 100 MHz, 79.6-97.7 MHz over six seeds), while
+  xorshift_cost.sh / xsdb_bench_gen.tcl default to CLK_CTRL 0x00100A00 = 100 MHz, and so does ps7_bench.v (fclk_ps 10000).
+- Kernel results unaffected (asynchronous; every answer right); per-round numbers from latmin on that route are off by
+  128 cycles at the 1000-round point (to be recomputed from the cycle totals). BOARD-QUEUE #6 now sets CLK=0x00100C00
+  and the judge reports ns. Queued: base_8 and s50_8 SLOW_MAX again at FCLK_PS=12000 (83.3 MHz) to see the glitch go.
+- Not checked: whether the August board runs (0x00100A00) hit this; xorshift_cost.sh fits batch totals, not lat_min.
+### progress 01:29 (xorshift x0.5 bench: 8 routes, 48/48 full-stack runs pass; 1.43-1.45x mean, 1.28-1.52 range)
+- Seeds 5-8 added (same flow): all 24 PASS 17/17, gate clean, no hang. Over 8 routes x 3 corners: 48/48 PASS. Bits vs
+  JSON NOT_EQUIVALENT on 5 routes (base 1/2/6, x0.5 3/6), each a single $PACKER_GND_NET buffer LUT on an F7/CARRY4
+  input that the bits read as 0 -- traced on every one.
+- Per round (ns, from batch cycle totals): x0.5 26.6-30.2 FAST_MIN / 37.6-42.1 worst / 74.7-83.6 SLOW_MAX; T3 38.7-41.3
+  / 54.0-58.5 / 108.3-117.1. Paired T3/x0.5: mean 1.436 FAST_MIN, 1.449 SLOW_MAX, 1.431 worst; range 1.28-1.52. Seeds
+  6 and 8 are the slow x0.5 routes (1.28-1.40): routing scatter on the halved chains, the reason one route is a sample.
+- research/data/xorshift_bench/results.tsv regenerated (per-round from cycle totals, a lat_glitches column: 2, both
+  base_8 SLOW_MAX at 100 MHz). Judge corner bands and BOARD-QUEUE #6 updated to 8 routes.
+### progress 02:19 (83.3 MHz harness clock: the lat_min glitch is gone, kernel time unchanged)
+- base_8 and s50_8 at SLOW_MAX re-run with ps7_bench.v +FCLK_PS=12000 (83.3 MHz, the clock build_bench.sh routes for):
+  both PASS 17/17, 0 readings with latmax-latmin > 1 (base_8 at 100 MHz: 2). Kernel time per 1000-round run is the same:
+  base 9155 x 12 ns = 109.9 us (100 MHz: 10985 x 10 ns = 109.9 us); x0.5 6524 x 12 = 78.3 us (7828 x 10 = 78.3 us).
+- So the glitch was the clocked harness over-clocked, not the kernel: BOARD-QUEUE #6's CLK=0x00100C00 stands.
+  Open (not checked): the other board scripts that default to 0x00100A00 (xsdb_bench_gen.tcl, *_cost.sh) and what
+  the August latmin numbers saw; xorshift_cost.sh itself fits batch cycle totals.
+- August board data (research/data/aug_kernels/*_board.tsv, aug_gcd): no sign of the lat_min glitch at 100 MHz. latmax-
+  latmin grows smoothly with latency (~0.8%, run-to-run jitter over N=200), no reading off by a large power of two, none
+  beyond 3% apart from +-1-cycle quantization. Consistent with silicon at x ~ 0.21 meeting the harness's 100 MHz timing
+  that the SLOW_MAX corner does not; 83.3 MHz stays the recommendation for new board items (it costs nothing).
+### progress 02:23 (xorshift below x0.5: x0.375 with umux3's link delay restored)
+- h375 = T3s375 with ULINK_N_INDEX_15 back at 5 (its x0.5 length; rc375 traced x0.375's failure to umux3's empty-pipe
+  select race on that link). Nominal routed GLS (fusion_bench --route, nextpnr-SDF): 3/4 PASS (seeds 1, 2, 4); x0.375
+  was 0/4. Seed 3 still fails the same way (out0 "req rose out of phase"): skew.log, umux3 request earliest 3369 ps vs
+  select latest 4139 ps (-770 raw); seeds 1/2/4 +654/+274/+259 raw. So one link is not enough on every route.
+- Queued: h375's full stack on 1/2/4 (do the other x0.375 lines hold at the corners?), then h375b (that link at 7,
+  ~+1 ns; 75 links in all vs x0.5's 87) on seeds 1-4.
+- h375 rejected: seed 1 FAST_MIN fails (stalled: "req rose out of phase on channel out0" -> protocol error; fast mode
+  hung), after SLOW_MAX passed. Same umux3 race at the fast corner. Remaining h375 runs stopped; h375b (link at 7) runs.
+- h375b (x0.375 + umux3's link at 7): nominal routed GLS 4/4; full stack seeds 1 and 2 PASS at SLOW_MAX, FAST_MIN and worst
+  case (6/6). But no faster than x0.5: paired s50/h375b = 1.011-1.030 on seed 1, 0.921-0.949 on seed 2 (sum of stalled
+  latencies). The 2 extra links sit on umux3's request path, which is on the loop, so they cost every round what the
+  other x0.375 lines save. Stopped after seed 2 (no point validating a step that buys nothing).
+- Negative result for item 3: below x0.5, xorshift's limit is umux3's empty-pipe race on a loop-carried link; padding
+  that link to win the race costs as much as the shrink gains. x0.5 stays xorshift's step. A real gain would need the
+  race removed (select launched earlier / not from the empty pipe), i.e. a structural change, not a size.
+### progress 08:21 (a nextpnr FASM gap: a constant-D flop in a 5FF slot gets no 5FFMUX bit -- caught by the full stack, 1 route of 870)
+- collatz64 bench (x0.75 vs T4 on the bench top, CLK 83.3 MHz in ps7_bench): seeds 1-3 both builds PASS 14/14 at all
+  3 corners, gate clean, EQUIVALENT; per 350-step vector x0.75 is 1.17-1.22x on seeds 1 and 3, 1.07-1.09x on seed 2.
+- Base (T4) seed 4: gen.py stops (KeyError SLICE_X27Y75/C5FF) because fasm_equiv/fasm2net find a JSON cell "not
+  configured by the bits (HAS LOADS)": $auto$dfflegalize.cc:410:emulate_split_set_clr$23629, an FDPE in the bench
+  harness with D tied to GND ($PACKER_GND_DRV), placed in CLBLL_R_X19Y75 SLICEL_X1 C5FF. nextpnr's own FASM (rebuilt,
+  sdf md5 1310d2ef = the same route) has C5FF.ZINI and COUTMUX.C5Q but NO C5FFMUX.IN_A/IN_B, so on silicon that D comes
+  from an unconfigured mux; the 2 "LUT FUNCTION DIFFERS" are the two LUTs reading its Q. The bits-decoded board.fasm
+  lacks it too: it is in the bitstream, not the decoder.
+- Scan of all 870 FASMs on disk (soak, bench, gcd, board builds): this route is the only one with a 5FF that has
+  ZINI/ZRST but no 5FFMUX. No validated or board-list design is affected (their full-stack decodes were EQUIVALENT).
+- What it means: a real nextpnr-xilinx FASM-writer gap (a GND-driven D into a 5FF is left unrouted, nothing selects
+  the input) that only bites when placement puts such a flop in a 5FF slot. The full stack refused the route (the gate
+  works). Not done: a nextpnr patch + toolchain.sh fingerprint (CLAUDE.md requires both; a fingerprint must be checked
+  to fail on an unpatched binary, which this route provides). Meanwhile every board build must pass fasm_equiv.
+- Fix scope (read of nextpnr-xilinx bfdeaf7c xilinx/fasm.cc): 5FFMUX bits are not written explicitly; they come from
+  site-routing pips. So the gap is in how a constant net reaches a 5FF D pin in site routing (no pip chosen, the pin
+  counted as driven by the constant network), i.e. router/packer, not a one-line FASM fix. Left for the owner: patch the
+  site router (or legalise constant-D flops off the 5FF slots), with the toolchain.sh fingerprint this route provides
+  (bench collatz64 T4, NEXTPNR_SEED=4: expect C5FFMUX in CLBLL_R_X19Y75.SLICEL_X1, or the flop moved).
+### progress 10:50 (collatz64 x0.75 on the bench top: 15/15, 1.17x; board list item 6)
+- Seeds 1-5 (base 4 not simulable, see above): x0.75 15/15 PASS 14/14 (incl. 4 vectors on the 3n+1 path), gate clean;
+  T4 12/12 on 1/2/3/5. Paired per 350-step vector (batch cycle totals): 1.170 SLOW_MAX, 1.171 FAST_MIN, 1.168 worst
+  (1.07-1.22; seed 2 is the slow pair). Same gain as the soak routes (1.18). NOT_EQUIVALENT on s75_4 and base_5: single
+  benign GND-buffer CARRY4/F7 inputs (checked).
+- BOARD-QUEUE #7 + list item 6 (loop_cost.sh at CLK 0x00100C00, research/tools/loop_cost_judge.py, checked both ways).
+### progress 14:10 (ipow x0.75 on the bench top: 24/24, 1.15-1.17x; board list item 7)
+- ipow T9 and T9 x0.75 bench builds, seeds 1-4, full stack at 83.3 MHz host clock: 24/24 PASS 17/17, gate clean; bits vs
+  JSON NOT_EQUIVALENT on s75_4 (4) and base_2 (2) GND-buffer F7 inputs only (checked). Paired on the 31-iteration
+  vector (batch cycle totals): 1.172 SLOW_MAX, 1.146 FAST_MIN, 1.149 worst (1.08-1.23); soak routes gave 1.13.
+- Kernel steps now on the board's bench top: xorshift x0.5 (48/48, 1.44x), collatz64 x0.75 (15/15, 1.17x), ipow
+  x0.75 (24/24, 1.15x). BOARD-QUEUE #8 / list item 7 added.
+### progress 19:00 (collatz per-cell on the bench top: 24/24, 1.16-1.19x; board list item 8)
+- collatz T3 and T3 per-cell bench builds, seeds 1-4, full stack at 83.3 MHz host clock: 24/24 PASS 13/13 (4 vectors on
+  the 3n+1 path), gate clean; NOT_EQUIVALENT only base 2/4's GND-buffer F7 inputs (checked). Paired on the 261-step
+  vector: 1.186 SLOW_MAX, 1.184 FAST_MIN, 1.157 worst (1.12-1.22); soak routes gave 1.155.
+- All four kernel item-3 steps are now gated on the board's own top: xorshift x0.5 1.44x (8 routes), collatz64 x0.75
+  1.17x, ipow x0.75 1.15x, collatz per-cell 1.17x (4-5 routes each). isprime waits on the owner's gate decision.
+### progress 20:25 (fasm_equiv: DSP data pins now fold a constant-INIT LUT driver, like every other pin)
+- ipow x0.75 bench seed 6 read NOT_EQUIVALENT: "DSP DATA PIN DRIVER DIFFERS" on DSP48_X0Y14 A21-A23, json const 0, bits
+  driven by SLICE_X2Y28/A6LUT -- a bits-only LUT with INIT all 0 (nextpnr ties the pin to GND through an unused LUT;
+  the dsp-constpins patch's job). Section 3 already folds such LUTs; the DSP data-pin comparison (2b) did not.
+- Fix: 2b applies lut_const() to the driver on both sides and lists the pin under the CONST_LUT folds. On this route:
+  EQUIVALENT, the three pins listed as folded. Negative control: the same LUT given INIT ...0001 -> NOT EQUIVALENT with
+  "DSP DATA PIN DRIVER DIFFERS" on A21-A23 again. tests: 30 passed. The run itself passed 17/17 either way.
+### progress 21:18 (a second nextpnr bitstream defect, this one computes wrong answers: an F7 select tied to GND is left unrouted and reads 1)
+- ipow T9 (base) bench seed 7, SLOW_MAX: FAIL 11/17 -- 6 wrong results, all large exponents, each equal to 3^e' for a
+  smaller e' (and latency shortened to match): the loop exits early. fasm_equiv: NOT EQUIVALENT, DRIVER DIFFERS
+  SLICE_X11Y68/F7AMUX/S0 json const 0, bits const 1. That F7 is in ushrsi0 (e >>= 1); in the JSON it selects input 0
+  = a $PACKER_GND_NET buffer LUT (the shift's top bit is 0), input 1 = the A6LUT. S0 is on $PACKER_GND_NET with no
+  routing to the AX pin, so on the die the pin reads its default 1 and the F7 passes the A6LUT: e's top bit corrupt.
+- Proof: the same bits-decoded netlist with only that S0 forced to 1'b0 -> PASS 17/17 (lat 15..319, same shape as the
+  other base routes). Unmodified: 11/17. So the bitstream, not the netlist or the sim, is wrong.
+- Scope: 772 fasm_equiv reports on disk: this route (both corners run) is the only const-0 -> const-1 mux select. The
+  only other mux-select line is the August ipow build's (pre-11-05 report, the INIT-0 LUT since folded). All board-list
+  builds decode EQUIVALENT. Same family as the 11-08 5FF gap: a constant on a site pin nextpnr does not route, and the
+  pin's hardware default differs from the constant. The "HARMLESS" class (a LUT pin reads VCC by default ppip) is only
+  harmless when the LUT does not read the pin; for an F7/F8 select (and a 5FF D) it is a functional change.
+- Consequences: (1) every board build must pass fasm_equiv (already the full-stack flow); (2) the right fix is in
+  nextpnr: route GND to these pins (or use the default-1 polarity: swap the F7 inputs), with a toolchain.sh fingerprint
+  -- reproducer: ipow bench, T9 bench sizes, NEXTPNR_SEED=7. Left for the owner with the 5FF case.
+### progress 03:10 (kernel bench to 8 routes: collatz per-cell 48/48; ipow x0.75 24/24 with base seed 7 the F7 defect)
+- collatz per-cell vs T3 on the bench top, seeds 1-8: 48/48 PASS 13/13, gate clean; NOT_EQUIVALENT only benign GND-
+  buffer CARRY4/F7 data inputs (checked each new one). Paired, 261-step vector: mean 1.206 SLOW_MAX, 1.209 FAST_MIN,
+  1.187 worst (1.12-1.33). research/data/collatz_bench/results.tsv now 8 routes; BOARD-QUEUE #9 / item 8 updated.
+- ipow x0.75 seeds 5-8: 12/12 PASS (24/24 over 8 routes). T9 base 5/6/8 PASS; 7 = the F7-select bitstream defect (all
+  3 corners 11/17, same wrong answers). Seed 9 pair queued for an 8th pairing. collatz64 6-8 running.
+### progress 07:26 (collatz64 x0.75 on the bench top over 8 routes: 24/24, 1.17x)
+- Seeds 6-8 added: x0.75 9/9 PASS 14/14, T4 9/9; x0.75 24/24 over 8 routes; T4 21/24 (seed 4 = the 5FF bitstream
+  defect). Paired over 7 routes, 350-step vector: 1.172 / 1.174 / 1.172 (SLOW_MAX / FAST_MIN / worst), 1.07-1.22.
+  NOT_EQUIVALENT only benign GND-buffer F7 data inputs (checked each new one). BOARD-QUEUE #7 / item 6 updated.
+### progress 07:47 (the F7-select defect again: ipow x0.75 bench seed 9 -- 2 of 17 ipow bench routes)
+- ipow x0.75 bench seed 9 SLOW_MAX: FAIL 12/17, the same early-exit pattern (5 large-exponent vectors wrong); fasm_equiv
+  DRIVER DIFFERS SLICE_X16Y60/F7AMUX/S0 json const 0, bits const 1; the cell is again in ushrsi0 (e >>= 1).
+- So the defect is not one route's accident: ushrsi0 synthesises an F7 whose select is tied to GND, and on 2 of the 17
+  ipow bench routes built (base 7, x0.75 9) nextpnr leaves that select unrouted (the die reads 1). On silicon those
+  builds give wrong answers. All ipow results above are on routes that decode clean; the board item's route (seed 1)
+  decodes EQUIVALENT. The BOARD-QUEUE header rule (decode-check any route whose sdf md5 differs) covers rebuilds.
+- Not done: a census across kernels of F7/F8 selects tied to a constant (yosys emits them; how often nextpnr leaves
+  them unrouted is the question for the nextpnr fix).
+- Census (164 routed JSONs on disk): F7/F8 muxes whose select the JSON ties to a constant. ipow bench routes: 76 per route,
+  all in ushrsi0; the August ipow build: 76; isprime (bench routes): 1, in ucmpi7; every gcd, collatz, collatz64,
+  xorshift, gcd_ps and board-list route: 0. With 2 bad selects in ~17 x 76 = ~1300 such muxes, nextpnr leaves roughly 1 in
+  650 of them unrouted -- rare per mux, but ipow carries 76 of them, so ~12% of its builds compute wrong answers.
+  Exposure is ipow (and marginally isprime); the other kernels and every board-list design have no such mux.
+### progress 08:40 (ipow x0.75 on the bench top over 8 good routes per build: 48/48, 1.16-1.18x)
+- Seed 9 pair finished: T9 base 9 PASS 17/17 at max/min/worst (EQUIVALENT); x0.75 seed 9 FAIL 12/17 at all three
+  corners (the F7-select defect above). So 18 ipow bench routes built, 2 defective (base 7, x0.75 9), 16 good;
+  every good route passes 17/17 at every corner: 48/48 (x0.75 seeds 1-8, T9 seeds 1-6,8,9).
+- Paired base/x0.75 on the 31-iteration vector's batch cycles, seeds 1-6 and 8 (7 pairs): SLOW_MAX mean 1.180
+  (1.12-1.25), FAST_MIN 1.159 (1.08-1.23), worst 1.160 (1.09-1.26). Seed 1 (the board item's route): 1.08-1.13.
+  research/data/ipow_bench/results.tsv regenerated (seeds 1-9); BOARD-QUEUE #8 / item 7 updated.
+- Does not show: anything on silicon; cycle counts are at 12 ns granularity, so a per-pair ratio carries ~1% quantisation.
+### progress 09:10 (PROGRAM FIRST item, xorshift: where one iteration's time goes -- research/data/itercost/)
+- I had not started the FIRST item (owner, made first 2026-11-08) until now; the ipow 8-route work above came before
+  it. Corrected: itercost is the only work until it is delivered for xorshift and collatz.
+- Full stack (bits-decoded netlist, prjxray SDF, fid, calibrated bands, no scatter), the board list's seed-1 bench
+  routes, one 256-round vector twice, every net dumped; causal back-trace from a steady-state rise of umux1's z_req to
+  the previous one: x0.5 39.06 ns (86 hops), T3 57.03 ns (123 hops), every hop exact (t_src + wire + arc = t), the
+  categories sum to the period to the ps; lengthening +500 ps on an on-cycle delay element: +11 / +22 cycles
+  (predicted 10.7 / 21.3: rise-only / both edges), on uxori1's delay: +0.
+- The critical cycle is the LOOP-CONTROL ring (umux1 select pipe, i+1<rounds compare, control merge, steers, 5 links),
+  not the xor datapath. Its delays bundle loop-invariant data (rounds, a select and a compare constant until exit).
+  x0.5 / T3: RTZ 44% / 42%, excess delay 30% / 38%, req/ack routing 20% / 16%, handshake arcs 3% / 2%, logic 3% / 2%;
+  wires are 86% of the period. Bound logic + handshake 2.26 / 2.24 ns vs Dynamatic 12.73 ns.
+- Levers (x0.5): two-phase 17.2 ns; the 4 rule-1 measurability links on the ring 17.0 ns (ulink_n12__1's 2-stage pipe
+  alone 9.2); excess delay 11.8 (5.3 if sized to the worst settle seen -- not safe); fast fall on full-cost chains 6.9.
+  Retired: "the xorshift's datapath delays are the cost" (they are off the cycle on these routes).
+- Does not show: one route per build, sim not silicon, input-dependent settles. Collatz next.
+### progress 09:55 (PROGRAM FIRST item, collatz: the cycle is the n datapath; two barrel shifters from a forked constant)
+- Same flow on the board list's collatz seed-1 bench routes (T3 6134880a, per-cell cs 1ab39716), n=6171 (261 steps)
+  twice: every one of 518 steady-state iterations traced, all close exactly, categories sum to each period; even and
+  odd steps have the identical period (both branches computed, a select picks): cs 67.82 ns, T3 77.56 ns. umux1 is
+  off the cycle (marker n26_u_req). Lengthening: uselect0 element +500 ps -> 1479 -> 1490 cycles (pred. 1489.9),
+  uaddi1 (step counter) +0.
+- Cycle: uaddi0 (3n+1) -> uselect0 -> ucmpi2 (n != 1) -> steer -> merge -> ulink_n14__0 (select) -> umux0 -> uaddi0.
+  cs / T3: excess 46% / 49%, RTZ 26% / 28%, routing 13% / 10%, logic 14% / 12%, handshake 1.6% / 1.4%; logic +
+  handshake 10.4 / 10.6 ns vs Dynamatic 14.05.
+- uaddi0 and uselect0 shift by a constant 1 that arrives as a DATA channel (handshake constant4, forked 5 ways, not
+  folded), so yosys builds 32-bit barrel shifters and the delays are sized to them: 16.3 ns (cs) of excess on the
+  cycle in those two regions -- PROGRAM's "constant shift synthesised as a barrel shifter", measured.
+- research/data/itercost/README.md has both kernels, the method, the self-checks and the ranked levers. Retired on
+  xorshift / held on collatz: "the datapath's matched delays are the cost". RTZ factor E = 1.78 (xorshift), 1.35
+  (collatz) vs the model's 1.5. Not shown: other routes, PVT, silicon, the next critical cycle once one shortens.
+- 10:15 negative: zeroing x0.5 xorshift's six control-ring delay instances in the sim (1 ps arcs and input wires,
+  research/tools/itercost/zero_delays.py) deadlocks after the first iteration (umux1's z_req rises once; something
+  keeps switching for 155 us, run stopped). The "remove the delays" bound is not measurable that way; the README's
+  levers stay read off the cycle.
+### progress 10:40 (first lever from itercost: BDC_CONST_DATA, off by default)
+- bdc/emit.py BDC_CONST_DATA=1: inside a fused region, an external operand whose value is a known constant (a
+  `constant` result, or a fork output of one) is read as that literal; the channel stays (link, join request, ack).
+  Default output byte-identical to HEAD on gcd/xorshift/collatz/collatz64/ipow/isprime; with the flag simcheck PASS on
+  all six; pytest bdc 63 pass (new test_const_data.py). It turns collatz's `n << e1` / `n >>> e3` and ipow's ushrsi0
+  `e >>> e1` into constant shifts (ushrsi0 is where ipow's 76 constant-select F7s, and the F7 bitstream defect, live).
+- Running: collatz BDC_CONST_DATA=1 at T3 sizes, soak top, NEXTPNR_SEED 1-4, full stack at max/min/worst
+  ($S/k4/collatz_cd, worktree at 83cd6c77). Next: corner_audit those routes for the regions' new sizes, then 8 routes.
+### progress 12:10 (BDC_CONST_DATA collatz at T3 sizes: 12/12 full stack, 4/4 EQUIVALENT, 1.01-1.11x already)
+- collatz BDC_CONST_DATA=1, T3 sizes, soak top, NEXTPNR_SEED 1-4 (worktree 83cd6c77, nextpnr 9c732bc6303458df):
+  SLOW_MAX / FAST_MIN / worst case 12/12 PASS; fasm_equiv 4/4 EQUIVALENT (benign kinds only); LUT sites 1713 -> 1071.
+  Paired against T3 (k4/collatz, same seeds; the routes differ, so this is the whole design's effect): max
+  1.03/1.03/1.08/1.09, min 1.03/1.04/1.11/1.11, worst 1.01/1.06/1.10/1.09 -- with the delays unchanged, so from
+  the smaller placement, not from sizing. corner_audit on these 4 routes -> collatz_sizes_T3cd.vh (249 -> 174 links;
+  uaddi0 29 -> 18, uselect0 31 -> 23); its 8 routes x 3 corners are running (k4/collatz_cdc).
+### progress 14:05 (collatz: BDC_CONST_DATA + per-cell sizes 24/24 on 8 routes, 1.34-1.36x over T3, 1.16-1.18x over per-cell)
+- collatz BDC_CONST_DATA=1 at collatz_sizes_T3cd.vh (249 -> 174 links), soak top, NEXTPNR_SEED 1-8, worktree 83cd6c77,
+  nextpnr 9c732bc6303458df: SLOW_MAX / FAST_MIN / worst 24/24 PASS, fasm_equiv 8/8 EQUIVALENT (benign kinds only).
+  Paired per seed (research/data/item3/collatz_cdc/pairs.txt): vs T3 1.361 / 1.344 / 1.335 (max / min / worst; range
+  1.27-1.47); vs the previous best per-cell sizes 1.178 / 1.168 / 1.157 (1.06-1.27). Rule A informational (item 1).
+- The lever came from itercost (two barrel shifters from an unfolded shift-by-one); it also cut 37% of the LUTs.
+- Not shown: the board's bench top (next: re-key, build_bench, full stack on 8 routes for a board item), silicon,
+  ipow/collatz64 with the flag (ipow's ushrsi0 is the same pattern and carries the F7-defect exposure).
+### progress 17:30 (collatz BDC_CONST_DATA on the board's bench top: 24/24, 1.34-1.37x over T3; board item 9 / #10)
+- Bench top, BDC_CONST_DATA=1, collatz_sizes_T3cd_bench.vh, NEXTPNR_SEED 1-8: 24/24 PASS 13/13 at max/min/worst, gate
+  clean; 7/8 EQUIVALENT, seed 5 NOT_EQUIVALENT of the benign kind only ($PACKER_GND buffer LUT INIT ..10 on an F7 data
+  input, checked). Paired with the earlier bench runs on the same seeds (261-step vector): over T3 1.365 / 1.358 /
+  1.339 (1.26-1.47), over per-cell 1.132 / 1.124 / 1.128 (1.08-1.16). research/data/collatz_cd_bench/results.tsv.
+- BOARD-QUEUE: item 9 / section #10 (seed-1 sdf 3cbe05d8, predicted 1.26-1.30 on that route).
+- (A container restart killed only a waiter; the bench run, lockkeeper and janitor survived.)
+- Next: the same flag on ipow (ushrsi0's barrel shifter; it is also where the F7-select bitstream defect lives).
+### progress 19:10 (owner's NEXT lead: a second latch at the three handshake couplings -- prediction, before running)
+- Container restart at ~18:45 killed every process (lockkeeper, janitor, the ipow audits); restarted all three; the
+  ipow BDC_CONST_DATA full stack had finished first: seeds 29-32, 12/12 PASS (audits rerunning).
+- Checked the premise on x0.5 seed 1's cycle_hops.tsv: the cycle flips polarity at exactly the owner's three places,
+  each crossed twice per iteration (umux1 ack -> ulink_n_trueResult_8 req; ufork9 ack (n30__1) -> ulink_n11__1's ack;
+  ucontrol_merge0 ack -> ulink_n_trueResult_12 req). ulink_n_trueResult_8 and ulink_n11__1 are single bd_link stages;
+  ulink_n_trueResult_12 is already a 3-stage bd_pipe (ring floor 3), so its coupling is through a 3-stage pipe's
+  first stage, not a lone latch.
+- Plan: BDC_LINK_DEPTHS (existing per-site knob) ulink_n_trueResult_8=2, ulink_n11__1=2, ulink_n_trueResult_12=4 on the
+  bench top, x0.5 sizes, NEXTPNR_SEED=1, the itercost bands; then each point alone.
+- PREDICTION (written before any run): one token per loop iteration circulates, so a stage added on the ring costs
+  forward latency on the rising pass (~1-1.5 ns each: C-element, SDELAY=1 rdly, wires; x3 = 3-4.5 ns). If the
+  coupling is the cause, the falling segments (17.2 ns) leave the cycle and the period falls toward the rising pass
+  (21.9 ns) + that cost: ~25-30 ns, i.e. down 9-14 ns. If instead umux1 joining the data ring and the select ring
+  keeps the RTZ on the cycle (a mux cannot take the next token until both of its inputs have returned to zero), the
+  period moves by less than the added latency, and the new cycle will still flip at umux1. I expect the second: a
+  partial drop of 3-8 ns, with the flip left at umux1.
+### progress 21:05 (second-latch lead, seed 1 only: -3.5 / -4.9 ns; the cycle moves to the counter ring and still flips at the merge)
+- Bench top, x0.5 sizes, NEXTPNR_SEED=1, itercost bands, every run EQUIVALENT (benign kinds) and cd3132bf, every
+  interval exact and summing to its period (508/510). New inner stages took bdc's default SDELAY 3 (x0.5's own inner
+  stages are 1). Periods (base x0.5 seed 1: 39.06 ns):
+    all three (n_trueResult_8=2, n11__1=2, n_trueResult_12=4)  35.57 ns   cycle moved; RTZ 43%
+    ulink_n_trueResult_8=2 only                                  34.12 ns   cycle moved; RTZ 40%
+    ulink_n11__1=2 only                                          39.87 ns   same cycle (still through umux1)
+    ulink_n_trueResult_12=4 only                                 44.33 ns   same cycle, longer
+- With umux1's coupling decoupled the critical cycle is the loop COUNTER ring (umux0 -> ulink_n7 -> uaddi0 (i+1) ->
+  ulink_n30__1 -> ucmpi1 -> steer -> ucontrol_merge0 -> ulink_n12__0 -> umux0) and it still flips polarity twice per
+  iteration, at ucontrol_merge0 ack -> ulink_n_trueResult_12 req; a 4th stage in that pipe does not remove it. Reading:
+  the arbitrated merge's output cannot return to zero before its granted input does, so the coupling is in the merge,
+  not in the latch count beside it -- a stage on the merge's OUTPUT side would be the test of that.
+- Against the prediction: the size of the drop (3.5-4.9 ns) is inside the 3-8 ns predicted; the place is not -- the
+  remaining flip is at the merge, not at umux1.
+- One route each, and adding stages re-places the design: repeating base / p8 / all3 on seeds 2-4 before any claim.
+### progress 23:40 (second-latch lead on 4 routes: umux1's coupling binds, -5.6 ns (1.16x); the merge's does not decouple)
+- research/data/itercost/second_latch/: xorshift x0.5 bench top, seeds 1-4, BDC_LINK_DEPTHS. Mean period base 39.49 ns;
+  ulink_n_trueResult_8=2 alone 33.92 (-5.58 ns, -4.9..-6.9, 1.164x); all three 34.68 (-4.81); ulink_n11__1=2 alone
+  +0.8 and ulink_n_trueResult_12=4 alone +5.3 (seed 1). All runs correct, equivalent or benign GND-buffer F7 only
+  (checked), every iteration exact.
+- The cycle moves to the loop counter ring and still flips polarity at ucontrol_merge0 ack -> ulink_n_trueResult_12
+  req; RTZ stays 39-43%. A 4th stage on that pipe does not decouple it: the arbitrated merge's output RTZ follows its
+  granted input. Next test: storage on the merge's output (needs a bdc change; not a BDC_LINK_DEPTHS site).
+- Prediction (committed first): size of drop right (3-8 ns), location wrong (merge, not umux1).
+- Base rebuilds on seeds 2-4 did not reproduce the old xb routes' bits (same seed, newer tree); paired with the
+  rebuilt bases. ipow BDC_CONST_DATA: corner_audit done on seeds 29-32 (sizes_max next).
+### progress 00:30 (ipow BDC_CONST_DATA: 12/12 at T9 sizes; candidate T9cd 332 -> 226 links; 0 constant-select F7s)
+- ipow BDC_CONST_DATA=1 at T9 sizes, soak top, NEXTPNR_SEED 29-32 (the T9 base seeds): 12/12 PASS (max/min/worst).
+  corner_audit on those routes -> ipow_dsp1_sizes_T9cd.vh (per-cell max, 332 -> 226 links; ushrsi0 30 -> 1: the
+  constant shift is wiring now; T9cs was 251). Those routes have 0 F7/F8 muxes with a constant select (the census
+  found 76 per ipow route, all in ushrsi0), so the F7-select bitstream defect has nothing to hit.
+- Running: ipow T9cd seeds 29-36 full stack (k4/ipow_cdc); xorshift merge-output link (BDC_MERGE_OUT_LINK, new
+  measurement knob, default byte-identical, simcheck PASS) alone and with ulink_n_trueResult_8=2, bench top seeds 1-4.
+### progress 03:20 (merge-output latch: with umux1's, 39.49 -> 31.78 ns (1.24x) on 4 routes; the coupling moves to the fork)
+- BDC_MERGE_OUT_LINK=ucontrol_merge0 alone: 38.08 ns mean (-1.41); with ulink_n_trueResult_8=2: 31.78 (-7.71, -6.7..-8.2,
+  1.243x). All correct, equivalent (mo_2 benign GND-buffer F7, checked), every iteration exact. The arbiter leaves
+  the cycle; the counter ring now flips at ucontrol_merge0_f ack -> ucontrol_merge0_olink, RTZ still 40-43%. Each
+  decoupled synchronising cell moves the coupling one cell on; the RTZ share does not fall.
+- Next: collatz with the same kind of sites (per the lead), sized links, then the full gate on >= 8 routes.
+### progress 04:10 (negative: ipow T9cd fails -- the out0 mux's select link shortened 12 -> 9 by corner_audit)
+- ipow BDC_CONST_DATA at ipow_dsp1_sizes_T9cd.vh: seed 29 decodes EQUIVALENT and passes the nominal routed GLS but the
+  full stack gives X on out0 at every corner (5/5 run, FAIL; stopped); seeds 30, 32, 33 fail the nominal GLS
+  ("PROTOCOL data moved inside the hold window on channel out0", vector 1 b=3 e=1). Against the per-cell T9cs (which
+  passed 12/12), T9cd shortens four more lines: ulink_n_index_15 12 -> 9 (umux3's select, umux3 drives out0),
+  ushrsi0 26 -> 1, ulink_n17__1 10 -> 7, ulink_n13_SDELAY 3 -> 1. Suspect: the umux3 select race (the same class that
+  stopped xorshift below x0.5); corner_audit's rules do not see it. Test running: T9cdb = T9cd with ulink_n_index_15
+  back to 12, seeds 30/32/33 nominal. The flag itself is not implicated: T9 sizes + the flag passed 12/12.
+### progress 07:40 (ipow T9cd diagnosed: ushrsi0 at 1 link fails on other routes; the per-route audit does not carry)
+- Nominal routed GLS (fusion_bench --route), out0 hold-window violation in every failure:
+    T9cdb (T9cd, ulink_n_index_15 back to 12): seeds 30, 32 pass; 33 FAIL
+    T9cdc (+ ulink_n17__1 10, ulink_n13_SDELAY 3, i.e. T9cs values except ushrsi0): seeds 33, 29 FAIL
+  Controls on seed 33, all PASS: T9 sizes + BDC_CONST_DATA; T9cdc with ushrsi0 26; T9cs without the flag.
+- So the line that breaks it is ushrsi0 = 1. With BDC_CONST_DATA its logic is wiring (e >>> 1), and corner_audit
+  proposed 1 on each of its 4 routes (29-32), but a region with no logic still has to cover the data-vs-request
+  routing skew into its consumer, which moves with the route; one link does not cover it on routes 29 (full stack) and
+  33. A per-cell max over 4 routes is not a bound across routes -- the same lesson as the umux3 select race, now on a
+  logic-free delay. corner_audit is being run on the failing seed-33 route to see whether its rules see the hazard.
+### progress 22:50 (ipow T9cd root cause traced: the umux3 empty-pipe select race, exposed by a faster exit path)
+- Sweep, nominal routed GLS: ushrsi0 = 4 fails seeds 29 and 33; 8 fails 29, passes 33; 26 passes (controls). Not a
+  routing-skew margin, so I traced it: T9cdc+ushrsi0=8 seed 29, the nominal GLS dumped, cause-by-cause back from the
+  out0 hold violation (every hop exact).
+  * out0 goes X when umux3's select (n_index_15) arrives and steers to y (the loop result) BEFORE that token exists;
+  * the change inside the hold window is n_falseResult_11_data[4] -> out0_data[4] 1617 ps after the result link's
+    latch opened (its req rise), while umux3's own req path (y req -> j1 -> either -> 1-link udly) is as fast.
+  So umux3 = 1 (T9 had 4; T9cs and T9cd both proposed 1) is too short whenever the select arrives first -- the same
+  empty-pipe select race that limits xorshift below x0.5. In T9 / T9cs the long ushrsi0 delay (the barrel shifter)
+  kept the exit decision, hence the select, later than the result, so umux3 = 1 passed there by ordering, not by
+  margin. BDC_CONST_DATA makes the e/exit path fast and exposes it.
+- Consequences: (1) corner_audit's per-cell proposal for a mux whose select can arrive first is not safe (rule gap,
+  as noted on xorshift); (2) ipow T9cs (12/12, never on the board list) carries umux3 = 1 and relies on that ordering;
+  board item 7 (ipow x0.75: umux3 = ceil(0.75*4) = 3) does not use 1. Test running: T9cdd = T9cd + umux3 4, seeds
+  29/30/32/33 nominal.
+- 01:10 T9cdd (T9cd + umux3 4, ushrsi0 kept 1): nominal routed GLS PASS on all four seeds that failed (29/30/32/33) --
+  the race diagnosis holds. Full stack on 8 routes (29-36) running (k4/ipow_cdd, ipow_cdd2).
+### progress 02:10 (ipow BDC_CONST_DATA + per-cell (umux3 4): 24/24 on 8 routes, 8/8 EQUIVALENT, 1.26-1.29x over T9)
+- ipow_dsp1_sizes_T9cdd.vh, soak top, NEXTPNR_SEED 29-36 (the T9 base seeds), worktree 83cd6c77, nextpnr
+  9c732bc6303458df: SLOW_MAX / FAST_MIN / worst 24/24 PASS, fasm_equiv 8/8 EQUIVALENT (benign only). Paired vs T9
+  1.263 / 1.281 / 1.286 (1.21-1.39); vs T9cs (seeds 29-32) 1.215 / 1.253 / 1.245. Previous ipow best on the soak top
+  was x0.75 at 1.13x. The routes have no constant-select F7 (the bitstream defect's site is gone).
+- Not shown: the bench top (next), silicon. The umux3 lesson goes with it: a mux whose select can come first keeps a
+  delay corner_audit would remove.
+### progress 02:40 (second-latch lead, collatz -- prediction before running)
+- collatz's itercost cycle (cs and T3, seed 1) changes polarity at ONE place, crossed twice: ucontrol_merge0 ack ->
+  ulink_n_falseResult_7 req (the rule-2 ring link, a 3-stage pipe) -- the same merge coupling that remained on
+  xorshift. Test: BDC_MERGE_OUT_LINK=ucontrol_merge0 on the best collatz bench build (BDC_CONST_DATA=1,
+  collatz_sizes_T3cd_bench.vh), seeds 1-4, against those seeds' existing cd bench routes, itercost bands.
+- PREDICTION: on xorshift the merge-output link moved the flip to the merge's fork (ucontrol_merge0_f -> the new
+  link) and bought 2.1 ns once umux1 was decoupled. Here the merge is the only coupling, so I expect the same move
+  (new flip at ucontrol_merge0_f), the RTZ share staying ~25%, and a drop of 2-4 ns on a ~55-60 ns period; less if
+  the added forward latency of the new link (default delay 4 + ack 6) lands on the cycle.
+- 01:55 disk full (99 MB free): every ipow bench sim of the first pass ("FAIL 0/17") and the collatz merge-output
+  runs read truncated .vvp files ("syntax error") -- NOT results; discarded. Freed 11 GB (all .vvp/.vcd and finished
+  runs' regenerable intermediates; bits, reproducers and pending routes kept), then a container restart killed the
+  rest; both reruns started (builds kept: their bits were written before the disk filled).
+### progress 06:10 (ipow BDC_CONST_DATA on the bench top 24/24, 1.24-1.27x over T9 -> board item 10; collatz merge latch -1.8 ns only)
+- ipow bench top, T9cdd_bench, seeds 1-8: 24/24 PASS 17/17, gate clean; 6/8 EQUIVALENT, seeds 1 and 5 benign GND
+  buffer (CARRY4 DI / F7 data, checked). Paired (31-iteration vector): over T9 1.254 / 1.244 / 1.269 (1.20-1.31, 7
+  pairs: base 7 is the F7 defect), over x0.75 1.063 / 1.074 / 1.095. research/data/ipow_cd_bench/results.tsv;
+  BOARD-QUEUE item 10 / #11 (seed-1 sdf f0af6ff8).
+- Second-latch lead step 4, collatz: the merge-output link moves the flip to the merge's fork as predicted but buys
+  1.8 ns mean (-3.8..+0.3) on ~60.5 ns, below the predicted 2-4; RTZ share unchanged. Not carried to the gate.
+### progress 09:30 (second-latch, full gate on the soak top: p8mo 24/24, 8/8 EQUIVALENT; the soak vectors cannot show the gain)
+- xorshift x0.5 + ulink_n_trueResult_8=2 + BDC_MERGE_OUT_LINK=ucontrol_merge0, soak top, NEXTPNR_SEED 1-8 (worktree
+  5a4176cd), SLOW_MAX / FAST_MIN / worst: 24/24 PASS, fasm_equiv 8/8 EQUIVALENT. Correctness gate passed.
+- Speed is not visible here: the soak's 14 vectors run 0-8 rounds, so the sum of latencies is start-up dominated
+  (x0.5 / p8mo summed latency 0.96-0.98, i.e. the extra stages' forward latency) and the slope over 0-8 rounds is
+  noise (1.02 / 0.99 / 1.01, 0.93-1.08). The steady-state period needs long trips: bench top with the 200/1000-round
+  vectors (xb's own method, per_round_ns), seeds 1-8, running ($S/xpb), paired against research/data/xorshift_bench.
+### progress 10:40 (second-latch p8mo FAILS on the bench top: seed 1 SLOW_MAX, 4 wrong answers -- a single-bit hazard)
+- xorshift x0.5 + ulink_n_trueResult_8=2 + BDC_MERGE_OUT_LINK, bench top, seeds 1-8 (xb's method): seed 1 SLOW_MAX
+  FAIL 13/17 (gate clean, EQUIVALENT); the other 11 runs so far PASS. Wrong: rounds 0 (bit 28 flipped:
+  82d68ca2 for 92d68ca2), both 3-round vectors with the SAME error pattern xor 57543b39 (xorshift is linear: one fixed
+  bit error injected at a fixed point), and the 64-round vector. The base x0.5 route passes this seed and corner, and
+  the soak-top gate (other top, other routes) passed 24/24 -- so the extra stages add a real, route-dependent hazard.
+  Not a board candidate. Reproducing on one vector with a full dump to trace bit 28 to its cause.
+- 12:20 CORRECTION to 10:40: the seed-1 SLOW_MAX failure is the bench HARNESS, not the kernel. Traced (fid GLS,
+  rounds-0 vector, every net dumped): the kernel's ulink_n_falseResult_1 stage-0 latch captured bit 28 = 0 because
+  its D input, the harness's op0_to_core[28], was already 0 (seed 0x92d68ca2 has it set) -- the harness's operand
+  register missed timing at the 100 MHz harness clock these xorshift bench runs use (xb's method, kept for the
+  pairing; the JOURNAL 2026-11-08 note on 100 MHz SLOW_MAX harness glitches, which is why board items use
+  CLK=0x00100C00). Same route and corner at +FCLK_PS=12000 (83.3 MHz): PASS 17/17. Re-placement by the added stages
+  moved this route's harness across that margin. Lesson kept: a "kernel failure" on the bench top has to be traced to
+  the kernel's own latches before it counts against the kernel.
+### progress 14:10 (second-latch p8mo: full gate passed; 1.25-1.27x per round over x0.5 on 8 bench routes; board item 11)
+- Bench top, seeds 1-8 (xb's method, 100 MHz harness): 23/24 PASS 17/17 + seed 1 SLOW_MAX = the harness margin
+  (17/17 at 83.3 MHz); decodes EQUIVALENT or benign GND-buffer (6, 7, checked). Per round vs x0.5 paired by seed:
+  1.247 / 1.253 / 1.271 (max / min / worst; 1.18-1.36). Soak-top gate 24/24, 8/8 EQUIVALENT (earlier entry).
+- BOARD-QUEUE item 11 / #12 (seed-1 sdf 1e51be7e, CLK=0x00100C00, judge loop_cost_judge.py xorshift vs item 4's
+  x0.5 route). The added stages keep default (unsized) delays.
+### progress 14:40 (next lever: BDC_CONST_DATA on collatz64 -- two 64-bit barrel shifters)
+- collatz64's 3n+1 and n>>1 shift by a channel constant too (64-bit: `e0 << e1`, `$signed(e2) >>> e3`). Running the
+  same pipeline as collatz/ipow: T4 sizes + flag, seeds 1-4 (the T4 base seeds), full stack, corner_audit; the
+  per-cell candidate will keep every mux line at T4 (the ipow umux3 lesson).
+- 16:20 collatz64 BDC_CONST_DATA at T4 sizes, seeds 1-4: 12/12 PASS. corner_audit -> per-cell max 217 -> 143 links;
+  UMUX1 kept at T4's 5 (proposed 1) per the umux3 lesson -> collatz64_sizes_T4cd.vh (147 links; uaddi0 37 -> 25,
+  uselect0 26 -> 18, ucmpi2 23 -> 14). 8 routes x 3 corners running (k4/collatz64_cdc; ~10 h at this kernel's sim speed).
+### progress 21:40 (collatz64 BDC_CONST_DATA + per-cell: 24/24 on 8 routes, 8/8 EQUIVALENT, 1.23-1.24x over T4)
+- collatz64_sizes_T4cd.vh, soak top, NEXTPNR_SEED 1-8, SLOW_MAX / FAST_MIN / worst: 24/24 PASS, fasm_equiv 8/8
+  EQUIVALENT. Paired vs T4 1.244 / 1.236 / 1.232 (1.15-1.33); vs the x0.75 step 1.052 / 1.045 / 1.047. Bench top next.
+- (lockkeeper had kept a pre-restart proxy port and failed every push for ~2 h; restarted, pending lock commits pushed.)
+### progress 01:40 (collatz64 BDC_CONST_DATA on the bench top: 23/24 -- seed 7 FAST_MIN computes wrong step counts)
+- Bench top, T4cd_bench, seeds 1-8, 83.3 MHz harness: 23/24 PASS 14/14; seed 4 decodes NOT_EQUIVALENT (benign GND
+  buffer on a CARRY4 DI, checked). Seed 7 FAST_MIN FAIL 12/14: n=871 -> 306 steps (178 expected), n=77031 -> 606
+  (350); deterministic (both runs agree), the short power-of-two vectors and n=27/97 pass. A wrong step changes the
+  trajectory. Not a board candidate until explained; reproducing n=871 with every net dumped.
+- 03:10 traced (n=871 alone, every net dumped): the n loop runs its 178 iterations correctly; the STEP COUNTER is wrong
+  (127 -> 128 -> 257). At iteration 127 uaddi1's output settles to 128 2.3 ns before its z_req, then 27 ns later, z_req
+  still high, bits 6-8 glitch and settle to 0x100: umux1's select path (ulink_n14__1, shortened 19 -> 10 by
+  corner_audit, SDELAY 2 -> 1) lets umux1's request return to zero early, ulink_n_falseResult_5 admits the next
+  token, its latch opens and new data runs through umux1 -> ulink_n13 -> uaddi1 inside the counter output's hold
+  window. Same family as ipow's umux3: a mux SELECT path that corner_audit's rules do not guard. Test running: seed
+  7 with ulink_n14__1 / _SDELAY back at T4 (19 / 2), FAST_MIN and SLOW_MAX.
+- 04:10 seed 7 with ulink_n14__1 / _SDELAY back at T4 (19 / 2): FAST_MIN PASS 14/14 (the SLOW_MAX run was lost to a
+  container restart). Diagnosis holds. RULE from now on (both traced failures were mux-select paths): corner_audit
+  proposals never shorten a mux delay or a linked SELECT channel's DELAY/SDELAY (bdc emit.select_channels) below
+  base -- max(candidate, base). collatz T3cd and ipow T9cdd shorten the same select links (and collatz umux0/umux2,
+  ipow umux0/umux1); they passed 8 routes on both tops but the hazard is route-dependent, so board items 9 and 10
+  are ON HOLD until re-gated. Candidates: collatz64_sizes_T4cdb.vh (169 links), collatz_sizes_T3cdb.vh (208),
+  ipow_dsp1_sizes_T9cde.vh (272). Bench-top gates (8 routes x 3 corners) queued for all three.
+### progress 08:30 (re-gates: collatz64 select-safe 24/24 (1.22x over T4), collatz select-safe 24/24 (1.18x over T3); item 8 also held)
+- Bench top, seeds 1-8, 83.3 MHz, max/min/worst: collatz64_sizes_T4cdb 24/24 PASS 14/14 (seed 5 benign GND buffer);
+  collatz_sizes_T3cdb 24/24 PASS 13/13 (seeds 4, 8 benign). Paired: collatz64 vs T4 1.218 / 1.222 / 1.230 (7 pairs),
+  vs x0.75 1.03-1.05; collatz vs T3 1.184 / 1.188 / 1.167, vs per-cell T3cs 0.98, vs the held T3cd 0.87 -- i.e. most of
+  T3cd's extra gain over per-cell came from the shortened select links; with them restored collatz's literal-shift
+  build is no faster than the per-cell sizes it was meant to beat.
+- The per-cell sizes of board item 8 (collatz_sizes_T3cs) shorten the same select paths (ulink_n14__0 18->11,
+  ulink_n14__1 36->18, umux0 6->1): ON HOLD, replaced by item 9 (T3cdb). The uniform shrinks (items 4, 6, 7, 11:
+  x0.5 / x0.75) scale select links in proportion with everything else; no failure seen on any of their routes; left
+  on the list, flagged for the owner.
+- BOARD-QUEUE: item 9 / #10 rewritten (collatz T3cdb, sdf a7882dfa); new item 12 / #13 (collatz64 T4cdb, sdf b883dcb5);
+  item 10 (ipow) stays held until its re-gate (running) finishes.
+### progress 12:40 (ipow select-safe 24/24 but no faster than x0.75: item 10 withdrawn)
+- ipow_dsp1_sizes_T9cde (select-safe), bench top, seeds 1-8: 24/24 PASS 17/17, 8/8 EQUIVALENT. Paired: vs T9 1.162 /
+  1.159 / 1.185 (7 pairs), vs x0.75 (item 7) 0.985 / 1.002 / 1.024, vs the held T9cdd 0.93. With the select links kept,
+  BDC_CONST_DATA on ipow buys nothing over the uniform x0.75 already listed (the ushrsi0 delay it shortens is not on
+  ipow's critical cycle once the exit select is no longer starved). Item 10 withdrawn. research/data/ipow_cde_bench.
+- Net, after the select rule: collatz64 1.22x over T4 (item 12, +3-5% over item 6); collatz 1.18x over T3 (item 9,
+  replaces held item 8); ipow none over item 7; xorshift second latch 1.25x over x0.5 (item 11).
+- 14:10 research/tools/corner_audit.py now never shortens a select path (default; --shrink-selects to allow): every
+  BD_SZ_UUT_UMUX* and the DELAY/SDELAY of every link on a channel bdc reads as a select (emit.select_channels on the
+  route's input.mlir). It may still pad them. Checked on collatz64_cdc2 seed 5 (an x T4cd route): all 8 select-path lines
+  kept, labelled; the same route with --shrink-selects proposes ulink_n14__1 10 -> 5 and umux1 5 -> 1 (the moves that
+  failed), so the protection is what holds them. A route's sizes.vh is the floor, so run it on base routes.
+## Session 2026-11-11 07:45 UTC -- STOPPED for the owner's pause (PROGRAM.md, commit cca0a559)
+- The pause (until 2026-11-12 00:00 UTC, "a running session stops now") was committed 2026-11-11 04:26 UTC. This
+  session read it only at 07:41: the lockkeeper's `git pull --rebase` brought it in and I did not re-read PROGRAM.md
+  after each pull. Work done in those ~3 h: the ipow select-safe re-gate finished and was written up (item 10
+  withdrawn), the corner_audit select-path protection (fdee9471), PR #2's description. No new runs were started after
+  the re-gate; nothing is running now (lockkeeper and janitor stopped). Lesson: re-read PROGRAM.md whenever a pull
+  brings in an owner commit.
+- Where it stands: board items 9 (collatz T3cdb, 1.18x), 11 (xorshift second latch, 1.25x), 12 (collatz64 T4cdb, 1.22x)
+  passed the full gate; 8 on hold and 10 withdrawn (select-path race, traced twice); uniform shrinks (4, 6, 7, 11)
+  flagged for the owner. PR #2 is current.
+- Next step (for the session after 2026-11-12 00:00 UTC): delete the PAUSED section, then the new PROGRAM FIRST item
+  ("compute where storage goes, before building it", owner 2026-11-10, commit 8c90d04d), which this session has not
+  started; it comes before any new per-kernel sizing or board candidate.
+## Session 2026-11-12 02:50 UTC -- PROGRAM FIRST item: the timed event graph (step 1)
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (cells/verify/toolchain.sh PASS)   Seeds: 1-4
+### progress 03:00 (step 1 tool works on x0.5 seed 1: graph period = measured, cycle = itercost's, hop for hop)
+- The 11-08 itercost runs were in a scratch dir and their dump top was never committed, so every run is rebuilt:
+  research/tools/eventgraph/fullstack_dump.sh (the itercost stack: bits-decoded netlist, prjxray SDF, fid, chains 0.21,
+  CARRY4/F7F8/FF at 1, rest 0.288, no scatter; one 256-round vector twice, top nets dumped). Rebuilt routes reproduce
+  the recorded sdf md5s (x0.5 s1 c5b8ca02, T3 s1 e3024283, collatz cs 1ab39716, T3 6134880a); x0.5 s1 gives
+  cd3132bf, EQUIVALENT, latmin 836 (the README's 836).
+- research/tools/eventgraph/eventgraph.py: nodes = edges of nets periodic in steady state (230 on x0.5 s1; data and
+  harness-clocked nets are aperiodic); arcs = every ENABLING input of each edge (LUT INIT / F7F8 evaluated on the
+  delayed pin values: a pin is enabling if restoring its previous value would keep the old output), weight wire+arc,
+  token offset from the trace, slack >= 0. Period = max cycle ratio by the max-plus recursion (maxplus.py).
+  x0.5 s1: 230 nodes, 325 arcs, every edge AND-type (no OR edge), no negative slack; graph period 39058 ps = P;
+  the critical cycle (86 arcs, 1 token) equals trace.py's walk and the committed itercost cycle_hops.tsv, edge for edge.
+- Running: the other 33 runs (itercost T3 + collatz, second_latch base 2-4 and all variants, collatz cd +- merge link
+  seeds 1-4 for step 3's collatz prediction), 3 lanes.
+### progress 03:25 (step 1: 14/14 runs reproduce period and cycle exactly; step 2-4 tools give first numbers)
+- Rebuilt and re-run so far: x0.5 seeds 1-4, T3 seed 1, collatz cs/T3 seed 1, mo 1-4, p8 1, all3 1-2. Each: graph
+  period == trace period to the ps, critical cycle == trace.py's walk == the committed itercost cycle_hops.tsv (hop
+  for hop). Periods equal the recorded ones (40.594 = 40.59, 37.83, 35.57, 67.82, 77.56 ...), so every route reproduced.
+- research/data/eventgraph/graphs/<run>/: nodes.tsv, arcs.tsv, check.txt, kernel.v, provenance, BENCHRES.
+- Step 2 (x0.5 s1): floor with no polarity change 19.99 ns (the loop-counter ring's rising pass) vs 39.06 measured;
+  every falling arc at 0: 21.9 ns. collatz cs: floor 49.3 vs 67.8 (2-phase bound 51.1); T3 56.3 vs 77.6. So on collatz
+  added storage could at best reach 1.37x; the rest is the rising pass of the n datapath (delays), not the protocol.
+- Step 3, seeds 1-2 (predictions from each seed's base graph; edit rules committed b3eaf9cd before any prediction ran;
+  NOT blind: the measured values were already in second_latch/README.md; implementation fixes after that commit were
+  net-finding only, no weights): p8 -6.06/-4.71 (measured -4.94/-5.56); all3 -4.71/-3.73 (-3.49/-4.57); mo -1.28/-1.64
+  (-1.23/-2.59); p8mo -7.34/-6.35 (-7.89/-6.67); the predicted p8 cycle is the measured one (counter ring, flips at the
+  merge). p12 predicted 0 vs +5.3 measured (seed 1): a miss, to be traced on the p12 graph; p11 0 vs +0.8.
+- Step 4 greedy search (buildable knobs only) on x0.5 s1 re-finds p8mo, then adds BDC_LINK_FASTFALL: p8 + fast fall +
+  merge-out link 29.07 ns predicted (1.34x over x0.5; p8mo alone 31.72). Not built yet.
+### progress 03:35 (step 4 PREDICTION, written before building: xorshift p8 + BDC_LINK_FASTFALL + merge-output link)
+- search.py (greedy over knobs bdc can build: +1 depth on any link, merge-output link, BDC_LINK_FASTFALL) on the four
+  x0.5 base graphs picks the same set on every seed: BDC_LINK_DEPTHS=ulink_n_trueResult_8=2
+  BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1. PREDICTED period 29.07 / 29.70 / 29.29 / 30.13 ns (seeds
+  1-4, mean 29.55; 1.34x over x0.5's 39.49, 1.08x over p8mo's measured 31.78). A further edit gains < 0.3 ns: the
+  cycle stays on the counter ring and still changes polarity at the merge-output link's fork.
+- ipow x0.75 (item 7 route, seed 1): base 55.50 ns, floor 37.26; search: BDC_LINK_FASTFALL + merge-output link ->
+  46.09 ns predicted (1.20x). Seeds 2-4 pending.
+- Building both on seeds 1-4 next (itercost stack, measured period vs predicted).
+### progress 03:50 (step 3 on all 4 seeds; ipow step-4 prediction for seeds 1-4, before the builds finish)
+- A container restart at ~03:40 killed the lanes; 26 runs had finished; the 21 left (and p12 seeds 2-4, added) restarted
+  from scratch (partial dirs deleted). gcd seed 1's bench build hit a nextpnr assertion (bel != BelId(), BD_RLOC=v4):
+  gcd moved last.
+- Step 3, predicted vs measured period from each seed's base graph (research/data/eventgraph/step3_predictions.tsv):
+    p8   predicted mean 33.56 ns, measured 33.91: error -0.35 (per seed -1.12..+0.86)
+    all3 34.72 vs 34.68: +0.04 (-1.22..+0.85)
+    mo   38.08 vs 38.08: -0.00 (-1.23..+0.95)
+    p8mo 32.14 vs 31.78: +0.36 (-0.79..+1.38)
+    p11  39.06 vs 39.87 (seed 1): -0.81
+    p12  39.06 vs 44.33 (seed 1): -5.27  MISS
+  The predicted cycles move where the measured ones did (p8/all3/p8mo: to the counter ring, flipping at the merge or at
+  the merge-output link's fork). p12: its measured cycle (second_latch/p12_1/stages.tsv) is the base cycle, same 13
+  stages and 86 hops, every stage longer in wire (ulink_n12__1 11.26 vs 9.17 ns, umux1 5.77 vs 4.48, merge 4.97 vs 3.99)
+  -- the structural prediction (the new stage is off the cycle) holds and the 5.3 ns is this one re-placement. Testing
+  with p12 seeds 2-4 (queued). The graph of one route cannot predict another route's wires; that is the ~1 ns scatter.
+- ipow BDC_LINK_FASTFALL + merge-output link, PREDICTED per seed 46.09 / 44.92 / 45.06 / 44.08 ns (mean 45.04; base
+  mean 53.96, 1.20x). Building.
+### progress 04:00 (step 4 first builds: pmf seed 1 measured 29.14 vs predicted 29.07 ns; seed 2 route has a bitstream defect)
+- xorshift p8 + BDC_LINK_FASTFALL + merge-output link ("pmf"), bench top, itercost stack: seed 1 measured 29.144 ns
+  (predicted 29.072, +0.07), cd3132bf, decode benign (GND-buffer F7 data input). Graph check PASS.
+- Seed 2: the route's bitstream leaves a bench-harness flop unconfigured: $auto$dfflegalize emulate_split_set_clr (FDPE,
+  D on GND) placed in CLBLM_R_X9Y36 SLICEM_X0 AFF has ZINI/ZRST but no AFFMUX, and the pip to its LUT load is json-only;
+  fasm_equiv NOT EQUIVALENT, the run returns X data. The same nextpnr gap as 2026-11-08 08:21 (there a C5FF); now an
+  AFF slot too. research/tools/ffmux_scan.py finds it from the FASM alone: 1 of the 35 FASMs of this session (the
+  only one). The gate refuses such routes; still unpatched in nextpnr (owner item from 11-08 stands). pmf_2 excluded;
+  seed 5 (base + pmf) added to keep 4 pairs.
+- ipowfm seeds 1-2 (BDC_LINK_FASTFALL + merge link on ipow x0.75): aaaaaaab, EQUIVALENT; periods in the next note.
+### progress 04:15 (step 4 measured: xorshift pmf 1.34x over x0.5, ipow 1.18x; collatz prediction before building)
+- xorshift pmf (p8 + BDC_LINK_FASTFALL + merge-output link), seeds 1/3/4/5 (2 excluded, bitstream defect): measured
+  29.14 / 29.54 / 32.42 / 28.46 ns (mean 29.89) vs predicted 29.07 / 29.29 / 30.13 / 30.11 (mean 29.65; seed 5's
+  prediction was computed after its run had finished, before I read it). Paired with x0.5: 1.340 / 1.374 / 1.216 /
+  1.447 (mean 1.344, predicted 1.34). Over measured p8mo (seeds 1/3/4): 1.070 / 1.096 / 0.968. Every measured cycle
+  is the predicted one (the 11 counter-ring stages, the 2 polarity changes at the merge-output link's fork); the misses
+  are wire on those stages (seed 4: the merge-output link costs 2.2 ns an edge, the model 0.4 + its rdly).
+- ipow fm (BDC_LINK_FASTFALL + merge-output link on x0.75), seeds 1-4: 46.84 / 45.02 / 46.04 / 45.24 vs predicted
+  46.09 / 44.92 / 45.06 / 44.08 (error +0.09..+1.16, mean +0.75); paired with x0.75 1.185 / 1.152 / 1.179 / 1.199
+  (mean 1.18, predicted 1.20). All aaaaaaab = 3^(2^31-1) mod 2^32, EQUIVALENT.
+- collatz merge-output link on BDC_CONST_DATA (T3cd sizes), seeds 1-4: predicted 57.85 / 58.52 / 57.84 / 58.19
+  (delta -2.43 mean), measured 56.39 / 59.95 / 57.40 / 61.20 (delta -1.81 mean, as second_latch README's -1.8):
+  error -0.63 mean, seed 4 -3.0 (its measured period is above its base: re-placement).
+- PREDICTION collatz cd + BDC_LINK_FASTFALL + merge-output link (search's pick on all four cd graphs): 53.03 / 53.93 /
+  53.50 / 53.71 ns (mean 53.54; 1.13x over cd's 60.54). Building seeds 1-4.
+- Step 2/6 for collatz cd s1: floor 41.8 ns, two-phase bound 43.0, storage 57.9, storage + every chain fast 53.0, deco 60.2.
+### progress 04:30 (p12 on 3 seeds: +5.3 / +4.6 / +2.1 ns, the same cycle each time -- a systematic placement cost the graph cannot see)
+- p12 (ulink_n_trueResult_12 = 4) seeds 2, 3: 43.44 / 42.66 ns vs their bases 38.89 / 40.59. Kernel Verilog differs from
+  the base only in that pipe's N. Each measured cycle is the base cycle (same 13 stages, 86 hops; the new stage off it,
+  as predicted), longer in wire: seed 2's ulink_n12__1 8.8 -> 11.5 ns, merge fork 0.6 -> 1.3, ucond_br7 0.7 -> 1.5. So
+  the prediction's structure holds and its magnitude misses by 2-5 ns, systematically: one more cell next to the
+  merge hub lengthens the ring's wires on every seed. The graph of one route has no model of placement; this is its
+  known limit, and it says a stage that cannot help is not free either.
+- (Process note: I started a second lane on a worktree that was still building and then killed collatz builds too
+  broadly; every colfm output was deleted and the four builds restarted on idle worktrees. No result was affected.)
+### progress 04:40 (collatz step 4 measured as predicted; p12 seed 4 +2.5; gcd bench builds fail with RLOC v4)
+- collatz cd + BDC_LINK_FASTFALL + merge-output link, seeds 1-4: 53.60 / 55.05 / 51.84 / 54.72 ns (mean 53.80) vs
+  predicted 53.03 / 53.93 / 53.50 / 53.71 (53.54); paired with cd 1.122 / 1.104 / 1.164 / 1.113 (mean 1.13, predicted
+  1.13); 0x105 = 261 steps, EQUIVALENT; the measured cycle is the predicted one (up to two parallel fork branches).
+- p12 seed 4: 41.94 vs 39.43 (+2.51). Four seeds: +5.27 / +4.56 / +2.07 / +2.51, same cycle each time.
+- gcd bench with BQ#4's flags (BD_RLOC=v4): all four seeds abort in nextpnr ("post-place repair: no valid placement for
+  uori2/uori4 udly chain g[0]", then router2 assertion bel != BelId()). Retrying without RLOC.
+- Gate running: ipowfm (x0.75 + BDC_LINK_FASTFALL + merge-output link) seeds 1-8 x SLOW_MAX / FAST_MIN / worst+M,
+  17 vectors (oracle from kernels/ipow/ipow.c), research/tools/eventgraph/bench_gate.sh. Seed 1 SLOW_MAX: PASS 17/17,
+  EQUIVALENT.
+### progress 05:10 (gates running; collatz select-safe base + knobs queued)
+- Gate (bench_gate.sh, 17 C-derived vectors per run): so far ipowfm seeds 1/2/5 at max/min/worst and pmf seed 1 max
+  all PASS 17/17 (seed 5 and pmf 1 decode NOT_EQUIVALENT of the benign GND-buffer F7 kind, checked on seed 5).
+  ipowfm 1 min lost to a script edited while running (re-queued).
+- gcd bench without RLOC builds (gcd_1/2), but its full-stack sim is OOM-killed next to the other jobs (100k icbufs);
+  deferred until it can run alone.
+- Queued: collatz select-safe base (BDC_CONST_DATA, collatz_sizes_T3cdb_bench.vh = board item 9's sizes) seeds 1-8,
+  then the same + BDC_LINK_FASTFALL + merge-output link; predictions from the base graphs before the variants run.
+- PR #2 description updated.
+### progress 05:22 (gate 14 runs, all PASS; a third constant-D flop gap: ipowfm seed 7, BFF)
+- Gate results so far: ipowfm 1 (max, worst), 2 (max/min/worst), 3 (max), 5 (max/min/worst), 6 (max/min), pmf 1
+  (max/min): every one PASS 17/17. NOT_EQUIVALENT ones (ipowfm 5, 6, pmf 1) are GND-buffer F7 data inputs only (checked).
+- ffmux_scan.py on the new FASMs: ipowfm seed 7 has CLBLM_R_X9Y30.SLICEM_X0.BFF with ZINI/ZRST and no BFFMUX -- the
+  same nextpnr gap, third slot type (C5FF 11-08, AFF and BFF today), 2 of the ~45 routes built this session. Seed 9
+  added so the gate keeps 8 good routes; seed 7's gate runs stay in as an exhibit.
+### progress 05:40 (PREDICTION before the builds: collatz select-safe (item 9 sizes) + BDC_LINK_FASTFALL + merge link)
+- colcdb (BDC_CONST_DATA, collatz_sizes_T3cdb_bench.vh, board item 9's sizes) seeds 1-4: 67.44 / 68.02 / 69.27 / 67.10 ns,
+  261 steps each. search.py picks BDC_LINK_FASTFALL + merge-output link on all four: PREDICTED 56.45 / 56.39 / 58.77 /
+  56.44 ns (1.195 / 1.206 / 1.179 / 1.189x; mean 1.19x). Floors 45.6-46.4 ns. Variant builds (colb) follow colcdb 5-8.
+### progress 06:35 (ipow fm passes the full gate 24/24 -> board item 13 / #14; collatz select-safe step 4 measured)
+- ipowfm (x0.75 + BDC_LINK_FASTFALL + merge-output link) seeds 1-6, 8, 9 x SLOW_MAX / FAST_MIN / worst+M: 24/24 PASS
+  17/17; decodes EQUIVALENT or the benign GND-buffer F7/CARRY4 kinds (5, 6, 9 checked); seed 7 excluded (BFF gap; its own
+  runs also PASS 17/17 -- the defect sits in harness logic these vectors do not exercise, which is why fasm_equiv, not
+  the answers, is what refuses it). BOARD-QUEUE item 13 / #14 (seed-1 sdf e5000e23, ffmux_scan step in the recipe).
+  The first board candidate chosen by the event graph rather than by hand; 1.18x over item 7.
+- collatz select-safe (item 9's T3cdb sizes) + BDC_LINK_FASTFALL + merge link, seeds 1-4: measured 59.58 / 58.44 /
+  56.26 / 58.35 ns vs predicted 56.45 / 56.39 / 58.77 / 56.44 (errors +3.1 / +2.0 / -2.5 / +1.9 -- larger than on the
+  other kernels); paired with colcdb 1.132 / 1.164 / 1.231 / 1.150 (mean 1.17, predicted 1.19). Cycles as predicted
+  (up to the parallel fork branches ulink_n10__1/__2). Next: its full gate (8 routes) after xorshift pmf's.
+### progress 10:45 (xorshift pmf passes the full gate 24/24 -> board item 14 / #15)
+- pmf (x0.5 + ulink_n_trueResult_8=2 + merge-output link + BDC_LINK_FASTFALL) seeds 1, 3-9 x SLOW_MAX / FAST_MIN /
+  worst+M: 24/24 PASS 17/17 (200- and 1000-round vectors included), 7/8 EQUIVALENT, seed 1 benign. Itercost periods
+  seeds 6-9: 29.14 / 30.28 / 31.10 / 29.86 ns (all 8: mean 30.0 vs x0.5's 39.5 -> ~1.32x; ~1.06x over item 11).
+  BOARD-QUEUE item 14 / #15 (seed-1 sdf 169ce4d6). The collatz select-safe gate (colb) is at seed 7.
+### progress 11:35 (collatz select-safe + fast fall + merge link passes the full gate 24/24 -> board item 15 / #16)
+- colb seeds 1-8 x SLOW_MAX / FAST_MIN / worst+M: 24/24 PASS 13/13; 7/8 EQUIVALENT, seed 8 benign GND-buffer F7
+  (checked); ffmux_scan clean. Over item 9 on the itercost stack 1.13-1.23x (mean 1.17, predicted 1.19). Seed-1 route
+  sdf e20325f3; item 9's base a7882dfa reproduced by colcdb_1.
+- So the event graph's step 4 gave three gated board candidates in one session: ipow (item 13, 1.18x over item 7),
+  xorshift (item 14, ~1.32x over x0.5 / ~1.06x over item 11), collatz (item 15, 1.17x over item 9). All three are the
+  same two knobs (link fast fall, a latch on the arbitrated merge's output), plus p8 on xorshift.
+### progress 12:05 (gcd graph; step 5 end to end)
+- gcd bench (gcd_ps P1 sizes, no RLOC; vector gcd(1, 2^31-1) = 1, one main + one ctz iteration each), seed 2, alone on the
+  machine (its compile needs ~10 GB): 186.93 ns per iteration, graph check PASS (424 arcs). Floor 171.5 ns, two-phase
+  bound 173.2, storage 1.00x, + every chain fast 1.03x: gcd's cycle is its datapath's rising pass (pad-only sizes);
+  sizing, not storage or protocol, is its lever. One seed only.
+- Step 5, storage_pass.sh end to end on an unseen case (xorshift T3 sizes, seed 2): base 56.57 ns -> search picks the
+  same three knobs -> predicted 35.64, measured 39.38 (1.44x vs 1.59x predicted), same cycle, EQUIVALENT. The miss is
+  the inserted merge-output link (3.9 ns on the cycle measured). The graph under-charges inserted stages' wire by ~1-3
+  ns (p12, pmf seed 4, here): structure is predicted, the number needs the build.
+Next: (1) the owner's decision on the protocol table (two-phase bound 1.4-1.8x vs storage 1.0-1.3x); (2) gcd: sizing on
+  its rising pass (corner_audit, select-safe) -- the graph says nothing else is left there; (3) a per-inserted-stage wire
+  term for whatif, fitted on some builds and tested on the others, before trusting predicted magnitudes.
+### progress 12:20 (negative: a constant per-inserted-stage wire term does not help; the graph's held-out error)
+- research/tools/eventgraph/fit_stage_wire.py: whatif's stage_wire (extra ps on every input arc of an inserted stage)
+  fitted on the 16 second-latch builds (x0.5 seeds 1-4: p8, all3, mo, p8mo) and tested unchanged on the 23 step-4 builds
+  (pmf, ipowfm, colb, col cd+link, colfm). Train is best at 0 (mean |err| 0.71 ns, max 1.38); larger terms only hurt it.
+  At 0 the held-out set has mean error -0.71 ns (the graph optimistic), mean |err| 1.38, max 3.13 ns; 500 ps would make
+  it +0.23 / 1.13 but is not what the training data supports. Default kept at 0. Held-out accuracy of the graph, as it
+  stands: within ~1.4 ns per route on 30-70 ns periods (2-5%), optimistic by ~0.7 ns on average.
+### progress 12:15 (collatz64, item 12's design: graph exact on 4 seeds; PREDICTION before the variant builds)
+- c64 (BDC_CONST_DATA, collatz64_sizes_T4cdb_bench.vh = item 12), n = 6171 (261 steps), seeds 1-4: 66.07 / 65.91 / 60.84 /
+  65.00 ns, graph check PASS (145 arcs). Floors 41.4-45.6 ns.
+- search.py picks BDC_LINK_FASTFALL + merge-output link on all four: PREDICTED 57.44 / 56.44 / 51.96 / 56.90 ns
+  (1.150 / 1.168 / 1.171 / 1.142x, mean 1.16). Given the held-out bias (graph ~0.7 ns optimistic), expect ~1.14x.
+  Variant builds c64fm 1-4 running.
+### progress 12:45 (collatz64 step 4 measured as predicted; a 4th constant-D flop gap; its gate started)
+- c64fm (item 12 + BDC_LINK_FASTFALL + merge-output link) seeds 1/2/4: 54.85 / 56.16 / 57.54 ns vs predicted 57.44 /
+  56.44 / 56.90; over item 12's design 1.205 / 1.174 / 1.130 (mean 1.17, predicted 1.15 on these three). 261 steps,
+  EQUIVALENT. Seed 3: C5FF without C5FFMUX (ffmux_scan; the 11-08 kind). Four such routes in ~60 built this session
+  (pmf 2 AFF, ipowfm 7 BFF, c64fm 3 C5FF): ~7%. Every board recipe now carries the ffmux_scan step; the nextpnr fix
+  (owner item since 11-08) is worth doing.
+- Gate queued: c64fm seeds 1, 2, 4-9 x 3 corners, 14 vectors (n up to 63728127, 949 steps; oracle from collatz.c).
+  collatz64 sims are slow (~10 h for 24 runs last time); partial results go to gate/results_raw.txt as they land.
+### progress 17:10 (collatz64 gate 18/18 PASS so far; 5 runs lost to OOM after a container restart, rerunning)
+- c64fm gate: seeds 1, 2, 4-7 x 3 corners = 18/18 PASS 14/14 (up to 949 collatz steps). Seeds 8/9 runs after a container
+  restart reported FAIL 0/14 with 0 cycles: not results -- iverilog was OOM-killed (dmesg) because sims started BEFORE
+  the restart were still running (the restart did not kill them) next to three new lanes. Those lines were removed; seeds
+  8 and 9 rerun on one lane after killing every leftover vvp/ivl. Lesson: after a restart, check for surviving jobs
+  before starting new ones.
+- Itercost periods c64fm seeds 5-9: 57.33 / 54.99 / 57.14 / 55.65 / 58.05 ns.
+### progress 17:20 (new PROGRAM FIRST, owner 2026-11-12 db2c8f53: xorshift at 15 ns per iteration in four-phase)
+- Read on the pull that brought it in (the push was rejected by the owner's commit; the lock was still this session's).
+  The event-graph lead moves to Done; the collatz64 gate's last 6 runs finish in the background (item for the board list
+  if 24/24). Starting step 1: the budget from the graph on item 14's routes (pmf seeds 1, 3-9): falling arcs on the
+  critical and near-critical cycles, each delay on the rising ring against its data's worst need, each req/ack wire
+  against an adjacent-cell wire. Report: research/data/fifteen/README.md.
+### progress 18:00 (15 ns lead, step 1 budget done; first new lever predicted: a latch on the merge fork's result branch)
+- research/tools/fifteen/budget.py on item 14's 8 routes (research/data/fifteen/budget_pmf_*.txt): period 28.5-32.4 ns;
+  return-to-zero on the cycle 9.9-12.7 ns; delay removable under the rules 1.4-2.5 ns (mostly select paths the select
+  rule keeps); handshake-wire removable (to the graph's 10th-percentile wire) 1.9-3.2 ns. All three taken: 16.7-17.7 ns.
+  Not under 15: what blocks is the counter ring's rising logic (uaddi0's i+1 needs 4.9 ns with guard -- its worst settle
+  over the run, 3.8 ns, exceeds its on-cycle delay 2.85 ns: to be checked -- and ucmpi1 3.1) and the handshake hops.
+- No storage edit with existing knobs helps item 14 (21 candidates, all singles and pairs: 0 ps). The cycle closes
+  through the merge-output fork ucontrol_merge0_f: its ack waits for the loop-control join ucond_br9_j, which waits for
+  the whole counter computation, so the select token's RTZ rides the counter's rising pass. The graph: one bd_link on
+  that fork's RESULT branch (n_result -> ucond_br9_j) removes it.
+- bdc/emit.py BDC_MERGE_RES_LINK=<merge> (new, opt-in): that link (control token: W 1, DELAY STAGE_PAD 3, DACK 0).
+  Default output byte-identical on gcd/xorshift/collatz/collatz64/ipow/isprime; simcheck PASS on xorshift with it alone
+  and with item 14's knobs.
+- PREDICTION (item 14 + BDC_MERGE_RES_LINK=ucontrol_merge0), from each pmf graph: 21.85 / 21.87 / 23.10 / 23.57 ns
+  (seeds 1/3/4/5; 1.33 / 1.35 / 1.40 / 1.21x over item 14). With PROGRAM's +1-3 ns for an inserted stage's wire:
+  expect 23-26 ns. Building seeds 1, 3, 4, 5.
+### progress 18:40 (BDC_MERGE_RES_LINK measured: 23.37 / 23.40 ns on seeds 1, 3 -- 1.25x over item 14; disk filled)
+- item 14 + BDC_MERGE_RES_LINK=ucontrol_merge0, itercost stack: seed 1 23.37 ns (predicted 21.85; +1.52, inside the
+  23-26 expected with the inserted-stage wire), seed 3 23.40 (21.87; +1.53). cd3132bf, EQUIVALENT, graph check PASS,
+  ffmux_scan clean. Over item 14's same seeds: 29.14 -> 23.37 (1.247x), 29.54 -> 23.40 (1.262x). Over x0.5: 1.67x / 1.73x.
+- Seeds 4 and 5 lost their trace dumps to a full disk (817 MB left: this session's dumps, netlists and gate dirs, 27 GB).
+  Freed 11 GB from finished runs (graphs and logs kept); seeds 4, 5 rerunning. The collatz64 gate's seed-8 run was
+  compiled at 17:10, possibly while the disk was filling; if it does not PASS cleanly it is rerun, not read.
+### progress 19:05 (lever 2: BDC_RING_COUNT_OLINKS -- the ring-storage pipe on the cycle becomes one stage; prediction)
+- After the result-branch latch the critical cycle (pmfr seed 1, 23.37 ns) has NO polarity change: it is the counter
+  ring's rising pass, 86% wire (delay chains 16.1 ns of which 13.7 wire; handshake hops 7.3 of which 6.5 wire). Stages:
+  ucmpi1 5.2, ulink_n30__1 2.7, uaddi0 2.8, olink 2.5, ulink_n12__0 2.4, ulink_n_trueResult_12 2.4 (a 3-stage pipe),
+  merge 2.1, umux0 1.5, ucond_br9(_j) 1.2, ulink_n7 0.5.
+- The 3-stage pipe is ring_depths()'s floor for the simple cycle merge -> fork -> join -> steer -> pipe -> merge, whose
+  only storage it was. The olink and rlink now sit on that cycle. bdc/emit.py BDC_RING_COUNT_OLINKS=1 (opt-in, default
+  byte-identical on all six kernels) lets ring_depths count them: the pipe becomes one bd_link (W 1, RFAST under
+  fast fall); nothing else changes in the emitted kernel; simcheck PASS. RING_MIN_STAGES still holds on every cycle.
+- PREDICTION (by hand from pmfr seed 1's cycle; whatif has no stage-removal edit): the pipe's 2.4 ns on the cycle -> one
+  C-element hop, ~0.7 ns: -1.6 to -1.8 ns -> ~21.6-21.8 ns on seeds 1 and 3. Building pmfrc seeds 1, 3, 4, 5.
+### progress 19:45 (lever 2 measured; lever 3: BDC_FORK_OUT_LINK on the rounds fork -- prediction)
+- pmfr seed 4 (lever 1): 24.12 ns (predicted 23.10; item 14's 32.42 -> 1.34x). Seed 5 still re-running.
+- Lever 2 (BDC_RING_COUNT_OLINKS: the 3-stage pipe on the counter ring becomes one link): seed 1 23.37 -> 22.95, seed 3
+  23.40 -> 21.99 ns (predicted ~21.7). Less than predicted on seed 1 because the cycle moved: the next ring binds, the
+  loop-invariant `rounds` ring (umux2 -> ulink_n11__1 -> ucmpi1 -> ucond_br8 -> pipe -> ufork4 -> ulink_n12__2), with the
+  same coupling as before: fork ufork4's ack waits for the steer ucond_br8's join, which waits for the compare, and
+  umux2's select link waits on that ack (polarity changes ufork4 -> ulink_n12__2).
+- bdc/emit.py BDC_FORK_OUT_LINK=<chan> (opt-in; default byte-identical on all six kernels): one bd_link on a named fork
+  output channel (DELAY STAGE_PAD 3, DACK ACK_PAD 6 for data). With n11__0 (fork ufork4 -> steer ucond_br8's data):
+  simcheck PASS with all knobs.
+- PREDICTION (graph of pmfrc seeds 1/3 + that link): 21.21 / 20.60 ns, no polarity change, the cycle back on the counter
+  ring; with +1-3 ns for the inserted stage: 22-24 ns. Building pmfrcf seeds 1, 3, 4, 5.
+### progress 20:10 (lever 3 measured: 19.86 / 20.64 ns on seeds 1, 3 -- under 20; its gate started)
+- pmfr seed 5: 23.43. pmfrc seeds 4/5: 20.01 / 21.97. pmfrcf (all three levers): seed 1 19.86 ns (predicted 21.21),
+  seed 3 20.64 (20.60); cd3132bf, EQUIVALENT, graph check PASS, ffmux_scan clean on every pmfr* route.
+- From item 14 on the same seeds (29.14 / 29.54): 1.47x / 1.43x. From x0.5: 1.97x / 1.97x.
+- research/data/fifteen/README.md started (the lever table). Full gate of the lever-3 build running (seeds 1, 3-9 x 3
+  corners); seeds 6-9 building.
+### progress 20:40 (lever 3's budget: the rising pass is what is left; lever 4 = placement, prediction)
+- pmfrcf seed 1 (19.86 ns): logic 4.69, excess 8.30, routing 5.03, handshake 0.68, RTZ 1.17; floor (no polarity
+  change) 19.45. Delays against the rules: uaddi0 3.41 on the cycle vs need 5.44 (worst settle 4.20 / 0.772; min margin
+  -0.79 ns at some load -- the same open question as on item 14), ulink_n30__1 1.77 vs 2.40, ucmpi1 3.63 vs 3.79,
+  olink 1.46 vs 1.06, ulink_n12__0 1.81 vs 1.91, umux0 0.91 (select rule). Nothing to shrink: what is left is wire.
+- Lever 4: placement. build_bench.sh used RLOC v2 while flow.sh moved to the spine variants (v8: the cycle carried in
+  one rigid group). build_bench.sh now passes BD_PLACE_WEIGHT / BD_COLUMN_ROWS to rloc_stamp.py when set (unset: the
+  command line is unchanged). Runs: pmfrcf + BD_RLOC=v8; + BD_RLOC=v4; + BD_PLACE_WEIGHT=8 (v2); seeds 1, 3.
+- PREDICTION (from the wire budget, not the graph -- placement is outside the graph's model): the cycle's handshake wires
+  (5.03 ns) toward the adjacent-cell value (~2.5) -> 17.5-18.5 ns if a variant achieves adjacency; a spine variant also
+  shortens delay-chain elements, which shortens the delays in ns -- the gate, not speed, decides that one.
+### progress 21:20 (lever 4, placement: negative on seed 1; lever 5: BDC_NO_LINK on the counter ring -- prediction)
+- Placement variants on the lever-3 build, seed 1: RLOC v4 20.55 ns, BD_PLACE_WEIGHT=8 (v2) 20.89 -- both slower than
+  v2's 19.86; RLOC v8 (spine) cannot place the bench design ("Unable to find legal placement", not seed noise). Seed 3
+  variants queued. Negative so far: the existing placement knobs do not shorten this ring's wires.
+- bdc/emit.py BDC_NO_LINK=ulink_<chan>[,...] (opt-in; default byte-identical on all six kernels): drops named links
+  before ring_depths(), which still enforces every ring's floor (it deepens another link, or refuses). Removing
+  ulink_n30__1 (rule-1 site between the i+1 adder and the compare): nothing else changes, simcheck PASS. Removing
+  ulink_n7 as well (umux0 -> adder): ring_depths deepens ulink_n_trueResult_6 2 -> 3; simcheck PASS.
+- PREDICTION (by hand from pmfrcf's cycles; no removal edit in whatif): ulink_n30__1 is 2.44 ns on seed 1's cycle
+  (C-element + 4-element rdly); without it the compare reads the adder's output directly (+~0.3 ns wire): -2.0 ns ->
+  ~17.9 (s1), ~18.6 (s3). Also without ulink_n7 (0.53 on the cycle): ~-0.4 more, unless the deeper trueResult_6 pipe
+  is on the cycle. Building nl30 and nl307 on seeds 1, 3. Rule-1 links exist so tighten.py can measure: correctness of
+  these variants is the full gate's to decide.
+### progress 22:10 (lever 5 measured: 18.45 / 17.64 ns; placement mixed; ulink_n7 removal rejected)
+- BDC_NO_LINK=ulink_n30__1 on the lever-3 build: seed 1 18.45 ns (predicted ~17.9; lever 3 19.86), seed 3 17.64
+  (~18.6; 20.64). cd3132bf; seed 3 decodes NOT_EQUIVALENT of the benign GND-buffer F7 kind (checked); ffmux clean.
+- Also dropping ulink_n7: 21.96 ns on seed 1 -- ring_depths deepens ulink_n_trueResult_6 (2 -> 3) and that pipe is on
+  the cycle. Rejected.
+- Placement on lever 3, seed 3: v4 18.75, PW8 19.72 (vs 20.64); seed 1: v4 20.55, PW8 20.89 (vs 19.86). Within the
+  route-to-route spread; not adopted without more seeds. v8 does not place on either seed.
+- From item 14: seed 1 29.14 -> 18.45 (1.58x), seed 3 29.54 -> 17.64 (1.67x). Gap to 15 on these two routes: 3.5 / 2.6.
+- Next: lever 5 on seeds 4-9 and its gate (rule-1 removal: the gate decides correctness); lever 3's gate is running.
+### progress 23:00 (lever 3 on 8 routes 20.55 ns mean; lever 5 on 7 routes 18.42 mean; gates 29/29 so far)
+- Lever 3 (pmfrcf), seeds 1, 3-9: 19.86 / 20.64 / 20.91 / 21.36 / 19.58 / 21.36 / 20.39 / 20.70 ns, mean 20.60 (item 14
+  30.0): 1.46x. Lever 5 (nl30), seeds 1, 3-8: 18.45 / 17.64 / 18.71 / 20.15 / 18.72 / 17.37 / 17.95, mean 18.43; seed 9
+  pending. Best route 17.37 ns.
+- Gates (all PASS so far): collatz64 c64fm 21/24, lever 3 6/24, lever 5 2/24.
+### progress 23:50 (lever 5: 8 routes, mean 18.69; what blocks 15)
+- nl30 seed 9: 20.53 ns. 8 routes: 18.45 / 17.64 / 18.71 / 20.15 / 18.72 / 17.37 / 17.95 / 20.53, mean 18.69 (item 14
+  30.0 -> 1.61x). Seeds 5 and 9 bind on a new coupling (fork ufork8 -> ulink_n7: the compare branch of the adder's fork
+  lost its storage with the rule-1 link). Graph: a latch with no request delay back on it moves -1.0..+0.6 ns by seed;
+  a latch on the steer branch (n30__0) does not help. Not a lever.
+- What remains (seeds 1, 3): add 2.75 + compare 4.71 in series (sized to worst settle), merge 2.82, merge-output link
+  2.13, select link 2.77. research/data/fifteen/README.md "Where it stands". 15 needs ~3.5 ns more, from cell-level
+  levers (fused add+compare, a carry-chain delay that tracks the adder, fewer stages between merge and umux0).
+### progress 00:40 (lever 6: the compare computes i+1 < rounds from i -- a duplicated add fused into it; prediction)
+- research/tools/fifteen/dup_add.py rewrites xorshift's frontend MLIR: fork i, give cmpi1 its own `addi i, 1` (with its
+  own constant), drop fork8 (the add now feeds only the loop-carry steer). bdc unchanged: it fuses the copy with the
+  compare into bdc_fused_ucmpi1 (one region, one delay), and rule 1 puts links on both outputs of the new fork
+  (ulink_n7d__0/__1, sized as the old ulink_n7: DELAY 0 default, UACK 0). The rule-1 link between add and compare
+  (ulink_n30__1) disappears with the edge. simcheck PASS with levers 1-3.
+- Sizes: research/data/xorshift_sizes_T3s50_dup_bench.vh = x0.5 with UCMPI1 = 9 + 6 (compare + add elements): the
+  fused region's delay covers both, an upper bound (no shortening). Lever 5 (BDC_NO_LINK) is not used here.
+- PREDICTION (by hand from pmfrcf's cycle; the graph has no fusion edit): add 3.41 + link 2.44 + compare 3.92 = 9.8 ns
+  on seed 1's cycle become one region of 15 elements (~5.4 ns) + its join (~0.7): -3.7 ns -> ~16.2 (s1), ~17.0 (s3),
+  unless the loop-carry ring (umux0 -> add -> steer -> pipe -> umux0, which also waits for the compare) binds first.
+  Building dup seeds 1, 3, 4, 5.
+### progress 01:30 (lever 6 measured: 20.86 / 20.35 ns -- slower, because its delay is the safe upper bound)
+- dup seeds 1/3 (lever 3 + dup_add, UCMPI1 = 15 elements): 20.86 / 20.35 ns (predicted ~16.2 / 17.0; lever 3 19.86 /
+  20.64). cd3132bf; seed 3 decode NOT_EQUIVALENT (check pending). The cycle moved to merge -> olink -> ulink_n12__2 ->
+  umux2 (rounds) -> ulink_n11__1 -> fused compare (7.1 ns) -> steer: the fused region's 16 elements are 6.3-6.4 ns
+  while its data's worst settle in the run is 2.2-2.6 ns (the fused i+1<rounds is faster than the old compare alone,
+  2.9). So the structure works and the size is the blocker: the prediction assumed a fused size near its need.
+- Sizing it properly = corner_audit.py on soak-top routes of the dup design (the established per-cell flow), then the
+  gate. Not done this session. Recorded as blocked in research/data/fifteen/README.md.
+### progress 02:20 (two gates complete: xorshift levers 1-3 24/24 -> board item 17; collatz64 24/24 -> item 16)
+- Lever-3 xorshift (pmfrcf) seeds 1, 3-9 x 3 corners: 24/24 PASS 17/17, 7/8 EQUIVALENT (seed 6 benign F7), ffmux clean.
+  BOARD-QUEUE item 17 / #18 (seed-1 sdf e88b0712): 20.60 ns mean per iteration on the itercost stack (item 14 30.0).
+- collatz64 c64fm seeds 1, 2, 4-9: 24/24 PASS 14/14, 6/8 EQUIVALENT (5, 9 benign F7). Item 16 / #17 (sdf 2c06cd36).
+- Lever-5 gate (nl30) 14/24, all PASS so far.
+### progress 03:30 (lever 5 passes the full gate 24/24 -> board item 18: xorshift 18.69 ns per iteration)
+- nl30 seeds 1, 3-9 x 3 corners: 24/24 PASS 17/17; 6/8 EQUIVALENT (3, 6 benign F7); ffmux clean. BOARD-QUEUE item 18 /
+  #19 (seed-1 sdf c6519c91). Best gated xorshift now 18.69 ns mean (17.37-20.53): from item 14 1.61x, from x0.5 2.11x;
+  Dynamatic 12.73. Gap to the owner's 15: 3.7 ns.
+- Where the next ns are (research/data/fifteen/README.md): lever 6 (fused i+1<rounds) needs its delay sized by
+  corner_audit on soak-top routes (its logic settles in 2.2-2.6 ns vs the 6.3 ns delay the safe size gives); the
+  seeds that bind on the ufork8 -> ulink_n7 coupling (5, 9) lose ~2 ns to it.
+### progress 03:55 (the other kernels: lever 1 found by the search everywhere; PREDICTION before building)
+- search.py --new-knobs (latches on fork outputs, incl. a merge fork's result branch) re-finds lever 1 on xorshift and picks
+  BDC_MERGE_RES_LINK=ucontrol_merge0 alone on collatz (item 15), ipow (item 13) and collatz64 (item 16): the period goes
+  to each one's no-polarity-change floor. PREDICTED (graph of each gated route; +1-3 ns inserted-stage wire expected):
+    colb s1 59.58->49.47; s2 58.44->48.56; s3 56.26->46.85; s4 58.35->48.58
+    ipowfm s1 46.84->39.28; s2 45.02->38.71; s3 46.04->38.73; s4 45.24->38.94
+    c64fm s1 54.85->44.92; s2 56.16->45.56; s4 57.54->47.96; s5 57.33->47.93
+  Building each kernel's item + BDC_MERGE_RES_LINK on those seeds.
+### progress 04:40 (lever 1 on the other kernels, measured on seeds 1-2: collatz 1.24x, ipow 1.16x, collatz64 1.19x)
+- item 15 + BDC_MERGE_RES_LINK (colr): 47.56 / 47.84 ns (predicted 49.47 / 48.56; item 15 59.58 / 58.44): 1.25 / 1.22x.
+- item 13 + it (ipowr): 39.78 / 39.97 (39.28 / 38.71; item 13 46.84 / 45.02): 1.18 / 1.13x.
+- item 16 + it (c64r): 46.95 / 46.37 (44.92 / 45.56; item 16 54.85 / 56.16): 1.17 / 1.21x.
+- All correct (261 steps, 3^(2^31-1)), EQUIVALENT, graph check PASS. Seeds 3-4 running; the three gates queued next.
+  Against Dynamatic: collatz ~47.7 vs 14.05, collatz64 ~46.7 vs 17.84 (README), ipow ~39.9 vs no number on record.
+### progress 05:50 (disk full again; the lever-1 builds after seeds 3 and the first colr/ipowr gate runs discarded)
+- /home/user/runs reached 100% (trace dumps, gate netlists): every job after ~05:00 failed at once (36 gate "results"
+  for colr/ipowr were FAIL from no space -- discarded, never read as results). Freed 13 GB; 15 builds restarted from
+  scratch; a janitor now deletes finished runs' dumps and gate netlists every 5 min. Kept: colr_3 48.10 ns, ipowr_3
+  38.78, ipowr_5 37.96 (graph checks PASS).
+### progress 06:35 (lever 1 on the other kernels, 8 routes each: collatz 1.20x, ipow 1.17x, collatz64 1.18x)
+- colr (item 15 + BDC_MERGE_RES_LINK) seeds 1-8: 47.56 / 47.84 / 48.10 / 48.47 / 49.08 / 49.17 / 49.17 / 51.46 ns, mean
+  48.86 (item 15 on the same seeds 58.49): 1.20x. Dynamatic 14.05.
+- ipowr seeds 1-8: 39.78 / 39.97 / 38.78 / 38.07 / 37.96 / 39.74 / 38.22 / 40.62, mean 39.14 (item 13 ~45.8): 1.17x.
+- c64r seeds 1, 2, 4-8: 46.95 / 46.37 / 46.01 / 47.75 / 46.88 / 51.23 / 47.98, mean 47.60 (item 16 ~56.4): 1.18x; seed 9
+  pending. Dynamatic 17.84.
+- ffmux_scan clean on all of them. Gates running (collatz, ipow, collatz64; 8 routes x 3 corners each).
+### progress 08:25 (ipow + result-branch latch passes the full gate 24/24 -> board item 19)
+- ipowr seeds 1-8 x 3 corners: 24/24 PASS 17/17 (4 benign F7/CARRY4 decodes), ffmux clean. BOARD-QUEUE item 19 / #20
+  (seed-1 sdf a6a2951b): 39.14 ns mean, 1.17x over item 13. collatz 14/24 and collatz64 3/24 so far, all PASS.
+### progress 09:10 (lever 6 rejected on static sizing)
+- tighten.py rule A on dup seed 1 (nextpnr SDF): bridge_i.udut.ucmpi1 (the fused add+compare) latest output 7.55 ns,
+  PAD to 17 elements -- above the 15 used. The measured 2.2-2.6 ns settle is data-dependent (small i, short carries);
+  the static worst path is what a matched delay must cover. Lever 6 cannot gain under the rules; cashing it would need a
+  data-dependent delay (carry-chain completion detection), a new cell. research/data/fifteen/README.md updated.
+### progress 09:30 (collatz + result-branch latch passes the full gate 24/24 -> board item 20)
+- colr seeds 1-8 x 3 corners: 24/24 PASS 13/13 (3 benign F7 decodes), ffmux clean. BOARD-QUEUE item 20 / #21 (seed-1
+  sdf 44536c3c): 48.86 ns mean, 1.20x over item 15. collatz64's gate 7/24 so far, all PASS.
+### progress 11:15 (collatz64 + result-branch latch 24/24 -> board item 21; all of step 5's gates done)
+- c64r seeds 1, 2, 4-9: 24/24 PASS 14/14 (seeds 5, 9 benign CARRY4/F7), ffmux clean; mean 47.64 ns (item 16 56.46: 1.19x).
+  BOARD-QUEUE item 21 / #22 (sdf 29655e86). research/data/fifteen/README.md: the per-kernel table.
+- Session total, board items added: 13-21 (ipow, xorshift x3, collatz x2, collatz64 x2, ipow). Best gated per iteration:
+  xorshift 18.69, collatz 48.86, ipow 39.14, collatz64 47.64 ns.
+Next: (1) levers 2/3/5 (ring-floor counting, fork-output latches, rule-1 link removal) on the other kernels, by the graph;
+  (2) xorshift's last ~3.7 ns: a data-dependent (carry completion) delay cell for the loop add+compare, or fewer stages
+  between the merge and umux0 -- both cell-level, need the owner's rule for changing cells; (3) commit the soak-top /
+  corner_audit flow so per-cell sizing of new structures is reproducible.
+### progress 11:45 (storage is spent on collatz, ipow, collatz64 after lever 1)
+- search.py --new-knobs on colr_1 / ipowr_1 / c64r_1: base == floor (no polarity change), no edit gains. Rising pass by
+  stage in research/data/fifteen/README.md: datapath delays (uselect0, uaddi0, ushrsi0) and compares, plus the select
+  links the select rule keeps. Their next gains are in sizing and cells, not storage.
+### progress 12:20 (lever 7: drop the select link ulink_n12__0 (umux0's select) -- prediction; the gate decides)
+- After lever 5 the counter ring's select path is merge -> olink (2.1 ns) -> fork -> ulink_n12__0 (2.8 ns) -> umux0. The
+  olink already latches the same index token; ulink_n12__0 is a rule-1 site on a select channel. BDC_NO_LINK=
+  ulink_n30__1,ulink_n12__0: nothing else changes in the emitted kernel; simcheck PASS. The select rule (never shorten a
+  select path) exists because of two traced select races (ipow umux3, collatz64 ulink_n14__1): this removes a select
+  link outright, so only the full gate (all corners, 8 routes) can accept it, and any failure is traced before reading.
+- PREDICTION (by hand from nl30's cycles): -2.0 to -2.4 ns -> ~16.4 (s1), ~15.5 (s3). Building nl3012 seeds 1, 3, 4, 5.
+### progress 07:58 UTC (lever 7 rejected: dropping the select link re-couples the merge fork)
+- nl3012 (levers 1-3 + BDC_NO_LINK=ulink_n30__1,ulink_n12__0), nextpnr 9c732bc6303458df, itercost stack: seed 1
+  19.41 ns, seed 3 20.42 ns (odata cd3132bf both, the C value; seed 3's fasm_equiv difference is the benign constant
+  F7BMUX decode kind). Lever 5 on the same seeds: 18.45 / 17.64. PREDICTION was 16.4 / 15.5: wrong in sign.
+- Why (graph): with ulink_n12__0 gone, ucontrol_merge0_f's select branch has no storage, so its acknowledge waits for
+  umux0 again; the cycle changes polarity at ucontrol_merge0_fF -> ucontrol_merge0_olinkR (and ufork8R -> ulink_n7F) and
+  runs through the rounds ring (ulink_n12__2 3.3, ulink_n11__1 3.0, ucmpi1 4.7 ns). The link I removed was the storage
+  that kept the merge fork decoupled -- the by-hand prediction counted only its forward delay. Not gated (slower, and it
+  would also remove a select-path link). Seeds 4, 5 finish for the record.
+### progress 07:59 UTC (lever 5 on the other kernels: drop one rule-1 link on the rising cycle -- predictions)
+- After lever 1 each kernel's binding cycle has no polarity change (colr_1 / ipowr_1 / c64r_1 reports). Rule-1 links
+  between two datapath ops on it: collatz64 ulink_n30__1 (uselect0 -> ucmpi2, 2.28 ns on the cycle), collatz
+  ulink_n28__1 (uselect0 -> ucmpi2, 0.93), ipow ulink_n31__1 (ushrsi0 -> ucmpi2, 0.77). Next-worst cycles without them
+  are >= 3 ns away (34.7 / 47.5 [uses ulink_n10__2, not n28] / 32.1), and each op keeps its own matched delay, so the
+  removal saves the link's forward pass only. ring_depths re-deepens if a ring drops below 3 stages (checked in the
+  emitted Verilog).
+- PREDICTION (seed 1): collatz64 46.95 -> ~45.2; collatz 47.56 -> ~46.8; ipow 39.78 -> ~39.2. Seeds 1, 3 first; 8
+  routes and the full gate only if both seeds gain.
+### progress 08:00 UTC (lever 8: drop the merge's output link, keep the select link -- prediction)
+- Lever 7's lesson: the merge fork's branches each need storage. The other stage between the merge and umux0 is the
+  olink (BDC_MERGE_OUT_LINK, 2.13 ns on lever 5's s1 cycle). With levers 1 and 3 both fork branches already latch
+  (rlink, ulink_n12__0). Dropping it (lever 5's knobs minus BDC_MERGE_OUT_LINK): emit diff = olink gone, and
+  ring_depths deepens ulink_n_trueResult_12 to a 2-stage pipe (the counter ring loses the olink's count), so a stage
+  moves rather than vanishes. Risk: the arbiter's output RTZ follows its input's (why the olink exists).
+- PREDICTION (by hand): -2.1 + ~1.2 (the pipe's second stage, if on the cycle) -> -0.6 to -1.0 ns: ~17.6 (s1), ~16.9 (s3).
+  If the arbiter re-couples, slower than lever 5. Seeds 1, 3.
+### progress 08:18 UTC (lever 5 on the other kernels: first seeds; lever 7's last seeds)
+- lever 7 seeds 4, 5: 19.52 / 18.42 (lever 5: 18.71 / 20.15). 4-seed mean 19.44 vs lever 5's 18.74 on the same seeds:
+  rejection stands.
+- collatz64 - ulink_n30__1, seed 1: 43.45 ns (c64r_1 46.95), odata 0x105 (C), fasm EQUIVALENT, emit diff = only that link
+  (no deepening); cycle unchanged in shape, no polarity change. Better than the -1.75 predicted (uaddi0 and ulink_n14__0
+  also routed shorter: scatter, so more seeds).
+- collatz - ulink_n28__1, seed 1: 47.51 ns (colr_1 47.56): the link left the cycle but uselect0 routed 0.9 ns longer.
+  Seed 3 decides whether it is a lever.
+### progress 08:27 UTC (lever 8 seed 1; lever 9 from its graph -- two new opt-in knobs, prediction)
+- lever 8 (lever 5 minus BDC_MERGE_OUT_LINK) seed 1: 18.31 ns (lever 5 s1 18.45), odata cd3132bf, EQUIVALENT. Predicted
+  ~17.6: the counter ring's own R-only floor did fall to 16.33, but two couplings bind 0.1 ns apart: the rounds ring
+  through ulink_n11__0_folink's falling request (3.47 ns; the folink has no RFAST -- BDC_LINK_FASTFALL never reached
+  fork-output links) and the arbiter (ucond_br9 R -> ucontrol_merge0_rlink F -> merge F -> ulink_n_trueResult_12 R: the
+  olink's original reason, now through the result latch).
+- Graph (nlo_1): fastfall:folink alone -117 ps; + depth:ucontrol_merge0_rlink 17.32 (-0.99; next is ufork8 -> ulink_n7,
+  lever 5's coupling); + a 1-element latch on n30__1 17.11 (but that is lever 5's link back: not pursued).
+- bdc/emit.py: BDC_FORK_OUT_FASTFALL=1 (RFAST on fork-output links), BDC_MERGE_RES_DEPTH=N (the result latch as an
+  N-stage bd_pipe; ring_depths counts N). Unset: byte-identical on gcd, xorshift, collatz, collatz64, ipow, isprime.
+  With depth 2 counted, ring_depths no longer deepens ulink_n_trueResult_12 (variant 9a); 9b forces it back to 2
+  (BDC_LINK_DEPTHS), the graph's exact edit. simcheck PASS on both.
+- PREDICTION seed 1: 9b ~17.4 (17.32 + up to 0.3 for the new stage's wire, which is off the binding cycle); 9a not
+  modelled (removes a stage from the counter floor, but the control ring merge -> rlink(2) -> steer -> trueResult_12 has
+  only its 3 stages): 16.8-18.0. Seeds 1, 3 of each.
+### progress 08:30 UTC (collatz64 lever 5: seed 3 confirms -> 8 routes + full gate; lever 8 seed 3)
+- c64nl_3: 45.28 ns, odata 0x105, EQUIVALENT (c64r has no seed 3; c64r 8-route mean 47.64, range 46.01-51.23). With
+  seed 1 (43.45 vs 46.95) both seeds are below every lever-1 route but one. Building seeds 2, 4-8 and gating all 8
+  (SLOW_MAX / FAST_MIN / worst+M, C-derived oracle c6414).
+- lever 8 seed 3: 19.03 ns (lever 5 s3 17.64; NOT EQUIVALENT = benign constant-CARRY4 DI kind). Lever 8 alone is mixed
+  (-0.14 / +1.39); it stays only as lever 9's base.
+### progress 08:45 UTC (lever 9 seed 1; collatz lever 5 seed 3)
+- lever 9 seed 1: 9a 17.76, 9b 17.86 ns (lever 5 s1 18.45, lever 8 s1 18.31), odata cd3132bf, EQUIVALENT. Predicted 9b
+  ~17.4: right direction, 0.46 short. Seeds 3 running.
+- collatz - ulink_n28__1 seed 3: 45.92 (colr_3 48.10): -2.2 ns, where seed 1 gained nothing. Building seeds 2, 4-8 and
+  gating all 8. collatz64 seed 2: 44.51 (c64r_2 46.37).
+- (Timestamps of this session's progress entries corrected to the commit times; I had written them ~40 min ahead.)
+### progress 08:50 UTC (lever 9c: size the fork-output latch's acknowledge line -- prediction)
+- l9a_1's cycle: ucond_br8 R -> ulink_n11__0_folink ctl F -> its uack chain, 6 elements falling (2.6 ns) -> ufork4 ->
+  ulink_n12__2. 6 is ACK_PAD, the placeholder every new link gets before tighten sizes it (the rule-1 links' UACK in
+  T3s50 are 0 or 1). tighten.py rule H on l9a_1 (raw nextpnr SDF): "tighten to 2" (margin 2381 ps); on nl30_1: 0 links.
+  Sized to 3 (largest need seen + 1) in research/data/xorshift_sizes_T3s50_l9_bench.vh; the full gate decides.
+- PREDICTION (graph, three chain hops zeroed): 9a s1 17.76 -> 16.65; 9b 17.86 -> 17.70. Building 9c = 9a + this size,
+  seeds 1, 3.
+### progress 08:58 UTC (lever 9 seed 3: seed-sensitive, not adopted; ipow lever 5 seed 3)
+- seed 3: 9a 21.20, 9b 18.05 ns (lever 5 s3 17.64), odata cd3132bf, EQUIVALENT. 2-seed means: 9a 19.48, 9b 17.96, lever 5
+  18.05. l9a_3's cycle is lever 5's own coupling at full strength: ucond_br7 -> trueResult_8 -> ufork9 -> ufork8 ->
+  ulink_n7 -> uaddi0 -> ucmpi1, with ufork8 R->ulink_n7 F and back (the adder fork's compare branch has no storage since
+  lever 5, so the fork's return-to-zero rides the compare). With trueResult_12 single (9a) nothing else slows the
+  counter ring enough to hide it. 9b's 0.1 ns is within scatter: not a lever. 9c (uack 3) is not on that cycle: only
+  its seed 1 runs, as a check of the graph's 16.65 prediction.
+- What would free it is storage on n30__1 with no request delay (graph, nlo_1: 16.73), i.e. lever 5's link back at
+  zero DELAY. A bd_link's DELAY is rule A/B's to size, not mine to set; noted, not built.
+- ipow - ulink_n31__1 seed 3: 38.20 (ipowr_3 38.78); seed 1 39.55 (39.78). -0.4 ns mean on 2 seeds, under scatter:
+  not pursued until collatz/collatz64 gate.
+## Session 2026-11-13 22:15 UTC -- (in progress) lever 5 on collatz/collatz64 re-run after the lost session; xorshift lever 9c
+Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.sh fingerprint PASS)   Seeds: per lane
+### progress 22:15 UTC (lock taken; the previous session's runs died with its container)
+- Lock of session_01HC49FvPDSuteFcADNgtDWm was 13 h old (dead). Its in-flight work (collatz64 and collatz lever 5 on 8
+  routes + gate, lever 9c seed 1) left no outputs: /home/user/runs is not persistent. Re-running all of it.
+- research/tools/fifteen/lane.sh: one worktree per lane (/home/user/runs/wt/L*), bench build + itercost stack + graph;
+  writes research/data/eventgraph/graphs/NAME. The itercost one-vector files are now committed
+  (research/data/fifteen/vec_*.hex: collatz/collatz64 n=6171, xorshift 92d68ca2 x256, ipow 3^(2^31-1)).
+- Audit row (575be223, OVERSTATED): accepted. Seed 3's lever-5 gain on collatz64 is 0.90 ns paired against the audit's
+  own c64r_3 (46.19), not ~2.4 against the 8-route mean. From now on every per-seed gain in this lead is quoted paired
+  (same seed, both arms), and the 8-route claim only from 8 paired routes.
+### progress 22:25 UTC (collatz64 lever 5 on 6 paired routes: -0.5 to -6.0 ns; lever 9c not a lever; lever 10 predicted)
+- c64nl (item 22 + BDC_NO_LINK=ulink_n30__1), paired against item 22's per-seed periods (BOARD-QUEUE #22): s1 43.45 vs
+  46.95, s2 44.51 vs 46.37, s4 43.29 vs 46.01, s5 45.68 vs 47.75, s6 46.40 vs 46.88, s7 45.23 vs 51.23 ns; every one
+  odata 0x105 (C), ffmux clean; s2, s7 fasm_equiv NOT EQUIVALENT (kind to be checked as for the earlier items). Seeds
+  8, 9 running, then the gate. Seed 1 reproduced its earlier route (sdf aac8ef27, 43.45).
+- nl30_1 rebuilt: sdf c6519c91 = item 18's gated route, 18.45 ns: the lane flow reproduces.
+- Lever 9c (9a + rule H's uack 3 on the fork-output latch), seed 1: 17.66 ns (predicted 16.65; 9a 17.76, lever 5 18.45).
+  -0.1 against 9a: not a lever, and 9a itself was 21.20 on seed 3. Lever 9 closed.
+- Where lever 5's seed-1 cycle goes (graph arcs.tsv): 41 arcs, 18.45 ns = wire 15.82 + cell arcs 2.63. Delay-chain hops
+  (27 elements: n12__0 5, uaddi0 6, ucmpi1 9, merge 3, olink 4) 10.68 ns; handshake hops 7.77 ns (~19 hops, ~410 ps
+  each). tighten.py on the same route: uaddi0 / ucmpi1 rule A margins -2.0 / -1.4 ns at the nextpnr SDF (they cannot
+  shrink; the full gate passed them), merge "tighten to 1" but it drives the select channels (not touched: select rule),
+  umux0's select +2.7 ns (select link: not touched).
+- Lever 10: PLACE_WEIGHT on the counter ring's handshake nets only (BD_PLACE_WEIGHT_CELLS, 42 nets, x16; lever 4's PW8
+  weighted all 267). PREDICTION (lever 5 seed 1 18.45): handshake hops ~410 -> ~300 ps would be -2.1 ns, the data nets
+  pull back, so -0.5 to -2.0: s1 ~17.3 (16.5-18.0); s5/s9 (the ufork8 coupling) gain less. Seeds 1, 3, 5, 9.
+### progress 22:51 UTC (lever 10 negative on 2 seeds; collatz: corner_audit on bench routes, PREDICTION 47.5 -> 39.1)
+- Lever 10 (PLACE_WEIGHT x16 on the counter ring's 42 handshake nets), paired with lever 5: s1 19.70 vs 18.45, s3 17.83
+  vs 17.64. s1's cycle moved to the rounds ring (ulink_n12__2, umux2, ulink_n11__1 + the shared compare/steer/merge),
+  which the weighting pulled apart; the counter ring itself went to 19.05, not down. Variant 10b (both rings weighted,
+  45+ nets) on s1, s3 queued; seeds 5, 9 of 10 finish for the record.
+- collatz64 lever 5 seeds 8, 9: 45.95 (item 22 s8 47.98), 45.98 (47.95). Full gate running (8 routes x 3 corners).
+- collatz lever 5 (colnl): s1 47.51 (colr 47.56), s2 46.30 (47.84), s5 47.46 (49.08).
+- research/tools/corner_audit.py --prefix bridge_i.udut.: the per-cell worst-corner sizing (the flow behind T3cdb /
+  T4cdb) now runs on a kernel bench route (lane dirs: pnr/soak_xray.sdf = the itercost xray.sdf, soak_routed.json, the
+  route's sizes). Default (uut.) unchanged. On colnl_1 (worst corner, select paths never shortened): uaddi0 18 -> 9
+  (A' 209 ps left), uselect0 23 -> 13 (A 180 ps left), ucontrol_merge0 5 -> 1, ucontrol_merge1 9 -> 1, uaddi1 10 -> 9,
+  n1__1 2 -> 1; pads umux2 2 -> 11 (rule A -1473 ps at this corner), ulink_n7/n8 UACK 1 -> 2, n8 / trueResult_4 SDELAY
+  1 -> 2. ucmpi2 kept (16). umux2 and merge1 have no periodic node in the graph (off the loop).
+- PREDICTION (graph of colnl_1, each line's chain hops scaled new/old): 47.51 -> 39.11 ns, same cycle (n loop: n14__0,
+  umux0, uaddi0, uselect0, ucmpi2, steer, merge, olink) -- 1.21x. Inserted-stage wire does not apply (no new stage).
+  Next: corner_audit on colnl seeds 2-5, per-cell max (pads included), build seeds 1-8 at those sizes, gate.
+### progress 23:08 UTC (lever 10 closed: placement weighting is seed-sensitive; collatz64 lever 5 on 8 paired routes 1.057x)
+- Lever 10b (PLACE_WEIGHT x16 on both rings that bind, counter and rounds): s1 17.79 (lever 5 18.45), s3 18.61 (17.64).
+  With 10 (19.70 / 17.83): every variant gains on one seed and loses ~1 ns on the other. Not a lever. Lever 4 (lever
+  3 + v4 / PW8) was the same. Closed: the placer has no objective for the ring's period, so weights move the problem.
+- collatz64 lever 5 (c64nl), all 8 routes, paired with item 22 (same seeds): 43.45/46.95, 44.51/46.37, 43.29/46.01,
+  45.68/47.75, 46.40/46.88, 45.23/51.23, 45.95/47.98, 45.98/47.95: mean 45.06 vs 47.64 (1.057x), every seed faster
+  (-0.48 to -6.0 ns). s2 / s7 NOT EQUIVALENT = the benign B6LUT-constant -> F7AMUX kind (checked in equiv.txt).
+  Gate: c64nl_1 SLOW_MAX PASS 14/14 EQUIVALENT; 23 runs to go.
+- An OOM kill (5 sims + 2 compiles at once) and an edit to fullstack_dump.sh under running lanes cost colnl_3/4's first
+  runs (re-running; no result read from them). fullstack_dump.sh's iverilog is now under the same compile lock as
+  build_ps.sh, so at most one compile runs at a time.
+- corner_audit on collatz lever-5 routes (worst corner): s1 uaddi0 18->9, uselect0 23->13; s2 12 / 15; s3 10 / 16; merges
+  -> 1 on all; ucmpi2 kept; pads on off-loop lines (umux2 2 -> 7..11). Seeds 4-8 running; the build takes the per-cell
+  max over 8 routes.
+### progress 23:40 UTC (GOAL 1: xorshift lever 5 = board item 18 ON HOLD -- a static violation the gate cannot see)
+- Container restart at ~23:15 killed every job; /home/user/runs survived. Restarted the c64nl gate (1/24 done: s1
+  SLOW_MAX PASS), colnl_3 and the corner_audit queue.
+- corner_audit (worst corner, measured-residual guards) on nl30_1 (lever 5, = item 18's gated route c6519c91) asks
+  uaddi0 6 -> 27 for rule E at ucond_br6 (-3556 ps). skew.py (rule E) on the plain nextpnr SDF: ucond_br6 -4651 ps RAW
+  (-7126 guarded): the steer's request (via the add + compare matched delays, earliest 4.58 ns) beats its select (the
+  adder's carry chain then the compare's, latest 9.23 ns) launched from ulink_n7. The same route at lever 3 (pmfr3_1,
+  rebuilt = item 17's sdf e88b0712): +1699 ps raw (launch ulink_n30__1, compare only). So dropping ulink_n30__1 put the
+  adder's static worst carry in series with the compare inside one bundle that the delays do not cover.
+- Why the full gate passed 24/24: xor17's rounds are <= 1000, so i+1 carries at most 10 bits; the long path needs a carry
+  through most of the 32 bits. The xorshift datapath toggles every bit by design, the counter does not. No vector the sim
+  can afford (2^16+ rounds) reaches it, so the static rule is the only evidence there, and it fails at nominal.
+- Action: BOARD-QUEUE list item 18 (#19) ON HOLD; research/data/fifteen headline back to item 17 (20.60 ns, gap 5.6).
+  collatz / collatz64 lever 5 checked the same way: colnl_1/2 worst raw rule E +1.92/+2.13 ns, c64nl_1/2 +1.53/+1.77 ns
+  (their gate vectors also span wide data); those continue.
+- Lesson for every link-removal lever: check rule E/A statically at nominal on the paths whose data range the gate's
+  vectors do not span (loop counters), before reading the gate. Lever 9 (built on lever 5) inherits the hold.
+### progress 23:41 UTC (open goal-1 question: the x0.5 xorshift counter adder is statically short; nothing exercises it)
+- The same check on item 17's route (pmfr3_1 = sdf e88b0712), nominal nextpnr SDF, tighten.py rule A: uaddi0 req 4054 vs
+  peak 5524 (-1.47 ns raw, -2.20 guarded), ucmpi1 -1.02 raw, ucmpi0 -1.10 raw; uxori1/2 and umux3 also negative. At the
+  worst corner with the measured-residual guards (corner_audit): uaddi0 A' -752 ps (asks 6 -> 11); ulink_n30__1 is bound
+  by rule E at ucond_br6 with 238 ps left. Adding the two (the latch is transparent, so a late sum passes through it):
+  about -0.5 ns end to end at the worst corner for a full-length counter carry, about +0.2 ns at nominal. That is a sum
+  of two measurements, not one measured path.
+- The xors are exercised by the gate (every output bit depends on many input bits, by design); uaddi0 / ucmpi0 / ucmpi1
+  work on the loop counter and rounds, which the gate's vectors keep below 1000. So for the whole x0.5 xorshift family
+  (board list items 4, 11, 14, 17), correctness at rounds >~ 1024 rests on these static numbers, which are thin to
+  negative. This predates this session (the uniform x0.5 shrink); recorded here because it is now measured. Not put on
+  hold: the board judges (loop_cost.sh) use their own round counts, which I have not checked yet -- next.
+- Checked: cells/hw/loop_cost.sh / gen_bench.py mask xorshift's rounds to 12 bits on the board bench (DOMAIN_RESTRICTIONS),
+  so every board run of the xorshift items keeps i < 4096 (carries <= 12 bits), against the gate's <= 10. The static
+  worst cases above are for full 32-bit carries, which the board bench cannot produce either. So: the board items stay
+  meaningful for the bench's domain, but none of the x0.5 xorshift kernels is shown correct for a general 32-bit rounds.
+  Item 18's hold stays (its -4.65 ns raw is large enough that a 12-bit carry may already reach it; not quantified).
+  Owner-facing summary is in research/data/fifteen/README.md's headline.
+### progress 00:01 UTC (collatz: per-cell sizes from 8 bench routes -- PREDICTION before building)
+- corner_audit (worst corner, residual guards, select paths never shortened) on colnl seeds 1-8; per-cell max
+  (research/tools/fifteen/max_sizes.py) -> research/data/collatz_sizes_T3cdb_nl_bench.vh: uaddi0 18 -> 12 (routes
+  9/12/10/11/8/9/10/9), uselect0 23 -> 16 (13-16), ucontrol_merge0 5 -> 1, merge1 9 -> 1, n1__1 UACK 2 -> 1; pads umux2
+  2 -> 11, ulink_n7/n8 UACK 1 -> 2, n8 / trueResult_4 SDELAY 1 -> 2. ucmpi2 kept 16 everywhere.
+- PREDICTION (each colnl graph, chain hops scaled new/old), ns: s1 47.51 -> 41.30, s2 46.30 -> 41.11, s3 45.92 -> 40.56,
+  s4 47.21 -> 41.47, s5 47.46 -> 41.82, s6 46.39 -> 40.47, s7 47.40 -> 41.82, s8 49.24 -> 43.02; mean 47.18 -> 41.45
+  (1.14x over collatz lever 5, ~1.18x over item 20 48.86). A re-route moves the cycle by its scatter (+-1.5 ns).
+- collatz64 lever 5 gate: 4/24 PASS so far (s1 max/min, s6 min); s6 max lost to my own directory cleanup at the restart
+  (re-queued). Building colsz (collatz lever 5 + these sizes) seeds 1-8 next.
+### progress 00:22 UTC (second container restart ~00:05; collatz per-cell sizes: first 2 routes match the prediction)
+- Restart killed all jobs again; queue scripts now skip finished items (results.txt / gate_results.txt / ca done.txt).
+  colnl_3's rerun finished before it (graph 45.92 ns; recovered from the committed graph).
+- colsz (collatz lever 5 + collatz_sizes_T3cdb_nl_bench.vh): s2 40.65 ns (predicted 41.11; colnl_2 46.30, colr_2 47.84),
+  s3 39.70 (predicted 40.56; colnl_3 45.92, colr_3 48.10). odata 0x105 (C), ffmux clean; s2 NOT EQUIVALENT kind to check.
+  s1 does not build: the bench's clocked harness closes at 82.88 MHz < 83 (build_bench refuses; not the kernel) -- seed 9
+  replaces it, as seed 3 does for collatz64.
+### progress 01:02 UTC (collatz per-cell sizes on 8 routes: 40.33 ns mean, 1.22x over item 20; gates running)
+- colsz seeds 2-9 (s1's harness misses 83 MHz): 40.65 / 39.70 / 40.32 / 39.26 / 41.26 / 40.65 / 39.42 / 41.38 ns, mean 40.33
+  (predicted 41.45 from the colnl graphs, every seed within 1.2 ns). Paired on seeds 2-8: colnl 47.13 -> 40.18 (1.17x),
+  colr (item 20) 49.04 -> 40.18 (1.22x). All odata 0x105, ffmux clean; s2/s5 NOT EQUIVALENT = benign F7 kind (s2 checked).
+  rule E raw at nominal (skew.py): colsz_2 worst +2.25 ns, colsz_3 no violation. Dynamatic 14.05.
+- Gates: colsz_2 24-run gate started, 3/3 PASS so far (13/13 each); c64nl 5/24 PASS (s1 all three corners, s6 min).
+### progress 01:05 UTC (owner rule 2026-11-14: full input range. Plan, and how "the static check" is defined)
+- Read PROGRAM's new rule (bead13d7). Order of work from now: (1) re-baseline the x0.5 xorshift family on item 17's
+  structure (lever 3); (2) mark BOARD-QUEUE items bench-range-only vs full-range; (3) the other kernels' counters and
+  compares; (4) a data-dependent (speculative-completion) delay for i+1. The collatz / collatz64 gates already running
+  continue in the background and get the same static check before any of them becomes a board item.
+- The static check, as I apply it (a decision; recorded so it can be overruled): rules A / A' / E (tighten.py,
+  skew.py via corner_audit.py, every path is its static worst, so the longest carry is included) at two corners, both
+  with the measured-residual guards the sizing flow has used since PROGRAM item 3 (E 0.97 x req vs 1.03 x sel; A
+  max(3% t, 50 ps)): NOMINAL = every arc at the calibrated band 0.288 (corner_audit --uniform 0.288, new), and WORST =
+  the gate's worst column (delay chains 0.21, CARRY4 / F7F8 / FF at 1, rest 0.288). Not used as the gate: the 2025-era
+  20% / 8.5%-scatter guards of plain tighten.py / skew.py on nextpnr's SDF -- on item 17's route nearly every line of the
+  design, holds included, fails those, including lines the gate exercises. I report the plain-nextpnr numbers alongside.
+- Sizing: corner_audit at both corners on 4+ lever-3 routes (seeds 1, 3-6, rebuilding), per-cell max over every
+  proposal (both corners), never shortening select paths; then build 8 routes, re-run the check on the new routes, gate.
+### progress 02:02 UTC (xorshift full-range re-baseline: sizes from 5 routes x 2 corners -- PREDICTION before building)
+- Item 17 rebuilt on seeds 1, 3-6 (pmfr3_*: 19.86 / 20.64 / 20.91 / 21.36 / 19.58 ns, the README's per-seed numbers; sdf
+  of s1 e88b0712 = item 17's). corner_audit at NOMINAL (uniform 0.288) and WORST on each; per-cell max over the 10
+  proposals -> research/data/xorshift_sizes_T3s50_fr_bench.vh: counter uaddi0 6 -> 13 (per proposal 11/6/8/6/9/6/13/9/
+  10/6: the worst corner binds, A'); ucmpi0 / ucmpi1 / ulink_n30__1 stay (12 / 9 / 4, bound by rule E with margin);
+  datapath uxori1 2 -> 7, uxori2 3 -> 7, umux3 1 -> 14 (A / A' at both corners -- the x0.5 shrink was short there too,
+  statically; the gate exercised them); merge0 3 -> 2; link SDELAY/UACK pads (rules H / I).
+- PREDICTION (each pmfr3 graph, chain hops scaled): s1 19.86 -> 22.04, s3 20.64 -> 22.61, s4 20.91 -> 22.99, s5 21.36 ->
+  23.50, s6 19.58 -> 21.19; ~ +2.0 ns, i.e. ~22.6 mean against item 17's 20.60. Cycle unchanged (counter ring).
+- Gates in progress: colsz 9/24 PASS (+1 INFRA: ivl OOM-killed, re-queued), c64nl 9/24 PASS.
+### progress 02:03 UTC (speculative completion read; design notes; a question for the owner)
+- research/data/fifteen/speculative.md: for i+1 the abort condition must cover the carry DISCHARGE of the previous
+  increment too: abort = low k bits of i all 0 OR all 1 (one LUT; 2/2^k of iterations). The compare i+1 < rounds gets
+  no short case from it (the borrow ripples through the equal high bits every time).
+- QUESTION FOR THE OWNER: inside the loop i + 1 <= rounds always holds, so i + 1 < rounds <=> i + 1 != rounds, a LUT
+  tree with no ripple. Is rewriting the loop compare that way inside the "loop lowering stays as it is" rule? Not done.
+- BOARD-QUEUE: new "Full-input-range status" section; x0.5 xorshift items marked bench range only.
+### progress 02:23 UTC (xorshift full-range: first two routes)
+- xfr (item 17's knobs + xorshift_sizes_T3s50_fr_bench.vh): s1 22.52 ns (predicted 22.04; item 17 s1 19.86), s3 23.58
+  (22.61; 20.64). odata cd3132bf; s3 NOT EQUIVALENT kind to check. ~+2.8 ns over item 17 on these two seeds.
+- Gates: colsz 12/24 PASS, c64nl 10/24 PASS; static check (both corners) running on the colsz routes.
+### progress 02:52 UTC (xfr 6 routes; static check of colsz: merges at size 1 are 9-60 ps short on 1 of 2 routes)
+- xfr s1, 3-7: 22.52 / 23.58 / 23.34 / 22.82 / 23.30 / 21.78 ns (item 17 same seeds 19.86 / 20.64 / 20.91 / 21.36 / 19.58 /
+  21.36). s3/s4/s7 NOT EQUIVALENT to check. Static check and gate (gqE) queued on the xfr routes.
+- Static check on the sized collatz routes: colsz_3 clean at both corners (no kernel A/A'/E below 0); colsz_2 rule A on
+  ucontrol_merge0 (size 1) -60 ps worst / -9 ps nominal, merge1 -17 ps worst. The merge's index path is exercised by
+  every loop entry and exit in the gate (26 per run), so under the owner's rule the gate covers it; still, if more routes
+  show it, colsz gets merges back at 2 (about +0.4 ns) before it becomes a board item.
+### progress 02:55 UTC (xorshift full range, 8 routes: 22.79 ns mean; the cost of the full range on record)
+- xfr seeds 1, 3-9: 22.52 / 23.58 / 23.34 / 22.82 / 23.30 / 21.78 / 21.60 / 23.36 ns, mean 22.79 (item 17, same seeds: 20.60):
+  +2.19 ns (item 17 is 1.106x faster, on the bench's range only). odata = C on all. Gate (xor17) running.
+- Static check on xfr_1: kernel A/A'/E below 0: ucontrol_merge1 (size 1) A -153 ps worst / -121 nominal; tighten's
+  bundled-channel row "a" for ucmpi1 -928 / -139 (the row corner_audit reports but does not size: it drops the upstream
+  link's lead; A' is the sized one). Decision: the merge index is a 1-bit path that every vector's loop entry and exit
+  exercises, so under the owner's rule (static check for paths the vectors do NOT span) the gate covers it. Recorded
+  rather than rebuilt; if the owner wants every A clean regardless, merges go back to 2 (~+0.4 ns each design).
+- Next kernel under the check: ipow (item 19's build, seeds 1-4, both corners).
+### progress 03:45 UTC (gates progressing; ipow static check running)
+- Gates: colsz 15/24 PASS (+1 INFRA re-queued), c64nl 12/24 PASS, xfr 2/24 PASS (s1 SLOW_MAX / FAST_MIN 17/17). No FAIL.
+- ipowr_1 rebuilt = item 19's route (sdf a6a2951b, 39.78 ns); ipowr_2 39.97. corner_audit both corners running on 1-4.
+- Machine at load 8-12 (3 gates + builds + corner_audit workers on 4 cores): everything is CPU-bound, so it only adds
+  latency; memory stays under the limit since the one-compile-at-a-time lock.
+### progress 03:45 UTC (static check: colsz clean on 5 more routes; xfr needs a second round -- umux0)
+- colsz_3..7 static check: no kernel A/A'/E below 0 at either corner (colsz_2 had only the merge index, -60 ps).
+- xfr_5: umux0 (the counter's mux, size 1) rule A -62 ps worst / -35 ps nominal. Its slowest bit is a high bit of i,
+  which the vectors never toggle, so under the owner's rule this must hold statically: not covered. xfr_4 and xfr_1 do
+  not show it. tighten's "a" row for ucmpi1 (-1.0 / -0.3 ns) is the pairing that drops ulink_n30__1's 4-element lead;
+  A' (the sized form) holds -- I take A' as rule A, as corner_audit has since it was written.
+- So xfr goes through another per-cell round (static check on all 8 xfr routes, both corners; per-cell max; rebuild,
+  check, gate). Its gate (2/24 PASS) is stopped: those routes are superseded. colsz's second gate lane restarted.
+### progress 04:05 UTC (ipow under the static check: only umux3, on a path the gate spans)
+- ipowr_1 (= item 19's route a6a2951b): kernel A/A'/E below 0 only at umux3 (the loop result mux, size 3): A -1715 ps
+  worst / -1624 nominal. ipow's loop runs on e (shift right to 0), and the gate's ipow17 vectors include e = 2^31 - 1,
+  so the loop-control range is spanned; umux3 carries the result, whose bits the vectors toggle widely. So item 19 is
+  not "bench range only" under the rule; but a 1.7 ns static miss at NOMINAL on a mux is the same family as the traced
+  umux3 empty-pipe select race (JOURNAL 2026-11-10). Flagged for the owner; not held. Seeds 2-4 still checking.
+### progress 04:55 UTC (xfr static check on all 8 routes: two rule-A shortfalls; xfr2 = + umux0 2, merge1 2 -- PREDICTION)
+- Kernel A / A' / E below 0 on the 8 xfr routes at either corner: only xfr_5 umux0 (-62 / -35 ps) and xfr_1 merge1 (-153 /
+  -121 ps); xfr_3, 4, 6-9 clean (A' basis). The corner_audit pad loop for hold rules H / I diverged on several routes
+  (link UACK 66-108, uxori1 6125): not used. research/data/xorshift_sizes_T3s50_fr2_bench.vh = fr + umux0 1 -> 2 +
+  merge1 1 -> 2 (merge1 back to the x0.5 base).
+- PREDICTION: umux0 is on the counter ring once per iteration, one element: +0.3 to +0.45 ns -> ~23.1-23.2 ns mean
+  (xfr 22.79). The graph scaler cannot model it (a 1-element chain has no internal hop). Building seeds 1, 3-9.
+### progress 04:57 UTC (owner answers: umux3 needs an explanation; the != test is a frontend knob)
+- Rebased onto the owner's two PROGRAM commits (ad4b0eac, 134e11b1).
+- ipow umux3 (A -1624 ps nominal on item 19's route): tighten's row pairs the y-join's request (umux3.uj1) at t=0 with
+  the SELECT latch's data (ulink_n_index_15 stage[1] lat, "upstream link data lag 1384 ps") at t=0, "no common source".
+  But bd_mux's join is C(y_req, ctl_req.s): uj1 cannot fire before the select link's request, which leaves the same C
+  node as that latch's enable and then runs the link's DELAY line. From that common launch, rule E on the same mux gives
+  +3607 ps (sel pin 764 ps vs req 4530 ps). So the candidate false path: the select latch's data -> umux3 data LUTs,
+  timed against a request that structurally waits for the select's own delayed request. Showing it with a trace now
+  (ipowr_1, every net dumped; per-iteration select-pin settle vs uj0/uj1 rise at umux3).
+- Frontend knob: Dynamatic is not built in this container (no dynamatic-opt / translate-llvm-to-std; the fixtures
+  stop at the MLIR), so the handshake-MLIR diff the owner asks for cannot be produced here. A Dynamatic build is
+  hours of LLVM and has not survived this session's hourly container restarts. Next: write the knob (opt-in, default
+  byte-identical) and check its LLVM-level effect with the system clang / opt 18; the MLIR diff waits for a Dynamatic
+  build (BOARD-QUEUE-style item for a session with one, or the owner's machine).
+- xorshift fr2 (umux0 2, merge1 2) building on 8 routes; collatz / collatz64 gates continue.
+### progress 04:59 UTC (4th container restart ~04:55; frontend knob BDC_FE_EXITCOND written, checked at the LLVM level)
+- Restart killed everything again; relaunched: xf2 builds (8 routes), the colsz and c64nl gates (one lane each), the
+  ipowr_1 full-dump run for the umux3 trace. ipow static check (routes 2-4) waits for its routes.
+- bdc/frontend.sh step 4b, opt-in BDC_FE_EXITCOND=1 (unset: step skipped, outputs unchanged): one indvars +
+  simplifycfg on step 4's output with data layout "e-n32", stripped again. Checked with system clang/opt 18 (Dynamatic's
+  pragma plugin and source-rewriter are not here, so these .ll are close to but not the frontend's): xorshift
+  `icmp slt i32 %10, %1` -> `icmp ne i32 %10, %1` (no smax: the loop is already guarded by 0 < rounds); collatz,
+  collatz64, ipow byte-identical; isprime: a one-input phi folded, the inner increment loses nuw nsw, an exit phi's
+  operand order changes. indvars alone (without simplifycfg) also added a preheader block and an LCSSA phi on every
+  kernel: simplifycfg removes them.
+- NOT done here, needs a Dynamatic build: the handshake MLIR diff per kernel, simcheck with rounds 0 / 1 / INT_MAX,
+  the static check over the full range, the gate. Every later step of the frontend (translate-llvm-to-std,
+  dynamatic-opt) is Dynamatic's.
+### progress 05:00 UTC (the != exit test on xorshift, built here without Dynamatic -- assumption stated)
+- research/data/fifteen/xorshift_exitcond_handshake_transformed.mlir = the xorshift fixture with cmpi1 `slt` -> `ne`.
+  ASSUMPTION: BDC_FE_EXITCOND's only LLVM-level change on xorshift is that predicate (checked above), and Dynamatic
+  lowers ops one-to-one, so its handshake MLIR differs from the fixture in that predicate only. To be confirmed by a
+  real frontend run (needs Dynamatic).
+- bdc emits ucmpi1 as z = ~(a == b): an equality tree, no carry chain. simcheck PASS on both MLIRs with two new
+  xorshift vectors, rounds = -1 and INT_MIN (0 iterations: the != test is only correct behind the entry test
+  rounds > 0, which these exercise). rounds = INT_MAX is 2^31 iterations, out of reach of any sim; the static check
+  covers it (the compare's static worst case is now short).
+- xne pass 1: lane2.sh (MLIR_OVERRIDE) with fr2 sizes (ucmpi1 still 9 elements, sized for the carry compare), seeds 1,
+  3, 4, 5. PREDICTION: ~ the same as xf2 (~23.1 ns): only the compare's data got faster, not its delay. Then the static
+  check sizes ucmpi1 for the equality tree; that is where the time comes back.
+### progress 05:23 UTC (umux3 trace, run 1; xf2 / xne first routes)
+- ipowr_1 full dump, the itercost vector (3^(2^31-1), two runs): umux3's output request (net n5225, the LUT after its
+  3-element chain) rose 3567 ps after the last change of any of the 33 LUTs that read the select. But in this run the
+  select (n4719) changed only at start-up and j0 never fired: every transaction took y. So it does not exercise the
+  case the rule names. Re-running with research/data/fifteen/vec_ipow_selflip.hex (e = 0 / 5 / 0 / 7 / 0 / 31
+  alternating), which flips the select between x and y on every transaction.
+- xf2 (fr + umux0 2, merge1 2): s1 22.93, s3 23.07, s4 23.40 ns (xfr 22.52 / 23.58 / 23.34): within scatter, as
+  predicted (+0.3-0.45 expected; the cycle moved). xne pass 1 (!= test, fr2 sizes): s1 22.79, s3 23.73 -- as predicted,
+  no gain yet (ucmpi1 still 9 elements).
+### progress 05:33 UTC (ipow umux3: the false path named and shown with a trace -- item 19 stays)
+- Full dump of item 19's route (ipowr_1, sdf a6a2951b) on research/data/fifteen/vec_ipow_selflip.hex (e = 0 / 5 / 0 / 7 /
+  0 / 31; each run twice, so umux3's select flips between x and y on every transaction; odata 1 / f3 / 1 / c90f7 / 1 /
+  4b5f6a2b = the C values, 3^31 mod 2^32 = 0x4b5f6a2b). At every one of the 12 output requests (7 select flips):
+  the select data (n_index_15 latch) changes; the select link's request rises 3385 ps later (its own delay line); the
+  mux join (j0 or j1) fires 462-587 ps after that; the output request rises >= 3575 ps after the last change of any of
+  the 33 LUTs that read the select.
+- So tighten's rule A row for umux3 (-1624 ps nominal / -1715 worst) times the select latch's data from t=0 against a
+  request that structurally cannot fire until the select link's request has arrived, which trails that same data by
+  the link's delay line (3.4 ns in this run; rule E from the common launch +3.6 ns statically). That is the false path.
+  The data the request actually bundles settles >= 3.6 ns before it on every transaction traced. Item 19 stays on the
+  list (PROGRAM 2026-11-14: "name the false path ... and show it with a trace").
+### progress 05:35 UTC (the farm: three 32-route requests, every check per route)
+- Read research/cluster/README.md (owner, c5a0f210). farm_check was "submitted" at 05:24.
+- research/tools/fifteen/eval_task.sh: one route = build + itercost period + graph (lane2.sh), the static check at
+  nominal and worst (corner_audit, measured-residual guards; kernel A / A' / E below 0, tighten's "a" row listed apart),
+  and the 3-corner gate, in parallel. Requests (8 cores, 32G, 240 min, seeds 1-32 each):
+  fxf2 (xorshift full-range round 2, fr2 sizes, item 17's knobs), fcolsz (collatz lever 5 + per-cell sizes),
+  fc64nl (collatz64 lever 5). Each comes back as eval.txt per seed: the distribution the owner asks for (median, worst,
+  routes passing the static check and the gate).
+- Local runs continue (they overlap the farm's seeds 1-9, which serves as a cross-check of the farm's routes).
+### progress 05:42 UTC (the != exit test buys one element: the steers' select fanout binds the compare)
+- corner_audit on xne_1 (fr2 sizes + != test): ucmpi1 9 -> 8 at WORST (rule E at ucond_br8, 120 ps left), 6 at nominal.
+  The equality tree itself is short; what bounds the compare's delay is rule E at the loop steers: the one condition
+  bit fans out to the select pins of six 32-bit steers (ucond_br4-9), and the latest of those arrivals is the cost.
+  So on xorshift the != rewrite is worth ~1 element (~0.4 ns) at the worst corner. Lever this exposes: replicate the
+  loop condition per steer (or per steer group) so no one net carries the whole broadcast -- the "replication for
+  control inputs" lead from PROGRAM's goal-2 list.
+- uaddi0 at nominal would go 13 -> 9 on this route; the worst corner keeps 13 (the counter's CARRY4 at SLOW_MAX).
+- research/data/xorshift_sizes_T3s50_fr2ne_bench.vh (fr2 + ucmpi1 8); farm request fxne (32 routes, every check).
+### progress 05:42 UTC (CORRECTION to the previous entry)
+- Wrong: "the condition bit fans out to the select pins of six 32-bit steers". bd_steer reads its select in one control
+  LUT and passes data by wire (ufork9 -> four steers, one LUT each). What binds ucmpi1 at the worst corner (rule E at
+  ucond_br8, 120 ps left) is the equality tree's own data path from the ulink_n30__1 latch (32-bit routing into the
+  tree, ~3 LUT levels) against the compare's delay line, whose elements the worst corner runs at the fast 0.21 band
+  while that routing sits at 0.288. So the "replicate the condition" lever does not apply here; withdrawn.
+### progress 07:03 UTC (farm: fcolsz back, 31 routes -- gate 93/93, static clean on 24/31, merges at 1 the only miss)
+- The farm reproduces local routes exactly (fcolsz_2: sdf a48aaf17, 40653 ps, identical static rows). farm_check done.
+- fcolsz (collatz lever 5 + per-cell sizes), seeds 1-32 (seed 1: harness misses 83 MHz, no build): period median 41.01
+  ns, mean 40.86, best 39.22, worst 42.33 (31 routes); item 20 is 48.86 (8 routes), Dynamatic 14.05. Gate: 93/93 PASS
+  (13/13 each, SLOW_MAX / FAST_MIN / worst+M). Static check: 24/31 CLEAN at both corners; 7 routes miss rule A on a
+  control merge's index with the merge at size 1 (worst -140 ps, nominal -108). All 8 colnl routes had proposed 1 --
+  the owner's point about routes not tried, again. Per-route table: research/data/fifteen/farm/fcolsz.tsv.
+- fcolsz2: merges back at 2 (research/data/collatz_sizes_T3cdb_nl2_bench.vh), farm request, 32 routes. If its static
+  check is clean everywhere it becomes the collatz board candidate; expected cost ~+0.4 ns per merge on the cycle.
+### progress 08:04 UTC (farm: fxf2 back -- ONE GATE FAILURE: seed 1 FAST_MIN 6/17)
+- fxf2 (xorshift full range, round 2 sizes, item 17's knobs), seeds 1-32: 28 routes built (14, 29: harness misses 83
+  MHz; 7, 11: farm task failed in 10 s, no output -- rerun under a new name). Period median 23.29 ns, mean 23.29, best
+  20.86, worst 24.94. Static check CLEAN at both corners on 26/28; seed 1: umux2 rule A -6 nominal / -42 worst; seed 23:
+  ucmpi1 A -226 worst. Gate 83/84: **seed 1 FAST_MIN FAIL 6/17** (SLOW_MAX and worst+M pass). Seed 1's route is the same
+  as local xf2_1 (sdf dc138ea2). Table: research/data/fifteen/farm/fxf2.tsv (research/tools/fifteen/farm_table.py).
+- xfr seed 1 (round 1 sizes, umux0 1, merge1 1) passed FAST_MIN 17/17 locally; round 2 changed umux0 and merge1 and so
+  the route. Reproducing the failing run locally now to trace it before anything else. xorshift has no full-range
+  candidate until this is explained.
+### progress 08:37 UTC (fxf2 seed 1 FAST_MIN failure: reproduced; it is the loop count; umux2 ruled out)
+- Local rerun of xf2_1 FAST_MIN (same route dc138ea2): FAIL 6/17, deterministic. Every failure is an early exit:
+  rounds 4 -> the 3-round value, 8 -> the 4-round value, 5 / 16 / 32 / 64 / 128 / 200 / 256 / 100 / 1000 wrong; rounds
+  0-3, 3, 17 right. So the counter / compare / exit path misfires, the class the full-range rule is about.
+- corner_audit --fast-min on that route: the only kernel rule A / E below 0 is umux2 (the rounds mux) -41 ps (it was
+  also the route's only nominal / worst miss). Test: umux2's request path lengthened by 500 ps in the SDF only (same
+  netlist and route; annot.sdf differs in exactly that arc): still FAIL 6/17, identical cycle count. Not umux2.
+- Tracing now: full dump at FAST_MIN on rounds = 4 (fullstack_dump.sh takes DUMP_FIELD=min; default unchanged).
+### progress 09:08 UTC (farm: fc64nl and fcolsz2 back)
+- fcolsz2 (collatz lever 5 + per-cell sizes, merges at 2): 28 routes built (18: harness < 83 MHz; 2, 13, 19: farm task
+  gave no eval -- infrastructure; 11: eval incomplete). Period median 41.15 ns, mean 41.22, best 38.85, worst 43.26.
+  Gate 81/81 PASS. Static CLEAN at both corners on 27/27 evaluated. Merges at 2 cost +0.14 ns median against fcolsz.
+  This is the collatz board candidate (BOARD-QUEUE entry next). Item 20: 48.86 (8 routes).
+- fc64nl (collatz64 lever 5): 30 routes, median 45.21 ns, mean 45.16, best 42.46, worst 47.09 (item 22: 47.64). Gate
+  90/90 PASS. Static: 0/30 clean -- umux2 rule A -1.3 to -2.5 ns at nominal on EVERY route (size 1, from T4cdb, as in
+  board items 16 / 21 / 12). tighten's row is the same pairing as ipow's umux3: request from umux2.uj1 at t=0 against
+  the select link ulink_n_index_11's latch data at t=0, "no common source"; rule D from the shared launch +5.6 ns.
+  Under the owner's rule (>0.5 ns at nominal on a board item) it needs the trace: running on c64nl_1 with
+  research/data/fifteen/vec_c64_selflip.hex (n = 1 / 27 / 1 / 97 / 1 / 6171: the select flips every transaction).
+### progress 09:13 UTC (xf2_1 FAST_MIN: the failure depends on the previous transaction)
+- Alone at FAST_MIN, rounds = 4 gives the right value (77b0567e). In the gate's sequence every wrong answer equals the
+  PREVIOUS vector's rounds (4 after 3 -> 3 rounds; 8 after 4 -> 4; 16 after 8 -> 8 ...): the loop compares against the
+  last transaction's rounds. So the rounds ring's entry (umux2 / its select / the value it latches) takes the stale
+  loop-back token instead of the new rounds -- the empty-pipe select-race family (ipow umux3, collatz64 ulink_n14__1).
+  The SDF experiment lengthened umux2's request, not its select path, which is consistent. Tracing rounds 3 then 4.
+### progress 09:19 UTC (xf2_1 FAST_MIN failure TRACED: the rounds loop-back pipe's request outruns its data)
+- Full dump, FAST_MIN, rounds 3 then 4 (reproduces: the second returns the 3-round value). At the first loop-back of
+  the second transaction: ulink_n_trueResult_10 (bd_pipe N=3, SDELAY 6, the rounds value coming back to umux2.y)
+  raises req_out at 4232391 ps while its data_out still holds the previous transaction's 3; data_out bit 2 settles at
+  4233483 (+1.09 ns). umux2.j1 fires 4233291, umux2's request 4233754 with output data 0; the output settles to 4 at
+  4235721, ~2 ns after umux2's request. ulink_n11__1 latches the stale value and the compare runs against rounds = 3.
+- So: a pipe's req_out leads its data_out when it fills behind a fresh token (bd_link.v's header: the lead grows with
+  depth), and here the consumer's own delay (umux2, 1 element) does not cover it at FAST_MIN. The static check put umux2
+  only -41 ps short at FAST_MIN (-42 worst, -6 nominal): it underestimates this lag by ~2 ns. That is a gap in the
+  static check (and why the SDF test with +500 ps changed nothing). The gate caught it.
+- Also: corner_audit's FAST_MIN report flagged H -73 at ulink_n_trueResult_10 stage[1]; the H / I pad proposals I set
+  aside as "diverging" were pointing at this pipe. Running the same route with umux2's request +2.5 ns in the SDF.
+### progress 09:20 UTC (collatz64 umux2 rule-A miss: the same false path as ipow umux3, shown by trace)
+- c64nl_1 full dump on research/data/fifteen/vec_c64_selflip.hex (n = 1 / 27 / 1 / 97 / 1 / 6171, each twice; results 0
+  / 111 / 0 / 118 / 0 / 261 = the C). At all 12 output requests of umux2 (7 select flips): the select link
+  ulink_n_index_11's request rises 5748 ps after its data; the join fires 334-338 ps later; umux2's output request rises
+  >= 5877 ps after the last change of any of the 33 LUTs that read the select. tighten's row (-1.3 to -2.5 ns at
+  nominal on all 30 fc64nl routes) pairs that latch's data with uj1 at t=0, the same no-common-source pairing as ipow.
+  This covers collatz64 board items 6 / 12 / 16 / 21 too (umux2 = 1 in T4cdb / x0.75 sizes; same structure).
+- Caveat now on record: on xf2_1 the static check UNDER-estimated a real lag by ~2 ns (pipe req_out leading data_out).
+  A trace is the evidence for these explanations, not the static number.
+### progress 09:34 UTC (GOAL 1: xf2_1's FAST_MIN failure is a HOLD race the static rules do not audit)
+- Correction to the entry before last: rounds is right at the compare (4 throughout); the COUNTER is wrong. i+1 at the
+  compare reads 1, 2, then 7 (run 1) / 5 (run 2). The lengthened-umux2 tests (+0.5 / +2.5 ns) changed nothing because
+  umux2 is not involved; the "pipe req_out leads data_out" observation on ulink_n_trueResult_10 is real but harmless here.
+- Mechanism (full dump, FAST_MIN, rounds 3 then 4, second transaction, second increment): ulink_n_trueResult_6 (bd_pipe
+  N=2, the counter's loop-back: adder -> fork n30 -> branch n30__0 -> steer ucond_br6 -> this pipe -> umux0.y) opens its
+  stage-1 latch for i+1 = 2 at 4244952 ps. The adder's request returns to zero at 4245584; the next token (i = 2)
+  reaches the adder (n7) at 4246605 and its output starts moving at 4247312 (bit 2 glitches while 2 -> 3 carries). The
+  pipe latch closes only at 4249162: for 1.85 ns the adder's NEXT result flows into the latch that is supposed to hold
+  the previous one, and it settles with bit 2 set. The loop-back i becomes 6 (or 4), the adder makes 7 (or 5), and the
+  compare ends the loop one iteration early.
+- The static rules do not see it: corner_audit (FAST_MIN) rates rule H on that stage[1] at +86 ps, and stage[0] is
+  "data enters from outside the design, or from no link stage that also requests -- not audited". The sender is a
+  compute unit (the adder, through a fork branch and a steer, with no link stage), so the hold path (pipe acknowledge
+  -> steer -> fork -> adder -> ulink_n7 -> umux0 -> next token -> adder output) is not timed by any rule.
+- Consequences: (1) xf2 is NOT a full-range candidate (gate 83/84; this route fails). (2) Any design where a compute unit
+  feeds a steer and a pipe with no link stage between them has an unaudited hold path; the gate is the only check there,
+  and it caught this on 1 of 28 routes. That structure is in item 17's family (same knobs) and probably elsewhere: to be
+  listed. (3) The fixes to test: a latch on the adder fork's steer branch (BDC_FORK_OUT_LINK=n30__0) so the sender is a
+  link stage that H audits, or an acknowledge delay on the pipe's input stage -- and, first, a static check for this
+  hold path (it must be able to fail on xf2_1).
+### progress 09:35 UTC (xf3: a latch on the adder fork's steer branch -- PREDICTION)
+- xf3 = xf2 + BDC_FORK_OUT_LINK=n11__0,n30__0 (bdc emits ulink_n30__0_folink: the counter's loop-back pipe now has a
+  link stage as its sender, so rule H audits the hold and the link protocol orders it). Placeholder sizes for the new
+  link (DELAY default, UACK ACK_PAD 6). PREDICTION: one more stage on the counter ring's loop-back: +1.5 to 2.5 ns on
+  seed 1 (xf2_1 22.93 -> ~24.5-25). Seed 1 first (the failing route's seed, though the route will differ), all checks.
+### progress 09:35 UTC (the hold audit's blind spots: 20 latch stages on one xorshift route)
+- research/data/fifteen/hold_blind_spots_xf2_1.txt: every latch stage whose hold (rule H) and close (rule I) the audits
+  report as "not audited" on xf2_1 -- 20 stages: the first stage of every pipe / link fed by a compute unit, a fork, a
+  steer or the harness (ulink_n_trueResult_6/8/10/0/2, falseResult_1/9, n7, n8, n6, n11__1, n11__0_folink,
+  merge0_olink, n12__0/1/2, n30__1, n1__1, index_15). On all of them the only evidence is the gate's FAST_MIN column,
+  route by route; xf2_1 shows that it can fail there on one route in 28.
+- What a check needs: for a latch fed by a non-link sender, the earliest time its D input can change after the latch
+  opens -- the acknowledge back through the steer / fork / compute unit to the sender's own input links, the next token
+  in, and the combinational path out -- against when the latch closes. That is a path through the handshake cycle,
+  which the timed event graph (research/tools/eventgraph) already walks for periods; it needs the data arcs added and
+  a min-delay (FAST_MIN) weighting. It must flag xf2_1's ulink_n_trueResult_6 (1.85 ns at FAST_MIN in the trace) to be
+  trusted. Not built yet.
+### progress 10:10 UTC (xf3 seed 1: 24.19 ns, every check passes; the blind spot moves, it does not close)
+- xf3_1 (local, every check): 24.19 ns (predicted 24.5-25; xf2_1 22.93), static CLEAN at nominal and worst (tighten's
+  "a" row for ucmpi1 only), gate max / min / worst 17/17 each. A different route from xf2_1, so this says nothing yet
+  about the race; fxf3 (32 farm routes) decides empirically.
+- On this route the pipe ulink_n_trueResult_6's stage[0] hold is now audited (H +938 ps worst; its sender is the new
+  link). But ulink_n30__0_folink itself is fed by the adder through the fork and is "not audited": the blind spot moved
+  one stage up. Whether that link's close can race the adder's next result depends on when its node falls (req_in low
+  and the next stage high) against the next token's arrival -- the same kind of path, untimed. So xf3 is not shown
+  safe statically either; the hold check for non-link senders is still the missing piece.
+Next (for this session if it lasts, else the next):
+  1. fxf3 (32 routes): if the gate passes everywhere, xf3 is the xorshift full-range candidate, with the hold blind spot
+     on ulink_n30__0_folink stated. fxne (the != test) the same way.
+  2. A hold check for latches fed by non-link senders (research/data/fifteen/hold_blind_spots_xf2_1.txt): it must flag
+     xf2_1's ulink_n_trueResult_6 (the trace: 1.85 ns at FAST_MIN). Candidates: the timed event graph with data arcs
+     and min delays; or a trace-measured hold margin per blind-spot latch (D changes inside the enable window after the
+     downstream stage has captured), reported per route as a distribution. Then re-check items 17, 19, 20, 22.
+  3. gcd's counters and compares under the full-range rule (items 1-3, 5), not yet done.
+  4. The speculative-completion incrementer (research/data/fifteen/speculative.md) after 2: its static check needs case
+     analysis, and the hold story above applies to it too.
+  5. A Dynamatic build somewhere (owner's machine or a farm task) to confirm BDC_FE_EXITCOND's handshake MLIR equals the
+     fixture-with-ne used here.
+### progress 10:12 UTC (hold_trace.py: a trace-measured hold check that can fail -- it flags xf2_1)
+- research/tools/fifteen/hold_trace.py DUMPDIR KERNEL_V: for every bd_link / bd_pipe input stage (the audit's blind
+  spots), from a full dump: D (data_in, resolved through the kernel's assigns) must not change between the stage passing
+  its token on (req_out / next stage's node) and its latch closing (its C node falling). Reports windows, violations and
+  the smallest margin per instance.
+- Negative control: on xf2_1 at FAST_MIN, rounds 3 then 4 (the failing sequence): ulink_n_trueResult_6 4 violations in 8
+  windows, margin -1850 ps -- the hand trace's 1.85 ns, found without being told where to look. Next tightest:
+  ulink_n_index_15 +588 ps, ulink_n11__0_folink +3168. research/data/fifteen/hold_trace_xf2_1_fmin.tsv.
+- Coverage gaps: links whose C node net is not kept by name in the decoded netlist (n7, n8, n11__1, n12__0/2, n30__1,
+  n1__1, merge0_olink) are not measured yet; pipes whose data comes from the harness have no data nets (constant per run).
+- It is a trace check: it sees only what the vectors exercise, at the corner simulated. Its use: a margin per route and
+  per blind-spot latch at FAST_MIN, so a route close to failing shows as a small margin instead of passing silently.
+### progress 10:17 UTC (hold_trace positive control: xf3_1 at FAST_MIN, the failing vector sequence)
+- xf3_1, FAST_MIN, rounds 3 / 4 / 8 / 5 in sequence (research/data/fifteen/vec_xorshift_hold.hex): all four results
+  correct (7b0859a0 / 77b0567e / 2932183d / d28ab0e1, from the C). hold_trace: no violation; ulink_n_trueResult_6
+  +7039 ps (xf2_1: -1850), the new ulink_n30__0_folink +6263, tightest ulink_n_index_15 +425 ps.
+- So on seed 1 the extra latch turns the hold race into ~7 ns of margin. Whether every route does is what fxf3 / fxf3h
+  (32 farm routes, the latter with this check) will say. fxf2h validates the check across routes (seed 1 must flag).
+### progress 10:47 UTC (farm fxne: the != exit test does not pay on xorshift)
+- fxne (xf2 structure + the != loop test, ucmpi1 8): 29 routes built (5, 7, 30: harness < 83 MHz). Period median 23.76
+  ns, mean 23.54, best 21.52, worst 25.02 -- against fxf2's 23.29 / 23.29 / 20.86 / 24.94 on the same seeds: no gain
+  (the one element saved on ucmpi1 is inside the route scatter, and the median moved the other way). Gate 87/87 PASS.
+  Static clean on 27/29 (17, 27: umux2 rule A -2 to -65 ps, the same small rounds-mux miss as fxf2 seed 1).
+- fxne keeps the xf2 structure (no latch on the adder's steer branch), so it carries the same unaudited hold path; its
+  routes happened to pass. Not pursued further: BDC_FE_EXITCOND stays an opt-in knob, recorded as no gain on xorshift.
+### progress 11:43 UTC (farm fxf2h: the hold check, across 29 routes, flags exactly the failing one)
+- fxf2h = fxf2 (same seeds, same routes) + hold_trace at FAST_MIN on rounds 3 / 4 / 8 / 5. Gate 86/87: seed 1 FAST_MIN
+  6/17 again (the farm reproduces it). Hold check: seed 1 ulink_n_trueResult_6 17 violations, -1850 ps; NO violation on
+  any other route (seeds 11 / 14: no build). The race stage's margin on the passing routes: +1421 (s30), +1664 (s32),
+  then >= +1759 ps -- seed 1 is an outlier placement, not the tail of a smooth distribution. Tightest stage elsewhere:
+  ulink_n_index_15, +360 to +883 ps. research/data/fifteen/farm/fxf2h_hold.txt.
+- So the trace-measured hold check catches what the static rules cannot see, with no false alarm on 28 routes. It joins
+  the per-route checks (eval_task HOLD_VEC). Its limit stays: it sees only what the vectors exercise.

@@ -203,6 +203,22 @@ if [ -n "${BD_SIZES:-}" ] && [ "${BD_SIZES}" != "none" ] \
 fi
 SRCS="rtl/*.v build/gen/${KERNEL}_kernel_bench.v build/gen/${TOP}.v"
 if [ "${BD_SIZES:-auto}" != "none" ] && [ -e "$SIZES" ]; then
+    # A sizes file is keyed by instance path.  One measured on another top (fusion_bench's
+    # soak harness names the kernel uut., giving BD_SZ_UUT_*; this bench names it
+    # bridge_i.udut., giving BD_SZ_BRIDGE_I_UDUT_*) matches nothing here, and every chain
+    # silently builds at emit.py's estimate while the line below still says "applying N".
+    # That happened (2026-11-07): refuse when nothing matches, warn when only part does.
+    _nd=0; _nm=0
+    for _d in $(sed -n 's/^`define \([A-Za-z0-9_]*\).*/\1/p' "$SIZES"); do
+        _nd=$((_nd + 1))
+        grep -qw "$_d" "build/gen/${KERNEL}_kernel_bench.v" "build/gen/${TOP}.v" && _nm=$((_nm + 1))
+    done
+    if [ "$_nd" -gt 0 ] && [ "$_nm" -eq 0 ]; then
+        echo "build_bench.sh: none of the $_nd sizes in $SIZES is used by $TOP (sizes keyed to another" \
+             "top? e.g. BD_SZ_UUT_* from a fusion_bench route; this bench uses BD_SZ_BRIDGE_I_UDUT_*)" >&2
+        exit 1
+    fi
+    [ "$_nm" -lt "$_nd" ] && echo "build_bench.sh: WARNING: only $_nm of the $_nd sizes in $SIZES are used by $TOP" >&2
     SRCS="$SIZES $SRCS"
     echo "build_bench.sh: applying $(grep -c '^`define' "$SIZES") measured " \
          "delay size(s) from $SIZES" >&2
@@ -211,7 +227,7 @@ else
          "bdc/emit.py's unmeasured estimate" >&2
 fi
 
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 YOSYS=$TC/openxc7/bin/yosys
 NEXTPNR=$TC/openxc7/bin/nextpnr-xilinx
 CHIPDB=$TC/openxc7/xc7z010clg400.bin
@@ -333,9 +349,14 @@ if [ "$NULL" = "1" ]; then
 else
     BD_RLOC=${BD_RLOC:-v2}
 fi
+# BD_PLACE_WEIGHT_CELLS=REGEX (with BD_PLACE_WEIGHT): weight only those stages' handshake nets (rloc_stamp.py).
+# BD_PLACE_WEIGHT=K / BD_COLUMN_ROWS=N: passed to rloc_stamp.py only when set (as build_hw.sh / flow.sh; unset, the
+# command line and the build are what they were).  research/data/fifteen uses them with the spine variants (v5+).
 if [ "$BD_RLOC" != none ]; then
     python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
-        --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
+        --variant "$BD_RLOC" ${BD_PLACE_WEIGHT:+--place-weight "$BD_PLACE_WEIGHT"} \
+        ${BD_PLACE_WEIGHT_CELLS:+--place-weight-cells "$BD_PLACE_WEIGHT_CELLS"} \
+        ${BD_COLUMN_ROWS:+--column-rows "$BD_COLUMN_ROWS"} --report > "$OUT/rloc.log" 2>&1 || {
             echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
     mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
     grep -E "group|link" "$OUT/rloc.log" | tail -3

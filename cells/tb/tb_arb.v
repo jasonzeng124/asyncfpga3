@@ -122,11 +122,14 @@ module tb_arb;
     reg watching = 1'b0;
     // Counted, not failed on the spot.  Handover exclusion in the bare cell is
     // an ARC ORDERING, not a structural property: on the r2-to-r1 direction the
-    // falling grant travels one fall arc (O6, 124 ps) and the rising grant
-    // travels two rise arcs (q at 56 then O5 at 52), so with zero routing the
-    // rise wins by 16 ps.  Routing puts a full hop in the q feedback and
-    // restores the order with roughly twenty times the margin, which is why
-    // this is asserted only in the routed regime.
+    // falling grant travels one arc (r2 -> O6) and the rising grant two (q on
+    // O6, then O5 from A3).  At one corner that is 124 vs 274 ps (slow max) or
+    // 45 vs 87 ps (fast min), so the single-corner model has no overlap in
+    // either regime, and it is asserted in both.  (The old "rise wins by
+    // 16 ps arc-only" used 56 + 52 vs 124: fast-corner and slow-corner bounds
+    // of one arc read as rise and fall.  The residual real exposure is the
+    // O5-versus-O6 delta, which only a transport model shows -- see
+    // tb_arb_overlap's header.)
     integer cell_overlap = 0;
     always @* if (watching && cg1 === 1'b1 && cg2 === 1'b1)
         cell_overlap = cell_overlap + 1;
@@ -197,10 +200,8 @@ module tb_arb;
 
         $display("  arbcell handover overlap at BD_ROUTE_PS=%0d: %0d instant(s)",
                  `BD_ROUTE_PS, cell_overlap);
-        if (`BD_ROUTE_PS >= 56 && cell_overlap != 0)
-            fail("grants overlapped during handover with routing included");
-        if (`BD_ROUTE_PS == 0 && cell_overlap == 0)
-            $display("  (no overlap even arc-only: safer than rtl/bd_arb.v claims, recheck it)");
+        if (cell_overlap != 0)
+            fail("grants overlapped during handover in the single-corner model");
 
         if (errors == 0) $display("tb_arb PASS");
         else             $display("tb_arb FAIL (%0d)", errors);

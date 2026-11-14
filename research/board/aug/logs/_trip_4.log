@@ -1,0 +1,59 @@
+FPGA0_CLK_CTRL=0x00101400 -> DIVISOR0=20 DIVISOR1=1 -> FCLK0 nominal 50.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 0000608c (attempt 0, poll 0)
+programming build/hw/xorshift_bench_gen/xorshift_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00022020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (xorshift): op0=12 op1=18 -> ODATA=4241718536 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=2463534242 op1=4, N=200 ===
+  completed=200 latmin=14 latmax=14 cyc  prepcyc=3200  odata=2008045182 sig=0x42a21807 mism_st=2
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x42a21807 matches the expected result fold)
+
+=== (b) deliberate corruption: prove the mismatch path fires on hardware ===
+  corruption chosen: (2463534242,4)->2008045182  vs  (2463534242,5)->3532304609  (run-captured, not post-batch ODATA)
+  attempt gap=20000 n=2000: write landed at run 112 of 2000 (mid-batch=1) -> MISM_ST=3 MISM_IDX=98 MISM_VAL=3532304609 MISM_REF=2008045182
+deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=98 val=3532304609 ref=2008045182)
+
+=== (c) UNIFORM-mode batch: op0 seed=0xACE12345, N=200 ===
+  completed=200 cycles=1107907 prepcyc=3200 latmin=73 latmax=10178 cyc  mism_st=2
+  histogram sum = 200 (expect 200)
+
+  latency (cycles): min=73 p50~=5120 p90~=8192 p99~=8192 max=10178 mean=5539.5
+  latency (ns, @50.0MHz nominal): min=1460.0 p50~=102400.0 p90~=163840.0 p99~=163840.0 max=203560.0 mean=110790.7
+  throughput (this harness, 1 txn in flight -- NOT pipelined peak): 9026.0 tx/s
+
+Histogram (bucket: count  approx-cycles):
+  bucket 24: count=1      ~64 cyc
+  bucket 26: count=2      ~96 cyc
+  bucket 32: count=2      ~256 cyc
+  bucket 34: count=4      ~384 cyc
+  bucket 36: count=1      ~512 cyc
+  bucket 37: count=2      ~640 cyc
+  bucket 38: count=1      ~768 cyc
+  bucket 39: count=1      ~896 cyc
+  bucket 40: count=9      ~1024 cyc
+  bucket 41: count=3      ~1280 cyc
+  bucket 42: count=10     ~1536 cyc
+  bucket 43: count=3      ~1792 cyc
+  bucket 44: count=11     ~2048 cyc
+  bucket 45: count=5      ~2560 cyc
+  bucket 46: count=3      ~3072 cyc
+  bucket 47: count=5      ~3584 cyc
+  bucket 48: count=21     ~4096 cyc
+  bucket 49: count=19     ~5120 cyc
+  bucket 50: count=23     ~6144 cyc
+  bucket 51: count=29     ~7168 cyc
+  bucket 52: count=45     ~8192 cyc
+
+==========================================================================
+xorshift bench PASS
+==========================================================================

@@ -1,0 +1,318 @@
+
+======================================================================
+== toolchain: the installed nextpnr carries every patch in patches/
+======================================================================
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  binary  /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+  sha256  d216cb36a370f78a
+
+======================================================================
+== constants: derived, proved exhaustively, audited against rtl/
+======================================================================
+cell               kind      INIT                    pins I0..I5
+-------------------------------------------------------------------------------
+C2                 lut6      64'hE8E8E8E8E8E8E8E8    a b q - - -  <- review
+C3                 lut6      64'hFE80FE80FE80FE80    a b c q - -  <- review
+C2_RST             lut6      64'h00E800E800E800E8    a b q rst - -  <- review
+C2_SET             lut6      64'hFFE8FFE8FFE8FFE8    a b q rst - -
+C2N_RST            lut6      64'h00B200B200B200B2    a b q rst - -
+C2N_SET            lut6      64'hFFB2FFB2FFB2FFB2    a b q rst - -  <- review
+C3_RST             lut6      64'h0000FE800000FE80    a b c q rst -
+C4_RST             lut6      64'h00000000FFFE8000    a b c d q rst
+LATCH              lut6      64'hB8B8B8B8B8B8B8B8    d en q - - -
+LATCH_RST0         lut6      64'h00B800B800B800B8    d en q rst - -  <- review
+LATCH_RST1         lut6      64'hFFB8FFB8FFB8FFB8    d en q rst - -
+LATCH_NEN          lut6      64'hE2E2E2E2E2E2E2E2    d nen q - - -
+LATCH_PAIR         lut6_2    64'hFF33CC00B8B8B8B8    di en qi dj qj +1
+DR_DECODE          lut6_2    64'hEEEEEEEEB2B2B2B2    t f d - - +1
+STEER              lut6_2    64'h8888888822222222    req s - - - +1
+ENCODER            lut6_2    64'h8888888822222222    req d - - - +1
+LINK_PAIR          lut6_2    64'h0000C0FC00008E8E    req ci cj ck rst +1
+MUX_J0             lut6      64'h0000AE080000AE08    xreq creq s j0 rst -
+MUX_J1             lut6      64'h0000EA800000EA80    yreq creq s j1 rst -
+MUX_DATA_PAIR      lut6_2    64'hFFAA5500E4E4E4E4    s xi yi xj yj +1
+MERGE_DATA_PAIR    lut6_2    64'hFF55AA00D8D8D8D8    sel xi yi xj yj +1
+ARB_GRANTS         lut6_2    64'h0C0C0C0CA0A0A0A0    r1 r2 q - - +1  <- review
+ARB_STATE_R0       lut6_2    64'hFFB2FFB2ACACACAC    r1 r2 q rst - +1
+ARB_STATE_R0_HOLD  lut6_2    64'hFFF0FFB2ACACACAC    r1 r2 q rst A0 +1
+DATAMUX1           lut3      8'hE4                   s a b
+OR2                lut2      4'hE                    a b
+AND2               lut2      4'h8                    a b
+AND2B1             lut2      4'h2                    a b
+BUF                lut1      2'h2                    a
+INV                lut1      2'h1                    a
+
+1560 rows proved exhaustively across 30 cells
+6 constants agree with the design review
+every LUT constant in rtl/ is derived here and proved above
+derived but not currently instantiated: AND2, AND2B1, ARB_STATE_R0, LATCH_NEN, MERGE_DATA_PAIR
+
+======================================================================
+== generate: the memory units the benches require
+======================================================================
+wrote build/gen/bdc_mem_units.v
+
+======================================================================
+== protocol: arc-only timing
+======================================================================
+PASS  tb_arb
+PASS  tb_arb_overlap
+PASS  tb_arb_prot
+PASS  tb_bdc_mem
+PASS  tb_bdc_memseq
+PASS  tb_conv
+PASS  tb_ctl
+PASS  tb_end
+PASS  tb_forkjoin
+PASS  tb_gcd_bench_debug
+PASS  tb_gcd_bench_gen
+PASS  tb_gcd_ps_bridge
+PASS  tb_gcd_rig
+PASS  tb_link
+PASS  tb_mem
+PASS  tb_merge
+PASS  tb_mux
+PASS  tb_null_gcd_gen
+PASS  tb_null_isprime_gen
+PASS  tb_prims
+PASS  tb_ring
+PASS  tb_smoke_collatz64_gen
+PASS  tb_smoke_collatz_gen
+PASS  tb_smoke_ipow_gen
+PASS  tb_smoke_isprime_gen
+PASS  tb_smoke_xorshift_gen
+PASS  tb_steer
+
+======================================================================
+== protocol: routed-estimate timing (BD_ROUTE_PS=354)
+======================================================================
+PASS  tb_arb
+PASS  tb_arb_overlap
+PASS  tb_arb_prot
+PASS  tb_bdc_mem
+PASS  tb_bdc_memseq
+PASS  tb_conv
+PASS  tb_ctl
+PASS  tb_end
+PASS  tb_forkjoin
+PASS  tb_gcd_bench_debug
+PASS  tb_gcd_bench_gen
+PASS  tb_gcd_ps_bridge
+PASS  tb_gcd_rig
+PASS  tb_link
+PASS  tb_mem
+PASS  tb_merge
+PASS  tb_mux
+PASS  tb_null_gcd_gen
+PASS  tb_null_isprime_gen
+PASS  tb_prims
+PASS  tb_ring
+PASS  tb_smoke_collatz64_gen
+PASS  tb_smoke_collatz_gen
+PASS  tb_smoke_ipow_gen
+PASS  tb_smoke_isprime_gen
+PASS  tb_smoke_xorshift_gen
+PASS  tb_steer
+
+======================================================================
+== memory: 36 shapes elaborate, and an out-of-range one is refused
+======================================================================
+mem_shapes: 37 ok, 0 failed
+
+======================================================================
+== memory: the release rule, the port's one-hot monitor, and the token chain
+======================================================================
+  ok   default: PASS
+  ok   EAGER: FAIL as expected (13 report line(s))
+  ok   BOTH: port one-hot monitor fired
+  ok   TOKEN: PASS, 24 edges for 24 accesses
+mem_modes: 4 ok
+
+======================================================================
+== cost: every cell synthesised alone
+======================================================================
+cell             expected   got   breakdown
+--------------------------------------------------------------------
+bd_c2                   1     1   LUT6x1
+bd_c3                   1     1   LUT6x1
+bd_c4                   1     1   LUT6x1
+two_c2                  2     2   LUT6x2
+ctree4                  1     1   LUT6x1
+ctree5                  2     2   LUT6x2
+ctree8                  3     3   LUT6x3
+ctree16                 5     5   LUT6x5
+latch8                  4     4   LUT6_2x4
+latch_rst4              4     4   LUT6x4
+datamux8                4     4   LUT6_2x4
+delay4                  4     4   LUT1x4
+link_pair               1     1   LUT6_2x1
+link8                   5     5   LUT6x1 LUT6_2x4
+pipe8x4                18    18   LUT6_2x18
+steer                   2     2   LUT2x1 LUT6_2x1
+fork4                   1     1   LUT6x1
+join4                   1     1   LUT6x1
+bd2dr                   1     1   LUT6_2x1
+dr2bd                   5     5   LUT1x4 LUT2x1
+dr2bd_held              5     5   LUT1x4 LUT6_2x1
+merge8                 12    12   LUT1x4 LUT2x2 LUT6x2 LUT6_2x4
+mux8                   13    13   LUT1x4 LUT2x1 LUT6x4 LUT6_2x4
+src8                    1     1   LUT1x1
+snk8                    0     0   
+src_snk                 1     1   LUT1x1
+arbcell                 2     2   LUT6x1 LUT6_2x1
+arbiter                 4     4   LUT6x2 LUT6_2x2
+--------------------------------------------------------------------
+every cell costs exactly what the design review says
+
+======================================================================
+== packing, placement, routing: one design, real chipdb
+======================================================================
+MODE: default -- no BD_SIZES, no BD_NO_TIGHTEN; deriving tightened lengths by running verify/resize.sh fresh
+
+delays found in source: BD_SZ_UDEC BD_SZ_UMEM_UCO BD_SZ_UMEM_USETUP BD_SZ_UMERGE BD_SZ_UMUX BD_SZ_UPIPE
+baseline (the placeholders): UDEC=16 UMEM_UCO=12 UMEM_USETUP=8 UMERGE=4 UMUX=4 UPIPE=10
+baseline routes and passes.
+
+  UMEM_UCO             12 -> 9   kept
+  UMEM_USETUP           8 -> 0   REVERTED
+                                umem.uram: clk 1914 ps, latest payload ADDRARDADDR5 1555 ps, t_su 566 -> margin -207 ps VIOLATION
+  UMUX                  4 -> 0   REVERTED
+                                umux 0 links - req 619 peak 619 guard 200 margin -200 PAD to 1 -- VIOLATION
+  -- sweep 1 done: UDEC=16 UMEM_UCO=9 UMEM_USETUP=8 UMERGE=4 UMUX=4 UPIPE=10
+  UMEM_USETUP           8 -> 3   kept
+  UMUX                  4 -> 1   kept
+  -- sweep 2 done: UDEC=16 UMEM_UCO=9 UMEM_USETUP=3 UMERGE=4 UMUX=1 UPIPE=10
+  UMEM_USETUP           3 -> 1   kept
+  UMERGE                4 -> 2   REVERTED
+                                umerge 2 links 398 ps req 1212 peak 1419 guard 283 margin -490 PAD to 5 -- VIOLATION
+  UMUX                  1 -> 0   REVERTED
+                                umux 0 links - req 274 peak 274 guard 200 margin -200 PAD to 1 -- VIOLATION
+  -- sweep 3 done: UDEC=16 UMEM_UCO=9 UMEM_USETUP=1 UMERGE=4 UMUX=1 UPIPE=10
+  UMEM_UCO              9 -> 8   REVERTED
+                                umem.uram: clk 2569 ps, latest payload ADDRARDADDR4 2127 ps, t_su 566 -> margin -124 ps VIOLATION
+  UMEM_USETUP           1 -> 0   REVERTED
+                                umux 1 links 124 ps req 693 peak 799 guard 200 margin -306 PAD to 4 -- VIOLATION
+  UMUX                  1 -> 0   REVERTED
+                                umux 0 links 124 ps req 274 peak 274 guard 200 margin -200 PAD to 1 -- VIOLATION
+
+settled after 4 sweep(s), 12 place-and-route runs
+ONE ROUTE PER CANDIDATE -- these lengths are known to hold on the route
+flow.sh happens to produce and on no other.  BD_RESIZE_SEEDS=N to confirm.
+verified assignment: UDEC=16 UMEM_UCO=9 UMEM_USETUP=1 UMERGE=4 UMUX=1 UPIPE=10
+written to build/resize/sizes.vh -- pass it back with BD_SIZES=build/resize/sizes.vh ./flow.sh
+
+Every length above was applied, re-routed and re-checked, not 
+extrapolated.  It is one build's answer and expires with the build.
+
+MODE: default -- verify/resize.sh settled; building with the derived lengths in build/resize/sizes.vh
+== synthesis ==
+        1   IBUF
+       46   LUT1
+        4   LUT2
+        1   LUT3
+        4   LUT4
+        1   LUT5
+       27   LUT6
+       31   LUT6_2
+        1   OBUF
+        1   RAMB18E1
+yosys: 114 LUT cells (a LUT6_2 counts once -- it is one site)
+             16 latch LUT(s) across those banks, 2 of them grouped (12.5%)
+             1 group(s) also hold their select consumer's LUTs
+             2 fractured cpair controller(s) each drive two pipeline stages from one LUT6_2; only one stage's latch can share its SLICE, so 2 stage(s) are left out of any group by construction, not by omission
+
+== toolchain ==
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  binary  /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+  sha256  d216cb36a370f78a
+== place and route ==
+  "nextpnr-xilinx" -- Next Generation Place and Route (Version 0.9.1-17-g69119066)
+  Yosys 0.62 (git sha1 7326bb7d6, g++ 11.4.0-1ubuntu1~22.04 -fPIC -O3)
+routed.
+
+FASM:  115 occupied LUT sites, 13 BRAM lines
+fractured pairs held one site each (31 pair(s) checked)
+no global clock buffer in the bitstream, as required
+
+routed SDF written to build/pnr/soak.sdf -- run verify/tighten.py to size the
+matched delays against it.
+
+flow.sh PASS
+
+======================================================================
+== bundling and matched-delay sizing, from the routed SDF
+======================================================================
+false arcs   123 pin-to-output arcs cut -- pins the INIT proves the function ignores (56 loops, unchanged)
+toolchain    "nextpnr-xilinx" -- Next Generation Place and Route (Version 0.9.1-17-g69119066)
+routed SDF   544 cell arcs, 699 routed nets
+state nodes  56 LUT feedback loops -- start and stop points
+delay lines  7
+
+A. the request is the last thing its cell emits
+------------------------------------------------------------------------------
+  umerge                  4 links   1091 ps   req  1800  peak  1380  guard  276  margin    144   already exact
+                         latest peer: umerge.udat.pair[4].u$LUT5
+                         paired by common source: udec.ud.chain.g[15].u/O6
+  umux                    1 links    124 ps   req   693  peak   274  guard  200  margin    219   0 links -- the request already trails without help
+                         latest peer: umux.uxa.u
+                         paired by common source: umux.uj0/O6
+  udec.ud                16 links   not an outgoing request -- see rule B or C
+  umem.uco                9 links   not an outgoing request -- see rule B or C
+  umem.usetup             1 links   not an outgoing request -- see rule B or C
+  upipe.many.rdly        10 links   not an outgoing request -- see rule B or C
+  uspin                   3 links   not an outgoing request -- see rule B or C
+
+B. the RAM boundary, against the vendor's own setup windows
+------------------------------------------------------------------------------
+  umem.uram: clk 11772 ps, latest payload ADDRARDADDR5 10935 ps, t_su 566 -> margin 271 ps  ok
+             both measured from upipe.many.lat[3].u.pair[2].u$LUT6/O6
+             sized for this route: 0 links (one link is 124 ps here)
+
+C. clock-to-out: the acknowledge must trail the read data
+------------------------------------------------------------------------------
+  umem.uco: 9 links, ack trails the clock edge by 3039 ps, t_co 2454 -> margin 585 ps  ok
+            sized for this route: 8 links
+            hold is bounded below by 2x that: 6078 ps vs 667 ps needed  ok
+
+D. the select is stable before the request edge that samples it
+------------------------------------------------------------------------------
+  element cost: 274 ps per bd_delay link, measured off this route's own chains (median LUT arc + median hop)
+  umux (bd_mux)                    req  8097  sel   675  guard  200  margin   7222   26 bd_delay element(s) (274 ps ea) of slack
+                                   latest select pin: umux.uj1/A4
+                                   paired as one bundled channel (no common source):
+                                     request from upipe.many.lat[3].u.pair[2].u$LUT6/O6
+                                     select  from udec.ghold.u$LUT5/O5
+  usteer (bd_steer)                req  4685  sel   150  guard  200  margin   4335   15 bd_delay element(s) (274 ps ea) of slack
+                                   latest select pin: usteer.u$LUT5/A5
+                                   paired as one bundled channel (no common source):
+                                     request from upipe.many.cpair[2].u.u$LUT6/O6
+                                     select  from upipe.many.lat[3].u.pair[0].u$LUT5/O5
+
+Every boundary meets its constraint on this route.  The lengths above are what
+the placeholders should become FOR THIS ROUTE and for no other -- they are
+measurements, not design constants, and they expire the next time anything moves.
+
+======================================================================
+== and that the sizing gate catches a delay line that is not there
+======================================================================
+teeth: removing the matched delay on umerge (BD_SZ_UMERGE)
+  umerge                  0 links    124 ps   req   274  peak  1581  guard  316  margin  -1623   PAD to 6 -- VIOLATION
+                         latest peer: umerge.udat.pair[4].u$LUT5
+teeth.sh PASS -- the sizing gate catches a removed delay line
+
+======================================================================
+== rule E: the request really does arrive after its own select
+======================================================================
+rule E       build/pnr/soak.sdf
+             544 cell arcs, 699 routed net delays
+             3 select gates, 3 measured, 0 violated
+             guardband 0.772*req vs 1.155*sel, from hw/README.md's five measured rings
+             element cost: 274 ps per bd_delay link, measured off this route's own chains
+
+ALL GATES PASS

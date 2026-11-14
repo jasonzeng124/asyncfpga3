@@ -16,6 +16,13 @@ run() {
 
 run "toolchain: the installed nextpnr carries every patch in patches/" \
     ./verify/toolchain.sh
+# The bitstream seam, read back: the installed nextpnr's FASM against the
+# netlist on a probe that carries every encoding the three August
+# FASM-writer bugs got wrong, plus each bug re-applied as a negative control.
+# toolchain.sh only says a patch is present (and its dsp-areg fingerprint is
+# also in the unpatched source); this says the bits are right.
+run "bitstream: the FASM encodes the netlist (LUT INIT, DSP48E1 const pins, AREG)" \
+    ./verify/fasm/check.sh
 run "constants: derived, proved exhaustively, audited against rtl/" \
     python3 verify/inits.py --check-rtl
 # run_sim.sh SKIPs a bench whose `// requires:` file is missing, and a skip is
@@ -34,6 +41,20 @@ run "memory: 36 shapes elaborate, and an out-of-range one is refused" \
     ./verify/mem_shapes.sh
 run "memory: the release rule, the port's one-hot monitor, and the token chain" \
     ./verify/mem_modes.sh
+# The bench harness is clocked logic that yosys infers and iverilog never
+# sees inferred.  Two August board failures lived there: the FSM read an
+# async-set latch without a synchroniser (cdc_bench.sh, structural) and
+# hist[] was inferred as a memory whose increments read 0 (harness_pss.sh,
+# the harness netlist simulated).  Both carry their own negative control.
+run "bench harness: the FSM reads the kernel only through a two-flop synchroniser" \
+    ./verify/cdc_bench.sh gcd xorshift collatz collatz64 ipow isprime
+run "bench harness: the synthesised netlist passes the harness bench" \
+    ./verify/harness_pss.sh
+# And the third: SIG/ODATA read after the acknowledge, outside the window
+# bundled data promises the bus (isprime's 0x80000000).  tb_gcd_bench_gen now
+# drives the kernel's out0_data to X outside that window.
+run "bench harness: the result is read inside its valid window" \
+    ./verify/bench_window.sh
 run "cost: every cell synthesised alone" \
     python3 verify/lutcost.py
 run "packing, placement, routing: one design, real chipdb" \

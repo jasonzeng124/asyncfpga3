@@ -1,0 +1,28 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 00006088 (attempt 0, poll 0)
+programming build/hw/xorshift_bench_gen/xorshift_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00022020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (xorshift): op0=12 op1=18 -> ODATA=4241718536 (no oracle asserted for this kernel)
+
+RUNGAP set to 1 aclk cycles
+=== (a) FIXED-mode repeatability: op0=48 op1=18, N=200 ===
+  completed=200 latmin=93 latmax=94 cyc  prepcyc=400  odata=2863579695 sig=0x03dba483 mism_st=2
+  NOTE: latmin != latmax on identical inputs -- real silicon jitter (not necessarily a bug; report the spread, do not assert equality the way sim did)
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x03dba483 matches the expected result fold)
+
+=== (r) repeat the SAME batch 3 times, no reprogramming ===
+rep	cycles	prepcyc	latmin	latmax	sig
+0	19742	400	93	94	0x03dba483
+1	19731	400	93	94	0x03dba483
+2	19740	400	93	95	0x03dba483
+=== (r) done: 3 batches, oracle asserted on each ===

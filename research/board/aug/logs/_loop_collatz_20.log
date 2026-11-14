@@ -1,0 +1,19 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 0000608c (attempt 0, poll 0)
+programming build/hw/collatz_bench_gen/collatz_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00012020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (collatz): op0=12 op1=18 -> ODATA=9 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=1048576 op1=0, N=200 ===
+  completed=200 latmin=6 latmax=6 cyc  prepcyc=3200  odata=0 sig=0x00000000 mism_st=2
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+ERROR: SIG ORACLE FAILED: FIXED (1048576,0) N=200 folded to 0x00000000, expected 0x00000c0c. SIG has no timing in it, so this kernel computed something different -- not a slower route, a wrong answer.

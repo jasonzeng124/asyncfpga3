@@ -39,6 +39,14 @@ cd "$(dirname "$0")/.."
 DESIGN=${1:-gcd_ps}
 MAX=${2:-6}
 CAP=${CONVERGE_CAP:-64}
+# CONVERGE_HEADROOM=K: pad every short link K elements beyond rule E's
+# deficit.  Rule E's guardband scales with arrival time (0.772*req against
+# 1.155*sel), so on gcd's ~7 ns select paths a +1.8 ns raw margin is still
+# -0.6 ns guarded, and the reroute that the exact pad causes moved the select
+# by more than the pad moved the request (+716 against +542 ps, ulink_n165,
+# 2026-10-25).  A pad that is too long only costs time.  Default 0, the
+# behaviour this loop always had.
+HEADROOM=${CONVERGE_HEADROOM:-0}
 
 # The builder this loop iterates.  Default is hw/build_hw.sh DESIGN, exactly
 # as before this was parameterised.  hw/build_bench.sh is a SIBLING build
@@ -125,8 +133,28 @@ was=set(json.load(open(sys.argv[1])))
 now=set(json.load(open(sys.argv[2])))
 print(','.join(sorted(was & now)))" "$PADS" "$DELTA")
 
+    # An empty pad file is not convergence by itself: skew.py leaves out a
+    # violation it cannot attribute to a knob, so rule E's own count decides.
+    violated=$(grep -oE "[0-9]+ violated" "$STATE/skew.$i.log" | awk '{print $1}')
+    if [ "$n" = "0" ] && [ "${violated:-1}" != "0" ]; then
+        echo
+        echo "  NOT CONVERGED: rule E reports ${violated:-an unknown number of} violated"
+        echo "  gate(s) and attributes none of them to a link's DELAY -- see"
+        echo "  $STATE/skew.$i.log.  Nothing to pad; this is a failure, not a pass."
+        exit 1
+    fi
     if [ "$n" = "0" ]; then
         echo
+        # Rule J on the same route: a converged select padding is not a
+        # shippable build if an arbiter handover on it is short.
+        if ! python3 verify/arb_fork.py "$SDF" > "$STATE/arb_fork.$i.log" 2>&1; then
+            echo
+            echo "  NOT SHIPPABLE: rule E converged, but rule J (verify/arb_fork.py) fails"
+            echo "  or cannot resolve an arbiter on this route:"
+            grep -E "VIOLATED|NOT RESOLVED" "$STATE/arb_fork.$i.log" | head -5
+            exit 1
+        fi
+        echo "  rule J: $(tail -1 "$STATE/arb_fork.$i.log" | sed 's/^ *//')"
         echo "  CONVERGED after $i iteration(s): every select gate clears rule E's"
         echo "  guardband on the route its own padding produced."
         python3 -c "
@@ -159,9 +187,10 @@ print(f'  total added: {sum(d.values())} bd_delay element(s)')" "$PADS"
         exit 1
     fi
 
-    python3 - "$PADS" "$DELTA" "$CAP" <<'PYEOF'
+    python3 - "$PADS" "$DELTA" "$CAP" "$HEADROOM" <<'PYEOF'
 import json, pathlib, re, sys, glob
 pads, delta, cap = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]), int(sys.argv[3])
+headroom = int(sys.argv[4])
 cur = json.loads(pads.read_text())
 add = json.loads(delta.read_text())
 # A link this loop has not touched yet is already carrying whatever emit.py
@@ -175,7 +204,7 @@ for f in glob.glob("../build/gen/*.v"):
 over = []
 for k, v in add.items():
     base = cur.get(k, emitted.get(k, 0))
-    want = base + v
+    want = base + v + headroom
     if want > cap:
         over.append((k, want))
         want = cap

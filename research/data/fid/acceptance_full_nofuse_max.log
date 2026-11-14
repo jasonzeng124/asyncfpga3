@@ -1,0 +1,18 @@
+... lutpinmap_gcd_nofuse (bitstream_bug, hard)
+
+GLS configuration: {"stack": "full", "netlist": "fasm2net.py --bit: decoded from the bitstream (patched: the build's .bit; unpatched: the buggy FASM through the build's fasm2frames + xc7frames2bit)", "sdf": "xray_delay.py prjxray RC tree (db /root/dev2/lib/xray/prjxray-db/zynq7, rev 0a0added), re-keyed onto the bits' netlist", "model": "GLS_MODEL=fid", "corner": "max", "gls_env": {"GLS_MODEL": "fid", "GLS_SDF_FIELD": "max"}}
+
+==== HARD (1) ==================================================
+
+[MATCH] lutpinmap_gcd_nofuse: gcd_hw livelock from the lut-pinmap bug, on the August-like netlist (BDC_OP_FUSION=0: ucmpi11 exists)
+    source: patches/README.md:39-44, patches/README.md:31-35, cells/gls/README.md:66-80, bdc/emit.py:2044-2048
+    reproduces the board: the bits-decoded full stack passes the fixed bitstream and fails the buggy one in simulation
+      unpatched FASM: 126 line(s) differ
+      patched bit: <scratch>/wt-acc/build/fid/gcd_hw_nofuse/gcd_hw.bit (the build's; the FASM re-assembled DIFFERS)
+      md5: routed_json 91d26b0a  nextpnr_sdf c647eb1a  xray_sdf b2036378  patched_bit 951e767b  unpatched_bit 66379152
+      patched   sim PASSES (16/16)  [from the .bit]
+                equivalence (information): VERDICT: EQUIVALENT (only the benign kinds above)
+      unpatched sim FAILS (9/16)  [from the .bit]
+                equivalence (information): VERDICT: NOT EQUIVALENT: LUT FUNCTION DIFFERS
+                never complete: 5,6,7,8,11,12,13
+      board: {"patched": "16/16 vectors complete, err_sticky=0x0000", "unpatched": "not all vectors complete; the failure is ABSENT results (livelock), not wrong ones: err=0", "aug_route": "7/16, nine vectors never completing"}

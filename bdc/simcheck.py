@@ -248,6 +248,9 @@ VECTORS = {
         dict(seed=2463534242, rounds=0), dict(seed=2463534242, rounds=1),
         dict(seed=2463534242, rounds=2), dict(seed=2463534242, rounds=4),
         dict(seed=1, rounds=3), dict(seed=-1, rounds=2),
+        # negative rounds: 0 iterations. A loop test rewritten to != (BDC_FE_EXITCOND)
+        # is only correct because the entry test rounds > 0 guards it; these would hang.
+        dict(seed=2463534242, rounds=-1), dict(seed=2463534242, rounds=-2147483648),
     ],
     # isprime: below 2, even, odd composite, prime, square of a prime.
     "isprime": [

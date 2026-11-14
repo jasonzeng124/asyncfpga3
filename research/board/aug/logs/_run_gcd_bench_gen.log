@@ -1,0 +1,52 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 0000608c (attempt 0, poll 0)
+programming build/hw/gcd_bench_gen/gcd_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00022020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase pre-check PASS: gcd(12,18) = 6
+manual 4-phase pre-check PASS: gcd(48,18) = 6
+manual 4-phase pre-check PASS: gcd(0,5) = 5
+
+=== (a) FIXED-mode repeatability: op0=48 op1=18, N=200 ===
+  completed=200 latmin=122 latmax=124 cyc  prepcyc=3200  odata=6 sig=0x00000202 mism_st=2
+  NOTE: latmin != latmax on identical inputs -- real silicon jitter (not necessarily a bug; report the spread, do not assert equality the way sim did)
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x00000202 matches the expected result fold)
+
+=== (b) deliberate corruption: prove the mismatch path fires on hardware ===
+  corruption chosen: (48,18)->6  vs  (48,19)->1  (run-captured, not post-batch ODATA)
+  attempt gap=20000 n=2000: write landed at run 215 of 2000 (mid-batch=1) -> MISM_ST=3 MISM_IDX=190 MISM_VAL=1 MISM_REF=6
+deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=190 val=1 ref=6)
+
+=== (c) UNIFORM-mode batch: op0 seed=0xACE12345, N=2000 ===
+  completed=2000 cycles=1433065 prepcyc=32000 latmin=59 latmax=1099 cyc  mism_st=2
+UNIFORM SIG oracle PASS (0x824df03f over 2000 distinct inputs)
+  histogram sum = 2000 (expect 2000)
+
+  latency (cycles): min=59 p50~=768 p90~=896 p99~=1024 max=1099 mean=716.5
+  latency (ns, @100.0MHz nominal): min=590.0 p50~=7680.0 p90~=8960.0 p99~=10240.0 max=10990.0 mean=7165.3
+  throughput (this harness, 1 txn in flight -- NOT pipelined peak): 139561.0 tx/s
+
+Histogram (bucket: count  approx-cycles):
+  bucket 23: count=235    ~56 cyc
+  bucket 24: count=114    ~64 cyc
+  bucket 25: count=58     ~80 cyc
+  bucket 26: count=44     ~96 cyc
+  bucket 27: count=6      ~112 cyc
+  bucket 28: count=4      ~128 cyc
+  bucket 37: count=28     ~640 cyc
+  bucket 38: count=823    ~768 cyc
+  bucket 39: count=637    ~896 cyc
+  bucket 40: count=51     ~1024 cyc
+
+==========================================================================
+gcd bench PASS
+==========================================================================

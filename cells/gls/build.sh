@@ -52,17 +52,31 @@ fi
 
 mkdir -p "$WORK"
 cp "$J" "$WORK/routed.json"
-cp "$S" "$WORK/routed.sdf"
+# GLS_SDF: simulate another delay calculation of THIS route in place of
+# nextpnr's, e.g. fid/xray_delay.py's (which takes nextpnr's SDF as its
+# template, so the pair check above still covers the route).  GLS_SDF_FIELD
+# picks min/typ/max from it (gen.py).
+if [ -n "${GLS_SDF:-}" ]; then
+    cp "$GLS_SDF" "$WORK/routed.sdf"
+else
+    cp "$S" "$WORK/routed.sdf"
+fi
 
 {   echo "design:    $DESIGN"
     echo "built:     $(date -d @"$dj" '+%Y-%m-%d %H:%M:%S')"
     echo "stamped:   $(date '+%Y-%m-%d %H:%M:%S')"
     echo "routed.json md5 $(md5sum < "$WORK/routed.json" | cut -d' ' -f1)  <- $J"
-    echo "routed.sdf  md5 $(md5sum < "$WORK/routed.sdf"  | cut -d' ' -f1)  <- $S"
+    echo "routed.sdf  md5 $(md5sum < "$WORK/routed.sdf"  | cut -d' ' -f1)  <- ${GLS_SDF:-$S}"
+    echo "delays:    sdf column ${GLS_SDF_FIELD:-min}, scale ${GLS_DELAY_SCALE:-1}, scatter sigma ${GLS_SCATTER:-0}, seed ${GLS_SCATTER_SEED:-1}, inst ${GLS_SCALE_INST:-none}, mode ${GLS_SCATTER_MODE:-arc} (gen.py)"
     if [ -f "$HW/toolchain.txt" ]; then
         cat "$HW/toolchain.txt"
     else
         echo "toolchain: UNSTAMPED -- which nextpnr produced this route is not recorded"
+    fi
+    # GLS_MODEL=fid: the opt-in silicon-like primitives (fid_core.vh; F3).
+    # Only stamped when set, so a default build's provenance is unchanged.
+    if [ "${GLS_MODEL:-}" = fid ]; then
+        echo "model:     fid (transport per-pin LUT/MUX arcs, metastability resolver; region ${GLS_SCATTER_REGION:-0}/${GLS_REGION_SLICES:-10}, band ${GLS_SDF_BAND:-0.38} if column=band)"
     fi
 } > "$WORK/provenance.txt"
 
@@ -90,7 +104,9 @@ iverilog -gspecify -I. -o gate.vvp "$SRC/tb_gate.v" netlist.v "$SRC/prims.v"
 # run_baked.vvp is the same numbers from the same parse, baked in as parameters,
 # so it starts in seconds.  Equivalence is not assumed: a full run of each was
 # diffed and every event timestamp is identical.
-iverilog -gspecify -I. -o run_baked.vvp "$SRC/tb_run.v" netlist_baked.v "$SRC/prims.v" 2>&1 \
+FIDDEF=""; [ "${GLS_MODEL:-}" = fid ] && FIDDEF="-DGLS_FID -I$SRC"
+# shellcheck disable=SC2086
+iverilog -gspecify -DGLS_TRANSPORT_IC $FIDDEF -I. -o run_baked.vvp "$SRC/tb_run.v" netlist_baked.v "$SRC/prims.v" 2>&1 \
     | grep -v 'procedural continuous' || true
 
 cat <<EOF
