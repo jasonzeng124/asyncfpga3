@@ -1862,3 +1862,6 @@ xf3 seed 4 (own sdf b1e3c2b0 = research's) FAST_MIN own vectors: 17/17, no selec
 
 ### progress 12:46 T102 done
 xf3 seed 4 long vectors at FAST_MIN: 5/5, 0 violations, min hold 792 ps. Research's glitch-only explanation consistent with own evidence. REPORT xf3 row updated.
+
+### progress 12:46 T103 started
+Pre-audit xf4 seed 1 (fr3 = fr2 with UMUX2 1 -> 2, own diff; xf3 knobs): own build at research HEAD, period, FAST_MIN/worst/SLOW_MAX with monitors.
