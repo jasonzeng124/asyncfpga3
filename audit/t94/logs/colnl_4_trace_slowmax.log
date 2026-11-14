@@ -1,0 +1,285 @@
+T65 trace_slowmax  Sat Nov 14 05:54:48 UTC 2026
+GLS_MODEL=fid
+GLS_SDF=/root/t65/colnl_4/collatz_bench_gen_xray_max.sdf
+GLS_SDF_FIELD=max
+PS_DESIGN=collatz_bench_gen
+PS_HOST=ps7_bench.v
+PS_MON_GEN=/home/user/asyncfpga3/audit/t94/mon_val.py
+PYTHONPATH=/root/audit-tc/openxc7-src/prjxray
+XRAY_DB=/root/dev2/lib/xray/prjxray-db/zynq7
+d7a3b4a6a6575a07a236fa68d71a92f1  /root/t65/colnl_4/collatz_bench_gen.bit
+634db1891433220b47ace6b0e6a7452d  /root/t65/colnl_4/collatz_bench_gen.sdf
+a9fcf0bbd4784314a6bf60b3c22b4265  /root/t65/colnl_4/collatz_bench_gen_xray_max.sdf
+7bd5af941b0b20ca26be0a44439ca1ca  /root/t65/colnl_4/collatz_bench_gen_routed.json
+21d957fb41c0ba388a29ca2b504713ee  /home/user/asyncfpga3/audit/t94/vec5.hex
+chain-band cells: 260
+$ /root/wt-r90/cells/gls/ps/build_ps.sh /root/t65/colnl_4 /root/t65/work_colnl_4_trace_slowmax "" bit
+source: /root/t65/colnl_4/collatz_bench_gen.bit
+db: /root/audit-tc/openxc7/share/nextpnr/prjxray-db/zynq7  part: xc7z010clg400-1
+active pips (bits or listed ppips): 51707   nodes touched: 323421
+cells: 7565  {'BUFGCTRL': 1, 'CARRY4': 80, 'IOB33_OUTBUF': 2, 'PAD': 2, 'PS7_PS7': 1, 'PSEUDO_GND': 1, 'PSEUDO_VCC': 1, 'SELMUX2_1': 320, 'SLICE_FFX': 1924, 'SLICE_LUTX': 5233}
+sinks traced: 247731
+sink roots: {'const/tile': 1045, 'drv': 22468, 'const/default': 14256}
+sdf: DRIVER MISMATCH: nextpnr's arc has another source                      69
+sdf: cell arcs for a bel this netlist does not have                         92
+sdf: cells re-keyed                                                         7473
+sdf: interconnects re-keyed                                                 26586
+sdf: sinks with no nextpnr interconnect (0 ps)                              14246
+
+PROBLEMS (2 kinds):
+      69  SDF interconnect source differs from the bitstream's driver
+            e.g. SLICE_X0Y91/A6LUT/A4: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y80/CARRY4/CO2
+            e.g. SLICE_X0Y92/A6LUT/A2: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y80/CARRY4/CO2
+            e.g. SLICE_X10Y64/B6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y80/CARRY4/CO2
+            e.g. SLICE_X10Y76/A6LUT/A3: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:706$1335.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X10Y89/CARRY4/CO2
+            e.g. SLICE_X10Y84/A6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y80/CARRY4/CO2
+            e.g. SLICE_X10Y86/B6LUT/A3: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y80/CARRY4/CO2
+            e.g. SLICE_X1Y91/A6LUT/A2: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y80/CARRY4/CO2
+            e.g. SLICE_X1Y92/A6LUT/A4: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X8Y80/CARRY4/CO2
+       1  always-ppip shadowed by a used site output
+            e.g. CLK_BUFG_BOT_R_X82Y48/CLK_BUFG_BUFGCTRL0_O
+
+CONFIGURED FEATURES NOT CONSUMED: 1 kinds (0 all-zero encodings ignored)
+       1  CLK_HROW_BOT_R.CLK_HROW_CK_IN_LN_ACTIVE   e.g. CLK_HROW_BOT_R_X82Y26.CLK_HROW_CK_IN_L0_ACTIVE
+
+note: 6079 configured pips lie on no live sink's path (stubs.tsv)
+note: aliases: 8206 routed-JSON net names attached by driver bel pin, 0 whose driver has no net here
+VERDICT: NOT EQUIVALENT: DRIVER DIFFERS
+design:    collatz_bench_gen (host ps7_bench.v)
+routed.json md5 cd706e927879a4cc5f0abd3eef9167e8  <- /root/t65/colnl_4/collatz_bench_gen_routed.json
+routed.sdf  md5 4eb0ae9b93d48038f799eb0dbb23a32f  <- /root/t65/colnl_4/collatz_bench_gen_xray_max.sdf, column max
+delays:    scatter 0 region 0 seed 1 mode arc logn 0
+model:     fid
+netlist:   bit (fasm2net --ps7 from d7a3b4a6); VERDICT: NOT EQUIVALENT: DRIVER DIFFERS
+nextpnr 9c732bc6303458df  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+24 vectors -> /root/t65/work_colnl_4_trace_slowmax/ps_vec.hex
+delays: SDF column max, scale 1, scatter sigma 0 (seed 1, mode arc)
+SDF claims: 21237 IOPATH, 40832 INTERCONNECT, 9154 SETUPHOLD
+fid: 823 LUT state node(s) with a self-loop; loop delay min/median/max 384/982/1659 ps
+cells         : 7565
+icbufs        : 40832
+nets          : 8256 (+40832 icbuf outputs)
+IOPATH  claimed 62069 -> emitted 62069 (incl. 40832 icbuf)
+SETUPHOLD claimed 9154 -> 1924 flops check them in netlist_baked.v
+mon_val: missing [('n31__0_data:1:n31__0_req', None, 1)]
+built in /root/t65/work_colnl_4_trace_slowmax
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:09.25
+	Maximum resident set size (kbytes): 4029152
+ANNOTATE_DONE
+$ vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +VECFILE=/home/user/asyncfpga3/audit/t94/vec5.hex +NRUNS=2 +TBATCH=1000000
+WARNING: /root/wt-r90/cells/gls/ps/ps7_bench.v:255: $readmemh(/home/user/asyncfpga3/audit/t94/vec5.hex): Not enough words in the file for the requested range [0:511].
+BENCHRES batch=0 fclk_ps=12000 mode=1 op0=00000002 op1=00000000 n=2 completed=2 cycles=42 prepcyc=32 latmin=15 latmax=15 sig=00000003 odata=00000001 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=3019999 DONE
+BENCHRES batch=1 fclk_ps=12000 mode=1 op0=00000004 op1=00000000 n=2 completed=2 cycles=58 prepcyc=32 latmin=23 latmax=23 sig=00000006 odata=00000002 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=6247999 DONE
+BENCHRES batch=2 fclk_ps=12000 mode=1 op0=00000010 op1=00000000 n=2 completed=2 cycles=90 prepcyc=32 latmin=39 latmax=39 sig=0000000c odata=00000004 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=9475999 DONE
+BENCHRES batch=3 fclk_ps=12000 mode=1 op0=00000040 op1=00000000 n=2 completed=2 cycles=122 prepcyc=32 latmin=55 latmax=55 sig=0000000a odata=00000006 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=13363999 DONE
+VAL t=14627816 n29_req=1 n29_data=00000001
+VAL t=14629816 n29_req+2ns n29_data=00000001
+VAL t=14638074 n27_req=1 n27_data=00000000
+VAL t=14640074 n27_req+2ns n27_data=00000000
+VAL t=14666755 n29_req=0 n29_data=00000001
+VAL t=14668755 n29_req+2ns n29_data=00000001
+VAL t=14671216 n27_req=0 n27_data=00000000
+VAL t=14673216 n27_req+2ns n27_data=00000000
+VAL t=14723607 n29_req=1 n29_data=00000002
+VAL t=14725607 n29_req+2ns n29_data=00000002
+VAL t=14734345 n27_req=1 n27_data=00000000
+VAL t=14736345 n27_req+2ns n27_data=00000000
+VAL t=14763026 n29_req=0 n29_data=00000002
+VAL t=14765026 n29_req+2ns n29_data=00000002
+VAL t=14767487 n27_req=0 n27_data=00000000
+VAL t=14769487 n27_req+2ns n27_data=00000000
+VAL t=14818969 n29_req=1 n29_data=00000003
+VAL t=14820969 n29_req+2ns n29_data=00000003
+VAL t=14829707 n27_req=1 n27_data=00000000
+VAL t=14831707 n27_req+2ns n27_data=00000000
+VAL t=14858388 n29_req=0 n29_data=00000003
+VAL t=14860388 n29_req+2ns n29_data=00000003
+VAL t=14862849 n27_req=0 n27_data=00000000
+VAL t=14864849 n27_req+2ns n27_data=00000000
+VAL t=14914331 n29_req=1 n29_data=00000004
+VAL t=14916331 n29_req+2ns n29_data=00000004
+VAL t=14925069 n27_req=1 n27_data=00000000
+VAL t=14927069 n27_req+2ns n27_data=00000000
+VAL t=14953750 n29_req=0 n29_data=00000004
+VAL t=14955750 n29_req+2ns n29_data=00000004
+VAL t=14958211 n27_req=0 n27_data=00000000
+VAL t=14960211 n27_req+2ns n27_data=00000000
+VAL t=15009693 n29_req=1 n29_data=00000005
+VAL t=15011693 n29_req+2ns n29_data=00000005
+VAL t=15020431 n27_req=1 n27_data=00000000
+VAL t=15022431 n27_req+2ns n27_data=00000000
+VAL t=15049112 n29_req=0 n29_data=00000005
+VAL t=15051112 n29_req+2ns n29_data=00000005
+VAL t=15053573 n27_req=0 n27_data=00000000
+VAL t=15055573 n27_req+2ns n27_data=00000000
+VAL t=15105055 n29_req=1 n29_data=00000006
+VAL t=15107055 n29_req+2ns n29_data=00000006
+VAL t=15115793 n27_req=1 n27_data=00000000
+VAL t=15117793 n27_req+2ns n27_data=00000000
+VAL t=15144474 n29_req=0 n29_data=00000006
+VAL t=15146474 n29_req+2ns n29_data=00000006
+VAL t=15148935 n27_req=0 n27_data=00000000
+VAL t=15150935 n27_req+2ns n27_data=00000000
+VAL t=15200417 n29_req=1 n29_data=00000007
+VAL t=15202417 n29_req+2ns n29_data=00000007
+VAL t=15211155 n27_req=1 n27_data=00000000
+VAL t=15213155 n27_req+2ns n27_data=00000000
+VAL t=15239836 n29_req=0 n29_data=00000007
+VAL t=15241836 n29_req+2ns n29_data=00000007
+VAL t=15244297 n27_req=0 n27_data=00000000
+VAL t=15246297 n27_req+2ns n27_data=00000000
+VAL t=15295779 n29_req=1 n29_data=00000008
+VAL t=15297779 n29_req+2ns n29_data=00000008
+VAL t=15306517 n27_req=1 n27_data=00000000
+VAL t=15308517 n27_req+2ns n27_data=00000000
+VAL t=15335198 n29_req=0 n29_data=00000008
+VAL t=15337198 n29_req+2ns n29_data=00000008
+VAL t=15339659 n27_req=0 n27_data=00000000
+VAL t=15341659 n27_req+2ns n27_data=00000000
+VAL t=15391141 n29_req=1 n29_data=00000009
+VAL t=15393141 n29_req+2ns n29_data=00000009
+VAL t=15401879 n27_req=1 n27_data=00000000
+VAL t=15403879 n27_req+2ns n27_data=00000000
+VAL t=15430560 n29_req=0 n29_data=00000009
+VAL t=15432560 n29_req+2ns n29_data=00000009
+VAL t=15435021 n27_req=0 n27_data=00000000
+VAL t=15437021 n27_req+2ns n27_data=00000000
+VAL t=15486503 n29_req=1 n29_data=0000000a
+VAL t=15488503 n29_req+2ns n29_data=0000000a
+VAL t=15497241 n27_req=1 n27_data=00000000
+VAL t=15499241 n27_req+2ns n27_data=00000000
+VAL t=15525922 n29_req=0 n29_data=0000000a
+VAL t=15527922 n29_req+2ns n29_data=0000000a
+VAL t=15530383 n27_req=0 n27_data=00000000
+VAL t=15532383 n27_req+2ns n27_data=00000000
+VAL t=15581865 n29_req=1 n29_data=0000000b
+VAL t=15583865 n29_req+2ns n29_data=0000000b
+VAL t=15592603 n27_req=1 n27_data=00000000
+VAL t=15594603 n27_req+2ns n27_data=00000000
+VAL t=15621284 n29_req=0 n29_data=0000000b
+VAL t=15623284 n29_req+2ns n29_data=0000000b
+VAL t=15625745 n27_req=0 n27_data=00000000
+VAL t=15627745 n27_req+2ns n27_data=00000000
+VAL t=15677227 n29_req=1 n29_data=0000000c
+VAL t=15679227 n29_req+2ns n29_data=0000000c
+VAL t=15687965 n27_req=1 n27_data=00000000
+VAL t=15689965 n27_req+2ns n27_data=00000000
+VAL t=15716646 n29_req=0 n29_data=0000000c
+VAL t=15718646 n29_req+2ns n29_data=0000000c
+VAL t=15721107 n27_req=0 n27_data=00000000
+VAL t=15723107 n27_req+2ns n27_data=00000000
+VAL t=15772589 n29_req=1 n29_data=0000000d
+VAL t=15774589 n29_req+2ns n29_data=0000000d
+VAL t=15783327 n27_req=1 n27_data=00000000
+VAL t=15785327 n27_req+2ns n27_data=00000000
+VAL t=15812008 n29_req=0 n29_data=0000000d
+VAL t=15814008 n29_req+2ns n29_data=0000000d
+VAL t=15816469 n27_req=0 n27_data=00000000
+VAL t=15818469 n27_req+2ns n27_data=00000000
+VAL t=15867951 n29_req=1 n29_data=0000000e
+VAL t=15869951 n29_req+2ns n29_data=0000000e
+VAL t=15878689 n27_req=1 n27_data=00000000
+VAL t=15880689 n27_req+2ns n27_data=00000000
+VAL t=15907370 n29_req=0 n29_data=0000000e
+VAL t=15909370 n29_req+2ns n29_data=0000000e
+VAL t=15911831 n27_req=0 n27_data=00000000
+VAL t=15913831 n27_req+2ns n27_data=00000000
+VAL t=15963313 n29_req=1 n29_data=0000000f
+VAL t=15965313 n29_req+2ns n29_data=0000000f
+VAL t=15974051 n27_req=1 n27_data=00000000
+VAL t=15976051 n27_req+2ns n27_data=00000000
+VAL t=16002732 n29_req=0 n29_data=0000000f
+VAL t=16004732 n29_req+2ns n29_data=0000000f
+VAL t=16007193 n27_req=0 n27_data=00000000
+VAL t=16009193 n27_req+2ns n27_data=00000000
+VAL t=16058675 n29_req=1 n29_data=00000010
+VAL t=16060675 n29_req+2ns n29_data=00000010
+VAL t=16069413 n27_req=1 n27_data=00000000
+VAL t=16071413 n27_req+2ns n27_data=00000000
+VAL t=16098094 n29_req=0 n29_data=00000010
+VAL t=16100094 n29_req+2ns n29_data=00000010
+VAL t=16102555 n27_req=0 n27_data=00000000
+VAL t=16104555 n27_req+2ns n27_data=00000000
+VAL t=16154037 n29_req=1 n29_data=00000011
+VAL t=16156037 n29_req+2ns n29_data=00000011
+VAL t=16164775 n27_req=1 n27_data=00000000
+VAL t=16166775 n27_req+2ns n27_data=00000000
+VAL t=16193456 n29_req=0 n29_data=00000011
+VAL t=16195456 n29_req+2ns n29_data=00000011
+VAL t=16197917 n27_req=0 n27_data=00000000
+VAL t=16199917 n27_req+2ns n27_data=00000000
+VAL t=16249399 n29_req=1 n29_data=00000012
+VAL t=16251399 n29_req+2ns n29_data=00000012
+VAL t=16260137 n27_req=1 n27_data=00000000
+VAL t=16262137 n27_req+2ns n27_data=00000000
+VAL t=16288818 n29_req=0 n29_data=00000012
+VAL t=16290818 n29_req+2ns n29_data=00000012
+VAL t=16293279 n27_req=0 n27_data=00000000
+VAL t=16295279 n27_req+2ns n27_data=00000000
+VAL t=16344761 n29_req=1 n29_data=00000013
+VAL t=16346761 n29_req+2ns n29_data=00000013
+VAL t=16355499 n27_req=1 n27_data=00000000
+VAL t=16357499 n27_req+2ns n27_data=00000000
+VAL t=16384180 n29_req=0 n29_data=00000013
+VAL t=16386180 n29_req+2ns n29_data=00000013
+VAL t=16388641 n27_req=0 n27_data=00000000
+VAL t=16390641 n27_req+2ns n27_data=00000000
+VAL t=16440123 n29_req=1 n29_data=00000014
+VAL t=16442123 n29_req+2ns n29_data=00000014
+VAL t=16450861 n27_req=1 n27_data=00000000
+VAL t=16452861 n27_req+2ns n27_data=00000000
+VAL t=16479542 n29_req=0 n29_data=00000014
+VAL t=16481542 n29_req+2ns n29_data=00000014
+VAL t=16484003 n27_req=0 n27_data=00000000
+VAL t=16486003 n27_req+2ns n27_data=00000000
+VAL t=16535485 n29_req=1 n29_data=00000015
+VAL t=16537485 n29_req+2ns n29_data=00000015
+VAL t=16546223 n27_req=1 n27_data=00000000
+VAL t=16548223 n27_req+2ns n27_data=00000000
+VAL t=16574904 n29_req=0 n29_data=00000015
+VAL t=16576904 n29_req+2ns n29_data=00000015
+VAL t=16579365 n27_req=0 n27_data=00000000
+VAL t=16581365 n27_req+2ns n27_data=00000000
+VAL t=16630847 n29_req=1 n29_data=00000016
+VAL t=16632847 n29_req+2ns n29_data=00000016
+VAL t=16641585 n27_req=1 n27_data=00000000
+VAL t=16643585 n27_req+2ns n27_data=00000000
+VAL t=16670266 n29_req=0 n29_data=00000016
+VAL t=16672266 n29_req+2ns n29_data=00000016
+VAL t=16674727 n27_req=0 n27_data=00000000
+VAL t=16676727 n27_req+2ns n27_data=00000000
+VAL t=16726209 n29_req=1 n29_data=00000017
+VAL t=16728209 n29_req+2ns n29_data=00000017
+VAL t=16736947 n27_req=1 n27_data=00000000
+VAL t=16738947 n27_req+2ns n27_data=00000000
+VAL t=16765628 n29_req=0 n29_data=00000017
+VAL t=16767628 n29_req+2ns n29_data=00000017
+VAL t=16770089 n27_req=0 n27_data=00000000
+VAL t=16772089 n27_req+2ns n27_data=00000000
+VAL t=16821571 n29_req=1 n29_data=00000018
+VAL t=16823571 n29_req+2ns n29_data=00000018
+VAL t=16832309 n27_req=1 n27_data=00000000
+VAL t=16834309 n27_req+2ns n27_data=00000000
+VAL t=16860990 n29_req=0 n29_data=00000018
+VAL t=16862990 n29_req+2ns n29_data=00000018
+VAL t=16865451 n27_req=0 n27_data=00000000
+VAL t=16867451 n27_req+2ns n27_data=00000000
+VAL t=16916933 n29_req=1 n29_data=00000019
+VAL t=16918933 n29_req+2ns n29_data=00000019
+VAL t=16927671 n27_req=1 n27_data=00000000
+VAL t=16929671 n27_req+2ns n27_data=00000000
+VAL t=16956352 n29_req=0 n29_data=00000019
+VAL t=16958352 n29_req+2ns n29_data=00000019
+VAL t=16960813 n27_req=0 n27_data=00000000
+VAL t=16962813 n27_req+2ns n27_data=00000000

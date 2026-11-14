@@ -1772,3 +1772,6 @@ lanes8 done: worst+scatter and SLOW_MAX on c64nl 2, 4-9 and colnl 1, 2, 4-8, plu
 
 ### progress 06:01 T94
 colnl_4 SLOW_MAX hang reproduced exactly on rerun (4/13); control colr_4 SLOW_MAX 13/13. Own value tracer (audit/t94/mon_val.py): in batch 4 (n=256) uselect0's output n27 is 0 from the first iteration (expected 128), so the loop spins on n=0 (collatz fixed point) -- a wrong value, not a deadlock; t83 monitors show 0 select/latch violations. Tracing uselect0's inputs over batches 3-4.
+
+### progress 06:59 T94
+Two worker restarts (~06:55) killed the trace3 run. Value trace (trace2) shows batch 4's loop input n10__3 = 0 from the first iteration (n=256 enters as 0); the error is at loop entry. findings/T94.md + REPORT top row (colnl_4 SLOW_MAX failure, deterministic). Relaunching the entry trace fully detached.
