@@ -1808,3 +1808,6 @@ Counter trace on a failing vector: run 2 counts 1, 2, 7 -- the counter input bec
 
 ### progress 09:18 T97 mechanism
 Edge trace: the new counter value passes the transparent ulink_n7, the combinational adder recomputes, and its output races through the trueResult_6 pipe's still-open stage 0 and stage 1 (stage 0 closes ~0.3 ns later). The pipe captures 6 instead of 2 and the counter exits early. A race-through/hold failure of the counter ring at FAST_MIN, a class the static rules A/E do not check. findings/T97.md.
+
+### progress 09:19 T98 started
+BOARD-QUEUE item 22 (#23, research 514ac04a): collatz full range (fcolsz2), board seed 26, recipe sdf bc2fe0c8, "ratio ~1.19 over item 20 on this route". Own builds colsz2_26 + colr_26 (baseline), FF scan, periods, FAST_MIN/worst/SLOW_MAX with monitors (t94/item22.sh). Also: research's fxf2 stale-rounds hypothesis (db935e60) contradicted by the own trace on the own failing vector (REPORT top row).
