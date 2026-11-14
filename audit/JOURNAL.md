@@ -1850,3 +1850,6 @@ Item 11 (p8mo seed 1, own sdf 1e51be7e = recipe) FAST_MIN with monitors: 17/17, 
 - fxf2 FAST_MIN failure CONFIRMED and traced (T97): counter-ring race-through at the loop-back pipe, a hold hazard static A/E do not see; research reached the same mechanism after a withdrawn hypothesis. xf3 seed 1 clean (T100).
 - Own dynamic hold sweep (T99): 15 board routes, min hold >= 0.63 ns at FAST_MIN (fxf2: 11 ps).
 - Formal: unchanged (8fd62f82); target md5s re-checked.
+
+### progress 11:57 T101
+Research fxf2h hold check (flags only seed 1): own spot check of the tightest passing route, seed 30 (sdf 5d778616 = research's): 17/17 at FAST_MIN, race-stage hold 1699 ps (research +1421). CONFIRMED on the 2 routes checked.
