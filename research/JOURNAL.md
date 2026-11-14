@@ -4285,3 +4285,10 @@ Next (for this session if it lasts, else the next):
   ulink_n_index_15, +360 to +883 ps. research/data/fifteen/farm/fxf2h_hold.txt.
 - So the trace-measured hold check catches what the static rules cannot see, with no false alarm on 28 routes. It joins
   the per-route checks (eval_task HOLD_VEC). Its limit stays: it sees only what the vectors exercise.
+### progress 11:53 UTC (farm fxf3 / fxf3h: 31 routes, gate 93/93, no cost from the latch; one hold violation)
+- xf3 (xf2 + latch on the adder's steer branch): 31 routes (10: no build). Period median 23.04 ns, mean 23.21, best
+  21.62, worst 25.95 (xf2: 23.29 median): the extra latch costs nothing measurable. Gate 93/93 PASS. Static CLEAN on
+  28/31; seeds 7, 9, 21: umux2 rule A -3 to -56 ps (the rounds mux at size 1, as on fxf2 / fxne).
+- Hold check (fxf3h, same routes): ulink_n_trueResult_6 clean on every route. ONE violation: seed 4, ulink_n_trueResult_10
+  (the rounds ring's loop-back pipe) 1 window, -612 ps -- on a route whose gate passes. Next tightest stage on any route
+  +44 ps. So xf3 is not yet clean: rebuilding seed 4 locally (same route) to trace what that D change is.
