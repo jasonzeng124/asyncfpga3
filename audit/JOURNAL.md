@@ -1902,3 +1902,6 @@ BOARD-QUEUE item 23 (#24, research bf5289ce): xorshift full range (xf4), board s
 
 ### progress 19:26 T106 done
 Board item 23 (xorshift full range, seed 10) CONFIRMED on its board route: own sdf 2f825834 = recipe, FF clean, 23.310 ns, 1.676x over x0.5 (pred 1.66), 3 corners 17/17 + long vectors 5/5, monitors clean.
+
+### progress 19:27 T106b
+Own rule E on item 23's route (3 corners, 366 rows): all positive, min +1050 ps. REPORT item-23 row updated.
