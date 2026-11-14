@@ -29,7 +29,10 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
 - **collatz64 (6, 12, 16, 21) and the lever-5 candidate:** umux2 misses rule A by 1.3-2.5 ns at nominal on every
   route; shown to be the same select-latch false path by trace (JOURNAL 2026-11-14). Lever-5 candidate (fc64nl, farm):
   30 routes, median 45.21 ns, gate 90/90; otherwise statically clean. Not yet a board item (gcd's counters next).
-- **Not yet checked:** gcd (1-3, 5), ipow (7, 13), collatz (9, 15, 20). Collatz item 22 (#23) is full
+- **gcd (#5's route, 2026-11-14, preliminary):** rule E clean at nominal and worst; rule A nominal only ushrsi4 -210 ps,
+  worst ushrsi1/2/4 and uaddi0 (-0.1 to -1.3 ns) -- all on a / b, which the 1000 random 32-bit vectors span; no counter
+  in gcd. Full range by the rule; A' re-measure pending.
+- **Not yet checked:** ipow (7, 13), collatz (9, 15, 20) -- older items superseded by 19 and 22. Collatz item 22 (#23) is full
   range (static clean on 27/27 routes). Until checked,
   read each as bench range only.
 

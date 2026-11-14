@@ -4388,3 +4388,12 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   passes them to the audits and cuts their arcs in the parsed SDF too. Running nominal + worst (--prefix urig.udut.).
 - gcd's loop has no counter: a, b are the data, and the gate's vectors (1000 random 32-bit pairs on gcd_ps) span them,
   so the rule's "unspanned paths" are few; the static check is still the evidence for the long-carry compares.
+### progress 21:22 UTC (gcd item 5 under the full-range rule -- preliminary, from the base audits)
+- Route = BOARD-QUEUE #5 (sdf 39d30709). The per-line sensitivity runs of corner_audit are still going after 1.5 h (gcd
+  is the biggest kernel); its base audits at each corner are done:
+  rule E: no violation at nominal or worst. Rule A (tighten's rows; A' re-measure pending): nominal ushrsi4 -210 ps;
+  worst ushrsi4 -1328, ushrsi2 -500, ushrsi1 -438, uaddi0 -121 ps.
+- None is on a counter: gcd's shifts and subtract work on a and b, which the gate's 1000 random 32-bit vectors (gcd_ps)
+  toggle across all bits. The one nominal miss is 210 ps (< the 0.5 ns the owner asks to explain). So under the rule:
+  gcd item 5 (and #1-#3, same structure) is full range as far as these checks go, with the worst-corner rule-A rows on
+  record. Final rows (A') to follow from corner_audit's report.
