@@ -4419,3 +4419,17 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
 - Next: the static check per case -- corner_audit with arcs cut: LONG case = the short line's arc into the LUT3 cut;
   SHORT case = the long line's arc cut and the adder's carry arcs above bit k cut (they cannot toggle when abort = 0).
   Plus the select race inside the cell (spec_abort settling before z_short rises) as a rule-E-like row.
+### progress 23:41 UTC (speculative completion on xorshift: first route measured; static check clean in both cases)
+- xs_10 = item 23's build (seed 10) + BDC_SPEC_INC=uaddi0:4:6 (short line 6, long 13). Bench latency on the 256-round
+  vector: 466 cycles vs xf4_10's 503 (same seed, same sizes otherwise): -1.73 ns per iteration on average (predicted
+  ~-2.1: 7 elements x ~0.35 ns x 7/8). Result cd3132bf (C), EQUIVALENT, ffmux clean. The event graph cannot give a
+  single period any more (iterations differ by design); latency is the measure.
+- Static check by cases (corner_audit --drop-inst / --cut, new): LONG = the short line removed, the abort->LUT3 arc
+  cut; SHORT = the long line removed, the abort arc cut, and every arc out of the adder's CARRY4 slices 1-7 cut (with
+  abort = 0 the carry never enters bit 4 and bits >= 4 do not change). uaddi0 rule A': LONG +3843 nominal / +2519
+  worst; SHORT +1103 / +545. No other kernel A' / E row below 0 in any case. Stable across PYTHONHASHSEED (the first
+  attempts were not: tighten pairs a cell with ONE delay line and picked between the two, or the abort path, by set
+  order -- hence dropping the other line's instances outright).
+- Not covered by those rows: the select race inside the cell (spec_abort must settle before z_short rises). Estimate
+  from the SHORT-case rows: the latest low-bit data arrives ~2.5 ns at worst vs the short request at 3.08 ns; the abort
+  is 2 LUTs off the same bits. To be measured as its own row. Then: gate, hold check, 32 farm routes.

@@ -113,6 +113,16 @@ def worker(sdf, spec):
             crx = re.compile(rx)
             for src in list(edges):
                 edges[src] = [(dd, ww) for dd, ww in edges[src] if not crx.search(f"{src} -> {dd}")]
+        # --drop-inst REGEX: remove whole instances (their CELL entries and every arc touching them), e.g. the delay
+        # line that is not in play in a case, so the audits' per-cell line pairing cannot pick it
+        for rx in spec.get("drop", []):
+            crx = re.compile(rx)
+            gone = {i for i in celltype if crx.search(i)}
+            for i in gone: celltype.pop(i, None)
+            for src in list(edges):
+                if crx.search(T.pin_split(src)[0]):
+                    edges.pop(src); continue
+                edges[src] = [(dd, ww) for dd, ww in edges[src] if not crx.search(T.pin_split(dd)[0])]
         # --osc: a declared free-running oscillator's arcs are cut here too, so routed_graph() (rule A') sees the same
         # graph tighten.main does after its own --osc handling
         for pre in spec.get("osc", []):
@@ -491,6 +501,8 @@ def main():
     ap.add_argument("--no-size", action="store_true", help="report only")
     ap.add_argument("--cut", action="append", default=[],
                     help="case analysis: drop every SDF arc whose 'src -> dst' matches this regex (repeatable)")
+    ap.add_argument("--drop-inst", action="append", default=[],
+                    help="case analysis: remove every instance whose name matches this regex, with its arcs (repeatable)")
     ap.add_argument("--osc", action="append", default=[],
                     help="passed to tighten.py: an instance prefix that is a ring oscillator (gcd_hw's rig: dhk, invhk)")
     ap.add_argument("--prefix", default="uut.",
@@ -537,7 +549,7 @@ def main():
         (out / "toolchain.txt").write_text((pnr / "toolchain.txt").read_text())
     sdf = out / "soak.sdf"
     spec = {"a_frac": a.a_frac, "a_min": a.a_min, "glo": a.guard_lo, "ghi": a.guard_hi,
-            "drop_const": not a.keep_const_launch, "rule_a_link": not a.rule_a_tighten, "osc": a.osc, "cut": a.cut}
+            "drop_const": not a.keep_const_launch, "rule_a_link": not a.rule_a_tighten, "osc": a.osc, "cut": a.cut, "drop": a.drop_inst}
     nominal = lambda rule: a.guard_lo if rule == "E" else 1.0
 
     base = run_worker(sdf, {**spec, "chains": True, "keep_logs": True}, log=out)
