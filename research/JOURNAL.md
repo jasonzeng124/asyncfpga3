@@ -4332,3 +4332,11 @@ Next (for this session if it lasts, else the next):
   was -247). So the fipowrh flags measured the SDELAY line's fall, not the latch; item 19's flag is withdrawn in
   BOARD-QUEUE. The fxf2h / fxf3h readings shift the same way (xf2_1 still fails at -1159 ps); the farm requests from now
   on use the corrected tool (it is on the branch they check out).
+### progress 15:37 UTC (farm: collatz item 22 and collatz64 lever 5 with the hold check -- old tool reading)
+- fcolsz2h (collatz item 22's design, seeds 1-32): 31 routes, period median 41.20 ns, gate 93/93, static CLEAN on 31/31.
+  Hold (picked up the uncorrected tool, whose window is wider): 2 routes flagged on ulink_n_index_11 at -11 / -21 ps,
+  inside the delay-line artefact; tightest elsewhere +39 ps.
+- fc64nlh (collatz64 lever 5): 30 routes, median 45.23 ns, gate 90/90, static 0/30 (umux2, the traced false path).
+  Hold (old tool): ulink_n_index_11 flagged on EVERY route, -262 to -748 ps, beyond one element's fall in places.
+- Re-measuring both with the corrected tool on rebuilt routes: collatz seed 6, collatz64 seed 3 (worst, -748).
+- fxf4 still "submitted" after ~3 h (no task started): noted per the farm README; checking again later.
