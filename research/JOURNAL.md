@@ -4002,3 +4002,10 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - xfr (item 17's knobs + xorshift_sizes_T3s50_fr_bench.vh): s1 22.52 ns (predicted 22.04; item 17 s1 19.86), s3 23.58
   (22.61; 20.64). odata cd3132bf; s3 NOT EQUIVALENT kind to check. ~+2.8 ns over item 17 on these two seeds.
 - Gates: colsz 12/24 PASS, c64nl 10/24 PASS; static check (both corners) running on the colsz routes.
+### progress 02:52 UTC (xfr 6 routes; static check of colsz: merges at size 1 are 9-60 ps short on 1 of 2 routes)
+- xfr s1, 3-7: 22.52 / 23.58 / 23.34 / 22.82 / 23.30 / 21.78 ns (item 17 same seeds 19.86 / 20.64 / 20.91 / 21.36 / 19.58 /
+  21.36). s3/s4/s7 NOT EQUIVALENT to check. Static check and gate (gqE) queued on the xfr routes.
+- Static check on the sized collatz routes: colsz_3 clean at both corners (no kernel A/A'/E below 0); colsz_2 rule A on
+  ucontrol_merge0 (size 1) -60 ps worst / -9 ps nominal, merge1 -17 ps worst. The merge's index path is exercised by
+  every loop entry and exit in the gate (26 per run), so under the owner's rule the gate covers it; still, if more routes
+  show it, colsz gets merges back at 2 (about +0.4 ns) before it becomes a board item.
