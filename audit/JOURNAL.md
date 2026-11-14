@@ -1738,3 +1738,6 @@ Research 5e1738a1: collatz per-cell sizes over 8 lever-5 routes (collatz_sizes_T
 
 ### progress 00:52 T91
 Item 18 (own c6519c91) at worst+scatter: all 5 long vectors correct (rounds 256/1024/2048/4095 seed 92d68ca2; 2048 seed 1), 0 monitor violations; ucond_br6 min rise margin 2.04 ns, set at the 2048-round exit (11-bit carry) -- no lower at 4095. FAST_MIN running.
+
+### progress 01:12 T91 done
+Item 18 / item 17 at FAST_MIN with long vectors: correct, 0 violations. T91 verdict: coverage gap CONFIRMED (incl. the audit's own item-18 check); no hazard on the bench's 12-bit range (+2.04 ns at worst+scatter); full 32-bit UNVERIFIED. Owner rule bead13d7 (research PROGRAM, 2026-11-14): every kernel judged over its full input range, static A/E for paths the gate cannot reach. Audit consequence: board-item verdicts so far are bench-range verdicts; an own static rule-A/E check for loop-counter paths is the next audit tool to build.
