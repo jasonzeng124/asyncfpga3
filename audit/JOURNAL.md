@@ -1759,3 +1759,6 @@ Own rule E over all 24 steer/mux sites of items 17 and 18 (sites.py, re-run iden
 
 ### progress 04:01
 colsz routes 2-8 in research's graphs (0c5e5ede) = own builds (md5). lanes8: 18/29 corner runs done, all pass vs own oracle.
+
+### progress 05:02 T94 started
+**colnl_4 (collatz lever 5, seed 4, sdf 634db189) at SLOW_MAX: 4/13 vs own oracle** -- batches 0-3 correct, batch 4 (n=256) never completes; PS harness TIMEOUT at 5 ms simulated (a batch takes ~3 us). Every other lever-5 corner run so far passes (48 runs). Research never gated colnl (moved on to colsz). Rerun (determinism / infra check) and control colr_4 (item-20 recipe, seed 4) SLOW_MAX running (lanes9.sh).
