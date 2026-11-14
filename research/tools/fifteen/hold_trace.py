@@ -10,6 +10,8 @@ For each bd_link / bd_pipe instance X of the kernel:
 A token is safe only if D does not change between P's rise and E's fall (after that the latch is closed).
 Reported per instance: the number of E-high windows, the number with a D change inside [P rise, E fall] (VIOLATIONS),
 and the smallest margin over all windows: (first D change after P rise) - (E fall), negative = D moved while open.
+glitch_only: violations where every D bit is back at its value at P by the time E falls (an x / runt pulse, not a new
+value; the captured data is unchanged -- reported, not ignored).
 Windows where D does not change before the next E rise count as margin = (next E rise) - (E fall) (lower bound).
 """
 import re, sys, collections, bisect
@@ -66,13 +68,19 @@ for l in open(d + '/dump.vcd'):
     elif l[0] == '#': t = int(l[1:])
     elif l[0] in '01xz':
         for x in ids.get(l[1:].strip(), ()): ev[x].append((t, l[0]))
-print("instance\tkind\tN\tW_seen\twindows\tviolations\tmin_margin_ps")
+print("instance\tkind\tN\tW_seen\twindows\tviolations\tmin_margin_ps\tglitch_only")
 rows = []
 for name, kind, n, E, Pn, D in insts:
     rises = [t for t, v in ev[E] if v == '1']; falls = [t for t, v in ev[E] if v == '0']
     prise = sorted(t for t, v in ev[Pn] if v == '1')
     dch = sorted(t for x in D for t, _ in ev[x])
-    win = viol = 0; mm = None
+    def valat(x, t):                     # value of net x just after time t
+        v = None
+        for tt, vv in ev[x]:
+            if tt > t: break
+            v = vv
+        return v
+    win = viol = glitch = 0; mm = None
     for r in rises:
         j = bisect.bisect_right(falls, r)
         if j >= len(falls): continue
@@ -83,9 +91,12 @@ for name, kind, n, E, Pn, D in insts:
         q = bisect.bisect_right(dch, pr_)
         nxt = rises[bisect.bisect_right(rises, f)] if bisect.bisect_right(rises, f) < len(rises) else None
         first = dch[q] if q < len(dch) else None
-        if first is not None and first <= f: viol += 1; m = first - f
+        if first is not None and first <= f:
+            viol += 1; m = first - f
+            # a pulse that is back at the captured value before the latch closes changed nothing it holds
+            if all(valat(x, f) == valat(x, pr_) for x in D): glitch += 1
         elif first is not None and (nxt is None or first < nxt): m = first - f
         else: m = (nxt - f) if nxt else None
         if m is not None and (mm is None or m < mm): mm = m
-    rows.append((mm if mm is not None else 10**9, f"{name}\t{kind}\t{n}\t{len(D)}\t{win}\t{viol}\t{mm if mm is not None else 'NA'}"))
+    rows.append((mm if mm is not None else 10**9, f"{name}\t{kind}\t{n}\t{len(D)}\t{win}\t{viol}\t{mm if mm is not None else 'NA'}\t{glitch}"))
 for _, r in sorted(rows): print(r)

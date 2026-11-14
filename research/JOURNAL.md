@@ -4292,3 +4292,14 @@ Next (for this session if it lasts, else the next):
 - Hold check (fxf3h, same routes): ulink_n_trueResult_6 clean on every route. ONE violation: seed 4, ulink_n_trueResult_10
   (the rounds ring's loop-back pipe) 1 window, -612 ps -- on a route whose gate passes. Next tightest stage on any route
   +44 ps. So xf3 is not yet clean: rebuilding seed 4 locally (same route) to trace what that D change is.
+### progress 12:07 UTC (xf3 seed 4's hold violation is a 57 ps x-pulse, not a new value; xf4 = xf3 + umux2 2)
+- xf3_4 rebuilt (same route b1e3c2b0) and dumped at FAST_MIN on rounds 3 / 4 / 8 / 5: results correct; the flagged window
+  on ulink_n_trueResult_10 is bit 14 of rounds at its input going x at 1667617 and back to 0 at 1667674 -- 555 ps before
+  the latch closes, the value it holds unchanged. The pulse comes out of ulink_n11__0_folink's latch (an x from the fid
+  model's near-simultaneous edges at that latch LUT): noted for a look, not a corruption.
+- hold_trace.py now reports glitch_only (violations where every D bit is back at its captured value when the latch
+  closes). xf2_1: 4 violations, 2 glitch-only, 2 REAL (the leak). xf3_4: 1 violation, glitch-only. So across the 31 xf3
+  routes the hold check finds no real violation.
+- Left for xf3 under the full-range rule: umux2 rule A -3 to -56 ps on 3 routes (the rounds mux; its high bits are never
+  toggled by the vectors). xf4 = xf3 + umux2 1 -> 2 (research/data/xorshift_sizes_T3s50_fr3_bench.vh); farm fxf4, 32
+  routes, every check + hold. PREDICTION: median ~23.0-23.4 ns (umux2 is on the rounds ring, rarely the binding one).
