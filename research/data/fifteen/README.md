@@ -92,3 +92,22 @@ every storage knob finds nothing (seed 1 of each). What is left is each datapath
 collatz uselect0 10.0, uaddi0 8.4, ulink_n14__0 (select) 7.9, ucmpi2 7.8; ipow ushrsi0 10.4, ucmpi2 8.8, umux1 4.9;
 collatz64 uaddi0 11.5, uselect0 9.2, ulink_n14__0 6.8, ucmpi2 5.9. Those are matched delays sized to static worst paths
 (item 9/12/7 sizes), the select rule's links, and the compares -- sizing and cell work, not storage.
+
+## 2026-11-14: where xorshift stands after lever 5's hold, and what 15 ns would need
+
+- Lever 5 is ON HOLD (top of this file). Lever 9 builds on it and inherits the hold. Lever 10 (PLACE_WEIGHT on the
+  binding rings' handshake nets only, `BD_PLACE_WEIGHT_CELLS`) is seed-sensitive: on lever 5, s1 19.70 / s3 17.83 (ring 1
+  only), 17.79 / 18.61 (both rings), against 18.45 / 17.64. Not a lever. Lever 9c (rule H's uack size) 17.66 on s1 vs 9a
+  17.76: not a lever.
+- The binding cycle (lever 5 s1, graph): 18.45 ns = 15.82 ns of wire + 2.63 ns of cell arcs. Delay-chain hops (27
+  elements) 10.68 ns, handshake hops (~19) 7.77 ns.
+- The counter's add + compare is statically SHORT at the gate's own worst corner even at lever 3 (item 17): uaddi0 A'
+  -752 ps (corner_audit asks 6 -> 11), and only 238 ps of rule E margin at ucond_br6 after ulink_n30__1. The gate never
+  sees it because its vectors keep i < 1000 (the board bench masks rounds to 12 bits). So the x0.5 counter is not shown
+  correct for a general 32-bit rounds, and a fully covered counter costs MORE time on the cycle than today
+  (~5 elements of uaddi0, ~2 ns), not less.
+- So 15 ns in four-phase needs, beyond what the knobs here reach: (1) the counter's add and compare bounded by their real
+  settle instead of the static full carry -- completion detection on the carry chains, a new cell (the measured settle
+  of the fused add+compare in the run is 2.2-2.6 ns against 7.5 ns of matched delay on the cycle); (2) ~3 ns less
+  handshake wire, which placement weights did not give (levers 4, 10). Neither is available without new cells or a
+  placer objective for ring period.
