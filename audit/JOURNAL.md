@@ -1781,3 +1781,6 @@ Entry operand n_falseResult_3 is already 0 in batch 4 (bd_pipe latch output); th
 
 ### progress 07:37 T94 re-read
 Trace4: bench_op0[8] (clocked harness register, FIXED-mode S_PREP load) never loads 1 while bit 6 loads on the same edge -> kernel gets n=0. Likely a harness setup failure at the SLOW_MAX column at 83.3 MHz, not the kernel. REPORT row corrected from "FAILS" to UNVERIFIED (harness artifact under test). Running SLOW_MAX at 41.7 MHz host clock and a direct bench_op0[8] edge trace.
+
+### progress 07:48 T95
+Item 19 (own rebuild a6a2951b) umux3 with the mux monitor: +1.91 ns FAST_MIN / +2.56 ns worst, 0 violations, 17/17. Research's false-path explanation of the -1.6 ns rule-A row CONFIRMED (margins smaller than its 3.6 ns, still positive).
