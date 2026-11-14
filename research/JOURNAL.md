@@ -3991,3 +3991,10 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - PREDICTION (each pmfr3 graph, chain hops scaled): s1 19.86 -> 22.04, s3 20.64 -> 22.61, s4 20.91 -> 22.99, s5 21.36 ->
   23.50, s6 19.58 -> 21.19; ~ +2.0 ns, i.e. ~22.6 mean against item 17's 20.60. Cycle unchanged (counter ring).
 - Gates in progress: colsz 9/24 PASS (+1 INFRA: ivl OOM-killed, re-queued), c64nl 9/24 PASS.
+### progress 02:03 UTC (speculative completion read; design notes; a question for the owner)
+- research/data/fifteen/speculative.md: for i+1 the abort condition must cover the carry DISCHARGE of the previous
+  increment too: abort = low k bits of i all 0 OR all 1 (one LUT; 2/2^k of iterations). The compare i+1 < rounds gets
+  no short case from it (the borrow ripples through the equal high bits every time).
+- QUESTION FOR THE OWNER: inside the loop i + 1 <= rounds always holds, so i + 1 < rounds <=> i + 1 != rounds, a LUT
+  tree with no ripple. Is rewriting the loop compare that way inside the "loop lowering stays as it is" rule? Not done.
+- BOARD-QUEUE: new "Full-input-range status" section; x0.5 xorshift items marked bench range only.
