@@ -1908,3 +1908,6 @@ Own rule E on item 23's route (3 corners, 366 rows): all positive, min +1050 ps.
 
 ### note 19:27
 Research caa7cc10: corner_audit --osc; gcd item 5 static check running. Nothing to audit yet. Watching.
+
+### note 21:23
+Research bd9f770e: gcd item 5 static check (preliminary): rule E clean, rule A -210 ps nominal at ushrsi4 (spanned datapath; below the owner's 0.5 ns explanation threshold). Preliminary, research's tool; not reproduced. Watching.
