@@ -4315,3 +4315,7 @@ Next (for this session if it lasts, else the next):
   structure as the umux3 empty-pipe select race traced on 2026-11-10 (ipow T9cd).
 - Item 19 (#20): flagged in BOARD-QUEUE, not held: no corruption seen on 31 routes x 2 checks; the follow-up is to extend
   hold_trace to follow a leak through the next stage of a pipe (stage k's window against stage k+1's close).
+- Tried and dropped: a "channel" check (data_out stable from req_out until the consumer's ack rises) flags large
+  violations on routes known good (xf3_1: trueResult_8 16/16). Wrong contract for this library: a bd_link's output
+  follows its still-transparent latch and its consumers are latches, so correctness is about latch closures, which is
+  what the stage check measures. The follow-up for pipes stays: stage k's leak against stage k+1's close.
