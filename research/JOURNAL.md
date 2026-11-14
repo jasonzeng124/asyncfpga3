@@ -4123,3 +4123,9 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   control inputs" lead from PROGRAM's goal-2 list.
 - uaddi0 at nominal would go 13 -> 9 on this route; the worst corner keeps 13 (the counter's CARRY4 at SLOW_MAX).
 - research/data/xorshift_sizes_T3s50_fr2ne_bench.vh (fr2 + ucmpi1 8); farm request fxne (32 routes, every check).
+### progress 05:42 UTC (CORRECTION to the previous entry)
+- Wrong: "the condition bit fans out to the select pins of six 32-bit steers". bd_steer reads its select in one control
+  LUT and passes data by wire (ufork9 -> four steers, one LUT each). What binds ucmpi1 at the worst corner (rule E at
+  ucond_br8, 120 ps left) is the equality tree's own data path from the ulink_n30__1 latch (32-bit routing into the
+  tree, ~3 LUT levels) against the compare's delay line, whose elements the worst corner runs at the fast 0.21 band
+  while that routing sits at 0.288. So the "replicate the condition" lever does not apply here; withdrawn.
