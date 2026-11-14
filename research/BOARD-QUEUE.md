@@ -796,7 +796,8 @@ rule E raw +1.9..+2.3 ns at nominal on the collatz routes); then corner_audit at
 max, select paths never shortened, merges kept at 2 (at 1 they missed rule A on 7 of 31 fresh routes). Farm request
 fcolsz2: 28 routes built, period median 41.15 ns, mean 41.22, 38.85-43.26 (item 20: 48.86, 1.19x); gate 81/81 PASS
 (SLOW_MAX / FAST_MIN / worst+M, 13/13 each); static CLEAN at both corners on all 27 evaluated routes. Full input range
-under the owner's rule. Dynamatic 14.05.
+under the owner's rule. Dynamatic 14.05. Hold check (trace-measured, FAST_MIN, select-flipping vectors; farm fcolsz2h,
+31 routes): no violation (the two old-tool flags re-measured clean, ulink_n_index_11 +1047 ps on seed 6).
 - nextpnr 9c732bc6303458df. From cells/:
 
     BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_NO_LINK=ulink_n28__1 NEXTPNR_SEED=26 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cdb_nl2_bench.vh ./hw/build_bench.sh collatz

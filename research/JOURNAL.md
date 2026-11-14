@@ -4340,3 +4340,9 @@ Next (for this session if it lasts, else the next):
   Hold (old tool): ulink_n_index_11 flagged on EVERY route, -262 to -748 ps, beyond one element's fall in places.
 - Re-measuring both with the corrected tool on rebuilt routes: collatz seed 6, collatz64 seed 3 (worst, -748).
 - fxf4 still "submitted" after ~3 h (no task started): noted per the farm README; checking again later.
+### progress 15:55 UTC (corrected hold readings: collatz item 22 and collatz64 lever 5 are clean)
+- colsz2_6 (fcolsz2h seed 6, 40782 ps) at FAST_MIN on n = 1 / 27 / 1 / 97 (0 / 111 / 0 / 118, correct): no violation;
+  ulink_n_index_11 +1047 ps (old reading -21). c64nl_3 (fc64nlh seed 3, the worst old reading -748 ps): no violation;
+  ulink_n_index_11 +734 ps. So every old-tool flag on these two designs was the SDELAY-line artefact.
+- Collatz item 22 now has, over 31 farm routes: gate 93/93, static check clean 31/31, hold check clean (corrected tool on
+  the flagged route; old tool's wider window clean on the other 29).
