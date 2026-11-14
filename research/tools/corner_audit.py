@@ -79,8 +79,8 @@ def worker(sdf, spec):
     """Run tighten.main, skew.main (verbose), arb_fork.main on `sdf`, with guards patched and chain arcs scaled per
     spec['scale'] {chain base: factor}.  -> JSON-able dict of constraints (+ chain geometry when spec['chains'])."""
     sys.path.insert(0, str(VERIFY))
-    sys.argv = [sys.argv[0], str(sdf)]
-    import skew                       # imports tighten with argv = [prog, sdf]
+    sys.argv = [sys.argv[0], str(sdf)] + [x for o in spec.get("osc", []) for x in ("--osc", o)]
+    import skew                       # imports tighten with argv = [prog, sdf] (+ --osc for rigs with oscillators)
     import tighten as T
     import arb_fork
     a_frac, a_min = spec["a_frac"], spec["a_min"]
@@ -107,6 +107,13 @@ def worker(sdf, spec):
                         w = int(round(w * f))
                     new.append((dst, w))
                 edges[src] = new
+        # --osc: a declared free-running oscillator's arcs are cut here too, so routed_graph() (rule A') sees the same
+        # graph tighten.main does after its own --osc handling
+        for pre in spec.get("osc", []):
+            for src in list(edges):
+                i = T.pin_split(src)[0]
+                if i == pre or i.startswith(pre + "."):
+                    edges[src] = []
         return edges, celltype, n_io, n_ic
     T.parse_sdf = parse
     # A zeroed line prices its own links at 0 ps: tighten's RECOMMENDATION (not its margin) divides by that.
@@ -473,6 +480,8 @@ def main():
     ap.add_argument("--shrink-selects", action="store_true",
                     help="allow shortening mux delays and select-channel links (unsafe: see the docstring)")
     ap.add_argument("--no-size", action="store_true", help="report only")
+    ap.add_argument("--osc", action="append", default=[],
+                    help="passed to tighten.py: an instance prefix that is a ring oscillator (gcd_hw's rig: dhk, invhk)")
     ap.add_argument("--prefix", default="uut.",
                     help="the kernel's instance path in the top (soak: uut.; the kernel bench top: bridge_i.udut.)")
     ap.add_argument("--max-iter", type=int, default=30)
@@ -517,7 +526,7 @@ def main():
         (out / "toolchain.txt").write_text((pnr / "toolchain.txt").read_text())
     sdf = out / "soak.sdf"
     spec = {"a_frac": a.a_frac, "a_min": a.a_min, "glo": a.guard_lo, "ghi": a.guard_hi,
-            "drop_const": not a.keep_const_launch, "rule_a_link": not a.rule_a_tighten}
+            "drop_const": not a.keep_const_launch, "rule_a_link": not a.rule_a_tighten, "osc": a.osc}
     nominal = lambda rule: a.guard_lo if rule == "E" else 1.0
 
     base = run_worker(sdf, {**spec, "chains": True, "keep_logs": True}, log=out)

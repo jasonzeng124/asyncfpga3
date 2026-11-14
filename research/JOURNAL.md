@@ -4381,3 +4381,10 @@ Next: (1) gcd's items under the full-range rule; (2) a static (not trace) hold c
 (3) the speculative-completion incrementer (research/data/fifteen/speculative.md) -- the remaining 8.5 ns to 15 on
 xorshift is now mostly the full-range counter add (13 elements) and handshake wire; (4) the ulink_n11__0_folink x-pulse
 on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
+### progress 19:21 UTC (gcd under the full-range rule: static check running on board item 5's route)
+- gcd_hw rebuilt as BOARD-QUEUE #5 (seed 6, R5s75 sizes, pads, v4, fast fall): sdf 39d30709 = the gated route.
+- corner_audit could not run on it: the rig's free-running oscillators (dhk, invhk) form storage-free cycles, which
+  tighten.py skips with --osc but corner_audit's rule A' step (tighten.routed_graph) did not. corner_audit.py --osc now
+  passes them to the audits and cuts their arcs in the parsed SDF too. Running nominal + worst (--prefix urig.udut.).
+- gcd's loop has no counter: a, b are the data, and the gate's vectors (1000 random 32-bit pairs on gcd_ps) span them,
+  so the rule's "unspanned paths" are few; the static check is still the evidence for the long-carry compares.
