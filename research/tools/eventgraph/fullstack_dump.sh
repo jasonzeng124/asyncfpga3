@@ -14,7 +14,7 @@ TC=${TC:-$HOME/dev2/lib/fpgatoolchain}; PX=$TC/openxc7-src/prjxray
 XS=$W/xray.sdf
 PYTHONPATH=$PX python3 "$G/fid/xray_delay.py" --routed "$HW/${D}_routed.json" --sdf "$HW/$D.sdf" --out "$XS" > "$W/xray.log" 2>&1
 python3 "$R/research/tools/band_inst_list.py" "$HW/${D}_routed.json" '\.chain\.g\[\d+\]\.u$' 0.21 "$W/chains.band" > /dev/null
-export GLS_SDF=$XS GLS_SDF_FIELD=band GLS_SDF_BAND=0.288 GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1 \
+export GLS_SDF=$XS GLS_SDF_FIELD=${DUMP_FIELD:-band} GLS_SDF_BAND=0.288 GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1 \
        GLS_SDF_BAND_INST=@$W/chains.band GLS_MODEL=fid PS_DESIGN=$D PS_HOST=ps7_bench.v PYTHONPATH=$PX
 # one compile at a time on the machine: build_ps.sh's iverilog peaks at several GB (OOM kills lose runs)
 flock /tmp/eventgraph_compile.lock "$G/ps/build_ps.sh" "$HW" "$W" "" bit > "$W/build.log" 2>&1

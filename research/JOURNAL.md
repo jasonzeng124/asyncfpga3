@@ -4147,3 +4147,11 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - xfr seed 1 (round 1 sizes, umux0 1, merge1 1) passed FAST_MIN 17/17 locally; round 2 changed umux0 and merge1 and so
   the route. Reproducing the failing run locally now to trace it before anything else. xorshift has no full-range
   candidate until this is explained.
+### progress 08:37 UTC (fxf2 seed 1 FAST_MIN failure: reproduced; it is the loop count; umux2 ruled out)
+- Local rerun of xf2_1 FAST_MIN (same route dc138ea2): FAIL 6/17, deterministic. Every failure is an early exit:
+  rounds 4 -> the 3-round value, 8 -> the 4-round value, 5 / 16 / 32 / 64 / 128 / 200 / 256 / 100 / 1000 wrong; rounds
+  0-3, 3, 17 right. So the counter / compare / exit path misfires, the class the full-range rule is about.
+- corner_audit --fast-min on that route: the only kernel rule A / E below 0 is umux2 (the rounds mux) -41 ps (it was
+  also the route's only nominal / worst miss). Test: umux2's request path lengthened by 500 ps in the SDF only (same
+  netlist and route; annot.sdf differs in exactly that arc): still FAIL 6/17, identical cycle count. Not umux2.
+- Tracing now: full dump at FAST_MIN on rounds = 4 (fullstack_dump.sh takes DUMP_FIELD=min; default unchanged).
