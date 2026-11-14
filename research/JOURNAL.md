@@ -3998,3 +3998,7 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - QUESTION FOR THE OWNER: inside the loop i + 1 <= rounds always holds, so i + 1 < rounds <=> i + 1 != rounds, a LUT
   tree with no ripple. Is rewriting the loop compare that way inside the "loop lowering stays as it is" rule? Not done.
 - BOARD-QUEUE: new "Full-input-range status" section; x0.5 xorshift items marked bench range only.
+### progress 02:23 UTC (xorshift full-range: first two routes)
+- xfr (item 17's knobs + xorshift_sizes_T3s50_fr_bench.vh): s1 22.52 ns (predicted 22.04; item 17 s1 19.86), s3 23.58
+  (22.61; 20.64). odata cd3132bf; s3 NOT EQUIVALENT kind to check. ~+2.8 ns over item 17 on these two seeds.
+- Gates: colsz 12/24 PASS, c64nl 10/24 PASS; static check (both corners) running on the colsz routes.
