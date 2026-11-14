@@ -4270,3 +4270,10 @@ Next (for this session if it lasts, else the next):
   +7039 ps (xf2_1: -1850), the new ulink_n30__0_folink +6263, tightest ulink_n_index_15 +425 ps.
 - So on seed 1 the extra latch turns the hold race into ~7 ns of margin. Whether every route does is what fxf3 / fxf3h
   (32 farm routes, the latter with this check) will say. fxf2h validates the check across routes (seed 1 must flag).
+### progress 10:47 UTC (farm fxne: the != exit test does not pay on xorshift)
+- fxne (xf2 structure + the != loop test, ucmpi1 8): 29 routes built (5, 7, 30: harness < 83 MHz). Period median 23.76
+  ns, mean 23.54, best 21.52, worst 25.02 -- against fxf2's 23.29 / 23.29 / 20.86 / 24.94 on the same seeds: no gain
+  (the one element saved on ucmpi1 is inside the route scatter, and the median moved the other way). Gate 87/87 PASS.
+  Static clean on 27/29 (17, 27: umux2 rule A -2 to -65 ps, the same small rounds-mux miss as fxf2 seed 1).
+- fxne keeps the xf2 structure (no latch on the adder's steer branch), so it carries the same unaudited hold path; its
+  routes happened to pass. Not pursued further: BDC_FE_EXITCOND stays an opt-in knob, recorded as no gain on xorshift.
