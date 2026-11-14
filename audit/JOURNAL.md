@@ -1799,3 +1799,6 @@ Research a491c2b4: farm fxf2 (xorshift full-range round-2 sizes on item 17's kno
 
 ### progress 08:32 T97
 fxf2 seed 1 (own build dc138ea2 = research's) FAST_MIN: 9/17 vs own oracle, varying latencies -> race; failure CONFIRMED independently. Monitors: no select violation; data latch ulink_n_trueResult_6 stage[0] min setup 22 ps / hold 11 ps (item 17 had >= 4.2 ns). worst/SLOW_MAX running.
+
+### progress 08:42 T96 done
+fcolsz2 seeds 2-5 own builds: periods 41.44/39.84/42.40/38.80; FAST_MIN 13/13 with monitors 0 violations on all four; seed 2 also worst and SLOW_MAX 13/13; FF clean; s5 decode benign. Pre-audited.

@@ -1,0 +1,676 @@
+T65 mon_worst  Sat Nov 14 08:13:22 UTC 2026
+GLS_MODEL=fid
+GLS_SCATTER=0.126
+GLS_SCATTER_MODE=wire
+GLS_SCATTER_REGION=0.02
+GLS_SCATTER_SEED=1
+GLS_SDF=/root/t65/colsz2_2/collatz_bench_gen_xray_band.sdf
+GLS_SDF_BAND=0.288
+GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1
+GLS_SDF_BAND_INST=@/root/t65/colsz2_2_chains.band
+GLS_SDF_FIELD=band
+PS_DESIGN=collatz_bench_gen
+PS_HOST=ps7_bench.v
+PS_MON_GEN=/home/user/asyncfpga3/audit/t83/mon_both.py
+PYTHONPATH=/root/audit-tc/openxc7-src/prjxray
+XRAY_DB=/root/dev2/lib/xray/prjxray-db/zynq7
+$ python3 /root/wt-r90/cells/gls/fid/xray_delay.py --routed /root/t65/colsz2_2/collatz_bench_gen_routed.json --sdf /root/t65/colsz2_2/collatz_bench_gen.sdf --out /root/t65/colsz2_2/collatz_bench_gen_xray_band.sdf
+  sitepip_charged_CLKINV                   1416
+  sitepip_charged_SRUSEDMUX                880
+  sitepip_charged_x5FFMUX                  566
+  sitepip_charged_xFFMUX                   1352
+  sitepip_charged_xOUTMUX                  2712
+4c0ac9346aafccd4bec2e53f4248d7e4  /root/t65/colsz2_2/collatz_bench_gen.bit
+953e213c675a3bd451b1fc6144830821  /root/t65/colsz2_2/collatz_bench_gen.sdf
+11997a3d3194d4ca3f40b7b6c7ad1770  /root/t65/colsz2_2/collatz_bench_gen_xray_band.sdf
+7372555ab1744b85a396376e99361ea0  /root/t65/colsz2_2/collatz_bench_gen_routed.json
+528e8815683d91f7cb0b6cb5250636c5  /home/user/asyncfpga3/audit/t65/collatz_13.hex
+chain-band cells: 251
+$ /root/wt-r90/cells/gls/ps/build_ps.sh /root/t65/colsz2_2 /root/t65/work_colsz2_2_mon_worst "" bit
+source: /root/t65/colsz2_2/collatz_bench_gen.bit
+db: /root/audit-tc/openxc7/share/nextpnr/prjxray-db/zynq7  part: xc7z010clg400-1
+active pips (bits or listed ppips): 51274   nodes touched: 322846
+cells: 7470  {'BUFGCTRL': 1, 'CARRY4': 80, 'IOB33_OUTBUF': 2, 'PAD': 2, 'PS7_PS7': 1, 'PSEUDO_GND': 1, 'PSEUDO_VCC': 1, 'SELMUX2_1': 273, 'SLICE_FFX': 1924, 'SLICE_LUTX': 5185}
+sinks traced: 247732
+sink roots: {'drv': 22296, 'const/default': 14110, 'const/tile': 1029}
+sdf: DRIVER MISMATCH: nextpnr's arc has another source                      69
+sdf: cell arcs for a bel this netlist does not have                         92
+sdf: cells re-keyed                                                         7378
+sdf: interconnects re-keyed                                                 26303
+sdf: sinks with no nextpnr interconnect (0 ps)                              14100
+
+PROBLEMS (2 kinds):
+      69  SDF interconnect source differs from the bitstream's driver
+            e.g. SLICE_X0Y86/A6LUT/A2: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y85/CARRY4/CO2
+            e.g. SLICE_X14Y90/A6LUT/A5: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y85/CARRY4/CO2
+            e.g. SLICE_X15Y77/A6LUT/A2: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y85/CARRY4/CO2
+            e.g. SLICE_X15Y80/A6LUT/A2: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y85/CARRY4/CO2
+            e.g. SLICE_X15Y87/A6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y85/CARRY4/CO2
+            e.g. SLICE_X15Y90/A6LUT/A5: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y85/CARRY4/CO2
+            e.g. SLICE_X16Y85/B6LUT/A1: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y85/CARRY4/CO2
+            e.g. SLICE_X16Y87/C6LUT/A3: sdf ?$flattenbridge_i.$ge$build/gen/collatz_bench_gen.v:586$1317.genblk1.slice[2].genblk1.carry4/CO2, bits SLICE_X6Y85/CARRY4/CO2
+       1  always-ppip shadowed by a used site output
+            e.g. CLK_BUFG_BOT_R_X82Y48/CLK_BUFG_BUFGCTRL0_O
+
+CONFIGURED FEATURES NOT CONSUMED: 1 kinds (0 all-zero encodings ignored)
+       1  CLK_HROW_BOT_R.CLK_HROW_CK_IN_LN_ACTIVE   e.g. CLK_HROW_BOT_R_X82Y26.CLK_HROW_CK_IN_L0_ACTIVE
+
+note: 6079 configured pips lie on no live sink's path (stubs.tsv)
+note: aliases: 8111 routed-JSON net names attached by driver bel pin, 0 whose driver has no net here
+VERDICT: EQUIVALENT (only the benign kinds above)
+design:    collatz_bench_gen (host ps7_bench.v)
+routed.json md5 6181975ab04f18b88e93dea92f453e0b  <- /root/t65/colsz2_2/collatz_bench_gen_routed.json
+routed.sdf  md5 7864da03c0f4ebc4c004a362dd64d07a  <- /root/t65/colsz2_2/collatz_bench_gen_xray_band.sdf, column band
+delays:    scatter 0.126 region 0.02 seed 1 mode wire logn 0
+model:     fid
+netlist:   bit (fasm2net --ps7 from 4c0ac934); VERDICT: EQUIVALENT (only the benign kinds above)
+nextpnr 9c732bc6303458df  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)
+  ok      nextpnr-xilinx-place-weight.patch      PLACE_WEIGHT net weighting in both placers
+  ok      nextpnr-xilinx-ff-timing.patch         slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders
+  ok      nextpnr-xilinx-lut-perm-sink.patch     SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route
+  binary  /root/audit-tc/openxc7/bin/nextpnr-xilinx
+  sha256  9c732bc6303458df
+24 vectors -> /root/t65/work_colsz2_2_mon_worst/ps_vec.hex
+GLS_SDF_BAND_INST: 250 instances listed, 250 in the SDF, 1882 arcs (IOPATH + INTERCONNECT into them) at their own band (0.21)
+GLS_SDF_BAND_CELL: {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0} (IOPATH arcs moved: CARRY4 1808, SELMUX2_1 819, SLICE_FFX 1924)
+delays: SDF column band 0.288 cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0} inst 250 listed, scale 1, scatter sigma 0.126 (seed 1, mode wire)
+delays: 24010 interconnect arc(s) from the wire model, 16393 fell back to one draw each
+delays: region scatter sigma 0.02 over 10x10-slice regions: 61358 arc(s) placed, 0 without a site (unscaled)
+SDF claims: 20955 IOPATH, 40403 INTERCONNECT, 9154 SETUPHOLD
+fid: 823 LUT state node(s) with a self-loop; loop delay min/median/max 180/485/888 ps
+cells         : 7470
+icbufs        : 40403
+nets          : 8161 (+40403 icbuf outputs)
+IOPATH  claimed 61358 -> emitted 61358 (incl. 40403 icbuf)
+SETUPHOLD claimed 9154 -> 1924 flops check them in netlist_baked.v
+mon_latch: 512 latch LUTs in 16 instances, 235 not mapped
+mon_steer: 12 steers mapped, 0 not: []
+mon_mux: 3 muxes mapped (96 select pins), not: []
+built in /root/t65/work_colsz2_2_mon_worst
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:48.57
+	Maximum resident set size (kbytes): 4012988
+ANNOTATE_DONE
+$ vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +VECFILE=/home/user/asyncfpga3/audit/t65/collatz_13.hex +NRUNS=2 +TBATCH=1000000
+WARNING: /root/wt-r90/cells/gls/ps/ps7_bench.v:255: $readmemh(/home/user/asyncfpga3/audit/t65/collatz_13.hex): Not enough words in the file for the requested range [0:511].
+BENCHRES batch=0 fclk_ps=12000 mode=1 op0=00000002 op1=00000000 n=2 completed=2 cycles=28 prepcyc=32 latmin=9 latmax=9 sig=00000003 odata=00000001 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=3019040 DONE
+LATCHMON t=5000000 bridge_i.udut.ulink_n10__1 captures=192 min_setup_ps=17296 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n10__2 captures=192 min_setup_ps=17456 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n10__3 captures=192 min_setup_ps=36348 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n13 captures=192 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n1__1 captures=128 min_setup_ps=218222 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n26 captures=192 min_setup_ps=27369 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=128 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=128 min_setup_ps=222665 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=128 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=64 min_setup_ps=25525 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=64 min_setup_ps=26339 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=64 min_setup_ps=33043 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=64 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=128 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=5000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=128 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=5000000 umux2 rises=4 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=5000000 umux1 rises=6 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=5000000 umux0 rises=6 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br7.u$LUT6 rises=6 min_rise_margin_ps=16636 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br6.u$LUT6 rises=6 min_rise_margin_ps=16751 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br5.u$LUT6 rises=6 min_rise_margin_ps=16372 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br2.u$LUT6 rises=4 min_rise_margin_ps=3337 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br3.u$LUT6 rises=4 min_rise_margin_ps=3405 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br4.u$LUT6 rises=4 min_rise_margin_ps=3296 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br6.u$LUT5 rises=6 min_rise_margin_ps=16751 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br4.u$LUT5 rises=4 min_rise_margin_ps=3296 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br3.u$LUT5 rises=4 min_rise_margin_ps=3405 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br2.u$LUT5 rises=4 min_rise_margin_ps=3337 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br5.u$LUT5 rises=6 min_rise_margin_ps=16372 violations=0
+STEERMON t=5000000 bridge_i.udut.ucond_br7.u$LUT5 rises=6 min_rise_margin_ps=16636 violations=0
+BENCHRES batch=1 fclk_ps=12000 mode=1 op0=00000004 op1=00000000 n=2 completed=2 cycles=34 prepcyc=32 latmin=12 latmax=12 sig=00000006 odata=00000002 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=5587040 DONE
+BENCHRES batch=2 fclk_ps=12000 mode=1 op0=00000010 op1=00000000 n=2 completed=2 cycles=48 prepcyc=32 latmin=19 latmax=19 sig=0000000c odata=00000004 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=8155040 DONE
+LATCHMON t=10000000 bridge_i.udut.ulink_n10__1 captures=704 min_setup_ps=17296 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n10__2 captures=704 min_setup_ps=17456 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n10__3 captures=688 min_setup_ps=36148 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n13 captures=704 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n1__1 captures=256 min_setup_ps=218222 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n26 captures=672 min_setup_ps=27246 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=256 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=256 min_setup_ps=222665 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=256 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=448 min_setup_ps=25443 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=448 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=448 min_setup_ps=32978 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=448 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=224 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=10000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=224 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=10000000 umux2 rises=7 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=10000000 umux1 rises=22 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=10000000 umux0 rises=22 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br7.u$LUT6 rises=22 min_rise_margin_ps=16636 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br6.u$LUT6 rises=22 min_rise_margin_ps=16751 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br5.u$LUT6 rises=22 min_rise_margin_ps=16372 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br2.u$LUT6 rises=8 min_rise_margin_ps=3337 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br3.u$LUT6 rises=8 min_rise_margin_ps=3405 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br4.u$LUT6 rises=8 min_rise_margin_ps=3296 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br6.u$LUT5 rises=22 min_rise_margin_ps=16751 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br4.u$LUT5 rises=8 min_rise_margin_ps=3296 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br3.u$LUT5 rises=8 min_rise_margin_ps=3405 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br2.u$LUT5 rises=8 min_rise_margin_ps=3337 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br5.u$LUT5 rises=22 min_rise_margin_ps=16372 violations=0
+STEERMON t=10000000 bridge_i.udut.ucond_br7.u$LUT5 rises=22 min_rise_margin_ps=16636 violations=0
+BENCHRES batch=3 fclk_ps=12000 mode=1 op0=00000040 op1=00000000 n=2 completed=2 cycles=62 prepcyc=32 latmin=26 latmax=26 sig=0000000a odata=00000006 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=11383040 DONE
+BENCHRES batch=4 fclk_ps=12000 mode=1 op0=00000100 op1=00000000 n=2 completed=2 cycles=76 prepcyc=32 latmin=33 latmax=33 sig=00000018 odata=00000008 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=14611040 DONE
+LATCHMON t=15000000 bridge_i.udut.ulink_n10__1 captures=1344 min_setup_ps=17296 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n10__2 captures=1344 min_setup_ps=17456 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n10__3 captures=1344 min_setup_ps=36148 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n13 captures=1344 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n1__1 captures=320 min_setup_ps=218222 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n26 captures=1344 min_setup_ps=27095 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=320 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=320 min_setup_ps=222665 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=320 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=1024 min_setup_ps=25443 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=1024 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=1024 min_setup_ps=32978 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=1024 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=320 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=15000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=320 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=15000000 umux2 rises=10 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=15000000 umux1 rises=42 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=15000000 umux0 rises=42 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br7.u$LUT6 rises=42 min_rise_margin_ps=16636 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br6.u$LUT6 rises=42 min_rise_margin_ps=16751 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br5.u$LUT6 rises=42 min_rise_margin_ps=16372 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br2.u$LUT6 rises=10 min_rise_margin_ps=3337 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br3.u$LUT6 rises=10 min_rise_margin_ps=3405 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br4.u$LUT6 rises=10 min_rise_margin_ps=3296 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br6.u$LUT5 rises=42 min_rise_margin_ps=16751 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br4.u$LUT5 rises=10 min_rise_margin_ps=3296 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br3.u$LUT5 rises=10 min_rise_margin_ps=3405 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br2.u$LUT5 rises=10 min_rise_margin_ps=3337 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br5.u$LUT5 rises=42 min_rise_margin_ps=16372 violations=0
+STEERMON t=15000000 bridge_i.udut.ucond_br7.u$LUT5 rises=42 min_rise_margin_ps=16636 violations=0
+BENCHRES batch=5 fclk_ps=12000 mode=1 op0=00000400 op1=00000000 n=2 completed=2 cycles=90 prepcyc=32 latmin=40 latmax=40 sig=0000001e odata=0000000a mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=17839040 DONE
+LATCHMON t=20000000 bridge_i.udut.ulink_n10__1 captures=2486 min_setup_ps=17296 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n10__2 captures=2480 min_setup_ps=17456 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n10__3 captures=2464 min_setup_ps=36119 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n13 captures=2464 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n1__1 captures=448 min_setup_ps=218222 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n26 captures=2464 min_setup_ps=27095 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=448 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=448 min_setup_ps=222665 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=448 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=2048 min_setup_ps=25443 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=2016 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=2048 min_setup_ps=32978 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=2048 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=416 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=20000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=416 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=20000000 umux2 rises=13 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=20000000 umux1 rises=78 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=20000000 umux0 rises=78 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br7.u$LUT6 rises=77 min_rise_margin_ps=16636 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br6.u$LUT6 rises=77 min_rise_margin_ps=16751 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br5.u$LUT6 rises=77 min_rise_margin_ps=16372 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br2.u$LUT6 rises=14 min_rise_margin_ps=3337 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br3.u$LUT6 rises=14 min_rise_margin_ps=3405 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br4.u$LUT6 rises=14 min_rise_margin_ps=3296 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br6.u$LUT5 rises=77 min_rise_margin_ps=16751 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br4.u$LUT5 rises=14 min_rise_margin_ps=3296 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br3.u$LUT5 rises=14 min_rise_margin_ps=3405 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br2.u$LUT5 rises=14 min_rise_margin_ps=3337 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br5.u$LUT5 rises=77 min_rise_margin_ps=16372 violations=0
+STEERMON t=20000000 bridge_i.udut.ucond_br7.u$LUT5 rises=77 min_rise_margin_ps=16636 violations=0
+BENCHRES batch=6 fclk_ps=12000 mode=1 op0=00001000 op1=00000000 n=2 completed=2 cycles=104 prepcyc=32 latmin=47 latmax=47 sig=00000014 odata=0000000c mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=21067040 DONE
+BENCHRES batch=7 fclk_ps=12000 mode=1 op0=00004000 op1=00000000 n=2 completed=2 cycles=118 prepcyc=32 latmin=54 latmax=54 sig=00000012 odata=0000000e mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=24955040 DONE
+LATCHMON t=25000000 bridge_i.udut.ulink_n10__1 captures=3648 min_setup_ps=17296 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n10__2 captures=3648 min_setup_ps=17456 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n10__3 captures=3648 min_setup_ps=36119 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n13 captures=3648 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n1__1 captures=512 min_setup_ps=218222 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n26 captures=3648 min_setup_ps=27095 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=512 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=512 min_setup_ps=222665 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=512 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=3136 min_setup_ps=25443 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=3136 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=3136 min_setup_ps=32978 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=3136 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=512 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=25000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=512 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=25000000 umux2 rises=16 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=25000000 umux1 rises=114 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=25000000 umux0 rises=114 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br7.u$LUT6 rises=114 min_rise_margin_ps=16636 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br6.u$LUT6 rises=114 min_rise_margin_ps=16751 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br5.u$LUT6 rises=114 min_rise_margin_ps=16372 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br2.u$LUT6 rises=16 min_rise_margin_ps=3337 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br3.u$LUT6 rises=16 min_rise_margin_ps=3405 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br4.u$LUT6 rises=16 min_rise_margin_ps=3296 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br6.u$LUT5 rises=114 min_rise_margin_ps=16751 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br4.u$LUT5 rises=16 min_rise_margin_ps=3296 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br3.u$LUT5 rises=16 min_rise_margin_ps=3405 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br2.u$LUT5 rises=16 min_rise_margin_ps=3337 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br5.u$LUT5 rises=114 min_rise_margin_ps=16372 violations=0
+STEERMON t=25000000 bridge_i.udut.ucond_br7.u$LUT5 rises=114 min_rise_margin_ps=16636 violations=0
+BENCHRES batch=8 fclk_ps=12000 mode=1 op0=00008000 op1=00000000 n=2 completed=2 cycles=124 prepcyc=32 latmin=57 latmax=57 sig=00000011 odata=0000000f mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=28843040 DONE
+LATCHMON t=30000000 bridge_i.udut.ulink_n10__1 captures=4608 min_setup_ps=17296 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n10__2 captures=4608 min_setup_ps=17456 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n10__3 captures=4608 min_setup_ps=36119 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n13 captures=4608 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n1__1 captures=576 min_setup_ps=218222 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n26 captures=4608 min_setup_ps=27095 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=576 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=576 min_setup_ps=222665 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=576 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=4032 min_setup_ps=25443 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=4032 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=4032 min_setup_ps=32978 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=4032 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=576 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=30000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=576 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=30000000 umux2 rises=18 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=30000000 umux1 rises=144 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=30000000 umux0 rises=144 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br7.u$LUT6 rises=144 min_rise_margin_ps=16636 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br6.u$LUT6 rises=144 min_rise_margin_ps=16751 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br5.u$LUT6 rises=144 min_rise_margin_ps=16372 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br2.u$LUT6 rises=18 min_rise_margin_ps=3337 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br3.u$LUT6 rises=18 min_rise_margin_ps=3405 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br4.u$LUT6 rises=18 min_rise_margin_ps=3296 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br6.u$LUT5 rises=144 min_rise_margin_ps=16751 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br4.u$LUT5 rises=18 min_rise_margin_ps=3296 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br3.u$LUT5 rises=18 min_rise_margin_ps=3405 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br2.u$LUT5 rises=18 min_rise_margin_ps=3337 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br5.u$LUT5 rises=144 min_rise_margin_ps=16372 violations=0
+STEERMON t=30000000 bridge_i.udut.ucond_br7.u$LUT5 rises=144 min_rise_margin_ps=16636 violations=0
+LATCHMON t=35000000 bridge_i.udut.ulink_n10__1 captures=8192 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n10__2 captures=8192 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n10__3 captures=8192 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n13 captures=8192 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n1__1 captures=640 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n26 captures=8192 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=640 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=640 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=640 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=7584 min_setup_ps=25373 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=7552 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=7584 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=7584 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=608 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=35000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=608 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=35000000 umux2 rises=19 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=35000000 umux1 rises=257 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=35000000 umux0 rises=257 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br7.u$LUT6 rises=256 min_rise_margin_ps=16636 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br6.u$LUT6 rises=256 min_rise_margin_ps=16751 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br5.u$LUT6 rises=256 min_rise_margin_ps=16372 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br2.u$LUT6 rises=20 min_rise_margin_ps=3337 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br3.u$LUT6 rises=20 min_rise_margin_ps=3405 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br4.u$LUT6 rises=20 min_rise_margin_ps=3296 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br6.u$LUT5 rises=256 min_rise_margin_ps=16751 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br4.u$LUT5 rises=20 min_rise_margin_ps=3296 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br3.u$LUT5 rises=20 min_rise_margin_ps=3405 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br2.u$LUT5 rises=20 min_rise_margin_ps=3337 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br5.u$LUT5 rises=256 min_rise_margin_ps=16372 violations=0
+STEERMON t=35000000 bridge_i.udut.ucond_br7.u$LUT5 rises=256 min_rise_margin_ps=16636 violations=0
+LATCHMON t=40000000 bridge_i.udut.ulink_n10__1 captures=11712 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n10__2 captures=11712 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n10__3 captures=11712 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n13 captures=11712 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n1__1 captures=640 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n26 captures=11712 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=640 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=640 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=640 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=11072 min_setup_ps=25373 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=11072 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=11072 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=11072 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=640 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=40000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=640 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=40000000 umux2 rises=20 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=40000000 umux1 rises=366 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=40000000 umux0 rises=366 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br7.u$LUT6 rises=366 min_rise_margin_ps=16636 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br6.u$LUT6 rises=366 min_rise_margin_ps=16751 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br5.u$LUT6 rises=366 min_rise_margin_ps=16372 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br2.u$LUT6 rises=20 min_rise_margin_ps=3337 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br3.u$LUT6 rises=20 min_rise_margin_ps=3405 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br4.u$LUT6 rises=20 min_rise_margin_ps=3296 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br6.u$LUT5 rises=366 min_rise_margin_ps=16751 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br4.u$LUT5 rises=20 min_rise_margin_ps=3296 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br3.u$LUT5 rises=20 min_rise_margin_ps=3405 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br2.u$LUT5 rises=20 min_rise_margin_ps=3337 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br5.u$LUT5 rises=366 min_rise_margin_ps=16372 violations=0
+STEERMON t=40000000 bridge_i.udut.ucond_br7.u$LUT5 rises=366 min_rise_margin_ps=16636 violations=0
+BENCHRES batch=9 fclk_ps=12000 mode=1 op0=0000001b op1=00000000 n=2 completed=2 cycles=784 prepcyc=32 latmin=387 latmax=387 sig=000000b1 odata=0000006f mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=40651040 DONE
+LATCHMON t=45000000 bridge_i.udut.ulink_n10__1 captures=14144 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n10__2 captures=14144 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n10__3 captures=14144 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n13 captures=14144 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n1__1 captures=672 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n26 captures=14144 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=672 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=672 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=672 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=13504 min_setup_ps=25373 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=13472 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=13504 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=13504 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=640 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=45000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=640 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=45000000 umux2 rises=20 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=45000000 umux1 rises=442 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=45000000 umux0 rises=443 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br7.u$LUT6 rises=442 min_rise_margin_ps=16636 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br6.u$LUT6 rises=442 min_rise_margin_ps=16751 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br5.u$LUT6 rises=442 min_rise_margin_ps=16372 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br2.u$LUT6 rises=21 min_rise_margin_ps=3337 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br3.u$LUT6 rises=21 min_rise_margin_ps=3405 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br4.u$LUT6 rises=21 min_rise_margin_ps=3296 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br6.u$LUT5 rises=442 min_rise_margin_ps=16751 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br4.u$LUT5 rises=21 min_rise_margin_ps=3296 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br3.u$LUT5 rises=21 min_rise_margin_ps=3405 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br2.u$LUT5 rises=21 min_rise_margin_ps=3337 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br5.u$LUT5 rises=442 min_rise_margin_ps=16372 violations=0
+STEERMON t=45000000 bridge_i.udut.ucond_br7.u$LUT5 rises=442 min_rise_margin_ps=16636 violations=0
+LATCHMON t=50000000 bridge_i.udut.ulink_n10__1 captures=17792 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n10__2 captures=17792 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n10__3 captures=17760 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n13 captures=17792 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n1__1 captures=704 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n26 captures=17760 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=704 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=704 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=704 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=17088 min_setup_ps=25373 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=17088 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=17088 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=17088 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=672 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=50000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=672 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=50000000 umux2 rises=21 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=50000000 umux1 rises=556 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=50000000 umux0 rises=556 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br7.u$LUT6 rises=556 min_rise_margin_ps=16636 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br6.u$LUT6 rises=556 min_rise_margin_ps=16751 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br5.u$LUT6 rises=556 min_rise_margin_ps=16372 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br2.u$LUT6 rises=22 min_rise_margin_ps=3337 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br3.u$LUT6 rises=22 min_rise_margin_ps=3405 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br4.u$LUT6 rises=22 min_rise_margin_ps=3296 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br6.u$LUT5 rises=556 min_rise_margin_ps=16751 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br4.u$LUT5 rises=22 min_rise_margin_ps=3296 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br3.u$LUT5 rises=22 min_rise_margin_ps=3405 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br2.u$LUT5 rises=22 min_rise_margin_ps=3337 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br5.u$LUT5 rises=556 min_rise_margin_ps=16372 violations=0
+STEERMON t=50000000 bridge_i.udut.ucond_br7.u$LUT5 rises=556 min_rise_margin_ps=16636 violations=0
+BENCHRES batch=10 fclk_ps=12000 mode=1 op0=00000061 op1=00000000 n=2 completed=2 cycles=832 prepcyc=32 latmin=411 latmax=411 sig=0000009a odata=00000076 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=53119040 DONE
+LATCHMON t=55000000 bridge_i.udut.ulink_n10__1 captures=19808 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n10__2 captures=19800 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n10__3 captures=19776 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n13 captures=19776 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n1__1 captures=736 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n26 captures=19776 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=736 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=736 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=736 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=19072 min_setup_ps=25373 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=19042 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=19072 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=19072 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=704 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=55000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=704 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=55000000 umux2 rises=22 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=55000000 umux1 rises=619 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=55000000 umux0 rises=619 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br7.u$LUT6 rises=618 min_rise_margin_ps=16636 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br6.u$LUT6 rises=618 min_rise_margin_ps=16751 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br5.u$LUT6 rises=618 min_rise_margin_ps=16372 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br2.u$LUT6 rises=23 min_rise_margin_ps=3337 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br3.u$LUT6 rises=23 min_rise_margin_ps=3405 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br4.u$LUT6 rises=23 min_rise_margin_ps=3296 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br6.u$LUT5 rises=618 min_rise_margin_ps=16751 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br4.u$LUT5 rises=23 min_rise_margin_ps=3296 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br3.u$LUT5 rises=23 min_rise_margin_ps=3405 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br2.u$LUT5 rises=23 min_rise_margin_ps=3337 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br5.u$LUT5 rises=618 min_rise_margin_ps=16372 violations=0
+STEERMON t=55000000 bridge_i.udut.ucond_br7.u$LUT5 rises=618 min_rise_margin_ps=16636 violations=0
+LATCHMON t=60000000 bridge_i.udut.ulink_n10__1 captures=23680 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n10__2 captures=23680 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n10__3 captures=23648 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n13 captures=23648 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n1__1 captures=736 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n26 captures=23648 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=736 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=736 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=736 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=22944 min_setup_ps=25373 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=22944 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=22944 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=22944 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=704 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=60000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=704 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=60000000 umux2 rises=22 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=60000000 umux1 rises=740 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=60000000 umux0 rises=740 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br7.u$LUT6 rises=740 min_rise_margin_ps=16636 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br6.u$LUT6 rises=739 min_rise_margin_ps=16751 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br5.u$LUT6 rises=740 min_rise_margin_ps=16372 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br2.u$LUT6 rises=23 min_rise_margin_ps=3337 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br3.u$LUT6 rises=23 min_rise_margin_ps=3405 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br4.u$LUT6 rises=23 min_rise_margin_ps=3296 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br6.u$LUT5 rises=739 min_rise_margin_ps=16751 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br4.u$LUT5 rises=23 min_rise_margin_ps=3296 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br3.u$LUT5 rises=23 min_rise_margin_ps=3405 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br2.u$LUT5 rises=23 min_rise_margin_ps=3337 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br5.u$LUT5 rises=740 min_rise_margin_ps=16372 violations=0
+STEERMON t=60000000 bridge_i.udut.ucond_br7.u$LUT5 rises=740 min_rise_margin_ps=16636 violations=0
+LATCHMON t=65000000 bridge_i.udut.ulink_n10__1 captures=27296 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n10__2 captures=27296 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n10__3 captures=27296 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n13 captures=27296 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n1__1 captures=768 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n26 captures=27296 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=768 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=768 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=768 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=26560 min_setup_ps=25373 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=26528 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=26560 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=26560 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=736 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=65000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=736 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=65000000 umux2 rises=23 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=65000000 umux1 rises=853 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=65000000 umux0 rises=854 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br7.u$LUT6 rises=853 min_rise_margin_ps=16636 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br6.u$LUT6 rises=853 min_rise_margin_ps=16751 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br5.u$LUT6 rises=853 min_rise_margin_ps=16372 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br2.u$LUT6 rises=24 min_rise_margin_ps=3337 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br3.u$LUT6 rises=24 min_rise_margin_ps=3405 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br4.u$LUT6 rises=24 min_rise_margin_ps=3296 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br6.u$LUT5 rises=853 min_rise_margin_ps=16751 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br4.u$LUT5 rises=24 min_rise_margin_ps=3296 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br3.u$LUT5 rises=24 min_rise_margin_ps=3405 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br2.u$LUT5 rises=24 min_rise_margin_ps=3337 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br5.u$LUT5 rises=853 min_rise_margin_ps=16372 violations=0
+STEERMON t=65000000 bridge_i.udut.ucond_br7.u$LUT5 rises=853 min_rise_margin_ps=16636 violations=0
+LATCHMON t=70000000 bridge_i.udut.ulink_n10__1 captures=30656 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n10__2 captures=30656 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n10__3 captures=30656 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n13 captures=30656 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n1__1 captures=768 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n26 captures=30656 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=768 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=768 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=768 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=29888 min_setup_ps=25373 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=29888 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=29888 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=29888 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=768 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=70000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=768 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=70000000 umux2 rises=24 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=70000000 umux1 rises=958 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=70000000 umux0 rises=958 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br7.u$LUT6 rises=958 min_rise_margin_ps=16636 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br6.u$LUT6 rises=958 min_rise_margin_ps=16751 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br5.u$LUT6 rises=958 min_rise_margin_ps=16372 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br2.u$LUT6 rises=24 min_rise_margin_ps=3337 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br3.u$LUT6 rises=24 min_rise_margin_ps=3405 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br4.u$LUT6 rises=24 min_rise_margin_ps=3296 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br6.u$LUT5 rises=958 min_rise_margin_ps=16751 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br4.u$LUT5 rises=24 min_rise_margin_ps=3296 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br3.u$LUT5 rises=24 min_rise_margin_ps=3405 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br2.u$LUT5 rises=24 min_rise_margin_ps=3337 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br5.u$LUT5 rises=958 min_rise_margin_ps=16372 violations=0
+STEERMON t=70000000 bridge_i.udut.ucond_br7.u$LUT5 rises=958 min_rise_margin_ps=16636 violations=0
+BENCHRES batch=11 fclk_ps=12000 mode=1 op0=00000367 op1=00000000 n=2 completed=2 cycles=1244 prepcyc=32 latmin=617 latmax=617 sig=000001d6 odata=000000b2 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=70207040 DONE
+LATCHMON t=75000000 bridge_i.udut.ulink_n10__1 captures=33440 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n10__2 captures=33440 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n10__3 captures=33440 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n13 captures=33440 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n1__1 captures=800 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n26 captures=33440 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=800 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=800 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=800 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=32672 min_setup_ps=25373 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=32640 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=32672 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=32640 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=768 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=75000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=768 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=75000000 umux2 rises=24 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=75000000 umux1 rises=1045 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=75000000 umux0 rises=1045 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br7.u$LUT6 rises=1045 min_rise_margin_ps=16636 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br6.u$LUT6 rises=1045 min_rise_margin_ps=16751 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br5.u$LUT6 rises=1045 min_rise_margin_ps=16372 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br2.u$LUT6 rises=25 min_rise_margin_ps=3337 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br3.u$LUT6 rises=25 min_rise_margin_ps=3405 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br4.u$LUT6 rises=25 min_rise_margin_ps=3296 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br6.u$LUT5 rises=1045 min_rise_margin_ps=16751 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br4.u$LUT5 rises=25 min_rise_margin_ps=3296 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br3.u$LUT5 rises=25 min_rise_margin_ps=3405 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br2.u$LUT5 rises=25 min_rise_margin_ps=3337 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br5.u$LUT5 rises=1045 min_rise_margin_ps=16372 violations=0
+STEERMON t=75000000 bridge_i.udut.ucond_br7.u$LUT5 rises=1045 min_rise_margin_ps=16636 violations=0
+LATCHMON t=80000000 bridge_i.udut.ulink_n10__1 captures=37334 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n10__2 captures=37328 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n10__3 captures=37312 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n13 captures=37312 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n1__1 captures=800 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n26 captures=37312 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=800 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=800 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=800 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=36544 min_setup_ps=25373 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=36512 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=36544 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=36544 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=768 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=80000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=768 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=80000000 umux2 rises=24 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=80000000 umux1 rises=1167 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=80000000 umux0 rises=1167 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br7.u$LUT6 rises=1166 min_rise_margin_ps=16636 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br6.u$LUT6 rises=1166 min_rise_margin_ps=16751 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br5.u$LUT6 rises=1166 min_rise_margin_ps=16372 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br2.u$LUT6 rises=25 min_rise_margin_ps=3337 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br3.u$LUT6 rises=25 min_rise_margin_ps=3405 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br4.u$LUT6 rises=25 min_rise_margin_ps=3296 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br6.u$LUT5 rises=1166 min_rise_margin_ps=16751 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br4.u$LUT5 rises=25 min_rise_margin_ps=3296 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br3.u$LUT5 rises=25 min_rise_margin_ps=3405 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br2.u$LUT5 rises=25 min_rise_margin_ps=3337 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br5.u$LUT5 rises=1166 min_rise_margin_ps=16372 violations=0
+STEERMON t=80000000 bridge_i.udut.ucond_br7.u$LUT5 rises=1166 min_rise_margin_ps=16636 violations=0
+LATCHMON t=85000000 bridge_i.udut.ulink_n10__1 captures=40960 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n10__2 captures=40960 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n10__3 captures=40960 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n13 captures=40960 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n1__1 captures=832 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n26 captures=40960 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=832 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=832 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=832 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=40128 min_setup_ps=25368 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=40128 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=40128 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=40128 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=800 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=85000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=800 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=85000000 umux2 rises=25 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=85000000 umux1 rises=1280 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=85000000 umux0 rises=1280 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br7.u$LUT6 rises=1280 min_rise_margin_ps=16636 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br6.u$LUT6 rises=1280 min_rise_margin_ps=16751 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br5.u$LUT6 rises=1280 min_rise_margin_ps=16372 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br2.u$LUT6 rises=26 min_rise_margin_ps=3337 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br3.u$LUT6 rises=26 min_rise_margin_ps=3405 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br4.u$LUT6 rises=26 min_rise_margin_ps=3296 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br6.u$LUT5 rises=1280 min_rise_margin_ps=16751 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br4.u$LUT5 rises=26 min_rise_margin_ps=3296 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br3.u$LUT5 rises=26 min_rise_margin_ps=3405 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br2.u$LUT5 rises=26 min_rise_margin_ps=3337 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br5.u$LUT5 rises=1280 min_rise_margin_ps=16372 violations=0
+STEERMON t=85000000 bridge_i.udut.ucond_br7.u$LUT5 rises=1280 min_rise_margin_ps=16636 violations=0
+LATCHMON t=90000000 bridge_i.udut.ulink_n10__1 captures=44832 min_setup_ps=17245 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n10__2 captures=44832 min_setup_ps=17350 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n10__3 captures=44832 min_setup_ps=36112 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n13 captures=44832 min_setup_ps=33403 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n1__1 captures=832 min_setup_ps=218172 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n26 captures=44832 min_setup_ps=26666 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n7.many.stage[1].u captures=832 min_setup_ps=24265 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n8.many.stage[1].u captures=0 min_setup_ps=999999999 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u captures=832 min_setup_ps=222589 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n_falseResult_3.many.stage[1].u captures=832 min_setup_ps=16819 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[0].u captures=44032 min_setup_ps=25368 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u captures=44000 min_setup_ps=26177 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[0].u captures=44032 min_setup_ps=26721 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u captures=44032 min_setup_ps=19095 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[0].u captures=800 min_setup_ps=28488 min_hold_ps=999999999
+LATCHMON t=90000000 bridge_i.udut.ulink_n_trueResult_4.many.stage[1].u captures=800 min_setup_ps=44054 min_hold_ps=999999999
+MUXMON t=90000000 umux2 rises=25 min_sel_to_zreq_ps=5552 violations=0
+MUXMON t=90000000 umux1 rises=1401 min_sel_to_zreq_ps=14749 violations=0
+MUXMON t=90000000 umux0 rises=1402 min_sel_to_zreq_ps=6573 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br7.u$LUT6 rises=1401 min_rise_margin_ps=16636 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br6.u$LUT6 rises=1401 min_rise_margin_ps=16751 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br5.u$LUT6 rises=1401 min_rise_margin_ps=16372 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br2.u$LUT6 rises=26 min_rise_margin_ps=3337 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br3.u$LUT6 rises=26 min_rise_margin_ps=3405 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br4.u$LUT6 rises=26 min_rise_margin_ps=3296 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br6.u$LUT5 rises=1401 min_rise_margin_ps=16751 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br4.u$LUT5 rises=26 min_rise_margin_ps=3296 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br3.u$LUT5 rises=26 min_rise_margin_ps=3405 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br2.u$LUT5 rises=26 min_rise_margin_ps=3337 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br5.u$LUT5 rises=1401 min_rise_margin_ps=16372 violations=0
+STEERMON t=90000000 bridge_i.udut.ucond_br7.u$LUT5 rises=1401 min_rise_margin_ps=16636 violations=0
+BENCHRES batch=12 fclk_ps=12000 mode=1 op0=0000181b op1=00000000 n=2 completed=2 cycles=1814 prepcyc=32 latmin=902 latmax=902 sig=0000030f odata=00000105 mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=94555040 DONE
+BENCHSUMMARY batches=13 hang=0 id_mismatch=0 t_end=94615040
+/root/wt-r90/cells/gls/ps/ps7_bench.v:349: $finish called at 94615040 (1ps)
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 8:24.76
+	Maximum resident set size (kbytes): 2198092
+DONE
