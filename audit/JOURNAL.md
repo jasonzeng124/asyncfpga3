@@ -1814,3 +1814,6 @@ BOARD-QUEUE item 22 (#23, research 514ac04a): collatz full range (fcolsz2), boar
 
 ### progress 09:54 T98 done
 Board item 22 (collatz full range, seed 26) CONFIRMED on its board route: own sdf bc2fe0c8 = recipe, FF clean, 41.04 ns, 1.209x over own item-20 build on the same seed (pred 1.19), 3 corners 13/13 with monitors clean.
+
+### progress 09:55
+Subagent: generalising the own rule-E checker (t93/sites.py) to the collatz kernel and running it on item 22's route (worst/FAST_MIN/SLOW_MAX work dirs).
