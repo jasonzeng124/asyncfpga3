@@ -1811,3 +1811,6 @@ Edge trace: the new counter value passes the transparent ulink_n7, the combinati
 
 ### progress 09:19 T98 started
 BOARD-QUEUE item 22 (#23, research 514ac04a): collatz full range (fcolsz2), board seed 26, recipe sdf bc2fe0c8, "ratio ~1.19 over item 20 on this route". Own builds colsz2_26 + colr_26 (baseline), FF scan, periods, FAST_MIN/worst/SLOW_MAX with monitors (t94/item22.sh). Also: research's fxf2 stale-rounds hypothesis (db935e60) contradicted by the own trace on the own failing vector (REPORT top row).
+
+### progress 09:54 T98 done
+Board item 22 (collatz full range, seed 26) CONFIRMED on its board route: own sdf bc2fe0c8 = recipe, FF clean, 41.04 ns, 1.209x over own item-20 build on the same seed (pred 1.19), 3 corners 13/13 with monitors clean.
