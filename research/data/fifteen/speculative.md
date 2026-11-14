@@ -41,3 +41,18 @@ the long one.
 On the full-range rebuild uaddi0 is 13 elements (~4.5 ns on the cycle). With k = 4: short chain ~ the 4-bit carry +
 routing, roughly the x0.5 size (6, ~2 ns), so the average period gains ~2 ns x 7/8. A rare long iteration still costs
 the full 13. The compare stays at its full static length unless the != rewrite is allowed.
+
+## Plan for the cell (2026-11-14, not started)
+
+- Opt-in bdc knob BDC_SPEC_INC=<inst>:<k>:<Nshort> on an `addi x, 1` unit: the unit gets two delay lines from the same
+  `either` (Nshort and the full N), and a LUT on the request path `z_req = abort ? long : short` with
+  `abort = (x[k-1:0] == 0) | (x[k-1:0] == all ones)` read from the unit's own input data (stable before `joined`,
+  bundled by the upstream request). Falling: both lines are FASTFALL and the mux follows the selected one; the input
+  data, hence `abort`, is held until the acknowledge falls.
+- New cell under CLAUDE.md's rule: written as a variant in bdc's generated compute module (not in cells/rtl), with a
+  routed-GLS check.
+- The static check needs case analysis that corner_audit does not have: for the short case, cut the CARRY4 arcs above
+  bit k (they cannot toggle when abort = 0) and re-run rule A' / E against the short line; for the long case, the
+  existing check against the long line. Both cases at nominal and worst. That tool is the first thing to build.
+- Expected on xorshift full range: the 13-element line paid 1 in 8 iterations (k = 4), a ~6-element line otherwise:
+  about -2 ns mean per iteration.
