@@ -1766,3 +1766,6 @@ colsz routes 2-8 in research's graphs (0c5e5ede) = own builds (md5). lanes8: 18/
 ### note 05:03 owner decisions (research PROGRAM ad4b0eac, 134e11b1)
 - A static miss > 0.5 ns at nominal on a board item needs a named false path shown with a trace, or the size restored (trigger: ipow item 19 umux3 rule A -1.7 ns). Audit to check that any such "false path" explanation is shown by trace.
 - The != loop exit: owner approves an opt-in frontend.sh knob (indvars with a 32-bit-only data layout), byte-identical default, handshake-MLIR diff of every kernel, simcheck rounds 0/1/INT_MAX, static check, gate. Research a24b4a59/c7317936 started it. Audit: check default byte-identity and the MLIR diff when it reaches a candidate.
+
+### progress 05:33 T90f / T94
+lanes8 done: worst+scatter and SLOW_MAX on c64nl 2, 4-9 and colnl 1, 2, 4-8, plus c64nl_9 FAST_MIN: every run passes vs own oracle EXCEPT colnl_4 SLOW_MAX (4/13, hang at batch 4). Control colr_4 SLOW_MAX: 13/13. colnl_4 SLOW_MAX rerun in progress; a monitored SLOW_MAX run of colnl_4 started.
