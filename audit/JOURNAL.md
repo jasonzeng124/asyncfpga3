@@ -1896,3 +1896,6 @@ Research 6e861a0e corrected hold readings (c64nl_3 +734 ps) agree with own T105 
 
 ### progress 17:58 fxf4
 Research 72eb63d5 fxf4 (xorshift full-range candidate): seed 1 = own T103 build (8319b816, 23.464 vs 23.465 ns); summary stats recomputed exactly; own FF scan confirms seed 9's exclusion (missing mux at CLBLM_L_X8Y41). REPORT row.
+
+### progress 18:36 T106 started
+BOARD-QUEUE item 23 (#24, research bf5289ce): xorshift full range (xf4), board seed 10, recipe sdf 2f825834, 23.31 ns, "ratio ~1.66 over x0.5 on this route (39.06 / 23.5)". Own build, FF scan, period, 3 corners with 1-bit latch monitor, long vectors at FAST_MIN (t106/item23.sh).
