@@ -1744,3 +1744,6 @@ Item 18 / item 17 at FAST_MIN with long vectors: correct, 0 violations. T91 verd
 
 ### progress 01:37 T93
 Own static rule E at ucond_br6 (audit/t93, subagent-written, re-run by me: identical): item 18 holds rule E for a full 32-bit carry, +1587 ps worst / +1949 FAST_MIN, when the steer's join C-element waits for its last input. Research's skew.py seeds crossed storage nodes with the earliest input (OR); its own run on c6519c91 reproduces -4651 raw with req 4581 ps, too short to include ucmpi1's 9-element chain. Verdict: research's worst-corner violation REFUTED (artifact); nextpnr-nominal with a correct join UNVERIFIED (~-0.9 ns rough). REPORT top row added.
+
+### progress 02:08 T92 done
+colsz (collatz lever 5 + per-cell sizes) seeds 2-8: own periods = research within 0.07 ns, paired 1.172x over colnl / 1.221x over colr (research 1.17 / 1.22) CONFIRMED; FAST_MIN 13/13 with monitors 0 violations; s1 harness 82.88 MHz reproduced; s2/s5 decodes benign.
