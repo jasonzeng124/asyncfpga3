@@ -1735,3 +1735,6 @@ Container restart ~00:09 cut the long-carry runs after 3 of 5 vectors at worst+s
 
 ### progress 00:31 T92 started
 Research 5e1738a1: collatz per-cell sizes over 8 lever-5 routes (collatz_sizes_T3cdb_nl_bench.vh: uaddi0 18->12, uselect0 23->16, merge0 5->1, merge1 9->1, pads up), prediction 47.18 -> 41.45 ns. Own builds at 9cff46ca (worktree wt-r91; control colnl_1 = 9063dc11, default flow unchanged). **colsz seed 1 fails the bench harness timing: 82.88 MHz < 83 MHz target, build_bench.sh exit 1, no bitstream** (sdf ab269aec). Seeds 2-8 built (a48aaf17 250feeb7 9a119c6a 05f260d8 77b55d1d 46400796). Period + FAST_MIN with monitors queued after T91.
+
+### progress 00:52 T91
+Item 18 (own c6519c91) at worst+scatter: all 5 long vectors correct (rounds 256/1024/2048/4095 seed 92d68ca2; 2048 seed 1), 0 monitor violations; ucond_br6 min rise margin 2.04 ns, set at the 2048-round exit (11-bit carry) -- no lower at 4095. FAST_MIN running.
