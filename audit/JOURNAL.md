@@ -1805,3 +1805,6 @@ fcolsz2 seeds 2-5 own builds: periods 41.44/39.84/42.40/38.80; FAST_MIN 13/13 wi
 
 ### progress 09:13 T97
 Counter trace on a failing vector: run 2 counts 1, 2, 7 -- the counter input became 6 = mix of the stale loop-back value 4 and the new 2 (mixed latch capture on the counter loop-back path; consistent with trueResult_6 stage[0] setup 22 / hold 11 ps). Failure CONFIRMED; mechanism under trace (research also tracing, 0135caeb).
+
+### progress 09:18 T97 mechanism
+Edge trace: the new counter value passes the transparent ulink_n7, the combinational adder recomputes, and its output races through the trueResult_6 pipe's still-open stage 0 and stage 1 (stage 0 closes ~0.3 ns later). The pipe captures 6 instead of 2 and the counter exits early. A race-through/hold failure of the counter ring at FAST_MIN, a class the static rules A/E do not check. findings/T97.md.
