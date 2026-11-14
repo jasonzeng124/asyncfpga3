@@ -4129,3 +4129,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   ucond_br8, 120 ps left) is the equality tree's own data path from the ulink_n30__1 latch (32-bit routing into the
   tree, ~3 LUT levels) against the compare's delay line, whose elements the worst corner runs at the fast 0.21 band
   while that routing sits at 0.288. So the "replicate the condition" lever does not apply here; withdrawn.
+### progress 07:03 UTC (farm: fcolsz back, 31 routes -- gate 93/93, static clean on 24/31, merges at 1 the only miss)
+- The farm reproduces local routes exactly (fcolsz_2: sdf a48aaf17, 40653 ps, identical static rows). farm_check done.
+- fcolsz (collatz lever 5 + per-cell sizes), seeds 1-32 (seed 1: harness misses 83 MHz, no build): period median 41.01
+  ns, mean 40.86, best 39.22, worst 42.33 (31 routes); item 20 is 48.86 (8 routes), Dynamatic 14.05. Gate: 93/93 PASS
+  (13/13 each, SLOW_MAX / FAST_MIN / worst+M). Static check: 24/31 CLEAN at both corners; 7 routes miss rule A on a
+  control merge's index with the merge at size 1 (worst -140 ps, nominal -108). All 8 colnl routes had proposed 1 --
+  the owner's point about routes not tried, again. Per-route table: research/data/fifteen/farm/fcolsz.tsv.
+- fcolsz2: merges back at 2 (research/data/collatz_sizes_T3cdb_nl2_bench.vh), farm request, 32 routes. If its static
+  check is clean everywhere it becomes the collatz board candidate; expected cost ~+0.4 ns per merge on the cycle.
