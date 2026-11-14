@@ -15,6 +15,7 @@ O=${OUT:-$PWD}; mkdir -p "$O"; E=$O/eval.txt; : > "$E"
 L=$R/research/tools/fifteen/lane2.sh
 line=$("$L" "e$S" "$N" "$K" "$Z" "$S" "$VEC" "$@" 2>&1 | tail -1)
 echo "build $line" >> "$E"
+grep -o 'latmin=[0-9]*' "$RUNS/r/$N/run.log" 2>/dev/null | head -1 | sed 's/^/latency /' >> "$E"   # cycles of 12 ns, the itercost vector
 HW=$RUNS/hw/$N; RD=$RUNS/r/$N
 [ -f "$HW/${K}_bench_gen.sdf" ] || { echo "RESULT build-failed" >> "$E"; tail -20 "$HW/build.log" > "$O/build_tail.txt" 2>/dev/null; exit 1; }
 CA=$RUNS/ca/$N; mkdir -p "$CA/seed1/pnr"
@@ -23,6 +24,16 @@ cp "$R/$Z" "$CA/seed1/pnr/sizes.vh"
 cp "$R/${MLIR_OVERRIDE:-build/frontend/$K/comp/handshake_transformed.mlir}" "$CA/input.mlir"
 python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. --out "$CA/worst" > "$CA/worst.log" 2>&1 &
 python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. --uniform 0.288 --out "$CA/nom" > "$CA/nom.log" 2>&1 &
+if [ -n "${SPEC_CASES:-}" ]; then   # BDC_SPEC_INC cells: the static check per case (LONG / SHORT), corner_audit --drop-inst/--cut
+  for sc in ${SPEC_CASES//,/ }; do
+    si=${sc%%:*}; sk=${sc##*:}; s0=$(( (sk + 3) / 4 ))          # first CARRY4 slice the carry cannot reach when abort = 0
+    SA="$si\\.\\\$abc\\S* -> \\S*$si\\.uspec/"; SC="^\\S*$si\\.\\S*slice\\[([$s0-9]|[1-9][0-9])\\]\\.genblk1\\.carry4/"
+    for m in nom worst; do X=""; [ $m = nom ] && X="--uniform 0.288"
+      python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. $X --drop-inst "$si\\.udly_s\\." --cut "$SA" --no-size --out "$CA/${si}_long_$m" > "$CA/${si}_long_$m.log" 2>&1 &
+      python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. $X --drop-inst "$si\\.udly\\.chain" --cut "$SC" --cut "$SA" --no-size --out "$CA/${si}_short_$m" > "$CA/${si}_short_$m.log" 2>&1 &
+    done
+  done
+fi
 G=$RUNS/g/$N
 for C in max min worst; do
   ( r=$("$R/research/tools/eventgraph/bench_gate.sh" "$HW" "${K}_bench_gen" "$G/$C" "$R/$GH" "$R/$GE" "$C" 2>&1 | tail -1)
@@ -43,6 +54,16 @@ for c in nom worst; do
     sed -n '/^proposal/,/^wrote/p' "$CA/$c.log" | head -40 > "$O/proposal_$c.txt"
   else echo "static $c ERROR (see ca_$c.log)" >> "$E"; tail -30 "$CA/$c.log" > "$O/ca_$c.log"; fi
 done
+if [ -n "${SPEC_CASES:-}" ]; then
+  for sc in ${SPEC_CASES//,/ }; do si=${sc%%:*}
+    for cs in long short; do for m in nom worst; do f=$CA/${si}_${cs}_$m/report.txt
+      if [ -f "$f" ]; then neg=$(awk '$1~/^(A|E)$/ && $2+0<0 && $3~/udut/ {print $1, $2, $3}' "$f" | sort -u | sed 's/bridge_i.udut.//' | tr '\n' ';')
+        row=$(grep -E "^  A .*udut\.$si " "$f" | sort -u | head -1 | awk '{print $2, $4, $5}')
+        echo "static-$cs $m ${neg:-CLEAN} | $si A' $row" >> "$E"
+      else echo "static-$cs $m ERROR" >> "$E"; fi
+    done; done
+  done
+fi
 cat "$O"/gate_*.txt >> "$E" 2>/dev/null
 [ -f "$O/hold.tsv" ] && awk -F'\t' 'NR>1 && $6>0 {v=v $1"("$6"x,"$7"ps);"} NR==2 {m=$1" "$7} END {print "hold violations: " (v?v:"none") " | tightest " m}' "$O/hold.tsv" >> "$E"
 cat "$E"
