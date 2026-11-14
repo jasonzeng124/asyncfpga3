@@ -4172,3 +4172,15 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   last transaction's rounds. So the rounds ring's entry (umux2 / its select / the value it latches) takes the stale
   loop-back token instead of the new rounds -- the empty-pipe select-race family (ipow umux3, collatz64 ulink_n14__1).
   The SDF experiment lengthened umux2's request, not its select path, which is consistent. Tracing rounds 3 then 4.
+### progress 09:19 UTC (xf2_1 FAST_MIN failure TRACED: the rounds loop-back pipe's request outruns its data)
+- Full dump, FAST_MIN, rounds 3 then 4 (reproduces: the second returns the 3-round value). At the first loop-back of
+  the second transaction: ulink_n_trueResult_10 (bd_pipe N=3, SDELAY 6, the rounds value coming back to umux2.y)
+  raises req_out at 4232391 ps while its data_out still holds the previous transaction's 3; data_out bit 2 settles at
+  4233483 (+1.09 ns). umux2.j1 fires 4233291, umux2's request 4233754 with output data 0; the output settles to 4 at
+  4235721, ~2 ns after umux2's request. ulink_n11__1 latches the stale value and the compare runs against rounds = 3.
+- So: a pipe's req_out leads its data_out when it fills behind a fresh token (bd_link.v's header: the lead grows with
+  depth), and here the consumer's own delay (umux2, 1 element) does not cover it at FAST_MIN. The static check put umux2
+  only -41 ps short at FAST_MIN (-42 worst, -6 nominal): it underestimates this lag by ~2 ns. That is a gap in the
+  static check (and why the SDF test with +500 ps changed nothing). The gate caught it.
+- Also: corner_audit's FAST_MIN report flagged H -73 at ulink_n_trueResult_10 stage[1]; the H / I pad proposals I set
+  aside as "diverging" were pointing at this pipe. Running the same route with umux2's request +2.5 ns in the SDF.
