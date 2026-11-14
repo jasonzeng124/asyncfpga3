@@ -1874,3 +1874,6 @@ Research 047ec916: hold check flags item 19's design (ulink_n_index_15, the 1-bi
 
 ### progress 13:46 T104 done
 Item 19 board route, own 1-bit latch monitor at FAST_MIN (own + select-flip vectors): correct; ulink_n_index_15 stage 1 has no data change within 2 ns of closing -- the stage-0 leak research flags (-124 ps on seed 1) does not reach stage 1 in time to matter. No hazard on the board route.
+
+### progress 15:07
+Watching. Research idle since 13:37 (c2aa4a4e), formal since 2026-11-10 (8fd62f82). Nothing pending in the audit queue; all findings pushed.
