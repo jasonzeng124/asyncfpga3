@@ -1886,3 +1886,10 @@ c64nl_3 (research's worst old-tool hold flag, -748 ps): own 1-bit monitor at FAS
 
 ### progress 15:57
 Research 6e861a0e corrected hold readings (c64nl_3 +734 ps) agree with own T105 (849 ps). REPORT row. Watching.
+
+### summary 17:10 (since the 11:20 summary)
+- T101: research's farm hold check (fxf2h) spot-checked on the tightest passing route (seed 30): agrees.
+- T102/T103: xf3 seed 4 (research's glitch-only hold flag) clean in own runs incl. long vectors; xf4 seed 1 pre-audited clean at 3 corners (23.46 ns).
+- T104/T105: own 1-bit latch monitor (t104/mon_latch1.py). Item 19's select pipe and collatz64 lever 5's index_11: stage 1 never sees the stage-0 leak within 2 ns; research withdrew its old-tool flags (tool error) and its corrected readings agree.
+- Farm overlap checks: fcolsz2h routes = own builds.
+- Research idle since 15:56, formal since 2026-11-10. Watching.
