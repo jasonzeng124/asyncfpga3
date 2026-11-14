@@ -10,7 +10,7 @@ case $V in
   c64r)  K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_bench.vh; KN="$BASE";;
   c64nl) K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_bench.vh; KN="$BASE BDC_NO_LINK=ulink_n30__1";;
   colr)  K=collatz;   SZ=../research/data/collatz_sizes_T3cdb_bench.vh;   KN="$BASE";;
-  colnl|colm) K=collatz;   SZ=${SZ:-../research/data/collatz_sizes_T3cdb_bench.vh};   KN="$BASE BDC_NO_LINK=ulink_n28__1";;
+  colnl|colm|colsz) K=collatz;   SZ=${SZ:-../research/data/collatz_sizes_T3cdb_bench.vh};   KN="$BASE BDC_NO_LINK=ulink_n28__1";;
 esac
 echo "T90 build $V seed $S $(date -u) research $(git -C $R rev-parse --short HEAD)"
 echo "\$ $KN NEXTPNR_SEED=$S BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=$SZ ./hw/build_bench.sh $K"

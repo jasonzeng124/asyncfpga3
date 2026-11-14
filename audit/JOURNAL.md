@@ -1732,3 +1732,6 @@ Research 03b84af4/6e63890c: board item 18 (xorshift lever 5) ON HOLD -- static r
 
 ### progress 00:10 T91
 Container restart ~00:09 cut the long-carry runs after 3 of 5 vectors at worst+scatter: item 18 (own l5_1 = c6519c91) correct at rounds 256/1024/2048, 0 monitor violations, ucond_br6 margin 2.27 -> 2.04 ns as carries grew to 11 bits; item 17 same, correct. Remaining vectors (seed 1 x 2048, 4095) and FAST_MIN rerunning (t91/lanes2.sh). REPORT item-18 row annotated: the audit's CONFIRMED shared the gate's <=1000-round blind spot.
+
+### progress 00:31 T92 started
+Research 5e1738a1: collatz per-cell sizes over 8 lever-5 routes (collatz_sizes_T3cdb_nl_bench.vh: uaddi0 18->12, uselect0 23->16, merge0 5->1, merge1 9->1, pads up), prediction 47.18 -> 41.45 ns. Own builds at 9cff46ca (worktree wt-r91; control colnl_1 = 9063dc11, default flow unchanged). **colsz seed 1 fails the bench harness timing: 82.88 MHz < 83 MHz target, build_bench.sh exit 1, no bitstream** (sdf ab269aec). Seeds 2-8 built (a48aaf17 250feeb7 9a119c6a 05f260d8 77b55d1d 46400796). Period + FAST_MIN with monitors queued after T91.
