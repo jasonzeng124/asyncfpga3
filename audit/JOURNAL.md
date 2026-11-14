@@ -1853,3 +1853,6 @@ Item 11 (p8mo seed 1, own sdf 1e51be7e = recipe) FAST_MIN with monitors: 17/17, 
 
 ### progress 11:57 T101
 Research fxf2h hold check (flags only seed 1): own spot check of the tightest passing route, seed 30 (sdf 5d778616 = research's): 17/17 at FAST_MIN, race-stage hold 1699 ps (research +1421). CONFIRMED on the 2 routes checked.
+
+### progress 11:58 T102 started
+Research 619ac3c2: fxf3 31 routes, gate 93/93, median 23.04 ns; hold_trace violation on seed 4 at ulink_n_trueResult_10 (-612 ps) with the gate passing. Own build of xf3 seed 4, FAST_MIN with own latch monitor (own 17 vectors, and long vectors with monitors).
