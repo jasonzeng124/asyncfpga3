@@ -4072,3 +4072,15 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - NOT done here, needs a Dynamatic build: the handshake MLIR diff per kernel, simcheck with rounds 0 / 1 / INT_MAX,
   the static check over the full range, the gate. Every later step of the frontend (translate-llvm-to-std,
   dynamatic-opt) is Dynamatic's.
+### progress 05:00 UTC (the != exit test on xorshift, built here without Dynamatic -- assumption stated)
+- research/data/fifteen/xorshift_exitcond_handshake_transformed.mlir = the xorshift fixture with cmpi1 `slt` -> `ne`.
+  ASSUMPTION: BDC_FE_EXITCOND's only LLVM-level change on xorshift is that predicate (checked above), and Dynamatic
+  lowers ops one-to-one, so its handshake MLIR differs from the fixture in that predicate only. To be confirmed by a
+  real frontend run (needs Dynamatic).
+- bdc emits ucmpi1 as z = ~(a == b): an equality tree, no carry chain. simcheck PASS on both MLIRs with two new
+  xorshift vectors, rounds = -1 and INT_MIN (0 iterations: the != test is only correct behind the entry test
+  rounds > 0, which these exercise). rounds = INT_MAX is 2^31 iterations, out of reach of any sim; the static check
+  covers it (the compare's static worst case is now short).
+- xne pass 1: lane2.sh (MLIR_OVERRIDE) with fr2 sizes (ucmpi1 still 9 elements, sized for the carry compare), seeds 1,
+  3, 4, 5. PREDICTION: ~ the same as xf2 (~23.1 ns): only the compare's data got faster, not its delay. Then the static
+  check sizes ucmpi1 for the equality tree; that is where the time comes back.
