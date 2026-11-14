@@ -1826,3 +1826,6 @@ Own dynamic hold margins (t83 latch monitor, FAST_MIN) on 11 board routes: >= 0.
 
 ### progress 10:06 T98 static
 Own rule E (t93/sites_gen.py, re-run identical; xorshift regen identical) on item 22's route: all 9 sites positive at worst/FAST_MIN/SLOW_MAX, min +1982 ps. REPORT item-22 row updated.
+
+### progress 10:13 T99
+Items 19/20/21 board routes at FAST_MIN with monitors: min hold 697 / 1707 / 735 ps, 0 violations, oracle full. 14 board routes now covered; item 11 remaining.
