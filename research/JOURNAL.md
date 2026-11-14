@@ -4184,3 +4184,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   static check (and why the SDF test with +500 ps changed nothing). The gate caught it.
 - Also: corner_audit's FAST_MIN report flagged H -73 at ulink_n_trueResult_10 stage[1]; the H / I pad proposals I set
   aside as "diverging" were pointing at this pipe. Running the same route with umux2's request +2.5 ns in the SDF.
+### progress 09:20 UTC (collatz64 umux2 rule-A miss: the same false path as ipow umux3, shown by trace)
+- c64nl_1 full dump on research/data/fifteen/vec_c64_selflip.hex (n = 1 / 27 / 1 / 97 / 1 / 6171, each twice; results 0
+  / 111 / 0 / 118 / 0 / 261 = the C). At all 12 output requests of umux2 (7 select flips): the select link
+  ulink_n_index_11's request rises 5748 ps after its data; the join fires 334-338 ps later; umux2's output request rises
+  >= 5877 ps after the last change of any of the 33 LUTs that read the select. tighten's row (-1.3 to -2.5 ns at
+  nominal on all 30 fc64nl routes) pairs that latch's data with uj1 at t=0, the same no-common-source pairing as ipow.
+  This covers collatz64 board items 6 / 12 / 16 / 21 too (umux2 = 1 in T4cdb / x0.75 sizes; same structure).
+- Caveat now on record: on xf2_1 the static check UNDER-estimated a real lag by ~2 ns (pipe req_out leading data_out).
+  A trace is the evidence for these explanations, not the static number.

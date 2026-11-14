@@ -24,7 +24,10 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
   rule. The 1.7 ns is a false path, shown with a trace (JOURNAL 2026-11-14): the select latch's data is timed against a
   request that waits for the select link's own request (3.4 ns later); traced on 12 transactions with the select
   flipping, the output request rises >= 3.6 ns after the last data change. Routes 2-4 still being checked.
-- **Not yet checked:** gcd (1-3, 5), ipow (7, 13), collatz (9, 15, 20), collatz64 (6, 12, 16, 21). Collatz item 22 (#23) is full
+- **collatz64 (6, 12, 16, 21) and the lever-5 candidate:** umux2 misses rule A by 1.3-2.5 ns at nominal on every
+  route; shown to be the same select-latch false path by trace (JOURNAL 2026-11-14). Lever-5 candidate (fc64nl, farm):
+  30 routes, median 45.21 ns, gate 90/90; otherwise statically clean. Not yet a board item (gcd's counters next).
+- **Not yet checked:** gcd (1-3, 5), ipow (7, 13), collatz (9, 15, 20). Collatz item 22 (#23) is full
   range (static clean on 27/27 routes). Until checked,
   read each as bench range only.
 
