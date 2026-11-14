@@ -1835,3 +1835,6 @@ Research db2a8157..800e7cc5: xf3 (xf2 + latch on the adder fork's steer branch, 
 
 ### progress 10:34 T100
 xf3 seed 1: own sdf 2261e3bb = research's; FAST_MIN 17/17, monitors clean; new ulink_n30__0_folink and trueResult_6 stages hold > 2 ns (xf2_1 had 11 ps). worst running.
+
+### progress 11:02 T100 done
+xf3 seed 1 period own 24.194 ns (research 24.19); FAST_MIN/worst clean. REPORT row. Research 92602f01: fxne (!= exit test) no gain (median 23.76 vs 23.29) -- a negative result, not rebuilt.
