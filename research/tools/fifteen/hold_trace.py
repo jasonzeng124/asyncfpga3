@@ -43,6 +43,27 @@ def bits(bus, w):
         ks = byclass.get((find(bus), str(i))) or (byclass.get((find(bus), None)) if w == 1 else None)
         if ks: out.append(nm[ks[0]])
     return out
+# The stage's own C node is not kept by name for a pipe: r[1] is stage 0's request AFTER its SDELAY line. Walk back from
+# r[1] through the delay line's elements (LUTs that pass one input through, or whose other inputs come from the same
+# line) to the first LUT that is neither: that LUT's output is the C node, whose fall is the latch closing.
+nl = open(d + '/netlist.v').read()
+icb = {b: a for a, b in re.findall(r'ICBUF \S+ \(\.I\((n\d+)\), \.O\((w\d+)\)\)', nl)}
+drv = {}
+for mm_ in re.finditer(r"SLICE_LUTX #\(\.INIT\(64'h([0-9a-f]+)\)\) \S+ \(([^;]*)\);", nl):
+    init = int(mm_.group(1), 16); body = mm_.group(2)
+    pins = dict(re.findall(r'\.(A\d)\((w\d+)\)', body))
+    for o_ in re.findall(r'\.O[56]\((n\d+)\)', body):
+        drv[o_] = (init, {k: icb.get(v) for k, v in pins.items()})
+IDENT = {f'A{k+1}': sum(((i >> k) & 1) << i for i in range(64)) for k in range(6)}
+chain_nets = {v for k, v in nm.items() if '.rdly.chain.' in k}
+def c_node(net, hops=0):
+    if net not in drv or hops > 64: return net
+    init, pins = drv[net]
+    for pin, src_ in pins.items():
+        if init == IDENT[pin] and src_: return c_node(src_, hops + 1)          # pure pass-through element
+    live = [s_ for s_ in pins.values() if s_ and s_ in chain_nets]
+    if live: return c_node(live[0], hops + 1)                                   # gated element: follow the line
+    return net
 insts = []
 for m in re.finditer(r'(bd_link|bd_pipe)\s*#\(([^;]*?)\)\s*(\w+)\s*\(([^;]*?)\);', src, re.S):
     kind, params, name, ports = m.groups()
@@ -53,7 +74,7 @@ for m in re.finditer(r'(bd_link|bd_pipe)\s*#\(([^;]*?)\)\s*(\w+)\s*\(([^;]*?)\);
     if not re.fullmatch(r'\w+', di): continue           # constant data (1'b0): nothing to hold
     if kind == 'bd_link': E = nm.get(P + name + '.c'); Pn = nm.get(P + pr['req_out'].strip())
     else:
-        E = nm.get(P + name + '.many.r[1]')
+        E = nm.get(P + name + '.many.r[1]'); E = c_node(E) if E else E
         Pn = nm.get(P + name + '.many.r[2]') or nm.get(P + pr['req_out'].strip())
     if not (E and Pn): continue
     insts.append((name, kind, n, E, Pn, bits(di, w)))
@@ -100,3 +121,4 @@ for name, kind, n, E, Pn, D in insts:
         if m is not None and (mm is None or m < mm): mm = m
     rows.append((mm if mm is not None else 10**9, f"{name}\t{kind}\t{n}\t{len(D)}\t{win}\t{viol}\t{mm if mm is not None else 'NA'}\t{glitch}"))
 for _, r in sorted(rows): print(r)
+

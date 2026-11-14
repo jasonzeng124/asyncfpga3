@@ -4319,3 +4319,10 @@ Next (for this session if it lasts, else the next):
   violations on routes known good (xf3_1: trueResult_8 16/16). Wrong contract for this library: a bd_link's output
   follows its still-transparent latch and its consumers are latches, so correctness is about latch closures, which is
   what the stage check measures. The follow-up for pipes stays: stage k's leak against stage k+1's close.
+### progress 13:25 UTC (hold_trace fix: a pipe's latch closes at its C node, not at r[1])
+- bd_pipe's r[k] is the request INTO stage k, i.e. stage k-1's request after its SDELAY line, so using r[1]'s fall as
+  stage 0's latch close measured the close late by that line's fall time -- violations of up to one element's fall
+  could be artefacts. hold_trace.py now walks back from r[1] through the delay line's elements (pass-through LUTs, or
+  gated ones fed by the line) to the C node. xf2_1: still 4 violations, -1159 ps (the close is 691 ps earlier than
+  r[1]'s fall); xf3_1: clean. The farm numbers above (fxf2h, fxf3h, fipowrh) used the old reading; fipowrh's -1..-247
+  ps flags on ulink_n_index_15 are within one element's fall and are being re-measured (ipow seed 8 rebuilt locally).
