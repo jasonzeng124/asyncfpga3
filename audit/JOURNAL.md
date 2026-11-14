@@ -1838,3 +1838,6 @@ xf3 seed 1: own sdf 2261e3bb = research's; FAST_MIN 17/17, monitors clean; new u
 
 ### progress 11:02 T100 done
 xf3 seed 1 period own 24.194 ns (research 24.19); FAST_MIN/worst clean. REPORT row. Research 92602f01: fxne (!= exit test) no gain (median 23.76 vs 23.29) -- a negative result, not rebuilt.
+
+### progress 11:17 T99b
+Item 11 (p8mo seed 1, own sdf 1e51be7e = recipe) FAST_MIN with monitors: 17/17, min hold 799 ps, 0 violations. Hold sweep now covers all 15 board routes of items 4, 7, 9, 11-22 (min 0.63 ns). xf2_1 own period 22.922 ns (research 22.93).
