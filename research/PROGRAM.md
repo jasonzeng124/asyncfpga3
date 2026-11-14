@@ -24,6 +24,35 @@ Where it stands (bench top, simulation). The best gated xorshift is board item 1
    wires 7.85, handshake cells 1.23, logic 1.03. At least 5 ns has to come out of excess
    delay and wires.
 
+**Every kernel is judged over its full input range (owner, 2026-11-14).** The owner read
+the hold on item 18 and the finding on the x0.5 xorshift family, and decided: xorshift must
+be correct for any 32-bit `rounds`, not only the bench's 12-bit range. The same holds for
+every kernel and every input its C signature allows. From now on:
+
+- **A gate pass is not enough where the vectors cannot reach a path.** For every path whose
+  data range the gate's vectors do not span (loop counters and what compares them first),
+  rules A and E must hold statically, at nominal and at the worst corner with the usual
+  guards, for the longest carry the input type allows. Run this check before reading the
+  gate, on every candidate.
+- **Re-baseline the x0.5 xorshift family** (board items 4, 11, 14, 17, and 18 on hold). Give
+  the counter's add and compare the sizes the static check asks for, measure again, gate
+  again. In `BOARD-QUEUE.md`, mark every item that holds only on the bench's range as
+  that, and say which items pass over the full range.
+- **The headline of `research/data/fifteen/README.md` is the best xorshift build that passes
+  both the gate and the static check over the full range.** Expect it to get slower first.
+  Report both numbers once, so the cost of the full range is on record.
+- **Check the other kernels the same way** (ipow's and gcd's counters and compares too), and
+  the board items already listed for them.
+- **Then win the time back with a delay that depends on the data.** For `i + 1` the carry is
+  as long as the run of trailing ones in `i`, so almost every iteration needs only a short
+  delay and a rare one needs the long one. Choosing the delay from the operands is the known
+  technique (speculative completion, Nowick and others); read it before designing. A delay
+  that merely copies the carry chain tracks process and voltage but still pays the full
+  length every time. This is a cell-level change under CLAUDE.md's rule, and it needs the
+  static check above to cover both the short and the long case.
+
+The 15 ns target stands, under this rule.
+
 What to do, in this order:
 
 1. **The budget, from the graph, before any build.** For item 14's routes:
