@@ -1741,3 +1741,6 @@ Item 18 (own c6519c91) at worst+scatter: all 5 long vectors correct (rounds 256/
 
 ### progress 01:12 T91 done
 Item 18 / item 17 at FAST_MIN with long vectors: correct, 0 violations. T91 verdict: coverage gap CONFIRMED (incl. the audit's own item-18 check); no hazard on the bench's 12-bit range (+2.04 ns at worst+scatter); full 32-bit UNVERIFIED. Owner rule bead13d7 (research PROGRAM, 2026-11-14): every kernel judged over its full input range, static A/E for paths the gate cannot reach. Audit consequence: board-item verdicts so far are bench-range verdicts; an own static rule-A/E check for loop-counter paths is the next audit tool to build.
+
+### progress 01:37 T93
+Own static rule E at ucond_br6 (audit/t93, subagent-written, re-run by me: identical): item 18 holds rule E for a full 32-bit carry, +1587 ps worst / +1949 FAST_MIN, when the steer's join C-element waits for its last input. Research's skew.py seeds crossed storage nodes with the earliest input (OR); its own run on c6519c91 reproduces -4651 raw with req 4581 ps, too short to include ucmpi1's 9-element chain. Verdict: research's worst-corner violation REFUTED (artifact); nextpnr-nominal with a correct join UNVERIFIED (~-0.9 ns rough). REPORT top row added.
