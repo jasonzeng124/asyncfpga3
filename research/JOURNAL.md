@@ -3954,3 +3954,10 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   (1.14x over collatz lever 5, ~1.18x over item 20 48.86). A re-route moves the cycle by its scatter (+-1.5 ns).
 - collatz64 lever 5 gate: 4/24 PASS so far (s1 max/min, s6 min); s6 max lost to my own directory cleanup at the restart
   (re-queued). Building colsz (collatz lever 5 + these sizes) seeds 1-8 next.
+### progress 00:22 UTC (second container restart ~00:05; collatz per-cell sizes: first 2 routes match the prediction)
+- Restart killed all jobs again; queue scripts now skip finished items (results.txt / gate_results.txt / ca done.txt).
+  colnl_3's rerun finished before it (graph 45.92 ns; recovered from the committed graph).
+- colsz (collatz lever 5 + collatz_sizes_T3cdb_nl_bench.vh): s2 40.65 ns (predicted 41.11; colnl_2 46.30, colr_2 47.84),
+  s3 39.70 (predicted 40.56; colnl_3 45.92, colr_3 48.10). odata 0x105 (C), ffmux clean; s2 NOT EQUIVALENT kind to check.
+  s1 does not build: the bench's clocked harness closes at 82.88 MHz < 83 (build_bench refuses; not the kernel) -- seed 9
+  replaces it, as seed 3 does for collatz64.
