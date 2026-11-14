@@ -4364,3 +4364,20 @@ Next (for this session if it lasts, else the next):
 - xf4 is the xorshift full-range candidate: BOARD-QUEUE item 23 / #24, board seed 10 (sdf 2f825834, 23.31 ns, EQUIVALENT,
   ffmux clean, every check clean). research/data/fifteen/README.md's headline: 23.49 ns, gap to 15 ns 8.5 ns; the full
   range costs ~2.9 ns against item 17's bench-range 20.60.
+### summary 18:33 UTC (this session so far)
+Measured (nextpnr 9c732bc6303458df; farm and local routes identical by sdf md5):
+| kernel | design | ns/iter median (range), routes | gate | static (full range) | hold check | vs |
+|---|---|---|---|---|---|---|
+| xorshift | item 23 / xf4 (full range) | 23.49 (21.00-24.75), 30 | 87/87 | 28/30 clean (1 spanned miss, 1 incomplete) | clean | item 17 20.60 (bench range only), Dynamatic 12.73 |
+| xorshift | xf2 (no latch on the adder's steer branch) | 23.29, 28 | 83/84: s1 FAST_MIN fails | 26/28 | s1 -1159 ps (real) | -- |
+| xorshift | xne (!= exit test) | 23.76, 29 | 87/87 | 27/29 | not run | no gain over xf2 |
+| collatz | item 22 / colsz2 (full range) | 41.20 (38.85-43.26), 31 | 93/93 | 31/31 clean | clean | item 20 48.86, Dynamatic 14.05 |
+| collatz64 | lever 5 (c64nl) | 45.23 (42.46-47.09), 30 | 90/90 | umux2 false path (traced) | clean (corrected) | item 22 47.64, Dynamatic 17.84 |
+| ipow | item 19's design | 38.96 (37.24-42.14), 29 | 87/87 | umux3 false path (traced) | clean (corrected) | item 13 ~45.8 |
+Does NOT show: silicon; hold paths the vectors do not exercise (hold_trace is a trace check; the 20 blind-spot latch
+stages per xorshift route have no static hold rule); the != knob's real Dynamatic output (built from the fixture with the
+predicate changed); gcd under the full-range rule.
+Next: (1) gcd's items under the full-range rule; (2) a static (not trace) hold check for latches fed by non-link senders;
+(3) the speculative-completion incrementer (research/data/fifteen/speculative.md) -- the remaining 8.5 ns to 15 on
+xorshift is now mostly the full-range counter add (13 elements) and handshake wire; (4) the ulink_n11__0_folink x-pulse
+on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
