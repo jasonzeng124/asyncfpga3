@@ -1841,3 +1841,12 @@ xf3 seed 1 period own 24.194 ns (research 24.19); FAST_MIN/worst clean. REPORT r
 
 ### progress 11:17 T99b
 Item 11 (p8mo seed 1, own sdf 1e51be7e = recipe) FAST_MIN with monitors: 17/17, min hold 799 ps, 0 violations. Hold sweep now covers all 15 board routes of items 4, 7, 9, 11-22 (min 0.63 ns). xf2_1 own period 22.922 ns (research 22.93).
+
+### summary 11:17 (session since 19:17 Nov 13)
+- Lever 5 on collatz/collatz64 (T90): all research numbers reproduce; own paired 8-route gains 1.054x / 1.036x; all 16 routes pass FAST_MIN, worst, SLOW_MAX (colnl_4 SLOW_MAX only at a slower host clock: T94 harness setup artifact, not the kernel). Minor OVERSTATED (seed-3 framing), accepted by research.
+- Item 18 hold (T91, T93): coverage gap CONFIRMED (incl. the audit's own earlier check); dynamic long-carry runs pass (+2.04 ns); own static rule E with C-element joins: +1.59 ns full carry -- research's -3.2 / -4.65 ns violation is an OR-join artifact of skew.py (REFUTED at the calibrated corner; nominal-nextpnr UNVERIFIED). All 24 rule-E sites of items 17/18 positive under the own model.
+- colsz (T92), fcolsz2 (T96), board item 22 (T98) CONFIRMED on own builds; own static rule E on item 22 all positive (min +1.98 ns).
+- ipow item 19 umux3 false path CONFIRMED by own mux monitor (T95).
+- fxf2 FAST_MIN failure CONFIRMED and traced (T97): counter-ring race-through at the loop-back pipe, a hold hazard static A/E do not see; research reached the same mechanism after a withdrawn hypothesis. xf3 seed 1 clean (T100).
+- Own dynamic hold sweep (T99): 15 board routes, min hold >= 0.63 ns at FAST_MIN (fxf2: 11 ps).
+- Formal: unchanged (8fd62f82); target md5s re-checked.

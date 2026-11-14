@@ -1,7 +1,7 @@
 # Audit report
 
 Auditor: independent audit session (see JOURNAL.md). Verdicts: CONFIRMED / REFUTED / OVERSTATED / UNVERIFIED.
-Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b; pass 14 (2026-10-31) formal 0780fd30, research a73267f8; pass 15 formal f40e003a; pass 16 formal 58251494; pass 17 formal 464c5ea7; pass 18 formal 2f2e632d; THE goal passes T1-T5 (formal a11503e9..6f094d32).
+Audited commits: passes 1-6 as per rows; pass 7 claude/formal 6863284, claude/research 4051359; pass 8 research 73b08ca; pass 9 formal 3e63dc1, research 072f5f9; pass 10 formal 84bc9e4, research 21cae6b.; pass 12 formal 1fd99ef0, research 034636b2; pass 13 (2026-10-30) formal 5a1ee8d2, research 4b922e9b; pass 14 (2026-10-31) formal 0780fd30, research a73267f8; pass 15 formal f40e003a; pass 16 formal 58251494; pass 17 formal 464c5ea7; pass 18 formal 2f2e632d; THE goal passes T1-T5 (formal a11503e9..6f094d32).; session 2026-11-13/14: research 3d04e32a -> 92602f01 (lever 5 collatz/collatz64, item 18 hold, full-range rule, items 22, fxf2/xf3), formal 8fd62f82 (unchanged)
 Toolchain for Lean: Lean 4.35.0 release zip (sha256 of bin/lean bf8d54e4...), installed by audit/tools/install_lean.sh; Mathlib per their lake-manifest (rev 56a00585), built from source.
 
 ## Owner decisions vs items the audit raised (as of formal 94b7fd79 / research 690f1561, owner commits 2026-11-01 17:10 UTC)
