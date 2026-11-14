@@ -4404,3 +4404,9 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   row "a" ushrsi4 -210). WORST: rule A' ushrsi4 -359 ps (tighten's rows: ushrsi4 -1328, ushrsi2 -500, ushrsi1 -438,
   uaddi0 -121). gcd has no counter; ushrsi4 shifts a / b, which the 1000 random 32-bit vectors span. Full range by the
   owner's rule, worst-corner row on record. BOARD-QUEUE updated.
+### progress 23:26 UTC (collatz64 lever 5 becomes BOARD-QUEUE item 24 / #25, full range)
+- c64nl: gate 90/90 over 30 farm routes, static check only umux2's false-path row (traced), hold check clean (corrected
+  re-measure on the worst old reading), lever-5 rule E from the removed link's source +1.5..+1.8 ns raw at nominal.
+  Board seed 17 (sdf 3a370768, 45.19 ns, EQUIVALENT, ffmux clean). Median 45.23 ns vs item 21 47.64.
+- Full-range board list now: xorshift 23 (#24) 23.49 ns, collatz 22 (#23) 41.20, collatz64 24 (#25) 45.23, ipow 19 (#20)
+  38.96, gcd #1-#5 (static check on #5's route).

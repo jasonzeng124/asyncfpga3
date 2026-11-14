@@ -151,6 +151,10 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    (fxf4): median 23.49 ns (21.00-24.75); gate 87/87; static check clean on 28/30 (one spanned datapath miss, one
    incomplete); trace-measured hold check clean. Board seed 10 (sdf 2f825834, 23.31 ns). Item 17 (20.60 ns) holds only
    for the bench's 12-bit rounds.
+24. **collatz64 at ~45 ns per iteration, FULL INPUT RANGE: item 21 + the rule-1 link between uselect0 and the compare dropped
+   (BDC_NO_LINK=ulink_n30__1)**: #25 below. Farm, 32 seeds (fc64nl / fc64nlh): median 45.23 ns (42.46-47.09) vs item 21
+   47.64; gate 90/90; static check: only umux2's rule-A row, shown by trace to be a false path; hold check clean.
+   Board seed 17 (sdf 3a370768, 45.19 ns).
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -838,6 +842,27 @@ tightest +715 ps. Correct for any 32-bit rounds as far as the static check and t
     python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_fr.tsv build/hw/lc_xor_s50.tsv; echo "exit $?"
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.66 over x0.5 on this route (39.06 / 23.5).
+
+## 25. collatz64 item 21 + BDC_NO_LINK=ulink_n30__1 -- 90/90 gate, static and hold checked, 30 routes
+research/data/fifteen (2026-11-14). Lever 5 on collatz64: the rule-1 link between uselect0 and ucmpi2 removed; rule E
+from the removed link's source checked statically (raw +1.5..+1.8 ns at nominal), so the full-range rule's concern on
+xorshift's lever 5 does not apply here. Farm fc64nl / fc64nlh: 30 routes built (7: farm task gave no
+eval; 11: no build); period median 45.23 ns, mean 45.23, 42.46-47.09 (item 21: 47.64 over 8 routes);
+gate 90/90 (SLOW_MAX / FAST_MIN / worst+M, 14/14 each). Static check: on every route only umux2's tighten row (-1.3 to
+-2.5 ns at nominal), the select-latch pairing shown by trace to be a false path (JOURNAL 2026-11-14: select data
+settles >= 5.9 ns before the request on 12 transactions with 7 select flips). Hold check (trace, FAST_MIN): clean
+(seed 3, the worst old-tool reading, re-measured +734 ps). Dynamatic 17.84.
+- nextpnr 9c732bc6303458df. From cells/:
+
+    BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_NO_LINK=ulink_n30__1 NEXTPNR_SEED=17 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz64_sizes_T4cdb_bench.vh ./hw/build_bench.sh collatz64
+    grep -c "ulink_n30__1 (" build/gen/collatz64_kernel_bench.v    # must be 0
+    md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # 3a370768 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz64_bench_gen/collatz64_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_c64_nl.tsv
+    (item 21: #22's commands for lc_c64_r.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_nl.tsv build/hw/lc_c64_r.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.05 over item 21 on this route.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
