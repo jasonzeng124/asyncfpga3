@@ -4303,3 +4303,15 @@ Next (for this session if it lasts, else the next):
 - Left for xf3 under the full-range rule: umux2 rule A -3 to -56 ps on 3 routes (the rounds mux; its high bits are never
   toggled by the vectors). xf4 = xf3 + umux2 1 -> 2 (research/data/xorshift_sizes_T3s50_fr3_bench.vh); farm fxf4, 32
   routes, every check + hold. PREDICTION: median ~23.0-23.4 ns (umux2 is on the rounds ring, rarely the binding one).
+### progress 13:23 UTC (farm fipowrh: ipow item 19's design -- the hold check flags umux3's select pipe on 15/31 routes)
+- fipowrh (item 19's knobs and sizes, 32 seeds, every check + hold at FAST_MIN on e = 0 / 5 / 0 / 7): 29 routes built,
+  period median 38.96 ns, mean 39.06 (37.24-42.14). Gate 87/87. Static: every route only the umux3 rule-A row
+  (-1.0 to -1.7 ns), the false path traced earlier today.
+- Hold: ulink_n_index_15 (the 1-bit select pipe into umux3, N=2) shows REAL D changes (glitch_only 0) inside its input
+  stage's open window on 15 of 31 routes: 4 of 8 windows each (the transactions where the select flips), -1 to -247 ps
+  (s8 -247, s11 -233, s24 -209, s29 -170, s20 -154 ...). The next transaction's select value enters stage 0 after stage
+  0 has passed its token to stage 1 and before stage 0 closes. Results stay correct on every route, so stage 1 closed
+  first everywhere here -- but hold_trace measures stage 0 only, so it cannot show how much margin stage 1 had. Same
+  structure as the umux3 empty-pipe select race traced on 2026-11-10 (ipow T9cd).
+- Item 19 (#20): flagged in BOARD-QUEUE, not held: no corruption seen on 31 routes x 2 checks; the follow-up is to extend
+  hold_trace to follow a leak through the next stage of a pipe (stage k's window against stage k+1's close).
