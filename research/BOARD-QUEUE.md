@@ -19,7 +19,11 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
   18, on hold). On item 17's route the counter's i+1 (uaddi0, 6 elements) needs 13 at the worst corner (A' -752 ps on
   s1). They are correct for the board bench (rounds masked to 12 bits) as far as the gate shows, not for every rounds.
   The full-range rebuild of item 17 is in progress (research/data/fifteen).
-- **Not yet checked:** gcd (1-3, 5), ipow (7, 13, 19), collatz (9, 15, 20), collatz64 (6, 12, 16, 21). Until checked,
+- **ipow item 19 (route a6a2951b):** the loop variable e is spanned by the gate's vectors (e up to 2^31-1); the static
+  check finds only umux3 (the result mux) rule A -1.7 ns at both corners, on data the gate toggles. Full range by the
+  rule, with that flag. Routes 2-4 still being checked.
+- **Not yet checked:** gcd (1-3, 5), ipow (7, 13), collatz (9, 15, 20), collatz64 (6, 12, 16, 21). The collatz lever-5 +
+  per-cell-sized candidate (not yet a board item) is clean on 6 of 7 checked routes. Until checked,
   read each as bench range only.
 
 ## Board list, in order (owner, 2026-11-04: best first; each item judges itself)

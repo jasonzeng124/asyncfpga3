@@ -4031,3 +4031,9 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   A' (the sized form) holds -- I take A' as rule A, as corner_audit has since it was written.
 - So xfr goes through another per-cell round (static check on all 8 xfr routes, both corners; per-cell max; rebuild,
   check, gate). Its gate (2/24 PASS) is stopped: those routes are superseded. colsz's second gate lane restarted.
+### progress 04:05 UTC (ipow under the static check: only umux3, on a path the gate spans)
+- ipowr_1 (= item 19's route a6a2951b): kernel A/A'/E below 0 only at umux3 (the loop result mux, size 3): A -1715 ps
+  worst / -1624 nominal. ipow's loop runs on e (shift right to 0), and the gate's ipow17 vectors include e = 2^31 - 1,
+  so the loop-control range is spanned; umux3 carries the result, whose bits the vectors toggle widely. So item 19 is
+  not "bench range only" under the rule; but a 1.7 ns static miss at NOMINAL on a mux is the same family as the traced
+  umux3 empty-pipe select race (JOURNAL 2026-11-10). Flagged for the owner; not held. Seeds 2-4 still checking.
