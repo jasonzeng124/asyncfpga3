@@ -1769,3 +1769,6 @@ colsz routes 2-8 in research's graphs (0c5e5ede) = own builds (md5). lanes8: 18/
 
 ### progress 05:33 T90f / T94
 lanes8 done: worst+scatter and SLOW_MAX on c64nl 2, 4-9 and colnl 1, 2, 4-8, plus c64nl_9 FAST_MIN: every run passes vs own oracle EXCEPT colnl_4 SLOW_MAX (4/13, hang at batch 4). Control colr_4 SLOW_MAX: 13/13. colnl_4 SLOW_MAX rerun in progress; a monitored SLOW_MAX run of colnl_4 started.
+
+### progress 06:01 T94
+colnl_4 SLOW_MAX hang reproduced exactly on rerun (4/13); control colr_4 SLOW_MAX 13/13. Own value tracer (audit/t94/mon_val.py): in batch 4 (n=256) uselect0's output n27 is 0 from the first iteration (expected 128), so the loop spins on n=0 (collatz fixed point) -- a wrong value, not a deadlock; t83 monitors show 0 select/latch violations. Tracing uselect0's inputs over batches 3-4.
