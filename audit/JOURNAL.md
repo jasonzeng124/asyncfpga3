@@ -1832,3 +1832,6 @@ Items 19/20/21 board routes at FAST_MIN with monitors: min hold 697 / 1707 / 735
 
 ### progress 10:13 T100 started
 Research db2a8157..800e7cc5: xf3 (xf2 + latch on the adder fork's steer branch, BDC_FORK_OUT_LINK=n11__0,n30__0) seed 1 24.19 ns, all checks pass; research says the hold blind spot moves to ulink_n30__0_folink. New research tool hold_trace.py (flags xf2_1 at -1850 ps). Own pre-audit of xf3 seed 1 (build at research HEAD, period, FAST_MIN/worst with latch monitor incl. hold at the new folink).
+
+### progress 10:34 T100
+xf3 seed 1: own sdf 2261e3bb = research's; FAST_MIN 17/17, monitors clean; new ulink_n30__0_folink and trueResult_6 stages hold > 2 ns (xf2_1 had 11 ps). worst running.
