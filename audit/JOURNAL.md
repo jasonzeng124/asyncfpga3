@@ -1893,3 +1893,6 @@ Research 6e861a0e corrected hold readings (c64nl_3 +734 ps) agree with own T105 
 - T104/T105: own 1-bit latch monitor (t104/mon_latch1.py). Item 19's select pipe and collatz64 lever 5's index_11: stage 1 never sees the stage-0 leak within 2 ns; research withdrew its old-tool flags (tool error) and its corrected readings agree.
 - Farm overlap checks: fcolsz2h routes = own builds.
 - Research idle since 15:56, formal since 2026-11-10. Watching.
+
+### progress 17:58 fxf4
+Research 72eb63d5 fxf4 (xorshift full-range candidate): seed 1 = own T103 build (8319b816, 23.464 vs 23.465 ns); summary stats recomputed exactly; own FF scan confirms seed 9's exclusion (missing mux at CLBLM_L_X8Y41). REPORT row.
