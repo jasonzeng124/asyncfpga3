@@ -1790,3 +1790,6 @@ colnl_4 SLOW_MAX at 41.7 MHz host clock: 13/13. Direct trace: bench_op0[6] loads
 
 ### progress 07:57
 Research farm fcolsz (8bcb16cb): overlap with own colsz 2-8 identical (sdf, periods <= 0.07 ns); summary stats recomputed exactly; farm routes 9-32 UNVERIFIED. Next: fcolsz2 when it lands (pre-audit its seed-2..8 builds then).
+
+### progress 07:57 T96 started
+Pre-audit of fcolsz2 (collatz lever 5 + collatz_sizes_T3cdb_nl2_bench.vh: merges 1 -> 2), own builds at research 8bcb16cb (no cell/flow change since 9cff46ca), seeds 2-5: periods; seed 2 FAST_MIN/worst/SLOW_MAX with monitors; seeds 3-5 FAST_MIN with monitors.
