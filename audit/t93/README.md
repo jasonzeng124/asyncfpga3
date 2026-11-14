@@ -140,3 +140,127 @@ Critical paths, A at the worst corner (full listing in `results.json`):
 - **High** that the claimed A failure is not a property of the routed netlist under these assumptions.
 - **Medium** that it comes from pairing s with the join's n30__0 input (the OR-join diagnostic matches −3.2 ns to about 0.1 ns). I have not seen the research's method.
 - **Low** on which B number the research's +1.70 ns corresponds to.
+
+## All sites (sites.py)
+
+Added after the ucond_br6 check above; nothing above this heading was changed. `python3 sites.py` (about 22 s, peak about 290 MB) writes `sites_results.txt` (one row per design, gate, launch and corner, then the summary and sanity checks) and `sites_results.json` (the same rows with critical paths, crossed C-elements and per-node notes). It reuses `sta_lib.py`, and its engine is `rule_e.py`'s code with the generalisations below. The research numbers are read as text from `research_skew_l{5,3}_1.txt`. `skew.py` was read but never run.
+
+### Method changes relative to rule_e.py
+
+- **Sites.** These are taken from the research output: 12 sites per design, 24 gates per design, 48 gates in all.
+  - Each bd_steer is checked on both fractured halves, `u$LUT6` and `u$LUT5`.
+  - Each bd_mux is checked on both joins, `uj0` and `uj1`.
+    - The req pin is the one that carries the mux's `ctl_req`. The s pin is the one that carries its `s`.
+    - Both are read from the kernel RTL. The pins are then found by logical net name through `nets.map`, with `assign` aliases resolved (for example `n32__3_data` = `n31_data`).
+  - On all 48 gates, the pins found by net name are the same as research's pins.
+- **Launches.** These are found from the netlist, not from a list of names.
+  - *Direct:* every link whose latch LUTs reach the s pin through combinational logic only. Research's launch is always one of them.
+    - ucond_br6–9 on A have two: `ulink_n7` and `ulink_n11__1`.
+    - On B they are `ulink_n30__1` and `ulink_n11__1`.
+  - *Upstream (depth 1 and 2):* for a direct launch X, every link Y whose latches drive X's latch d pins. It is checked as launch Y with X **transparent**.
+    - Why this is needed: a Muller `bd_link` latch is transparent while its node is high (bd_link.v, bd_latch.v). So a d change that arrives after X's node has risen goes straight through to s inside the same transaction.
+    - This generalises the old "B combined" check. It covers umux0 → ulink_n7, umux2 → ulink_n11__1, uaddi0 → ulink_n30__1, the internal stages of each pipe, and ucontrol_merge0_olink → ulink_n12__*.
+    - Upstream sources that are not latches are listed in the NOTES and not launched:
+      - the rounds FFs outside udut that feed `ulink_n1__1`, which are constant during a run;
+      - the arbiter state, its ack C-elements and `ucond_br9`'s req0, which feed the two control-merge index latches. That is the merge's own bundling obligation.
+- **Request side.** The req side may cross every request rendezvous C-element: fused-op `ujoin`, cond_br `_j`, and other muxes' `uj0`/`uj1`. It may also cross the C node of each transparent link.
+  - A state LUT is entered only through a pin whose 0→1 change can raise its output from 0, with feedback held at 0.
+  - So a link controller C(req_in, ~c_next) is entered only by req_in. A rising downstream ack only makes the node fall, which starts no forward wave.
+  - Before this rule, ack paths closed false cycles.
+- **Select side.**
+  - The launch link's latches are entered **only through their en pin**. rule_e.py stated this but did not enforce it; with upstream launches it matters, because the counter loop closes through the launch latch's d.
+  - Transparent latches are traversed d→q and en→q, and a transparent link's C node is traversed through its req_in. This adds the en path, which rule_e.py's `--transparent` mode left out.
+  - bd_steer gate LUTs are never traversed on the select side, because they make requests, not data.
+- **OR-join diagnostic.** Every C-element crossed on the request path rises on its **first** derived input. The delay-chain AND taps are still respected. This is research's semantics: its `walk()` seeds a crossed storage node with its best input and prunes the FASTFALL side arcs. For ucond_br6 on A it is identical to rule_e.py's single-join version.
+- **Counter restriction (< 2^12).**
+  - This is rule_e.py's slice-granular rule, applied wherever the select cone contains uaddi0's CARRY4s.
+  - The latch-bit exclusion is extended to every allowed latch (launch or transparent) whose output is a bit of a counter net (n7, n6, n_trueResult_6, n29, n30__*).
+- **Research's guard.** `0.772*req − 1.155*sel` comes from research's own header and reproduces its printed guarded numbers exactly. It is also applied to our numbers, as information only. The worst corner here is already a derated SDF, so guarding it counts the derating twice.
+
+### Summary (ps, raw; the minimum over both gates of a site and over every launch; full rows in sites_results.txt)
+
+| site | research raw / guarded (its launch, nextpnr SDF) | own worst | own fastmin | own, research launch, worst | **OR-join, research launch, worst / fastmin** | own < 2^12, worst |
+|---|---|---|---|---|---|---|
+| A ucond_br2 | +2997 / +200 | +2521 | +2448 | +2521 | +2521 / +2448 | = |
+| A ucond_br3 | +4566 / +1708 | +3304 | +3026 | +3304 | +3304 / +3026 | = |
+| A ucond_br4 | +3988 / +1151 | +3136 | +2910 | +3136 | +3136 / +2910 | = |
+| A ucond_br5 | +2783 / +8 | +2512 | +2421 | +2512 | +2512 / +2421 | = |
+| **A ucond_br6** | **−4651 / −7126 VIOL** | +1519 | +1918 | +1587 | **−3087 / −1352** | +1949 |
+| A ucond_br7 | +1619 / −2079 VIOL | +1614 | +2004 | +1682 | +1682 / +2035 | +2044 |
+| A ucond_br8 | +1722 / −1996 VIOL | +1677 | +2059 | +1745 | +1745 / +2090 | +2107 |
+| A ucond_br9 | +617 / −3036 VIOL | +1464 | +1860 | +1532 | +1532 / +1891 | +1894 |
+| A umux0 | +2509 / +1663 | +1970 | +1480 | +1970 | +1970 / +1480 | = |
+| A umux1 | +3620 / +2521 | +2739 | +1970 | +2739 | +2739 / +1970 | = |
+| A umux2 | +2941 / +1996 | +2217 | +1563 | +2217 | +2217 / +1563 | = |
+| A umux3 | +1955 / +1235 | +1764 | +1213 | +1796 | +1796 / +1215 | = |
+| B ucond_br2 | +2797 / −15 VIOL | +2261 | +1963 | +2261 | +2261 / +1963 | = |
+| B ucond_br3 | +4473 / +1595 | +3213 | +2670 | +3213 | +3213 / +2670 | = |
+| B ucond_br4 | +3355 / +600 | +2717 | +2299 | +2717 | +2717 / +2299 | = |
+| B ucond_br5 | +2662 / −69 VIOL | +2296 | +1978 | +2296 | +2296 / +1978 | = |
+| B ucond_br6 | +1699 / −1299 VIOL | +754 | +1137 | +953 | +953 / +1272 | +754 |
+| B ucond_br7 | +2566 / −478 VIOL | +1438 | +1620 | +1637 | +1637 / +1755 | +1438 |
+| B ucond_br8 | +2137 / −902 VIOL | +1087 | +1400 | +1286 | +1286 / +1535 | +1087 |
+| B ucond_br9 | +1896 / −1193 VIOL | +985 | +1286 | +1184 | +1184 / +1421 | +985 |
+| B umux0 | +1742 / +989 | +1111 | +904 | +1111 | +1111 / +904 | = |
+| B umux1 | +3504 / +2431 | +2999 | +2177 | +2999 | +2999 / +2177 | = |
+| B umux2 | +2879 / +1813 | +2165 | +1622 | +2165 | +2165 / +1622 | = |
+| B umux3 | +2651 / +1773 | +1680 | +1243 | +1680 | +1680 / +1243 | = |
+
+**Binding launches.** The binding launch, where it is not research's, is always an upstream one:
+
+- A ucond_br6–9: `ulink_n12__0` with `ulink_n7` transparent. The umux0 select reaches s through the mux data and the transparent ulink_n7. This is 68 ps below the direct `ulink_n7` number.
+- B ucond_br6–9: `ulink_n12__0` with `ulink_n7` and `ulink_n30__1` transparent. This is 199 ps below the direct `ulink_n30__1` number.
+- A umux3: `ulink_n_index_15` stage[0] with stage[1] transparent, at −32 ps.
+
+**Counts.**
+
+- 24 sites, 48 gates and 520 rows. Every row has a result. No cycle was hit and no row lacked a request path.
+- **Own model:**
+  - **0 sites are negative at either corner, under any launch.**
+  - The smallest margins are B ucond_br6 at +754 (worst) and A umux3 at +1213 (fastmin).
+- **Research's flags:**
+  - Research raw-negative: 1 site, A ucond_br6. **It is negative only because of OR-join semantics:** own +1587/+1949 against OR-join −3087/−1352 at research's launch, at worst/fastmin.
+  - Research guarded-VIOLATED: 10 sites. These are A ucond_br6–9 and B ucond_br2, br5 and br6–9.
+  - Of the other 9, none is negative raw under either own or OR-join semantics at either corner. Under raw margins:
+    - OR-join only: 1 (A ucond_br6).
+    - Both own and OR-join: 0.
+    - Neither: 9.
+- **Guarded view.** This is research's guard applied to our numbers at research's launch.
+  - B ucond_br2 and br5 stay ≥ 0 at both corners. Research's −15 and −69 are not reproduced.
+  - The other 8 flagged sites, A br6–9 and B br6–9, go guarded-negative under both semantics, mostly at the already-derated worst corner.
+    - At fastmin, the only guarded-negative own numbers are A ucond_br6 (−57), A ucond_br9 (−93) and B ucond_br6/8/9 (−331, −117, −255).
+    - A ucond_br6 is the only site where the guard is needed to make own negative while OR-join is negative raw: OR-join guarded is −4977/−2606.
+  - So, once research's own guardband is accepted, OR-join semantics are what produce research's flag at A ucond_br6. At the other flagged sites the flag comes from the guard together with the delay model, not from the join semantics.
+- **B: OR-join off research's launch.** In B, OR-join semantics give large negatives that research's launch selection does not reach. On ucond_br6 the OR-join margin is −5183 at worst for launch `ulink_n7` with `ulink_n30__1` transparent. The pairing is n30__0 against the compare chain, the same structure as A. Research does not report this, because its launches are the nearest storage of the select, which on B is `ulink_n30__1`. Own semantics give +953 there.
+
+### Sanity checks (in sites_results.txt)
+
+- **ucond_br6 against results.txt.** All 16 non-transparent ucond_br6 rows (A `ulink_n7`/`ulink_n11__1`, B `ulink_n30__1`/`ulink_n11__1`, both halves, both corners) are **identical** to results.txt in own, < 2^12, OR-join and plain.
+- **The 4 "B combined" rows differ, and the difference is a correction.**
+  - Re-run in rule_e.py's latches-only select mode, they reproduce results.txt exactly: +1022/+1713 worst and +1831/+2223 fastmin.
+  - With the en path of the transparent `ulink_n30__1` added, they become **+953/+953 worst and +1272/+1272 fastmin.**
+  - The en path is: ulink_n7 C node → uaddi0 chain → ulink_n30__1 C node → en → q → compare. It is later than the d path by 69 ps at worst and 559 ps at fastmin, and the counter restriction does not shorten it.
+  - This equals the B main margin, as it should, because the req and en paths share the prefix up to ulink_n30__1's C node.
+  - **This supersedes the "B combined" row of the table above:** the honest B number at ucond_br6 is +953 (worst) and +1272 (fastmin), full or < 2^12. The upstream launch through umux0 (+754 / +1137) is lower still.
+- **Planted delays on other sites** (A, worst; +2000 ps on one ICBUF in a copy of `netlist_baked.v`, full re-parse; all PASS):
+
+| site | ICBUF planted | own before → after | change |
+|---|---|---|---|
+| ucond_br3 | ic_009515, select path | 3304 → 1304 | −2000 |
+| ucond_br3 | ic_008536, request path | 3304 → 5304 | +2000 |
+| umux0.uj0 | ic_012683, select path | 1970 → −30 | −2000 |
+| umux0.uj0 | ic_012597, request path | 1970 → 3970 | +2000 |
+| both | ic_012664 (ucond_br6's s), unrelated | unchanged | 0 |
+
+### Limitations
+
+1. Every limitation of the ucond_br6 check above still applies: the simulator's delay model, the 4-phase / C-element assumptions, the slice-granular counter cut, and that the hold half of rule E is not checked.
+2. **Launch coverage.**
+   - Upstream launches go only through latches, to depth 2. Depth 2 sets a new minimum only at B ucond_br6–9, through umux0. A one-off run with `--depth 3` (308/292 rows, not saved) changed no site minimum.
+   - Sources that are not latches are not launched: arbiter grants, ack C-elements, the rounds FFs.
+   - The control-merge index paths (into `ucontrol_merge0_olink` and `ulink_n_index_15` stage[0]) are therefore covered only as far as the merges' own bundling holds. That bundling was not checked.
+3. **Free inputs.**
+   - On every upstream launch, cone-external join inputs are free and set to the value that makes req earliest. Examples: the other mux data request, `n11__1_req`, the cond_br partner channel.
+   - The select of a mux on the request path (umux0's s when launching `ulink_n12__0`) is treated as a derived input that may rise. This is a lower bound for req, not an exact event.
+4. **Comparison with research.** Research's raw numbers come from nextpnr's own SDF, a different delay model, so only the sign pattern and the method are compared, not the ps values. At the research launch, own and OR-join differ only where a crossed C-element has two launch-derived inputs, which is A ucond_br6. On B the same structure appears only at a launch research does not take.
+5. **Requested but not done.** No nominal-SDF work dir was available, so research's corner is not reproduced. vvp was not run, by instruction.

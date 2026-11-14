@@ -1753,3 +1753,6 @@ Research's skew.py (plain nextpnr SDF, its own guards) run for diagnosis on item
 
 ### note 02:19 research 2fc78d4e..caaf271a
 Full-range xorshift sizes: uaddi0 6 -> 13 is bound by rule A' (worst corner), not by rule E; ucmpi0/ucmpi1/ulink_n30__1 "bound by rule E with margin" (if that is corner_audit's walk, the T93 OR-join pessimism applies to those E numbers; to check with the all-sites run). Note: on item 17 the own composite rule E from ulink_n7 through the transparent ulink_n30__1 is +1022 ps worst / full carry at uaddi0 = 6 (T93), so rule A' at uaddi0 is a local rule stricter than the end-to-end steer check; it is the owner's rule (bead13d7), not contested. Owner question on "i+1 != rounds" rewrite: not the audit's to answer.
+
+### progress 02:30 T93 all sites
+Own rule E over all 24 steer/mux sites of items 17 and 18 (sites.py, re-run identical): none negative at worst or FAST_MIN with C-element joins; min +754 ps (item 17 ucond_br6, upstream launch through transparent latches). Research's single raw negative is OR-join-only; its guard formula reproduced exactly. findings/T93.md updated.

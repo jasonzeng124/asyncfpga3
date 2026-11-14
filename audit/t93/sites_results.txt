@@ -554,12 +554,43 @@ B umux1          +3504 /  +2431 ok   |      2999     2177 |         2999        
 B umux2          +2879 /  +1813 ok   |      2165     1622 |         2165        2165       1622 |         1622 |        2165 | ulink_n12__2
 B umux3          +2651 /  +1773 ok   |      1680     1243 |         1680        1680       1243 |         1243 |        1680 | ulink_n_index_15.many.stage[1].u
 
+research's guard (0.772*req - 1.155*sel) applied to our numbers at research's launch, min over gates:
+site            research | own_g worst own_g fmin | OR_g worst OR_g fmin | class
+A ucond_br2         +200 |         283        850 |        283       850 | research ok
+A ucond_br3        +1708 |        1013       1375 |       1013      1375 | research ok
+A ucond_br4        +1151 |         839       1261 |        839      1261 | research ok
+A ucond_br5           +8 |         279        816 |        279       816 | research ok
+A ucond_br6        -7126 |       -1369        -57 |      -4977     -2606 | guarded-negative under both own and OR-join
+A ucond_br7        -2079 |       -1267         33 |      -1267        33 | guarded-negative under both own and OR-join
+A ucond_br8        -1996 |       -1172        112 |      -1172       112 | guarded-negative under both own and OR-join
+A ucond_br9        -3036 |       -1395        -93 |      -1395       -93 | guarded-negative under both own and OR-join
+A umux0            +1663 |        1315        993 |       1315       993 | research ok
+A umux1            +2521 |        1871       1348 |       1871      1348 | research ok
+A umux2            +1996 |        1514       1065 |       1514      1065 | research ok
+A umux3            +1235 |        1178        787 |       1178       787 | research ok
+B ucond_br2          -15 |          47        438 |         47       438 | guarded >= 0 under both (research flag = its SDF/launch, not reproduced)
+B ucond_br3        +1595 |         942       1123 |        942      1123 | research ok
+B ucond_br4         +600 |         538        809 |        538       809 | research ok
+B ucond_br5          -69 |          94        466 |         94       466 | guarded >= 0 under both (research flag = its SDF/launch, not reproduced)
+B ucond_br6        -1299 |       -1310       -331 |      -1310      -331 | guarded-negative under both own and OR-join
+B ucond_br7         -478 |        -724        106 |       -724       106 | guarded-negative under both own and OR-join
+B ucond_br8         -902 |       -1046       -117 |      -1046      -117 | guarded-negative under both own and OR-join
+B ucond_br9        -1193 |       -1208       -255 |      -1208      -255 | guarded-negative under both own and OR-join
+B umux0             +989 |         537        481 |        537       481 | research ok
+B umux1            +2431 |        2109       1541 |       2109      1541 | research ok
+B umux2            +1813 |        1348       1039 |       1348      1039 | research ok
+B umux3            +1773 |        1050        799 |       1050       799 | research ok
+
 sites checked: 24 (48 gates), rows: 520 (520 with a result)
 own-model negative at either corner (any launch): 0
 research-flagged sites (raw < 0 or guarded VIOLATED): 10: A ucond_br6, A ucond_br7, A ucond_br8, A ucond_br9, B ucond_br2, B ucond_br5, B ucond_br6, B ucond_br7, B ucond_br8, B ucond_br9
   negative under OR-join at the research launch but own >= 0 everywhere ("OR-join only"): 1: A ucond_br6
   negative under both own and OR-join: 0: 
   OR-join >= 0 and own >= 0 (research flag from its guardband / SDF only): 9: A ucond_br7, A ucond_br8, A ucond_br9, B ucond_br2, B ucond_br5, B ucond_br6, B ucond_br7, B ucond_br8, B ucond_br9
+guarded view (research's guard on our numbers, research launch, either corner):
+  guarded >= 0 under both (research flag = its SDF/launch, not reproduced): 2: B ucond_br2, B ucond_br5
+  guarded-negative under both own and OR-join: 8: A ucond_br6, A ucond_br7, A ucond_br8, A ucond_br9, B ucond_br6, B ucond_br7, B ucond_br8, B ucond_br9
+  research ok: 14: A ucond_br2, A ucond_br3, A ucond_br4, A ucond_br5, A umux0, A umux1, A umux2, A umux3, B ucond_br3, B ucond_br4, B umux0, B umux1, B umux2, B umux3
 
 == SANITY: ucond_br6 rows vs results.txt (rule_e.py) ==
   A ulink_n11__1 fastmin u$LUT5: results.txt own/<2^12/OR/plain (2440, 2440, 2440, -929)  sites.py (2440, 2440, 2440, -929)  EQUAL
@@ -578,46 +609,94 @@ research-flagged sites (raw < 0 or guarded VIOLATED): 10: A ucond_br6, A ucond_b
   B ulink_n30__1 fastmin u$LUT6: results.txt own/<2^12/OR/plain (1272, 1272, 1272, -1534)  sites.py (1272, 1272, 1272, -1534)  EQUAL
   B ulink_n30__1 worst   u$LUT5: results.txt own/<2^12/OR/plain (953, 953, 953, -2835)  sites.py (953, 953, 953, -2835)  EQUAL
   B ulink_n30__1 worst   u$LUT6: results.txt own/<2^12/OR/plain (953, 953, 953, -2835)  sites.py (953, 953, 953, -2835)  EQUAL
-  B ulink_n7 T=ulink_n30__1 fastmin u$LUT5: results.txt own/<2^12/OR/plain (1831, 2223, -2801, -4843)  sites.py (1272, 1272, -3360, -5402)  DIFFERENT  (s_max 6323 vs latches-only 5764: en path of the transparent link)
-  B ulink_n7 T=ulink_n30__1 fastmin u$LUT6: results.txt own/<2^12/OR/plain (1831, 2223, -2801, -4843)  sites.py (1272, 1272, -3360, -5402)  DIFFERENT  (s_max 6323 vs latches-only 5764: en path of the transparent link)
-  B ulink_n7 T=ulink_n30__1 worst   u$LUT5: results.txt own/<2^12/OR/plain (1022, 1713, -5114, -7728)  sites.py (953, 953, -5183, -7797)  DIFFERENT  (s_max 9141 vs latches-only 9072: en path of the transparent link)
-  B ulink_n7 T=ulink_n30__1 worst   u$LUT6: results.txt own/<2^12/OR/plain (1022, 1713, -5114, -7728)  sites.py (953, 953, -5183, -7797)  DIFFERENT  (s_max 9141 vs latches-only 9072: en path of the transparent link)
-  -> all equal (or differ only by the documented en-path addition)
+  B ulink_n7 T=ulink_n30__1 fastmin u$LUT5: results.txt own/<2^12/OR/plain (1831, 2223, -2801, -4843)  sites.py (1272, 1272, -3360, -5402)  DIFFERENT  (s_max 6323 vs latches-only 5764: en path of the transparent link); latches-only mode (1831, 2223, -2801, -4843) EQUAL
+  B ulink_n7 T=ulink_n30__1 fastmin u$LUT6: results.txt own/<2^12/OR/plain (1831, 2223, -2801, -4843)  sites.py (1272, 1272, -3360, -5402)  DIFFERENT  (s_max 6323 vs latches-only 5764: en path of the transparent link); latches-only mode (1831, 2223, -2801, -4843) EQUAL
+  B ulink_n7 T=ulink_n30__1 worst   u$LUT5: results.txt own/<2^12/OR/plain (1022, 1713, -5114, -7728)  sites.py (953, 953, -5183, -7797)  DIFFERENT  (s_max 9141 vs latches-only 9072: en path of the transparent link); latches-only mode (1022, 1713, -5114, -7728) EQUAL
+  B ulink_n7 T=ulink_n30__1 worst   u$LUT6: results.txt own/<2^12/OR/plain (1022, 1713, -5114, -7728)  sites.py (953, 953, -5183, -7797)  DIFFERENT  (s_max 9141 vs latches-only 9072: en path of the transparent link); latches-only mode (1022, 1713, -5114, -7728) EQUAL
+  -> all equal to results.txt (transparent rows: in latches-only mode; the default adds the transparent link en path)
+
+== SANITY: planted delay on other sites (copy of netlist_baked.v, full re-parse) ==
+  PLANT ic_009515 +2000 ps (critical select path) at A worst ucond_br3.u$LUT6 launch ulink_n1__1: own 3304 -> 1304 (delta -2000, expected -2000) PASS; OR 3304 -> 1304, plain -1017 -> -3017
+  PLANT ic_008536 +2000 ps (critical request path) at A worst ucond_br3.u$LUT6 launch ulink_n1__1: own 3304 -> 5304 (delta +2000, expected +2000 or less) PASS; OR 3304 -> 5304, plain -1017 -> -1017
+  PLANT ic_012683 +2000 ps (critical select path) at A worst umux0.uj0 launch ulink_n12__0: own 1970 -> -30 (delta -2000, expected -2000) PASS; OR 1970 -> -30, plain 274 -> -1726
+  PLANT ic_012597 +2000 ps (critical request path) at A worst umux0.uj0 launch ulink_n12__0: own 1970 -> 3970 (delta +2000, expected +2000 or less) PASS; OR 1970 -> 3970, plain 274 -> 274
+  PLANT ic_012664 +2000 ps (unrelated ICBUF (ucond_br6 LUT6 s)) at A worst ucond_br3.u$LUT6 launch ulink_n1__1: own 3304 -> 3304 (delta +0, expected +0) PASS; OR 3304 -> 3304, plain -1017 -> -1017
+  PLANT ic_012664 +2000 ps (unrelated ICBUF (ucond_br6 LUT6 s)) at A worst umux0.uj0 launch ulink_n12__0: own 1970 -> 1970 (delta +0, expected +0) PASS; OR 1970 -> 1970, plain 274 -> 274
 
 == NOTES (pin mapping, launch discovery) ==
-  A ucond_br6.u$LUT5: select cone has non-latch sources ['$PACKER_GND_NET$LUT$1330', '$PACKER_GND_NET$LUT$1334', '$PACKER_GND_NET$LUT$1338', '$PACKER_GND_NET$LUT$1342', '$PACKER_GND_NET$LUT$1346', '$PACKER_GND_NET$LUT$1350', '$PACKER_GND_NET$LUT$1354', '$PACKER_GND_NET$LUT$1358', '$PACKER_GND_NET$LUT$1362', '$PACKER_GND_NET$LUT$1366', '$PACKER_GND_NET$LUT$1370', '$PACKER_GND_NET$LUT$1374', '$PACKER_GND_NET$LUT$1378', '$PACKER_GND_NET$LUT$1382', '$PACKER_GND_NET$LUT$1386', '$PACKER_GND_NET$LUT$1390', '$PACKER_GND_NET$LUT$1394', '$PACKER_GND_NET$LUT$1398', '$PACKER_GND_NET$LUT$1402', '$PACKER_GND_NET$LUT$1406', '$PACKER_GND_NET$LUT$1410', '$PACKER_GND_NET$LUT$1414', '$PACKER_GND_NET$LUT$1418', '$PACKER_GND_NET$LUT$1422', '$PACKER_GND_NET$LUT$1426', '$PACKER_GND_NET$LUT$1430', '$PACKER_GND_NET$LUT$1434', '$PACKER_GND_NET$LUT$1438', '$PACKER_GND_NET$LUT$1442', '$PACKER_GND_NET$LUT$1446', '$PACKER_VCC_NET$LUT$1326']
-  A ucond_br6.u$LUT6: select cone has non-latch sources ['$PACKER_GND_NET$LUT$1330', '$PACKER_GND_NET$LUT$1334', '$PACKER_GND_NET$LUT$1338', '$PACKER_GND_NET$LUT$1342', '$PACKER_GND_NET$LUT$1346', '$PACKER_GND_NET$LUT$1350', '$PACKER_GND_NET$LUT$1354', '$PACKER_GND_NET$LUT$1358', '$PACKER_GND_NET$LUT$1362', '$PACKER_GND_NET$LUT$1366', '$PACKER_GND_NET$LUT$1370', '$PACKER_GND_NET$LUT$1374', '$PACKER_GND_NET$LUT$1378', '$PACKER_GND_NET$LUT$1382', '$PACKER_GND_NET$LUT$1386', '$PACKER_GND_NET$LUT$1390', '$PACKER_GND_NET$LUT$1394', '$PACKER_GND_NET$LUT$1398', '$PACKER_GND_NET$LUT$1402', '$PACKER_GND_NET$LUT$1406', '$PACKER_GND_NET$LUT$1410', '$PACKER_GND_NET$LUT$1414', '$PACKER_GND_NET$LUT$1418', '$PACKER_GND_NET$LUT$1422', '$PACKER_GND_NET$LUT$1426', '$PACKER_GND_NET$LUT$1430', '$PACKER_GND_NET$LUT$1434', '$PACKER_GND_NET$LUT$1438', '$PACKER_GND_NET$LUT$1442', '$PACKER_GND_NET$LUT$1446', '$PACKER_VCC_NET$LUT$1326']
-  A ucond_br9.u$LUT5: select cone has non-latch sources ['$PACKER_GND_NET$LUT$1330', '$PACKER_GND_NET$LUT$1334', '$PACKER_GND_NET$LUT$1338', '$PACKER_GND_NET$LUT$1342', '$PACKER_GND_NET$LUT$1346', '$PACKER_GND_NET$LUT$1350', '$PACKER_GND_NET$LUT$1354', '$PACKER_GND_NET$LUT$1358', '$PACKER_GND_NET$LUT$1362', '$PACKER_GND_NET$LUT$1366', '$PACKER_GND_NET$LUT$1370', '$PACKER_GND_NET$LUT$1374', '$PACKER_GND_NET$LUT$1378', '$PACKER_GND_NET$LUT$1382', '$PACKER_GND_NET$LUT$1386', '$PACKER_GND_NET$LUT$1390', '$PACKER_GND_NET$LUT$1394', '$PACKER_GND_NET$LUT$1398', '$PACKER_GND_NET$LUT$1402', '$PACKER_GND_NET$LUT$1406', '$PACKER_GND_NET$LUT$1410', '$PACKER_GND_NET$LUT$1414', '$PACKER_GND_NET$LUT$1418', '$PACKER_GND_NET$LUT$1422', '$PACKER_GND_NET$LUT$1426', '$PACKER_GND_NET$LUT$1430', '$PACKER_GND_NET$LUT$1434', '$PACKER_GND_NET$LUT$1438', '$PACKER_GND_NET$LUT$1442', '$PACKER_GND_NET$LUT$1446', '$PACKER_VCC_NET$LUT$1326']
-  A ucond_br9.u$LUT6: select cone has non-latch sources ['$PACKER_GND_NET$LUT$1330', '$PACKER_GND_NET$LUT$1334', '$PACKER_GND_NET$LUT$1338', '$PACKER_GND_NET$LUT$1342', '$PACKER_GND_NET$LUT$1346', '$PACKER_GND_NET$LUT$1350', '$PACKER_GND_NET$LUT$1354', '$PACKER_GND_NET$LUT$1358', '$PACKER_GND_NET$LUT$1362', '$PACKER_GND_NET$LUT$1366', '$PACKER_GND_NET$LUT$1370', '$PACKER_GND_NET$LUT$1374', '$PACKER_GND_NET$LUT$1378', '$PACKER_GND_NET$LUT$1382', '$PACKER_GND_NET$LUT$1386', '$PACKER_GND_NET$LUT$1390', '$PACKER_GND_NET$LUT$1394', '$PACKER_GND_NET$LUT$1398', '$PACKER_GND_NET$LUT$1402', '$PACKER_GND_NET$LUT$1406', '$PACKER_GND_NET$LUT$1410', '$PACKER_GND_NET$LUT$1414', '$PACKER_GND_NET$LUT$1418', '$PACKER_GND_NET$LUT$1422', '$PACKER_GND_NET$LUT$1426', '$PACKER_GND_NET$LUT$1430', '$PACKER_GND_NET$LUT$1434', '$PACKER_GND_NET$LUT$1438', '$PACKER_GND_NET$LUT$1442', '$PACKER_GND_NET$LUT$1446', '$PACKER_VCC_NET$LUT$1326']
-  A ucond_br7.u$LUT5: select cone has non-latch sources ['$PACKER_GND_NET$LUT$1330', '$PACKER_GND_NET$LUT$1334', '$PACKER_GND_NET$LUT$1338', '$PACKER_GND_NET$LUT$1342', '$PACKER_GND_NET$LUT$1346', '$PACKER_GND_NET$LUT$1350', '$PACKER_GND_NET$LUT$1354', '$PACKER_GND_NET$LUT$1358', '$PACKER_GND_NET$LUT$1362', '$PACKER_GND_NET$LUT$1366', '$PACKER_GND_NET$LUT$1370', '$PACKER_GND_NET$LUT$1374', '$PACKER_GND_NET$LUT$1378', '$PACKER_GND_NET$LUT$1382', '$PACKER_GND_NET$LUT$1386', '$PACKER_GND_NET$LUT$1390', '$PACKER_GND_NET$LUT$1394', '$PACKER_GND_NET$LUT$1398', '$PACKER_GND_NET$LUT$1402', '$PACKER_GND_NET$LUT$1406', '$PACKER_GND_NET$LUT$1410', '$PACKER_GND_NET$LUT$1414', '$PACKER_GND_NET$LUT$1418', '$PACKER_GND_NET$LUT$1422', '$PACKER_GND_NET$LUT$1426', '$PACKER_GND_NET$LUT$1430', '$PACKER_GND_NET$LUT$1434', '$PACKER_GND_NET$LUT$1438', '$PACKER_GND_NET$LUT$1442', '$PACKER_GND_NET$LUT$1446', '$PACKER_VCC_NET$LUT$1326']
-  A ucond_br7.u$LUT6: select cone has non-latch sources ['$PACKER_GND_NET$LUT$1330', '$PACKER_GND_NET$LUT$1334', '$PACKER_GND_NET$LUT$1338', '$PACKER_GND_NET$LUT$1342', '$PACKER_GND_NET$LUT$1346', '$PACKER_GND_NET$LUT$1350', '$PACKER_GND_NET$LUT$1354', '$PACKER_GND_NET$LUT$1358', '$PACKER_GND_NET$LUT$1362', '$PACKER_GND_NET$LUT$1366', '$PACKER_GND_NET$LUT$1370', '$PACKER_GND_NET$LUT$1374', '$PACKER_GND_NET$LUT$1378', '$PACKER_GND_NET$LUT$1382', '$PACKER_GND_NET$LUT$1386', '$PACKER_GND_NET$LUT$1390', '$PACKER_GND_NET$LUT$1394', '$PACKER_GND_NET$LUT$1398', '$PACKER_GND_NET$LUT$1402', '$PACKER_GND_NET$LUT$1406', '$PACKER_GND_NET$LUT$1410', '$PACKER_GND_NET$LUT$1414', '$PACKER_GND_NET$LUT$1418', '$PACKER_GND_NET$LUT$1422', '$PACKER_GND_NET$LUT$1426', '$PACKER_GND_NET$LUT$1430', '$PACKER_GND_NET$LUT$1434', '$PACKER_GND_NET$LUT$1438', '$PACKER_GND_NET$LUT$1442', '$PACKER_GND_NET$LUT$1446', '$PACKER_VCC_NET$LUT$1326']
-  A ucond_br8.u$LUT5: select cone has non-latch sources ['$PACKER_GND_NET$LUT$1330', '$PACKER_GND_NET$LUT$1334', '$PACKER_GND_NET$LUT$1338', '$PACKER_GND_NET$LUT$1342', '$PACKER_GND_NET$LUT$1346', '$PACKER_GND_NET$LUT$1350', '$PACKER_GND_NET$LUT$1354', '$PACKER_GND_NET$LUT$1358', '$PACKER_GND_NET$LUT$1362', '$PACKER_GND_NET$LUT$1366', '$PACKER_GND_NET$LUT$1370', '$PACKER_GND_NET$LUT$1374', '$PACKER_GND_NET$LUT$1378', '$PACKER_GND_NET$LUT$1382', '$PACKER_GND_NET$LUT$1386', '$PACKER_GND_NET$LUT$1390', '$PACKER_GND_NET$LUT$1394', '$PACKER_GND_NET$LUT$1398', '$PACKER_GND_NET$LUT$1402', '$PACKER_GND_NET$LUT$1406', '$PACKER_GND_NET$LUT$1410', '$PACKER_GND_NET$LUT$1414', '$PACKER_GND_NET$LUT$1418', '$PACKER_GND_NET$LUT$1422', '$PACKER_GND_NET$LUT$1426', '$PACKER_GND_NET$LUT$1430', '$PACKER_GND_NET$LUT$1434', '$PACKER_GND_NET$LUT$1438', '$PACKER_GND_NET$LUT$1442', '$PACKER_GND_NET$LUT$1446', '$PACKER_VCC_NET$LUT$1326']
-  A ucond_br8.u$LUT6: select cone has non-latch sources ['$PACKER_GND_NET$LUT$1330', '$PACKER_GND_NET$LUT$1334', '$PACKER_GND_NET$LUT$1338', '$PACKER_GND_NET$LUT$1342', '$PACKER_GND_NET$LUT$1346', '$PACKER_GND_NET$LUT$1350', '$PACKER_GND_NET$LUT$1354', '$PACKER_GND_NET$LUT$1358', '$PACKER_GND_NET$LUT$1362', '$PACKER_GND_NET$LUT$1366', '$PACKER_GND_NET$LUT$1370', '$PACKER_GND_NET$LUT$1374', '$PACKER_GND_NET$LUT$1378', '$PACKER_GND_NET$LUT$1382', '$PACKER_GND_NET$LUT$1386', '$PACKER_GND_NET$LUT$1390', '$PACKER_GND_NET$LUT$1394', '$PACKER_GND_NET$LUT$1398', '$PACKER_GND_NET$LUT$1402', '$PACKER_GND_NET$LUT$1406', '$PACKER_GND_NET$LUT$1410', '$PACKER_GND_NET$LUT$1414', '$PACKER_GND_NET$LUT$1418', '$PACKER_GND_NET$LUT$1422', '$PACKER_GND_NET$LUT$1426', '$PACKER_GND_NET$LUT$1430', '$PACKER_GND_NET$LUT$1434', '$PACKER_GND_NET$LUT$1438', '$PACKER_GND_NET$LUT$1442', '$PACKER_GND_NET$LUT$1446', '$PACKER_VCC_NET$LUT$1326']
+  A ucond_br6.u$LUT5: pins by net name req A3 s A4 == research
+  A ucond_br6.u$LUT6: pins by net name req A3 s A4 == research
+  A ucond_br9.u$LUT5: pins by net name req A2 s A4 == research
+  A ucond_br9.u$LUT6: pins by net name req A2 s A4 == research
+  A ucond_br7.u$LUT5: pins by net name req A5 s A1 == research
+  A ucond_br7.u$LUT6: pins by net name req A5 s A1 == research
+  A ucond_br8.u$LUT5: pins by net name req A5 s A2 == research
+  A ucond_br8.u$LUT6: pins by net name req A5 s A2 == research
+  A ucond_br5.u$LUT5: pins by net name req A1 s A5 == research
   A ucond_br5.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br5.u$LUT6: pins by net name req A1 s A5 == research
   A ucond_br5.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br2.u$LUT5: pins by net name req A3 s A5 == research
   A ucond_br2.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br2.u$LUT6: pins by net name req A3 s A5 == research
   A ucond_br2.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br4.u$LUT5: pins by net name req A2 s A3 == research
   A ucond_br4.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br4.u$LUT6: pins by net name req A2 s A3 == research
   A ucond_br4.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A umux3.uj0: pins by net name req A3 s A5 == research
   A umux3.uj0: ulink_n_index_15.many.stage[0].u latch d also from non-latch sources ['ucond_br9.u$LUT5', 'ucontrol_merge1.uarb1.ua2.u', 'ucontrol_merge1.uarb1.ustate$LUT6'] (not launched)
+  A umux3.uj1: pins by net name req A3 s A5 == research
   A umux3.uj1: ulink_n_index_15.many.stage[0].u latch d also from non-latch sources ['ucond_br9.u$LUT5', 'ucontrol_merge1.uarb1.ua2.u', 'ucontrol_merge1.uarb1.ustate$LUT6'] (not launched)
+  A umux0.uj0: pins by net name req A3 s A5 == research
   A umux0.uj0: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  A umux0.uj1: pins by net name req A2 s A5 == research
   A umux0.uj1: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  A ucond_br3.u$LUT5: pins by net name req A2 s A1 == research
   A ucond_br3.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br3.u$LUT6: pins by net name req A2 s A1 == research
   A ucond_br3.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A umux2.uj0: pins by net name req A3 s A5 == research
   A umux2.uj0: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  A umux2.uj1: pins by net name req A3 s A5 == research
   A umux2.uj1: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  A umux1.uj0: pins by net name req A3 s A5 == research
+  A umux1.uj1: pins by net name req A3 s A5 == research
+  B ucond_br6.u$LUT5: pins by net name req A3 s A5 == research
+  B ucond_br6.u$LUT6: pins by net name req A3 s A5 == research
+  B ucond_br9.u$LUT5: pins by net name req A1 s A4 == research
+  B ucond_br9.u$LUT6: pins by net name req A1 s A4 == research
+  B ucond_br8.u$LUT5: pins by net name req A2 s A4 == research
+  B ucond_br8.u$LUT6: pins by net name req A2 s A4 == research
+  B ucond_br7.u$LUT5: pins by net name req A1 s A4 == research
+  B ucond_br7.u$LUT6: pins by net name req A1 s A4 == research
+  B ucond_br5.u$LUT5: pins by net name req A3 s A1 == research
   B ucond_br5.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br5.u$LUT6: pins by net name req A3 s A1 == research
   B ucond_br5.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br2.u$LUT5: pins by net name req A2 s A1 == research
   B ucond_br2.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br2.u$LUT6: pins by net name req A2 s A1 == research
   B ucond_br2.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br4.u$LUT5: pins by net name req A5 s A4 == research
   B ucond_br4.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br4.u$LUT6: pins by net name req A5 s A4 == research
   B ucond_br4.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B umux0.uj0: pins by net name req A3 s A2 == research
   B umux0.uj0: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  B umux0.uj1: pins by net name req A4 s A5 == research
   B umux0.uj1: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  B ucond_br3.u$LUT5: pins by net name req A2 s A1 == research
   B ucond_br3.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br3.u$LUT6: pins by net name req A2 s A1 == research
   B ucond_br3.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B umux3.uj0: pins by net name req A4 s A5 == research
   B umux3.uj0: ulink_n_index_15.many.stage[0].u latch d also from non-latch sources ['ucond_br9.u$LUT5', 'ucontrol_merge1.uarb1.ua2.u', 'ucontrol_merge1.uarb1.ustate$LUT6'] (not launched)
+  B umux3.uj1: pins by net name req A4 s A5 == research
   B umux3.uj1: ulink_n_index_15.many.stage[0].u latch d also from non-latch sources ['ucond_br9.u$LUT5', 'ucontrol_merge1.uarb1.ua2.u', 'ucontrol_merge1.uarb1.ustate$LUT6'] (not launched)
+  B umux2.uj1: pins by net name req A4 s A3 == research
   B umux2.uj1: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  B umux2.uj0: pins by net name req A4 s A5 == research
   B umux2.uj0: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  B umux1.uj0: pins by net name req A2 s A5 == research
+  B umux1.uj1: pins by net name req A2 s A5 == research
