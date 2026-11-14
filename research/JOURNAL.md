@@ -4277,3 +4277,11 @@ Next (for this session if it lasts, else the next):
   Static clean on 27/29 (17, 27: umux2 rule A -2 to -65 ps, the same small rounds-mux miss as fxf2 seed 1).
 - fxne keeps the xf2 structure (no latch on the adder's steer branch), so it carries the same unaudited hold path; its
   routes happened to pass. Not pursued further: BDC_FE_EXITCOND stays an opt-in knob, recorded as no gain on xorshift.
+### progress 11:43 UTC (farm fxf2h: the hold check, across 29 routes, flags exactly the failing one)
+- fxf2h = fxf2 (same seeds, same routes) + hold_trace at FAST_MIN on rounds 3 / 4 / 8 / 5. Gate 86/87: seed 1 FAST_MIN
+  6/17 again (the farm reproduces it). Hold check: seed 1 ulink_n_trueResult_6 17 violations, -1850 ps; NO violation on
+  any other route (seeds 11 / 14: no build). The race stage's margin on the passing routes: +1421 (s30), +1664 (s32),
+  then >= +1759 ps -- seed 1 is an outlier placement, not the tail of a smooth distribution. Tightest stage elsewhere:
+  ulink_n_index_15, +360 to +883 ps. research/data/fifteen/farm/fxf2h_hold.txt.
+- So the trace-measured hold check catches what the static rules cannot see, with no false alarm on 28 routes. It joins
+  the per-route checks (eval_task HOLD_VEC). Its limit stays: it sees only what the vectors exercise.
