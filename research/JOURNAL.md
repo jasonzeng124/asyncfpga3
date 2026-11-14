@@ -4105,3 +4105,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   the link's delay line (3.4 ns in this run; rule E from the common launch +3.6 ns statically). That is the false path.
   The data the request actually bundles settles >= 3.6 ns before it on every transaction traced. Item 19 stays on the
   list (PROGRAM 2026-11-14: "name the false path ... and show it with a trace").
+### progress 05:35 UTC (the farm: three 32-route requests, every check per route)
+- Read research/cluster/README.md (owner, c5a0f210). farm_check was "submitted" at 05:24.
+- research/tools/fifteen/eval_task.sh: one route = build + itercost period + graph (lane2.sh), the static check at
+  nominal and worst (corner_audit, measured-residual guards; kernel A / A' / E below 0, tighten's "a" row listed apart),
+  and the 3-corner gate, in parallel. Requests (8 cores, 32G, 240 min, seeds 1-32 each):
+  fxf2 (xorshift full-range round 2, fr2 sizes, item 17's knobs), fcolsz (collatz lever 5 + per-cell sizes),
+  fc64nl (collatz64 lever 5). Each comes back as eval.txt per seed: the distribution the owner asks for (median, worst,
+  routes passing the static check and the gate).
+- Local runs continue (they overlap the farm's seeds 1-9, which serves as a cross-check of the farm's routes).
