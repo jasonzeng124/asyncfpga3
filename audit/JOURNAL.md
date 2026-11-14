@@ -1756,3 +1756,6 @@ Full-range xorshift sizes: uaddi0 6 -> 13 is bound by rule A' (worst corner), no
 
 ### progress 02:30 T93 all sites
 Own rule E over all 24 steer/mux sites of items 17 and 18 (sites.py, re-run identical): none negative at worst or FAST_MIN with C-element joins; min +754 ps (item 17 ucond_br6, upstream launch through transparent latches). Research's single raw negative is OR-join-only; its guard formula reproduced exactly. findings/T93.md updated.
+
+### progress 04:01
+colsz routes 2-8 in research's graphs (0c5e5ede) = own builds (md5). lanes8: 18/29 corner runs done, all pass vs own oracle.
