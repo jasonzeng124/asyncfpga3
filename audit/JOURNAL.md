@@ -1793,3 +1793,6 @@ Research farm fcolsz (8bcb16cb): overlap with own colsz 2-8 identical (sdf, peri
 
 ### progress 07:57 T96 started
 Pre-audit of fcolsz2 (collatz lever 5 + collatz_sizes_T3cdb_nl2_bench.vh: merges 1 -> 2), own builds at research 8bcb16cb (no cell/flow change since 9cff46ca), seeds 2-5: periods; seed 2 FAST_MIN/worst/SLOW_MAX with monitors; seeds 3-5 FAST_MIN with monitors.
+
+### progress 08:18 T97 started
+Research a491c2b4: farm fxf2 (xorshift full-range round-2 sizes on item 17's knobs) gate FAIL on seed 1 FAST_MIN 6/17 (route sdf dc138ea2); research tracing it, no full-range xorshift candidate meanwhile. Own reproduction: build xf2 seed 1 at 8bcb16cb, FAST_MIN/worst/SLOW_MAX with t83 monitors and own oracle (t91/xf2.sh).
