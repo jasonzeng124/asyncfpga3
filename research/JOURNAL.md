@@ -4219,3 +4219,15 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   link stage as its sender, so rule H audits the hold and the link protocol orders it). Placeholder sizes for the new
   link (DELAY default, UACK ACK_PAD 6). PREDICTION: one more stage on the counter ring's loop-back: +1.5 to 2.5 ns on
   seed 1 (xf2_1 22.93 -> ~24.5-25). Seed 1 first (the failing route's seed, though the route will differ), all checks.
+### progress 09:35 UTC (the hold audit's blind spots: 20 latch stages on one xorshift route)
+- research/data/fifteen/hold_blind_spots_xf2_1.txt: every latch stage whose hold (rule H) and close (rule I) the audits
+  report as "not audited" on xf2_1 -- 20 stages: the first stage of every pipe / link fed by a compute unit, a fork, a
+  steer or the harness (ulink_n_trueResult_6/8/10/0/2, falseResult_1/9, n7, n8, n6, n11__1, n11__0_folink,
+  merge0_olink, n12__0/1/2, n30__1, n1__1, index_15). On all of them the only evidence is the gate's FAST_MIN column,
+  route by route; xf2_1 shows that it can fail there on one route in 28.
+- What a check needs: for a latch fed by a non-link sender, the earliest time its D input can change after the latch
+  opens -- the acknowledge back through the steer / fork / compute unit to the sender's own input links, the next token
+  in, and the combinational path out -- against when the latch closes. That is a path through the handshake cycle,
+  which the timed event graph (research/tools/eventgraph) already walks for periods; it needs the data arcs added and
+  a min-delay (FAST_MIN) weighting. It must flag xf2_1's ulink_n_trueResult_6 (1.85 ns at FAST_MIN in the trace) to be
+  trusted. Not built yet.
