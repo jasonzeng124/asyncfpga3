@@ -1784,3 +1784,6 @@ Trace4: bench_op0[8] (clocked harness register, FIXED-mode S_PREP load) never lo
 
 ### progress 07:48 T95
 Item 19 (own rebuild a6a2951b) umux3 with the mux monitor: +1.91 ns FAST_MIN / +2.56 ns worst, 0 violations, 17/17. Research's false-path explanation of the -1.6 ns rule-A row CONFIRMED (margins smaller than its 3.6 ns, still positive).
+
+### progress 07:56 T94 resolved
+colnl_4 SLOW_MAX at 41.7 MHz host clock: 13/13. Direct trace: bench_op0[6] loads, bench_op0[8] never does (harness flop setup miss at the max column at 83.3 MHz). Not a kernel failure. REPORT: colnl row removed from the top; audit-method NOTE row added; lever-5 row now records all 3 corners passing on all 16 routes.
