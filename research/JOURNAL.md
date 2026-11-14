@@ -3944,3 +3944,13 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   meaningful for the bench's domain, but none of the x0.5 xorshift kernels is shown correct for a general 32-bit rounds.
   Item 18's hold stays (its -4.65 ns raw is large enough that a 12-bit carry may already reach it; not quantified).
   Owner-facing summary is in research/data/fifteen/README.md's headline.
+### progress 00:01 UTC (collatz: per-cell sizes from 8 bench routes -- PREDICTION before building)
+- corner_audit (worst corner, residual guards, select paths never shortened) on colnl seeds 1-8; per-cell max
+  (research/tools/fifteen/max_sizes.py) -> research/data/collatz_sizes_T3cdb_nl_bench.vh: uaddi0 18 -> 12 (routes
+  9/12/10/11/8/9/10/9), uselect0 23 -> 16 (13-16), ucontrol_merge0 5 -> 1, merge1 9 -> 1, n1__1 UACK 2 -> 1; pads umux2
+  2 -> 11, ulink_n7/n8 UACK 1 -> 2, n8 / trueResult_4 SDELAY 1 -> 2. ucmpi2 kept 16 everywhere.
+- PREDICTION (each colnl graph, chain hops scaled new/old), ns: s1 47.51 -> 41.30, s2 46.30 -> 41.11, s3 45.92 -> 40.56,
+  s4 47.21 -> 41.47, s5 47.46 -> 41.82, s6 46.39 -> 40.47, s7 47.40 -> 41.82, s8 49.24 -> 43.02; mean 47.18 -> 41.45
+  (1.14x over collatz lever 5, ~1.18x over item 20 48.86). A re-route moves the cycle by its scatter (+-1.5 ns).
+- collatz64 lever 5 gate: 4/24 PASS so far (s1 max/min, s6 min); s6 max lost to my own directory cleanup at the restart
+  (re-queued). Building colsz (collatz lever 5 + these sizes) seeds 1-8 next.
