@@ -1817,3 +1817,6 @@ Board item 22 (collatz full range, seed 26) CONFIRMED on its board route: own sd
 
 ### progress 09:55
 Subagent: generalising the own rule-E checker (t93/sites.py) to the collatz kernel and running it on item 22's route (worst/FAST_MIN/SLOW_MAX work dirs).
+
+### note 09:55 research 013fd5b1..30e6290d
+Research withdrew the stale-rounds hypothesis and traced the same counter-pipe race-through as T97 (two independent traces agree); stale-rounds REPORT row removed. Next research step: xf3 (latch on the adder fork's steer branch) and a static hold check; audit when built.
