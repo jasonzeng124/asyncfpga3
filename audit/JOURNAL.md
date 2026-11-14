@@ -1747,3 +1747,6 @@ Own static rule E at ucond_br6 (audit/t93, subagent-written, re-run by me: ident
 
 ### progress 02:08 T92 done
 colsz (collatz lever 5 + per-cell sizes) seeds 2-8: own periods = research within 0.07 ns, paired 1.172x over colnl / 1.221x over colr (research 1.17 / 1.22) CONFIRMED; FAST_MIN 13/13 with monitors 0 violations; s1 harness 82.88 MHz reproduced; s2/s5 decodes benign.
+
+### progress 02:09
+Research's skew.py (plain nextpnr SDF, its own guards) run for diagnosis on items 18 and 17: 8 and 12 guarded violations (t93/research_skew_*.txt). Subagent generalising the own rule-E check (t93) to every steer/mux site on both routes, own vs OR-join. lanes8 (worst/SLOW_MAX on the 13 remaining lever-5 routes) restarted.
