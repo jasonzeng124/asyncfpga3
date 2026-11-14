@@ -1787,3 +1787,6 @@ Item 19 (own rebuild a6a2951b) umux3 with the mux monitor: +1.91 ns FAST_MIN / +
 
 ### progress 07:56 T94 resolved
 colnl_4 SLOW_MAX at 41.7 MHz host clock: 13/13. Direct trace: bench_op0[6] loads, bench_op0[8] never does (harness flop setup miss at the max column at 83.3 MHz). Not a kernel failure. REPORT: colnl row removed from the top; audit-method NOTE row added; lever-5 row now records all 3 corners passing on all 16 routes.
+
+### progress 07:57
+Research farm fcolsz (8bcb16cb): overlap with own colsz 2-8 identical (sdf, periods <= 0.07 ns); summary stats recomputed exactly; farm routes 9-32 UNVERIFIED. Next: fcolsz2 when it lands (pre-audit its seed-2..8 builds then).
