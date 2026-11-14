@@ -4155,3 +4155,14 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   also the route's only nominal / worst miss). Test: umux2's request path lengthened by 500 ps in the SDF only (same
   netlist and route; annot.sdf differs in exactly that arc): still FAIL 6/17, identical cycle count. Not umux2.
 - Tracing now: full dump at FAST_MIN on rounds = 4 (fullstack_dump.sh takes DUMP_FIELD=min; default unchanged).
+### progress 09:08 UTC (farm: fc64nl and fcolsz2 back)
+- fcolsz2 (collatz lever 5 + per-cell sizes, merges at 2): 28 routes built (18: harness < 83 MHz; 2, 13, 19: farm task
+  gave no eval -- infrastructure; 11: eval incomplete). Period median 41.15 ns, mean 41.22, best 38.85, worst 43.26.
+  Gate 81/81 PASS. Static CLEAN at both corners on 27/27 evaluated. Merges at 2 cost +0.14 ns median against fcolsz.
+  This is the collatz board candidate (BOARD-QUEUE entry next). Item 20: 48.86 (8 routes).
+- fc64nl (collatz64 lever 5): 30 routes, median 45.21 ns, mean 45.16, best 42.46, worst 47.09 (item 22: 47.64). Gate
+  90/90 PASS. Static: 0/30 clean -- umux2 rule A -1.3 to -2.5 ns at nominal on EVERY route (size 1, from T4cdb, as in
+  board items 16 / 21 / 12). tighten's row is the same pairing as ipow's umux3: request from umux2.uj1 at t=0 against
+  the select link ulink_n_index_11's latch data at t=0, "no common source"; rule D from the shared launch +5.6 ns.
+  Under the owner's rule (>0.5 ns at nominal on a board item) it needs the trace: running on c64nl_1 with
+  research/data/fifteen/vec_c64_selflip.hex (n = 1 / 27 / 1 / 97 / 1 / 6171: the select flips every transaction).
