@@ -1868,3 +1868,6 @@ Pre-audit xf4 seed 1 (fr3 = fr2 with UMUX2 1 -> 2, own diff; xf3 knobs): own bui
 
 ### progress 13:33 T103 done
 xf4 seed 1: own sdf 8319b816, 23.464 ns, 17/17 at FAST_MIN/worst/SLOW_MAX with monitors clean. Pre-audited for fxf4.
+
+### progress 13:34 T104 started
+Research 047ec916: hold check flags item 19's design (ulink_n_index_15, the 1-bit select pipe into umux3) on 15/31 farm routes, -1..-247 ps at stage 0, results correct; "hold_trace measures stage 0 only, so it cannot show how much margin stage 1 had". Own tool t104/mon_latch1.py (t83 latch monitor + single-LUT latches) on item 19's board route at FAST_MIN, own 17 vectors and a select-flipping set: measures stage-1 hold directly.
