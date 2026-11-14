@@ -4084,3 +4084,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - xne pass 1: lane2.sh (MLIR_OVERRIDE) with fr2 sizes (ucmpi1 still 9 elements, sized for the carry compare), seeds 1,
   3, 4, 5. PREDICTION: ~ the same as xf2 (~23.1 ns): only the compare's data got faster, not its delay. Then the static
   check sizes ucmpi1 for the equality tree; that is where the time comes back.
+### progress 05:23 UTC (umux3 trace, run 1; xf2 / xne first routes)
+- ipowr_1 full dump, the itercost vector (3^(2^31-1), two runs): umux3's output request (net n5225, the LUT after its
+  3-element chain) rose 3567 ps after the last change of any of the 33 LUTs that read the select. But in this run the
+  select (n4719) changed only at start-up and j0 never fired: every transaction took y. So it does not exercise the
+  case the rule names. Re-running with research/data/fifteen/vec_ipow_selflip.hex (e = 0 / 5 / 0 / 7 / 0 / 31
+  alternating), which flips the select between x and y on every transaction.
+- xf2 (fr + umux0 2, merge1 2): s1 22.93, s3 23.07, s4 23.40 ns (xfr 22.52 / 23.58 / 23.34): within scatter, as
+  predicted (+0.3-0.45 expected; the cycle moved). xne pass 1 (!= test, fr2 sizes): s1 22.79, s3 23.73 -- as predicted,
+  no gain yet (ucmpi1 still 9 elements).
