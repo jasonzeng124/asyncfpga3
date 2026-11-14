@@ -3967,3 +3967,17 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   colr (item 20) 49.04 -> 40.18 (1.22x). All odata 0x105, ffmux clean; s2/s5 NOT EQUIVALENT = benign F7 kind (s2 checked).
   rule E raw at nominal (skew.py): colsz_2 worst +2.25 ns, colsz_3 no violation. Dynamatic 14.05.
 - Gates: colsz_2 24-run gate started, 3/3 PASS so far (13/13 each); c64nl 5/24 PASS (s1 all three corners, s6 min).
+### progress 01:05 UTC (owner rule 2026-11-14: full input range. Plan, and how "the static check" is defined)
+- Read PROGRAM's new rule (bead13d7). Order of work from now: (1) re-baseline the x0.5 xorshift family on item 17's
+  structure (lever 3); (2) mark BOARD-QUEUE items bench-range-only vs full-range; (3) the other kernels' counters and
+  compares; (4) a data-dependent (speculative-completion) delay for i+1. The collatz / collatz64 gates already running
+  continue in the background and get the same static check before any of them becomes a board item.
+- The static check, as I apply it (a decision; recorded so it can be overruled): rules A / A' / E (tighten.py,
+  skew.py via corner_audit.py, every path is its static worst, so the longest carry is included) at two corners, both
+  with the measured-residual guards the sizing flow has used since PROGRAM item 3 (E 0.97 x req vs 1.03 x sel; A
+  max(3% t, 50 ps)): NOMINAL = every arc at the calibrated band 0.288 (corner_audit --uniform 0.288, new), and WORST =
+  the gate's worst column (delay chains 0.21, CARRY4 / F7F8 / FF at 1, rest 0.288). Not used as the gate: the 2025-era
+  20% / 8.5%-scatter guards of plain tighten.py / skew.py on nextpnr's SDF -- on item 17's route nearly every line of the
+  design, holds included, fails those, including lines the gate exercises. I report the plain-nextpnr numbers alongside.
+- Sizing: corner_audit at both corners on 4+ lever-3 routes (seeds 1, 3-6, rebuilding), per-cell max over every
+  proposal (both corners), never shortening select paths; then build 8 routes, re-run the check on the new routes, gate.

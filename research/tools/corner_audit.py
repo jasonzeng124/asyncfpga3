@@ -465,6 +465,8 @@ def main():
     ap.add_argument("--cell", default="CARRY4=1,SELMUX2_1=1,SLICE_FFX=1")
     ap.add_argument("--inst-rx", action="append", default=None)
     ap.add_argument("--fast-min", action="store_true", help="band 0, no cell or instance overrides")
+    ap.add_argument("--uniform", type=float, default=None,
+                    help="every arc at this band, no cell or instance overrides (0.288 = the calibrated nominal)")
     ap.add_argument("--floor", type=int, default=1)
     ap.add_argument("--slack", type=int, default=0, help="every sized constraint must keep >= this many ps")
     ap.add_argument("--all-lines", action="store_true", help="also resize the harness's lines (upipe, uspin)")
@@ -485,6 +487,8 @@ def main():
         a.inst_rx = [r"\.chain\.g\[\d+\]\.u$:0.21"]
     if a.fast_min:
         a.band, a.cell, a.inst_rx = 0.0, "", []
+    if a.uniform is not None:
+        a.band, a.cell, a.inst_rx = a.uniform, "", []
     rd = a.route_dir.resolve()
     pnr = rd / "pnr" if (rd / "pnr").is_dir() else rd
     for f in ("soak_xray.sdf", "soak_routed.json", "sizes.vh"):
