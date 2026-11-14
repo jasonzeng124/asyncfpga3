@@ -4018,3 +4018,8 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   exercises, so under the owner's rule (static check for paths the vectors do NOT span) the gate covers it. Recorded
   rather than rebuilt; if the owner wants every A clean regardless, merges go back to 2 (~+0.4 ns each design).
 - Next kernel under the check: ipow (item 19's build, seeds 1-4, both corners).
+### progress 03:45 UTC (gates progressing; ipow static check running)
+- Gates: colsz 15/24 PASS (+1 INFRA re-queued), c64nl 12/24 PASS, xfr 2/24 PASS (s1 SLOW_MAX / FAST_MIN 17/17). No FAIL.
+- ipowr_1 rebuilt = item 19's route (sdf a6a2951b, 39.78 ns); ipowr_2 39.97. corner_audit both corners running on 1-4.
+- Machine at load 8-12 (3 gates + builds + corner_audit workers on 4 cores): everything is CPU-bound, so it only adds
+  latency; memory stays under the limit since the one-compile-at-a-time lock.
