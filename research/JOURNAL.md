@@ -4044,3 +4044,18 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   merge1 1 -> 2 (merge1 back to the x0.5 base).
 - PREDICTION: umux0 is on the counter ring once per iteration, one element: +0.3 to +0.45 ns -> ~23.1-23.2 ns mean
   (xfr 22.79). The graph scaler cannot model it (a 1-element chain has no internal hop). Building seeds 1, 3-9.
+### progress 04:57 UTC (owner answers: umux3 needs an explanation; the != test is a frontend knob)
+- Rebased onto the owner's two PROGRAM commits (ad4b0eac, 134e11b1).
+- ipow umux3 (A -1624 ps nominal on item 19's route): tighten's row pairs the y-join's request (umux3.uj1) at t=0 with
+  the SELECT latch's data (ulink_n_index_15 stage[1] lat, "upstream link data lag 1384 ps") at t=0, "no common source".
+  But bd_mux's join is C(y_req, ctl_req.s): uj1 cannot fire before the select link's request, which leaves the same C
+  node as that latch's enable and then runs the link's DELAY line. From that common launch, rule E on the same mux gives
+  +3607 ps (sel pin 764 ps vs req 4530 ps). So the candidate false path: the select latch's data -> umux3 data LUTs,
+  timed against a request that structurally waits for the select's own delayed request. Showing it with a trace now
+  (ipowr_1, every net dumped; per-iteration select-pin settle vs uj0/uj1 rise at umux3).
+- Frontend knob: Dynamatic is not built in this container (no dynamatic-opt / translate-llvm-to-std; the fixtures
+  stop at the MLIR), so the handshake-MLIR diff the owner asks for cannot be produced here. A Dynamatic build is
+  hours of LLVM and has not survived this session's hourly container restarts. Next: write the knob (opt-in, default
+  byte-identical) and check its LLVM-level effect with the system clang / opt 18; the MLIR diff waits for a Dynamatic
+  build (BOARD-QUEUE-style item for a session with one, or the owner's machine).
+- xorshift fr2 (umux0 2, merge1 2) building on 8 routes; collatz / collatz64 gates continue.
