@@ -1899,3 +1899,6 @@ Research 72eb63d5 fxf4 (xorshift full-range candidate): seed 1 = own T103 build 
 
 ### progress 18:36 T106 started
 BOARD-QUEUE item 23 (#24, research bf5289ce): xorshift full range (xf4), board seed 10, recipe sdf 2f825834, 23.31 ns, "ratio ~1.66 over x0.5 on this route (39.06 / 23.5)". Own build, FF scan, period, 3 corners with 1-bit latch monitor, long vectors at FAST_MIN (t106/item23.sh).
+
+### progress 19:26 T106 done
+Board item 23 (xorshift full range, seed 10) CONFIRMED on its board route: own sdf 2f825834 = recipe, FF clean, 23.310 ns, 1.676x over x0.5 (pred 1.66), 3 corners 17/17 + long vectors 5/5, monitors clean.
