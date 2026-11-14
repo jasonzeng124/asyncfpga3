@@ -1883,3 +1883,6 @@ Research 951c9190: fcolsz2h 31 routes (gate 93/93, static 31/31); 5 overlapping 
 
 ### progress 15:53 T105
 c64nl_3 (research's worst old-tool hold flag, -748 ps): own 1-bit monitor at FAST_MIN: 14/14, index_11 stage 0 hold 849 ps / setup 9.4 ns, stage 1 no change within 2 ns. No hold issue seen.
+
+### progress 15:57
+Research 6e861a0e corrected hold readings (c64nl_3 +734 ps) agree with own T105 (849 ps). REPORT row. Watching.
