@@ -10,6 +10,7 @@ for l in open(nmap):
     if l.startswith('#'): continue
     w, _, n = l.strip().partition(' '); wire_of_name.setdefault(n, w)
 def wire(n):
+    if n.startswith('bridge_i.'): return wire_of_name.get(n)
     w = wire_of_name.get('bridge_i.udut.' + n)
     if w: return w
     nn = m['netnames'].get('bridge_i.udut.' + n)
@@ -29,6 +30,10 @@ for i, spec in enumerate(os.environ['TRACE'].split(',')):
     L.append(f"    always @(tb_ps.dut.{rw}) if ($time >= {t0} && $time <= {t1}) begin"
              f" $display(\"VAL t=%0t {rq}=%b {bus}=%h\", $time, tb_ps.dut.{rw}, {cat});"
              f" #2000 $display(\"VAL t=%0t {rq}+2ns {bus}=%h\", $time, {cat}); end")
+for e in [x for x in os.environ.get('TRACE_EDGES', '').split(',') if x]:
+    w = wire(e)
+    if not w: miss.append((e, None, 1)); continue
+    L.append(f"    always @(tb_ps.dut.{w}) if ($time >= {t0} && $time <= {t1}) $display(\"EDGE t=%0t {e}=%b\", $time, tb_ps.dut.{w});")
 L += ["endmodule"]
 open(out, 'w').write("\n".join(L) + "\n")
 print(f"mon_val: missing {miss}", file=sys.stderr)

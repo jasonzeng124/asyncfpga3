@@ -1775,3 +1775,6 @@ colnl_4 SLOW_MAX hang reproduced exactly on rerun (4/13); control colr_4 SLOW_MA
 
 ### progress 06:59 T94
 Two worker restarts (~06:55) killed the trace3 run. Value trace (trace2) shows batch 4's loop input n10__3 = 0 from the first iteration (n=256 enters as 0); the error is at loop entry. findings/T94.md + REPORT top row (colnl_4 SLOW_MAX failure, deterministic). Relaunching the entry trace fully detached.
+
+### progress 07:18 T94
+Entry operand n_falseResult_3 is already 0 in batch 4 (bd_pipe latch output); the kernel input reaches that latch D with no storage. Hypothesis: input bit 8 (first used in batch 4) is late at the latch at SLOW_MAX. Edge trace (trace4) running. Research side: owner-provided farm (c5a0f210) running 32-route checks of fxf2/fcolsz/fc64nl; ipow item 19 umux3 false path "shown by trace" (40e531f7) to audit.
