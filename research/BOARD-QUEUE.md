@@ -11,6 +11,17 @@ named here decodes EQUIVALENT (or only the benign GND-buffer kinds). If the md5 
 the full stack's equivalence on it before using the board (cells/gls/ps/build_ps.sh HWDIR WORK "" bit prints the
 fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('const', 0) bits ('const', 1)").
 
+## Full-input-range status (owner rule 2026-11-14; research/JOURNAL.md 2026-11-14)
+
+A gate pass does not cover paths the vectors cannot reach (loop counters and their compares). The static check: rules
+A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-residual guards (corner_audit.py).
+- **Bench range only (fail the static check on the counter):** every x0.5 xorshift item -- list items 4, 11, 14, 17 (and
+  18, on hold). On item 17's route the counter's i+1 (uaddi0, 6 elements) needs 13 at the worst corner (A' -752 ps on
+  s1). They are correct for the board bench (rounds masked to 12 bits) as far as the gate shows, not for every rounds.
+  The full-range rebuild of item 17 is in progress (research/data/fifteen).
+- **Not yet checked:** gcd (1-3, 5), ipow (7, 13, 19), collatz (9, 15, 20), collatz64 (6, 12, 16, 21). Until checked,
+  read each as bench range only.
+
 ## Board list, in order (owner, 2026-11-04: best first; each item judges itself)
 1. **gcd_ps with the 1000 vectors** (item #4 below): `hw/board.sh xsdb hw/xsdb_gcd.tcl ../research/board/gcd_ps_e6bb4aec.bit
    ../research/board/gcd_ps_vec1000.hex; echo "exit $?"`. Pass: `=== PASS 1000/1000 ===` and exit 0. Also gives
