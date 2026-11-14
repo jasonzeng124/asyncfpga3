@@ -590,7 +590,7 @@ def main():
     measured_lines = [mac for mac in lines if mac in sizes and sizes[mac] > 0]
     protected = set() if a.shrink_selects else select_path_macros(a.route_dir, list(sizes))
     sens = {}                   # mac -> {key: dM}
-    for mac in sorted(measured_lines):
+    for mac in ([] if a.no_size else sorted(measured_lines)):   # --no-size: report only, no per-line sensitivity runs
         r = run_worker(sdf, {**spec, "scale": {b: 0.0 for b in lines[mac]}})
         s = {}
         for k, c in cons.items():

@@ -4397,3 +4397,10 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   toggle across all bits. The one nominal miss is 210 ps (< the 0.5 ns the owner asks to explain). So under the rule:
   gcd item 5 (and #1-#3, same structure) is full range as far as these checks go, with the worst-corner rule-A rows on
   record. Final rows (A') to follow from corner_audit's report.
+### progress 23:25 UTC (gcd item 5: static check final -- nominal clean, worst A' -359 ps on a spanned shift)
+- corner_audit --no-size no longer runs the per-line sensitivity audits (they only annotate "depends on"; on gcd they
+  took > 4 h): report-only checks now take minutes.
+- gcd_hw #5's route (sdf 39d30709), measured-residual guards: NOMINAL: no kernel rule A' / E below 0 (tighten's pairing
+  row "a" ushrsi4 -210). WORST: rule A' ushrsi4 -359 ps (tighten's rows: ushrsi4 -1328, ushrsi2 -500, ushrsi1 -438,
+  uaddi0 -121). gcd has no counter; ushrsi4 shifts a / b, which the 1000 random 32-bit vectors span. Full range by the
+  owner's rule, worst-corner row on record. BOARD-QUEUE updated.
