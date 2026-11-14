@@ -43,6 +43,12 @@ every kernel and every input its C signature allows. From now on:
   Report both numbers once, so the cost of the full range is on record.
 - **Check the other kernels the same way** (ipow's and gcd's counters and compares too), and
   the board items already listed for them.
+- **A large static miss on a spanned path still needs an explanation** (2026-11-14, on the
+  flag in the journal). ipow item 19's `umux3` misses rule A by 1.7 ns at nominal, and the
+  select race traced on 2026-11-10 was on the same mux. Before the item stays on the list,
+  either name the false path that makes the rule pessimistic there and show it with a trace,
+  or restore the size and gate again. Do the same for any miss over 0.5 ns at nominal on a
+  board item, whether or not the vectors span the path.
 - **Then win the time back with a delay that depends on the data.** For `i + 1` the carry is
   as long as the run of trailing ones in `i`, so almost every iteration needs only a short
   delay and a rare one needs the long one. Choosing the delay from the operands is the known
