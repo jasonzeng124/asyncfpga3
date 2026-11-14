@@ -18,7 +18,7 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
 - **Bench range only (fail the static check on the counter):** every x0.5 xorshift item -- list items 4, 11, 14, 17 (and
   18, on hold). On item 17's route the counter's i+1 (uaddi0, 6 elements) needs 13 at the worst corner (A' -752 ps on
   s1). They are correct for the board bench (rounds masked to 12 bits) as far as the gate shows, not for every rounds.
-  The full-range rebuild of item 17 is in progress (research/data/fifteen).
+  The full-range version of item 17 is item 23 (#24).
 - **ipow item 19 (route a6a2951b):** the loop variable e is spanned by the gate's vectors (e up to 2^31-1); the static
   check finds only umux3 (the result mux) rule A -1.7 ns at both corners, on data the gate toggles. Full range by the
   rule. The 1.7 ns is a false path, shown with a trace (JOURNAL 2026-11-14): the select latch's data is timed against a
@@ -144,6 +144,11 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    (BDC_NO_LINK=ulink_n28__1) + per-cell sizes from 8 routes at both corners (collatz_sizes_T3cdb_nl2_bench.vh)**: #23
    below. Farm, 32 seeds (fcolsz2): median 41.15 ns (38.85-43.26) vs item 20 48.86; gate 81/81; static check (rules A /
    A' / E at nominal and worst) CLEAN on every evaluated route. Board seed 26 (sdf bc2fe0c8, 41.10 ns, the median).
+23. **xorshift at ~23.5 ns per iteration, FULL INPUT RANGE: item 17's structure + a latch on the adder's steer branch
+   (BDC_FORK_OUT_LINK=n11__0,n30__0) + full-range sizes (xorshift_sizes_T3s50_fr3_bench.vh)**: #24 below. Farm, 32 seeds
+   (fxf4): median 23.49 ns (21.00-24.75); gate 87/87; static check clean on 28/30 (one spanned datapath miss, one
+   incomplete); trace-measured hold check clean. Board seed 10 (sdf 2f825834, 23.31 ns). Item 17 (20.60 ns) holds only
+   for the bench's 12-bit rounds.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -809,6 +814,28 @@ under the owner's rule. Dynamatic 14.05. Hold check (trace-measured, FAST_MIN, s
     python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_sz.tsv build/hw/lc_col_r.tsv; echo "exit $?"
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.19 over item 20 on this route.
+
+## 24. xorshift item 17 + latch on the adder's steer branch + full-range sizes (fr3) -- 87/87 gate, static and hold checked, 30 routes
+research/data/fifteen (2026-11-14). The full-range re-baseline of item 17 under the owner's rule: the counter's add and
+the datapath sized by the static check at nominal and worst on 5 + 8 routes (uaddi0 6 -> 13, umux0 / umux2 1 -> 2,
+uxori1 2 -> 7, uxori2 3 -> 7, umux3 1 -> 14, merges 2). The latch on the adder fork's steer branch removes the hold race
+that failed xf2 seed 1 at FAST_MIN (the counter's loop-back pipe was fed by the adder through a steer; JOURNAL). Farm
+fxf4: 30 routes built (30: harness < 83 MHz; 9: ffmux_scan flag, excluded); period median 23.49 ns, mean 23.30,
+21.00-24.75; gate 87/87 (SLOW_MAX / FAST_MIN / worst+M, 17/17 each); static check CLEAN at both corners on 28 (seed 18:
+uxori1 -81 ps at worst, the datapath, spanned by the vectors; seed 13 incomplete); hold check (hold_trace, FAST_MIN,
+rounds 3 / 4 / 8 / 5 in sequence) no violation on any route; locally re-checked seeds 1, 4, 7 with the corrected tool,
+tightest +715 ps. Correct for any 32-bit rounds as far as the static check and the gate show. Dynamatic 12.73.
+- nextpnr 9c732bc6303458df. From cells/:
+
+    BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_RING_COUNT_OLINKS=1 BDC_FORK_OUT_LINK=n11__0,n30__0 BDC_MERGE_OUT_LINK=ucontrol_merge0 NEXTPNR_SEED=10 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_fr3_bench.vh ./hw/build_bench.sh xorshift
+    grep -c "ulink_n30__0_folink (" build/gen/xorshift_kernel_bench.v    # must be 1
+    md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # 2f825834 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/xorshift_bench_gen/xorshift_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_fr.tsv
+    (x0.5 base: #12's commands for lc_xor_s50.tsv, sdf c5b8ca02, if not already run)
+    python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_fr.tsv build/hw/lc_xor_s50.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.66 over x0.5 on this route (39.06 / 23.5).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

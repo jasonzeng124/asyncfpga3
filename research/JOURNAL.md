@@ -4359,3 +4359,8 @@ Next (for this session if it lasts, else the next):
   everywhere; gates pass except two FAST_MIN runs with "cycles 0" (killed compiles: two evaluations at once ran ten
   simulators; not results -- re-running one at a time), and three hold dumps lost the same way. s1's hold: clean,
   tightest +1021 ps (corrected tool).
+### progress 18:32 UTC (xorshift full range: BOARD-QUEUE item 23 / #24 -- xf4, 23.49 ns median over 30 routes)
+- Local re-runs (one at a time): xf4_7 / xf4_1 FAST_MIN 17/17; hold (corrected tool) xf4_7 tightest +756 ps, xf4_4 +715.
+- xf4 is the xorshift full-range candidate: BOARD-QUEUE item 23 / #24, board seed 10 (sdf 2f825834, 23.31 ns, EQUIVALENT,
+  ffmux clean, every check clean). research/data/fifteen/README.md's headline: 23.49 ns, gap to 15 ns 8.5 ns; the full
+  range costs ~2.9 ns against item 17's bench-range 20.60.
