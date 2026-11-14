@@ -21,7 +21,9 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
   The full-range rebuild of item 17 is in progress (research/data/fifteen).
 - **ipow item 19 (route a6a2951b):** the loop variable e is spanned by the gate's vectors (e up to 2^31-1); the static
   check finds only umux3 (the result mux) rule A -1.7 ns at both corners, on data the gate toggles. Full range by the
-  rule, with that flag. Routes 2-4 still being checked.
+  rule. The 1.7 ns is a false path, shown with a trace (JOURNAL 2026-11-14): the select latch's data is timed against a
+  request that waits for the select link's own request (3.4 ns later); traced on 12 transactions with the select
+  flipping, the output request rises >= 3.6 ns after the last data change. Routes 2-4 still being checked.
 - **Not yet checked:** gcd (1-3, 5), ipow (7, 13), collatz (9, 15, 20), collatz64 (6, 12, 16, 21). The collatz lever-5 +
   per-cell-sized candidate (not yet a board item) is clean on 6 of 7 checked routes. Until checked,
   read each as bench range only.

@@ -4093,3 +4093,15 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
 - xf2 (fr + umux0 2, merge1 2): s1 22.93, s3 23.07, s4 23.40 ns (xfr 22.52 / 23.58 / 23.34): within scatter, as
   predicted (+0.3-0.45 expected; the cycle moved). xne pass 1 (!= test, fr2 sizes): s1 22.79, s3 23.73 -- as predicted,
   no gain yet (ucmpi1 still 9 elements).
+### progress 05:33 UTC (ipow umux3: the false path named and shown with a trace -- item 19 stays)
+- Full dump of item 19's route (ipowr_1, sdf a6a2951b) on research/data/fifteen/vec_ipow_selflip.hex (e = 0 / 5 / 0 / 7 /
+  0 / 31; each run twice, so umux3's select flips between x and y on every transaction; odata 1 / f3 / 1 / c90f7 / 1 /
+  4b5f6a2b = the C values, 3^31 mod 2^32 = 0x4b5f6a2b). At every one of the 12 output requests (7 select flips):
+  the select data (n_index_15 latch) changes; the select link's request rises 3385 ps later (its own delay line); the
+  mux join (j0 or j1) fires 462-587 ps after that; the output request rises >= 3575 ps after the last change of any of
+  the 33 LUTs that read the select.
+- So tighten's rule A row for umux3 (-1624 ps nominal / -1715 worst) times the select latch's data from t=0 against a
+  request that structurally cannot fire until the select link's request has arrived, which trails that same data by
+  the link's delay line (3.4 ns in this run; rule E from the common launch +3.6 ns statically). That is the false path.
+  The data the request actually bundles settles >= 3.6 ns before it on every transaction traced. Item 19 stays on the
+  list (PROGRAM 2026-11-14: "name the false path ... and show it with a trace").
