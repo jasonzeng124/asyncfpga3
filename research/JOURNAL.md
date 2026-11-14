@@ -3961,3 +3961,9 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   s3 39.70 (predicted 40.56; colnl_3 45.92, colr_3 48.10). odata 0x105 (C), ffmux clean; s2 NOT EQUIVALENT kind to check.
   s1 does not build: the bench's clocked harness closes at 82.88 MHz < 83 (build_bench refuses; not the kernel) -- seed 9
   replaces it, as seed 3 does for collatz64.
+### progress 01:02 UTC (collatz per-cell sizes on 8 routes: 40.33 ns mean, 1.22x over item 20; gates running)
+- colsz seeds 2-9 (s1's harness misses 83 MHz): 40.65 / 39.70 / 40.32 / 39.26 / 41.26 / 40.65 / 39.42 / 41.38 ns, mean 40.33
+  (predicted 41.45 from the colnl graphs, every seed within 1.2 ns). Paired on seeds 2-8: colnl 47.13 -> 40.18 (1.17x),
+  colr (item 20) 49.04 -> 40.18 (1.22x). All odata 0x105, ffmux clean; s2/s5 NOT EQUIVALENT = benign F7 kind (s2 checked).
+  rule E raw at nominal (skew.py): colsz_2 worst +2.25 ns, colsz_3 no violation. Dynamatic 14.05.
+- Gates: colsz_2 24-run gate started, 3/3 PASS so far (13/13 each); c64nl 5/24 PASS (s1 all three corners, s6 min).
