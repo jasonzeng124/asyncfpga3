@@ -1829,3 +1829,6 @@ Own rule E (t93/sites_gen.py, re-run identical; xorshift regen identical) on ite
 
 ### progress 10:13 T99
 Items 19/20/21 board routes at FAST_MIN with monitors: min hold 697 / 1707 / 735 ps, 0 violations, oracle full. 14 board routes now covered; item 11 remaining.
+
+### progress 10:13 T100 started
+Research db2a8157..800e7cc5: xf3 (xf2 + latch on the adder fork's steer branch, BDC_FORK_OUT_LINK=n11__0,n30__0) seed 1 24.19 ns, all checks pass; research says the hold blind spot moves to ulink_n30__0_folink. New research tool hold_trace.py (flags xf2_1 at -1850 ps). Own pre-audit of xf3 seed 1 (build at research HEAD, period, FAST_MIN/worst with latch monitor incl. hold at the new folink).
