@@ -4231,3 +4231,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   which the timed event graph (research/tools/eventgraph) already walks for periods; it needs the data arcs added and
   a min-delay (FAST_MIN) weighting. It must flag xf2_1's ulink_n_trueResult_6 (1.85 ns at FAST_MIN in the trace) to be
   trusted. Not built yet.
+### progress 10:10 UTC (xf3 seed 1: 24.19 ns, every check passes; the blind spot moves, it does not close)
+- xf3_1 (local, every check): 24.19 ns (predicted 24.5-25; xf2_1 22.93), static CLEAN at nominal and worst (tighten's
+  "a" row for ucmpi1 only), gate max / min / worst 17/17 each. A different route from xf2_1, so this says nothing yet
+  about the race; fxf3 (32 farm routes) decides empirically.
+- On this route the pipe ulink_n_trueResult_6's stage[0] hold is now audited (H +938 ps worst; its sender is the new
+  link). But ulink_n30__0_folink itself is fed by the adder through the fork and is "not audited": the blind spot moved
+  one stage up. Whether that link's close can race the adder's next result depends on when its node falls (req_in low
+  and the next stage high) against the next token's arrival -- the same kind of path, untimed. So xf3 is not shown
+  safe statically either; the hold check for non-link senders is still the missing piece.
