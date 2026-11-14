@@ -4410,3 +4410,12 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   Board seed 17 (sdf 3a370768, 45.19 ns, EQUIVALENT, ffmux clean). Median 45.23 ns vs item 21 47.64.
 - Full-range board list now: xorshift 23 (#24) 23.49 ns, collatz 22 (#23) 41.20, collatz64 24 (#25) 45.23, ipow 19 (#20)
   38.96, gcd #1-#5 (static check on #5's route).
+### progress 23:27 UTC (speculative completion, step 1: the bdc knob)
+- bdc/emit.py BDC_SPEC_INC=inst:k:nshort (opt-in; byte-identical unset on gcd, xorshift, collatz, collatz64, ipow,
+  isprime, checked against HEAD's emitter): a fused single-op `addi x, 1` unit gets a second request line udly_s
+  (DELAY_SHORT, sizes key BD_SZ_<INST>_SHORT) and a LUT3 z_req = abort ? z_long : z_short, abort = &x[k-1:0] |
+  ~|x[k-1:0] (design notes: research/data/fifteen/speculative.md). simcheck PASS on xorshift with uaddi0:4:6, the
+  negative-rounds vectors included.
+- Next: the static check per case -- corner_audit with arcs cut: LONG case = the short line's arc into the LUT3 cut;
+  SHORT case = the long line's arc cut and the adder's carry arcs above bit k cut (they cannot toggle when abort = 0).
+  Plus the select race inside the cell (spec_abort settling before z_short rises) as a rule-E-like row.
