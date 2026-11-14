@@ -4114,3 +4114,12 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   fc64nl (collatz64 lever 5). Each comes back as eval.txt per seed: the distribution the owner asks for (median, worst,
   routes passing the static check and the gate).
 - Local runs continue (they overlap the farm's seeds 1-9, which serves as a cross-check of the farm's routes).
+### progress 05:42 UTC (the != exit test buys one element: the steers' select fanout binds the compare)
+- corner_audit on xne_1 (fr2 sizes + != test): ucmpi1 9 -> 8 at WORST (rule E at ucond_br8, 120 ps left), 6 at nominal.
+  The equality tree itself is short; what bounds the compare's delay is rule E at the loop steers: the one condition
+  bit fans out to the select pins of six 32-bit steers (ucond_br4-9), and the latest of those arrivals is the cost.
+  So on xorshift the != rewrite is worth ~1 element (~0.4 ns) at the worst corner. Lever this exposes: replicate the
+  loop condition per steer (or per steer group) so no one net carries the whole broadcast -- the "replication for
+  control inputs" lead from PROGRAM's goal-2 list.
+- uaddi0 at nominal would go 13 -> 9 on this route; the worst corner keeps 13 (the counter's CARRY4 at SLOW_MAX).
+- research/data/xorshift_sizes_T3s50_fr2ne_bench.vh (fr2 + ucmpi1 8); farm request fxne (32 routes, every check).
