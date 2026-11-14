@@ -1865,3 +1865,6 @@ xf3 seed 4 long vectors at FAST_MIN: 5/5, 0 violations, min hold 792 ps. Researc
 
 ### progress 12:46 T103 started
 Pre-audit xf4 seed 1 (fr3 = fr2 with UMUX2 1 -> 2, own diff; xf3 knobs): own build at research HEAD, period, FAST_MIN/worst/SLOW_MAX with monitors.
+
+### progress 13:33 T103 done
+xf4 seed 1: own sdf 8319b816, 23.464 ns, 17/17 at FAST_MIN/worst/SLOW_MAX with monitors clean. Pre-audited for fxf4.
