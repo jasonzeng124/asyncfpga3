@@ -1,0 +1,566 @@
+T93 sites_gen.py -- rule E at every select site of the collatz board candidate (BOARD-QUEUE item 22, research 514ac04a: fcolsz2, board seed 26, own build /root/t65/colsz2_26)
+Corners: worst = work_colsz2_26_mon_worst (band SDF: chains 0.21, CARRY4/SELMUX/FF 1, rest 0.288, + scatter); FAST_MIN = ..._mon_fastmin (xray min); SLOW_MAX = ..._mon_slowmax (xray max).  Delays: baked netlist params.
+own   = earliest req rise at the gate (AND taps / C-elements wait for their LAST launch-derived input) - latest select change (static longest path, FULL carry everywhere), from <launch>.ctl.u.u at t=0
+OR    = diagnostic: every C-element crossed on the request path rises on its FIRST derived input
+plain = diagnostic: plain shortest path over the request cone (ignores the delay-chain AND taps too)
+vr    = informational, NOT a margin: own with the uaddi0 slices >= 6 (bits >= 24) and uaddi1 slices >= 3 (bits >= 12) dropped, i.e. only carries the 13 gate vectors can produce (n < 2^20, 3n+1 < 2^22, steps < 2^9); '=' = no such carry in the cone
+carry(crit) = CARRY4 slices on the critical select path, by owning instance
+T= links treated as transparent (launch is upstream of them: a Muller latch passes a late d while its node is high)
+Raw ps, no guardband.  Gates: bd_steer u$LUT6/u$LUT5 (both fractured halves), bd_mux uj0/uj1.
+
+== STRUCTURE (from the kernel Verilog, cross-checked with routed.json cell names) ==
+C: top module bdc_collatz, 85 instances in the kernel hierarchy
+  bd_steer (6): ucond_br2 [req ucond_br2_req, s n5__0_data[0]], ucond_br3 [req ucond_br3_req, s n5__2_data[0]], ucond_br4 [req ucond_br4_req, s n5__1_data[0]], ucond_br5 [req ucond_br5_req, s n31__2_data[0]], ucond_br6 [req ucond_br6_req, s n31__1_data[0]], ucond_br7 [req ucond_br7_req, s n31__0_data[0]]
+  bd_mux (3): umux0 [ctl_req n14__0_req, s n14__0_data[0]], umux1 [ctl_req n14__1_req, s n14__1_data[0]], umux2 [ctl_req n_index_11_req, s n_index_11_data[0]]
+  bd_join (11), routed LUTs under each: ucmpi0.ujoin 0, ucond_br2_j 1, ucond_br3_j 1, ucond_br4_j 1, uaddi0.ujoin 1, uselect0.ujoin 2, uaddi1.ujoin 1, ucmpi2.ujoin 1, ucond_br5_j 1, ucond_br6_j 1, ucond_br7_j 1
+  fused ops (5): ucmpi0 (bdc_fused_ucmpi0; udly chain 8 LUTs; CARRY4 0), uaddi0 (bdc_fused_uaddi0; udly chain 12 LUTs; CARRY4 8), uselect0 (bdc_fused_uselect0; udly chain 16 LUTs; CARRY4 0), uaddi1 (bdc_fused_uaddi1; udly chain 10 LUTs; CARRY4 8), ucmpi2 (bdc_fused_ucmpi2; udly chain 16 LUTs; CARRY4 0)
+  arbitrated merges (2): ucontrol_merge0, ucontrol_merge1
+  bd_delay_gated (7): ucmpi0.udly 8, ucontrol_merge0.udly 2, uaddi0.udly 12, uselect0.udly 16, uaddi1.udly 10, ucmpi2.udly 16, ucontrol_merge1.udly 2
+  bd_link (15): ucontrol_merge0_olink lat 1, ucontrol_merge0_rlink lat 1, ulink_n1__1 lat 32, ulink_n10__1 lat 32, ulink_n10__2 lat 32, ulink_n10__3 lat 32, ulink_n11 lat 1, ulink_n13 lat 32, ulink_n14__0 lat 1, ulink_n19__0 lat 32, ulink_n19__1 lat 32, ulink_n19__2 lat 32, ulink_n19__3 lat 32, ulink_n19__4 lat 32, ulink_n26 lat 32
+  bd_pipe (9): ulink_n14__1 = stage lat 1 + stage lat 1, ulink_n7 = stage lat 32 + stage lat 32, ulink_n8 = stage lat 32 + stage lat 32, ulink_n_falseResult_3 = stage lat 32 + stage lat 32, ulink_n_falseResult_5 = stage lat 32 + stage lat 32, ulink_n_falseResult_7 = stage lat 1 + stage lat 1 + stage lat 1, ulink_n_falseResult_9 = stage lat 32 + stage lat 32, ulink_n_index_11 = stage lat 1 + stage lat 1, ulink_n_trueResult_4 = stage lat 32 + stage lat 32
+  links without a routed C node <link>.ctl.u.u: none
+  site gates missing from routed.json: none
+
+== ROWS: one per (site gate, launch, corner) ==
+ucond_br2.u$LUT5 worst    ulink_n1__1                                                      s   3829 req   6016  OWN   2187  OR   2187  plain   -985  | vr      =  carry(crit) -
+ucond_br2.u$LUT5 FAST_MIN ulink_n1__1                                                      s   2391 req   4486  OWN   2095  OR   2095  plain   -248  | vr      =  carry(crit) -
+ucond_br2.u$LUT5 SLOW_MAX ulink_n1__1                                                      s   6456 req  12374  OWN   5918  OR   5918  plain   -951  | vr      =  carry(crit) -
+ucond_br2.u$LUT6 worst    ulink_n1__1                                                      s   3829 req   6016  OWN   2187  OR   2187  plain   -985  | vr      =  carry(crit) -
+ucond_br2.u$LUT6 FAST_MIN ulink_n1__1                                                      s   2391 req   4486  OWN   2095  OR   2095  plain   -248  | vr      =  carry(crit) -
+ucond_br2.u$LUT6 SLOW_MAX ulink_n1__1                                                      s   6456 req  12374  OWN   5918  OR   5918  plain   -951  | vr      =  carry(crit) -
+ucond_br3.u$LUT5 worst    ulink_n1__1                                                      s   3916 req   6015  OWN   2099  OR   2099  plain  -1073  | vr      =  carry(crit) -
+ucond_br3.u$LUT5 FAST_MIN ulink_n1__1                                                      s   2425 req   4462  OWN   2037  OR   2037  plain   -306  | vr      =  carry(crit) -
+ucond_br3.u$LUT5 SLOW_MAX ulink_n1__1                                                      s   6509 req  12233  OWN   5724  OR   5724  plain  -1145  | vr      =  carry(crit) -
+ucond_br3.u$LUT6 worst    ulink_n1__1                                                      s   3916 req   6015  OWN   2099  OR   2099  plain  -1073  | vr      =  carry(crit) -
+ucond_br3.u$LUT6 FAST_MIN ulink_n1__1                                                      s   2425 req   4462  OWN   2037  OR   2037  plain   -306  | vr      =  carry(crit) -
+ucond_br3.u$LUT6 SLOW_MAX ulink_n1__1                                                      s   6509 req  12233  OWN   5724  OR   5724  plain  -1145  | vr      =  carry(crit) -
+ucond_br4.u$LUT5 worst    ulink_n1__1                                                      s   3765 req   5786  OWN   2021  OR   2021  plain  -1151  | vr      =  carry(crit) -
+ucond_br4.u$LUT5 FAST_MIN ulink_n1__1                                                      s   2337 req   4319  OWN   1982  OR   1982  plain   -361  | vr      =  carry(crit) -
+ucond_br4.u$LUT5 SLOW_MAX ulink_n1__1                                                      s   6299 req  11859  OWN   5560  OR   5560  plain  -1309  | vr      =  carry(crit) -
+ucond_br4.u$LUT6 worst    ulink_n1__1                                                      s   3765 req   5786  OWN   2021  OR   2021  plain  -1151  | vr      =  carry(crit) -
+ucond_br4.u$LUT6 FAST_MIN ulink_n1__1                                                      s   2337 req   4319  OWN   1982  OR   1982  plain   -361  | vr      =  carry(crit) -
+ucond_br4.u$LUT6 SLOW_MAX ulink_n1__1                                                      s   6299 req  11859  OWN   5560  OR   5560  plain  -1309  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n10__3                                                     s   4852 req  15880  OWN  11028  OR  11028  plain  -1097  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n10__3                                                     s   3202 req  11634  OWN   8432  OR   8432  plain   -509  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n10__3                                                     s   8778 req  33469  OWN  24691  OR  24691  plain  -1475  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n11                                                        s   5993 req  15675  OWN   9682  OR   9682  plain  -2443  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n11                                                        s   4003 req  11498  OWN   7495  OR   7495  plain  -1446  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n11                                                        s  10782 req  33129  OWN  22347  OR  22347  plain  -3819  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n26                                                        s   4620 req  15273  OWN  10653  OR  10653  plain  -1472  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n26                                                        s   3052 req  11264  OWN   8212  OR   8212  plain   -729  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n26                                                        s   8252 req  32378  OWN  24126  OR  24126  plain  -2040  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n10__1  T=ulink_n26                                        s  10471 req  21124  OWN  10653  OR  10653  plain  -6065  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n10__1  T=ulink_n26                                        s   7090 req  15302  OWN   8212  OR   8212  plain  -3881  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n10__1  T=ulink_n26                                        s  20037 req  44163  OWN  24126  OR  24126  plain -11613  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n10__2  T=ulink_n26                                        s  10680 req  21333  OWN  10653  OR  10653  plain  -6065  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n10__2  T=ulink_n26                                        s   7235 req  15447  OWN   8212  OR   8212  plain  -3881  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n10__2  T=ulink_n26                                        s  20467 req  44593  OWN  24126  OR  24126  plain -11613  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n14__0  T=ulink_n10__3                                     s  16013 req  27000  OWN  10987  OR  10987  plain  -9382  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n10__3                                     s  11345 req  19738  OWN   8393  OR   8393  plain  -6619  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n10__3                                     s  32039 req  56692  OWN  24653  OR  24653  plain -19230  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n14__0  T=ulink_n11                                        s  17108 req  26749  OWN   9641  OR   9641  plain -10728  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n11                                        s  12131 req  19587  OWN   7456  OR   7456  plain  -7556  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n11                                        s  33983 req  56292  OWN  22309  OR  22309  plain -21574  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   8890 req  19918  OWN  11028  OR  11028  plain  -3003  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   6068 req  14500  OWN   8432  OR   8432  plain  -1886  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s  16778 req  41469  OWN  24691  OR  24691  plain  -5517  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   9985 req  19667  OWN   9682  OR   9682  plain  -4349  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   6854 req  14349  OWN   7495  OR   7495  plain  -2823  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s  18722 req  41069  OWN  22347  OR  22347  plain  -7861  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   8808 req  19836  OWN  11028  OR  11028  plain  -3003  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   5960 req  14392  OWN   8432  OR   8432  plain  -1886  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s  16708 req  41399  OWN  24691  OR  24691  plain  -5517  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   9903 req  19585  OWN   9682  OR   9682  plain  -4349  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   6746 req  14241  OWN   7495  OR   7495  plain  -2823  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s  18652 req  40999  OWN  22347  OR  22347  plain  -7861  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  18571 req  29558  OWN  10987  OR  10987  plain  -9382  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  13206 req  21599  OWN   8393  OR   8393  plain  -6619  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  37034 req  61687  OWN  24653  OR  24653  plain -19230  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  19666 req  29307  OWN   9641  OR   9641  plain -10728  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  13992 req  21448  OWN   7456  OR   7456  plain  -7556  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  38978 req  61287  OWN  22309  OR  22309  plain -21574  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  21399 req  32011  OWN  10612  OR  10612  plain -14350  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  15080 req  23253  OWN   8173  OR   8173  plain  -9991  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  42878 req  66966  OWN  24088  OR  24088  plain -29368  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  21714 req  32326  OWN  10612  OR  10612  plain -14350  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  15309 req  23482  OWN   8173  OR   8173  plain  -9991  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  43531 req  67619  OWN  24088  OR  24088  plain -29368  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   9842 req  20870  OWN  11028  OR  11028  plain  -3003  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   6840 req  15272  OWN   8432  OR   8432  plain  -1886  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s  18816 req  43507  OWN  24691  OR  24691  plain  -5517  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  10937 req  20619  OWN   9682  OR   9682  plain  -4349  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s   7626 req  15121  OWN   7495  OR   7495  plain  -2823  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  20760 req  43107  OWN  22347  OR  22347  plain  -7861  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  14276 req  24929  OWN  10653  OR  10653  plain  -7971  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9803 req  18015  OWN   8212  OR   8212  plain  -5258  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  27617 req  51743  OWN  24126  OR  24126  plain -15655  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14591 req  25244  OWN  10653  OR  10653  plain  -7971  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  10032 req  18244  OWN   8212  OR   8212  plain  -5258  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  28270 req  52396  OWN  24126  OR  24126  plain -15655  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   9668 req  20696  OWN  11028  OR  11028  plain  -3003  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   6600 req  15032  OWN   8432  OR   8432  plain  -1886  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s  18485 req  43176  OWN  24691  OR  24691  plain  -5517  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  10763 req  20445  OWN   9682  OR   9682  plain  -4349  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s   7386 req  14881  OWN   7495  OR   7495  plain  -2823  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  20429 req  42776  OWN  22347  OR  22347  plain  -7861  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  14194 req  24847  OWN  10653  OR  10653  plain  -7971  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9695 req  17907  OWN   8212  OR   8212  plain  -5258  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  27547 req  51673  OWN  24126  OR  24126  plain -15655  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14509 req  25162  OWN  10653  OR  10653  plain  -7971  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s   9924 req  18136  OWN   8212  OR   8212  plain  -5258  | vr      =  carry(crit) -
+ucond_br5.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  28200 req  52326  OWN  24126  OR  24126  plain -15655  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n10__3                                                     s   4852 req  15880  OWN  11028  OR  11028  plain  -1097  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n10__3                                                     s   3202 req  11634  OWN   8432  OR   8432  plain   -509  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n10__3                                                     s   8778 req  33469  OWN  24691  OR  24691  plain  -1475  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n11                                                        s   5993 req  15675  OWN   9682  OR   9682  plain  -2443  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n11                                                        s   4003 req  11498  OWN   7495  OR   7495  plain  -1446  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n11                                                        s  10782 req  33129  OWN  22347  OR  22347  plain  -3819  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n26                                                        s   4620 req  15273  OWN  10653  OR  10653  plain  -1472  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n26                                                        s   3052 req  11264  OWN   8212  OR   8212  plain   -729  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n26                                                        s   8252 req  32378  OWN  24126  OR  24126  plain  -2040  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n10__1  T=ulink_n26                                        s  10471 req  21124  OWN  10653  OR  10653  plain  -6065  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n10__1  T=ulink_n26                                        s   7090 req  15302  OWN   8212  OR   8212  plain  -3881  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n10__1  T=ulink_n26                                        s  20037 req  44163  OWN  24126  OR  24126  plain -11613  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n10__2  T=ulink_n26                                        s  10680 req  21333  OWN  10653  OR  10653  plain  -6065  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n10__2  T=ulink_n26                                        s   7235 req  15447  OWN   8212  OR   8212  plain  -3881  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n10__2  T=ulink_n26                                        s  20467 req  44593  OWN  24126  OR  24126  plain -11613  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n14__0  T=ulink_n10__3                                     s  16013 req  27000  OWN  10987  OR  10987  plain  -9382  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n10__3                                     s  11345 req  19738  OWN   8393  OR   8393  plain  -6619  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n10__3                                     s  32039 req  56692  OWN  24653  OR  24653  plain -19230  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n14__0  T=ulink_n11                                        s  17108 req  26749  OWN   9641  OR   9641  plain -10728  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n11                                        s  12131 req  19587  OWN   7456  OR   7456  plain  -7556  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n11                                        s  33983 req  56292  OWN  22309  OR  22309  plain -21574  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   8890 req  19918  OWN  11028  OR  11028  plain  -3003  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   6068 req  14500  OWN   8432  OR   8432  plain  -1886  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s  16778 req  41469  OWN  24691  OR  24691  plain  -5517  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   9985 req  19667  OWN   9682  OR   9682  plain  -4349  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   6854 req  14349  OWN   7495  OR   7495  plain  -2823  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s  18722 req  41069  OWN  22347  OR  22347  plain  -7861  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   8808 req  19836  OWN  11028  OR  11028  plain  -3003  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   5960 req  14392  OWN   8432  OR   8432  plain  -1886  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s  16708 req  41399  OWN  24691  OR  24691  plain  -5517  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   9903 req  19585  OWN   9682  OR   9682  plain  -4349  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   6746 req  14241  OWN   7495  OR   7495  plain  -2823  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s  18652 req  40999  OWN  22347  OR  22347  plain  -7861  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  18571 req  29558  OWN  10987  OR  10987  plain  -9382  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  13206 req  21599  OWN   8393  OR   8393  plain  -6619  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  37034 req  61687  OWN  24653  OR  24653  plain -19230  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  19666 req  29307  OWN   9641  OR   9641  plain -10728  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  13992 req  21448  OWN   7456  OR   7456  plain  -7556  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  38978 req  61287  OWN  22309  OR  22309  plain -21574  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  21399 req  32011  OWN  10612  OR  10612  plain -14350  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  15080 req  23253  OWN   8173  OR   8173  plain  -9991  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  42878 req  66966  OWN  24088  OR  24088  plain -29368  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  21714 req  32326  OWN  10612  OR  10612  plain -14350  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  15309 req  23482  OWN   8173  OR   8173  plain  -9991  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  43531 req  67619  OWN  24088  OR  24088  plain -29368  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   9842 req  20870  OWN  11028  OR  11028  plain  -3003  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   6840 req  15272  OWN   8432  OR   8432  plain  -1886  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s  18816 req  43507  OWN  24691  OR  24691  plain  -5517  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  10937 req  20619  OWN   9682  OR   9682  plain  -4349  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s   7626 req  15121  OWN   7495  OR   7495  plain  -2823  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  20760 req  43107  OWN  22347  OR  22347  plain  -7861  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  14276 req  24929  OWN  10653  OR  10653  plain  -7971  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9803 req  18015  OWN   8212  OR   8212  plain  -5258  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  27617 req  51743  OWN  24126  OR  24126  plain -15655  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14591 req  25244  OWN  10653  OR  10653  plain  -7971  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  10032 req  18244  OWN   8212  OR   8212  plain  -5258  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  28270 req  52396  OWN  24126  OR  24126  plain -15655  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   9668 req  20696  OWN  11028  OR  11028  plain  -3003  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   6600 req  15032  OWN   8432  OR   8432  plain  -1886  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s  18485 req  43176  OWN  24691  OR  24691  plain  -5517  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  10763 req  20445  OWN   9682  OR   9682  plain  -4349  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s   7386 req  14881  OWN   7495  OR   7495  plain  -2823  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  20429 req  42776  OWN  22347  OR  22347  plain  -7861  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  14194 req  24847  OWN  10653  OR  10653  plain  -7971  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9695 req  17907  OWN   8212  OR   8212  plain  -5258  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  27547 req  51673  OWN  24126  OR  24126  plain -15655  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14509 req  25162  OWN  10653  OR  10653  plain  -7971  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s   9924 req  18136  OWN   8212  OR   8212  plain  -5258  | vr      =  carry(crit) -
+ucond_br5.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  28200 req  52326  OWN  24126  OR  24126  plain -15655  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n10__3                                                     s   4776 req  15869  OWN  11093  OR  11093  plain  -1032  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n10__3                                                     s   3151 req  11649  OWN   8498  OR   8498  plain   -443  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n10__3                                                     s   8592 req  33540  OWN  24948  OR  24948  plain  -1218  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n11                                                        s   5917 req  15664  OWN   9747  OR   9747  plain  -2378  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n11                                                        s   3952 req  11513  OWN   7561  OR   7561  plain  -1380  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n11                                                        s  10596 req  33200  OWN  22604  OR  22604  plain  -3562  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n26                                                        s   4544 req  15262  OWN  10718  OR  10718  plain  -1407  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n26                                                        s   3001 req  11279  OWN   8278  OR   8278  plain   -663  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n26                                                        s   8066 req  32449  OWN  24383  OR  24383  plain  -1783  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n10__1  T=ulink_n26                                        s  10395 req  21113  OWN  10718  OR  10718  plain  -6000  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n10__1  T=ulink_n26                                        s   7039 req  15317  OWN   8278  OR   8278  plain  -3815  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n10__1  T=ulink_n26                                        s  19851 req  44234  OWN  24383  OR  24383  plain -11356  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n10__2  T=ulink_n26                                        s  10604 req  21322  OWN  10718  OR  10718  plain  -6000  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n10__2  T=ulink_n26                                        s   7184 req  15462  OWN   8278  OR   8278  plain  -3815  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n10__2  T=ulink_n26                                        s  20281 req  44664  OWN  24383  OR  24383  plain -11356  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n14__0  T=ulink_n10__3                                     s  15937 req  26989  OWN  11052  OR  11052  plain  -9317  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n10__3                                     s  11294 req  19753  OWN   8459  OR   8459  plain  -6553  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n10__3                                     s  31853 req  56763  OWN  24910  OR  24910  plain -18973  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n14__0  T=ulink_n11                                        s  17032 req  26738  OWN   9706  OR   9706  plain -10663  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n11                                        s  12080 req  19602  OWN   7522  OR   7522  plain  -7490  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n11                                        s  33797 req  56363  OWN  22566  OR  22566  plain -21317  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   8814 req  19907  OWN  11093  OR  11093  plain  -2938  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   6017 req  14515  OWN   8498  OR   8498  plain  -1820  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s  16592 req  41540  OWN  24948  OR  24948  plain  -5260  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   9909 req  19656  OWN   9747  OR   9747  plain  -4284  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   6803 req  14364  OWN   7561  OR   7561  plain  -2757  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s  18536 req  41140  OWN  22604  OR  22604  plain  -7604  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   8732 req  19825  OWN  11093  OR  11093  plain  -2938  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   5909 req  14407  OWN   8498  OR   8498  plain  -1820  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s  16522 req  41470  OWN  24948  OR  24948  plain  -5260  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   9827 req  19574  OWN   9747  OR   9747  plain  -4284  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   6695 req  14256  OWN   7561  OR   7561  plain  -2757  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s  18466 req  41070  OWN  22604  OR  22604  plain  -7604  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  18495 req  29547  OWN  11052  OR  11052  plain  -9317  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  13155 req  21614  OWN   8459  OR   8459  plain  -6553  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  36848 req  61758  OWN  24910  OR  24910  plain -18973  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  19590 req  29296  OWN   9706  OR   9706  plain -10663  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  13941 req  21463  OWN   7522  OR   7522  plain  -7490  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  38792 req  61358  OWN  22566  OR  22566  plain -21317  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  21323 req  32000  OWN  10677  OR  10677  plain -14285  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  15029 req  23268  OWN   8239  OR   8239  plain  -9925  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  42692 req  67037  OWN  24345  OR  24345  plain -29111  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  21638 req  32315  OWN  10677  OR  10677  plain -14285  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  15258 req  23497  OWN   8239  OR   8239  plain  -9925  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  43345 req  67690  OWN  24345  OR  24345  plain -29111  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   9766 req  20859  OWN  11093  OR  11093  plain  -2938  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   6789 req  15287  OWN   8498  OR   8498  plain  -1820  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s  18630 req  43578  OWN  24948  OR  24948  plain  -5260  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  10861 req  20608  OWN   9747  OR   9747  plain  -4284  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s   7575 req  15136  OWN   7561  OR   7561  plain  -2757  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  20574 req  43178  OWN  22604  OR  22604  plain  -7604  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  14200 req  24918  OWN  10718  OR  10718  plain  -7906  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9752 req  18030  OWN   8278  OR   8278  plain  -5192  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  27431 req  51814  OWN  24383  OR  24383  plain -15398  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14515 req  25233  OWN  10718  OR  10718  plain  -7906  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s   9981 req  18259  OWN   8278  OR   8278  plain  -5192  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  28084 req  52467  OWN  24383  OR  24383  plain -15398  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   9592 req  20685  OWN  11093  OR  11093  plain  -2938  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   6549 req  15047  OWN   8498  OR   8498  plain  -1820  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s  18299 req  43247  OWN  24948  OR  24948  plain  -5260  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  10687 req  20434  OWN   9747  OR   9747  plain  -4284  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s   7335 req  14896  OWN   7561  OR   7561  plain  -2757  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  20243 req  42847  OWN  22604  OR  22604  plain  -7604  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  14118 req  24836  OWN  10718  OR  10718  plain  -7906  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9644 req  17922  OWN   8278  OR   8278  plain  -5192  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  27361 req  51744  OWN  24383  OR  24383  plain -15398  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14433 req  25151  OWN  10718  OR  10718  plain  -7906  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s   9873 req  18151  OWN   8278  OR   8278  plain  -5192  | vr      =  carry(crit) -
+ucond_br6.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  28014 req  52397  OWN  24383  OR  24383  plain -15398  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n10__3                                                     s   4776 req  15869  OWN  11093  OR  11093  plain  -1032  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n10__3                                                     s   3151 req  11649  OWN   8498  OR   8498  plain   -443  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n10__3                                                     s   8592 req  33540  OWN  24948  OR  24948  plain  -1218  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n11                                                        s   5917 req  15664  OWN   9747  OR   9747  plain  -2378  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n11                                                        s   3952 req  11513  OWN   7561  OR   7561  plain  -1380  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n11                                                        s  10596 req  33200  OWN  22604  OR  22604  plain  -3562  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n26                                                        s   4544 req  15262  OWN  10718  OR  10718  plain  -1407  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n26                                                        s   3001 req  11279  OWN   8278  OR   8278  plain   -663  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n26                                                        s   8066 req  32449  OWN  24383  OR  24383  plain  -1783  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n10__1  T=ulink_n26                                        s  10395 req  21113  OWN  10718  OR  10718  plain  -6000  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n10__1  T=ulink_n26                                        s   7039 req  15317  OWN   8278  OR   8278  plain  -3815  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n10__1  T=ulink_n26                                        s  19851 req  44234  OWN  24383  OR  24383  plain -11356  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n10__2  T=ulink_n26                                        s  10604 req  21322  OWN  10718  OR  10718  plain  -6000  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n10__2  T=ulink_n26                                        s   7184 req  15462  OWN   8278  OR   8278  plain  -3815  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n10__2  T=ulink_n26                                        s  20281 req  44664  OWN  24383  OR  24383  plain -11356  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n14__0  T=ulink_n10__3                                     s  15937 req  26989  OWN  11052  OR  11052  plain  -9317  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n10__3                                     s  11294 req  19753  OWN   8459  OR   8459  plain  -6553  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n10__3                                     s  31853 req  56763  OWN  24910  OR  24910  plain -18973  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n14__0  T=ulink_n11                                        s  17032 req  26738  OWN   9706  OR   9706  plain -10663  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n11                                        s  12080 req  19602  OWN   7522  OR   7522  plain  -7490  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n11                                        s  33797 req  56363  OWN  22566  OR  22566  plain -21317  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   8814 req  19907  OWN  11093  OR  11093  plain  -2938  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   6017 req  14515  OWN   8498  OR   8498  plain  -1820  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s  16592 req  41540  OWN  24948  OR  24948  plain  -5260  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   9909 req  19656  OWN   9747  OR   9747  plain  -4284  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   6803 req  14364  OWN   7561  OR   7561  plain  -2757  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s  18536 req  41140  OWN  22604  OR  22604  plain  -7604  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   8732 req  19825  OWN  11093  OR  11093  plain  -2938  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   5909 req  14407  OWN   8498  OR   8498  plain  -1820  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s  16522 req  41470  OWN  24948  OR  24948  plain  -5260  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   9827 req  19574  OWN   9747  OR   9747  plain  -4284  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   6695 req  14256  OWN   7561  OR   7561  plain  -2757  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s  18466 req  41070  OWN  22604  OR  22604  plain  -7604  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  18495 req  29547  OWN  11052  OR  11052  plain  -9317  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  13155 req  21614  OWN   8459  OR   8459  plain  -6553  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  36848 req  61758  OWN  24910  OR  24910  plain -18973  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  19590 req  29296  OWN   9706  OR   9706  plain -10663  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  13941 req  21463  OWN   7522  OR   7522  plain  -7490  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  38792 req  61358  OWN  22566  OR  22566  plain -21317  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  21323 req  32000  OWN  10677  OR  10677  plain -14285  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  15029 req  23268  OWN   8239  OR   8239  plain  -9925  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  42692 req  67037  OWN  24345  OR  24345  plain -29111  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  21638 req  32315  OWN  10677  OR  10677  plain -14285  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  15258 req  23497  OWN   8239  OR   8239  plain  -9925  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  43345 req  67690  OWN  24345  OR  24345  plain -29111  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   9766 req  20859  OWN  11093  OR  11093  plain  -2938  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   6789 req  15287  OWN   8498  OR   8498  plain  -1820  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s  18630 req  43578  OWN  24948  OR  24948  plain  -5260  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  10861 req  20608  OWN   9747  OR   9747  plain  -4284  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s   7575 req  15136  OWN   7561  OR   7561  plain  -2757  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  20574 req  43178  OWN  22604  OR  22604  plain  -7604  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  14200 req  24918  OWN  10718  OR  10718  plain  -7906  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9752 req  18030  OWN   8278  OR   8278  plain  -5192  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  27431 req  51814  OWN  24383  OR  24383  plain -15398  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14515 req  25233  OWN  10718  OR  10718  plain  -7906  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s   9981 req  18259  OWN   8278  OR   8278  plain  -5192  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  28084 req  52467  OWN  24383  OR  24383  plain -15398  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   9592 req  20685  OWN  11093  OR  11093  plain  -2938  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   6549 req  15047  OWN   8498  OR   8498  plain  -1820  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s  18299 req  43247  OWN  24948  OR  24948  plain  -5260  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  10687 req  20434  OWN   9747  OR   9747  plain  -4284  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s   7335 req  14896  OWN   7561  OR   7561  plain  -2757  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  20243 req  42847  OWN  22604  OR  22604  plain  -7604  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  14118 req  24836  OWN  10718  OR  10718  plain  -7906  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9644 req  17922  OWN   8278  OR   8278  plain  -5192  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  27361 req  51744  OWN  24383  OR  24383  plain -15398  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14433 req  25151  OWN  10718  OR  10718  plain  -7906  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s   9873 req  18151  OWN   8278  OR   8278  plain  -5192  | vr      =  carry(crit) -
+ucond_br6.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  28014 req  52397  OWN  24383  OR  24383  plain -15398  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n10__3                                                     s   4454 req  15901  OWN  11447  OR   4169  plain  -1357  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n10__3                                                     s   2928 req  11646  OWN   8718  OR   3325  plain   -721  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n10__3                                                     s   8023 req  33460  OWN  25437  OR   9954  plain  -2179  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n11                                                        s   5595 req  15696  OWN  10101  OR   2823  plain  -2703  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n11                                                        s   3729 req  11510  OWN   7781  OR   2388  plain  -1658  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n11                                                        s  10027 req  33120  OWN  23093  OR   7610  plain  -4523  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n26                                                        s   4222 req  15294  OWN  11072  OR   3794  plain  -1732  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n26                                                        s   2778 req  11276  OWN   8498  OR   3105  plain   -941  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n26                                                        s   7497 req  32369  OWN  24872  OR   9389  plain  -2744  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n10__1  T=ulink_n26                                        s  10073 req  21145  OWN  11072  OR   3794  plain  -6325  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n10__1  T=ulink_n26                                        s   6816 req  15314  OWN   8498  OR   3105  plain  -4093  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n10__1  T=ulink_n26                                        s  19282 req  44154  OWN  24872  OR   9389  plain -12317  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n10__2  T=ulink_n26                                        s  10282 req  21354  OWN  11072  OR   3794  plain  -6325  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n10__2  T=ulink_n26                                        s   6961 req  15459  OWN   8498  OR   3105  plain  -4093  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n10__2  T=ulink_n26                                        s  19712 req  44584  OWN  24872  OR   9389  plain -12317  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n14__0  T=ulink_n10__3                                     s  15615 req  27021  OWN  11406  OR   4128  plain  -9642  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n10__3                                     s  11071 req  19750  OWN   8679  OR   3286  plain  -6831  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n10__3                                     s  31284 req  56683  OWN  25399  OR   9916  plain -19934  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n14__0  T=ulink_n11                                        s  16710 req  26770  OWN  10060  OR   2782  plain -10988  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n11                                        s  11857 req  19599  OWN   7742  OR   2349  plain  -7768  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n11                                        s  33228 req  56283  OWN  23055  OR   7572  plain -22278  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   8492 req  19939  OWN  11447  OR   4169  plain  -3263  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   5794 req  14512  OWN   8718  OR   3325  plain  -2098  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s  16023 req  41460  OWN  25437  OR   9954  plain  -6221  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   9587 req  19688  OWN  10101  OR   2823  plain  -4609  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   6580 req  14361  OWN   7781  OR   2388  plain  -3035  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s  17967 req  41060  OWN  23093  OR   7610  plain  -8565  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   8410 req  19857  OWN  11447  OR   4169  plain  -3263  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   5686 req  14404  OWN   8718  OR   3325  plain  -2098  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s  15953 req  41390  OWN  25437  OR   9954  plain  -6221  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   9505 req  19606  OWN  10101  OR   2823  plain  -4609  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   6472 req  14253  OWN   7781  OR   2388  plain  -3035  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s  17897 req  40990  OWN  23093  OR   7610  plain  -8565  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  18173 req  29579  OWN  11406  OR   4128  plain  -9642  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  12932 req  21611  OWN   8679  OR   3286  plain  -6831  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  36279 req  61678  OWN  25399  OR   9916  plain -19934  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  19268 req  29328  OWN  10060  OR   2782  plain -10988  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  13718 req  21460  OWN   7742  OR   2349  plain  -7768  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  38223 req  61278  OWN  23055  OR   7572  plain -22278  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  21001 req  32032  OWN  11031  OR   3753  plain -14610  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  14806 req  23265  OWN   8459  OR   3066  plain -10203  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  42123 req  66957  OWN  24834  OR   9351  plain -30072  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  21316 req  32347  OWN  11031  OR   3753  plain -14610  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  15035 req  23494  OWN   8459  OR   3066  plain -10203  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  42776 req  67610  OWN  24834  OR   9351  plain -30072  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   9444 req  20891  OWN  11447  OR   4169  plain  -3263  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   6566 req  15284  OWN   8718  OR   3325  plain  -2098  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s  18061 req  43498  OWN  25437  OR   9954  plain  -6221  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  10539 req  20640  OWN  10101  OR   2823  plain  -4609  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s   7352 req  15133  OWN   7781  OR   2388  plain  -3035  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  20005 req  43098  OWN  23093  OR   7610  plain  -8565  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  13878 req  24950  OWN  11072  OR   3794  plain  -8231  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9529 req  18027  OWN   8498  OR   3105  plain  -5470  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  26862 req  51734  OWN  24872  OR   9389  plain -16359  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14193 req  25265  OWN  11072  OR   3794  plain  -8231  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s   9758 req  18256  OWN   8498  OR   3105  plain  -5470  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  27515 req  52387  OWN  24872  OR   9389  plain -16359  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   9270 req  20717  OWN  11447  OR   4169  plain  -3263  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   6326 req  15044  OWN   8718  OR   3325  plain  -2098  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s  17730 req  43167  OWN  25437  OR   9954  plain  -6221  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  10365 req  20466  OWN  10101  OR   2823  plain  -4609  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s   7112 req  14893  OWN   7781  OR   2388  plain  -3035  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  19674 req  42767  OWN  23093  OR   7610  plain  -8565  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  13796 req  24868  OWN  11072  OR   3794  plain  -8231  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9421 req  17919  OWN   8498  OR   3105  plain  -5470  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  26792 req  51664  OWN  24872  OR   9389  plain -16359  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14111 req  25183  OWN  11072  OR   3794  plain  -8231  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s   9650 req  18148  OWN   8498  OR   3105  plain  -5470  | vr      =  carry(crit) -
+ucond_br7.u$LUT5 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  27445 req  52317  OWN  24872  OR   9389  plain -16359  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n10__3                                                     s   4454 req  15901  OWN  11447  OR   4169  plain  -1357  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n10__3                                                     s   2928 req  11646  OWN   8718  OR   3325  plain   -721  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n10__3                                                     s   8023 req  33460  OWN  25437  OR   9954  plain  -2179  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n11                                                        s   5595 req  15696  OWN  10101  OR   2823  plain  -2703  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n11                                                        s   3729 req  11510  OWN   7781  OR   2388  plain  -1658  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n11                                                        s  10027 req  33120  OWN  23093  OR   7610  plain  -4523  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n26                                                        s   4222 req  15294  OWN  11072  OR   3794  plain  -1732  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n26                                                        s   2778 req  11276  OWN   8498  OR   3105  plain   -941  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n26                                                        s   7497 req  32369  OWN  24872  OR   9389  plain  -2744  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n10__1  T=ulink_n26                                        s  10073 req  21145  OWN  11072  OR   3794  plain  -6325  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n10__1  T=ulink_n26                                        s   6816 req  15314  OWN   8498  OR   3105  plain  -4093  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n10__1  T=ulink_n26                                        s  19282 req  44154  OWN  24872  OR   9389  plain -12317  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n10__2  T=ulink_n26                                        s  10282 req  21354  OWN  11072  OR   3794  plain  -6325  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n10__2  T=ulink_n26                                        s   6961 req  15459  OWN   8498  OR   3105  plain  -4093  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n10__2  T=ulink_n26                                        s  19712 req  44584  OWN  24872  OR   9389  plain -12317  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n14__0  T=ulink_n10__3                                     s  15615 req  27021  OWN  11406  OR   4128  plain  -9642  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n10__3                                     s  11071 req  19750  OWN   8679  OR   3286  plain  -6831  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n10__3                                     s  31284 req  56683  OWN  25399  OR   9916  plain -19934  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n14__0  T=ulink_n11                                        s  16710 req  26770  OWN  10060  OR   2782  plain -10988  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n11                                        s  11857 req  19599  OWN   7742  OR   2349  plain  -7768  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n11                                        s  33228 req  56283  OWN  23055  OR   7572  plain -22278  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   8492 req  19939  OWN  11447  OR   4169  plain  -3263  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s   5794 req  14512  OWN   8718  OR   3325  plain  -2098  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__3            s  16023 req  41460  OWN  25437  OR   9954  plain  -6221  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   9587 req  19688  OWN  10101  OR   2823  plain  -4609  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s   6580 req  14361  OWN   7781  OR   2388  plain  -3035  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n11               s  17967 req  41060  OWN  23093  OR   7610  plain  -8565  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   8410 req  19857  OWN  11447  OR   4169  plain  -3263  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s   5686 req  14404  OWN   8718  OR   3325  plain  -2098  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__3            s  15953 req  41390  OWN  25437  OR   9954  plain  -6221  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   9505 req  19606  OWN  10101  OR   2823  plain  -4609  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s   6472 req  14253  OWN   7781  OR   2388  plain  -3035  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n11               s  17897 req  40990  OWN  23093  OR   7610  plain  -8565  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  18173 req  29579  OWN  11406  OR   4128  plain  -9642  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  12932 req  21611  OWN   8679  OR   3286  plain  -6831  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n10__3               s  36279 req  61678  OWN  25399  OR   9916  plain -19934  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  19268 req  29328  OWN  10060  OR   2782  plain -10988  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  13718 req  21460  OWN   7742  OR   2349  plain  -7768  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0,ulink_n11                  s  38223 req  61278  OWN  23055  OR   7572  plain -22278  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  21001 req  32032  OWN  11031  OR   3753  plain -14610  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  14806 req  23265  OWN   8459  OR   3066  plain -10203  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n10__1,ulink_n26                           s  42123 req  66957  OWN  24834  OR   9351  plain -30072  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  21316 req  32347  OWN  11031  OR   3753  plain -14610  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  15035 req  23494  OWN   8459  OR   3066  plain -10203  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n14__0  T=ulink_n10__2,ulink_n26                           s  42776 req  67610  OWN  24834  OR   9351  plain -30072  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   9444 req  20891  OWN  11447  OR   4169  plain  -3263  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s   6566 req  15284  OWN   8718  OR   3325  plain  -2098  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n10__3 s  18061 req  43498  OWN  25437  OR   9954  plain  -6221  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  10539 req  20640  OWN  10101  OR   2823  plain  -4609  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s   7352 req  15133  OWN   7781  OR   2388  plain  -3035  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[0].u  T=ulink_n_falseResult_3.many.stage[1].u,ulink_n11 s  20005 req  43098  OWN  23093  OR   7610  plain  -8565  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  13878 req  24950  OWN  11072  OR   3794  plain  -8231  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9529 req  18027  OWN   8498  OR   3105  plain  -5470  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  26862 req  51734  OWN  24872  OR   9389  plain -16359  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14193 req  25265  OWN  11072  OR   3794  plain  -8231  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s   9758 req  18256  OWN   8498  OR   3105  plain  -5470  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_3.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  27515 req  52387  OWN  24872  OR   9389  plain -16359  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   9270 req  20717  OWN  11447  OR   4169  plain  -3263  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s   6326 req  15044  OWN   8718  OR   3325  plain  -2098  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n10__3 s  17730 req  43167  OWN  25437  OR   9954  plain  -6221  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  10365 req  20466  OWN  10101  OR   2823  plain  -4609  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s   7112 req  14893  OWN   7781  OR   2388  plain  -3035  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[0].u  T=ulink_n_falseResult_9.many.stage[1].u,ulink_n11 s  19674 req  42767  OWN  23093  OR   7610  plain  -8565  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  13796 req  24868  OWN  11072  OR   3794  plain  -8231  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s   9421 req  17919  OWN   8498  OR   3105  plain  -5470  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__1,ulink_n26  s  26792 req  51664  OWN  24872  OR   9389  plain -16359  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 worst    ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  14111 req  25183  OWN  11072  OR   3794  plain  -8231  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 FAST_MIN ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s   9650 req  18148  OWN   8498  OR   3105  plain  -5470  | vr      =  carry(crit) -
+ucond_br7.u$LUT6 SLOW_MAX ulink_n_falseResult_9.many.stage[1].u  T=ulink_n10__2,ulink_n26  s  27445 req  52317  OWN  24872  OR   9389  plain -16359  | vr      =  carry(crit) -
+umux0.uj0        worst    ulink_n14__0                                                     s    543 req   7615  OWN   7072  OR   7072  plain    734  | vr      =  carry(crit) -
+umux0.uj0        FAST_MIN ulink_n14__0                                                     s    397 req   5643  OWN   5246  OR   5246  plain    552  | vr      =  carry(crit) -
+umux0.uj0        SLOW_MAX ulink_n14__0                                                     s   1000 req  16156  OWN  15156  OR  15156  plain   1481  | vr      =  carry(crit) -
+umux0.uj0        worst    ucontrol_merge0_olink  T=ulink_n14__0                            s   3101 req  10173  OWN   7072  OR   7072  plain    734  | vr      =  carry(crit) -
+umux0.uj0        FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0                            s   2258 req   7504  OWN   5246  OR   5246  plain    552  | vr      =  carry(crit) -
+umux0.uj0        SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0                            s   5995 req  21151  OWN  15156  OR  15156  plain   1481  | vr      =  carry(crit) -
+umux0.uj1        worst    ulink_n14__0                                                     s    811 req   7615  OWN   6804  OR   6804  plain    466  | vr      =  carry(crit) -
+umux0.uj1        FAST_MIN ulink_n14__0                                                     s    560 req   5627  OWN   5067  OR   5067  plain    373  | vr      =  carry(crit) -
+umux0.uj1        SLOW_MAX ulink_n14__0                                                     s   1574 req  16173  OWN  14599  OR  14599  plain    924  | vr      =  carry(crit) -
+umux0.uj1        worst    ucontrol_merge0_olink  T=ulink_n14__0                            s   3369 req  10173  OWN   6804  OR   6804  plain    466  | vr      =  carry(crit) -
+umux0.uj1        FAST_MIN ucontrol_merge0_olink  T=ulink_n14__0                            s   2421 req   7488  OWN   5067  OR   5067  plain    373  | vr      =  carry(crit) -
+umux0.uj1        SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__0                            s   6569 req  21168  OWN  14599  OR  14599  plain    924  | vr      =  carry(crit) -
+umux1.uj0        worst    ulink_n14__1.many.stage[1].u                                     s    495 req  14272  OWN  13777  OR  13777  plain  13777  | vr      =  carry(crit) -
+umux1.uj0        FAST_MIN ulink_n14__1.many.stage[1].u                                     s    356 req  10085  OWN   9729  OR   9729  plain   9729  | vr      =  carry(crit) -
+umux1.uj0        SLOW_MAX ulink_n14__1.many.stage[1].u                                     s    959 req  29874  OWN  28915  OR  28915  plain  28915  | vr      =  carry(crit) -
+umux1.uj0        worst    ulink_n14__1.many.stage[0].u  T=ulink_n14__1.many.stage[1].u     s   1982 req  15759  OWN  13777  OR  13777  plain  13777  | vr      =  carry(crit) -
+umux1.uj0        FAST_MIN ulink_n14__1.many.stage[0].u  T=ulink_n14__1.many.stage[1].u     s   1393 req  11122  OWN   9729  OR   9729  plain   9729  | vr      =  carry(crit) -
+umux1.uj0        SLOW_MAX ulink_n14__1.many.stage[0].u  T=ulink_n14__1.many.stage[1].u     s   3989 req  32904  OWN  28915  OR  28915  plain  28915  | vr      =  carry(crit) -
+umux1.uj0        worst    ucontrol_merge0_olink  T=ulink_n14__1.many.stage[0].u,ulink_n14__1.many.stage[1].u s   4453 req  18230  OWN  13777  OR  13777  plain  13777  | vr      =  carry(crit) -
+umux1.uj0        FAST_MIN ucontrol_merge0_olink  T=ulink_n14__1.many.stage[0].u,ulink_n14__1.many.stage[1].u s   3175 req  12904  OWN   9729  OR   9729  plain   9729  | vr      =  carry(crit) -
+umux1.uj0        SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__1.many.stage[0].u,ulink_n14__1.many.stage[1].u s   8846 req  37761  OWN  28915  OR  28915  plain  28915  | vr      =  carry(crit) -
+umux1.uj1        worst    ulink_n14__1.many.stage[1].u                                     s    483 req  14179  OWN  13696  OR  13696  plain  13696  | vr      =  carry(crit) -
+umux1.uj1        FAST_MIN ulink_n14__1.many.stage[1].u                                     s    347 req  10024  OWN   9677  OR   9677  plain   9677  | vr      =  carry(crit) -
+umux1.uj1        SLOW_MAX ulink_n14__1.many.stage[1].u                                     s    963 req  29762  OWN  28799  OR  28799  plain  28799  | vr      =  carry(crit) -
+umux1.uj1        worst    ulink_n14__1.many.stage[0].u  T=ulink_n14__1.many.stage[1].u     s   1970 req  15666  OWN  13696  OR  13696  plain  13696  | vr      =  carry(crit) -
+umux1.uj1        FAST_MIN ulink_n14__1.many.stage[0].u  T=ulink_n14__1.many.stage[1].u     s   1384 req  11061  OWN   9677  OR   9677  plain   9677  | vr      =  carry(crit) -
+umux1.uj1        SLOW_MAX ulink_n14__1.many.stage[0].u  T=ulink_n14__1.many.stage[1].u     s   3993 req  32792  OWN  28799  OR  28799  plain  28799  | vr      =  carry(crit) -
+umux1.uj1        worst    ucontrol_merge0_olink  T=ulink_n14__1.many.stage[0].u,ulink_n14__1.many.stage[1].u s   4441 req  18137  OWN  13696  OR  13696  plain  13696  | vr      =  carry(crit) -
+umux1.uj1        FAST_MIN ucontrol_merge0_olink  T=ulink_n14__1.many.stage[0].u,ulink_n14__1.many.stage[1].u s   3166 req  12843  OWN   9677  OR   9677  plain   9677  | vr      =  carry(crit) -
+umux1.uj1        SLOW_MAX ucontrol_merge0_olink  T=ulink_n14__1.many.stage[0].u,ulink_n14__1.many.stage[1].u s   8850 req  37649  OWN  28799  OR  28799  plain  28799  | vr      =  carry(crit) -
+umux2.uj0        worst    ulink_n_index_11.many.stage[1].u                                 s    591 req   6819  OWN   6228  OR   6228  plain   6228  | vr      =  carry(crit) -
+umux2.uj0        FAST_MIN ulink_n_index_11.many.stage[1].u                                 s    440 req   5054  OWN   4614  OR   4614  plain   4614  | vr      =  carry(crit) -
+umux2.uj0        SLOW_MAX ulink_n_index_11.many.stage[1].u                                 s   1017 req  14559  OWN  13542  OR  13542  plain  13542  | vr      =  carry(crit) -
+umux2.uj0        worst    ulink_n_index_11.many.stage[0].u  T=ulink_n_index_11.many.stage[1].u s   2020 req   8248  OWN   6228  OR   6228  plain   6228  | vr      =  carry(crit) -
+umux2.uj0        FAST_MIN ulink_n_index_11.many.stage[0].u  T=ulink_n_index_11.many.stage[1].u s   1467 req   6081  OWN   4614  OR   4614  plain   4614  | vr      =  carry(crit) -
+umux2.uj0        SLOW_MAX ulink_n_index_11.many.stage[0].u  T=ulink_n_index_11.many.stage[1].u s   3980 req  17522  OWN  13542  OR  13542  plain  13542  | vr      =  carry(crit) -
+umux2.uj1        worst    ulink_n_index_11.many.stage[1].u                                 s    581 req   6814  OWN   6233  OR   6233  plain   6233  | vr      =  carry(crit) -
+umux2.uj1        FAST_MIN ulink_n_index_11.many.stage[1].u                                 s    436 req   5047  OWN   4611  OR   4611  plain   4611  | vr      =  carry(crit) -
+umux2.uj1        SLOW_MAX ulink_n_index_11.many.stage[1].u                                 s   1012 req  14554  OWN  13542  OR  13542  plain  13542  | vr      =  carry(crit) -
+umux2.uj1        worst    ulink_n_index_11.many.stage[0].u  T=ulink_n_index_11.many.stage[1].u s   2010 req   8243  OWN   6233  OR   6233  plain   6233  | vr      =  carry(crit) -
+umux2.uj1        FAST_MIN ulink_n_index_11.many.stage[0].u  T=ulink_n_index_11.many.stage[1].u s   1463 req   6074  OWN   4611  OR   4611  plain   4611  | vr      =  carry(crit) -
+umux2.uj1        SLOW_MAX ulink_n_index_11.many.stage[0].u  T=ulink_n_index_11.many.stage[1].u s   3975 req  17517  OWN  13542  OR  13542  plain  13542  | vr      =  carry(crit) -
+
+== SUMMARY: minimum own margin per site and corner (over both gates and every launch) ==
+site       kind         own worst  own FAST_MIN  own SLOW_MAX |     OR worst  OR FAST_MIN  OR SLOW_MAX |    plain worst plain FAST_MIN plain SLOW_MAX | binding launch (own, worst) / critical carry
+ucond_br2  bd_steer          2187          2095          5918 |         2187         2095         5918 |           -985           -248           -951 | ulink_n1__1 / no carry
+ucond_br3  bd_steer          2099          2037          5724 |         2099         2037         5724 |          -1073           -306          -1145 | ulink_n1__1 / no carry
+ucond_br4  bd_steer          2021          1982          5560 |         2021         1982         5560 |          -1151           -361          -1309 | ulink_n1__1 / no carry
+ucond_br5  bd_steer          9641          7456         22309 |         9641         7456        22309 |         -14350          -9991         -29368 | ulink_n14__0 T=ulink_n11 / no carry
+ucond_br6  bd_steer          9706          7522         22566 |         9706         7522        22566 |         -14285          -9925         -29111 | ulink_n14__0 T=ulink_n11 / no carry
+ucond_br7  bd_steer         10060          7742         23055 |         2782         2349         7572 |         -14610         -10203         -30072 | ulink_n14__0 T=ulink_n11 / no carry
+umux0      bd_mux            6804          5067         14599 |         6804         5067        14599 |            466            373            924 | ulink_n14__0 / no carry
+umux1      bd_mux           13696          9677         28799 |        13696         9677        28799 |          13696           9677          28799 | ulink_n14__1.many.stage[1].u / no carry
+umux2      bd_mux            6228          4611         13542 |         6228         4611        13542 |           6228           4611          13542 | ulink_n_index_11.many.stage[1].u / no carry
+
+sites: 9  gates: 18  rows: 474 (474 with a result, 0 without)
+own-model negative (any site, launch, corner): 0
+OR-join diagnostic negative (site, corner): 0: 
+overall minimum own: 1982 at ucond_br4.u$LUT6 FAST_MIN launch ulink_n1__1
+
+== DATA RANGE: carries the 13 gate vectors do not exercise ==
+  Vectors (audit/t65/collatz_13.hex): n = 2,4,16,64,256,1024,4096,16384,32768,27,97,871,6171.  Max trajectory value 975400 (< 2^20, from 6171); max odd n 325133 -> 3n+1 = 975400; uaddi0 (3n+1 on every n, even ones too) < 3*975400+1 < 2^22.  Steps (uaddi1) <= 261 < 2^9.  n>>1 (uselect0) and the n==1 compares (ucmpi0/ucmpi2) have no carry.
+  So uaddi0 carries into bits 22..31 (slices 5 partly, 6, 7) and uaddi1 carries above bit 8 are never produced by the gate (a full-range input up to 2^31 produces them).  The own/OR/plain margins above use the STATIC longest path, i.e. the full 32-bit carry through every CARRY4 slice; `vr` shows what the vector range alone would give.
+  rows whose select cone contains CARRY4s: 144 of 474; owners: {'uaddi0': 144}
+  no row has its critical select path through a carry beyond the vector range: full-carry and vector-range margins coincide (vr "=" on every row)
+  every such row is an upstream launch through a transparent link; full-carry d path (latches-only s_max) vs the en path that binds (s_max), per corner:
+    worst: en path later than the full-carry d path by >= 2745 ps (ucond_br5.u$LUT6 ulink_n10__1 T=ulink_n26); margin on the full-carry d path alone >= 13398 ps
+    FAST_MIN: en path later than the full-carry d path by >= 2372 ps (ucond_br5.u$LUT6 ulink_n10__1 T=ulink_n26); margin on the full-carry d path alone >= 10584 ps
+    SLOW_MAX: en path later than the full-carry d path by >= 6963 ps (ucond_br5.u$LUT6 ulink_n10__1 T=ulink_n26); margin on the full-carry d path alone >= 31089 ps
+    i.e. the 32-bit carry of 3n+1 settles at ulink_n26.d before ulink_n26 opens (uaddi0 matched delay), so it never sets a select margin; a full-range n cannot make it binding under this delay model.
+  the other 330 rows have no CARRY4 in the select cone (ucmpi0/ucmpi2 equality compares are LUT+MUXF7/F8, n>>1 is wiring, the merge index is a 1-bit latch)
+
+== SANITY: planted +2000 ps ICBUF (copy of netlist_baked.v, full re-parse) ==
+  PLANT ic_012306 (D 872 -> 2872) (critical select path) at C worst ucond_br4.u$LUT6 launch ulink_n1__1: own 2021 -> 21 (delta -2000, expected -2000) PASS; OR 2021 -> 21, plain -1151 -> -3151
+  PLANT ic_012055 (D 295 -> 2295) (critical request path) at C worst ucond_br4.u$LUT6 launch ulink_n1__1: own 2021 -> 4021 (delta +2000, expected +2000 or less) PASS; OR 2021 -> 4021, plain -1151 -> -1151
+  PLANT ic_013781 (D 266 -> 2266) (unrelated ICBUF: umux1.uj0 s pin) at C worst ucond_br4.u$LUT6 launch ulink_n1__1: own 2021 -> 2021 (delta +0, expected +0) PASS; OR 2021 -> 2021, plain -1151 -> -1151
+  PLANT ic_009665 (D 356 -> 2356) (critical select path) at C worst umux2.uj0 launch ulink_n_index_11.many.stage[1].u: own 6228 -> 4228 (delta -2000, expected -2000) PASS; OR 6228 -> 4228, plain 6228 -> 4228
+
+== NOTES (pin mapping, launch discovery) ==
+  C worst: RTL-derived graph classes: 17 request-join C-elements ['uaddi0.ujoin.u.genblk1.genblk1.genblk1.g4.u.u', 'uaddi1.ujoin.u.genblk1.g2.u.u', 'ucmpi2.ujoin.u.genblk1.g2.u.u', 'ucond_br2_j.u.genblk1.g2.u.u', 'ucond_br3_j.u.genblk1.g2.u.u', 'ucond_br4_j.u.genblk1.g2.u.u', 'ucond_br5_j.u.genblk1.g2.u.u', 'ucond_br6_j.u.genblk1.g2.u.u', 'ucond_br7_j.u.genblk1.g2.u.u', 'umux0.uj0', 'umux0.uj1', 'umux1.uj0', 'umux1.uj1', 'umux2.uj0', 'umux2.uj1', 'uselect0.ujoin.u.genblk1.genblk1.genblk1.gt.chunk[0].u.genblk1.genblk1.genblk1.g4.u.u', 'uselect0.ujoin.u.genblk1.genblk1.genblk1.gt.utop.genblk1.g2.u.u']; 12 steer gates; 747 latch LUTs in 34 links, 0 unassigned; 747 with a unique en pin
+  C ucond_br2.u$LUT6: pins by net name req A1 (ucond_br2_req) s A2 (n5__0_data[0])
+  C ucond_br2.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  C ucond_br2.u$LUT5: pins by net name req A1 (ucond_br2_req) s A2 (n5__0_data[0])
+  C ucond_br2.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  C ucond_br3.u$LUT6: pins by net name req A2 (ucond_br3_req) s A3 (n5__2_data[0])
+  C ucond_br3.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  C ucond_br3.u$LUT5: pins by net name req A2 (ucond_br3_req) s A3 (n5__2_data[0])
+  C ucond_br3.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  C ucond_br4.u$LUT6: pins by net name req A3 (ucond_br4_req) s A2 (n5__1_data[0])
+  C ucond_br4.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  C ucond_br4.u$LUT5: pins by net name req A3 (ucond_br4_req) s A2 (n5__1_data[0])
+  C ucond_br4.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  C ucond_br5.u$LUT6: pins by net name req A2 (ucond_br5_req) s A1 (n31__2_data[0])
+  C ucond_br5.u$LUT5: pins by net name req A2 (ucond_br5_req) s A1 (n31__2_data[0])
+  C ucond_br6.u$LUT6: pins by net name req A3 (ucond_br6_req) s A5 (n31__1_data[0])
+  C ucond_br6.u$LUT5: pins by net name req A3 (ucond_br6_req) s A5 (n31__1_data[0])
+  C ucond_br7.u$LUT6: pins by net name req A1 (ucond_br7_req) s A5 (n31__0_data[0])
+  C ucond_br7.u$LUT5: pins by net name req A1 (ucond_br7_req) s A5 (n31__0_data[0])
+  C umux0.uj0: pins by net name req A4 (n14__0_req) s A5 (n14__0_data[0])
+  C umux0.uj0: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_falseResult_7.many.stage[2].u.ctl.u.u'] (not launched)
+  C umux0.uj1: pins by net name req A4 (n14__0_req) s A3 (n14__0_data[0])
+  C umux0.uj1: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_falseResult_7.many.stage[2].u.ctl.u.u'] (not launched)
+  C umux1.uj0: pins by net name req A4 (n14__1_req) s A5 (n14__1_data[0])
+  C umux1.uj1: pins by net name req A3 (n14__1_req) s A5 (n14__1_data[0])
+  C umux2.uj0: pins by net name req A2 (n_index_11_req) s A5 (n_index_11_data[0])
+  C umux2.uj0: ulink_n_index_11.many.stage[0].u latch d also from non-latch sources ['ucond_br6.u$LUT6', 'ucontrol_merge1.uarb1.ua2.u', 'ucontrol_merge1.uarb1.ustate$LUT6'] (not launched)
+  C umux2.uj1: pins by net name req A2 (n_index_11_req) s A5 (n_index_11_data[0])
+  C umux2.uj1: ulink_n_index_11.many.stage[0].u latch d also from non-latch sources ['ucond_br6.u$LUT6', 'ucontrol_merge1.uarb1.ua2.u', 'ucontrol_merge1.uarb1.ustate$LUT6'] (not launched)
+  C FAST_MIN: RTL-derived graph classes: 17 request-join C-elements ['uaddi0.ujoin.u.genblk1.genblk1.genblk1.g4.u.u', 'uaddi1.ujoin.u.genblk1.g2.u.u', 'ucmpi2.ujoin.u.genblk1.g2.u.u', 'ucond_br2_j.u.genblk1.g2.u.u', 'ucond_br3_j.u.genblk1.g2.u.u', 'ucond_br4_j.u.genblk1.g2.u.u', 'ucond_br5_j.u.genblk1.g2.u.u', 'ucond_br6_j.u.genblk1.g2.u.u', 'ucond_br7_j.u.genblk1.g2.u.u', 'umux0.uj0', 'umux0.uj1', 'umux1.uj0', 'umux1.uj1', 'umux2.uj0', 'umux2.uj1', 'uselect0.ujoin.u.genblk1.genblk1.genblk1.gt.chunk[0].u.genblk1.genblk1.genblk1.g4.u.u', 'uselect0.ujoin.u.genblk1.genblk1.genblk1.gt.utop.genblk1.g2.u.u']; 12 steer gates; 747 latch LUTs in 34 links, 0 unassigned; 747 with a unique en pin
+  C SLOW_MAX: RTL-derived graph classes: 17 request-join C-elements ['uaddi0.ujoin.u.genblk1.genblk1.genblk1.g4.u.u', 'uaddi1.ujoin.u.genblk1.g2.u.u', 'ucmpi2.ujoin.u.genblk1.g2.u.u', 'ucond_br2_j.u.genblk1.g2.u.u', 'ucond_br3_j.u.genblk1.g2.u.u', 'ucond_br4_j.u.genblk1.g2.u.u', 'ucond_br5_j.u.genblk1.g2.u.u', 'ucond_br6_j.u.genblk1.g2.u.u', 'ucond_br7_j.u.genblk1.g2.u.u', 'umux0.uj0', 'umux0.uj1', 'umux1.uj0', 'umux1.uj1', 'umux2.uj0', 'umux2.uj1', 'uselect0.ujoin.u.genblk1.genblk1.genblk1.gt.chunk[0].u.genblk1.genblk1.genblk1.g4.u.u', 'uselect0.ujoin.u.genblk1.genblk1.genblk1.gt.utop.genblk1.g2.u.u']; 12 steer gates; 747 latch LUTs in 34 links, 0 unassigned; 747 with a unique en pin

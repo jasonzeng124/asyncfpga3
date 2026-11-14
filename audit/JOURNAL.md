@@ -1823,3 +1823,6 @@ Research withdrew the stale-rounds hypothesis and traced the same counter-pipe r
 
 ### progress 09:56 T99
 Own dynamic hold margins (t83 latch monitor, FAST_MIN) on 11 board routes: >= 0.63 ns (items 17/18's ulink_n_trueResult_6 > 2 ns), vs fxf2 seed 1 11 ps. No board route checked is near the T97 race. findings/T99.md, REPORT note.
+
+### progress 10:06 T98 static
+Own rule E (t93/sites_gen.py, re-run identical; xorshift regen identical) on item 22's route: all 9 sites positive at worst/FAST_MIN/SLOW_MAX, min +1982 ps. REPORT item-22 row updated.

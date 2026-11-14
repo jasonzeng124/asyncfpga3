@@ -264,3 +264,64 @@ Added after the ucond_br6 check above; nothing above this heading was changed. `
    - The select of a mux on the request path (umux0's s when launching `ulink_n12__0`) is treated as a derived input that may rise. This is a lower bound for req, not an exact event.
 4. **Comparison with research.** Research's raw numbers come from nextpnr's own SDF, a different delay model, so only the sign pattern and the method are compared, not the ps values. At the research launch, own and OR-join differ only where a crossed C-element has two launch-derived inputs, which is A ucond_br6. On B the same structure appears only at a launch research does not take.
 5. **Requested but not done.** No nominal-SDF work dir was available, so research's corner is not reproduced. vvp was not run, by instruction.
+
+## Collatz item 22 (sites on colsz2_26)
+
+Added after "All sites"; nothing above this heading was changed, and `sites.py`, `sites_results.*`, `results.*` were not rewritten. Target: BOARD-QUEUE item 22 as the audit tracks it (findings/T98.md: research 514ac04a "#23", collatz full range fcolsz2, board seed 26, own build `/root/t65/colsz2_26`, sdf bc2fe0c8). Note that the `## 22.` heading in `/root/wt-r91/research/BOARD-QUEUE.md` is an older collatz64 item; the dirs given are the collatz (32-bit) ones.
+
+| file | what |
+|---|---|
+| `sites_gen.py` | sites.py generalised: `python3 sites_gen.py collatz` (about 10 s, peak about 170 MB), `python3 sites_gen.py xorshift` (about 27 s, peak about 290 MB) |
+| `sites_collatz_item22.txt` / `.json` | collatz: structure, one row per (site gate, launch, corner) with own / OR-join / plain, summary, data-range note, plant test, notes |
+| `sites_results_regen.txt`, `sites_gen_xorshift_check.txt` | the xorshift designs A/B re-run through `sites_gen.py`, and its comparison with `sites_results.txt` / `.json` |
+
+### Method changes (sites.py -> sites_gen.py)
+
+- **Nothing is keyed to xorshift names any more.** The kernel Verilog is parsed hierarchically (every module defined in the file is expanded from the one top module). From it come: every `bd_steer` (gates `u$LUT6`/`u$LUT5`) and `bd_mux` (gates `uj0`/`uj1`, from `cells/rtl/bd_mux.v`) with its req and select nets read from the instance ports; every `bd_join` instance path (top-level `_j` joins and the fused ops' `ujoin`, including the 5-input tree in `uselect0`); every `bd_link` and every `bd_pipe` expanded to its stages (`<pipe>.many.stage[i].u`, from bd_pipe's generate); every `bd_delay_gated`; the fused ops (a kernel module with one bd_join and one bd_delay_gated); the arbitrated merges.
+  - Request-rendezvous C-elements = state LUTs under a bd_join path or a mux's uj0/uj1 (was the regex `.ujoin.|_j.|.uj[01]`). Steer gates = the u$LUT6/5 of each RTL steer (was `ucond_br\d+`). Link latches = state LUTs under `<link>.lat.` for an RTL link or pipe stage (anything left over is reported; nothing is).
+  - Sites come from the RTL (xorshift keeps research's list so that its rows are reproducible; the RTL list is checked equal to it).
+  - The loop-counter restriction (`<2^12`, uaddi0 + n7/n29/n30 nets) is now per-design configuration; collatz has none.
+  - New informational column `vr`: own with the CARRY4 slices that the gate vectors never reach dropped (uaddi0 slices >= 6, uaddi1 slices >= 3; chain order from CIN<-CO3, checked against the `slice[k]` names). Also recorded per row: CARRY4 count by owner in the select cone and on the critical select path.
+  - Corners per design (collatz: worst, FAST_MIN, SLOW_MAX). Engine, walks, launch discovery (direct + upstream through transparent links, depth 2) and the three margins are sites.py's code unchanged.
+- **xorshift still reproduces exactly** (`sites_gen_xorshift_check.txt`): `sites_results_regen.txt` is line-for-line identical to `sites_results.txt` (702 lines, 0 differences, including the summary, the ucond_br6-vs-results.txt sanity and the planted-delay section), and all 520 rows equal `sites_results.json` in every field (critical paths, crossed C-elements, notes). RTL-derived join C-elements (18/18), steer gates (16/16) and site gates (24/24) equal sites.py's regexes / research's list on both A and B; 745/745 and 777/777 latch LUTs map to an RTL link.
+
+### Collatz structure (from the RTL, checked against routed.json)
+
+6 steers (ucond_br2-7), 3 muxes (umux0-2), 18 gates. 11 bd_joins (ucmpi0's N=1 join is a wire; 17 C-element LUTs in all incl. the 6 mux joins). 5 fused ops: ucmpi0 (n==1, 8-element chain), uaddi0 (3n+1, 8 CARRY4, 12), uselect0 (even ? n>>1 : 3n+1, 16), uaddi1 (steps+1, 8 CARRY4, 10), ucmpi2 (n'==1, 16). 15 bd_links + 9 pipes (19 stages), 747 latch LUTs in 34 links, every one with a unique en pin. uselect0's internal select (n[0]) is inside a fused op and covered by its matched delay; it is not a rule-E site.
+
+### Results (ps, raw, no guard; min over both gates and every launch; 474 rows, all with a result)
+
+| site | own worst | own FAST_MIN | own SLOW_MAX | binding launch (worst) | OR-join min (worst/FM/SM) | dynamic t83 monitor min (worst/FM/SM, T98) |
+|---|---|---|---|---|---|---|
+| ucond_br2 | +2187 | +2095 | +5918 | ulink_n1__1 | = own | 3006 / 2679 / 7357 |
+| ucond_br3 | +2099 | +2037 | +5724 | ulink_n1__1 | = own | 2918 / 2621 / 7163 |
+| **ucond_br4** | **+2021** | **+1982** | **+5560** | ulink_n1__1 | = own | 2840 / 2566 / 6999 |
+| ucond_br5 | +9641 | +7456 | +22309 | ulink_n14__0, T=ulink_n11 | = own | 15259 / 11390 / 33674 |
+| ucond_br6 | +9706 | +7522 | +22566 | ulink_n14__0, T=ulink_n11 | = own | 15324 / 11456 / 33931 |
+| ucond_br7 | +10060 | +7742 | +23055 | ulink_n14__0, T=ulink_n11 | +2782 / +2349 / +7572 | 15678 / 11676 / 34420 |
+| umux0 | +6804 | +5067 | +14599 | ulink_n14__0 | = own | (monitor measures udat s vs z_req: not the same quantity) |
+| umux1 | +13696 | +9677 | +28799 | ulink_n14__1 stage[1] | = own | (idem) |
+| umux2 | +6228 | +4611 | +13542 | ulink_n_index_11 stage[1] | = own | (idem) |
+
+- **No negative site, under own or OR-join semantics, at any corner or launch.** Overall minimum: +1982 at ucond_br4 FAST_MIN (launch ulink_n1__1: the ucmpi0 n==1 compare vs ucmpi0's 8-element chain). Plain shortest path is negative on every steer (it ignores the delay-chain AND taps); diagnostic only.
+- Static <= dynamic for every steer at every corner (ucond_br2-4 by 0.6-1.4 ns; ucond_br5-7 by 4-11 ns, because the binding static launch is an upstream one through umux0's select and the transparent n[0] link, which the run does not exercise as a late select change).
+- ucond_br7's OR-join is lower than own because its join pairs n28__0 (uselect0's output, before the ucmpi2 chain) with n31__0 (after it): the same structure as xorshift A ucond_br6, but here still positive.
+
+### Data range vs static path
+
+- The 13 gate vectors (n = 2..32768 powers of 2, 27, 97, 871, 6171) keep every trajectory value < 2^20 (max 975400) and the step count <= 261. So uaddi0's carries above bit 21 and uaddi1's above bit 8 are never exercised by the gate; a full-range n (up to 2^31) exercises them.
+- The margins above are the **static longest path, full 32-bit carry through every CARRY4 slice** (no counter or range restriction is applied to collatz). The `vr` column is "=" on every row: no critical select path uses a carry outside the vector range.
+- uaddi0 appears in the select cone of 144 rows, always as an upstream launch (ulink_n10__1/2) through the transparent adder output latch ulink_n26. There the full-carry d path reaches s at least 2745 / 2372 / 6963 ps (worst / FAST_MIN / SLOW_MAX) before ulink_n26's own en path, which is what binds; the margin of the full-carry d path alone is >= 13.4 / 10.6 / 31.1 ns. So under this delay model the 3n+1 carry for large n is covered by uaddi0's matched delay and cannot set a select margin. uaddi1 (steps) feeds no select cone. The ucmpi0/ucmpi2 compares (LUT + MUXF7/F8 trees) and n>>1 have no carry.
+
+### Sanity
+
+- Planted +2000 ps on one ICBUF in a copy of the worst netlist, full re-parse (all PASS): ic_012306 on ucond_br4.u$LUT6's critical select path (launch ulink_n1__1): own 2021 -> 21 (**exactly -2000**); ic_009665 on umux2.uj0's select path: 6228 -> 4228 (**-2000**); ic_012055 on ucond_br4's request path: +2000; ic_013781 (umux1.uj0's s pin, unrelated): 0.
+- Depth 3 upstream launches (one-off, not saved): no site minimum changes; 72 of the extra rows close a cycle (the whole loop transparent at once) and are aborted, as designed.
+
+### Limitations
+
+1. All limitations of the sections above apply (simulator delay model, not silicon; 4-phase / C-element assumptions with free join inputs set to make req earliest; rule E's hold half not checked; upstream launches only through latches, depth 2).
+2. Non-latch sources are not launched: the bench FFs feeding ulink_n1__1, and the arbiter state / ack C-elements feeding ucontrol_merge0_olink and ulink_n_index_11 stage[0] (the merges' own bundling obligation, not checked here).
+3. Latches whose d is a constant (ulink_n19__*, 32'h1) are treated as able to change; pessimistic only.
+4. The mux comparison with the dynamic monitor is not like-for-like (the t83 mux monitor watches the data-mux LUTs' select against z_req, not the uj0/uj1 joins).
+5. The project's tighten.py / skew.py / corner_audit.py were not run (only read for xorshift earlier); no research rule-E numbers for this route were compared, since none were available as text here.

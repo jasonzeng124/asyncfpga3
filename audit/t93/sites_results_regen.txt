@@ -1,0 +1,702 @@
+T93 sites.py -- rule E at every select site, own model vs OR-join vs plain shortest path (ps, raw, no guard)
+own = earliest req rise (AND/C wait for last input) - latest select change, common launch <link>.ctl.u.u
+OR = C-elements crossed on the req path rise on their FIRST derived input (research semantics); plain = shortest path ignoring AND taps too
+<2^12 = own with select cone restricted to loop counter < 2^12 ("=" when the select cone has no adder)
+research raw: its raw margin at ITS launch (nextpnr SDF, a different delay model); in () = that site gate's research number shown on rows of other launches, for reference
+T= links treated as transparent (launch is upstream of them)
+
+A ucond_br2.u$LUT5   worst   ulink_n1__1                                                    s   4342 req   6863  OWN   2521  <2^12      =  OR   2521  plain  -1800  | research raw  +2997
+A ucond_br2.u$LUT5   fastmin ulink_n1__1                                                    s   2716 req   5164  OWN   2448  <2^12      =  OR   2448  plain   -804  | research raw 
+A ucond_br2.u$LUT6   worst   ulink_n1__1                                                    s   4342 req   6863  OWN   2521  <2^12      =  OR   2521  plain  -1800  | research raw  +2997
+A ucond_br2.u$LUT6   fastmin ulink_n1__1                                                    s   2716 req   5164  OWN   2448  <2^12      =  OR   2448  plain   -804  | research raw 
+A ucond_br3.u$LUT5   worst   ulink_n1__1                                                    s   4015 req   7319  OWN   3304  <2^12      =  OR   3304  plain  -1017  | research raw  +4566
+A ucond_br3.u$LUT5   fastmin ulink_n1__1                                                    s   2510 req   5536  OWN   3026  <2^12      =  OR   3026  plain   -226  | research raw 
+A ucond_br3.u$LUT6   worst   ulink_n1__1                                                    s   4015 req   7319  OWN   3304  <2^12      =  OR   3304  plain  -1017  | research raw  +4566
+A ucond_br3.u$LUT6   fastmin ulink_n1__1                                                    s   2510 req   5536  OWN   3026  <2^12      =  OR   3026  plain   -226  | research raw 
+A ucond_br4.u$LUT5   worst   ulink_n1__1                                                    s   4130 req   7266  OWN   3136  <2^12      =  OR   3136  plain  -1185  | research raw  +3988
+A ucond_br4.u$LUT5   fastmin ulink_n1__1                                                    s   2572 req   5482  OWN   2910  <2^12      =  OR   2910  plain   -342  | research raw 
+A ucond_br4.u$LUT6   worst   ulink_n1__1                                                    s   4130 req   7266  OWN   3136  <2^12      =  OR   3136  plain  -1185  | research raw  +3988
+A ucond_br4.u$LUT6   fastmin ulink_n1__1                                                    s   2572 req   5482  OWN   2910  <2^12      =  OR   2910  plain   -342  | research raw 
+A ucond_br5.u$LUT5   worst   ulink_n1__1                                                    s   4334 req   6846  OWN   2512  <2^12      =  OR   2512  plain  -1809  | research raw  +2783
+A ucond_br5.u$LUT5   fastmin ulink_n1__1                                                    s   2749 req   5170  OWN   2421  <2^12      =  OR   2421  plain   -831  | research raw 
+A ucond_br5.u$LUT6   worst   ulink_n1__1                                                    s   4334 req   6846  OWN   2512  <2^12      =  OR   2512  plain  -1809  | research raw  +2783
+A ucond_br5.u$LUT6   fastmin ulink_n1__1                                                    s   2749 req   5170  OWN   2421  <2^12      =  OR   2421  plain   -831  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n7                                                       s   6773 req   8360  OWN   1587  <2^12   2017  OR  -3087  plain  -5082  | research raw  -4651
+A ucond_br6.u$LUT5   fastmin ulink_n7                                                       s   4078 req   6027  OWN   1949  <2^12   2191  OR  -1352  plain  -2806  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n11__1                                                   s   4526 req   7345  OWN   2819  <2^12      =  OR   2819  plain  -1884  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n11__1                                                   s   2896 req   5336  OWN   2440  <2^12      =  OR   2440  plain   -929  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n12__0  T=ulink_n7                                       s  10652 req  12171  OWN   1519  <2^12   1949  OR  -3155  plain  -6846  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n12__0  T=ulink_n7                                       s   6922 req   8840  OWN   1918  <2^12   2160  OR  -1383  plain  -4121  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n12__2  T=ulink_n11__1                                   s   8949 req  11625  OWN   2676  <2^12      =  OR   2676  plain  -3928  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6025 req   8297  OWN   2272  <2^12      =  OR   2272  plain  -2469  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n6.many.stage[1].u  T=ulink_n7                           s   8744 req  10331  OWN   1587  <2^12   2017  OR  -3087  plain  -5082  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n6.many.stage[1].u  T=ulink_n7                           s   5491 req   7440  OWN   1949  <2^12   2191  OR  -1352  plain  -2806  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   6737 req   9365  OWN   2628  <2^12      =  OR   2628  plain  -2075  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4267 req   6707  OWN   2440  <2^12      =  OR   2440  plain   -929  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   6737 req   9556  OWN   2819  <2^12      =  OR   2819  plain  -1884  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4430 req   6870  OWN   2440  <2^12      =  OR   2440  plain   -929  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   8602 req  10189  OWN   1587  <2^12   2017  OR  -3087  plain  -5082  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   5365 req   7314  OWN   1949  <2^12   2191  OR  -1352  plain  -2806  | research raw 
+A ucond_br6.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s  12727 req  14246  OWN   1519  <2^12   1949  OR  -3155  plain  -6846  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s   8535 req  10453  OWN   1918  <2^12   2160  OR  -1383  plain  -4121  | research raw 
+A ucond_br6.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11211 req  13887  OWN   2676  <2^12      =  OR   2676  plain  -3928  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   7708 req   9980  OWN   2272  <2^12      =  OR   2272  plain  -2469  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   9715 req  11302  OWN   1587  <2^12   2017  OR  -3087  plain  -5082  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   6218 req   8167  OWN   1949  <2^12   2191  OR  -1352  plain  -2806  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   7643 req  10271  OWN   2628  <2^12      =  OR   2628  plain  -2075  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   4922 req   7362  OWN   2440  <2^12      =  OR   2440  plain   -929  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7175 req   9994  OWN   2819  <2^12      =  OR   2819  plain  -1884  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   4751 req   7191  OWN   2440  <2^12      =  OR   2440  plain   -929  | research raw 
+A ucond_br6.u$LUT5   worst   ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   9379 req  10966  OWN   1587  <2^12   2017  OR  -3087  plain  -5082  | research raw (-4651)
+A ucond_br6.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   5940 req   7889  OWN   1949  <2^12   2191  OR  -1352  plain  -2806  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n7                                                       s   6773 req   8360  OWN   1587  <2^12   2017  OR  -3087  plain  -5082  | research raw  -4651
+A ucond_br6.u$LUT6   fastmin ulink_n7                                                       s   4078 req   6027  OWN   1949  <2^12   2191  OR  -1352  plain  -2806  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n11__1                                                   s   4526 req   7345  OWN   2819  <2^12      =  OR   2819  plain  -1884  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n11__1                                                   s   2896 req   5336  OWN   2440  <2^12      =  OR   2440  plain   -929  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n12__0  T=ulink_n7                                       s  10652 req  12171  OWN   1519  <2^12   1949  OR  -3155  plain  -6846  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n12__0  T=ulink_n7                                       s   6922 req   8840  OWN   1918  <2^12   2160  OR  -1383  plain  -4121  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n12__2  T=ulink_n11__1                                   s   8949 req  11625  OWN   2676  <2^12      =  OR   2676  plain  -3928  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6025 req   8297  OWN   2272  <2^12      =  OR   2272  plain  -2469  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n6.many.stage[1].u  T=ulink_n7                           s   8744 req  10331  OWN   1587  <2^12   2017  OR  -3087  plain  -5082  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n6.many.stage[1].u  T=ulink_n7                           s   5491 req   7440  OWN   1949  <2^12   2191  OR  -1352  plain  -2806  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   6737 req   9365  OWN   2628  <2^12      =  OR   2628  plain  -2075  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4267 req   6707  OWN   2440  <2^12      =  OR   2440  plain   -929  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   6737 req   9556  OWN   2819  <2^12      =  OR   2819  plain  -1884  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4430 req   6870  OWN   2440  <2^12      =  OR   2440  plain   -929  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   8602 req  10189  OWN   1587  <2^12   2017  OR  -3087  plain  -5082  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   5365 req   7314  OWN   1949  <2^12   2191  OR  -1352  plain  -2806  | research raw 
+A ucond_br6.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s  12727 req  14246  OWN   1519  <2^12   1949  OR  -3155  plain  -6846  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s   8535 req  10453  OWN   1918  <2^12   2160  OR  -1383  plain  -4121  | research raw 
+A ucond_br6.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11211 req  13887  OWN   2676  <2^12      =  OR   2676  plain  -3928  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   7708 req   9980  OWN   2272  <2^12      =  OR   2272  plain  -2469  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   9715 req  11302  OWN   1587  <2^12   2017  OR  -3087  plain  -5082  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   6218 req   8167  OWN   1949  <2^12   2191  OR  -1352  plain  -2806  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   7643 req  10271  OWN   2628  <2^12      =  OR   2628  plain  -2075  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   4922 req   7362  OWN   2440  <2^12      =  OR   2440  plain   -929  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7175 req   9994  OWN   2819  <2^12      =  OR   2819  plain  -1884  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   4751 req   7191  OWN   2440  <2^12      =  OR   2440  plain   -929  | research raw 
+A ucond_br6.u$LUT6   worst   ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   9379 req  10966  OWN   1587  <2^12   2017  OR  -3087  plain  -5082  | research raw (-4651)
+A ucond_br6.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   5940 req   7889  OWN   1949  <2^12   2191  OR  -1352  plain  -2806  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n7                                                       s   6699 req   8381  OWN   1682  <2^12   2112  OR   1682  plain  -3992  | research raw  +1619
+A ucond_br7.u$LUT5   fastmin ulink_n7                                                       s   4016 req   6051  OWN   2035  <2^12   2277  OR   2035  plain  -2005  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n11__1                                                   s   4452 req   7366  OWN   2914  <2^12      =  OR   2914  plain  -1789  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n11__1                                                   s   2834 req   5360  OWN   2526  <2^12      =  OR   2526  plain   -843  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n12__0  T=ulink_n7                                       s  10578 req  12192  OWN   1614  <2^12   2044  OR   1614  plain  -5756  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n12__0  T=ulink_n7                                       s   6860 req   8864  OWN   2004  <2^12   2246  OR   2004  plain  -3320  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n12__2  T=ulink_n11__1                                   s   8875 req  11646  OWN   2771  <2^12      =  OR   2771  plain  -3833  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n12__2  T=ulink_n11__1                                   s   5963 req   8321  OWN   2358  <2^12      =  OR   2358  plain  -2383  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n6.many.stage[1].u  T=ulink_n7                           s   8670 req  10352  OWN   1682  <2^12   2112  OR   1682  plain  -3992  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n6.many.stage[1].u  T=ulink_n7                           s   5429 req   7464  OWN   2035  <2^12   2277  OR   2035  plain  -2005  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   6663 req   9386  OWN   2723  <2^12      =  OR   2723  plain  -1980  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4205 req   6731  OWN   2526  <2^12      =  OR   2526  plain   -843  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   6663 req   9577  OWN   2914  <2^12      =  OR   2914  plain  -1789  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4368 req   6894  OWN   2526  <2^12      =  OR   2526  plain   -843  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   8528 req  10210  OWN   1682  <2^12   2112  OR   1682  plain  -3992  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   5303 req   7338  OWN   2035  <2^12   2277  OR   2035  plain  -2005  | research raw 
+A ucond_br7.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s  12653 req  14267  OWN   1614  <2^12   2044  OR   1614  plain  -5756  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s   8473 req  10477  OWN   2004  <2^12   2246  OR   2004  plain  -3320  | research raw 
+A ucond_br7.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11137 req  13908  OWN   2771  <2^12      =  OR   2771  plain  -3833  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   7646 req  10004  OWN   2358  <2^12      =  OR   2358  plain  -2383  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   9641 req  11323  OWN   1682  <2^12   2112  OR   1682  plain  -3992  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   6156 req   8191  OWN   2035  <2^12   2277  OR   2035  plain  -2005  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   7569 req  10292  OWN   2723  <2^12      =  OR   2723  plain  -1980  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   4860 req   7386  OWN   2526  <2^12      =  OR   2526  plain   -843  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7101 req  10015  OWN   2914  <2^12      =  OR   2914  plain  -1789  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   4689 req   7215  OWN   2526  <2^12      =  OR   2526  plain   -843  | research raw 
+A ucond_br7.u$LUT5   worst   ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   9305 req  10987  OWN   1682  <2^12   2112  OR   1682  plain  -3992  | research raw (+1619)
+A ucond_br7.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   5878 req   7913  OWN   2035  <2^12   2277  OR   2035  plain  -2005  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n7                                                       s   6699 req   8381  OWN   1682  <2^12   2112  OR   1682  plain  -3992  | research raw  +1619
+A ucond_br7.u$LUT6   fastmin ulink_n7                                                       s   4016 req   6051  OWN   2035  <2^12   2277  OR   2035  plain  -2005  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n11__1                                                   s   4452 req   7366  OWN   2914  <2^12      =  OR   2914  plain  -1789  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n11__1                                                   s   2834 req   5360  OWN   2526  <2^12      =  OR   2526  plain   -843  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n12__0  T=ulink_n7                                       s  10578 req  12192  OWN   1614  <2^12   2044  OR   1614  plain  -5756  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n12__0  T=ulink_n7                                       s   6860 req   8864  OWN   2004  <2^12   2246  OR   2004  plain  -3320  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n12__2  T=ulink_n11__1                                   s   8875 req  11646  OWN   2771  <2^12      =  OR   2771  plain  -3833  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n12__2  T=ulink_n11__1                                   s   5963 req   8321  OWN   2358  <2^12      =  OR   2358  plain  -2383  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n6.many.stage[1].u  T=ulink_n7                           s   8670 req  10352  OWN   1682  <2^12   2112  OR   1682  plain  -3992  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n6.many.stage[1].u  T=ulink_n7                           s   5429 req   7464  OWN   2035  <2^12   2277  OR   2035  plain  -2005  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   6663 req   9386  OWN   2723  <2^12      =  OR   2723  plain  -1980  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4205 req   6731  OWN   2526  <2^12      =  OR   2526  plain   -843  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   6663 req   9577  OWN   2914  <2^12      =  OR   2914  plain  -1789  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4368 req   6894  OWN   2526  <2^12      =  OR   2526  plain   -843  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   8528 req  10210  OWN   1682  <2^12   2112  OR   1682  plain  -3992  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   5303 req   7338  OWN   2035  <2^12   2277  OR   2035  plain  -2005  | research raw 
+A ucond_br7.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s  12653 req  14267  OWN   1614  <2^12   2044  OR   1614  plain  -5756  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s   8473 req  10477  OWN   2004  <2^12   2246  OR   2004  plain  -3320  | research raw 
+A ucond_br7.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11137 req  13908  OWN   2771  <2^12      =  OR   2771  plain  -3833  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   7646 req  10004  OWN   2358  <2^12      =  OR   2358  plain  -2383  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   9641 req  11323  OWN   1682  <2^12   2112  OR   1682  plain  -3992  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   6156 req   8191  OWN   2035  <2^12   2277  OR   2035  plain  -2005  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   7569 req  10292  OWN   2723  <2^12      =  OR   2723  plain  -1980  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   4860 req   7386  OWN   2526  <2^12      =  OR   2526  plain   -843  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7101 req  10015  OWN   2914  <2^12      =  OR   2914  plain  -1789  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   4689 req   7215  OWN   2526  <2^12      =  OR   2526  plain   -843  | research raw 
+A ucond_br7.u$LUT6   worst   ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   9305 req  10987  OWN   1682  <2^12   2112  OR   1682  plain  -3992  | research raw (+1619)
+A ucond_br7.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   5878 req   7913  OWN   2035  <2^12   2277  OR   2035  plain  -2005  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n7                                                       s   6578 req   8323  OWN   1745  <2^12   2175  OR   1745  plain  -3929  | research raw  +1722
+A ucond_br8.u$LUT5   fastmin ulink_n7                                                       s   3921 req   6011  OWN   2090  <2^12   2332  OR   2090  plain  -1950  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n11__1                                                   s   4331 req   7308  OWN   2977  <2^12      =  OR   2977  plain  -1726  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n11__1                                                   s   2739 req   5320  OWN   2581  <2^12      =  OR   2581  plain   -788  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n12__0  T=ulink_n7                                       s  10457 req  12134  OWN   1677  <2^12   2107  OR   1677  plain  -5693  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n12__0  T=ulink_n7                                       s   6765 req   8824  OWN   2059  <2^12   2301  OR   2059  plain  -3265  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n12__2  T=ulink_n11__1                                   s   8754 req  11588  OWN   2834  <2^12      =  OR   2834  plain  -3770  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n12__2  T=ulink_n11__1                                   s   5868 req   8281  OWN   2413  <2^12      =  OR   2413  plain  -2328  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n6.many.stage[1].u  T=ulink_n7                           s   8549 req  10294  OWN   1745  <2^12   2175  OR   1745  plain  -3929  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n6.many.stage[1].u  T=ulink_n7                           s   5334 req   7424  OWN   2090  <2^12   2332  OR   2090  plain  -1950  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   6542 req   9328  OWN   2786  <2^12      =  OR   2786  plain  -1917  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4110 req   6691  OWN   2581  <2^12      =  OR   2581  plain   -788  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   6542 req   9519  OWN   2977  <2^12      =  OR   2977  plain  -1726  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4273 req   6854  OWN   2581  <2^12      =  OR   2581  plain   -788  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   8407 req  10152  OWN   1745  <2^12   2175  OR   1745  plain  -3929  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   5208 req   7298  OWN   2090  <2^12   2332  OR   2090  plain  -1950  | research raw 
+A ucond_br8.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s  12532 req  14209  OWN   1677  <2^12   2107  OR   1677  plain  -5693  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s   8378 req  10437  OWN   2059  <2^12   2301  OR   2059  plain  -3265  | research raw 
+A ucond_br8.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11016 req  13850  OWN   2834  <2^12      =  OR   2834  plain  -3770  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   7551 req   9964  OWN   2413  <2^12      =  OR   2413  plain  -2328  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   9520 req  11265  OWN   1745  <2^12   2175  OR   1745  plain  -3929  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   6061 req   8151  OWN   2090  <2^12   2332  OR   2090  plain  -1950  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   7448 req  10234  OWN   2786  <2^12      =  OR   2786  plain  -1917  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   4765 req   7346  OWN   2581  <2^12      =  OR   2581  plain   -788  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   6980 req   9957  OWN   2977  <2^12      =  OR   2977  plain  -1726  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   4594 req   7175  OWN   2581  <2^12      =  OR   2581  plain   -788  | research raw 
+A ucond_br8.u$LUT5   worst   ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   9184 req  10929  OWN   1745  <2^12   2175  OR   1745  plain  -3929  | research raw (+1722)
+A ucond_br8.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   5783 req   7873  OWN   2090  <2^12   2332  OR   2090  plain  -1950  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n7                                                       s   6578 req   8323  OWN   1745  <2^12   2175  OR   1745  plain  -3929  | research raw  +1722
+A ucond_br8.u$LUT6   fastmin ulink_n7                                                       s   3921 req   6011  OWN   2090  <2^12   2332  OR   2090  plain  -1950  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n11__1                                                   s   4331 req   7308  OWN   2977  <2^12      =  OR   2977  plain  -1726  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n11__1                                                   s   2739 req   5320  OWN   2581  <2^12      =  OR   2581  plain   -788  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n12__0  T=ulink_n7                                       s  10457 req  12134  OWN   1677  <2^12   2107  OR   1677  plain  -5693  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n12__0  T=ulink_n7                                       s   6765 req   8824  OWN   2059  <2^12   2301  OR   2059  plain  -3265  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n12__2  T=ulink_n11__1                                   s   8754 req  11588  OWN   2834  <2^12      =  OR   2834  plain  -3770  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n12__2  T=ulink_n11__1                                   s   5868 req   8281  OWN   2413  <2^12      =  OR   2413  plain  -2328  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n6.many.stage[1].u  T=ulink_n7                           s   8549 req  10294  OWN   1745  <2^12   2175  OR   1745  plain  -3929  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n6.many.stage[1].u  T=ulink_n7                           s   5334 req   7424  OWN   2090  <2^12   2332  OR   2090  plain  -1950  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   6542 req   9328  OWN   2786  <2^12      =  OR   2786  plain  -1917  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4110 req   6691  OWN   2581  <2^12      =  OR   2581  plain   -788  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   6542 req   9519  OWN   2977  <2^12      =  OR   2977  plain  -1726  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4273 req   6854  OWN   2581  <2^12      =  OR   2581  plain   -788  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   8407 req  10152  OWN   1745  <2^12   2175  OR   1745  plain  -3929  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   5208 req   7298  OWN   2090  <2^12   2332  OR   2090  plain  -1950  | research raw 
+A ucond_br8.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s  12532 req  14209  OWN   1677  <2^12   2107  OR   1677  plain  -5693  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s   8378 req  10437  OWN   2059  <2^12   2301  OR   2059  plain  -3265  | research raw 
+A ucond_br8.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11016 req  13850  OWN   2834  <2^12      =  OR   2834  plain  -3770  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   7551 req   9964  OWN   2413  <2^12      =  OR   2413  plain  -2328  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   9520 req  11265  OWN   1745  <2^12   2175  OR   1745  plain  -3929  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   6061 req   8151  OWN   2090  <2^12   2332  OR   2090  plain  -1950  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   7448 req  10234  OWN   2786  <2^12      =  OR   2786  plain  -1917  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   4765 req   7346  OWN   2581  <2^12      =  OR   2581  plain   -788  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   6980 req   9957  OWN   2977  <2^12      =  OR   2977  plain  -1726  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   4594 req   7175  OWN   2581  <2^12      =  OR   2581  plain   -788  | research raw 
+A ucond_br8.u$LUT6   worst   ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   9184 req  10929  OWN   1745  <2^12   2175  OR   1745  plain  -3929  | research raw (+1722)
+A ucond_br8.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   5783 req   7873  OWN   2090  <2^12   2332  OR   2090  plain  -1950  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n7                                                       s   6731 req   8263  OWN   1532  <2^12   1962  OR   1532  plain  -4142  | research raw   +617
+A ucond_br9.u$LUT5   fastmin ulink_n7                                                       s   4054 req   5945  OWN   1891  <2^12   2133  OR   1891  plain  -2149  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n11__1                                                   s   4484 req   7248  OWN   2764  <2^12      =  OR   2764  plain  -1939  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n11__1                                                   s   2872 req   5254  OWN   2382  <2^12      =  OR   2382  plain   -987  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n12__0  T=ulink_n7                                       s  10610 req  12074  OWN   1464  <2^12   1894  OR   1464  plain  -5906  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n12__0  T=ulink_n7                                       s   6898 req   8758  OWN   1860  <2^12   2102  OR   1860  plain  -3464  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n12__2  T=ulink_n11__1                                   s   8907 req  11528  OWN   2621  <2^12      =  OR   2621  plain  -3983  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6001 req   8215  OWN   2214  <2^12      =  OR   2214  plain  -2527  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n6.many.stage[1].u  T=ulink_n7                           s   8702 req  10234  OWN   1532  <2^12   1962  OR   1532  plain  -4142  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n6.many.stage[1].u  T=ulink_n7                           s   5467 req   7358  OWN   1891  <2^12   2133  OR   1891  plain  -2149  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   6695 req   9268  OWN   2573  <2^12      =  OR   2573  plain  -2130  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4243 req   6625  OWN   2382  <2^12      =  OR   2382  plain   -987  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   6695 req   9459  OWN   2764  <2^12      =  OR   2764  plain  -1939  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4406 req   6788  OWN   2382  <2^12      =  OR   2382  plain   -987  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   8560 req  10092  OWN   1532  <2^12   1962  OR   1532  plain  -4142  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   5341 req   7232  OWN   1891  <2^12   2133  OR   1891  plain  -2149  | research raw 
+A ucond_br9.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s  12685 req  14149  OWN   1464  <2^12   1894  OR   1464  plain  -5906  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s   8511 req  10371  OWN   1860  <2^12   2102  OR   1860  plain  -3464  | research raw 
+A ucond_br9.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11169 req  13790  OWN   2621  <2^12      =  OR   2621  plain  -3983  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   7684 req   9898  OWN   2214  <2^12      =  OR   2214  plain  -2527  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   9673 req  11205  OWN   1532  <2^12   1962  OR   1532  plain  -4142  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   6194 req   8085  OWN   1891  <2^12   2133  OR   1891  plain  -2149  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   7601 req  10174  OWN   2573  <2^12      =  OR   2573  plain  -2130  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   4898 req   7280  OWN   2382  <2^12      =  OR   2382  plain   -987  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7133 req   9897  OWN   2764  <2^12      =  OR   2764  plain  -1939  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   4727 req   7109  OWN   2382  <2^12      =  OR   2382  plain   -987  | research raw 
+A ucond_br9.u$LUT5   worst   ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   9337 req  10869  OWN   1532  <2^12   1962  OR   1532  plain  -4142  | research raw ( +617)
+A ucond_br9.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   5916 req   7807  OWN   1891  <2^12   2133  OR   1891  plain  -2149  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n7                                                       s   6731 req   8263  OWN   1532  <2^12   1962  OR   1532  plain  -4142  | research raw   +617
+A ucond_br9.u$LUT6   fastmin ulink_n7                                                       s   4054 req   5945  OWN   1891  <2^12   2133  OR   1891  plain  -2149  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n11__1                                                   s   4484 req   7248  OWN   2764  <2^12      =  OR   2764  plain  -1939  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n11__1                                                   s   2872 req   5254  OWN   2382  <2^12      =  OR   2382  plain   -987  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n12__0  T=ulink_n7                                       s  10610 req  12074  OWN   1464  <2^12   1894  OR   1464  plain  -5906  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n12__0  T=ulink_n7                                       s   6898 req   8758  OWN   1860  <2^12   2102  OR   1860  plain  -3464  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n12__2  T=ulink_n11__1                                   s   8907 req  11528  OWN   2621  <2^12      =  OR   2621  plain  -3983  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6001 req   8215  OWN   2214  <2^12      =  OR   2214  plain  -2527  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n6.many.stage[1].u  T=ulink_n7                           s   8702 req  10234  OWN   1532  <2^12   1962  OR   1532  plain  -4142  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n6.many.stage[1].u  T=ulink_n7                           s   5467 req   7358  OWN   1891  <2^12   2133  OR   1891  plain  -2149  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   6695 req   9268  OWN   2573  <2^12      =  OR   2573  plain  -2130  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4243 req   6625  OWN   2382  <2^12      =  OR   2382  plain   -987  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   6695 req   9459  OWN   2764  <2^12      =  OR   2764  plain  -1939  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4406 req   6788  OWN   2382  <2^12      =  OR   2382  plain   -987  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   8560 req  10092  OWN   1532  <2^12   1962  OR   1532  plain  -4142  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7               s   5341 req   7232  OWN   1891  <2^12   2133  OR   1891  plain  -2149  | research raw 
+A ucond_br9.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s  12685 req  14149  OWN   1464  <2^12   1894  OR   1464  plain  -5906  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__0,ulink_n7                 s   8511 req  10371  OWN   1860  <2^12   2102  OR   1860  plain  -3464  | research raw 
+A ucond_br9.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11169 req  13790  OWN   2621  <2^12      =  OR   2621  plain  -3983  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   7684 req   9898  OWN   2214  <2^12      =  OR   2214  plain  -2527  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   9673 req  11205  OWN   1532  <2^12   1962  OR   1532  plain  -4142  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n6.many.stage[0].u  T=ulink_n6.many.stage[1].u,ulink_n7  s   6194 req   8085  OWN   1891  <2^12   2133  OR   1891  plain  -2149  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   7601 req  10174  OWN   2573  <2^12      =  OR   2573  plain  -2130  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   4898 req   7280  OWN   2382  <2^12      =  OR   2382  plain   -987  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7133 req   9897  OWN   2764  <2^12      =  OR   2764  plain  -1939  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   4727 req   7109  OWN   2382  <2^12      =  OR   2382  plain   -987  | research raw 
+A ucond_br9.u$LUT6   worst   ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   9337 req  10869  OWN   1532  <2^12   1962  OR   1532  plain  -4142  | research raw ( +617)
+A ucond_br9.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[0].u  T=ulink_n_trueResult_6.many.stage[1].u,ulink_n7 s   5916 req   7807  OWN   1891  <2^12   2133  OR   1891  plain  -2149  | research raw 
+A umux0.uj0          worst   ulink_n12__0                                                   s    537 req   2507  OWN   1970  <2^12      =  OR   1970  plain    274  | research raw  +2509
+A umux0.uj0          fastmin ulink_n12__0                                                   s    391 req   1871  OWN   1480  <2^12      =  OR   1480  plain    196  | research raw 
+A umux0.uj0          worst   ucontrol_merge0_olink  T=ulink_n12__0                          s   2612 req   4582  OWN   1970  <2^12      =  OR   1970  plain    274  | research raw (+2509)
+A umux0.uj0          fastmin ucontrol_merge0_olink  T=ulink_n12__0                          s   2004 req   3484  OWN   1480  <2^12      =  OR   1480  plain    196  | research raw 
+A umux0.uj1          worst   ulink_n12__0                                                   s    541 req   2556  OWN   2015  <2^12      =  OR   2015  plain    319  | research raw  +2509
+A umux0.uj1          fastmin ulink_n12__0                                                   s    382 req   1899  OWN   1517  <2^12      =  OR   1517  plain    233  | research raw 
+A umux0.uj1          worst   ucontrol_merge0_olink  T=ulink_n12__0                          s   2616 req   4631  OWN   2015  <2^12      =  OR   2015  plain    319  | research raw (+2509)
+A umux0.uj1          fastmin ucontrol_merge0_olink  T=ulink_n12__0                          s   1995 req   3512  OWN   1517  <2^12      =  OR   1517  plain    233  | research raw 
+A umux1.uj0          worst   ulink_n12__1.many.stage[1].u                                   s    609 req   3415  OWN   2806  <2^12      =  OR   2806  plain   2806  | research raw  +3620
+A umux1.uj0          fastmin ulink_n12__1.many.stage[1].u                                   s    452 req   2422  OWN   1970  <2^12      =  OR   1970  plain   1970  | research raw 
+A umux1.uj0          worst   ulink_n12__1.many.stage[0].u  T=ulink_n12__1.many.stage[1].u   s   1606 req   4412  OWN   2806  <2^12      =  OR   2806  plain   2806  | research raw (+3620)
+A umux1.uj0          fastmin ulink_n12__1.many.stage[0].u  T=ulink_n12__1.many.stage[1].u   s   1139 req   3109  OWN   1970  <2^12      =  OR   1970  plain   1970  | research raw 
+A umux1.uj0          worst   ucontrol_merge0_olink  T=ulink_n12__1.many.stage[0].u,ulink_n12__1.many.stage[1].u s   3897 req   6703  OWN   2806  <2^12      =  OR   2806  plain   2806  | research raw (+3620)
+A umux1.uj0          fastmin ucontrol_merge0_olink  T=ulink_n12__1.many.stage[0].u,ulink_n12__1.many.stage[1].u s   2846 req   4816  OWN   1970  <2^12      =  OR   1970  plain   1970  | research raw 
+A umux1.uj1          worst   ulink_n12__1.many.stage[1].u                                   s    637 req   3376  OWN   2739  <2^12      =  OR   2739  plain   2739  | research raw  +3620
+A umux1.uj1          fastmin ulink_n12__1.many.stage[1].u                                   s    448 req   2419  OWN   1971  <2^12      =  OR   1971  plain   1971  | research raw 
+A umux1.uj1          worst   ulink_n12__1.many.stage[0].u  T=ulink_n12__1.many.stage[1].u   s   1634 req   4373  OWN   2739  <2^12      =  OR   2739  plain   2739  | research raw (+3620)
+A umux1.uj1          fastmin ulink_n12__1.many.stage[0].u  T=ulink_n12__1.many.stage[1].u   s   1135 req   3106  OWN   1971  <2^12      =  OR   1971  plain   1971  | research raw 
+A umux1.uj1          worst   ucontrol_merge0_olink  T=ulink_n12__1.many.stage[0].u,ulink_n12__1.many.stage[1].u s   3925 req   6664  OWN   2739  <2^12      =  OR   2739  plain   2739  | research raw (+3620)
+A umux1.uj1          fastmin ucontrol_merge0_olink  T=ulink_n12__1.many.stage[0].u,ulink_n12__1.many.stage[1].u s   2842 req   4813  OWN   1971  <2^12      =  OR   1971  plain   1971  | research raw 
+A umux2.uj0          worst   ulink_n12__2                                                   s    522 req   2742  OWN   2220  <2^12      =  OR   2220  plain    319  | research raw  +2941
+A umux2.uj0          fastmin ulink_n12__2                                                   s    378 req   1957  OWN   1579  <2^12      =  OR   1579  plain    207  | research raw 
+A umux2.uj0          worst   ucontrol_merge0_olink  T=ulink_n12__2                          s   2784 req   5004  OWN   2220  <2^12      =  OR   2220  plain    319  | research raw (+2941)
+A umux2.uj0          fastmin ucontrol_merge0_olink  T=ulink_n12__2                          s   2061 req   3640  OWN   1579  <2^12      =  OR   1579  plain    207  | research raw 
+A umux2.uj1          worst   ulink_n12__2                                                   s    510 req   2727  OWN   2217  <2^12      =  OR   2217  plain    316  | research raw  +2941
+A umux2.uj1          fastmin ulink_n12__2                                                   s    369 req   1932  OWN   1563  <2^12      =  OR   1563  plain    191  | research raw 
+A umux2.uj1          worst   ucontrol_merge0_olink  T=ulink_n12__2                          s   2772 req   4989  OWN   2217  <2^12      =  OR   2217  plain    316  | research raw (+2941)
+A umux2.uj1          fastmin ucontrol_merge0_olink  T=ulink_n12__2                          s   2052 req   3615  OWN   1563  <2^12      =  OR   1563  plain    191  | research raw 
+A umux3.uj0          worst   ulink_n_index_15.many.stage[1].u                               s    543 req   2364  OWN   1821  <2^12      =  OR   1821  plain   1821  | research raw  +1955
+A umux3.uj0          fastmin ulink_n_index_15.many.stage[1].u                               s    393 req   1608  OWN   1215  <2^12      =  OR   1215  plain   1215  | research raw 
+A umux3.uj0          worst   ulink_n_index_15.many.stage[0].u  T=ulink_n_index_15.many.stage[1].u s   1192 req   2981  OWN   1789  <2^12      =  OR   1789  plain   1789  | research raw (+1955)
+A umux3.uj0          fastmin ulink_n_index_15.many.stage[0].u  T=ulink_n_index_15.many.stage[1].u s    825 req   2038  OWN   1213  <2^12      =  OR   1213  plain   1213  | research raw 
+A umux3.uj1          worst   ulink_n_index_15.many.stage[1].u                               s    544 req   2340  OWN   1796  <2^12      =  OR   1796  plain   1796  | research raw  +1955
+A umux3.uj1          fastmin ulink_n_index_15.many.stage[1].u                               s    389 req   1605  OWN   1216  <2^12      =  OR   1216  plain   1216  | research raw 
+A umux3.uj1          worst   ulink_n_index_15.many.stage[0].u  T=ulink_n_index_15.many.stage[1].u s   1193 req   2957  OWN   1764  <2^12      =  OR   1764  plain   1764  | research raw (+1955)
+A umux3.uj1          fastmin ulink_n_index_15.many.stage[0].u  T=ulink_n_index_15.many.stage[1].u s    821 req   2035  OWN   1214  <2^12      =  OR   1214  plain   1214  | research raw 
+B ucond_br2.u$LUT5   worst   ulink_n1__1                                                    s   4435 req   6696  OWN   2261  <2^12      =  OR   2261  plain  -2582  | research raw  +2797
+B ucond_br2.u$LUT5   fastmin ulink_n1__1                                                    s   2812 req   4775  OWN   1963  <2^12      =  OR   1963  plain  -1502  | research raw 
+B ucond_br2.u$LUT6   worst   ulink_n1__1                                                    s   4435 req   6696  OWN   2261  <2^12      =  OR   2261  plain  -2582  | research raw  +2797
+B ucond_br2.u$LUT6   fastmin ulink_n1__1                                                    s   2812 req   4775  OWN   1963  <2^12      =  OR   1963  plain  -1502  | research raw 
+B ucond_br3.u$LUT5   worst   ulink_n1__1                                                    s   4016 req   7229  OWN   3213  <2^12      =  OR   3213  plain  -1630  | research raw  +4473
+B ucond_br3.u$LUT5   fastmin ulink_n1__1                                                    s   2451 req   5121  OWN   2670  <2^12      =  OR   2670  plain   -795  | research raw 
+B ucond_br3.u$LUT6   worst   ulink_n1__1                                                    s   4016 req   7229  OWN   3213  <2^12      =  OR   3213  plain  -1630  | research raw  +4473
+B ucond_br3.u$LUT6   fastmin ulink_n1__1                                                    s   2451 req   5121  OWN   2670  <2^12      =  OR   2670  plain   -795  | research raw 
+B ucond_br4.u$LUT5   worst   ulink_n1__1                                                    s   4072 req   6789  OWN   2717  <2^12      =  OR   2717  plain  -2126  | research raw  +3355
+B ucond_br4.u$LUT5   fastmin ulink_n1__1                                                    s   2522 req   4821  OWN   2299  <2^12      =  OR   2299  plain  -1166  | research raw 
+B ucond_br4.u$LUT6   worst   ulink_n1__1                                                    s   4072 req   6789  OWN   2717  <2^12      =  OR   2717  plain  -2126  | research raw  +3355
+B ucond_br4.u$LUT6   fastmin ulink_n1__1                                                    s   2522 req   4821  OWN   2299  <2^12      =  OR   2299  plain  -1166  | research raw 
+B ucond_br5.u$LUT5   worst   ulink_n1__1                                                    s   4382 req   6678  OWN   2296  <2^12      =  OR   2296  plain  -2547  | research raw  +2662
+B ucond_br5.u$LUT5   fastmin ulink_n1__1                                                    s   2769 req   4747  OWN   1978  <2^12      =  OR   1978  plain  -1487  | research raw 
+B ucond_br5.u$LUT6   worst   ulink_n1__1                                                    s   4382 req   6678  OWN   2296  <2^12      =  OR   2296  plain  -2547  | research raw  +2662
+B ucond_br5.u$LUT6   fastmin ulink_n1__1                                                    s   2769 req   4747  OWN   1978  <2^12      =  OR   1978  plain  -1487  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n30__1                                                   s   5341 req   6294  OWN    953  <2^12      =  OR    953  plain  -2835  | research raw  +1699
+B ucond_br6.u$LUT5   fastmin ulink_n30__1                                                   s   3429 req   4701  OWN   1272  <2^12      =  OR   1272  plain  -1534  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n11__1                                                   s   5252 req   7424  OWN   2172  <2^12      =  OR   2172  plain  -2561  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ulink_n11__1                                                   s   3425 req   5494  OWN   2069  <2^12      =  OR   2069  plain  -1336  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n12__2  T=ulink_n11__1                                   s   9769 req  11817  OWN   2048  <2^12      =  OR   2048  plain  -4811  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6677 req   8675  OWN   1998  <2^12      =  OR   1998  plain  -2958  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n7  T=ulink_n30__1                                       s   9141 req  10094  OWN    953  <2^12    953  OR  -5183  plain  -7797  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ulink_n7  T=ulink_n30__1                                       s   6323 req   7595  OWN   1272  <2^12   1272  OR  -3360  plain  -5402  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   7111 req   9283  OWN   2172  <2^12      =  OR   2172  plain  -2561  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4754 req   6823  OWN   2069  <2^12      =  OR   2069  plain  -1336  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   7399 req   9571  OWN   2172  <2^12      =  OR   2172  plain  -2561  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4896 req   6965  OWN   2069  <2^12      =  OR   2069  plain  -1336  | research raw 
+B ucond_br6.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11866 req  13914  OWN   2048  <2^12      =  OR   2048  plain  -4811  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   8195 req  10193  OWN   1998  <2^12      =  OR   1998  plain  -2958  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n12__0  T=ulink_n7,ulink_n30__1                          s  12599 req  13353  OWN    754  <2^12    754  OR  -5382  plain  -9206  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ulink_n12__0  T=ulink_n7,ulink_n30__1                          s   8837 req   9974  OWN   1137  <2^12   1137  OR  -3495  plain  -6480  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s  10711 req  11664  OWN    953  <2^12    953  OR  -5183  plain  -7797  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s   7420 req   8692  OWN   1272  <2^12   1272  OR  -3360  plain  -5402  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   8075 req  10247  OWN   2172  <2^12      =  OR   2172  plain  -2561  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   5430 req   7499  OWN   2069  <2^12      =  OR   2069  plain  -1336  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7885 req  10057  OWN   2172  <2^12      =  OR   2172  plain  -2561  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   5204 req   7273  OWN   2069  <2^12      =  OR   2069  plain  -1336  | research raw 
+B ucond_br6.u$LUT5   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s  11046 req  11999  OWN    953  <2^12    953  OR  -5183  plain  -7797  | research raw (+1699)
+B ucond_br6.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s   7637 req   8909  OWN   1272  <2^12   1272  OR  -3360  plain  -5402  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n30__1                                                   s   5341 req   6294  OWN    953  <2^12      =  OR    953  plain  -2835  | research raw  +1699
+B ucond_br6.u$LUT6   fastmin ulink_n30__1                                                   s   3429 req   4701  OWN   1272  <2^12      =  OR   1272  plain  -1534  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n11__1                                                   s   5252 req   7424  OWN   2172  <2^12      =  OR   2172  plain  -2561  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ulink_n11__1                                                   s   3425 req   5494  OWN   2069  <2^12      =  OR   2069  plain  -1336  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n12__2  T=ulink_n11__1                                   s   9769 req  11817  OWN   2048  <2^12      =  OR   2048  plain  -4811  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6677 req   8675  OWN   1998  <2^12      =  OR   1998  plain  -2958  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n7  T=ulink_n30__1                                       s   9141 req  10094  OWN    953  <2^12    953  OR  -5183  plain  -7797  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ulink_n7  T=ulink_n30__1                                       s   6323 req   7595  OWN   1272  <2^12   1272  OR  -3360  plain  -5402  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   7111 req   9283  OWN   2172  <2^12      =  OR   2172  plain  -2561  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4754 req   6823  OWN   2069  <2^12      =  OR   2069  plain  -1336  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   7399 req   9571  OWN   2172  <2^12      =  OR   2172  plain  -2561  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4896 req   6965  OWN   2069  <2^12      =  OR   2069  plain  -1336  | research raw 
+B ucond_br6.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11866 req  13914  OWN   2048  <2^12      =  OR   2048  plain  -4811  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   8195 req  10193  OWN   1998  <2^12      =  OR   1998  plain  -2958  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n12__0  T=ulink_n7,ulink_n30__1                          s  12599 req  13353  OWN    754  <2^12    754  OR  -5382  plain  -9206  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ulink_n12__0  T=ulink_n7,ulink_n30__1                          s   8837 req   9974  OWN   1137  <2^12   1137  OR  -3495  plain  -6480  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s  10711 req  11664  OWN    953  <2^12    953  OR  -5183  plain  -7797  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s   7420 req   8692  OWN   1272  <2^12   1272  OR  -3360  plain  -5402  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   8075 req  10247  OWN   2172  <2^12      =  OR   2172  plain  -2561  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   5430 req   7499  OWN   2069  <2^12      =  OR   2069  plain  -1336  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7885 req  10057  OWN   2172  <2^12      =  OR   2172  plain  -2561  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   5204 req   7273  OWN   2069  <2^12      =  OR   2069  plain  -1336  | research raw 
+B ucond_br6.u$LUT6   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s  11046 req  11999  OWN    953  <2^12    953  OR  -5183  plain  -7797  | research raw (+1699)
+B ucond_br6.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s   7637 req   8909  OWN   1272  <2^12   1272  OR  -3360  plain  -5402  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n30__1                                                   s   5191 req   6828  OWN   1637  <2^12      =  OR   1637  plain  -2151  | research raw  +2566
+B ucond_br7.u$LUT5   fastmin ulink_n30__1                                                   s   3261 req   5016  OWN   1755  <2^12      =  OR   1755  plain  -1051  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n11__1                                                   s   5102 req   7958  OWN   2856  <2^12      =  OR   2856  plain  -1877  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ulink_n11__1                                                   s   3257 req   5809  OWN   2552  <2^12      =  OR   2552  plain   -853  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n12__2  T=ulink_n11__1                                   s   9619 req  12351  OWN   2732  <2^12      =  OR   2732  plain  -4127  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6509 req   8990  OWN   2481  <2^12      =  OR   2481  plain  -2475  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n7  T=ulink_n30__1                                       s   8991 req  10628  OWN   1637  <2^12   1637  OR   1637  plain  -4765  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ulink_n7  T=ulink_n30__1                                       s   6155 req   7910  OWN   1755  <2^12   1755  OR   1755  plain  -3093  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   6961 req   9817  OWN   2856  <2^12      =  OR   2856  plain  -1877  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4586 req   7138  OWN   2552  <2^12      =  OR   2552  plain   -853  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   7249 req  10105  OWN   2856  <2^12      =  OR   2856  plain  -1877  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4728 req   7280  OWN   2552  <2^12      =  OR   2552  plain   -853  | research raw 
+B ucond_br7.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11716 req  14448  OWN   2732  <2^12      =  OR   2732  plain  -4127  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   8027 req  10508  OWN   2481  <2^12      =  OR   2481  plain  -2475  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n12__0  T=ulink_n7,ulink_n30__1                          s  12449 req  13887  OWN   1438  <2^12   1438  OR   1438  plain  -6174  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ulink_n12__0  T=ulink_n7,ulink_n30__1                          s   8669 req  10289  OWN   1620  <2^12   1620  OR   1620  plain  -4171  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s  10561 req  12198  OWN   1637  <2^12   1637  OR   1637  plain  -4765  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s   7252 req   9007  OWN   1755  <2^12   1755  OR   1755  plain  -3093  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   7925 req  10781  OWN   2856  <2^12      =  OR   2856  plain  -1877  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   5262 req   7814  OWN   2552  <2^12      =  OR   2552  plain   -853  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7735 req  10591  OWN   2856  <2^12      =  OR   2856  plain  -1877  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   5036 req   7588  OWN   2552  <2^12      =  OR   2552  plain   -853  | research raw 
+B ucond_br7.u$LUT5   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s  10896 req  12533  OWN   1637  <2^12   1637  OR   1637  plain  -4765  | research raw (+2566)
+B ucond_br7.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s   7469 req   9224  OWN   1755  <2^12   1755  OR   1755  plain  -3093  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n30__1                                                   s   5191 req   6828  OWN   1637  <2^12      =  OR   1637  plain  -2151  | research raw  +2566
+B ucond_br7.u$LUT6   fastmin ulink_n30__1                                                   s   3261 req   5016  OWN   1755  <2^12      =  OR   1755  plain  -1051  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n11__1                                                   s   5102 req   7958  OWN   2856  <2^12      =  OR   2856  plain  -1877  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ulink_n11__1                                                   s   3257 req   5809  OWN   2552  <2^12      =  OR   2552  plain   -853  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n12__2  T=ulink_n11__1                                   s   9619 req  12351  OWN   2732  <2^12      =  OR   2732  plain  -4127  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6509 req   8990  OWN   2481  <2^12      =  OR   2481  plain  -2475  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n7  T=ulink_n30__1                                       s   8991 req  10628  OWN   1637  <2^12   1637  OR   1637  plain  -4765  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ulink_n7  T=ulink_n30__1                                       s   6155 req   7910  OWN   1755  <2^12   1755  OR   1755  plain  -3093  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   6961 req   9817  OWN   2856  <2^12      =  OR   2856  plain  -1877  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4586 req   7138  OWN   2552  <2^12      =  OR   2552  plain   -853  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   7249 req  10105  OWN   2856  <2^12      =  OR   2856  plain  -1877  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4728 req   7280  OWN   2552  <2^12      =  OR   2552  plain   -853  | research raw 
+B ucond_br7.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11716 req  14448  OWN   2732  <2^12      =  OR   2732  plain  -4127  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   8027 req  10508  OWN   2481  <2^12      =  OR   2481  plain  -2475  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n12__0  T=ulink_n7,ulink_n30__1                          s  12449 req  13887  OWN   1438  <2^12   1438  OR   1438  plain  -6174  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ulink_n12__0  T=ulink_n7,ulink_n30__1                          s   8669 req  10289  OWN   1620  <2^12   1620  OR   1620  plain  -4171  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s  10561 req  12198  OWN   1637  <2^12   1637  OR   1637  plain  -4765  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s   7252 req   9007  OWN   1755  <2^12   1755  OR   1755  plain  -3093  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   7925 req  10781  OWN   2856  <2^12      =  OR   2856  plain  -1877  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   5262 req   7814  OWN   2552  <2^12      =  OR   2552  plain   -853  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7735 req  10591  OWN   2856  <2^12      =  OR   2856  plain  -1877  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   5036 req   7588  OWN   2552  <2^12      =  OR   2552  plain   -853  | research raw 
+B ucond_br7.u$LUT6   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s  10896 req  12533  OWN   1637  <2^12   1637  OR   1637  plain  -4765  | research raw (+2566)
+B ucond_br7.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s   7469 req   9224  OWN   1755  <2^12   1755  OR   1755  plain  -3093  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n30__1                                                   s   5323 req   6609  OWN   1286  <2^12      =  OR   1286  plain  -2502  | research raw  +2137
+B ucond_br8.u$LUT5   fastmin ulink_n30__1                                                   s   3399 req   4934  OWN   1535  <2^12      =  OR   1535  plain  -1271  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n11__1                                                   s   5234 req   7739  OWN   2505  <2^12      =  OR   2505  plain  -2228  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ulink_n11__1                                                   s   3395 req   5727  OWN   2332  <2^12      =  OR   2332  plain  -1073  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n12__2  T=ulink_n11__1                                   s   9751 req  12132  OWN   2381  <2^12      =  OR   2381  plain  -4478  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6647 req   8908  OWN   2261  <2^12      =  OR   2261  plain  -2695  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n7  T=ulink_n30__1                                       s   9123 req  10409  OWN   1286  <2^12   1286  OR   1286  plain  -5116  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ulink_n7  T=ulink_n30__1                                       s   6293 req   7828  OWN   1535  <2^12   1535  OR   1535  plain  -3313  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   7093 req   9598  OWN   2505  <2^12      =  OR   2505  plain  -2228  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4724 req   7056  OWN   2332  <2^12      =  OR   2332  plain  -1073  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   7381 req   9886  OWN   2505  <2^12      =  OR   2505  plain  -2228  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4866 req   7198  OWN   2332  <2^12      =  OR   2332  plain  -1073  | research raw 
+B ucond_br8.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11848 req  14229  OWN   2381  <2^12      =  OR   2381  plain  -4478  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   8165 req  10426  OWN   2261  <2^12      =  OR   2261  plain  -2695  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n12__0  T=ulink_n7,ulink_n30__1                          s  12581 req  13668  OWN   1087  <2^12   1087  OR   1087  plain  -6525  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ulink_n12__0  T=ulink_n7,ulink_n30__1                          s   8807 req  10207  OWN   1400  <2^12   1400  OR   1400  plain  -4391  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s  10693 req  11979  OWN   1286  <2^12   1286  OR   1286  plain  -5116  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s   7390 req   8925  OWN   1535  <2^12   1535  OR   1535  plain  -3313  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   8057 req  10562  OWN   2505  <2^12      =  OR   2505  plain  -2228  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   5400 req   7732  OWN   2332  <2^12      =  OR   2332  plain  -1073  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7867 req  10372  OWN   2505  <2^12      =  OR   2505  plain  -2228  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   5174 req   7506  OWN   2332  <2^12      =  OR   2332  plain  -1073  | research raw 
+B ucond_br8.u$LUT5   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s  11028 req  12314  OWN   1286  <2^12   1286  OR   1286  plain  -5116  | research raw (+2137)
+B ucond_br8.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s   7607 req   9142  OWN   1535  <2^12   1535  OR   1535  plain  -3313  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n30__1                                                   s   5323 req   6609  OWN   1286  <2^12      =  OR   1286  plain  -2502  | research raw  +2137
+B ucond_br8.u$LUT6   fastmin ulink_n30__1                                                   s   3399 req   4934  OWN   1535  <2^12      =  OR   1535  plain  -1271  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n11__1                                                   s   5234 req   7739  OWN   2505  <2^12      =  OR   2505  plain  -2228  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ulink_n11__1                                                   s   3395 req   5727  OWN   2332  <2^12      =  OR   2332  plain  -1073  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n12__2  T=ulink_n11__1                                   s   9751 req  12132  OWN   2381  <2^12      =  OR   2381  plain  -4478  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6647 req   8908  OWN   2261  <2^12      =  OR   2261  plain  -2695  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n7  T=ulink_n30__1                                       s   9123 req  10409  OWN   1286  <2^12   1286  OR   1286  plain  -5116  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ulink_n7  T=ulink_n30__1                                       s   6293 req   7828  OWN   1535  <2^12   1535  OR   1535  plain  -3313  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   7093 req   9598  OWN   2505  <2^12      =  OR   2505  plain  -2228  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4724 req   7056  OWN   2332  <2^12      =  OR   2332  plain  -1073  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   7381 req   9886  OWN   2505  <2^12      =  OR   2505  plain  -2228  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4866 req   7198  OWN   2332  <2^12      =  OR   2332  plain  -1073  | research raw 
+B ucond_br8.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  11848 req  14229  OWN   2381  <2^12      =  OR   2381  plain  -4478  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   8165 req  10426  OWN   2261  <2^12      =  OR   2261  plain  -2695  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n12__0  T=ulink_n7,ulink_n30__1                          s  12581 req  13668  OWN   1087  <2^12   1087  OR   1087  plain  -6525  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ulink_n12__0  T=ulink_n7,ulink_n30__1                          s   8807 req  10207  OWN   1400  <2^12   1400  OR   1400  plain  -4391  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s  10693 req  11979  OWN   1286  <2^12   1286  OR   1286  plain  -5116  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s   7390 req   8925  OWN   1535  <2^12   1535  OR   1535  plain  -3313  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   8057 req  10562  OWN   2505  <2^12      =  OR   2505  plain  -2228  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   5400 req   7732  OWN   2332  <2^12      =  OR   2332  plain  -1073  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   7867 req  10372  OWN   2505  <2^12      =  OR   2505  plain  -2228  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   5174 req   7506  OWN   2332  <2^12      =  OR   2332  plain  -1073  | research raw 
+B ucond_br8.u$LUT6   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s  11028 req  12314  OWN   1286  <2^12   1286  OR   1286  plain  -5116  | research raw (+2137)
+B ucond_br8.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s   7607 req   9142  OWN   1535  <2^12   1535  OR   1535  plain  -3313  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n30__1                                                   s   5540 req   6724  OWN   1184  <2^12      =  OR   1184  plain  -2604  | research raw  +1896
+B ucond_br9.u$LUT5   fastmin ulink_n30__1                                                   s   3529 req   4950  OWN   1421  <2^12      =  OR   1421  plain  -1385  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n11__1                                                   s   5451 req   7854  OWN   2403  <2^12      =  OR   2403  plain  -2330  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ulink_n11__1                                                   s   3525 req   5743  OWN   2218  <2^12      =  OR   2218  plain  -1187  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n12__2  T=ulink_n11__1                                   s   9968 req  12247  OWN   2279  <2^12      =  OR   2279  plain  -4580  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6777 req   8924  OWN   2147  <2^12      =  OR   2147  plain  -2809  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n7  T=ulink_n30__1                                       s   9340 req  10524  OWN   1184  <2^12   1184  OR   1184  plain  -5218  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ulink_n7  T=ulink_n30__1                                       s   6423 req   7844  OWN   1421  <2^12   1421  OR   1421  plain  -3427  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   7310 req   9713  OWN   2403  <2^12      =  OR   2403  plain  -2330  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4854 req   7072  OWN   2218  <2^12      =  OR   2218  plain  -1187  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   7598 req  10001  OWN   2403  <2^12      =  OR   2403  plain  -2330  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4996 req   7214  OWN   2218  <2^12      =  OR   2218  plain  -1187  | research raw 
+B ucond_br9.u$LUT5   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  12065 req  14344  OWN   2279  <2^12      =  OR   2279  plain  -4580  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   8295 req  10442  OWN   2147  <2^12      =  OR   2147  plain  -2809  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n12__0  T=ulink_n7,ulink_n30__1                          s  12798 req  13783  OWN    985  <2^12    985  OR    985  plain  -6627  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ulink_n12__0  T=ulink_n7,ulink_n30__1                          s   8937 req  10223  OWN   1286  <2^12   1286  OR   1286  plain  -4505  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s  10910 req  12094  OWN   1184  <2^12   1184  OR   1184  plain  -5218  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s   7520 req   8941  OWN   1421  <2^12   1421  OR   1421  plain  -3427  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   8274 req  10677  OWN   2403  <2^12      =  OR   2403  plain  -2330  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   5530 req   7748  OWN   2218  <2^12      =  OR   2218  plain  -1187  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   8084 req  10487  OWN   2403  <2^12      =  OR   2403  plain  -2330  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   5304 req   7522  OWN   2218  <2^12      =  OR   2218  plain  -1187  | research raw 
+B ucond_br9.u$LUT5   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s  11245 req  12429  OWN   1184  <2^12   1184  OR   1184  plain  -5218  | research raw (+1896)
+B ucond_br9.u$LUT5   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s   7737 req   9158  OWN   1421  <2^12   1421  OR   1421  plain  -3427  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n30__1                                                   s   5540 req   6724  OWN   1184  <2^12      =  OR   1184  plain  -2604  | research raw  +1896
+B ucond_br9.u$LUT6   fastmin ulink_n30__1                                                   s   3529 req   4950  OWN   1421  <2^12      =  OR   1421  plain  -1385  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n11__1                                                   s   5451 req   7854  OWN   2403  <2^12      =  OR   2403  plain  -2330  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ulink_n11__1                                                   s   3525 req   5743  OWN   2218  <2^12      =  OR   2218  plain  -1187  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n12__2  T=ulink_n11__1                                   s   9968 req  12247  OWN   2279  <2^12      =  OR   2279  plain  -4580  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ulink_n12__2  T=ulink_n11__1                                   s   6777 req   8924  OWN   2147  <2^12      =  OR   2147  plain  -2809  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n7  T=ulink_n30__1                                       s   9340 req  10524  OWN   1184  <2^12   1184  OR   1184  plain  -5218  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ulink_n7  T=ulink_n30__1                                       s   6423 req   7844  OWN   1421  <2^12   1421  OR   1421  plain  -3427  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   7310 req   9713  OWN   2403  <2^12      =  OR   2403  plain  -2330  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[2].u  T=ulink_n11__1          s   4854 req   7072  OWN   2218  <2^12      =  OR   2218  plain  -1187  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   7598 req  10001  OWN   2403  <2^12      =  OR   2403  plain  -2330  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[1].u  T=ulink_n11__1           s   4996 req   7214  OWN   2218  <2^12      =  OR   2218  plain  -1187  | research raw 
+B ucond_br9.u$LUT6   worst   ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s  12065 req  14344  OWN   2279  <2^12      =  OR   2279  plain  -4580  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ucontrol_merge0_olink  T=ulink_n12__2,ulink_n11__1             s   8295 req  10442  OWN   2147  <2^12      =  OR   2147  plain  -2809  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n12__0  T=ulink_n7,ulink_n30__1                          s  12798 req  13783  OWN    985  <2^12    985  OR    985  plain  -6627  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ulink_n12__0  T=ulink_n7,ulink_n30__1                          s   8937 req  10223  OWN   1286  <2^12   1286  OR   1286  plain  -4505  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s  10910 req  12094  OWN   1184  <2^12   1184  OR   1184  plain  -5218  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ulink_n6.many.stage[1].u  T=ulink_n7,ulink_n30__1              s   7520 req   8941  OWN   1421  <2^12   1421  OR   1421  plain  -3427  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   8274 req  10677  OWN   2403  <2^12      =  OR   2403  plain  -2330  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ulink_n_trueResult_10.many.stage[1].u  T=ulink_n_trueResult_10.many.stage[2].u,ulink_n11__1 s   5530 req   7748  OWN   2218  <2^12      =  OR   2218  plain  -1187  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   8084 req  10487  OWN   2403  <2^12      =  OR   2403  plain  -2330  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ulink_n_trueResult_2.many.stage[0].u  T=ulink_n_trueResult_2.many.stage[1].u,ulink_n11__1 s   5304 req   7522  OWN   2218  <2^12      =  OR   2218  plain  -1187  | research raw 
+B ucond_br9.u$LUT6   worst   ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s  11245 req  12429  OWN   1184  <2^12   1184  OR   1184  plain  -5218  | research raw (+1896)
+B ucond_br9.u$LUT6   fastmin ulink_n_trueResult_6.many.stage[1].u  T=ulink_n7,ulink_n30__1  s   7737 req   9158  OWN   1421  <2^12   1421  OR   1421  plain  -3427  | research raw 
+B umux0.uj0          worst   ulink_n12__0                                                   s    837 req   1948  OWN   1111  <2^12      =  OR   1111  plain    -99  | research raw  +1742
+B umux0.uj0          fastmin ulink_n12__0                                                   s    565 req   1469  OWN    904  <2^12      =  OR    904  plain    -39  | research raw 
+B umux0.uj0          worst   ucontrol_merge0_olink  T=ulink_n12__0                          s   2634 req   3745  OWN   1111  <2^12      =  OR   1111  plain    -99  | research raw (+1742)
+B umux0.uj0          fastmin ucontrol_merge0_olink  T=ulink_n12__0                          s   1867 req   2771  OWN    904  <2^12      =  OR    904  plain    -39  | research raw 
+B umux0.uj1          worst   ulink_n12__0                                                   s    546 req   2003  OWN   1457  <2^12      =  OR   1457  plain    247  | research raw  +2168
+B umux0.uj1          fastmin ulink_n12__0                                                   s    373 req   1506  OWN   1133  <2^12      =  OR   1133  plain    190  | research raw 
+B umux0.uj1          worst   ucontrol_merge0_olink  T=ulink_n12__0                          s   2343 req   3800  OWN   1457  <2^12      =  OR   1457  plain    247  | research raw (+2168)
+B umux0.uj1          fastmin ucontrol_merge0_olink  T=ulink_n12__0                          s   1675 req   2808  OWN   1133  <2^12      =  OR   1133  plain    190  | research raw 
+B umux1.uj0          worst   ulink_n12__1.many.stage[1].u                                   s    538 req   3537  OWN   2999  <2^12      =  OR   2999  plain   2999  | research raw  +3504
+B umux1.uj0          fastmin ulink_n12__1.many.stage[1].u                                   s    373 req   2572  OWN   2199  <2^12      =  OR   2199  plain   2199  | research raw 
+B umux1.uj0          worst   ulink_n12__1.many.stage[0].u  T=ulink_n12__1.many.stage[1].u   s   1626 req   4625  OWN   2999  <2^12      =  OR   2999  plain   2999  | research raw (+3504)
+B umux1.uj0          fastmin ulink_n12__1.many.stage[0].u  T=ulink_n12__1.many.stage[1].u   s   1088 req   3287  OWN   2199  <2^12      =  OR   2199  plain   2199  | research raw 
+B umux1.uj0          worst   ucontrol_merge0_olink  T=ulink_n12__1.many.stage[0].u,ulink_n12__1.many.stage[1].u s   3672 req   6671  OWN   2999  <2^12      =  OR   2999  plain   2999  | research raw (+3504)
+B umux1.uj0          fastmin ucontrol_merge0_olink  T=ulink_n12__1.many.stage[0].u,ulink_n12__1.many.stage[1].u s   2584 req   4783  OWN   2199  <2^12      =  OR   2199  plain   2199  | research raw 
+B umux1.uj1          worst   ulink_n12__1.many.stage[1].u                                   s    525 req   3542  OWN   3017  <2^12      =  OR   3017  plain   3017  | research raw  +3504
+B umux1.uj1          fastmin ulink_n12__1.many.stage[1].u                                   s    364 req   2541  OWN   2177  <2^12      =  OR   2177  plain   2177  | research raw 
+B umux1.uj1          worst   ulink_n12__1.many.stage[0].u  T=ulink_n12__1.many.stage[1].u   s   1613 req   4630  OWN   3017  <2^12      =  OR   3017  plain   3017  | research raw (+3504)
+B umux1.uj1          fastmin ulink_n12__1.many.stage[0].u  T=ulink_n12__1.many.stage[1].u   s   1079 req   3256  OWN   2177  <2^12      =  OR   2177  plain   2177  | research raw 
+B umux1.uj1          worst   ucontrol_merge0_olink  T=ulink_n12__1.many.stage[0].u,ulink_n12__1.many.stage[1].u s   3659 req   6676  OWN   3017  <2^12      =  OR   3017  plain   3017  | research raw (+3504)
+B umux1.uj1          fastmin ucontrol_merge0_olink  T=ulink_n12__1.many.stage[0].u,ulink_n12__1.many.stage[1].u s   2575 req   4752  OWN   2177  <2^12      =  OR   2177  plain   2177  | research raw 
+B umux2.uj0          worst   ulink_n12__2                                                   s    547 req   3004  OWN   2457  <2^12      =  OR   2457  plain    331  | research raw  +3233
+B umux2.uj0          fastmin ulink_n12__2                                                   s    382 req   2185  OWN   1803  <2^12      =  OR   1803  plain    252  | research raw 
+B umux2.uj0          worst   ucontrol_merge0_olink  T=ulink_n12__2                          s   2644 req   5101  OWN   2457  <2^12      =  OR   2457  plain    331  | research raw (+3233)
+B umux2.uj0          fastmin ucontrol_merge0_olink  T=ulink_n12__2                          s   1900 req   3703  OWN   1803  <2^12      =  OR   1803  plain    252  | research raw 
+B umux2.uj1          worst   ulink_n12__2                                                   s    844 req   3009  OWN   2165  <2^12      =  OR   2165  plain     39  | research raw  +2879
+B umux2.uj1          fastmin ulink_n12__2                                                   s    556 req   2178  OWN   1622  <2^12      =  OR   1622  plain     71  | research raw 
+B umux2.uj1          worst   ucontrol_merge0_olink  T=ulink_n12__2                          s   2941 req   5106  OWN   2165  <2^12      =  OR   2165  plain     39  | research raw (+2879)
+B umux2.uj1          fastmin ucontrol_merge0_olink  T=ulink_n12__2                          s   2074 req   3696  OWN   1622  <2^12      =  OR   1622  plain     71  | research raw 
+B umux3.uj0          worst   ulink_n_index_15.many.stage[1].u                               s    646 req   2328  OWN   1682  <2^12      =  OR   1682  plain   1682  | research raw  +2651
+B umux3.uj0          fastmin ulink_n_index_15.many.stage[1].u                               s    429 req   1679  OWN   1250  <2^12      =  OR   1250  plain   1250  | research raw 
+B umux3.uj0          worst   ulink_n_index_15.many.stage[0].u  T=ulink_n_index_15.many.stage[1].u s   1951 req   3633  OWN   1682  <2^12      =  OR   1682  plain   1682  | research raw (+2651)
+B umux3.uj0          fastmin ulink_n_index_15.many.stage[0].u  T=ulink_n_index_15.many.stage[1].u s   1299 req   2549  OWN   1250  <2^12      =  OR   1250  plain   1250  | research raw 
+B umux3.uj1          worst   ulink_n_index_15.many.stage[1].u                               s    644 req   2324  OWN   1680  <2^12      =  OR   1680  plain   1680  | research raw  +2651
+B umux3.uj1          fastmin ulink_n_index_15.many.stage[1].u                               s    420 req   1663  OWN   1243  <2^12      =  OR   1243  plain   1243  | research raw 
+B umux3.uj1          worst   ulink_n_index_15.many.stage[0].u  T=ulink_n_index_15.many.stage[1].u s   1949 req   3629  OWN   1680  <2^12      =  OR   1680  plain   1680  | research raw (+2651)
+B umux3.uj1          fastmin ulink_n_index_15.many.stage[0].u  T=ulink_n_index_15.many.stage[1].u s   1290 req   2533  OWN   1243  <2^12      =  OR   1243  plain   1243  | research raw 
+
+== SUMMARY ==
+per site: min over gates (LUT5/LUT6 or uj0/uj1) and launches, per corner; research = its raw / guarded margin at its own launch (nextpnr SDF)
+site                   research st   | own worst own fmin | own@rl worst OR@rl worst OR@rl fmin | min OR (any) | <2^12 worst | binding launch (own, worst)
+A ucond_br2      +2997 /   +200 ok   |      2521     2448 |         2521        2521       2448 |         2448 |        2521 | ulink_n1__1
+A ucond_br3      +4566 /  +1708 ok   |      3304     3026 |         3304        3304       3026 |         3026 |        3304 | ulink_n1__1
+A ucond_br4      +3988 /  +1151 ok   |      3136     2910 |         3136        3136       2910 |         2910 |        3136 | ulink_n1__1
+A ucond_br5      +2783 /     +8 ok   |      2512     2421 |         2512        2512       2421 |         2421 |        2512 | ulink_n1__1
+A ucond_br6      -4651 /  -7126 VIOL |      1519     1918 |         1587       -3087      -1352 |        -3155 |        1949 | ulink_n12__0 T=ulink_n7
+A ucond_br7      +1619 /  -2079 VIOL |      1614     2004 |         1682        1682       2035 |         1614 |        2044 | ulink_n12__0 T=ulink_n7
+A ucond_br8      +1722 /  -1996 VIOL |      1677     2059 |         1745        1745       2090 |         1677 |        2107 | ulink_n12__0 T=ulink_n7
+A ucond_br9       +617 /  -3036 VIOL |      1464     1860 |         1532        1532       1891 |         1464 |        1894 | ulink_n12__0 T=ulink_n7
+A umux0          +2509 /  +1663 ok   |      1970     1480 |         1970        1970       1480 |         1480 |        1970 | ulink_n12__0
+A umux1          +3620 /  +2521 ok   |      2739     1970 |         2739        2739       1970 |         1970 |        2739 | ulink_n12__1.many.stage[1].u
+A umux2          +2941 /  +1996 ok   |      2217     1563 |         2217        2217       1563 |         1563 |        2217 | ulink_n12__2
+A umux3          +1955 /  +1235 ok   |      1764     1213 |         1796        1796       1215 |         1213 |        1764 | ulink_n_index_15.many.stage[0].u T=ulink_n_index_15.many.stage[1].u
+B ucond_br2      +2797 /    -15 VIOL |      2261     1963 |         2261        2261       1963 |         1963 |        2261 | ulink_n1__1
+B ucond_br3      +4473 /  +1595 ok   |      3213     2670 |         3213        3213       2670 |         2670 |        3213 | ulink_n1__1
+B ucond_br4      +3355 /   +600 ok   |      2717     2299 |         2717        2717       2299 |         2299 |        2717 | ulink_n1__1
+B ucond_br5      +2662 /    -69 VIOL |      2296     1978 |         2296        2296       1978 |         1978 |        2296 | ulink_n1__1
+B ucond_br6      +1699 /  -1299 VIOL |       754     1137 |          953         953       1272 |        -5382 |         754 | ulink_n12__0 T=ulink_n7,ulink_n30__1
+B ucond_br7      +2566 /   -478 VIOL |      1438     1620 |         1637        1637       1755 |         1438 |        1438 | ulink_n12__0 T=ulink_n7,ulink_n30__1
+B ucond_br8      +2137 /   -902 VIOL |      1087     1400 |         1286        1286       1535 |         1087 |        1087 | ulink_n12__0 T=ulink_n7,ulink_n30__1
+B ucond_br9      +1896 /  -1193 VIOL |       985     1286 |         1184        1184       1421 |          985 |         985 | ulink_n12__0 T=ulink_n7,ulink_n30__1
+B umux0          +1742 /   +989 ok   |      1111      904 |         1111        1111        904 |          904 |        1111 | ulink_n12__0
+B umux1          +3504 /  +2431 ok   |      2999     2177 |         2999        2999       2177 |         2177 |        2999 | ulink_n12__1.many.stage[1].u
+B umux2          +2879 /  +1813 ok   |      2165     1622 |         2165        2165       1622 |         1622 |        2165 | ulink_n12__2
+B umux3          +2651 /  +1773 ok   |      1680     1243 |         1680        1680       1243 |         1243 |        1680 | ulink_n_index_15.many.stage[1].u
+
+research's guard (0.772*req - 1.155*sel) applied to our numbers at research's launch, min over gates:
+site            research | own_g worst own_g fmin | OR_g worst OR_g fmin | class
+A ucond_br2         +200 |         283        850 |        283       850 | research ok
+A ucond_br3        +1708 |        1013       1375 |       1013      1375 | research ok
+A ucond_br4        +1151 |         839       1261 |        839      1261 | research ok
+A ucond_br5           +8 |         279        816 |        279       816 | research ok
+A ucond_br6        -7126 |       -1369        -57 |      -4977     -2606 | guarded-negative under both own and OR-join
+A ucond_br7        -2079 |       -1267         33 |      -1267        33 | guarded-negative under both own and OR-join
+A ucond_br8        -1996 |       -1172        112 |      -1172       112 | guarded-negative under both own and OR-join
+A ucond_br9        -3036 |       -1395        -93 |      -1395       -93 | guarded-negative under both own and OR-join
+A umux0            +1663 |        1315        993 |       1315       993 | research ok
+A umux1            +2521 |        1871       1348 |       1871      1348 | research ok
+A umux2            +1996 |        1514       1065 |       1514      1065 | research ok
+A umux3            +1235 |        1178        787 |       1178       787 | research ok
+B ucond_br2          -15 |          47        438 |         47       438 | guarded >= 0 under both (research flag = its SDF/launch, not reproduced)
+B ucond_br3        +1595 |         942       1123 |        942      1123 | research ok
+B ucond_br4         +600 |         538        809 |        538       809 | research ok
+B ucond_br5          -69 |          94        466 |         94       466 | guarded >= 0 under both (research flag = its SDF/launch, not reproduced)
+B ucond_br6        -1299 |       -1310       -331 |      -1310      -331 | guarded-negative under both own and OR-join
+B ucond_br7         -478 |        -724        106 |       -724       106 | guarded-negative under both own and OR-join
+B ucond_br8         -902 |       -1046       -117 |      -1046      -117 | guarded-negative under both own and OR-join
+B ucond_br9        -1193 |       -1208       -255 |      -1208      -255 | guarded-negative under both own and OR-join
+B umux0             +989 |         537        481 |        537       481 | research ok
+B umux1            +2431 |        2109       1541 |       2109      1541 | research ok
+B umux2            +1813 |        1348       1039 |       1348      1039 | research ok
+B umux3            +1773 |        1050        799 |       1050       799 | research ok
+
+sites checked: 24 (48 gates), rows: 520 (520 with a result)
+own-model negative at either corner (any launch): 0
+research-flagged sites (raw < 0 or guarded VIOLATED): 10: A ucond_br6, A ucond_br7, A ucond_br8, A ucond_br9, B ucond_br2, B ucond_br5, B ucond_br6, B ucond_br7, B ucond_br8, B ucond_br9
+  negative under OR-join at the research launch but own >= 0 everywhere ("OR-join only"): 1: A ucond_br6
+  negative under both own and OR-join: 0: 
+  OR-join >= 0 and own >= 0 (research flag from its guardband / SDF only): 9: A ucond_br7, A ucond_br8, A ucond_br9, B ucond_br2, B ucond_br5, B ucond_br6, B ucond_br7, B ucond_br8, B ucond_br9
+guarded view (research's guard on our numbers, research launch, either corner):
+  guarded >= 0 under both (research flag = its SDF/launch, not reproduced): 2: B ucond_br2, B ucond_br5
+  guarded-negative under both own and OR-join: 8: A ucond_br6, A ucond_br7, A ucond_br8, A ucond_br9, B ucond_br6, B ucond_br7, B ucond_br8, B ucond_br9
+  research ok: 14: A ucond_br2, A ucond_br3, A ucond_br4, A ucond_br5, A umux0, A umux1, A umux2, A umux3, B ucond_br3, B ucond_br4, B umux0, B umux1, B umux2, B umux3
+
+== SANITY: ucond_br6 rows vs results.txt (rule_e.py) ==
+  A ulink_n11__1 fastmin u$LUT5: results.txt own/<2^12/OR/plain (2440, 2440, 2440, -929)  sites.py (2440, 2440, 2440, -929)  EQUAL
+  A ulink_n11__1 fastmin u$LUT6: results.txt own/<2^12/OR/plain (2440, 2440, 2440, -929)  sites.py (2440, 2440, 2440, -929)  EQUAL
+  A ulink_n11__1 worst   u$LUT5: results.txt own/<2^12/OR/plain (2819, 2819, 2819, -1884)  sites.py (2819, 2819, 2819, -1884)  EQUAL
+  A ulink_n11__1 worst   u$LUT6: results.txt own/<2^12/OR/plain (2819, 2819, 2819, -1884)  sites.py (2819, 2819, 2819, -1884)  EQUAL
+  A ulink_n7 fastmin u$LUT5: results.txt own/<2^12/OR/plain (1949, 2191, -1352, -2806)  sites.py (1949, 2191, -1352, -2806)  EQUAL
+  A ulink_n7 fastmin u$LUT6: results.txt own/<2^12/OR/plain (1949, 2191, -1352, -2806)  sites.py (1949, 2191, -1352, -2806)  EQUAL
+  A ulink_n7 worst   u$LUT5: results.txt own/<2^12/OR/plain (1587, 2017, -3087, -5082)  sites.py (1587, 2017, -3087, -5082)  EQUAL
+  A ulink_n7 worst   u$LUT6: results.txt own/<2^12/OR/plain (1587, 2017, -3087, -5082)  sites.py (1587, 2017, -3087, -5082)  EQUAL
+  B ulink_n11__1 fastmin u$LUT5: results.txt own/<2^12/OR/plain (2069, 2069, 2069, -1336)  sites.py (2069, 2069, 2069, -1336)  EQUAL
+  B ulink_n11__1 fastmin u$LUT6: results.txt own/<2^12/OR/plain (2069, 2069, 2069, -1336)  sites.py (2069, 2069, 2069, -1336)  EQUAL
+  B ulink_n11__1 worst   u$LUT5: results.txt own/<2^12/OR/plain (2172, 2172, 2172, -2561)  sites.py (2172, 2172, 2172, -2561)  EQUAL
+  B ulink_n11__1 worst   u$LUT6: results.txt own/<2^12/OR/plain (2172, 2172, 2172, -2561)  sites.py (2172, 2172, 2172, -2561)  EQUAL
+  B ulink_n30__1 fastmin u$LUT5: results.txt own/<2^12/OR/plain (1272, 1272, 1272, -1534)  sites.py (1272, 1272, 1272, -1534)  EQUAL
+  B ulink_n30__1 fastmin u$LUT6: results.txt own/<2^12/OR/plain (1272, 1272, 1272, -1534)  sites.py (1272, 1272, 1272, -1534)  EQUAL
+  B ulink_n30__1 worst   u$LUT5: results.txt own/<2^12/OR/plain (953, 953, 953, -2835)  sites.py (953, 953, 953, -2835)  EQUAL
+  B ulink_n30__1 worst   u$LUT6: results.txt own/<2^12/OR/plain (953, 953, 953, -2835)  sites.py (953, 953, 953, -2835)  EQUAL
+  B ulink_n7 T=ulink_n30__1 fastmin u$LUT5: results.txt own/<2^12/OR/plain (1831, 2223, -2801, -4843)  sites.py (1272, 1272, -3360, -5402)  DIFFERENT  (s_max 6323 vs latches-only 5764: en path of the transparent link); latches-only mode (1831, 2223, -2801, -4843) EQUAL
+  B ulink_n7 T=ulink_n30__1 fastmin u$LUT6: results.txt own/<2^12/OR/plain (1831, 2223, -2801, -4843)  sites.py (1272, 1272, -3360, -5402)  DIFFERENT  (s_max 6323 vs latches-only 5764: en path of the transparent link); latches-only mode (1831, 2223, -2801, -4843) EQUAL
+  B ulink_n7 T=ulink_n30__1 worst   u$LUT5: results.txt own/<2^12/OR/plain (1022, 1713, -5114, -7728)  sites.py (953, 953, -5183, -7797)  DIFFERENT  (s_max 9141 vs latches-only 9072: en path of the transparent link); latches-only mode (1022, 1713, -5114, -7728) EQUAL
+  B ulink_n7 T=ulink_n30__1 worst   u$LUT6: results.txt own/<2^12/OR/plain (1022, 1713, -5114, -7728)  sites.py (953, 953, -5183, -7797)  DIFFERENT  (s_max 9141 vs latches-only 9072: en path of the transparent link); latches-only mode (1022, 1713, -5114, -7728) EQUAL
+  -> all equal to results.txt (transparent rows: in latches-only mode; the default adds the transparent link en path)
+
+== SANITY: planted delay on other sites (copy of netlist_baked.v, full re-parse) ==
+  PLANT ic_009515 +2000 ps (critical select path) at A worst ucond_br3.u$LUT6 launch ulink_n1__1: own 3304 -> 1304 (delta -2000, expected -2000) PASS; OR 3304 -> 1304, plain -1017 -> -3017
+  PLANT ic_008536 +2000 ps (critical request path) at A worst ucond_br3.u$LUT6 launch ulink_n1__1: own 3304 -> 5304 (delta +2000, expected +2000 or less) PASS; OR 3304 -> 5304, plain -1017 -> -1017
+  PLANT ic_012683 +2000 ps (critical select path) at A worst umux0.uj0 launch ulink_n12__0: own 1970 -> -30 (delta -2000, expected -2000) PASS; OR 1970 -> -30, plain 274 -> -1726
+  PLANT ic_012597 +2000 ps (critical request path) at A worst umux0.uj0 launch ulink_n12__0: own 1970 -> 3970 (delta +2000, expected +2000 or less) PASS; OR 1970 -> 3970, plain 274 -> 274
+  PLANT ic_012664 +2000 ps (unrelated ICBUF (ucond_br6 LUT6 s)) at A worst ucond_br3.u$LUT6 launch ulink_n1__1: own 3304 -> 3304 (delta +0, expected +0) PASS; OR 3304 -> 3304, plain -1017 -> -1017
+  PLANT ic_012664 +2000 ps (unrelated ICBUF (ucond_br6 LUT6 s)) at A worst umux0.uj0 launch ulink_n12__0: own 1970 -> 1970 (delta +0, expected +0) PASS; OR 1970 -> 1970, plain 274 -> 274
+
+== NOTES (pin mapping, launch discovery) ==
+  A ucond_br6.u$LUT5: pins by net name req A3 s A4 == research
+  A ucond_br6.u$LUT6: pins by net name req A3 s A4 == research
+  A ucond_br9.u$LUT5: pins by net name req A2 s A4 == research
+  A ucond_br9.u$LUT6: pins by net name req A2 s A4 == research
+  A ucond_br7.u$LUT5: pins by net name req A5 s A1 == research
+  A ucond_br7.u$LUT6: pins by net name req A5 s A1 == research
+  A ucond_br8.u$LUT5: pins by net name req A5 s A2 == research
+  A ucond_br8.u$LUT6: pins by net name req A5 s A2 == research
+  A ucond_br5.u$LUT5: pins by net name req A1 s A5 == research
+  A ucond_br5.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br5.u$LUT6: pins by net name req A1 s A5 == research
+  A ucond_br5.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br2.u$LUT5: pins by net name req A3 s A5 == research
+  A ucond_br2.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br2.u$LUT6: pins by net name req A3 s A5 == research
+  A ucond_br2.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br4.u$LUT5: pins by net name req A2 s A3 == research
+  A ucond_br4.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br4.u$LUT6: pins by net name req A2 s A3 == research
+  A ucond_br4.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A umux3.uj0: pins by net name req A3 s A5 == research
+  A umux3.uj0: ulink_n_index_15.many.stage[0].u latch d also from non-latch sources ['ucond_br9.u$LUT5', 'ucontrol_merge1.uarb1.ua2.u', 'ucontrol_merge1.uarb1.ustate$LUT6'] (not launched)
+  A umux3.uj1: pins by net name req A3 s A5 == research
+  A umux3.uj1: ulink_n_index_15.many.stage[0].u latch d also from non-latch sources ['ucond_br9.u$LUT5', 'ucontrol_merge1.uarb1.ua2.u', 'ucontrol_merge1.uarb1.ustate$LUT6'] (not launched)
+  A umux0.uj0: pins by net name req A3 s A5 == research
+  A umux0.uj0: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  A umux0.uj1: pins by net name req A2 s A5 == research
+  A umux0.uj1: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  A ucond_br3.u$LUT5: pins by net name req A2 s A1 == research
+  A ucond_br3.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A ucond_br3.u$LUT6: pins by net name req A2 s A1 == research
+  A ucond_br3.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  A umux2.uj0: pins by net name req A3 s A5 == research
+  A umux2.uj0: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  A umux2.uj1: pins by net name req A3 s A5 == research
+  A umux2.uj1: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  A umux1.uj0: pins by net name req A3 s A5 == research
+  A umux1.uj1: pins by net name req A3 s A5 == research
+  B ucond_br6.u$LUT5: pins by net name req A3 s A5 == research
+  B ucond_br6.u$LUT6: pins by net name req A3 s A5 == research
+  B ucond_br9.u$LUT5: pins by net name req A1 s A4 == research
+  B ucond_br9.u$LUT6: pins by net name req A1 s A4 == research
+  B ucond_br8.u$LUT5: pins by net name req A2 s A4 == research
+  B ucond_br8.u$LUT6: pins by net name req A2 s A4 == research
+  B ucond_br7.u$LUT5: pins by net name req A1 s A4 == research
+  B ucond_br7.u$LUT6: pins by net name req A1 s A4 == research
+  B ucond_br5.u$LUT5: pins by net name req A3 s A1 == research
+  B ucond_br5.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br5.u$LUT6: pins by net name req A3 s A1 == research
+  B ucond_br5.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br2.u$LUT5: pins by net name req A2 s A1 == research
+  B ucond_br2.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br2.u$LUT6: pins by net name req A2 s A1 == research
+  B ucond_br2.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br4.u$LUT5: pins by net name req A5 s A4 == research
+  B ucond_br4.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br4.u$LUT6: pins by net name req A5 s A4 == research
+  B ucond_br4.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B umux0.uj0: pins by net name req A3 s A2 == research
+  B umux0.uj0: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  B umux0.uj1: pins by net name req A4 s A5 == research
+  B umux0.uj1: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  B ucond_br3.u$LUT5: pins by net name req A2 s A1 == research
+  B ucond_br3.u$LUT5: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B ucond_br3.u$LUT6: pins by net name req A2 s A1 == research
+  B ucond_br3.u$LUT6: ulink_n1__1 latch d also from non-latch sources ['FF (outside udut)'] (not launched)
+  B umux3.uj0: pins by net name req A4 s A5 == research
+  B umux3.uj0: ulink_n_index_15.many.stage[0].u latch d also from non-latch sources ['ucond_br9.u$LUT5', 'ucontrol_merge1.uarb1.ua2.u', 'ucontrol_merge1.uarb1.ustate$LUT6'] (not launched)
+  B umux3.uj1: pins by net name req A4 s A5 == research
+  B umux3.uj1: ulink_n_index_15.many.stage[0].u latch d also from non-latch sources ['ucond_br9.u$LUT5', 'ucontrol_merge1.uarb1.ua2.u', 'ucontrol_merge1.uarb1.ustate$LUT6'] (not launched)
+  B umux2.uj1: pins by net name req A4 s A3 == research
+  B umux2.uj1: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  B umux2.uj0: pins by net name req A4 s A5 == research
+  B umux2.uj0: ucontrol_merge0_olink latch d also from non-latch sources ['ucontrol_merge0.uarb1.ua2.u', 'ucontrol_merge0.uarb1.ustate$LUT6', 'ulink_n_trueResult_12.ctl.u.u'] (not launched)
+  B umux1.uj0: pins by net name req A2 s A5 == research
+  B umux1.uj1: pins by net name req A2 s A5 == research
