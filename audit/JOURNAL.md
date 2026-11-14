@@ -1880,3 +1880,6 @@ Watching. Research idle since 13:37 (c2aa4a4e), formal since 2026-11-10 (8fd62f8
 
 ### progress 15:40
 Research 951c9190: fcolsz2h 31 routes (gate 93/93, static 31/31); 5 overlapping routes = own builds. fc64nlh: old-tool hold flags on ulink_n_index_11 on every collatz64 lever-5 route (worst seed 3, -748 ps), research re-measuring. T105: own 1-bit latch monitor on c64nl_3 at FAST_MIN running.
+
+### progress 15:53 T105
+c64nl_3 (research's worst old-tool hold flag, -748 ps): own 1-bit monitor at FAST_MIN: 14/14, index_11 stage 0 hold 849 ps / setup 9.4 ns, stage 1 no change within 2 ns. No hold issue seen.
