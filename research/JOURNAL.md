@@ -4166,3 +4166,9 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   the select link ulink_n_index_11's latch data at t=0, "no common source"; rule D from the shared launch +5.6 ns.
   Under the owner's rule (>0.5 ns at nominal on a board item) it needs the trace: running on c64nl_1 with
   research/data/fifteen/vec_c64_selflip.hex (n = 1 / 27 / 1 / 97 / 1 / 6171: the select flips every transaction).
+### progress 09:13 UTC (xf2_1 FAST_MIN: the failure depends on the previous transaction)
+- Alone at FAST_MIN, rounds = 4 gives the right value (77b0567e). In the gate's sequence every wrong answer equals the
+  PREVIOUS vector's rounds (4 after 3 -> 3 rounds; 8 after 4 -> 4; 16 after 8 -> 8 ...): the loop compares against the
+  last transaction's rounds. So the rounds ring's entry (umux2 / its select / the value it latches) takes the stale
+  loop-back token instead of the new rounds -- the empty-pipe select-race family (ipow umux3, collatz64 ulink_n14__1).
+  The SDF experiment lengthened umux2's request, not its select path, which is consistent. Tracing rounds 3 then 4.
