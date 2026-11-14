@@ -1877,3 +1877,6 @@ Item 19 board route, own 1-bit latch monitor at FAST_MIN (own + select-flip vect
 
 ### progress 15:07
 Watching. Research idle since 13:37 (c2aa4a4e), formal since 2026-11-10 (8fd62f82). Nothing pending in the audit queue; all findings pushed.
+
+### progress 15:40
+Research 951c9190: fcolsz2h 31 routes (gate 93/93, static 31/31); 5 overlapping routes = own builds. fc64nlh: old-tool hold flags on ulink_n_index_11 on every collatz64 lever-5 route (worst seed 3, -748 ps), research re-measuring. T105: own 1-bit latch monitor on c64nl_3 at FAST_MIN running.
