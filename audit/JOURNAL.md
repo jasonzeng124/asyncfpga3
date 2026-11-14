@@ -1856,3 +1856,6 @@ Research fxf2h hold check (flags only seed 1): own spot check of the tightest pa
 
 ### progress 11:58 T102 started
 Research 619ac3c2: fxf3 31 routes, gate 93/93, median 23.04 ns; hold_trace violation on seed 4 at ulink_n_trueResult_10 (-612 ps) with the gate passing. Own build of xf3 seed 4, FAST_MIN with own latch monitor (own 17 vectors, and long vectors with monitors).
+
+### progress 12:38 T102
+xf3 seed 4 (own sdf b1e3c2b0 = research's) FAST_MIN own vectors: 17/17, no select violation, trueResult_10 stage[0] hold 792 ps / setup 15.9 ns -- consistent with research's x-pulse (glitch-only) explanation of its -612 ps flag. Long-vector run pending. Research next: xf4 (umux2 1->2, farm fxf4) and farm hold checks for items 22, 19, collatz64 lever 5.
