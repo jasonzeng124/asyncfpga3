@@ -4346,3 +4346,16 @@ Next (for this session if it lasts, else the next):
   ulink_n_index_11 +734 ps. So every old-tool flag on these two designs was the SDELAY-line artefact.
 - Collatz item 22 now has, over 31 farm routes: gate 93/93, static check clean 31/31, hold check clean (corrected tool on
   the flagged route; old tool's wider window clean on the other 29).
+### progress 17:55 UTC (fxf4 back from the farm: xf4 is the xorshift full-range candidate, pending 2 local re-runs)
+- Container restart #5 (~17:5x) cut the local xf4 runs; 4 of 5 had finished. fxf4 (farm, 32 routes) finished 16:44.
+- xf4 = item 17's structure + latch on the adder's steer branch (BDC_FORK_OUT_LINK=n11__0,n30__0) + full-range sizes fr3
+  (uaddi0 13, umux0 2, umux2 2, uxori1 / uxori2 7, umux3 14, merges 2). Farm: 30 routes built (30: harness < 83 MHz;
+  9: ffmux_scan FLAG -- a slice FF configuration at CLBLM_L_X8Y41, the known nextpnr pin defect class; route excluded,
+  the same flag locally on the same route). Period median 23.49 ns, mean 23.30, best 21.00, worst 24.75. Gate 87/87
+  PASS. Hold check (old tool, wider window): no violation on any route, tightest +434 ps. Static CLEAN at both corners
+  on 28/30: seed 18 uxori1 rule A -81 ps worst (the xorshift datapath, which the vectors toggle on every bit: spanned);
+  seed 13's checks did not complete.
+- Local xf4 (same routes as the farm's, sdf identical): s1 23.47 / s4 24.75 / s7 23.65 / s9 22.46 ns; static clean
+  everywhere; gates pass except two FAST_MIN runs with "cycles 0" (killed compiles: two evaluations at once ran ten
+  simulators; not results -- re-running one at a time), and three hold dumps lost the same way. s1's hold: clean,
+  tightest +1021 ps (corrected tool).
