@@ -4214,3 +4214,8 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   listed. (3) The fixes to test: a latch on the adder fork's steer branch (BDC_FORK_OUT_LINK=n30__0) so the sender is a
   link stage that H audits, or an acknowledge delay on the pipe's input stage -- and, first, a static check for this
   hold path (it must be able to fail on xf2_1).
+### progress 09:35 UTC (xf3: a latch on the adder fork's steer branch -- PREDICTION)
+- xf3 = xf2 + BDC_FORK_OUT_LINK=n11__0,n30__0 (bdc emits ulink_n30__0_folink: the counter's loop-back pipe now has a
+  link stage as its sender, so rule H audits the hold and the link protocol orders it). Placeholder sizes for the new
+  link (DELAY default, UACK ACK_PAD 6). PREDICTION: one more stage on the counter ring's loop-back: +1.5 to 2.5 ns on
+  seed 1 (xf2_1 22.93 -> ~24.5-25). Seed 1 first (the failing route's seed, though the route will differ), all checks.
