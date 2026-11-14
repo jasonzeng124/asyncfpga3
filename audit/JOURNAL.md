@@ -1796,3 +1796,6 @@ Pre-audit of fcolsz2 (collatz lever 5 + collatz_sizes_T3cdb_nl2_bench.vh: merges
 
 ### progress 08:18 T97 started
 Research a491c2b4: farm fxf2 (xorshift full-range round-2 sizes on item 17's knobs) gate FAIL on seed 1 FAST_MIN 6/17 (route sdf dc138ea2); research tracing it, no full-range xorshift candidate meanwhile. Own reproduction: build xf2 seed 1 at 8bcb16cb, FAST_MIN/worst/SLOW_MAX with t83 monitors and own oracle (t91/xf2.sh).
+
+### progress 08:32 T97
+fxf2 seed 1 (own build dc138ea2 = research's) FAST_MIN: 9/17 vs own oracle, varying latencies -> race; failure CONFIRMED independently. Monitors: no select violation; data latch ulink_n_trueResult_6 stage[0] min setup 22 ps / hold 11 ps (item 17 had >= 4.2 ns). worst/SLOW_MAX running.
