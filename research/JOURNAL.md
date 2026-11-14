@@ -4252,3 +4252,15 @@ Next (for this session if it lasts, else the next):
      analysis, and the hold story above applies to it too.
   5. A Dynamatic build somewhere (owner's machine or a farm task) to confirm BDC_FE_EXITCOND's handshake MLIR equals the
      fixture-with-ne used here.
+### progress 10:12 UTC (hold_trace.py: a trace-measured hold check that can fail -- it flags xf2_1)
+- research/tools/fifteen/hold_trace.py DUMPDIR KERNEL_V: for every bd_link / bd_pipe input stage (the audit's blind
+  spots), from a full dump: D (data_in, resolved through the kernel's assigns) must not change between the stage passing
+  its token on (req_out / next stage's node) and its latch closing (its C node falling). Reports windows, violations and
+  the smallest margin per instance.
+- Negative control: on xf2_1 at FAST_MIN, rounds 3 then 4 (the failing sequence): ulink_n_trueResult_6 4 violations in 8
+  windows, margin -1850 ps -- the hand trace's 1.85 ns, found without being told where to look. Next tightest:
+  ulink_n_index_15 +588 ps, ulink_n11__0_folink +3168. research/data/fifteen/hold_trace_xf2_1_fmin.tsv.
+- Coverage gaps: links whose C node net is not kept by name in the decoded netlist (n7, n8, n11__1, n12__0/2, n30__1,
+  n1__1, merge0_olink) are not measured yet; pipes whose data comes from the harness have no data nets (constant per run).
+- It is a trace check: it sees only what the vectors exercise, at the corner simulated. Its use: a margin per route and
+  per blind-spot latch at FAST_MIN, so a route close to failing shows as a small margin instead of passing silently.
