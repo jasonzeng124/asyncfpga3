@@ -4193,3 +4193,24 @@ Toolchain: patches 789a7120c912d393, nextpnr 9c732bc6303458df (setup-toolchain.s
   This covers collatz64 board items 6 / 12 / 16 / 21 too (umux2 = 1 in T4cdb / x0.75 sizes; same structure).
 - Caveat now on record: on xf2_1 the static check UNDER-estimated a real lag by ~2 ns (pipe req_out leading data_out).
   A trace is the evidence for these explanations, not the static number.
+### progress 09:34 UTC (GOAL 1: xf2_1's FAST_MIN failure is a HOLD race the static rules do not audit)
+- Correction to the entry before last: rounds is right at the compare (4 throughout); the COUNTER is wrong. i+1 at the
+  compare reads 1, 2, then 7 (run 1) / 5 (run 2). The lengthened-umux2 tests (+0.5 / +2.5 ns) changed nothing because
+  umux2 is not involved; the "pipe req_out leads data_out" observation on ulink_n_trueResult_10 is real but harmless here.
+- Mechanism (full dump, FAST_MIN, rounds 3 then 4, second transaction, second increment): ulink_n_trueResult_6 (bd_pipe
+  N=2, the counter's loop-back: adder -> fork n30 -> branch n30__0 -> steer ucond_br6 -> this pipe -> umux0.y) opens its
+  stage-1 latch for i+1 = 2 at 4244952 ps. The adder's request returns to zero at 4245584; the next token (i = 2)
+  reaches the adder (n7) at 4246605 and its output starts moving at 4247312 (bit 2 glitches while 2 -> 3 carries). The
+  pipe latch closes only at 4249162: for 1.85 ns the adder's NEXT result flows into the latch that is supposed to hold
+  the previous one, and it settles with bit 2 set. The loop-back i becomes 6 (or 4), the adder makes 7 (or 5), and the
+  compare ends the loop one iteration early.
+- The static rules do not see it: corner_audit (FAST_MIN) rates rule H on that stage[1] at +86 ps, and stage[0] is
+  "data enters from outside the design, or from no link stage that also requests -- not audited". The sender is a
+  compute unit (the adder, through a fork branch and a steer, with no link stage), so the hold path (pipe acknowledge
+  -> steer -> fork -> adder -> ulink_n7 -> umux0 -> next token -> adder output) is not timed by any rule.
+- Consequences: (1) xf2 is NOT a full-range candidate (gate 83/84; this route fails). (2) Any design where a compute unit
+  feeds a steer and a pipe with no link stage between them has an unaudited hold path; the gate is the only check there,
+  and it caught this on 1 of 28 routes. That structure is in item 17's family (same knobs) and probably elsewhere: to be
+  listed. (3) The fixes to test: a latch on the adder fork's steer branch (BDC_FORK_OUT_LINK=n30__0) so the sender is a
+  link stage that H audits, or an acknowledge delay on the pipe's input stage -- and, first, a static check for this
+  hold path (it must be able to fail on xf2_1).
