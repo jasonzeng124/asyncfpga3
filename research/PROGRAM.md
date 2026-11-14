@@ -57,6 +57,25 @@ every kernel and every input its C signature allows. From now on:
   length every time. This is a cell-level change under CLAUDE.md's rule, and it needs the
   static check above to cover both the short and the long case.
 
+- **The `!=` loop test: yes, and LLVM already does it** (answer to the journal's question,
+  2026-11-14). The owner's point: the kernel goes through LLVM first. It does, and
+  `bdc/frontend.sh` step 4 runs `indvars`, whose exit-test rewrite turns `i + 1 < rounds`
+  into `i + 1 != rounds` with LLVM's own proof. It does not fire because step 3 strips
+  `target datalayout` (copied from Dynamatic's `compile.sh`): without it no integer width
+  is legal, and `indvars` finds no loop counter to rewrite. Checked on xorshift's
+  `clang.opt.ll` with LLVM 18: `-passes='function(loop(indvars))'` leaves `icmp slt`; the
+  same command with a data layout line gives `%exitcond = icmp ne i32 %10, %1`. With the
+  data layout through the whole step-4 pass list, the result is `icmp ne` against
+  `smax(rounds, 0)` computed once before the loop.
+  So this is a frontend fix, not a bdc rewrite and not a change to the loop lowering:
+  - add it as an opt-in knob in `bdc/frontend.sh`, default off and byte-identical;
+  - prefer the narrow form: one extra `indvars` after `loop-rotate`, with a data layout
+    whose only native width is 32 bits, so that nothing is widened to 64 bits;
+  - a data layout can change other passes' output, so diff the handshake MLIR of every
+    kernel with the knob on and say what else moved;
+  - then the usual: simcheck with `rounds` at 0, 1 and INT_MAX, the static check over the
+    full range, the gate.
+
 The 15 ns target stands, under this rule.
 
 What to do, in this order:
