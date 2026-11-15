@@ -2021,3 +2021,6 @@ Own positive control pc64_7 (sdf acc06847): 3/3 at FAST_MIN with n=871, 0 dynami
 
 ### note 07:18
 Research 667cdefe: fxd3 (lever 8 at fr6d) hold-clean on 28/28 non-gap routes, +0.30 ns; item 27 stays on fxd's seed 2 (own T114 CONFIRMED). Seed 22 uxori1 rule A -240 worst ("spanned by the gate's vectors" -- owner's full-range rule bead13d7 requires A static where vectors do not span; uxori1 is the datapath xor, spanned) -- not a board route. Watching.
+
+### note 10:40
+Research 5cec6e34: farm runner apparently stalled (no push to claude/cluster since 07:14 UTC; fipowh4 / fc64eq3 past their task limits). Owner notified (owner-run infrastructure). Research rebuilding item 27's board seed with OR-join walk; own T114 already confirmed route a9bdac53 and own rule E (C-element) / rule H (OR-join) clean on it.
