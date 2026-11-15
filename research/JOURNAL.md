@@ -4883,3 +4883,11 @@ Next:
   iterations. Dropping it (BDC_NO_LINK=ulink_n11__1): predicted at most -1.4 ns per iteration, likely less -- ufork4
   may re-couple to umux2 as ufork8 did to ulink_n7 under lever 5, and ucmpi1's delay then has to cover umux2's output.
   Local xd8b_10 (seed 10) vs xd_10 latency 414.
+### progress 12:10 UTC (lever 8b rejected: dropping ulink_n11__1 re-couples ufork4)
+- xd8b_10 (xd_10 + BDC_NO_LINK=ulink_n11__1, seed 10): route 072be564, P 22.66 ns (single period), latency 489 vs xd_10
+  414: +3.5 ns per iteration. Event graph: polarity changes umux2R -> trueResult_10F and ufork4F -> ulink_n12__2R --
+  the rounds fork's acknowledge now waits on the compare, and the ring's return-to-zero lands on the cycle (same
+  mechanism as lever 5 / 5b). Its rising-only floor is 15.09 ns, so the rising pass alone would fit the target; but
+  even with every falling arc at 0 whatif predicts 20.87. Rejected.
+- Note for the 15 ns question: on xorshift with lever 8 the remaining time is mostly the link stages that decouple
+  forks from the rings (every removal so far re-couples a fork) and the select links (the select rule).
