@@ -4696,3 +4696,9 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   (sdf e001dc27) and its static rows.
 - BOARD-QUEUE: list item 25, section ## 26, board seed 24 (sdf e001dc27, 35.92 ns, every row clean). Predicted 1.14
   over item 22 on the board routes. fifteen README headline updated.
+### progress 05:03 UTC (fxl5s: lever 5 on the full-range structure with the speculative cell -- rejected)
+- fxl5s (fxs5 + BDC_NO_LINK=ulink_n30__1, AND-join static check): latency vs fxs5 on 22 paired seeds -12 cycles mean
+  (-0.56 ns per iteration), faster on 15 / 22. With the link gone the compare reads the adder directly and its matched
+  delay (9) no longer covers it: ucmpi1 rule A below 0 at worst on 26 routes (to -1.56 ns), in both speculative cases.
+  Lever 5 stays rejected on the full-range structure (as xl5_10 showed without the cell). Lever 8 supersedes it: the
+  compare no longer follows the adder at all.
