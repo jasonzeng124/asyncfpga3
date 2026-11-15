@@ -2120,3 +2120,6 @@ Owner b0f9dafa (research PROGRAM): select checks are now arrival (rule E at the 
 
 ### note 21:55
 Research bbf51a9f: corrected-summary rule E re-check: item 26 board seed 25 no E row (own T113 rule E min +1266, agrees); item 24 family no E row on 29 routes (own T107b +2687). 7ad7f65d: research's select_arrival.py (select change while the gated request is high) -- the same quantity as own t83 mon_mux; positive control pending. Farm queue full (250 tasks).
+
+### CORRECTION 21:58 (own T116)
+Own mux-monitor counts were per select pin (32 per mux): umux0 ~30 transitions while z_req high, not 960 of ~1460 rises; and the monitor ignores z_ack (a change after every consumer acknowledged is allowed). Research's select_arrival.py sees 0 on the same route. REPORT row and T116 amended to UNRESOLVED; T116b (t116/mon_sel.py: per-event classification by z_req / z_ack) running. Owner notified of the correction (b0f9dafa quotes the wrong figure).
