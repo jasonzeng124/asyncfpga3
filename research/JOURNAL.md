@@ -4669,3 +4669,12 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   links umux1 (4.69 / 2) and umux2 (3.76 / 2) held at base by the select rule are the largest. 15 ns would need ~4 ns
   more out of several of: the select links (a select-rule question, not a size), the compare (sized to its full-range
   static worst), the RTZ arcs at the two polarity changes (~1 ns), the xori links.
+### progress 04:36 UTC (note for a later lead: the select rule and rule H)
+- After lever 8 the two largest per-iteration terms on xorshift are select links held by the select rule (ulink_n12__1
+  DELAY 8, ulink_n12__2 DELAY 6; 4.69 / 3.76 ns per two-iteration cycle). Both traced failures behind that rule
+  (JOURNAL 2026-11-09 22:50 ipow umux3; 2026-11-11 03:10 collatz64 ulink_n14__1) were hold-window corruptions: data
+  moving downstream while a latch was still open, after a shortened select path let a request return to zero early.
+  That is rule H's class, and rule H's rows were never read until 2026-11-15. A candidate replacement for the blanket
+  rule: shorten a select link only with H / I rows clean at both corners on >= 32 routes AND hold_bits clean; first
+  check that the H rows and hold_bits FLAG the two historical failures (ipow T9cd seed 29 with umux3 1; collatz64
+  T4cd seed 7 with ulink_n14__1 10) -- if either check misses one, the select rule stays.
