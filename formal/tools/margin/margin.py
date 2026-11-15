@@ -30,6 +30,7 @@ ap.add_argument("--tmax-factor", type=float, default=1.3); ap.add_argument("--tf
 ap.add_argument("--arbs", default=None, help="arbs.json: rows whose q is an arbiter state LUT are flagged (ArbOK unchecked)")
 ap.add_argument("--memcap", type=float, default=3.0, help="GB address-space cap per simulation")
 ap.add_argument("--wallcap", type=int, default=900, help="s per simulation")
+ap.add_argument("--shard", default=None, help="K/N: sweep only candidates K-1, K-1+N, ... of the ranked list (farm tasks)")
 ap.add_argument("--only", nargs="*", default=None, help="node:pin keys to restrict to (tests)")
 a = ap.parse_args()
 KD = 100
@@ -38,6 +39,8 @@ R = json.load(open(a.ranked))
 if a.only: R = [r for r in R if "%s:%d" % (r["node"], r["pin"]) in set(a.only)]
 R = [r for r in R if r.get("kre", 0) < 2]          # q and pin i active in some reference run
 if a.top: R = R[:a.top]
+if a.shard:
+    _k, _n = map(int, a.shard.split("/")); R = R[_k - 1::_n]
 LOG = open(os.path.join(a.out, "log.txt"), "a")
 def log(*x):
     s = time.strftime("%H:%M:%S ") + " ".join(str(y) for y in x); print(s, flush=True); LOG.write(s + "\n"); LOG.flush()

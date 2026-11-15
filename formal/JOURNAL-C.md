@@ -3176,3 +3176,9 @@ So completeness needs the full active sweep: ~1,194 control pins (~27 min on 8 c
 H_RUNT, sequential env, classes), verified event-for-event against simadv; then the full sweep on the farm.
 Gaps: single-pin adversaries only, corner 0, two pairs, latch setup/hold not modelled, no gatecheck/envcheck of the
 failing runs inside the tool, boundary_ps.py is gcd_ps-specific.
+
+### progress 19:45 -- farm requests: the full single-pin sweep on gcd_ps (control nodes: 16 tasks; with latch-like nodes: 48)
+margin.py/run.sh gain SHARD=K/N (every N-th ranked candidate; tested locally on 2 candidates, 49 s). Requests
+`cluster/requests/c_margin_gcdps_l0.sh` (1,316 control pins, 16 x 8 cores) and `c_margin_gcdps_l1.sh` (16,990 pins
+incl. latch-like nodes, 48 x 8 cores), kappa in (0.20, 0.45], w = 20 and w = 0, both pairs. Purpose: the complete
+single-pin result on gcd_ps (not a 71-candidate window) and whether any latch race fails below 0.36.

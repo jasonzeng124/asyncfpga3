@@ -6,7 +6,7 @@
 # BUILD.fasm: the read-back (fromBit) FASM, plain/.xz/.gz. Next to it (or via env) the build's XDC, yosys JSON and
 # nextpnr routed JSON (for the boundary names): XDC=, SYNTH=, ROUTED=. v0 knows only the gcd_ps kernel boundary.
 # Knobs (env): JOBS (8), TOP (0 = every active candidate), KHI (0.45), KLO (0.20), W0 (1: also without H_RUNT),
-#   ONLY (file of node:pin keys: sweep only these), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), TC (prjxray-db root).
+#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), TC (prjxray-db root).
 set -euo pipefail
 B=$1; O=$2; mkdir -p "$O"; O=$(cd "$O" && pwd)
 H=$(cd "$(dirname "$0")" && pwd); F=$(cd "$H/../.." && pwd); R=$(cd "$F/.." && pwd)
@@ -69,5 +69,5 @@ python3 "$H/rank.py" "$O/net.json" "$O/races.json" "$KHI" "$O/ranked.json" "$O/r
 # 4. sweep + bisection + report
 log "sweep"
 python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs "$JOBS" --top "$TOP" --khi "$KHI" \
-  --klo "$KLO" --pairs $PAIRS --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY"))
+  --klo "$KLO" --pairs $PAIRS --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
 log "done: $O/margins.txt $O/summary.txt"
