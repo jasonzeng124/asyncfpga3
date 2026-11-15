@@ -2148,3 +2148,6 @@ Formal C 2a3b87dd: margin tool's full gcd_ps single-pin sweep (16,990 pins) re-f
 
 ### progress 00:05 T116c -- T116 resolved
 24 of 48 select transitions at umux0 reach the data-LUT pins after z_req rose, up to 487 / 579 ps (FAST_MIN / worst): an arrival race at the pins, 24 per run (not 960 of 1460 rises). Research's select_arrival.py presumably reads the driver and so sees 0. REPORT row corrected; T117b queued: same lateness monitor on item 28's route (select links at 3).
+
+### note 00:15
+Formal C 6c3fcfe0: the margin tool (one command) reproduces the negative control: BAD xf2_1 kappa* 0 at ulink_n7's enable route, item 23 > 0.45 (search) -- matches A's adversary (98be38bd) and own T109. REPORT row on 14b3e025 already records it; tool-based confirmation noted.
