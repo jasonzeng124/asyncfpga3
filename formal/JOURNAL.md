@@ -2581,3 +2581,6 @@ THIS race; not a κ* for item 23). Not a minimal pair (different routes), as res
 * **item 23, same race:** correct at κ = 0 and 0.16 (κ = 0.32 running). Not a kappa* for item 23 (other races).
 * The coarse runs earlier this session (whole latch gates and all their input routes slow) also failed BAD at κ ≥ 0.05,
   but they slow the latch feedback too, so they mix races; the enable-only adversary above is the clean one.
+### progress 20:18 -- enable-race sweep done (search): BAD wrong at κ = 0, 0.16, 0.32; item 23 correct at all three
+BAD: (1879071104, 1258817536), (0, 16384, 1929397304), (0, 1107298304), each then silent to 3 µs. item 23: 2064144800,
+2008045182, 691148861, 3532304609 at every κ, finishing in 0.25-0.34 µs. So for THIS race: BAD κ* = 0, item 23 > 0.32.

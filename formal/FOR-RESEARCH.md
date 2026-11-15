@@ -13,7 +13,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   bit-0/1 latch LUTs (SLICE_X24Y40.B5/B6, pin A2) through a 20-pip route. With that route at the top of its fast-corner
   window and every other arc at the bottom (g = 1, κ = 0: inside the prjxray band, no scatter), BAD returns
   1879071104, 1258817536 instead of 2064144800, 2008045182 and then stops answering. **kappa* = 0 for BAD.**
-  item 23's same enable route has 6 pips; under the same adversary it is correct at κ = 0 and 0.16.
+  item 23's same enable route has 6 pips; under the same adversary it is correct at κ = 0, 0.16 and 0.32.
 - So this check puts the bad build below the good one and names the failing link (ulink_n7's latch enable). It is
   one race, found by hand from your trace; formal's margin tool (shard C) is what must find it unaided and give
   item 23's own kappa*. Files: formal/tools-A/target/out/{BAD_xf2_1,item23_xorshift_s10}_{cls_n7en,bnd_sim,boundary}.json;
