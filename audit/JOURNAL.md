@@ -2184,3 +2184,6 @@ Formal C's item 26 witness (kappa 0.26) does NOT reproduce in own GLS with kerne
 
 ### note 05:30
 Formal C 770fbd8d (C10, search, checked by formal's checkers): shortened-select collatz builds kappa_hi 0.21-0.32, all at ulink_n_falseResult_3 stage[0] latch bits seeing their own enable late (item 25: 0.42 unfiltered, same link). Item 28 (select at 3, seed 20) not measured. Audit note: T119 found formal's item 26 witness did not reproduce in own fixed-delay GLS; these C10 witnesses are of the same class and are UNVERIFIED until one is replayed (candidate: fcsel0 seed 24 = own colsel0_24, sdf bb5fbbdb, 0.22).
+
+### progress 06:20 T120 started
+Replay of formal C10's fcsel0 seed 24 witness (kappa 0.22: falseResult_3 stage[0] ctl -> lat.pair[16] LUT5 A4 at 1.22 x FAST_MAX 1109 ps; formal: 703 -> 99) on own colsel0_24 (sdf bb5fbbdb), kernel-only scaling as T119, plus the control (t118/fcsel0w.sh). A second data point on whether formal's checked witnesses reproduce in fixed-delay GLS.
