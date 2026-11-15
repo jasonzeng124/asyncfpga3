@@ -2142,3 +2142,6 @@ Own build of Formal.Cells.SelHoldPS OK (694 s, 2 cores, beside GLS); 42 theorems
 
 ### note 23:45
 Formal A session summary 214d9c6c: CertRun.netCorrectSeq_of_run own-built, standard axioms; a reduction (THE statement from an EpRun certificate per behaviour), no instance yet. MARGINS restructured (kappa_lo proved / kappa_hi found); no kappa_lo for any research build yet. REPORT row.
+
+### note 23:50
+Formal C 2a3b87dd: margin tool's full gcd_ps single-pin sweep (16,990 pins) re-finds kappa* 0.36 and the 0.40 / 0.44 races -- a positive self-test of the tool against THE target's Lean-proved points (search, untrusted); not yet run on any research build.
