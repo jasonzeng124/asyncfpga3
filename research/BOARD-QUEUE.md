@@ -13,6 +13,11 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
 
 ## Full-input-range status (owner rule 2026-11-14; research/JOURNAL.md 2026-11-14)
 
+**2026-11-15 (later): the hold rows are being closed by pad rounds on 32 routes per family.** Every route clean of H / I
+rows (non-defect routes): collatz n == 2 with nl6 (fceq2, 30/30), ipow with h4 (fipowh4, 23/23), xorshift lever 8 with
+fr6d (fxd3, 28/28; one uxori1 A -240 ps row on seed 22). collatz64 n == 2 with h4 is running (fc64eq3). Board seeds of
+items 25-27 are clean on their own routes already, and were re-checked locally with the default OR-join model.
+
 **2026-11-15: hold / capture (rules H / I) NOT checked until now -- items 19, 22, 23, 24 are not statically clean.**
 Rule H flagged the xf2_1 corruption (H ulink_n7 -439 ps at FAST_MIN) but no gate or summary read H / I rows. On item
 23's own route (xorshift seed 10, worst corner): H -274 (ulink_n7), -107, -103, -1, I -85; similar rows on the

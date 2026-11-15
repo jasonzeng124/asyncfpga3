@@ -4851,3 +4851,13 @@ Next:
   "submitted", past fipowh4's 240-minute task limit. The runner looks stalled; their results are for the next session.
 - Local xdb_2: item 27's board seed rebuilt (pre_dec, fr4, seed 2) with the default OR-join walk, to confirm the route
   (sdf a9bdac53) and that its static rows do not lean on the AND seeding.
+### progress 11:06 UTC (xdb_2 confirms item 27 under the OR model; fipowh4 hold-clean; the runner resumed)
+- xdb_2 (item 27's board seed, local, default OR-join walk): sdf a9bdac53 (= the farm's), latency 417, EQUIVALENT,
+  ffmux clean, static A / A' / E and H / I CLEAN at both corners, gate 3 x 17/17 with the farm's exact cycle counts,
+  hold checks clean. Item 27 does not lean on the AND seeding.
+- fipowh4 (ipow h4): 27 routes built, median 38.74 ns (36.16-41.99). H / I clean on every route; umux3's traced
+  false-path row on every route as always. Excluded: seeds 6, 26, 29 (FFMUX gap) and seed 28 -- the F7-select defect
+  again (SLICE_X10Y41/F7AMUX/S0 json 0, bits 1; gate 13/17 at all three corners, odata 28aaaaab): two ipow routes in two
+  rounds (fipowh3 s9). ipow's board item (19) recipe already checks the sdf md5; its section should keep the warning.
+  h4 = the ipow sizes hold-clean on every non-defect route.
+- The farm runner pushed again after ~4 h idle; fc64eq3 still running.
