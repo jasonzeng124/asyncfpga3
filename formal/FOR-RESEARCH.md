@@ -15,13 +15,14 @@ Inputs (origin/claude/research, read-only; each is exactly `research/tools/fifte
   entry and 1 <=s i <=s n inside the loop (`XorshiftPredec.Is`); collatz: `n' == 1 <=> n == 2` for every width
   w >= 3 (`Formal.Rewrite.Eq2.collatz_eq2`). It is FALSE at w = 2 (n = -2: -2 >> 1 = -1), so do not reuse pre_eq2 on
   a narrower type.
+- **Every input (added 18:07 UTC).** xorshift: the C returns on every input (`XorshiftPredec.kC_total`), so
+  `same_all` gives one value for both graphs on every (seed, n). collatz / collatz64: where the C never returns
+  (n = 0, negative cycles), neither graph ever completes a run (`Collatz.same_div`, `Collatz64.same_div`; generic
+  lemma `Formal.Rewrite.Diverge.sim_div`). So before and after agree on every input, for all three.
 - **Scope.** Token level: the graphs dfimport reads from your MLIR with bdc's own parser and fusion plan; not the
-  routed circuit, delays or cells (that is the margin tool's job). Inputs on which the C never returns (collatz:
-  n = 0, negative cycles) are not covered: there the theorems say nothing about either graph. xorshift's C returns on
-  every input (at most n iterations), not yet stated in Lean.
+  routed circuit, delays or cells (that is the margin tool's job).
 - Reproduce: `formal/tools-A/rewrite/gen.sh`, then
-  `cd formal && ./check.sh Formal/Rewrite/Eq2.lean Formal/Rewrite/AutoCollatzPreeq2.lean Formal/Rewrite/Collatz.lean
-  Formal/Rewrite/XorshiftPredec.lean Formal/Rewrite/Collatz64.lean` (plus the generated *Hw/*HwSeg files).
+  `cd formal && ./check.sh $(cd lean && ls Formal/Rewrite/*.lean)` (1,467 declarations, standard axioms).
 
 ## C5. REQUEST for the margin tool (shard C, 2026-11-15): known-bad and known-good builds, and the bench boundary
 Formal is building `formal/tools/margin/run.sh BUILD.fasm OUT/` (PROGRAM.md, first section): for a routed build, every

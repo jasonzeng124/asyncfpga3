@@ -2478,3 +2478,14 @@ and w = 0; upper end Lean (Frontier36), lower end search only; the 0.40 and 0.44
 STATUS.md: CertRun replaces StepHypR as the S6 route (row 7 is now "an EpRun certificate"); FEASIBILITY: 2026-11-15
 block (rewrites, MARGINS, CertRun, C/B pivots). The STATUS list did not shrink in count today: the gcd theorem is
 second priority and CertRun changes the form of row 7, not its number.
+### progress 18:07 -- CHECKED: the three rewrites agree with the originals on EVERY input (check.sh OK, Formal/Rewrite/*, 1,467 decls)
+* `Formal.Rewrite.Diverge.sim_div` (generic, same data as C's `Auto.sim_call`): if every graph segment fires at
+  least once, the C has no stuck state, and the C never returns from a matched state, the graph has runs of every
+  length; with `no_longer` (determinacy) it then never reaches a terminal store.
+* collatz / collatz64: `Collatz.same_div`, `Collatz64.same_div`: where the C never returns (n = 0, negative cycles),
+  neither the original nor the rewritten graph ever completes a run.
+* xorshift: `XorshiftPredec.kC_total` (the C returns within 2^32 + 1 steps on every input; measure = signed distance
+  from i to n) and `same_all`: one value r for both graphs on every (seed, n).
+* Note for Lean work here: `simp` with the transcription `P` unfolded OOMs (>7 GB, twice); explicit `rfl` facts on
+  projections (`pick_eq`, `run_step`) avoid it. Lean processes now watched by a 7 GB RSS killer while iterating.
+FOR-RESEARCH A6 updated.

@@ -17,7 +17,8 @@ fuel on which the C transcription `AutoXorshift.kC` (cfront's reading of `kernel
 transcription C's `AutoXorshift.auto_computes` proves the ORIGINAL graph against) returns `r`, the graph imported
 from `research/data/fifteen/xorshift_predec.mlir` (`XorshiftPredecHw`, dfimport, unchanged) has a complete run
 ending with `[r]` on the output; every complete run, under any schedule, ends in that store; runs are bounded.
-`same_as_original`: both graphs then end in the same store `[r]`.
+`same_as_original`: both graphs then end in the same store `[r]`. `kC_total`: the C returns on every input (fuel
+`2^32 + 1`), so `same_all`: the two graphs agree on EVERY input.
 
 **How.** Shard C's generic simulation `Auto.sim_call` with a hand correspondence: the rewritten loop template's ring
 value is `n + (2^32 - 1)` (i.e. `n - 1` mod 2^32) over the C state, its test value `slt(i - 1, n - 1)`, and its
@@ -257,5 +258,75 @@ theorem same_as_original {fuel seed₀ rounds₀ r : Nat} (h : kC fuel seed₀ r
       ∀ m t, Run (step G) (St T0 [seed₀, rounds₀]) m t → Terminal (step G) t → t = St T2 [r]) :=
   ⟨⟨(Formal.Net.AutoXorshift.auto_computes h).1, (Formal.Net.AutoXorshift.auto_computes h).2.1⟩,
    ⟨(computes h).1, (computes h).2.1⟩⟩
+
+/-! ## The C returns on every input -/
+
+theorem pick_eq (σ : List Nat) : P.pick 0 σ = some (if isT (tC.eval σ) then ce0 else ce1) := by
+  unfold CProg.pick
+  have he : P.edges = [ce0, ce1] := rfl
+  have ht : P.tests.getD 0 (.lit 0) = tC := rfl
+  have s0 : ce0.src = 0 := rfl
+  have b0 : ce0.br = true := rfl
+  have s1 : ce1.src = 0 := rfl
+  have b1 : ce1.br = false := rfl
+  rw [he, ht]
+  cases h : isT (tC.eval σ) <;> simp only [List.find?_cons, s0, b0, s1, b1, h, beq_self_eq_true, Bool.true_and,
+    Bool.and_true, Bool.false_eq_true, if_true, if_false, beq_iff_eq, reduceCtorEq] <;> rfl
+
+/-- The loop measure: signed distance from `i` to `n`. -/
+def μ (σ : List Nat) : Nat :=
+  (σ.getD 1 0 % 4294967296 + 2147483648) % 4294967296 - (σ.getD 3 0 % 4294967296 + 2147483648) % 4294967296
+
+theorem run_step (f : Nat) (σ : List Nat) (hT : isT (tC.eval σ) = true) :
+    P.run (f + 1) 0 σ = P.run f 0 (ce0.upd.map (E.eval σ)) := by
+  rw [CProg.run, pick_eq, if_pos hT]; rfl
+
+theorem run_stop (f : Nat) (σ : List Nat) (hT : isT (tC.eval σ) = false) :
+    P.run (f + 1) 0 σ = some (ce1.ret.eval (ce1.upd.map (E.eval σ))) := by
+  rw [CProg.run, pick_eq, if_neg (by simp [hT])]; rfl
+
+theorem run_ret : ∀ d σ, μ σ ≤ d → ∃ r, P.run (d + 1) 0 σ = some r := by
+  intro d
+  induction d with
+  | zero =>
+    intro σ hμ
+    cases hT : isT (tC.eval σ)
+    · exact ⟨_, run_stop 0 σ hT⟩
+    · exfalso
+      simp only [tC, E.eval, BOp.ev, c_slt32, isT_ite_t] at hT
+      simp only [μ] at hμ
+      omega
+  | succ d ih =>
+    intro σ hμ
+    cases hT : isT (tC.eval σ)
+    · exact ⟨_, run_stop _ σ hT⟩
+    · rw [run_step _ σ hT]
+      apply ih
+      have hT' := hT
+      simp only [tC, E.eval, BOp.ev, c_slt32, isT_ite_t] at hT'
+      have u1 : (ce0.upd.map (E.eval σ)).getD 1 0 = σ.getD 1 0 := rfl
+      have u3 : (ce0.upd.map (E.eval σ)).getD 3 0 = (σ.getD 3 0 + 1) % 4294967296 := rfl
+      simp only [μ, u1, u3] at hμ ⊢
+      omega
+
+/-- **The C returns on every input** (at most `2^32` loop iterations; fuel `2^32 + 1` suffices). -/
+theorem kC_call (f seed₀ rounds₀ : Nat) : kC f seed₀ rounds₀ = P.run f 0 (P.entry.map (E.eval [seed₀, rounds₀])) := rfl
+
+theorem kC_total (seed₀ rounds₀ : Nat) : ∃ r, kC (2 ^ 32 + 1) seed₀ rounds₀ = some r := by
+  rw [kC_call]
+  exact run_ret (2 ^ 32) _ (by simp only [μ]; omega)
+
+/-- **Before and after agree on EVERY input**: for every pair of naturals on the input channels there is one value
+`r` (the C's) such that both the original and the rewritten graph have complete runs ending with `[r]`, and every
+complete run of either ends there. -/
+theorem same_all (seed₀ rounds₀ : Nat) : ∃ r,
+    ((∃ n, Run (step Formal.Net.AutoXorshift.G) (Formal.Net.AutoXorshift.St Formal.Net.XorshiftHw.T0 [seed₀, rounds₀]) n
+        (Formal.Net.AutoXorshift.St Formal.Net.XorshiftHw.T2 [r])) ∧
+      ∀ m t, Run (step Formal.Net.AutoXorshift.G) (Formal.Net.AutoXorshift.St Formal.Net.XorshiftHw.T0 [seed₀, rounds₀]) m t →
+        Terminal (step Formal.Net.AutoXorshift.G) t → t = Formal.Net.AutoXorshift.St Formal.Net.XorshiftHw.T2 [r]) ∧
+    ((∃ n, Run (step G) (St T0 [seed₀, rounds₀]) n (St T2 [r])) ∧
+      ∀ m t, Run (step G) (St T0 [seed₀, rounds₀]) m t → Terminal (step G) t → t = St T2 [r]) :=
+  let ⟨r, h⟩ := kC_total seed₀ rounds₀
+  ⟨r, same_as_original h⟩
 
 end Formal.Rewrite.XorshiftPredec

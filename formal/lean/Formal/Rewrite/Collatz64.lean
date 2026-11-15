@@ -2,6 +2,7 @@ import Formal.Rewrite.Collatz64OrigHwSeg
 import Formal.Rewrite.Collatz64Preeq2HwSeg
 import Formal.Net.AutoLib
 import Formal.Rewrite.Eq2
+import Formal.Rewrite.Diverge
 
 /-!
 # Formal.Rewrite.Collatz64 — research's collatz64 loop-test rewrite computes the same function (shard A, 2026-11-15)
@@ -22,8 +23,9 @@ return the same value. The rewrite's own fact is `Eq2.collatz_eq2` at width 64.
 steps, kernel-evaluated) and, more to the point, the equivalence claim does not depend on it: both graphs are proved
 against the SAME `P`.
 
-**Not covered:** inputs on which the C never returns (e.g. `n = 0`, negative cycles): there the theorem says nothing
-about either graph; gates, delays and cells.
+**Inputs on which the C never returns** (e.g. `n = 0`, negative cycles): `same_div`: then neither graph ever
+completes a run (both have arbitrarily long runs, `Diverge.sim_div`, and are determinate). So the two graphs agree on
+every input. **Not covered:** gates, delays and cells.
 -/
 
 set_option linter.unusedVariables false
@@ -98,6 +100,11 @@ theorem ev_eq2 (σ : List Nat) (e : E) : E.eval σ (.bin (.cmpi .eq) 64 e (.lit 
 
 theorem isT_eq1 (σ : List Nat) : isT (E.eval σ (eq1 (.var 0))) = !isT (E.eval σ tC) := by
   simp only [eq1, tC, E.eval, BOp.ev]; exact isT_ne_eq _
+
+/-- The C always has an outgoing edge at its test point (no stuck state). -/
+theorem pick_some (σ : List Nat) : P.pick 0 σ ≠ none := by
+  unfold CProg.pick
+  cases h : isT ((P.tests.getD 0 (.lit 0)).eval σ) <;> simp [P, ce0, ce1, List.find?]
 
 theorem isT_cond (σ : List Nat) : isT (E.eval σ (condC (.var 0))) = !isT (E.eval σ tC) := by
   simp only [condC, tC, E.eval, BOp.ev]; rw [← eq1_ne]; exact isT_ne_eq _
@@ -252,6 +259,41 @@ theorem computes {fuel n₀ r : Nat} (h : kC fuel n₀ = some r) :
   · exact no_longer spine rules spine_nodup ins_ok outs_ok spine_ok (init_inv n₀)
       hn (final_terminal r) hu
 
+/-! ## Inputs on which the C never returns -/
+
+theorem edgeN {F : List (E × Bool)} {sched : List Nat} {sig : List E} {Ti Tj : List (List E)}
+    (hl : Ti.length = N) (h : execL (symVI F) rules Ti sched = some (Tj.map (List.map (E.subst sig))))
+    (hs : 1 ≤ sched.length) (env : List Nat) (hF : FactsOK env F) :
+    ∃ n, 1 ≤ n ∧ Run (step G) (St Ti env) n (St Tj (sig.map (E.eval env))) := by
+  have := sym_run bounded_ok hl sched h env hF
+  rw [lmap_subst] at this
+  exact ⟨_, hs, this⟩
+
+theorem hGN : ∀ g ∈ GE, ∀ env : List Nat, isT (g.fact.eval env) = g.br →
+    ∃ n, 1 ≤ n ∧ Run (step G) (Tm g.src env) n (Tm g.dst (g.sig.map (E.eval env))) := by
+  intro g hg env hf
+  simp only [GE, List.mem_cons, List.not_mem_nil, or_false] at hg
+  rcases hg with rfl | rfl | rfl | rfl
+  · exact edgeN (Ti := T0) (Tj := T1) lenT0 seg0 (by decide) env (fact1 hf)
+  · exact edgeN (Ti := T0) (Tj := T2) lenT0 seg1 (by decide) env (fact1 hf)
+  · exact edgeN (Ti := T2) (Tj := T1) lenT2 seg2 (by decide) env (fact1 hf)
+  · exact edgeN (Ti := T2) (Tj := T2) lenT2 seg3 (by decide) env (fact1 hf)
+
+/-- **Where the C never returns, this graph never finishes**: no run from the input store reaches a terminal store. -/
+theorem diverges {n₀ : Nat} (h : ∀ fuel, kC fuel n₀ = none) :
+    ∀ m t, Run (step G) (St T0 [n₀]) m t → ¬ Terminal (step G) t := by
+  intro m t ht hT
+  have hK : ∀ k ∈ K, ∀ σ, P.pick (L.getD k 0) σ ≠ none := by
+    intro k hk σ
+    simp only [K, List.mem_cons, List.not_mem_nil, or_false] at hk
+    rcases hk with rfl | rfl <;> exact Formal.Rewrite.Collatz64.pick_some σ
+  obtain ⟨n, hn, u, hu⟩ := Formal.Rewrite.Diverge.sim_div Tm (fun a n b => Run (step G) a n b) (fun a => Run.refl a)
+    (fun h1 h2 => run_trans h1 h2) P L K ρ Is 1 GE M hGN cover hM hK (m + 1) 0 (P.entry.map (E.eval [n₀]))
+    (by decide) (hI0 n₀) (fun f => h f)
+  rw [hin n₀] at hu
+  have := no_longer spine rules spine_nodup ins_ok outs_ok spine_ok (init_inv n₀) ht hT hu
+  omega
+
 end Formal.Rewrite.Collatz64.Orig
 
 namespace Formal.Rewrite.Collatz64.Preeq2
@@ -402,6 +444,41 @@ theorem computes {fuel n₀ r : Nat} (h : kC fuel n₀ = some r) :
   · exact no_longer spine rules spine_nodup ins_ok outs_ok spine_ok (init_inv n₀)
       hn (final_terminal r) hu
 
+/-! ## Inputs on which the C never returns -/
+
+theorem edgeN {F : List (E × Bool)} {sched : List Nat} {sig : List E} {Ti Tj : List (List E)}
+    (hl : Ti.length = N) (h : execL (symVI F) rules Ti sched = some (Tj.map (List.map (E.subst sig))))
+    (hs : 1 ≤ sched.length) (env : List Nat) (hF : FactsOK env F) :
+    ∃ n, 1 ≤ n ∧ Run (step G) (St Ti env) n (St Tj (sig.map (E.eval env))) := by
+  have := sym_run bounded_ok hl sched h env hF
+  rw [lmap_subst] at this
+  exact ⟨_, hs, this⟩
+
+theorem hGN : ∀ g ∈ GE, ∀ env : List Nat, isT (g.fact.eval env) = g.br →
+    ∃ n, 1 ≤ n ∧ Run (step G) (Tm g.src env) n (Tm g.dst (g.sig.map (E.eval env))) := by
+  intro g hg env hf
+  simp only [GE, List.mem_cons, List.not_mem_nil, or_false] at hg
+  rcases hg with rfl | rfl | rfl | rfl
+  · exact edgeN (Ti := T0) (Tj := T1) lenT0 seg0 (by decide) env (fact1 hf)
+  · exact edgeN (Ti := T0) (Tj := T2) lenT0 seg1 (by decide) env (fact1 hf)
+  · exact edgeN (Ti := T2) (Tj := T1) lenT2 seg2 (by decide) env (fact1 hf)
+  · exact edgeN (Ti := T2) (Tj := T2) lenT2 seg3 (by decide) env (fact1 hf)
+
+/-- **Where the C never returns, this graph never finishes**: no run from the input store reaches a terminal store. -/
+theorem diverges {n₀ : Nat} (h : ∀ fuel, kC fuel n₀ = none) :
+    ∀ m t, Run (step G) (St T0 [n₀]) m t → ¬ Terminal (step G) t := by
+  intro m t ht hT
+  have hK : ∀ k ∈ K, ∀ σ, P.pick (L.getD k 0) σ ≠ none := by
+    intro k hk σ
+    simp only [K, List.mem_cons, List.not_mem_nil, or_false] at hk
+    rcases hk with rfl | rfl <;> exact Formal.Rewrite.Collatz64.pick_some σ
+  obtain ⟨n, hn, u, hu⟩ := Formal.Rewrite.Diverge.sim_div Tm (fun a n b => Run (step G) a n b) (fun a => Run.refl a)
+    (fun h1 h2 => run_trans h1 h2) P L K ρ Is 1 GE M hGN cover hM hK (m + 1) 0 (P.entry.map (E.eval [n₀]))
+    (by decide) (hI0 n₀) (fun f => h f)
+  rw [hin n₀] at hu
+  have := no_longer spine rules spine_nodup ins_ok outs_ok spine_ok (init_inv n₀) ht hT hu
+  omega
+
 end Formal.Rewrite.Collatz64.Preeq2
 
 namespace Formal.Rewrite.Collatz64
@@ -417,5 +494,12 @@ theorem same {fuel n₀ r : Nat} (h : kC fuel n₀ = some r) :
       ∀ m t, Run (step Preeq2.G) (Preeq2.St Collatz64Preeq2Hw.T0 [n₀]) m t → Terminal (step Preeq2.G) t →
         t = Preeq2.St Collatz64Preeq2Hw.T1 [r]) :=
   ⟨⟨(Orig.computes h).1, (Orig.computes h).2.1⟩, ⟨(Preeq2.computes h).1, (Preeq2.computes h).2.1⟩⟩
+
+/-- **And where the C never returns, neither graph ever finishes** (no complete run of either). With `same`: the two
+graphs agree on EVERY 64-bit input. -/
+theorem same_div {n₀ : Nat} (h : ∀ fuel, kC fuel n₀ = none) :
+    (∀ m t, Run (step Orig.G) (Orig.St Collatz64OrigHw.T0 [n₀]) m t → ¬ Terminal (step Orig.G) t) ∧
+    (∀ m t, Run (step Preeq2.G) (Preeq2.St Collatz64Preeq2Hw.T0 [n₀]) m t → ¬ Terminal (step Preeq2.G) t) :=
+  ⟨Orig.diverges h, Preeq2.diverges h⟩
 
 end Formal.Rewrite.Collatz64
