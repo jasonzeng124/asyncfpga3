@@ -2046,3 +2046,6 @@ Research c1fbdf32: new session, lead = token-aware rule H (tsehold.py: longest-p
 
 ### note 17:07
 Research da736f6d: tse.py / tsehold.py WIP -- negative control xf2_1 NOT yet flagged (research says investigating). A hold bound that clears the real failure would be unsound; nothing to audit until the control flags. Watching.
+
+### note 17:20
+Owner commit 726e80fd (research PROGRAM, second lead): account for every delay line on collatz's loop (constraint, covered path split into logic / wire / enable skew, guard, logic-only length) on >= 8 routes of item 25's build; fix false paths at the cause; diagnosis only, select rule stands until the owner answers. Audit plan when the table lands: reproduce a sample of rows with own tools (t93 sta_lib graph on own coleq_24 baked netlist: path logic vs wire split per line; own rule E rows give the constraint side).
