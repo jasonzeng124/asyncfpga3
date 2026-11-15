@@ -2178,3 +2178,6 @@ Replay of formal C's item 26 witness in own GLS (every arc 0.74 x FAST_MIN, ulin
 
 ### progress 04:30 T119 control
 Control (every arc 0.74 x FAST_MIN, no slowed arc) fails the same way (n = 27 signature a1): the first replay's failure came from scaling the whole bench (incl. the clocked PS harness), not from formal's race. Redoing both with the scaling applied to kernel (bridge_i.udut) arcs only, harness at plain FAST_MIN (formal models the kernel against a bench boundary).
+
+### progress 05:15 T119 done
+Formal C's item 26 witness (kappa 0.26) does NOT reproduce in own GLS with kernel-only scaling: 3/3, ulink_n13 hold 1110 -> 393 ps. v1's failure was the harness (control identical). Race location confirmed. REPORT row; owner notified.
