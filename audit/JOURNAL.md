@@ -2084,3 +2084,6 @@ Formal A rewrite proofs CONFIRMED: own lean compile (audit/t115/leanc.py, no lak
 
 ### progress 19:20 T109c done
 xf4_10 ulink_n8 (TSE candidate): second state node (trueResult_8 stage[1] controller) never opened on the ack at FAST_MIN / worst (waited >= 3.66 / 5.03 ns); 0 violations, n8 margin +4133 / +5753 ps. Candidate not live dynamically. REPORT ac5c4844 row updated.
+
+### progress 19:35 T116 started (pre-audit, select links at 0)
+Research 1d616c21: select links at 0 -- xorshift fxsel0 -0.52 ns/iter on 22 seeds; collatz fcsel0 -11.8 ns/iter on 3 seeds (800 -> 570 cycles), gates and hold_bits clean, "no race yet", so no family has its negative control; plan: SDF-injected bad build if none races. Research 6429b92c: TSE step fixed; controls unchanged. Own pre-audit T116: colsel0_24 (fcsel0 recipe on item 25's seed) + paired coleq6_24, period, 3 corners with own oracle + mux/steer/latch monitors, FAST_MIN with research's select-flipping hold vector, own static + dynamic rule H (t116/run.sh, sequential).
