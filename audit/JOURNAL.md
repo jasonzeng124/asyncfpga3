@@ -2006,3 +2006,6 @@ BOARD-QUEUE item 27 (#28, research 3fed89de): xorshift lever 8 + fr4, board seed
 
 ### progress 06:20 T113 done
 Item 26 CONFIRMED: dynamic rule H 0 violations at 3 corners; the own static negatives on falseResult_3/9 st1 are OR-join artifacts (paths never live). REPORT row added.
+
+### progress 06:45 T114 done
+Item 27 CONFIRMED: own sdf a9bdac53, latency 417, 19.319 ns/iter, 1.227x paired / 1.207x over item 23's route, 17/17 at 3 corners, own rules E (min +1060) and H clean. Research 4ccefd92: their H rows and hold_bits flag the collatz64 seed-7 failure (ulink_n13), consistent with own T111.
