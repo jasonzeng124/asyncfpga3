@@ -11,6 +11,16 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## Shortened select links, collatz (2026-11-15 evening) -- the margin wanted most
+Item 25's command with `BD_SIZES=../research/data/collatz_sizes_T3cdb_nl6s{0,1,2}_bench.vh` (select links
+ulink_n14__0 / ulink_n14__1 / ulink_n_index_11 DELAY at 0 / 1 / 2; nl6 otherwise). All gates pass on every route
+(23 / 31 / 29), ~-10 ns per iteration (36.6 -> ~26). Rule E at the muxes is below 0 on many routes at 1 (to -393 ps),
+on 2 of 29 at 2. Examples: fcsel2 seed 1 (sdf 5b538ca5, P 26.75 ns, E clean), fcsel2 seed 2 (fb1efc41, E -114 at umux0
+worst), fcsel1 seed 24 (afab5445). fcsel0 seed 24 (sdf bb5fbbdb) is the base of two constructed races (research's
+SDF injections, JOURNAL 2026-11-15): select -> umux1 join +3000 ps (gate passes at worst, FAST_MIN looks hung), and
+ulink_n14__1 stage[1] enable +15000 ps. A margin (the kappa at which each select race fails) on fcsel1 / fcsel2
+routes would decide whether rule E's rows here are real.
+
 ## Pending: the first shortened-select candidates (2026-11-15, farm running)
 - xorshift item 27's structure with the four select links (ulink_n12__0/1/2, ulink_n_index_15 DELAY) at 1 (fxsel1)
   and at 0 (fxsel0), seeds 1-32; collatz item 25 / collatz64 item 26 / ipow h4 structures with the select links at 0
