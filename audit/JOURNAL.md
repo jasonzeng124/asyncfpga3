@@ -1942,3 +1942,6 @@ Own rule H (t109/rule_h.py, own graph t93/sta_lib on the baked GLS netlist; OR-j
 
 ### progress 01:15 T109 item 23 done
 Own rule H (OR-join) on xf4_10 reproduces research's rows; dynamic rule H monitor: 0 violations at 3 corners, min +5188 ps (ulink_n7 FAST_MIN); flagged paths' upstream controllers never fired on the ack (waited >= 6.9 ns for their token) -> OR-join artifacts. Positive control xf2_1 FAST_MIN 2708 violations at ulink_n7 (D 139 ps before close). findings/T109.md. Next: items 24 (c64nl_17), 22 (colsz2_26), 19.
+
+### progress 01:20 T109b started
+Own static rule H (OR-join) on the other board routes: c64nl_17 (item 24) falseResult_9 stage[1] -509 / -740 / -787 (FAST_MIN / worst / SLOW_MAX), n13 -39 FAST_MIN, trueResult_4 st1 -23; ipowr_1 (item 19) trueResult_6 / n7 / trueResult_10 stage[1] -270 to -453, n8 -189 / -204; colsz2_26 (item 22) no mapped row below +178 but 8+ instances UNMAPPED by the latch finder (1-bit / odd latches) -- a coverage gap. Dynamic monitor running on c64nl_17 and ipowr_1 at 3 corners (t109/run_items.sh). mon_h signed-min bug fixed.
