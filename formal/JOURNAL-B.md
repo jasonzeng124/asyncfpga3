@@ -4279,7 +4279,7 @@ local-check/guard checkers need the same chunking; coordinate with C first. Or t
 island.
 
 ## Session 2026-11-15 (B; formal back on after the 11-10..11-15 pause)
-### progress 17:4x -- start; audit read; plan
+### progress 17:2x -- start; audit read; plan
 Lock taken (the 11-10 lock predates the pause). audit/REPORT.md (origin/claude/audit 72de82ab): every row against B's
 files since 11-02 is CONFIRMED (T14, T15, T27, T36, T38, T47, T61); no open defect against B. Open audit items are
 the Spec's (residual ArbOK vacuity for T < D; H_ENV margins), A's to answer. Plan, highest value first: discharge
@@ -4287,11 +4287,11 @@ TBehX's `quiet` field on THE target from C's reset island (`reset_quiet_all`, ne
 loses a premise for the first episode; then the env field / the (12,18) slice certificate with C's checkers.
 setup.sh: Lean + Mathlib sources installed; its whole-project `lake build` replaced by a targeted build (whole
 project = thousands of modules and known OOMs).
-### progress 17:5x -- written, building (not claimed): `Formal/Cells/SliceNetPS/Reset.lean`
+### progress 17:2x -- written, building (not claimed): `Formal/Cells/SliceNetPS/Reset.lean`
 `quiet_reset`, `env_island`, `env_of_bnd`, `target_tbehX_reset`: exact set = C's 3,224-node reset island + the six
 environment-driven boundary nodes; `quiet` from `reset_quiet_all` + `Env`; every island member is a `tnPS` gate, so
 `env` only constrains the six boundary nodes. Building Mathlib from source first (no cache host).
-### progress 18:3x -- the (12,18) pipeline's exact set fits `datR` (untrusted Python, subagent)
+### progress 17:3x -- the (12,18) pipeline's exact set fits `datR` (untrusted Python, subagent)
 Question: is the certificate pipeline's exact set (tools/tocc/classify.py `EXACT = CTRL | EXC | hs_env`) inside the
 reset exact set of `SliceNetPS/Reset` (`datR`), and do its t0 values match `valR`? Answer: yes. 3,217 exact nodes
 (411 CTRL, 2,802 EXC, 4 env handshake sources), 0 outside island ∪ {186905 rst, 186985 req, 154859 out0.ack,
@@ -4301,13 +4301,13 @@ uses t0 = R − 1 with R = 40,000 ps (sim.py default), below the Lean window's l
 (the island's worst-case settle bound, not the simulated 252 ps). Emission must use R ≥ 122,375 ps at g = 1, κ = 0
 (sim.py 4th argument; at R = 130,000 both corners still give 6, run shifted by exactly 90 ns; ao/datal not rerun).
 THE statement's headline R = 400 ns is inside the window. Scratch: subagent's sub1/ (cmp.py, chk.py), not committed.
-### progress 18:4x -- PIVOT: PROGRAM.md 0691ea88 (owner, 2026-11-15 17:29 UTC) puts research's timing rule first
-Read at 18:4x (pushed after this session started). B's item: (4) the select race in Lean -- a mux/select control
+### progress 17:3x -- PIVOT: PROGRAM.md 0691ea88 (owner, 2026-11-15 17:29 UTC) puts research's timing rule first
+Read at 17:3x (pushed after this session started). B's item: (4) the select race in Lean -- a mux/select control
 that changes while its data is captured, research's rules H and I (hold_bits.py, tsehold.py) as a certificate,
 proved sound in Core's gate model for every delay in the band, emitted by the tool and kernel-checked like
 RaceCertPS; then completeness. The gcd theorem is second priority: the SliceNetPS/Reset build already running is
 finished and recorded, then B works the select race. Subagent: reading research's rules H/I and FOR-FORMAL.
-### progress 19:0x -- select race: research's rules read; generic theorem written (`Cells/ForceTree.lean`, NOT yet checked)
+### progress 17:3x -- select race: research's rules read; generic theorem written (`Cells/ForceTree.lean`, NOT yet checked)
 Research's rules (cells/verify/tighten.py on claude/research, subagent read, verified in code): H (:1772-1870)
 compares the controller fall's LATEST close at every latch bit (enable route + max LUT arc) with the SHORTEST path
 from that fall to any data pin of its latches (OR-walk through every state node, mux joins included), guard
@@ -4320,7 +4320,7 @@ Generic piece (written): `force_tree`: per-node value windows [a w, b w] through
 pins (ForcesP: e.g. select + selected input), each pin's window shifted by its band (start + U, end + L); glitches
 on the unforced pins are harmless. Window end = rule H, start = rule I. Next: a select-race row (enable-close side
 from LatchHoldPin + roots from chain certificates) and a kernel-checkable row format.
-### progress 20:0x -- CHECKED: `Formal/Cells/ForceTree.lean` (`lake env lean` rc 0; standard axioms)
+### progress 18:1x -- CHECKED: `Formal/Cells/ForceTree.lean` (`lake env lean` rc 0; standard axioms)
 * *Problem:* in the gate model (LUTs glitch whenever a pin they read moves), when does a combinational node, e.g.
   a select mux output feeding a latch's data pin, show a fixed value on a time window?
 * *Proved:* `force_tree`: give each node `w` a window `[a w, b w]` and pins `ps w` that force its LUT to `val w`
@@ -4330,7 +4330,7 @@ from LatchHoldPin + roots from chain certificates) and a kernel-checkable row fo
   every behaviour and every delay in the band. The deselected input may glitch freely. `force_tree_minmax`: with
   the corner-free sums `sumMax`/`sumMin`. Axioms: propext, Classical.choice, Quot.sound.
 * *Not shown:* any instance; `SelectCapture` (the latch composition) is still building (needs LatchHoldPin's stack).
-### progress 20:5x -- CHECKED: `Formal/Cells/SelectCapture.lean` `select_capture` (`lake env lean` OK; standard axioms)
+### progress 18:3x -- CHECKED: `Formal/Cells/SelectCapture.lean` `select_capture` (`lake env lean` OK; standard axioms)
 * *Problem:* a bundled-data latch bit captures a value that reaches its data pin through a select mux whose select
   and inputs are launched by other controllers. When is the captured value right for every delay in the band,
   glitches included?
@@ -4342,7 +4342,7 @@ from LatchHoldPin + roots from chain certificates) and a kernel-checkable row fo
 * *Not shown:* the roots' windows on a real build (they come from chain certificates on the controllers, as in
   LatchHoldCert, or from quietness); any instance; completeness. Next: measure on gcd_ps which latches' data
   sources are mux LUTs (the select captures) and emit a first forcing-tree row.
-### progress 21:1x -- select captures on THE target: 1,070 latches not yet covered (untrusted Python, subagent)
+### progress 18:3x -- select captures on THE target: 1,070 latches not yet covered (untrusted Python, subagent)
 Files `formal/tools-B/select/` (muxsrc.py, muxsrc.log, summary.json, uncovered_mux.json.xz; net.json from
 tools/cview/lean2json.py on NetPS). Of the 4,185 latch bits (LatchViewPS rows), the data pin's collapsed source is:
 another latch 1,697; a combinational LUT 1,811 (966 LUTs); boundary/undriven 320; constant/rst 357. **Mux-like**
@@ -4355,3 +4355,4 @@ depth 13). Plainly: on gcd_ps, about a quarter of the latch bits capture through
 has a Lean hold/setup row yet; the 933 umux ones need only depth-0 forcing trees (select + selected latch), so they
 are the first instance target for `select_capture`. Not measured: whether the selected/select roots have chain
 certificates from the latch's enable source (the hold side) -- that is the next step.
+(Times corrected 18:4x: the headings above had guessed clock times; these are the commit times.)
