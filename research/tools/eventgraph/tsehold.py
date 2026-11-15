@@ -20,13 +20,15 @@ Per latch controller L (a Muller C node with latch enables; tighten.py's rule H 
 Muller stages only; a bd_link_dc capture node and a controller with no event in the graph (aperiodic in this run: an
 exit path, a steer side not taken) are reported as NOT COVERED with their OR number.
 """
-import sys, os, re, heapq, math, collections, argparse
+import sys, os, re, heapq, math, collections, argparse, csv
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "../../.."))
 ap = argparse.ArgumentParser()
 ap.add_argument("graph"); ap.add_argument("sdf")
 ap.add_argument("--guard-frac", type=float, default=0.03); ap.add_argument("--guard-min", type=int, default=50)
+ap.add_argument("--lo", type=float, default=0.97); ap.add_argument("--hi", type=float, default=1.03)
+ap.add_argument("--min-only", action="store_true", help="the min-delay bound only (no interval / reference events)")
 ap.add_argument("--only", default=None); ap.add_argument("-M", type=int, default=8)
 a = ap.parse_args()
 sys.argv = [sys.argv[0], a.sdf]
@@ -43,9 +45,28 @@ def guard(t):
 import pathlib
 edges, back, stops = T.routed_graph(pathlib.Path(a.sdf))
 timing = T.Timing(edges, stops)
-nodes, arcs = tse.load(a.graph)
+nodes, _, unbounded = tse.load(a.graph, with_unbounded=True)
 n = len(nodes)
-arcs = [(e["u"], e["v"], e["w"], e["o"]) for e in maxplus.normalize(n, [dict(u=u, v=v, w=w, o=o) for u, v, w, o in arcs])]
+_all = [dict(u=int(x["u"]), v=int(x["v"]), w=int(x["w_ps"]), o=int(x["offset"]), k=x["kind"])
+        for x in csv.DictReader(open(a.graph + "/arcs.tsv"), delimiter="\t")]
+# one relabelling for every kind (maxplus.normalize's Bellman-Ford, kept here for its potentials): event (x, m) of the
+# normalised graph is iteration m + pot[x] of the trace, at phase_x + (m + pot[x]) * P
+pot = [0] * n
+for _ in range(n + 1):
+    ch = False
+    for e in _all:
+        if pot[e["u"]] + e["o"] < pot[e["v"]]:
+            pot[e["v"]] = pot[e["u"]] + e["o"]; ch = True
+    if not ch: break
+else:
+    raise SystemExit("a cycle with a negative token count")
+_all = [dict(e, o=e["o"] + pot[e["u"]] - pot[e["v"]]) for e in _all]
+PERIOD = int(re.search(r"period P = (\d+)", open(a.graph + "/check.txt").read()).group(1))
+trace_t = lambda x, m: int(nodes[x]["phase_ps"]) + (m + pot[x]) * PERIOD
+selfcheck = [0, 0, None]      # bounds checked, bounds above the trace's own separation, worst excess
+arcs = [(e["u"], e["v"], e["w"], e["o"]) for e in _all if e["k"] == "and"]
+uarcs = [(e["u"], e["v"], e["w"], e["o"]) for e in _all if e["k"] in ("and", "bind")]
+LO, HI = a.lo, a.hi
 by_cell = collections.defaultdict(list)
 for i, nd in enumerate(nodes):
     by_cell[nd["cell"]].append(i)
@@ -103,31 +124,50 @@ for ctl in controllers:
             launch[s] = min(hits)
     worst = None
     for c in closes:
-        cl = tse.classify(n, arcs, c, a.M)
-        best, bad, kinds = (math.inf, None), [], collections.Counter()
-        for s, comb in launch.items():
-            li = inst_of(s)
-            if li in latch_owner:                     # a latch bit: it carries a later token only once its stage reopens
+        T_, B_ = tse.separations(n, arcs, c, a.M)
+        def first_not_before(i):
+            for m_ in range(-a.M, a.M + 1):
+                if not B_.get((i, m_)):
+                    return m_
+            return None
+        plan = {}                                  # launch pin -> (graph node ids or None, extra delay, kind)
+        for s_, comb in launch.items():
+            li = inst_of(s_)
+            if li in latch_owner:
                 x = latch_owner[li]
-                nb = node_bound(cl, inst_of(x), "R")
-                if nb[0] == "after":
-                    t, k = nb[1] + en_at[(x, li)] + comb, "latch/graph"
-                elif nb[0] == "unordered":
-                    bad.append((inst_of(x), nb[1], en_at[(x, li)] + comb)); kinds["latch/unordered"] += 1; continue
-                else:
-                    t, k = reached.get(s, 0) + comb, "latch/aperiodic(OR)"
+                ids = [i for i in by_cell.get(inst_of(x), ()) if nodes[i]["edge"] == "R"]
+                plan[s_] = (ids, en_at[(x, li)] + comb, "latch", inst_of(x))
             else:
-                nb = node_bound(cl, li)
-                if nb[0] == "after":
-                    t, k = nb[1] + comb, "node/graph"
-                elif nb[0] == "unordered":
-                    bad.append((li, nb[1], comb)); kinds["node/unordered"] += 1; continue
-                else:
-                    t, k = reached.get(s, 0) + comb, "node/aperiodic(OR)"
+                plan[s_] = (list(by_cell.get(li, ())), comb, "node", li)
+        targets = sorted({(i, first_not_before(i)) for ids, _, _, _ in plan.values() for i in ids
+                          if first_not_before(i) is not None})
+        res = {} if a.min_only or not targets else \
+            tse.interval_sep(n, arcs, c, targets, a.M // 2, LO, HI, uarcs=uarcs, unbounded=unbounded)
+        def tbound(t):
+            b = res.get(t, (None, None))[0]
+            if t in T_:
+                b = max(b, LO * T_[t]) if b is not None else LO * T_[t]
+            if b is not None:                      # the trace is one execution inside the interval: never above it
+                sep = trace_t(*t) - trace_t(c, 0)
+                selfcheck[0] += 1
+                if b > sep + 1:
+                    selfcheck[1] += 1
+                    selfcheck[2] = max(selfcheck[2] or 0, b - sep)
+            return b                               # None: unordered and no reference event bounds it
+        best, bad, kinds = (math.inf, None), [], collections.Counter()
+        for s_, (ids, extra, kind, who) in plan.items():
+            if not ids:
+                t, k = reached.get(s_, 0) + LO * extra, kind + "/aperiodic(OR)"
+            else:
+                bs = [tbound((i, first_not_before(i))) if first_not_before(i) is not None else None for i in ids]
+                if any(b is None for b in bs):
+                    bad.append((who, ("unordered", None), int(extra))); kinds[kind + "/unbounded"] += 1; continue
+                t, k = min(bs) + LO * extra, kind + "/graph"
             kinds[k] += 1
             if t < best[0]:
-                best = (t, (li, k))
-        m = (best[0] - t_en - guard(t_en)) if best[0] < math.inf else None
+                best = (t, (inst_of(s_), k))
+        te = HI * t_en
+        m = (best[0] - te - guard(te)) if best[0] < math.inf else None
         key = (-1 if bad else 0, m if m is not None else math.inf)
         if worst is None or key < worst[0]:
             worst = (key, nodes[c]["phase_ps"], m, best[1], bad, kinds)
@@ -147,3 +187,5 @@ print(f"covered {len(cov)}: TSE below 0 {sum(1 for r in cov if r[3] is not None 
       f"{sum(1 for r in cov if r[5])}; OR below 0 (covered) {sum(1 for r in cov if r[2] is not None and r[2] < 0)}; "
       f"not covered {len(rows) - len(cov)} (OR below 0 there: "
       f"{sum(1 for r in rows if r[4].startswith('NOT') and r[2] is not None and r[2] < 0)})")
+print(f"self-check: {selfcheck[0]} bounds against the trace's own separations, {selfcheck[1]} above it"
+      + (f" (worst by {selfcheck[2]:.0f} ps) -- BOUNDS INVALID" if selfcheck[1] else " -- consistent"))

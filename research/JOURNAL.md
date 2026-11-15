@@ -4927,3 +4927,38 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
   failing stage / mechanism is not what I read, or the steady-state graph misses what happens in iteration 2 of a
   transaction. Re-running the failing FAST_MIN trace (rounds 3, 4, 8, 5) to settle it from the waveform before any
   number from this tool is used. FAST_MIN dumps for the graph itself (DUMP_FIELD=min) running for both routes.
+### progress 17:20 UTC (xf2_1's failure re-traced: it is ulink_n7's own hold; TSE with an interval bound works on both controls)
+- The 2026-11-14 attribution was one stage late. Re-run (xf2_1, DUMP_FIELD=min, rounds 3 / 4 / 8 / 5): rounds 4 gives
+  the 3-round value again; hold_trace: ulink_n_trueResult_6 input stage 17 violations, -1159 ps. From the waveform:
+  ulink_n7's node falls at 4245062; its acknowledge lets the loop-back pipe's stage[1] reopen (pipe req_out 4245699,
+  data_out bit 1 at 4246142); that value reaches n7's D at 4246343 and n7's latch bit 1 changes at 4246605 -- 1.54 ns
+  after its node fell, because the enable net reaches that bit late. The adder then recomputes (4247312) into the
+  pipe's still-open input stage. So the corrupted latch is n7 (hold), the pipe stage only receives it. hold_trace
+  could not see it: the decoded netlist keeps no name for ulink_n7.c (the instance is skipped). This matches the
+  audit's positive control (T109: 2708 violations at ulink_n7 on xf2_1). Root cause: rule H's own row for ulink_n7
+  (FAST_MIN OR -439 / worst -466 at corner_audit's guards) -- a "token already waiting" race: the pipe holds the next i.
+- Min-delay TSE alone (marked graph, AND semantics, token offsets) gave the SAME numbers as rule H's OR walk on every
+  row of both routes at FAST_MIN: the rows are not OR-join artifacts. They are rows where the next token's request
+  arrives late only because of how long it takes round its ring -- invisible to any min-delay bound.
+- So tse.interval_sep: delays in [0.97 w, 1.03 w] of ONE corner's trace (corner_audit's residual scatter, no corner
+  mixing). For a reference event r before the close c: t(x) - t(c) >= L(r -> x) - U(r -> c), L = longest path at 0.97,
+  U = max-plus upper bound at 1.03 over every event not before r (a source before r happened by t_r); maximised over
+  every r in the last two occurrences. U may use OR-caused ('bind') arcs, L and "before" only 'and'; an event whose
+  cause the graph could not evaluate ('eval_bind') has no upper bound. t_en is scaled by 1.03, launch paths by 0.97, and
+  rule H's residual guard (3 %, 50 ps) is still subtracted (scatter counted twice: conservative).
+- Self-check (every bound <= the separation the trace itself shows, the trace being one execution inside the
+  interval): 888 bounds, 0 above, also at lo = hi = 1.
+- Results (research/data/eventgraph/tsehold/; FAST_MIN graph = DUMP_FIELD=min run on vec_xorshift.hex, PASS period
+  check; worst graph = lane2's; SDFs corner_sdf band 0 / the worst column):
+  | route | corner | rule H (OR) rows < 0, covered stages | TSE rows < 0 |
+  |---|---|---|---|
+  | xf2_1 (real FAST_MIN failure) | FAST_MIN | 4: n7 -439, tR10 st2 -527, tR8 st1 -356, tR10 st1 -73 | 2: **n7 -442**, tR10 st0 -46 |
+  | xf2_1 | worst | 3 | 1: **n7 -420** |
+  | xf4_10 (item 23's route) | FAST_MIN | 5: n7 -285, tR8 st1 -146, tR10 st2 -121, n8 -120, tR6 st1 -20 | 1: n8 -196 |
+  | xf4_10 | worst | 3: n7 -274, tR10 st2 -107, tR8 st1 -103 | 1: n8 -26 |
+  The real failure stays flagged; every pipe-internal row and xf4_10's n7 row clear (n7 -274 -> +235 at worst). The one
+  row left on xf4_10 (ulink_n8, fed by the x loop-back pipe's stage[1]) is the same shape as xf2_1's failure (a pipe
+  that can hold the next token ready): a candidate, not an artifact.
+- NOT covered by TSE: 13 controllers per route with no event in the steady-state graph (loop entry / exit pipes:
+  ulink_n6, n1__1, falseResult_*, trueResult_0/2, index_15); their OR rows stand (n6 st1 -48..-335, falseResult_9 st1).
+  Does NOT show: anything outside the loop's steady state, or paths enabled by data the window did not exercise.

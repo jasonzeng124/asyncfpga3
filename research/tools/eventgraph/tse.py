@@ -33,13 +33,16 @@ import collections, csv
 NEG = float("-inf")
 
 
-def load(gdir, kinds=("and",)):
+def load(gdir, kinds=("and",), with_unbounded=False):
+    """nodes, arcs of the given kinds; with_unbounded: also the set of events with an 'eval_bind' in-arc."""
     nodes = list(csv.DictReader(open(gdir + "/nodes.tsv"), delimiter="\t"))
-    arcs = []
+    arcs, unb = [], set()
     for a in csv.DictReader(open(gdir + "/arcs.tsv"), delimiter="\t"):
         if a["kind"] in kinds:
             arcs.append((int(a["u"]), int(a["v"]), int(a["w_ps"]), int(a["offset"])))
-    return nodes, arcs
+        if a["kind"] == "eval_bind":
+            unb.add(int(a["v"]))
+    return (nodes, arcs, unb) if with_unbounded else (nodes, arcs)
 
 
 def _topo0(n, arcs):
@@ -123,3 +126,83 @@ if __name__ == "__main__":
             cl = classify(n, arcs, i)
             cnt = collections.Counter(r[0] for r in cl.values())
             print(nd["cell"], nd["phase_ps"], dict(cnt))
+
+
+INF = float("inf")
+
+
+def interval_sep(n, arcs, c, targets, M=4, lo=0.97, hi=1.03, refs=None, uarcs=None, unbounded=()):
+    """Lower bound on t(x, m) - t(c, 0) for each target (x, m), with every delay in [lo * w, hi * w] (one corner,
+    residual scatter; arc weights w from that corner's trace).
+
+    For a reference event r before c:  t(c, 0) - t(r) <= U(r -> c)  and  t(x, m) - t(r) >= L(r -> x, m), so
+        t(x, m) - t(c, 0) >= L - U.
+    L: longest path from r (lo * w), every event waits for all in-arcs.  U: for every event not before r (after it OR
+    unordered with it), max over in-arcs of (0 if the source is before r, else U(source)) + hi * w: t_x is the max of its
+    sources' times plus a delay <= hi * w, and a source before r happened by t_r.  Going back far enough every source is
+    before r, so U is finite; the window must reach that far (checked: an in-arc from below the window is an error).
+    An event with no in-arc, or one in `unbounded` (an edge whose cause the graph could not evaluate: eventgraph's
+    'eval_bind'), has no upper bound (INF).  `uarcs` (default `arcs`) are the arcs U may use: 'and' plus 'bind' (an
+    OR-caused edge happens no later than its binding cause plus the delay, so that arc is a valid UPPER bound; it is not
+    a precedence, so L and BEFORE never use it).
+    r = c gives L(c -> x) * lo, the min-delay bound.  Returns {(x, m): (bound, r)} maximised over refs (default: every
+    event occurrence in -1..0 that is before c)."""
+    order = _topo0(n, arcs)
+    into = collections.defaultdict(list); outof = collections.defaultdict(list); uinto = collections.defaultdict(list)
+    for u, v, w, o in arcs:
+        into[v].append((u, w, o)); outof[u].append((v, w, o))
+    for u, v, w, o in (arcs if uarcs is None else uarcs):
+        uinto[v].append((u, w, o))
+    unbounded = set(unbounded)
+    lo_occ = -M
+
+    def before_set(r):
+        B = {r: True}
+        rv, rm = r
+        for m in range(rm, 2 * lo_occ - 1, -1):
+            for v in reversed(order):
+                if (v, m) in B: continue
+                for y, w, o in outof[v]:
+                    if m + o <= rm and B.get((y, m + o)):
+                        B[(v, m)] = True; break
+        return B
+
+    Bc = before_set((c, 0))
+    if refs is None:
+        refs = [(v, m) for (v, m) in Bc if m >= -1]
+    best = {t: (None, None) for t in targets}
+    tmax = max(m for _, m in targets)
+    for r in refs:
+        Br = before_set(r)
+        L, U = {}, {}
+        rv, rm = r
+        for m in range(lo_occ, tmax + 1):
+            for v in order:
+                if (v, m) == r:
+                    L[r] = 0.0; U[r] = 0.0; continue
+                if Br.get((v, m)):
+                    continue
+                l, u_ = -INF, -INF
+                for u, w, o in into[v]:
+                    if (u, m - o) in L:
+                        l = max(l, L[(u, m - o)] + lo * w)
+                for u, w, o in uinto[v]:
+                    k = m - o
+                    if Br.get((u, k)):
+                        u_ = max(u_, hi * w)
+                    elif (u, k) in U:
+                        u_ = max(u_, U[(u, k)] + hi * w)
+                    else:
+                        raise ValueError("window too short: (%d, %d) neither before r nor bounded" % (u, k))
+                if l > -INF:
+                    L[(v, m)] = l
+                U[(v, m)] = INF if (v in unbounded or u_ == -INF) else u_
+        uc = U.get((c, 0), INF)
+        if uc == INF:
+            continue
+        for t in targets:
+            if t in L:
+                b = L[t] - uc
+                if best[t][0] is None or b > best[t][0]:
+                    best[t] = (b, r)
+    return best
