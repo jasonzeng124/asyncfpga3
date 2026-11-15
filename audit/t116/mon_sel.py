@@ -35,12 +35,16 @@ for mux in os.environ.get("MON_MUXES", "umux0,umux2").split(","):
     if not zack: print(f"mon_sel: no z_ack wire for {mux}", file=sys.stderr); continue
     t = mux
     L.append(f"    // {mux}: z_req {zreq}, z_ack {zack} ({zk}), {len(pins)} pins")
-    L.append(f"    time last_{t} = 0; integer nA_{t} = 0, nB_{t} = 0, nC_{t} = 0;")
+    L.append(f"    time last_{t} = 0, tzr_{t} = 0, tev_{t} = 0; integer nA_{t} = 0, nB_{t} = 0, nC_{t} = 0, nlate_{t} = 0, maxlate_{t} = 0, latepins_{t} = 0, lateev_{t} = 0; reg evlate_{t} = 0;")
+    L.append(f"    always @(posedge tb_ps.dut.{zreq}) tzr_{t} = $time;")
     for p in pins:
+        L.append(f"    always @(tb_ps.dut.{p}) begin if ($time > last_{t} + 3000 || last_{t} == 0) begin tev_{t} = $time; evlate_{t} = 0; end"
+                 f" if (tzr_{t} > tev_{t} && tb_ps.dut.{zreq} === 1'b1) begin latepins_{t} = latepins_{t} + 1; if (!evlate_{t}) begin evlate_{t} = 1; lateev_{t} = lateev_{t} + 1; end"
+                 f" if ($time - tzr_{t} > maxlate_{t}) maxlate_{t} = $time - tzr_{t}; end end")
         L.append(f"    always @(tb_ps.dut.{p}) if ($time > last_{t} + 3000 || last_{t} == 0) begin last_{t} = $time;"
                  f" if (tb_ps.dut.{zreq} === 1'b1 && tb_ps.dut.{zack} !== 1'b1) begin nA_{t} = nA_{t} + 1; if (nA_{t} <= 5) $display(\"SELMON A t=%0t {mux} select moved, z_req=1 z_ack=0\", $time); end"
                  f" else if (tb_ps.dut.{zreq} === 1'b1) nB_{t} = nB_{t} + 1; else nC_{t} = nC_{t} + 1; end")
-    disp.append(f'$display("SELMON t=%0t {mux} events: A(req=1,ack=0)=%0d B(req=1,ack=1)=%0d C(req=0)=%0d", $time, nA_{t}, nB_{t}, nC_{t});')
+    disp.append(f'$display("SELMON t=%0t {mux} events: A(req=1,ack=0)=%0d B(req=1,ack=1)=%0d C(req=0)=%0d; events whose pins change AFTER z_req rose: %0d (pins %0d), max lateness %0d ps", $time, nA_{t}, nB_{t}, nC_{t}, lateev_{t}, latepins_{t}, maxlate_{t});')
 L.append("    initial forever begin #5000000; " + " ".join(disp) + " end")
 L.append("endmodule")
 open(out, "w").write("\n".join(L) + "\n")
