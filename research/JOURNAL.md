@@ -4702,3 +4702,16 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   delay (9) no longer covers it: ucmpi1 rule A below 0 at worst on 26 routes (to -1.56 ns), in both speculative cases.
   Lever 5 stays rejected on the full-range structure (as xl5_10 showed without the cell). Lever 8 supersedes it: the
   compare no longer follows the adder at all.
+### progress 05:14 UTC (fc64eq: collatz64 with the n == 2 exit test -> BOARD-QUEUE item 26 / #27; ceb_24 reproduces)
+- ceb_24 (local rebuild of item 25's board seed, default OR-join walk): sdf e001dc27 (= the farm's), P 35.921 ns,
+  latency 786, EQUIVALENT, ffmux clean. Static / gate lines of the OR-model run still pending.
+- fc64eq (pre_eq2 at 64 bits, h2 sizes, item 24's knobs less the dropped n30 link): 30 routes, median 36.23 ns
+  (34.38-38.15) vs fc64h 45.12: paired -9.0 ns on 30/30 (1.25x; predicted nothing for collatz64 -- the collatz
+  prediction was -3). Gate 90/90 except seed 32 (0/14 at SLOW_MAX and worst on the bits netlist; ffmux_scan and
+  fasm_equiv flag a dfflegalize flop not configured by the bits: the nextpnr FASM gap, excluded, as is seed 5 with the
+  same flag -- 3 gap routes today of ~95 built). Static: umux2's traced false path on every route (as item 24); umux0 A
+  -45..-135 on seeds 4 / 7 / 15, ucmpi2 A -29 worst on seed 31 (all < 0.5 ns); H / I clean on 29/30 (seed 13 H -305).
+  Trace hold checks clean on all. Board seed 25 (6982a9d5, 36.27 ns). Sizes h3 = h2 + umux0 1 -> 2, ucmpi2 14 -> 15,
+  falseResult_9 UACK 5 -> 7; farm fc64eq2.
+- Why collatz64 gains more than collatz: its 64-bit equality on n' sat after the 64-bit select of two 64-bit operators;
+  now the compare runs beside them.

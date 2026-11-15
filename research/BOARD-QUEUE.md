@@ -168,6 +168,13 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    paired on 31 seeds: -5.28 ns, 31/31 faster, 1.15x); gate 96/96; static A / A' / E clean 32/32 at both corners;
    rules H / I clean on 31/32 (seed 5: I -12 ps); trace hold checks clean on all 32. Board seed 24 (sdf e001dc27,
    35.92 ns, every row clean). Dynamatic 14.05.
+26. **collatz64 at ~36 ns per iteration, FULL INPUT RANGE: the same n == 2 exit test (pre_eq2.py) on item 24's
+   structure with round-2 hold pads (h2)**: #27 below. Farm, 32 seeds (fc64eq): 30 routes, median 36.23 ns
+   (34.38-38.15) vs 45.12 for the same knobs without the rewrite (fc64h, paired on 30 seeds: -9.0 ns, 30/30 faster,
+   1.25x); gate 90/90 on every route but seed 32 (an ffmux-gap route, excluded with seed 5). Static: umux2's traced
+   false-path row on every route as for item 24; besides it umux0 rule A -45..-135 ps on 3 routes and ucmpi2 -29 on one
+   (sizes h3 pad both, farm fc64eq2 running); H / I clean on 29/30. Board seed 25 (sdf 6982a9d5, 36.27 ns): every
+   row clean but umux2's. Dynamatic 17.84.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -903,6 +910,32 @@ every check clean.
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.14 over item 22 (41.10 ns on its route vs 35.92 here). A FAIL with
 item 22 passing would mean the rewrite or its sizes do not hold on silicon (send both logs).
+
+## 27. collatz64 item 24's structure + pre_eq2 (exit test n == 2) + h2 hold pads -- 90/90 gate on 30 routes
+research/JOURNAL.md 2026-11-15. The same rewrite as #26 at 64 bits (n == 2 iff n' == 1 in 64-bit two's complement;
+simcheck PASS incl. n = 1, 27, 113383). Farm fc64eq: 30 routes built, median 36.23 ns, mean 36.15, 34.38-38.15;
+paired with fc64h (round-1 pads, same knobs otherwise) -9.0 ns on 30/30. Gate 14/14 at SLOW_MAX / FAST_MIN / worst+M
+on 29 routes; seed 32 fails 0/14 at SLOW_MAX and worst on the bits-decoded netlist and is flagged by ffmux_scan and by
+fasm_equiv ("cell in routed JSON, not configured by the bits": a dfflegalize flop, the nextpnr FASM gap of
+2026-11-08) -- excluded, like seed 5 (same flag). Static check (corner_audit, C-element joins): umux2 rule A -1.7..-2.1 ns
+at both corners on every route, the select-latch false path traced 2026-11-14 for items 21 / 24; umux0 A -45..-135 on
+seeds 4, 7, 15; ucmpi2 A -29 at worst on seed 31; H / I clean but seed 13 (H -305). hold_trace / hold_bits clean on 30.
+fasm_equiv: EQUIVALENT or the benign constant-LUT -> F7 / CARRY4-DI kind on the 28 others. Board seed 25: EQUIVALENT,
+ffmux clean, gate 3 x 14/14, only umux2's row, hold checks clean.
+- nextpnr 9c732bc6303458df. From cells/:
+
+    cp ../build/frontend/collatz64/comp/handshake_transformed.mlir /tmp/c64_hs_orig.mlir
+    cp ../research/data/fifteen/collatz64_preeq2.mlir ../build/frontend/collatz64/comp/handshake_transformed.mlir
+    BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=25 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz64_sizes_T4cdb_h2_bench.vh ./hw/build_bench.sh collatz64
+    cp /tmp/c64_hs_orig.mlir ../build/frontend/collatz64/comp/handshake_transformed.mlir
+    grep -c "usinkeq2" build/gen/collatz64_kernel_bench.v    # must be 1: the rewrite is in
+    md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # 6982a9d5 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz64_bench_gen/collatz64_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_c64_eq.tsv
+    (item 24: #25's commands for its loop_cost tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_eq.tsv build/hw/lc_c64_nl.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.25 over item 24 (45.19 ns on its route vs 36.27 here).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
