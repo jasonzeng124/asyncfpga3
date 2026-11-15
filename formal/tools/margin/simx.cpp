@@ -10,7 +10,10 @@
 // env:, out0), same exit codes (0 OK, 2 MISMATCH). Also accepted: --dout --dfall --reqgap --pipelined --pos/--seed
 // (ignored without effect when --classes is given, as in simadv). Not ported: --gfrac, non---classes delay modes,
 // --why/--watch/--trace, the non---full kernel cone. New: --maxev N: stop after N events, print no RESULT line,
-// exit 3 (margin.py then records the run as ERROR/UNDECIDED, as for a memory cap hit).
+// exit 3 (margin.py then records the run as ERROR/UNDECIDED, as for a memory cap hit). --want v1,v2,..: the expected
+// out0 list (bench kernels: collatz, xorshift, ..) replaces gcd(a,b) per pair in the RESULT check; gcd is the default.
+// Pair/out0 values are unsigned 64-bit. Undriven nodes (opaque outputs: FFs, LATCH-mode storage) stay at their
+// initial value 0 unless the env drives them (bnd 'env' list / data bits), exactly as in simadv.
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -28,6 +31,7 @@
 
 using namespace std;
 typedef long long ll;
+typedef unsigned long long ull;
 
 [[noreturn]] static void die(const char* fmt, const char* s = "") { fprintf(stderr, "simx: "); fprintf(stderr, fmt, s); fprintf(stderr, "\n"); exit(1); }
 
@@ -165,16 +169,16 @@ static inline bool fval(int n, ll r, ll& u) {
     return V0[n] ^ (k & 1);
 }
 
-static string pylist(const vector<ll>& v) {
+static string pylist(const vector<ull>& v) {
     string s = "["; char b[32];
-    for (size_t i = 0; i < v.size(); i++) { snprintf(b, sizeof b, "%s%lld", i ? ", " : "", v[i]); s += b; }
+    for (size_t i = 0; i < v.size(); i++) { snprintf(b, sizeof b, "%s%llu", i ? ", " : "", v[i]); s += b; }
     return s + "]";
 }
 
 int main(int argc, char** argv) {
     if (argc < 2) die("usage: simx NET.simx --pairs a,b ... [simadv options]");
     const char* netf = argv[1];
-    vector<pair<ll, ll>> pairs; vector<string> pairstr;
+    vector<pair<ull, ull>> pairs; vector<string> pairstr; vector<ull> wantv; bool has_want = false;
     double corner = 0.5, kappa = NAN; const char* classes = nullptr; char cdefault = 'M';
     bool data0 = false, full = false, pipelined = false; ll R = 20000, su = 0, dout = 3000, dfall = -1, tmax = 5000000, reqgap = 0, maxev = -1;
     string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr;
@@ -184,7 +188,9 @@ int main(int argc, char** argv) {
         if (o == "--pairs") { while (i + 1 < argc && strncmp(argv[i + 1], "--", 2)) { string s = argv[++i]; size_t c = s.find(',');
                 if (c == string::npos) die("bad pair %s", s.c_str());
                 pairstr.push_back(s);
-                pairs.push_back({strtoll(s.substr(0, c).c_str(), nullptr, 0), strtoll(s.substr(c + 1).c_str(), nullptr, 0)}); } }
+                pairs.push_back({strtoull(s.substr(0, c).c_str(), nullptr, 0), strtoull(s.substr(c + 1).c_str(), nullptr, 0)}); } }
+        else if (o == "--want") { has_want = true; string s = nxt(); size_t q = 0;   // expected out0 list (replaces gcd)
+            while (q < s.size()) { size_t c = s.find(',', q); if (c == string::npos) c = s.size(); if (c > q) wantv.push_back(strtoull(s.substr(q, c - q).c_str(), nullptr, 0)); q = c + 1; } }
         else if (o == "--corner") corner = atof(nxt());
         else if (o == "--kappa") kappa = atof(nxt());
         else if (o == "--classes") classes = nxt();
@@ -261,11 +267,11 @@ int main(int argc, char** argv) {
     int rst = BN["rst"], req = BN["req"], aA = BN["a_ack"], aB = BN["b_ack"], aS = BN["start_ack"],
         oR = BN["out0_req"], oA = BN["out0_ack"], eA = BN["pend_ack"];
     for (int n : Bdata[2]) if (n < 0) die("const bit in out0_data");
-    auto drive_data = [&](ll t, ll vals, int key) {
+    auto drive_data = [&](ll t, ull vals, int key) {
         vector<pair<int, bool>> want;  // insertion-ordered dict
         const char* kn = key == 0 ? "a_data" : "b_data";
         for (size_t i = 0; i < Bdata[key].size(); i++) {
-            bool bit = (vals >> i) & 1; int n = Bdata[key][i];
+            bool bit = i < 64 ? (vals >> i) & 1 : 0; int n = Bdata[key][i];
             if (n < 0) { if (bit != (n == -2)) { fprintf(stderr, "pair value %#llx not representable on %s: bit %zu tied to %s\n", vals, kn, i, n == -2 ? "const1" : "const0"); exit(1); } continue; }
             bool f = false;
             for (auto& x : want) if (x.first == n) { f = true; if (x.second != bit) { fprintf(stderr, "pair value %#llx not representable on %s: bit %zu shares a node\n", vals, kn, i); exit(1); } }
@@ -281,7 +287,7 @@ int main(int argc, char** argv) {
     bool has_sample = false; ll sample_at = 0; ll broad_k[2] = {-1, -1}; ll rtz_done = -1;
     ll np = pairs.size();
     if (np) { ll t0d = data0 ? 0 : (su ? R - su - 1 : R); drive_data(t0d, pairs[0].first, 0); drive_data(t0d, pairs[0].second, 1); }
-    ll t = 0, nev = 0; vector<pair<ll, ll>> outvals;
+    ll t = 0, nev = 0; vector<pair<ll, ull>> outvals;
     bool req_state = false, pend_state = false, capped = false;
     const int* INS = ins.data(); const int* DS = ds.data();
     while (!Q.empty()) {
@@ -340,10 +346,10 @@ int main(int argc, char** argv) {
             has_sample = true; sample_at = t + dout - 1;
         }
         if (has_sample && t >= sample_at) {
-            ll v = 0;
-            for (size_t i = 0; i < Bdata[2].size(); i++) if (val(Bdata[2][i], sample_at)) v += 1LL << i;
+            ull v = 0;
+            for (size_t i = 0; i < Bdata[2].size(); i++) if (val(Bdata[2][i], sample_at)) { if (i >= 64) die("out0 wider than 64 bits"); v += 1ULL << i; }
             outvals.push_back({sample_at, v});
-            printf("out0 #%zu at %lld ps: %lld\n", outvals.size() - 1, sample_at, v);
+            printf("out0 #%zu at %lld ps: %llu\n", outvals.size() - 1, sample_at, v);
             has_sample = false;
             if (!pipelined && nextreq == "sample") next_ok = true;
         }
@@ -380,17 +386,18 @@ int main(int argc, char** argv) {
             fprintf(f, "]]");
         }
         fprintf(f, "}, \"outs\": [");
-        for (size_t i = 0; i < outvals.size(); i++) fprintf(f, "%s[%lld, %lld]", i ? ", " : "", outvals[i].first, outvals[i].second);
+        for (size_t i = 0; i < outvals.size(); i++) fprintf(f, "%s[%lld, %llu]", i ? ", " : "", outvals[i].first, outvals[i].second);
         fprintf(f, "], \"pairs\": [");
-        for (size_t i = 0; i < pairs.size(); i++) fprintf(f, "%s[%lld, %lld]", i ? ", " : "", pairs[i].first, pairs[i].second);
+        for (size_t i = 0; i < pairs.size(); i++) fprintf(f, "%s[%llu, %llu]", i ? ", " : "", pairs[i].first, pairs[i].second);
         fprintf(f, "], \"args\": {\"net\": \"%s\", \"pairs\": [", netf);
         for (size_t i = 0; i < pairstr.size(); i++) fprintf(f, "%s\"%s\"", i ? ", " : "", pairstr[i].c_str());
         fprintf(f, "], \"corner\": %g, \"kappa\": %g, \"R\": %lld, \"w\": %d, \"classes\": \"%s\", \"cdefault\": \"%c\", \"su\": %lld, \"dout\": %lld, \"dfall\": %lld, \"tmax\": %lld, \"datachange\": \"%s\", \"nextreq\": \"%s\", \"data0\": %s, \"full\": true, \"sim\": \"simx\"}}",
                 corner, kappa, R, W, classes, cdefault, su, dout, dfall, tmax, datachange.c_str(), nextreq.c_str(), data0 ? "true" : "false");
         fclose(f);
     }
-    vector<ll> want, got;
-    for (auto& pq : pairs) { ll x = pq.first, y = pq.second; while (y) { ll r = x % y; x = y; y = r; } want.push_back(x); }
+    vector<ull> want, got;
+    if (has_want) want = wantv;
+    else for (auto& pq : pairs) { ull x = pq.first, y = pq.second; while (y) { ull r = x % y; x = y; y = r; } want.push_back(x); }
     for (auto& o : outvals) got.push_back(o.second);
     bool ok = got == want;
     printf("RESULT %s: want %s got %s\n", ok ? "OK" : "MISMATCH", pylist(want).c_str(), pylist(got).c_str());
