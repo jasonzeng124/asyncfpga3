@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# T119 CONTROL (no slowed arc; every arc at 0.74 x FAST_MIN) for the replay formal C 490bb556's item 26 witness (kappa 0.26, corner 0 = fast): every arc at (1-k)*FAST_MIN, the
+# T119 CONTROL (no slowed arc; every KERNEL arc at 0.74 x FAST_MIN, harness unscaled) for the replay formal C 490bb556's item 26 witness (kappa 0.26, corner 0 = fast): every arc at (1-k)*FAST_MIN, the
 # ulink_n13 ctl -> pair[6] LUT5 A2 interconnect at (1+k)*FAST_MAX (1152 ps -> 1452) and that LUT's A2 arc at (1+k) x its
 # fast max (approximated as FAST_MIN x 1152/993). Own route c64eq_25 (fasm aded8a8b = formal's). Vectors 27, 703, 77031.
 # Own oracle + t104 monitors. Formal's run: want [111, 170, 350], got [175, 42, 158].

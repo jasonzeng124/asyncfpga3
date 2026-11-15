@@ -2175,3 +2175,6 @@ Formal C 490bb556: collatz64 margins (search, every failing row gatechecked + en
 
 ### progress 04:05 T119 replay result (control running)
 Replay of formal C's item 26 witness in own GLS (every arc 0.74 x FAST_MIN, ulink_n13 ctl -> pair[6] LUT5 A2 at 1.26 x FAST_MAX): n = 27 MISMATCH (odata 0x6f correct, signature 0xa1 vs 0xb1), 703 and 77031 OK; ulink_n13 min hold 393 ps (plain FAST_MIN 1501). A failure reproduces, smaller than formal's (175 / 42 / 158). Control (same scaling, no slowed arc) running to attribute it.
+
+### progress 04:30 T119 control
+Control (every arc 0.74 x FAST_MIN, no slowed arc) fails the same way (n = 27 signature a1): the first replay's failure came from scaling the whole bench (incl. the clocked PS harness), not from formal's race. Redoing both with the scaling applied to kernel (bridge_i.udut) arcs only, harness at plain FAST_MIN (formal models the kernel against a bench boundary).
