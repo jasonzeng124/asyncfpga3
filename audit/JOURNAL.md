@@ -2062,3 +2062,6 @@ Disk allowance hit 100% while reinstalling Lean 4.35.0 (container restart had dr
 
 ### progress 18:05 formal resumed
 Formal shards A / B / C took locks (9877674a, fcaf47ab, 104d9e60). Priority (a) resumes. Freed disk to 21 GB (regenerable GLS work dirs removed; board-route mon work dirs kept). Lean 4.35.0 reinstalled (bin/lean sha256 bf8d54e4 = as before). Clean build of formal 104d9e60 in /root/wt-f91 (Mathlib 56a00585 from source, own toolchain) running (/root/f91_build.sh). Then: axiom audit (audit/tools/axiom_audit.sh) and the shards' new claims as they land.
+
+### note 18:15
+T109c second attempt produced no simulation (run_baked.vvp missing: built during the disk cleanup) -- 0/17 "MISSING" is an artefact, not a result; rerun started. Formal B cd7efc79: session plan (discharge TBehX `quiet` on THE target from C's reset island; new file Formal/Cells/SliceNetPS/Reset.lean, building, not claimed). B reads the audit as no open defect against B.
