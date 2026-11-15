@@ -4627,3 +4627,12 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
 - PREDICTION, collatz seed 26 (fcol3: 38.69 ns): the 32-bit equality and its fork leave the update -> steer path,
   ~-3 ns -> ~35.5 ns (34-37). Local ce_26 running (nl3 sizes, item 22's knobs less BDC_NO_LINK=ulink_n28__1: n28 is
   gone). Farm fceq (collatz, nl4 sizes) and fc64eq (collatz64, h2 sizes), 32 routes, AND-join static check.
+### progress 04:14 UTC (fneq: the farm's NOT EQUIVALENT routes are all one benign kind)
+- fneq rebuilt 8 routes the farm marked NOT EQUIVALENT (fcol3 s5 / s31, fc64h s3 / s4 / s6, fipowh s2 / s7, fxs s6):
+  every SDF md5 equals the farm's (same routes). Every verdict is "DRIVER DIFFERS" on F7BMUX input 0 only (1 site,
+  2 on fxs s6): JSON driver = the slice's D6LUT, bits = constant 0; LUT functions identical (5187-5661 / route) and
+  routing identical (0 nets differ). On 7 of 8 the D6LUT is listed by fasm_equiv as a constant-function LUT (INIT all
+  0); on fipowh s7 that list prints 4 of its 10 entries and X1Y33 is not among the 4 shown -- same pattern, not
+  confirmed by print. This is the benign constant-LUT -> F7 kind of 2026-11-10/13. xd_10 (lever 8): the same kind.
+- ipow: its exit test e' > 0 (e' = e >> 1) is e > 1, but the shift by one is wiring only and the multiplier path
+  binds, so at most a fork is saved: not built.
