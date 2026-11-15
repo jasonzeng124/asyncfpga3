@@ -2461,3 +2461,14 @@ second-priority work (gcd theorem, S6) and stays as is.
   exactly the facts in pre_dec.py's docstring), four edge pairs by omega. The generic autoproof cannot find this
   (its ρ pool has no n - 1 and its invariants are equalities of copies only); recorded as a limit of the tool.
 * *Not shown:* that the C returns on every input (it does: at most n iterations; not yet in Lean), gates/delays.
+### progress 17:59 -- CHECKED: collatz64 and collatz (32-bit) "same as original" (check.sh OK, 956 + 1,016 decls)
+* `Formal.Rewrite.Collatz64`: cfront cannot read `long long`, so the C is transcribed by hand (`Collatz64.P`: n
+  64-bit two's complement, arithmetic shift; steps 32-bit; checked on the kernel's vector, 27 -> 111, by the kernel).
+  Both the ORIGINAL graph (frontend fixture) and the rewritten one (collatz64_preeq2.mlir), imported by dfimport
+  unchanged, are proved against it with `Auto.sim_call` (`Orig.computes`, `Preeq2.computes`); `same`: on every n on
+  which the C returns r, both graphs end with [r] on every complete run. Graph-vs-C facts needed: the graph's
+  parity test (trunci 1, andi 1) equals the C's (andi 64); n + (n << 1) = 3n mod 2^64; Eq2 at w = 64.
+* `Formal.Rewrite.Collatz.same`: the 32-bit pair, from C's AutoCollatz and today's AutoCollatzPreeq2 (same cfront
+  transcription, `kC_same` by rfl).
+* FOR-RESEARCH A6 written (the three rewrites, md5s, Lean names, scope). Not covered: inputs where the C diverges;
+  gates/delays (token level only).

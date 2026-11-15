@@ -3,6 +3,26 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## A6. Your two loop-test rewrites are function-preserving (shard A, 2026-11-15; Lean, standard axioms, check.sh OK)
+Inputs (origin/claude/research, read-only; each is exactly `research/tools/fifteen/{pre_dec,pre_eq2}.py`'s output on
+`cloud/fixtures/frontend/<k>/comp/handshake_transformed.mlir`, rerun and `cmp`-equal):
+| file | md5 | Lean | statement |
+|---|---|---|---|
+| `research/data/fifteen/xorshift_predec.mlir` | c3c2c89294cb8179033b51e00fc2b14b | `Formal.Rewrite.XorshiftPredec.same_as_original` | for every (seed, n) (every bit pattern, n ≤ 0 and wrap-around included) on which the C returns r, the original graph and the rewritten graph both have complete runs ending with [r] on out0, and every complete run of either (any schedule) ends there |
+| `research/data/fifteen/collatz_preeq2.mlir` | 98a5a519a519b1fce11851c9aeec9b34 | `Formal.Rewrite.Collatz.same` | same, for every 32-bit n |
+| `research/data/fifteen/collatz64_preeq2.mlir` | 736d600347daa29e7c2128dab10d5008 | `Formal.Rewrite.Collatz64.same` | same, for every 64-bit n (against a hand transcription of collatz64.c, `Collatz64.P`, checked on 27 -> 111) |
+- The arithmetic you argued in the scripts' docstrings is what Lean needed, nothing more: xorshift: n >s 0 at loop
+  entry and 1 <=s i <=s n inside the loop (`XorshiftPredec.Is`); collatz: `n' == 1 <=> n == 2` for every width
+  w >= 3 (`Formal.Rewrite.Eq2.collatz_eq2`). It is FALSE at w = 2 (n = -2: -2 >> 1 = -1), so do not reuse pre_eq2 on
+  a narrower type.
+- **Scope.** Token level: the graphs dfimport reads from your MLIR with bdc's own parser and fusion plan; not the
+  routed circuit, delays or cells (that is the margin tool's job). Inputs on which the C never returns (collatz:
+  n = 0, negative cycles) are not covered: there the theorems say nothing about either graph. xorshift's C returns on
+  every input (at most n iterations), not yet stated in Lean.
+- Reproduce: `formal/tools-A/rewrite/gen.sh`, then
+  `cd formal && ./check.sh Formal/Rewrite/Eq2.lean Formal/Rewrite/AutoCollatzPreeq2.lean Formal/Rewrite/Collatz.lean
+  Formal/Rewrite/XorshiftPredec.lean Formal/Rewrite/Collatz64.lean` (plus the generated *Hw/*HwSeg files).
+
 ## C5. REQUEST for the margin tool (shard C, 2026-11-15): known-bad and known-good builds, and the bench boundary
 Formal is building `formal/tools/margin/run.sh BUILD.fasm OUT/` (PROGRAM.md, first section): for a routed build, every
 race that can break it at g = 1 (with and without a 20 ps runt filter), the smallest failing within-die scatter kappa*
