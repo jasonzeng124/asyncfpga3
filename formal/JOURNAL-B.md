@@ -4385,3 +4385,21 @@ Formal/Cells/SelectHold.lean`: OK, 4,759 declarations audited, standard axioms o
   the exact set itself fits, 17:3x); episodes after the first (A's notes/A-S6-chaining.md).
 Build note: lake has no job limit; CViewPS's RIslBnd quarters (~6 GB each) OOM-killed when built side by side, and
 had to be built one at a time (8 of them).
+### progress 20:1x -- CHECKED: `Formal/Cells/SelHoldPS.lean`: 20 select-hold rows of THE target (lake build, ~13 min; standard axioms)
+Rows emitted by `tools-B/select/gen_selhold_ps.py` (subagent; README.md, selhold_report.json). `certs_ok`
+(both chain certificates `certOK`) and `sel_ok` (`selOK`: chain shapes, the mux KRow's forcing fact over its
+select + selected-input pins, the wiring, the latch LRow, the four margin inequalities on Lean-recomputed arc sums),
+each by per-row `decide +kernel`; axioms propext, Quot.sound.
+* *Plainly:* for 20 latch bits of THE target that capture through a `umux*.udat` data mux (9 mux instances), by
+  `select_hold_row`: at g = 1, every corner, every behaviour, every κ up to the row's bound, the mux output keeps
+  the captured value until the latch has surely closed (`(e+1) + hi e`), PROVIDED the certificates' premises hold
+  (cause = the latch's enable source showing "open" on [a, e]; 0-3 static pins per chain, mostly the reset node
+  low after reset; memory rows). Per-row κ bound (min over its two chains): 0.606 to 0.855, median 0.694; binding
+  row SLICE_X26Y65.DLUT.O6. Every one is above THE statement's refutation point (0.36), so none of these 20
+  select captures is the binding race.
+* *How chosen (Python, untrusted):* one simulated run (full-width pair, corner 0, simb.py, result correct); only 259
+  of the 933 umux latches close after reset in it; chains found by a structural search (≤ 8 LUT steps from the
+  enable source, every step with a controlling set at the close, statics stable in the run over [close, close+20 ns]),
+  NOT ctlcert's causal chains (the selected inputs rarely change after a close in this run).
+* *Not shown:* the premises; the other 1,050 mux-sourced latches (674 umux ones never close in this run; deeper
+  cones need multi-row trees); setup (rule I) rows; any build other than THE target.
