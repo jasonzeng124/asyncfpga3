@@ -2096,3 +2096,6 @@ Formal A 85dbca49: formal/target/MARGINS.md registers research's builds; no new 
 
 ### progress 20:15 research E correction; formal B ForceTree
 Research f6c37b63: eval_task never read rule E rows on muxes/steers; items 19, 22-27 "E unknown". Own rule E on each board route (items 22-27) covers every ucond_br* and umux* at 3 corners, all positive -- REPORT row. Item 19 own E not run. Formal B 9a183fb8 ForceTree CHECKED: own lake build (the needed Mathlib modules were already compiled by the stopped wt-f91 build; packages symlinked into wt-f92), standard axioms. Watcher now triggers only on research commits and claim-like formal commits.
+
+### note 20:25
+Research e4fba1b6: fcsel0 (collatz select links at 0) -10.37 ns/iter median over 22 paired seeds, gates 3 x 13/13, but corrected static rule E -87..-255 ps at umux0/1/2 (worst) on seed 24 -> "not a candidate at 0"; fcsel1 / fcsel2 submitted (prediction: E clean at 1 on most routes, -9..-10 ns). Own T116 on the same route (sdf bb5fbbdb) will give the dynamic mux-select margins (t83 mon_mux) for that E row. 5c75d3b4: blanket-rule inventory (owner's "no blanket rules") -- to read.
