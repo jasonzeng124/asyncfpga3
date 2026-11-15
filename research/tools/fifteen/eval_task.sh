@@ -29,8 +29,10 @@ CA=$RUNS/ca/$N; mkdir -p "$CA/seed1/pnr"
 ln -sf "$RD/xray.sdf" "$CA/seed1/pnr/soak_xray.sdf"; ln -sf "$HW/${K}_bench_gen_routed.json" "$CA/seed1/pnr/soak_routed.json"
 cp "$R/$Z" "$CA/seed1/pnr/sizes.vh"
 cp "$R/${MLIR_OVERRIDE:-build/frontend/$K/comp/handshake_transformed.mlir}" "$CA/input.mlir"
+if [ -z "${TSE_ONLY:-}" ]; then
 python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. --out "$CA/worst" > "$CA/worst.log" 2>&1 &
 python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. --uniform 0.288 --out "$CA/nom" > "$CA/nom.log" 2>&1 &
+fi
 if [ -n "${SPEC_CASES:-}" ]; then   # BDC_SPEC_INC cells: the static check per case (LONG / SHORT), corner_audit --drop-inst/--cut
   for sc in ${SPEC_CASES//,/ }; do
     si=${sc%%:*}; sk=${sc##*:}; s0=$(( (sk + 3) / 4 ))          # first CARRY4 slice the carry cannot reach when abort = 0
@@ -41,12 +43,18 @@ if [ -n "${SPEC_CASES:-}" ]; then   # BDC_SPEC_INC cells: the static check per c
     done
   done
 fi
+# step 5's graph: one period per marker interval, else two (routes whose iterations alternate, 2026-11-15)
+tse_graph() { for st in 1 2; do
+    python3 "$R/research/tools/eventgraph/eventgraph.py" "$1" auto --rj "$HW/${K}_bench_gen_routed.json" --stride $st --out "$2" > "$2.log" 2>&1
+    [ -f "$2/nodes.tsv" ] && grep -q "CHECK period equal: PASS" "$2/check.txt" 2>/dev/null && return 0; rm -rf "$2"; done; return 1; }
 G=$RUNS/g/$N
+if [ -z "${TSE_ONLY:-}" ]; then
 for C in max min worst; do
   ( r=$("$R/research/tools/eventgraph/bench_gate.sh" "$HW" "${K}_bench_gen" "$G/$C" "$R/$GH" "$R/$GE" "$C" 2>&1 | tail -1)
     echo "gate $C $r" > "$O/gate_$C.txt" ) &
 done
-if [ -n "${HOLD_VEC:-}" ]; then   # trace-measured hold at every link / pipe input stage, FAST_MIN (hold_trace.py)
+fi   # TSE_ONLY
+if [ -n "${HOLD_VEC:-}" ] && [ -z "${TSE_ONLY:-}" ]; then   # trace-measured hold at every link / pipe input stage, FAST_MIN (hold_trace.py)
   ( DUMP_FIELD=min "$R/research/tools/eventgraph/fullstack_dump.sh" "$HW" "${K}_bench_gen" "$RUNS/hold/$N" "$R/$HOLD_VEC" > "$RUNS/hold_$N.log" 2>&1
     python3 "$R/research/tools/fifteen/hold_trace.py" "$RUNS/hold/$N" "$HW/${K}_kernel_bench.v" > "$O/hold.tsv" 2>&1
     python3 "$R/research/tools/fifteen/hold_bits.py" "$RUNS/hold/$N" "$HW/${K}_kernel_bench.v" > "$O/hold_bits.tsv" 2>/dev/null
@@ -54,23 +62,33 @@ if [ -n "${HOLD_VEC:-}" ]; then   # trace-measured hold at every link / pipe inp
 fi
 if [ -n "${TSE_VEC:-}" ]; then   # step 5's FAST_MIN run (the worst graph is lane2's own, already built)
   ( DUMP_FIELD=min "$R/research/tools/eventgraph/fullstack_dump.sh" "$HW" "${K}_bench_gen" "$RUNS/tmin/$N" "$R/$TSE_VEC" > "$RUNS/tmin_$N.log" 2>&1
-    python3 "$R/research/tools/eventgraph/eventgraph.py" "$RUNS/tmin/$N" auto --rj "$HW/${K}_bench_gen_routed.json" --out "$RUNS/gtmin/$N" > "$RUNS/gtmin_$N.log" 2>&1
+    tse_graph "$RUNS/tmin/$N" "$RUNS/gtmin/$N"
     rm -f "$RUNS/tmin/$N/dump.vcd" "$RUNS/tmin/$N/netlist_baked.v" ) &
+  if [ ! -f "$RD/eventgraph/nodes.tsv" ]; then   # lane2's own graph failed (alternating period): rerun the worst dump
+    ( "$R/research/tools/eventgraph/fullstack_dump.sh" "$HW" "${K}_bench_gen" "$RUNS/tworst/$N" "$R/$TSE_VEC" > "$RUNS/tworst_$N.log" 2>&1
+      tse_graph "$RUNS/tworst/$N" "$RUNS/gtworst/$N"
+      rm -f "$RUNS/tworst/$N/dump.vcd" "$RUNS/tworst/$N/netlist_baked.v" ) &
+  fi
 fi
 wait
 if [ -n "${TSE_VEC:-}" ]; then
   mkdir -p "$CA/tmin"; ln -sf "$HW/${K}_bench_gen_routed.json" "$CA/tmin/soak_routed.json"
   python3 "$R/research/tools/corner_sdf.py" "$RD/xray.sdf" "$CA/tmin/soak_routed.json" "$CA/tmin/soak.sdf" --band 0 > /dev/null 2>&1
+  mkdir -p "$CA/tworst"; ln -sf "$HW/${K}_bench_gen_routed.json" "$CA/tworst/soak_routed.json"   # the full stack's worst column
+  python3 "$R/research/tools/corner_sdf.py" "$RD/xray.sdf" "$CA/tworst/soak_routed.json" "$CA/tworst/soak.sdf" --band 0.288 \
+      --cell CARRY4=1,SELMUX2_1=1,SLICE_FFX=1 --inst-rx '\.chain\.g\[\d+\]\.u$:0.21' > /dev/null 2>&1
+  GW=$RD/eventgraph; [ -f "$GW/nodes.tsv" ] || GW=$RUNS/gtworst/$N
   python3 "$R/research/tools/eventgraph/tsehold.py" "$RUNS/gtmin/$N" "$CA/tmin/soak.sdf" > "$O/tse_min.txt" 2>&1
-  python3 "$R/research/tools/eventgraph/tsehold.py" "$RD/eventgraph" "$CA/worst/soak.sdf" > "$O/tse_worst.txt" 2>&1
+  python3 "$R/research/tools/eventgraph/tsehold.py" "$GW" "$CA/tworst/soak.sdf" > "$O/tse_worst.txt" 2>&1
   for c in min worst; do
+    if ! grep -q "self-check" "$O/tse_$c.txt"; then echo "tse $c ERROR (no graph or tsehold failed; tse_$c.txt)" >> "$E"; continue; fi
     rows=$(awk '$4 ~ /^-[0-9]+$/ {print $4, $1}' "$O/tse_$c.txt" | sed 's/^/TSE /' | tr '\n' ';')
     unc=$(awk '/NOT COVERED/ && $3 ~ /^-[0-9]+$/ {print $3, $1}' "$O/tse_$c.txt" | tr '\n' ';')
     echo "tse $c ${rows:-CLEAN} | not covered, OR < 0: ${unc:-none} | $(grep -o 'self-check.*' "$O/tse_$c.txt" | cut -c1-80)" >> "$E"
-    cp "$([ $c = min ] && echo "$RUNS/gtmin/$N" || echo "$RD/eventgraph")/check.txt" "$O/tse_graph_check_$c.txt" 2>/dev/null
+    cp "$([ $c = min ] && echo "$RUNS/gtmin/$N" || echo "$GW")/check.txt" "$O/tse_graph_check_$c.txt" 2>/dev/null
   done
 fi
-for c in nom worst; do
+[ -n "${TSE_ONLY:-}" ] || for c in nom worst; do
   f=$CA/$c/report.txt
   if [ -f "$f" ]; then
     neg=$(awk '$1~/^(A|E)$/ && $2+0<0 && $3~/udut/ {print $1, $2, $3}' "$f" | sort -u | sed 's/bridge_i.udut.//' | tr '\n' ';')

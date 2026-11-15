@@ -5006,3 +5006,12 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
   bad builds with neighbours (xf2_1 with my corrected race at ulink_n7; nc64_7 / pc64_7, a minimal pair). Files for
   item 25 seed 24, item 23 seed 10 and xf2_1 committed under research/data/for-formal/ (fasm + sdf, xz, ~0.6 MB each).
 - formal/FOR-RESEARCH.md (origin/claude/formal) read: nothing on research's builds yet (gcd_hw sections only).
+### progress 17:48 UTC (eval_task step 5 bug: TSE lines on the farm are void so far; fixed, testing)
+- fxdt's first 12 routes: every "tse ... CLEAN" without a self-check is a tsehold.py crash (no nodes.tsv): eventgraph
+  wrote no graph because lever-8 routes alternate between two iteration times and need --stride 2, and my summary
+  printed CLEAN for an empty result. Only routes 6 and 27 have real TSE lines (seed 6: ulink_n25 -287 FAST_MIN / -99
+  worst; seed 27 clean). Fixed: the graph is tried at stride 1 then 2 (accepted only with its period check PASS), the
+  worst graph is rebuilt from a fresh dump when lane2's is missing, the worst SDF is corner_sdf's worst column, and a
+  run with no self-check line now says ERROR. TSE_ONLY=1 runs only the build and step 5 (for reruns). The gate,
+  static and hold lines of fxdt / fxsel* / f*sel0 are unaffected.
+- fxdt so far (10 routes back with gates): gate 3 x 17/17 on all; hold_bits clean on all.
