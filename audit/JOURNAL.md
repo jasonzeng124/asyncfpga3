@@ -2114,3 +2114,6 @@ Own colsel0_24 sdf bb5fbbdb; 26.720 vs 35.040 ns (-8.32 on this seed); 13/13 at 
 
 ### progress 21:30 T116 done
 Select-flip vector: 4/4, umux0 132 / umux2 48 mux violations. Own static H none < 0, dynamic H 0 violations. So H / I / hold_bits are blind to the select-vs-request race that happens on most iterations. Top REPORT row added (criterion gap). Owner notified at 21:15.
+
+### note 21:45
+Owner b0f9dafa (research PROGRAM): select checks are now arrival (rule E at the mux / steer; no select change while the output request is high) AND hold (H / I / hold_bits), citing audit T116. REPORT rows updated (gap resolved). Audit will apply the arrival check in simulation (t83 mon_mux / mon_steer) to every shortened-select candidate.
