@@ -76,5 +76,42 @@ for link in ups:
             worst = (m, c, r[0], s[0])
 if worst is None:
     sys.exit("spec_select: no upstream link reaches both pins")
+
+# FALLING: both lines fast-fall from the gate (joined).  The data, hence abort, may change for the next token only once
+# the upstream link's latch reopens, i.e. after its C node rises again, so the abort changes no earlier than
+# (C rise) + (earliest C -> abort pin).  When the gate IS that C node (a 1-input join is a wire), its re-rise is no
+# earlier than rule F's t_reuse (the tail's fall and the shortest way back to the gate), min over the two lines;
+# otherwise the gate-fall -> C-rise loop counts as 0 (a lower bound).  Each line must be low at uspec by then (else the switch passes a stale high: a z_req runt):
+# rule F's t_flush (latest fall of any link of the line, from the gate) + the tail's wire into uspec.
+chains = T.find_chains(edges)
+frows = {r[0]: r for r in T.audit_fastfall(edges, back, chains, T.Timing(edges, stops))}
+t_low = None
+for base in (a.inst + ".udly", a.inst + ".udly_s"):
+    r = frows.get(base)
+    if r is None or not isinstance(r[2], int):
+        sys.exit("spec_select: no rule-F row for %s (%s)" % (base, r))
+    _, tail = T.chain_endpoints(edges, back, chains[base])
+    w = max((d for x, d in edges.get(tail, ()) if T.pin_split(x)[0] == U), default=None)
+    if w is None:
+        sys.exit("spec_select: %s's tail %s does not reach %s" % (base, tail, U))
+    print("  fall: %s flushed %d + wire %d" % (base.split(".")[-1], r[2], w))
+    t_low = max(t_low or 0, r[2] + w)
+gate = {x for x, d in T.fastfall_side_arcs(edges) if T.pin_split(d)[0].startswith(a.inst + ".udly")}
+reuse = min(frows[a.inst + b][3] for b in (".udly", ".udly_s"))
+fall = None
+for link in ups:
+    for c in (link + ".ctl.u.u/O6", link + ".ctl.ub/O6"):
+        if c in stops:
+            s = at(skew.walk(edges, stops, binc, feed, c, False)[0][:2], sel)
+            if s is not None:
+                loop = reuse if gate == {c} else 0
+                if fall is None or loop + s[0] < fall[1] + fall[2]:
+                    fall = (c, s[0], loop)
+if fall is None:
+    sys.exit("spec_select: abort pin not reached from an upstream link (falling row)")
+mf = int(a.glo * (fall[2] + fall[1]) - a.ghi * t_low)
+print("FALL %s margin %+d ps (both lines low by %d after the gate falls; abort changes >= %d + %d after it, via %s's "
+      "re-rise%s)" % (a.inst.split(".")[-1], mf, t_low, fall[2], fall[1], fall[0],
+                     "" if fall[2] else ", loop bounded by 0: the gate is not that C node"))
 print("SELECT %s margin %+d ps (req %d, abort %d, from %s, guards %.2f/%.2f)"
       % (a.inst.split(".")[-1], worst[0], worst[2], worst[3], worst[1], a.glo, a.ghi))

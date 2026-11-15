@@ -4449,3 +4449,13 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   rebuilds the same 32 seeds and reports only this row (spec_select_task.sh; checked to reproduce xs_10's worst row).
 - Not covered by any row yet: the falling phase of the mux (both lines FASTFALL; abort is held until the acknowledge
   falls, by the bundling upstream). The 3-corner gate exercised it on xs_10 (PASS); a static argument is still owed.
+### progress 01:20 UTC (speculative cell: the falling phase, static row)
+- spec_select.py now also prints FALL: both delay lines must be low at uspec before the abort can change for the next
+  token (else switching the mux passes a stale high: a z_req runt). Both lines fast-fall from the gate, which on this
+  cell IS the upstream link's C node (the 1-input join is a wire); the abort can change only after that C node rises
+  again (its latch reopens) plus the earliest C -> abort path. Re-rise bound: rule F's t_reuse (min over the two
+  lines). xs_10: lines low by 1636 / 1596 ps; abort no earlier than 3120 + 1432 / 3054 + 1432 -> FALL +2730 nominal,
+  +2707 worst. With the loop bounded by 0 instead it reads -296 (that bound is too loose to decide anything; the raw
+  shortest C -> C graph cycle, 1215 ps, is the C-element's own hold feedback, not a handshake).
+- fxss was picked up before the FALL row existed; fxss2 = the same 32 routes with both rows. fxss's SELECT rows must
+  match fxss2's exactly (same seeds): a free reproducibility check.

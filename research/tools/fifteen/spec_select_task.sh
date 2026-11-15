@@ -15,6 +15,6 @@ python3 "$R/research/tools/corner_sdf.py" "$RD/xray.sdf" "$J" "$C/nom.sdf" --ban
 python3 "$R/research/tools/corner_sdf.py" "$RD/xray.sdf" "$J" "$C/worst.sdf" --band 0.288 \
     --cell CARRY4=1,SELMUX2_1=1,SLICE_FFX=1 --inst-rx '\.chain\.g\[\d+\]\.u$:0.21' > /dev/null
 for m in nom worst; do
-  echo "select $m $(python3 "$R/research/tools/fifteen/spec_select.py" "$C/$m.sdf" "bridge_i.udut.$I" 2>&1 | tail -1)" >> "$F"
+  echo "select $m $(python3 "$R/research/tools/fifteen/spec_select.py" "$C/$m.sdf" "bridge_i.udut.$I" 2>&1 | tail -2 | tr "\n" " ")" >> "$F"
 done
 cat "$F"

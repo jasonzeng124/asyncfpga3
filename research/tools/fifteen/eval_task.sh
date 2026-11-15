@@ -64,7 +64,7 @@ if [ -n "${SPEC_CASES:-}" ]; then
       else echo "static-$cs $m ERROR" >> "$E"; fi
     done; done
     for m in nom worst; do   # the select race inside the cell: abort vs the short line (spec_select.py)
-      r=$(python3 "$R/research/tools/fifteen/spec_select.py" "$CA/$m/soak.sdf" "bridge_i.udut.$si" 2>&1 | tail -1)
+      r=$(python3 "$R/research/tools/fifteen/spec_select.py" "$CA/$m/soak.sdf" "bridge_i.udut.$si" 2>&1 | tail -2 | tr "\n" " ")
       echo "select $m $r" >> "$E"; done
   done
 fi
