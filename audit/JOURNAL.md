@@ -1957,3 +1957,6 @@ Research 53d0679e / f0da3f2a / 11a86df4: xf5_10 (fr4 hold pads on item 23's seed
 
 ### progress 01:56 T108b started
 Research 2d44e1f0: speculative cell SELECT rows on 32 farm routes, worst min +150 (seed 1) / +159 (seed 12); nominal/worst only. On seed 10 own dynamic FAST_MIN (912) was ~210 ps below research's static worst (+1124), so seeds 1/12 may be thin or negative at FAST_MIN. Own builds xs_1, xs_12 + mon_spec at 3 corners (t108/seeds.sh).
+
+### progress 02:32 T108b done
+Speculative cell, seeds 1 and 12 (research's thinnest SELECT rows): own builds, 17/17 at 3 corners, 0 hazards, select margin min 471 / 413 ps at FAST_MIN. Positive. Watching.
