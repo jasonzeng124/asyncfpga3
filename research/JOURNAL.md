@@ -4891,3 +4891,23 @@ Next:
   even with every falling arc at 0 whatif predicts 20.87. Rejected.
 - Note for the 15 ns question: on xorshift with lever 8 the remaining time is mostly the link stages that decouple
   forks from the rings (every removal so far re-couples a fork) and the select links (the select rule).
+
+## Session 2026-11-15 16:58 UTC -- token-aware rule H (time separation on the marked graph)
+Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache; toolchain.sh all ok)   Seeds: see entries
+### progress 16:58 UTC (start; lead chosen)
+- Audit read (origin/claude/audit 608dd05f): nothing new REFUTED against research. Open on research's side: items
+  19 / 22-24 are "gate-clean + dynamically hold-clean, static proof with C-element semantics OPEN" (T109). Owner commit
+  b3ed0304: the farm now pushes partial results every 10 min; ask for time = ~3x the need.
+- Lead (goal 1; Next item 5 of the last session): a static hold bound that respects C-element semantics and token
+  counts. Rule H walks from a latch's close and lets every controller fire on its FIRST reached input (OR): a lower
+  bound only, and wrong where the other input of a C element (the next token's request) cannot already be waiting.
+  Plan (tsehold.py): on the timed event graph of the route (eventgraph.py's marked graph, arcs = enabling pins with
+  token offsets, here from a FAST_MIN trace), the separation from a controller's close (occurrence k) to any later
+  event v of an upstream controller is bounded below by the LONGEST path from (close, 0) to (v, m) in the unrolled
+  graph (every event waits for ALL its enabling inputs; arcs weights are lower bounds at that corner). Occurrences of v
+  not causally after the close and not before it are UNORDERED: no bound (flagged) -- that is the "token already
+  waiting" case. OR-caused arcs ('bind' / 'eval_bind') are dropped, never used as precedence (conservative).
+  Then margin = bound + earliest data path (v -> latch D, tighten's walk at the same corner) - close time - guard.
+- Controls before any use: xf2_1 (fxf2 seed 1, a real FAST_MIN hold failure on the counter's loop-back pipe, JOURNAL
+  2026-11-14 09:34) must be flagged; xf4_10 (item 23's route, OR rows the audit found never live) is the case to clear.
+  Both building locally (lane2.sh, nextpnr seeds 1 / 10).
