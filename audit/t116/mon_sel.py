@@ -24,6 +24,22 @@ for mux in os.environ.get("MON_MUXES", "umux0,umux2").split(","):
     if not mm: continue
     zreq = mm[1]
     pins = re.findall(r'always @\(tb_ps\.dut\.(\w+)\) begin ts\d+_\d+ = \$time; if \(tb_ps\.dut\.%s ' % zreq, txt)
+    if os.environ.get('JOIN_PINS'):   # also the select pin of the mux's request-join LUTs <mux>.uj0 / .uj1
+        mj = list(json.load(open(rj))["modules"].values())[0]
+        site_c = {}
+        for l in open('names.map'):
+            if l.startswith('#'): continue
+            c, st = l.split(None, 1); site_c[st.strip()] = c
+        ipins = {}
+        for l in open('netlist_baked.v'):
+            m2 = re.match(r'\s*SLICE_LUTX #\(.*\) (c_\d+) \((.*)\);', l)
+            if m2: ipins[m2[1]] = dict(re.findall(r'\.(\w+)\((\w+)\)', m2[2]))
+        for j in ('uj0', 'uj1'):
+            cj = mj['cells'].get(f'bridge_i.udut.{mux}.{j}')
+            if not cj: continue
+            pin = os.environ['JOIN_PINS']   # physical pin carrying the select (A5 on this route)
+            c = site_c.get(cj['attributes'].get('NEXTPNR_BEL')); w = ipins.get(c, {}).get(pin)
+            if w: pins.append(w); L.append(f"    // {mux}.{j} select pin {pin} = {w}")
     zk = re.search(r'%s\s*\(.*?\.z_ack\((\w+)\)' % mux, ker, re.S)[1]
     ov = dict(x.split('=') for x in os.environ.get('ZACKS', '').split(',') if '=' in x)
     zack = wire_of.get(ov[mux]) if mux in ov else wire_of.get('bridge_i.udut.' + zk)

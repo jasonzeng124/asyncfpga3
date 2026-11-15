@@ -2163,3 +2163,6 @@ Item 28 CONFIRMED: pin-level select arrival clean (0 late transitions at umux0 /
 
 ### note 01:25
 Formal C 1d975824: margin tool reports only finite (checkable) witnesses as kappa_hi; gcd_ps kappa_hi 0.40 (checked), the 0.36 livelock listed apart (non-finite; already Lean-proved via Frontier36, audit CONFIRMED). Tool hygiene; no new research-build margin.
+
+### progress 01:45 T118 started (negative control, collatz select race)
+Research ac048316: constructed select races on fcsel0 seed 24 by SDF injection: select latch -> umux1.uj0/uj1 +3000 ps: worst PASS 13/13, FAST_MIN no completion; n14__1 stage[1] enable +15000: no completion at both; rule E flags both, H the hold one -- research's negative control for collatz (by injection, "0/13" = non-completion). Own replay T118: same +3000 ps on the two arcs in a copy of own sdf-identical route (/root/t65/colsel0inj_24), GLS worst then FAST_MIN with own oracle and the pin-level arrival monitor extended to the join LUTs' select pins (A5) -- tests whether own monitor catches a known-bad arrival build (its own negative control).
