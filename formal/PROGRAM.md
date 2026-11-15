@@ -79,6 +79,11 @@ status files and FOR-RESEARCH. A also decides what goes back to the gcd theorem 
 here waits on research. Keep `formal/target/STATUS.md` for the gcd theorem, and add
 `formal/target/MARGINS.md`: one row per build (md5, kappa*, binding race, Lean or search, date).
 
+**Compute: the farm.** The owner has let formal use the machine research uses for its routes
+(`formal/cluster/README.md`): up to 64G and 16 cores a task, 256 tasks at once, by committing
+a request. Memory was the limit in the cloud sandbox; it need not be now. Use it for full
+builds, `check.sh`, sweeps, and the margin tool over many routes. Never wait on it.
+
 **Second priority: the gcd theorem** (the section after next). Its positive side (S4
 composition, S6 liveness) is still open. Work on it when the work above is blocked, and
 whenever a result here (a completeness proof, a certificate checker) is what it needs.
