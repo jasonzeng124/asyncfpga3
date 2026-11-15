@@ -2160,3 +2160,6 @@ Own sdf d86bdde5 = recipe; 25.840 ns; 1.390x over item 25's route (pred 1.39); 1
 
 ### progress 01:15 T117 done
 Item 28 CONFIRMED: pin-level select arrival clean (0 late transitions at umux0 / umux1, FAST_MIN and worst), plus the earlier route / period / ratio / 3-corner / rules E-H results. REPORT row. Owner notified.
+
+### note 01:25
+Formal C 1d975824: margin tool reports only finite (checkable) witnesses as kappa_hi; gcd_ps kappa_hi 0.40 (checked), the 0.36 livelock listed apart (non-finite; already Lean-proved via Frontier36, audit CONFIRMED). Tool hygiene; no new research-build margin.
