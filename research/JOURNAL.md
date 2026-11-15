@@ -4613,3 +4613,8 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   ulink_n_falseResult_9 stage[1] (nom and worst). Trace hold checks (hold_trace, hold_bits at FAST_MIN) clean, tightest
   +880 / +924 ps. research/data/fifteen/lever8/.
 - One route. The 32-route distribution comes from fxd / fxds.
+### progress 04:12 UTC (lever 8 seed 10: period 19.15 ns, a period-2 pattern)
+- Re-dumped xd_10 (same route, itercost stack): every loop request (n7, n8, n29) alternates 18924 / 19382 ps from
+  iteration to iteration (252 / 254 of 511 intervals each), so the eventgraph's single-period marker finds no run and
+  gives up. Mean 19.153 ns per iteration vs xf5_10 23.147 (same seed): -3.99 ns, matching the latency (-85 cycles).
+  Likely an odd / even data dependence in the sim's delays (i's low bit through the compare / add); not chased.
