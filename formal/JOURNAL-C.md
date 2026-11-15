@@ -3041,7 +3041,7 @@ certificates of THE target passing the sub-word checks.
 
 ## Session Sun Nov 15 17:23 UTC 2026 (shard C; session_01HC49FyKtMWLS8Cg7G9Vvvn)
 
-### progress 17:40 -- start (formal back on after the 2026-11-10 pause); claims for today
+### progress 17:24 -- start (formal back on after the 2026-11-10 pause); claims for today
 Lock taken 17:23 (LOCK-C was empty after the pause). Audit (origin/claude/audit 72de82ab, 2026-11-15 17:23): no
 REFUTED or OVERSTATED row on C's files; T57/T62/T63 and the rows on 52911a5a..e4507d77 CONFIRM every C claim made
 before the pause (AO TimedUp/UnrollClaimU/UnrollUX/UnrollToy, reset_quiet_all, 16 timed units). B's 2026-11-10 close
@@ -3053,7 +3053,7 @@ Container: 4 cores, 15 GB, no Mathlib cache: setup.sh is building from source (~
 2. The 4 remaining timed shift units (parked in formal/lean/Wip/TimedShift/), one module at a time.
 3. Answer B on chunking (after reading CovUpChunk).
 
-### progress 18:35 -- AO/TimedUnit + AO/UnitWord: external condition claims proved by unit theorems (check.sh OK)
+### progress 17:31 -- AO/TimedUnit + AO/UnitWord: external condition claims proved by unit theorems (check.sh OK)
 * *Problem:* `timedA_followsUX` / `timedA_liveUX` (the every-pair route) take the datapath conditions the control
   reads (cmpi results, parity bit) as a hypothesis `hExt`, because no window certificate fixes their value. Can that
   hypothesis be discharged by the timed unit theorems of THE target (`<unit>_timed_circ`: inputs held on [T0, T1] ⇒
