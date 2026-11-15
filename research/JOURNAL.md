@@ -4811,3 +4811,28 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   failing build, passes the fixed one) and named by rule H; the ipow one was re-attributed to ushrsi0. Would you accept
   "select links may shrink when rules H / I are clean at both corners on >= 32 routes AND hold_bits is clean on them"
   in place of the blanket select rule? Until then the rule stands and nothing here shrinks them.
+### summary 06:50 UTC (this session so far)
+Measured (farm, nextpnr 9c732bc6303458df, toolchain 789a7120c912d393; periods from the itercost stack):
+| kernel | build | metric | median | range | n | vs previous |
+|---|---|---|---|---|---|---|
+| xorshift | fxd: lever 8 (i < n-1), fr4 | ns / iteration | 19.39 | 18.98-21.16 | 31 | fxf5 23.47; paired latency -3.76 ns, 27/28 |
+| xorshift | fxd2: + pads fr5d | ns / iteration | 19.81 | 18.76-20.87 | 29 | latency +0.29 ns vs fxd |
+| xorshift | fxds: lever 8 + spec incrementer | latency | -- | -- | 31 | +0.33 ns vs fxd (not adopted) |
+| xorshift | fxs: spec incrementer (fr3) | latency | -- | -- | 30 | -1.87 ns vs fxf4l, 28/30 |
+| xorshift | fxl5s: lever 5 + spec | latency | -- | -- | 22 | -0.56 ns vs fxs5; ucmpi1 rule A misses (rejected) |
+| collatz | fceq: exit n == 2, nl4 | ns / iteration | 35.82 | 33.38-38.51 | 32 | fcol4 41.24; paired -5.28, 31/31 |
+| collatz | fceq2: + pads nl6 | ns / iteration | 36.60 | 34.63-38.80 | 30 | hold-clean 30/30; +0.83 vs fceq |
+| collatz64 | fc64eq: exit n == 2, h2 | ns / iteration | 36.23 | 34.38-38.15 | 30 | fc64h2 45.28; paired -9.02, 31/31 |
+| ipow | fipowh3: pads h3 | ns / iteration | 38.80 | 35.60-41.06 | 30 | hold/close clean 28/30 |
+Board list: items 25 (collatz, seed 24), 26 (collatz64, seed 25), 27 (xorshift, seed 2) added.
+Does NOT show: anything on silicon. The rewrites (pre_dec, pre_eq2) are MLIR pre-passes, simcheck-checked and argued
+exact; they are not yet expressed at the LLVM level (no Dynamatic here). AND-join rule E is a lower bound under the
+stated assumption (non-inverting request paths into bd_ctree); rule H still uses OR. Several families still carry
+small H / I rows on a few routes (pad rounds running). FFMUX / F7-select nextpnr defects hit ~5% of routes; every one
+was caught by ffmux_scan and/or fasm_equiv and the gate.
+Next:
+  1. Farm results: fc64eq2 (collatz64 h3), fipowh4, fxd3 -- update items 26 / 27 if a round is clean on every route.
+  2. The owner's answer on the select rule (question above); ~2.4 ns per iteration on xorshift rides on it.
+  3. Negative control 2 for the select rule (ipow T9cd, soak-top harness via fusion_bench).
+  4. Express pre_dec / pre_eq2 as LLVM-level steps (frontend.sh opt-in), once a Dynamatic build exists.
+  5. A token-count (time-separation) static hold check to replace the OR bound in rule H (JOURNAL note above).
