@@ -5166,3 +5166,20 @@ farm, then the K-lap check.
   met (a little faster than predicted).
 - BOARD-QUEUE list item 28 / section ## 29, board seed 20 (sdf d86bdde5, latency 566 = the median). Open, stated in the
   item: the simulated select-arrival check (my monitor vs the audit's on fcsel0) and 4 routes not back.
+### progress 21:36 UTC (constructed races on collatz fcsel0 seed 24: the gate fails where the checks fire)
+Base: fcsel0 seed 24 (sdf bb5fbbdb), delays added to the prjxray SDF only (same netlist and bits; confirmed in the decoded
+netlist's fasm.sdf). Gate = bench_gate.sh, fid model, 13 vectors.
+| injected | corner | gate | rule E (corner_audit) | rule H |
+|---|---|---|---|---|
+| none | worst | 13/13 (farm) | -87..-255 umux0/1/2 | clean |
+| select latch -> umux1.uj0/uj1 +3000 ps | worst | PASS 13/13 | -3345 / -3264 umux1 | unchanged |
+| same | FAST_MIN | 0/13: no batch completed in 205 CPU-min (clean run: all 13 in ~10); stopped | -- | -- |
+| ulink_n14__1 stage[1] enable +15000 ps | FAST_MIN | 0/13 in 170 CPU-min; stopped | -15600 / -15659 umux1 | -14260 at that stage |
+| same | worst | 0/13 in 168 CPU-min; stopped | -- | -- |
+- Reading: on collatz both constructed select races make the gate fail (a run that never completes a batch hangs) at
+  FAST_MIN, and the select-arrival race also passes at worst -- the gate alone would miss it at one corner. Rule E flags
+  both builds; rule H flags the hold one. So on this family rule E (arrival) and H (hold) each fail on a known-bad build:
+  the owner's "a check earns its place by failing" for collatz. Caveat: constructed by SDF injection, not by shortening a
+  line until it races (no shortening down to 0 raced on any family); and "0/13" is non-completion, not a wrong value.
+- My dynamic select_arrival.py was not run on these (the dumps were the plain route); its disagreement with the audit's
+  monitor stays open.
