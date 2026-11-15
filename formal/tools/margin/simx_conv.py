@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""margin/simx_conv.py (shard C, UNTRUSTED): NET.json + BND.json -> the compact text netlist simx reads.
+
+    python3 simx_conv.py NET.json BND.json OUT.simx
+
+Mirrors the --full setup of tools/huff/simadv.py exactly: env nodes' drivers dropped (later gate wins a node),
+the gate order is Python's iteration order of set(drv.values()) (simadv evaluates/schedules in that order, which
+fixes the heap's FIFO tie-breaks), readers in that order. Also records the kernel-cone counts simadv prints.
+"""
+import json, sys
+
+netf, bndf, outf = sys.argv[1:4]
+N = json.load(open(netf)); BJ = json.load(open(bndf)); B = BJ["boundary"]
+names = N["nodes"]; idx = {n: i for i, n in enumerate(names)}; gates = N["gates"]
+nb = lambda k: idx[B[k]]
+ENV = set(idx[x] for x in BJ["env"])
+drv = {}
+for gi, g in enumerate(gates):
+    if g["out"] not in ENV:
+        drv[g["out"]] = gi
+outs = [nb("a_ack"), nb("b_ack"), nb("start_ack"), nb("out0_req")] + [idx[x] for x in B["out0_data"]]
+cone, todo = set(), list(outs)
+seen = set(todo)
+while todo:
+    n = todo.pop()
+    gi = drv.get(n)
+    if gi is None:
+        continue
+    cone.add(gi)
+    for i in gates[gi]["ins"]:
+        if i not in seen and i not in ENV:
+            seen.add(i); todo.append(i)
+ncone_kernel, nseen = len(cone), len(seen)
+cone = set(drv.values())   # --full
+order = list(cone)
+with open(outf, "w") as f:
+    f.write("SIMX1\n%d %d %d %d %d\n" % (len(names), len(gates), len(order), ncone_kernel, nseen))
+    for n in names:
+        assert "\n" not in n
+        f.write(n + "\n")
+    for gi in order:
+        g = gates[gi]
+        lut = 1 if (g["name"].endswith("LUT.O6") or g["name"].endswith("LUT.O5")) else 0
+        assert len(g["ins"]) == g["k"] == len(g["arcs"])
+        f.write("%d %d %d %d %x %s %s\n" % (gi, g["out"], g["k"], lut, g["init"], " ".join(map(str, g["ins"])),
+                " ".join("%d %d %d %d" % (e["fmin"], e["fmax"], e["smin"], e["smax"]) for e in g["arcs"])))
+    for k in ("rst", "req", "a_ack", "b_ack", "start_ack", "out0_req", "out0_ack", "pend_ack"):
+        f.write("%s %d\n" % (k, nb(k)))
+    for k in ("a_data", "b_data", "out0_data"):
+        # node index, or -1 (const0) / -2 (const1) for tied bits (as simadv: any name starting "const")
+        f.write("%s %d %s\n" % (k, len(B[k]), " ".join(
+            str(-2 if nm == "const1" else -1) if nm.startswith("const") else str(idx[nm]) for nm in B[k])))
+print("simx_conv: %d nodes, %d gates simulated (--full), kernel cone %d gates (%d nodes) -> %s"
+      % (len(names), len(order), ncone_kernel, nseen, outf), file=sys.stderr)

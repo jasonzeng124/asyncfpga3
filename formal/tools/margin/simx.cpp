@@ -1,0 +1,399 @@
+// margin/simx.cpp (shard C, UNTRUSTED): a C++ port of tools/huff/simadv.py for the option subset margin.py uses.
+//
+//   python3 simx_conv.py NET.json BND.json NET.simx            (once per build)
+//   KDEN=100 simx NET.simx --pairs P.. --corner 0 --kappa K --classes C.json --cdefault F --data0 --full
+//        --R 400000 --su 1000 --datachange broad --nextreq seq --tmax T [--w W] [--dump D.json] [--maxev N]
+//   build: g++ -O2 -std=c++17 -o simx simx.cpp
+//
+// Same semantics as simadv.py (transport, heap order (t, pri, seq), env reaction at each settled time, H_RUNT(w)
+// read filter on LUT pins, exact rational delays for --classes), same stdout/stderr lines (RESULT, sim:, HRUNT,
+// env:, out0), same exit codes (0 OK, 2 MISMATCH). Also accepted: --dout --dfall --reqgap --pipelined --pos/--seed
+// (ignored without effect when --classes is given, as in simadv). Not ported: --gfrac, non---classes delay modes,
+// --why/--watch/--trace, the non---full kernel cone. New: --maxev N: stop after N events, print no RESULT line,
+// exit 3 (margin.py then records the run as ERROR/UNDECIDED, as for a memory cap hit).
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cstdint>
+#include <cmath>
+#include <cctype>
+#include <tuple>
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+#include <algorithm>
+#include <queue>
+#include <utility>
+
+using namespace std;
+typedef long long ll;
+
+[[noreturn]] static void die(const char* fmt, const char* s = "") { fprintf(stderr, "simx: "); fprintf(stderr, fmt, s); fprintf(stderr, "\n"); exit(1); }
+
+// ---------------- tiny JSON (for --classes) ----------------
+struct JV { int ty = 0; string s; double num = 0; vector<JV> a; vector<pair<string, JV>> o; };  // ty 0 null 1 num 2 str 3 arr 4 obj 5 bool
+struct JP {
+    const char* p;
+    void ws() { while (*p == ' ' || *p == '\n' || *p == '\r' || *p == '\t') p++; }
+    string str() { string r; p++; while (*p && *p != '"') { if (*p == '\\') { p++; if (*p == 'n') r += '\n'; else r += *p; p++; } else r += *p++; } if (*p != '"') die("bad json string"); p++; return r; }
+    JV val() {
+        ws(); JV v;
+        if (*p == '{') { v.ty = 4; p++; ws(); if (*p == '}') { p++; return v; }
+            for (;;) { ws(); if (*p != '"') die("bad json key"); string k = str(); ws(); if (*p != ':') die("bad json"); p++; v.o.push_back({k, val()}); ws(); if (*p == ',') { p++; continue; } if (*p == '}') { p++; break; } die("bad json object"); } }
+        else if (*p == '[') { v.ty = 3; p++; ws(); if (*p == ']') { p++; return v; }
+            for (;;) { v.a.push_back(val()); ws(); if (*p == ',') { p++; continue; } if (*p == ']') { p++; break; } die("bad json array"); } }
+        else if (*p == '"') { v.ty = 2; v.s = str(); }
+        else if (!strncmp(p, "null", 4)) { p += 4; }
+        else if (!strncmp(p, "true", 4)) { v.ty = 5; v.num = 1; p += 4; }
+        else if (!strncmp(p, "false", 5)) { v.ty = 5; p += 5; }
+        else { char* e; v.ty = 1; v.num = strtod(p, &e); if (e == p) die("bad json value"); p = e; }
+        return v;
+    }
+};
+static string slurp(const char* fn) {
+    FILE* f = fopen(fn, "rb"); if (!f) die("cannot open %s", fn);
+    string s; char buf[1 << 16]; size_t n; while ((n = fread(buf, 1, sizeof buf, f)) > 0) s.append(buf, n); fclose(f); return s;
+}
+
+// ---------------- netlist ----------------
+static int NN, NGALL, NG, NCONEK, NSEEN;
+static vector<string> names;
+static vector<int> gk, gout, glut, gins0, ginit0;           // per simulated gate (in simadv's cone order)
+static vector<int> ins;                                     // flattened inputs
+static vector<ll> afmin, afmax, asmin, asmax;               // flattened arcs
+static vector<uint64_t> initw;                              // flattened truth tables (64-bit words)
+static vector<int> ds;                                      // flattened delays
+static vector<double> his;                                  // flattened H_RUNT upper bounds (LUT gates)
+static map<string, int> BN;
+static vector<int> Bdata[3];                                // a_data, b_data, out0_data
+
+static void load_net(const char* fn) {
+    string S = slurp(fn); const char* p = S.c_str(); char* e;
+    if (strncmp(p, "SIMX1\n", 6)) die("%s: not a simx_conv.py file", fn);
+    p += 6;
+    NN = strtol(p, &e, 10); p = e; NGALL = strtol(p, &e, 10); p = e; NG = strtol(p, &e, 10); p = e;
+    NCONEK = strtol(p, &e, 10); p = e; NSEEN = strtol(p, &e, 10); p = e; p++;
+    names.resize(NN);
+    for (int i = 0; i < NN; i++) { const char* q = strchr(p, '\n'); names[i].assign(p, q - p); p = q + 1; }
+    gk.resize(NG); gout.resize(NG); glut.resize(NG); gins0.resize(NG + 1); ginit0.resize(NG + 1);
+    for (int g = 0; g < NG; g++) {
+        strtol(p, &e, 10); p = e;                     // original gate index (unused)
+        gout[g] = strtol(p, &e, 10); p = e; gk[g] = strtol(p, &e, 10); p = e; glut[g] = strtol(p, &e, 10); p = e;
+        while (*p == ' ') p++;
+        const char* h = p; while (isxdigit((unsigned char)*p)) p++;
+        ginit0[g] = initw.size();
+        int nw = gk[g] <= 6 ? 1 : (1 << (gk[g] - 6));
+        vector<uint64_t> w(nw, 0);
+        int nd = p - h;   // hex digits, least significant last
+        for (int j = 0; j < nd; j++) {
+            char c = h[nd - 1 - j]; uint64_t d = isdigit((unsigned char)c) ? c - '0' : (tolower(c) - 'a' + 10);
+            int bit = 4 * j; if (bit / 64 >= nw) { if (d) die("init too wide"); continue; }
+            w[bit / 64] |= d << (bit % 64);
+        }
+        for (auto x : w) initw.push_back(x);
+        gins0[g] = ins.size();
+        for (int i = 0; i < gk[g]; i++) { ins.push_back(strtol(p, &e, 10)); p = e; }
+        for (int i = 0; i < gk[g]; i++) {
+            afmin.push_back(strtoll(p, &e, 10)); p = e; afmax.push_back(strtoll(p, &e, 10)); p = e;
+            asmin.push_back(strtoll(p, &e, 10)); p = e; asmax.push_back(strtoll(p, &e, 10)); p = e;
+        }
+        while (*p == ' ') p++; if (*p != '\n') die("bad gate line"); p++;
+    }
+    gins0[NG] = ins.size(); ginit0[NG] = initw.size();
+    for (int i = 0; i < 8; i++) {
+        const char* q = strchr(p, ' '); string k(p, q - p); p = q; BN[k] = strtol(p, &e, 10); p = e + 1;
+    }
+    for (int j = 0; j < 3; j++) {
+        const char* q = strchr(p, ' '); p = q; int n = strtol(p, &e, 10); p = e;
+        for (int i = 0; i < n; i++) { Bdata[j].push_back(strtol(p, &e, 10)); p = e; }
+        p++;
+    }
+}
+
+// ---------------- node histories: v0 and flip times (values alternate) ----------------
+static vector<vector<int>> H;          // flip times after the initial entry at 0 (simadv's ts[1:])
+static vector<char> V0, TOUCH;
+static inline bool val(int n, ll t) {
+    if (t < 0) return V0[n];
+    const vector<int>& h = H[n];
+    size_t c;
+    if (h.empty() || h.back() <= t) c = h.size();
+    else c = upper_bound(h.begin(), h.end(), (int)t) - h.begin();
+    return V0[n] ^ (c & 1);
+}
+static inline bool cur(int n) { return V0[n] ^ (H[n].size() & 1); }
+static bool setv(int n, ll t, bool v) {
+    TOUCH[n] = 1;
+    vector<int>& h = H[n];
+    ll last = h.empty() ? 0 : h.back();
+    if (last == t) {
+        if (h.empty()) { if (V0[n] != v) { V0[n] = v; return true; } return false; }
+        if (cur(n) == v) return false;
+        h.pop_back(); return true;
+    }
+    if (t < last) { fprintf(stderr, "time went back on node %s\n", names[n].c_str()); exit(1); }
+    if (cur(n) == v) return false;
+    h.push_back((int)t); return true;
+}
+
+// ---------------- event queue: (t, pri, seq, x) ----------------
+struct Ev { ll t; int pri; ll seq; int x; };
+struct EvCmp { bool operator()(const Ev& a, const Ev& b) const {
+    if (a.t != b.t) return a.t > b.t; if (a.pri != b.pri) return a.pri > b.pri; return a.seq > b.seq; } };
+static priority_queue<Ev, vector<Ev>, EvCmp> Q;
+static ll SEQ = 0;
+static vector<int> rd0, rdg, rdd;     // readers CSR: node -> (gate, delay)
+static inline void sched(ll t, int g) { Q.push({t, 0, ++SEQ, g}); }
+static inline void env_set(ll t, int n, bool v) { Q.push({t, -1, ++SEQ, 2 * n + (v ? 1 : 0)}); }
+static inline void changed(int n, ll t) { for (int r = rd0[n]; r < rd0[n + 1]; r++) sched(t + rdd[r], rdg[r]); }
+
+static int W = 0; static ll NSKIP = 0;
+static map<pair<int, int>, ll> INF;
+static inline bool fval(int n, ll r, ll& u) {
+    if (r < 0) { u = r; return V0[n]; }
+    const vector<int>& h = H[n];
+    // ts = [0] + h; k = bisect_right(ts, r) - 1 = number of h entries <= r
+    ll k = upper_bound(h.begin(), h.end(), (int)r) - h.begin();
+    u = r;
+    ll len = (ll)h.size() + 1;
+    auto TS = [&](ll i) -> ll { return i == 0 ? 0 : h[i - 1]; };
+    while (k + 1 < len && TS(k + 1) - TS(k) < W && TS(k + 1) <= r + W) {
+        if (k == 0) break;
+        u = TS(k) - 1; k--; NSKIP++;
+    }
+    return V0[n] ^ (k & 1);
+}
+
+static string pylist(const vector<ll>& v) {
+    string s = "["; char b[32];
+    for (size_t i = 0; i < v.size(); i++) { snprintf(b, sizeof b, "%s%lld", i ? ", " : "", v[i]); s += b; }
+    return s + "]";
+}
+
+int main(int argc, char** argv) {
+    if (argc < 2) die("usage: simx NET.simx --pairs a,b ... [simadv options]");
+    const char* netf = argv[1];
+    vector<pair<ll, ll>> pairs; vector<string> pairstr;
+    double corner = 0.5, kappa = NAN; const char* classes = nullptr; char cdefault = 'M';
+    bool data0 = false, full = false, pipelined = false; ll R = 20000, su = 0, dout = 3000, dfall = -1, tmax = 5000000, reqgap = 0, maxev = -1;
+    string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr;
+    for (int i = 2; i < argc; i++) {
+        string o = argv[i];
+        auto nxt = [&]() -> const char* { if (i + 1 >= argc) die("missing value for %s", o.c_str()); return argv[++i]; };
+        if (o == "--pairs") { while (i + 1 < argc && strncmp(argv[i + 1], "--", 2)) { string s = argv[++i]; size_t c = s.find(',');
+                if (c == string::npos) die("bad pair %s", s.c_str());
+                pairstr.push_back(s);
+                pairs.push_back({strtoll(s.substr(0, c).c_str(), nullptr, 0), strtoll(s.substr(c + 1).c_str(), nullptr, 0)}); } }
+        else if (o == "--corner") corner = atof(nxt());
+        else if (o == "--kappa") kappa = atof(nxt());
+        else if (o == "--classes") classes = nxt();
+        else if (o == "--cdefault") { const char* c = nxt(); cdefault = c[0]; if (strlen(c) != 1 || !strchr("SFM", c[0])) die("bad --cdefault"); }
+        else if (o == "--data0") data0 = true;
+        else if (o == "--full") full = true;
+        else if (o == "--pipelined") pipelined = true;
+        else if (o == "--R") R = atoll(nxt());
+        else if (o == "--su") su = atoll(nxt());
+        else if (o == "--dout") dout = atoll(nxt());
+        else if (o == "--dfall") dfall = atoll(nxt());
+        else if (o == "--tmax") tmax = atoll(nxt());
+        else if (o == "--reqgap") reqgap = atoll(nxt());
+        else if (o == "--w") W = atoi(nxt());
+        else if (o == "--maxev") maxev = atoll(nxt());
+        else if (o == "--datachange") { datachange = nxt(); if (datachange != "handshake" && datachange != "broad" && datachange != "rtz" && datachange != "next") die("bad --datachange"); }
+        else if (o == "--nextreq") { nextreq = nxt(); if (nextreq != "sample" && nextreq != "seq") die("bad --nextreq"); }
+        else if (o == "--dump") dump = nxt();
+        else if (o == "--pos" || o == "--seed") nxt();
+        else die("unsupported option %s (simx ports only simadv's --classes/--full subset)", o.c_str());
+    }
+    if (dfall < 0) dfall = dout;
+    if (!full) die("only --full is ported");
+    if (!classes || std::isnan(kappa)) die("only --classes with --kappa is ported");
+    if (tmax > 2000000000LL) die("--tmax too large (int32 histories)");
+    const char* kd = getenv("KDEN"); ll KD = kd ? atoll(kd) : 25; ll PK = (ll)nearbyint(kappa * KD);
+    if (!(corner == 0 || corner == 1) || !(fabs(kappa - (double)PK / KD) < 1e-12)) die("kappa must be P/KDEN exactly, corner 0 or 1");
+    bool slowc = corner == 1;
+
+    load_net(netf);
+    fprintf(stderr, "sim: cone %d gates of %d (%d nodes)\n", NG, NGALL, NSEEN);
+
+    // classes: node name -> class, (node name, pin) -> class; F first then S (S wins), as simadv
+    map<string, char> CLSn; map<pair<string, int>, char> ACLn;
+    { string s = slurp(classes); JP jp{s.c_str()}; JV j = jp.val(); if (j.ty != 4) die("classes: not an object");
+      for (char kc : {'F', 'S'}) for (auto& kv : j.o) if (kv.first.size() == 1 && kv.first[0] == kc) for (auto& x : kv.second.a) {
+          if (x.ty == 3) ACLn[{x.a.at(0).s, (int)x.a.at(1).num}] = kc; else CLSn[x.s] = kc; } }
+    vector<char> CLS(NN, 0); map<pair<int, int>, char> ACL;
+    { size_t found = 0; map<string, int> want; for (auto& kv : CLSn) want[kv.first] = 1; for (auto& kv : ACLn) want[kv.first.first] = 1;
+      map<string, int> nid;
+      for (int i = 0; i < NN; i++) { auto it = want.find(names[i]); if (it != want.end()) { nid[names[i]] = i; found++; } }
+      for (auto& kv : want) if (!nid.count(kv.first)) die("classes: unknown node %s", kv.first.c_str());
+      for (auto& kv : CLSn) CLS[nid[kv.first]] = kv.second;
+      for (auto& kv : ACLn) ACL[{nid[kv.first.first], kv.first.second}] = kv.second; }
+
+    ds.resize(ins.size()); his.assign(ins.size(), 0.0);
+    for (int g = 0; g < NG; g++) {
+        for (int i = 0; i < gk[g]; i++) {
+            int a = gins0[g] + i;
+            char k = CLS[gout[g]] ? CLS[gout[g]] : cdefault;
+            auto it = ACL.find({gout[g], i}); if (it != ACL.end()) k = it->second;
+            ll FX = slowc ? asmax[a] : afmax[a], FN = slowc ? asmin[a] : afmin[a];
+            ll d;
+            if (k == 'S') d = ((KD + PK) * FX) / KD;
+            else if (k == 'F') d = ((KD - PK) * FN + KD - 1) / KD;
+            else d = (FN + FX) / 2;
+            if (FX < 0 || FN < 0) die("negative arc delay");
+            if (W && glut[g]) {
+                his[a] = ((1 - corner) * (double)afmax[a] + corner * (double)asmax[a]) * (1 + kappa) * 1.0;
+                if (d < W) { if (!(W <= his[a])) die("H_RUNT: w exceeds a LUT pin's upper bound"); d = W; }
+            }
+            ds[a] = (int)d;
+        }
+    }
+    // readers CSR (simadv: readers[n].append in cone order, pin order)
+    rd0.assign(NN + 1, 0);
+    for (int g = 0; g < NG; g++) for (int i = 0; i < gk[g]; i++) rd0[ins[gins0[g] + i] + 1]++;
+    for (int n = 0; n < NN; n++) rd0[n + 1] += rd0[n];
+    rdg.resize(ins.size()); rdd.resize(ins.size());
+    { vector<int> f(rd0.begin(), rd0.end() - 1);
+      for (int g = 0; g < NG; g++) for (int i = 0; i < gk[g]; i++) { int n = ins[gins0[g] + i]; rdg[f[n]] = g; rdd[f[n]] = ds[gins0[g] + i]; f[n]++; } }
+    H.assign(NN, {}); V0.assign(NN, 0); TOUCH.assign(NN, 0);
+
+    int rst = BN["rst"], req = BN["req"], aA = BN["a_ack"], aB = BN["b_ack"], aS = BN["start_ack"],
+        oR = BN["out0_req"], oA = BN["out0_ack"], eA = BN["pend_ack"];
+    for (int n : Bdata[2]) if (n < 0) die("const bit in out0_data");
+    auto drive_data = [&](ll t, ll vals, int key) {
+        vector<pair<int, bool>> want;  // insertion-ordered dict
+        const char* kn = key == 0 ? "a_data" : "b_data";
+        for (size_t i = 0; i < Bdata[key].size(); i++) {
+            bool bit = (vals >> i) & 1; int n = Bdata[key][i];
+            if (n < 0) { if (bit != (n == -2)) { fprintf(stderr, "pair value %#llx not representable on %s: bit %zu tied to %s\n", vals, kn, i, n == -2 ? "const1" : "const0"); exit(1); } continue; }
+            bool f = false;
+            for (auto& x : want) if (x.first == n) { f = true; if (x.second != bit) { fprintf(stderr, "pair value %#llx not representable on %s: bit %zu shares a node\n", vals, kn, i); exit(1); } }
+            if (!f) want.push_back({n, bit});
+        }
+        for (auto& x : want) env_set(t, x.first, x.second);
+    };
+    env_set(0, rst, true);
+    env_set(R, rst, false);
+    for (int g = 0; g < NG; g++) sched(0, g);
+    // env state
+    ll k = 0, done_in = 0; bool out_pending = false, next_ok = true, seq_wait = false;
+    bool has_sample = false; ll sample_at = 0; ll broad_k[2] = {-1, -1}; ll rtz_done = -1;
+    ll np = pairs.size();
+    if (np) { ll t0d = data0 ? 0 : (su ? R - su - 1 : R); drive_data(t0d, pairs[0].first, 0); drive_data(t0d, pairs[0].second, 1); }
+    ll t = 0, nev = 0; vector<pair<ll, ll>> outvals;
+    bool req_state = false, pend_state = false, capped = false;
+    const int* INS = ins.data(); const int* DS = ds.data();
+    while (!Q.empty()) {
+        Ev e = Q.top(); Q.pop();
+        t = e.t;
+        if (t > tmax) break;
+        if (maxev >= 0 && nev >= maxev) { capped = true; break; }
+        nev++;
+        if (e.pri == -1) { int n = e.x >> 1; if (setv(n, t, e.x & 1)) changed(n, t); }
+        else if (e.pri == -2) {}
+        else {
+            int g = e.x, kk = gk[g], b0 = gins0[g]; unsigned ad = 0;
+            if (W && glut[g]) {
+                for (int i = 0; i < kk; i++) { ll u; bool v = fval(INS[b0 + i], t - DS[b0 + i], u);
+                    if ((double)(t - u) > his[b0 + i]) INF[{g, i}]++;
+                    if (v) ad |= 1u << i; }
+            } else for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - DS[b0 + i])) ad |= 1u << i;
+            bool v = (initw[ginit0[g] + (ad >> 6)] >> (ad & 63)) & 1;
+            if (setv(gout[g], t, v)) changed(gout[g], t);
+        }
+        if (!Q.empty() && Q.top().t == t) continue;
+        if (t < R) continue;
+        // ---- the environment reacts to the settled state at t
+        bool A0 = val(aA, t), A1 = val(aB, t), A2 = val(aS, t); TOUCH[aA] = TOUCH[aB] = TOUCH[aS] = 1;
+        bool anyA = A0 || A1 || A2, allA = A0 && A1 && A2;
+        if (datachange == "broad" && 0 < k && k < np) {
+            int ackn[2] = {aA, aB};
+            for (int j = 0; j < 2; j++) if (!val(ackn[j], t) && broad_k[j] != k) {
+                broad_k[j] = k;
+                printf("env: %s -> pair %lld at %lld ps (its ack fell)\n", j ? "b_data" : "a_data", k, t + 1);
+                drive_data(t + 1, j ? pairs[k].second : pairs[k].first, j);
+            }
+        }
+        if (datachange == "rtz" && !req_state && !anyA && 0 < k && k < np && rtz_done != k) {
+            rtz_done = k;
+            printf("env: data -> pair %lld at %lld ps (all acks low, before out0)\n", k, t + 1);
+            drive_data(t + 1, pairs[k].first, 0); drive_data(t + 1, pairs[k].second, 1);
+        }
+        if (!req_state && !anyA && k < np && next_ok) {
+            if (datachange == "next" && k > 0) {
+                drive_data(t + 1, pairs[k].first, 0); drive_data(t + 1, pairs[k].second, 1);
+                env_set(t + 1 + max(su, 1LL), req, true);
+            } else env_set(t + max(su, 1LL) + (k > 0 ? reqgap : 0), req, true);
+            req_state = true;
+        } else if (req_state && allA && val(req, t)) {
+            env_set(t + 1, req, false);
+            req_state = false; k++; done_in++;
+            if (k < np && datachange == "handshake") { drive_data(t + 2, pairs[k].first, 0); drive_data(t + 2, pairs[k].second, 1); }
+            if (!pipelined) next_ok = false;
+        }
+        bool r0 = val(oR, t);
+        if (r0 && !val(oA, t) && !out_pending) {
+            out_pending = true;
+            env_set(t + dout, oA, true);
+            Q.push({t + dout, -2, 0, -1});
+            has_sample = true; sample_at = t + dout - 1;
+        }
+        if (has_sample && t >= sample_at) {
+            ll v = 0;
+            for (size_t i = 0; i < Bdata[2].size(); i++) if (val(Bdata[2][i], sample_at)) v += 1LL << i;
+            outvals.push_back({sample_at, v});
+            printf("out0 #%zu at %lld ps: %lld\n", outvals.size() - 1, sample_at, v);
+            has_sample = false;
+            if (!pipelined && nextreq == "sample") next_ok = true;
+        }
+        if (!r0 && val(oA, t) && out_pending) {
+            out_pending = false;
+            env_set(t + dfall, oA, false);
+            if (!pipelined && nextreq == "seq") seq_wait = true;
+        }
+        if (seq_wait && !r0 && !val(oA, t)) { seq_wait = false; next_ok = true; Q.push({t + 1, -2, 0, -1}); }
+        bool pr = val(req, t);
+        if (pr != pend_state) { pend_state = pr; env_set(t + (pr ? dout : dfall), eA, pr); }
+    }
+    fprintf(stderr, "sim: %lld events, t = %lld ps, %lld pairs offered, %lld accepted, %zu outputs\n", nev, t, np, done_in, outvals.size());
+    if (W) {
+        size_t nlut = 0; for (int g = 0; g < NG; g++) nlut += glut[g];
+        vector<tuple<ll, string, int>> iv; for (auto& x : INF) iv.push_back({x.second, names[gout[x.first.first]], x.first.second});
+        sort(iv.rbegin(), iv.rend());
+        string s = "[";
+        for (size_t i = 0; i < iv.size() && i < 5; i++) { char b[512]; snprintf(b, sizeof b, "%s(%lld, '%s', %d)", i ? ", " : "", get<0>(iv[i]), get<1>(iv[i]).c_str(), get<2>(iv[i])); s += b; }
+        s += "]";
+        fprintf(stderr, "HRUNT w=%d: LUT gates %zu, skipped reads %lld, INFEASIBLE pins %zu %s\n", W, nlut, NSKIP, INF.size(), s.c_str());
+    }
+    if (capped) {
+        fprintf(stderr, "simx: MAXEV cap %lld events hit at t = %lld ps: no verdict\n", maxev, t);
+        fflush(stdout); return 3;
+    }
+    if (dump) {
+        FILE* f = fopen(dump, "w"); if (!f) die("cannot write %s", dump);
+        fprintf(f, "{\"tend\": %lld, \"nodes\": {", t);
+        bool first = true;
+        for (int n = 0; n < NN; n++) if (!H[n].empty() || V0[n]) {
+            fprintf(f, "%s\"%d\": [%s, [", first ? "" : ", ", n, V0[n] ? "true" : "false"); first = false;
+            for (size_t i = 0; i < H[n].size(); i++) fprintf(f, "%s%d", i ? ", " : "", H[n][i]);
+            fprintf(f, "]]");
+        }
+        fprintf(f, "}, \"outs\": [");
+        for (size_t i = 0; i < outvals.size(); i++) fprintf(f, "%s[%lld, %lld]", i ? ", " : "", outvals[i].first, outvals[i].second);
+        fprintf(f, "], \"pairs\": [");
+        for (size_t i = 0; i < pairs.size(); i++) fprintf(f, "%s[%lld, %lld]", i ? ", " : "", pairs[i].first, pairs[i].second);
+        fprintf(f, "], \"args\": {\"net\": \"%s\", \"pairs\": [", netf);
+        for (size_t i = 0; i < pairstr.size(); i++) fprintf(f, "%s\"%s\"", i ? ", " : "", pairstr[i].c_str());
+        fprintf(f, "], \"corner\": %g, \"kappa\": %g, \"R\": %lld, \"w\": %d, \"classes\": \"%s\", \"cdefault\": \"%c\", \"su\": %lld, \"dout\": %lld, \"dfall\": %lld, \"tmax\": %lld, \"datachange\": \"%s\", \"nextreq\": \"%s\", \"data0\": %s, \"full\": true, \"sim\": \"simx\"}}",
+                corner, kappa, R, W, classes, cdefault, su, dout, dfall, tmax, datachange.c_str(), nextreq.c_str(), data0 ? "true" : "false");
+        fclose(f);
+    }
+    vector<ll> want, got;
+    for (auto& pq : pairs) { ll x = pq.first, y = pq.second; while (y) { ll r = x % y; x = y; y = r; } want.push_back(x); }
+    for (auto& o : outvals) got.push_back(o.second);
+    bool ok = got == want;
+    printf("RESULT %s: want %s got %s\n", ok ? "OK" : "MISMATCH", pylist(want).c_str(), pylist(got).c_str());
+    fflush(stdout);
+    return ok ? 0 : 2;
+}

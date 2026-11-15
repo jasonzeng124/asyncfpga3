@@ -3182,3 +3182,11 @@ margin.py/run.sh gain SHARD=K/N (every N-th ranked candidate; tested locally on 
 `cluster/requests/c_margin_gcdps_l0.sh` (1,316 control pins, 16 x 8 cores) and `c_margin_gcdps_l1.sh` (16,990 pins
 incl. latch-like nodes, 48 x 8 cores), kappa in (0.20, 0.45], w = 20 and w = 0, both pairs. Purpose: the complete
 single-pin result on gcd_ps (not a 71-candidate window) and whether any latch race fails below 0.36.
+
+### progress 19:48 -- margin tool: verify.sh checks the witness independently (untrusted checkers)
+`tools/margin/verify.sh OUT/` (now the last step of run.sh): on the binding race's first quiet failure, A's
+gatecheck_runt.py (every gate relation of GateOKRunt w, every delay inside Spec.Adm) and C's envcheck.py (Env +
+SeqEnv, smallest ArbOK T, out0). gcd_ps run1 witness (kappa 0.40, w 20): 259,594 checks, 0 mismatches, 0 arcs outside
+Adm; Env + SeqEnv OK; ArbOK for T >= 131 ps; out0 0 of 2; quiet at 484,403 ps -- the same verdict B recorded for
+CexX16's run (out/gcd_ps_run1/verify.txt). Farm: fm_lean_prime (submitted 17:43) still "submitted" at 19:5x, so the
+runner may be down or busy; my two margin requests wait behind it.

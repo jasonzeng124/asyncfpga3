@@ -70,4 +70,5 @@ python3 "$H/rank.py" "$O/net.json" "$O/races.json" "$KHI" "$O/ranked.json" "$O/r
 log "sweep"
 python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs "$JOBS" --top "$TOP" --khi "$KHI" \
   --klo "$KLO" --pairs $PAIRS --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
-log "done: $O/margins.txt $O/summary.txt"
+log "verify witness"; bash "$H/verify.sh" "$O" >/dev/null 2>&1 || true
+log "done: $O/margins.txt $O/summary.txt $O/verify.txt"
