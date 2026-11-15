@@ -5075,3 +5075,8 @@ cells/hw/build_bench.sh. Timing rules only (git / lock / farm / toolchain rules 
 | harness MIN_MHZ floor | build_bench.sh | the synchronous harness's own STA | -- (real) | -- |
 Next on this list: the missing-macro defaults (cheap, real time on collatz's cycle), then --floor 0 measured on the
 farm, then the K-lap check.
+### progress 18:20 UTC (fcsel1m: a line sizes.vh never named)
+- collatz's sizes.vh has no macro for ULINK_N10__4_UACK (and the merge olink / rlink lines, the constant links' acks):
+  they are built at bdc's placeholders (UACK 6). line_account on seed 24: ULINK_N10__4_UACK is on the datapath cycle's
+  falling edge (2.72 ns), rule H +2978 ps. Farm fcsel1m = nl6s1 + ULINK_N10__4_UACK 0. PREDICTION: -1 to -2.5 ns per
+  iteration vs fcsel1 if the datapath cycle is what binds once the select ring is short; H at that link stays >= 0.
