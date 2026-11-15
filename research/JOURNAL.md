@@ -5157,3 +5157,12 @@ farm, then the K-lap check.
   and fc64nl_s (item 24) 0 / 29. So the hidden E rows do not change the collatz / collatz64 items. Still queued: the
   xorshift (items 23, 27) and ipow (item 19, h4) families. fcsel3m (collatz select links at 3): no E row on the
   first 7 routes.
+### progress 20:11 UTC (fcsel3m: collatz at 25.8 ns, every check clean on every route -> BOARD-QUEUE item 28 / #29)
+- fcsel3m (nl6, select links ulink_n14__0 / n14__1 / n_index_11 at 3, ULINK_N10__4_UACK 0): 28 of 32 routes back.
+  Period median 25.81 ns (24.63-27.55; fceq2 36.60); latency paired vs fceq2 on 26 seeds -10.94 ns per iteration
+  (-14.11..-8.69), 26/26 faster. Gate 3 x 13/13 on 28/28; static A / A' / E (corrected summary) clean at nominal and worst
+  on 28/28; H / I clean 28/28; hold_bits clean 28/28; TSE clean at FAST_MIN and worst on 28/28 (self-checks consistent);
+  ffmux clean; fasm_equiv EQUIVALENT 25, benign constant-LUT kind 3. Prediction was ~-9.5 ns with E clean on >= 30/32:
+  met (a little faster than predicted).
+- BOARD-QUEUE list item 28 / section ## 29, board seed 20 (sdf d86bdde5, latency 566 = the median). Open, stated in the
+  item: the simulated select-arrival check (my monitor vs the audit's on fcsel0) and 4 routes not back.

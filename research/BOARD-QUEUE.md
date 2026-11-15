@@ -199,6 +199,16 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    -12 / -13 ps at worst); H / I / F rows on 11/31 (to -355 ps; pad round fr5d / farm fxd2 running); trace hold checks
    clean on all. Board seed 2 (sdf a9bdac53, latency 417 = the median): every row clean. Dynamatic 12.73.
 
+28. **collatz at ~25.8 ns per iteration, FULL INPUT RANGE, select links sized by their checks (the select rule withdrawn)**:
+   #29 below. Item 25's structure with nl6 sizes, the three select links (ulink_n14__0, ulink_n14__1, ulink_n_index_11)
+   at 3 elements instead of 18 / 36 / 15, and ULINK_N10__4_UACK at 0 (the line was missing from sizes.vh). Farm fcsel3m:
+   28 of 32 routes back, period median 25.81 ns (24.63-27.55) vs 36.60 (fceq2); latency paired on 26 seeds -10.94 ns per
+   iteration (26/26 faster, ~1.42x). On EVERY route: gate 13/13 at SLOW_MAX / FAST_MIN / worst+M, static A / A' / E clean
+   at nominal and worst (corrected summary: E rows read), H / I clean, hold_bits clean, TSE clean at FAST_MIN and worst.
+   Board seed 20 (sdf d86bdde5, latency 566 = the median). Dynamatic 14.05.
+   Open before it is final: the simulated select-ARRIVAL check (PROGRAM 2026-11-15) -- research's monitor and the audit's
+   disagree on fcsel0 (JOURNAL 2026-11-15); rule E is the arrival check this item rests on, plus 4 routes not back.
+
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
 (8 seeds: worst +272, raw >= +718). That counts the part of A0's route its branches share as
@@ -986,6 +996,27 @@ constant-LUT -> F7 / CARRY4-DI kind on 8. Board seed 2: every row clean.
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.2 over item 23 (23.31 ns on its route). The bench masks rounds to 12
 bits; the full range rests on the static check (pre_dec's identity holds for every rounds the C allows).
+
+## 29. collatz item 25's structure + select links at 3 (fcsel3m) -- 28 routes, every check clean on every route
+research/JOURNAL.md 2026-11-15 (evening). The select links were 18 / 36 / 15 elements under the withdrawn select rule;
+line_account.py showed ulink_n14__1's 36 elements were 27.4 of item 25's 35.9 ns iteration. At 0 the gate passes but
+rule E fails at the muxes (to -393 ps at 1); at 2 on 2 of 29 routes; at 3 on none of 28. Farm fcsel3m, nextpnr
+9c732bc6303458df. fasm_equiv: EQUIVALENT on 25, the benign constant-LUT -> F7 / CARRY4-DI kind on 3 (12, 14, 19).
+- From cells/, on claude/research at or after this commit:
+
+    cp ../build/frontend/collatz/comp/handshake_transformed.mlir /tmp/collatz_hs_orig.mlir
+    cp ../research/data/fifteen/collatz_preeq2.mlir ../build/frontend/collatz/comp/handshake_transformed.mlir
+    BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=20 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cdb_nl6s3m_bench.vh ./hw/build_bench.sh collatz
+    cp /tmp/collatz_hs_orig.mlir ../build/frontend/collatz/comp/handshake_transformed.mlir
+    grep -c "usinkeq2" build/gen/collatz_kernel_bench.v    # must be 1: the rewrite is in
+    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # d86bdde5 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz_bench_gen/collatz_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_col_sel3.tsv
+    (item 25: #26's commands for lc_col_eq.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_sel3.tsv build/hw/lc_col_eq.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.39 over item 25 (35.92 ns on its route vs 25.81 here). A FAIL with
+item 25 passing is a select race on silicon that the checks missed: send both logs.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
