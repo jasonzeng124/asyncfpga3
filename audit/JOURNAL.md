@@ -2145,3 +2145,6 @@ Formal A session summary 214d9c6c: CertRun.netCorrectSeq_of_run own-built, stand
 
 ### note 23:50
 Formal C 2a3b87dd: margin tool's full gcd_ps single-pin sweep (16,990 pins) re-finds kappa* 0.36 and the 0.40 / 0.44 races -- a positive self-test of the tool against THE target's Lean-proved points (search, untrusted); not yet run on any research build.
+
+### progress 00:05 T116c -- T116 resolved
+24 of 48 select transitions at umux0 reach the data-LUT pins after z_req rose, up to 487 / 579 ps (FAST_MIN / worst): an arrival race at the pins, 24 per run (not 960 of 1460 rises). Research's select_arrival.py presumably reads the driver and so sees 0. REPORT row corrected; T117b queued: same lateness monitor on item 28's route (select links at 3).
