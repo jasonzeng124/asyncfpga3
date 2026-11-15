@@ -4277,3 +4277,17 @@ behaviour and any corner slice; `quiet`/`env` are left as hypotheses. Python (un
 For the next B session: emit one slice certificate of (12,18) on `tnPS`, using CovUpChunk and loF/hiF. C's
 local-check/guard checkers need the same chunking; coordinate with C first. Or the TBehX `quiet` instance from C's reset
 island.
+
+## Session 2026-11-15 (B; formal back on after the 11-10..11-15 pause)
+### progress 17:4x -- start; audit read; plan
+Lock taken (the 11-10 lock predates the pause). audit/REPORT.md (origin/claude/audit 72de82ab): every row against B's
+files since 11-02 is CONFIRMED (T14, T15, T27, T36, T38, T47, T61); no open defect against B. Open audit items are
+the Spec's (residual ArbOK vacuity for T < D; H_ENV margins), A's to answer. Plan, highest value first: discharge
+TBehX's `quiet` field on THE target from C's reset island (`reset_quiet_all`, new since 11-10), so `target_tbehX`
+loses a premise for the first episode; then the env field / the (12,18) slice certificate with C's checkers.
+setup.sh: Lean + Mathlib sources installed; its whole-project `lake build` replaced by a targeted build (whole
+project = thousands of modules and known OOMs).
+### progress 17:5x -- written, building (not claimed): `Formal/Cells/SliceNetPS/Reset.lean`
+`quiet_reset`, `env_island`, `env_of_bnd`, `target_tbehX_reset`: exact set = C's 3,224-node reset island + the six
+environment-driven boundary nodes; `quiet` from `reset_quiet_all` + `Env`; every island member is a `tnPS` gate, so
+`env` only constrains the six boundary nodes. Building Mathlib from source first (no cache host).
