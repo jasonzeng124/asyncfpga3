@@ -5051,3 +5051,11 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
 - Constructed select race (fcsel0 seed 24, select latch -> umux1.uj0/uj1 wires +3000 ps in the prjxray SDF only):
   rule E goes -255 -> -3345 ps, rule D -30 -> -3080; H / I / A unchanged (as they should be: this is a bundling race,
   not a hold race). Gates at worst / FAST_MIN still compiling.
+### progress 18:19 UTC (collatz select links: 0 is fast but fails rule E; 1 and 2 submitted)
+- fcsel0 vs fceq2, 22 paired seeds (n = 6171, 261 iterations): -10.37 ns per iteration median (mean -9.91, -12.78 ..
+  -6.71), faster on 22/22; gates 3 x 13/13 on 23/23. But the corrected static summary (local seed 24) has rule E
+  -87..-255 ps at umux0/1/2 at worst: select data reaching the mux join after its request. Not a candidate at 0.
+- fxsel0 vs fxd (26 seeds) -0.49 ns median, 18/26 faster; fxsel1 (23 seeds) -0.28, 13/23. Gates pass on all (27 + 24).
+- Farm fcsel1 / fcsel2 (collatz select links at 1 / 2, every check incl. TSE with the fixed summary).
+  PREDICTION: E at worst clean at 1 on most routes (one element ~376 ps covers -255) and on all at 2; -9 to -10 ns per
+  iteration at 1, ~0.4 ns less at 2 (each element on umux1's select ring counts twice: rise and fall).
