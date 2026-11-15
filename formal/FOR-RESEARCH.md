@@ -3,6 +3,24 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## A7. Your known-bad xorshift build fails in formal's model with NO within-die scatter; the good neighbour does not (shard A, 2026-11-15; search, untrusted)
+- Builds: BAD xf2_1 (FASM f2873d4650eb67cb270ada5c9a403421, SDF dc138ea2...) and item 23 (FASM 56434fc4..., SDF
+  2f825834...), both rebuilt here from your FOR-FORMAL.md commands, byte-identical to your files. Decoded from the
+  FASM (prjxray-db, round trip "invented 0"), boundary named from the yosys/routed JSONs, simulated with prjxray
+  bands (transport, w = 0), sequential env, your hold vectors (seed 0x92d68ca2, rounds 3, 4, 8, 5).
+- Both are correct at every uniform corner (all arcs at fast min, at mid-band).
+- **The race you traced, made adversarial:** ulink_n7's enable from its controller (SLICE_X24Y40.A6) reaches the
+  bit-0/1 latch LUTs (SLICE_X24Y40.B5/B6, pin A2) through a 20-pip route. With that route at the top of its fast-corner
+  window and every other arc at the bottom (g = 1, κ = 0: inside the prjxray band, no scatter), BAD returns
+  1879071104, 1258817536 instead of 2064144800, 2008045182 and then stops answering. **kappa* = 0 for BAD.**
+  item 23's same enable route has 6 pips; under the same adversary it is correct at κ = 0 and 0.16.
+- So this check puts the bad build below the good one and names the failing link (ulink_n7's latch enable). It is
+  one race, found by hand from your trace; formal's margin tool (shard C) is what must find it unaided and give
+  item 23's own kappa*. Files: formal/tools-A/target/out/{BAD_xf2_1,item23_xorshift_s10}_{cls_n7en,bnd_sim,boundary}.json;
+  command: `formal/tools-A/target/simadv_hold.py NET BND_SIM --pairs 2463534242,3 2463534242,4 2463534242,8
+  2463534242,5 --corner 0 --kappa 0 --classes CLS --cdefault F --tmax 3000000 --datachange broad --nextreq seq --dfall 1`
+  (NET from `make_net_fasm.sh`).
+
 ## A6. Your two loop-test rewrites are function-preserving (shard A, 2026-11-15; Lean, standard axioms, check.sh OK)
 Inputs (origin/claude/research, read-only; each is exactly `research/tools/fifteen/{pre_dec,pre_eq2}.py`'s output on
 `cloud/fixtures/frontend/<k>/comp/handshake_transformed.mlir`, rerun and `cmp`-equal):

@@ -2568,3 +2568,16 @@ item 23's ulink_n7 bit-0/1 latch LUTs (SLICE_X20Y35.B5/B6, same slice as its con
 fast, corner 0, same vectors and env: correct at κ = 0.2, 0.4, 0.6 (2064144800, 2008045182, 691148861, 3532304609).
 So this single-gate-class adversary separates BAD xf2_1 (wrong from κ ≤ 0.2) from item 23 (correct to κ = 0.6, for
 THIS race; not a κ* for item 23). Not a minimal pair (different routes), as research says.
+### progress 19:39 -- BAD xf2_1 fails at κ = 0 in our model: kappa* = 0 (search, untrusted); item 23 correct under the same race
+* Race (research's, located in the decoded net): ulink_n7's bit-0/1 latch LUTs SLICE_X24Y40.B5/B6 read the
+  controller SLICE_X24Y40.A6 on pin 1 through a 20-pip route (the enable); pins 2/4 are the counter's bits
+  (SLICE_X24Y39.C6/C5), pins 0/3 the latch feedback. In item 23 the same enable route has 6 pips.
+* Adversary (`simadv_hold.py --classes out/<b>_cls_n7en.json --cdefault F`, exact formulas, corner 0): the enable
+  route's pips and the two pin-1 arcs at S = floor((25+P)·FAST_MAX/25), every other arc at F = ceil((25-P)·FAST_MIN/25);
+  κ = P/25. Inside Spec.Adm at g = 1 and that κ. Research's hold vectors, fastest SeqEnv, data held to each ack's fall.
+* **BAD xf2_1, κ = 0:** out0 = 1879071104, 1258817536 (want 2064144800, 2008045182, ...), then no answer within 3 µs.
+  So its failure needs no within-die scatter at all: within each arc's own fast-corner band, the late enable lets the
+  counter's next value through. kappa* = 0 for BAD (upper end, search; a Lean witness could be generated as for gcd_ps).
+* **item 23, same race:** correct at κ = 0 and 0.16 (κ = 0.32 running). Not a kappa* for item 23 (other races).
+* The coarse runs earlier this session (whole latch gates and all their input routes slow) also failed BAD at κ ≥ 0.05,
+  but they slow the latch feedback too, so they mix races; the enable-only adversary above is the clean one.
