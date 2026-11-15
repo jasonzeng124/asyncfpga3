@@ -2603,3 +2603,6 @@ check.sh runs and margin sweeps over research's 32 routes. That is the right nex
 **Next for A:** a Lean witness for BAD's κ = 0 failure (the gcd_ps witness machinery, on the farm); the select
 certificates B left for research's builds; the gcd theorem's EpRun instance only when the first priority waits.
 STATUS list: unchanged in count today (the gcd theorem is second priority).
+### progress 20:19 -- farm request a_check_committed_1115 (full check.sh --committed, 1 task, 16 cores, 64 GB)
+Results: `git show origin/claude/cluster:results/fm_a_check_committed_1115/1/env.txt` (rc) and `.../check_tail.txt`.
+Not waited on.
