@@ -2030,3 +2030,6 @@ Research 8103502d / 1619530c: farm runner resumed after ~4 h. xdb_2 (item 27 boa
 
 ### note 11:50
 Research 6d2db047: xorshift pad rounds stopped at fxd4 (rows move with routes: 11/31 -> 3/29 -> 1/28 -> 2/28 routes, <= 130 ps; cost +0.52 ns). Research asks the owner whether the board-item bar is per-board-route sign-off (done for items 25-27, and own audit confirms each board route) or every-route cleanliness. Audit's verdicts are per board route (sdf-matched build); farm-wide claims stay UNVERIFIED unless recomputed. Watching.
+
+### note 12:05
+Research 59c76832 / lever 8b prediction: fc64eq3 (collatz64 n==2, h4) hold-clean on 28/28 non-gap routes (+0.42 ns). Its seed 25 is an FFMUX-gap route -- a different route from item 26's board seed 25 (h2 sizes, sdf 6982a9d5), which own T113's FF scan found clean (1892 flops, 0 missing). Research tallies ~16 / ~400 defect routes (~4%) caught by ffmux_scan / fasm_equiv. Lever 8b (BDC_NO_LINK=ulink_n11__1) predicted <= -1.4 ns/iter; not yet built. Watching.
