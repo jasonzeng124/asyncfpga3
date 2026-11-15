@@ -4596,3 +4596,12 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   cycle. The next cycles on xf5_10 were 19.15 (the xori ring through ucmpi1 / ulink_n11__1) and 15.89, so the period
   should bind elsewhere: predicted 19 ns (18-20; the graph under-charges new stages by 1-3 ns). xf5_10: 23.15.
 - Local build xd_10: fr4 sizes (new instances at bdc's default sizes), item 23's knobs less n30__0 (gone), seed 10.
+### progress 03:50 UTC (lever 8 measured on seed 10: latency -85 cycles, ~-4.0 ns per iteration)
+- xd_10 (pre_dec MLIR, fr4 sizes, item 23's knobs less n30__0, seed 10): route 5e759620, latency 414 cycles vs xf5_10
+  499 on the same seed (-85 cycles x 12 ns / 256 rounds = -3.98 ns per iteration: ~19.2 ns from 23.15), as predicted
+  (19, 18-20). odata cd3132bf (the C value), ffmux clean. fasm_equiv NOT EQUIVALENT = DRIVER DIFFERS on
+  SLICE_X7Y53/F7BMUX input 0, whose JSON driver D6LUT has a constant-0 function and the bits read constant 0: the
+  benign constant-LUT -> F7 kind seen before (equiv.txt checked).
+- The event graph does not build ("steady state too short": the marker's intervals are not constant on this run), so
+  latency is the measure here, as for the speculative cell. Static check (with C-element joins) and the gate running.
+- Farm fxd (lever 8) and fxds (lever 8 + speculative incrementer), 32 routes each, submitted.
