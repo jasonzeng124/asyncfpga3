@@ -4415,3 +4415,22 @@ each by per-row `decide +kernel`; axioms propext, Quot.sound.
   after the round trip (rise -> ack -> fall): a sequence of events, which is what C's AO certificates (Sep/Up joins,
   data-layer claims) already handle. So the setup half of select captures is to be done as AO data-layer claims
   with C, not as more CertPS hold chains (notes/B-select.md, plan item 3, to be revised with C).
+### progress 20:1x -- session summary (B, 2026-11-15); PROGRAM 90d3a7d0 (no new subagents) read
+Read PROGRAM 90d3a7d0 ("no subagents for now", 19:20 UTC) at 20:0x. B's last subagent was started before it
+(~18:4x, the SelHoldPS emitter) and has finished; no subagent started after 19:20. B works alone from here.
+**Lean, check.sh OK, standard axioms (all new today):**
+- `SliceNetPS/Reset`: TBehX's `quiet` derived on THE target (reset island + boundary env nodes), `env` reduced to
+  the boundary nodes, `hInit` for reset-valued claims (gcd theorem, first episode).
+- `ForceTree.force_tree`, `SelectCapture.select_capture`, `SelectTree.krow_tree`: captures through forcing trees
+  (select + selected input; unforced pins may glitch); rules I/H as the two window inequalities.
+- `SelectHold.select_hold_row` + `SelHoldPS` (20 emitted, kernel-checked select-hold rows on THE target, κ bound per
+  row 0.606-0.855): the hold half of select captures, premises not discharged.
+**Python (untrusted):** 1,070 of THE target's 4,185 latch bits capture through a mux and had no hold row; the
+(12,18) pipeline's exact set fits the reset exact set (R must be raised to ≥ 122.4 ns).
+**For κ_lo (PROGRAM f17d8744: report a PROVED lower end):** every hold row (LatchHoldPin*, SelHoldPS) is one
+capture's κ bound under premises; a proved κ_lo for THE target needs all 4,185 captures (hold AND setup), their
+premises discharged, and the capture list proved complete. Today added 20 of the ~1,070 missing select captures.
+**Next for B:** (1) select rows for the remaining umux latches from more runs (farm, not subagents); (2) the deep
+cones with `krow_tree`; (3) setup (rule I) via C's AO data-layer claims; (4) the select race on research's
+negative-control pair nc64_7 / pc64_7 (FOR-FORMAL "Known bad" 2): a select-hold row should FAIL on nc64_7's
+ulink_n13 and pass on pc64_7 -- the check research asked for (needs A's decode of both; C's tools/margin exists).
