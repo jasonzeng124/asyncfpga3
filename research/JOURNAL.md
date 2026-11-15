@@ -4840,3 +4840,9 @@ Next:
 - fc64eq2: 32 routes (no FFMUX gap this time), median 36.19 ns (34.89-39.11; +0.25 vs fc64eq paired), gate 96/96;
   umux0's rows gone; ucmpi2 A -47 at worst on seed 8 (umux2's traced row aside); H rows on ulink_n7 stage[1] on 5
   routes (to -234); hold/close clean on 27/32. h4 = h3 + ucmpi2 15 -> 16 + n7 pads -> farm fc64eq3.
+### progress 07:16 UTC (fxd3: xorshift lever 8 at fr6d -- hold-clean on every non-gap route)
+- fxd3 (fr6d = fr5d + fxd2's pads): 30 routes evaluated, 2 FFMUX-gap routes (3, 24; seed 24's gate fails 9-10/17 on
+  the bits, as the defect predicts) excluded. On the 28 others: gate 84/84, H / I clean 28/28, A / A' / E clean 27/28
+  (seed 22: uxori1 A -20 nominal / -240 worst, the datapath xor, spanned by the gate's vectors). Latency +6.5 cycles vs
+  fxd (+0.30 ns per iteration): the price of being hold-clean on every route. Item 27 keeps fxd's seed 2 (clean on its
+  route at fr4); fr6d is the every-route variant (with uxori1 +1 if seed 22's row is to go too).
