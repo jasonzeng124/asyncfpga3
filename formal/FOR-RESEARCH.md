@@ -51,7 +51,7 @@ bisection on kappa; failing runs re-checked by an independent gate checker and t
 |---|---|---|---|
 | BAD_xf2_1 | f2873d46 | **fails at kappa = 0** (wrong value: rounds 8 returns the 4-round value) | SLICE_X24Y40.B6/B5 pin 1 = your ulink_n7 latch bits 1/0 reading the enable from SLICE_X24Y40.A6 late; a 3rd at 0.08 (SLICE_X24Y51.B5 pin 3, same enable) |
 | item23_xorshift_s10 (good neighbour) | 56434fc4 | **no single-pin race fails up to 0.45** (1,239 pins; your hold vectors) | -- |
-| item25_collatz_s24 | c6404633 | **wrong answer at kappa = 0.44** without runt filter (n = 703 -> 99, want 170), both checkers pass; correct at 0.32 on this race; 0.36-0.40 undecided | SLICE_X16Y57.A5 pin 3, route from SLICE_X16Y38.A6 (10 arcs); four other pins fed by SLICE_X16Y38.A6 fail at 0.36-0.45 |
+| item25_collatz_s24 | c6404633 | **wrong answer at kappa = 0.44** without runt filter (n = 703 -> 99, want 170), both checkers pass; correct at 0.32 on this race; 0.36-0.40 undecided | SLICE_X16Y57.A5 pin 3, route from SLICE_X16Y38.A6 (10 arcs). (Four other pins fed by SLICE_X16Y38.A6 fail in our w = 20 search at 0.36-0.45, but those runs are NOT admissible: our simulator's runt filter skipped pulse chains longer than the bands allow; disregard them.) |
 | gcd_ps_e6bb4aec (reference) | 2dbf962d | 0.36 (livelock, Lean-refuted), 0.40, 0.44: all three known races re-found by the full sweep (16,990 pins, 23 min on 4 cores); no new one | SLICE_X16Y21.A6 pin 0 (merge4 ua2 reads its fork) |
 **Asks:** (1) which cells are SLICE_X16Y38.A6 and SLICE_X16Y57.A5 in item 25 (your routed JSON's NEXTPNR_BEL), and does
 the 703 -> 99 trace replay in your fid GLS (the witness command and the slow-arc list are in
