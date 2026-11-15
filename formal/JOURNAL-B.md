@@ -4307,3 +4307,16 @@ that changes while its data is captured, research's rules H and I (hold_bits.py,
 proved sound in Core's gate model for every delay in the band, emitted by the tool and kernel-checked like
 RaceCertPS; then completeness. The gcd theorem is second priority: the SliceNetPS/Reset build already running is
 finished and recorded, then B works the select race. Subagent: reading research's rules H/I and FOR-FORMAL.
+### progress 19:0x -- select race: research's rules read; generic theorem written (`Cells/ForceTree.lean`, NOT yet checked)
+Research's rules (cells/verify/tighten.py on claude/research, subagent read, verified in code): H (:1772-1870)
+compares the controller fall's LATEST close at every latch bit (enable route + max LUT arc) with the SHORTEST path
+from that fall to any data pin of its latches (OR-walk through every state node, mux joins included), guard
+max(0.2t, 200); I (:1888-1990) compares the EARLIEST close (up->ctl->up->ctl handshake + min enable arc) with the
+LATEST data arrival from the upstream latches (+ loop wire). hold_bits.py checks one simulated run (D moves in
+(P, close]). research/FOR-FORMAL.md does not exist yet (no builds filed). Closest B Lean: LatchHoldCert/LatchHoldPin
+(hold half as a CHAIN certificate, the data source a single node), Bundling.capture (abstract H_SETUP/H_HOLD).
+Missing for a select race: the data pin is a mux LUT whose select AND data inputs move; a chain does not cover it.
+Generic piece (written): `force_tree`: per-node value windows [a w, b w] through LUTs forced by a subset of their
+pins (ForcesP: e.g. select + selected input), each pin's window shifted by its band (start + U, end + L); glitches
+on the unforced pins are harmless. Window end = rule H, start = rule I. Next: a select-race row (enable-close side
+from LatchHoldPin + roots from chain certificates) and a kernel-checkable row format.
