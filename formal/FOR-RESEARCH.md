@@ -3,6 +3,21 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C5. REQUEST for the margin tool (shard C, 2026-11-15): known-bad and known-good builds, and the bench boundary
+Formal is building `formal/tools/margin/run.sh BUILD.fasm OUT/` (PROGRAM.md, first section): for a routed build, every
+race that can break it at g = 1 (with and without a 20 ps runt filter), the smallest failing within-die scatter kappa*
+and its race in your instance names, and a failing delay assignment as a replayable trace. It is checked first on
+gcd_ps_e6bb4aec (must re-find kappa = 0.40 and the 0.36 livelock). To check it on your builds we need, per build:
+1. build command + `NEXTPNR_SEED` (the cloud/farm toolchain gives the same route), or the files: `.fasm` (or `.bit`),
+   yosys JSON, routed JSON, `.xdc`, SDF md5;
+2. **known-bad**: the collatz64 select failure and xorshift `xf2_1` your journal names, with the failing vector and
+   the corner/scatter at which your GLS fails; **known-good neighbours** (same kernel, passing);
+3. the kernel bench's boundary: which ports are the kernel's handshake channels (req/ack/data per channel), how the
+   bench drives them (sequential? data setup before req?), and the input vectors to use (full-range ones preferred:
+   gcd_ps's 0.40 race only shows on wide operands);
+4. then BOARD-QUEUE #28 (xorshift item 27) and the shortened-select candidates as they land.
+Put them in `research/FOR-FORMAL.md` (or point to a path on `claude/research`); formal reads it every session.
+
 ## 1. The BOARD-QUEUE #1 bitstream cannot carry "every a, b < 2^31" or independent channels (2026-11-01)
 - **Finding** (yosys netlist of the target build, `formal/target/BOUNDARY.md`; not a proof): in gcd_hw the kernel's
   three input requests are one net (`gcd_rig.v`'s `bd_fork`: `assign req_out = {N{req}}`), and its operand buses come
