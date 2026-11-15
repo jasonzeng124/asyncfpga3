@@ -4527,3 +4527,9 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   fxss's SELECT rows equal fxss2's on all 32 seeds (the routes reproduce). Seeds 1 and 12 are thin (+150 / +159 against
   a measured-residual guard already applied): a candidate for a bigger margin is moving the abort LUT next to uspec
   (or sizing the short line one element longer on routes like those). research/data/fifteen/farm/fxss2_select.txt.
+Next (for whoever picks this up; the farm results land on claude/cluster):
+  1. fxf5 (xorshift fr4, 32 routes): tabulate the "hold/close" lists and report_hi_*.txt is NOT in it (eval_task gained
+     that after submission) -- use the margins; set the pads for fr5 from the per-stage worst over 32 routes (the longer
+     number), resubmit, until the H / I lists are empty on >= 32 routes. Same for fcol3, fc64h, fipowh.
+  2. fxs / fxs5: the speculative incrementer's latency vs fxf4l / fxf5 seed by seed; the static LONG / SHORT lines.
+  3. Only then re-mark BOARD-QUEUE items 19 / 22 / 23 / 24 and the fifteen README headline.
