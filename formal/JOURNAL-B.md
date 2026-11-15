@@ -4320,3 +4320,13 @@ Generic piece (written): `force_tree`: per-node value windows [a w, b w] through
 pins (ForcesP: e.g. select + selected input), each pin's window shifted by its band (start + U, end + L); glitches
 on the unforced pins are harmless. Window end = rule H, start = rule I. Next: a select-race row (enable-close side
 from LatchHoldPin + roots from chain certificates) and a kernel-checkable row format.
+### progress 20:0x -- CHECKED: `Formal/Cells/ForceTree.lean` (`lake env lean` rc 0; standard axioms)
+* *Problem:* in the gate model (LUTs glitch whenever a pin they read moves), when does a combinational node, e.g.
+  a select mux output feeding a latch's data pin, show a fixed value on a time window?
+* *Proved:* `force_tree`: give each node `w` a window `[a w, b w]` and pins `ps w` that force its LUT to `val w`
+  (`ForcesP`, e.g. the select plus the selected input) from sources that are roots or lower-rank nodes; if every
+  such pin satisfies `a src + U ≤ a w` and `b w ≤ b src + L` (U, L = any bounds implied by the pin's admissible
+  composite band) and every root shows its value on its window, then every node shows its value on its window, for
+  every behaviour and every delay in the band. The deselected input may glitch freely. `force_tree_minmax`: with
+  the corner-free sums `sumMax`/`sumMin`. Axioms: propext, Classical.choice, Quot.sound.
+* *Not shown:* any instance; `SelectCapture` (the latch composition) is still building (needs LatchHoldPin's stack).
