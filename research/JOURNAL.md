@@ -4745,3 +4745,16 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
 - fcol5 (old structure, nl5): 32 routes, median 40.76, gate 96/96, A / A' / E 32/32, hold/close clean on 27/32 (rows
   I -43..-275 falseResult_3 st1, H -17 n7 st1). Item 25 supersedes this structure; the pads carry over by name:
   nl6 = nl5 + fcol5's and fceq's rows (n7 UACK 2 -> 3, falseResult_3 SDELAY 1 -> 3), farm fceq2.
+### progress 05:39 UTC (select rule vs rule H, negative control 1 of 2: collatz64 T4cd seed 7 -- both checks flag it)
+- nc64_7: the 2026-11-11 failing build rebuilt (bench top, collatz64_sizes_T4cd_bench.vh -- ulink_n14__1 shortened 19 ->
+  10 by corner_audit, SDELAY 2 -> 1 --, BDC_CONST_DATA=1, seed 7): route 98809562, P 61.37 ns, EQUIVALENT, ffmux clean.
+  Gate: SLOW_MAX 14/14, worst+M 14/14, FAST_MIN FAIL 0/14 (2026-11-11: FAST_MIN 12/14 with n = 871 / 77031 wrong; the
+  same corner fails, harder now -- the gate vectors or harness changed since; not chased).
+- Static rule H (corner_audit, both corners): H -646 ulink_n13 and -712 ulink_n10__2, plus H / I rows on falseResult_3 /
+  _9, trueResult_4, n7, n8 st1 (to -984). hold_bits (FAST_MIN, n = 27 / 871 / 77031): ulink_n13 22 violations, -325 ps
+  (real data changes, glitch_only 0) and falseResult_5 stage[0] 40, -2085 ps (26 glitch-only); hold_trace:
+  falseResult_5 -2063. That is the traced cause of 2026-11-11 exactly (falseResult_5 admits the next token, its data
+  runs through umux1 -> ulink_n13 inside the counter's hold window), found by both checks without being told where.
+- So on this failure the H rows and hold_bits are not blind. Still owed before the select rule can be replaced: the
+  ipow umux3 failure (T9cd seed 29, an empty-pipe select race, a different mechanism) as negative control 2, and the
+  positive control (nc64_7 with ulink_n14__1 / SDELAY back at 19 / 2: checks clean). research/data/fifteen/selectrule/.
