@@ -1984,3 +1984,6 @@ xd_10 dynamic rule H: 0 violations (FAST_MIN, worst); falseResult_9 st1 static r
 
 ### note 04:38
 Research 18137d36 / 1217c746: plan to replace the blanket select-link rule by "H/I rows clean on >= 32 routes AND hold_bits clean", gated on both checks flagging the two historical failures (ipow T9cd seed 29 umux3; collatz64 T4cd seed 7 ulink_n14__1, vector n=871). When that lands: run own t109 rule_h + mon_h on those two failing routes as independent negative controls (own monitor already catches xf2_1).
+
+### progress 04:58 T111 started
+Own negative control for research's proposed select-rule replacement: rebuild collatz64 T4cd seed 7 (research nc64_7, sdf 98809562), GLS FAST_MIN/worst with vector n=871 + t104 monitors, own static rule H, then own dynamic rule-H monitor at FAST_MIN (t111/run.sh). Research 45bbd5e1: fcol4 22/27 hold-clean, no period cost (noted).
