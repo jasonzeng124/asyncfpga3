@@ -102,6 +102,22 @@ Prioritise BOARD-QUEUE #1-#3, since they are what would go on the board.
 - One session starts per day (owner, 2026-10-29). Run continuously: when a pass is done, re-audit the newest
   commits on both branches. Never end the session on your own.
 
+## Formal is back on, and works with research (owner, 2026-11-15)
+
+Formal was off from 2026-11-10 to 2026-11-15. It is on again with a new first job
+(formal/PROGRAM.md, "FIRST since 2026-11-15"): for research's builds, a margin kappa* and the
+race that sets it, from one command; the select race in Lean; and proofs that research's two
+MLIR loop-test rewrites (`pre_dec.py`, `pre_eq2.py`) keep each kernel's function. The gcd
+bitstream theorem below is now formal's second priority, and yours after these:
+- every row of `formal/target/MARGINS.md`: rerun the command on that build, and check that the
+  failing trace it gives really fails in a gate-level simulation of that build;
+- the negative control: the tool must rank research's known-bad builds below their good
+  neighbours and name the failing link. Try a build of your own that you broke on purpose;
+- each rewrite proof: that the statement is about the MLIR research actually builds, for the
+  full input range, and one independent check (exhaustive on a narrow width, or your own proof);
+- whether research reports a margin as more than it is (search is not proof, one route is not
+  thirty).
+
 ## Top priority: the bitstream theorem (owner, 2026-10-31)
 
 The formal shards now have one goal (formal/PROGRAM.md, "THE goal"): a theorem
