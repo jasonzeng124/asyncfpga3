@@ -4636,3 +4636,12 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   confirmed by print. This is the benign constant-LUT -> F7 kind of 2026-11-10/13. xd_10 (lever 8): the same kind.
 - ipow: its exit test e' > 0 (e' = e >> 1) is e > 1, but the shift by one is wiring only and the multiplier path
   binds, so at most a fork is saved: not built.
+### progress 04:19 UTC (collatz pre_eq2, seed 26: 37.03 ns vs 38.69; route has the FFMUX gap)
+- ce_26 (pre_eq2 MLIR, nl3 sizes, item 22 knobs less the dropped n28 link, seed 26): route d4a2fcc0, P 37.03 ns,
+  latency 810 vs fcol3_26 38.69 / 847: -1.66 ns (predicted -3, 34-37: inside the range, at its slow end). New critical
+  cycle: ulink_n13 <-> ulink_n14__1 (umux1's select link, 15.4 ns of the cycle, held at its base size by the select
+  rule) with polarity changes; rising-only floor 26.1 ns (ucmpi2 is on it, after the mux now, not after the update);
+  next cycle 32.5. So on collatz the select link of umux1 is what binds next, not the compare.
+- THIS ROUTE IS NOT A BOARD CANDIDATE: ffmux_scan flags CLBLM_L_X8Y35.SLICEM_X0.CFF (ZINI, no CFFMUX), and fasm_equiv
+  says NOT EQUIVALENT for the same flop (SLICE_X10Y35/CFF, a dfflegalize emulate_split_set_clr flop, in JSON with loads,
+  not configured by the bits): the nextpnr FASM gap of 2026-11-08 (~7% of routes). Both checks caught it.
