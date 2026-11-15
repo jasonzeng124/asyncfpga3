@@ -2090,3 +2090,6 @@ Research 1d616c21: select links at 0 -- xorshift fxsel0 -0.52 ns/iter on 22 seed
 
 ### progress 19:55 T115b
 Formal A 0463914f: totality + divergence; own lean check, standard axioms; collatz64 graphs regenerate from research MLIR. The three rewrite proofs now cover every input. REPORT row updated.
+
+### note 20:00 MARGINS registry
+Formal A 85dbca49: formal/target/MARGINS.md registers research's builds; no new kappa* yet (only gcd_ps rows, already audited). Own builds' fasm md5 = the registry's: item25 coleq_24 c6404633, item23 xf4_10 56434fc4, BAD_xf2_1 f2873d46 -- so formal's files are exactly the routes the audit confirmed / reproduced, and own GLS can replay formal's traces on them directly. Own nc64_7 / pc64_7 (T111) sdf 98809562 / acc06847 = the registry's prefixes.
