@@ -3129,3 +3129,10 @@ checks given once on template sub-words (`GcWinS2`, valid for every ρ) and the 
 claims by `UnitProof`. The other hypotheses are `timedA_follows_unrollUnitC`'s, on the instantiated word.
 *Not shown:* that those other per-kind hypotheses (hloc, hIk) are value-independent (true when guards read only
 literal condition claims; not proved); the UnitProof value premises (token run); any instance.
+
+### progress 17:45 -- AO/SymLoc: the local check is pair-independent when guards read literal claims (check.sh OK)
+`dv_congr_cl`, `lcheckXA_congr_cl` (the local check reads the claim list only through guarded claims' values),
+`GuardLit`, `lcheckXA_inst`: if every claim a guard of v points to is a literal template, the local check of the
+instantiation is the same under every assignment, so `hloc` of `timedA_follows_sym` is checked once for all pairs.
+*Not shown:* that THE target's guards point only to literal (condition) claims (decidable per kind; the 2026-11-08
+q7/q8 study found the 33 guard terms all masked by mux selects driven by 1-bit condition latches, untrusted).
