@@ -14,7 +14,9 @@ experiments local, where there is no round trip.
 
 ## A request
 
-`research/cluster/requests/NAME.sh`, with NAME from `a-z 0-9 _ -`, up to 40 characters.
+`research/cluster/requests/NAME.sh`, with NAME from `a-z 0-9 _ -` (lower case only), up to 40
+characters. A file whose name does not fit never runs; it is listed, with the reason, in
+`results/IGNORED.txt` on `claude/cluster`.
 
 ```
 #!/bin/bash
@@ -68,7 +70,7 @@ git show origin/claude/cluster:results/NAME/7/summary.txt
 
 | Path | Holds |
 | --- | --- |
-| `results/NAME/status.txt` | `submitted`, `running (k of n tasks finished)`, `done` or `rejected: reason`; once tasks have run, one line per task with its state, run time and exit code |
+| `results/NAME/status.txt` | `waiting: reason`, `submitted`, `running (k of n tasks finished)`, `done` or `rejected: reason`; once tasks have run, one line per task with its state, run time and exit code |
 | `results/NAME/TASK/...` | the files the task left in `$OUT` |
 | `results/NAME/TASK/log.txt` | the last 150 lines of the task's output |
 | `results/NAME/TASK/SKIPPED.txt` | files that were left out, if any |
@@ -87,14 +89,16 @@ replaced by placeholders.
 
 ## Limits
 
-One request: 256 tasks, 16 cores and 64G per task, 240 minutes per task. All requests, yours and
-formal's (it has the farm too since 2026-11-15), together:
-512 tasks queued or running; a request over that waits. A request over a per-request limit is
+One request: 240 tasks, 16 cores and 64G per task, 240 minutes per task. All requests, yours and
+formal's (it has the farm too since 2026-11-15), together: 250 tasks queued or running, which is
+what the machine allows one account. A request over that waits, in the order of its file name,
+and its `status.txt` says `waiting` until there is room. Twenty 32-task requests filed at once
+therefore run about eight at a time: file what you need first, first. A request over a per-request limit is
 rejected, and `status.txt` says why.
 
 ## Do not wait on it
 
-The farm is a help, not a dependency. `status.txt` says `submitted` within about five minutes of
+The farm is a help, not a dependency. `status.txt` says `submitted` or `waiting` within about five minutes of
 your push. If it has not appeared after 30 minutes, the runner is down: note it in the journal,
 do the work locally, and try again in a later session. A request that was submitted normally
 finishes within its time limit plus a few minutes of queueing. Do other work in the meantime and
