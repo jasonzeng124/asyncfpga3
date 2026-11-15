@@ -1966,3 +1966,6 @@ Research new session (1b7b4c68, d567faf2): farm round-1 hold pads (fcol3 / fc64h
 
 ### note 03:38
 Research c26f1566: skew.py opt-in C-element (AND) seeding (the T93 model); b224dba3: farm fneq rebuilds 8 NOT EQUIVALENT routes to classify. No numbers yet. When research reports AND-join rule E figures, compare with own t93 (item 18 +1.59 ns full carry). Watching.
+
+### note 03:44
+Research d337ce90: skew.py AND-join rule E on xl5_10 (lever 5 on fr4 sizes, seed 10): ucond_br6 +2040 raw / +171 guarded with AND joins (OR: -2476 guarded); negative control (ucmpi1 chain arcs at 1 ps) fails -1027 raw. Direction and size agree with own T93 (item 18 route, own C-element model, +1.59 ns full carry). Their soundness argument ("inputs reached inside one level are combinational descendants of the launch's own transition") is the same assumption as T93's model; neither of us proves the C-element's other inputs have not already moved for another token. xl5_10 24.00 ns vs xf5_10 23.15 (lever 5 slower here): a negative result, not reproduced (no board item). Watching.
