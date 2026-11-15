@@ -4356,3 +4356,17 @@ has a Lean hold/setup row yet; the 933 umux ones need only depth-0 forcing trees
 are the first instance target for `select_capture`. Not measured: whether the selected/select roots have chain
 certificates from the latch's enable source (the hold side) -- that is the next step.
 (Times corrected 18:4x: the headings above had guessed clock times; these are the commit times.)
+### progress 19:0x -- CHECKED: `Formal/Cells/SelectHold.lean` `select_hold_row` (`lake env lean` OK; standard axioms)
+* *Problem:* rule H for a latch that captures a 2:1 data mux whose select and selected input are latches of other
+  links (933 umux cases on THE target): the existing hold rows follow one chain to one data source.
+* *Proved:* a row `SelRow` = two single-path chain certificates from the latch's enable source (one ending at the
+  select node, one at the selected input) + a mux `KRow` whose two controlling pins read those nodes with the
+  certificates' values and force the mux INIT (other pins free) + the latch `LRow` + per-chain margin facts. If
+  `certOK` holds for both and `selOK` (Bool, kernel-checkable) holds, then for g = 1, every κ in both rows' ranges,
+  every corner and every behaviour of THE circuit, with the certificates' premises, the latch's data source shows
+  the mux row's value from (later chain window start + mux pin upper band) up to `(e + 1) + hi e`: the hold half
+  of `target_latch_close`'s data window, through the mux. Reuses `latch_hold` (both roots) and `krow_set` (the mux).
+* *Design note:* CertPS certificates already allow multi-pin forcing rows (`kfact`); only their margin lemma
+  `win_end_ge` needs a single path, so a select row is two chains + one mux row rather than a DAG certificate.
+* *Not shown:* any emitted row (next: a Python emitter from ctlcert chains for the 933 umux latches); the
+  certificates' premises; setup (rule I) rows; completeness.
