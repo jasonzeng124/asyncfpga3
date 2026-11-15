@@ -4878,3 +4878,8 @@ Next:
   collatz64 h4, ipow h4, xorshift fr6d (one A -240 row) / fr7d (two small rows) -- at +0.3..+0.8 ns per iteration.
 - Defect routes this session (FFMUX gap or F7 select), all caught by ffmux_scan / fasm_equiv and failing gates where
   they touch the datapath: ~16 of ~400 routes built (~4%).
+### progress 12:03 UTC (lever 8b: drop the rounds ring's rule-1 link into the compare -- prediction)
+- On xd_10's two-iteration graph ulink_n11__1 (the link between umux2's fork and ucmpi1) is 2.73 + 0.99 ns per two
+  iterations. Dropping it (BDC_NO_LINK=ulink_n11__1): predicted at most -1.4 ns per iteration, likely less -- ufork4
+  may re-couple to umux2 as ufork8 did to ulink_n7 under lever 5, and ucmpi1's delay then has to cover umux2's output.
+  Local xd8b_10 (seed 10) vs xd_10 latency 414.
