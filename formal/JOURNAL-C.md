@@ -3136,3 +3136,18 @@ literal condition claims; not proved); the UnitProof value premises (token run);
 instantiation is the same under every assignment, so `hloc` of `timedA_follows_sym` is checked once for all pairs.
 *Not shown:* that THE target's guards point only to literal (condition) claims (decidable per kind; the 2026-11-08
 q7/q8 study found the 33 guard terms all masked by mux selects driven by 1-bit condition latches, untrusted).
+
+### progress 17:47 -- PIVOT: PROGRAM.md 0691ea88 (owner, 2026-11-15 17:29 UTC) makes the margin tool C's first job
+Read at 17:47 (pushed after this session started). C leads item 1: `formal/tools/margin/run.sh BUILD.fasm OUT/` --
+every race that can break a routed build, kappa* and its race in research's names, a failing assignment just above
+it (or "none found"), Lean vs search marked; unattended, < 1 h on 8 cores; checked first on gcd_ps (must find the
+0.36 livelock and the 0.40 late-input race: completeness over every capture, not only storage feedback). The gcd
+theorem is now second priority. Done today on it before the pivot (all check.sh OK): AO/TimedUnit, UnitWord,
+UnrollUnit, SymClaim, SymUnroll, SymChain, SymWord, SymLoc (piece 3 steps 1-2 generically). The STATUS list did not
+shrink today: no instance exists, and the gcd work is now paused for item 1. The background full `lake build` was
+stopped (memory); the gcd window-check subagent was asked to wrap up.
+**Plan for item 1:** v0 orchestrates existing untrusted pieces: A's decoder (tools-A/target decode_base.py +
+build_net.py + boundary_ps.py), B's all-paths static race scan (tools-B/ps/allpaths.py, every storage node and
+race-relevant pin), B's/C's single-pin adversary sweep (tools-B/ps/ctlsweep.py over tools/huff simadv.py), A's
+gatecheck_runt.py and C's envcheck.py on the failing run. Then widen the static scan to every capture (late
+non-feedback inputs, the 0.40 class) and measure speed.
