@@ -3115,3 +3115,9 @@ UnitProof (stated on the long certificate here); any instance.
 * *Not shown:* chains (`ChainUOK`) in template checks (only the GateProof alternative is lifted); the value premise
   (window invariant / refinement); the instance. Note: the background `lake build` from setup.sh is still running
   (project modules; Mathlib's part done).
+
+### progress 17:42 -- AO/SymChain: chained template claims (check.sh OK)
+`TChainUOK` (ChainUOK on templates, equal symbolic values) and `chainUOK_inst` (every assignment); `GcWinS2`
+(template sub-word check with the GateProof and the chain alternatives), `gcWinU_inst2`, `gc_unrollU_sym2`: `hGC`
+of the long certificate of every instantiated word. So both claim rules of the one-pair data layer (GateProof, and
+phase chains joined by Sep or Up) now lift to templates. *Not shown:* the instance.
