@@ -4559,3 +4559,26 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   (worst H -354 trueResult_8 st1). fxf5 (fr4 without the cell) still running at 03:50Z.
 - NOT EQUIVALENT (fasm_equiv) on fcol3 s5/s31, fc64h 10 routes, fipowh 9, fxs 5, fxs5 2: the farm does not return
   equiv.txt; the kinds seen before were all the benign constant-LUT -> F7/CARRY4 kind, but these are not checked yet.
+### progress 03:41 UTC (rule E with C-element joins; lever 5 on the full-range sizes, local seed 10)
+- skew.py (c26f1566): opt-in BD_SKEW_AND_JOIN=1 / --and-join. On the request (earliest) walk a positive C-element
+  (bd_ctree's bd_c2/c3/c4, matched by name .g[234].u.u: 20 nodes on xorshift) is seeded with the LATEST of its inputs
+  reached at the same crossing level, not the earliest (OR). Why it is a lower bound: such a node moves only after every
+  input has; the inputs reached inside one level are combinational descendants of the launch's own transition, so
+  each arrival bounds that input's transition for this token, and the max over any subset bounds the firing. The
+  select (latest) walk is unchanged. corner_audit's A' walk uses the same set. Default off; unit test added.
+  ASSUMPTION: the reached paths into a bd_ctree are non-inverting request paths (bd_join / fork-ack trees of the
+  library); bd_mux's j0/j1 (an inverted select inside) are not bd_ctree and keep OR.
+- xl5_10 = fr4 sizes + item 23 knobs + BDC_NO_LINK=ulink_n30__1 (lever 5 on the full-range structure), seed 10: route
+  40480f3a, P 24.00 ns, latency 517 cycles, EQUIVALENT, ffmux clean -- SLOWER than xf5_10 (23.15 / 499, the same
+  seed without lever 5). Event graph: ufork8 (the adder's fork) re-couples to ulink_n7 (polarity changes
+  ufork8R->ulink_n7F), as on bench seeds 5 / 9 before; rising-only floor 21.51. whatif: a latch back on n30__1 with
+  SDELAY 0 -> 22.42, SDELAY 1 -> 22.79, SDELAY 4 (= the dropped link) -> 23.92. corner_audit proposals on 13 fxs
+  routes put ULINK_N30__1 at 1-3 (A' on ucmpi1 binds): a shorter link, not no link, is the lever here (~0.4-1 ns
+  predicted, before the +1-3 ns the graph under-charges a stage).
+- Rule E on xl5_10's worst-corner SDF (skew.py -v, its own 0.772 / 1.155 guards): OR joins: ucond_br6 VIOLATED
+  (launch ulink_n7, req 8650 vs sel 7926: +724 raw, -2476 guarded). AND joins: every site ok; ucond_br6 binding launch
+  ulink_n11__1 +2040 raw / +171 guarded. Negative control (copy of the SDF, ucmpi1's 29 delay-chain arcs set to 1 ps):
+  AND joins: ucond_br6 VIOLATED -1027 raw (launch ulink_n11__1, req 4381 vs sel 5408) -- the check still fails when
+  the request really can beat the select. research/data/fifteen/andjoin/.
+- Farm fxl5s: fxs5 + lever 5, static check with AND joins, 32 routes -- whether lever 5 pays with the speculative
+  incrementer over the seed distribution (fxs5 is the paired baseline).
