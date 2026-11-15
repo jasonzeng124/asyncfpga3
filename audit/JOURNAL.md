@@ -2049,3 +2049,7 @@ Research da736f6d: tse.py / tsehold.py WIP -- negative control xf2_1 NOT yet fla
 
 ### note 17:20
 Owner commit 726e80fd (research PROGRAM, second lead): account for every delay line on collatz's loop (constraint, covered path split into logic / wire / enable skew, guard, logic-only length) on >= 8 routes of item 25's build; fix false paths at the cause; diagnosis only, select rule stands until the owner answers. Audit plan when the table lands: reproduce a sample of rows with own tools (t93 sta_lib graph on own coleq_24 baked netlist: path logic vs wire split per line; own rule E rows give the constraint side).
+
+### progress 17:35 owner decision + research tsehold
+Owner 5f49d91d: "no blanket rules"; select rule withdrawn; select links sized by H/I (both corners, >= 32 routes) + hold_bits, each check shown to fail on a known-bad build per family first. Recorded in REPORT's owner-decisions table.
+Research ac5c4844 tsehold (interval TSE, delays from one trace x [0.97, 1.03]): flags xf2_1's ulink_n7 (re-traced: n7 is the corrupted latch -- matches own T109 2708 violations at n7), clears xf4_10's n7 (own dynamic +5188) and pipe rows; leaves xf4_10 ulink_n8 (-196 FAST_MIN / -26 worst) as a candidate. Own dynamic on n8: +4133 / +5753 ps, 0 violations over ~84000 closes -- not realised on these vectors. Concern logged: one-trace delays do not bound data-dependent arcs. REPORT row added.
