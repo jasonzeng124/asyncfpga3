@@ -3084,3 +3084,16 @@ Container: 4 cores, 15 GB, no Mathlib cache: setup.sh is building from source (~
 standard axioms): UnrollUX's / UnrollClaimU's every-word safety and liveness with `hExt` replaced by a `UnitProof`
 (TimedUnit) of each external claim of the unrolled certificate. *Not shown:* a per-kind (sub-word) form of
 UnitProof (stated on the long certificate here); any instance.
+
+### progress 17:38 -- AO/SymClaim: claims with symbolic (register-bit) values, one finite check for every pair (check.sh OK)
+* *Problem:* a per-kind window certificate must serve every operand pair, but the claims on register latch outputs
+  and datapath nodes carry register bits, which differ per pair. With literal values the claim checks would be per
+  pair. Can a claim carry a symbolic value with its proof checked once for every assignment?
+* *Proved* (432 declarations audited, standard axioms): `TClaim` (value `SVal`: a literal, or a symbol xor neg),
+  `inst ρ` (instantiation by an assignment, timing untouched); `valSB` (a Boolean check over the symbols the claim
+  and its covering claims mention and the gate's pin values) and `valOK_inst`: `valSB` ⇒ `ValOK` for the
+  instantiated claims under EVERY ρ; `GateProofS` and `gateProof_inst`: a template proved by its gate gives
+  `TimedOccU.GateProof` for the instantiated certificate under every ρ. Toy (`Toy.toy_valSB`, by decide): a latch
+  passes a symbolic bit through capture and hold; the wrong claim (negated bit) fails the check.
+* *Not shown:* templates in ChainUOK/UnionOK (they compare values; equal SVals suffice, not written); per-window
+  symbol renaming in the unrolled certificate; the window invariant (that ρ_j is the token run's register bits).
