@@ -18,7 +18,7 @@ Per latch: a close of its enable source es (es leaving the open value cv = !pe) 
   (maximises the κ range (1+κ)kB ≤ kA(1-κ), i.e. κ ≤ (kA-kB)/(kA+kB)); the sums are recomputed by Lean in selOK.
 usage: gen_selhold_ps.py NET.json DUMP.json UMUX.json.xz LEANCELLS OUTDIR
 env: MAXD (8), HOR (20000 ps), MAXV (DFS visits, 200000), MAXROWS (20), PERINST (rows per umux instance), CLOSES (closes tried per latch, 4), INST (regex on mux cell, default umux\\d+\\.udat), OUTNAME
-(SelHoldPS), LEANOUT (dir for the .lean file, default LEANCELLS), SKIPFIRST (skip this many candidate latches)."""
+(SelHoldPS), CHECKVARIANT, CHECKPARTS, LEANOUT (dir for the .lean file, default LEANCELLS), SKIPFIRST (skip this many candidate latches)."""
 import json, sys, os, re, glob, lzma, subprocess, itertools
 from fractions import Fraction
 NETF, DUMPF, UMUXF, CELLS, OUTD = sys.argv[1:6]
@@ -233,7 +233,9 @@ L_ = ["import Formal.Cells.SelectHold", "",
       "Latches (row: latch q / mux / select / selected): " + "; ".join("%d: %d/%s" % (r["i"], r["q"], r["mrow"].split(",")[0][1:]) for r in rows) + ".",
       "-/", "", "namespace Formal.Cells." + OUTNAME,
       "open Formal.Cells.CertPS Formal.Cells.RaceCertPS Formal.Cells.LatchView Formal.Cells.SelectHold", ""]
+HEAD = list(L_); BLK = []
 for r in rows:
+    L_ = []
     for nm, c in (("a", r["c1"]), ("b", r["c2"])):
         L_ += ["set_option maxRecDepth 100000 in",
                "/-- row %d chain %s (%d LUT steps, %d static premises): %s -/" % (r["i"], nm, len(c[1]), c[3], " → ".join(c[4])),
@@ -245,8 +247,9 @@ for r in rows:
            "theorem r%02d_certs : (certOK r%02d.c1.1 r%02d.c1.2 && certOK r%02d.c2.1 r%02d.c2.2) = true := by decide +kernel" % ((r["i"],) * 5), "",
            "set_option maxHeartbeats 0 in", "set_option maxRecDepth 100000 in",
            "theorem r%02d_sel : selOK r%02d = true := by decide +kernel" % (r["i"], r["i"]), ""]
-ids = ["r%02d" % r["i"] for r in rows]
-L_ += ["def rows : List SelRow := [%s]" % ", ".join(ids), "",
+    BLK.append(L_)
+def tail(ids):
+  return ["def rows : List SelRow := [%s]" % ", ".join(ids), "",
        "theorem certs_ok : ∀ r ∈ rows, certOK r.c1.1 r.c1.2 = true ∧ certOK r.c2.1 r.c2.2 = true := by",
        "  intro r hr",
        "  simp only [rows, List.mem_cons, List.not_mem_nil, or_false] at hr",
@@ -257,6 +260,7 @@ L_ += ["def rows : List SelRow := [%s]" % ", ".join(ids), "",
        "  simp only [rows, List.mem_cons, List.not_mem_nil, or_false] at hr",
        "  rcases hr with %s" % " | ".join(["rfl"] * len(ids)),
        ] + ["  · exact %s_sel" % x for x in ids] + ["", "end Formal.Cells." + OUTNAME, ""]
+L_ = HEAD + [x for b in BLK for x in b] + tail(["r%02d" % r["i"] for r in rows])
 LO = os.environ.get("LEANOUT", CELLS)
 open(os.path.join(LO, OUTNAME + ".lean"), "w").write("\n".join(L_))
 print("rows", len(rows), "->", os.path.join(LO, OUTNAME + ".lean"))
@@ -267,3 +271,9 @@ if os.environ.get("CHECKVARIANT"):
     a = sh.index("namespace Formal.Cells.SelectHold"); b = sh.index("/-- **A checked select-hold row")
     V = ["import Formal.Cells.LatchHoldCert", "", sh[a:b].rstrip(), "", "end Formal.Cells.SelectHold", ""] + L_[1:]
     open(os.environ["CHECKVARIANT"], "w").write("\n".join(V)); print("check variant ->", os.environ["CHECKVARIANT"])
+    NP = int(os.environ.get("CHECKPARTS", "0"))   # also: the variant split into NP parts (row blocks verbatim)
+    for k in range(NP):
+        sub = [i for i in range(len(rows)) if i * NP // len(rows) == k]
+        Vk = V[:5] + HEAD[1:] + [x for i in sub for x in BLK[i]] + tail(["r%02d" % rows[i]["i"] for i in sub])
+        pk = os.environ["CHECKVARIANT"].replace(".lean", "_p%d.lean" % k)
+        open(pk, "w").write("\n".join(Vk)); print("check part ->", pk, "rows", sub)
