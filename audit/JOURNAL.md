@@ -2003,3 +2003,6 @@ Item 26: own sdf 6982a9d5 = recipe; 36.251 ns; 1.244x over own paired c64h_25 (4
 
 ### progress 06:10 T114 started
 BOARD-QUEUE item 27 (#28, research 3fed89de): xorshift lever 8 + fr4, board seed 2, sdf a9bdac53, latency 417; 31-route median 19.39 vs 23.47 (-3.76 paired latency). Own builds xd_2 + paired xf5_2, latency, 3 corners (t114/item27.sh; GLS waits for T113b).
+
+### progress 06:20 T113 done
+Item 26 CONFIRMED: dynamic rule H 0 violations at 3 corners; the own static negatives on falseResult_3/9 st1 are OR-join artifacts (paths never live). REPORT row added.
