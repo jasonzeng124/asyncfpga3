@@ -2043,3 +2043,6 @@ Owner commit b3ed0304 on claude/research (farm runner pushes partial results eve
 
 ### note 17:03
 Research c1fbdf32: new session, lead = token-aware rule H (tsehold.py: longest-path separation on the route's marked event graph; unordered occurrences flagged; OR-caused arcs dropped). Controls xf2_1 (must flag) and xf4_10 (to clear) -- the same pair as own T109. Points to check when it reports: (1) arc weights taken "from a FAST_MIN trace" are one sample of data-dependent delays (adder carries, mux sensitization), not bounds over all data -- the bound must use per-arc minima over the corner's static delays, not observed ones; (2) unrolling depth / token offsets must cover occurrence k+m for every m reached; (3) any arc whose enabling is OR-caused dropped => missing precedence weakens, not strengthens, the bound (as stated). Own dynamic T109 data (xf4_10 / xf2_1 first-state entry_last counts) are available as an independent cross-check.
+
+### note 17:07
+Research da736f6d: tse.py / tsehold.py WIP -- negative control xf2_1 NOT yet flagged (research says investigating). A hold bound that clears the real failure would be unsound; nothing to audit until the control flags. Watching.
