@@ -1981,3 +1981,6 @@ Lever 8 seed 10 CONFIRMED: own sdf 5e759620 = research's route; 23.150 -> 19.152
 
 ### progress 04:40 T110b done + notes
 xd_10 dynamic rule H: 0 violations (FAST_MIN, worst); falseResult_9 st1 static row is an OR-join artifact. Research 6bab5081 (collatz pre_eq2 n'==1 -> n==2): identity exact (own exhaustive w=4..20). Research b606f8b8: fneq farm routes' NOT EQUIVALENT all benign constant-LUT -> F7BMUX (consistent with own T110 decode). 20897e74: lever 8 seed 10 event-graph period 19.15 ns (= own 19.152). Watching.
+
+### note 04:38
+Research 18137d36 / 1217c746: plan to replace the blanket select-link rule by "H/I rows clean on >= 32 routes AND hold_bits clean", gated on both checks flagging the two historical failures (ipow T9cd seed 29 umux3; collatz64 T4cd seed 7 ulink_n14__1, vector n=871). When that lands: run own t109 rule_h + mon_h on those two failing routes as independent negative controls (own monitor already catches xf2_1).
