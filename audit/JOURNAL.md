@@ -1917,3 +1917,6 @@ Research 0b983ea2: BOARD-QUEUE item 24 (#25) collatz64 full range = c64nl (T4cdb
 
 ### progress 00:02 T107 done
 Board item 24 (collatz64 full range, c64nl seed 17) CONFIRMED: own sdf 3a370768 = recipe, FF clean, 45.188 ns, 1.068x paired (1.039x vs item 21's seed-1 route; pred ~1.05), 3 corners 14/14, monitors clean. Next: own rule E on this route; research 16d4fb20/970859e6 speculative incrementer (static check via --cut case analysis) to examine.
+
+### progress 00:10 T107b + T108 started
+Own rule E on item 24's route: 474 rows, min +2687 ps, no negatives. T108: research 16d4fb20 speculative incrementer (xs_10 = xf4_10 + BDC_SPEC_INC=uaddi0:4:6, recipe sdf 41a915c2). Own build running (t108/build.sh). Plan: own measure of the select race research left open (spec_abort settled before z_short rises at the uspec LUT3), z_req glitch check, gate at 3 corners, latency vs xf4_10.
