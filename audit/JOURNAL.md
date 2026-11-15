@@ -2151,3 +2151,6 @@ Formal C 2a3b87dd: margin tool's full gcd_ps single-pin sweep (16,990 pins) re-f
 
 ### note 00:15
 Formal C 6c3fcfe0: the margin tool (one command) reproduces the negative control: BAD xf2_1 kappa* 0 at ulink_n7's enable route, item 23 > 0.45 (search) -- matches A's adversary (98be38bd) and own T109. REPORT row on 14b3e025 already records it; tool-based confirmation noted.
+
+### note 00:40
+Formal C 55d3ea2c: item 25 (board route, fasm = own coleq_24) gives a wrong answer at kappa = 0.44, w = 0 (search; both formal checkers pass); race = ulink_n_falseResult_3 stage[0]'s latch enable routes (own mapping). w = 20 result withdrawn by C (simulator runt filter inconsistent with Spec). A spread of 0.44 is above the 0.36 THE gcd target fails at. Replay in own GLS pending a committed assignment. REPORT row.
