@@ -3052,3 +3052,29 @@ Container: 4 cores, 15 GB, no Mathlib cache: setup.sh is building from source (~
    invariant on the unit's input nodes and the timed unit theorems (generic lemma, then the gcd conditions).
 2. The 4 remaining timed shift units (parked in formal/lean/Wip/TimedShift/), one module at a time.
 3. Answer B on chunking (after reading CovUpChunk).
+
+### progress 18:35 -- AO/TimedUnit + AO/UnitWord: external condition claims proved by unit theorems (check.sh OK)
+* *Problem:* `timedA_followsUX` / `timedA_liveUX` (the every-pair route) take the datapath conditions the control
+  reads (cmpi results, parity bit) as a hypothesis `hExt`, because no window certificate fixes their value. Can that
+  hypothesis be discharged by the timed unit theorems of THE target (`<unit>_timed_circ`: inputs held on [T0, T1] ⇒
+  output = op on [T0 + D, T1]) plus the certificate's own claims on the unit's inputs?
+* *Proved* (standard axioms; check.sh on both files: 1,455 declarations audited; no Mathlib needed):
+  - `UnitProof` (the rule): an external claim c on node z is proved by a unit (ins, Dc, F) if `UnitFact` holds
+    (the unit theorem's shape), each input is covered by a NON-external claim w whose window contains c's window
+    widened by Dc on the left (`Sep(A_w → A_c) = d`, `Dc + w.a ≤ c.a + d`; `Sep(B_c → B_w) = d'`, `c.b ≤ w.b + d'`
+    or w never ends; `0 ≤ w.a, c.a`), F reads only `ins`, and F of the covering claims' values is c's value.
+  - `unit_holds`: such a claim holds at s, given Sep soundness and the non-external claims up to s.
+  - `timedA_followsUY`: `timedA_followsUX` with the weaker external-claim hypothesis (it may use Sep soundness and
+    the non-external claims up to the SAME time; the induction step now proves non-external claims at t + 1 first).
+  - `timedA_followsUnit`, `timedA_liveUnit`: safety and liveness with `hExt` replaced by a `UnitProof` for each
+    external claim (liveness reuses `timedA_liveUX`, its hExt supplied by the safety conclusion).
+  - `unitFact_comp` (chained units: delays add), `UnitFact.mono`; `UnitWord.unitFact_of_word1`: a 1-bit word-form
+    timed unit theorem is a `UnitFact`; `word_congr` (F reads only the bit nodes below each width).
+* *Plainly:* the condition claims are no longer an unexplained hypothesis of the generic theorem: they follow from
+  (a) the unit's timed theorem and (b) claims that the unit's input registers hold the right bits for long enough,
+  which are ordinary claims of the certificate (latch hold, proved by GateProof/ChainUOK) whose VALUES must be the
+  token run's register words.
+* *Not shown:* the instance for any unit of THE target (the `_timed_circ` theorems exist for 16 units; their x is
+  Spec's `Beh`, the AO theorems' x is the same function once B's SliceNet bridge supplies TBehX); the register-word
+  invariant (step 2: that the covering claims' values are the token values); the every-word (Unroll) version
+  (`UnrollClaimU` still takes `hExt`; it can be fed by `unit_holds` the same way, not written).
