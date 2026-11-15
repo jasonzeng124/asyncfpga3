@@ -66,7 +66,9 @@ if [ ! -f "$O/net.json" ]; then
     cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"
     python3 "$H/boundary_bench.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$KV" "$BV" "$O/bnd_bench.json" | tail -1 | tee -a "$O/run.log"
     python3 "$A/mk_bnd_sim.py" "$O/bnd_bench.json" "$O/bnd.json" | tee -a "$O/run.log"
-    echo "[]" > "$O/arbs.json"
+    python3 "$A/arbs.py" "$O/routed.json" "$O/d0.json" "$O/net.json" "$O/arbs.json" 2>&1 | head -1 | tee -a "$O/run.log" ||
+      echo "[]" > "$O/arbs.json"
+    [ -s "$O/arbs.json" ] || echo "[]" > "$O/arbs.json"
   elif [ -n "${BND:-}" ]; then
     : > "$O/empty.xdc"
     python3 "$A/decode_base.py" "$O/fromBit.fasm" "$O/empty.xdc" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
@@ -97,4 +99,5 @@ log "sweep"
 python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs "$JOBS" --top "$TOP" --khi "$KHI" \
   --klo "$KLO" --tfull "${TFULL:-5000000}" --pairs $PAIRS --kernel "$KERNEL" --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
 log "check every failing row"; python3 "$H/checkrows.py" "$O" > /dev/null 2>&1 || true
-log "done: $O/kappa_hi.txt $O/checked.txt $O/margins.txt"
+[ -f "$O/routed.json" ] && python3 "$H/names.py" "$O" > /dev/null 2>&1 || true
+log "done: $O/names.txt $O/kappa_hi.txt $O/checked.txt $O/margins.txt"

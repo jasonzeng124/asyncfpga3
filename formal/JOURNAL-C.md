@@ -3324,3 +3324,10 @@ Adm, H_RUNT lag; envcheck: Env, SeqEnv). kappa_hi = smallest ADMISSIBLE finite f
 * Caveats: ArbOK unchecked on bench builds (arbiters not named: envcheck's T >= 0 is vacuous); nc64_7's kappa 0
   runs were INADMISSIBLE with 1-4 gate MISMATCHES (not only lag violations): simulator vs checker disagree there, to
   diagnose; single-pin adversary, corner 0, 3 vectors; kappa_lo none.
+
+### progress 22:18 -- margin tool: instance names and arbiters on bench builds; rerun filed
+`names.py` (run.sh's last step when a routed JSON is there): decoded LUT node -> nextpnr cell by NEXTPNR_BEL. gcd_ps:
+SLICE_X16Y21.A6 = ucontrol_merge4.uarb1.ua2, its source SLICE_X17Y23.B6 = ucontrol_merge4_f, SLICE_X32Y45.A6 =
+ulink_n_falseResult_85 stage[0] ctl, SLICE_X38Y51.B6 = ucontrol_merge10.uarb1.ustate -- the names B and A gave these
+races. Bench mode now runs A's arbs.py (bd_arbiter state LUTs) so envcheck's ArbOK T is meaningful there.
+Farm request c_margin_bench3: items 25, 26, nc64_7, pc64_7 again with names and arbiters.
