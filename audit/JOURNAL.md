@@ -1975,3 +1975,6 @@ Research 5321c5a0 / 9abe25f4: lever 8 (pre_dec.py, MLIR pre-pass): loop exit tes
 
 ### progress 03:58 T110 started (lever 8)
 Research 32dec7eb: xd_10 (lever 8, fr4 sizes, seed 10) route 5e759620, latency 414 vs xf5_10 499 cycles = -3.98 ns/iter. Own: pre_dec.py on the worktree's frontend MLIR reproduces the committed xorshift_predec.mlir (md5 c3c2c892). Own builds xf5_10 + xd_10, latency, 3-corner GLS with own oracle (t110/run.sh).
+
+### progress 04:30 T110 done
+Lever 8 seed 10 CONFIRMED: own sdf 5e759620 = research's route; 23.150 -> 19.152 ns/iter (-3.998); 17/17 at 3 corners; NOT EQUIVALENT = packer GND LUT (benign). Own static H: falseResult_9 st1 -164..-252 (research -298); dynamic check running (t110/hold.sh).
