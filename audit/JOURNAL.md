@@ -2053,3 +2053,6 @@ Owner commit 726e80fd (research PROGRAM, second lead): account for every delay l
 ### progress 17:35 owner decision + research tsehold
 Owner 5f49d91d: "no blanket rules"; select rule withdrawn; select links sized by H/I (both corners, >= 32 routes) + hold_bits, each check shown to fail on a known-bad build per family first. Recorded in REPORT's owner-decisions table.
 Research ac5c4844 tsehold (interval TSE, delays from one trace x [0.97, 1.03]): flags xf2_1's ulink_n7 (re-traced: n7 is the corrupted latch -- matches own T109 2708 violations at n7), clears xf4_10's n7 (own dynamic +5188) and pipe rows; leaves xf4_10 ulink_n8 (-196 FAST_MIN / -26 worst) as a candidate. Own dynamic on n8: +4133 / +5753 ps, 0 violations over ~84000 closes -- not realised on these vectors. Concern logged: one-trace delays do not bound data-dependent arcs. REPORT row added.
+
+### note 17:45
+Owner 8aa28bc7 (on claude/research, formal PROGRAM): formal is back on (one session per shard per day). Audit priority (a) resumes as soon as formal commits; formal unchanged at 8fd62f82 so far. Research 47b0295b: farm fxdt (item 27 + TSE), fxsel1 / fxsel0 (select links at 1 / 0, rule withdrawn); predictions. T109c (n8 second state) running.
