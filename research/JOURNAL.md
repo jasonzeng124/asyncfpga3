@@ -4439,3 +4439,13 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   ulink_n_trueResult_6 (item 23's fixed race) +5608 ps. One route; the 32-route farm run fxs is still running
   (fxf4l, the baseline latency on the same seeds, is back).
 - Still open before a board item: the in-cell select race (spec_abort vs z_short) as its own row.
+### progress 00:58 UTC (speculative cell: the in-cell select race, static row)
+- research/tools/fifteen/spec_select.py: the race inside a BDC_SPEC_INC cell (abort must settle before the short line
+  rises at uspec, else a long case completes on the short line). Rule-E form from each upstream link's C node:
+  0.97 x earliest short request - 1.03 x latest abort. xs_10: +1361 ps nominal, +1124 ps worst (req 3661 / 3417,
+  abort 2126 through the link latch + one LUT; LUTs and wires do not move between the two corners, the chains do).
+  Negative control: the abort arc into uspec stretched by 3 ns in a copy of the SDF -> -1728 ps (fails, as it must).
+- eval_task.sh prints the row ("select nom/worst") with SPEC_CASES. fxs was submitted before it, so farm request fxss
+  rebuilds the same 32 seeds and reports only this row (spec_select_task.sh; checked to reproduce xs_10's worst row).
+- Not covered by any row yet: the falling phase of the mux (both lines FASTFALL; abort is held until the acknowledge
+  falls, by the bundling upstream). The 3-corner gate exercised it on xs_10 (PASS); a static argument is still owed.

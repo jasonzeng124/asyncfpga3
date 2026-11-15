@@ -6,6 +6,7 @@
 #      and WORST, measured-residual guards, on this route as built; every kernel rule A / A' / E constraint below 0
 #      (tighten's unsized bundled-channel row "a" is listed apart)
 #   3. the full gate: bench_gate.sh SLOW_MAX / FAST_MIN / worst+M with the C-derived oracle.
+#   (SPEC_CASES=inst:k) the static check per case, LONG / SHORT, and the in-cell select race (spec_select.py).
 #   4. (HOLD_VEC=vector file) the trace-measured hold check at FAST_MIN (hold_trace.py) -> hold.tsv.
 # Steps 2 and 3 run in parallel (5 processes; memory ~3 x 2.4 GB for the gate sims).
 set -uo pipefail
@@ -62,6 +63,9 @@ if [ -n "${SPEC_CASES:-}" ]; then
         echo "static-$cs $m ${neg:-CLEAN} | $si A' $row" >> "$E"
       else echo "static-$cs $m ERROR" >> "$E"; fi
     done; done
+    for m in nom worst; do   # the select race inside the cell: abort vs the short line (spec_select.py)
+      r=$(python3 "$R/research/tools/fifteen/spec_select.py" "$CA/$m/soak.sdf" "bridge_i.udut.$si" 2>&1 | tail -1)
+      echo "select $m $r" >> "$E"; done
   done
 fi
 cat "$O"/gate_*.txt >> "$E" 2>/dev/null
