@@ -4911,3 +4911,19 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
 - Controls before any use: xf2_1 (fxf2 seed 1, a real FAST_MIN hold failure on the counter's loop-back pipe, JOURNAL
   2026-11-14 09:34) must be flagged; xf4_10 (item 23's route, OR rows the audit found never live) is the case to clear.
   Both building locally (lane2.sh, nextpnr seeds 1 / 10).
+### progress 17:05 UTC (tse.py / tsehold.py written; plumbing checked; the negative control is the question)
+- research/tools/eventgraph/tse.py: unrolled longest path on the marked graph from (close, 0); each event occurrence
+  classified AFTER (bound), BEFORE, or UNORDERED. tsehold.py: per Muller latch controller L, launch points = storage
+  whose output reaches L's data pins combinationally; a latch bit X carries a later token only after its own stage
+  reopens, so its bound is LB(ctl_X rise, first occurrence not before L's close) + enable->Q + the path; graph nodes
+  driving data directly use their own bound; aperiodic launch points fall back to rule H's OR time; unordered ones are
+  violations. Guards as corner_audit (3 %, 50 ps). Its OR column reproduces corner_audit's FAST_MIN rule H row on
+  xf2_1 trueResult_6 stage[1] (+86 ps), so the two read the same SDF the same way.
+- Local rebuilds reproduce: xf2_1 sdf dc138ea2, xf4_10 sdf 2f825834 (lane2.sh, nextpnr 9c732bc6303458df); their band
+  event graphs are byte-identical to the committed ones.
+- Problem found at once: on xf2_1's (band) graph the next opening of ulink_n7 is causally after trueResult_6
+  stage[0]'s close (stage[0] F -> ucond_br6.uack F -> ufork8 F -> ulink_n7 R, 1.2 ns), so TSE rates stage[0] +2 ns --
+  but the 2026-11-14 trace has the adder's next result entering that pipe stage 1.85 ns BEFORE it closed. Either the
+  failing stage / mechanism is not what I read, or the steady-state graph misses what happens in iteration 2 of a
+  transaction. Re-running the failing FAST_MIN trace (rounds 3, 4, 8, 5) to settle it from the waveform before any
+  number from this tool is used. FAST_MIN dumps for the graph itself (DUMP_FIELD=min) running for both routes.
