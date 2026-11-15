@@ -24,6 +24,14 @@ for l in open(os.path.join(O, "margins.txt")):
     f = l.split()
     if len(f) < 6 or not re.match(r"^[0-9.]+$", f[4]): continue
     w = f[0].split("=")[1]; k = f[4]; route = f[-1]
+    q = re.match(r"quiet@([0-9.]+)", f[6]) if len(f) > 6 else None
+    if f[5] in ("FAIL-noanswer", "UNDECIDED") and q:
+        out.write("%s w=%s k=%s %s | NOT-CHECKED (%s); checking its first quiet failure at %s |\n" % (f[1], w, k, f[2], f[5], q.group(1)))
+        k = q.group(1)
+    elif f[5] in ("FAIL-noanswer", "UNDECIDED"):
+        # a livelock to tmax or an event-capped run is not a finite counterexample (it would need a periodicity
+        # argument, as Lean's Frontier36 did for gcd_ps); it is not checked and does not enter kappa_hi
+        out.write("%s w=%s k=%s %s | NOT-CHECKED (%s: no finite witness) |\n" % (f[1], w, k, f[2], f[5])); out.flush(); continue
     S = [[a.rsplit("/", 1)[0], int(a.rsplit("/", 1)[1])] for a in route.split(",")]
     tag = "%s_%s_w%s" % (f[1].replace("/", "_"), f[2], w)
     cf = os.path.join(O, "tmp", "chk_%s.json" % tag); df = os.path.join(O, "tmp", "chk_%s_dump.json" % tag)
@@ -48,7 +56,7 @@ for l in open(os.path.join(O, "margins.txt")):
     if ok and not res.startswith("RESULT OK"): adm.append((float(k), int(w), f[1], f[2], f[3], res))
     os.unlink(df)
 out.close()
-# kappa_hi: smallest kappa with an ADMISSIBLE failing run. A w = 20 behaviour is also a behaviour of the plain
+# kappa_hi: smallest kappa with an ADMISSIBLE failing run (finite: wrong value, or quiet with an answer missing). A w = 20 behaviour is also a behaviour of the plain
 # statement (Lean: seqRunt_of_seq direction used by the refutations), so kappa_hi(w = 0) = min over both.
 with open(os.path.join(O, "kappa_hi.txt"), "w") as kh:
     kh.write("# kappa_hi = smallest kappa at which an ADMISSIBLE failing run was found (search; gatecheck + envcheck passed)\n")

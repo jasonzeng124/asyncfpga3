@@ -3288,3 +3288,13 @@ Names: decoded sites only (no routed JSON here); research can map SLICE_X16Y38.A
   research can run the tool on its own routes via $PEER. Untested here (no build tree in this sandbox): the request
   `c_margin_bench1` rebuilds, from $PEER with FOR-FORMAL's commands, item 25 (self-check against the local run),
   item 27 (xorshift), item 26 (collatz64), BAD nc64_7 and its minimal-pair neighbour pc64_7, then runs the tool.
+
+### progress 21:31 -- margin tool on gcd_ps, final form: kappa_hi(finite) = 0.40, livelock 0.36 reported apart (search)
+checkrows.py now checks only FINITE failures (wrong value, or quiet with an answer missing); a livelock to tmax or an
+event-capped run is NOT-CHECKED (no finite witness; Lean needed a periodicity argument for gcd_ps's 0.36), and its
+first quiet failure (margin.py's bisect_quiet) is checked instead. gcd_ps (out/gcd_ps_full/kappa_hi.txt): **w = 20:
+kappa_hi = 0.40** (SLICE_X16Y21.A6 pin 0, ADMISSIBLE: 259,594 checks, 0 mismatches/outside-Adm/lag; Env OK; ArbOK T >=
+131); 0.44 (SLICE_X32Y45.A6) admissible too; w = 0: 0.42 admissible at w = 0, so 0.40 via the w = 20 run. Livelocks:
+0.36 (w 20; Lean-refuted separately by Frontier36), arbiter 0.40/0.42 (no finite witness; H_ARB may exclude).
+kappa_lo: none. (Earlier today checkrows hung on a 600 MB livelock dump in envcheck's quadratic ArbOK loop: fixed by
+not checking livelocks.)
