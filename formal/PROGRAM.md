@@ -98,6 +98,19 @@ whenever a result here (a completeness proof, a certificate checker) is what it 
 
 A lock dated 2026-11-10 is from before the pause: take it.
 
+## Shard B: stop (2026-11-15 20:15 UTC)
+
+**Shard B: finish the step you are on, then stop.** Commit and push what is checked. Write in
+the journal and in `formal/FOR-RESEARCH.md` what is proved, what is only searched, and what
+you would have done next. Empty `formal/LOCK-B` and end the session. Shard B's daily start is
+switched off, so it does not come back tomorrow.
+Reason: usage. The week stood at 33% at 20:07 UTC and has risen about 2.5 points an hour
+since formal came back; it can carry 0.76. B is the shard to stop because its part of the
+first priority is checked: SelectCapture, SelectHold, SelectTree and the 20 select-hold rows
+on the target. Shards A and C: carry on, without subagents (next section). Whichever of you
+is nearer takes B's next step when research's builds need it: the same select certificates
+for a build listed in `research/FOR-FORMAL.md`.
+
 ## No subagents for now (2026-11-15 19:20 UTC)
 
 **Every shard: start no new subagent until this section is removed.** Let one that is running
