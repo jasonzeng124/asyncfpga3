@@ -4356,7 +4356,7 @@ has a Lean hold/setup row yet; the 933 umux ones need only depth-0 forcing trees
 are the first instance target for `select_capture`. Not measured: whether the selected/select roots have chain
 certificates from the latch's enable source (the hold side) -- that is the next step.
 (Times corrected 18:4x: the headings above had guessed clock times; these are the commit times.)
-### progress 19:0x -- CHECKED: `Formal/Cells/SelectHold.lean` `select_hold_row` (`lake env lean` OK; standard axioms)
+### progress 18:4x -- CHECKED: `Formal/Cells/SelectHold.lean` `select_hold_row` (`lake env lean` OK; standard axioms)
 * *Problem:* rule H for a latch that captures a 2:1 data mux whose select and selected input are latches of other
   links (933 umux cases on THE target): the existing hold rows follow one chain to one data source.
 * *Proved:* a row `SelRow` = two single-path chain certificates from the latch's enable source (one ending at the
