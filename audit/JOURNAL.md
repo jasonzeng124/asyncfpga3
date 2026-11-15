@@ -2075,3 +2075,6 @@ Owner b9ae1fe9 (audit PROGRAM, authoritative): after formal resumes, audit (1) e
 
 ### note 18:40
 Formal C cb2c1fb5: Formal/Net/AO/TimedUnit.lean + UnitWord.lean (UnitProof rule: an external condition claim discharged by a timed unit theorem; timedA_followsUY with a weaker hypothesis); C reports check.sh OK, 1455 decls, standard axioms. To check on own clean build (wt-f91 at 104d9e60 still building Mathlib; will move the worktree to formal HEAD and rebuild the Formal part when Mathlib is done).
+
+### note 18:50
+T109c's repeated 0/17 was overlapping runs of t109/run_n8.sh clobbering each other's work dirs (gate.sh removes run_baked.vvp at the end); all killed, one sequential run started. Formal C 0961d876 (AO/UnrollUnit, 882 decls, check.sh OK) and B 1e81d9cc (ForceTree.lean, written, NOT yet checked) noted; to check on own build.
