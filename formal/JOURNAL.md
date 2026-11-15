@@ -2428,3 +2428,24 @@ with pair boundaries as letters), with no island and no per-pair start.
 * *Compared with PlanRPS/CertN1:* no IslR, no reset-length bound, no Sane p, no per-episode quiet start; the
   certificate may change with time (prefix words), so n = none is covered without an infinite certificate.
 * *Not shown:* any instance. Conditional: false wherever THE statement is refuted (g = 1, κ ≥ 9/25; g ≥ 8/5).
+### progress 17:49 -- PROGRAM changed (owner, 0691ea88): FIRST = research's timing rule; A's items: targets, rewrites, STATUS/MARGINS, FOR-RESEARCH
+Read the new top section at ~17:45. A's own item is 5 (the source rewrites in Lean); C leads the margin tool, B the
+select race. research/FOR-FORMAL.md does not exist yet on origin/claude/research (checked 17:4x). CertRun (above) is
+second-priority work (gcd theorem, S6) and stays as is.
+### progress 17:49 -- rewrites: inputs pinned; collatz (32-bit) rewrite CHECKED in Lean (check.sh OK, 887 decls)
+* Inputs (origin/claude/research): `research/data/fifteen/{xorshift_predec,collatz_preeq2,collatz64_preeq2}.mlir`;
+  each is exactly the output of `research/tools/fifteen/{pre_dec,pre_eq2}.py` on the frontend fixture
+  `cloud/fixtures/frontend/<k>/comp/handshake_transformed.mlir` (rerun, cmp equal). `tools-A/rewrite/gen.sh`
+  re-derives everything below from those files with C's importer (dfimport/mlir2lean.py) and autoproof, unchanged.
+* *Problem (collatz):* the rewrite replaces the loop test n' == 1 (n' = n even ? n >> 1 : 3n + 1, i32 two's
+  complement) by n == 2. Does the rewritten handshake graph compute the same function as the C, for every input?
+* *Proved:* `Formal.Rewrite.Eq2.collatz_eq2`: in the circuit's op semantics (`GcdHw.Ops`), for every width w ≥ 3
+  and every n, `eq(ne(n', 1), 0) = eq(n, 2)` (false at w = 2: -2 >> 1 = -1). `Formal.Rewrite.AutoCollatzPreeq2.
+  auto_computes`: for every natural n on the input channel and any fuel on which the C transcription (cfront's, as for
+  C's AutoCollatz) returns r, the graph imported from collatz_preeq2.mlir has a complete run ending with [r] on the
+  output, every complete run under any schedule ends in that store, and runs are bounded. autoproof generated it; its
+  generic tactic timed out on exactly the two obligations that are the rewrite, closed by collatz_eq2
+  (`tools-A/rewrite/patch_eq2.py`). Together with C's `AutoCollatz.auto_computes` (the original graph, same
+  transcription): both graphs return the C's value on every input on which the C returns.
+* *Not shown yet:* inputs where the C loops for ever (e.g. n = 0, negative cycles): that both graphs then never
+  answer; collatz64 (cfront handles 32-bit only); xorshift (next).
