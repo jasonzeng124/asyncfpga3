@@ -3190,3 +3190,12 @@ SeqEnv, smallest ArbOK T, out0). gcd_ps run1 witness (kappa 0.40, w 20): 259,594
 Adm; Env + SeqEnv OK; ArbOK for T >= 131 ps; out0 0 of 2; quiet at 484,403 ps -- the same verdict B recorded for
 CexX16's run (out/gcd_ps_run1/verify.txt). Farm: fm_lean_prime (submitted 17:43) still "submitted" at 19:5x, so the
 runner may be down or busy; my two margin requests wait behind it.
+
+### progress 19:51 -- margin tool takes research's bench builds (BND=, KERNEL=); simadv --kernel
+simadv.py gains `--kernel gcd|collatz|collatz64|xorshift` (expected out0 from tools/margin/kernels.py, derived from
+kernels/*.c: i32 wrap-around, arithmetic shift; checked against A's bench runs: collatz 6,7,27 -> 8,16,111; xorshift
+seed 0x92d68ca2 rounds 3,4 -> 2064144800, 2008045182). run.sh: `BND=` (A's boundary_bench.py + mk_bnd_sim.py output)
+skips the gcd_ps boundary step; `KERNEL=` and `PAIRS=` ("n,n" for one-operand kernels). Item 25 (collatz, research's
+FASM c6404633): decoded (130,380 nodes, round trip invented 0), simadv at kappa 0.20 corner 0: 27/703-style vectors
+correct (6,7,27 -> 8,16,111 in 14 s). A first 40-candidate sweep on item 25 (LATCH=1) is running.
+Note: the commit a1ec907d also swept in the C++ subagent's in-progress formal/tools/margin/simx.cpp (WIP, unverified).

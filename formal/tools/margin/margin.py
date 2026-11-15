@@ -30,10 +30,26 @@ ap.add_argument("--tmax-factor", type=float, default=1.3); ap.add_argument("--tf
 ap.add_argument("--arbs", default=None, help="arbs.json: rows whose q is an arbiter state LUT are flagged (ArbOK unchecked)")
 ap.add_argument("--memcap", type=float, default=3.0, help="GB address-space cap per simulation")
 ap.add_argument("--wallcap", type=int, default=900, help="s per simulation")
+ap.add_argument("--kernel", default="gcd", help="expected out0 (simadv --kernel): gcd | collatz | collatz64 | xorshift")
 ap.add_argument("--shard", default=None, help="K/N: sweep only candidates K-1, K-1+N, ... of the ranked list (farm tasks)")
 ap.add_argument("--only", nargs="*", default=None, help="node:pin keys to restrict to (tests)")
+ap.add_argument("--want", default=None, help="simx only: expected out0 list v1,v2,.. (replaces the gcd check)")
 a = ap.parse_args()
 KD = 100
+# SIM=simx (env): the C++ port (simx.cpp; event-for-event equal to simadv on gcd_ps). Built and the net converted
+# once into OUTDIR (SIMX= a prebuilt binary; SIMX_MAXEV event cap per run, default 300M: no verdict -> UNDECIDED).
+SIMX = None
+if os.environ.get("SIM") == "simx":
+    os.makedirs(a.out, exist_ok=True)
+    SIMX = os.environ.get("SIMX") or os.path.join(a.out, "simx")
+    if not os.path.exists(SIMX) or os.path.getmtime(SIMX) < os.path.getmtime(os.path.join(HERE, "simx.cpp")):
+        subprocess.run(["g++", "-O2", "-std=c++17", "-o", SIMX + ".%d" % os.getpid(), os.path.join(HERE, "simx.cpp")], check=True)
+        os.replace(SIMX + ".%d" % os.getpid(), SIMX)
+    NETX = os.path.join(a.out, "net.simx")
+    if not os.path.exists(NETX) or os.path.getmtime(NETX) < max(os.path.getmtime(a.net), os.path.getmtime(a.bnd)):
+        subprocess.run(["python3", os.path.join(HERE, "simx_conv.py"), a.net, a.bnd, NETX + ".%d" % os.getpid()], check=True)
+        os.replace(NETX + ".%d" % os.getpid(), NETX)
+elif a.want: sys.exit("--want needs SIM=simx")
 os.makedirs(a.out, exist_ok=True); TMP = os.path.join(a.out, "tmp"); os.makedirs(TMP, exist_ok=True)
 R = json.load(open(a.ranked))
 if a.only: R = [r for r in R if "%s:%d" % (r["node"], r["pin"]) in set(a.only)]
@@ -48,7 +64,8 @@ def log(*x):
 def sim(arcs, P, w, tmax, tag, dump=None):
     cf = os.path.join(TMP, "c_%s.json" % tag)
     json.dump({"S": arcs, "F": []}, open(cf, "w"))
-    cmd = ["python3", SIM, a.net, a.bnd, "--pairs", *a.pairs, "--corner", "0", "--kappa", "%.2f" % (P / KD),
+    cmd = ([SIMX, NETX, "--maxev", os.environ.get("SIMX_MAXEV", "300000000")] + (["--want", a.want] if a.want else [])
+           if SIMX else ["python3", SIM, a.net, a.bnd]) + ["--pairs", *a.pairs, "--kernel", a.kernel, "--corner", "0", "--kappa", "%.2f" % (P / KD),
            "--classes", cf, "--cdefault", "F", "--data0", "--full", "--R", "400000", "--su", "1000",
            "--datachange", "broad", "--nextreq", "seq", "--tmax", str(tmax)] + (["--w", str(w)] if w else [])
     if dump: cmd += ["--dump", dump]

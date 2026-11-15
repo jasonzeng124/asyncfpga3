@@ -44,6 +44,7 @@ def main():
     ap.add_argument("--R", type=int, default=20000)
     ap.add_argument("--slow", nargs="*", default=[], help="node names whose driving gate is made slow")
     ap.add_argument("--kappa", type=float, default=None)
+    ap.add_argument("--kernel", default="gcd", help="expected out0 per pair (a, b): gcd(a, b) | collatz(a) | collatz64(a) | xorshift(a, b) (tools/margin/kernels.py)")
     ap.add_argument("--fast", nargs="*", default=None, help="only these gates (and their input routes) fast; all others mid-window")
     ap.add_argument("--data0", action="store_true", help="the first pair's operands from time 0")
     ap.add_argument("--exact", action="store_true", help="kappa 0.84 at corner 0 with exact integer delays")
@@ -422,7 +423,12 @@ def main():
     if a.dump:
         json.dump({"tend": t, "nodes": {str(n): [hv[n][0], ht[n][1:]] for n in ht if len(ht[n]) > 1 or hv[n][0]},
                    "outs": outvals, "pairs": pairs, "args": vars(a)}, open(a.dump, "w"))
-    want = [math.gcd(x, y) for x, y in pairs]
+    if a.kernel == "gcd":
+        want = [math.gcd(x, y) for x, y in pairs]
+    else:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "margin"))
+        import kernels
+        want = kernels.want(a.kernel, ["%d,%d" % (x, y) for x, y in pairs])
     got = [v for _, v in outvals]
     ok = got == want
     print("RESULT %s: want %s got %s" % ("OK" if ok else "MISMATCH", want, got))

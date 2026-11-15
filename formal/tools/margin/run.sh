@@ -11,14 +11,18 @@ set -euo pipefail
 B=$1; O=$2; mkdir -p "$O"; O=$(cd "$O" && pwd)
 H=$(cd "$(dirname "$0")" && pwd); F=$(cd "$H/../.." && pwd); R=$(cd "$F/.." && pwd)
 JOBS=${JOBS:-8}; TOP=${TOP:-0}; KHI=${KHI:-0.45}; KLO=${KLO:-0.20}; W0=${W0:-1}; LATCH=${LATCH:-0}
-PAIRS=${PAIRS:-"0x49e9c618,0x35bf992e 1071,462"}
+PAIRS=${PAIRS:-"0x49e9c618,0x35bf992e 1071,462"}; KERNEL=${KERNEL:-gcd}
 log() { echo "$(date +%H:%M:%S) $*" | tee -a "$O/run.log"; }
 cat_any() { case "$1" in *.xz) xz -dc "$1";; *.gz) gzip -dc "$1";; *) cat "$1";; esac; }
 pick() { for f in "$@"; do [ -f "$f" ] && { echo "$f"; return; }; done; echo ""; }
 base=${B%.xz}; base=${base%.gz}; base=${base%.fasm}; base=${base%.fromBit}
 XDC=${XDC:-$(pick "$base.xdc")}; SYNTH=${SYNTH:-$(pick "$base.json" "$base.json.xz")}
 ROUTED=${ROUTED:-$(pick "$base.routed.json" "$base.routed.json.xz")}
-[ -n "$XDC" ] && [ -n "$SYNTH" ] && [ -n "$ROUTED" ] || { echo "need XDC, SYNTH, ROUTED next to $B or in env" >&2; exit 1; }
+# Bench builds (research's kernel benches): give BND= (tools-A/target boundary_bench.py + mk_bnd_sim.py output) and
+# KERNEL= (collatz | collatz64 | xorshift; vectors in PAIRS as "a,b", one-operand kernels "n,n"); XDC/SYNTH/ROUTED unused.
+if [ -z "${BND:-}" ]; then
+  [ -n "$XDC" ] && [ -n "$SYNTH" ] && [ -n "$ROUTED" ] || { echo "need XDC, SYNTH, ROUTED next to $B or in env (or BND=)" >&2; exit 1; }
+fi
 
 # prjxray-db: $TC, else unpack zynq7 from the repo's toolchain-cache branch (read-only git: cat-file only)
 TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
@@ -47,11 +51,19 @@ export TC
 A=$F/tools-A/target
 if [ ! -f "$O/net.json" ]; then
   log "decode"
-  cat_any "$B" > "$O/fromBit.fasm"; cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"
-  python3 "$A/decode_base.py" "$O/fromBit.fasm" "$XDC" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
-  python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
-  python3 "$A/boundary_ps.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$O/bnd.json" | tail -1 | tee -a "$O/run.log"
-  python3 "$A/arbs.py" "$O/routed.json" "$O/d0.json" "$O/net.json" "$O/arbs.json" | head -1 | tee -a "$O/run.log"
+  cat_any "$B" > "$O/fromBit.fasm"
+  [ -z "${BND:-}" ] && { cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"; }
+  if [ -n "${BND:-}" ]; then
+    : > "$O/empty.xdc"
+    python3 "$A/decode_base.py" "$O/fromBit.fasm" "$O/empty.xdc" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
+    python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
+    cp "$BND" "$O/bnd.json"; echo "[]" > "$O/arbs.json"   # bench arbiters not named yet: no ArbOK flag
+  else
+    python3 "$A/decode_base.py" "$O/fromBit.fasm" "$XDC" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
+    python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
+    python3 "$A/boundary_ps.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$O/bnd.json" | tail -1 | tee -a "$O/run.log"
+    python3 "$A/arbs.py" "$O/routed.json" "$O/d0.json" "$O/net.json" "$O/arbs.json" | head -1 | tee -a "$O/run.log"
+  fi
 fi
 (cd "$O" && md5sum fromBit.fasm net.json bnd.json arbs.json) | tee "$O/md5.txt"
 
@@ -61,7 +73,7 @@ python3 "$H/races.py" "$O/net.json" "$O/bnd.json" "$O/races.json" $([ "$LATCH" =
 if [ ! -f "$O/ref_dump.json" ]; then
   log "reference run kappa $KHI"
   echo '{"S": [], "F": []}' > "$O/empty.json"
-  KDEN=100 python3 "$F/tools/huff/simadv.py" "$O/net.json" "$O/bnd.json" --pairs $PAIRS --corner 0 --kappa "$KHI" \
+  KDEN=100 python3 "$F/tools/huff/simadv.py" "$O/net.json" "$O/bnd.json" --pairs $PAIRS --kernel "$KERNEL" --corner 0 --kappa "$KHI" \
     --classes "$O/empty.json" --cdefault F --data0 --full --R 400000 --su 1000 --datachange broad --nextreq seq \
     --tmax 5000000 --w 20 --dump "$O/ref_dump.json" 2>&1 | grep -E "RESULT|events" | tee -a "$O/run.log"
 fi
@@ -69,6 +81,6 @@ python3 "$H/rank.py" "$O/net.json" "$O/races.json" "$KHI" "$O/ranked.json" "$O/r
 # 4. sweep + bisection + report
 log "sweep"
 python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs "$JOBS" --top "$TOP" --khi "$KHI" \
-  --klo "$KLO" --pairs $PAIRS --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
+  --klo "$KLO" --pairs $PAIRS --kernel "$KERNEL" --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
 log "verify witness"; bash "$H/verify.sh" "$O" >/dev/null 2>&1 || true
 log "done: $O/margins.txt $O/summary.txt $O/verify.txt"
