@@ -5109,3 +5109,15 @@ farm, then the K-lap check.
 ### progress 18:54 UTC (second lead on 32 routes)
 - eval_task LINE_ACCT=1: line_account.py at worst and nominal per route (graph from step 5, stride 2 where needed).
   Farm fceq_la: item 25's sizes and seeds (nl4, 32 routes), static + TSE + the line table, no gates.
+### progress 18:55 UTC (collatz select links at 1 / 2 / 1m: -9.9 to -10.8 ns, rule E decides the size)
+| build (vs fceq2, n = 6171) | paired seeds | ns / iteration delta median (range) | faster | gates | static rows (worst, E now visible) | TSE |
+|---|---|---|---|---|---|---|
+| fcsel0 (select 0) | 22 | -10.37 (-12.78..-6.71) | 22/22 | 23/23 | E at umux0/1/2 (seed 24 local: -87..-255) | void (old step) |
+| fcsel1 (select 1) | 29 | -9.89 (-12.60..-3.31) | 29/29 | 31/31 | E < 0 on 21 routes (umux0/1/2, to -393); H / I clean | clean on all with a self-check |
+| fcsel2 (select 2) | 27 | -10.02 (-13.33..-4.41) | 27/27 | 29/29 | E on 2 (-114 umux0, -149 umux1); I -356 falseResult_9 st1 on seed 5 | clean |
+| fcsel1m (1 + N10__4_UACK 0) | 23 | -10.76 (-13.01..-7.68) | 23/23 | 25/25 | E on most, like fcsel1 | clean |
+  fcsel1m vs fcsel1 (24 seeds): -0.32 median, 16/24 faster: the unnamed ack line was worth little.
+  Periods where the graph gives one: fcsel1 ~25.4-31.4 ns (median ~26.3) vs fceq2 36.60; Dynamatic 14.05.
+- Farm fcsel3m: select links at 3 + N10__4_UACK 0. PREDICTION: E clean on >= 30/32 routes at worst, ~-9.5 ns per
+  iteration vs fceq2 (each select element ~0.4 ns, umux1's on the cycle twice), gates pass. If that holds it is the
+  collatz candidate, pending the E re-check of the baseline and the select negative control.
