@@ -1929,3 +1929,6 @@ xs_10 CONFIRMED on seed 10: -1.694 ns/iter mean (research -1.73), 17/17 at 3 cor
 
 ### note 00:34
 Research c0d19791: xs_10 3-corner gate PASS + hold check clean -- consistent with own T108 (independent). Their select-race row still open; own T108 measures it dynamically (min 912 ps FAST_MIN). Watching.
+
+### note 00:37
+Research da1752e6: spec_select.py static select-race row, xs_10 +1361 nom / +1124 worst (neg control -1728). Consistent with own worst dynamic 1135 ps, but own FAST_MIN dynamic 912 ps is lower than both of research's corners: their row misses the FAST_MIN corner (minor; positive). Falling phase: own monitor saw no abort change while z_short/z_long high (3 corners). Added to the T108 REPORT row.
