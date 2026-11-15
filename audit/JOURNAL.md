@@ -1951,3 +1951,6 @@ Own latch finders (t104/mon_latch1.py used for T104-T107 monitors, and t109/rule
 
 ### progress 01:50 T109b done
 Items 24/19: own static rows reproduce (c64nl falseResult_9 st1 -740, ipowr trueResult_6 st1 -453); dynamic rule H 0 violations at 3 corners, min +763 ps (c64nl ulink_n13 FAST_MIN), flagged paths never live. Item 22 own static >= +178. New top row for c09dcf51 (CONFIRMED as computed / OVERSTATED as hazard). Research bb57cf70/5948ea96 (hold_bits.py; README correction) consistent. Owner notified.
+
+### note 01:52
+Research 53d0679e / f0da3f2a / 11a86df4: xf5_10 (fr4 hold pads on item 23's seed): "H rows cleared, gate 3/3, hold clean, no period cost"; fr5 candidate. Not a board item yet; will audit when queued (own static+dynamic rule H ready: t109/).
