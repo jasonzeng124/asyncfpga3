@@ -32,6 +32,10 @@ exit $rc
 The `#CLUSTER` line must be in the first five lines. `array` is the list of task numbers (`1-24`,
 or `1,3,5-7`), `time` is minutes per task. The defaults are 4 cores, 16G and 90 minutes.
 
+Set `time` to about three times what a task needs, not to the maximum. A task that hangs is
+only stopped at its limit, and the request is not `done` until then: on 2026-11-15 four requests
+with `time=240` each waited four hours for one or two hung tasks.
+
 The script runs once per task. Each task has a checkout of its own, of this branch at the commit
 that was its head when the runner picked the request up, and runs from its root. So push the
 tools and data a request needs before the request, or in the same push. A task sees:
@@ -63,10 +67,18 @@ git show origin/claude/cluster:results/NAME/7/summary.txt
 
 | Path | Holds |
 | --- | --- |
-| `results/NAME/status.txt` | `submitted`, `done` or `rejected: reason`; when done, one line per task with its state, run time and exit code |
+| `results/NAME/status.txt` | `submitted`, `running (k of n tasks finished)`, `done` or `rejected: reason`; once tasks have run, one line per task with its state, run time and exit code |
 | `results/NAME/TASK/...` | the files the task left in `$OUT` |
 | `results/NAME/TASK/log.txt` | the last 150 lines of the task's output |
 | `results/NAME/TASK/SKIPPED.txt` | files that were left out, if any |
+
+Results come back as tasks finish, not only at the end. Ten minutes after the first task of a
+request finishes, the finished tasks' files are pushed and `status.txt` says `running (k of n
+tasks finished)`; then again every ten minutes while more finish. Use what is there: with 30 of
+32 routes back there is no reason to wait for the last two. `done` means every task has ended.
+
+A task that lands on a machine that cannot reach the farm's storage is run again elsewhere, at
+once and without your doing anything; it shows up later than the others.
 
 Only text comes back: up to 1 MB per file and 4 MB per task, in at most three levels of
 directories, with names from letters, digits, `.`, `_` and `-`. Paths and machine names in it are
