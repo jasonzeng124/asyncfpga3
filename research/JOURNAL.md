@@ -4654,3 +4654,18 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   loop-back pipe held i = 2), and there the OR bound is exact and the failure real. Bounding it needs a token-count
   argument on the event graph (time separation of events with the occurrence offset of each path), not a max over
   inputs. Until that exists, rule H stays OR (a lower bound) and the pad rounds stay the conservative route.
+### progress 04:21 UTC (lever 8's critical cycle, from a two-iteration event graph)
+- eventgraph.py --stride S (new, default 1 = unchanged): the period is S marker rises, so a run whose iterations
+  alternate (lever 8: 18924 / 19382 ps) gives the S-iteration unrolled graph (nodes stay distinct: S events per net
+  edge at distinct phases). xd_10, stride 2, marker n8_req: P 38306 ps = 2 iterations (19.153 each), critical cycle 81
+  arcs, CHECK period equal PASS, cycle equal to trace.py's PASS. graphs/xd_10 now has nodes / arcs / check.
+- whatif report (per 2 iterations): the adder is off the critical cycle. On it: the xori datapath (uxori1 3.62,
+  uxori2 3.28, ulink_n25 0.74), ucond_br7 / trueResult_8 / fork9 (3.4), the rounds ring (ulink_n11__1 2.73 + 0.99
+  fall, ulink_n12__2 = umux2's select link 3.76, umux2 2.07, ucmpi1 4.29), merge (ucontrol_merge0 1.93, olink 2.19),
+  umux1's select link ulink_n12__1 4.69, umux1 1.72; polarity changes at ufork9 -> ulink_n11__1 and ufork4 ->
+  ulink_n12__2. Rising-only floor 36.38 (18.19 per iteration), two-phase bound 36.76; next cycles within 215, 458,
+  1540 ps; without ucmpi1 34.81 (17.4).
+- So after lever 8 the per-iteration budget is spread: no single term over ~2.4 ns per iteration, and the two select
+  links umux1 (4.69 / 2) and umux2 (3.76 / 2) held at base by the select rule are the largest. 15 ns would need ~4 ns
+  more out of several of: the select links (a select-rule question, not a size), the compare (sized to its full-range
+  static worst), the RTZ arcs at the two polarity changes (~1 ns), the xori links.

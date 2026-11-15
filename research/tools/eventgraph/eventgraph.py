@@ -58,6 +58,9 @@ class Graph:
         self.nodes, self.arcs = [], []        # nodes: dict(net, name, phase, edge, t); arcs: dict(u, v, w, o, ...)
 
 
+STRIDE = int(sys.argv[sys.argv.index("--stride") + 1]) if "--stride" in sys.argv else 1
+
+
 def build(work, marker, K=10):
     N = Net(work, PRIMS)
     ev = load_vcd(work + "/dump.vcd")
@@ -83,6 +86,11 @@ def build(work, marker, K=10):
     if mk not in ev:
         sys.exit("marker %s not found" % marker)
     rises = [t for t, c in ev[mk] if c == "1"]
+    # --stride S: a period of S marker rises (a design whose iterations alternate, e.g. 18924 / 19382 ps on lever 8,
+    # has no run of equal single intervals).  The graph is then the S-iteration unrolled one: every net has S events
+    # of each edge per period, at distinct phases, so nodes stay distinct; the period it reports is S iterations.
+    if STRIDE > 1:
+        rises = rises[::STRIDE]
     iv = [b - a for a, b in zip(rises, rises[1:])]
     P = collections.Counter(iv).most_common(1)[0][0]
     # longest run of intervals == P
@@ -193,7 +201,9 @@ def trace_cycle(T, mk, t_rise):
 
 
 def main():
-    a = [x for x in sys.argv[1:] if not x.startswith("--")]
+    av = sys.argv[1:]
+    if "--stride" in av: i = av.index("--stride"); del av[i:i + 2]
+    a = [x for x in av if not x.startswith("--")]
     W, MK = a[:2]
     OUT = sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv else W + "/eventgraph"
     os.makedirs(OUT, exist_ok=True)
