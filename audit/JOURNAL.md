@@ -2093,3 +2093,6 @@ Formal A 0463914f: totality + divergence; own lean check, standard axioms; colla
 
 ### note 20:00 MARGINS registry
 Formal A 85dbca49: formal/target/MARGINS.md registers research's builds; no new kappa* yet (only gcd_ps rows, already audited). Own builds' fasm md5 = the registry's: item25 coleq_24 c6404633, item23 xf4_10 56434fc4, BAD_xf2_1 f2873d46 -- so formal's files are exactly the routes the audit confirmed / reproduced, and own GLS can replay formal's traces on them directly. Own nc64_7 / pc64_7 (T111) sdf 98809562 / acc06847 = the registry's prefixes.
+
+### progress 20:15 research E correction; formal B ForceTree
+Research f6c37b63: eval_task never read rule E rows on muxes/steers; items 19, 22-27 "E unknown". Own rule E on each board route (items 22-27) covers every ucond_br* and umux* at 3 corners, all positive -- REPORT row. Item 19 own E not run. Formal B 9a183fb8 ForceTree CHECKED: own lake build (the needed Mathlib modules were already compiled by the stopped wt-f91 build; packages symlinked into wt-f92), standard axioms. Watcher now triggers only on research commits and claim-like formal commits.
