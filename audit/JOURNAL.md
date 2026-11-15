@@ -1920,3 +1920,6 @@ Board item 24 (collatz64 full range, c64nl seed 17) CONFIRMED: own sdf 3a370768 
 
 ### progress 00:10 T107b + T108 started
 Own rule E on item 24's route: 474 rows, min +2687 ps, no negatives. T108: research 16d4fb20 speculative incrementer (xs_10 = xf4_10 + BDC_SPEC_INC=uaddi0:4:6, recipe sdf 41a915c2). Own build running (t108/build.sh). Plan: own measure of the select race research left open (spec_abort settled before z_short rises at the uspec LUT3), z_req glitch check, gate at 3 corners, latency vs xf4_10.
+
+### progress 00:35 T108 running
+Own build xs_10 at research 970859e6: sdf 41a915c2 = recipe; FF scan 1916 flops, 0 missing. Own monitor t108/mon_spec.py (uspec LUT3 nets from the routed json: abort LUT, udly_s g[5], udly g[12], z_req) + t104 monitors; GLS at FAST_MIN / worst / SLOW_MAX and own 256 vs 2048 round latency running (t108/run.sh).
