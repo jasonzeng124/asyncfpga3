@@ -59,6 +59,7 @@ for c in nom worst; do
     hi=$(awk '$1~/^[FHIKLBC]$/ && $2+0<0 && $3~/udut/ {print $1, $2, $3}' "$f" | sort -u | sed 's/bridge_i.udut.//' | tr '\n' ';')
     echo "static $c ${neg:-CLEAN} | tighten-a: ${a:-none} | hold/close: ${hi:-CLEAN}" >> "$E"
     sed -n '/^proposal/,/^wrote/p' "$CA/$c.log" | head -40 > "$O/proposal_$c.txt"
+    grep -E '^  [HI] +-[0-9]' "$f" | sort -u > "$O/report_hi_$c.txt"   # rows with their PAD values, for hold_pads.py
   else echo "static $c ERROR (see ca_$c.log)" >> "$E"; tail -30 "$CA/$c.log" > "$O/ca_$c.log"; fi
 done
 if [ -n "${SPEC_CASES:-}" ]; then

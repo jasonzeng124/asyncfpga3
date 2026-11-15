@@ -4507,3 +4507,13 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
 - eval_task.sh's HOLD_VEC step now also writes hold_bits.tsv and a "hold-bits violations" line. The farm requests
   already queued (fxf5, fxs5, fcol3, fc64h, fipowh) predate it; their static hold/close line is the check that matters.
 - Limits unchanged: a trace sees only what the vectors exercise, at one corner. The static rows (H / I) stay the gate.
+### progress 01:20 UTC (xf5_10 = fr4 on item 23's board seed: every H row cleared; one I row left)
+- TIMESTAMP CORRECTION: the four entries above stamped 01:20, 02:20, 02:35 and 03:10 were written between 00:58 and
+  01:18 UTC (`date -u` now reads 01:18); the stamps were guesses, not readings. Order and content are unchanged.
+- xf5_10 (local, every check): route f17dabfd, P 23.15 ns (xf4_10 23.31), latency 499 cycles (503): the pads cost
+  nothing measurable on this seed. Gate max / min / worst 17/17 each, EQUIVALENT, ffmux clean. Static A / A' / E clean
+  at nominal and worst (tighten's bundled "a" row on ucmpi1 only, as always). Rules H: no row below 0 (xf4_10 at worst
+  had -274 / -107 / -103 / -1). Rule I: one row left, ulink_n_trueResult_0 stage[1] -498 nominal / -578 worst at
+  SDELAY 1, "PAD to 2". hold_bits: none, tightest +810 ps; hold_trace: none.
+- Next for xorshift: fr5 sets that SDELAY from the 32 fxf5 routes (taking the longer number; eval_task now also returns
+  the raw H / I rows with their PAD values, report_hi_{nom,worst}.txt, for hold_pads.py).
