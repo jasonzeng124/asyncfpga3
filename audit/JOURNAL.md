@@ -2009,3 +2009,6 @@ Item 26 CONFIRMED: dynamic rule H 0 violations at 3 corners; the own static nega
 
 ### progress 06:45 T114 done
 Item 27 CONFIRMED: own sdf a9bdac53, latency 417, 19.319 ns/iter, 1.227x paired / 1.207x over item 23's route, 17/17 at 3 corners, own rules E (min +1060) and H clean. Research 4ccefd92: their H rows and hold_bits flag the collatz64 seed-7 failure (ulink_n13), consistent with own T111.
+
+### note 06:41
+Research 531cc693..ad748e35: pad rounds (fceq2 collatz n==2 hold-clean 30/30 at +0.83 ns; fxd2; fc64h2; fipowh3). fipowh3 seed 9 = the F7-select nextpnr defect (gate 13/17 + fasm_equiv DRIVER DIFFERS F7BMUX/S0 const 0 vs 1) -- refused per BOARD-QUEUE header; not a board route. Research notes farm_table.py silently drops FFMUX-FLAG routes (counts corrected by hand) -- a reporting hazard for future farm medians; own board-route checks run the FF scan each time (all board routes this session: MISSING MUX 0). Item 26's baseline text now fc64h2 (45.28 median); own paired c64h_25 used h sizes (45.088) -- ratio direction unchanged.
