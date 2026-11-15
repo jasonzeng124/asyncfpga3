@@ -48,7 +48,7 @@ for inst, lst in sorted(luts.items()):
     cand = [ins - allouts - {b for b in ins if any(n.startswith('$PACKER') for n in names_of_bit[b])} for _, ins, _ in lst]
     shared = set.intersection(*cand) if len(cand) > 1 else set()
     if len(cand) == 1:
-        enc = [b for b in cand[0] if any(re.search(r'(_ack|\.a\[\d+\])$', n) for n in names_of_bit[b])]
+        enc = [b for b in cand[0] if any(re.search(r'(_ack|_req|_rack|\.c|\.a\[\d+\])$', n) for n in names_of_bit[b])]
         shared = set(enc) if len(enc) == 1 else set()
     if len(shared) != 1: rows.append((inst, 'UNMAPPED')); continue
     en_b = shared.pop(); en_w = wire_of_bit(en_b)
