@@ -4846,3 +4846,8 @@ Next:
   (seed 22: uxori1 A -20 nominal / -240 worst, the datapath xor, spanned by the gate's vectors). Latency +6.5 cycles vs
   fxd (+0.30 ns per iteration): the price of being hold-clean on every route. Item 27 keeps fxd's seed 2 (clean on its
   route at fr4); fr6d is the every-route variant (with uxori1 +1 if seed 22's row is to go too).
+### progress 10:37 UTC (farm runner apparently stalled; local OR-model check of item 27's board seed)
+- No push to claude/cluster since 07:14 UTC (fxd3 done). fipowh4 (submitted 06:08) and fc64eq3 (06:51) still say
+  "submitted", past fipowh4's 240-minute task limit. The runner looks stalled; their results are for the next session.
+- Local xdb_2: item 27's board seed rebuilt (pre_dec, fr4, seed 2) with the default OR-join walk, to confirm the route
+  (sdf a9bdac53) and that its static rows do not lean on the AND seeding.
