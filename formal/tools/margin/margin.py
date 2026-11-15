@@ -135,12 +135,15 @@ def bisect_quiet(r, w, store, lo, hi):
         else: lo = m
     return hi
 
+def failed(v): return v.startswith("FAIL")   # UNDECIDED (event/memory cap) is NOT a found failure
+
 def bisect(r, w, store, Phi):
-    lo, hi = round(a.klo * KD), Phi          # invariant: verdict(hi) fails; lo untested or passes
-    if verdict(r, lo, w, store) != "OK": return lo, "fails already at klo"
+    lo, hi = round(a.klo * KD), Phi          # invariant: verdict(hi) is a decided failure; lo untested or not
+    if not failed(verdict(r, hi, w, store)): return None, "undecided at khi (event cap)"
+    if failed(verdict(r, lo, w, store)): return lo, "fails already at klo"
     while hi - lo > 1:
         m = (lo + hi) // 2
-        if verdict(r, m, w, store) != "OK": hi = m
+        if failed(verdict(r, m, w, store)): hi = m
         else: lo = m
     return hi, ""
 
@@ -174,7 +177,7 @@ for w in ([a.w] + ([0] if a.w0 and a.w else [])):
                          kre=r.get("kre"), arcs=r["arcs"]))
     log("w=%d bisection done (%.0f s)" % (w, time.time() - t0))
 
-# report
+# report (every row is a CANDIDATE until checkrows.py re-runs it and gatecheck/envcheck accept it)
 with open(os.path.join(a.out, "margins.txt"), "w") as f:
     f.write("# single-pin races that fail (simulation, UNTRUSTED search; corner 0, g = 1); pairs: %s\n" % " ".join(a.pairs))
     f.write("# swept: %d candidates (storage gate q, live pin i) at kappa %.2f, w = %d; others: none found up to %.2f\n" % (len(R), a.khi, a.w, a.khi))
@@ -194,7 +197,7 @@ for w in sorted({x["w"] for x in rows} | {a.w}, reverse=True):
     for x in rw:
         if "ARBITER" in x["note"] and x["kfail"] < b["kfail"]:
             summ.append("w=%d: NOTE arbiter-state row %s pin %d fails at %.2f (%s): not a behaviour unless ArbOK holds; not checked" % (w, x["node"], x["pin"], x["kfail"], x["kind"]))
-    summ.append("w=%d: kappa* = %.2f (search, untrusted)  race: %s pin %d (cell %s) slow route from %s; kind %s; %d races fail <= %.2f"
+    summ.append("w=%d: candidate kappa_hi = %.2f (search, untrusted, NOT yet checked: see checked.txt)  race: %s pin %d (cell %s) slow route from %s; kind %s; %d races fail <= %.2f"
                 % (w, b["kfail"], b["node"], b["pin"], b["name"], b["src"], b["kind"], len(rw), a.khi))
     if b.get("kquiet") is not None: summ.append("  first quiet (finite) failure of that race: kappa %.2f" % b["kquiet"])
     if w == a.w:   # the witness: at kappa_fail (command + verdict) and, if any, at the first quiet kappa (with dump)

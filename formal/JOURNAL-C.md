@@ -3267,3 +3267,14 @@ Names: decoded sites only (no routed JSON here); research can map SLICE_X16Y38.A
   tool's summaries will say so. A proved kappa_lo needs every capture certified and the capture list proved complete
   (S2): that is where C's checker work (the gcd S4 route) and B's select certificates meet; not started for any build.
 * B stopped; its next step (select certificates for a FOR-FORMAL build) falls to A or C when research's builds need it.
+
+### progress 21:17 -- margin tool: every failing row is now re-run and checked; only ADMISSIBLE failures give kappa_hi
+* item 25: all five w = 20 failures (0.36-0.45) are INADMISSIBLE (gatecheck: 2-301 H_RUNT lag violations: the
+  simulator's runt filter skipped narrow-pulse chains longer than the arc's band allows); the five w = 0 bisection
+  points are event-capped (no verdict). Only the hand-checked w = 0 run at 0.44 (703 -> 99) stands: item 25's
+  kappa_hi = 0.44 at w = 0 (and nothing admissible at w = 20 among the swept rows).
+* margin.py: UNDECIDED (event cap) no longer counts as a failure in the bisection; summaries say "candidate".
+  `checkrows.py` (run.sh's last step): every failing row re-run at its kappa with a dump, checked by
+  `tools/margin/gatecheck.py` (A's gatecheck_runt.py with the delay grid KDEN as a parameter) and envcheck.py;
+  `kappa_hi.txt`: smallest ADMISSIBLE failure per w (w = 0 takes the min over w = 0 and w = 20 runs), and states
+  kappa_lo: none (no certificate).
