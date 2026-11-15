@@ -4836,3 +4836,7 @@ Next:
   3. Negative control 2 for the select rule (ipow T9cd, soak-top harness via fusion_bench).
   4. Express pre_dec / pre_eq2 as LLVM-level steps (frontend.sh opt-in), once a Dynamatic build exists.
   5. A token-count (time-separation) static hold check to replace the OR bound in rule H (JOURNAL note above).
+### progress 06:51 UTC (fc64eq2: collatz64 n == 2 at h3)
+- fc64eq2: 32 routes (no FFMUX gap this time), median 36.19 ns (34.89-39.11; +0.25 vs fc64eq paired), gate 96/96;
+  umux0's rows gone; ucmpi2 A -47 at worst on seed 8 (umux2's traced row aside); H rows on ulink_n7 stage[1] on 5
+  routes (to -234); hold/close clean on 27/32. h4 = h3 + ucmpi2 15 -> 16 + n7 pads -> farm fc64eq3.
