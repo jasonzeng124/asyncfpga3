@@ -2105,3 +2105,6 @@ Formal B 70707610 SelectCapture CHECKED: own lake build OK, standard axioms; lem
 
 ### note 20:55
 Formal A 14b3e025: BAD xf2_1 fails in formal's model under a scatter adversary at ulink_n7 (kappa <= 0.2, search). Consistent with own GLS, but not discriminating yet: xf2_1 fails at plain FAST_MIN already; the negative control needs item 23's ulink_n7 to come out above it (running on formal's side) and a replayable assignment. Formal B f330eecf SelectHold CHECKED: own build OK, standard axioms (lemma). Research a61b00f71: constructed select race passes the gate at worst (no negative control yet); farm request names fixed (runner ignored upper-case ones).
+
+### note 21:00
+Research 595e818e1: collatz select links at 1 / 2 / 1m: -9.89 / -10.02 / -10.76 ns/iter median vs fceq2 (29 / 27 / 23 paired seeds, all faster, gates pass); rule E < 0 at umux0/1/2 on 21 routes at 1, on 2 at 2; fcsel3m submitted (predicted E clean on >= 30/32, ~-9.5 ns) -- the likely collatz candidate, pending baseline E re-check and the select negative control. f815a8edc: constructed select race at FAST_MIN "looks like a hang". Formal B 10f05e51d SelHoldPS WIP (not checked). T116 (select 0, seed 24) GLS still running.
