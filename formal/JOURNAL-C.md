@@ -3078,3 +3078,9 @@ Container: 4 cores, 15 GB, no Mathlib cache: setup.sh is building from source (~
   Spec's `Beh`, the AO theorems' x is the same function once B's SliceNet bridge supplies TBehX); the register-word
   invariant (step 2: that the covering claims' values are the token values); the every-word (Unroll) version
   (`UnrollClaimU` still takes `hExt`; it can be fed by `unit_holds` the same way, not written).
+
+### progress 17:32 -- AO/UnrollUnit: the every-word theorems with unit-proved condition claims (check.sh OK)
+`timedA_follows_unrollUnit`, `timedA_live_unrollUnit`, `timedA_follows_unrollUnitC` (882 declarations audited,
+standard axioms): UnrollUX's / UnrollClaimU's every-word safety and liveness with `hExt` replaced by a `UnitProof`
+(TimedUnit) of each external claim of the unrolled certificate. *Not shown:* a per-kind (sub-word) form of
+UnitProof (stated on the long certificate here); any instance.
