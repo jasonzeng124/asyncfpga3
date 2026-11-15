@@ -1926,3 +1926,6 @@ Own build xs_10 at research 970859e6: sdf 41a915c2 = recipe; FF scan 1916 flops,
 
 ### progress 00:25 T108 done
 xs_10 CONFIRMED on seed 10: -1.694 ns/iter mean (research -1.73), 17/17 at 3 corners, monitors clean; own select-race monitor: min abort settle before z_short 912 ps (FAST_MIN), 0 hazards. Note: the SHORT-case static cut is sound only under the counter invariant (input = previous output or restart at 0), which BDC_SPEC_INC does not check. Watching.
+
+### note 00:34
+Research c0d19791: xs_10 3-corner gate PASS + hold check clean -- consistent with own T108 (independent). Their select-race row still open; own T108 measures it dynamically (min 912 ps FAST_MIN). Watching.
