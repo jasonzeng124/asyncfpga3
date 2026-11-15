@@ -1991,3 +1991,6 @@ Own negative control for research's proposed select-rule replacement: rebuild co
 ### progress 05:22 T111 done, T112 started
 T111: own negative control on collatz64 T4cd seed 7 (sdf 98809562 = research nc64_7): FAST_MIN 1/3 (failure reproduces); own static rule H ulink_n13 -545; own dynamic monitor 32 violations at ulink_n13 (D 179 ps before close); the flagged path's first controller fired on the path's input 6 times (live) -- on every board route it was 0. Both own checks catch it. mon_h signed-compare bug fixed (HVIOL lines were the record).
 T112: BOARD-QUEUE item 25 (#26, research 89290bc7): collatz pre_eq2 + nl4 pads, seed 24, sdf e001dc27, 35.92 ns; 32-route median 35.82 vs 41.24 (-5.28 paired). pre_eq2.py on the worktree's collatz frontend MLIR reproduces collatz_preeq2.mlir (md5 98a5a519). Own builds coleq_24 + paired col4_24, periods, 3 corners (t112/item25.sh). Research 111344a8: fxl5s rejected (noted).
+
+### progress 05:45 T112 done
+Item 25 CONFIRMED: own sdf e001dc27, 35.920 ns, 1.143x over item 22's route (pred 1.14), 1.111x over own paired col4_24, 13/13 at 3 corners, own rule E min +1807, own rule H no negative row. Next: research d70797c4 BOARD-QUEUE item 26 (collatz64 pre_eq2, seed 25).
