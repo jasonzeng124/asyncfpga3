@@ -2087,3 +2087,6 @@ xf4_10 ulink_n8 (TSE candidate): second state node (trueResult_8 stage[1] contro
 
 ### progress 19:35 T116 started (pre-audit, select links at 0)
 Research 1d616c21: select links at 0 -- xorshift fxsel0 -0.52 ns/iter on 22 seeds; collatz fcsel0 -11.8 ns/iter on 3 seeds (800 -> 570 cycles), gates and hold_bits clean, "no race yet", so no family has its negative control; plan: SDF-injected bad build if none races. Research 6429b92c: TSE step fixed; controls unchanged. Own pre-audit T116: colsel0_24 (fcsel0 recipe on item 25's seed) + paired coleq6_24, period, 3 corners with own oracle + mux/steer/latch monitors, FAST_MIN with research's select-flipping hold vector, own static + dynamic rule H (t116/run.sh, sequential).
+
+### progress 19:55 T115b
+Formal A 0463914f: totality + divergence; own lean check, standard axioms; collatz64 graphs regenerate from research MLIR. The three rewrite proofs now cover every input. REPORT row updated.
