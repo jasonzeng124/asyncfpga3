@@ -25,7 +25,13 @@ for mux in os.environ.get("MON_MUXES", "umux0,umux2").split(","):
     zreq = mm[1]
     pins = re.findall(r'always @\(tb_ps\.dut\.(\w+)\) begin ts\d+_\d+ = \$time; if \(tb_ps\.dut\.%s ' % zreq, txt)
     zk = re.search(r'%s\s*\(.*?\.z_ack\((\w+)\)' % mux, ker, re.S)[1]
-    zack = wire_of.get('bridge_i.udut.' + zk)
+    ov = dict(x.split('=') for x in os.environ.get('ZACKS', '').split(',') if '=' in x)
+    zack = wire_of.get(ov[mux]) if mux in ov else wire_of.get('bridge_i.udut.' + zk)
+    if not zack:
+        mj = list(json.load(open(rj))["modules"].values())[0]
+        bits = mj['netnames'].get('bridge_i.udut.' + zk, {}).get('bits')
+        for k, v in mj['netnames'].items():
+            if v['bits'] == bits and k in wire_of: zack = wire_of[k]; break
     if not zack: print(f"mon_sel: no z_ack wire for {mux}", file=sys.stderr); continue
     t = mux
     L.append(f"    // {mux}: z_req {zreq}, z_ack {zack} ({zk}), {len(pins)} pins")
