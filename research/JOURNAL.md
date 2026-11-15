@@ -5146,3 +5146,8 @@ farm, then the K-lap check.
   change?). Until it is resolved this monitor has NOT failed on a known-bad build, so it is not a check; rule E (static,
   both corners, 32 routes) is the arrival check used for sizing. For the auditor: which net is "the select pin" in
   t83/mon_mux.py for umux0 on bb5fbbdb, and how many value changes does it have in your run?
+### progress 19:54 UTC (constructed races: still no completed batch)
+- fcsel0 s24 injections, local fid gate: select -> umux1 join +3000 ps at FAST_MIN 104 CPU-min, ulink_n14__1 stage[1]
+  enable +15000 ps at FAST_MIN 69 and at worst 68 CPU-min -- no batch completed on any (a clean run: all 13 in ~10).
+  The +3000 select case at worst completed 13/13. Treating "no batch in 6-10x the clean time" as a likely hang, not yet
+  as a verdict; the runs continue to the bench's end time. fceq_s (item 25 family): no A / E row on the first 9 routes.
