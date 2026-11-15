@@ -4582,3 +4582,17 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   the request really can beat the select. research/data/fifteen/andjoin/.
 - Farm fxl5s: fxs5 + lever 5, static check with AND joins, 32 routes -- whether lever 5 pays with the speculative
   incrementer over the seed distribution (fxs5 is the paired baseline).
+### progress 03:44 UTC (lever 8: the loop test reads i against n-1 -- prediction before the build)
+- research/tools/fifteen/pre_dec.py (MLIR pre-pass, MLIR_OVERRIDE; bdc unchanged): cmpi slt (i+1), n  ->  cmpi slt i, m
+  with m = n - 1 computed once in bb0 (addidec0) and carried round the rounds ring instead of n. Exact on every
+  reachable state: the loop is entered only when n > 0 (cmpi0), so m does not wrap; inside, i + 1 <= n <= INT_MAX. The
+  ring value has no other reader (checked by the pass). simcheck PASS (rounds 0, 1, -1, INT_MIN and the bench set).
+  Same kind of change as indvars' exit-test rewrite (an arithmetic identity on the exit test), not the loop lowering;
+  if it pays, the LLVM-level form (an opt-in step in frontend.sh, as the owner preferred for "!=") is the next step.
+- Emitted: a fork on i (uforkdec0) with a rule-1 link on each branch (ulink_n7f__0 -> add, ulink_n7f__1 -> compare);
+  the adder's output goes straight to cond_br6 (no fork8, no ulink_n30__1, no n30__0 folink).
+- PREDICTION (xf5_10's graph, seed 10): the serial ulink_n7 0.41 + uaddi0 5.55 + ulink_n30__1 2.88 + ucmpi1 4.17 =
+  13.0 ns becomes max(add branch ~6.0, compare branch ~0.5 + 4.2 + link ~2) + fork ~0.7 = ~7 ns: about -6 ns on that
+  cycle. The next cycles on xf5_10 were 19.15 (the xori ring through ucmpi1 / ulink_n11__1) and 15.89, so the period
+  should bind elsewhere: predicted 19 ns (18-20; the graph under-charges new stages by 1-3 ns). xf5_10: 23.15.
+- Local build xd_10: fr4 sizes (new instances at bdc's default sizes), item 23's knobs less n30__0 (gone), seed 10.
