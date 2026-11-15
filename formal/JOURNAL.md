@@ -2606,3 +2606,4 @@ STATUS list: unchanged in count today (the gcd theorem is second priority).
 ### progress 20:19 -- farm request a_check_committed_1115 (full check.sh --committed, 1 task, 16 cores, 64 GB)
 Results: `git show origin/claude/cluster:results/fm_a_check_committed_1115/1/env.txt` (rc) and `.../check_tail.txt`.
 Not waited on.
+### progress 20:20 -- farm request accepted (state "submitted" 20:20 UTC); results to be read by the next A session
