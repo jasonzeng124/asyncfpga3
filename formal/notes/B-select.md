@@ -15,6 +15,7 @@ These are SDF-based, single-corner, with guards. The Lean below is for every del
 |---|---|---|
 | `Cells/ForceTree.lean` | `force_tree`, `force_tree_minmax` | per-node value windows through LUTs forced by a SUBSET of pins (select + selected input); each pin's window shifted by its band; unforced pins may glitch |
 | `Cells/SelectCapture.lean` | `select_capture` | a latch bit fed by a forcing tree captures `val m ⊕ pd` if **setup** `a m + Wd ≤ τ` (rule I) and **hold** `τ + hi e ≤ b m + lo d + 1` (rule H) |
+| `Cells/SelHoldPS.lean` | `certs_ok`, `sel_ok` | 20 emitted select-hold rows of THE target (9 umux instances), each kernel-checked; κ bound per row 0.606-0.855 (median 0.694); premises (enable open on [a,e], statics, memory rows) not discharged |
 | `Cells/SelectHold.lean` | `SelRow`, `selOK`, `select_hold_row` | THE target, g = 1: a row = 2 chain certificates from the latch's enable source (to the select, to the selected input) + mux `KRow` + latch `LRow`; Bool-checked; gives the hold half of `target_latch_close`'s data window through the mux |
 
 ## Measured on THE target (Python, untrusted; `tools-B/select/`)
@@ -23,7 +24,7 @@ These are SDF-based, single-corner, with guards. The Lean below is for every del
 depth 13).
 
 ## Plan
-1. Emit `SelRow`s for the 933 umux latches (Python emitter from ctlcert chains; `SelHoldPS.lean`, `decide +kernel`).
+1. Emit `SelRow`s for the 933 umux latches: 20 done (`SelHoldPS.lean`); 674 never close in the one simulated run used, so more runs (other pairs) are needed; chains come from a structural search, not ctlcert.
 2. Deeper cones (uselect/ushrsi/ushli): a forcing tree of depth > 0 = several chains + several `KRow`s; generalise
    `select_hold_row` to a list of mux rows (each reads chain ends or earlier mux rows).
 3. **Rule I as a certificate.** The close is not a hold of one cause: the enable closes after the upstream request's
