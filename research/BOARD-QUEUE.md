@@ -170,8 +170,8 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    35.92 ns, every row clean). Dynamatic 14.05.
 26. **collatz64 at ~36 ns per iteration, FULL INPUT RANGE: the same n == 2 exit test (pre_eq2.py) on item 24's
    structure with round-2 hold pads (h2)**: #27 below. Farm, 32 seeds (fc64eq): 30 routes, median 36.23 ns
-   (34.38-38.15) vs 45.12 for the same knobs without the rewrite (fc64h, paired on 30 seeds: -9.0 ns, 30/30 faster,
-   1.25x); gate 90/90 on every route but seed 32 (an ffmux-gap route, excluded with seed 5). Static: umux2's traced
+   (34.38-38.15) vs 45.28 for the same sizes without the rewrite (fc64h2, paired on 31 seeds: -9.02 ns, 31/31
+   faster, 1.25x); gate 90/90 on every route but seed 32 (an ffmux-gap route, excluded with seed 5). Static: umux2's traced
    false-path row on every route as for item 24; besides it umux0 rule A -45..-135 ps on 3 routes and ucmpi2 -29 on one
    (sizes h3 pad both, farm fc64eq2 running); H / I clean on 29/30. Board seed 25 (sdf 6982a9d5, 36.27 ns): every
    row clean but umux2's. Dynamatic 17.84.

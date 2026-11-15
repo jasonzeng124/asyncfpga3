@@ -4758,3 +4758,12 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
 - So on this failure the H rows and hold_bits are not blind. Still owed before the select rule can be replaced: the
   ipow umux3 failure (T9cd seed 29, an empty-pipe select race, a different mechanism) as negative control 2, and the
   positive control (nc64_7 with ulink_n14__1 / SDELAY back at 19 / 2: checks clean). research/data/fifteen/selectrule/.
+### progress 06:08 UTC (fc64h2, fipowh3; a route with the F7-select nextpnr defect, caught)
+- fc64h2 (collatz64 old structure, h2): 31 routes, median 45.28, gate 93/93; hold/close rows on 4 (ulink_n10__3, to
+  -708). The same-sizes baseline for fc64eq: paired -9.02 ns on 31/31 (item 26's text updated).
+- fipowh3 (ipow h3): 30 routes, median 38.80 ns (35.60-41.06); hold/close rows on 2 (n8 st1, -101 / -194) -> h4,
+  farm fipowh4. Gate 87/90: seed 9 FAILS 13/17 at all three corners (odata 8aaaaaab, expected aaaaaaab). fasm_equiv:
+  DRIVER DIFFERS on SLICE_X13Y43/F7BMUX/S0, json const 0, bits const 1 -- the second nextpnr defect of 2026-11-08 (the
+  F7 select left at its default; ipow bench seed 7 then), which BOARD-QUEUE's header already says to refuse. Not the
+  design: deterministic per route, identical at every corner, and the full stack catches it twice (gate + equiv).
+  ffmux_scan does not look for this kind. Seed 25: the FFMUX gap (flagged; its gates pass).
