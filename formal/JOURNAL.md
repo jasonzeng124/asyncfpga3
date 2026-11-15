@@ -2449,3 +2449,15 @@ second-priority work (gcd theorem, S6) and stays as is.
   transcription): both graphs return the C's value on every input on which the C returns.
 * *Not shown yet:* inputs where the C loops for ever (e.g. n = 0, negative cycles): that both graphs then never
   answer; collatz64 (cfront handles 32-bit only); xorshift (next).
+### progress 17:55 -- CHECKED: xorshift rewrite (pre_dec) computes the same function (check.sh OK, 992 decls)
+* *Problem:* research's pre_dec.py makes the rounds ring carry m = n - 1 and tests i < m instead of i + 1 < n. Does
+  the rewritten handshake graph compute what the original does, for every input (n ≤ 0, wrap-around included)?
+* *Proved* (`Formal.Rewrite.XorshiftPredec.computes`, standard axioms): for every pair of naturals (seed, n) on the
+  input channels and any fuel on which C's transcription `AutoXorshift.kC` returns r, the graph imported from
+  xorshift_predec.mlir (dfimport, unchanged) has a complete run ending with [r], every complete run under any
+  schedule ends there, runs are bounded. `same_as_original`: with C's `AutoXorshift.auto_computes` (the original
+  graph, same transcription), both graphs end with the same [r]. Proof: C's generic `Auto.sim_call` with a hand
+  correspondence (ring = n + 2^32 - 1 mod 2^32; test = slt(i - 1, n - 1); loop invariant n >ₛ 0, 1 ≤ₛ i ≤ₛ n,
+  exactly the facts in pre_dec.py's docstring), four edge pairs by omega. The generic autoproof cannot find this
+  (its ρ pool has no n - 1 and its invariants are equalities of copies only); recorded as a limit of the tool.
+* *Not shown:* that the C returns on every input (it does: at most n iterations; not yet in Lean), gates/delays.
