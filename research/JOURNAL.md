@@ -5106,3 +5106,6 @@ farm, then the K-lap check.
   the 19:00 entry (a loop-header mux cannot fail on a late select) is NOT supported; waiting for the verdict.
 - Hold race (+15000 ps on ulink_n14__1 stage[1]'s enable wire): corner_audit FAST_MIN rule H -14260 ps at that stage
   (and E -15.6 ns at umux1); gates at FAST_MIN / worst running.
+### progress 18:54 UTC (second lead on 32 routes)
+- eval_task LINE_ACCT=1: line_account.py at worst and nominal per route (graph from step 5, stride 2 where needed).
+  Farm fceq_la: item 25's sizes and seeds (nl4, 32 routes), static + TSE + the line table, no gates.

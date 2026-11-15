@@ -10,6 +10,7 @@
 #   (SPEC_CASES=inst:k) the static check per case, LONG / SHORT, and the in-cell select race (spec_select.py).
 #   4. (HOLD_VEC=vector file) the trace-measured hold check at FAST_MIN (hold_trace.py) -> hold.tsv, and per latch bit
 #      with the close at each bit's enable pin (hold_bits.py) -> hold_bits.tsv.
+#   LINE_ACCT=1 (with TSE_VEC): research/tools/itercost/line_account.py at worst and nominal -> la_*/lines.{tsv,md}.
 #   STATIC_ONLY=1: the build and step 2 only (no gate, hold or TSE); TSE_ONLY=1: the build and step 5 only.
 #   5. (TSE_VEC=vector file with a long steady loop, e.g. vec_xorshift.hex) rule H with C-element semantics and token
 #      counts (research/tools/eventgraph/tsehold.py): a DUMP_FIELD=min run's event graph against a FAST_MIN SDF, and
@@ -87,6 +88,14 @@ if [ -n "${TSE_VEC:-}" ]; then
     unc=$(awk '/NOT COVERED/ && $3 ~ /^-[0-9]+$/ {print $3, $1}' "$O/tse_$c.txt" | tr '\n' ';')
     echo "tse $c ${rows:-CLEAN} | not covered, OR < 0: ${unc:-none} | $(grep -o 'self-check.*' "$O/tse_$c.txt" | cut -c1-80)" >> "$E"
     cp "$([ $c = min ] && echo "$RUNS/gtmin/$N" || echo "$GW")/check.txt" "$O/tse_graph_check_$c.txt" 2>/dev/null
+  done
+fi
+if [ -n "${LINE_ACCT:-}" ]; then   # PROGRAM "second lead": every delay line on the loop (needs TSE_VEC for the graph)
+  GW=$RD/eventgraph; [ -f "$GW/nodes.tsv" ] || GW=$RUNS/gtworst/$N
+  for c in worst nom; do
+    python3 "$R/research/tools/itercost/line_account.py" "$CA/$c" --graph "$GW" --out "$O/la_$c" > "$O/la_$c.log" 2>&1 \
+      || echo "line_account $c ERROR (la_$c.log)" >> "$E"
+    rm -f "$O/la_$c/paths.txt"   # arc-by-arc paths are large; the tables keep the split
   done
 fi
 [ -n "${TSE_ONLY:-}" ] || for c in nom worst; do
