@@ -4291,3 +4291,13 @@ project = thousands of modules and known OOMs).
 `quiet_reset`, `env_island`, `env_of_bnd`, `target_tbehX_reset`: exact set = C's 3,224-node reset island + the six
 environment-driven boundary nodes; `quiet` from `reset_quiet_all` + `Env`; every island member is a `tnPS` gate, so
 `env` only constrains the six boundary nodes. Building Mathlib from source first (no cache host).
+### progress 18:3x -- the (12,18) pipeline's exact set fits `datR` (untrusted Python, subagent)
+Question: is the certificate pipeline's exact set (tools/tocc/classify.py `EXACT = CTRL | EXC | hs_env`) inside the
+reset exact set of `SliceNetPS/Reset` (`datR`), and do its t0 values match `valR`? Answer: yes. 3,217 exact nodes
+(411 CTRL, 2,802 EXC, 4 env handshake sources), 0 outside island ∪ {186905 rst, 186985 req, 154859 out0.ack,
+104477 pend.ack} (the six `bndEnv` entries are four distinct nodes: a/b/start.req are one node); at t0 = R − 1,
+0 of 3,217 differ from `valR` (sim.py midpoint run, both corners, R = 40,000 and 130,000). **One mismatch:** the pipeline
+uses t0 = R − 1 with R = 40,000 ps (sim.py default), below the Lean window's lower end ⌈(1+κ)g⌉·122,374 ps
+(the island's worst-case settle bound, not the simulated 252 ps). Emission must use R ≥ 122,375 ps at g = 1, κ = 0
+(sim.py 4th argument; at R = 130,000 both corners still give 6, run shifted by exactly 90 ns; ao/datal not rerun).
+THE statement's headline R = 400 ns is inside the window. Scratch: subagent's sub1/ (cmp.py, chk.py), not committed.
