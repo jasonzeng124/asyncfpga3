@@ -64,7 +64,7 @@ if [ ! -f "$O/net.json" ]; then
     python3 "$A/decode_base.py" "$O/fromBit.fasm" "$O/empty.xdc" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
     python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
     cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"
-    python3 "$A/boundary_bench.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$KV" "$BV" "$O/bnd_bench.json" | tail -1 | tee -a "$O/run.log"
+    python3 "$H/boundary_bench.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$KV" "$BV" "$O/bnd_bench.json" | tail -1 | tee -a "$O/run.log"
     python3 "$A/mk_bnd_sim.py" "$O/bnd_bench.json" "$O/bnd.json" | tee -a "$O/run.log"
     echo "[]" > "$O/arbs.json"
   elif [ -n "${BND:-}" ]; then

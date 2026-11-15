@@ -3298,3 +3298,14 @@ kappa_hi = 0.40** (SLICE_X16Y21.A6 pin 0, ADMISSIBLE: 259,594 checks, 0 mismatch
 0.36 (w 20; Lean-refuted separately by Frontier36), arbiter 0.40/0.42 (no finite witness; H_ARB may exclude).
 kappa_lo: none. (Earlier today checkrows hung on a 600 MB livelock dump in envcheck's quadratic ArbOK loop: fixed by
 not checking livelocks.)
+
+### progress 21:32 -- farm bench run: item 25 reproduced, item 27 clean to 0.45; collatz64 needs a boundary fix (retry filed)
+fm_c_margin_bench1 (rebuilds from $PEER with FOR-FORMAL's commands, then run.sh bench mode, simx):
+- item 25 (collatz): SDF e001dc27 / FASM c6404633, byte-identical to research's; **w = 0 kappa_hi = 0.42** (ADMISSIBLE,
+  SLICE_X14Y55.A6 pin 2 from SLICE_X16Y38.A6: n = 703 -> 70), w = 20: no admissible failure. Consistent with the local
+  run (0.44 by hand on the SLICE_X16Y57.A5 race). 10 min on 8 cores incl. the build.
+- **item 27 (xorshift board candidate, pre_dec): SDF a9bdac53 (= research's), FASM a7d9b19f; no single-pin race of
+  1,199 fails up to 0.45** (w 20 and 0; research's 4 hold vectors). 2.5 min incl. build.
+- item 26, nc64_7, pc64_7 (collatz64): A's boundary_bench.py rejects the port map's concatenation n_data =
+  {op1_to_core, op0_to_core}. Fixed in a C copy (tools/margin/boundary_bench.py, used by run.sh); retry
+  c_margin_bench2 filed.
