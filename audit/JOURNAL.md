@@ -2157,3 +2157,6 @@ Formal C 55d3ea2c: item 25 (board route, fasm = own coleq_24) gives a wrong answ
 
 ### progress 00:55 T117 (item 28) main results
 Own sdf d86bdde5 = recipe; 25.840 ns; 1.390x over item 25's route (pred 1.39); 13/13 at 3 corners, 0 monitor violations, mux select margins >= 434 ps (umux0 FAST_MIN); own rule E min +744; own rule H no negative row. T117b (pin-level arrival lateness) running.
+
+### progress 01:15 T117 done
+Item 28 CONFIRMED: pin-level select arrival clean (0 late transitions at umux0 / umux1, FAST_MIN and worst), plus the earlier route / period / ratio / 3-corner / rules E-H results. REPORT row. Owner notified.
