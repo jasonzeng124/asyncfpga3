@@ -1,19 +1,17 @@
 # Formal-model feasibility program
 
-## PAUSED: stop now (owner, 2026-11-10)
+## Back on (owner, 2026-11-15)
 
-The owner has turned formal off, and the three routines are disabled. **Every shard,
-including a session that is already running: stop now.** Start no new work and no new
-subagents. Stop any running builds and subagents. Commit what is finished, write a
-short journal entry saying where you stopped and what the next step would be, release
-your lock, push, and end the session. Do not wait on background jobs, and never create
-a routine or reminder to come back. The work resumes when the owner removes this section.
+Formal was off from 2026-11-10 to 2026-11-15. The owner has turned it back on: one session
+per shard per day, as before. Nothing in the goal, the target or the rules below has changed.
+Start from `formal/target/STATUS.md` and your journal's last entry. A lock dated 2026-11-10
+is from before the pause: take it.
 
 ## Effort and subagents (owner, 2026-11-05)
 
 The owner raised the budget to about twice the single-thread, high-effort level.
 Sessions run at max effort (`.claude/settings.json`). **You may use subagents,
-at most 2 at a time for every shard** (owner, 2026-11-09: back from 4 for B and C; the week's usage is near its limit). Wait for one to finish before starting another. A
+at most 2 at a time for every shard** (owner, 2026-11-09: back from 4 for B and C). Wait for one to finish before starting another. A
 subagent never touches git: it works in its own worktree or scratch directory
 and reports back, and you review and commit what it found. Use them for
 independent work that would otherwise wait (a second sweep while a build runs, a
