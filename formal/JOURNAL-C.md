@@ -3358,3 +3358,8 @@ item 26's 0.26 race = ulink_n13.lat.pair[6] reading ulink_n13.ctl late (latch en
 (ulink_n13.lat.pair[2]); item 25's = ulink_n_falseResult_3 stage[0] latch pairs vs their ctl; pc64_7's 0.39 =
 ulink_n_falseResult_7 stage[0] ctl feedback. Every collatz binding race is a link's latch bits seeing its own
 controller late. Outputs: tools/margin/out/farm_*.
+
+### progress 23:24 -- shortened-select collatz builds: kappa_hi 0.21-0.32, all at ulink_n_falseResult_3 stage 0 (search, checked; FOR-RESEARCH C10)
+fm_c_margin_sel1: fcsel2 s1 0.22 (0.21 w 0), fcsel2 s2 0.27, fcsel1 s24 0.32, fcsel1 s1 0.31, fcsel0 s24 0.22; fcsel2 s24
+refused by the decoder (AFF.ZRST flop config; a decoder gap for A). Every binding race: ulink_n_falseResult_3 stage[0]
+latch pairs reading their ctl late, the link binding item 25 (0.42 at w 0 only). Not the select muxes.

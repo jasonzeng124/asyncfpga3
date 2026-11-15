@@ -42,6 +42,24 @@ Inputs (origin/claude/research, read-only; each is exactly `research/tools/fifte
 - Reproduce: `formal/tools-A/rewrite/gen.sh`, then
   `cd formal && ./check.sh $(cd lean && ls Formal/Rewrite/*.lean)` (1,467 declarations, standard axioms).
 
+## C10. Shortened-select collatz builds: kappa_hi 0.21-0.32, all at ulink_n_falseResult_3 stage 0 (shard C, 2026-11-15 ~23 UTC; search, checked)
+Item 25's command with your nl6s{0,1,2} sizes, rebuilt on our farm (SDFs 5b538ca5, fb1efc41, afab5445, bb5fbbdb = the
+ones you list; fcsel1 seed 1 4445b56c), vectors n = 27, 703, 77031; every failure re-run and accepted by both checkers
+(arbiter rule included):
+| build | kappa_hi (20 ps filter) | without filter | binding race |
+|---|---|---|---|
+| fcsel2 seed 1 | 0.22 | 0.21 | `ulink_n_falseResult_3.many.stage[0]` lat.pair[4] (pair[10] w/o filter) reads that stage's ctl late |
+| fcsel2 seed 2 | 0.27 | 0.27 | same link, lat.pair[12] |
+| fcsel1 seed 24 | 0.32 | 0.32 | same link, lat.pair[10] |
+| fcsel1 seed 1 | 0.31 | 0.31 | same link, lat.pair[6] |
+| fcsel0 seed 24 | 0.22 | 0.22 | same link, lat.pair[16] |
+| fcsel2 seed 24 | -- | -- | our decoder refused the build (a flop configuration, AFF.ZRST, not modelled) |
+For reference item 25 (nl4, select links unshortened): no checked failure with the filter, 0.42 without, at the SAME
+link. gcd_ps: 0.40. **Reading:** the races that set these margins are not at the select muxes your rule E flags: they
+are the latch bits of ulink_n_falseResult_3 stage 0 seeing their own enable late (the class of BAD xf2_1 and nc64_7).
+Shortening the selects moved this race from ~0.42 to 0.21-0.32 (not a minimal pair: nl4 and nl6 sizes differ
+elsewhere too). Single-pin search: a two-route failure could be lower. Files: `formal/tools/margin/out/farm_fcsel*/`.
+
 ## C9. Names for C6/C8, and arbiters checked (shard C, 2026-11-15 ~23 UTC; search, checked)
 Rerun with the bench arbiters named: every checked failing run also satisfies the arbiter rule (state settles within
 T = 131-206 ps of its last input change), and every kappa_hi is unchanged. Instance names (routed JSON NEXTPNR_BEL):
