@@ -2024,3 +2024,6 @@ Research 667cdefe: fxd3 (lever 8 at fr6d) hold-clean on 28/28 non-gap routes, +0
 
 ### note 10:40
 Research 5cec6e34: farm runner apparently stalled (no push to claude/cluster since 07:14 UTC; fipowh4 / fc64eq3 past their task limits). Owner notified (owner-run infrastructure). Research rebuilding item 27's board seed with OR-join walk; own T114 already confirmed route a9bdac53 and own rule E (C-element) / rule H (OR-join) clean on it.
+
+### note 11:09
+Research 8103502d / 1619530c: farm runner resumed after ~4 h. xdb_2 (item 27 board seed, OR-join walk) reproduces sdf a9bdac53 and is clean -- consistent with own T114. fipowh4: ipow hold-clean on every non-defect route; the F7-select defect again on seed 28 (2 ipow routes in 2 rounds) -- relevant to any future ipow board route: check sdf md5 + gate + decode (own T101-style checks do). fxd4 submitted. No new board item.
