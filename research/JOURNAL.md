@@ -4715,3 +4715,16 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   falseResult_9 UACK 5 -> 7; farm fc64eq2.
 - Why collatz64 gains more than collatz: its 64-bit equality on n' sat after the 64-bit select of two 64-bit operators;
   now the compare runs beside them.
+### progress 05:21 UTC (fxd: xorshift lever 8 on 31 routes -> BOARD-QUEUE item 27 / #28; fxf5 done)
+- fxf5 (fr4, no lever 8): 27 routes, median 23.47 ns (21.58-25.60), gate 78/78, static A / A' / E clean 26/27.
+- fxd (lever 8, fr4 sizes, AND-join static): 31 routes; P (single period) where the eventgraph finds one: median
+  19.39 ns (18.98-21.16); latency median 417 cycles (394-457). Paired latency vs fxf5 on 28 seeds: -80 cycles =
+  -3.76 ns per iteration, 27/28 faster (~1.21x). Prediction 19 (18-20): met. Gate 93/93. Static A / A' / E clean on
+  29/31 (seed 6 uxori2 -12, seed 27 ucmpi1 -13 at worst). H / I / F rows on 11/31: falseResult_9 st1 (7 routes, to
+  -298), ulink_n25 (2, to -355), trueResult_8 st1 (2, to -187), uxori1.udly F -109 (seed 11). Trace hold checks clean
+  on 31. ffmux clean on 31. fasm_equiv: 23 EQUIVALENT, 8 the benign constant-LUT -> F7 / CARRY4-DI kind. Seed 10's
+  farm route = the local xd_10 (sdf 5e759620): the route reproduces.
+- BOARD-QUEUE list item 27, section ## 28: board seed 2 (sdf a9bdac53, latency 417 = the median, every row clean).
+- Sizes fr5d = fr4 + hold pads from fxd (ulink_n25 UACK 0 -> 2, falseResult_9 UACK 0 -> 1, trueResult_8 UACK 1 -> 2)
+  + ucmpi1 9 -> 10 + uxori2 7 -> 8: farm fxd2. The F row (uxori1.udly) has no pad knob in hold_pads_eval; watch it.
+- fifteen README headline: item 27, 19.39 ns, gap to 15: 4.4 ns.

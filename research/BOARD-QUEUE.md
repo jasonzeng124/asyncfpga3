@@ -175,6 +175,12 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    false-path row on every route as for item 24; besides it umux0 rule A -45..-135 ps on 3 routes and ucmpi2 -29 on one
    (sizes h3 pad both, farm fc64eq2 running); H / I clean on 29/30. Board seed 25 (sdf 6982a9d5, 36.27 ns): every
    row clean but umux2's. Dynamatic 17.84.
+27. **xorshift at ~19.4 ns per iteration, FULL INPUT RANGE: the loop test reads i against n-1 (pre_dec.py, n-1 computed
+   once before the loop; exact on every reachable state) on item 23's structure with fr4 sizes**: #28 below. Farm, 32
+   seeds (fxd): 31 routes, period median 19.39 ns (18.98-21.16) vs 23.47 for fr4 without it (fxf5; latency paired on
+   28 seeds: -3.76 ns per iteration, 27/28 faster, ~1.21x); gate 93/93; static A / A' / E clean on 29/31 (seeds 6, 27:
+   -12 / -13 ps at worst); H / I / F rows on 11/31 (to -355 ps; pad round fr5d / farm fxd2 running); trace hold checks
+   clean on all. Board seed 2 (sdf a9bdac53, latency 417 = the median): every row clean. Dynamatic 12.73.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -936,6 +942,33 @@ ffmux clean, gate 3 x 14/14, only umux2's row, hold checks clean.
     python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_eq.tsv build/hw/lc_c64_nl.tsv; echo "exit $?"
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.25 over item 24 (45.19 ns on its route vs 36.27 here).
+
+## 28. xorshift item 23's structure + pre_dec (loop test i < n-1) + fr4 sizes -- 93/93 gate, 31 routes
+research/JOURNAL.md 2026-11-15. The loop test `i + 1 < n` (n round the rounds ring) becomes `i < m`, m = n - 1 computed
+once before the loop and carried round the ring instead of n. Exact on every reachable state: the loop is entered only
+when n > 0 (cmpi0), so m does not wrap; inside, i + 1 <= n <= INT_MAX. The compare starts with the add instead of after
+it (simcheck PASS incl. rounds 0, 1, -1, INT_MIN). Farm fxd: 31 routes; the itercost period alternates between two
+values on many routes (seed 10: 18924 / 19382 ps), so the single-period P exists on some routes only: median 19.39 ns
+over those; latency median 417 cycles (394-457) vs fxf5 499-class. Gate 93/93 (17/17 x 3 corners); static A / A' / E
+clean at nominal and worst (C-element joins) on 29/31; tighten's unsized bundled "a" row on ucmpi1 as on every
+xorshift route; H / I / F rows on 11 routes (falseResult_9, ulink_n25, trueResult_8 stage rows, -6..-355 ps; uxori1.udly
+F -109 on seed 11); hold_trace / hold_bits clean on 31; ffmux clean on 31; fasm_equiv EQUIVALENT or the benign
+constant-LUT -> F7 / CARRY4-DI kind on 8. Board seed 2: every row clean.
+- nextpnr 9c732bc6303458df. From cells/:
+
+    cp ../build/frontend/xorshift/comp/handshake_transformed.mlir /tmp/xor_hs_orig.mlir
+    cp ../research/data/fifteen/xorshift_predec.mlir ../build/frontend/xorshift/comp/handshake_transformed.mlir
+    BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_RING_COUNT_OLINKS=1 BDC_FORK_OUT_LINK=n11__0 BDC_MERGE_OUT_LINK=ucontrol_merge0 NEXTPNR_SEED=2 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_fr4_bench.vh ./hw/build_bench.sh xorshift
+    cp /tmp/xor_hs_orig.mlir ../build/frontend/xorshift/comp/handshake_transformed.mlir
+    grep -c "uforkdec0 (" build/gen/xorshift_kernel_bench.v    # must be 1: the rewrite is in
+    md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # a9bdac53 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/xorshift_bench_gen/xorshift_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_dec.tsv
+    (item 23: #24's commands for lc_xor_fr.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_dec.tsv build/hw/lc_xor_fr.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.2 over item 23 (23.31 ns on its route). The bench masks rounds to 12
+bits; the full range rests on the static check (pre_dec's identity holds for every rounds the C allows).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

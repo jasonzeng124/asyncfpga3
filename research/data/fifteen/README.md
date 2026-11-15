@@ -1,7 +1,8 @@
-**Best xorshift that passes the gate, the static check and the hold check over the full input range: board item 23
-(xf4), 23.49 ns per iteration (median of 30 farm routes; 21.00-24.75). Gap to 15 ns: 8.5 ns. On the bench's 12-bit range
-only: item 17, 20.60 ns -- the full range costs ~2.9 ns.** Lever 5 (item 18) ON HOLD. Collatz full range: item 25 (#26),
-35.8 ns (exit test n == 2, 2026-11-15; item 22 41.2); collatz64 item 26 (#27), 36.2 ns (item 24 45.2). xorshift lever 8 (exit test i < n-1): seed 10 19.15 ns, farm fxd pending.
+**Best xorshift that passes the gate, the static check and the hold check over the full input range: board item 27
+(#28), lever 8 (the loop test reads i against n-1), 19.39 ns per iteration (median of 31 farm routes, 18.98-21.16;
+the board seed is clean on every row, 11 of 31 routes carry small H / I rows, pad round fxd2 running). Gap to 15 ns:
+4.4 ns.** Before it: item 23 (xf4) 23.49 ns; the bench's 12-bit range only: item 17, 20.60 ns. Collatz full range: item
+25 (#26), 35.8 ns (item 22 41.2); collatz64 item 26 (#27), 36.2 ns (item 24 45.2): the same idea, exit test n == 2.
 
 **2026-11-15 caveat: "the static check" above was rules A / A' / E only. Rule H (hold) and I (capture) rows were never
 read, and on item 23's route they are below 0 (worst corner: H -274 ps on ulink_n7, the stage that corrupted xf2_1).
@@ -26,6 +27,7 @@ event graph of the previous row's routes (`research/tools/eventgraph`), written 
 | 6. the compare computes i+1 < rounds from i (dup_add.py: a duplicate add fused into it; on lever 3, without 5) | MLIR pre-pass; UCMPI1 = 9 + 6 elements (upper bound) | ~16.2 / ~17.0 (by hand) | 20.86 / 20.35 | rejected: the static worst path needs >= the safe size (below) |
 | R. full-range re-baseline of lever 3 (owner rule 2026-11-14) | xorshift_sizes_T3s50_fr_bench.vh (uaddi0 6 -> 13, uxori1/2, umux3 pads) | 22.04 / 22.61 / 22.99 / 23.50 (s1 / s3 / s4 / s5) | 22.52 / 23.58 / 23.34 / 22.82 (s6-9: 23.30 / 21.78 / 21.60 / 23.36; mean 22.79) | running; static check s1: only the merge1 index (exercised) |
 | 7. drop umux0's select link (on lever 5) | BDC_NO_LINK=ulink_n30__1,ulink_n12__0 | ~16.4 / ~15.5 (by hand) | 19.41 / 20.42 (s1 / s3): the merge fork's select branch loses its storage, the fork re-couples to umux0 (polarity change at ucontrol_merge0_f -> its olink) | rejected |
+| 8. the loop test reads i against n-1, computed once before the loop (pre_dec.py; on R / fr4, without levers 5-7) | MLIR pre-pass (MLIR_OVERRIDE), bdc unchanged | 19 (18-20) on s10 (from xf5_10's graph) | s10 19.15 (period-2: 18.92 / 19.38); 31 farm routes median 19.39 (18.98-21.16), latency -3.76 ns paired vs fxf5 (27/28) | **93/93 -> board item 27**; static A / A' / E 29/31, H / I rows on 11/31 (pads fxd2) |
 
 The three knobs are new in `bdc/emit.py`, opt-in; with them unset the emitted Verilog is byte-identical on gcd, xorshift,
 collatz, collatz64, ipow and isprime. simcheck PASS with all of them on xorshift.
