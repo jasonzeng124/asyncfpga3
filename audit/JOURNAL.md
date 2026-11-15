@@ -2000,3 +2000,6 @@ BOARD-QUEUE item 26 (#27, research d70797c4): collatz64 pre_eq2 + h2 pads (no BD
 
 ### progress 06:05 T113 (partial)
 Item 26: own sdf 6982a9d5 = recipe; 36.251 ns; 1.244x over own paired c64h_25 (45.088), 1.247x over item 24's route; 14/14 at 3 corners; own rule E min +1266. Own static rule H (OR-join) has falseResult_3 / falseResult_9 stage[1] at -533..-744 where research reports H clean on this route -- tool disagreement; dynamic rule-H run started (t113/hold.sh). Research 3fed89de: BOARD-QUEUE item 27 (#28, lever 8, seed 2) -- next.
+
+### progress 06:10 T114 started
+BOARD-QUEUE item 27 (#28, research 3fed89de): xorshift lever 8 + fr4, board seed 2, sdf a9bdac53, latency 417; 31-route median 19.39 vs 23.47 (-3.76 paired latency). Own builds xd_2 + paired xf5_2, latency, 3 corners (t114/item27.sh; GLS waits for T113b).
