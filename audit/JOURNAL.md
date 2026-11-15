@@ -2078,3 +2078,6 @@ Formal C cb2c1fb5: Formal/Net/AO/TimedUnit.lean + UnitWord.lean (UnitProof rule:
 
 ### note 18:50
 T109c's repeated 0/17 was overlapping runs of t109/run_n8.sh clobbering each other's work dirs (gate.sh removes run_baked.vvp at the end); all killed, one sequential run started. Formal C 0961d876 (AO/UnrollUnit, 882 decls, check.sh OK) and B 1e81d9cc (ForceTree.lean, written, NOT yet checked) noted; to check on own build.
+
+### progress 19:10 T115 done
+Formal A rewrite proofs CONFIRMED: own lean compile (audit/t115/leanc.py, no lake/Mathlib), standard axioms, Lean graphs regenerate identically from research's MLIR (= board-build inputs). Limits: partial correctness; mlir2lean trusted; collatz64 computes not yet. Mathlib build (wt-f91) stopped: it caused repeated OOM kills next to GLS; restart later with fewer jobs if a claim needs Mathlib.
