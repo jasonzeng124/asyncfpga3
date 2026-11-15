@@ -16,10 +16,20 @@ names the two signals that race, where each is launched and where it is captured
 with a check that fails on a build known to be wrong.
 
 - **The select rule is withdrawn.** A select link is sized like any other link, by the checks
-  that model its race. Those are the ones you proposed: rules H and I clean at both corners on
-  at least 32 routes, and `hold_bits` clean on the same routes. A result with shortened select
-  links counts for the headline and may go to BOARD-QUEUE. The item says which links were
-  shortened and which checks covered them.
+  that model its races. There are two, and both must be clean at both corners on at least 32
+  routes:
+  - *arrival:* the select reaches the mux or steer before the request it gates. Rule E at
+    that cell; in simulation, the select must not change while the cell's output request is
+    high;
+  - *hold:* the select stays until its data is captured. Rules H and I, and `hold_bits`.
+
+  A result with shortened select links counts for the headline and may go to BOARD-QUEUE. The
+  item says which links were shortened and which checks covered them.
+  **Correction, 2026-11-15 (audit T116):** the first version of this bullet named only the hold
+  checks. They do not test the arrival race. On collatz with select links at 0 the gate passed
+  at three corners and H, I and `hold_bits` were clean, while umux0's select changed under its
+  request on 960 of about 1460 rises. You had already found this with the corrected rule E
+  summary and sized the selects by E; the text now says so.
 - **A check earns its place by failing.** Before a result rests on the select checks, show
   them fail on a select link shortened until it races, on each kernel family and not only on
   the collatz64 failure. A check that cannot fail on a known-bad build is a blanket rule under
