@@ -3209,3 +3209,24 @@ witness says 360,735), the same at w = 0 (21.5 M events), k = 0.36 w = 0, the 0.
 53.7 s -> 1.46 s). Inside margin.py (SIM=simx): the SLICE_X16Y21.A6 pin 0 sweep reproduces run1's 15 lines (kappa* 0.36,
 quiet 0.40). `--maxev` (default 1e8) bounds livelocks (UNDECIDED, not pass). w = 0 at 0.34/0.35 stays undecided by
 both simulators (event caps). Next: the full gcd_ps sweep locally with simx (control + latch-like pins).
+
+### progress 20:27 -- margin tool, FULL single-pin sweep of gcd_ps in 23 min on 4 cores: re-finds every known race, no new one (search, untrusted)
+`SIM=simx LATCH=1 W0=1 JOBS=4 run.sh` on gcd_ps_e6bb4aec (out/gcd_ps_full): 16,990 candidate (storage gate, live pin)
+pairs, 4,597 storage gates (4,185 latch-like); 6,698 active in the reference runs (both pairs) were swept at
+kappa 0.45 (21 min), the failures bisected on the 0.01 grid, then w = 0. **Exactly three races fail at <= 0.45:**
+- w = 20: SLICE_X16Y21.A6 pin 0 (merge4 ack C-element reading its fork): **kappa* = 0.36** (livelock), first quiet
+  failure 0.40 -- matches the Lean refutations (Frontier36, CexX16);
+- SLICE_X32Y45.A6 pin 0 (ulink_n_falseResult_85 stage 0 feedback): fails quietly at **0.44** -- matches CexR44 /
+  FrontierRunt (Lean);
+- SLICE_X38Y51.B6 pin 3 (arbiter 0 state LUT): livelock at 0.42 (w = 20) / 0.40 (w = 0), flagged: H_ARB may exclude it
+  (A found it violates ArbOK at 0.48; not checked here).
+- w = 0: the 0.36 race at 0.34 (UNDECIDED: event cap, counted as failing), quiet at 0.42. The 0.44 race PASSES at 0.45
+  with w = 0 in this transport adversary. Not a contradiction: the w = 0 search is one transport behaviour per point,
+  and a w = 20 failure is already a failure of the plain statement (Lean: seqRunt_of_seq), so the tool's w = 0 kappa*
+  is min(w = 0 search, w = 20 search) = 0.34 -- to be printed that way (TODO).
+Witness at 0.40 (verify.txt): gatecheck_runt 259,594 checks, 0 mismatches, 0 arcs outside Adm; Env + SeqEnv OK; ArbOK T
+>= 131; out0 0 of 2. verify.sh fixed for the --kernel flag. **Completeness as measured:** every live pin of every
+storage gate (control and latch-like) that moves in a reference run, one route slow, everything else fast, corner 0,
+two vectors. NOT covered: the 10,292 pins inactive in both reference runs (other vectors may activate them), multi-route
+adversaries, the slow corner, latch races needing data and enable both skewed. Speed: 23 min on 4 cores, so the
+owner's "< 1 h on 8 cores" holds for gcd_ps-sized builds with room for more vectors.

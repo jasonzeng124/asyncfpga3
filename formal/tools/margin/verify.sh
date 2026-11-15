@@ -10,7 +10,9 @@ O=$(cd "$1" && pwd); H=$(cd "$(dirname "$0")" && pwd); F=$(cd "$H/../.." && pwd)
 cmd=$(grep -- '--dump' "$W/command.txt" | tail -1)
 k=$(echo "$cmd" | sed -n 's/.*--kappa \([0-9.]*\).*/\1/p'); c=$(echo "$cmd" | sed -n 's/.*--corner \([0-9.]*\).*/\1/p')
 w=$(echo "$cmd" | sed -n 's/.*--w \([0-9]*\).*/\1/p'); w=${w:-0}
-pairs=$(echo "$cmd" | sed -n 's/.*--pairs \(.*\) --corner.*/\1/p')
+pairs=$(echo "$cmd" | python3 -c 'import sys;a=sys.stdin.read().split();i=a.index("--pairs")+1;r=[]
+while i < len(a) and not a[i].startswith("--"): r.append(a[i]); i += 1
+print(" ".join(r))')
 python3 -c "import json,sys;b=json.load(open(sys.argv[1]));b['arbs']=json.load(open(sys.argv[2]));json.dump(b,open(sys.argv[3],'w'))" \
   "$O/bnd.json" "$O/arbs.json" "$O/bnd_arbs.json"
 { echo "# witness: kappa $k corner $c w $w pairs $pairs"
