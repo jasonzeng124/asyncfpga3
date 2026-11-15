@@ -2129,3 +2129,6 @@ Formal A 98be38bd: enable-only adversary separates BAD xf2_1 (fails at kappa = 0
 
 ### note 22:15
 Formal C 60fb566e: tools/margin v0 (run.sh / margin.py / races.py / rank.py); re-finds gcd_ps's 0.36 / 0.40 on a test window (search, untrusted). The one-command margin tool the owner asked for; audit checks will rerun it on research builds once it reports on them.
+
+### note 22:45
+Research b0cae26c: corrected rule-E re-check -- collatz and collatz64 families clean for items 22, 24-26 (board seeds), xorshift / ipow queued. Agrees with own rule E on those board routes (T93 / T107b / T112 / T113). T116b (select-change classification at umux0 by z_req / z_ack) running.
