@@ -110,3 +110,27 @@ What this still needs in Lean: a "claims as hypotheses" variant of UnrollClaim (
 (latch hold ⇒ word equality; a lemma per register bank from the latch's switch rules, B's `cfb_switch`); the map
 from kinds to token-level branches (GcdHw.Seq's run shape). The instance (per-kind certificates of THE target passing
 the window checks) remains the largest piece.
+
+## Status 2026-11-15 and the piece-3 step-2 design (shard C)
+**Lean done today (check.sh OK):** `AO/TimedUnit` (`UnitProof`, `unit_holds`, `timedA_followsUY`,
+`timedA_followsUnit`, `timedA_liveUnit`, `unitFact_comp`), `AO/UnitWord` (`unitFact_of_word1`), `AO/UnrollUnit`
+(the every-word theorems with `hExt` replaced by `UnitProof`). So piece 3 step 1 is done generically: a condition
+claim follows from its unit's timed theorem plus claims that the unit's inputs hold for long enough (Sep-widened by
+the unit's settle delay D) with values whose op is the claim's value.
+**Step 2 (the values), design.** The covering claims of a condition are claims on register-latch outputs; their
+VALUES are register bits, i.e. data-dependent, so they cannot be literal per-kind claims (a kind fixes only the
+1-bit branch values). Plan:
+1. *Valued certificates.* Claims of register latch outputs carry a symbolic value `bit i of r_j` (register r at
+   window j) instead of a Bool; a pair instantiates the symbols with its token run (va_j, vb_j). Every check that reads
+   a value (ValOK of a hold/capture GateProof, UnitProof's `F(values) = val`) is checked for all instantiations of the
+   few symbols a gate sees (≤ 6 pins: ≤ 64 cases), so the per-kind checks stay finite.
+2. *Capture facts.* B's `LatchHoldCert.target_latch_holds_of` (214 latches of THE target, g = 1, κ in each row's
+   range) is value-parametric: the latch output equals the data value v it saw before the close, on [A, E' + lo e].
+   That is the transfer rule a capture claim needs (`q = v` from the close onward, given `d = v` before it), with v the
+   unit output's value (UnitFact of uselect/ushrsi/... = the token graph's op).
+3. *Window invariant.* By induction over windows: at window j's head the register latches hold (va_j, vb_j) (claims
+   instantiated from the token run); the units give the next values; the captures give window j+1's register claims;
+   the condition claims (UnitProof) give the branch values = the token run's branches (step 3: the word is the token
+   run's).
+Open: the instance needs the per-kind certificates to pass the structural checks first (measurement running,
+`tools/tocc/win2`, subagent), and the valued-claim checks (1) in Lean.
