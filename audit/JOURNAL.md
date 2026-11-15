@@ -2059,3 +2059,6 @@ Owner 8aa28bc7 (on claude/research, formal PROGRAM): formal is back on (one sess
 
 ### note 17:55 disk
 Disk allowance hit 100% while reinstalling Lean 4.35.0 (container restart had dropped ~/audit-lean); the first T109c runs died. Freed ~9 GB: stale GLS run_baked.vvp files, /root/t90/work_per_* (period work dirs; logs kept), trace/flip/_r2 work dirs. Lean install deferred until formal commits (Lean + Mathlib from source need ~9 GB; more t65 work dirs can be freed then). T109c rerunning.
+
+### progress 18:05 formal resumed
+Formal shards A / B / C took locks (9877674a, fcaf47ab, 104d9e60). Priority (a) resumes. Freed disk to 21 GB (regenerable GLS work dirs removed; board-route mon work dirs kept). Lean 4.35.0 reinstalled (bin/lean sha256 bf8d54e4 = as before). Clean build of formal 104d9e60 in /root/wt-f91 (Mathlib 56a00585 from source, own toolchain) running (/root/f91_build.sh). Then: axiom audit (audit/tools/axiom_audit.sh) and the shards' new claims as they land.
