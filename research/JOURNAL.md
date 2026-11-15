@@ -5090,3 +5090,13 @@ farm, then the K-lap check.
   Rule E assumes both can be pending. So at a loop-header mux the select's arrival is not a race that the vectors can
   make fail, and rule E rows there are lower bounds, not hazards; the select's real hazard is the hold side (the
   collatz64 failure). To be confirmed: a mux where both requests CAN be pending would fail under the same injection.
+### progress 18:42 UTC (select links at 0: ipow and collatz64)
+- fisel0 (ipow h4, select links ulink_n17__0/1/2, ulink_n_index_15 at 0) vs fipowh4, 25 paired seeds, latency vector
+  3^0x7fffffff (31 iterations): -10 cycles median = -3.9 ns per iteration (mean -3.5), faster on 24/25; gates 3 x 17/17
+  on 30/30; static A / E rows (old summary, so A only, plus whatever E the re-check adds) on 9 routes.
+- fc64sel0 (collatz64 h4) vs fc64eq3, 19 paired seeds (261 iterations): -1.93 ns median (mean -1.79), faster on 16/19;
+  gates pass on 21/21.
+- So far no family has a route that races with its select links at 0 (xorshift 27, collatz 23, collatz64 21, ipow 30
+  routes, every gate at three corners). Gains: collatz -10.4, ipow -3.9, collatz64 -1.9, xorshift -0.5 ns per
+  iteration. Rule E rows appear at the muxes when the select link is 0; the constructed race shows rule E flags a
+  select-arrival race that the gate cannot make fail at a loop-header mux (FAST_MIN gate pending).
