@@ -2081,3 +2081,6 @@ T109c's repeated 0/17 was overlapping runs of t109/run_n8.sh clobbering each oth
 
 ### progress 19:10 T115 done
 Formal A rewrite proofs CONFIRMED: own lean compile (audit/t115/leanc.py, no lake/Mathlib), standard axioms, Lean graphs regenerate identically from research's MLIR (= board-build inputs). Limits: partial correctness; mlir2lean trusted; collatz64 computes not yet. Mathlib build (wt-f91) stopped: it caused repeated OOM kills next to GLS; restart later with fewer jobs if a claim needs Mathlib.
+
+### progress 19:20 T109c done
+xf4_10 ulink_n8 (TSE candidate): second state node (trueResult_8 stage[1] controller) never opened on the ack at FAST_MIN / worst (waited >= 3.66 / 5.03 ns); 0 violations, n8 margin +4133 / +5753 ps. Candidate not live dynamically. REPORT ac5c4844 row updated.
