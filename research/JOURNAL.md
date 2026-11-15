@@ -4738,3 +4738,10 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   With the compare reading i, the adder is no longer on the critical cycle (xd_10's two-iteration graph), so the
   cell's short path buys nothing and its select / mux costs a little. The speculative incrementer stays an opt-in
   knob, useful only where the add is on the cycle (it gave -1.87 ns on fr3 without lever 8).
+### progress 05:37 UTC (ceb_24 OR-model re-check clean; fcol5; next collatz round on the n == 2 structure)
+- ceb_24 (item 25's board seed, default OR-join walk): static A / A' / E and H / I CLEAN at both corners, gate
+  3 x 13/13 with the farm's exact cycle counts (11204 / 4048 / 5456), hold checks clean. Item 25 does not depend on the
+  AND seeding.
+- fcol5 (old structure, nl5): 32 routes, median 40.76, gate 96/96, A / A' / E 32/32, hold/close clean on 27/32 (rows
+  I -43..-275 falseResult_3 st1, H -17 n7 st1). Item 25 supersedes this structure; the pads carry over by name:
+  nl6 = nl5 + fcol5's and fceq's rows (n7 UACK 2 -> 3, falseResult_3 SDELAY 1 -> 3), farm fceq2.
