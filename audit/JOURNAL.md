@@ -2126,3 +2126,6 @@ Own mux-monitor counts were per select pin (32 per mux): umux0 ~30 transitions w
 
 ### note 22:10
 Formal A 98be38bd: enable-only adversary separates BAD xf2_1 (fails at kappa = 0) from item 23 (correct at 0 and 0.16) at ulink_n7 -- the owner's negative control for this race, consistent with own T109 (same latch LUTs). REPORT row updated. Formal B ff591779: SliceNetPS/Reset CHECKED (4 files, 4759 decls); Reset's dependencies include ~6 GB modules -- own build deferred until T116b's GLS is done, then one-at-a-time.
+
+### note 22:15
+Formal C 60fb566e: tools/margin v0 (run.sh / margin.py / races.py / rank.py); re-finds gcd_ps's 0.36 / 0.40 on a test window (search, untrusted). The one-command margin tool the owner asked for; audit checks will rerun it on research builds once it reports on them.
