@@ -4403,3 +4403,15 @@ each by per-row `decide +kernel`; axioms propext, Quot.sound.
   NOT ctlcert's causal chains (the selected inputs rarely change after a close in this run).
 * *Not shown:* the premises; the other 1,050 mux-sourced latches (674 umux ones never close in this run; deeper
   cones need multi-row trees); setup (rule I) rows; any build other than THE target.
+### progress 20:1x -- CHECKED: `Formal/Cells/SelectTree.lean` `krow_tree` (check.sh OK, 2,265 declarations, standard axioms)
+* *Problem:* 137 select captures on THE target (uselect/ushrsi/ushli) reach the latch through cones of LUTs up to 13
+  deep, not one mux.
+* *Proved:* n checked non-memory forcing rows (`KRow`, `krowOK`) of THE circuit, each controlling pin reading a root
+  (window `[rs r, B]`) or an earlier row, with start times `st i ≥ (source start) + hi(pin)` and `≥` the gate start:
+  every row shows its value on `[st i, B]`, every behaviour, every delay in the band; unforced pins may glitch.
+  It is `force_tree` on THE target's checked rows (via `krow_set`).
+* *Not shown:* a row format / emitter using it for the deep cones; root windows (chain certificates).
+* *Rule I note:* a setup row needs a LOWER bound on the close time, which follows the upstream request's fall
+  after the round trip (rise -> ack -> fall): a sequence of events, which is what C's AO certificates (Sep/Up joins,
+  data-layer claims) already handle. So the setup half of select captures is to be done as AO data-layer claims
+  with C, not as more CertPS hold chains (notes/B-select.md, plan item 3, to be revised with C).
