@@ -95,3 +95,36 @@ def test_launch_is_not_overwritten_by_its_own_loop_at_level_0():
     chain = skew.path_to(pred, 0, "G/A1")
     assert chain == [(0, launch), (0, "G/A1")]
     assert_consistent(edges, out, chain)
+
+
+def test_and_join_waits_for_its_last_reached_input():
+    # L launches two requests into a 2-input join J (a bd_ctree C-element):
+    # one short (5) and one long (300).  OR seeding (default) fires J on the
+    # short one; with J in AND_NODES the request walk waits for the long one.
+    edges = defaultdict(list)
+    launch = storage(edges, "L", ["A1"])
+    j = "X.j.u.g2.u.u"
+    j_out = storage(edges, j, ["A1", "A2"])
+    edges[launch] += [(f"{j}/A1", 5), (f"{j}/A2", 300)]
+    edges[j_out].append(("G/A1", 20))
+    stops, binc, feed = graph(edges)
+    assert skew.RE_CTREE_C.search(j_out)
+    skew.AND_NODES.clear()
+    out, _ = skew.walk(edges, stops, binc, feed, launch, longest=False)
+    assert out[1]["G/A1"] == 5 + 10 + 20
+    skew.AND_NODES.add(j_out)
+    try:
+        out, pred = skew.walk(edges, stops, binc, feed, launch, longest=False)
+        assert out[1]["G/A1"] == 300 + 10 + 20
+        assert skew.path_to(pred, 1, "G/A1")[1] == (0, f"{j}/A2")
+        # the LONGEST (select) walk is never changed by it
+        lo, _ = skew.walk(edges, stops, binc, feed, launch, longest=True)
+        assert lo[1]["G/A1"] == 330
+    finally:
+        skew.AND_NODES.clear()
+
+
+if __name__ == "__main__":
+    for n, f in list(globals().items()):
+        if n.startswith("test_") and callable(f):
+            f(); print("ok", n)

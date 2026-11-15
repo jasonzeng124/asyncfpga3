@@ -210,6 +210,8 @@ def rule_a_from_link(T, skew, sdf):
     at select gates.  Only for cells whose every non-constant boundary source is an upstream link (else: tighten's A).
     -> {parent: constraint}"""
     edges, back, stops = T.routed_graph(pathlib.Path(sdf))
+    if getattr(skew, "AND_JOIN", False):        # BD_SKEW_AND_JOIN=1: the same C-element seeding as skew.main()
+        skew.AND_NODES.clear(); skew.AND_NODES.update(o for o in stops if skew.RE_CTREE_C.search(o))
     timing = T.Timing(edges, stops)
     chains = T.find_chains(edges)
     binc, srcs_of = collections.defaultdict(list), collections.defaultdict(set)

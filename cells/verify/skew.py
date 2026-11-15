@@ -81,7 +81,7 @@ the route that produced the measurement, and measured on gcd it does not even
 converge.
 """
 
-import json, math, re, sys, pathlib
+import json, math, os, re, sys, pathlib
 
 # A bd_pipe stage instance: <link>.many.stage[i].u
 RE_PIPE_STAGE = re.compile(r"^(.*?)\.many\.stage\[(\d+)\]\.u(?:\.|$)")
@@ -94,6 +94,8 @@ RE_LATCH_OUT = re.compile(r"^(.*?)\.lat\.")
 
 _raw = sys.argv[1:]
 VERBOSE = "-v" in _raw
+if "--and-join" in _raw:
+    _raw.remove("--and-join")
 # --select-pads <path> writes, as JSON, the ADDITIONAL bd_delay elements each
 # violating site's own link needs: {"ulink_n151__0": 3, ...}.  That is the
 # shape bdc/emit.py's BDC_SELECT_PADS already reads.
@@ -179,6 +181,13 @@ class CombinationalCycle(Exception):
     which is what --osc exists to declare.
     """
 
+
+# Positive C-element nodes (bd_ctree's bd_c2 / bd_c3 / bd_c4: no inverted
+# input) that walk() seeds with their LATEST reached input on the earliest walk.
+# Empty unless BD_SKEW_AND_JOIN=1 or --and-join; main() fills it.
+AND_NODES = set()
+AND_JOIN = os.environ.get("BD_SKEW_AND_JOIN") == "1" or "--and-join" in sys.argv[1:]
+RE_CTREE_C = re.compile(r"\.g[234]\.u\.u/O[56]$")
 
 K = 6          # storage crossings a path may make before it is a lap, not a path
 
@@ -343,6 +352,30 @@ def walk(walked_edges, stops, binc, feed, launch, longest, term=None):
         for o in stops:
             if o == launch or (term and o.startswith(term)):
                 continue
+            if not longest and o in AND_NODES:
+                # A positive C-element (bd_ctree: bd_c2/c3/c4) moves only
+                # when EVERY input has moved, so on the EARLIEST walk its
+                # output is no earlier than the LATEST of its inputs' earliest
+                # arrivals.  Only inputs reached at THIS level count: they are
+                # combinational descendants of the launch's own transition
+                # (the walk crosses no storage inside a level), so each is a
+                # lower bound on that input's transition for this token, and
+                # the max over any subset of a C-element's inputs is a lower
+                # bound on its firing.  Opt-in (BD_SKEW_AND_JOIN=1 / --and-join);
+                # off, every storage node is seeded with its earliest input
+                # (OR), as always.  Audit T93: the OR seed made ucond_br6_j
+                # fire on its first request on item 18's route.
+                best_v = None
+                for ip, arc in binc.get(o, ()):
+                    if (o, ip) in feed or ip not in tab:
+                        continue
+                    v = tab[ip] + arc
+                    if best_v is None or v > best_v[0]:
+                        best_v = (v, ip)
+                if best_v is not None:
+                    seeds[o] = best_v[0]
+                    seed_pred[o] = (lvl, best_v[1])
+                continue
             for ip, arc in binc.get(o, ()):
                 if (o, ip) in feed or ip not in tab:
                     continue
@@ -439,6 +472,11 @@ def main():
         return 2
 
     stops = T.storage_nodes(edges)
+    AND_NODES.clear()
+    if AND_JOIN:
+        AND_NODES.update(o for o in stops if RE_CTREE_C.search(o))
+        print(f"             --and-join: {len(AND_NODES)} positive C-element node(s) "
+              f"wait for their last reached input on the request walk")
     side_arcs = T.fastfall_side_arcs(edges)
     early_edges = {
         src: [(dst, delay) for dst, delay in links
