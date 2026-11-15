@@ -2530,3 +2530,11 @@ not try the decoder on research's bench .fasm files; C will.
 * For C's margin tool: decode (make_net_fasm.sh) + boundary (boundary_bench.py) now work on a bench build; the
   rebuild recipe is FOR-FORMAL's command plus `apt-get install zstd libtcl8.6 libboost-{python,filesystem,program-options}1.83.0`
   and `cloud/toolchain-cache.sh fetch`.
+### progress 18:19 -- item 25 decoded netlist computes collatz in simulation (decode + boundary validated end to end; untrusted)
+`tools-A/target/sim.py` on item 25's decoded net (make_net_fasm.sh) with the bench boundary mapped onto sim's keys
+(`out/item25_collatz_s24_bnd_sim.json`: n's ack/data in both operand slots), corner 0.5, mid-band, sequential env:
+n = 6, 7, 27 -> out0 = 8, 16, 111 = collatz's step counts, with data held until each ack falls (--datachange broad,
+Spec.Env's earliest data change) or until the next request (next). With sim's default "handshake" (data moved while
+the acks are still high) the outputs shift by one pair (16, 111, 111): that env is OUTSIDE Spec.Env (EnvIn holds data
+while req or ack is high); the gcd kernels tolerate it, collatz does not. sim.py's help text claimed Spec.Env allows
+it: corrected (sim.py, simadv_hold.py). Earlier gcd_ps runs in that mode are unaffected as evidence (they passed).

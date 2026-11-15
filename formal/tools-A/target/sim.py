@@ -46,7 +46,9 @@ def main():
     ap.add_argument("--full", action="store_true", help="simulate every circuit gate, not only the kernel cone")
     ap.add_argument("--datachange", choices=["handshake", "broad", "rtz", "next"], default="handshake",
                     help="when the env moves the data to the next pair: right after the input "
-                         "handshake (Spec.Env allows it) or only just before the next request")
+                         "handshake (NOTE 2026-11-15: this is OUTSIDE Spec.Env, whose EnvIn holds the data while "
+                         "req OR ack is high; gcd tolerates it, collatz does not), at each ack's fall (broad, "
+                         "Spec.Env's earliest), at rtz, or only just before the next request")
     ap.add_argument("--dfall", type=int, default=None,
                     help="out0/end acks FALL this many ps after their request falls (default: --dout); "
                          "Spec.Env puts no lower bound on a fall, so 1 is the adversarial env")
