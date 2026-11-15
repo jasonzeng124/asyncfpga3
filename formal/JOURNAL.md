@@ -2489,3 +2489,9 @@ second priority and CertRun changes the form of row 7, not its number.
 * Note for Lean work here: `simp` with the transcription `P` unfolded OOMs (>7 GB, twice); explicit `rfl` facts on
   projections (`pick_eq`, `run_step`) avoid it. Lean processes now watched by a 7 GB RSS killer while iterating.
 FOR-RESEARCH A6 updated.
+### progress 18:07 -- research/FOR-FORMAL.md now exists (b976ce821): builds registered in MARGINS.md
+Read it: 4 board candidates (xorshift item 27 = pre_dec, collatz item 25 = pre_eq2, collatz64 item 26 = pre_eq2,
+xorshift item 23), 2 known-bad with good neighbours (BAD xf2_1, hold race at ulink_n7; nc64_7 / pc64_7, a one-line
+minimal pair), and the pending shortened-select farm. Files committed for item25, item23 and BAD_xf2_1; I took md5s of
+the uncompressed .fasm/.sdf (each SDF md5 matches research's prefix) and listed them in MARGINS.md. The three board
+candidates built from rewritten MLIR are exactly the rewrites proved today (A6). The margin numbers are C's tool's.
