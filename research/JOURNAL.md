@@ -4797,3 +4797,17 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   now caught by hold_bits) and one suspected. Not enough to drop the rule; enough to measure what it holds back.
 - Running corner_audit --shrink-selects on xd_10 (lever 8, seed 10) at the worst corner: the sizes the static rules
   alone would give the select links (ulink_n12__0/1/2, umux*). A measurement, not a proposal to adopt.
+### progress 06:50 UTC (the select links sit on no static constraint -- what the select rule holds back on xorshift)
+- corner_audit --shrink-selects on xd_10 (lever 8, worst corner): every select line goes to its floor of 1 --
+  ulink_n12__0 5, ulink_n12__1 8, ulink_n12__2 6, ulink_n_index_15 5, umux0 / 1 / 2 2 -> 1 -- each "floor 1": no rule
+  A / E / F / H / I constraint measured on this route depends on them. So the static rules cannot size these lines
+  in either direction; that is the gap the select rule covers, not a sign that they are oversized.
+- Stake, from xd_10's two-iteration graph: ulink_n12__1 4.69 and ulink_n12__2 3.76 ns per 2-iteration cycle; at ~0.4
+  ns a link, 8 -> 1 and 6 -> 1 would be ~-2.8 and ~-2.0 ns per 2 iterations, ~-2.4 ns per iteration if nothing else
+  binds (the next cycles were within 0.2-1.5 ns, so less). Not tried: shrinking them would rest on the gate and
+  hold_bits alone, which CLAUDE.md forbids ("never shorten a delay to hit a speed target" without a check that can
+  see the hazard).
+- QUESTION FOR THE OWNER (decision, not blocking): the collatz64 select failure is now caught by hold_bits (flags the
+  failing build, passes the fixed one) and named by rule H; the ipow one was re-attributed to ushrsi0. Would you accept
+  "select links may shrink when rules H / I are clean at both corners on >= 32 routes AND hold_bits is clean on them"
+  in place of the blanket select rule? Until then the rule stands and nothing here shrinks them.
