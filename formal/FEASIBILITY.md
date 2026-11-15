@@ -7,6 +7,28 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-15 (lead): the owner put research's timing rule first (PROGRAM.md, 0691ea88); the gcd theorem is second.**
+- **A, rewrites (Lean, check.sh OK, standard axioms):** research's three loop-test rewrites preserve the function, at
+  token level, from the MLIR: `Formal.Rewrite.XorshiftPredec.same_as_original` (xorshift `i + 1 < n` -> `i < n - 1`
+  with the ring carrying `n - 1`), `Formal.Rewrite.Collatz.same` (collatz `n' == 1` -> `n == 2`, 32-bit),
+  `Formal.Rewrite.Collatz64.same` (64-bit; C transcribed by hand since cfront is 32-bit only). Each: on every input
+  on which the C returns r, the original and the rewritten graph (imported by C's dfimport with bdc's parser) both
+  end with [r] on every complete run, under any schedule. The key fact `Eq2.collatz_eq2` (n' == 1 <=> n == 2) holds
+  for every width w >= 3 and fails at w = 2. Not covered: inputs where the C diverges; gates and delays.
+  FOR-RESEARCH A6. What it took: C's generic simulation `Auto.sim_call` was enough; the generated autoproof failed on
+  exactly the rewrite obligations (xorshift: its correspondence pool has no `n - 1` and its invariants are copies
+  only; collatz: its tactic timed out on n' == 1 <=> n == 2), which were then proved by hand in ~1 h each.
+- **A, MARGINS.md (new, `formal/target/MARGINS.md`):** one row per build. gcd_ps_e6bb4aec: kappa* at g = 1 in
+  (0.35, 0.36] with or without H_RUNT(20); upper end Lean (livelock at merge4's arbiter acknowledge), lower end
+  search only.
+- **A, gcd theorem (second priority; Lean, check.sh OK):** `Formal.Target.CertRun.netCorrectSeq_of_run`: THE
+  statement follows from ONE certificate per behaviour, started during reset, delivering boundary count facts
+  (interleavings, ordered enabled changes, out0's k-th rise after the k-th request, the gcd on out0, the last
+  episode ends). No island, no reset bound, no per-pair quiet start: this removes the chaining obstacle of
+  2026-11-10 (a fastest SeqEnv re-requests while the circuit still settles). Conditional; no instance.
+- **C** leads the margin tool (`formal/tools/margin/run.sh`), **B** the select race in Lean (`Cells/ForceTree.lean`,
+  in progress); see their journals.
+
 **2026-11-10 (lead): THE statement now has ONE non-allowed hypothesis, the per-pair step (A, Lean, check.sh OK).**
 `Formal.Target.PlanRPS.the_of_stepR_all`: for every g > 0, 0 ≤ κ < 1 and reset R ≥ ⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1
 ps, `StepHypR` ⇒ `NetCorrectSeq net boundary arbs p T R su Δo` (THE statement, every T, su, Δo). `StepHypR`: in every

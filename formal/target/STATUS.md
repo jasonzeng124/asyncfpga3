@@ -6,6 +6,13 @@ DecodedPS.boundary DecodedPS.arbs p T R su Δo` (owner decision 4: sequential en
 Updated 2026-11-06 (shard A) from the 2026-11-02 journals of all three shards. Everything below is Lean-checked with
 standard axioms unless marked; "C" / "B" name the shard whose file it is.
 
+## 2026-11-15 (A): the S6 route changed to ONE run certificate (Lean, check.sh OK)
+`Formal.Target.CertRun.netCorrectSeq_of_run` (generic, OneReq boundary): THE statement from `EpRun` (count facts of one
+certificate per behaviour, started during reset at a low boundary; certificate may grow with time, so any number of
+pairs). It replaces `PlanRPS.StepHypR`'s per-pair quiet start, which a fastest SeqEnv defeats (notes/A-S6-chaining.md).
+Row 7 below is now "an `EpRun` certificate for every behaviour" (still the whole circuit argument; no instance yet).
+Since 2026-11-15 the gcd theorem is the owner's SECOND priority (PROGRAM.md); per-build margins are in MARGINS.md.
+
 ## BEST REFUTATION SO FAR: κ = 0.40 at g = 1 (shard B, 2026-11-08; Lean; audit T47 CONFIRMED)
 `Formal.Cells.CexX16.not_netCorrectSeqRunt20 : ∀ T su Δo, 132 ≤ T → Δo ≤ 3000 → ¬ NetCorrectSeqRunt 20 DecodedPS.net
 DecodedPS.boundary DecodedPS.arbs ⟨1, 10/25⟩ T 400000 su Δo` (full-width pair (0x49e9c618, 0x35bf992e); merge4's

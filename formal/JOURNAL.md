@@ -2472,3 +2472,9 @@ second-priority work (gcd theorem, S6) and stays as is.
   transcription, `kC_same` by rfl).
 * FOR-RESEARCH A6 written (the three rewrites, md5s, Lean names, scope). Not covered: inputs where the C diverges;
   gates/delays (token level only).
+### progress 17:59 -- MARGINS.md created; FEASIBILITY and STATUS updated for 2026-11-15
+`formal/target/MARGINS.md` (A's, per the new PROGRAM): gcd_ps_e6bb4aec row: kappa* at g = 1 in (0.35, 0.36], w = 20
+and w = 0; upper end Lean (Frontier36), lower end search only; the 0.40 and 0.44 races listed with their Lean names.
+STATUS.md: CertRun replaces StepHypR as the S6 route (row 7 is now "an EpRun certificate"); FEASIBILITY: 2026-11-15
+block (rewrites, MARGINS, CertRun, C/B pivots). The STATUS list did not shrink in count today: the gcd theorem is
+second priority and CertRun changes the form of row 7, not its number.
