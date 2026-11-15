@@ -265,3 +265,40 @@ Links on the cycle: ulink_n26, ulink_n28__1, ulink_n10__x and ulink_n14__0 are r
   - Meanwhile some net kept switching for 155 µs of sim time, after which the run was stopped.
   - So "remove the ring's delays" is not a measurable what-if on this route. Those delays order the first token's handshakes, not only its data. Levers 2-4 above are therefore read off the cycle, not simulated.
 - Only the first critical cycle. Once a lever shortens it, another ring becomes critical. For xorshift, the xor ring has at least 0.5 ns of slack (`lengthen.tsv`); how much more is not measured.
+
+## Every delay line on collatz's loop (owner's second lead, 2026-11-15) -- ONE route so far (item 25, seed 24)
+
+Tool: `research/tools/itercost/line_account.py` (corner_audit's own worker and the audits' path functions; per line:
+the constraint that sets it, the covered data path split into logic / latch / enable spread / wire, the request path,
+guard, margin, elements needed as routed and for the logic alone). Route ceb_24 (sdf e001dc27, nextpnr
+9c732bc6303458df), worst corner; nominal and the arc-by-arc paths in `collatz/line_account_ceb_24/`. The >= 8 route
+table follows once the farm runs it.
+
+On this route the critical cycle is NOT the datapath: it is umux1's select ring (ulink_n13 -> ulink_n14__1), 35.92 ns,
+of which the 36-element select line ulink_n14__1 stage[1].rdly is 13.7 ns rising + 13.7 ns falling. The datapath loop
+(ulink_n14__0, umux0, uaddi0, uselect0, ulink_n10__4's ack fall) is next, 34.32 ns.
+
+| line | n | ps at worst | on cycle R/F | set by | margin | covered data: logic/latch/enable/wire (total) | n need (as routed) | n logic only |
+|---|---|---|---|---|---|---|---|---|
+| ulink_n14__1 st1 rdly (select) | 36 | 13291 | 13698/13698 | select rule only (rule E +13.2 ns) | +13212 | 0/68/184/313 (565) | 1 | 0 |
+| ulink_n14__0 rdly (select) | 18 | 6962 | 7684/0 | select rule only (rule E +7.1 ns) | +7116 | 0/68/482/313 (863) | 1 | 0 |
+| uselect0 udly | 16 | 5473 | 5804/0 | rule A, bundled pairing (+1455 ps lag borrowed from ulink_n26) | +3230 | 204/0/0/2070 (3729) | 8 | 1 |
+| uaddi0 udly | 12 | 4360 | 4775/0 | rule A' (3n+1 carry chain) | +2944 | 1489/73/957/561 (3080) | 5 | 4 |
+| ulink_n10__4 uack | 6 | 2161 | 0/2720 | rule H; NOT in sizes.vh (RTL default 6) | +2978 | -- | 0 | -- |
+| umux0 udly | 6 | 1813 | 2153/0 | rule A (ack path only; datamux unpaired) | +1926 | wire 657 + ctl 68 | 1 | 0 |
+| umux1 udly | 5 | 1696 | 2020/565 | rule A (as umux0) | +1772 | wire 465 + ctl 68 | 1 | 0 |
+
+Findings on this route (diagnosis; nothing is shortened from this table alone):
+- The two select lines (27 of the 54 elements on the loop) sit on no constraint but the withdrawn select rule. Farm
+  fcsel0 tests them at 0 on 32 routes with every check.
+- uselect0 (`n & 1 ? 3n+1 : n >> 1`) is 204 ps of logic and 2070 ps of wire: a kept LUT1 (uz_n29) drives a 32-bit
+  fanout net, 279-1250 ps across the bits -- the wire the owner asked about. Its 16 elements come from tighten's
+  bundled pairing, which adds 1455 ps of controller-to-latch lag from ulink_n26, the worst upstream link; the data's own
+  link (n11) has 0. A' (from the upstream C nodes) would give +5419 ps / 2 elements, but corner_audit refuses A' here
+  because two "foreign" sources reach the data: the reset flop (static in operation: a false-path candidate) and the
+  request of the folded constant operand n12 = 1 (usource2), joined although its data is folded. Fix the cause: do not
+  join a folded constant's request (as compute fusion already does), and exclude the reset flop as a launch.
+- Links that carry only constants (ulink_n19__1..4: the shift amount and the constants joined into uaddi0 / uselect0)
+  are 32-bit latch banks whose D pins are tie-offs; their ack lines are built at the RTL default 6 because sizes.vh has
+  no macro for them; ULINK_N10__4_UACK too (6, on the datapath cycle's falling edge, rule H says 0).
+- uaddi0 is a real carry path; 0.78 ns of its 0.96 ns enable term is the enable net's spread over 32 latch bits.

@@ -4989,3 +4989,15 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
   structure); at DELAY 0 that link costs its controller + wire (~1 ns) -> collatz -4 to -6 ns per iteration if
   nothing else binds (35.8 -> ~30-32); collatz64 ~-3 to -5 ns; ipow ~-2 to -6 ns. The gate is likely to fail on some
   routes at 0 (the 2026-11-09 / 11-11 failures were shortened select paths).
+### progress 17:46 UTC (second lead: collatz delay accounting, first route)
+- research/tools/itercost/line_account.py (written by a subagent from my brief, reviewed: it calls corner_audit's own
+  worker and the audits' path functions; its traced totals equal the audits' numbers; arcs on uaddi0's path and
+  uselect0's 1250 ps wire checked by hand against xray.sdf). Item 25 seed 24 rebuilt (sdf e001dc27, graph identical to
+  ceb_24). Table and findings: research/data/itercost/README.md (new section); arc-by-arc paths committed.
+- Headline: collatz's critical cycle on this route is umux1's select ring, and 27.4 of its 35.92 ns is ONE line,
+  ulink_n14__1's 36-element select delay (rising and falling). The two select lines carry +13.2 / +7.1 ns of rule-E
+  margin: only the withdrawn select rule holds them. fcsel0 (submitted) is the test.
+- uselect0's 16 elements: tighten's bundled pairing borrows 1455 ps of lag from another link, and A' is blocked by two
+  launch points that cannot move in operation (the reset flop, and a folded constant's request joined into the cell).
+  Fix-the-cause candidates: no request join for a folded constant operand; reset flops not launches. Not done yet.
+- Next for this lead: run line_account on >= 8 routes (farm, with fcsel0's routes), then collatz64 and ipow.
