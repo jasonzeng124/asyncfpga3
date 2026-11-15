@@ -5024,3 +5024,16 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
   (1716 bounds, self-check consistent). 14 controllers not covered (aperiodic in the steady-state window).
 - Farm: fxdtT, fxsel1T, fxsel0T, fcsel0T, fc64sel0T, fisel0T = TSE_ONLY reruns (same seeds, so the same routes as the
   full runs, which supply gate / static / hold_bits).
+### progress 18:04 UTC (select links at 0 / 1: partial farm results -- no race yet; collatz gains big)
+- xorshift (item 27 structure; latency over 256 iterations, paired by seed against fxd): fxsel0 on 22 seeds -0.52 ns
+  per iteration median (mean -0.59, -2.67..+1.41, faster on 15/22); fxsel1 on 11 seeds -0.09. Gates 3 x 17/17 on every
+  route so far (23 + 12), static A / A' / E clean except one worst-corner row (fxsel0 s19), hold_bits clean everywhere.
+  Below the prediction (-1 to -2 ns): the select links were on the critical cycle of xd_10, but the next cycles bind
+  almost at once. fxsel1 s18: FFMUX defect route (flagged), excluded.
+- collatz (item 25 structure, n = 6171 = 261 iterations, paired against fceq2): fcsel0 on 3 seeds -11.8 ns per
+  iteration median (-10.8..-12.8; 800 -> 570 cycles), gates 3 x 13/13, static clean, hold_bits clean. Predicted -4 to
+  -6: the event graph said ulink_n14__1 alone is 27.4 of 35.9 ns on seed 24 (line_account), which the prediction did
+  not use. Waiting for 32 routes before any claim.
+- No route has raced so far, so no family has its negative control yet. If none races at 0, the plan is a constructed
+  bad build: lengthen the select's data path in the SDF only (same netlist and route) until the gate fails, then show
+  that the static checks flag it on that SDF (CLAUDE.md: the injected defect larger than anything the harness hides).
