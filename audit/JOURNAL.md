@@ -2154,3 +2154,6 @@ Formal C 6c3fcfe0: the margin tool (one command) reproduces the negative control
 
 ### note 00:40
 Formal C 55d3ea2c: item 25 (board route, fasm = own coleq_24) gives a wrong answer at kappa = 0.44, w = 0 (search; both formal checkers pass); race = ulink_n_falseResult_3 stage[0]'s latch enable routes (own mapping). w = 20 result withdrawn by C (simulator runt filter inconsistent with Spec). A spread of 0.44 is above the 0.36 THE gcd target fails at. Replay in own GLS pending a committed assignment. REPORT row.
+
+### progress 00:55 T117 (item 28) main results
+Own sdf d86bdde5 = recipe; 25.840 ns; 1.390x over item 25's route (pred 1.39); 13/13 at 3 corners, 0 monitor violations, mux select margins >= 434 ps (umux0 FAST_MIN); own rule E min +744; own rule H no negative row. T117b (pin-level arrival lateness) running.
