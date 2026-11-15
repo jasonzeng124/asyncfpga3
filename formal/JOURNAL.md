@@ -2500,3 +2500,14 @@ Decision: no Lean glue from C's `timedA_follows`/unrolled-word theorems to EpRun
 gcd theorem is second priority); the note maps each EpRun field to the C/B lemma that should give it. The margin tool
 (item 1) is C's; it plans to reuse A's decoder (tools-A/target). This sandbox has no toolchain/prjxray-db, so A did
 not try the decoder on research's bench .fasm files; C will.
+### progress 18:14 -- A's decoder runs on research's bench builds (for C's margin tool; untrusted Python)
+* Found: the three delivered builds each have 2 slice storage elements in LATCH mode (gen_bench.py's
+  i_ack_latched / o_req_latched, env side), which decode_base.py refused (exit 1), and an OUTMUX.F7 select onto an
+  unread CMUX. Since C's tool plans to reuse A's decoder, I fixed both in A's file: latches decode as opaque storage
+  (ldce/ldpe, no gate, free output, exactly as FFs), and the existing "outmux select, xMUX unread" allowance now covers
+  every OUTMUX value. gcd_ps decode is byte-identical before/after (regression check).
+* Toolchain: restored from the repo's toolchain cache (`cloud/toolchain-cache.sh fetch`, key d7ce266cff0c8e1e; zstd
+  installed via apt) for prjxray-db.
+* `tools-A/target/make_net_fasm.sh BUILD.fasm DIR`: decode + net + round trip. item25, item23, BAD_xf2_1: ~20 s each,
+  round trip invented 0, leftovers only FF/IO/clock configuration (no LUT INIT bit or pip unaccounted). md5s in
+  tools-A/target/README.md. For C: the bench boundary (kernel channels in decoded node names) is not done.

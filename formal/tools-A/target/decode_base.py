@@ -283,8 +283,11 @@ def main():
         tile, site, sn = slice_site(pre)
         sname_of[pre] = sn
         fs = sf[pre]
-        if has(pre, "LATCH"):
-            die("%s: LATCH mode not modelled (LDCE/LDPE)" % sn)
+        # LATCH mode (shard A, 2026-11-15): the slice's four storage elements are latches (LDCE / LDPE: gate G on
+        # the CLK pin, enable GE on CE, async clear / preset on SR). They are decoded as opaque storage cells, like
+        # the FFs (build_net.py gives no gate to either: their outputs are free). research's bench builds have two
+        # (gen_bench.py's i_ack_latched / o_req_latched, environment side).
+        latch = has(pre, "LATCH")
         if any(re.search(r"\.RAM|SRL|SMALL|WA[678]USED|WEMUX", "." + x) for x in fs):
             die("%s: LUTRAM/SRL not modelled: %s" % (sn, sorted(fs)))
         ffs = []
@@ -334,7 +337,11 @@ def main():
             zrst = has(pre, "%s%s.ZRST" % (L, fx))
             zini = has(pre, "%s%s.ZINI" % (L, fx))
             kind = ("fdre" if zrst else "fdse") if sync else ("fdce" if zrst else "fdpe")
-            rpin = {"fdre": "R", "fdse": "S", "fdce": "CLR", "fdpe": "PRE"}[kind]
+            if latch:
+                if fx != "FF" or sync:
+                    die("%s: LATCH mode with %s%s / FFSYNC not modelled" % (sn, L, fx))
+                kind = "ldce" if zrst else "ldpe"
+            rpin = {"fdre": "R", "fdse": "S", "fdce": "CLR", "fdpe": "PRE", "ldce": "CLR", "ldpe": "PRE"}[kind]
             q = "%s.%s%sQ" % (sn, L, "5" if fx == "5FF" else "")
             cells.append({"name": "%s.%s%s" % (sn, L, fx), "kind": kind, "init": 0 if zini else 1,
                           "conn": {"C": clk, "CE": ce, "D": d, rpin: sr,
@@ -520,7 +527,7 @@ def main():
                                       (r"^SLICE[LM]_X[01]\.PRECYINIT\.C0$", "default"),
                                       # gcd_ps (2026-11-01): an OUTMUX select is consumed when a route reads the
                                       # slice's xMUX output; one left over selects onto an xMUX nobody reads
-                                      (r"^SLICE[LM]_X[01]\.[A-D]OUTMUX\.[A-D]5Q$", "outmux select, xMUX unread"),
+                                      (r"^SLICE[LM]_X[01]\.[A-D]OUTMUX\.([A-D]5Q|F7|F8|O5|O6|XOR|CY)$", "outmux select, xMUX unread"),
                                       (r"^CLK_HROW_CK_IN_[LR]\d+_ACTIVE$", "clock spine enable")]:
             if re.search(rx, rest):
                 census[cat] += 1
