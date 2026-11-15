@@ -2181,3 +2181,6 @@ Control (every arc 0.74 x FAST_MIN, no slowed arc) fails the same way (n = 27 si
 
 ### progress 05:15 T119 done
 Formal C's item 26 witness (kappa 0.26) does NOT reproduce in own GLS with kernel-only scaling: 3/3, ulink_n13 hold 1110 -> 393 ps. v1's failure was the harness (control identical). Race location confirmed. REPORT row; owner notified.
+
+### note 05:30
+Formal C 770fbd8d (C10, search, checked by formal's checkers): shortened-select collatz builds kappa_hi 0.21-0.32, all at ulink_n_falseResult_3 stage[0] latch bits seeing their own enable late (item 25: 0.42 unfiltered, same link). Item 28 (select at 3, seed 20) not measured. Audit note: T119 found formal's item 26 witness did not reproduce in own fixed-delay GLS; these C10 witnesses are of the same class and are UNVERIFIED until one is replayed (candidate: fcsel0 seed 24 = own colsel0_24, sdf bb5fbbdb, 0.22).
