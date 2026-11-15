@@ -2563,3 +2563,8 @@ fastest SeqEnv, data held to each ack's fall:
   (garbage: 1929398656, 1108361330, 0, 315787426, 9863330, five out0 for four pairs).
 So the known-bad build is bad in our model too, at κ ≤ 0.2 (upper bound on its κ*, search). Running: the same
 adversary on item 23's ulink_n7 (the good neighbour) and κ = 0.05-0.15 on BAD.
+### progress 18:47 -- negative control holds: the same adversary on the good neighbour (item 23) is correct (search)
+item 23's ulink_n7 bit-0/1 latch LUTs (SLICE_X20Y35.B5/B6, same slice as its controller, as in BAD) made slow, all else
+fast, corner 0, same vectors and env: correct at κ = 0.2, 0.4, 0.6 (2064144800, 2008045182, 691148861, 3532304609).
+So this single-gate-class adversary separates BAD xf2_1 (wrong from κ ≤ 0.2) from item 23 (correct to κ = 0.6, for
+THIS race; not a κ* for item 23). Not a minimal pair (different routes), as research says.
