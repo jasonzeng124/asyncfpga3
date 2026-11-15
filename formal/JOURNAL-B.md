@@ -4370,3 +4370,18 @@ certificates from the latch's enable source (the hold side) -- that is the next 
   `win_end_ge` needs a single path, so a select row is two chains + one mux row rather than a DAG certificate.
 * *Not shown:* any emitted row (next: a Python emitter from ctlcert chains for the 933 umux latches); the
   certificates' premises; setup (rule I) rows; completeness.
+### progress 19:4x -- CHECKED: `SliceNetPS/Reset.lean` (TBehX `quiet` from the reset island); check.sh OK on all four new files
+`formal/check.sh Formal/Cells/SliceNetPS/Reset.lean Formal/Cells/ForceTree.lean Formal/Cells/SelectCapture.lean
+Formal/Cells/SelectHold.lean`: OK, 4,759 declarations audited, standard axioms only.
+* *Problem:* C's certificate theorems need TBehX's `quiet` field (exact nodes constant on `[t0 - H, t0]`); B's
+  `target_tbehX` left it as a premise.
+* *Proved:* `quiet_reset`, `val_reset`, `init_reset`, `env_island`, `env_of_bnd`, `target_tbehX_reset`: with the exact
+  set = C's 3,224-node reset island + the environment-driven boundary nodes (rst, the shared request 186985,
+  out0.ack, pend.ack), every behaviour of THE circuit whose environment obeys `Env` satisfies TBehX on every slice
+  net `tnPS p c1 c2` containing its corner, from any t0 with ⌈(1+κ)g⌉·122,374 ps ≤ t0 ≤ R − 1 (κ < 1); `quiet` is
+  derived; `env` reduces to the boundary nodes' moves (island members are all gates); exact nodes equal `valR` on
+  the window, which also discharges the certificate's `hInit` for claims stating those values.
+* *Not shown:* any certificate; the pipeline's runs used R = 40 ns, below the window (rerun needed at R ≥ 122.4 ns;
+  the exact set itself fits, 17:3x); episodes after the first (A's notes/A-S6-chaining.md).
+Build note: lake has no job limit; CViewPS's RIslBnd quarters (~6 GB each) OOM-killed when built side by side, and
+had to be built one at a time (8 of them).
