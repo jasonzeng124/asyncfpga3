@@ -4778,3 +4778,14 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   "ffmux-clean"); counts above include them by hand.
 - Item 25 keeps fceq's seed 24 (clean on every row at nl4, 35.92 ns); fceq2 is the variant clean on every route.
   FFMUX-gap routes today: fceq2 2/32, fc64eq 2/32, fxd2 1/32, fipowh3 1/32 (+ the F7-select defect on fipowh3 s9).
+### progress 06:42 UTC (select rule vs rule H: the positive control)
+- pc64_7: the same build with ulink_n14__1 / SDELAY back at T4's 19 / 2 (route acc06847, P 63.33 ns): gate 3 x 14/14,
+  EQUIVALENT, ffmux clean. hold_bits / hold_trace: no violation (ulink_n13 +959 ps; nc64_7: -325, 22 violations;
+  falseResult_5 clean; nc64_7: -2085). Static rule H: the ulink_n13 / ulink_n10__2 rows of nc64_7 are gone; other H /
+  I rows (falseResult_3 / _9, trueResult_4, n7, n8 stage[1], to -1345) are present on BOTH builds (T4cd's unpadded
+  sizes; the OR-join rows the audit found never live).
+- Reading: on this failure hold_bits discriminates exactly (fails the failing build, passes the fixed one); static
+  rule H names the culprit stage only on the failing build but carries unrelated rows on both, so as a gate it would
+  have blocked both. A replacement for the select rule would be: pad until H / I are clean (the conservative route
+  now running on every family) AND hold_bits clean, then allow select links to shrink. Still owed: negative control 2
+  (ipow umux3, the empty-pipe select race) -- a different mechanism, possibly not a hold race at all.
