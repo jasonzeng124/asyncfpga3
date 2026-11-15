@@ -4678,3 +4678,8 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   rule: shorten a select link only with H / I rows clean at both corners on >= 32 routes AND hold_bits clean; first
   check that the H rows and hold_bits FLAG the two historical failures (ipow T9cd seed 29 with umux3 1; collatz64
   T4cd seed 7 with ulink_n14__1 10) -- if either check misses one, the select rule stays.
+### progress 04:50 UTC (fcol4: collatz pad round 2)
+- fcol4 (nl4 = nl3 + 3 pads): 27 routes (5 farm task failures), median 41.24 ns (39.48-42.58; fcol3 41.23: no cost),
+  gate 81/81, static A / A' / E clean 27/27. Hold/close clean on 22/27 (fcol3: 21/26); rows left H -2 to -176 ps,
+  6 of 7 on ulink_n_falseResult_5 stage[1] (round 1 padded its SDELAY; now its UACK), one ulink_n8 st1 -76.
+  Round 3 -> nl5 (falseResult_5 UACK, n8 UACK), farm fcol5.
