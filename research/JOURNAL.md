@@ -4976,3 +4976,16 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
   iteration vs fxd paired (median 19.39 -> ~17.5-18.4 ns); fxsel0 at most ~0.4 ns more. Static checks: no A / E change
   expected (corner_audit put every select line on no rule A / E constraint); whether H / I / hold_bits / TSE or the gate
   see anything is the experiment. If fxsel0 races on some route, that is the xorshift negative control the owner asks for.
+### progress 17:25 UTC (select links at 0 on collatz, collatz64, ipow: each family's attempt at a raced select)
+- Select-path macros per kernel (corner_audit.select_path_macros on each build's MLIR): collatz (nl6) ulink_n14__0 18,
+  ulink_n14__1 36, ulink_n_index_11 15 (+ SDELAY 3 / 3, umux0/1/2 6 / 5 / 11); collatz64 (h4) 15 / 19 / 14; ipow (h4)
+  ulink_n17__0/1/2 15 / 8 / 23, ulink_n_index_15 9; xorshift (fr4) 5 / 8 / 6 / 5. The collatz lines are the owner's
+  second-lead numbers (ulink_n14__0 = 6.87 ns of chain on colsz2_6's loop).
+- Farm fcsel0 / fc64sel0 / fisel0 (32 routes each, items 25 / 26 / ipow h4 structures, every check + TSE): those links'
+  DELAY at 0; SDELAY (the pipe's internal line, rule I) and the mux delays (rule A) unchanged. Two outcomes are both
+  useful: a route that races (gate fails) is that family's negative control, and the checks must flag it; no route
+  racing is the gain, if every check is clean.
+- PREDICTION (event graph, before the builds): collatz ulink_n14__0 is 6.87 ns of the loop on colsz2_6 (item 22's
+  structure); at DELAY 0 that link costs its controller + wire (~1 ns) -> collatz -4 to -6 ns per iteration if
+  nothing else binds (35.8 -> ~30-32); collatz64 ~-3 to -5 ns; ipow ~-2 to -6 ns. The gate is likely to fail on some
+  routes at 0 (the 2026-11-09 / 11-11 failures were shortened select paths).
