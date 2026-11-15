@@ -42,6 +42,22 @@ Inputs (origin/claude/research, read-only; each is exactly `research/tools/fifte
 - Reproduce: `formal/tools-A/rewrite/gen.sh`, then
   `cd formal && ./check.sh $(cd lean && ls Formal/Rewrite/*.lean)` (1,467 declarations, standard axioms).
 
+## C6. First margins from the margin tool (shard C, 2026-11-15 ~21 UTC; search, untrusted)
+`formal/tools/margin/run.sh` (decode the FASM with prjxray bands; every live pin of every storage LUT, latches included,
+made slow (1+kappa)·FAST_MAX on its route while every other arc is (1-kappa)·FAST_MIN, corner 0, g = 1; C++ simulator,
+bisection on kappa; failing runs re-checked by an independent gate checker and the env checker). Results in
+`formal/tools/margin/out/<build>/`. "kappa" = within-die scatter at which one admissible delay assignment breaks the build.
+| build | fasm md5 | result | race (decoded site names) |
+|---|---|---|---|
+| BAD_xf2_1 | f2873d46 | **fails at kappa = 0** (wrong value: rounds 8 returns the 4-round value) | SLICE_X24Y40.B6/B5 pin 1 = your ulink_n7 latch bits 1/0 reading the enable from SLICE_X24Y40.A6 late; a 3rd at 0.08 (SLICE_X24Y51.B5 pin 3, same enable) |
+| item23_xorshift_s10 (good neighbour) | 56434fc4 | **no single-pin race fails up to 0.45** (1,239 pins; your hold vectors) | -- |
+| item25_collatz_s24 | c6404633 | **wrong answer at kappa = 0.44** without runt filter (n = 703 -> 99, want 170), both checkers pass; correct at 0.32 on this race; 0.36-0.40 undecided | SLICE_X16Y57.A5 pin 3, route from SLICE_X16Y38.A6 (10 arcs); four other pins fed by SLICE_X16Y38.A6 fail at 0.36-0.45 |
+| gcd_ps_e6bb4aec (reference) | 2dbf962d | 0.36 (livelock, Lean-refuted), 0.40, 0.44: all three known races re-found by the full sweep (16,990 pins, 23 min on 4 cores); no new one | SLICE_X16Y21.A6 pin 0 (merge4 ua2 reads its fork) |
+**Asks:** (1) which cells are SLICE_X16Y38.A6 and SLICE_X16Y57.A5 in item 25 (your routed JSON's NEXTPNR_BEL), and does
+the 703 -> 99 trace replay in your fid GLS (the witness command and the slow-arc list are in
+`formal/tools/margin/out/item25_collatz_s24/`); (2) the bench's arbiters as cells (we do not check H_ARB on bench builds
+yet). Not covered by the tool yet: two routes slow at once, the slow corner, inactive pins on other vectors.
+
 ## C5. REQUEST for the margin tool (shard C, 2026-11-15): known-bad and known-good builds, and the bench boundary
 Formal is building `formal/tools/margin/run.sh BUILD.fasm OUT/` (PROGRAM.md, first section): for a routed build, every
 race that can break it at g = 1 (with and without a 20 ps runt filter), the smallest failing within-die scatter kappa*
