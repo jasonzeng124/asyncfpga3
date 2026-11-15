@@ -3097,3 +3097,21 @@ UnitProof (stated on the long certificate here); any instance.
   passes a symbolic bit through capture and hold; the wrong claim (negated bit) fails the check.
 * *Not shown:* templates in ChainUOK/UnionOK (they compare values; equal SVals suffice, not written); per-window
   symbol renaming in the unrolled certificate; the window invariant (that ρ_j is the token run's register bits).
+
+### progress 17:41 -- AO/SymUnroll: template kinds; the sub-word claim checks once for every pair (check.sh OK)
+* *Problem:* `UnrollClaimU.gc_unrollU_gen` proves the long certificate's claims from sub-word checks on CONCRETE
+  kinds; with register bits in claims, window j's concrete kind depends on the pair. Can the sub-word checks be done
+  once on template kinds with window-relative symbols `(rel, v)` (bit v of the registers of window j + rel)?
+* *Proved* (1,078 declarations audited, standard axioms): `TKind`, `instW ρ n` (window t instantiated with the
+  symbols renamed to `(n + t + rel, v)`), `uclTT`; `uclT_instW` (the long claim list of the instantiated word is the
+  instantiation of the template list); `wt_instW`, `WSep_instW`, `WUp_instW` (event structures and Sep/Up tables do
+  not depend on claims); `instW_drop_take`; `GateProofWS` / `gateProofW_inst`; `GcWinS` (template sub-word check,
+  external claims by a node predicate) and `gcWinU_inst`; `gc_unrollU_sym`: `hGC` of the long certificate of the
+  instantiated word for EVERY assignment ρ from the template sub-word checks.
+* *Plainly:* with SymClaim, a finite set of checks on template kind triples now proves the gate-provable claims
+  (control and register latches) of every pair's certificate. What a pair contributes is ρ (its register bits per
+  window); the claims whose truth depends on ρ being the token run's values are the external ones (UnitProof's
+  value premise).
+* *Not shown:* chains (`ChainUOK`) in template checks (only the GateProof alternative is lifted); the value premise
+  (window invariant / refinement); the instance. Note: the background `lake build` from setup.sh is still running
+  (project modules; Mathlib's part done).
