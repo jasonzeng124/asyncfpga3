@@ -4342,3 +4342,16 @@ from LatchHoldPin + roots from chain certificates) and a kernel-checkable row fo
 * *Not shown:* the roots' windows on a real build (they come from chain certificates on the controllers, as in
   LatchHoldCert, or from quietness); any instance; completeness. Next: measure on gcd_ps which latches' data
   sources are mux LUTs (the select captures) and emit a first forcing-tree row.
+### progress 21:1x -- select captures on THE target: 1,070 latches not yet covered (untrusted Python, subagent)
+Files `formal/tools-B/select/` (muxsrc.py, muxsrc.log, summary.json, uncovered_mux.json.xz; net.json from
+tools/cview/lean2json.py on NetPS). Of the 4,185 latch bits (LatchViewPS rows), the data pin's collapsed source is:
+another latch 1,697; a combinational LUT 1,811 (966 LUTs); boundary/undriven 320; constant/rst 357. **Mux-like**
+(one pin s selects between two other single pins of different sources; constants substituted): 1,484 latches via
+781 LUTs; 414 already covered by LatchHoldPS*/LatchHoldPinPS* (670 latches), **1,070 not**; each uncovered one has
+a unique (s, a, b). By owning instance: umux*.udat 933 (select = a `ulink_n*.lat.odd.u` latch, inputs latches,
+depth 0 -- exactly bd_mux's datamux; the select latch also feeds the umuxN.uj0/uj1 join LUTs in 933/933, so the
+select is recognisable structurally), uselect* 69, ushrsi* 58, ushli* 10 (select and inputs through cones up to
+depth 13). Plainly: on gcd_ps, about a quarter of the latch bits capture through a select mux, and none of those
+has a Lean hold/setup row yet; the 933 umux ones need only depth-0 forcing trees (select + selected latch), so they
+are the first instance target for `select_capture`. Not measured: whether the selected/select roots have chain
+certificates from the latch's enable source (the hold side) -- that is the next step.
