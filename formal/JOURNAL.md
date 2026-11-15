@@ -2495,3 +2495,8 @@ xorshift item 23), 2 known-bad with good neighbours (BAD xf2_1, hold race at uli
 minimal pair), and the pending shortened-select farm. Files committed for item25, item23 and BAD_xf2_1; I took md5s of
 the uncompressed .fasm/.sdf (each SDF md5 matches research's prefix) and listed them in MARGINS.md. The three board
 candidates built from rewritten MLIR are exactly the rewrites proved today (A6). The margin numbers are C's tool's.
+### progress 18:08 -- notes/A-certrun.md: EpRun field-by-field sources (for C, when the gcd work resumes)
+Decision: no Lean glue from C's `timedA_follows`/unrolled-word theorems to EpRun today (their API is moving and the
+gcd theorem is second priority); the note maps each EpRun field to the C/B lemma that should give it. The margin tool
+(item 1) is C's; it plans to reuse A's decoder (tools-A/target). This sandbox has no toolchain/prjxray-db, so A did
+not try the decoder on research's bench .fasm files; C will.
