@@ -2072,3 +2072,6 @@ Audit plan for this: (1) formal's margin claims -- replay any failing trace in o
 
 ### note 18:35
 Owner b9ae1fe9 (audit PROGRAM, authoritative): after formal resumes, audit (1) every row of formal/target/MARGINS.md -- rerun, and check the failing trace fails in a GLS of that build; (2) negative control -- tool must rank known-bad builds below good neighbours and name the failing link; try an own deliberately broken build; (3) each rewrite proof -- statement about the MLIR research builds, full input range, one independent check; (4) research reporting a margin as more than it is (search is not proof, one route is not thirty). Formal B f67adab4 pivots to the select race in Lean (rules H/I as a certificate). T109c failed twice on a missing run_baked.vvp (iverilog compile concurrent with the formal lake build: memory); now rerunning sequentially.
+
+### note 18:40
+Formal C cb2c1fb5: Formal/Net/AO/TimedUnit.lean + UnitWord.lean (UnitProof rule: an external condition claim discharged by a timed unit theorem; timedA_followsUY with a weaker hypothesis); C reports check.sh OK, 1455 decls, standard axioms. To check on own clean build (wt-f91 at 104d9e60 still building Mathlib; will move the worktree to formal HEAD and rebuild the Formal part when Mathlib is done).
