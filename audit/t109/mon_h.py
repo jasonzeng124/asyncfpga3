@@ -28,7 +28,7 @@ for i, r in enumerate(x for x in J if x['margin'] < th):
         L.append(f"    time tr_{t} = 0, td_{t} = 0, tc_{t} = 0; reg ad_{t} = 0, ac_{t} = 0; integer dd_{t};")
         L.append(f"    always @(negedge tb_ps.dut.{st}) begin ad_{t} = 1; ac_{t} = 1; end")
         L.append(f"    always @({' or '.join('tb_ps.dut.' + d for d in ds)}) if (ad_{t}) begin ad_{t} = 0; td_{t} = $time;"
-                 f" if (!ac_{t}) begin if ($time - tc_{t} < hm_{tag}) hm_{tag} = $time - tc_{t}; end end")
+                 f" if (!ac_{t}) begin dd_{t} = $time - tc_{t}; if (dd_{t} < hm_{tag}) hm_{tag} = dd_{t}; end end")
         L.append(f"    always @(negedge tb_ps.dut.{en}) if (ac_{t}) begin ac_{t} = 0; tc_{t} = $time; hn_{tag} = hn_{tag} + 1;"
                  f" if (!ad_{t}) begin dd_{t} = td_{t} - $time; if (dd_{t} < hm_{tag}) hm_{tag} = dd_{t}; $display(\"HVIOL t=%0t {r['inst']} {c} D moved %0d ps before close\", $time, $time - td_{t}); end end")
     fs = r['first_state']

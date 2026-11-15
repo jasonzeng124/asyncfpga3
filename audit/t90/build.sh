@@ -10,6 +10,8 @@ case $V in
   nc64)  K=collatz64; SZ=../research/data/collatz64_sizes_T4cd_bench.vh; KN="BDC_CONST_DATA=1";;
   c64r)  K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_bench.vh; KN="$BASE";;
   c64nl) K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_bench.vh; KN="$BASE BDC_NO_LINK=ulink_n30__1";;
+  coleq) K=collatz;   SZ=../research/data/collatz_sizes_T3cdb_nl4_bench.vh; KN="$BASE";;
+  col4)  K=collatz;   SZ=../research/data/collatz_sizes_T3cdb_nl4_bench.vh; KN="$BASE BDC_NO_LINK=ulink_n28__1";;
   colr)  K=collatz;   SZ=../research/data/collatz_sizes_T3cdb_bench.vh;   KN="$BASE";;
   colnl|colm|colsz|colsz2) K=collatz;   SZ=${SZ:-../research/data/collatz_sizes_T3cdb_bench.vh};   KN="$BASE BDC_NO_LINK=ulink_n28__1";;
 esac
