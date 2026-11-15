@@ -1932,3 +1932,6 @@ Research c0d19791: xs_10 3-corner gate PASS + hold check clean -- consistent wit
 
 ### note 00:37
 Research da1752e6: spec_select.py static select-race row, xs_10 +1361 nom / +1124 worst (neg control -1728). Consistent with own worst dynamic 1135 ps, but own FAST_MIN dynamic 912 ps is lower than both of research's corners: their row misses the FAST_MIN corner (minor; positive). Falling phase: own monitor saw no abort change while z_short/z_long high (3 corners). Added to the T108 REPORT row.
+
+### note 00:39
+Research 49a33c47: spec_select FALL row (+2730 nom / +2707 worst) -- consistent with own dynamic T108 (0 abort changes while either line high, 3 corners). Static rows are research's tool (UNVERIFIED as static). Waiting for farm fxs/fxss2 and a board item.
