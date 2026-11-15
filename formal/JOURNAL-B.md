@@ -4370,7 +4370,7 @@ certificates from the latch's enable source (the hold side) -- that is the next 
   `win_end_ge` needs a single path, so a select row is two chains + one mux row rather than a DAG certificate.
 * *Not shown:* any emitted row (next: a Python emitter from ctlcert chains for the 933 umux latches); the
   certificates' premises; setup (rule I) rows; completeness.
-### progress 19:4x -- CHECKED: `SliceNetPS/Reset.lean` (TBehX `quiet` from the reset island); check.sh OK on all four new files
+### progress 19:3x -- CHECKED: `SliceNetPS/Reset.lean` (TBehX `quiet` from the reset island); check.sh OK on all four new files
 `formal/check.sh Formal/Cells/SliceNetPS/Reset.lean Formal/Cells/ForceTree.lean Formal/Cells/SelectCapture.lean
 Formal/Cells/SelectHold.lean`: OK, 4,759 declarations audited, standard axioms only.
 * *Problem:* C's certificate theorems need TBehX's `quiet` field (exact nodes constant on `[t0 - H, t0]`); B's
