@@ -4491,3 +4491,19 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   values are corner_audit's per-corner estimates on routes built with the OLD sizes; the farm runs (32 routes each,
   every check, eval.txt now with the hold/close list) say whether they close. Cost: the period / latency lines vs the
   fcolsz2h / fc64nlh / fipowrh runs on the same seeds.
+### progress 03:10 UTC (hold_bits.py: the trace hold check per latch bit, close at the bit's enable pin)
+- research/tools/fifteen/hold_bits.py DUMPDIR KERNEL_V: decodes every latch bit from netlist_baked.v (a LUT output with
+  a feedback pin whose INIT is en ? d : q), times each window at the PINS (driver event + that pin's wire delay; close =
+  en-pin fall + the en arc), maps bits to stages by their Q net names (link data_out, pipe dat[]). Window start: the
+  stage's delayed request rise (no earlier than the en-pin rise); when the request IS the node (DELAY 0) or is not kept
+  by name (marked *), rule H's start, the node's fall at its driver. Covers the stages hold_trace could not (ulink_n7,
+  n8, n25 ...) and the per-bit enable skew that broke xf2_1.
+- Negative control, xf2_1 FAST_MIN (the failing dump): exactly two stages flagged -- ulink_n7* 4 violations, -184 ps
+  (the hand trace: D at the pin 4246560, close 4246744) and its victim ulink_n_trueResult_6.stage[0] -1487 ps.
+  research/data/fifteen/hold_bits_xf2_1_fmin.tsv. Two earlier versions raised false alarms on pipe last stages (a D
+  change before the enable reached the pin; data still arriving through a DELAY-0 stage): fixed as above.
+- Positive controls (gates pass): xf3_1, xf3_4, c64nl_3, ipowr_8, colsz2_6, c64nl_1 (select flips), ipowr_1: no
+  violation; tightest +389 ps (c64nl_3 ulink_n13). xf3_4's old hold_trace flag (a 57 ps x-pulse) reads +741 per bit.
+- eval_task.sh's HOLD_VEC step now also writes hold_bits.tsv and a "hold-bits violations" line. The farm requests
+  already queued (fxf5, fxs5, fcol3, fc64h, fipowh) predate it; their static hold/close line is the check that matters.
+- Limits unchanged: a trace sees only what the vectors exercise, at one corner. The static rows (H / I) stay the gate.

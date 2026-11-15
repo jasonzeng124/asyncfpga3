@@ -8,7 +8,8 @@
 #      (tighten's unsized bundled-channel row "a" is listed apart)
 #   3. the full gate: bench_gate.sh SLOW_MAX / FAST_MIN / worst+M with the C-derived oracle.
 #   (SPEC_CASES=inst:k) the static check per case, LONG / SHORT, and the in-cell select race (spec_select.py).
-#   4. (HOLD_VEC=vector file) the trace-measured hold check at FAST_MIN (hold_trace.py) -> hold.tsv.
+#   4. (HOLD_VEC=vector file) the trace-measured hold check at FAST_MIN (hold_trace.py) -> hold.tsv, and per latch bit
+#      with the close at each bit's enable pin (hold_bits.py) -> hold_bits.tsv.
 # Steps 2 and 3 run in parallel (5 processes; memory ~3 x 2.4 GB for the gate sims).
 set -uo pipefail
 N=$1; K=$2; Z=$3; S=$4; VEC=$5; GH=$6; GE=$7; shift 7
@@ -44,6 +45,7 @@ done
 if [ -n "${HOLD_VEC:-}" ]; then   # trace-measured hold at every link / pipe input stage, FAST_MIN (hold_trace.py)
   ( DUMP_FIELD=min "$R/research/tools/eventgraph/fullstack_dump.sh" "$HW" "${K}_bench_gen" "$RUNS/hold/$N" "$R/$HOLD_VEC" > "$RUNS/hold_$N.log" 2>&1
     python3 "$R/research/tools/fifteen/hold_trace.py" "$RUNS/hold/$N" "$HW/${K}_kernel_bench.v" > "$O/hold.tsv" 2>&1
+    python3 "$R/research/tools/fifteen/hold_bits.py" "$RUNS/hold/$N" "$HW/${K}_kernel_bench.v" > "$O/hold_bits.tsv" 2>/dev/null
     rm -f "$RUNS/hold/$N/dump.vcd" ) &
 fi
 wait
@@ -73,5 +75,6 @@ if [ -n "${SPEC_CASES:-}" ]; then
   done
 fi
 cat "$O"/gate_*.txt >> "$E" 2>/dev/null
+[ -f "$O/hold_bits.tsv" ] && awk -F'\t' 'NR>1 && $4>0 {v=v $1"("$4"x,"$5"ps);"} NR==2 {m=$1" "$5} END {print "hold-bits violations: " (v?v:"none") " | tightest " m}' "$O/hold_bits.tsv" >> "$E"
 [ -f "$O/hold.tsv" ] && awk -F'\t' 'NR>1 && $6>0 {v=v $1"("$6"x,"$7"ps);"} NR==2 {m=$1" "$7} END {print "hold violations: " (v?v:"none") " | tightest " m}' "$O/hold.tsv" >> "$E"
 cat "$E"
