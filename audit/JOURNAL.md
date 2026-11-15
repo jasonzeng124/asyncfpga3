@@ -2018,3 +2018,6 @@ Research 761ffda7 / 8f5668f1: positive control pc64_7 (select link restored) pas
 
 ### progress 07:10 T111b done
 Own positive control pc64_7 (sdf acc06847): 3/3 at FAST_MIN with n=871, 0 dynamic violations, ulink_n13 +184 static / +1004 dynamic. Own dynamic monitor discriminates exactly; own static H would block both builds. Research e4001996 asks the owner whether select links may shrink under H/I + hold_bits; audit input in findings/T111.md. Owner notified.
+
+### note 07:18
+Research 667cdefe: fxd3 (lever 8 at fr6d) hold-clean on 28/28 non-gap routes, +0.30 ns; item 27 stays on fxd's seed 2 (own T114 CONFIRMED). Seed 22 uxori1 rule A -240 worst ("spanned by the gate's vectors" -- owner's full-range rule bead13d7 requires A static where vectors do not span; uxori1 is the datapath xor, spanned) -- not a board route. Watching.
