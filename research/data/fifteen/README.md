@@ -2,6 +2,10 @@
 (xf4), 23.49 ns per iteration (median of 30 farm routes; 21.00-24.75). Gap to 15 ns: 8.5 ns. On the bench's 12-bit range
 only: item 17, 20.60 ns -- the full range costs ~2.9 ns.** Lever 5 (item 18) ON HOLD. Collatz full range: item 22, 41.2 ns.
 
+**2026-11-15 caveat: "the static check" above was rules A / A' / E only. Rule H (hold) and I (capture) rows were never
+read, and on item 23's route they are below 0 (worst corner: H -274 ps on ulink_n7, the stage that corrupted xf2_1).
+Item 23 is gate-clean, not statically hold-clean. Re-gating: sizes fr4 (hold_pads.py), farm fxf5 / fxs5 (JOURNAL).**
+
 
 # xorshift at 15 ns per iteration, four-phase (PROGRAM.md FIRST, owner 2026-11-12)
 
