@@ -1,0 +1,9 @@
+## eventgraph, corner worst
+
+- c0 critical: 37340 ps, 88 arcs, stages ulink_n13 957/957, ulink_n14__1 15496/15496, umux1 2844/1590; polarity changes ulink_n13R->ulink_n14__1F, ulink_n13F->ulink_n14__1R
+
+| line | n | ps (ps/el) | on cycle R/F | set by | margin | launch -> capture | data: logic / latch / enable / wire / ctl | en spread | req: total / not line / wire | guard | n_need | n_logic | corner_audit proposal | widest data wire | flags |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| ulink_n14__1.many.stage[1].u.rdly | 36 | 14525 (413) | 14851/14851 | E depends | 14289 | ulink_n14__1.many.stage[1].u.ctl.u.u -> umux1.uj1/A5 | 0 / 68 / 171 / 304 / 0 |  | 15308 / 457 / 457 | 0.97/1.03 | 1 | 0 | 36 | ulink_n14__1.many.stage[1].u.lat.odd.u/O6 -> umux1.uj1/A5 304 | select link (withdrawn select rule; corner_audit never shortens it); corner_audit: select path: never shortened (see docstring) |
+| umux1.udly | 5 | 1482 (355) | 1799/545 | A own | 1692 | umux1.uj0 -> umux1.uxa.u/O6 | 0 / 0 / 0 / 368 / 68 |  | 2178 / 379 / 311 | 50 | 1 | 0 | 5 | umux1.uj0/O6 -> umux1.uxa.u/A3 368 | F (own flush) margin 2528; mux delay (withdrawn select rule; corner_audit never shortens it); rule A pairs by common source umux1.uj0; 32 peer output(s) no common source pairs with the request, on NO rule-A constraint: umux1.udat; corner_audit: select path: never shortened (see docstring) |
+| ulink_n13.uack | 1 | 62 (375) | 447/447 | H own | 1086 |  ->  |  /  /  /  /  | 232-825 (32 bits) | 2036 /  /  |  | 0 |  | 1 |  | corner_audit: floor 1; totals only (H) |
