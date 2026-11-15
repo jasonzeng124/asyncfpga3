@@ -5059,3 +5059,19 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
 - Farm fcsel1 / fcsel2 (collatz select links at 1 / 2, every check incl. TSE with the fixed summary).
   PREDICTION: E at worst clean at 1 on most routes (one element ~376 ps covers -255) and on all at 2; -9 to -10 ns per
   iteration at 1, ~0.4 ns less at 2 (each element on umux1's select ring counts twice: rise and fall).
+### Blanket rules: inventory (owner, PROGRAM "No blanket rules"; first pass)
+Searched: CLAUDE.md, research/PROGRAM.md, cells/verify/{tighten,skew}.py, research/tools/corner_audit.py, bdc/emit.py,
+cells/hw/build_bench.sh. Timing rules only (git / lock / farm / toolchain rules are not timing rules).
+| rule | where | mechanism it stands in for | check that replaces it | cost today (ns / iteration) |
+|---|---|---|---|---|
+| never shorten a select link or mux delay (the select rule) | corner_audit.py default (`--shrink-selects` off); PROGRAM (withdrawn) | select read by the mux join C(x_req, ctl_req . ~s) before it lands; hold windows behind a select (collatz64 2026-11-11) | rule E at the mux (select vs ctl_req; flags the constructed race -3345 ps), rule H / I + hold_bits + TSE for the hold side | collatz -10.4 at 0 (fcsel0, 22 seeds; E fails at 0, 1 / 2 running); xorshift -0.3 / -0.5 (sel1 / sel0); collatz64, ipow running |
+| a sized line keeps >= 1 element (`--floor 1`) | corner_audit.py | none named (a removed line also removes its hop, which the per-link price does not see) | the line's own rule margins re-measured with the line at 0 (corner_audit verify) | not measured; on fxd_2 11 hold-pad lines sit at the floor, off the critical cycle: likely < 0.3 |
+| guard max(0.2 t, 200 ps) | tighten.py req_guard (rules A / F / H / I / K / L) | "eyeballed" (skew.py's own comment) | the measured residual (corner_audit: 3 %, 50 ps; skew GUARD 0.97 / 1.03 there) | 0 on board items (sized by corner_audit, BD_NO_TIGHTEN=1); still the default of check.sh / flow.sh builds |
+| GUARD_LO / GUARD_HI 0.772 / 1.155 | skew.py rule E default | 8.5 % ring scatter (measured, but PROGRAM: 0.76 % on the board after the shared corner cancels) | corner_audit's residual guards | 0 on board items (corner_audit patches them); default for every other caller |
+| tightening never removes more links than the old per-link price | tighten.line_links | none named; conservative pricing | per-link cost measured on the route (already the padding price) | small (one element at most per line, tighten-sized lines only) |
+| K = 6 storage crossings, then a path is "a lap" | skew.py walk | termination of the longest-path walk on rings | -- (this one can HIDE a path: the unsafe direction; needs a check that no constraint's binding path was cut at K) | 0; a soundness question, not a cost |
+| bd_pipe SDELAY >= 1 per internal boundary | bd_link.v / emit STAGE_PAD 3, ACK_PAD 6, SELECT_PAD 4 placeholders | named: the closing wave outruns the data in a filling pipe (rule I); placeholders are resized | rule I / H per route | placeholders that sizes.vh misses stay at the default: collatz seed 24 ULINK_N10__4_UACK = 6 on the datapath cycle's fall (rule H says 0; ~2.7 ns on the graph); N19__1..4_UACK, merge olink / rlink lines likewise |
+| a ring needs three storage stages per simple cycle | CLAUDE.md, emit RING_MIN_STAGES | named: Muller ring liveness | -- (a theorem, not a margin) | -- |
+| harness MIN_MHZ floor | build_bench.sh | the synchronous harness's own STA | -- (real) | -- |
+Next on this list: the missing-macro defaults (cheap, real time on collatz's cycle), then --floor 0 measured on the
+farm, then the K-lap check.
