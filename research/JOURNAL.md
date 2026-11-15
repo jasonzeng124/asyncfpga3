@@ -4517,3 +4517,13 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   SDELAY 1, "PAD to 2". hold_bits: none, tightest +810 ps; hold_trace: none.
 - Next for xorshift: fr5 sets that SDELAY from the 32 fxf5 routes (taking the longer number; eval_task now also returns
   the raw H / I rows with their PAD values, report_hi_{nom,worst}.txt, for hold_pads.py).
+### progress 01:55 UTC (fr5 local test: one row fixed, two small others appear; speculative cell's select rows on 32 routes)
+- xf6_10 = fr5 candidate (fr4 + trueResult_0 SDELAY 3), seed 10: new route f69639f5, P 22.80 ns, latency 492 cycles.
+  The trueResult_0 I row is gone; this route instead shows H -8 (falseResult_9 stage[1], nom and worst) and I -106
+  (trueResult_2 stage[1], worst). Gate 3 x 17/17, hold_bits none (+1409), hold_trace none. Route scatter moves the
+  rows from stage to stage: one seed cannot size them. fr5 stays a candidate; the pads come from fxf5's 32 routes.
+- fxss / fxss2 (the speculative cell's in-cell rows on the 32 fxs routes): every route positive. SELECT at worst min
+  +150 ps (seed 1), +159 (12), median +1365; at nominal min +363, median +1603. FALL at worst min +1788, median +2749.
+  fxss's SELECT rows equal fxss2's on all 32 seeds (the routes reproduce). Seeds 1 and 12 are thin (+150 / +159 against
+  a measured-residual guard already applied): a candidate for a bigger margin is moving the abort LUT next to uspec
+  (or sizing the short line one element longer on routes like those). research/data/fifteen/farm/fxss2_select.txt.
