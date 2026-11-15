@@ -2012,3 +2012,6 @@ Item 27 CONFIRMED: own sdf a9bdac53, latency 417, 19.319 ns/iter, 1.227x paired 
 
 ### note 06:41
 Research 531cc693..ad748e35: pad rounds (fceq2 collatz n==2 hold-clean 30/30 at +0.83 ns; fxd2; fc64h2; fipowh3). fipowh3 seed 9 = the F7-select nextpnr defect (gate 13/17 + fasm_equiv DRIVER DIFFERS F7BMUX/S0 const 0 vs 1) -- refused per BOARD-QUEUE header; not a board route. Research notes farm_table.py silently drops FFMUX-FLAG routes (counts corrected by hand) -- a reporting hazard for future farm medians; own board-route checks run the FF scan each time (all board routes this session: MISSING MUX 0). Item 26's baseline text now fc64h2 (45.28 median); own paired c64h_25 used h sizes (45.088) -- ratio direction unchanged.
+
+### progress 06:50 T111b started
+Research 761ffda7 / 8f5668f1: positive control pc64_7 (select link restored) passes; hold_bits discriminates exactly; static H flags the culprit only on the failing build but carries the never-live OR-join rows on both (research cites the audit). ipow negative control not reproducible on the bench top (soak harness; root cause revised to ushrsi0). Own positive control running: pc64_7 build + FAST_MIN with n=871 + own dynamic rule H (t111/pos.sh).
