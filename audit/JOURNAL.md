@@ -2117,3 +2117,6 @@ Select-flip vector: 4/4, umux0 132 / umux2 48 mux violations. Own static H none 
 
 ### note 21:45
 Owner b0f9dafa (research PROGRAM): select checks are now arrival (rule E at the mux / steer; no select change while the output request is high) AND hold (H / I / hold_bits), citing audit T116. REPORT rows updated (gap resolved). Audit will apply the arrival check in simulation (t83 mon_mux / mon_steer) to every shortened-select candidate.
+
+### note 21:55
+Research bbf51a9f: corrected-summary rule E re-check: item 26 board seed 25 no E row (own T113 rule E min +1266, agrees); item 24 family no E row on 29 routes (own T107b +2687). 7ad7f65d: research's select_arrival.py (select change while the gated request is high) -- the same quantity as own t83 mon_mux; positive control pending. Farm queue full (250 tasks).
