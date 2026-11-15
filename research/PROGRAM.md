@@ -118,6 +118,34 @@ Report in `research/data/fifteen/README.md`: one table, a row per lever in the o
 applied, with predicted and measured period on four seeds and the gate status. Its first
 line is the best gated xorshift period and the gap to 15.
 
+## Second lead: account for every delay on collatz's loop (owner, 2026-11-15)
+
+The owner, on being told the odd/even select stage costs 7.5 ns of collatz's iteration: "surely
+select cannot be taking 7ns". The select does not; its delay line does. On `graphs/colsz2_6`
+(item 22's structure, 40.8 ns) the critical loop is all rising edges, and 25.1 ns of it (62%) is
+delay-chain elements:
+
+| stage | on the loop | of which delay chain | elements |
+|---|---|---|---|
+| ulink_n14__0 (umux0's select link) | 8.35 | 6.87 | 18 |
+| uselect0 (`n & 1 ? 3n+1 : n >> 1`) | 7.46 | 5.63 | 16 |
+| ucmpi2 | 7.30 | 5.39 | 16 |
+| uaddi0 | 5.95 | 4.27 | 12 |
+| umux0 | 3.55 | 1.75 | 6 |
+
+uselect0 is one or two LUT levels behind a 16-element line. Before any more levers on collatz:
+
+- For every delay line on the loop of the current build (item 25), on at least 8 routes, report
+  the constraint that sets its length (rule, launch, capture), the data path it covers split into
+  logic, wire and latch-enable skew, the request path, the guard, and the length the logic alone
+  would need. One table, in `research/data/itercost/README.md`.
+- If a line covers a path that cannot happen (a false path, a shifter built for a shift by a
+  constant, a path through a constant operand), fix the cause, not the size.
+- If it is real wire, say which wire, and whether placement of that one region would shorten it.
+- This is diagnosis. No line is shortened because of it without the usual checks, and the select
+  rule stands until the owner answers the question in the journal (2026-11-15 06:50).
+- Then the same table for collatz64 and ipow, whose loops are also datapath loops.
+
 ## The farm: thousands of cores, by request (owner, 2026-11-14)
 
 The owner: "you can use as many cpus as you want if it helps you". A cluster now runs jobs for
