@@ -35,6 +35,35 @@ with a check that fails on a build known to be wrong.
   about git, the lock, the audit branch, the farm and the toolchain fingerprint are not
   timing rules and are not affected.
 
+## Formal works with you (owner, 2026-11-15)
+
+Formal (`claude/formal`, three Lean shards) is back on, and the owner let it be pointed at
+your builds: "maybe even hav it colab with rsch". It has the netlist decoded from the
+bitstream, prjxray delay bands with a within-die variation parameter kappa, and an adversary
+that searches for a delay assignment that breaks a build. On gcd_ps that gave a margin (it
+fails at kappa = 0.36) and the race that sets it. Its first job now is the same for your
+builds: every race, the kappa at which each can fail, and a failing trace you can replay. That
+is the kind of rule "No blanket rules" asks for. It is also proving your two MLIR rewrites
+(`pre_dec.py`, `pre_eq2.py`) equal to the originals over the full input range.
+
+You cannot talk to it. You can read each other's branch.
+- Keep `research/FOR-FORMAL.md`, newest first. For each build you want a margin for: kernel,
+  build command and seed, SDF md5, what changed against the previous build (which links were
+  shortened), and where its files are. Start with item 27's route, the first shortened-select
+  candidate, and collatz items 25 and 26. Also list builds you know are bad (the collatz64
+  select failure, `xf2_1`) with one good neighbour each: formal's tool has to tell them apart,
+  and that is its negative control.
+- Formal can rebuild a route from your command and seed. Where a file saves it time, commit it
+  under `research/data/for-formal/NAME/` (the `.fasm` and the SDF, xz, under 1 MB each, no
+  bitstreams).
+- Read `formal/FOR-RESEARCH.md` on `origin/claude/formal` at the start of every session and
+  again every two hours. A margin or a counterexample there is evidence about your build:
+  replay the trace in your gate-level simulation and say in the journal whether it reproduces.
+  A counterexample to a rewrite blocks the items that use it.
+- Do not wait for formal. Its numbers add to your gates and do not replace them yet. When its
+  tool runs from one command, run it on the farm over your routes and report the margin next
+  to the period.
+
 ## FIRST: xorshift at 15 ns per iteration, in four-phase (owner, 2026-11-12)
 
 The owner read `research/data/eventgraph/README.md` and decided two things:
