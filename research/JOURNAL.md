@@ -4533,3 +4533,29 @@ Next (for whoever picks this up; the farm results land on claude/cluster):
      number), resubmit, until the H / I lists are empty on >= 32 routes. Same for fcol3, fc64h, fipowh.
   2. fxs / fxs5: the speculative incrementer's latency vs fxf4l / fxf5 seed by seed; the static LONG / SHORT lines.
   3. Only then re-mark BOARD-QUEUE items 19 / 22 / 23 / 24 and the fifteen README headline.
+
+## Session 2026-11-15 03:30 UTC -- farm round-1 hold pads tabulated, round 2 submitted; speculative incrementer on 30 routes; rule E with C-element joins (lever 5)
+Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds: farm 1-32; local 10
+### progress 03:30 UTC (farm results from the last session)
+- Lock: the previous session's lock (01:51Z) was 93 min old at 03:24Z -- dead by the 90-min rule; taken.
+- fcol3 (collatz nl3 pads): 26 routes (16-18, 23-25: farm task failures in 2-5 s, no exit code -- infrastructure, not
+  builds). Period median 41.23 ns (38.69-42.49; item 22 41.20). Gate 78/78. Static A / A' / E CLEAN on 26/26 at both
+  corners. Hold/close: 21/26 routes clean; rows left on 5 (worst H -351 trueResult_4 st1, I -188 falseResult_5 st1).
+- fc64h (collatz64 pads): 30 routes, median 45.12 ns (42.21-48.29), gate 90/90; umux2's traced false-path A row on
+  every route as before; hold/close rows on 28/30 (worst H -1211 ulink_n10__1, -757 ulink_n28).
+- fipowh (ipow pads): 26 routes, median 39.34 (37.16-41.53), gate 78/78; umux3's traced row on every route; hold/close
+  rows on 10/26 (worst H -620 falseResult_11 st1).
+- Reading: one pad round shrinks the rows but route scatter moves them (as xf6_10 showed). Round 2: hold_pads_eval.py
+  (new; the knob mapping of hold_pads.py, from eval.txt rows since these runs predate report_hi_*.txt), +1 link per
+  300 ps of the worst row over 32 routes -> farm fcol4 / fc64h2 / fipowh2. The audit (T109/T109b) found these rows to
+  be OR-join lower bounds whose paths were never live (0 dynamic violations, >= +763 ps); padding them anyway is the
+  conservative choice while no static proof with C-element semantics exists (pads cost time only).
+- fxs (speculative incrementer, fr3 sizes, 32 routes): latency 463 vs 503 cycles mean over the 30 seeds both built
+  (fxf4l, same seeds, same sizes without the cell): -40 cycles = -1.87 ns per iteration; 28/30 seeds faster, seed 9
+  +5, seed 17 -3. Static per case, all 32 routes: LONG A' >= +1034 worst, SHORT A' >= +94 worst (seed 13), no other
+  A / E row below 0 in any case. Gate 93/93 (31 routes). The uncased "static" line's uaddi0 A row is the known
+  pairing artefact (tighten pairs uaddi0 with one of its two lines), not a check of either case.
+- fxs5 (spec + fr4 pads): 24 routes (8 farm task failures); every per-case row positive; hold/close rows on 14/24
+  (worst H -354 trueResult_8 st1). fxf5 (fr4 without the cell) still running at 03:50Z.
+- NOT EQUIVALENT (fasm_equiv) on fcol3 s5/s31, fc64h 10 routes, fipowh 9, fxs 5, fxs5 2: the farm does not return
+  equiv.txt; the kinds seen before were all the benign constant-LUT -> F7/CARRY4 kind, but these are not checked yet.
