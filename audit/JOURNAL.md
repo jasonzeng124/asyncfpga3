@@ -2123,3 +2123,6 @@ Research bbf51a9f: corrected-summary rule E re-check: item 26 board seed 25 no E
 
 ### CORRECTION 21:58 (own T116)
 Own mux-monitor counts were per select pin (32 per mux): umux0 ~30 transitions while z_req high, not 960 of ~1460 rises; and the monitor ignores z_ack (a change after every consumer acknowledged is allowed). Research's select_arrival.py sees 0 on the same route. REPORT row and T116 amended to UNRESOLVED; T116b (t116/mon_sel.py: per-event classification by z_req / z_ack) running. Owner notified of the correction (b0f9dafa quotes the wrong figure).
+
+### note 22:10
+Formal A 98be38bd: enable-only adversary separates BAD xf2_1 (fails at kappa = 0) from item 23 (correct at 0 and 0.16) at ulink_n7 -- the owner's negative control for this race, consistent with own T109 (same latch LUTs). REPORT row updated. Formal B ff591779: SliceNetPS/Reset CHECKED (4 files, 4759 decls); Reset's dependencies include ~6 GB modules -- own build deferred until T116b's GLS is done, then one-at-a-time.
