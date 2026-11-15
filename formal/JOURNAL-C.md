@@ -3159,3 +3159,20 @@ kind invariance under 3 alphabets; RESULTS.txt quotes each Lean definition besid
 (the committed ao.py does not save VCP/OVER/xs/prev/s0, which win/win.py needs: the version behind win/RESULTS.txt
 was never committed). ao.py on (603,445) c = 1 ran > 15 min in round 0 and was killed. To finish: patch ao.py, run
 `ao.py 1 1` on (17,5), then `winchk.py`.
+
+### progress 19:43 -- margin tool v0 (tools/margin): re-finds gcd_ps's 0.36 livelock and 0.40 deadlock on a test window (untrusted search)
+Subagent, reviewed and committed: `run.sh` (decode -> candidates (races.py, ctlsweep's set) -> reference run ->
+rank.py -> margin.py: every candidate at KHI, 0.01-grid bisection of each failure, separate bisection for the first
+quiet (finite) failure, w = 20 and w = 0; witness dir with exact simadv commands). Decode of gcd_ps_e6bb4aec from the
+read-back FASM with prjxray-db from the toolchain-cache ref: bnd/arbs byte-identical to A's, net structurally equal to
+lean2json(NetPS) (all 186,873 gates). **Result on a 71-candidate window (out/gcd_ps_run1):** w = 20: kappa* = 0.36,
+SLICE_X16Y21.A6 pin 0 (route from SLICE_X17Y23.B6), livelock; first quiet failure 0.40 -- both as B/A found them.
+w = 0: fails at 0.34 (memory-capped runs counted as failing; 0.33 OK). Arbiter-0 state livelock at 0.42 (flagged:
+H_ARB may exclude it). **Caveat:** the window was chosen knowing the race (dynamic rank 234/1,316), so this tests the
+pipeline, not its ranking. **Static ranking fails:** my forkrace.py puts the race at 3,306 of 4,856 (detour 704 ps
+fast vs direct 407 slow: the detour is gated by a join the scan cannot see); the subagent's path scans likewise.
+So completeness needs the full active sweep: ~1,194 control pins (~27 min on 8 cores per kappa, both pairs, Python),
+16,990 with latch-like nodes (~52 CPU-h: infeasible in Python). **Next: a C++ transport simulator** (simadv's loop,
+H_RUNT, sequential env, classes), verified event-for-event against simadv; then the full sweep on the farm.
+Gaps: single-pin adversaries only, corner 0, two pairs, latch setup/hold not modelled, no gatecheck/envcheck of the
+failing runs inside the tool, boundary_ps.py is gcd_ps-specific.
