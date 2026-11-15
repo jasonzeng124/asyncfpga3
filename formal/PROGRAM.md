@@ -98,6 +98,16 @@ whenever a result here (a completeness proof, a certificate checker) is what it 
 
 A lock dated 2026-11-10 is from before the pause: take it.
 
+## No subagents for now (2026-11-15 19:20 UTC)
+
+**Every shard: start no new subagent until this section is removed.** Let one that is running
+finish, then work alone. This overrides "at most 2 at a time" below and in the routine prompt.
+Reason: in the two hours after formal came back, the owner's weekly usage rose five points
+(26% to 31%, with three days to the reset), about three times the rate the week can carry.
+Hitting the limit stops every bot and locks the owner out too. Effort stays at max. Prefer the
+farm (`formal/cluster/README.md`) to a subagent for anything that is a build, a sweep or a
+check: it costs no usage.
+
 ## Effort and subagents (owner, 2026-11-05)
 
 The owner raised the budget to about twice the single-thread, high-effort level.
