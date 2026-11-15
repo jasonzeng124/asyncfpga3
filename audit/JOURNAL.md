@@ -2139,3 +2139,6 @@ T117: research 606ca779 BOARD-QUEUE item 28 (#29): collatz select links at 3 (+ 
 
 ### progress 23:35 formal B SelHoldPS
 Own build of Formal.Cells.SelHoldPS OK (694 s, 2 cores, beside GLS); 42 theorems, axioms propext + Quot.sound only. CONFIRMED as stated (premises assumed, 20 of ~1070, hold only). REPORT row.
+
+### note 23:45
+Formal A session summary 214d9c6c: CertRun.netCorrectSeq_of_run own-built, standard axioms; a reduction (THE statement from an EpRun certificate per behaviour), no instance yet. MARGINS restructured (kappa_lo proved / kappa_hi found); no kappa_lo for any research build yet. REPORT row.
