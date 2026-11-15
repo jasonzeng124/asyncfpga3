@@ -2108,3 +2108,6 @@ Formal A 14b3e025: BAD xf2_1 fails in formal's model under a scatter adversary a
 
 ### note 21:00
 Research 595e818e1: collatz select links at 1 / 2 / 1m: -9.89 / -10.02 / -10.76 ns/iter median vs fceq2 (29 / 27 / 23 paired seeds, all faster, gates pass); rule E < 0 at umux0/1/2 on 21 routes at 1, on 2 at 2; fcsel3m submitted (predicted E clean on >= 30/32, ~-9.5 ns) -- the likely collatz candidate, pending baseline E re-check and the select negative control. f815a8edc: constructed select race at FAST_MIN "looks like a hang". Formal B 10f05e51d SelHoldPS WIP (not checked). T116 (select 0, seed 24) GLS still running.
+
+### progress 21:15 T116 interim (select links at 0, seed 24)
+Own colsel0_24 sdf bb5fbbdb; 26.720 vs 35.040 ns (-8.32 on this seed); 13/13 at 3 corners, BUT own mux monitor: umux0 select changes while z_req high on 960 / 960 / 672 rises (FAST_MIN / worst / SLOW_MAX), umux2 10; item 25's route had 0. Research's corrected rule E at umux0/1/2 is real in simulation; gate-clean is not evidence of a safe shortened select. Matters for research's coming fcsel3m candidate: own audit will run the mux monitor on it.
