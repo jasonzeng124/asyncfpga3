@@ -5100,3 +5100,9 @@ farm, then the K-lap check.
   routes, every gate at three corners). Gains: collatz -10.4, ipow -3.9, collatz64 -1.9, xorshift -0.5 ns per
   iteration. Rule E rows appear at the muxes when the select link is 0; the constructed race shows rule E flags a
   select-arrival race that the gate cannot make fail at a loop-header mux (FAST_MIN gate pending).
+### progress 18:53 UTC (constructed races on fcsel0 seed 24: running)
+- Select-arrival race (+3000 ps select -> umux1 join): worst-corner gate PASS 13/13, but the FAST_MIN gate has completed
+  no batch after ~45 CPU-minutes (worst finished all 13 in ~10): it looks like a hang, i.e. a failure. So the reading in
+  the 19:00 entry (a loop-header mux cannot fail on a late select) is NOT supported; waiting for the verdict.
+- Hold race (+15000 ps on ulink_n14__1 stage[1]'s enable wire): corner_audit FAST_MIN rule H -14260 ps at that stage
+  (and E -15.6 ns at umux1); gates at FAST_MIN / worst running.
