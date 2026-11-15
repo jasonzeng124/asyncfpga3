@@ -2099,3 +2099,6 @@ Research f6c37b63: eval_task never read rule E rows on muxes/steers; items 19, 2
 
 ### note 20:25
 Research e4fba1b6: fcsel0 (collatz select links at 0) -10.37 ns/iter median over 22 paired seeds, gates 3 x 13/13, but corrected static rule E -87..-255 ps at umux0/1/2 (worst) on seed 24 -> "not a candidate at 0"; fcsel1 / fcsel2 submitted (prediction: E clean at 1 on most routes, -9..-10 ns). Own T116 on the same route (sdf bb5fbbdb) will give the dynamic mux-select margins (t83 mon_mux) for that E row. 5c75d3b4: blanket-rule inventory (owner's "no blanket rules") -- to read.
+
+### note 20:45
+Formal B 70707610 SelectCapture CHECKED: own lake build OK, standard axioms; lemma (rules I/H as window inequalities, every delay in the band). No real-build row yet. REPORT row.
