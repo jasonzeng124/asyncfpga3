@@ -1923,3 +1923,6 @@ Own rule E on item 24's route: 474 rows, min +2687 ps, no negatives. T108: resea
 
 ### progress 00:35 T108 running
 Own build xs_10 at research 970859e6: sdf 41a915c2 = recipe; FF scan 1916 flops, 0 missing. Own monitor t108/mon_spec.py (uspec LUT3 nets from the routed json: abort LUT, udly_s g[5], udly g[12], z_req) + t104 monitors; GLS at FAST_MIN / worst / SLOW_MAX and own 256 vs 2048 round latency running (t108/run.sh).
+
+### progress 00:25 T108 done
+xs_10 CONFIRMED on seed 10: -1.694 ns/iter mean (research -1.73), 17/17 at 3 corners, monitors clean; own select-race monitor: min abort settle before z_short 912 ps (FAST_MIN), 0 hazards. Note: the SHORT-case static cut is sound only under the counter invariant (input = previous output or restart at 0), which BDC_SPEC_INC does not check. Watching.
