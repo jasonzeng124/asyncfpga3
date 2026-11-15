@@ -3151,3 +3151,11 @@ build_net.py + boundary_ps.py), B's all-paths static race scan (tools-B/ps/allpa
 race-relevant pin), B's/C's single-pin adversary sweep (tools-B/ps/ctlsweep.py over tools/huff simadv.py), A's
 gatecheck_runt.py and C's envcheck.py on the failing run. Then widen the static scan to every capture (late
 non-feedback inputs, the 0.40 class) and measure speed.
+
+### progress 17:47 -- window-check measurement stopped before any count (untrusted Python; second priority)
+Subagent result, stopped at my request after the pivot: NO check was measured on the instance. Written, not run:
+`tools/tocc/win2/winchk.py` (Python forms of BackChain, PairChain, StChain, KindLStep (3 L variants), KindRT/Sub/Ne,
+kind invariance under 3 alphabets; RESULTS.txt quotes each Lean definition beside its Python) and `ao_patch.diff`
+(the committed ao.py does not save VCP/OVER/xs/prev/s0, which win/win.py needs: the version behind win/RESULTS.txt
+was never committed). ao.py on (603,445) c = 1 ran > 15 min in round 0 and was killed. To finish: patch ao.py, run
+`ao.py 1 1` on (17,5), then `winchk.py`.
