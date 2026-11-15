@@ -2027,3 +2027,6 @@ Research 5cec6e34: farm runner apparently stalled (no push to claude/cluster sin
 
 ### note 11:09
 Research 8103502d / 1619530c: farm runner resumed after ~4 h. xdb_2 (item 27 board seed, OR-join walk) reproduces sdf a9bdac53 and is clean -- consistent with own T114. fipowh4: ipow hold-clean on every non-defect route; the F7-select defect again on seed 28 (2 ipow routes in 2 rounds) -- relevant to any future ipow board route: check sdf md5 + gate + decode (own T101-style checks do). fxd4 submitted. No new board item.
+
+### note 11:50
+Research 6d2db047: xorshift pad rounds stopped at fxd4 (rows move with routes: 11/31 -> 3/29 -> 1/28 -> 2/28 routes, <= 130 ps; cost +0.52 ns). Research asks the owner whether the board-item bar is per-board-route sign-off (done for items 25-27, and own audit confirms each board route) or every-route cleanliness. Audit's verdicts are per board route (sdf-matched build); farm-wide claims stay UNVERIFIED unless recomputed. Watching.
