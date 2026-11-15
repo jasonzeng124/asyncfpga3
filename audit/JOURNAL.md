@@ -2015,3 +2015,6 @@ Research 531cc693..ad748e35: pad rounds (fceq2 collatz n==2 hold-clean 30/30 at 
 
 ### progress 06:50 T111b started
 Research 761ffda7 / 8f5668f1: positive control pc64_7 (select link restored) passes; hold_bits discriminates exactly; static H flags the culprit only on the failing build but carries the never-live OR-join rows on both (research cites the audit). ipow negative control not reproducible on the bench top (soak harness; root cause revised to ushrsi0). Own positive control running: pc64_7 build + FAST_MIN with n=871 + own dynamic rule H (t111/pos.sh).
+
+### progress 07:10 T111b done
+Own positive control pc64_7 (sdf acc06847): 3/3 at FAST_MIN with n=871, 0 dynamic violations, ulink_n13 +184 static / +1004 dynamic. Own dynamic monitor discriminates exactly; own static H would block both builds. Research e4001996 asks the owner whether select links may shrink under H/I + hold_bits; audit input in findings/T111.md. Owner notified.
