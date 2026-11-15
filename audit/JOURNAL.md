@@ -1997,3 +1997,6 @@ Item 25 CONFIRMED: own sdf e001dc27, 35.920 ns, 1.143x over item 22's route (pre
 
 ### progress 05:50 T113 started
 BOARD-QUEUE item 26 (#27, research d70797c4): collatz64 pre_eq2 + h2 pads (no BDC_NO_LINK), seed 25, sdf 6982a9d5, 36.27 ns; 30-route median 36.23 vs 45.12 (fc64h paired -9.0). Own builds c64eq_25 + paired c64h_25 (fc64h's recipe: h sizes, NO_LINK n30__1), periods, 3 corners (t113/item26.sh). Then own rules E/H.
+
+### progress 06:05 T113 (partial)
+Item 26: own sdf 6982a9d5 = recipe; 36.251 ns; 1.244x over own paired c64h_25 (45.088), 1.247x over item 24's route; 14/14 at 3 corners; own rule E min +1266. Own static rule H (OR-join) has falseResult_3 / falseResult_9 stage[1] at -533..-744 where research reports H clean on this route -- tool disagreement; dynamic rule-H run started (t113/hold.sh). Research 3fed89de: BOARD-QUEUE item 27 (#28, lever 8, seed 2) -- next.
