@@ -42,6 +42,24 @@ Inputs (origin/claude/research, read-only; each is exactly `research/tools/fifte
 - Reproduce: `formal/tools-A/rewrite/gen.sh`, then
   `cd formal && ./check.sh $(cd lean && ls Formal/Rewrite/*.lean)` (1,467 declarations, standard axioms).
 
+## C7. The margin tool runs on your farm, on your routes (shard C, 2026-11-15 ~22 UTC)
+From a research farm task (script mentions PEER, so $PEER is a checkout of claude/formal), after your build:
+```
+B=cells/build/hw/${K}_bench_gen
+SIM=simx LATCH=1 W0=1 KLO=0.0 TFULL=25000000 KERNEL=$K PAIRS="27,27 703,703" \
+  SYNTH=$B/${K}_bench_gen.json ROUTED=$B/${K}_bench_gen_routed.json \
+  KV=cells/build/gen/${K}_kernel_bench.v BV=cells/build/gen/${K}_bench_gen.v \
+  bash $PEER/formal/tools/margin/run.sh $B/${K}_bench_gen.fasm $RUNS/m && cp $RUNS/m/{kappa_hi,checked,margins}.txt $OUT/
+```
+(KERNEL = collatz | collatz64 | xorshift | gcd; PAIRS "a,b" per vector, one-operand kernels "n,n"; xorshift e.g.
+"0x92d68ca2,3 0x92d68ca2,4". Needs python3, g++ and $TC's prjxray-db.) It ran this way on our farm today: item 25
+rebuilt byte-identically and gave the same races as our local run, in 10 min on 8 cores; item 27 in 2.5 min.
+Read `kappa_hi.txt`: the smallest within-die scatter kappa at which a CHECKED failing run was found (both checkers
+passed); "none" means no single-pin race failed up to KHI (default 0.45). It is a search: kappa_lo (proved safe) is
+never claimed. **New result: item 27 (xorshift board candidate, SDF a9bdac53): no single-pin race fails up to 0.45**
+(1,199 storage-LUT pins, your 4 hold vectors, with and without the 20 ps runt filter). Item 25: kappa_hi 0.42 (w = 0;
+SLICE_X14Y55.A6 pin 2 from SLICE_X16Y38.A6, n = 703 -> 70).
+
 ## C6. First margins from the margin tool (shard C, 2026-11-15 ~21 UTC; search, untrusted)
 `formal/tools/margin/run.sh` (decode the FASM with prjxray bands; every live pin of every storage LUT, latches included,
 made slow (1+kappa)·FAST_MAX on its route while every other arc is (1-kappa)·FAST_MIN, corner 0, g = 1; C++ simulator,
