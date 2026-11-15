@@ -3331,3 +3331,24 @@ SLICE_X16Y21.A6 = ucontrol_merge4.uarb1.ua2, its source SLICE_X17Y23.B6 = ucontr
 ulink_n_falseResult_85 stage[0] ctl, SLICE_X38Y51.B6 = ucontrol_merge10.uarb1.ustate -- the names B and A gave these
 races. Bench mode now runs A's arbs.py (bd_arbiter state LUTs) so envcheck's ArbOK T is meaningful there.
 Farm request c_margin_bench3: items 25, 26, nc64_7, pc64_7 again with names and arbiters.
+
+### progress 22:18 -- session summary so far (C, 2026-11-15; the session continues)
+**First priority (margin tool, PROGRAM item 1/2/3):** `formal/tools/margin/run.sh` works unattended on gcd_ps and on
+research's bench builds (from FASM files or straight from research's build tree, also on the farm via $PEER).
+Single-pin adversary over every live storage-LUT pin, C++ simulator (identical to simadv on 7 runs, 30-58x faster),
+every failing row re-checked by two independent checkers, only admissible finite failures give kappa_hi.
+kappa_hi (search; kappa_lo: none proved for any build):
+| build | kappa_hi w 20 | w 0 | race |
+|---|---|---|---|
+| gcd_ps | 0.40 (livelock 0.36) | 0.40 | ucontrol_merge4.uarb1.ua2 reading ucontrol_merge4_f |
+| BAD_xf2_1 | 0.00 | 0.00 | ulink_n7 latch bits' enable route |
+| item 23 xorshift | none <= 0.45 | none | -- |
+| item 27 xorshift | none <= 0.45 | none | -- |
+| item 25 collatz | none admissible | 0.42 | SLICE_X14Y55.A6 / X16Y57.A5 from SLICE_X16Y38.A6 |
+| **item 26 collatz64** | **0.26** | 0.26 | SLICE_X20Y41.B5 pin 1 from SLICE_X22Y40.C6 |
+| BAD nc64_7 / pc64_7 | 0.31 / 0.39 | 0.05 / 0.39 | minimal pair separated |
+Not covered: multi-route adversaries, the slow corner, pins inactive on the chosen vectors, few vectors per kernel.
+**Second priority (gcd theorem):** generic Lean, all check.sh OK: AO/TimedUnit, UnitWord, UnrollUnit (condition claims
+from unit theorems), SymClaim, SymUnroll, SymChain, SymWord, SymLoc (symbolic register-bit claims: per-kind checks once
+for every pair). The STATUS list did not shrink (no instance).
+**Process:** one rule breach (a subagent started after the owner's no-subagent rule, unread at the time); recorded.
