@@ -4732,3 +4732,9 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
 - fipowh2 (h2 sizes): 28 routes, median 39.08 ns (36.83-40.97; fipowh 39.34), gate 84/84, umux3's traced false-path
   row on every route as before. Hold/close clean on 25/28 (fipowh: 16/26); rows left H -29 trueResult_0 st1, I -41 /
   -21 trueResult_8 st1. Round 3 -> h3, farm fipowh3.
+### progress 05:22 UTC (fxds: the speculative incrementer on top of lever 8 -- no gain, not adopted)
+- fxds (lever 8 + BDC_SPEC_INC=uaddi0:4:6, fr4): latency vs fxd on 31 paired seeds +7 cycles (+0.33 ns per iteration),
+  faster on 12/31. Gate 96/96; per-case static rows as before (the uncased uaddi0 row is the known pairing artefact).
+  With the compare reading i, the adder is no longer on the critical cycle (xd_10's two-iteration graph), so the
+  cell's short path buys nothing and its select / mux costs a little. The speculative incrementer stays an opt-in
+  knob, useful only where the add is on the cycle (it gave -1.87 ns on fr3 without lever 8).
