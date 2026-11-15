@@ -25,6 +25,14 @@ has no such number for any build it reports.
 - a failing delay assignment just above kappa*, as a trace research can replay in its own
   gate-level simulation, or a plain statement that the search found none;
 - for each number, whether it is Lean or untrusted search.
+- both ends of the margin, kept apart: kappa_hi, the smallest kappa at which a failure was
+  found, and kappa_lo, the largest for which the build is proved safe. The owner asked on
+  2026-11-15 whether lower bounds can be proved at all. So far every whole-circuit result here
+  is a refutation, and the only positive ones are single races (`RaceCertPS.race_margin`). A
+  proved kappa_lo for safety on one real build, even far below kappa_hi, is worth more than
+  another counterexample: it needs every capture certified and the list of captures proved
+  complete (S2). Liveness is the harder half (the 0.36 failure was a livelock, not a race):
+  say separately what is proved for it, and do not hold the safety bound back for it.
 
 It has to run unattended on one build in under an hour on 8 cores, so that research can run it
 on 32 routes of every candidate. Coverage and speed come before proof here: an untrusted tool
@@ -77,7 +85,7 @@ that is right and fast gets used tomorrow, and the Lean follows it.
 race, its certificates and their soundness. A: targets and their md5s, the rewrites, the two
 status files and FOR-RESEARCH. A also decides what goes back to the gcd theorem while work
 here waits on research. Keep `formal/target/STATUS.md` for the gcd theorem, and add
-`formal/target/MARGINS.md`: one row per build (md5, kappa*, binding race, Lean or search, date).
+`formal/target/MARGINS.md`: one row per build (md5, kappa_lo proved, kappa_hi found, binding race, date).
 
 **Compute: the farm.** The owner has let formal use the machine research uses for its routes
 (`formal/cluster/README.md`): up to 64G and 16 cores a task, 256 tasks at once, by committing
