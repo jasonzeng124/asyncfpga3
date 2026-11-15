@@ -3038,3 +3038,17 @@ tools/compute/ps/psmapT.py + psunitT.py regenerate them); reset_quiet_all for ev
 Up-join rule (now sound in Lean: TimedUp.timedA_followsU); (3) piece 3: discharge the external condition claims
 (hExt) from a register-word invariant and the timed units (notes/C-allpairs.md); (4) the instance: per-kind window
 certificates of THE target passing the sub-word checks.
+
+## Session Sun Nov 15 17:23 UTC 2026 (shard C; session_01HC49FyKtMWLS8Cg7G9Vvvn)
+
+### progress 17:40 -- start (formal back on after the 2026-11-10 pause); claims for today
+Lock taken 17:23 (LOCK-C was empty after the pause). Audit (origin/claude/audit 72de82ab, 2026-11-15 17:23): no
+REFUTED or OVERSTATED row on C's files; T57/T62/T63 and the rows on 52911a5a..e4507d77 CONFIRM every C claim made
+before the pause (AO TimedUp/UnrollClaimU/UnrollUX/UnrollToy, reset_quiet_all, 16 timed units). B's 2026-11-10 close
+asks C to coordinate on chunking C's local-check/guard checkers for a slice certificate on `tnPS`.
+Container: 4 cores, 15 GB, no Mathlib cache: setup.sh is building from source (~1-2 h); no Lean result before then.
+**C's items today, highest value first** (no audit defect is open against C):
+1. Piece 3, step 1 in Lean: discharge the external condition claims (`hExt` of `timedA_followsUX`) from a hold
+   invariant on the unit's input nodes and the timed unit theorems (generic lemma, then the gcd conditions).
+2. The 4 remaining timed shift units (parked in formal/lean/Wip/TimedShift/), one module at a time.
+3. Answer B on chunking (after reading CovUpChunk).
