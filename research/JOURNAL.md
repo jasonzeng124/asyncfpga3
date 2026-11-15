@@ -5151,3 +5151,9 @@ farm, then the K-lap check.
   enable +15000 ps at FAST_MIN 69 and at worst 68 CPU-min -- no batch completed on any (a clean run: all 13 in ~10).
   The +3000 select case at worst completed 13/13. Treating "no batch in 6-10x the clean time" as a likely hang, not yet
   as a verdict; the runs continue to the bench's end time. fceq_s (item 25 family): no A / E row on the first 9 routes.
+### progress 19:55 UTC (E re-check: collatz / collatz64 families clean)
+- Rule E rows (corrected summary, nominal and worst) on: fceq_s (item 25, nl4) 0 / 28 routes; fceq2_s (nl6) 0 / 30;
+  fc64eq3_s (collatz64 h4) 0 / 32; fcolsz2_s (item 22) 0 / 29; with fc64eq_s (item 26) 2 / 30 (steers, board seed clean)
+  and fc64nl_s (item 24) 0 / 29. So the hidden E rows do not change the collatz / collatz64 items. Still queued: the
+  xorshift (items 23, 27) and ipow (item 19, h4) families. fcsel3m (collatz select links at 3): no E row on the
+  first 7 routes.
