@@ -7,17 +7,21 @@ or tool output). "w" is the runt filter of H_RUNT(w): w = 20 ps is the owner's h
 An upper bound on kappa* is a counterexample (one failing assignment); a lower bound needs either a proof or a
 search whose completeness is stated. Newest builds first.
 
-| build | md5 (.bit) | kappa* at g = 1, w = 20 | w = 0 | binding race (research names) | upper end | lower end | date, source |
-|---|---|---|---|---|---|---|---|
-| gcd_ps_e6bb4aec (THE gcd target, BOARD-QUEUE #4) | aa83c8b7a5e6b68e69729131e984c0f4 | in (0.35, 0.36] | in (0.35, 0.36] | merge4's arbiter acknowledge C-element (`SLICE_X16Y21.A6`) reads the fork late; with full-width operands (wide pairs only, e.g. (0x49e9c618, 0x35bf992e)) the run livelocks: 140 nodes oscillate with period 79 ps, out0 never rises | **Lean**: `Formal.Target.Frontier36.not_seqRunt_le20_above36_R` (every w ≤ 20, g ≥ 1, κ ≥ 9/25, every reset ≥ 400 ns; audit CONFIRMED) | **search only**: this adversary is correct at 0.35 on 60 pairs (B, single-pin and class adversaries); no proof of any lower bound. B's `RaceTablePS` proves 185 storage-feedback races safe up to κ = 0.415 under their local premises (Lean), which does NOT cover the binding (non-feedback) race | 2026-11-09/10, JOURNAL.md, JOURNAL-B.md |
-| (same build, second race) | | 0.40 | 0.40 | merge4 ack C-element reads the fork late: quiet deadlock | **Lean**: `Formal.Cells.CexX16.not_netCorrectSeqRunt20` (audit T47) | — | 2026-11-08, JOURNAL-B.md |
-| (same build, feedback race) | | 0.44 | 0.44 | `ulink_n_falseResult_85` stage 0, C-element `SLICE_X32Y45.A6` feedback route at the top of its window | **Lean**: `Formal.Target.FrontierRuntR.not_seqRunt_le20_above44_R` (two independent proofs, A and C) | **Lean** for this race alone: safe for κ ≤ 0.41 (`RaceCertPS.race_margin`, B) | 2026-11-07 |
+Columns per the owner (PROGRAM.md, 2026-11-15): **kappa_lo** = the largest κ for which the build is PROVED safe
+(Lean), **kappa_hi** = the smallest κ at which a failure was FOUND (Lean witness or search). Both at g = 1.
+
+| build | md5 | kappa_lo (proved) | kappa_hi (found) | binding race (research names) | date, source |
+|---|---|---|---|---|---|
+| gcd_ps_e6bb4aec (THE gcd target) | .bit aa83c8b7a5e6b68e69729131e984c0f4 | **none**: no whole-circuit safety bound. Single races only: 185 storage-feedback races safe to κ = 0.415 under local premises (`RaceTablePS`, B), the 0.44 feedback race safe to 0.41 (`RaceCertPS.race_margin`) | **0.36, Lean** (`Frontier36.not_seqRunt_le20_above36_R`; w ≤ 20 and w = 0; livelock, i.e. a liveness failure); search: correct at 0.35 under that adversary | merge4's arbiter acknowledge C-element `SLICE_X16Y21.A6` reads the fork late (full-width operands); also 0.40 (quiet deadlock, same C-element, Lean `CexX16`) and 0.44 (`ulink_n_falseResult_85` feedback, Lean) | 2026-11-07..10 |
+| BAD_xf2_1 (xorshift, research's known-bad) | .fasm f2873d4650eb67cb270ada5c9a403421 | none | **0, search** (w = 0): fails at κ = 0, 0.16, 0.32 | ulink_n7's enable (SLICE_X24Y40.A6 -> latch bits 0/1 pin A2, 20 pips) late: the counter's next value passes the latch (wrong rounds result) | 2026-11-15, A, FOR-RESEARCH A7 |
+| item23_xorshift_s10 (board candidate) | .fasm 56434fc43a066c25c397e8f7e4b9d1ea | none | none found (only one race tried: the ulink_n7 enable race, correct to κ = 0.32, search) | — | 2026-11-15, A |
+| item25_collatz_s24 (board candidate) | .fasm c6404633c7d2b095a7ff4e7233a11b72 | none | not searched (decoded; correct at mid-band on 6, 7, 27) | — | 2026-11-15, A |
 
 ## Builds received from research (research/FOR-FORMAL.md at b976ce821; files on origin/claude/research)
 Registered by A 2026-11-15. md5s are of the uncompressed files; each SDF md5 matches the prefix research gives in
 FOR-FORMAL.md, so the files are the builds it names. No `.bit` is committed for these: the margin is computed from
 the `.fasm` (the bitstream is `fasm2frames` of it); a board run of the build needs the `.bit` md5 added here.
-| build | role | kernel MLIR | fasm md5 | sdf md5 | path (research/data/for-formal/) | kappa* |
+| build | role | kernel MLIR | fasm md5 | sdf md5 | path (research/data/for-formal/) | notes |
 |---|---|---|---|---|---|---|
 | item25_collatz_s24 (BOARD-QUEUE list item 25) | board candidate | collatz_preeq2.mlir (rewrite proved, FOR-RESEARCH A6) | c6404633c7d2b095a7ff4e7233a11b72 | e001dc27e644e10a14d08a7730daa958 | item25_collatz_s24/ | not yet |
 | item23_xorshift_s10 (list item 23) | board candidate | original xorshift | 56434fc43a066c25c397e8f7e4b9d1ea | 2f825834565b3b7e26642ae8dc07f237 | item23_xorshift_s10/ | not yet; the ulink_n7 enable race that breaks BAD at κ = 0 is correct here at κ = 0, 0.16, 0.32 (search) |

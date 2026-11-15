@@ -2584,3 +2584,22 @@ THIS race; not a κ* for item 23). Not a minimal pair (different routes), as res
 ### progress 20:18 -- enable-race sweep done (search): BAD wrong at κ = 0, 0.16, 0.32; item 23 correct at all three
 BAD: (1879071104, 1258817536), (0, 16384, 1929397304), (0, 1107298304), each then silent to 3 µs. item 23: 2064144800,
 2008045182, 691148861, 3532304609 at every κ, finishing in 0.25-0.34 µs. So for THIS race: BAD κ* = 0, item 23 > 0.32.
+### progress 20:19 -- PROGRAM read again (f17d8744, 90d3a7d0, ec66f2b3): kappa_lo/kappa_hi, no subagents, B stops, the farm
+MARGINS.md restructured to the owner's columns (kappa_lo proved / kappa_hi found). No subagent was used this session.
+Usage is tight: from here A keeps to cheap steps. Not taken up today: the farm (formal/cluster/README.md) for full
+check.sh runs and margin sweeps over research's 32 routes. That is the right next home for the margin work.
+### progress 20:19 -- session summary (A, 2026-11-15)
+1. **Rewrites, Lean (audit T115/T115b CONFIRMED):** research's three loop-test rewrites agree with the originals on
+   EVERY input (xorshift pre_dec, collatz and collatz64 pre_eq2), token level from the MLIR; FOR-RESEARCH A6.
+2. **gcd theorem, Lean (second priority):** `CertRun.netCorrectSeq_of_run`: THE statement from one run certificate
+   started at reset (removes the per-pair quiet-start obstacle); notes/A-certrun.md maps each field to C/B lemmas.
+3. **Margin pipeline pieces, search (for C's tool):** A's decoder now handles research's bench builds (LATCH mode);
+   items 25, 23 and BAD xf2_1 rebuilt here byte-identically from FOR-FORMAL commands; boundaries named
+   (`boundary_bench.py`); items 25 and 23 compute collatz / xorshift in simulation.
+4. **Negative control, search:** BAD xf2_1 fails at κ = 0 (ulink_n7's 20-pip latch enable late), item 23 is correct
+   under the same race to κ = 0.32 (FOR-RESEARCH A7). No kappa_lo for any build: nothing whole-circuit is proved safe.
+5. Files: MARGINS.md (new), STATUS/FEASIBILITY updated, draft PR #3 summary updated. sim.py's "handshake" data mode is
+   outside Spec.Env (doc fixed).
+**Next for A:** a Lean witness for BAD's κ = 0 failure (the gcd_ps witness machinery, on the farm); the select
+certificates B left for research's builds; the gcd theorem's EpRun instance only when the first priority waits.
+STATUS list: unchanged in count today (the gcd theorem is second priority).
