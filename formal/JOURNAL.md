@@ -2553,3 +2553,13 @@ it: corrected (sim.py, simadv_hold.py). Earlier gcd_ps runs in that mode are una
     not create. **For C's margin tool:** the known-bad build is not bad at any uniform corner of our model; it must be
     found by the within-die scatter adversary (kappa), and kappa* for BAD must come out below the good builds'. If the
     adversary cannot find it, the difference is in the delay model (nextpnr SDF vs prjxray bands), to be named.
+### progress 18:37 -- BAD xf2_1's failure REPRODUCED in our model by a scatter adversary (search, untrusted)
+`simadv_hold.py` on BAD's decoded net (corner 0; the named gates and their input routes at (1+κ)·slow max, every other
+arc at (1-κ)·fast min: inside Spec.Adm at g = 1, scatter κ), research's hold vectors (seed 0x92d68ca2, rounds 3,4,8,5),
+fastest SeqEnv, data held to each ack's fall:
+- slow = ulink_n7's controller LUT SLICE_X24Y40.A6: correct at κ = 0.2, 0.4, 0.6;
+- slow = ulink_n7's bit-0/1 latch LUTs SLICE_X24Y40.B5/B6 (same slice as the controller): **WRONG** at κ = 0.4 and 0.6
+  (rounds 8 returns 2008045182 = the 4-round value: a stale counter, research's failure class) and at κ = 0.2
+  (garbage: 1929398656, 1108361330, 0, 315787426, 9863330, five out0 for four pairs).
+So the known-bad build is bad in our model too, at κ ≤ 0.2 (upper bound on its κ*, search). Running: the same
+adversary on item 23's ulink_n7 (the good neighbour) and κ = 0.05-0.15 on BAD.
