@@ -4403,7 +4403,7 @@ each by per-row `decide +kernel`; axioms propext, Quot.sound.
   NOT ctlcert's causal chains (the selected inputs rarely change after a close in this run).
 * *Not shown:* the premises; the other 1,050 mux-sourced latches (674 umux ones never close in this run; deeper
   cones need multi-row trees); setup (rule I) rows; any build other than THE target.
-### progress 20:1x -- CHECKED: `Formal/Cells/SelectTree.lean` `krow_tree` (check.sh OK, 2,265 declarations, standard axioms)
+### progress 20:0x -- CHECKED: `Formal/Cells/SelectTree.lean` `krow_tree` (check.sh OK, 2,265 declarations, standard axioms)
 * *Problem:* 137 select captures on THE target (uselect/ushrsi/ushli) reach the latch through cones of LUTs up to 13
   deep, not one mux.
 * *Proved:* n checked non-memory forcing rows (`KRow`, `krowOK`) of THE circuit, each controlling pin reading a root
