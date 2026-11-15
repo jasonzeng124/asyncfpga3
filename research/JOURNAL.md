@@ -4728,3 +4728,7 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
 - Sizes fr5d = fr4 + hold pads from fxd (ulink_n25 UACK 0 -> 2, falseResult_9 UACK 0 -> 1, trueResult_8 UACK 1 -> 2)
   + ucmpi1 9 -> 10 + uxori2 7 -> 8: farm fxd2. The F row (uxori1.udly) has no pad knob in hold_pads_eval; watch it.
 - fifteen README headline: item 27, 19.39 ns, gap to 15: 4.4 ns.
+### progress 05:21 UTC (fipowh2: ipow pad round 2)
+- fipowh2 (h2 sizes): 28 routes, median 39.08 ns (36.83-40.97; fipowh 39.34), gate 84/84, umux3's traced false-path
+  row on every route as before. Hold/close clean on 25/28 (fipowh: 16/26); rows left H -29 trueResult_0 st1, I -41 /
+  -21 trueResult_8 st1. Round 3 -> h3, farm fipowh3.
