@@ -4605,3 +4605,11 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
 - The event graph does not build ("steady state too short": the marker's intervals are not constant on this run), so
   latency is the measure here, as for the speculative cell. Static check (with C-element joins) and the gate running.
 - Farm fxd (lever 8) and fxds (lever 8 + speculative incrementer), 32 routes each, submitted.
+### progress 04:07 UTC (lever 8 seed 10: gate 3 x 17/17, static A / A' / E clean at both corners)
+- xd_10: bench_gate SLOW_MAX / FAST_MIN / worst+M PASS 17/17 each (cycles 11826 / 4451 / 6198; xf5_10's run was 13423 /
+  4930 / 6834 for xs_10, the nearest record). Static check (corner_audit, measured-residual guards) A / A' / E CLEAN at
+  nominal and worst -- this local run used the DEFAULT OR-join walk (BD_SKEW_AND_JOIN not set), the conservative model;
+  tighten's unsized bundled row "a" on ucmpi1 (-462 worst) as on every xorshift route. Hold/close: one row, H -298
+  ulink_n_falseResult_9 stage[1] (nom and worst). Trace hold checks (hold_trace, hold_bits at FAST_MIN) clean, tightest
+  +880 / +924 ps. research/data/fifteen/lever8/.
+- One route. The 32-route distribution comes from fxd / fxds.
