@@ -11,7 +11,9 @@ pairs, the margin tool over 32 routes. Keep quick things local, where there is n
 
 ## A request
 
-`formal/cluster/requests/NAME.sh`, with NAME from `a-z 0-9 _ -`, up to 40 characters. The three
+`formal/cluster/requests/NAME.sh`, with NAME from `a-z 0-9 _ -` (lower case only), up to 40
+characters. A file whose name does not fit never runs; it is listed, with the reason, in
+`results/IGNORED.txt` on `claude/cluster`. The three
 shards share this directory and a name runs once, ever: start yours with your shard's letter
 (`a_`, `b_`, `c_`).
 
@@ -77,7 +79,7 @@ Your request NAME is `fm_NAME` there, so that it cannot collide with one of rese
 
 | Path | Holds |
 | --- | --- |
-| `results/fm_NAME/status.txt` | `submitted`, `running (k of n tasks finished)`, `done` or `rejected: reason`; one line per task with its state, run time and exit code |
+| `results/fm_NAME/status.txt` | `waiting: reason`, `submitted`, `running (k of n tasks finished)`, `done` or `rejected: reason`; one line per task with its state, run time and exit code |
 | `results/fm_NAME/TASK/...` | the files the task left in `$OUT` |
 | `results/fm_NAME/TASK/log.txt` | the last 150 lines of the task's output |
 | `results/fm_NAME/TASK/SKIPPED.txt` | files that were left out, if any |
@@ -90,13 +92,15 @@ request reads it there.
 
 ## Limits
 
-One request: 256 tasks, 16 cores and 64G per task, 240 minutes per task. All requests of both
-bots together: 512 tasks queued or running; a request over that waits. A request over a
+One request: 240 tasks, 16 cores and 64G per task, 240 minutes per task. All requests of both
+bots together: 250 tasks queued or running, which is what the machine allows one account. A
+request over that waits, and its `status.txt` says `waiting` until there is room. Research
+often fills the farm, so keep requests narrow when you want them soon. A request over a
 per-request limit is rejected, and `status.txt` says why.
 
 ## Do not wait on it
 
-The farm is a help, not a dependency. `status.txt` says `submitted` within about five minutes of
+The farm is a help, not a dependency. `status.txt` says `submitted` or `waiting` within about five minutes of
 your push. If it has not appeared after 30 minutes, the runner is down: note it in the journal,
 do the work locally, and try again in a later session. Do other work in the meantime and look
 again later; never sit in a loop waiting for it.
