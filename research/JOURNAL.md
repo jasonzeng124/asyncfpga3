@@ -4861,3 +4861,13 @@ Next:
   rounds (fipowh3 s9). ipow's board item (19) recipe already checks the sdf md5; its section should keep the warning.
   h4 = the ipow sizes hold-clean on every non-defect route.
 - The farm runner pushed again after ~4 h idle; fc64eq3 still running.
+### progress 11:47 UTC (fxd4: xorshift lever 8 pad round 4 -- stopping the rounds here)
+- fxd4 (fr7d = fr6d + uxori1 7 -> 8): 30 evaluated (13, 16 FFMUX gap, excluded), gate 84/84 on the rest, fasm_equiv
+  EQUIVALENT or the benign constant-LUT kind (F7 / CARRY4 DI) on every non-gap route. Rows on 2/28: seed 18
+  ucontrol_merge0 A -78 / -129 and H -37 ulink_n6 st1; seed 19 H -45 / -96 ulink_n6 st1. uxori1's row is gone.
+  Latency +11 cycles vs fxd (+0.52 ns per iteration).
+- Each round removes the previous rows and route scatter puts small new ones elsewhere (fxd 11/31 routes with rows,
+  fxd2 3/29, fxd3 1/28, fxd4 2/28), while the latency cost grows (+0.29, +0.30, +0.52 ns). Stopping: a 32-route
+  sample with rows on 1-2 routes of <= 130 ps is where the per-route rules stop converging; item 27's own board route
+  is clean at fr4. The owner's question stands on whether a route-by-route static sign-off of the board seed (done)
+  or every-route cleanliness is the bar for a board item.
