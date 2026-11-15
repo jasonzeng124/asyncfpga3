@@ -2511,3 +2511,10 @@ not try the decoder on research's bench .fasm files; C will.
 * `tools-A/target/make_net_fasm.sh BUILD.fasm DIR`: decode + net + round trip. item25, item23, BAD_xf2_1: ~20 s each,
   round trip invented 0, leftovers only FF/IO/clock configuration (no LUT INIT bit or pip unaccounted). md5s in
   tools-A/target/README.md. For C: the bench boundary (kernel channels in decoded node names) is not done.
+### progress 18:15 -- audit T115/T115b: the rewrite proofs CONFIRMED; reproducing item 25's route for its boundary (running)
+* Audit (origin/claude/audit 18:08): T115 CONFIRMED the rewrite proofs (own Lean, graphs regenerate byte-identically
+  from research's MLIR, which is what the board builds use), T115b the every-input versions.
+* The bench boundary (kernel channels as decoded nodes) needs yosys + routed JSON, which research has not committed
+  (C5 asks for them). The restored toolchain passes cells/verify/toolchain.sh (nextpnr 9c732bc6303458df) after
+  installing libtcl8.6 and boost 1.83 runtime libs (apt). Building item 25 from FOR-FORMAL's command in a scratch
+  worktree of origin/claude/research (read-only use, nothing committed there); it must reproduce SDF md5 e001dc27.
