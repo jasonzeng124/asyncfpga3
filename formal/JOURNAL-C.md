@@ -3121,3 +3121,11 @@ UnitProof (stated on the long certificate here); any instance.
 (template sub-word check with the GateProof and the chain alternatives), `gcWinU_inst2`, `gc_unrollU_sym2`: `hGC`
 of the long certificate of every instantiated word. So both claim rules of the one-pair data layer (GateProof, and
 phase chains joined by Sep or Up) now lift to templates. *Not shown:* the instance.
+
+### progress 17:44 -- AO/SymWord: the pieces compose (check.sh OK)
+`timedA_follows_sym`: for a pair whose word of concrete kinds is the instantiation `instWF ρ 0 tks` of template
+kinds by its assignment ρ, every behaviour follows the word's certificate and all its claims hold, with the claim
+checks given once on template sub-words (`GcWinS2`, valid for every ρ) and the external (condition / unit-output)
+claims by `UnitProof`. The other hypotheses are `timedA_follows_unrollUnitC`'s, on the instantiated word.
+*Not shown:* that those other per-kind hypotheses (hloc, hIk) are value-independent (true when guards read only
+literal condition claims; not proved); the UnitProof value premises (token run); any instance.
