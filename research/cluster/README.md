@@ -48,6 +48,7 @@ tools and data a request needs before the request, or in the same push. A task s
 | `RUNS` | working space of its own, in place of `/home/user/runs`; it is deleted when the task ends |
 | `SHARED` | space that stays, shared by every task and request; nothing here comes back |
 | `TC`, `XRAY_DB` | the toolchain and the prjxray database; they are not under `/root` there |
+| `PEER` | a checkout of `claude/formal` as it was when the request was picked up, so a task can run formal's tools on your routes. It is only made if your script contains the word `PEER` |
 
 `build/frontend` is already filled from `cloud/fixtures/frontend`. The checkout and `/tmp` are
 the task's own and are deleted with it, so tasks cannot disturb each other. A task can be stopped
@@ -86,7 +87,8 @@ replaced by placeholders.
 
 ## Limits
 
-One request: 256 tasks, 8 cores and 32G per task, 240 minutes per task. All requests together:
+One request: 256 tasks, 16 cores and 64G per task, 240 minutes per task. All requests, yours and
+formal's (it has the farm too since 2026-11-15), together:
 512 tasks queued or running; a request over that waits. A request over a per-request limit is
 rejected, and `status.txt` says why.
 
