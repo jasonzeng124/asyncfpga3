@@ -41,3 +41,16 @@ window used. Only 259 of the 933 umux latches have an enable close after reset i
 
 Trust: everything here is untrusted; Lean checks `certOK` for both chains and `selOK` (wiring, mux forcing,
 values, latch row, the four margin facts) by kernel decide. Premises of the certificates are not checked.
+
+## State 2026-11-15 (first emission)
+
+`Formal/Cells/SelHoldPS.lean`: 20 rows (PERINST=3 rows per umux instance, CLOSES=3; 9 instances: umux12-19 and the
+X30Y51 / X30Y64 ones), every attempted latch with an enable close got a row. Row κ ranges (min of the two chains):
+0.606 - 0.855, median 0.694. Per-row data: `selhold_report.json` (close time, select / selected latch, chain steps,
+static premises, arc sums, kA/kB). Most data chains use the reset node (186905, value false) as a static premise.
+
+Lean check: SelectHold.olean is not built (nothing imports it yet), so the file was checked through the generator's
+CHECKVARIANT (SelectHold's definitions verbatim, rows and theorems byte-identical) split per row (CHECKPARTS=20):
+all 20 parts pass `lake env lean` (27-123 s each, peak RSS 3.2-6.3 GB per part); the 20-row combination theorems
+were elaborated with the decides stubbed (12 s). The whole 20-row file in one process was OOM-killed three times
+(shared memory with a running build), so a `lake build Formal.Cells.SelHoldPS` remains to be run.
