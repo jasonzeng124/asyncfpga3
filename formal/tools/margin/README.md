@@ -16,6 +16,13 @@ instance names, and a failing delay assignment just above kappa* (or "none found
 4. Report: OUT/margins.txt (one row per race: class, node, pin, sources, static kappa, adversary verdict) and
    OUT/summary.txt (kappa*, binding race, trace file).
 
+## Simulator
+`SIM=simx` (recommended): `simx.cpp` (g++ -O2 -std=c++17), a C++ port of tools/huff/simadv.py's options the sweep
+uses, with the net converted once by `simx_conv.py`. Verified identical to simadv (stdout, events, every node's flip
+times in the dump) on 7 gcd_ps runs incl. the 0.40 deadlock, the 0.36 livelock and a w = 0 run; 30-58x faster.
+`--maxev` (default 1e8 via SIMX_MAXEV) bounds livelocks: a capped run is UNDECIDED, not a pass. Bench kernels:
+`KERNEL=collatz|collatz64|xorshift`, expected values from kernels.py (from kernels/*.c).
+
 ## Race classes (completeness is the point: a race class missing here is a margin the tool cannot see)
 | class | what races | static scan | known instance on gcd_ps |
 |---|---|---|---|

@@ -145,11 +145,38 @@ static bool setv(int n, ll t, bool v) {
 struct Ev { ll t; int pri; ll seq; int x; };
 struct EvCmp { bool operator()(const Ev& a, const Ev& b) const {
     if (a.t != b.t) return a.t > b.t; if (a.pri != b.pri) return a.pri > b.pri; return a.seq > b.seq; } };
-static priority_queue<Ev, vector<Ev>, EvCmp> Q;
+// Same order as simadv's heap of (t, pri, seq): env/aux events (pri -1/-2, rare) in a heap; gate evaluations (pri 0)
+// in a timing wheel of FIFO buckets (seq grows with insertion, so FIFO = seq order within a time; at equal t every
+// pri < 0 event precedes every gate event, and nothing with pri < 0 is ever pushed at the current time).
+struct EQ {
+    priority_queue<Ev, vector<Ev>, EvCmp> env;
+    vector<vector<int>> slot; vector<uint64_t> bits; size_t pos = 0; ll cnt = 0, base = 0, M = 0;
+    void init(ll maxd) { ll h = 1024; while (h <= maxd + 1) h <<= 1; M = h - 1; slot.assign(h, {}); bits.assign(h / 64, 0); }
+    inline void gate(ll t, int g) { ll i = t & M; slot[i].push_back(g); bits[i >> 6] |= 1ULL << (i & 63); cnt++; }
+    inline ll wnext() {   // earliest wheel time >= base (cnt > 0)
+        ll i0 = base & M; ll w = i0 >> 6; uint64_t m = bits[w] & (~0ULL << (i0 & 63));
+        ll nw = (ll)bits.size();
+        for (ll k = 0; k <= nw; k++) {
+            if (m) { ll i = (w << 6) + __builtin_ctzll(m); return base + ((i - i0) & M); }
+            w = (w + 1) % nw; m = bits[w];
+        }
+        die("wheel corrupt");
+    }
+    bool empty() const { return cnt == 0 && env.empty(); }
+    inline ll top_t() { if (cnt == 0) return env.top().t; ll tw = wnext(); return (!env.empty() && env.top().t <= tw) ? env.top().t : tw; }
+    inline Ev pop() {
+        ll tw = cnt ? wnext() : 0;
+        if (!env.empty() && (cnt == 0 || env.top().t <= tw)) { Ev e = env.top(); env.pop(); base = e.t; return e; }
+        ll i = tw & M; vector<int>& v = slot[i]; int g = v[pos++]; cnt--;
+        if (pos == v.size()) { v.clear(); pos = 0; bits[i >> 6] &= ~(1ULL << (i & 63)); }
+        base = tw; return Ev{tw, 0, 0, g};
+    }
+};
+static EQ Q;
 static ll SEQ = 0;
 static vector<int> rd0, rdg, rdd;     // readers CSR: node -> (gate, delay)
-static inline void sched(ll t, int g) { Q.push({t, 0, ++SEQ, g}); }
-static inline void env_set(ll t, int n, bool v) { Q.push({t, -1, ++SEQ, 2 * n + (v ? 1 : 0)}); }
+static inline void sched(ll t, int g) { ++SEQ; Q.gate(t, g); }
+static inline void env_set(ll t, int n, bool v) { Q.env.push({t, -1, ++SEQ, 2 * n + (v ? 1 : 0)}); }
 static inline void changed(int n, ll t) { for (int r = rd0[n]; r < rd0[n + 1]; r++) sched(t + rdd[r], rdg[r]); }
 
 static int W = 0; static ll NSKIP = 0;
@@ -178,7 +205,7 @@ static string pylist(const vector<ull>& v) {
 int main(int argc, char** argv) {
     if (argc < 2) die("usage: simx NET.simx --pairs a,b ... [simadv options]");
     const char* netf = argv[1];
-    vector<pair<ull, ull>> pairs; vector<string> pairstr; vector<ull> wantv; bool has_want = false;
+    vector<pair<ull, ull>> pairs; vector<string> pairstr; vector<ull> wantv; bool has_want = false; string kernel = "gcd";
     double corner = 0.5, kappa = NAN; const char* classes = nullptr; char cdefault = 'M';
     bool data0 = false, full = false, pipelined = false; ll R = 20000, su = 0, dout = 3000, dfall = -1, tmax = 5000000, reqgap = 0, maxev = -1;
     string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr;
@@ -189,6 +216,7 @@ int main(int argc, char** argv) {
                 if (c == string::npos) die("bad pair %s", s.c_str());
                 pairstr.push_back(s);
                 pairs.push_back({strtoull(s.substr(0, c).c_str(), nullptr, 0), strtoull(s.substr(c + 1).c_str(), nullptr, 0)}); } }
+        else if (o == "--kernel") kernel = nxt();
         else if (o == "--want") { has_want = true; string s = nxt(); size_t q = 0;   // expected out0 list (replaces gcd)
             while (q < s.size()) { size_t c = s.find(',', q); if (c == string::npos) c = s.size(); if (c > q) wantv.push_back(strtoull(s.substr(q, c - q).c_str(), nullptr, 0)); q = c + 1; } }
         else if (o == "--corner") corner = atof(nxt());
@@ -213,6 +241,7 @@ int main(int argc, char** argv) {
         else die("unsupported option %s (simx ports only simadv's --classes/--full subset)", o.c_str());
     }
     if (dfall < 0) dfall = dout;
+    if (kernel != "gcd" && !has_want) die("--kernel %s: pass the expected out0 list with --want (margin.py does, from kernels.py)", kernel.c_str());
     if (!full) die("only --full is ported");
     if (!classes || std::isnan(kappa)) die("only --classes with --kappa is ported");
     if (tmax > 2000000000LL) die("--tmax too large (int32 histories)");
@@ -281,6 +310,7 @@ int main(int argc, char** argv) {
     };
     env_set(0, rst, true);
     env_set(R, rst, false);
+    { ll md = 0; for (int x : ds) md = max(md, (ll)x); Q.init(md); }
     for (int g = 0; g < NG; g++) sched(0, g);
     // env state
     ll k = 0, done_in = 0; bool out_pending = false, next_ok = true, seq_wait = false;
@@ -291,7 +321,7 @@ int main(int argc, char** argv) {
     bool req_state = false, pend_state = false, capped = false;
     const int* INS = ins.data(); const int* DS = ds.data();
     while (!Q.empty()) {
-        Ev e = Q.top(); Q.pop();
+        Ev e = Q.pop();
         t = e.t;
         if (t > tmax) break;
         if (maxev >= 0 && nev >= maxev) { capped = true; break; }
@@ -308,7 +338,7 @@ int main(int argc, char** argv) {
             bool v = (initw[ginit0[g] + (ad >> 6)] >> (ad & 63)) & 1;
             if (setv(gout[g], t, v)) changed(gout[g], t);
         }
-        if (!Q.empty() && Q.top().t == t) continue;
+        if (!Q.empty() && Q.top_t() == t) continue;
         if (t < R) continue;
         // ---- the environment reacts to the settled state at t
         bool A0 = val(aA, t), A1 = val(aB, t), A2 = val(aS, t); TOUCH[aA] = TOUCH[aB] = TOUCH[aS] = 1;
@@ -342,7 +372,7 @@ int main(int argc, char** argv) {
         if (r0 && !val(oA, t) && !out_pending) {
             out_pending = true;
             env_set(t + dout, oA, true);
-            Q.push({t + dout, -2, 0, -1});
+            Q.env.push({t + dout, -2, 0, -1});
             has_sample = true; sample_at = t + dout - 1;
         }
         if (has_sample && t >= sample_at) {
@@ -358,7 +388,7 @@ int main(int argc, char** argv) {
             env_set(t + dfall, oA, false);
             if (!pipelined && nextreq == "seq") seq_wait = true;
         }
-        if (seq_wait && !r0 && !val(oA, t)) { seq_wait = false; next_ok = true; Q.push({t + 1, -2, 0, -1}); }
+        if (seq_wait && !r0 && !val(oA, t)) { seq_wait = false; next_ok = true; Q.env.push({t + 1, -2, 0, -1}); }
         bool pr = val(req, t);
         if (pr != pend_state) { pend_state = pr; env_set(t + (pr ? dout : dfall), eA, pr); }
     }

@@ -37,7 +37,7 @@ ap.add_argument("--want", default=None, help="simx only: expected out0 list v1,v
 a = ap.parse_args()
 KD = 100
 # SIM=simx (env): the C++ port (simx.cpp; event-for-event equal to simadv on gcd_ps). Built and the net converted
-# once into OUTDIR (SIMX= a prebuilt binary; SIMX_MAXEV event cap per run, default 300M: no verdict -> UNDECIDED).
+# once into OUTDIR (SIMX= a prebuilt binary; SIMX_MAXEV event cap per run, default 100M (~35 s): no verdict -> UNDECIDED).
 SIMX = None
 if os.environ.get("SIM") == "simx":
     os.makedirs(a.out, exist_ok=True)
@@ -49,6 +49,9 @@ if os.environ.get("SIM") == "simx":
     if not os.path.exists(NETX) or os.path.getmtime(NETX) < max(os.path.getmtime(a.net), os.path.getmtime(a.bnd)):
         subprocess.run(["python3", os.path.join(HERE, "simx_conv.py"), a.net, a.bnd, NETX + ".%d" % os.getpid()], check=True)
         os.replace(NETX + ".%d" % os.getpid(), NETX)
+    if a.kernel != "gcd" and not a.want:   # simx checks gcd itself; other kernels: the expected list from kernels.py
+        sys.path.insert(0, HERE); import kernels
+        a.want = ",".join(str(v) for v in kernels.want(a.kernel, ["%d,%d" % tuple(int(t, 0) for t in p.split(",")) for p in a.pairs]))
 elif a.want: sys.exit("--want needs SIM=simx")
 os.makedirs(a.out, exist_ok=True); TMP = os.path.join(a.out, "tmp"); os.makedirs(TMP, exist_ok=True)
 R = json.load(open(a.ranked))
@@ -64,7 +67,7 @@ def log(*x):
 def sim(arcs, P, w, tmax, tag, dump=None):
     cf = os.path.join(TMP, "c_%s.json" % tag)
     json.dump({"S": arcs, "F": []}, open(cf, "w"))
-    cmd = ([SIMX, NETX, "--maxev", os.environ.get("SIMX_MAXEV", "300000000")] + (["--want", a.want] if a.want else [])
+    cmd = ([SIMX, NETX, "--maxev", os.environ.get("SIMX_MAXEV", "100000000")] + (["--want", a.want] if a.want else [])
            if SIMX else ["python3", SIM, a.net, a.bnd]) + ["--pairs", *a.pairs, "--kernel", a.kernel, "--corner", "0", "--kappa", "%.2f" % (P / KD),
            "--classes", cf, "--cdefault", "F", "--data0", "--full", "--R", "400000", "--su", "1000",
            "--datachange", "broad", "--nextreq", "seq", "--tmax", str(tmax)] + (["--w", str(w)] if w else [])

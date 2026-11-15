@@ -3199,3 +3199,13 @@ skips the gcd_ps boundary step; `KERNEL=` and `PAIRS=` ("n,n" for one-operand ke
 FASM c6404633): decoded (130,380 nodes, round trip invented 0), simadv at kappa 0.20 corner 0: 27/703-style vectors
 correct (6,7,27 -> 8,16,111 in 14 s). A first 40-candidate sweep on item 25 (LATCH=1) is running.
 Note: the commit a1ec907d also swept in the C++ subagent's in-progress formal/tools/margin/simx.cpp (WIP, unverified).
+
+### progress 20:01 -- simx: the margin tool's simulator in C++, identical to simadv on 7 runs, 30-58x faster (untrusted)
+Subagent, reviewed: `tools/margin/simx.cpp` + `simx_conv.py` (net converted once; simadv's --full setup incl. its
+set-iteration gate order, so heap tie-breaks agree). Compared with simadv.py on gcd_ps (stdout, stderr, the dump's
+tend, outs and every node's v0 and flip times): all 7 identical -- baselines (1071,462), the full-width pair, both
+pairs, the 0.40 deadlock class (360,735 events, quiet at 484,403 ps; I had quoted 359,233 from memory, the run1
+witness says 360,735), the same at w = 0 (21.5 M events), k = 0.36 w = 0, the 0.36 w = 20 livelock (12.2 M events,
+53.7 s -> 1.46 s). Inside margin.py (SIM=simx): the SLICE_X16Y21.A6 pin 0 sweep reproduces run1's 15 lines (kappa* 0.36,
+quiet 0.40). `--maxev` (default 1e8) bounds livelocks (UNDECIDED, not pass). w = 0 at 0.34/0.35 stays undecided by
+both simulators (event caps). Next: the full gcd_ps sweep locally with simx (control + latch-like pins).
