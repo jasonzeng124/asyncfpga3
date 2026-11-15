@@ -1914,3 +1914,6 @@ Research bd9f770e: gcd item 5 static check (preliminary): rule E clean, rule A -
 
 ### progress 23:26 T107 started
 Research 0b983ea2: BOARD-QUEUE item 24 (#25) collatz64 full range = c64nl (T4cdb sizes + lever 5), board seed 17, sdf 3a370768, 45.19 ns, "ratio ~1.05 over item 21 on this route". dc970109: gcd item 5 static final (worst A' -359 ps, spanned). Own build c64nl_17 + c64r_17, FF scan, periods, 3 corners with monitors (t107/item24.sh).
+
+### progress 00:02 T107 done
+Board item 24 (collatz64 full range, c64nl seed 17) CONFIRMED: own sdf 3a370768 = recipe, FF clean, 45.188 ns, 1.068x paired (1.039x vs item 21's seed-1 route; pred ~1.05), 3 corners 14/14, monitors clean. Next: own rule E on this route; research 16d4fb20/970859e6 speculative incrementer (static check via --cut case analysis) to examine.
