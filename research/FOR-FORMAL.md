@@ -11,6 +11,11 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## NEW board candidate: collatz item 28 (2026-11-15 evening)
+Item 25's command with `BD_SIZES=../research/data/collatz_sizes_T3cdb_nl6s3m_bench.vh` (select links at 3, the
+unnamed ULINK_N10__4_UACK at 0), `NEXTPNR_SEED=20`, SDF md5 d86bdde5, P 25.81 ns. Every research check clean on 28
+routes. A margin for its select links (arrival at umux0/1/2 and hold) is the number wanted most.
+
 ## Shortened select links, collatz (2026-11-15 evening) -- the margin wanted most
 Item 25's command with `BD_SIZES=../research/data/collatz_sizes_T3cdb_nl6s{0,1,2}_bench.vh` (select links
 ulink_n14__0 / ulink_n14__1 / ulink_n_index_11 DELAY at 0 / 1 / 2; nl6 otherwise). All gates pass on every route
