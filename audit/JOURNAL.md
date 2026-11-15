@@ -2102,3 +2102,6 @@ Research e4fba1b6: fcsel0 (collatz select links at 0) -10.37 ns/iter median over
 
 ### note 20:45
 Formal B 70707610 SelectCapture CHECKED: own lake build OK, standard axioms; lemma (rules I/H as window inequalities, every delay in the band). No real-build row yet. REPORT row.
+
+### note 20:55
+Formal A 14b3e025: BAD xf2_1 fails in formal's model under a scatter adversary at ulink_n7 (kappa <= 0.2, search). Consistent with own GLS, but not discriminating yet: xf2_1 fails at plain FAST_MIN already; the negative control needs item 23's ulink_n7 to come out above it (running on formal's side) and a replayable assignment. Formal B f330eecf SelectHold CHECKED: own build OK, standard axioms (lemma). Research a61b00f71: constructed select race passes the gate at worst (no negative control yet); farm request names fixed (runner ignored upper-case ones).
