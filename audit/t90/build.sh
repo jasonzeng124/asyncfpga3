@@ -8,6 +8,8 @@ V=$1; S=$2; R=${R:-/root/wt-r90}; cd $R/cells; source /root/audit-tc/openxc7/exp
 BASE="BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0"
 case $V in
   nc64)  K=collatz64; SZ=../research/data/collatz64_sizes_T4cd_bench.vh; KN="BDC_CONST_DATA=1";;
+  c64eq) K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_h2_bench.vh; KN="$BASE";;
+  c64h)  K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_h_bench.vh; KN="$BASE BDC_NO_LINK=ulink_n30__1";;
   c64r)  K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_bench.vh; KN="$BASE";;
   c64nl) K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_bench.vh; KN="$BASE BDC_NO_LINK=ulink_n30__1";;
   coleq) K=collatz;   SZ=../research/data/collatz_sizes_T3cdb_nl4_bench.vh; KN="$BASE";;

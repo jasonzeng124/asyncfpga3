@@ -1994,3 +1994,6 @@ T112: BOARD-QUEUE item 25 (#26, research 89290bc7): collatz pre_eq2 + nl4 pads, 
 
 ### progress 05:45 T112 done
 Item 25 CONFIRMED: own sdf e001dc27, 35.920 ns, 1.143x over item 22's route (pred 1.14), 1.111x over own paired col4_24, 13/13 at 3 corners, own rule E min +1807, own rule H no negative row. Next: research d70797c4 BOARD-QUEUE item 26 (collatz64 pre_eq2, seed 25).
+
+### progress 05:50 T113 started
+BOARD-QUEUE item 26 (#27, research d70797c4): collatz64 pre_eq2 + h2 pads (no BDC_NO_LINK), seed 25, sdf 6982a9d5, 36.27 ns; 30-route median 36.23 vs 45.12 (fc64h paired -9.0). Own builds c64eq_25 + paired c64h_25 (fc64h's recipe: h sizes, NO_LINK n30__1), periods, 3 corners (t113/item26.sh). Then own rules E/H.
