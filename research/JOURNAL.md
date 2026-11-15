@@ -4433,3 +4433,9 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
 - Not covered by those rows: the select race inside the cell (spec_abort must settle before z_short rises). Estimate
   from the SHORT-case rows: the latest low-bit data arrives ~2.5 ns at worst vs the short request at 3.08 ns; the abort
   is 2 LUTs off the same bits. To be measured as its own row. Then: gate, hold check, 32 farm routes.
+### progress 00:33 UTC (xs_10: full gate and hold check clean)
+- xs_10 (speculative uaddi0, seed 10): bench_gate SLOW_MAX / FAST_MIN / worst+M all PASS 17/17, EQUIVALENT (cycles
+  13423 / 4930 / 6834). Trace hold check at FAST_MIN: no violations; tightest ulink_n_index_15 +1050 ps,
+  ulink_n_trueResult_6 (item 23's fixed race) +5608 ps. One route; the 32-route farm run fxs is still running
+  (fxf4l, the baseline latency on the same seeds, is back).
+- Still open before a board item: the in-cell select race (spec_abort vs z_short) as its own row.
