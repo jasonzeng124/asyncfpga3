@@ -13,6 +13,13 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
 
 ## Full-input-range status (owner rule 2026-11-14; research/JOURNAL.md 2026-11-14)
 
+**2026-11-15 (evening) CORRECTION: rule E rows on muxes and steers were never read.** eval_task.sh's static summary
+matched the instance in field 3 of each report row; rule E rows put the cell type there (`E -255 bd_mux <inst>`), so
+no E row of a bd_mux or bd_steer ever reached eval.txt since 2026-11-14. Every "static A / A' / E clean" below for
+items 22-27 means A and A' only. Found on a select-shortened collatz route (umux0/1/2 E -87..-255 ps at worst).
+Re-check of every item family's routes running on the farm (requests *S, report_rows_*.txt keep every row); until it
+is back, the E status of items 19 and 22-27 is UNKNOWN.
+
 **2026-11-15 (later): the hold rows are being closed by pad rounds on 32 routes per family.** Every route clean of H / I
 rows (non-defect routes): collatz n == 2 with nl6 (fceq2, 30/30), ipow with h4 (fipowh4, 23/23), xorshift lever 8 with
 fr6d (fxd3, 28/28; one uxori1 A -240 ps row on seed 22), collatz64 n == 2 with h4 (fc64eq3, 28/28, umux2's traced

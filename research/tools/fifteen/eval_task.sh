@@ -10,6 +10,7 @@
 #   (SPEC_CASES=inst:k) the static check per case, LONG / SHORT, and the in-cell select race (spec_select.py).
 #   4. (HOLD_VEC=vector file) the trace-measured hold check at FAST_MIN (hold_trace.py) -> hold.tsv, and per latch bit
 #      with the close at each bit's enable pin (hold_bits.py) -> hold_bits.tsv.
+#   STATIC_ONLY=1: the build and step 2 only (no gate, hold or TSE); TSE_ONLY=1: the build and step 5 only.
 #   5. (TSE_VEC=vector file with a long steady loop, e.g. vec_xorshift.hex) rule H with C-element semantics and token
 #      counts (research/tools/eventgraph/tsehold.py): a DUMP_FIELD=min run's event graph against a FAST_MIN SDF, and
 #      the build's own (worst-column) graph against corner_audit's worst SDF -> tse_min.txt, tse_worst.txt.
@@ -48,13 +49,13 @@ tse_graph() { mkdir -p "$(dirname "$2")"; for st in 1 2; do
     python3 "$R/research/tools/eventgraph/eventgraph.py" "$1" auto --rj "$HW/${K}_bench_gen_routed.json" --stride $st --out "$2" > "$2.log" 2>&1
     [ -f "$2/nodes.tsv" ] && grep -q "CHECK period equal: PASS" "$2/check.txt" 2>/dev/null && return 0; rm -rf "$2"; done; return 1; }
 G=$RUNS/g/$N
-if [ -z "${TSE_ONLY:-}" ]; then
+if [ -z "${TSE_ONLY:-}" ] && [ -z "${STATIC_ONLY:-}" ]; then
 for C in max min worst; do
   ( r=$("$R/research/tools/eventgraph/bench_gate.sh" "$HW" "${K}_bench_gen" "$G/$C" "$R/$GH" "$R/$GE" "$C" 2>&1 | tail -1)
     echo "gate $C $r" > "$O/gate_$C.txt" ) &
 done
 fi   # TSE_ONLY
-if [ -n "${HOLD_VEC:-}" ] && [ -z "${TSE_ONLY:-}" ]; then   # trace-measured hold at every link / pipe input stage, FAST_MIN (hold_trace.py)
+if [ -n "${HOLD_VEC:-}" ] && [ -z "${TSE_ONLY:-}" ] && [ -z "${STATIC_ONLY:-}" ]; then   # trace-measured hold at every link / pipe input stage, FAST_MIN (hold_trace.py)
   ( DUMP_FIELD=min "$R/research/tools/eventgraph/fullstack_dump.sh" "$HW" "${K}_bench_gen" "$RUNS/hold/$N" "$R/$HOLD_VEC" > "$RUNS/hold_$N.log" 2>&1
     python3 "$R/research/tools/fifteen/hold_trace.py" "$RUNS/hold/$N" "$HW/${K}_kernel_bench.v" > "$O/hold.tsv" 2>&1
     python3 "$R/research/tools/fifteen/hold_bits.py" "$RUNS/hold/$N" "$HW/${K}_kernel_bench.v" > "$O/hold_bits.tsv" 2>/dev/null
@@ -91,7 +92,9 @@ fi
 [ -n "${TSE_ONLY:-}" ] || for c in nom worst; do
   f=$CA/$c/report.txt
   if [ -f "$f" ]; then
-    neg=$(awk '$1~/^(A|E)$/ && $2+0<0 && $3~/udut/ {print $1, $2, $3}' "$f" | sort -u | sed 's/bridge_i.udut.//' | tr '\n' ';')
+    # rule E rows carry the cell type in field 3 (E -255 bd_mux <inst> ...): until 2026-11-15 this line read field 3
+    # only, so no E row on a mux or steer ever reached it (JOURNAL 2026-11-15, correction).
+    neg=$(awk '$1~/^(A|E)$/ && $2+0<0 && ($3~/udut/ || $4~/udut/) {print $1, $2, ($3~/udut/ ? $3 : $4)}' "$f" | sort -u | sed 's/bridge_i.udut.//' | tr '\n' ';')
     a=$(awk '$1=="a" && $2+0<0 && $3~/udut/ {print $2, $3}' "$f" | sort -u | sed 's/bridge_i.udut.//' | tr '\n' ';')
     # every other rule corner_audit sizes (SIZED_RULES less A / E; D is a screen, J has no line): H (hold), I (capture),
     # F (fast-fall flush), K, L, B, C.  Until 2026-11-15 this line showed A / E only and the H / I rows were never read.
@@ -99,6 +102,7 @@ fi
     echo "static $c ${neg:-CLEAN} | tighten-a: ${a:-none} | hold/close: ${hi:-CLEAN}" >> "$E"
     sed -n '/^proposal/,/^wrote/p' "$CA/$c.log" | head -40 > "$O/proposal_$c.txt"
     grep -E '^  [HI] +-[0-9]' "$f" | sort -u > "$O/report_hi_$c.txt"   # rows with their PAD values, for hold_pads.py
+    grep -E '^  [A-Z]+ +[-+]?[0-9]' "$f" | sort -u > "$O/report_rows_$c.txt"   # every rule row (2026-11-15)
   else echo "static $c ERROR (see ca_$c.log)" >> "$E"; tail -30 "$CA/$c.log" > "$O/ca_$c.log"; fi
 done
 if [ -n "${SPEC_CASES:-}" ]; then

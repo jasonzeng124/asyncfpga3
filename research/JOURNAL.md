@@ -5037,3 +5037,17 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
 - No route has raced so far, so no family has its negative control yet. If none races at 0, the plan is a constructed
   bad build: lengthen the select's data path in the SDF only (same netlist and route) until the gate fails, then show
   that the static checks flag it on that SDF (CLAUDE.md: the injected defect larger than anything the harness hides).
+### progress 18:09 UTC (CORRECTION: rule E rows on muxes / steers never reached eval.txt; re-checking every family)
+- Found while building the constructed select race on fcsel0 seed 24 (local, sdf bb5fbbdb): corner_audit at worst
+  reports rule E -255 / -174 ps at umux1 and -87..-224 at umux0 / umux2 on the UNPATCHED route, but the farm summary
+  said static clean. eval_task.sh's awk keeps rows whose field 3 is the instance; rule E rows put the cell type there
+  (E -255 bd_mux bridge_i.udut.umux1 ...). So since eval_task was written (2026-11-14) no E row of a bd_mux or bd_steer
+  reached any summary, and every "static A / A' / E clean" for items 22-27 and the families behind them was A / A'
+  only. Fixed (field 3 or 4); report_rows_*.txt now keeps every rule row. BOARD-QUEUE flagged: E status of items 19 and
+  22-27 UNKNOWN until the re-check.
+- Farm, STATIC_ONLY=1 (build + corner_audit at nominal and worst only), same seeds as the originals: fxdS (item 27),
+  fceqS (25), fc64eqS (26), fxf4S (23), fc64nlS (24), fcolsz2S (22), fipowrhS (19), fceq2S, fc64eq3S, fipowh4S, and the
+  select experiments fxsel0S / fxsel1S / fcsel0S / fc64sel0S / fisel0S.
+- Constructed select race (fcsel0 seed 24, select latch -> umux1.uj0/uj1 wires +3000 ps in the prjxray SDF only):
+  rule E goes -255 -> -3345 ps, rule D -30 -> -3080; H / I / A unchanged (as they should be: this is a bundling race,
+  not a hold race). Gates at worst / FAST_MIN still compiling.
