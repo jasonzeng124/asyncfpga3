@@ -1972,3 +1972,6 @@ Research d337ce90: skew.py AND-join rule E on xl5_10 (lever 5 on fr4 sizes, seed
 
 ### note 03:47
 Research 5321c5a0 / 9abe25f4: lever 8 (pre_dec.py, MLIR pre-pass): loop exit test cmpi slt (i+1), n -> cmpi slt i, m with m = n-1 computed once in bb0. Own reading of research/data/fifteen/xorshift_predec.mlir: i starts at extui(false)=0, the loop is entered only for n > 0 (cmpi0 sgt), continue requires i+1 < n so i+1 <= n <= INT_MAX inside: no wrap on either side; identity exact. Own 8-bit scaled model (every n > 0): iteration counts identical, 0 mismatches. Predicted ~19 ns (18-20) on seed 10 vs xf5_10 23.15; build not yet reported. Will gate with own oracle when queued.
+
+### progress 03:58 T110 started (lever 8)
+Research 32dec7eb: xd_10 (lever 8, fr4 sizes, seed 10) route 5e759620, latency 414 vs xf5_10 499 cycles = -3.98 ns/iter. Own: pre_dec.py on the worktree's frontend MLIR reproduces the committed xorshift_predec.mlir (md5 c3c2c892). Own builds xf5_10 + xd_10, latency, 3-corner GLS with own oracle (t110/run.sh).
