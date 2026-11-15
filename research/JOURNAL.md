@@ -4962,3 +4962,17 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
 - NOT covered by TSE: 13 controllers per route with no event in the steady-state graph (loop entry / exit pipes:
   ulink_n6, n1__1, falseResult_*, trueResult_0/2, index_15); their OR rows stand (n6 st1 -48..-335, falseResult_9 st1).
   Does NOT show: anything outside the loop's steady state, or paths enabled by data the window did not exercise.
+### progress 17:22 UTC (owner, 12:17 / 12:20 EST: the select rule is withdrawn; second lead on collatz's delays)
+- Read PROGRAM's two new sections. Order this session: (1) TSE on 32 routes and the select links sized by the checks
+  -- the owner's bar: the checks must first FAIL on a raced select in each kernel family; (2) the collatz delay table
+  (second lead); (3) the blanket-rule table.
+- eval_task.sh step 5 (TSE_VEC, opt-in): FAST_MIN run + event graph, tsehold.py at FAST_MIN and worst -> tse_*.txt and a
+  "tse" line in eval.txt. Farm, 32 routes each, item 27's structure (pre_dec, lever 8, fxd's knobs and seeds):
+  fxdt (fr4 = fxd's sizes: item 27's TSE status), fxsel1 / fxsel0 (fr4 with ulink_n12__0/1/2 and ulink_n_index_15's
+  DELAY at 1 / 0; everything else fr4).
+- PREDICTION (from xd_10's two-iteration graph, 2026-11-15 04:21 / 06:50): the select links ulink_n12__1 (8) and
+  ulink_n12__2 (6) are on the critical cycle at 4.69 / 3.76 ns per 2 iterations; at ~0.4 ns a link, 8 -> 1 and 6 -> 1
+  is up to -2.4 ns per iteration, but the next cycles are within 0.2-1.5 ns, so: fxsel1 latency -1.0 to -2.0 ns per
+  iteration vs fxd paired (median 19.39 -> ~17.5-18.4 ns); fxsel0 at most ~0.4 ns more. Static checks: no A / E change
+  expected (corner_audit put every select line on no rule A / E constraint); whether H / I / hold_bits / TSE or the gate
+  see anything is the experiment. If fxsel0 races on some route, that is the xorshift negative control the owner asks for.

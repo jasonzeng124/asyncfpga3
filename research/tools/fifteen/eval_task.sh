@@ -10,6 +10,9 @@
 #   (SPEC_CASES=inst:k) the static check per case, LONG / SHORT, and the in-cell select race (spec_select.py).
 #   4. (HOLD_VEC=vector file) the trace-measured hold check at FAST_MIN (hold_trace.py) -> hold.tsv, and per latch bit
 #      with the close at each bit's enable pin (hold_bits.py) -> hold_bits.tsv.
+#   5. (TSE_VEC=vector file with a long steady loop, e.g. vec_xorshift.hex) rule H with C-element semantics and token
+#      counts (research/tools/eventgraph/tsehold.py): a DUMP_FIELD=min run's event graph against a FAST_MIN SDF, and
+#      the build's own (worst-column) graph against corner_audit's worst SDF -> tse_min.txt, tse_worst.txt.
 # Steps 2 and 3 run in parallel (5 processes; memory ~3 x 2.4 GB for the gate sims).
 set -uo pipefail
 N=$1; K=$2; Z=$3; S=$4; VEC=$5; GH=$6; GE=$7; shift 7
@@ -49,7 +52,24 @@ if [ -n "${HOLD_VEC:-}" ]; then   # trace-measured hold at every link / pipe inp
     python3 "$R/research/tools/fifteen/hold_bits.py" "$RUNS/hold/$N" "$HW/${K}_kernel_bench.v" > "$O/hold_bits.tsv" 2>/dev/null
     rm -f "$RUNS/hold/$N/dump.vcd" ) &
 fi
+if [ -n "${TSE_VEC:-}" ]; then   # step 5's FAST_MIN run (the worst graph is lane2's own, already built)
+  ( DUMP_FIELD=min "$R/research/tools/eventgraph/fullstack_dump.sh" "$HW" "${K}_bench_gen" "$RUNS/tmin/$N" "$R/$TSE_VEC" > "$RUNS/tmin_$N.log" 2>&1
+    python3 "$R/research/tools/eventgraph/eventgraph.py" "$RUNS/tmin/$N" auto --rj "$HW/${K}_bench_gen_routed.json" --out "$RUNS/gtmin/$N" > "$RUNS/gtmin_$N.log" 2>&1
+    rm -f "$RUNS/tmin/$N/dump.vcd" "$RUNS/tmin/$N/netlist_baked.v" ) &
+fi
 wait
+if [ -n "${TSE_VEC:-}" ]; then
+  mkdir -p "$CA/tmin"; ln -sf "$HW/${K}_bench_gen_routed.json" "$CA/tmin/soak_routed.json"
+  python3 "$R/research/tools/corner_sdf.py" "$RD/xray.sdf" "$CA/tmin/soak_routed.json" "$CA/tmin/soak.sdf" --band 0 > /dev/null 2>&1
+  python3 "$R/research/tools/eventgraph/tsehold.py" "$RUNS/gtmin/$N" "$CA/tmin/soak.sdf" > "$O/tse_min.txt" 2>&1
+  python3 "$R/research/tools/eventgraph/tsehold.py" "$RD/eventgraph" "$CA/worst/soak.sdf" > "$O/tse_worst.txt" 2>&1
+  for c in min worst; do
+    rows=$(awk '$4 ~ /^-[0-9]+$/ {print $4, $1}' "$O/tse_$c.txt" | sed 's/^/TSE /' | tr '\n' ';')
+    unc=$(awk '/NOT COVERED/ && $3 ~ /^-[0-9]+$/ {print $3, $1}' "$O/tse_$c.txt" | tr '\n' ';')
+    echo "tse $c ${rows:-CLEAN} | not covered, OR < 0: ${unc:-none} | $(grep -o 'self-check.*' "$O/tse_$c.txt" | cut -c1-80)" >> "$E"
+    cp "$([ $c = min ] && echo "$RUNS/gtmin/$N" || echo "$RD/eventgraph")/check.txt" "$O/tse_graph_check_$c.txt" 2>/dev/null
+  done
+fi
 for c in nom worst; do
   f=$CA/$c/report.txt
   if [ -f "$f" ]; then
