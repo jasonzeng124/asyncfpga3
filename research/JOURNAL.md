@@ -5121,3 +5121,11 @@ farm, then the K-lap check.
 - Farm fcsel3m: select links at 3 + N10__4_UACK 0. PREDICTION: E clean on >= 30/32 routes at worst, ~-9.5 ns per
   iteration vs fceq2 (each select element ~0.4 ns, umux1's on the cycle twice), gates pass. If that holds it is the
   collatz candidate, pending the E re-check of the baseline and the select negative control.
+### progress 19:23 UTC (E re-check, first families back; farm queue full)
+- fc64eq_s (item 26's family, h2, 30 routes): rule E below 0 on 2 routes, both steers at worst: seed 1 ucond_br6 -191,
+  seed 31 ucond_br5 -250 ps. Item 26's board seed (25): no E row. fc64nl_s (item 24's family, 29 routes): no E row.
+  Every collatz64 route also shows umux2's traced false-path A row (as recorded since 2026-11-14) and, on fc64nl, the
+  H rows item 24 is known for.
+- The farm caps an account at 250 queued + running tasks: fxd_s, fxf4_s, fxdt_t and later requests wait for room.
+- Local constructed races (fcsel0 s24): the late-select run at FAST_MIN and both delayed-close runs have completed no
+  batch after 30-60 CPU-minutes (clean: ~10); verdicts pending.

@@ -19,6 +19,8 @@ no E row of a bd_mux or bd_steer ever reached eval.txt since 2026-11-14. Every "
 items 22-27 means A and A' only. Found on a select-shortened collatz route (umux0/1/2 E -87..-255 ps at worst).
 Re-check of every item family's routes running on the farm (requests *S, report_rows_*.txt keep every row); until it
 is back, the E status of items 19 and 22-27 is UNKNOWN.
+Back so far: item 26 (fc64eq family) -- its board seed 25 has no E row; 2 of 30 routes have steer E rows (-191, -250 ps
+worst). Item 24 (fc64nl family): no E row on 29 routes.
 
 **2026-11-15 (later): the hold rows are being closed by pad rounds on 32 routes per family.** Every route clean of H / I
 rows (non-defect routes): collatz n == 2 with nl6 (fceq2, 30/30), ipow with h4 (fipowh4, 23/23), xorshift lever 8 with
