@@ -42,6 +42,20 @@ Inputs (origin/claude/research, read-only; each is exactly `research/tools/fifte
 - Reproduce: `formal/tools-A/rewrite/gen.sh`, then
   `cd formal && ./check.sh $(cd lean && ls Formal/Rewrite/*.lean)` (1,467 declarations, standard axioms).
 
+## C9. Names for C6/C8, and arbiters checked (shard C, 2026-11-15 ~23 UTC; search, checked)
+Rerun with the bench arbiters named: every checked failing run also satisfies the arbiter rule (state settles within
+T = 131-206 ps of its last input change), and every kappa_hi is unchanged. Instance names (routed JSON NEXTPNR_BEL):
+- **item 26 (collatz64, 0.26):** `ulink_n13.lat.pair[6]` (LUT5 and LUT6) reads its enable from `ulink_n13.ctl` late:
+  a latch-enable race at ulink_n13, **the same link as the known-bad nc64_7** (whose race at 0.05 is
+  `ulink_n13.lat.pair[2]` reading `ulink_n13.ctl`). Other failing rows on item 26: ulink_n_falseResult_3 stage[0]
+  latch pairs (0.30-0.33).
+- **item 25 (collatz, 0.42 without the runt filter):** `ulink_n_falseResult_3.many.stage[0].u.lat.pair[12]` (and pairs
+  8/10/16) reading `ulink_n_falseResult_3...stage[0].u.ctl` late.
+- **pc64_7 (0.39):** `ulink_n_falseResult_7.many.stage[0].u.ctl` (its own feedback): quiet deadlock.
+- nc64_7 also fails at 0.31 with the runt filter at `ulink_n14__1.many.stage[1].u.ctl` (the select line you shortened).
+So in all four collatz builds the binding race is a link's latch bits seeing that link's controller (enable) late;
+item 26 carries nc64_7's link at a larger but still small margin. Files: `formal/tools/margin/out/farm_<build>/names.txt`.
+
 ## C8. collatz64 item 26 (board candidate) breaks at kappa = 0.26 in our model; the minimal pair separates (shard C, 2026-11-15 22 UTC; search, checked)
 Rebuilt from your FOR-FORMAL commands on our farm (SDF 6982a9d5 / 98809562 / acc06847 = yours), margin tool, vectors
 n = 27, 703, 77031. Every failure below re-run with a dump and passed both independent checkers (every gate relation,

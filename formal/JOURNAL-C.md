@@ -3352,3 +3352,9 @@ Not covered: multi-route adversaries, the slow corner, pins inactive on the chos
 from unit theorems), SymClaim, SymUnroll, SymChain, SymWord, SymLoc (symbolic register-bit claims: per-kind checks once
 for every pair). The STATUS list did not shrink (no instance).
 **Process:** one rule breach (a subagent started after the owner's no-subagent rule, unread at the time); recorded.
+
+### progress 23:05 -- bench rerun with arbiters and names: kappa_hi unchanged, ArbOK T 131-206 ps; races named (FOR-RESEARCH C9)
+item 26's 0.26 race = ulink_n13.lat.pair[6] reading ulink_n13.ctl late (latch enable), the link of nc64_7's 0.05 race
+(ulink_n13.lat.pair[2]); item 25's = ulink_n_falseResult_3 stage[0] latch pairs vs their ctl; pc64_7's 0.39 =
+ulink_n_falseResult_7 stage[0] ctl feedback. Every collatz binding race is a link's latch bits seeing its own
+controller late. Outputs: tools/margin/out/farm_*.
