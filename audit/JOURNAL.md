@@ -1963,3 +1963,6 @@ Speculative cell, seeds 1 and 12 (research's thinnest SELECT rows): own builds, 
 
 ### note 03:32
 Research new session (1b7b4c68, d567faf2): farm round-1 hold pads (fcol3 / fc64h / fipowh) shrink but do not clear the OR-join H/I rows; round 2 submitted. Research cites T109/T109b correctly ("OR-join lower bounds whose paths were never live"). fxs on 30 routes: -1.87 ns/iter mean (28/30 faster); SHORT-case A' min +94 worst (seed 13). Research flags unchecked NOT EQUIVALENT decodes on several farm routes (fc64h 10, fipowh 9, fxs 5) -- candidates for an own decode check when a route is queued. No board item yet. Watching.
+
+### note 03:38
+Research c26f1566: skew.py opt-in C-element (AND) seeding (the T93 model); b224dba3: farm fneq rebuilds 8 NOT EQUIVALENT routes to classify. No numbers yet. When research reports AND-join rule E figures, compare with own t93 (item 18 +1.59 ns full carry). Watching.
