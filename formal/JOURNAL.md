@@ -2538,3 +2538,18 @@ Spec.Env's earliest data change) or until the next request (next). With sim's de
 the acks are still high) the outputs shift by one pair (16, 111, 111): that env is OUTSIDE Spec.Env (EnvIn holds data
 while req or ack is high); the gcd kernels tolerate it, collatz does not. sim.py's help text claimed Spec.Env allows
 it: corrected (sim.py, simadv_hold.py). Earlier gcd_ps runs in that mode are unaffected as evidence (they passed).
+### progress 18:20 -- item 23 and BAD xf2_1 reproduced; decoded nets simulate; uniform corners do NOT reproduce the known-bad failure (untrusted)
+* Rebuilt from FOR-FORMAL.md's commands (scratch worktree, original xorshift MLIR): item 23 SDF 2f825834565b3b7e26642ae8dc07f237 /
+  FASM 56434fc43a066c25c397e8f7e4b9d1ea; BAD xf2_1 SDF dc138ea225845c51346e36e95e05b907 / FASM f2873d4650eb67cb270ada5c9a403421:
+  all byte-identical to research's. Boundaries: `tools-A/target/out/{item23_xorshift_s10,BAD_xf2_1}_boundary.json`
+  (seed, rounds, start on one request flop, as gcd). `mk_bnd_sim.py` maps a bench boundary onto sim.py's keys.
+* sim.py (prjxray bands, transport, sequential env, data held to each ack's fall), seed 0x92d68ca2:
+  - item 23, mid-band: rounds 3, 4, 1-on-seed-1 -> 2064144800, 2008045182, 270369 (= xorshift); fast corner (c = 0,
+    fast end), fastest SeqEnv (dfall 1): rounds 3, 4, 3, 4 correct.
+  - **BAD xf2_1, research's own hold vectors** (`research/data/fifteen/vec_xorshift_hold.hex`: rounds 3, 4, 8, 5) at
+    the uniform fast corner (c = 0, every arc at its fast min) and at mid-band: all four CORRECT
+    (2064144800, 2008045182, 691148861, 3532304609). research's GLS fails there at FAST_MIN (nextpnr SDF, fid model):
+    its race (ulink_n7's enable net reaching latch bit 1 late) is a relative skew that a uniform prjxray corner does
+    not create. **For C's margin tool:** the known-bad build is not bad at any uniform corner of our model; it must be
+    found by the within-die scatter adversary (kappa), and kappa* for BAD must come out below the good builds'. If the
+    adversary cannot find it, the difference is in the delay model (nextpnr SDF vs prjxray bands), to be named.
