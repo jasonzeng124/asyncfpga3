@@ -2166,3 +2166,6 @@ Formal C 1d975824: margin tool reports only finite (checkable) witnesses as kapp
 
 ### progress 01:45 T118 started (negative control, collatz select race)
 Research ac048316: constructed select races on fcsel0 seed 24 by SDF injection: select latch -> umux1.uj0/uj1 +3000 ps: worst PASS 13/13, FAST_MIN no completion; n14__1 stage[1] enable +15000: no completion at both; rule E flags both, H the hold one -- research's negative control for collatz (by injection, "0/13" = non-completion). Own replay T118: same +3000 ps on the two arcs in a copy of own sdf-identical route (/root/t65/colsel0inj_24), GLS worst then FAST_MIN with own oracle and the pin-level arrival monitor extended to the join LUTs' select pins (A5) -- tests whether own monitor catches a known-bad arrival build (its own negative control).
+
+### progress 03:00 T118 done
+Negative control replayed: injected select-arrival race passes worst (13/13), stalls at FAST_MIN -- as research. Own simulated arrival monitor does not flag it at either corner; static rule E does. So the simulated arrival check is not sufficient alone; owner's criterion (both arrival E and hold) covers it. REPORT row.
