@@ -4330,3 +4330,15 @@ from LatchHoldPin + roots from chain certificates) and a kernel-checkable row fo
   every behaviour and every delay in the band. The deselected input may glitch freely. `force_tree_minmax`: with
   the corner-free sums `sumMax`/`sumMin`. Axioms: propext, Classical.choice, Quot.sound.
 * *Not shown:* any instance; `SelectCapture` (the latch composition) is still building (needs LatchHoldPin's stack).
+### progress 20:5x -- CHECKED: `Formal/Cells/SelectCapture.lean` `select_capture` (`lake env lean` OK; standard axioms)
+* *Problem:* a bundled-data latch bit captures a value that reaches its data pin through a select mux whose select
+  and inputs are launched by other controllers. When is the captured value right for every delay in the band,
+  glitches included?
+* *Proved:* given a forcing tree for the data pin's source `m` (`force_tree`) and `latch_close_pin`'s own premises
+  (enable open for `We` before the close event τ, closed on `[τ, E]`, loop inequality, held side pins), two window
+  inequalities suffice: **setup (research's rule I)** `a m + Wd ≤ τ` and **hold (research's rule H)**
+  `τ + hi e ≤ b m + lo d + 1` (`hi e` = slowest enable route to the LUT, `lo d` = fastest data route). Then the
+  latch shows `val m ⊕ pd` on `[A, E + lo e]`. The deselected input and the select outside `[a, b]` may glitch.
+* *Not shown:* the roots' windows on a real build (they come from chain certificates on the controllers, as in
+  LatchHoldCert, or from quietness); any instance; completeness. Next: measure on gcd_ps which latches' data
+  sources are mux LUTs (the select captures) and emit a first forcing-tree row.

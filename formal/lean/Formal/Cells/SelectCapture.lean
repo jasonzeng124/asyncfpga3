@@ -28,7 +28,7 @@ chain certificates on the controllers, `LatchHoldCert`, or from quietness; no ro
 
 namespace Formal.Cells.SelectCapture
 open Formal.Target Formal.Timing.SpecSettle Formal.Timing.SpecChain Formal.Timing.SpecLoop Formal.Timing.Island
-  Formal.Cells.ForceTree Formal.Cells.LatchHoldPin
+  Formal.Cells.ForceTree Formal.Cells.LatchHoldPin Formal.Cells.SpecFbChain
 
 /-- **A latch bit captures through a forcing tree.** -/
 theorem select_capture {p : DelayPar} {c : ℚ} {x : Beh}
