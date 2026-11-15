@@ -1,11 +1,89 @@
 # Formal-model feasibility program
 
-## Back on (owner, 2026-11-15)
+## FIRST since 2026-11-15: be research's timing rule (owner)
 
-Formal was off from 2026-11-10 to 2026-11-15. The owner has turned it back on: one session
-per shard per day, as before. Nothing in the goal, the target or the rules below has changed.
-Start from `formal/target/STATUS.md` and your journal's last entry. A lock dated 2026-11-10
-is from before the pause: take it.
+Formal is back on after a pause (2026-11-10 to 2026-11-15). The owner's words: "you can direct
+formal anyway you want, maybe even hav it colab with rsch". This section is that direction. It
+comes before the gcd theorem below, which stays as the second priority.
+
+**Why.** Research (`claude/research`) is pushing xorshift toward 15 ns per iteration by
+shortening matched delays. On the same day the owner told it "blanket rules are not real": a
+timing rule has to name the two signals that race, where each is launched and where it is
+captured, and come with a check that fails on a build known to be wrong (research/PROGRAM.md,
+"No blanket rules"). Research's rules A, E, H, I and its select checks are heuristics on
+nextpnr's SDF, plus simulation at three corners. You already have what a real rule needs: the
+netlist decoded from the bitstream, prjxray delay bands with g and kappa, race certificates,
+an adversary that finds failing delay assignments, and Lean to say what a certificate proves.
+On gcd_ps that found the binding race and a margin (it fails at kappa = 0.36, g = 1). Research
+has no such number for any build it reports.
+
+**The deliverable: a margin for any build, with the race that sets it.** Given a routed build
+(its `.fasm`), report at g = 1, with and without H_RUNT(20):
+- every race that can break it: the two paths, where they diverge, where each is captured, and
+  the kappa at which it can fail;
+- the smallest of those, kappa*, and its race, in research's instance names;
+- a failing delay assignment just above kappa*, as a trace research can replay in its own
+  gate-level simulation, or a plain statement that the search found none;
+- for each number, whether it is Lean or untrusted search.
+
+It has to run unattended on one build in under an hour on 8 cores, so that research can run it
+on 32 routes of every candidate. Coverage and speed come before proof here: an untrusted tool
+that is right and fast gets used tomorrow, and the Lean follows it.
+
+**Order of work.**
+1. *One command* (C leads): `formal/tools/margin/run.sh BUILD.fasm OUT/`, from the pieces you
+   have (the fasm import, the prjxray intervals, the race rows, the adversary). Check it on
+   yourselves first: on `gcd_ps_e6bb4aec` it must find the kappa = 0.36 livelock and the 0.40
+   late-input race. The feedback-only race rows missed the 0.40 one, so the thing to get right
+   is that the race list is complete: every capture, not only storage feedback.
+2. *Known-bad builds* (C, with research): research has builds that fail in its simulation (its
+   journal names a collatz64 select failure and xorshift `xf2_1`) and neighbours that pass. Ask
+   for them in FOR-RESEARCH. The tool must put the bad ones below the good ones and name the
+   failing link. If it cannot, that is the finding: say which race it does not model.
+3. *The builds that matter* (all): xorshift board item 27 (research/BOARD-QUEUE.md #28), then
+   research's shortened-select candidates as they land, then collatz items 25 and 26. For each
+   shortening, say which race moved and by how much. A build whose kappa* is well below
+   gcd_ps's is a finding for research the same day.
+4. *The select race in Lean* (B leads): the capture that research's withdrawn select rule stood
+   in for, a mux or select control that changes while its data is being captured, and the hold
+   and capture conditions research now uses instead (its rules H and I,
+   `research/tools/fifteen/hold_bits.py`, `research/tools/eventgraph/tsehold.py`). State the
+   certificate, prove that a certificate gives a correct capture in Core's gate model for every
+   delay in the band, and have the tool emit certificates that Lean checks, as `RaceCertPS`
+   does for feedback races. Then completeness: a netlist whose every capture has a certificate
+   is safe.
+5. *The source rewrites* (A, small): research changed two loop tests with a pass over the
+   handshake MLIR. xorshift: `i + 1 < n` became `i < n - 1` (`research/tools/fifteen/pre_dec.py`,
+   result in `research/data/fifteen/xorshift_predec.mlir`). collatz: `n' == 1` became `n == 2`
+   (`pre_eq2.py`, `collatz_preeq2.mlir`, `collatz64_preeq2.mlir`). Prove that each kernel
+   computes the same function before and after, for every 32-bit input (64-bit for collatz64),
+   from the MLIR and not from the C, including n <= 0 and the wrap-around cases. A
+   counterexample goes to research at once.
+
+**Working with research.** You cannot talk to it. You can read each other's branch.
+- `research/FOR-FORMAL.md` on `origin/claude/research`: what research wants checked. Builds
+  (kernel, build command, SDF md5, where the files are), what it changed, and its questions.
+  Read it at the start of every session and again every two hours.
+- `formal/FOR-RESEARCH.md` here: your answers and your requests, newest first. Each item has an
+  id, the build's md5, the number, the race, and the file that reproduces it. Research reads it
+  the same way. Ask there for what you need from a build (the `.fasm`, the routed JSON, the
+  SDF, a failing vector). The cloud toolchain is the same for both of you, so a build command
+  and a seed also give you research's route exactly.
+- A margin is a claim like any other: the auditor checks it (`audit/REPORT.md`).
+- Research's files are read-only to you, and yours to it. To hand over a tool, make it run from
+  a clean checkout of this branch with one command, and say so in FOR-RESEARCH.
+
+**Shards.** Files and locks as before. C: the tool, its completeness, its speed. B: the select
+race, its certificates and their soundness. A: targets and their md5s, the rewrites, the two
+status files and FOR-RESEARCH. A also decides what goes back to the gcd theorem while work
+here waits on research. Keep `formal/target/STATUS.md` for the gcd theorem, and add
+`formal/target/MARGINS.md`: one row per build (md5, kappa*, binding race, Lean or search, date).
+
+**Second priority: the gcd theorem** (the section after next). Its positive side (S4
+composition, S6 liveness) is still open. Work on it when the work above is blocked, and
+whenever a result here (a completeness proof, a certificate checker) is what it needs.
+
+A lock dated 2026-11-10 is from before the pause: take it.
 
 ## Effort and subagents (owner, 2026-11-05)
 
@@ -28,8 +106,9 @@ Memory is the limit (OOM kills in check.sh and the audit's builds): keep Lean un
 
 The owner wants **one theorem: the gcd_hw bitstream, as it will be flashed,
 computes gcd on the board.** This replaces goal 2 below and the phase plan
-(the 48-hour phases are over). Every session works toward this theorem and
-nothing else, until it is proved or refuted. The model work (goal 1) and the
+(the 48-hour phases are over). Until 2026-11-15 every session worked toward this
+theorem and nothing else. **It is now the second priority, after the section at
+the top of this file.** The model work (goal 1) and the
 reusable checker (goal 3) are worth doing only where this theorem needs them.
 
 **The target is a file, not a design.**
