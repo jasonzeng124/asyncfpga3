@@ -20,6 +20,7 @@ line=$("$L" "e$S" "$N" "$K" "$Z" "$S" "$VEC" "$@" 2>&1 | tail -1)
 echo "build $line" >> "$E"
 grep -o 'latmin=[0-9]*' "$RUNS/r/$N/run.log" 2>/dev/null | head -1 | sed 's/^/latency /' >> "$E"   # cycles of 12 ns, the itercost vector
 HW=$RUNS/hw/$N; RD=$RUNS/r/$N
+cp "$RD/fid/equiv.txt" "$O/equiv.txt" 2>/dev/null   # fasm_equiv: which kinds made a NOT EQUIVALENT (2026-11-15)
 [ -f "$HW/${K}_bench_gen.sdf" ] || { echo "RESULT build-failed" >> "$E"; tail -20 "$HW/build.log" > "$O/build_tail.txt" 2>/dev/null; exit 1; }
 CA=$RUNS/ca/$N; mkdir -p "$CA/seed1/pnr"
 ln -sf "$RD/xray.sdf" "$CA/seed1/pnr/soak_xray.sdf"; ln -sf "$HW/${K}_bench_gen_routed.json" "$CA/seed1/pnr/soak_routed.json"
