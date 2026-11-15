@@ -3230,3 +3230,15 @@ storage gate (control and latch-like) that moves in a reference run, one route s
 two vectors. NOT covered: the 10,292 pins inactive in both reference runs (other vectors may activate them), multi-route
 adversaries, the slow corner, latch races needing data and enable both skewed. Speed: 23 min on 4 cores, so the
 owner's "< 1 h on 8 cores" holds for gcd_ps-sized builds with room for more vectors.
+
+### progress 20:43 -- margin tool NEGATIVE CONTROL passes: BAD xf2_1 kappa* = 0, its good neighbour item 23 > 0.45 (search, untrusted)
+Research's FASMs (md5 f2873d46 / 56434fc4 = MARGINS.md), A's decoder and bench boundaries, xorshift with research's
+hold vectors (seed 0x92d68ca2, rounds 3, 4, 8, 5; expected from kernels/xorshift.c), LATCH=1, w = 20, simx, 4 jobs:
+- **BAD xf2_1: kappa* = 0.00** (fails at the bracket's low end), race **SLICE_X24Y40.B6 / B5 pin 1, the route from
+  ulink_n7's controller SLICE_X24Y40.A6** (latch bits 1/0 reading their enable late) -- exactly research's race and A's
+  hand-built adversary; wrong value (rounds 8 returns the 4-round value). A third race fails at 0.08: SLICE_X24Y51.B5
+  pin 3 (same enable source). 1,220 candidates, 83 s.
+- **item 23: kappa* > 0.45**: none of 1,239 single-pin candidates fails at 0.45 (68 s).
+So the tool puts the bad build below the good one and names the failing link, unprompted (PROGRAM item 2).
+Fixes: run.sh no longer dies on the md5 of a missing fromBit.fasm; TFULL knob for kernels whose runs exceed 5 µs.
+Caveats: 4 short vectors; nextpnr FASM, not a read-back; single-pin adversary, corner 0.

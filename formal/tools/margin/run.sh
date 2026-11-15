@@ -65,7 +65,7 @@ if [ ! -f "$O/net.json" ]; then
     python3 "$A/arbs.py" "$O/routed.json" "$O/d0.json" "$O/net.json" "$O/arbs.json" | head -1 | tee -a "$O/run.log"
   fi
 fi
-(cd "$O" && md5sum fromBit.fasm net.json bnd.json arbs.json) | tee "$O/md5.txt"
+(cd "$O" && md5sum fromBit.fasm net.json bnd.json arbs.json 2>/dev/null) | tee "$O/md5.txt" || true
 
 # 2. candidates (storage gate x live pin), 3. reference run at KHI (dump) and dynamic rank
 log "candidates"
@@ -75,12 +75,12 @@ if [ ! -f "$O/ref_dump.json" ]; then
   echo '{"S": [], "F": []}' > "$O/empty.json"
   KDEN=100 python3 "$F/tools/huff/simadv.py" "$O/net.json" "$O/bnd.json" --pairs $PAIRS --kernel "$KERNEL" --corner 0 --kappa "$KHI" \
     --classes "$O/empty.json" --cdefault F --data0 --full --R 400000 --su 1000 --datachange broad --nextreq seq \
-    --tmax 5000000 --w 20 --dump "$O/ref_dump.json" 2>&1 | grep -E "RESULT|events" | tee -a "$O/run.log"
+    --tmax "${TFULL:-5000000}" --w 20 --dump "$O/ref_dump.json" 2>&1 | grep -E "RESULT|events" | tee -a "$O/run.log"
 fi
 python3 "$H/rank.py" "$O/net.json" "$O/races.json" "$KHI" "$O/ranked.json" "$O/ref_dump.json"
 # 4. sweep + bisection + report
 log "sweep"
 python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs "$JOBS" --top "$TOP" --khi "$KHI" \
-  --klo "$KLO" --pairs $PAIRS --kernel "$KERNEL" --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
+  --klo "$KLO" --tfull "${TFULL:-5000000}" --pairs $PAIRS --kernel "$KERNEL" --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
 log "verify witness"; bash "$H/verify.sh" "$O" >/dev/null 2>&1 || true
 log "done: $O/margins.txt $O/summary.txt $O/verify.txt"
