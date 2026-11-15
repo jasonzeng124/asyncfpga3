@@ -3309,3 +3309,18 @@ fm_c_margin_bench1 (rebuilds from $PEER with FOR-FORMAL's commands, then run.sh 
 - item 26, nc64_7, pc64_7 (collatz64): A's boundary_bench.py rejects the port map's concatenation n_data =
   {op1_to_core, op0_to_core}. Fixed in a C copy (tools/margin/boundary_bench.py, used by run.sh); retry
   c_margin_bench2 filed.
+
+### progress 22:17 -- collatz64 builds: minimal pair separated (BAD nc64_7 0.05 < pc64_7 0.39); board candidate item 26 fails at kappa 0.26 (search, checked)
+fm_c_margin_bench2 (rebuilt from $PEER; SDFs = research's prefixes 6982a9d5, 98809562, acc06847), vectors n = 27,
+703, 77031 (want 111, 170, 350 from kernels/collatz64.c), every failing row re-run and checked (gatecheck: gate relations,
+Adm, H_RUNT lag; envcheck: Env, SeqEnv). kappa_hi = smallest ADMISSIBLE finite failure:
+| build | w = 20 | w = 0 | binding race (decoded sites) |
+|---|---|---|---|
+| **item 26 (board candidate)** | **0.26** | 0.26 (via w 20; 0.30 at w 0) | SLICE_X20Y41.B5 pin 1 from SLICE_X22Y40.C6: 27 -> 175, 703 -> 42, 77031 -> 158 |
+| BAD nc64_7 | 0.31 | **0.05** | SLICE_X22Y45.A5 pin 0 from SLICE_X20Y39.A6 (w 0) |
+| pc64_7 (good neighbour) | 0.39 | 0.39 | SLICE_X16Y24.B6 pin 0 (own feedback), quiet deadlock |
+* The minimal pair (one sizes line differs) comes out BAD below GOOD, as PROGRAM item 2 asks.
+* **item 26's 0.26 is well below gcd_ps's 0.40 (finite) / 0.36 (livelock)**: a same-day finding for research (C8).
+* Caveats: ArbOK unchecked on bench builds (arbiters not named: envcheck's T >= 0 is vacuous); nc64_7's kappa 0
+  runs were INADMISSIBLE with 1-4 gate MISMATCHES (not only lag violations): simulator vs checker disagree there, to
+  diagnose; single-pin adversary, corner 0, 3 vectors; kappa_lo none.

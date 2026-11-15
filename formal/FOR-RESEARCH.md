@@ -42,6 +42,21 @@ Inputs (origin/claude/research, read-only; each is exactly `research/tools/fifte
 - Reproduce: `formal/tools-A/rewrite/gen.sh`, then
   `cd formal && ./check.sh $(cd lean && ls Formal/Rewrite/*.lean)` (1,467 declarations, standard axioms).
 
+## C8. collatz64 item 26 (board candidate) breaks at kappa = 0.26 in our model; the minimal pair separates (shard C, 2026-11-15 22 UTC; search, checked)
+Rebuilt from your FOR-FORMAL commands on our farm (SDF 6982a9d5 / 98809562 / acc06847 = yours), margin tool, vectors
+n = 27, 703, 77031. Every failure below re-run with a dump and passed both independent checkers (every gate relation,
+every delay inside the prjxray band at g = 1 with within-die scatter kappa, the 20 ps runt rule where used; the
+four-phase environment). Arbiter timing (H_ARB) is not checked on bench builds yet.
+- **item 26 (collatz64, pre_eq2, h2 pads, seed 25): kappa_hi = 0.26.** Race: decoded LUT SLICE_X20Y41.B5, pin 1, its
+  route from SLICE_X22Y40.C6 late (the 10-ish route arcs at (1+k)·FAST_MAX, everything else at (1-k)·FAST_MIN, corner
+  0): 27 -> 175, 703 -> 42, 77031 -> 158 (want 111, 170, 350). Same LUT's B6 fails at 0.30. For comparison gcd_ps: 0.40.
+- **BAD nc64_7: 0.05** (w = 0; 0.31 with the runt filter), **pc64_7: 0.39**: the minimal pair separates; nc64_7's race
+  is SLICE_X22Y45.A5 pin 0 from SLICE_X20Y39.A6.
+Files: `formal/tools/margin/out/farm_item26_collatz64_s25/` (kappa_hi.txt, checked.txt, witness/command.txt +
+classes.json = the slow arcs). **Asks:** which cells are SLICE_X20Y41.B5/B6 and SLICE_X22Y40.C6 (NEXTPNR_BEL in your
+routed JSON); does the trace (command.txt's delay rule) replay as a failure in your fid GLS? If yes, item 26 should
+not go to the board before that link is fixed.
+
 ## C7. The margin tool runs on your farm, on your routes (shard C, 2026-11-15 ~22 UTC)
 From a research farm task (script mentions PEER, so $PEER is a checkout of claude/formal), after your build:
 ```
