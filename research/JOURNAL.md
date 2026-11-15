@@ -5015,3 +5015,12 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
   run with no self-check line now says ERROR. TSE_ONLY=1 runs only the build and step 5 (for reruns). The gate,
   static and hold lines of fxdt / fxsel* / f*sel0 are unaffected.
 - fxdt so far (10 routes back with gates): gate 3 x 17/17 on all; hold_bits clean on all.
+### progress 18:03 UTC (step 5 validated locally; TSE_ONLY reruns of all six requests)
+- Local TSE_ONLY test on fxsel1 seed 1 found two more faults, now fixed: the stride retry logged into a directory that
+  did not exist yet (no worst graph), and on larger graphs a source that never reaches the reference event made
+  interval_sep raise "window too short" -- such a source is now unanchored (U = INF, conservative). Controls re-run
+  after the change: xf2_1 ulink_n7 still -442 (flagged), xf4_10 unchanged; self-checks consistent.
+- fxsel1 seed 1 (select links at 1, FAST_MIN): rule H OR rows < 0: 1 (ulink_n25 -214); TSE rows < 0: 0
+  (1716 bounds, self-check consistent). 14 controllers not covered (aperiodic in the steady-state window).
+- Farm: fxdtT, fxsel1T, fxsel0T, fcsel0T, fc64sel0T, fisel0T = TSE_ONLY reruns (same seeds, so the same routes as the
+  full runs, which supply gate / static / hold_bits).

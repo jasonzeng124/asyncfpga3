@@ -44,7 +44,7 @@ if [ -n "${SPEC_CASES:-}" ]; then   # BDC_SPEC_INC cells: the static check per c
   done
 fi
 # step 5's graph: one period per marker interval, else two (routes whose iterations alternate, 2026-11-15)
-tse_graph() { for st in 1 2; do
+tse_graph() { mkdir -p "$(dirname "$2")"; for st in 1 2; do
     python3 "$R/research/tools/eventgraph/eventgraph.py" "$1" auto --rj "$HW/${K}_bench_gen_routed.json" --stride $st --out "$2" > "$2.log" 2>&1
     [ -f "$2/nodes.tsv" ] && grep -q "CHECK period equal: PASS" "$2/check.txt" 2>/dev/null && return 0; rm -rf "$2"; done; return 1; }
 G=$RUNS/g/$N

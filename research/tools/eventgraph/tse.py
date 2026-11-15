@@ -140,7 +140,7 @@ def interval_sep(n, arcs, c, targets, M=4, lo=0.97, hi=1.03, refs=None, uarcs=No
     L: longest path from r (lo * w), every event waits for all in-arcs.  U: for every event not before r (after it OR
     unordered with it), max over in-arcs of (0 if the source is before r, else U(source)) + hi * w: t_x is the max of its
     sources' times plus a delay <= hi * w, and a source before r happened by t_r.  Going back far enough every source is
-    before r, so U is finite; the window must reach that far (checked: an in-arc from below the window is an error).
+    before r, so U is finite; a source below the window that is not before r (one that never reaches r) gives INF.
     An event with no in-arc, or one in `unbounded` (an edge whose cause the graph could not evaluate: eventgraph's
     'eval_bind'), has no upper bound (INF).  `uarcs` (default `arcs`) are the arcs U may use: 'and' plus 'bind' (an
     OR-caused edge happens no later than its binding cause plus the delay, so that arc is a valid UPPER bound; it is not
@@ -192,8 +192,8 @@ def interval_sep(n, arcs, c, targets, M=4, lo=0.97, hi=1.03, refs=None, uarcs=No
                         u_ = max(u_, hi * w)
                     elif (u, k) in U:
                         u_ = max(u_, U[(u, k)] + hi * w)
-                    else:
-                        raise ValueError("window too short: (%d, %d) neither before r nor bounded" % (u, k))
+                    else:                           # below the window and not before r (e.g. it never reaches r):
+                        u_ = INF                    # not anchored to r -- no upper bound (conservative)
                 if l > -INF:
                     L[(v, m)] = l
                 U[(v, m)] = INF if (v in unbounded or u_ == -INF) else u_

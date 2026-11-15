@@ -141,8 +141,15 @@ for ctl in controllers:
                 plan[s_] = (list(by_cell.get(li, ())), comb, "node", li)
         targets = sorted({(i, first_not_before(i)) for ids, _, _, _ in plan.values() for i in ids
                           if first_not_before(i) is not None})
-        res = {} if a.min_only or not targets else \
-            tse.interval_sep(n, arcs, c, targets, a.M // 2, LO, HI, uarcs=uarcs, unbounded=unbounded)
+        res = {}
+        if targets and not a.min_only:
+            for win in (a.M // 2, a.M, 2 * a.M):     # the unfolding must reach back to where every source is before r
+                try:
+                    res = tse.interval_sep(n, arcs, c, targets, win, LO, HI, uarcs=uarcs, unbounded=unbounded)
+                    break
+                except ValueError as ex:
+                    if "window too short" not in str(ex) or win == 2 * a.M:
+                        raise
         def tbound(t):
             b = res.get(t, (None, None))[0]
             if t in T_:
