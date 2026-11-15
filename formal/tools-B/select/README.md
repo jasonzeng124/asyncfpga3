@@ -1,0 +1,43 @@
+# tools-B/select — select-mux captures on THE target (shard B, untrusted Python)
+
+* `muxsrc.py`, `muxsrc.log`, `summary.json`, `uncovered_mux.json.xz`, `selchk.py`: measurement (2026-11-15) of the
+  latches whose data source is a 2:1 mux LUT; 1,070 not covered by LatchHold(Pin)PS*, 933 of them `umux*.udat`
+  (select and both inputs are latches at depth 0).
+* `gen_selhold_ps.py`: emitter of `SelectHold.SelRow` rows -> `Formal/Cells/SelHoldPS.lean`.
+
+## gen_selhold_ps.py
+
+```
+python3 -I tools-B/target/simb.py NET.json BND.json --pairs 0x49e9c618,0x35bf992e --corner 0 \
+    --datachange broad --tmax 60000000 --dump DUMP.json          # ~1 min, result 2 (correct)
+MAXROWS=20 CHECKVARIANT=/scratch/SelHoldPSV.lean \
+python3 -I tools-B/select/gen_selhold_ps.py NET.json DUMP.json tools-B/select/uncovered_mux.json.xz \
+    lean/Formal/Cells OUTDIR
+```
+
+NET.json / BND.json: `tools/cview/lean2json.py` on NetPS (as for muxsrc.py). Per umux latch (LatchViewPS row q,
+enable pin e, data pin d = the mux) it takes a close of the enable source es in the dump (es leaving the open value
+`!pe`), and at t0 = close - 1:
+
+* the mux row: controlling pins [select, selected input], the selected input being the one that with the select
+  value forces the mux INIT to its value at t0 (other pins free, tied pins held);
+* two chains es -> select latch and es -> selected input latch: structural search (`bestchain`): simple paths of
+  at most MAXD (8) LUT steps, each step with a controlling set (path pin + static pins, memory row only if needed;
+  `ctlset` as gen_certs_ps.py) whose static pins do not change in the run on [t0, close + HOR (20 ns)]. Chosen:
+  margin at κ = 0, then fewest premises (statics + memory rows), then the largest margin;
+* margin ratios kA/kB per chain = min(ΣFmin(path)/(ΣFmax(e)+1), ΣSmin(path)/(ΣSmax(e)+1)) reduced (the largest
+  κ range `(1+κ)kB ≤ kA(1-κ)`, i.e. κ ≤ (kA-kB)/(kA+kB));
+* the latch's LRow literal copied from LatchViewPS.
+
+Outputs: the Lean file (rows `rNN`, per-row `rNN_certs`/`rNN_sel` by `decide +kernel`, `certs_ok`, `sel_ok`),
+`OUTDIR/SelHoldPS_report.json` (per latch: close time, select/selected nodes, chain steps, statics, sums, kA/kB,
+κ ranges, or the failure reason), and optionally CHECKVARIANT: the same file with SelectHold's definitions copied
+verbatim instead of importing it (for a `lake env lean` check while SelectHold.olean is not built).
+
+Why not ctlcert.py: in this run the selected input latches almost never change after the closes (ctlcert needs the
+target to change, and its window would span microseconds). The structural chains are therefore not the causal
+paths of the run; they are only certificates whose premises (cause, statics, memory rows) the run satisfies on the
+window used. Only 259 of the 933 umux latches have an enable close after reset in this one run.
+
+Trust: everything here is untrusted; Lean checks `certOK` for both chains and `selOK` (wiring, mux forcing,
+values, latch row, the four margin facts) by kernel decide. Premises of the certificates are not checked.
