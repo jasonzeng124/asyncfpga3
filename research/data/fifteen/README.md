@@ -1,6 +1,7 @@
 **Best xorshift that passes the gate, the static check and the hold check over the full input range: board item 23
 (xf4), 23.49 ns per iteration (median of 30 farm routes; 21.00-24.75). Gap to 15 ns: 8.5 ns. On the bench's 12-bit range
-only: item 17, 20.60 ns -- the full range costs ~2.9 ns.** Lever 5 (item 18) ON HOLD. Collatz full range: item 22, 41.2 ns.
+only: item 17, 20.60 ns -- the full range costs ~2.9 ns.** Lever 5 (item 18) ON HOLD. Collatz full range: item 25 (#26),
+35.8 ns (exit test n == 2, 2026-11-15; item 22 41.2). xorshift lever 8 (exit test i < n-1): seed 10 19.15 ns, farm fxd pending.
 
 **2026-11-15 caveat: "the static check" above was rules A / A' / E only. Rule H (hold) and I (capture) rows were never
 read, and on item 23's route they are below 0 (worst corner: H -274 ps on ulink_n7, the stage that corrupted xf2_1).

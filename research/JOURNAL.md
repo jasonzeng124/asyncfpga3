@@ -4683,3 +4683,16 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   gate 81/81, static A / A' / E clean 27/27. Hold/close clean on 22/27 (fcol3: 21/26); rows left H -2 to -176 ps,
   6 of 7 on ulink_n_falseResult_5 stage[1] (round 1 padded its SDELAY; now its UACK), one ulink_n8 st1 -76.
   Round 3 -> nl5 (falseResult_5 UACK, n8 UACK), farm fcol5.
+### progress 05:02 UTC (fceq: collatz with the n == 2 exit test, 32 routes -> BOARD-QUEUE item 25 / #26)
+- fceq (pre_eq2 MLIR, nl4 sizes, item 22's knobs less the dropped n28 link, static check with C-element joins):
+  32 routes built, period median 35.82 ns (33.38-38.51), mean 35.84. Paired with fcol4 (same sizes and seeds without
+  the rewrite) on 31 seeds: -5.28 ns mean, 31/31 faster (1.15x). Gate 96/96. Static A / A' / E clean 32/32 at both
+  corners. H / I clean on 31/32 (seed 5: I -12 ps ulink_n_falseResult_3 st1 at worst). hold_trace / hold_bits clean on
+  32/32 (tightest +974 ps). ffmux clean 32/32. fasm_equiv: EQUIVALENT 29, the benign constant-LUT -> F7 kind on 10
+  (3 sites), 27, 29 (checked in equiv.txt). Prediction was -3 ns (34-37 on seed 26): the measured median is at the
+  low end of that range; the gain is larger than predicted on most seeds.
+- The OR-join model (default) also reads ce_26 (another seed, nl3 sizes) clean at both corners, so collatz's result
+  does not lean on the AND seeding. Local rebuild of the board seed (ceb_24, OR model) running to confirm the route
+  (sdf e001dc27) and its static rows.
+- BOARD-QUEUE: list item 25, section ## 26, board seed 24 (sdf e001dc27, 35.92 ns, every row clean). Predicted 1.14
+  over item 22 on the board routes. fifteen README headline updated.

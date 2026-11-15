@@ -162,6 +162,12 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    (BDC_NO_LINK=ulink_n30__1)**: #25 below. Farm, 32 seeds (fc64nl / fc64nlh): median 45.23 ns (42.46-47.09) vs item 21
    47.64; gate 90/90; static check: only umux2's rule-A row, shown by trace to be a false path; hold check clean.
    Board seed 17 (sdf 3a370768, 45.19 ns).
+25. **collatz at ~36 ns per iteration, FULL INPUT RANGE, hold-checked: the exit test n' == 1 rewritten to n == 2
+   (research/tools/fifteen/pre_eq2.py, exact on every input) on item 22's structure with round-2 hold pads (nl4)**: #26
+   below. Farm, 32 seeds (fceq): median 35.82 ns (33.38-38.51) vs 41.24 for the same sizes without the rewrite (fcol4,
+   paired on 31 seeds: -5.28 ns, 31/31 faster, 1.15x); gate 96/96; static A / A' / E clean 32/32 at both corners;
+   rules H / I clean on 31/32 (seed 5: I -12 ps); trace hold checks clean on all 32. Board seed 24 (sdf e001dc27,
+   35.92 ns, every row clean). Dynamatic 14.05.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -870,6 +876,33 @@ settles >= 5.9 ns before the request on 12 transactions with 7 select flips). Ho
     python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_nl.tsv build/hw/lc_c64_r.tsv; echo "exit $?"
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.05 over item 21 on this route.
+
+## 26. collatz item 22's structure + pre_eq2 (exit test n == 2) + nl4 hold pads -- 96/96 gate, static and hold clean, 32 routes
+research/JOURNAL.md 2026-11-15. collatz's loop computes n' = even ? n >> 1 : 3n + 1 and exits when n' == 1. In w-bit
+two's complement that is n == 2 (n even: n >> 1 == 1 iff n == 2; n odd: 3n + 1 == 1 iff 3n == 0 mod 2^w iff n == 0, not
+odd). pre_eq2.py rewrites the handshake MLIR's cmpi2 to read the loop's n against a constant 2, so the compare runs with
+the update instead of after it (bdc unchanged; simcheck PASS incl. n = 1, 2, 3). The rule-1 link between the select
+and the compare that item 22 dropped no longer exists (the select's fork is gone). Farm fceq: 32 routes, period
+median 35.82 ns, mean 35.84, 33.38-38.51; gate 96/96 (SLOW_MAX / FAST_MIN / worst+M, 13/13 each); static check
+(corner_audit, nominal and worst, measured-residual guards, C-element joins) A / A' / E clean on 32/32; hold / close
+(H / I) clean on 31/32 (seed 5 I -12 ps); hold_trace and hold_bits (FAST_MIN, select-flipping vectors) clean on 32/32;
+fasm_equiv EQUIVALENT on 29, the benign constant-LUT -> F7 kind on 3 (10, 27, 29); ffmux clean on 32. Board seed 24:
+every check clean.
+- nextpnr 9c732bc6303458df. From cells/, on claude/research at or after this commit:
+
+    cp ../build/frontend/collatz/comp/handshake_transformed.mlir /tmp/collatz_hs_orig.mlir
+    cp ../research/data/fifteen/collatz_preeq2.mlir ../build/frontend/collatz/comp/handshake_transformed.mlir
+    BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=24 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cdb_nl4_bench.vh ./hw/build_bench.sh collatz
+    cp /tmp/collatz_hs_orig.mlir ../build/frontend/collatz/comp/handshake_transformed.mlir
+    grep -c "usinkeq2" build/gen/collatz_kernel_bench.v    # must be 1: the rewrite is in (the freed constant-1 output's sink)
+    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # e001dc27 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz_bench_gen/collatz_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_col_eq.tsv
+    (item 22: #23's commands for lc_col_sz.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_eq.tsv build/hw/lc_col_sz.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.14 over item 22 (41.10 ns on its route vs 35.92 here). A FAIL with
+item 22 passing would mean the rewrite or its sizes do not hold on silicon (send both logs).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
