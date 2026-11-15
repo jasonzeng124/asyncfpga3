@@ -4618,3 +4618,12 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   iteration to iteration (252 / 254 of 511 intervals each), so the eventgraph's single-period marker finds no run and
   gives up. Mean 19.153 ns per iteration vs xf5_10 23.147 (same seed): -3.99 ns, matching the latency (-85 cycles).
   Likely an odd / even data dependence in the sim's delays (i's low bit through the compare / add); not chased.
+### progress 04:13 UTC (the same idea for collatz / collatz64: the exit test n' == 1 is n == 2)
+- research/tools/fifteen/pre_eq2.py: collatz's n' = even ? n >> 1 : 3n + 1, exit when n' == 1. In w-bit two's
+  complement: n even -> n >> 1 == 1 <=> n == 2; n odd -> 3n + 1 == 1 <=> 3n == 0 mod 2^w <=> n == 0, not odd: never.
+  So n' == 1 <=> n == 2 on every input (w = 32 and 64). cmpi2 now reads n (a fifth fork3 output) against a constant 2;
+  fork7 is gone (cond_br7 reads n' directly); the freed constant-1 output is sunk. simcheck PASS on collatz (n = 1, 2,
+  3, 6, 7, 27, 97, 703) and collatz64 (1, 27, 113383).
+- PREDICTION, collatz seed 26 (fcol3: 38.69 ns): the 32-bit equality and its fork leave the update -> steer path,
+  ~-3 ns -> ~35.5 ns (34-37). Local ce_26 running (nl3 sizes, item 22's knobs less BDC_NO_LINK=ulink_n28__1: n28 is
+  gone). Farm fceq (collatz, nl4 sizes) and fc64eq (collatz64, h2 sizes), 32 routes, AND-join static check.
