@@ -3278,3 +3278,13 @@ Names: decoded sites only (no routed JSON here); research can map SLICE_X16Y38.A
   `tools/margin/gatecheck.py` (A's gatecheck_runt.py with the delay grid KDEN as a parameter) and envcheck.py;
   `kappa_hi.txt`: smallest ADMISSIBLE failure per w (w = 0 takes the min over w = 0 and w = 20 runs), and states
   kappa_lo: none (no certificate).
+
+### progress 21:19 -- farm: the full gcd_ps sweeps came back and agree; a bench-build request filed
+* fm_c_margin_gcdps_l0 (16 tasks, done in 49 min incl. queue) and _l1 (46 of 48 back): Python simadv on the farm, own
+  decode with the farm's prjxray-db, give exactly the local simx result: three races, SLICE_X16Y21.A6 pin 0 (0.36 w 20,
+  0.34 undecided w 0), SLICE_X32Y45.A6 pin 0 (0.44), arbiter SLICE_X38Y51.B6 pin 3 (0.42 / 0.40 undecided); nothing
+  else in 16,990 pins. An independent machine and simulator agree with simx.
+* run.sh bench mode from research's build tree (KV=, BV=, SYNTH=, ROUTED= -> boundary_bench.py + mk_bnd_sim.py), so
+  research can run the tool on its own routes via $PEER. Untested here (no build tree in this sandbox): the request
+  `c_margin_bench1` rebuilds, from $PEER with FOR-FORMAL's commands, item 25 (self-check against the local run),
+  item 27 (xorshift), item 26 (collatz64), BAD nc64_7 and its minimal-pair neighbour pc64_7, then runs the tool.

@@ -20,7 +20,13 @@ XDC=${XDC:-$(pick "$base.xdc")}; SYNTH=${SYNTH:-$(pick "$base.json" "$base.json.
 ROUTED=${ROUTED:-$(pick "$base.routed.json" "$base.routed.json.xz")}
 # Bench builds (research's kernel benches): give BND= (tools-A/target boundary_bench.py + mk_bnd_sim.py output) and
 # KERNEL= (collatz | collatz64 | xorshift; vectors in PAIRS as "a,b", one-operand kernels "n,n"); XDC/SYNTH/ROUTED unused.
-if [ -z "${BND:-}" ]; then
+# Or, for a bench build straight from research's build tree: KV= (build/gen/K_kernel_bench.v), BV= (build/gen/K_bench_gen.v),
+# SYNTH= and ROUTED= (build/hw/K_bench_gen/K_bench_gen{,_routed}.json): the boundary is made by tools-A boundary_bench.py.
+if [ -z "${BND:-}" ] && [ -n "${KV:-}" ]; then
+  [ -n "$SYNTH" ] && [ -n "$ROUTED" ] && [ -n "${BV:-}" ] || { echo "bench mode needs KV, BV, SYNTH, ROUTED" >&2; exit 1; }
+  BENCH=1
+fi
+if [ -z "${BND:-}" ] && [ -z "${BENCH:-}" ]; then
   [ -n "$XDC" ] && [ -n "$SYNTH" ] && [ -n "$ROUTED" ] || { echo "need XDC, SYNTH, ROUTED next to $B or in env (or BND=)" >&2; exit 1; }
 fi
 
@@ -52,8 +58,16 @@ A=$F/tools-A/target
 if [ ! -f "$O/net.json" ]; then
   log "decode"
   cat_any "$B" > "$O/fromBit.fasm"
-  [ -z "${BND:-}" ] && { cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"; }
-  if [ -n "${BND:-}" ]; then
+  [ -z "${BND:-}" ] && [ -z "${BENCH:-}" ] && { cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"; }
+  if [ -n "${BENCH:-}" ]; then
+    : > "$O/empty.xdc"
+    python3 "$A/decode_base.py" "$O/fromBit.fasm" "$O/empty.xdc" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
+    python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
+    cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"
+    python3 "$A/boundary_bench.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$KV" "$BV" "$O/bnd_bench.json" | tail -1 | tee -a "$O/run.log"
+    python3 "$A/mk_bnd_sim.py" "$O/bnd_bench.json" "$O/bnd.json" | tee -a "$O/run.log"
+    echo "[]" > "$O/arbs.json"
+  elif [ -n "${BND:-}" ]; then
     : > "$O/empty.xdc"
     python3 "$A/decode_base.py" "$O/fromBit.fasm" "$O/empty.xdc" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
     python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
