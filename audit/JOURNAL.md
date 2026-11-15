@@ -2111,3 +2111,6 @@ Research 595e818e1: collatz select links at 1 / 2 / 1m: -9.89 / -10.02 / -10.76 
 
 ### progress 21:15 T116 interim (select links at 0, seed 24)
 Own colsel0_24 sdf bb5fbbdb; 26.720 vs 35.040 ns (-8.32 on this seed); 13/13 at 3 corners, BUT own mux monitor: umux0 select changes while z_req high on 960 / 960 / 672 rises (FAST_MIN / worst / SLOW_MAX), umux2 10; item 25's route had 0. Research's corrected rule E at umux0/1/2 is real in simulation; gate-clean is not evidence of a safe shortened select. Matters for research's coming fcsel3m candidate: own audit will run the mux monitor on it.
+
+### progress 21:30 T116 done
+Select-flip vector: 4/4, umux0 132 / umux2 48 mux violations. Own static H none < 0, dynamic H 0 violations. So H / I / hold_bits are blind to the select-vs-request race that happens on most iterations. Top REPORT row added (criterion gap). Owner notified at 21:15.
