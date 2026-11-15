@@ -4385,7 +4385,7 @@ Formal/Cells/SelectHold.lean`: OK, 4,759 declarations audited, standard axioms o
   the exact set itself fits, 17:3x); episodes after the first (A's notes/A-S6-chaining.md).
 Build note: lake has no job limit; CViewPS's RIslBnd quarters (~6 GB each) OOM-killed when built side by side, and
 had to be built one at a time (8 of them).
-### progress 20:1x -- CHECKED: `Formal/Cells/SelHoldPS.lean`: 20 select-hold rows of THE target (lake build, ~13 min; standard axioms)
+### progress 20:0x -- CHECKED: `Formal/Cells/SelHoldPS.lean`: 20 select-hold rows of THE target (lake build, ~13 min; standard axioms)
 Rows emitted by `tools-B/select/gen_selhold_ps.py` (subagent; README.md, selhold_report.json). `certs_ok`
 (both chain certificates `certOK`) and `sel_ok` (`selOK`: chain shapes, the mux KRow's forcing fact over its
 select + selected-input pins, the wiring, the latch LRow, the four margin inequalities on Lean-recomputed arc sums),
