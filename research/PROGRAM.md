@@ -4,6 +4,37 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
+## No blanket rules (owner, 2026-11-15)
+
+Asked whether select links may be shortened (your question, journal 2026-11-15), the owner
+answered "blanket rules are not real", and then "just like in general". Those two sentences
+are the owner's. The rest of this section is how to apply them.
+
+A blanket rule forbids a class of change ("never shorten a select link") without naming a
+failure that a check could catch. It is not a property of the circuit. A real constraint
+names the two signals that race, where each is launched and where it is captured, and comes
+with a check that fails on a build known to be wrong.
+
+- **The select rule is withdrawn.** A select link is sized like any other link, by the checks
+  that model its race. Those are the ones you proposed: rules H and I clean at both corners on
+  at least 32 routes, and `hold_bits` clean on the same routes. A result with shortened select
+  links counts for the headline and may go to BOARD-QUEUE. The item says which links were
+  shortened and which checks covered them.
+- **A check earns its place by failing.** Before a result rests on the select checks, show
+  them fail on a select link shortened until it races, on each kernel family and not only on
+  the collatz64 failure. A check that cannot fail on a known-bad build is a blanket rule under
+  another name.
+- **Find the others.** Go through the gates, the tools and this file for every rule that says
+  "never" or "always", or sets a fixed floor or a fixed guard, without a named race or a
+  measurement behind it. For each one, write the mechanism it stands in for, the check that
+  would replace it, and what it costs today in ns per iteration. One table in the journal.
+  Replace or drop them, the costly ones first.
+- **What stays.** The full gate over the full input range at both corners, `ffmux_scan`,
+  `fasm_equiv`. A failing simulation always blocks. Too short is the direction a simulation
+  can miss, so a shortened delay needs its own check clean at the worst corner. The rules
+  about git, the lock, the audit branch, the farm and the toolchain fingerprint are not
+  timing rules and are not affected.
+
 ## FIRST: xorshift at 15 ns per iteration, in four-phase (owner, 2026-11-12)
 
 The owner read `research/data/eventgraph/README.md` and decided two things:
@@ -84,7 +115,7 @@ What to do, in this order:
    - every falling arc on a critical or near-critical cycle, by cell, and the edit that would
      take it off the cycle;
    - every delay on the rising ring: what it is, what its data needed in the worst iteration
-     and corner, and what the rules (A, E, the select rule) require. That makes the removable
+     and corner, and what the rules (A, E, the select checks) require. That makes the removable
      part of the 11.8 ns a number;
    - every req/ack wire on the ring: its routed delay against the shortest it could be with
      the two cells adjacent. That makes the removable part of the 7.85 ns a number.
@@ -99,12 +130,13 @@ What to do, in this order:
      the counter ring's handshake stop waiting on the datapath;
    - a shorter rising pass: fewer handshake stages on the counter ring (13 today), by fusing
      its mux, add, compare and steer; per-instance sizing of the ring's delays under the
-     select rule; a delay built from the same primitive as the data it bundles, so it tracks
+     select checks; a delay built from the same primitive as the data it bundles, so it tracks
      the data instead of covering it with margin;
    - shorter wires: place the ring's cells together (`RLOC_GROUP`, `PLACE_WEIGHT`).
 3. **Predict, build, measure, gate, as in the event-graph work.** Write every prediction
    before the build. The graph under-charges an inserted stage by 1 to 3 ns of wire, so add
-   that. The correctness bar does not move: the full gate, the select rule, `ffmux_scan.py`.
+   that. The correctness bar does not move: the full gate, the select checks (see "No blanket
+   rules" above), `ffmux_scan.py`.
 4. **Keep going.** A lever that fails is a journal entry, not a stopping point: take the
    next one. Stop only when the budget shows no lever left, and then say what 15 ns would
    need.
@@ -142,8 +174,7 @@ uselect0 is one or two LUT levels behind a 16-element line. Before any more leve
 - If a line covers a path that cannot happen (a false path, a shifter built for a shift by a
   constant, a path through a constant operand), fix the cause, not the size.
 - If it is real wire, say which wire, and whether placement of that one region would shorten it.
-- This is diagnosis. No line is shortened because of it without the usual checks, and the select
-  rule stands until the owner answers the question in the journal (2026-11-15 06:50).
+- This is diagnosis. No line is shortened because of it without the usual checks.
 - Then the same table for collatz64 and ipow, whose loops are also datapath loops.
 
 ## The farm: thousands of cores, by request (owner, 2026-11-14)
