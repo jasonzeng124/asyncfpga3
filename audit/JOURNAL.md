@@ -1978,3 +1978,6 @@ Research 32dec7eb: xd_10 (lever 8, fr4 sizes, seed 10) route 5e759620, latency 4
 
 ### progress 04:30 T110 done
 Lever 8 seed 10 CONFIRMED: own sdf 5e759620 = research's route; 23.150 -> 19.152 ns/iter (-3.998); 17/17 at 3 corners; NOT EQUIVALENT = packer GND LUT (benign). Own static H: falseResult_9 st1 -164..-252 (research -298); dynamic check running (t110/hold.sh).
+
+### progress 04:40 T110b done + notes
+xd_10 dynamic rule H: 0 violations (FAST_MIN, worst); falseResult_9 st1 static row is an OR-join artifact. Research 6bab5081 (collatz pre_eq2 n'==1 -> n==2): identity exact (own exhaustive w=4..20). Research b606f8b8: fneq farm routes' NOT EQUIVALENT all benign constant-LUT -> F7BMUX (consistent with own T110 decode). 20897e74: lever 8 seed 10 event-graph period 19.15 ns (= own 19.152). Watching.
