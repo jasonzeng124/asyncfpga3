@@ -4789,3 +4789,11 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   have blocked both. A replacement for the select rule would be: pad until H / I are clean (the conservative route
   now running on every family) AND hold_bits clean, then allow select links to shrink. Still owed: negative control 2
   (ipow umux3, the empty-pipe select race) -- a different mechanism, possibly not a hold race at all.
+### progress 06:43 UTC (select rule: what is left, and a measurement)
+- Negative control 2 (ipow T9cd, JOURNAL 2026-11-10 04:10 / 07:40) failed in the soak-top harness (fusion_bench
+  --route, out0 hold-window violation into the harness), not on the bench top that eval_task builds; reproducing it
+  needs that flow. And its root cause was revised to ushrsi0 = 1 (a logic-free region whose one link did not cover
+  routing skew), with umux3's select only a suspect. So the select rule's evidence is: one traced hold race (collatz64,
+  now caught by hold_bits) and one suspected. Not enough to drop the rule; enough to measure what it holds back.
+- Running corner_audit --shrink-selects on xd_10 (lever 8, seed 10) at the worst corner: the sizes the static rules
+  alone would give the select links (ulink_n12__0/1/2, umux*). A measurement, not a proposal to adopt.
