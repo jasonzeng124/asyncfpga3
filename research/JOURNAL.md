@@ -4871,3 +4871,10 @@ Next:
   sample with rows on 1-2 routes of <= 130 ps is where the per-route rules stop converging; item 27's own board route
   is clean at fr4. The owner's question stands on whether a route-by-route static sign-off of the board seed (done)
   or every-route cleanliness is the bar for a board item.
+### progress 12:02 UTC (fc64eq3: collatz64 n == 2 at h4 -- clean on every non-gap route)
+- fc64eq3: 30 routes, median 36.39 ns (35.28-39.31; +0.42 paired vs fc64eq). Seeds 6, 25: FFMUX gap (gates fail on the
+  bits; excluded). On the other 28: gate 3 x 14/14, H / I clean, no A / E row but umux2's traced false path. No
+  F7-select defect. So every family's latest sizes are hold-clean on every non-defect route of 28-32: collatz nl6,
+  collatz64 h4, ipow h4, xorshift fr6d (one A -240 row) / fr7d (two small rows) -- at +0.3..+0.8 ns per iteration.
+- Defect routes this session (FFMUX gap or F7 select), all caught by ffmux_scan / fasm_equiv and failing gates where
+  they touch the datapath: ~16 of ~400 routes built (~4%).

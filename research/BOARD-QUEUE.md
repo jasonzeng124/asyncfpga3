@@ -15,7 +15,8 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
 
 **2026-11-15 (later): the hold rows are being closed by pad rounds on 32 routes per family.** Every route clean of H / I
 rows (non-defect routes): collatz n == 2 with nl6 (fceq2, 30/30), ipow with h4 (fipowh4, 23/23), xorshift lever 8 with
-fr6d (fxd3, 28/28; one uxori1 A -240 ps row on seed 22). collatz64 n == 2 with h4 is running (fc64eq3). Board seeds of
+fr6d (fxd3, 28/28; one uxori1 A -240 ps row on seed 22), collatz64 n == 2 with h4 (fc64eq3, 28/28, umux2's traced
+false-path row aside; +0.42 ns vs h2). Board seeds of
 items 25-27 are clean on their own routes already, and were re-checked locally with the default OR-join model.
 
 **2026-11-15: hold / capture (rules H / I) NOT checked until now -- items 19, 22, 23, 24 are not statically clean.**
