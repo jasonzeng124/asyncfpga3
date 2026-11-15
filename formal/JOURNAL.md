@@ -2402,3 +2402,29 @@ and check.sh OK (PlanPS, PlanRPS, CertSpec, CertN1). **Next step when resumed:**
 `CertN1.EpN1` from C's `timedA_follows`/`timedA_live` on B's `tnPS` for (12,18) (notes/A-certN1.md); (2) design
 the episode-k ≥ 2 start for C's certificates (notes/A-S6-chaining.md); (3) finish the A-module rebuild
 (one module at a time).
+
+## Session Sun Nov 15 17:42:16 UTC 2026
+Lock taken (previous one released 2026-11-10, pre-pause). setup.sh: Lean/Mathlib present; its full `lake build`
+was stopped after 10 min (it rebuilds every NetPS chunk; modules are now built on demand, one target at a time).
+Audit (origin/claude/audit, 2026-11-15): no new REFUTED/OVERSTATED row on A's files; T56 (PlanRPS) answered on
+2026-11-10. B's lock is stale (2026-11-10), C is alive today.
+**Plan today:** the S6 chaining finding (notes/A-S6-chaining.md) says per-pair certificates cannot start quiet under
+a fastest SeqEnv; so give the top-level assembly a form that needs ONE certificate from reset (C's unrolled word
+with pair boundaries as letters), with no island and no per-pair start.
+### progress 17:42 -- CHECKED: `Formal/Target/CertRun.lean`: THE statement from one run certificate (check.sh OK, 656 decls)
+* *Problem:* what must a single certificate, started during reset (where C's reset island gives a quiet start),
+  deliver in count form for `NetCorrectSeq` to follow, for any number of pairs?
+* *Proved* (`CertRun.netCorrectSeq_of_run`, generic in the netlist, OneReq boundary; standard axioms): if every
+  behaviour meeting THE hypotheses (Behaves, ArbOK, Env, SeqEnv) has a count base t0 ≤ R with a low boundary and
+  certificates `C s` (the certificate in force at time s, e.g. the prefix word of the pairs offered by s) with
+  `EpRun`: the five boundary handshakes interleave in count form; each change of a/b/start.ack, out0.req and the
+  request is enabled at earlier counts and ordered after its partner (CertSpec's transitive form); out0.req's k-th
+  rise is ordered after the request's k-th rise (`ordQ`); the out0 bus = gcd of the operands at one past the latest
+  request rise while out0 is up from Δo on; after the LAST request rise some later time has a low boundary with
+  out0.req counted at least as often as the request -- then `NetCorrectSeq N B A p T R su Δo` at every p, T, R, su,
+  Δo. The chaining (`plan_of_run`: Assembly.Plan with invariant "cnt out0.req = cnt req") is pure count reasoning
+  plus Env and SeqEnv: the episode ends at the next request rise, where Env/SeqEnv force a low boundary and SeqEnv's
+  "rises(req) ≤ rises(out0.ack)" plus the interleavings give one out0 rise per episode.
+* *Compared with PlanRPS/CertN1:* no IslR, no reset-length bound, no Sane p, no per-episode quiet start; the
+  certificate may change with time (prefix words), so n = none is covered without an infinite certificate.
+* *Not shown:* any instance. Conditional: false wherever THE statement is refuted (g = 1, κ ≥ 9/25; g ≥ 8/5).
