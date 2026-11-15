@@ -32,4 +32,12 @@ in ~20 s, round trip "invented 0", leftovers only storage/IO/clock configuration
 | item25_collatz_s24 | c6404633c7d2b095a7ff4e7233a11b72 | eb3d24373ae8c5994589f9298ef40dab | 128,226 (111,270/6,100/4,433/4,433/1,079/271/640) | 1,928 |
 | item23_xorshift_s10 | 56434fc43a066c25c397e8f7e4b9d1ea | d2f11df7d95e6219237f3a299de05bb8 | 130,108 | 1,920 |
 | BAD_xf2_1 | f2873d4650eb67cb270ada5c9a403421 | 65fb975783eae633b49be98c1317685c | 128,040 | 1,920 |
-Not done: the kernel boundary for bench builds (`boundary_ps.py` is gcd_ps's), which the margin tool needs.
+**Bench boundary (2026-11-15, `boundary_bench.py`):** kernel ports from the DUT module header, bench nets from the
+`udut (...)` port map, decoded nodes via nextpnr's BEL of each net's driver (falling back to the yosys driver cell's
+name when nextpnr dropped the net name). Needs the build's yosys JSON and routed JSON, which research has not
+committed; A rebuilt item 25 from FOR-FORMAL.md's command (scratch worktree of origin/claude/research f6c37b63,
+cells/verify/toolchain.sh OK, nextpnr 9c732bc6303458df): SDF md5 e001dc27e644e10a14d08a7730daa958 and FASM md5
+c6404633c7d2b095a7ff4e7233a11b72, both byte-identical to research's. Result: `out/item25_collatz_s24_boundary.json`
+(rst SLICE_X10Y37.CQ; shared request n_req = start_req = end request = SLICE_X9Y41.DQ, the bench's req_core flop;
+n_ack SLICE_X17Y32.A6; start_ack SLICE_X16Y31.D6; out0_req SLICE_X14Y38.A6; out0_ack SLICE_X6Y43.A6 (bench LUT);
+p_end_ack SLICE_X17Y31.D6; n_data / out0_data 32 distinct nodes each). Untrusted naming.

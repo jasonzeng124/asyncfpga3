@@ -2518,3 +2518,15 @@ not try the decoder on research's bench .fasm files; C will.
   (C5 asks for them). The restored toolchain passes cells/verify/toolchain.sh (nextpnr 9c732bc6303458df) after
   installing libtcl8.6 and boost 1.83 runtime libs (apt). Building item 25 from FOR-FORMAL's command in a scratch
   worktree of origin/claude/research (read-only use, nothing committed there); it must reproduce SDF md5 e001dc27.
+### progress 18:18 -- item 25's route reproduced byte-identically; its kernel boundary named (untrusted Python)
+* Rebuild of research's item 25 (FOR-FORMAL.md command, NEXTPNR_SEED=24, collatz_preeq2.mlir override) in a
+  scratch worktree of origin/claude/research: SDF md5 e001dc27e644e10a14d08a7730daa958 and FASM md5
+  c6404633c7d2b095a7ff4e7233a11b72, both identical to research's committed files. (The .bit step failed for a missing
+  Python module, textx; not needed.) So the cloud toolchain reproduces research's routes, and yosys/routed JSONs
+  for any FOR-FORMAL build can be made here instead of waiting for research to commit them.
+* `tools-A/target/boundary_bench.py`: the kernel ports of a bench build as decoded nodes. item 25:
+  `tools-A/target/out/item25_collatz_s24_boundary.json`. The bench drives n_req, start_req and the end request from
+  one flop (req_core), the same OneReq shape as gcd_ps, so CertRun/Assembly's boundary form applies.
+* For C's margin tool: decode (make_net_fasm.sh) + boundary (boundary_bench.py) now work on a bench build; the
+  rebuild recipe is FOR-FORMAL's command plus `apt-get install zstd libtcl8.6 libboost-{python,filesystem,program-options}1.83.0`
+  and `cloud/toolchain-cache.sh fetch`.
