@@ -13,6 +13,13 @@ fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('c
 
 ## Full-input-range status (owner rule 2026-11-14; research/JOURNAL.md 2026-11-14)
 
+**2026-11-15: hold / capture (rules H / I) NOT checked until now -- items 19, 22, 23, 24 are not statically clean.**
+Rule H flagged the xf2_1 corruption (H ulink_n7 -439 ps at FAST_MIN) but no gate or summary read H / I rows. On item
+23's own route (xorshift seed 10, worst corner): H -274 (ulink_n7), -107, -103, -1, I -85; similar rows on the
+collatz64 and ipow routes. Their gates pass (the data has to move inside the window to corrupt), so they are not known
+to fail; they are not shown safe. Re-gating with the pads (research/tools/fifteen/hold_pads.py): xorshift sizes fr4,
+farm fxf5 / fxs5. Until then load these items only as "gate-clean, hold margin negative at nominal / worst".
+
 A gate pass does not cover paths the vectors cannot reach (loop counters and their compares). The static check: rules
 A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-residual guards (corner_audit.py).
 - **Bench range only (fail the static check on the counter):** every x0.5 xorshift item -- list items 4, 11, 14, 17 (and

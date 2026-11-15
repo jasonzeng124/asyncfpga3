@@ -4459,3 +4459,28 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   shortest C -> C graph cycle, 1215 ps, is the C-element's own hold feedback, not a handshake).
 - fxss was picked up before the FALL row existed; fxss2 = the same 32 routes with both rows. fxss's SELECT rows must
   match fxss2's exactly (same seeds): a free reproducibility check.
+### progress 02:20 UTC (CORRECTION: rule H saw the xf2_1 race; H / I rows were never read; board items 22-24 not clean)
+- The xf2_1 corruption, re-traced in the FAST_MIN dump (trace/xf2_1_fmin2): the latch that misbehaves is ulink_n7's bit
+  1, not the pipe. ulink_n7's node falls at ~4244.9 ns (its ack to umux0 falls at 4245062), but that bit's enable wire
+  is 1637 ps long (its D wire 217): the bit is still open at 4246560 when umux0's output changes -- umux0's y_ack fell at
+  4245482 on ulink_n7's ack, the loop-back pipe's last stage opened and sent i = 2 through umux0. Q1 follows D1 at
+  4246605, the adder's input moves, and the pipe's stage 0 (still open) takes the wrong sum. Pure rule H: "the
+  acknowledge is released after every latch bit has closed". And rule H flagged it: corner_audit on xf2_1 reports
+  H ulink_n7 -439 ps at FAST_MIN, -466 at worst ("PAD to 3 -- VIOLATION (no DACK line routed)").
+- So the 09:3x entries were wrong: "the static rules do not see it" -- they did. What did not see it: build_bench's gate
+  (rule A only), eval_task's static line (rows A and E only), hold_trace (ulink_n7's node is not kept by name; it
+  measures pipe INPUT stages only). The H / I rows were computed on every route and never read.
+- Scan of every local corner report (research/tools/fifteen/eval_task.sh's corner_audit outputs): H / I rows below 0
+  on almost every route of xorshift (xf3 / xf4), collatz64 (c64nl), ipow (ipowr), pmfr3; -1 to -838 ps (H), up to
+  -1461 (I). Item 23's own board route, xf4_10 at worst: H -274 ulink_n7 (the xf2_1 stage), H -107 / -103 (pipe stage[1]
+  of trueResult_10 / _8), H -1, I -85. collatz (colnl / colsz): mostly clean, a few I / H rows. The gates passed on
+  these routes (a hold violation corrupts only when the data moves inside the window); the static rule says the margin
+  is not there. Board items 22-24 (and 19) are therefore NOT statically clean for hold / capture: to be re-gated.
+- Why no proposal ever fixed them: corner_audit sizes a knob by measuring its chain; a UACK at 0 links has no chain,
+  so "PAD to k" never reached a proposal sizes.vh. research/tools/fifteen/hold_pads.py takes the H / I rows' PAD values
+  from reports straight into the knobs (UACK per link / per pipe, SDELAY per pipe).
+- eval_task.sh's static line now ends "| hold/close: <every H / I / F / K / L / B / C row below 0>".
+- xorshift fr4 = fr3 + hold_pads over the 11 local xf4 reports: UACK n6 / n7 / n8 / trueResult_6 / _8 -> 1,
+  trueResult_10 -> 2; SDELAY falseResult_1 -> 2, trueResult_0 / _2 -> 1. Farm fxf5 (32 routes, every check) and fxs5
+  (+ the speculative incrementer); local xf5_10 (the board seed) running.
+- Open: the same for collatz (item 22), collatz64 (24), ipow (19), gcd; then BOARD-QUEUE re-marked.

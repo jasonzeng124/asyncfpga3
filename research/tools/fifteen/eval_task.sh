@@ -3,6 +3,7 @@
 # (research/cluster/README.md) or locally.  Writes a summary to ${OUT:-.}/eval.txt:
 #   1. the bench build + itercost stack + event graph (lane2.sh; MLIR_OVERRIDE honoured): period, odata, fasm_equiv, ffmux
 #   2. the static check of the owner's full-range rule (JOURNAL 2026-11-14): corner_audit at NOMINAL (--uniform 0.288)
+#      (the line also lists every rule H / I / F / K / L / B / C row below 0: "hold/close")
 #      and WORST, measured-residual guards, on this route as built; every kernel rule A / A' / E constraint below 0
 #      (tighten's unsized bundled-channel row "a" is listed apart)
 #   3. the full gate: bench_gate.sh SLOW_MAX / FAST_MIN / worst+M with the C-derived oracle.
@@ -51,7 +52,10 @@ for c in nom worst; do
   if [ -f "$f" ]; then
     neg=$(awk '$1~/^(A|E)$/ && $2+0<0 && $3~/udut/ {print $1, $2, $3}' "$f" | sort -u | sed 's/bridge_i.udut.//' | tr '\n' ';')
     a=$(awk '$1=="a" && $2+0<0 && $3~/udut/ {print $2, $3}' "$f" | sort -u | sed 's/bridge_i.udut.//' | tr '\n' ';')
-    echo "static $c ${neg:-CLEAN} | tighten-a: ${a:-none}" >> "$E"
+    # every other rule corner_audit sizes (SIZED_RULES less A / E; D is a screen, J has no line): H (hold), I (capture),
+    # F (fast-fall flush), K, L, B, C.  Until 2026-11-15 this line showed A / E only and the H / I rows were never read.
+    hi=$(awk '$1~/^[FHIKLBC]$/ && $2+0<0 && $3~/udut/ {print $1, $2, $3}' "$f" | sort -u | sed 's/bridge_i.udut.//' | tr '\n' ';')
+    echo "static $c ${neg:-CLEAN} | tighten-a: ${a:-none} | hold/close: ${hi:-CLEAN}" >> "$E"
     sed -n '/^proposal/,/^wrote/p' "$CA/$c.log" | head -40 > "$O/proposal_$c.txt"
   else echo "static $c ERROR (see ca_$c.log)" >> "$E"; tail -30 "$CA/$c.log" > "$O/ca_$c.log"; fi
 done
