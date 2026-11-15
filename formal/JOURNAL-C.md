@@ -3242,3 +3242,18 @@ hold vectors (seed 0x92d68ca2, rounds 3, 4, 8, 5; expected from kernels/xorshift
 So the tool puts the bad build below the good one and names the failing link, unprompted (PROGRAM item 2).
 Fixes: run.sh no longer dies on the md5 of a missing fromBit.fasm; TFULL knob for kernels whose runs exceed 5 µs.
 Caveats: 4 short vectors; nextpnr FASM, not a read-back; single-pin adversary, corner 0.
+
+### progress 21:01 -- item 25 (collatz board candidate): wrong answer at kappa = 0.44 (w = 0), checked by both checkers (search, untrusted)
+Full sweep (LATCH=1, w 20 and 0, vectors 27, 703, 77031; 854 s): five failing pins, all fed from SLICE_X16Y38.A6
+(SLICE_X16Y57.A5 pin 3 first; SLICE_X17Y48.C5/C6 pin 2, SLICE_X14Y55.A6 pin 2, SLICE_X15Y49.A6 pin 2). Checking:
+- **w = 0 (plain statement), kappa = 11/25, corner 0:** the SLICE_X16Y57.A5 pin-3 route (10 arcs) slow, all else fast:
+  n = 703 returns **99** (want 170), quiet end; A's gatecheck_runt: 5,543,248 checks, 0 mismatches, 0 arcs outside Adm;
+  envcheck: Env + SeqEnv OK, 3 of 3 outputs. ArbOK unchecked (bench arbiters not named). Correct at 0.32; 0.36 and 0.40
+  undecided (runt storms past 4e8 events). So item 25's kappa* <= 0.44 at w = 0 (upper end, search), above 0.32 for
+  this race only.
+- **w = 20: NOT a result.** The sweep's 0.36 failure (703 -> 307) has 301 lag violations in gatecheck_runt: simx's (=
+  simadv's) runt filter read a LUT pin later than Spec's GateOKRunt 20 allows. On gcd_ps the 0.36/0.40 witnesses had
+  0. **Tool fix needed:** every w = 20 verdict must pass gatecheck before it is reported (verify.sh does it for the
+  binding witness only); the simulator's filter is stricter than the Spec's in some runt chains (to diagnose).
+- verify.sh now also checks wrong-value witnesses (re-runs the binding witness with a dump).
+Names: decoded sites only (no routed JSON here); research can map SLICE_X16Y38.A6 / SLICE_X16Y57.A5 via NEXTPNR_BEL.
