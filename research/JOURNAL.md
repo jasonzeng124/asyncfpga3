@@ -4484,3 +4484,10 @@ on xf3_4; (5) a Dynamatic build to confirm BDC_FE_EXITCOND.
   trueResult_10 -> 2; SDELAY falseResult_1 -> 2, trueResult_0 / _2 -> 1. Farm fxf5 (32 routes, every check) and fxs5
   (+ the speculative incrementer); local xf5_10 (the board seed) running.
 - Open: the same for collatz (item 22), collatz64 (24), ipow (19), gcd; then BOARD-QUEUE re-marked.
+### progress 02:35 UTC (H / I pads for the other board families; farm fcol3 / fc64h / fipowh)
+- hold_pads.py over the local reports: collatz64 (8 c64nl worst reports) 14 knobs (UACK n7/n8/n10__3/n13 and four
+  pipes up to 4, SDELAY up to 2; worst rows H -838 ulink_n13, I -1461 falseResult_3); collatz nl2 -> nl3 (colsz / colnl,
+  24 reports) 2 knobs (SDELAY n7, falseResult_9 -> 2); ipow (3 ipowr routes) 6 UACK knobs (n7 2, n8 3, ...). The
+  values are corner_audit's per-corner estimates on routes built with the OLD sizes; the farm runs (32 routes each,
+  every check, eval.txt now with the hold/close list) say whether they close. Cost: the period / latency lines vs the
+  fcolsz2h / fc64nlh / fipowrh runs on the same seeds.
