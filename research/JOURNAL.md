@@ -5129,3 +5129,20 @@ farm, then the K-lap check.
 - The farm caps an account at 250 queued + running tasks: fxd_s, fxf4_s, fxdt_t and later requests wait for room.
 - Local constructed races (fcsel0 s24): the late-select run at FAST_MIN and both delayed-close runs have completed no
   batch after 30-60 CPU-minutes (clean: ~10); verdicts pending.
+### progress 19:31 UTC (owner b0f9dafa / audit T116: the select race has an arrival half; my monitor disagrees with the audit's)
+- PROGRAM now names two select races: arrival (rule E at the mux / steer; in simulation the select must not change while
+  the gated request is high) and hold (H / I / hold_bits). Audit T116 on fcsel0 seed 24 (same route, sdf bb5fbbdb):
+  its mux monitor sees umux0's select pin change while z_req is high on 960 of ~1460 rises (13-vector gate) and 132 of
+  202 on vec_collatz_hold.hex at FAST_MIN; the gate passes regardless. Research already sizes selects by rule E (fcsel1 /
+  fcsel2 / fcsel3m), which agrees with that.
+- research/tools/fifteen/select_arrival.py (new): per bd_mux / bd_steer, the select at every LUT pin it reaches inside
+  the cell (the ICBUF wires of the decoded netlist), against the window z_req high (mux; the end of its udly chain, found
+  from the netlist) or req high (steer). On fcsel0 seed 24, FAST_MIN, vec_collatz_hold.hex: 0 violations
+  (research/data/fifteen/select_arrival_fcsel0_24_fmin.tsv), umux0 min lead +2107 ps. The reason is not the window: in
+  this dump umux0's select net changes only 10 times in the whole run (entry / first loop-back of each transaction),
+  and so does each of its 35 pins -- inside the loop the select is constant, as the dataflow says it should be.
+  The audit's 132-of-202 needs a select that moves on most iterations. Unresolved: different nets, or a different
+  model of the transparent DELAY-0 select latch (a runt / x on the latch output that this dump does not record as a
+  change?). Until it is resolved this monitor has NOT failed on a known-bad build, so it is not a check; rule E (static,
+  both corners, 32 routes) is the arrival check used for sizing. For the auditor: which net is "the select pin" in
+  t83/mon_mux.py for umux0 on bb5fbbdb, and how many value changes does it have in your run?
