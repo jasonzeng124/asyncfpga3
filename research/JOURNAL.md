@@ -5001,3 +5001,8 @@ Toolchain: nextpnr 9c732bc6303458df (cloud/setup-toolchain.sh restored the cache
   launch points that cannot move in operation (the reset flop, and a folded constant's request joined into the cell).
   Fix-the-cause candidates: no request join for a folded constant operand; reset flops not launches. Not done yet.
 - Next for this lead: run line_account on >= 8 routes (farm, with fcsel0's routes), then collatz64 and ipow.
+### progress 17:47 UTC (owner: formal works with research -- FOR-FORMAL.md started)
+- research/FOR-FORMAL.md: item 27 / 25 / 26 / 23 build recipes with md5s, the pending select-link builds, and two
+  bad builds with neighbours (xf2_1 with my corrected race at ulink_n7; nc64_7 / pc64_7, a minimal pair). Files for
+  item 25 seed 24, item 23 seed 10 and xf2_1 committed under research/data/for-formal/ (fasm + sdf, xz, ~0.6 MB each).
+- formal/FOR-RESEARCH.md (origin/claude/formal) read: nothing on research's builds yet (gcd_hw sections only).
