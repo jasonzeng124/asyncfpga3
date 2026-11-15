@@ -4767,3 +4767,14 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
   F7 select left at its default; ipow bench seed 7 then), which BOARD-QUEUE's header already says to refuse. Not the
   design: deterministic per route, identical at every corner, and the full stack catches it twice (gate + equiv).
   ffmux_scan does not look for this kind. Seed 25: the FFMUX gap (flagged; its gates pass).
+### progress 06:19 UTC (fxd2 / fceq2: pad rounds on the new structures)
+- fxd2 (xorshift lever 8, fr5d): 29 evaluable routes (seed 25: FFMUX gap, excluded), median 19.81 where P exists; gate
+  87/87; A / A' / E clean 29/29 (seed 25 aside); hold/close clean on 26/29 (fxd: 20/31), rows H -25..-133 (trueResult_6
+  st1, falseResult_9 st1, ulink_n8). Latency +6 cycles vs fxd (+0.29 ns): the pads cost a little.
+- fceq2 (collatz n == 2, nl6): 30 evaluable routes, median 36.60 ns (34.63-38.80); gate 90/90; A / A' / E AND H / I
+  clean on 30/30 -- the first family hold-clean on every route. Cost of the pads: +0.83 ns paired vs fceq (22/32
+  slower). Seeds 3 and 22: FFMUX gap, gates fail on the bits (0/13, 1-2/13) as the defect predicts; flagged by both
+  ffmux_scan and fasm_equiv; excluded. Note: farm_table.py silently drops FFMUX-FLAG routes (its regex wants
+  "ffmux-clean"); counts above include them by hand.
+- Item 25 keeps fceq's seed 24 (clean on every row at nl4, 35.92 ns); fceq2 is the variant clean on every route.
+  FFMUX-gap routes today: fceq2 2/32, fc64eq 2/32, fxd2 1/32, fipowh3 1/32 (+ the F7-select defect on fipowh3 s9).
