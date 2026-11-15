@@ -5080,3 +5080,13 @@ farm, then the K-lap check.
   they are built at bdc's placeholders (UACK 6). line_account on seed 24: ULINK_N10__4_UACK is on the datapath cycle's
   falling edge (2.72 ns), rule H +2978 ps. Farm fcsel1m = nl6s1 + ULINK_N10__4_UACK 0. PREDICTION: -1 to -2.5 ns per
   iteration vs fcsel1 if the datapath cycle is what binds once the select ring is short; H at that link stays >= 0.
+### progress 18:42 UTC (21 farm requests ignored: upper-case names)
+- The *T / *S requests (TSE reruns, static re-checks) never got a status: request names must be a-z 0-9 _ -
+  (cluster README), and mine ended in T / S. Renamed to *_t / *_s; ~45 min lost on those.
+- Constructed select race, collatz fcsel0 seed 24, select latch -> umux1.uj0 / uj1 +3000 ps in the SDF (confirmed in the
+  decoded netlist's fasm.sdf: 3273:3503:3589 on both A5 pins): rule E -3345 ps, but the worst-corner gate PASSES 13/13
+  (FAST_MIN pending). Reading: umux1 is a loop-header mux; its init and loop-back requests are never pending together,
+  so a late select arms the wrong join for a branch that has no request, and the C element waits for the right one.
+  Rule E assumes both can be pending. So at a loop-header mux the select's arrival is not a race that the vectors can
+  make fail, and rule E rows there are lower bounds, not hazards; the select's real hazard is the hold side (the
+  collatz64 failure). To be confirmed: a mux where both requests CAN be pending would fail under the same injection.
