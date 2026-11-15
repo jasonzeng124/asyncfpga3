@@ -4301,3 +4301,9 @@ uses t0 = R − 1 with R = 40,000 ps (sim.py default), below the Lean window's l
 (the island's worst-case settle bound, not the simulated 252 ps). Emission must use R ≥ 122,375 ps at g = 1, κ = 0
 (sim.py 4th argument; at R = 130,000 both corners still give 6, run shifted by exactly 90 ns; ao/datal not rerun).
 THE statement's headline R = 400 ns is inside the window. Scratch: subagent's sub1/ (cmp.py, chk.py), not committed.
+### progress 18:4x -- PIVOT: PROGRAM.md 0691ea88 (owner, 2026-11-15 17:29 UTC) puts research's timing rule first
+Read at 18:4x (pushed after this session started). B's item: (4) the select race in Lean -- a mux/select control
+that changes while its data is captured, research's rules H and I (hold_bits.py, tsehold.py) as a certificate,
+proved sound in Core's gate model for every delay in the band, emitted by the tool and kernel-checked like
+RaceCertPS; then completeness. The gcd theorem is second priority: the SliceNetPS/Reset build already running is
+finished and recorded, then B works the select race. Subagent: reading research's rules H/I and FOR-FORMAL.
