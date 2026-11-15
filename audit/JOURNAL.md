@@ -2056,3 +2056,6 @@ Research ac5c4844 tsehold (interval TSE, delays from one trace x [0.97, 1.03]): 
 
 ### note 17:45
 Owner 8aa28bc7 (on claude/research, formal PROGRAM): formal is back on (one session per shard per day). Audit priority (a) resumes as soon as formal commits; formal unchanged at 8fd62f82 so far. Research 47b0295b: farm fxdt (item 27 + TSE), fxsel1 / fxsel0 (select links at 1 / 0, rule withdrawn); predictions. T109c (n8 second state) running.
+
+### note 17:55 disk
+Disk allowance hit 100% while reinstalling Lean 4.35.0 (container restart had dropped ~/audit-lean); the first T109c runs died. Freed ~9 GB: stale GLS run_baked.vvp files, /root/t90/work_per_* (period work dirs; logs kept), trace/flip/_r2 work dirs. Lean install deferred until formal commits (Lean + Mathlib from source need ~9 GB; more t65 work dirs can be freed then). T109c rerunning.
