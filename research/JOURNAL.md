@@ -4645,3 +4645,12 @@ Toolchain: 789a7120c912d393 (nextpnr 9c732bc6303458df, toolchain.sh ok)   Seeds:
 - THIS ROUTE IS NOT A BOARD CANDIDATE: ffmux_scan flags CLBLM_L_X8Y35.SLICEM_X0.CFF (ZINI, no CFFMUX), and fasm_equiv
   says NOT EQUIVALENT for the same flop (SLICE_X10Y35/CFF, a dfflegalize emulate_split_set_clr flop, in JSON with loads,
   not configured by the bits): the nextpnr FASM gap of 2026-11-08 (~7% of routes). Both checks caught it.
+### progress 04:20 UTC (why the AND seeding is NOT applied to rule H)
+- The audit (T109) asks for a static hold proof with C-element semantics. The AND seeding added to skew.py does not
+  give one, and is deliberately not used in tighten.earliest_disturbance: the disturbance paths of rule H cross link
+  controllers, bd_c2n = C(req_in, ~ack_out), whose rising (the upstream latch reopening) needs the released ack AND
+  the NEXT token's request. Whether that request can already be waiting when the ack arrives is a question about the
+  marking (how many tokens the ring holds ahead of the latch), not about delays: on xf2_1 it was waiting (the
+  loop-back pipe held i = 2), and there the OR bound is exact and the failure real. Bounding it needs a token-count
+  argument on the event graph (time separation of events with the occurrence offset of each path), not a max over
+  inputs. Until that exists, rule H stays OR (a lower bound) and the pad rounds stay the conservative route.
