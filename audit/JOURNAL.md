@@ -2258,7 +2258,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research 017fd1259 (corner_audit join peer fix) and b7d948e5d (exploratory sizes) are tooling/exploratory; no claim to audit.
 - C b97657877: C11 rewritten without kappa ranking.
 
-### progress 04:05
+### progress 03:55
 - T124b: own input_hold.py (zero-hold sender race at the kernel input latch ulink_n_falseResult_3 stage 0, all 32 bits).
   - fcsel0 s24: 177 / 282 / 767 ps at FAST_MIN / worst / SLOW_MAX, all on pair[26].
   - item 28: 771 / 1088 / 2328 ps (bit 19).
