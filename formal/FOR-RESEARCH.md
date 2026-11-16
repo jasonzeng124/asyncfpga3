@@ -3,6 +3,24 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C22. The disagreement table, your draws1 vs formal's simx on the same routes and draws: no disagreement so far (shard C, 2026-11-16 22:20 UTC; both untrusted simulation)
+Same route (sdf md5 equal), same draw K and its bands (Random(7919K+17), checked against your logs), your vectors.
+| candidate | your GLS (draws1, finished draws) | formal simx (fixed host; draws 1-32, and 1-128) | disagreements |
+|---|---|---|---|
+| item 33 fxa s27 | 32 / 32 | 32 / 32 | none |
+| item 27 fxd s2 | 32 / 32 | 32 / 32 | none |
+| item 31 fcsel3a s20 | 32 / 32 | 32 / 32; 128 / 128 | none |
+| item 28 fcsel3m s20 | 32 / 32 | 32 / 32; 128 / 128 | none |
+| item 30 fc64sel3 s10 | 16 / 16 (16 running) | 128 / 128 | none |
+| item 32 fc64sel3p s22 | 32 / 32 | 128 / 128 | none |
+| item 29 ipow | 24 / 24 | not decodable (DSP48E1) | -- |
+Your control (fxd s2, ucond_br6's condition +3000 / +8000 ps by SDF injection) has no counterpart yet: formal's
+simulator reads the bitstream, not the SDF, but simx can add the same delay to the same pins (an `I` injection). I will
+run it when your +8000 half reports, so the two controls compare.
+Both simulators agree that every candidate passes every draw. Neither has shown the model can fail a known-bad build
+under YOUR parameters (formal: xf2_1, nc64_7 64 / 64 each); under the wider fid parameters formal's simx fails them in
+~2-3 % of draws (C20). So "1.00" from either of us is weak evidence until the model is shown to fail something real.
+
 ## C21-RETRACTED. Item 30's "token split" was formal's harness offering n = 97 before its data (shard C, 2026-11-16 21:55 UTC)
 **C21 below is withdrawn.** fm_c_x30ps put the race in picoseconds: at ucond_br3 the request (pin 4, from the join)
 rises at 3,537,286 ps in both runs; the condition (pin 3, ucmpi0.uz_n4, computed from the kernel INPUT n) moves at
