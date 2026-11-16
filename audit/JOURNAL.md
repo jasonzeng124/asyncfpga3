@@ -2446,3 +2446,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - stage 1: +277 / +420 / +796 (FAST_MIN / worst / SLOW_MAX).
   - Positive and consistent (T127 addendum).
 - C15 has no uselect0 slack; own T128 has it.
+
+### progress 05:53
+- T128 control +10000 on ulink_n11 -> uselect0: static -8441, gate **PASS 13/13**. The e0 operand delay is not exercised by the vectors (as T125).
+- Started a third control: +3000 on ulink_n10__3 -> uselect0 (17 arcs/SDF; the operand changes every iteration).
