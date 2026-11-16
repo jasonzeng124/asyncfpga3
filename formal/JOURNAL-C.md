@@ -3453,3 +3453,18 @@ item 27) and **fcsel3m s2 0.39** (ulink_n_index_11 st0: outputs [106, 111, 170] 
 first answer). The others were rejected by the old checks (livelocks / H_RUNT-infeasible / env). Not a positive
 control result: fcsel1 s24 (rule E negative there) shows no cone failure <= 0.45, fcsel0 s24's 0.35 is not yet
 admissible. Farm c_margin_all1 reruns everything with the fixed checkers.
+
+### progress 03:41 -- livelocks become reportable: simx --periodic; gcd_ps's 0.36 livelock found with period 79 ps (= Lean's Frontier36)
+Problem: a run that never answers and never goes quiet (a livelock) had no finite witness, so the tool dropped it
+(NOT-CHECKED) -- yet gcd_ps's binding failure (0.36) is one. `simx --periodic` (margin.py always passes it): every
+2^18 events, if every node's history on (te-L, te] equals its history on (te-L-P, te-P] shifted by P (L = longest
+arc delay + the H_RUNT look-back + 2; values at both window starts equal), no boundary node moved in (te-L-P, te] and
+the env has nothing pending, the run repeats with period P for ever (each gate reads at most L back; the env only
+reacts to boundary changes). simx then stops at te and prints PERIODIC. margin.py calls such a run FAIL-livelock;
+checkrows re-runs it (now a short dump), checks it to te with gatecheck + envcheck, and kappa_hi.txt lists it on its
+own "livelock" line (liveness, kept apart from finite failures as PROGRAM asks). UNTRUSTED: the periodicity
+argument is in C++, not Lean (Lean's `SpecPeriodic.gateOKRunt_of_window` is the same argument, checked).
+Test: gcd_ps, the 0.36 race (SLICE_X16Y21.A6 pin 0): **PERIODIC, period 79 ps** from 633,578 ps -- the period A's
+Lean proof found by hand (Frontier36: 79 ps); ADMISSIBLE to te (933,659 checks, 0 mismatches/outside/lag; Env OK;
+ArbOK T >= 139); 0.34 and 0.35 correct. No false positive on a correct run (0.30). (A first version cut the dump mid
+time-step: 3 mismatches at the last instant; fixed by ending the run at te.)

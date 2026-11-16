@@ -118,6 +118,7 @@ static void load_net(const char* fn) {
 // ---------------- node histories: v0 and flip times (values alternate) ----------------
 static vector<vector<int>> H;          // flip times after the initial entry at 0 (simadv's ts[1:])
 static vector<char> V0, TOUCH;
+static int LASTN = -1;                  // node of the most recent flip (--periodic)
 static inline bool val(int n, ll t) {
     if (t < 0) return V0[n];
     const vector<int>& h = H[n];
@@ -138,7 +139,7 @@ static bool setv(int n, ll t, bool v) {
     }
     if (t < last) { fprintf(stderr, "time went back on node %s\n", names[n].c_str()); exit(1); }
     if (cur(n) == v) return false;
-    h.push_back((int)t); return true;
+    h.push_back((int)t); LASTN = n; return true;
 }
 
 // ---------------- event queue: (t, pri, seq, x) ----------------
@@ -180,6 +181,7 @@ static inline void env_set(ll t, int n, bool v) { Q.env.push({t, -1, ++SEQ, 2 * 
 static inline void changed(int n, ll t) { for (int r = rd0[n]; r < rd0[n + 1]; r++) sched(t + rdd[r], rdg[r]); }
 
 static int W = 0; static ll NSKIP = 0;
+static ll PER_L = 0; static vector<int> PER_B; static bool PER_HIT = false;
 static map<pair<int, int>, ll> INF;
 static inline bool fval(int n, ll r, ll& u) {
     if (r < 0) { u = r; return V0[n]; }
@@ -208,7 +210,7 @@ int main(int argc, char** argv) {
     vector<pair<ull, ull>> pairs; vector<string> pairstr; vector<ull> wantv; bool has_want = false; string kernel = "gcd";
     double corner = 0.5, kappa = NAN; const char* classes = nullptr; char cdefault = 'M';
     bool data0 = false, full = false, pipelined = false; ll R = 20000, su = 0, dout = 3000, dfall = -1, tmax = 5000000, reqgap = 0, maxev = -1;
-    string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr;
+    string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr; bool periodic = false;
     for (int i = 2; i < argc; i++) {
         string o = argv[i];
         auto nxt = [&]() -> const char* { if (i + 1 >= argc) die("missing value for %s", o.c_str()); return argv[++i]; };
@@ -237,6 +239,7 @@ int main(int argc, char** argv) {
         else if (o == "--datachange") { datachange = nxt(); if (datachange != "handshake" && datachange != "broad" && datachange != "rtz" && datachange != "next") die("bad --datachange"); }
         else if (o == "--nextreq") { nextreq = nxt(); if (nextreq != "sample" && nextreq != "seq") die("bad --nextreq"); }
         else if (o == "--dump") dump = nxt();
+        else if (o == "--periodic") periodic = true;   // stop with PERIODIC when the run provably (untrusted) repeats
         else if (o == "--pos" || o == "--seed") nxt();
         else die("unsupported option %s (simx ports only simadv's --classes/--full subset)", o.c_str());
     }
@@ -308,6 +311,8 @@ int main(int argc, char** argv) {
         }
         for (auto& x : want) env_set(t, x.first, x.second);
     };
+    { ll md = 0; for (int x : ds) md = max(md, (ll)x); double hm = 0; for (double x : his) hm = max(hm, x);
+      PER_L = md + (W ? (ll)ceil(hm) + W : 0) + 2; PER_B = {rst, req, aA, aB, aS, oR, oA, eA}; }
     env_set(0, rst, true);
     env_set(R, rst, false);
     { ll md = 0; for (int x : ds) md = max(md, (ll)x); Q.init(md); }
@@ -337,6 +342,37 @@ int main(int argc, char** argv) {
             } else for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - DS[b0 + i])) ad |= 1u << i;
             bool v = (initw[ginit0[g] + (ad >> 6)] >> (ad & 63)) & 1;
             if (setv(gout[g], t, v)) changed(gout[g], t);
+        }
+        if (periodic && t > R && (nev & ((1 << 18) - 1)) == 0 && Q.env.empty() && LASTN >= 0) {
+            // Eventual periodicity (UNTRUSTED argument, as Lean's Frontier36 made by hand): every gate reads its inputs at
+            // most maxD + lookback ps back, so if every node's history on (te-L, te] equals its history on (te-L-P, te-P]
+            // shifted by P (values at the window starts included), no boundary node moved in (te-L-P, te] and the env has
+            // nothing pending, the run from te-P repeats with period P for ever (the env is idle: it reacts only to
+            // boundary changes). te = t-1: every event before t is processed.
+            ll te = t - 1, L = PER_L;
+            const vector<int>& hr = H[LASTN];
+            int nc = 0;
+            for (ll j = (ll)hr.size() - 2; j >= 0 && nc < 8; j--) {
+                ll P = (ll)hr.back() - hr[j]; if (P <= 0) continue; if (P > 50000) break;
+                if (hr.back() > te) continue;
+                nc++;
+                bool okp = te - L - P > R;
+                for (int bn : PER_B) if (okp) { const vector<int>& hb = H[bn]; if (!hb.empty() && hb.back() > te - L - P) okp = false; }
+                for (int n = 0; n < NN && okp; n++) {
+                    const vector<int>& h = H[n];
+                    if (val(n, te - L) != val(n, te - L - P)) { okp = false; break; }
+                    if (h.empty() || h.back() <= te - L - P) continue;
+                    auto a0 = upper_bound(h.begin(), h.end(), (int)(te - L)), a1 = upper_bound(h.begin(), h.end(), (int)te);
+                    auto b0 = upper_bound(h.begin(), h.end(), (int)(te - L - P)), b1 = upper_bound(h.begin(), h.end(), (int)(te - P));
+                    if (a1 - a0 != b1 - b0) { okp = false; break; }
+                    for (auto x = a0, y = b0; x != a1; ++x, ++y) if (*x != *y + P) { okp = false; break; }
+                }
+                if (okp) {
+                    fprintf(stderr, "simx: PERIODIC: the run repeats with period %lld ps from %lld ps (checked window %lld ps at %lld ps; boundary idle)\n", P, te - L - P, L, te);
+                    PER_HIT = true; break;
+                }
+            }
+            if (PER_HIT) { t = t - 1; break; }   // the dump ends at te: every event before t is processed
         }
         if (!Q.empty() && Q.top_t() == t) continue;
         if (t < R) continue;

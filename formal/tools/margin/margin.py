@@ -67,7 +67,7 @@ def log(*x):
 def sim(arcs, P, w, tmax, tag, dump=None):
     cf = os.path.join(TMP, "c_%s.json" % tag)
     json.dump({"S": arcs, "F": []}, open(cf, "w"))
-    cmd = ([SIMX, NETX, "--maxev", os.environ.get("SIMX_MAXEV", "100000000")] + (["--want", a.want] if a.want else [])
+    cmd = ([SIMX, NETX, "--periodic", "--maxev", os.environ.get("SIMX_MAXEV", "100000000")] + (["--want", a.want] if a.want else [])
            if SIMX else ["python3", SIM, a.net, a.bnd]) + ["--pairs", *a.pairs, "--kernel", a.kernel, "--corner", "0", "--kappa", "%.2f" % (P / KD),
            "--classes", cf, "--cdefault", "F", "--data0", "--full", "--R", "400000", "--su", "1000",
            "--datachange", "broad", "--nextreq", "seq", "--tmax", str(tmax)] + (["--w", str(w)] if w else [])
@@ -91,6 +91,9 @@ def sim(arcs, P, w, tmax, tag, dump=None):
         # some LUT pin read lands in a narrow-pulse chain longer than its delay window allows: no H_RUNT(w) read map
         # exists, so this run is not a behaviour (gatecheck would report lag violations). Not a failure.
         return ("INFEASIBLE", ev, tend, time.time() - t0, res[0] + " [H_RUNT infeasible pins %s]" % inf.group(1), cmd, cf)
+    per = re.search(r"PERIODIC: the run repeats with period (\d+) ps from (\d+) ps", r.stderr)
+    if per:   # simx --periodic: an eventually periodic run that never answers (a livelock; untrusted periodicity check)
+        return ("FAIL", ev, tend, time.time() - t0, res[0] + " [PERIODIC P=%s from %s]" % per.groups(), cmd, cf)
     return ("FAIL", ev, tend, time.time() - t0, res[0], cmd, cf)
 
 # reference runs (no slow arcs) -> tmax per (kappa, w)
@@ -115,6 +118,7 @@ def verdict(r, P, w, store):
     kind = v[0] if v[0] != "ERROR" else "UNDECIDED"   # memory/time cap hit (typically a runt livelock); counted as failing
     if kind == "FAIL":   # wrong value / ended quiet with an answer missing / still active at tmax (livelock?)
         kind = "FAIL-quiet" if v[2] <= tm else "FAIL-noanswer"
+        if "[PERIODIC" in v[4]: kind = "FAIL-livelock"
         m = re.search(r"want \[([^\]]*)\] got \[([^\]]*)\]", v[4])
         if m:   # a wrong value is FAIL-wrong; a correct prefix with answers missing keeps quiet / noanswer (livelock)
             wv, gv = m.group(1).split(", "), [x for x in m.group(2).split(", ") if x]

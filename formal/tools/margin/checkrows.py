@@ -73,6 +73,7 @@ for l in open(os.path.join(O, "margins.txt")):
     arb = re.search(r"T >= (\d+)", v)
     out.write("%s w=%s k=%s %s | %s%s | %s | ArbOK T>=%s | %s\n" % (f[1], w, k, f[2], envnote, ("PHYSICAL(Spec-vacuous: partial-ack deadlock)" if "PARTIAL-ACK DEADLOCK" in v else "ADMISSIBLE") if ok else "INADMISSIBLE", res,
               arb.group(1) if arb else "?", gl)); out.flush()
+    if f[5] == "FAIL-livelock": res += " [livelock: eventually periodic, simx --periodic (untrusted)]"
     if ok and not res.startswith("RESULT OK"):
         (phys if "PARTIAL-ACK DEADLOCK" in v else adm).append((float(k), int(w), f[1], f[2], f[3], res))
     if os.path.exists(df): os.unlink(df)
@@ -83,11 +84,14 @@ with open(os.path.join(O, "kappa_hi.txt"), "w") as kh:
     kh.write("# kappa_hi = smallest kappa at which an ADMISSIBLE failing run was found (search; gatecheck + envcheck passed)\n")
     kh.write("# kappa_lo (proved safe): none for this build (no certificate)\n")
     for w in (20, 0):
-        c = [x for x in adm if x[1] == w or (w == 0 and x[1] == 20)]
+        c = [x for x in adm if (x[1] == w or (w == 0 and x[1] == 20)) and "[livelock" not in x[5]]
         if c:
             b = min(c); kh.write("w=%d: kappa_hi = %.2f  race %s pin %s from %s (run at w=%d) %s\n" % (w, b[0], b[2], b[3], b[4], b[1], b[5]))
         else:
-            kh.write("w=%d: kappa_hi: no admissible failure found among the swept rows (search)\n" % w)
+            kh.write("w=%d: kappa_hi: no admissible finite failure found among the swept rows (search)\n" % w)
+        c = [x for x in adm if (x[1] == w or (w == 0 and x[1] == 20)) and "[livelock" in x[5]]
+        if c:
+            b = min(c); kh.write("w=%d: livelock (liveness; the run is checked up to its periodic window, its infinite extension by simx's periodicity check, untrusted): kappa %.2f  race %s pin %s from %s (run at w=%d) %s\n" % (w, b[0], b[2], b[3], b[4], b[1], b[5]))
     for w in (20, 0):
         c = [x for x in phys if x[1] == w or (w == 0 and x[1] == 20)]
         if c:
