@@ -5612,3 +5612,15 @@ Next:
   simulator pessimism; the join race (rule E at a loop-header mux) does not. research/data/selneg/README.md corrected.
 - The gate's start-up X: a run that reaches an uninitialized latch's first value late shows X. Fix to consider in
   cells/gls (not done): initialize LUT latches at time 0 (run both 0 and 1), so a hang means a hang.
+### progress 08:43 UTC (fxa complete: xorshift 18.9 ns, rows as item 27's family; collatz64's entry-link delay breaks a hold)
+- fxa (xorshift item 27 + seed 2's datapath proposal), 31 routes: -0.40 ns per iteration vs fxd (22/30 faster), period
+  median 18.91 ns (item 27 19.39), gates 93/93. Static rows: rule M at umux0 / umux1 on most routes (-13 .. -581, as on
+  item 27's own family under the same corner_audit, fxd_ps: -178 .. -734), H rows on a few; fully clean on 2 (s18 at
+  latency 415, i.e. no faster than item 27's seed). Not a board item: no route is both clean and representative, and
+  on xorshift rule M has so far measured as pessimism (item 27's route: umux1 leads by >= 2.3 ns in simulation).
+  The next step for it is mux_settle on a median fxa route; if the mux data leads there too, rule M on xorshift needs
+  the downstream-absorption check before it can block.
+- collatz64 fc64sel3n / fc64sel3o: the entry-link delay (ULINK_N_FALSERESULT_3 DELAY 4) brings a DYNAMIC hold violation:
+  hold_bits at ulink_n_falseResult_3 stage[1] on fc64sel3n s2 (9x, to -825 ps) and fc64sel3o s29 (2x, -742) at FAST_MIN.
+  The pipe's request delay is not free: it changes when stage[1] opens relative to its data. Rejected; collatz64's umux0
+  rule-M miss stays open (padding umux0: +2.2 ns, fc64sel3m).
