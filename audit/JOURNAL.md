@@ -2698,7 +2698,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Own pipeline t126/item33.sh: build now; then own z_data monitor (FAST_MIN and worst), 3-corner GLS, period, rules H/E.
   - Note: item33.sh's period line reads the wrong log path (run_per_xs writes /root/t67/xd_27.log); the period will be read from there by hand. The script is running, so it is not edited.
 
-### progress 09:16
+### progress 09:14
 - T126j item 29 v2 done:
   - own rule E min +186 (204 rows);
   - static rule H min +128 / +179 / +552 (no negative row);
