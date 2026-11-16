@@ -5350,3 +5350,14 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
 - So the one-route proposal (7 / 9) holds A' on every route, though the 32-route per-cell max of nl6s3m's proposals asked
   for 9 / 12: proposals are measured on the old netlist's routes plus a guard, and the max over routes is an upper bound,
   not the need of a new build. fcsel3p (9 / 12) now mainly shows what that conservatism costs.
+### progress 05:00 UTC (fcsel3a complete -> BOARD-QUEUE item 31: collatz 21.5 ns per iteration)
+- 31 routes (s10 ffmux-flagged): gate 93/93, A / A' / E clean at both corners on 31/31, TSE and hold_bits clean on all;
+  hold-side rows on two (F -213 s2, I -236 s3). Paired vs item 28 on 30 seeds -3.93 ns per iteration, 30/30 faster.
+  Board seed 20 (sdf 7aefc4bd), item 28's seed. BOARD-QUEUE item 31 / section 32.
+- Next on collatz's cycle (line_account on c28a_20): four cycles within 1.2 ns (21.27 / 21.04 / 20.51 / 20.11), so single
+  lines buy little now. corner_audit --shrink-selects on that route proposes umux0 6 -> 1 and umux1 5 -> 1, but the mux's
+  own delay covers select -> data-LUT -> output against join -> udly -> z_req, and line_account says umux0's 32 data
+  outputs are on NO rule-A constraint (no common source with the request). That race is named (the audit's T116 saw the
+  select reach umux0's data-LUT pins up to 579 ps after z_req rose on a select-at-0 route) but no static rule checks it:
+  the mux delays stay until a rule does ("rule M": select latch -> data LUT -> data output vs select latch -> join ->
+  udly -> z_req, common source the select link's C node). A check to build, not a size to cut.

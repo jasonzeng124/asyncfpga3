@@ -226,6 +226,16 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    pairing), period median 34.94 ns; latency paired vs fc64eq3 (h4) on 27 seeds -1.56 ns per iteration (25/27 faster).
    On every route: gate 3 x 14/14, rule E clean, H / I clean, hold_bits clean; TSE -120 ps on one route (seed 1);
    umux2's traced false-path A row. Board seed 10 (sdf 637ff02e, latency 763 = the median): every row clean but umux2's.
+31. **collatz at ~21.5 ns per iteration, FULL INPUT RANGE: item 28 + uselect0 16 -> 7 and uaddi0 12 -> 9**: #32
+   below. The uselect0 line had been sized by tighten's bundled pairing because corner_audit refused the
+   upstream-link measurement (A') there: the cell's own request-join C nodes were counted as data, so the reset flop
+   and the folded constant's request into the join looked like foreign data launches (a tool bug, fixed 2026-11-16).
+   With A', the line needs 7. Farm fcsel3a, 32 seeds: 31 routes (one ffmux-flagged), period median 21.48 ns
+   (20.43-23.05) vs 25.81 (item 28); latency paired vs fcsel3m on 30 seeds -3.93 ns per iteration (30/30 faster, ~1.18x).
+   On every route: gate 13/13 at SLOW_MAX / FAST_MIN / worst+M, rule A / A' / E clean at nominal and worst, TSE and
+   hold_bits clean; two routes carry one hold-side row each (F -213 ucontrol_merge1 flush on s2, I -236 falseResult_9 on
+   s3). Board seed 20 (sdf 7aefc4bd, latency 468, near the median 471; item 28's seed, so the two are a minimal pair by
+   sizes): every row clean, re-checked locally. Dynamatic 14.05.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -1064,6 +1074,23 @@ research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/:
     python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_sel3.tsv build/hw/lc_c64_eq.tsv; echo "exit $?"
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.04 over item 26 (36.27 ns on its route vs 34.94 here).
+
+## 32. collatz item 28 + uselect0 7 / uaddi0 9 (fcsel3a) -- 31 routes, gate 93/93, every static row clean on every route
+research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/, on claude/research at or after this commit:
+
+    cp ../build/frontend/collatz/comp/handshake_transformed.mlir /tmp/collatz_hs_orig.mlir
+    cp ../research/data/fifteen/collatz_preeq2.mlir ../build/frontend/collatz/comp/handshake_transformed.mlir
+    BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=20 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz_sizes_T3cdb_nl6s3a_bench.vh ./hw/build_bench.sh collatz
+    cp /tmp/collatz_hs_orig.mlir ../build/frontend/collatz/comp/handshake_transformed.mlir
+    grep -c "usinkeq2" build/gen/collatz_kernel_bench.v    # must be 1: the rewrite is in
+    md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # 7aefc4bd = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz_bench_gen/collatz_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_col_sel3a.tsv
+    (item 28: #29's commands for lc_col_sel3.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_sel3a.tsv build/hw/lc_col_sel3.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.21 over item 28 (25.81 ns vs 21.27 on seed 20). A FAIL with item 28
+passing is a uselect0 bundling race the checks missed (its line is the only large change): send both logs.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
