@@ -5445,3 +5445,12 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   PREDICTION: +2 to +4 ns per iteration vs fc64sel3q (umux0 is on collatz64's critical cycle on every route, 14 elements
   ~0.4 ns each on the rising edge, the fall fast). Trace measurement of the lateness (mux_settle.py) on c64s3_10 at
   FAST_MIN running.
+### progress 07:03 UTC (rule M's miss on collatz64 item 30, measured in simulation: real, 155 ps at FAST_MIN)
+- research/tools/fifteen/mux_settle.py (new; select_arrival.py's dump plumbing): per bd_mux, per z_req rise, any z_data
+  change (at the udat LUT outputs) before z_req falls. Item 30's route (c64s3_10 = sdf 637ff02e), FAST_MIN,
+  vec_collatz_hold.hex: umux0 458 rises, 352 with a data change AFTER z_req rose, worst 155 ps late; umux1 0 (lead
+  >= 2760 ps); umux2 (8 rises) z_data not named in the dump. Static rule M said -1231 ps (nominal, guarded, longest
+  data vs shortest request over all launches); the trace shows the race happening on 77% of tokens, smaller.
+- So the miss is not a false path: the output request leaves before the data on most iterations, the downstream link
+  latches take Q up to ~155 ps (FAST_MIN) after their enable, and nothing static accounts for it downstream. Gates pass.
+  Worst-corner trace and a clean control (collatz item 31's route, M clean) running.
