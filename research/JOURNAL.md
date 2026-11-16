@@ -5376,3 +5376,11 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
 - Negative control running (local, item 28's route c28_20): +3000 ps on ulink_n14__0's select latch -> umux0.udat
   (32 arcs, SDF only), corner_audit + the gate at FAST_MIN and worst. If rule M flags it and the gate fails, the mux
   delays can be sized by M (with E for the select links) instead of "never shortened".
+### progress 05:42 UTC (select negative controls, all four families: rule E flags every gate failure)
+- selneg + selneg2: 39 injected runs on the four board candidates' routes (table: research/data/selneg/README.md).
+  20 runs fail the gate (19 by no completion, 1 wrong value: xorshift umux1 +6000 at FAST_MIN, 16/17); rule E is below 0
+  at worst on all 20. 12 more runs are flagged by E and pass every gate (loop-header muxes: even +12000 passes). So on
+  each family E fails on a known-bad build and never missed one: the owner's bar for the arrival check is met, by
+  construction (SDF injection), not by a shortened line (none raced).
+- Rule M's first control (item 28's route, +3000 on ulink_n14__0's latch -> umux0.udat, 32 arcs): M -353 ps at worst,
+  gate FAST_MIN PASS 13/13 (cycles unchanged 2906): stricter than the gate, no failing build yet; +8000 running.
