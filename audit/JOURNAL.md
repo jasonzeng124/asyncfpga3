@@ -2205,3 +2205,6 @@ Owner 7acb3a72 (formal PROGRAM): kappa is not a result; report each binding race
 
 ### note 08:45
 Formal C 36e4858c: capture races on gcd_ps (search, checked): none fails at kappa <= 0.45, first admissible failure 0.61, first wrong value 0.77; item 25 cone outputs. Kappa-only, search; not the binding race (gcd_ps binds at 0.36, Lean); per owner 7acb3a72 such results now need picosecond race reports -- nothing to audit as a claim yet.
+
+### note 08:55
+Formal C11 b9af68ad: item 28's board route (sdf d86bdde5 = own colsel3_20) kappa_hi 0.42 at ulink_n13.lat.pair[6] enable (search, checked); item 25 at w 0 0.42, w 20 none <= 0.45; seeds 1 / 2 / 24 of item 28's structure 0.41 / 0.37 / 0.27 at falseResult_3 stage[0] (the input-hold class, T120b). Kappa-only; owner 7acb3a72 now asks for picosecond race reports. Not replayed: T119 found the same ulink_n13 class (item 26) did not reproduce in own GLS; 0.42 is above THE target's 0.36. C's own caveat: runs at 0.36-0.38 rejected only by the env check (falseResult_7 stage 0 feedback).
