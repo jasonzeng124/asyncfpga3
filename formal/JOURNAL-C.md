@@ -3882,3 +3882,6 @@ C19 left open the picosecond slack of the steer races (condition vs request). Re
 on claude/research: shortest request path vs longest select path from a common state-node launch) is exactly that check,
 but it needs the routed JSON, which only a rebuild gives (no toolchain in this sandbox). c_rulee1 rebuilds the four C19
 routes and item 33 and runs research's skew.py -v unchanged.
+
+### progress 19:19 -- setup.sh not finished here (Mathlib cache unreachable; source build stopped at 30 min)
+No local Lean this session; Lean work, if any, goes to the farm (its lake cache). The margin work needs none.
