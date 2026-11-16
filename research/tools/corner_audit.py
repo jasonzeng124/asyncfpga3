@@ -187,6 +187,9 @@ def worker(sdf, spec):
         with contextlib.redirect_stdout(buf):
             ap = rule_a_from_link(T, skew, sdf)
         for parent, d in ap.items():
+            if d.pop("partial", False):                    # added for the peers tighten's A never reached; A stays
+                out["constraints"]["A'm %s" % parent] = d
+                continue
             out["constraints"]["A' %s" % parent] = d
             k = "A %s" % parent
             if k in out["constraints"]:
@@ -244,14 +247,35 @@ def rule_a_from_link(T, skew, sdf):
                         and (os.environ.get("CA_JOIN_PEERS") == "1" or not T.pin_split(p)[0].startswith(join_pfx))})
         if not peers:
             continue
-        ups = T.upstream_bd_links(T.cell_boundary(edges, back, stops, parent))
+        bnd = T.cell_boundary(edges, back, stops, parent)
+        ups = T.upstream_bd_links(bnd)
+        # a 1-bit link's latch is one whole LUT, '<link>.lat.odd.u' (no $LUT5/6 half), which tighten's
+        # RE_UPSTREAM_BD_LINK does not match: a select link was then never an upstream link, and its latch output
+        # counted as a foreign source (2026-11-16, at every bd_mux).  CA_ODD_LINKS=0: old behaviour.
+        if os.environ.get("CA_ODD_LINKS") != "0":
+            odd = {mm.group(1) for q in bnd for mm in [re.match(r"^(.*?)\.lat\.odd\.u$", T.pin_split(q)[0])] if mm}
+            ups = tuple(sorted(set(ups) | odd))
         region = (parent,) + ups
         srcs = T.cell_boundary(edges, back, stops, region)
+        partial = False
         if not ups or T.check(timing, srcs, peers, tail, T.req_guard, confine=region if ups else parent) is not None:
-            if os.environ.get("CA_DEBUG_FOREIGN"):
-                with open(os.environ["CA_DEBUG_FOREIGN"], "a") as dbg:
-                    print("A' not tried at %s: %s" % (parent, "no upstream link" if not ups else "common source"), file=dbg)
-            continue                                   # common-source pairing: tighten's A is already exact
+            # T.check pairs the request with ANY peer it shares a source with and says nothing about the peers no common
+            # source reaches.  At a bd_mux those are the 32 data outputs the select drives (select latch -> data LUTs):
+            # the request comes from the join, the select from the select link's latch, a storage crossing apart, so
+            # tighten's A covers the x / y data and never the select's path -- the race the mux's own delay is kept for
+            # (JOURNAL 2026-11-16, "rule M").  Those peers get the A' measurement below, from the upstream links' C nodes,
+            # as an ADDED constraint (key "A'm"): tighten's A row stays as it is.  CA_MUX_PEERS=0: old behaviour.
+            unc = []
+            if ups and os.environ.get("CA_MUX_PEERS") != "0":
+                conf = region
+                unc = [p for p in peers if not any(p in timing.late(s, conf) and tail in timing.early(s, conf)
+                                                   for s in srcs)]
+            if not unc:
+                if os.environ.get("CA_DEBUG_FOREIGN"):
+                    with open(os.environ["CA_DEBUG_FOREIGN"], "a") as dbg:
+                        print("A' not tried at %s: %s" % (parent, "no upstream link" if not ups else "common source"), file=dbg)
+                continue                               # common-source pairing: tighten's A is already exact
+            peers, partial = unc, True
         inside = lambda p: any(T.pin_split(p)[0] == r or T.pin_split(p)[0].startswith(r + ".") for r in region)
         # a source outside the region that reaches a peer WITHOUT crossing one of the links' latches would launch
         # data this measurement does not see: then keep tighten's A
@@ -291,9 +315,10 @@ def rule_a_from_link(T, skew, sdf):
         if worst is None:
             continue
         m, g, t_r, k_r, t_d, k_d, peer, c = worst
-        out[parent] = {"rule": "A", "margin": int(m), "knob": parent,
-                       "text": "%s %d links  from %s: req %d (%dx)  data %d (%dx, %s)  guard %d  margin %d"
-                               % (parent, len(links), c, t_r, k_r, t_d, k_d, T.pin_split(peer)[0], g, m)}
+        out[parent] = {"rule": "A", "margin": int(m), "knob": parent, "partial": partial,
+                       "text": "%s%s %d links  from %s: req %d (%dx)  data %d (%dx, %s)  guard %d  margin %d"
+                               % (parent, " [peers no common source reaches: %d]" % len(peers) if partial else "",
+                                  len(links), c, t_r, k_r, t_d, k_d, T.pin_split(peer)[0], g, m)}
     return out
 
 

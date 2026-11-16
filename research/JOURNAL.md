@@ -5361,3 +5361,18 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   select reach umux0's data-LUT pins up to 579 ps after z_req rose on a select-at-0 route) but no static rule checks it:
   the mux delays stay until a rule does ("rule M": select latch -> data LUT -> data output vs select latch -> join ->
   udly -> z_req, common source the select link's C node). A check to build, not a size to cut.
+### progress 05:41 UTC ("rule M": the mux's select -> data path gets a static check; corner_audit)
+- Why the mux delays sit on no rule: tighten's check() pairs the request with ANY peer that shares a source with it and
+  is silent about the rest. At a bd_mux the x / y data share the join with the request, so check() returns, and the
+  32 data outputs the SELECT drives (select latch -> udat LUTs) were never measured (line_account: "32 peer outputs no
+  common source pairs with the request, on NO rule-A constraint: umux0.udat"). That race is real and named (the select
+  reaching the data LUTs after z_req: audit T116 measured it on a select-at-0 route, up to 579 ps late).
+- corner_audit.rule_a_from_link now gives those uncovered peers the A' measurement from every upstream link's C node
+  (added constraint "A'm", reported as rule A with "[peers no common source reaches: N]"; tighten's A stays). Two fixes
+  were needed for it to run: (1) a 1-bit link's latch is one LUT, "<link>.lat.odd.u", which tighten's
+  RE_UPSTREAM_BD_LINK does not match, so the select link was never an upstream link and its latch output was a "foreign"
+  source -- now added in corner_audit (CA_ODD_LINKS=0 restores); (2) the partial-peer pass (CA_MUX_PEERS=0 restores).
+  Item 31's route (c28a_20, worst): umux0 +1503 ps (6 elements), umux1 +1145 (5); umux2 gets no row (to look at).
+- Negative control running (local, item 28's route c28_20): +3000 ps on ulink_n14__0's select latch -> umux0.udat
+  (32 arcs, SDF only), corner_audit + the gate at FAST_MIN and worst. If rule M flags it and the gate fails, the mux
+  delays can be sized by M (with E for the select links) instead of "never shortened".
