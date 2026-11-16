@@ -2848,3 +2848,12 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - it checks odata (last run) AND sig, the bench hardware's rotate-xor accumulation over every run in the batch;
   - sig is compared with the expected value for nruns results, so a wrong earlier run changes sig and fails.
   - (Read from t65/oracle_collatz.py sig()/check() and ps7_bench.v's sig register.)
+
+### progress 19:30
+- T134 item 30 (c64sel3_10) with n = 1: 15/15 (n = 1 OK); 0 violations. Item 32 is running.
+- research d5c9c8a90: SIM-VS-BOARD.md and the draw:K delay model. Finding T135:
+  - ring fit and kernel fits recomputed by own script: CONFIRMED (arithmetic);
+  - the "0.76 %" residual is median |dev| (std 1.08 %, max 2.95 %);
+  - ring vs kernel gap unexplained; predicted vs measured ns/iter still open;
+  - 3 gaps in SIM-VS-BOARD noted;
+  - BOARD-QUEUE speed headlines OVERSTATED by the owner's rule until passing fractions and model error are reported (REPORT row).
