@@ -5561,3 +5561,18 @@ Next:
   values, 3 no completion) on xorshift umux0 / 1 / 2, ipow umux1, collatz umux0 / 1; rule M < 0 on the injected mux in all
   6 (-2987 .. -6153 ps), rule E clean in every run. Where M stayed >= 0 the gate passed. So M earns its place on xorshift,
   ipow and collatz; collatz64's umux0 control (task 5) failed to run on the farm twice (container error).
+### progress 08:10 UTC (formal C17 disagrees with research's gate on the select-JOIN injections; tracing)
+- Formal C17 (its transport-delay model, same routes and SDFs, FAST_MIN, 12-ns host, 3-4 vectors): the select made late
+  into the mux's request JOINS (my selneg / selneg2 arcs) never fails at +1..+12 ns -- it only delays the mux; the
+  select made late into the mux's DATA LUTs (rule M's race, my mneg arcs) fails from +6 ns (wrong values). My gate
+  fails on 20 join-injection runs. Formal asks for a trace of one (item 28 umux0, join +3000, FAST_MIN). The audit's
+  T118 replay also saw no completion, but on the same simulator stack.
+- Why it matters: if the join-injection failures are a simulator artefact, rule E's "known-bad builds" are not
+  known-bad, and E's negative control rests on mneg-type failures only (where E is clean: E would then have NO
+  failing build at all on the arrival race it models, and rule M would be the real arrival check at the data side).
+- Running: fullstack_dump.sh (new XRAY_SDF_IN: use a given prjxray SDF) with the join +3000 SDF on c28_20, FAST_MIN,
+  the gate's own vectors (col13.hex), VCD kept; then which handshake stops, and where.
+- Formal C18 on research's candidates: item 32 ulink_n13 hold +3861 ps at the SDF (the ULINK_N13_UACK 3 kept by hand
+  holds); item 30 no finite failure up to kappa 0.45; item 31 = C15 (uselect0 capture holds to 0.45); item 29 needs a
+  DSP48 model (formal's decoder refuses DSP sites). C19: its "steer-cone" failures are 20-41 ps runt pulses into link
+  controllers -- a device question (pulse shrinkage), asks whether research's GLS can show such a pulse.

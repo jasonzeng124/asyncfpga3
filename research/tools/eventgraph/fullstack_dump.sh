@@ -12,7 +12,9 @@ HW=$(cd "$1" && pwd); D=$2; mkdir -p "$3"; W=$(cd "$3" && pwd); VEC=$(readlink -
 R=$(cd "$(dirname "$0")/../../.." && pwd); G=$R/cells/gls
 TC=${TC:-$HOME/dev2/lib/fpgatoolchain}; PX=$TC/openxc7-src/prjxray
 XS=$W/xray.sdf
-PYTHONPATH=$PX python3 "$G/fid/xray_delay.py" --routed "$HW/${D}_routed.json" --sdf "$HW/$D.sdf" --out "$XS" > "$W/xray.log" 2>&1
+# XRAY_SDF_IN: use this prjxray SDF instead of computing one (e.g. an SDF with a constructed defect, sdf_inject.py)
+if [ -n "${XRAY_SDF_IN:-}" ]; then cp "$XRAY_SDF_IN" "$XS"; echo "xray SDF from $XRAY_SDF_IN" > "$W/xray.log"
+else PYTHONPATH=$PX python3 "$G/fid/xray_delay.py" --routed "$HW/${D}_routed.json" --sdf "$HW/$D.sdf" --out "$XS" > "$W/xray.log" 2>&1; fi
 python3 "$R/research/tools/band_inst_list.py" "$HW/${D}_routed.json" '\.chain\.g\[\d+\]\.u$' 0.21 "$W/chains.band" > /dev/null
 export GLS_SDF=$XS GLS_SDF_FIELD=${DUMP_FIELD:-band} GLS_SDF_BAND=0.288 GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1 \
        GLS_SDF_BAND_INST=@$W/chains.band GLS_MODEL=fid PS_DESIGN=$D PS_HOST=ps7_bench.v PYTHONPATH=$PX
