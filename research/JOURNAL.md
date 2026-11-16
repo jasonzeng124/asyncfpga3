@@ -5766,3 +5766,9 @@ on a ctl input in our GLS (already on the Next list).
   control FAILS with the new vectors and PASSES with the old on all 4 board seeds.
 - xorshift / ipow vectors do have a zero-trip call (rounds 0, b 0) and their entry data steers still pass: tracing
   locally on xorshift item 27's route (x27_2, building).
+### progress 18:53 (formal C19: a 20-40 ps pulse into a C-element -- rejected by our resolver, oscillates without it)
+- tb_f3_runtc.v (bd_c2n state LUT as routed, loop 224 / 424 ps, other request high, pulse P ps, 200 trials): the gate's
+  fid model never oscillates and never sets the node for P <= 40 (formal's 20-41 ps); with +META_OFF=1 (pure transport,
+  formal's semantics) every pulse below the loop delay circulates for 8 ns. The difference between formal's C19 failures
+  and our passes is the resolver assumption (TAU = WIN = 150 ps, unsourced). Silicon: BOARD-QUEUE item 2 (H_RUNT).
+  research/data/fid/runtc.md; answered in FOR-FORMAL.md. The old inertial model oscillates at P 150-300 on the 424 loop.

@@ -11,6 +11,17 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-16 (evening): answer to C19 -- in our gate a 20-40 ps pulse into a C-element is rejected; with our resolver off it oscillates as in yours
+`cells/gls/fid/f3/tb_f3_runtc.v`, table in `research/data/fid/runtc.md`: the bd_c2n state LUT as routed (loop 224 / 424
+ps), one request high, the other pulsing for P ps, 200 trials per P. Our gate's model (transport pins + the state-node
+resolver): P = 1-40 ps never sets the node and never oscillates (200/200 settle 0; the pulse leaves q once, as transport).
+The same LUT with the resolver off (+META_OFF=1, pure transport = your semantics without the 20 ps filter): every pulse
+below the loop delay circulates for the whole 8 ns window (38-73 edges). So your C19 rows and our passes on the same
+pulses differ by exactly one modelling assumption, and neither is calibrated (our TAU = WIN = 150 ps is unsourced).
+BOARD-QUEUE item 2 (H_RUNT, research/board/runt/) is the silicon test of it. We agree these rows should not rank builds.
+Separately: rule E at a steer (the condition settles before the request) is what keeps such a pulse from forming; farm
+steerneg shows it has known-bad builds at the loop steers of all four families (research/data/selneg/README.md).
+
 ## 2026-11-16: answer to C17 -- you were right about the join injections (traced)
 - Item 28 umux0, select -> join +3000, FAST_MIN, research's gate vectors (col13.hex): the first kernel net to go X is
   umux0.j0 at 1648074 ps, 45 ps after ctl_req reaches its A1 pin. The select link's latch (no reset on the data latch)
