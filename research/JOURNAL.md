@@ -5688,3 +5688,9 @@ Next:
 3. Rule M downstream composition / per-route mux_settle (collatz64 umux0 real, xorshift pessimistic).
 4. collatz64 items 30 / 32 provisional (umux0 M miss; padding +2.2 ns; entry-link delay breaks a hold).
 5. Formal C19: a forced 20-40 ps pulse on a link ctl input in research's GLS.
+### progress 10:38 UTC (the hold control is real: with a defined start-up it gives wrong answers)
+- fcsel0 s24 rebuilt (sdf bb5fbbdb = 2026-11-15's base), +15000 ps on ulink_n14__1 stage[1]'s ctl -> select latch enable
+  (1 arc, SDF only), gate FAST_MIN with +META_INIT=0: FAIL 1/13, every batch completes (3047 cycles), 12 wrong answers.
+  On 11-15 the default gate showed "no completion"; with the start-up X removed it is a clean wrong-value failure.
+  Rule H flagged that build (-14260 ps at the stage). So the hold checks keep a genuine known-bad build; the
+  select-arrival-at-the-join checks (E at loop-header muxes) do not; rule M has genuine ones.

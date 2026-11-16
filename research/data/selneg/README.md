@@ -10,7 +10,9 @@ other request is never pending). Formal's C17 (no failure for any join injection
 state) agrees. So the 20 join-injection failures are X-propagation from an uninitialized latch, not the select race:
 **rule E has no genuine known-bad build here.** Confirmed with a defined start-up (GLS +META_INIT=0 and =1, cells/gls/
 fid_core.vh): the same collatz umux0 join +3000 run PASSES 13/13 (2913 cycles vs 2906 clean); the data-LUT +8000 run still
-FAILS (7/13); the clean route is unchanged. Farm selneg3 re-runs the join injections that way. The data-LUT injections (rule M, second table) fail as real logic
+FAILS (7/13); the clean route is unchanged. Farm selneg3 re-runs the join injections that way. The 2026-11-15 HOLD control
+(fcsel0 s24, +15000 on ulink_n14__1 stage[1]'s enable) with +META_INIT=0: FAIL 1/13 with every batch complete -- a real
+wrong-value failure, flagged by rule H (-14260 ps). The data-LUT injections (rule M, second table) fail as real logic
 (three wrong values) and are not affected the same way: traced on collatz umux1, +8000, FAST_MIN (tr_c28u1d), batches 0-4
 give X (the same power-up X, now in the data), but batches 8 and 9 give DEFINED wrong answers (0x0a for 0x06, 0x0c for
 0x08) while 5-7 and 10-12 are right: the late select lets the mux's data output change after its request, and the
