@@ -2749,3 +2749,8 @@ two slow routes. Files: tools-A/target/out/gcd_ps_wfcheck/.
 ### progress 04:49 -- two-hour re-read: PROGRAM.md (last 7acb3a72) and research/FOR-FORMAL.md unchanged; farm queue stalled
 a_lean_prime2 and a_check_wf_dependents still "submitted" (not started) after ~2 h. Building PlanRPS/CertN1 (they import
 the decoded gcd_ps net) locally with 2 Lean slots instead.
+### progress 05:26 -- the EnvWF change checks on every dependent: check.sh OK on 7 files (2,376 declarations)
+Built here (the farm queue had not started a_check_wf_dependents): CViewPS.IslandChk6/7 OOM'd with lake's parallel
+jobs and were built one at a time; then PlanRPS and CertN1 (1,336 jobs). `./check.sh Formal/Target/{SpecWF,Assembly,
+CertRun,AssemblyPS,PlanPS,PlanRPS,CertN1}.lean` -> OK, 2,376 declarations, standard axioms. The farm request is now
+redundant (it will only repeat this when the queue reaches it).
