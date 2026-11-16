@@ -6,7 +6,7 @@
 # BUILD.fasm: the read-back (fromBit) FASM, plain/.xz/.gz. Next to it (or via env) the build's XDC, yosys JSON and
 # nextpnr routed JSON (for the boundary names): XDC=, SYNTH=, ROUTED=. v0 knows only the gcd_ps kernel boundary.
 # Knobs (env): JOBS (8), TOP (0 = every active candidate), KHI (0.45), KLO (0.20), W0 (1: also without H_RUNT),
-#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root), HOSTDELAY (ps: the host moves input data at least this long after the acknowledge; default 1 = the most adversarial host Spec.Env allows; a clocked host is ns).
+#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), W0FULL (1: sweep every candidate at w = 0 too, not only those failing at w = 20), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root), HOSTDELAY (ps: the host moves input data at least this long after the acknowledge; default 1 = the most adversarial host Spec.Env allows; a clocked host is ns).
 set -euo pipefail
 B=$1; O=$2; mkdir -p "$O"; O=$(cd "$O" && pwd)
 H=$(cd "$(dirname "$0")" && pwd); F=$(cd "$H/../.." && pwd); R=$(cd "$F/.." && pwd)
@@ -103,7 +103,7 @@ fi
 # 4. sweep + bisection + report
 log "sweep"
 python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs "$JOBS" --top "$TOP" --khi "$KHI" \
-  --klo "$KLO" --tfull "${TFULL:-5000000}" --pairs $PAIRS --kernel "$KERNEL" --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
+  --klo "$KLO" --tfull "${TFULL:-5000000}" --pairs $PAIRS --kernel "$KERNEL" --w 20 $([ "$W0" = 1 ] && echo --w0) $([ "${W0FULL:-0}" = 1 ] && echo --w0full) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
 log "check every failing row"; python3 "$H/checkrows.py" "$O" > /dev/null 2>&1 || true
 [ -f "$O/routed.json" ] && python3 "$H/names.py" "$O" > /dev/null 2>&1 || true
 # 5. the picosecond form of every reported race (explain.py: capture, split, both paths, slack, x the measured error;

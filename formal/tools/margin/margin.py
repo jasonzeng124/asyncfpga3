@@ -26,6 +26,7 @@ ap.add_argument("--jobs", type=int, default=2); ap.add_argument("--top", type=in
 ap.add_argument("--khi", type=float, default=0.45); ap.add_argument("--klo", type=float, default=0.20)
 ap.add_argument("--pairs", nargs="+", default=["0x49e9c618,0x35bf992e", "1071,462"])
 ap.add_argument("--w", type=int, default=20); ap.add_argument("--w0", action="store_true")
+ap.add_argument("--w0full", action="store_true", help="with --w0: sweep EVERY candidate at w = 0 too (default: only those failing at w)")
 ap.add_argument("--tmax-factor", type=float, default=1.3); ap.add_argument("--tfull", type=int, default=5_000_000)
 ap.add_argument("--arbs", default=None, help="arbs.json: rows whose q is an arbiter state LUT are flagged (ArbOK unchecked)")
 ap.add_argument("--memcap", type=float, default=3.0, help="GB address-space cap per simulation")
@@ -176,9 +177,12 @@ for w in ([a.w] + ([0] if a.w0 and a.w else [])):
         fails = [r for r, v in zip(R, v1) if v != "OK"]
         log("phase 1 done: %d of %d fail at %.2f (%.0f s)" % (len(fails), len(R), a.khi, time.time() - t0))
     else:
-        fails = [r for r in fails]
+        fails = list(R) if a.w0full else [r for r in fails]
         with ThreadPoolExecutor(a.jobs) as ex:
-            list(ex.map(lambda r: verdict(r, Phi, w, store), fails))
+            v0 = list(ex.map(lambda r: verdict(r, Phi, w, store), fails))
+        if a.w0full:
+            fails = [r for r, v in zip(fails, v0) if v != "OK"]
+            log("phase 1 at w=%d (all candidates): %d of %d fail at %.2f" % (w, len(fails), len(R), a.khi))
     with ThreadPoolExecutor(a.jobs) as ex:
         res = list(ex.map(lambda r: (r, bisect(r, w, store, Phi) if store["%s %d %d %d" % (r["node"], r["pin"], Phi, w)] != "OK" else (None, "passes at khi")), fails))
     with ThreadPoolExecutor(a.jobs) as ex:

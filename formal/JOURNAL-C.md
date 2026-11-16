@@ -3679,3 +3679,12 @@ fcsel1 s24 (c_explain7, trigger chains): falseResult_7 st0 ctl feedback race unc
 fcsel3m s24 (c_explain8, host 2 ns): ulink_n10__3 lat.pair[20] enable from its ctl, launch ucond_br7.uack: path A 2 LUTs
 + 22 routing (SDF 3337), path B 8 LUTs + 48 routing (SDF 6373): +1413 / +670 / +3036. A long enable route again (as
 item 26's ulink_n13: 12 routing). Added to C14's table.
+
+### progress 05:12 -- gcd_ps (THE target): no capture or steer cone fails <= 0.45 at w 20 or w 0; W0FULL
+For A's 04:42 note (gcd_ps re-swept single-pin only): CONES=only STEER=1 on gcd_ps_e6bb4aec: 179 latch-group capture
+cones + 586 steer cones; none fails at 0.45 with w = 20 or with w = 0 (every row swept at both: `--w0full`, run.sh
+`W0FULL=1`). So with every race class the tool has, gcd_ps's search frontier is still the 0.36 livelock (Lean), and no
+partial-ack hang appears below 0.45. Earlier capture cones: first failure 0.61.
+Tool gap found and fixed on the way: with W0=1, margin.py swept at w = 0 only the rows that had failed at w = 20, so a
+failure that exists only without the filter could be missed. `W0FULL=1` sweeps every row at both. The farm runs so far
+(all1/all2/host2/x27r/r12) used W0=1 without it: their w = 0 columns are "w 20 failures re-tested", not a full w = 0 sweep.
