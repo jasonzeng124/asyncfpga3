@@ -5511,7 +5511,8 @@ Measured (farm, 32 seeds each unless noted; ns per iteration, paired latency med
 | collatz64 | fc64sel3p: + proposal round | 31.39 | -3.52 vs fc64sel3 (30/30) | 90/90 | TSE n28 on 9/30; M umux0 | 32 (provisional, M) |
 | collatz64 | fc64sel3q: p + n28 ack back to 3 | 31.79 | +0.41 vs p | 90/90 | M umux0 | -- |
 | xorshift | fxsel3 (selects by E) / fxu (missing ack) | 19.45 / 19.21 | -0.23 / -0.05 vs item 27 | 96/96 each | -- | rejected |
-Checks: rule E's select negative controls on all four families (20 gate failures, E flags all 20; research/data/selneg);
+Checks: rule E's select negative controls on all four families (20 gate failures, E flags all 20 -- CORRECTED later the same
+session: those failures are start-up X from the unreset select latch, not the race; formal C17 was right);
 rule M (new: mux data outputs) with its own known-bad builds (collatz umux0 +8000: no completion, M -5503, E clean; mneg:
 wrong values on xorshift / ipow / collatz umux1 at +8000, M < 0, E clean) and a dynamic counterpart (mux_settle.py) that
 agrees in direction (collatz64 item 30: 352/458 tokens late by <= 155 ps at FAST_MIN; item 31: none).
