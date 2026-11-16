@@ -2397,3 +2397,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - SpecWF is still a proposal; THE statement is unchanged.
 - Own build of SpecWF + Assembly + CertRun is queued for after the running GLS jobs (earlier Lean builds OOM'd next to GLS). Until then UNVERIFIED by own build.
 - T126 item 30: FAST_MIN oracle 14/14; worst and SLOW_MAX running.
+
+### progress 05:33
+- T126 item 30, FAST_MIN: oracle 14/14, but the old t83 MUXMON on umux0 reports **832 per-pin select changes with z_req=1** (26 events x 32 pins); min select-to-z_req is **22 ps**.
+  - Item 26 (select link 15, same structure) has umux0 at +2434 ps and 0 such changes. umux1/umux2 on item 30 are clean (+2805 / +106).
+- MUXMON does not look at z_ack (T116 lesson), so running mon_sel (A = req=1/ack=0 vs B/C) at FAST_MIN: t126/sel30.sh.
+- Own rule E for item 30 is still to come in the T126 pipeline.
