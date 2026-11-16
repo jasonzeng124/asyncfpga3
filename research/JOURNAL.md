@@ -5594,3 +5594,14 @@ Next:
   where a late select mis-steers) and at muxes whose two requests can be pending together.
 - The gate (bench_gate.sh) is X-pessimistic at start-up: any race against an uninitialized latch's first value
   becomes a hang. A start-up initialization of LUT latches (to 0, or to both values in two runs) would remove it.
+### progress 08:22 UTC (fc64sel3n: the per-launch fix halves collatz64's M miss, not enough; fxa: xorshift -0.38)
+- fc64sel3n (collatz64 h4s3q + umux0 4 + entry-link delay 4), 21 routes: -0.32 ns per iteration vs fc64sel3q (12/19
+  faster), period median 31.31; gates 63/63; rule M at umux0 still < 0 on 15/21 routes (-23 .. -953; was to -2401),
+  now from the loop-back link (falseResult_9) -- item 30's seed 10 route is +8. umux2's A' -522 .. -973 (fc64sel3o pads
+  it). The loop-back side would need umux0 ~6-8 for M on every route; fc64sel3m (16) costs +2.2. With the simulated
+  lateness at 60-155 ps where M says ~1.2 ns, M is ~10x pessimistic on this mux; collatz64's items stay provisional.
+- fxa (xorshift item 27 + seed 2's datapath proposal: uxori1 / uxori2 5, umux3 9, ucmpi0 10, uaddi0 12), 23 routes:
+  -0.38 ns per iteration vs fxd (17/23 faster), period median 18.88 ns (fxd 19.39); gates 69/69. Static rows under the
+  new corner_audit (rule M at umux0 / 1 / 2, which fxd's older summary never computed; steer E rows on 2 routes; ucmpi1
+  / uxori2 A on a few). PREDICTION -0.3 to -0.6: met. Not an item yet: needs its rows compared on equal terms with fxd's
+  (fxd_ps gives fxd's under the same corner_audit: M rows on 23/29 there too).
