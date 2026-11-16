@@ -2369,3 +2369,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - binding: the 1-bit ulink_n11 operand (e0) through the compare into the 32-bit select;
   - n10__3 +614, n26 +655 (FAST_MIN); n19__4's data is unused.
 - Item 31 cuts this line to 7, so the check is needed on its route. t126/item31.sh is restarted to build now; GLS waits for T126.
+
+### progress 05:20
+- T128: own static bundling tool t128/bundle.py. It excludes delay-chain gate inputs on the rising request (the first version's uaddi0 negatives on item 28 were that model error).
+- Item 31 (own build, sdf **7aefc4bd = recipe**, usinkeq2 1, FF clean):
+  - uselect0: +1559 / +2070 / +4519 ps;
+  - uaddi0: +1926 / +1905 / +5529 ps (FAST_MIN / worst / SLOW_MAX).
+- Item 28 for reference: uselect0 +1448, uaddi0 +2914.
+- Negative control (+3000 ps on ulink_n11's data arcs into uselect0): -1441 ps, naming ulink_n11 / pair[6]. The negative-control GLS is running.

@@ -52,6 +52,23 @@ def link(inst):
             elif ic_src.get(w) in d_ws: dps.append(p)
         bits.append(dict(name=cn, cell=c, out=out, enp=enp, dps=dps))
     return en_w, bits
+# delay-chain gate inputs (bd_delay_gated: g[k] = s[k] & gate, k >= 1): a RISING request ripples through s[k] only, so the
+# request search may enter g[k] (k >= 1) only from g[k-1]'s output (the gate is a fast-FALL path).
+logical = {}
+for cn, c in m["cells"].items():
+    cc_ = c_of_site.get(c["attributes"].get("NEXTPNR_BEL"))
+    if cc_: logical.setdefault(cc_, []).append(cn)
+chain_prev = {}   # c_ cell of g[k] (k>=1) -> output net of g[k-1]
+by_name = {n: c for c, ns in logical.items() for n in ns}
+for c, ns in logical.items():
+    for n in ns:
+        mm = re.match(r'(.*\.chain\.g)\[(\d+)\]\.u$', n)
+        if mm and int(mm[2]) >= 1:
+            pc = by_name.get(f"{mm[1]}[{int(mm[2]) - 1}].u")
+            if pc in N.cells: chain_prev[c] = N.cells[pc]['pins'][N.cells[pc]['out']]
+def gate_edge(src, cell):
+    pv = chain_prev.get(cell)
+    return pv is not None and ic_src.get(src, src) != pv and src != pv
 downs = [i for i in luts if re.search(DRX, i)]; ups = [i for i in luts if re.search(URX, i)]
 assert len(downs) == 1, downs
 den, dbits = link(downs[0])
@@ -91,6 +108,7 @@ for u in sorted(ups):
         t, n = heapq.heappop(hq)
         if t > best.get(n, 1e18): continue
         for (src, dst, d, kind, cell, pin) in N.fan.get(n, ()):
+            if kind == 'lut' and gate_edge(src, cell): continue
             if t + d < best.get(dst, 1e18): best[dst] = t + d; heapq.heappush(hq, (t + d, dst))
     rows = []
     for b in dbits:
@@ -105,4 +123,5 @@ for u in sorted(ups):
         worst.append(rows[0][0])
     else:
         print(f"  from {u}: no bit of the downstream latch reached by both paths")
+print(f"chain gate edges excluded on the request side: {len(chain_prev)} chain elements")
 print(f"overall min slack: {min(worst) if worst else None}")
