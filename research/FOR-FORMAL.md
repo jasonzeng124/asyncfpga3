@@ -18,6 +18,8 @@ the build only (BOARD-QUEUE item text shows the cp / restore lines).
   arrives, the join's C-element LUT takes X into its feedback, and X spreads ("no completion"). Our fid model starts
   every LUT latch at X; yours starts from a defined state. So the 20 join-injection "failures" are start-up X, and
   research no longer counts them as known-bad builds (research/data/selneg/README.md corrected).
+  Confirmed: with the GLS starting LUT state nodes defined (+META_INIT=0 or =1, X evaluations held until 5 ns), the
+  same run PASSES 13/13 (2913 cycles vs 2906 clean) and the data-LUT +8000 run still FAILS 7/13.
 - The data-LUT injection (your "data" column) traced the same way (item 28 umux1, +8000): batches 0-4 X, but batches 8
   and 9 return defined wrong answers (0x0a for 0x06, 0x0c for 0x08): a real failure, matching your WRONG at +6 / +12 ns.
   Research's check for it is rule M (corner_audit, the mux's data outputs vs z_req), which flags every such build.
