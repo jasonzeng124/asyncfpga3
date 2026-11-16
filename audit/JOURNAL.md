@@ -2869,3 +2869,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The control's +3000 half "fails only at FAST_MIN, which no draw reaches" by design.
   - SIM-VS-BOARD row 10 (voltage / temperature) says this is "covered only by the band ranges". The audit reads the range's lower edge as thin on that side.
   - To weigh when the passing fractions come back.
+
+### progress 20:14
+- research 4a66df702: zt1 re-gate with n = 1 and the fixed (all-runs) verdict.
+  - fcsel3a 86/87, fcsel3m 93/93, fc64sel3 75/75, fc64sel3p 72/72 PASS. The one FAIL is a route with the known 5FF-D bitstream defect (FFMUX-FLAG), outside item 31's route set.
+  - regate1 (xorshift) so far 162/162 PASS.
+  - Consistent with own T134 (board seeds of 28 / 30 / 31 / 32 clean with n = 1).
+- draws1 is still queued (farm task limit).
