@@ -210,8 +210,22 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    iteration (26/26 faster, ~1.42x). On EVERY route: gate 13/13 at SLOW_MAX / FAST_MIN / worst+M, static A / A' / E clean
    at nominal and worst (corrected summary: E rows read), H / I clean, hold_bits clean, TSE clean at FAST_MIN and worst.
    Board seed 20 (sdf d86bdde5, latency 566 = the median). Dynamatic 14.05.
-   Open before it is final: the simulated select-ARRIVAL check (PROGRAM 2026-11-15) -- research's monitor and the audit's
-   disagree on fcsel0 (JOURNAL 2026-11-15); rule E is the arrival check this item rests on, plus 4 routes not back.
+   2026-11-16: audit T117 CONFIRMED the board seed (own build, 3 corners, its pin-level select-arrival monitor 0 late,
+   own rules E / H clean); fcsel3m_la's 30 routes are all static-clean. Select negative controls: JOURNAL 2026-11-16.
+
+29. **ipow at ~36 ns per iteration, select links sized by rule E (the select rule withdrawn)**: #30 below. ipow h4 (item
+   19's knobs and T9s75 sizes + the h4 hold pads) with the four select links (ulink_n17__0/1/2, ulink_n_index_15) at 3
+   elements instead of 15 / 8 / 23 / 9 (at 0, rule E was -578..-833 ps at umux0-3 on every route). Farm fisel3, 32
+   seeds: 26 valid routes (4 ffmux-flagged, 1 with the known F7AMUX/S0 constant defect: excluded), period median ~36.1 ns;
+   latency paired vs fipowh4 on 19 seeds -2.71 ns per iteration median (18/19 faster). On every valid route: gate 3 x
+   17/17, rule E clean at both corners, TSE clean; umux3's traced false-path rule A row (as for item 19); one I row
+   (-87 ps, seed 1). Board seed 19 (sdf 4a92cdf3, latency 98 cycles = the median): every row clean but umux3's.
+30. **collatz64 at ~35 ns per iteration, select links sized by rule E**: #31 below. collatz64 h4 (item 26's structure
+   with the h4 pads) with the select links ulink_n14__0 / ulink_n14__1 / ulink_n_index_11 at 3 / 6 / 3 instead of
+   15 / 19 / 14 (at 0, E was -850 / -1761 / -511 ps). Farm fc64sel3: 29 routes (24 with no known defect for the
+   pairing), period median 34.94 ns; latency paired vs fc64eq3 (h4) on 27 seeds -1.56 ns per iteration (25/27 faster).
+   On every route: gate 3 x 14/14, rule E clean, H / I clean, hold_bits clean; TSE -120 ps on one route (seed 1);
+   umux2's traced false-path A row. Board seed 10 (sdf 637ff02e, latency 763 = the median): every row clean but umux2's.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -1021,6 +1035,35 @@ rule E fails at the muxes (to -393 ps at 1); at 2 on 2 of 29 routes; at 3 on non
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.39 over item 25 (35.92 ns on its route vs 25.81 here). A FAIL with
 item 25 passing is a select race on silicon that the checks missed: send both logs.
+
+## 30. ipow h4 + select links at 3 (fisel3) -- 26 valid routes, gate 78/78, rule E clean on every route
+research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/, on claude/research at or after this commit:
+
+    BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=19 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/ipow_dsp1_sizes_T9s75_h4s3_bench.vh ./hw/build_bench.sh ipow
+    md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # 4a92cdf3 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/ipow_bench_gen/ipow_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_sel3.tsv
+    (item 19: #20's commands for lc_ipow_r.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py ipow build/hw/lc_ipow_sel3.tsv build/hw/lc_ipow_r.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.10 over item 19 (39.78 ns on its route vs 36.06 here). A FAIL with
+item 19 passing is a select race the checks missed: send both logs.
+
+## 31. collatz64 h4 + select links at 3 / 6 / 3 (fc64sel3) -- 29 routes, gate 87/87, rule E clean on every route
+research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/:
+
+    cp ../build/frontend/collatz64/comp/handshake_transformed.mlir /tmp/c64_hs_orig.mlir
+    cp ../research/data/fifteen/collatz64_preeq2.mlir ../build/frontend/collatz64/comp/handshake_transformed.mlir
+    BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=10 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz64_sizes_T4cdb_h4s3_bench.vh ./hw/build_bench.sh collatz64
+    cp /tmp/c64_hs_orig.mlir ../build/frontend/collatz64/comp/handshake_transformed.mlir
+    grep -c "usinkeq2" build/gen/collatz64_kernel_bench.v    # must be 1: the rewrite is in
+    md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # 637ff02e = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz64_bench_gen/collatz64_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_c64_sel3.tsv
+    (item 26: #27's commands for lc_c64_eq.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_sel3.tsv build/hw/lc_c64_eq.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.04 over item 26 (36.27 ns on its route vs 34.94 here).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

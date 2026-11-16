@@ -5291,3 +5291,16 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
 - Farm fcsel3a: the same sizes on 32 routes, every check (TSE included). This is one route's proposal; the per-cell
   max over 32 routes (fcsel3m_p) may come back longer on some routes, and fcsel3a will show which routes need it.
 - xorshift item 27's route with the fix: A' now sizes uxori1 / uxori2 7 -> 5 (76 / 63 ps left); nothing else moves.
+### progress 04:20 UTC (ipow and collatz64 select links sized by E: both pass everything -> BOARD-QUEUE items 29, 30)
+| build (paired vs its h4 base) | valid routes | ns / iteration median (range) | faster | gates | E | hold side |
+|---|---|---|---|---|---|---|
+| fisel3 (ipow, select 3/3/3/3) vs fipowh4 | 26 (4 ffmux, 1 F7AMUX/S0 defect excluded) | -2.71 (-5.42..+0.77), 19 seeds | 18/19 | 78/78 | clean | I -87 on s1; TSE / hold_bits clean |
+| fc64sel3 (collatz64, 3/6/3) vs fc64eq3 | 29 | -1.56 (-5.79..+0.74), 27 seeds | 25/27 | 87/87 | clean | TSE -120 on s1; H / I / hold_bits clean |
+- PREDICTIONS were ipow -2.5 to -3.5 (met), collatz64 -1.0 to -1.7 (met), E clean on >= 30/32 (met on every valid
+  route). The rule A rows are the traced false paths (ipow umux3, collatz64 umux2) as on items 19 / 24-26.
+- The one gate FAIL (fisel3 s25, 13/17 at all three corners, same wrong value at each) is the known nextpnr F7AMUX/S0
+  constant defect (fasm_equiv DRIVER DIFFERS, json 0 / bits 1, as on 2026-11-08 and 11-13): a bitstream defect, not timing.
+- BOARD-QUEUE items 29 (ipow, seed 19, sdf 4a92cdf3) and 30 (collatz64, seed 10, sdf 637ff02e). farm_pair.py now
+  excludes the two known bitstream-defect classes from pairing (ffmux flag, F7 select constant).
+- Next for both: the corner_audit proposal round with the A' fix on top (fipowh4_p, fc64eq3_p): ipow's ushrsi0 / ucmpi2
+  and collatz64's uaddi0 / uselect0 are sized well above what corner_audit needs as routed (itercost README).

@@ -14,6 +14,8 @@ def lat(req):
     for t in range(1, 257):
         e = show(f'results/{req}/{t}/eval.txt')
         if not e: continue
+        if 'FFMUX-FLAG' in e or re.search(r'F7[AB]MUX/S0 json', show(f'results/{req}/{t}/equiv.txt') or ''):
+            print(f"  {req} s{t}: excluded (known nextpnr bitstream defect: ffmux_scan flag, or the F7 select constant)"); continue
         m = re.search(r'latmin=(\d+)', e)
         g = re.findall(r'^gate (\w+) (PASS|FAIL)', e, re.M)
         rows = {}
