@@ -2879,3 +2879,12 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 20:46
 - research 88b0cab41: farm shrink2 queued (collatz item 31's sizes scaled, judged by draws); regate1 nearly done, all clean. No claim yet. draws1 still pending.
+
+### progress 21:45
+- research f7130a5dc (shrink1: item 33 sizes hold to x0.40 under 8 draws; shrink3 submitted). Read the raw farm results on claude/cluster (shrink1 1..13, draws1 25/32) and bench_gate.sh draw:K.
+  - Counts reproduce. The x0.55 failures are the two FFMUX-FLAG routes, which fail the same 11/19 on every draw with latmin 259: a defect, not timing.
+  - draw:K is seeded by K alone, so the same 8 model points are used on every route and factor. The x0.40 claim is 1 route x 8 draws, which bounds the failure rate only at <= 31 % (95 %).
+  - The 8 draws stay above chains 0.2165 and rest 0.2252, below the board's kernel x of 0.209 at its fast end. They reach rest/chains 1.31 of the model's 1.55.
+  - REPORT row OVERSTATED (T136).
+- T136 launched: own build of the x0.40 sizes on seed 27, then own GLS at FAST_MIN / SLOW_MAX / worst, the model's four extreme corners, and 16 own draws, with own oracle and own monitors.
+- Disk: deleted stale regenerable work-dir intermediates (routed.json / fasm_routed.json / tsv), freeing 4 GB.
