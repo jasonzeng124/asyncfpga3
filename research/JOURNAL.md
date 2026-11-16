@@ -5546,3 +5546,7 @@ Next:
 - fc64sel3m (collatz64 umux0 2 -> 16), 19 routes: +2.16 ns per iteration vs fc64sel3q (2/19 faster), period median
   33.64. Rule M at umux0 clean; umux2's A' row (the old false path, now measured from the upstream links) -915 at
   worst remains. PREDICTION +2 to +4: met at the low end. fc64sel3n (umux0 4 + entry-link delay 4) decides.
+- collatz64 umux2 (result mux, off the loop): with the 1-bit-latch fix, A' now measures it from its data links: item 30's
+  route ulink_n8 -500, trueResult_4 -232, select +426 ps; up to -1005 over fc64sel3q. The old -2.2 ns rule-A row that
+  was "traced as a false path" paired something else. h4s3o = h4s3n + UMUX2 1 -> 6 (off the loop: ~free); farm
+  fc64sel3o. PREDICTION: every static row clean on >= 28/32, latency within +0.6 of fc64sel3q.
