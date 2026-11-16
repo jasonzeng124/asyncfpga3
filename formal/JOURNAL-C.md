@@ -3777,3 +3777,12 @@ runs, rule E flags all 20). simx now takes "I": [[node, pin, ps]] in the classes
 whose input comes from a lat.odd select latch) and runs the model at the fast-band minimum and at mid-band, 12-ns host.
 Test on gcd_ps: +3000 ps on ua2's pin 0 hangs it, no injection correct. Farm c_selneg: items 27, 28, 26 (research's
 routes), every mux, three injections: does formal's model fail where research's gate fails?
+
+### progress 06:55 -- c_selneg: formal's model passes all of research's select negative controls (60 runs); positive control queued
+items 27 (umux0-3), 28 (umux0-2), 26 (umux0-2): the select latch -> MUX.uj0/uj1 arcs +3000/+6000/+12000 ps, all else at
+the fast-band minimum or mid-band, 12-ns host: every run correct, including the cases where research's gate fails (item
+27 umux1 +6000: 16/17; many "no completion"). Reading (hypothesis, not yet a claim): a late select at a REQUEST join only
+delays the mux's request, the safe direction for the bundle; in a transport model that is just slower. If research's
+gate fails there, its interconnect delays may be inertial (a 3-12 ns inertial delay swallows short pulses and can hang a
+handshake; a route on silicon does not). Before saying so: c_selneg2 prints event counts (injections applied, runs
+slower) and injects the same select latch's arcs into the mux DATA LUTs (the real arrival race), which should fail.
