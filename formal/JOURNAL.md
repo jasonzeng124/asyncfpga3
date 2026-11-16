@@ -2774,3 +2774,12 @@ model needs: the DSP's configuration from the FASM (AREG/BREG/MREG/PREG, OPMODE,
 combinational use bdc makes of it (BD_DSP=1) a data element whose output may take any value between an input change
 and a settle bound (prjxray has no DSP timing in the band tables used so far: the bound must come from somewhere
 stated). Not started this session (usage); next A session's first candidate if research keeps item 29.
+### progress 13:55 -- session summary (A, 2026-11-16; on watch since ~09:00, nothing new for A since)
+1. **First priority (margins for research):** item 28 measured (farm, 5 seeds) and its races put in picoseconds
+   (race_ps.py); the low-kappa collatz races identified as input-boundary races against a zero-hold sender (A9;
+   mechanism CONFIRMED by the audit, slacks vector-limited per T124b, accepted and corrected); select-arrival sweep
+   (selrace/selrun) on 9 builds: nothing below 0.45 except BAD nc64_7 (A10); decoder takes the nextpnr no-FFMUX flop.
+2. **THE statement:** vacuous on partial-ack hangs (Lean, audit T121 CONFIRMED); repair SpecWF (T123), positive route
+   (Assembly, CertRun) ported, check.sh OK on 7 files; gcd_ps has no such hang below 0.45 (search). Needs owner decision.
+3. MARGINS/FEASIBILITY/STATUS/PR #3 current; items 29-33 registered; item 29 blocked by the decoder's missing
+   DSP48E1 model (A's next task). No kappa_lo for any build. No subagent used.
