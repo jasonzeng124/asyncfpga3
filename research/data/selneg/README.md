@@ -1,5 +1,17 @@
 # Select negative controls, every kernel family (2026-11-16)
 
+**CORRECTION (2026-11-16, later): the request-JOIN injections below do not fail for the reason they seemed to.** Traced on
+collatz item 28's route, umux0, +3000, FAST_MIN (`fullstack_dump.sh` with XRAY_SDF_IN, `vcd_last.py`): the select link's
+latch has no reset, so in simulation its output is X from time 0 until the first token. The first ctl_req reaches the
+join pin at 1.648 us while the late select pin still carries that power-up X (it turns 0 at 1.650 us); the join's
+C-element LUT (j0) outputs X, holds it through its own feedback, and X spreads through the handshakes: "no
+completion". On silicon the latch powers up 0 or 1, and at a loop-header mux a stale select only delays the join (the
+other request is never pending). Formal's C17 (no failure for any join injection, transport model from a defined
+state) agrees. So the 20 join-injection failures are X-propagation from an uninitialized latch, not the select race:
+**rule E has no genuine known-bad build here.** The data-LUT injections (rule M, second table) fail as real logic
+(three wrong values) and are not affected the same way -- to be confirmed with the same trace.
+
+
 PROGRAM "A check earns its place by failing": before a result rests on the select checks, show them fail on a raced
 select in each kernel family. No select link shortened to 0 ever made a gate fail (2026-11-15, 4 families x ~30 routes),
 so the race is constructed: on each family's board-candidate route, the select latch's output arcs into ONE mux's

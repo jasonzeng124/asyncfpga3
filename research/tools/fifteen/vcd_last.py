@@ -10,7 +10,7 @@ nm = collections.defaultdict(list)
 for l in open(d + '/nets.map'):
     if l.startswith('#'): continue
     a, b = l.split()[:2]
-    if any(r.search(a) for r in rxs): nm[b].append(a)
+    if any(r.search(b) for r in rxs): nm[a].append(b)
 ids = collections.defaultdict(list); last = {}; cnt = collections.Counter(); t = 0; t_any = 0
 for l in open(d + '/dump.vcd'):
     if l.startswith('$var'):

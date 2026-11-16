@@ -5576,3 +5576,21 @@ Next:
   holds); item 30 no finite failure up to kappa 0.45; item 31 = C15 (uselect0 capture holds to 0.45); item 29 needs a
   DSP48 model (formal's decoder refuses DSP sites). C19: its "steer-cone" failures are 20-41 ps runt pulses into link
   controllers -- a device question (pulse shrinkage), asks whether research's GLS can show such a pulse.
+### progress 08:21 UTC (CORRECTION: the select-JOIN injection failures are X from an uninitialized latch; formal C17 is right)
+- Trace (c28_20 = item 28's route, umux0 join +3000 ps, FAST_MIN, gate vectors col13.hex; tr_c28u0j): first kernel net to
+  go X is umux0.j0 (SLICE_X16Y27 C6LUT, INIT 3000322030003220; A1 ctl_req, A3 x_req, A4 its own output, A5 the select)
+  at 1648074 ps, 45 ps after ctl_req reaches A1 (1648029). The select DRIVER (ulink_n14__0's latch) is X from t = 0 to
+  its first token (1646953 -> 0); with +3000 on the wire the pin is still X when ctl_req arrives, and turns 0 at
+  1650171. j0 latches X through its feedback; n_falseResult_9_req, n14__0_ack / data, j1, either follow by 1.668 us.
+- So "no completion" here is X-propagation from a latch the simulation never initializes (bd_link resets its
+  controller, not its data latch), exposed only because the late select reaches the join after the FIRST request.
+  On silicon the latch has a defined power-up value, and at a loop-header mux a stale select only delays the join.
+  Formal's C17 (join injections never fail; data-LUT injections fail from +6 ns) is right; my selneg reading was not.
+  Every "gate failure" in selneg / selneg2 must be read as possibly this artefact; rule E has no genuine known-bad
+  build among them. The 3 wrong values in mneg (data-LUT injections, rule M) are later tokens and look real; to
+  confirm with the same trace.
+- Consequence for the select checks: at a loop-header mux the arrival race at the join is benign (only a delay) and
+  the real arrival race is at the data LUTs (rule M). Rule E stays the check at steers (a combinational req . s gate,
+  where a late select mis-steers) and at muxes whose two requests can be pending together.
+- The gate (bench_gate.sh) is X-pessimistic at start-up: any race against an uninitialized latch's first value
+  becomes a hang. A start-up initialization of LUT latches (to 0, or to both values in two runs) would remove it.
