@@ -3600,3 +3600,14 @@ item 25's binding race (falseResult_3 st0 pair[12] enable route slow): fails at 
 correct at all three with H = 500, 1000, 2000, 5000. So it is purely a boundary race (as audit T120b said).
 explain.py prints CLASS: BOUNDARY (a path crosses the harness) or KERNEL. Farm c_margin_host2: every class with
 H = 2000 on items 28/25/27/26, fcsel0/1 s24, fcsel3m s2/s24, with explanations at the SDF.
+
+### progress 04:25 -- explain.py: trigger chains first (the DAG's common ancestor can be an enabling input, not a cause)
+c_explain2 (older explain.py) gave nonsense on item 26 (path A 121 arcs, slack -4.9 ns) and no race on item 28: the
+latest common ancestor in the cause DAG can sit on a C-element's ENABLING input (one that changed long before and did
+not fire it), and arrivals were paired by index. Now: (1) each path is the TRIGGER chain (at every gate the input that
+arrived last), the split is where the two chains first meet; the DAG is only a fallback, and the output says which
+was used; (2) a single-route row's arrivals are paired by the adversary's constant shift of that route. gcd_ps and
+item 25 give the same paths and slacks as before. c_explain2's item 25 / fcsel3m s1, s2, s24 races (all
+falseResult_3 st0, all BOUNDARY: through the host) are unaffected: slack +900..+1196 ps fast-mid, +1663..+2192 ps at
+the SDF; their task-7 (item 27 cones) output used the old cone code and is superseded by c_explain3/5.
+Farm c_explain6 (supersedes c_explain4): item 26 / item 28 ulink_n13 races and the falseResult_7 st0 hangs.

@@ -136,6 +136,15 @@ def single_race():
         for x, y in zip(tw, tr): moved.append((x[0] - y[0], p, x, y))
     moved.sort(reverse=True)
     mi = ([m for m in moved if m[1] in slowpins] or moved) if slowpins else moved
+    if slowpins:
+        # the adversary shifts the slowed route by a constant: pair each reference arrival y with the witness arrival y + shift
+        pi0 = slowpins[0]
+        shift = sum(delay(g, p, True) - delay(g, p, False) for g, p in SL)
+        wset = {x[0]: x for x in aw if x[1] == pi0}
+        pairs_ = [(y, wset[y[0] + shift]) for y in ar if y[1] == pi0 and y[0] + shift in wset and y[0] <= tstar + shift]
+        for y, xw in reversed(pairs_):
+            if [x for x in aw if x[1] != pi0 and y[0] < x[0] < xw[0]]:
+                mi = [(shift, pi0, xw, y)]; break
     if not mi or mi[0][0] <= 0: sys.exit("no arrival at the capture moved later in the witness (the race is not at a pin of %s)" % N[gq["out"]])
     dly, pi, (aiw, _, ui_w), (air, _, ui_r) = mi[0]
     over = [x for x in aw if x[1] != pi and air < x[0] < aiw]
@@ -259,33 +268,48 @@ def nearflip(n, t):
     if not fl: return None
     i = min(range(len(fl)), key=lambda k: abs(fl[k] - t)); return (n, fl[i])
 if A0[1] not in flips(TR, A0[0]) or B0[1] not in flips(TR, B0[0]): sys.exit("racing input flips not found in the witness run")
-AA, AB = ancestors(A0), ancestors(B0)
-common = [x for x in AA if x in AB]
-def show(S0, lab):
-    lut = sorted([x for x in S0 if x[0] in drv and G[drv[x[0]]]["kind"] in ("lut6", "lut5")], key=lambda x: -x[1])
-    print("  %s ancestors: %d flips, %d LUT flips; latest LUT flips: %s" % (lab, len(S0), len(lut), ", ".join("%s@%d" % (N[n], t) for n, t in lut[:6])))
-show(AA, "A (%s@%d)" % (N[A0[0]], A0[1])); show(AB, "B (%s@%d)" % (N[B0[0]], B0[1]))
-if not common:
-    print("\nno common launch within %d ps before the race" % WIN); sys.exit(0)
-sp = max(common, key=lambda x: x[1])
-def crit(x0, anc):
-    """critical chain from the split to x0: walk back from x0 through parents that descend from sp, latest arrival first"""
-    # descendants of sp inside anc: those whose ancestor set contains sp (memoised DFS)
-    memo = {}
-    def hs(x):
-        if x == sp: return True
-        if x in memo: return memo[x]
-        memo[x] = False
-        r = any(y in anc and y[1] >= sp[1] and hs(y) for y, gi, p, d in parents(*x))
-        memo[x] = r; return r
-    sys.setrecursionlimit(100000)
-    path = []; x = x0
-    while x != sp:
-        cand = [(y[1] + d, y, gi, p) for y, gi, p, d in parents(*x) if y in anc and y[1] >= sp[1] and hs(y)]
-        if not cand: break
-        _, y, gi, p = max(cand); path.append((gi, p, x[1]) if gi is not None else ("ENV", x[0], x[1] - y[1])); x = y
-    return list(reversed(path))
-pa = crit(A0, AA) + [(q, pi, None)]; pb = crit(B0, AB) + [(q, pj, None)]
+def trig(x0, limit=4000):
+    """the TRIGGER chain of a flip: at every gate, the input whose change arrived last (it fired the gate)"""
+    ch = [x0]; edges = []; x = x0
+    for _ in range(limit):
+        ps = parents(*x)
+        if not ps: break
+        y, gi, p, d = max(ps, key=lambda e: (e[0][1] + e[3], e[0][1]))
+        edges.append((gi, p, x[1]) if gi is not None else ("ENV", x[0], x[1] - y[1])); ch.append(y); x = y
+    return ch, edges
+TA, EA = trig(A0); TB, EB = trig(B0)
+posA = {x: i for i, x in enumerate(TA)}
+sp = None
+for j, x in enumerate(TB):
+    if x in posA: sp = x; ia, ib = posA[x], j; break
+if sp is not None:
+    print("  trigger chains meet %d / %d flips back" % (ia, ib))
+    pa = list(reversed(EA[:ia])) + [(q, pi, None)]; pb = list(reversed(EB[:ib])) + [(q, pj, None)]
+else:
+    # the two trigger chains do not meet: fall back to the latest common ancestor in the cause DAG (less precise: a
+    # C-element's enabling input can sit on the chain without having fired it)
+    print("  trigger chains do not meet within %d flips; using the cause DAG's latest common ancestor" % len(TA))
+    AA, AB = ancestors(A0), ancestors(B0)
+    common = [x for x in AA if x in AB]
+    if not common:
+        print("\nno common launch within %d ps before the race" % WIN); sys.exit(0)
+    sp = max(common, key=lambda x: x[1])
+    def crit(x0, anc):
+        memo = {}
+        def hs(x):
+            if x == sp: return True
+            if x in memo: return memo[x]
+            memo[x] = False
+            r = any(y in anc and y[1] >= sp[1] and hs(y) for y, gi, p, d in parents(*x))
+            memo[x] = r; return r
+        sys.setrecursionlimit(100000)
+        path = []; x = x0
+        while x != sp:
+            cand = [(y[1] + d, y, gi, p) for y, gi, p, d in parents(*x) if y in anc and y[1] >= sp[1] and hs(y)]
+            if not cand: break
+            _, y, gi, p = max(cand); path.append((gi, p, x[1]) if gi is not None else ("ENV", x[0], x[1] - y[1])); x = y
+        return list(reversed(path))
+    pa = crit(A0, AA) + [(q, pi, None)]; pb = crit(B0, AB) + [(q, pj, None)]
 sn, st = sp
 sdf = json.load(open(a.sdfmap)) if a.sdfmap else None
 _u = sn
