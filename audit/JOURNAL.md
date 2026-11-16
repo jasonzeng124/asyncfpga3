@@ -2565,3 +2565,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 07:16
 - research 4e1c8f784 (journal): rule M misses do race in simulation, M passes do not; the static size is pessimistic. Consistent with own T126d/g and T129. Not a board claim.
 - T126f item 32: SLOW_MAX GLS and the later steps are running.
+
+### progress 07:21
+- T126f item 32: SLOW_MAX 14/14.
+  - MUXMON umux0 is late at all three corners: FAST_MIN 1300 per-pin (21 ps lead), worst 780 (45 ps), SLOW_MAX 156 (216 ps).
+  - Item 30 was late only at FAST_MIN / worst.
+- research 89c6a923c: rule M negative control confirmed (+8000 select -> umux0.udat on item 28's route: gate no completion in 55 min; E clean). Not replayed by the audit.
