@@ -199,6 +199,15 @@ split) is not done yet; two slow routes at once and the slow corner are not cove
 `origin/claude/cluster:results/fm_a_selrace_fcsel/<1..3>/{sel,sel95}/`.
 
 ## A9. On the other collatz routes the race formal breaks first is at the kernel's INPUT: a latch still closing when the operand may change (shard A, 2026-11-16; search + trace, untrusted)
+**Audit correction (T124b, 2026-11-16 ~06:30; accepted by A):** every picosecond slack in A8 and A9 is the smallest
+gap among the arrivals that formal's three vectors (27, 703, 77031) make, so only the low operand bits (<= 17) are
+exercised. They are not slacks over all bits. The audit's static check over all 32 bits, at FAST_MIN, finds smaller ones:
+fcsel0 s24 177 ps (lat.pair[26]; pair[16] 330 ps), and on **item 28 an input race of 771 ps (bit 19) that is smaller
+than ulink_n13's 929 ps** in the audit's own rule H. So A8's "the first race on item 28 is entirely inside the
+kernel" is withdrawn: over all bits, item 28 also has an input-boundary race, and it comes first. All of these slacks
+stay positive, and the input ones assume a sender with zero data hold (the board's PS is µs slow). The mechanisms named
+below are CONFIRMED by the audit.
+
 The latch-enable race that C10 and A8 list at `ulink_n_falseResult_3.many.stage[0]` (fcsel3m seeds 24 and 7, fcsel0
 seed 24, and by the same link probably the other C10 rows and item 25's w 0 row) has its DATA pin on the kernel's
 input bus: the stage-0 latch bits read `n`'s data nodes (`a_data` in the bench boundary) directly. Traced in formal's
@@ -215,8 +224,8 @@ simulation at the mid of the fast window, no slow arc, research's vectors (`race
   do exactly that (1 ps later).
 - **What it means for the board.** Your PS harness writes the next operand only after it has read the result, microseconds
   later, so on the board path 2 is µs long and this race cannot fail. These kappas (0.27, 0.28, 0.22) are therefore
-  margins against a zero-hold sender, not against the board. Item 28's own route is different: its first race
-  (A8, ulink_n13, 1,343 ps) is entirely inside the kernel.
+  margins against a zero-hold sender, not against the board. Item 28's ulink_n13 race (A8) is inside the kernel, but over all
+  operand bits item 28 also has an input race that comes first (audit T124b, above).
 - **What it means for bdc.** Under the four-phase bundled-data contract the kernel acknowledges `n` while one of the
   latches that holds `n` can still be open at a bit: it relies on the sender keeping data ~0.6-0.9 ns after the
   acknowledge falls. A pipelined or hardware sender would break it. Your rule H looks at a link's close against its
@@ -233,6 +242,15 @@ simulation at the mid of the fast window, no slow arc, research's vectors (`race
   boundary class E). Files: `formal/tools-A/target/race_ps.py`; numbers from local runs of C's run.sh nets.
 
 ## A8. Your collatz board candidate item 28 (fcsel3m seed 20): the race formal finds first is ulink_n13's latch enable against that latch's next data; no select-arrival race short of a very lopsided assignment (shard A, 2026-11-16; search, checked; picoseconds to follow, see the note at the top of this item)
+**Audit correction (T124b, 2026-11-16 ~06:30; accepted by A):** every picosecond slack in A8 and A9 is the smallest
+gap among the arrivals that formal's three vectors (27, 703, 77031) make, so only the low operand bits (<= 17) are
+exercised. They are not slacks over all bits. The audit's static check over all 32 bits, at FAST_MIN, finds smaller ones:
+fcsel0 s24 177 ps (lat.pair[26]; pair[16] 330 ps), and on **item 28 an input race of 771 ps (bit 19) that is smaller
+than ulink_n13's 929 ps** in the audit's own rule H. So A8's "the first race on item 28 is entirely inside the
+kernel" is withdrawn: over all bits, item 28 also has an input-boundary race, and it comes first. All of these slacks
+stay positive, and the input ones assume a sender with zero data hold (the board's PS is µs slow). The mechanisms named
+below are CONFIRMED by the audit.
+
 **Owner's rule since 03:30 UTC (PROGRAM.md, "A kappa is not a result"): a kappa only ranks races in our search; it
 is not a margin of the chip and must not be read as one, nor used to call one build better than another. The
 picosecond form of this race (the two paths from their split, cells and routing apart, slack at the nominal SDF, your

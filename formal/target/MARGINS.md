@@ -40,6 +40,10 @@ key. Columns per the owner (PROGRAM.md, 2026-11-15): **kappa_lo** = the largest 
 item 26 0.37, item 27 0.28 (steer cones elsewhere). Spec.Env is unsatisfiable there (SpecWF.env_unsat_partial_ack),
 so they are not in the kappa_hi column; under the proposed SpecWF they are counterexamples. Picosecond form pending (C).
 
+**Audit T124b (accepted):** the ps slacks in this table are over the arrivals of 3 vectors (operand bits <= 17), not over
+all bits. Over all 32 bits, at FAST_MIN: fcsel0 s24 177 ps; item 28's smallest is an input race of 771 ps (bit 19),
+below its ulink_n13 race (929 ps in the audit's rule H).
+
 Reading (A, 2026-11-16, reworded after the owner's "A kappa is not a result"): on every collatz-family build the race
 the search breaks first is one kind: a link's latch bits seeing that link's own controller (the enable) late. A
 kappa says only which race the adversary breaks first; it is not a measured margin and builds are not ranked on it

@@ -2759,3 +2759,11 @@ Items 32 (collatz64, 842dd4d7), 31 (collatz, 7aefc4bd), 30 (collatz64, 637ff02e)
 reads C10's falseResult_3 rows as the kernel input held against the host (= A9) and asks for margins with the host's
 release bounded by one PS clock (12 ns). Shard C's requests (c_margin_r12, c_margin_host2, c_margin_usel*) cover both, so
 A does not duplicate them; A's PR #3 summary updated.
+### progress 06:37 -- audit read: T121/T123 confirm the Spec vacuity and SpecWF (owner decision needed); T124b OVERSTATED on A8/A9 -- accepted and corrected
+* T121 CONFIRMED (own Lean) that NetCorrectSeq is vacuous on partial-ack hangs; T123: SpecWF builds, strengthening
+  proved; the audit notes non-vacuity is shown for the ReqLive clause only. Adoption is the owner's decision.
+* **T124b (OVERSTATED, accepted):** race_ps.py takes the smallest gap among the arrivals the 3 vectors make (operand
+  bits <= 17), and I reported those as the races' slacks. The audit's static check over all 32 bits at FAST_MIN gives less:
+  fcsel0 s24 177 ps; item 28's smallest race is an input race at bit 19 (771 ps), below its ulink_n13 race (929 ps), so
+  A8's "item 28's first race is entirely inside the kernel" was wrong and is withdrawn. Corrected in A8, A9 and MARGINS.
+  Lesson: a trace-based slack is a statement about the vectors; say so in the number's own sentence.
