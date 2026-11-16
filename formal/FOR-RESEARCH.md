@@ -3,6 +3,41 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C20. The board approximator in formal's simulator of the decoded bitstream: every board candidate 64/64; both known-bad builds fail some draws (shard C, 2026-11-16; untrusted simulation)
+**Problem.** Your PROGRAM and ours (owner, 2026-11-16: "the board decides"): judge a build by the fraction of random
+delay draws that return the right answers. This is the same question asked in formal's own simulator: the circuit
+decoded from the bitstream's FASM (not the netlist), prjxray bands per pin, transport LUTs with the 20-ps runt filter
+(H_RUNT(20); no metastability resolver), host 12 ns after each acknowledge, formal's start-up.
+**Model (first run, before your FOR-FORMAL model was published):** your fid GLS parameters: every pin arc at
+FAST_MIN + 0.38 (SLOW_MAX - FAST_MIN), times exp(0.16 N) per 10x10-slice region and exp(0.126 N) per arc. Your gate
+vectors (xor19, col15, c6416), oracles from kernels/*.c (formal/tools/margin/kernels.py). `run.sh DRAWS=64`,
+farm fm_c_draws1 / fm_c_draws2. Every rebuilt SDF md5 equals yours.
+| build | sdf | PASS / FAIL / UNDEC. of 64 | last answer, mean (range) |
+|---|---|---|---|
+| item 27 xorshift s2 | a9bdac53 | 64 / 0 / 0 | 36.5 us (33.0-40.4) |
+| item 33 xorshift s27 | 7f0c0592 | 64 / 0 / 0 | 36.0 us (33.0-39.5) |
+| item 33's design, seeds 1 / 3 / 4 | 796b669f / .. | 64/0/0 each | 35.8 / 36.2 / 36.0 us |
+| item 28 collatz s20 | d86bdde5 | 64 / 0 / 0 | 23.1 us |
+| item 31 collatz s20 | 7aefc4bd | 64 / 0 / 0 | 19.3 us |
+| item 25 collatz s24 | e001dc27 | 64 / 0 / 0 | 32.8 us |
+| item 26 collatz64 s25 | 6982a9d5 | 64 / 0 / 0 | 100.1 us |
+| item 30 collatz64 s10 | 637ff02e | 64 / 0 / 0 | 96.4 us |
+| item 32 collatz64 s22 | 842dd4d7 | 64 / 0 / 0 | 88.1 us |
+| item 32's design, seeds 1 / 2 / 3 | .. | 64/0/0 each | 91.4 / 84.7 / 83.2 us |
+| **BAD xf2_1** | dc138ea2 | **60 / 2 / 2** | 43.6 us |
+| **BAD nc64_7** | 98809562 | **62 / 2 / 0** | 165.6 us |
+| pc64_7 (nc64_7's good neighbour) | acc06847 | 64 / 0 / 0 | 167.5 us |
+The failing draws: xf2_1 draw 56 returns 2068339104 for xorshift(0x92d68ca2, 3) (bit 22 wrong) and draw 18 stops after
+5 answers, both at the 3-round vector where your trace puts its ulink_n7 hold race; nc64_7 draws 18 and 38 return
+wrong step counts (e.g. 133 for 6171, 862 for 77031). Deterministic: the xf2_1 task, run twice, gave the same draws.
+**Reading.** In this model the candidates are clean and the known-bad builds are below their neighbours, but only by
+~3 % of draws: the model's spread rarely reaches the races that broke them at your FAST_MIN gate. A fraction of 1.00
+over 64 draws says the failure rate is below ~6 % (95 %), not that it is zero. "Last answer" includes the 400-ns
+reset and the host's 12-ns reaction per handshake; it is the whole vector list, not ns per iteration.
+**Next (running, fm_c_draws3):** your draws1 exactly: your model (draw K = 1..32, bands from Random(7919K+17),
+region 0.02, per-pip 0.126), your eval_task.sh routes, your vectors (col14, c6415). That gives the per-draw
+disagreement table. Tool: `formal/tools/margin/draws.py`, `run.sh DRAWS=N` (README "The board approximator").
+
 ## C19. The "steer-cone" failures are runt request pulses into a link controller, at the edge of the 20-ps filter (shard C, 2026-11-16; search, untrusted)
 **Problem.** Since C11 I have reported failures from "steer cones" (every arc into a steer/merge LUT slowed at once,
 host 2 ns) at kappa 0.35-0.44, without naming the race. explain.py looked at the storage LUT where the failure

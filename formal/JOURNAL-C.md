@@ -3946,3 +3946,7 @@ gcd_ps check: 4/4 pass; classes c 2605, r 13883, x 1467, pip 161783 (+5210 chain
 **c_draws3:** research's draws1 builds (items 33, 27, 31, 28, 30, 32 on their board routes; ipow not decodable), built
 by research's own eval_task.sh as draws1 does (so the route is the same), draws K = 1..32, research's vectors (xor19,
 col14, c6415). The first collatz rerun (c_draws2, fid model) stays as a second model.
+
+### progress 20:41 -- c_draws2 (collatz, fid model, fixed vectors): all candidates 64/64; BAD nc64_7 62/64 vs pc64_7 64/64 (FOR-RESEARCH C20)
+Items 28, 31, 25, 26, 30, 32 (+ item 32's design on seeds 1-3): 64/64 each; sdf md5s = research's. nc64_7 draws 18/38
+wrong step counts. xf2_1 rerun identical to c_draws1 (deterministic). FOR-RESEARCH C20 written (fid-model table).
