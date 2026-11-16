@@ -5537,3 +5537,12 @@ Next:
   and worst on 27/27, TSE / hold_bits clean, H rows on 2 (-25 s9, -83 s30). Latency = fisel3 (+0.00 median), -2.71 vs
   fipowh4 (17/19 faster). BOARD-QUEUE item 29 / section 30 now point at it: seed 19, sdf b521630f, sizes h4s3m. The
   rule-M padding of umux2 (2 -> 7) cost nothing because umux2 is off ipow's cycle, and umux0 / umux1 came down.
+### progress 07:48 UTC (the price of rule M by padding the mux: xorshift +1.2, collatz64 +2.2 ns per iteration)
+- fxm (xorshift fr4m: umux0/1/2 2 -> 5/7/3, umux3 14 -> 9), 27 routes: +1.20 ns per iteration median vs fxd (2/26 faster),
+  period median 20.55; gates 81/81; static clean on 23/27 (umux2 M -90 on one, ucmpi1 / uxori2 A and steer E rows on a few).
+  PREDICTION +0.3 to +1.0: exceeded. Not adopted: item 27's own route shows no late mux data in simulation (umux1 leads
+  by >= 2.3 ns at FAST_MIN), so on xorshift M's misses look like pessimism; a per-launch fix (as for collatz64) would
+  cost less if one is needed.
+- fc64sel3m (collatz64 umux0 2 -> 16), 19 routes: +2.16 ns per iteration vs fc64sel3q (2/19 faster), period median
+  33.64. Rule M at umux0 clean; umux2's A' row (the old false path, now measured from the upstream links) -915 at
+  worst remains. PREDICTION +2 to +4: met at the low end. fc64sel3n (umux0 4 + entry-link delay 4) decides.
