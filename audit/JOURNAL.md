@@ -2857,3 +2857,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - ring vs kernel gap unexplained; predicted vs measured ns/iter still open;
   - 3 gaps in SIM-VS-BOARD noted;
   - BOARD-QUEUE speed headlines OVERSTATED by the owner's rule until passing fractions and model error are reported (REPORT row).
+
+### progress 19:35
+- T134 complete: n = 1 coverage at FAST_MIN on items 28 / 31 (14/14) and 30 / 32 (15/15), n = 1 OK, 0 latch / steer violations. Finding T134.
