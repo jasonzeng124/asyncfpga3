@@ -5459,3 +5459,6 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
 - xorshift's mux delays (umux0/1/2) are 2 in fr4, shrunk in old rounds that never checked their data outputs; rule M's
   max over fxd_ps asks 5 / 7 / 3, and A' lets umux3 go 14 -> 9. Farm fxm (fr4m). PREDICTION: +0.3 to +1.0 ns per
   iteration vs fxd (umux0 / umux1 sit on the near-critical cycles c1 / c3, umux3 is off them).
+- ipow (item 29): rule M / A' maxima over fisel3_ps: umux0 8 -> 6, umux1 9 -> 8, umux2 2 -> 7 (M), umux3 3 -> 4. Farm
+  fisel3m (h4s3m). PREDICTION: within +-0.4 ns per iteration of fisel3 (umux1, on the cycle, -1; umux2, off it, +5),
+  rule M clean on >= 30/32.
