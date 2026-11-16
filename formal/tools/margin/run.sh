@@ -6,7 +6,7 @@
 # BUILD.fasm: the read-back (fromBit) FASM, plain/.xz/.gz. Next to it (or via env) the build's XDC, yosys JSON and
 # nextpnr routed JSON (for the boundary names): XDC=, SYNTH=, ROUTED=. v0 knows only the gcd_ps kernel boundary.
 # Knobs (env): JOBS (8), TOP (0 = every active candidate), KHI (0.45), KLO (0.20), W0 (1: also without H_RUNT),
-#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), W0FULL (1: sweep every candidate at w = 0 too, not only those failing at w = 20), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root), HOSTDELAY (ps: the host moves input data at least this long after the acknowledge; default 1 = the most adversarial host Spec.Env allows; a clocked host is ns).
+#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), W0FULL (1: sweep every candidate at w = 0 too, not only those failing at w = 20), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root), EXPLAIN_ALL (1: explain every failing row, not only the reported races), HOSTDELAY (ps: the host moves input data at least this long after the acknowledge; default 1 = the most adversarial host Spec.Env allows; a clocked host is ns).
 set -euo pipefail
 B=$1; O=$2; mkdir -p "$O"; O=$(cd "$O" && pwd)
 H=$(cd "$(dirname "$0")" && pwd); F=$(cd "$H/../.." && pwd); R=$(cd "$F/.." && pwd)
@@ -113,7 +113,13 @@ python3 - "$O" "$H" <<'PYEOF' || true
 import re, subprocess, sys, os
 O, H = sys.argv[1], sys.argv[2]
 seen = set()
-for l in open(os.path.join(O, "kappa_hi.txt")):
+lines = list(open(os.path.join(O, "kappa_hi.txt")))
+if os.environ.get("EXPLAIN_ALL") == "1":   # every failing row of margins.txt (its first failing kappa), not only the reported ones
+    for l in open(os.path.join(O, "margins.txt")):
+        f = l.split()
+        if len(f) > 6 and not l.startswith("#") and re.match(r"^[0-9.]+$", f[4]):
+            lines.append("%s: kappa %s  race %s pin %s from %s (run at w=%s) [margins row]\n" % (f[0], f[4], f[1], f[2], f[3], f[0].split("=")[1]))
+for l in lines:
     m = re.search(r"kappa(?:_hi)? (?:= )?([0-9.]+)\s+race (\S+) pin (\d+) from \S+ \(run at w=(\d+)\)", l)
     if not m or (m.group(2), m.group(3), m.group(1), m.group(4)) in seen: continue
     seen.add((m.group(2), m.group(3), m.group(1), m.group(4)))
