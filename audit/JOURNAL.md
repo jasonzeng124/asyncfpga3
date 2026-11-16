@@ -2624,3 +2624,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Either the monitor still mis-resolves something (z_ack alias for collatz umux0 assumed n14__0_ack), or the late changes come from the data inputs, not the select.
   - Not reported as a finding. A traced variant (first late events with the output net and the select / z_ack / data-input states) follows after T130.
 - research a6b9fe8b1: rule M negative controls, 6 gate failures, M flags all, E none. Not replayed.
+
+### progress 08:14
+- T130 v2 item 31: umux0 975/1480 tokens with data-LUT output changes in state A, up to 501 ps (v1 gave the same numbers). umux1/umux2 0; oracle 13/13.
+- The z_ack mapping is checked: umux0.z_ack = n9_ack = ufork3's top C-element = net n3970 in the bake.
+- So the state-A changes appear real. The select pins were at most 100 ps late (T126g), so the late changes likely come from the DATA inputs.
+- This disagrees with research's "item 31 clean under rule M; z_data leads z_req by >= 1.6 ns". Pending the trace (T130b) before reporting.
+- research 9812b5288 / e1d5a0741 (formal C17-C19 journal, tools): no claim.
