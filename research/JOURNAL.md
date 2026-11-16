@@ -5741,3 +5741,7 @@ is a genuine wrong-value failure. Steer E under test (steerneg). Formal C17 conf
   steer control is genuine (E -5048). Summary of the select checks after today: E at steers -- genuine failing builds
   (3 families); E at loop-header mux joins -- none (44/44 pass with a defined start-up); M at mux data -- genuine
   (defined wrong answers); H hold control -- genuine (wrong answers).
+### progress 18:00 UTC (rule E's steer control on the fourth family, ipow)
+- ipow item 29's route rebuilt (ip29_19, sdf b521630f = the board route): ucond_br9's condition (ucmpi2.uz_n39) +8000 ps,
+  gate FAST_MIN with +META_INIT=0: no batch in 50 min; the clean route with the same plusarg PASS 17/17 in 6.7 min. Rule E
+  at ucond_br9 -3238 ps. So rule E has a known-bad build at a loop steer on every family; its mux-join half has none.
