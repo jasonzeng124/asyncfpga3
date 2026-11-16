@@ -6,7 +6,7 @@
 # BUILD.fasm: the read-back (fromBit) FASM, plain/.xz/.gz. Next to it (or via env) the build's XDC, yosys JSON and
 # nextpnr routed JSON (for the boundary names): XDC=, SYNTH=, ROUTED=. v0 knows only the gcd_ps kernel boundary.
 # Knobs (env): JOBS (8), TOP (0 = every active candidate), KHI (0.45), KLO (0.20), W0 (1: also without H_RUNT),
-#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), TC (prjxray-db root).
+#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root).
 set -euo pipefail
 B=$1; O=$2; mkdir -p "$O"; O=$(cd "$O" && pwd)
 H=$(cd "$(dirname "$0")" && pwd); F=$(cd "$H/../.." && pwd); R=$(cd "$F/.." && pwd)
@@ -39,7 +39,7 @@ if [ ! -d "$TC/openxc7/share/nextpnr/prjxray-db/zynq7" ]; then
     log "prjxray-db: unpacking zynq7 from $ref into $TC"
     mkdir -p "$TC"
     for p in $(git -C "$R" ls-tree --name-only "$ref" | grep '^part-' | sort); do git -C "$R" cat-file blob "$ref:$p"; done |
-      $(for p in python3 python3.13 /usr/local/bin/python3; do $p -c 'import zstandard' 2>/dev/null && { echo $p; break; }; done || echo python3) -c '
+      $(for p in python3 python3.13 /usr/local/bin/python3 /usr/bin/python3; do $p -c 'import zstandard' 2>/dev/null && { echo $p; break; }; done || echo python3) -c '
 import sys, tarfile
 try:
     import zstandard; d = zstandard.ZstdDecompressor().stream_reader(sys.stdin.buffer)
@@ -94,6 +94,12 @@ if [ ! -f "$O/ref_dump.json" ]; then
     --tmax "${TFULL:-5000000}" --w 20 --dump "$O/ref_dump.json" 2>&1 | grep -E "RESULT|events" | tee -a "$O/run.log"
 fi
 python3 "$H/rank.py" "$O/net.json" "$O/races.json" "$KHI" "$O/ranked.json" "$O/ref_dump.json"
+# CONES=1: also the capture (setup/arrival) races, one per latch group (cones.py: the whole data cone slow, mux selects
+# included); CONES=only: those alone. Rows have pin 99.
+if [ "${CONES:-0}" != 0 ]; then
+  python3 "$H/cones.py" "$O/net.json" "$O/bnd.json" "$O/cones.json" 2>&1 | tee -a "$O/run.log"
+  python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); r=[] if sys.argv[3]=="only" else json.load(open(sys.argv[2])); json.dump(c+r, open(sys.argv[2],"w"), indent=0)' "$O/cones.json" "$O/ranked.json" "$CONES"
+fi
 # 4. sweep + bisection + report
 log "sweep"
 python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs "$JOBS" --top "$TOP" --khi "$KHI" \

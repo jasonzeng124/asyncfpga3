@@ -3363,3 +3363,29 @@ controller late. Outputs: tools/margin/out/farm_*.
 fm_c_margin_sel1: fcsel2 s1 0.22 (0.21 w 0), fcsel2 s2 0.27, fcsel1 s24 0.32, fcsel1 s1 0.31, fcsel0 s24 0.22; fcsel2 s24
 refused by the decoder (AFF.ZRST flop config; a decoder gap for A). Every binding race: ulink_n_falseResult_3 stage[0]
 latch pairs reading their ctl late, the link binding item 25 (0.42 at w 0 only). Not the select muxes.
+
+## 2026-11-16 (C, session_01HC49Fxb9MEowqPy6yHCEE3)
+Took LOCK-C (previous C lock 2026-11-15T22:18, that session idle since 23:24). Audit: no open row against C's margin
+claims. PROGRAM's new top item: research's collatz board candidate item 28 (fcsel3m s20, sdf d86bdde5) with item 25
+beside it under the same settings.
+
+### progress 03:00 -- farm c_margin_sel3m filed: item 28 + item 25 same settings (single-pin sweep), fcsel3m s1/2/24, item 27
+### progress 03:20 -- new race class in the tool: CAPTURE races per latch group (cones.py); first run on item 25
+Problem: the single-pin adversary slows one route into a storage LUT. Research's question for item 28 is the select
+ARRIVAL race at the muxes (rule E; audit T116: the select reaches umux0's data LUTs after its request went on). That
+is a capture race: the whole data path into a latch slow, its enable path fast. No single pin is that.
+`tools/margin/cones.py`: per latch group (latch-like storage LUTs whose enable comes from one source = one link
+stage), the adversary slows every arc of the combinational cone into the group's data pins (datapath LUTs, carry,
+F7/F8 mux data, and the routes of their select inputs), stopping at storage outputs and env nodes; all else fast.
+Admissible at corner 0, g = 1 for every k; the checkers decide each failure. run.sh: `CONES=1` (add) / `CONES=only`.
+item 25 (local fasm c6404633, A's bnd, vectors 27/703/77031): 32 latch groups (26 of 32 or 16 bits, 9 single),
+75 s on 4 cores. Only one group fails <= 0.45: the single latch SLICE_X14Y22.B6 (enable SLICE_X14Y22.A6; cone 786
+arcs through F7/F8 muxes at X14Y42/X14Y46): quiet with 1 of 3 answers at 0.37 (w 20) / 0.42 (w 0). Both
+**INADMISSIBLE**: gatecheck clean at w 0 (1,656,120 checks), but envcheck: Env violated -- the kernel's a_ack
+emits a 12 ps runt (406374-406386 ps) right after the first input handshake and the simulated env takes it as a
+handshake. So no admissible cone failure on item 25 up to 0.45 (search); the a_ack runt is a boundary glitch to
+look at, not a counterexample under the Spec's Env. Names need the routed JSON (farm run below).
+Tool fix: margin.py called a run "FAIL-wrong" when it returned a correct PREFIX of the answers (e.g. got [111]);
+now wrong only on a wrong value; a missing answer stays quiet/noanswer (checkrows used to dump 100M-event livelocks).
+Farm c_margin_cones1: CONES=only on item 28, item 25, fcsel0 s24 and fcsel1 s24 (rule E negative there: the
+positive controls), fcsel2 s1, fcsel3m s1/s2, item 26, item 27.

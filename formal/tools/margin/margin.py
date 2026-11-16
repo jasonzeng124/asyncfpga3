@@ -15,7 +15,7 @@ the bracket ends (checked only at the ends; NOT a theorem). Phase 3 (--w0): the 
 the races found. Writes OUTDIR/sweep_w*.txt (one line per run, resumable), margins.txt, summary.txt and, for the
 binding race, OUTDIR/witness/ (classes JSON, command, result, dump) at kappa_fail.
 """
-import argparse, json, os, resource, subprocess, sys, time, threading
+import argparse, json, os, re, resource, subprocess, sys, time, threading
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -109,7 +109,11 @@ def verdict(r, P, w, store):
     kind = v[0] if v[0] != "ERROR" else "UNDECIDED"   # memory/time cap hit (typically a runt livelock); counted as failing
     if kind == "FAIL":   # wrong value / ended quiet with an answer missing / still active at tmax (livelock?)
         kind = "FAIL-quiet" if v[2] <= tm else "FAIL-noanswer"
-        if "got []" not in v[4]: kind = "FAIL-wrong"
+        m = re.search(r"want \[([^\]]*)\] got \[([^\]]*)\]", v[4])
+        if m:   # a wrong value is FAIL-wrong; a correct prefix with answers missing keeps quiet / noanswer (livelock)
+            wv, gv = m.group(1).split(", "), [x for x in m.group(2).split(", ") if x]
+            if gv != wv[:len(gv)]: kind = "FAIL-wrong"
+        elif "got []" not in v[4]: kind = "FAIL-wrong"
     line = "%s %s events %d tend %d %.1fs | %s" % (key, kind, v[1], v[2], v[3], v[4])
     store[key] = kind
     with open(os.path.join(a.out, "sweep_w%d.txt" % w), "a") as f: f.write(line + "\n")
