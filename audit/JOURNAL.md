@@ -2439,7 +2439,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Data capture downstream is still statically safe by about 0.2 ns (OR-join request bound).
   - To report as OVERSTATED-risk: item 30's "every row clean" did not include the data-path select arrival (rule M postdates the queue entry).
 
-### progress 05:52
+### progress 05:50
 - formal C ab395ed86 C15 (12 ns host): C10's input-hold races are gone, as T120b said.
 - Item 31's first race is the falseResult_7 controller feedback race (+174 worst in-band / +764 SDF). Own fb.py on item 31:
   - stage 0: +305 / +409 / +828;
