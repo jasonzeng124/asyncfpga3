@@ -24,6 +24,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("out"); ap.add_argument("node"); ap.add_argument("pin", type=int); ap.add_argument("kappa")
 ap.add_argument("--w", type=int, default=0); ap.add_argument("--routed", default=None)
 ap.add_argument("--sdfmap", default=None, help="JSON {\"NODE:PIN\": ps} nominal SDF delay per arc (optional)")
+ap.add_argument("--verify-path", action="store_true", help="after explaining: re-run with exactly path A's arcs slow (at (1+k) FAST_MAX) and all else fast, for k = 0, 0.05, ..., up to the row's kappa: the smallest kappa at which THIS two-path race alone fails")
 ap.add_argument("--sdf", default=None, help="nextpnr's SDF of this build (needs --routed): the paths' delays at the nominal SDF")
 ap.add_argument("--err", type=float, default=0.085, help="measured relative delay error (median ring scatter)")
 ap.add_argument("--err7", type=float, default=0.47, help="worst measured relative error on the shortest rings (7 links: ratio 0.773..1.470, cells/hw/README.md on claude/research)")
@@ -431,3 +432,19 @@ if SDFI is not None:
     print("  slack %+d ps = %+.2f x median error (%.1f %% of %d ps) = %+.2f x worst short-ring error (%.0f %%)%s" % (sl, sl / (a.err * L) if L else 0, 100 * a.err, L, sl / (a.err7 * L) if L else 0, 100 * a.err7, "  (partial: unmapped arcs above)" if ma or mb else ""))
     print("  (the ring data also fit measured = 0.938 x SDF + 988 ps per ring period: a ~1 ns constant the SDF does not charge;")
     print("   whether it falls on one of these two paths and not the other is not known)")
+if a.verify_path:
+    SA = [[N[G[x[0]]["out"]], x[1]] for x in pa if x[0] != "ENV"]
+    print("\nVERIFY: path A's %d arcs alone slow, everything else fast:" % len(SA))
+    kk = 0.0; kmax = float(a.kappa)
+    while kk <= kmax + 1e-9:
+        cf = os.path.join(O, "tmp", "ex_pathA.json"); json.dump({"S": SA, "F": []}, open(cf, "w"))
+        cmd = setopt(setopt(base, "--kappa", "%.2f" % kk), "--classes", cf)
+        if "--w" in cmd: i = cmd.index("--w"); del cmd[i:i + 2]
+        if a.w: cmd += ["--w", str(a.w)]
+        if "--periodic" not in cmd: cmd += ["--periodic"]
+        r = subprocess.run(cmd, capture_output=True, text=True, env=dict(os.environ, **env), cwd=O)
+        res = ([x for x in r.stdout.splitlines() if x.startswith("RESULT")] or ["NO-VERDICT"])[0]
+        print("  kappa %.2f: %s" % (kk, res))
+        if not res.startswith("RESULT OK"):
+            print("  -> this race alone fails from kappa %.2f (search; check the row with checkrows before reporting)" % kk); break
+        kk = round(kk + 0.05, 2)

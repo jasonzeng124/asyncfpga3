@@ -127,6 +127,7 @@ for l in lines:
     cmd = ["python3", os.path.join(H, "explain.py"), O, node, pin, k, "--w", w]
     if os.path.exists(os.path.join(O, "routed.json")): cmd += ["--routed", os.path.join(O, "routed.json")]
     if os.path.exists(os.path.join(O, "routed.json")) and os.environ.get("SDF") and os.path.exists(os.environ["SDF"]): cmd += ["--sdf", os.environ["SDF"]]
+    if os.environ.get("EXPLAIN_VERIFY") == "1": cmd += ["--verify-path"]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
     with open(os.path.join(O, "explain_%s_%s_k%s_w%s.txt" % (node, pin, k, w)), "w") as f: f.write(l + r.stdout + r.stderr[-2000:])
 PYEOF
