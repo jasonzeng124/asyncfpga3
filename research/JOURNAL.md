@@ -5605,3 +5605,10 @@ Next:
   new corner_audit (rule M at umux0 / 1 / 2, which fxd's older summary never computed; steer E rows on 2 routes; ucmpi1
   / uxori2 A on a few). PREDICTION -0.3 to -0.6: met. Not an item yet: needs its rows compared on equal terms with fxd's
   (fxd_ps gives fxd's under the same corner_audit: M rows on 23/29 there too).
+### progress 08:32 UTC (rule M's known-bad build is real: defined wrong answers, traced)
+- Trace tr_c28u1d (item 28's route, select latch -> umux1.udat +8000, FAST_MIN, col13.hex, dump kept): batches 0-4 odata
+  X (the power-up X of the select latch, reaching the data this time), batches 5-7 and 10-12 right, batches 8 and 9
+  DEFINED and wrong (0x0a for 0x06, 0x0c for 0x08). So the data-LUT race (rule M) breaks the kernel by logic, not by
+  simulator pessimism; the join race (rule E at a loop-header mux) does not. research/data/selneg/README.md corrected.
+- The gate's start-up X: a run that reaches an uninitialized latch's first value late shows X. Fix to consider in
+  cells/gls (not done): initialize LUT latches at time 0 (run both 0 and 1), so a hang means a hang.
