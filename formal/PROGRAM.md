@@ -98,6 +98,16 @@ whenever a result here (a completeness proof, a certificate checker) is what it 
 
 A lock dated 2026-11-10 is from before the pause: take it.
 
+## Next for the margin tool: research's collatz board candidate (2026-11-16 02:55 UTC)
+
+C10 measured collatz with select links at 0, 1 and 2 (kappa_hi 0.21 to 0.32). The build
+research queued for the board has them at 3: `fcsel3m` seed 20, BOARD-QUEUE item 28 /
+section 29, sdf d86bdde5 (in `research/FOR-FORMAL.md` if listed, otherwise rebuild it from the
+item's command). **Its margin and binding race come first.** Say whether the binding race is
+again the latch-enable race at `ulink_n_falseResult_3` stage 0, and give item 25 (select
+links unshortened) under the SAME search settings beside it, so the two numbers compare.
+Then xorshift's item 27, if `formal/target/MARGINS.md` has no row for it yet.
+
 ## Shard B: stop (2026-11-15 20:15 UTC)
 
 **Shard B: finish the step you are on, then stop.** Commit and push what is checked. Write in
