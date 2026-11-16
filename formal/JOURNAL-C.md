@@ -3405,3 +3405,18 @@ ulink_n13.ctl late (ADMISSIBLE). item 25 same commit/settings: w 20 none admissi
 fcsel3m seeds 1/2/24: 0.41 / 0.37 (0.33 w 0) / 0.27, all falseResult_3 st0 latch pairs. item 27: none <= 0.45.
 Open: env-only INADMISSIBLE rows at 0.36-0.38 on item 28 (gate checks clean). Next: diagnose env rejections (a_ack
 runts), cones on research's builds (c_margin_cones1).
+
+### progress 03:45 -- two fixes to what the tool counts as a failure; item 25 capture kappa_hi 0.67 (w 20, checked)
+Problem: many failing rows came back INADMISSIBLE, so the reported kappa_hi skipped them and the search stopped there.
+Two causes, two fixes (tools/margin):
+1. **H_RUNT-infeasible runs** (w = 20): simx already counts LUT-pin reads that land in a narrow-pulse chain longer
+   than the pin's delay window ("INFEASIBLE pins"). No H_RUNT(w) read map exists there, so the run is not a
+   behaviour (gatecheck's "lag violations"). margin.py counted them as failures and bisected onto them; now they are
+   INFEASIBLE (not failures) and the bisection goes on to admissible ones.
+2. **Env-only rejections**: the simulated harness (`--datachange broad`) changes data on the first fall of an input
+   acknowledge; when the kernel's acknowledge then glitches back up, Spec.Env (data held while req or ack is high) is
+   broken by the harness, not the kernel. checkrows.py now re-runs such rows (gate checks clean, Env violated) with
+   `--datachange handshake` (data held until the next request; also a Spec.Env harness) and checks again.
+item 25 capture races 0.45-0.90 with both: kappa_hi(w 20) = 0.67 (SLICE_X14Y22.B6 group, quiet, no answer; ADMISSIBLE).
+Earlier 0.84 (X16Y39.B6) also admissible; the bisection is not monotone, so both are upper ends; the min stands.
+Farm c_margin_sel3m2: item 28, item 25, fcsel3m s1/2/24 single-pin again with the fixes (item 28's 0.36-0.38 rows).

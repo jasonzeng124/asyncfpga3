@@ -85,7 +85,13 @@ def sim(arcs, P, w, tmax, tag, dump=None):
     if st:
         f = st[-1].split(); ev = int(f[1]); tend = int(f[5])
     if not res: return ("ERROR", 0, 0, time.time() - t0, ("MemoryError(cap %.1f GB)" % a.memcap if "MemoryError" in r.stderr else "") + r.stderr[-200:].replace("\n", " "), cmd, cf)
-    return ("OK" if res[0].startswith("RESULT OK") else "FAIL", ev, tend, time.time() - t0, res[0], cmd, cf)
+    inf = re.search(r"INFEASIBLE pins (\d+)", r.stderr)
+    if res[0].startswith("RESULT OK"): return ("OK", ev, tend, time.time() - t0, res[0], cmd, cf)
+    if w and inf and int(inf.group(1)) > 0:
+        # some LUT pin read lands in a narrow-pulse chain longer than its delay window allows: no H_RUNT(w) read map
+        # exists, so this run is not a behaviour (gatecheck would report lag violations). Not a failure.
+        return ("INFEASIBLE", ev, tend, time.time() - t0, res[0] + " [H_RUNT infeasible pins %s]" % inf.group(1), cmd, cf)
+    return ("FAIL", ev, tend, time.time() - t0, res[0], cmd, cf)
 
 # reference runs (no slow arcs) -> tmax per (kappa, w)
 TM = {}; TML = threading.Lock()

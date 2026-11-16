@@ -50,11 +50,31 @@ for l in open(os.path.join(O, "margins.txt")):
     gl = g[-1] if g else "gatecheck: no output"
     m = re.search(r"mismatches (\d+) arcs outside Adm (\d+) lag violations (\d+)", gl)
     ok = m and m.group(1) == "0" and m.group(2) == "0" and m.group(3) == "0" and "Env + SeqEnv: OK" in v
+    envnote = ""
+    if m and m.group(1) == "0" and m.group(2) == "0" and m.group(3) == "0" and not ok:
+        # gate relations clean, Env violated: typically the simulated harness released the data on the first fall of an
+        # acknowledge that then glitched back up (Spec.Env wants data held while req or ack is high). Retry with a
+        # harness that holds the data until its next request (--datachange handshake): also a Spec.Env environment.
+        os.unlink(df)
+        cmd = setopt(cmd, "--datachange", "handshake")
+        r = subprocess.run(cmd, capture_output=True, text=True, env=e)
+        res = ([x for x in r.stdout.splitlines() if x.startswith("RESULT")] or ["NO-VERDICT (event cap)"])[0]
+        if os.path.exists(df):
+            g = subprocess.run(["python3", os.path.join(H, "gatecheck.py"), os.path.join(O, "net.json"), os.path.join(O, "bnd.json"), df,
+                                "0", k, w, "@" + cf], capture_output=True, text=True, env=e).stdout.strip().splitlines()
+            v = subprocess.run(["python3", os.path.join(F, "tools", "huff", "envcheck.py"), os.path.join(O, "net.json"),
+                                os.path.join(O, "bnd_arbs.json"), df, "400000", "1000", "3000"] + pairs, capture_output=True, text=True).stdout
+            gl = g[-1] if g else "gatecheck: no output"
+            m = re.search(r"mismatches (\d+) arcs outside Adm (\d+) lag violations (\d+)", gl)
+            ok = m and m.group(1) == "0" and m.group(2) == "0" and m.group(3) == "0" and "Env + SeqEnv: OK" in v
+            envnote = "[env broad violated Env; rerun with --datachange handshake] "
+        else:
+            envnote = "[env broad violated Env; handshake rerun gave no dump] "
     arb = re.search(r"T >= (\d+)", v)
-    out.write("%s w=%s k=%s %s | %s | %s | ArbOK T>=%s | %s\n" % (f[1], w, k, f[2], "ADMISSIBLE" if ok else "INADMISSIBLE", res,
+    out.write("%s w=%s k=%s %s | %s%s | %s | ArbOK T>=%s | %s\n" % (f[1], w, k, f[2], envnote, "ADMISSIBLE" if ok else "INADMISSIBLE", res,
               arb.group(1) if arb else "?", gl)); out.flush()
     if ok and not res.startswith("RESULT OK"): adm.append((float(k), int(w), f[1], f[2], f[3], res))
-    os.unlink(df)
+    if os.path.exists(df): os.unlink(df)
 out.close()
 # kappa_hi: smallest kappa with an ADMISSIBLE failing run (finite: wrong value, or quiet with an answer missing). A w = 20 behaviour is also a behaviour of the plain
 # statement (Lean: seqRunt_of_seq direction used by the refutations), so kappa_hi(w = 0) = min over both.
