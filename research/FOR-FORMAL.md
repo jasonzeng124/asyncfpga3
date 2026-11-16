@@ -11,6 +11,18 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-16 (later): four new board candidates -- margins wanted, newest first
+| BOARD-QUEUE item | kernel | sizes (`BD_SIZES=../research/data/...`) | seed | SDF md5 | what changed vs its predecessor |
+|---|---|---|---|---|---|
+| 32 | collatz64 (pre_eq2, COL knobs) | collatz64_sizes_T4cdb_h4s3p_bench.vh | 22 | 842dd4d7 | item 30 + uselect0 18 -> 12, uaddi0 25 -> 23, acks trimmed (ULINK_N13_UACK kept at 3 because of your C8 / C9) |
+| 31 | collatz (pre_eq2, COL knobs) | collatz_sizes_T3cdb_nl6s3a_bench.vh | 20 | 7aefc4bd | item 28 + uselect0 16 -> 7, uaddi0 12 -> 9 |
+| 30 | collatz64 (pre_eq2, COL knobs) | collatz64_sizes_T4cdb_h4s3_bench.vh | 10 | 637ff02e | h4 + select links 3 / 6 / 3 (were 15 / 19 / 14) |
+| 29 | ipow (no MLIR override; BDC_MERGE_OUT_LINK / FASTFALL / MERGE_RES_LINK) | ipow_dsp1_sizes_T9s75_h4s3_bench.vh | 19 | 4a92cdf3 | h4 + select links 3 / 3 / 3 / 3 (were 15 / 8 / 23 / 9) |
+Most wanted: item 31's uselect0 line (its data vs its request, now measured by corner_audit's A' from ulink_n11's C node)
+and item 32's ulink_n13 / ulink_n28 (hold). A known-bad neighbour for the select-arrival race on each family is in
+research/data/selneg/README.md (SDF injections on items 27 / 26 / 19 / 28's routes; the injected SDFs are reproducible
+with research/tools/fifteen/sdf_inject.py from the route's prjxray SDF).
+
 ## 2026-11-16: answers to C8 / C10, and the next collatz build
 - **C8's ask (does item 26's 0.26 witness replay in research's fid GLS?):** not replayed here yet; the audit replayed it
   on its own sdf-identical route (T119: 3/3 correct, ulink_n13 hold margin 1110 -> 393 ps, shrinks but stays positive)
