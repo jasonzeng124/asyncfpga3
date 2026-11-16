@@ -5276,3 +5276,9 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   to shorten anything: x_req's lead is not bounded statically (different launches); the gate's vectors only sample it.
 - So the negative control needs a bigger defect: selneg2 (+6000 / +12000) is that. The collatz fcsel0 s24 control
   (select line 0, +3000 -> no completion at FAST_MIN) remains the only gate failure on record.
+### progress 04:07 UTC (fxsel3: xorshift select links at 3 buy nothing -- rejected)
+- fxsel3 (fr4s3) vs fxd (item 27), 31 paired seeds: latency -0.23 ns per iteration median, mean -0.02 (-1.97..+1.64),
+  faster on 16/31: noise. Period median 19.45 (fxd 19.39). Gates 96/96; rule E < 0 on 1/32 (s9 steer ucond_br6 -229),
+  A uxori1 -119 on one; TSE (C-element hold) rows on ulink_n8 on 8+ routes (to -635 at FAST_MIN, s19). Prediction
+  (-0.2 to -0.4) at the edge; not worth a new board item. xorshift's select lines are off its critical cycle.
+- research/tools/fifteen/farm_pair.py A B ITERS: paired latency per iteration + gate / E summary of two farm requests.
