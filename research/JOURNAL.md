@@ -5240,3 +5240,22 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   routes is a near-threshold point: E fires a little, and the gate may well pass -- that row would show E stricter
   than the gate, not a control. Farm selneg2: the same 14 tasks at +6000 and +12000 ps (past every select line,
   1.2-9.2 ns), gates at FAST_MIN and worst.
+### progress 03:45 UTC (second lead, fix-the-cause: A' refused uselect0 because of a tool bug, now fixed)
+- Item 28 (fcsel3m s20, rebuilt locally: sdf d86bdde5, EQUIVALENT, static clean) line_account at worst: the critical
+  cycle is now the datapath (25.81 ns): uselect0's 16 elements are 6.38 ns of it (needs 7 as routed, 1 for the
+  logic), uaddi0's 12 are 4.28 ns (needs 5). fcsel3m's proposals over 31 routes x 2 corners do not move either at the
+  per-cell max: uselect0 stays 16 on 18 of 62 (tighten's bundled pairing borrows ~1.3 ns of lag).
+- Why A' (from the upstream links' C nodes) was refused there, traced (CA_DEBUG_FOREIGN, new diagnosis switch): the
+  two "foreign" sources (the reset flop $auto$ff.cc:337:slice$7560/Q and usource2's request, the folded constant)
+  reach NOTHING in uselect0 but its request join, ujoin's chunk[0] g4 and utop C nodes. Those join nodes were counted
+  as data peers: the 'upstream' test asks whether the chain head is reachable without crossing a stop, and an inner
+  join C node reaches it only through utop, itself a stop. So the cell's own request path was treated as data, and
+  any request or reset into the join looked like a foreign data launch. Not a property of the circuit: a tool bug in
+  the pessimistic direction (it only ever refused A').
+- Fix (corner_audit.rule_a_from_link): outputs under parent.ujoin.* are not peers (CA_JOIN_PEERS=1 restores the old
+  set). Same route: A' at uselect0 +5539 ps at 16 elements, proposal 16 -> 7 (400 ps left), uaddi0 12 -> 9 as before;
+  verify: 0 sized constraints below slack. Other A' refusals on this route: umux2 only (its select link's latch, a
+  real outside launch).
+- Farm fcsel3m_p / fxd_p / fc64eq3_p / fipowh4_p: STATIC_ONLY reruns of each family's current sizes with the fix, for
+  per-cell-max proposals on 32 routes. PREDICTION (collatz): uselect0 max over routes 8-10 (n_need 6-9 as routed on
+  item 25's 8 routes), i.e. -2.2 to -3.1 ns on the critical cycle if it stays the binding line.

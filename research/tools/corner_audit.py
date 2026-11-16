@@ -234,14 +234,23 @@ def rule_a_from_link(T, skew, sdf):
         downstream = T.reaches(edges, tail, stops)
         upstream = {p for p in edges if T.is_output(p) and head in T.reaches(edges, p, stops)}
         own = set(links)
+        # the cell's own request join (parent.ujoin.*) is the request path, not data: its inner C nodes reach the chain
+        # head only through the join's top C node (a stop), so the 'upstream' test above misses them, and every request
+        # or reset feeding the join then looked like a foreign data launch (2026-11-16: refused A' at collatz's uselect0
+        # for the reset flop and the folded constant's request, which reach nothing but the join).  CA_JOIN_PEERS=1: old.
+        join_pfx = parent + ".ujoin."
         peers = sorted({p for p in edges if T.is_output(p) and T.pin_split(p)[0].startswith(parent + ".")
-                        and T.pin_split(p)[0] not in own and p not in downstream and p not in upstream})
+                        and T.pin_split(p)[0] not in own and p not in downstream and p not in upstream
+                        and (os.environ.get("CA_JOIN_PEERS") == "1" or not T.pin_split(p)[0].startswith(join_pfx))})
         if not peers:
             continue
         ups = T.upstream_bd_links(T.cell_boundary(edges, back, stops, parent))
         region = (parent,) + ups
         srcs = T.cell_boundary(edges, back, stops, region)
         if not ups or T.check(timing, srcs, peers, tail, T.req_guard, confine=region if ups else parent) is not None:
+            if os.environ.get("CA_DEBUG_FOREIGN"):
+                with open(os.environ["CA_DEBUG_FOREIGN"], "a") as dbg:
+                    print("A' not tried at %s: %s" % (parent, "no upstream link" if not ups else "common source"), file=dbg)
             continue                                   # common-source pairing: tighten's A is already exact
         inside = lambda p: any(T.pin_split(p)[0] == r or T.pin_split(p)[0].startswith(r + ".") for r in region)
         # a source outside the region that reaches a peer WITHOUT crossing one of the links' latches would launch
@@ -253,6 +262,11 @@ def rule_a_from_link(T, skew, sdf):
                 return False
             return s in stops or any(not inside(x) for x in T.starts_reaching(back, s, stops))
         if any(foreign(s) for s in srcs):
+            if os.environ.get("CA_DEBUG_FOREIGN"):          # which source blocks A' at this cell (diagnosis only)
+                with open(os.environ["CA_DEBUG_FOREIGN"], "a") as dbg:
+                    for s in sorted(s for s in srcs if foreign(s)):
+                        print("A' refused at %s: foreign %s (stop %s; outside starts %s)" % (parent, s, s in stops,
+                              sorted(x for x in T.starts_reaching(back, s, stops) if not inside(x))[:6]), file=dbg)
             continue
         worst = None
         for link in ups:
