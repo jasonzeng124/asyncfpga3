@@ -2710,7 +2710,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T130c item 29 v2 z_data (state A, FAST_MIN): umux0 16 of 338 tokens late, <= 40 ps; umux3 0 / 34.
 - **Item 29 v2 complete:** CONFIRMED (ratio 1.129 / 1.125, gate 3 x 17/17, E +186, H +128). Rule M residual is small (40 ps on 5 % of umux0 tokens). REPORT row added.
 
-### progress 09:44
+### progress 09:42
 - T126k item 33 z_data: only umux2 was mapped (0 late of 2570 / 2624 tokens at FAST_MIN / worst). umux0/1/3, the muxes research's M rows name, were unmapped.
 - z_ack resolved by hand: umux0 n12__0_ack (uforkdec0 C-element), umux1 n12__1_ack (ulink_n8 uack), umux3 bench_o_ack. Rerun t130/run33.sh.
 - research e6f81b328: META_INIT validation, a start-up initialization for the X problem. Their negative control holds; the join injection still hangs; tracing. Tooling.
