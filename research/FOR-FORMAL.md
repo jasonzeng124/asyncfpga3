@@ -17,7 +17,7 @@ the build only (BOARD-QUEUE item text shows the cp / restore lines).
 | 32 | collatz64 (pre_eq2, COL knobs) | collatz64_sizes_T4cdb_h4s3p_bench.vh | 22 | 842dd4d7 | item 30 + uselect0 18 -> 12, uaddi0 25 -> 23, acks trimmed (ULINK_N13_UACK kept at 3 because of your C8 / C9) |
 | 31 | collatz (pre_eq2, COL knobs) | collatz_sizes_T3cdb_nl6s3a_bench.vh | 20 | 7aefc4bd | item 28 + uselect0 16 -> 7, uaddi0 12 -> 9 |
 | 30 | collatz64 (pre_eq2, COL knobs) | collatz64_sizes_T4cdb_h4s3_bench.vh | 10 | 637ff02e | h4 + select links 3 / 6 / 3 (were 15 / 19 / 14) |
-| 29 | ipow (no MLIR override; BDC_MERGE_OUT_LINK / FASTFALL / MERGE_RES_LINK) | ipow_dsp1_sizes_T9s75_h4s3_bench.vh | 19 | 4a92cdf3 | h4 + select links 3 / 3 / 3 / 3 (were 15 / 8 / 23 / 9) |
+| 29 | ipow (no MLIR override; BDC_MERGE_OUT_LINK / FASTFALL / MERGE_RES_LINK) | ipow_dsp1_sizes_T9s75_h4s3m_bench.vh | 19 | b521630f | h4 + select links 3 / 3 / 3 / 3 (were 15 / 8 / 23 / 9) + mux delays 6 / 8 / 7 / 4 by rule M (replaces h4s3, sdf 4a92cdf3) |
 Most wanted: item 31's uselect0 line (its data vs its request, now measured by corner_audit's A' from ulink_n11's C node)
 and item 32's ulink_n13 / ulink_n28 (hold). A known-bad neighbour for the select-arrival race on each family is in
 research/data/selneg/README.md (SDF injections on items 27 / 26 / 19 / 28's routes; the injected SDFs are reproducible

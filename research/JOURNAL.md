@@ -5532,3 +5532,8 @@ Next:
 - fisel3m (ipow item 29 + mux delays by M / A': umux0 6, umux1 8, umux2 7, umux3 4), 30 of 32 routes: static A / A' / E / M
   clean at both corners on every route so far -- the first ipow family with no static row at all (umux3's old -1.4 ns
   false-path row is now A', +ve at 4); gates all pass; latency vs fisel3 -0.19 median (noise).
+### progress 07:48 UTC (ipow item 29 replaced by fisel3m: every static row clean)
+- fisel3m complete: 27 routes (5 known bitstream-defect routes excluded), gate 81/81, rule A / A' / E / M clean at nominal
+  and worst on 27/27, TSE / hold_bits clean, H rows on 2 (-25 s9, -83 s30). Latency = fisel3 (+0.00 median), -2.71 vs
+  fipowh4 (17/19 faster). BOARD-QUEUE item 29 / section 30 now point at it: seed 19, sdf b521630f, sizes h4s3m. The
+  rule-M padding of umux2 (2 -> 7) cost nothing because umux2 is off ipow's cycle, and umux0 / umux1 came down.

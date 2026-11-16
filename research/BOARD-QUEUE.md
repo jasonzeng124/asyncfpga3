@@ -16,10 +16,10 @@ corner_audit now checks every bd_mux's 32 / 64 data outputs against its output r
 "peers no common source reaches"; JOURNAL 2026-11-16). Before, tighten's rule A paired the request with a trivial peer
 and never measured the data outputs, so the mux delays (BD_SZ_*_UMUXn) were sized to nothing. On each board family's
 32 routes: **collatz item 31: no miss** (28 too). **xorshift item 27**: umux0/1/2 on 23/29 routes, to -734 ps (board
-seed 2: umux1 -13 nom / -117 worst). **ipow item 29**: umux2 on 15/19, to -780 (board seed 19: -279 / -382).
+seed 2: umux1 -13 nom / -117 worst). **ipow item 29**: umux2 on 15/19, to -780 (its first board seed 19: -279 / -382) -- FIXED 2026-11-16: item 29 is now fisel3m (mux delays sized by M), static-clean on 27/27.
 **collatz64 items 30 / 32**: umux0 on 32/32, -0.6 to -2.4 ns (item 30's seed 10: -1231 / -1321). Every gate passes.
 Measured in simulation on item 30's route (FAST_MIN): the data changes after the request on 352 of 458 tokens, by up to
-155 ps; consumers are link latches, so the cost is a later Q downstream, which no check accounts for. Treat items 29,
+155 ps; consumers are link latches, so the cost is a later Q downstream, which no check accounts for. Treat items
 30, 32 (and 27 at its small margin) as provisional until either the downstream margins are shown to absorb the
 measured lateness or the mux delay is padded (farm fc64sel3m: collatz64 with umux0 padded to M, running).
 At the worst corner the same route shows 300 of 458 tokens late by up to 60 ps; item 31's route (M clean) shows none
@@ -229,13 +229,16 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    2026-11-16: audit T117 CONFIRMED the board seed (own build, 3 corners, its pin-level select-arrival monitor 0 late,
    own rules E / H clean); fcsel3m_la's 30 routes are all static-clean. Select negative controls: JOURNAL 2026-11-16.
 
-29. **ipow at ~36 ns per iteration, select links sized by rule E (the select rule withdrawn)**: #30 below. ipow h4 (item
-   19's knobs and T9s75 sizes + the h4 hold pads) with the four select links (ulink_n17__0/1/2, ulink_n_index_15) at 3
-   elements instead of 15 / 8 / 23 / 9 (at 0, rule E was -578..-833 ps at umux0-3 on every route). Farm fisel3, 32
-   seeds: 26 valid routes (4 ffmux-flagged, 1 with the known F7AMUX/S0 constant defect: excluded), period median ~36.1 ns;
-   latency paired vs fipowh4 on 19 seeds -2.71 ns per iteration median (18/19 faster). On every valid route: gate 3 x
-   17/17, rule E clean at both corners, TSE clean; umux3's traced false-path rule A row (as for item 19); one I row
-   (-87 ps, seed 1). Board seed 19 (sdf 4a92cdf3, latency 98 cycles = the median): every row clean but umux3's.
+29. **ipow at ~36 ns per iteration, select links sized by rule E and mux delays by rule M -- every static row clean**:
+   #30 below. ipow h4 (item 19's knobs, T9s75 sizes + h4 hold pads) with the four select links (ulink_n17__0/1/2,
+   ulink_n_index_15) at 3 instead of 15 / 8 / 23 / 9 (rule E), and the mux delays umux0 / 1 / 2 / 3 at 6 / 8 / 7 / 4
+   instead of 8 / 9 / 2 / 3 (rule M, the mux data outputs, new 2026-11-16; A' at umux3, whose old -1.4 ns rule-A row
+   was the traced false path). Farm fisel3m, 32 seeds: 27 routes (5 with the known ffmux / F7 bitstream defects),
+   period median 36.20 ns; latency paired vs fipowh4 on 19 seeds -2.71 ns per iteration (17/19 faster), the same as the
+   first version (fisel3, without the mux sizing). Gate 81/81; rule A / A' / E / M clean at nominal and worst on
+   27/27 -- the first ipow family with no static row; TSE / hold_bits clean; H rows on 2 routes (-25, -83).
+   Board seed 19 (sdf b521630f, latency 97 = the median): every row clean. (2026-11-16 first version: h4s3, sdf
+   4a92cdf3, superseded because rule M found umux2 -382 ps there.)
 30. **collatz64 at ~35 ns per iteration, select links sized by rule E**: #31 below. collatz64 h4 (item 26's structure
    with the h4 pads) with the select links ulink_n14__0 / ulink_n14__1 / ulink_n_index_11 at 3 / 6 / 3 instead of
    15 / 19 / 14 (at 0, E was -850 / -1761 / -511 ps). Farm fc64sel3: 29 routes (24 with no known defect for the
@@ -1069,18 +1072,18 @@ rule E fails at the muxes (to -393 ps at 1); at 2 on 2 of 29 routes; at 3 on non
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.39 over item 25 (35.92 ns on its route vs 25.81 here). A FAIL with
 item 25 passing is a select race on silicon that the checks missed: send both logs.
 
-## 30. ipow h4 + select links at 3 (fisel3) -- 26 valid routes, gate 78/78, rule E clean on every route
+## 30. ipow h4 + select links at 3 + mux delays by rule M (fisel3m) -- 27 routes, gate 81/81, every static row clean
 research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/, on claude/research at or after this commit:
 
-    BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=19 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/ipow_dsp1_sizes_T9s75_h4s3_bench.vh ./hw/build_bench.sh ipow
-    md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # 4a92cdf3 = the route gated here
+    BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=19 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/ipow_dsp1_sizes_T9s75_h4s3m_bench.vh ./hw/build_bench.sh ipow
+    md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # b521630f = the route gated here
     python3 ../research/tools/ffmux_scan.py build/hw/ipow_bench_gen/ipow_bench_gen.fasm; echo "exit $?"   # must be 0
-    CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_sel3.tsv
+    CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_sel3m.tsv
     (item 19: #20's commands for lc_ipow_r.tsv, if not already run)
-    python3 ../research/tools/loop_cost_judge.py ipow build/hw/lc_ipow_sel3.tsv build/hw/lc_ipow_r.tsv; echo "exit $?"
+    python3 ../research/tools/loop_cost_judge.py ipow build/hw/lc_ipow_sel3m.tsv build/hw/lc_ipow_r.tsv; echo "exit $?"
 
-Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.10 over item 19 (39.78 ns on its route vs 36.06 here). A FAIL with
-item 19 passing is a select race the checks missed: send both logs.
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.12 over item 19 (39.78 ns on its route vs 35.54 here). A FAIL with
+item 19 passing is a select or mux race the checks missed: send both logs.
 
 ## 31. collatz64 h4 + select links at 3 / 6 / 3 (fc64sel3) -- 29 routes, gate 87/87, rule E clean on every route
 research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/:
