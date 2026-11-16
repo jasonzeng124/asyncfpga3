@@ -5718,3 +5718,6 @@ simulation); items 30 / 32 collatz64 35 / 31.4 ns provisional (rule M miss at um
 Checks: rule M (mux data outputs) new, with genuine failing builds (defined wrong answers); rule E at mux joins has
 no failing build once the gate's start-up X is removed (+META_INIT, opt-in, validated both ways); rule H's hold control
 is a genuine wrong-value failure. Steer E under test (steerneg). Formal C17 confirmed.
+### progress 11:19 UTC (selneg3: 44 / 44 join-injection gates pass with a defined start-up)
+- 11 of 13 muxes back (collatz64 umux1 and collatz umux0 still out): all PASS at both sizes and both corners. Rule E at
+  the mux joins has no failing build on any family. selneg README updated.

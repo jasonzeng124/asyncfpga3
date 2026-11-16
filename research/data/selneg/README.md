@@ -127,3 +127,9 @@ vectors exercise only at loop entry). Where M stayed >= 0 (the injection absorbe
 ipow umux0, umux1 at +4000) every gate passed. collatz64 umux0 (task 5 failed on the farm twice, container error) run locally on item 30's route (c64s3_10), +8000 on the
 select latch -> umux0.udat (64 arcs): rule M -7528 ps at worst, rule E clean, gate FAST_MIN no batch in 55 min (the clean
 route: PASS 14/14 in 25 min). As a no-completion it may carry the start-up X (see the correction above); not traced.
+
+## The join injections again, with a defined start-up (farm selneg3, 2026-11-16)
+selneg2's arcs (select latch -> umuxN.uj0 / uj1), +6000 and +12000 ps, gate at FAST_MIN and worst with +META_INIT=0
+(cells/gls/fid_core.vh). 11 muxes back (xorshift item 27 umux0-3, collatz64 item 26 umux0 / umux2, ipow item 19 umux1-3,
+collatz item 28 umux1 / umux2): **44 gate runs, 44 PASS**. Every "failure" of selneg / selneg2 on these muxes was the
+start-up X. On these kernels a select late at the request join, by up to 12 ns, only delays the token.
