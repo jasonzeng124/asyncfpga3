@@ -2888,3 +2888,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - REPORT row OVERSTATED (T136).
 - T136 launched: own build of the x0.40 sizes on seed 27, then own GLS at FAST_MIN / SLOW_MAX / worst, the model's four extreme corners, and 16 own draws, with own oracle and own monitors.
 - Disk: deleted stale regenerable work-dir intermediates (routed.json / fasm_routed.json / tsv), freeing 4 GB.
+
+### progress 21:44
+- T136: own rebuild of x0.40 seed 27 matches research's route (SDF fc5bc8bd). Own FF scan: 1916 flops, MISSING MUX 0 (no 5FF-D defect).
+  - FAST_MIN: own oracle 17/17, 0 latch/steer violations, min latch setup 3549 ps.
+  - SLOW_MAX: 17/17, 0 violations, min setup 9310 ps.
+  - The model corners and the 16 own draws are running. (The run.sh log line prints the oracle's per_round line; the agreement is read from /root/t90/xd40_27_*_oracle.txt.)
+- research fe63a5699: lock only.
