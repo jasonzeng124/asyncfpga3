@@ -2681,3 +2681,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - either goes X at 1.6477 us and z_req at 1.6491 us (first token);
   - nothing changes after 1.655 us.
 - T118's negative control is WITHDRAWN (X artifact); research's correction is CONFIRMED on own replay. Rule E has no known-bad build.
+
+### progress 08:57
+- T126j item 29 v2 (fisel3m, sdf b521630f = recipe): FAST_MIN / worst 17/17; 0 latch / steer violations; min latch setup 4442 / 6544 ps. SLOW_MAX and the remaining steps are running.
+- research af54e68e1: collatz64 rule M control, local (M -7528, E clean, gate **no completion**).
+  - Caveat from T131: a no-completion can be start-up X propagation, not a race. Only research's traced wrong-value controls (8745e2d8a) are shown to be genuine. Not replayed.
+- research 9c69a2bc2: journal summary notes the E-control correction.
