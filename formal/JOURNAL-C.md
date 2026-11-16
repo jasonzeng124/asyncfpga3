@@ -3957,3 +3957,22 @@ Its builds had research's sdf md5s, identical to c_draws1's own builds (7f0c0592
 eval_task.sh's hw dir lacks. c_draws4 = c_draws1's builds with research's model (draw K = 1..32; my bands(K) match the
 values research's log prints for K = 1, 2, 9), research's draws1 vectors (col14, c6415, xor19); the known-bad pair and
 xf2_1 with 64 draws. Item 25 / 26 (not in draws1) left out.
+
+### progress 20:59 -- c_draws4 (research's model, research's draws1 routes/vectors): item 30 FAILS 5/32 in formal's simx
+| build | sdf | research model, draws 1-32 (64 for the bad pair) | last answer mean |
+|---|---|---|---|
+| item 27 s2 | a9bdac53 | 32/32 | 30.6 us |
+| item 33 s27 | 7f0c0592 | 32/32 | 30.5 us |
+| item 28 s20 | d86bdde5 | 32/32 | 19.7 us |
+| item 31 s20 | 7aefc4bd | 32/32 | 16.4 us |
+| item 26 s25 | 6982a9d5 | 32/32 | 84.7 us |
+| **item 30 s10** | 637ff02e | **27/32: draws 5, 8, 12, 13, 21 FAIL** | 81.7 us |
+| item 32 s22 | 842dd4d7 | 32/32 | 74.8 us |
+| BAD xf2_1 / BAD nc64_7 / pc64_7 | dc138ea2 / 98809562 / acc06847 | 64/64 each | |
+Item 30's five failures are identical in shape: answers 111 (n 27), 0 (n 1), then **0 for n = 97** (want 118) and the run
+stops (3 answers by 3.5 us). A call after the zero-trip call returns the zero-trip answer. All five draws have a low chain
+band (0.209-0.234); four of five a CARRY4/F7/F8 band >= 0.58; draws 18 and 26 have both and pass, so it is not one band
+alone. Under the fid parameters (c_draws2, col15 starts 27, 1, 97 too) item 30 passed 64/64. Research's own draws1 tasks
+for item 30 are still running. Research's model is narrower (region 0.02), so the known-bad builds no longer fail at all.
+**c_x30dbg:** draw 5 with each band moved, the filter off, other hosts, other preceding vectors, and diverge.py (new: the
+first node where a failing and a passing run part, with routed names).
