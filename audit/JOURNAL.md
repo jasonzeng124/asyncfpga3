@@ -2389,3 +2389,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - ratio 1.110 / 1.118;
   - rule E min +406;
   - rule H static row not live.
+
+### progress 05:28
+- formal A b35a40df4 / 818ddafa1: Assembly and CertRun (and 5 dependents) now take EnvWF instead of Env.
+  - This weakens their hypothesis, so it strengthens them. Formal reports check.sh OK on 7 files, 2376 declarations.
+  - Frozen Spec.lean is unchanged since 0c66d040e (own git diff: empty).
+  - SpecWF is still a proposal; THE statement is unchanged.
+- Own build of SpecWF + Assembly + CertRun is queued for after the running GLS jobs (earlier Lean builds OOM'd next to GLS). Until then UNVERIFIED by own build.
+- T126 item 30: FAST_MIN oracle 14/14; worst and SLOW_MAX running.
