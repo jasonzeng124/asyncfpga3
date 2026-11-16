@@ -2745,3 +2745,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T132: own lake build of SpecWF + Assembly + CertRun at formal 8b66ce09f: exit 0.
   - Axioms of correct_of_plan, netCorrectSeqWF_of_plan, plan_of_run and netCorrectSeqWF_of_run are standard only.
   - Formal A's EnvWF change is CONFIRMED for 3 of its 7 files; the 4 heavy dependents are not built (T123 addendum).
+
+### progress 10:41
+- research cee5146b7: the hold control (fcsel0 s24, +15000 on ulink_n14__1 stage 1's ctl -> select latch enable) re-run with META_INIT gives FAIL 1/13 with 12 wrong answers, every batch complete; rule H flags it (-14260).
+  - Research's summary: rule H keeps a genuine known-bad build; rule E at loop-header joins has none; rule M has genuine ones.
+- Not replayed: the own harness (gate.sh on wt-r90) has no META_INIT. Recorded as research's result, UNVERIFIED by the audit.
