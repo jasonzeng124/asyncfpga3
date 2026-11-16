@@ -4,6 +4,57 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
+## The board decides; every check is a proxy (owner, 2026-11-16)
+
+The owner, asked whether to drop rule E at loop-header mux joins: "idc about the checks, they
+dont matter, as long is it works on board / closest approximation to board. other checks are
+just not-very-good proxies of correctness possibly".
+
+There is one question about a build: **would it work on the board?** With no board, the answer
+comes from the closest approximation of the board we can run. Every other check is a proxy.
+This overrides any place below that makes a static rule a gate (the verification ladder, "No
+blanket rules", BOARD-QUEUE wording).
+
+- **Static rules are not gates.** A, A', E, H, I, M, TSE, hold_bits and corner_audit neither
+  block a result nor certify one. They stay as tools: to choose what to shorten, and to find
+  where a simulation failure comes from. Spend no more sessions on whether a rule earns its
+  place, and build no more known-bad builds for rules. The questions about rule E at mux
+  joins and about rule M's pessimism are closed: they decide nothing now.
+- **What decides is the routed design, simulated as the board would run it:** the bits that
+  are in the bitstream, the routed delays, the kernel's full input range (owner, 2026-11-14,
+  unchanged). `toolchain.sh`, `fasm_equiv` and `ffmux_scan` stay required. They are not
+  timing proxies: they make the simulated circuit the one on the board, and two board
+  failures in August were exactly that.
+- **The gate's start-up stays as it is (owner, 2026-11-16: "make it no").** +META_INIT is not
+  the default. It stays opt-in, to tell a real failure from a start-up unknown when a run
+  hangs.
+- **One SDF at three corners is not the board.** The only measured delay error we have is the
+  August ring data (`research/data/fid/`). Turn it into the delay model's uncertainty,
+  reasonable and parametric, with the parameters and their source written down (owner,
+  earlier: pick one and run, measure later): scatter per arc, an offset that grows with
+  route length, a global scale. Simulate each candidate over many draws of its delays, on
+  its routes, and report **the fraction of draws that return the right answers**. That
+  fraction and the speed are the result.
+- **Show how close the approximation is, on board data.** The fid model's acceptance on rings
+  is a start. Kernels ran on the board in August with measured ns per iteration (xorshift
+  47.66, collatz 91.96, collatz64 112.71; gcd 310 ns to 6.34 us by input). Simulate those
+  same builds today and report predicted against measured. If this exists, cite it in the
+  headline. If not, it is the first job of the next session, beside the speed work. The
+  owner's machine holds the August `.fasm` and `.sdf` of the bench builds: write `ASK:` in
+  the journal if you need them pushed.
+- **Keep `research/SIM-VS-BOARD.md`:** every known way the simulation is not the board (glitch
+  filtering, arbiters, start-up, voltage and temperature, the host), what the board showed
+  in August if anything, and what the simulation does about it.
+- **Sizes may be chosen by this simulation.** Shorten while the passing fraction stays at its
+  ceiling, and say how far the choice sits from the first size that fails. Too short is
+  still the silent direction: between two sizes that tie, take the longer.
+- **Reporting:** per kernel, ns per iteration, the fraction of draws passing, routes and
+  draws, and the model's error on the August builds. No rule tables in headlines or in
+  BOARD-QUEUE items; a rule row may be named as a lead.
+- **Formal's simulator of the decoded bitstream** (`formal/tools/margin`, simx) is a second,
+  independent approximation and is asked to run the same draws. A build where the two
+  disagree is the most useful thing either of you can look at.
+
 ## No blanket rules (owner, 2026-11-15)
 
 Asked whether select links may be shortened (your question, journal 2026-11-15), the owner
