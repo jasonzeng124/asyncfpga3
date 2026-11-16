@@ -2381,7 +2381,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 05:15
 - T126b: item 29 dynamic rule H (mon_h, FAST_MIN, own 17 vectors): 0 HVIOL; oracle 17/17.
   - ulink_n_trueResult_10 stage 1 (static OR-join -215): min D-after-release minus close **+13693 ps** over 9824 closes. Not live, as item 19 (T109).
-  - The other monitored links' dynamic minimum is >= 1.7 ns.
+  - The other monitored links (static < 500 ps) have a dynamic minimum >= 11537 ps. The HC check found the OR-join entry pin was never the last input (0 of 306 rises).
 - **Item 29 verdict: CONFIRMED.**
   - recipe sdf;
   - FF clean;
