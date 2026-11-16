@@ -2642,3 +2642,20 @@ in the next link's latch), so no row of C's sweep slows that route: a kappa_hi f
 gate's non-feedback pin, in races.py's row format; `selrun.sh OUT/` runs it after run.sh with C's rank.py, margin.py,
 checkrows.py and names.py unchanged (OUT/sel/). On fcsel2 s24: 822 storage gates, 231 combinational gates at depth 1,
 853 candidate pins, of which 260 on umux0/umux1's data LUTs (`umuxN.udat.pair[*]`). Not yet run end to end.
+### progress 03:27 -- select-arrival races on collatz, item 28 (fcsel3m s20) vs fcsel0 s24: none below 0.45; the umux select race exists but needs kappa ~0.85 (search, untrusted)
+* Rebuilt here from FOR-FORMAL / BOARD-QUEUE ## 29: fcsel3m s20 SDF d86bdde5d557f44fddbf90c24b88809c (= research's item 28),
+  FASM e4f259409e188d0ff474e02ee69581dc; fcsel0 s24 SDF bb5fbbdb84b068ee5476cfcde7806214 (= research's), FASM 7c45e21e...
+* selrun.sh (depth 1: live pins of combinational LUTs feeding storage), vectors 27/703/77031, w 20, g = 1, corner 0:
+  item 28: 851 candidates, 431 active, **none fails at 0.45**; fcsel0 s24: 429 active, **none fails at 0.45**.
+* Power check, umux data-LUT pins only (107 active on each), sweep 0.45-0.95: **fcsel0 s24 fails from 0.85**
+  (checked admissible by both checkers: `umux0.udat.pair[10]` pin 1 reading the select from `ulink_n14__0.lat.odd` late:
+  27/703/77031 -> 111/108/275, want 111/170/350; 21 umux pins fail <= 0.95). Item 28 also fails from 0.85 (19 pins;
+  check running). So this adversary does see the select-arrival race, but only far above the latch-enable races
+  (0.21-0.32 on the nl6 builds): under one-slow-route-at-a-time the select race is not what binds, on either build,
+  and the select links at 3 vs 0 do not separate here. Coverage limit: one route at a time; research's T116 finding
+  (select arriving after z_req) needs the request path fast AND the select path slow together, which this adversary
+  does approximate (everything else at (1-k)·FAST_MIN), but not a slow corner or two slow routes.
+* C's run.sh bug (for C; not A's file): bench mode runs `arbs.py ... 2>&1 | head -1 | tee ... || echo "[]" > arbs.json`
+  under `set -o pipefail`; when arbs.py loses the race with head (EPIPE) the good arbs.json is OVERWRITTEN with "[]".
+  It happened in A's local runs today (arbs.py standalone gives 2 arbiters). Effect: ArbOK unchecked (vacuous) in
+  that run, so failures are accepted more easily; a "none found" is unaffected. Files: tools-A/target/out/*_sel/.
