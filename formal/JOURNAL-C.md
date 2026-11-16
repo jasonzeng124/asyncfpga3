@@ -3632,3 +3632,10 @@ Smallest controller slacks: item 25 +838 (falseResult_7 st2 ctl via merge0's arb
 st0 ctl via its rdly g[0]: the select link), BAD_xf2_1 +1051, gcd_ps +1215. All latch-pair rows (+381 and up) return
 through the pair's other half; whether that return is live is not known (flagged in the doc). run.sh writes
 fbslack*.txt when SDF= is given. FOR-RESEARCH C13 points research at it.
+
+### progress 04:45 -- c_explain6 (trigger chains): ulink_n13 race in ps on items 28 and 26; FOR-RESEARCH C14
+item 28: A 609 mid / SDF 1142 (enable route, 7 routing); B 1958 / SDF 4273 (uack -> umux1.uya -> falseResult_5 st1 ctl ->
+its latch -> umux1 data -> pin): +1348 / +965 worst in-band / +3131 SDF. research H +1337 (enable 1241, data 2628).
+item 26: enable route 12 routing arcs (SDF 1975); B SDF 4523: +1215 / +710 / +2548. The kappa is the slack ratio:
+(1872 - 1162)/(1872 + 1162) = 0.23 ~ the 0.26 found. falseResult_7 st0 hang on item 28 unchanged with trigger chains
+(+454 / +335 / +1117). fcsel1 s24 task 1 of c_explain6 produced no explain file (to check).

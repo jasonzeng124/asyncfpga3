@@ -1,0 +1,48 @@
+w=20: kappa_hi = 0.26  race SLICE_X20Y41.B5 pin 1 from SLICE_X22Y40.C6 (run at w=20) RESULT MISMATCH: want [111, 170, 350] got [175, 42, 158]
+witness   (route slow): RESULT MISMATCH: want [111, 170, 350] got [175, 42, 158]
+reference (all fast)  : RESULT OK: want [111, 170, 350] got [111, 170, 350]
+first nodes to diverge (any gate): CLBLL_L_X16Y40/CLBLL_NW4A2(pip)@411935*, CLBLL_R_X13Y44/CLBLL_WL1END0(pip)@411961, INT_L_X14Y44/NL1BEG1(pip)@411968, INT_L_X14Y43/SR1END2(pip)@411970, INT_L_X14Y44/NN2BEG2(pip)@411972*, CLBLL_R_X13Y44/CLBLL_IMUX32(pip)@411990   (* = an adversary arc)
+  diverges: SLICE_X20Y45.B5        at 464951 ps
+  diverges: SLICE_X20Y45.B6        at 522688 ps
+  diverges: SLICE_X20Y48.A5        at 638239 ps
+  diverges: SLICE_X20Y48.A6        at 869184 ps
+  diverges: SLICE_X20Y41.B5        at 1324769 ps  <- the row's storage LUT
+  diverges: SLICE_X20Y41.A5        at 1325349 ps
+  diverges: SLICE_X20Y41.A6        at 1325428 ps
+  diverges: SLICE_X20Y42.B5        at 1325567 ps
+
+CAPTURE: SLICE_X20Y41.B5 (SLICE_X20Y41.BLUT.O5) first differs at 1324769 ps
+RACE at SLICE_X20Y41.B5: pin 1 (delayed 886 ps by the adversary: reference arrival 1323941, witness 1324827) against pin 2 (arrival 1324769)
+  trigger chains meet 12 / 45 flips back
+SPLIT (common launch): CLBLL_L_X16Y40/CLBLL_LOGIC_OUTS14 flips at 1323370 ps; driven by the cell SLICE_X22Y40.C6 bridge_i.udut.ulink_n13.ctl.u.u
+
+PATH A (must arrive FIRST; the adversary slowed it): split -> SLICE_X20Y41.B5 pin 1
+  path A: 13 arcs (1 cells, 12 routing)
+    SLICE_X20Y41.B5              pin 1  lut5  fast [216, 269]  slow [528, 656]  bridge_i.udut.ulink_n13.lat.pair[6].u$LUT5
+    cell  total: fast [216, 269] mid 242   slow [528, 656] mid 592
+    route total: fast [550, 893] mid 722   slow [1288, 1785] mid 1536
+PATH B (overtook it in the witness): split -> SLICE_X20Y41.B5 pin 2
+  path B: 46 arcs (8 cells, 38 routing)
+    SLICE_X23Y37.B6              pin 0  lut6  fast [216, 269]  slow [517, 642]  bridge_i.udut.ulink_n13.uack.chain.g[0].u
+    SLICE_X23Y37.D6              pin 4  lut6  fast [78, 98]  slow [191, 237]  bridge_i.udut.ulink_n13.uack.chain.g[1].u
+    SLICE_X23Y37.A6              pin 0  lut6  fast [217, 270]  slow [516, 640]  bridge_i.udut.ulink_n13.uack.chain.g[2].u
+    SLICE_X23Y39.A6              pin 2  lut6  fast [152, 189]  slow [378, 468]  bridge_i.udut.umux1.uya.u
+    SLICE_X22Y40.A6              pin 1  lut6  fast [215, 268]  slow [509, 631]  bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u.ctl.u.u
+    SLICE_X20Y42.B5              pin 4  lut5  fast [90, 112]  slow [205, 254]  bridge_i.udut.ulink_n_falseResult_5.many.stage[1].u.lat.pair[6].u$LUT5
+    SLICE_X20Y42.C5              pin 4  lut5  fast [89, 111]  slow [201, 250]  bridge_i.udut.umux1.udat.pair[6].u$LUT5
+    SLICE_X20Y41.B5              pin 2  lut5  fast [157, 194]  slow [419, 520]  bridge_i.udut.ulink_n13.lat.pair[6].u$LUT5
+    cell  total: fast [1214, 1511] mid 1362   slow [2936, 3642] mid 3289
+    route total: fast [658, 975] mid 816   slow [1806, 2355] mid 2080
+
+CLASS: KERNEL race -- both paths stay inside the circuit
+
+SLACK (path B - path A; positive = the required order holds):
+  fast-corner band midpoint                A     964  B    2179  slack   +1215 ps = +6.56 x median error (8.5 % of 2179) = +1.19 x worst short-ring error (47 %)
+  slow-corner band midpoint                A    2128  B    5370  slack   +3241 ps = +7.10 x median error (8.5 % of 5370) = +1.28 x worst short-ring error (47 %)
+  worst in-band (A fast max, B fast min)   A    1162  B    1872  slack    +710 ps = +4.46 x median error (8.5 % of 1872) = +0.81 x worst short-ring error (47 %)
+NEXTPNR SDF (nominal; from the cell driving the split):
+  path A: cells 152 + routing 1823 = 1975 ps
+  path B: cells 1004 + routing 3519 = 4523 ps
+  slack +2548 ps = +6.63 x median error (8.5 % of 4523 ps) = +1.20 x worst short-ring error (47 %)
+  (the ring data also fit measured = 0.938 x SDF + 988 ps per ring period: a ~1 ns constant the SDF does not charge;
+   whether it falls on one of these two paths and not the other is not known)

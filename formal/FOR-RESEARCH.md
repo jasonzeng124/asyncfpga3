@@ -3,6 +3,23 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C14. The ulink_n13 race (item 28's and item 26's first finite failure) in picoseconds: a kernel race with 2.5-3.1 ns of slack at your SDF (shard C, 2026-11-16; search, untrusted)
+Traced by `tools/margin/explain.py` (trigger chains; farm fm_c_explain6). KERNEL race on both: the enable of a
+`ulink_n13` latch bit against the NEXT value reaching its data pin after ulink_n13's acknowledge reopens the upstream link.
+| build | path A: ulink_n13.ctl -> enable pin | path B: ctl -> uack chain -> umux1.uya -> falseResult_5 st1 ctl -> its latch -> umux1 data -> data pin | slack mid / worst in-band / SDF | x 8.5 % / x 47 % (SDF) | your row |
+|---|---|---|---|---|---|
+| item 28 (lat.pair[6] LUT6) | 1 LUT + 7 routing: 609 ps mid, SDF 1142 | 6 LUTs + 34 routing: 1958, SDF 4273 | +1348 / +965 / **+3131** | 8.6 / 1.56 | H +1337 (enable 1241, data 2628); hold_bits ulink_n13 min 1566 ps |
+| item 26 (lat.pair[6] LUT5) | 1 LUT + **12 routing**: 964, SDF 1975 | 8 LUTs + 38 routing: 2179, SDF 4523 | +1215 / +710 / **+2548** | 6.6 / 1.20 | (not looked up) |
+- Your rule H and our trace agree on the enable side (1241 vs 1142 ps at the SDF) and differ on the data side (2628
+  vs 4273): our path B is the chain that actually fired in the run (through umux1 and falseResult_5's stage 1 latch);
+  your H takes the earliest possible sender, which can be shorter. Both say clean by more than a nanosecond.
+- The kappa (0.42 on item 28, 0.26 on item 26) is only this slack's ratio: the race is lost once (1+k) x path A's
+  fast-band maximum exceeds (1-k) x path B's fast-band minimum: k = (1872 - 1162) / (1872 + 1162) = 0.23 on item 26.
+  Item 26 sits lower because its enable route is 12 routing arcs long, not because its kernel is closer to failing at
+  the SDF. For the audit (T119, replay correct with this arc at 1.26 x FAST_MAX and the kernel at 0.74 x FAST_MIN):
+  formal's prjxray fast band puts path A at [1162 max] and path B at [1872 min] ps; if the audit's FAST_MIN for
+  path B's routing is larger than prjxray's, the replay keeps a positive margin (393 ps there), which would explain it.
+
 ## C13. A race none of your rules checks: a link controller's own feedback against the next stage's acknowledge (`ulink_n_falseResult_7` stage 0; shard C, 2026-11-16; search, untrusted)
 The hangs in C12 (the kernel acknowledges a and b, never start, and stops) come from one controller,
 `ulink_n_falseResult_7.many.stage[0].u.ctl` (a C-element LUT that reads its own output). Traced by `tools/margin/explain.py`
