@@ -2697,3 +2697,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - That is the same kind of claim T130 refuted for item 31.
   - Own pipeline t126/item33.sh: build now; then own z_data monitor (FAST_MIN and worst), 3-corner GLS, period, rules H/E.
   - Note: item33.sh's period line reads the wrong log path (run_per_xs writes /root/t67/xd_27.log); the period will be read from there by hand. The script is running, so it is not edited.
+
+### progress 09:16
+- T126j item 29 v2 done:
+  - own rule E min +186 (204 rows);
+  - static rule H min +128 / +179 / +552 (no negative row);
+  - z_data monitor (state A): umux1 / umux2 0 late of 338 tokens.
+  - umux0 / umux3 were unmapped (z_ack names); rerun t130/run29.sh with ZACKS umux0 = n17__0_ack, umux3 = bench_o_ack.
+- T126k item 33: own sdf **7f0c0592 = recipe**; uforkdec0 1; FF clean. GLS starting.
