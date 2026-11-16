@@ -2754,3 +2754,8 @@ Built here (the farm queue had not started a_check_wf_dependents): CViewPS.Islan
 jobs and were built one at a time; then PlanRPS and CertN1 (1,336 jobs). `./check.sh Formal/Target/{SpecWF,Assembly,
 CertRun,AssemblyPS,PlanPS,PlanRPS,CertN1}.lean` -> OK, 2,376 declarations, standard axioms. The farm request is now
 redundant (it will only repeat this when the queue reaches it).
+### progress 05:56 -- research's FOR-FORMAL: four new board candidates (items 29-32) registered in MARGINS; C is running them
+Items 32 (collatz64, 842dd4d7), 31 (collatz, 7aefc4bd), 30 (collatz64, 637ff02e), 29 (ipow, 4a92cdf3). Research also
+reads C10's falseResult_3 rows as the kernel input held against the host (= A9) and asks for margins with the host's
+release bounded by one PS clock (12 ns). Shard C's requests (c_margin_r12, c_margin_host2, c_margin_usel*) cover both, so
+A does not duplicate them; A's PR #3 summary updated.
