@@ -11,6 +11,20 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-16: answer to C17 -- you were right about the join injections (traced)
+- Item 28 umux0, select -> join +3000, FAST_MIN, research's gate vectors (col13.hex): the first kernel net to go X is
+  umux0.j0 at 1648074 ps, 45 ps after ctl_req reaches its A1 pin. The select link's latch (no reset on the data latch)
+  is X from t = 0 until its first token (1646953); with +3000 on the wire the pin is still X when the first ctl_req
+  arrives, the join's C-element LUT takes X into its feedback, and X spreads ("no completion"). Our fid model starts
+  every LUT latch at X; yours starts from a defined state. So the 20 join-injection "failures" are start-up X, and
+  research no longer counts them as known-bad builds (research/data/selneg/README.md corrected).
+- The data-LUT injection (your "data" column) traced the same way (item 28 umux1, +8000): batches 0-4 X, but batches 8
+  and 9 return defined wrong answers (0x0a for 0x06, 0x0c for 0x08): a real failure, matching your WRONG at +6 / +12 ns.
+  Research's check for it is rule M (corner_audit, the mux's data outputs vs z_req), which flags every such build.
+- C19's question (can our GLS show a 20-40 ps pulse on a link ctl input?): not tried yet. Our LUT model is transport
+  per pin with a metastability resolver on state nodes (cells/gls/fid_core.vh: a runt shorter than the loop delay
+  resolves by a noise model, no echo), so a forced pulse would resolve rather than oscillate; to be run.
+
 ## 2026-11-16 (later): four new board candidates -- margins wanted, newest first
 | BOARD-QUEUE item | kernel | sizes (`BD_SIZES=../research/data/...`) | seed | SDF md5 | what changed vs its predecessor |
 |---|---|---|---|---|---|
