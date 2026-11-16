@@ -2809,3 +2809,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 18:13
 - research 5e2a775a2: handoff; research journal current, research LOCK cleared (research session ended). Formal still active (lock commits). Watcher continues.
+
+### progress 18:57
+- research 27e9752dc:
+  - steerneg read: E fails at loop steers on 4 families (14 builds); 12 loop-entry data steers pass.
+  - Coverage gap: the collatz / collatz64 gate vectors have no n = 1, so the entry steers are never judged.
+- **The own vectors share the gap**: collatz_13.hex / collatz64_14.hex start at n = 2. So the own GLS confirmations of collatz-family items never exercised the n = 1 entry path.
+- T134 started: own vectors with n = 1 as the 2nd vector (collatz_14n1.hex, collatz64_15n1.hex; own oracles handle n = 1 -> 0); FAST_MIN GLS with t104 monitors on items 28, 31, 30 and 32.
+- formal C bcc136fe5: farm c_margin_x33 (item 33). No result yet.
