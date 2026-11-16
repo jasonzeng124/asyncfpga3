@@ -11,6 +11,15 @@ named here decodes EQUIVALENT (or only the benign GND-buffer kinds). If the md5 
 the full stack's equivalence on it before using the board (cells/gls/ps/build_ps.sh HWDIR WORK "" bit prints the
 fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('const', 0) bits ('const', 1)").
 
+## 2026-11-16 (evening): the collatz / collatz64 gates never ran n = 1 (zero-trip) -- items 28, 31, 30, 32 re-gating
+The gate vectors col13 / c6414 have no n = 1, so on every call the loop-entry test came out the same and the gate never
+judged the loop-ENTRY steers (a late entry condition passed every gate on the farm, steerneg). collatz(1) = 0 is in the
+full input range. New vectors col14 / c6415 (n = 1 second; oracle compiled from kernels/*.c, kernel_oracle.sh). Farm zt1
+re-gates the four families (32 routes x 3 corners) and repeats the entry-steer control on each board seed. Until it is
+back, items 28 / 31 / 30 / 32 are "gate-clean on n >= 2"; their static rule E rows at the entry steers are clean. xorshift
+and ipow vectors do contain a zero-trip call (rounds 0 / e 0), but only as the FIRST call (see JOURNAL: an entry-steer
+glitch at a loop-entering call leaves a stray token on the skip path that only a LATER zero-trip call would read).
+
 ## 2026-11-16: rule M (new) -- the bd_mux data outputs were never checked; items 27, 29, 30, 32 have misses
 corner_audit now checks every bd_mux's 32 / 64 data outputs against its output request (rule M, the A rows marked
 "peers no common source reaches"; JOURNAL 2026-11-16). Before, tighten's rule A paired the request with a trivial peer
