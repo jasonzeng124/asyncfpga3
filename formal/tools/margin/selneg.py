@@ -29,14 +29,17 @@ def src(u):
     while u in drv and is_copy(G[drv[u]]): u = G[drv[u]]["ins"][0]
     return u
 inj = []
+MODE = os.environ.get("SELNEG_MODE", "join")   # join: research's arcs (select latch -> MUX.uj0/uj1); data: select latch -> MUX's data LUTs
+pat = r"\.%s\.uj[01]\b" % re.escape(mux) if MODE == "join" else r"\.%s\.udat\." % re.escape(mux)
 for nm, nd in node_of.items():
-    if not re.search(r"\.%s\.uj[01]\b" % re.escape(mux), nm) or nd not in idx: continue
+    if not re.search(pat, nm) or nd not in idx: continue
     g = G[drv[idx[nd]]]
     for p, u in enumerate(g["ins"]):
         s = src(u); sc = cell_of.get(N[s], "")
         if "lat.odd" in sc: inj.append((nd, p, sc))
 if not inj: sys.exit("no %s.uj0/uj1 pin fed by a select latch (lat.odd) found" % mux)
-for nd, p, sc in inj: print("inject on %s pin %d (%s), fed by %s" % (nd, p, cell_of.get(nd), sc))
+print("mode %s: %d arcs" % (MODE, len(inj)))
+for nd, p, sc in inj[:6]: print("inject on %s pin %d (%s), fed by %s" % (nd, p, cell_of.get(nd), sc))
 want = ",".join(str(v) for v in kernels.want(kernel, ["%d,%d" % tuple(int(t, 0) for t in p.split(",")) for p in pairs])) if kernel != "gcd" else None
 TMAX = os.environ.get("TFULL", "25000000")
 def run(ps, cdefault):
@@ -46,7 +49,8 @@ def run(ps, cdefault):
           ["--pairs", *pairs, "--kernel", kernel, "--corner", "0", "--kappa", "0", "--classes", cf, "--cdefault", cdefault, "--data0", "--full",
            "--R", "400000", "--su", "1000", "--datachange", "broad", "--nextreq", "seq", "--tmax", TMAX, "--hostdelay", os.environ.get("HOSTDELAY", "12000")]
     r = subprocess.run(cmd, capture_output=True, text=True, env=dict(os.environ, KDEN="100"), cwd=O)
-    return ([x for x in r.stdout.splitlines() if x.startswith("RESULT")] or ["NO-VERDICT (event cap) " + r.stderr[-120:].replace("\n", " ")])[0]
+    st = [x for x in r.stderr.splitlines() if x.startswith("sim:") and "events" in x or "injected" in x or "PERIODIC" in x]
+    return ([x for x in r.stdout.splitlines() if x.startswith("RESULT")] or ["NO-VERDICT (event cap)"])[0] + "   [" + " | ".join(st[-3:]) + "]"
 for cd, lab in (("F", "fast-band minimum (kappa 0)"), ("M", "band midpoint")):
     print("%s, no injection: %s" % (lab, run(0, cd)))
     for ps in pss: print("%s, +%d ps: %s" % (lab, ps, run(ps, cd)))
