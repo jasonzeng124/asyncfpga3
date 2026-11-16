@@ -1,0 +1,44 @@
+w=20: physical (NOT a Spec counterexample: partial-ack deadlock, Spec.Env vacuous): kappa 0.37  race SLICE_X16Y26.C6 pin 0 from SLICE_X16Y26.C6 (run at w=20) RESULT MISMATCH: want [111, 170, 350] got [111]
+witness   (route slow): RESULT MISMATCH: want [111, 170, 350] got [111]
+reference (all fast)  : RESULT OK: want [111, 170, 350] got [111, 170, 350]
+first nodes to diverge (any gate): CLBLM_L_X12Y26/CLBLM_IMUX32(pip)@410231*, CLBLM_L_X12Y26/CLBLM_M_C1(pip)@410231*, CLBLM_L_X12Y26/CLBLM_LOGIC_OUTS22(pip)@410561*, CLBLM_L_X12Y26/CLBLM_M_CMUX(hop)@410561*, SLICE_X16Y26.C6(lut6)@410561*, CLBLM_L_X12Y26/CLBLM_LOGIC_OUTS14(pip)@410561   (* = an adversary arc)
+  diverges: SLICE_X16Y26.C6        at 410561 ps  <- the row's storage LUT
+  diverges: SLICE_X16Y26.A6        at 412126 ps
+  diverges: SLICE_X16Y23.C6        at 414103 ps
+  diverges: SLICE_X16Y25.B6        at 414989 ps
+  diverges: SLICE_X16Y23.A6        at 415004 ps
+  diverges: SLICE_X14Y22.A6        at 415558 ps
+  diverges: SLICE_X14Y22.D6        at 416118 ps
+  diverges: SLICE_X16Y36.A6        at 1367463 ps
+
+CAPTURE: SLICE_X16Y26.C6 (SLICE_X16Y26.CLUT.O6) first differs at 410561 ps
+RACE at SLICE_X16Y26.C6: pin 0 (delayed 276 ps by the adversary: reference arrival 410371, witness 410647) against pin 3 (arrival 410561)
+  A (CLBLM_L_X12Y26/CLBLM_M_C1@410271) ancestors: 693 flips, 85 LUT flips; latest LUT flips: SLICE_X16Y26.C6@410207, SLICE_X17Y26.C6@410046, SLICE_X16Y27.A6@409856, SLICE_X16Y28.A5@409660, SLICE_X16Y28.C6@409581, SLICE_X19Y33.C6@409357
+  B (CLBLM_L_X12Y26/CLBLM_M_C4@410476) ancestors: 708 flips, 87 LUT flips; latest LUT flips: SLICE_X16Y26.A6@410452, SLICE_X17Y26.A6@410327, SLICE_X16Y26.C6@410207, SLICE_X17Y26.C6@410046, SLICE_X16Y27.A6@409856, SLICE_X16Y28.A5@409660
+SPLIT (common launch): CLBLM_L_X12Y26/CLBLM_LOGIC_OUTS22 flips at 410207 ps; driven by the cell SLICE_X16Y26.C6 bridge_i.udut.ulink_n_falseResult_7.many.stage[1].u.ctl.u.u
+
+PATH A (must arrive FIRST; the adversary slowed it): split -> SLICE_X16Y26.C6 pin 0
+  path A: 3 arcs (1 cells, 2 routing)
+    SLICE_X16Y26.C6              pin 0  lut6  fast [221, 275]  slow [520, 645]  bridge_i.udut.ulink_n_falseResult_7.many.stage[1].u.ctl.u.u
+    cell  total: fast [221, 275] mid 248   slow [520, 645] mid 582
+    route total: fast [38, 47] mid 42   slow [114, 138] mid 126
+PATH B (overtook it in the witness): split -> SLICE_X16Y26.C6 pin 3
+  path B: 13 arcs (3 cells, 10 routing)
+    SLICE_X17Y26.A6              pin 2  lut6  fast [152, 189]  slow [378, 468]  bridge_i.udut.ulink_n_falseResult_7.many.stage[1].u.rdly.chain.g[0].u
+    SLICE_X16Y26.A6              pin 2  lut6  fast [159, 197]  slow [400, 496]  bridge_i.udut.ulink_n_falseResult_7.many.stage[2].u.ctl.u.u
+    SLICE_X16Y26.C6              pin 3  lut6  fast [134, 167]  slow [342, 424]  bridge_i.udut.ulink_n_falseResult_7.many.stage[1].u.ctl.u.u
+    cell  total: fast [445, 553] mid 499   slow [1120, 1388] mid 1254
+    route total: fast [114, 141] mid 128   slow [342, 414] mid 378
+
+CLASS: KERNEL race -- both paths stay inside the circuit
+
+SLACK (path B - path A; positive = the required order holds):
+  fast-corner band midpoint                A     290  B     626  slack    +336 ps = +6.31 x median error (8.5 % of 626) = +1.14 x worst short-ring error (47 %)
+  slow-corner band midpoint                A     708  B    1632  slack    +924 ps = +6.66 x median error (8.5 % of 1632) = +1.20 x worst short-ring error (47 %)
+  worst in-band (A fast max, B fast min)   A     322  B     559  slack    +237 ps = +4.99 x median error (8.5 % of 559) = +0.90 x worst short-ring error (47 %)
+NEXTPNR SDF (nominal; from the cell driving the split):
+  path A: cells 124 + routing 295 = 419 ps
+  path B: cells 372 + routing 885 = 1257 ps
+  slack +838 ps = +7.84 x median error (8.5 % of 1257 ps) = +1.42 x worst short-ring error (47 %)
+  (the ring data also fit measured = 0.938 x SDF + 988 ps per ring period: a ~1 ns constant the SDF does not charge;
+   whether it falls on one of these two paths and not the other is not known)
