@@ -3442,7 +3442,7 @@ Farm c_margin_sel3m2: item 28, item 25, fcsel3m s1/2/24 single-pin again with th
   separate kappa_hi.txt line. If the gcd target can reach such a state, a proved kappa_lo would say less than it
   seems; worth a look by A (does gcd_ps's OneReq boundary have this case?) and by the audit.
 
-### progress 03:45 -- capture cones on research's builds (farm c_margin_cones1, checker WITHOUT today's fixes)
+### progress 03:37 -- capture cones on research's builds (farm c_margin_cones1, checker WITHOUT today's fixes)
 Latch-group cones only (32 groups per collatz build, 31 collatz64, 32 xorshift). Candidates (first failing kappa, w 20):
 item 28 0.43, item 25 0.37, fcsel0 s24 0.35 (w 0 0.34), fcsel1 s24 none <= 0.45, fcsel2 s1 0.40, fcsel3m s1 none,
 fcsel3m s2 0.39, item 26 0.38, item 27 0.29 (w 0 0.28). In every collatz/collatz64 build the earliest cone is the
