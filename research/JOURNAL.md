@@ -5880,3 +5880,4 @@ on a ctl input in our GLS (already on the Next list).
   in batch 2 with odata X; draw 1404 (chains 0.300, rest 0.288) returns the previous call's answer on the first run of
   every batch from batch 13 (1000 rounds) on. These are the draw model's first failures on a clean route: the size-side
   edge lies near x0.40 for some routes. x0.55 / 0.55c have passed every draw so far (68 + 52).
+- 23:47 farm shrink5: x0.55a / x0.50a (every size but UADDI0), routes 1-32, 4 draws each. PREDICTION: x0.55a passes >= 126/128 on defect-free routes; x0.50a loses a few; P median x0.55a ~17 ns.
