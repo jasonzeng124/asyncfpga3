@@ -121,24 +121,51 @@ def arrivals(D, slowset):
     return sorted(out)
 aw, ar = arrivals(W, SL), arrivals(R, set())
 slowpins = [p for p in range(gq["k"]) if (q, p) in SL]
-# the delayed arrival: on a slowed pin if q has one, else the arrival whose time moved the most among matching flips
-moved = []
-for p in range(gq["k"]):
-    tw = [x for x in aw if x[1] == p]; tr = [x for x in ar if x[1] == p]
-    for x, y in zip(tw, tr): moved.append((x[0] - y[0], p, x, y))
-moved.sort(reverse=True)
-if slowpins:
-    mi = [m for m in moved if m[1] in slowpins] or moved
-else: mi = moved
-if not mi or mi[0][0] <= 0: sys.exit("no arrival at the capture moved later in the witness (the race is not at a pin of %s)" % N[gq["out"]])
-dly, pi, (aiw, _, ui_w), (air, _, ui_r) = mi[0]
-# the overtaking arrival: another pin's arrival that was after pin pi's in the reference and before it in the witness
-over = [x for x in aw if x[1] != pi and air < x[0] < aiw]
-if not over: over = [x for x in aw if x[1] != pi and x[0] < aiw][-1:]
-if not over: sys.exit("no competing arrival found")
-ajw, pj, uj = over[0]
-print("RACE at %s: pin %d (delayed %d ps by the adversary: reference arrival %d, witness %d) against pin %d (arrival %d)" %
-      (N[gq["out"]], pi, dly, air, aiw, pj, ajw))
+def single_race():
+    """single-pin rows: the arrival the adversary delayed vs the other-pin arrival that overtook it"""
+    moved = []
+    for p in range(gq["k"]):
+        tw = [x for x in aw if x[1] == p]; tr = [x for x in ar if x[1] == p]
+        for x, y in zip(tw, tr): moved.append((x[0] - y[0], p, x, y))
+    moved.sort(reverse=True)
+    mi = ([m for m in moved if m[1] in slowpins] or moved) if slowpins else moved
+    if not mi or mi[0][0] <= 0: sys.exit("no arrival at the capture moved later in the witness (the race is not at a pin of %s)" % N[gq["out"]])
+    dly, pi, (aiw, _, ui_w), (air, _, ui_r) = mi[0]
+    over = [x for x in aw if x[1] != pi and air < x[0] < aiw]
+    if not over: over = [x for x in aw if x[1] != pi and x[0] < aiw][-1:]
+    if not over: sys.exit("no competing arrival found")
+    ajw, pj, uj = over[0]
+    print("RACE at %s: pin %d (delayed %d ps by the adversary: reference arrival %d, witness %d) against pin %d (arrival %d)" %
+          (N[gq["out"]], pi, dly, air, aiw, pj, ajw))
+    return pi, air, pj, uj
+def cone_race():
+    """cone rows (a setup / capture race): in the reference the latch takes a data change at t*; the witness's data
+    (its cone slowed) misses the close that follows. Path A = that data arrival, path B = the enable arrival closing
+    the latch next."""
+    srcs = set(idx[x] for x in rowsrc.split("+") if x in idx)
+    def src0(u):
+        while u in drv and is_copy(G[drv[u]]): u = G[drv[u]]["ins"][0]
+        return u
+    en = [p for p, u in enumerate(gq["ins"]) if src0(u) in srcs]
+    if not en: sys.exit("cone row: no pin of %s comes from the group's enable source %s" % (N[gq["out"]], rowsrc))
+    if tstar not in flips(R, gq["out"]):
+        sys.exit("cone row: the reference latch does not change at t* (%d); this capture form is not handled yet" % tstar)
+    dat = [x for x in ar if x[1] not in en and x[0] <= tstar]
+    if not dat: sys.exit("cone row: no data arrival before t*")
+    air, pi, ui = max(dat)
+    cl = [x for x in ar if x[1] in en and x[0] > air]
+    if not cl: sys.exit("cone row: no enable arrival after the data")
+    ae, pj, uj = min(cl)
+    print("RACE (capture) at %s: data pin %d arrives %d ps (reference) and must beat the enable pin %d closing the latch at %d ps (setup %d ps in the reference); the witness's data misses it" %
+          (N[gq["out"]], pi, air, pj, ae, ae - air))
+    print("  (path A below is the REFERENCE run's critical data path into that pin; the cone adversary slows every data path,"
+          " so the one that loses in the witness can be another, longer one inside the cone)")
+    return pi, air, pj, uj
+rowsrc = None
+for l in open(os.path.join(O, "margins.txt")):
+    f = l.split()
+    if len(f) > 4 and not l.startswith("#") and f[1] == a.node and f[2] == str(a.pin): rowsrc = f[3]; break
+pi, air, pj, uj = cone_race() if a.pin >= 99 else single_race()
 # back-trace in the REFERENCE run: the cause DAG. A flip of node n at t (gate g) depends on, for each pin p that g's
 # INIT depends on, the last flip of that input at or before t - d_p (within a window). The split is the latest flip that
 # is an ancestor of both racing arrivals; each path is the critical chain (latest arrival at every gate) from it.

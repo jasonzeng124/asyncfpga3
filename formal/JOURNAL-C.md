@@ -3527,3 +3527,13 @@ explain.py now gives each slack as a multiple of the median error AND of the wor
 notes the unexplained constant. gcd_ps's binding race: +1401 ps at nextpnr's SDF = 8.4 x median, 1.5 x worst
 short-ring; +327 ps at the worst in-band split of the prjxray fast corner = 1.1 x worst short-ring. item 25's race
 (through the harness): +1196 ps fast-mid = 8.1 x median, 1.5 x worst short-ring.
+
+### progress 03:55 -- explain.py handles capture (cone) rows; gcd_ps's first capture race in ps
+Cone rows: the capture is a latch of the row's group; the race is the reference run's data arrival at that latch (at
+t*, where the reference latch takes data the witness misses) against the next enable arrival that closes it.
+gcd_ps, cone 0.61: latch ulink_n_index_97 st0 lat.pair[0] (SLICE_X17Y31.D6). Split: ucontrol_merge12.uarb2.ustate
+(SLICE_X16Y31.A6). Path A (data): ugrant -> merge12 data LUT -> latch pin 4: 3 LUTs + 10 routing, 554 ps fast-mid,
+1257 ps SDF. Path B (enable): merge12's 24-LUT matched delay udly -> the link's ctl -> latch pin 3: 28 LUTs + 121
+routing, 6447 ps fast-mid, 13328 ps SDF. Slack +5.9 ns fast-mid, +12.1 ns SDF (1.9 x the worst short-ring error).
+Caveat printed with it: path A is the reference's critical data path; the adversary slows the whole cone, and the
+path that loses in the witness can be a longer one inside it (not traced yet).
