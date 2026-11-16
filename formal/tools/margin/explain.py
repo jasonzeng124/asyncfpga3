@@ -421,6 +421,8 @@ print("\nSLACK (path B - path A; positive = the required order holds):")
 for lab, x, y in (("fast-corner band midpoint", (B["fmin"] + B["fmax"]) / 2, (A["fmin"] + A["fmax"]) / 2),
                   ("slow-corner band midpoint", (B["smin"] + B["smax"]) / 2, (A["smin"] + A["smax"]) / 2),
                   ("worst in-band (A fast max, B fast min)", B["fmin"], A["fmax"])) + ((("nextpnr SDF", B["sdf"], A["sdf"]),) if sdf else ()):
+    if lab.startswith("worst") and x - y < 0:
+        print("  (a negative worst in-band split is a bound on two path sums, not a failure: --verify-path tests the race alone)")
     sl = x - y; L = max(x, y)
     print("  %-40s A %7.0f  B %7.0f  slack %+7.0f ps = %+.2f x median error (%.1f %% of %.0f) = %+.2f x worst short-ring error (%.0f %%)" % (lab, y, x, sl, sl / (a.err * L) if L else 0, 100 * a.err, L, sl / (a.err7 * L) if L else 0, 100 * a.err7))
 if SDFI is not None:

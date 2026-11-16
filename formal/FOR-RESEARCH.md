@@ -32,8 +32,11 @@ short-ring error), and -93 ps at the worst split inside the fast band** (A at it
 merge1's matched delay (two elements here) covers its data by about 0.1-0.4 ns. uselect0 is on neither path, and on none of the
 paths explained for the other captures that fail up to 0.90 (ulink_n14__1 at 0.82, +1679 ps SDF; three others at
 0.84-0.88 with 2.2-9.6 ns of SDF slack; three more traces were rejected as inconsistent). So uselect0's own line is
-not among the races this search breaks; its slack in ps is still not computed. Checking now whether this race alone (path A slowed, nothing else) fails
-inside the band (farm c_verify1). Same structure on item 27 (C12): +1418 / +1423 ps SDF there.
+not among the races this search breaks; its slack in ps is still not computed. **Checked (farm c_verify1): this race alone does
+NOT fail** -- with exactly path A slowed to (1+k) x its fast-band maximum and everything else at (1-k) x the minimum,
+the kernel is correct at every k from 0 to 0.45. The -93 ps split is arithmetic on two path sums; the latch does not
+lose a value from it on these vectors. The cone failure at 0.46 needs more of the data cone slow at once. Same
+structure on item 27 (C12): +1418 / +1423 ps SDF there.
 **fbslack.py agrees.** Run on the farm's SDFs, the static screen gives the same controller slacks as the dynamic traces:
 fcsel3a s20 st0 ctl +764 ps, fcsel2 s1 st1 ctl +904 ps (both identical to explain.py). So `fbslack.py BUILD.sdf --grep .ctl.`
 is a 5-second check of this race on any route of yours.
@@ -99,6 +102,9 @@ only the order in which our adversary breaks things.
 |---|---|---|---|---|---|---|---|
 | `ucontrol_merge0_olink.lat.odd` | `ucontrol_merge0.uarb1.ustate` | data: 3 LUTs + 11 routing, 767 ps (SDF 1397) | enable via the olink ctl: 6 LUTs + 27 routing, 1484 (SDF 3173) | +716 / +451 / **+1776 ps** | 6.6 / 1.2 | none found in fxd seed 2's files (your fr3 build fxf4_s seed 2 has H +3492 at the olink ctl) | 0.39, wrong count (2 of 4 answers), checked |
 | `ulink_n_index_15.many.stage[0].lat.odd` (a select link) | `ucontrol_merge1.uarb1.ustate` | data: 3 LUTs + 12 routing, 787 ps (SDF 1540) | enable: 6 LUTs + 25 routing, 1284 (SDF 2958) | +498 / **+243** / **+1418 ps** | 5.6 / **1.0** | your hold_bits on fxd seed 2: the same LUT (SLICE_X14Y33.B6) is the tightest hold bit, min 1159 ps (fxf4_s, fr3: H +1394 at the st0 ctl) | 0.28-0.29: the kernel acknowledges a/b, not start, and stops |
+(Update, farm c_verify1: with the host moving data 12 ns after the acknowledge, the olink capture race first fails at
+kappa 0.61, not 0.39 as with a 1-ps or 2-ns host, and that 0.61 run breaks Spec.Env (not a counterexample). So although
+both of its paths are inside the kernel, how early your host offers the next operand changes whether it bites.)
 Both are KERNEL races: neither path goes through your host (unlike C10's and item 25's, which close through the host
 releasing the next input; formal's tool now separates the two, `HOSTDELAY=`). Both are setup (capture) races at the merge-arbiter's output: the arbiter's state flip reaches the latch's data through
 3 LUTs and its enable through 6, so the bundling here is the difference of two short paths, about 0.5 ns. Your rules

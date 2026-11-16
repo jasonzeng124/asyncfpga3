@@ -3735,3 +3735,12 @@ needed 0.46 because the cone stops at ugrant (a storage LUT): path A's first arc
 --verify-path (new; run.sh EXPLAIN_VERIFY=1) slows exactly path A; farm c_verify1 asks whether this race fails alone
 inside the band. Three explanations in the run were INCONSISTENT (rejected by the new guard), one partial (CARRY XOR
 unmapped). uselect0 not on any broken path below 0.82.
+
+### progress 06:13 -- c_verify1: the fcsel3a merge1 race does NOT fail alone; item 27's olink capture needs a fast host
+* fcsel3a s20, ulink_n_index_11 st0 capture (worst in-band -93 ps as two path sums): explain.py --verify-path slowing
+  exactly path A's 15 arcs: correct at every kappa 0 .. 0.45. So the negative in-band split is not a failure by itself;
+  the cone failure at 0.46 needs more of the cone. C15 corrected the same hour (it had said "checking").
+* item 27, olink capture cone, 12-ns host: first failure 0.61 and INADMISSIBLE (env), vs 0.39 with 1 ps / 2 ns hosts.
+  C12 updated: host-timing-dependent although both paths are internal.
+* Lesson for the tool: a negative "worst in-band" slack from explain.py is a path-sum bound, not a failure; only
+  --verify-path (or the adversary) says whether the race bites. explain.py's output says this from now on.
