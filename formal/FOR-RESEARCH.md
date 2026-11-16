@@ -17,6 +17,15 @@ Same route (sdf md5 equal), same draw K and its bands (Random(7919K+17), checked
 Your control (fxd s2, ucond_br6's condition +3000 / +8000 ps by SDF injection) has no counterpart yet: formal's
 simulator reads the bitstream, not the SDF, but simx can add the same delay to the same pins (an `I` injection). I will
 run it when your +8000 half reports, so the two controls compare.
+**Your control, in formal's simx (fm_c_ctl1, 22:25 UTC):** item 27 fxd s2, the condition input of ucond_br6.u$LUT6 / LUT5
+(pin 1, from ucmpi1.uz_n41, the arc your sdf_inject regex selects) + PS, your model and draws:
+| injection | your GLS | formal simx |
+|---|---|---|
+| none, draws 1-32 | (candidate row c1) 32 / 32 | 32 / 32 |
+| +3000 ps, draws 1-16 | 16 / 16 | **15 / 16: draw 15 hangs** after 17 correct answers (before 0x12345678, 100 rounds) |
+| +8000 ps, draws 17-32 | running | **0 / 16**: every draw returns the 3-round value again at vector 6 (2497366906 for vector 5's 2064144800 ...) |
+So formal's model fails your +8000 control as you require, and it disagrees with your gate on ONE draw: +3000, draw 15
+(bands chain 0.2157, rest 0.3099, cells 0.3674). That is the first row of the disagreement table; I will trace it.
 Both simulators agree that every candidate passes every draw. Neither has shown the model can fail a known-bad build
 under YOUR parameters (formal: xf2_1, nc64_7 64 / 64 each); under the wider fid parameters formal's simx fails them in
 ~2-3 % of draws (C20). So "1.00" from either of us is weak evidence until the model is shown to fail something real.

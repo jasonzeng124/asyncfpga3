@@ -4029,3 +4029,8 @@ draws; research's model (region 0.02) separates nothing. So in formal's simulato
 the races that broke the known-bad builds at the FAST_MIN gate; whether that is the model or the builds being near-good
 is open. Next: (1) research's draws1 verdicts per draw, for the disagreement table (their tasks still running);
 (2) re-check margin-tool runs with HOSTDELAY >= 2000 for the same harness defect (their vectors had no zero-trip call).
+
+### progress 22:24 -- c_ctl1: research's draws1 control in formal's simx: fails the +8000 half 0/16; ONE disagreement at +3000 (draw 15)
+Injection on ucond_br6.u$LUT6/LUT5 pin 1 (from ucmpi1.uz_n41). none 32/32; +3000 draws 1-16: 15/16 (draw 15 hangs after
+17 correct answers, before 0x12345678/100); +8000 draws 17-32: 0/16 (wrong values from vector 6). Research's +3000 half:
+16/16 PASS (draws1 tasks 29-30); +8000 half running. Draw 15 at +3000 is the disagreement to trace (C22).
