@@ -5772,3 +5772,11 @@ on a ctl input in our GLS (already on the Next list).
   formal's semantics) every pulse below the loop delay circulates for 8 ns. The difference between formal's C19 failures
   and our passes is the resolver assumption (TAU = WIN = 150 ps, unsourced). Silicon: BOARD-QUEUE item 2 (H_RUNT).
   research/data/fid/runtc.md; answered in FOR-FORMAL.md. The old inertial model oscillates at P 150-300 on the 424 loop.
+### progress 19:06 (xorshift entry data steers: a late condition passes even with zero-trip calls between looping calls)
+- tx27_2 rebuilt (xray.sdf 2203029e = farm steerneg's x27 route). Every ucmpi0 -> ucond_br2/3/4 LUT arc +8000 ps (6 arcs,
+  SDF only), gate FAST_MIN +META_INIT=0 on xor19 (xor17 + a zero-trip call with a new seed after three looping calls,
+  and one at the end; oracle kernel_oracle.sh): PASS 19/19, every batch correct; the clean route PASS 19/19 (4534 cycles).
+  So my explanation (a stray token on the skip path that only a later zero-trip call reads) is WRONG for xorshift: rule E
+  says the condition reaches those steers 4.9 ns after their request (launch ulink_n1__1.ctl, req 7313 / sel 12203 ps at
+  worst), yet no mis-steer shows. Tracing the steer on 5 vectors at FAST_MIN (tr_entry) to see what the request waits
+  for. The zt1 PREDICTION (the collatz entry control fails on col14) is now doubtful for the same reason.
