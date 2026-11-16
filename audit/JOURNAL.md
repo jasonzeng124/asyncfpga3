@@ -2465,3 +2465,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - Own pipeline t126/item32.sh: builds now (variant c64sel3p); GLS after item 31.
   - It includes the mon_sel classifier (ZACKS as item 30) and bundling from ulink_n14__0 through umux0.
   - The question is whether item 32 shares item 30's late umux0 select.
+
+### progress 06:04
+- T128 control 3 (+3000 on ulink_n10__3 -> uselect0): static -917, gate PASS 13/13. The request bound is loose by more than 3 ns (it takes the earlier input of the steer join).
+- Control 4 (+12000) started.
+- formal A fced4e797: items 29-32 registered as pending in MARGINS. No claim yet.
