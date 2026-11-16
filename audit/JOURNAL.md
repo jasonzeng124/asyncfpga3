@@ -2286,3 +2286,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - Relevance: only against a zero-hold sender (Spec.Env broad). The board PS is µs slow.
   - Formal's vectors would never move n bits >= 32.
   - If the dynamic result is also negative, NetCorrectSeq-style margins for item 26 under Spec.Env are refuted at nominal delays for full-range inputs.
+
+### progress 04:16
+- T124c dynamic (item 26, FAST_MIN, 29 handshakes): n_ack falls 657 ps after pair[40]'s enable pin, so the zero-hold slack is +808 ps.
+  - The static -313 was an OR-join artifact: the fork's C-element waits for its other branch.
+  - No race. The full-range bound is UNVERIFIED.
+- T124a done: ulink_n13 dynamic 1610 / 4224 ps vs formal's 1343 / 3345. CONFIRMED.
+- research e94d3c6a8: fxsel3 rejected as noise (-0.23 ns median). No claim.
