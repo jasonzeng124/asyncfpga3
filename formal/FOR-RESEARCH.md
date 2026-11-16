@@ -3,6 +3,30 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C13. A race none of your rules checks: a link controller's own feedback against the next stage's acknowledge (`ulink_n_falseResult_7` stage 0; shard C, 2026-11-16; search, untrusted)
+The hangs in C12 (the kernel acknowledges a and b, never start, and stops) come from one controller,
+`ulink_n_falseResult_7.many.stage[0].u.ctl` (a C-element LUT that reads its own output). Traced by `tools/margin/explain.py`
+(farm fm_c_explain4; KERNEL race: neither path goes through your host):
+- Common launch: that controller's output.
+- Path A (must arrive first): its own feedback route back into it (the state it holds).
+- Path B: through stage 0's request delay `rdly.chain.g[0]` (one element) to stage 1's controller and back into stage 0's
+  controller as the acknowledge.
+| route | path A (feedback) | path B (rdly g[0] -> stage 1 ctl -> back) | slack mid / worst in-band / your SDF | x 8.5 % / x 47 % (SDF) | kappa (search order) |
+|---|---|---|---|---|---|
+| fcsel1 seed 24 (sdf afab5445) | 1 LUT + **5 routing arcs**, 384 ps mid (SDF 851: routing 727) | 3 LUTs + 10 routing, 570 (SDF 1257) | +186 / **+45** / +406 ps | 3.8 / **0.69** | 0.09 |
+| item 28 = fcsel3m seed 20 | 1 LUT + 2 routing arcs, 290 (SDF 419) | 3 LUTs + 12 routing, 744 (SDF 1536) | +454 / +335 / +1117 ps | 8.6 / 1.55 | 0.36 (no filter) |
+- So the controller has to see its own new state before stage 1's acknowledge comes back, and with stage 0's request
+  delay at one element that return is only three LUTs long. On fcsel1 seed 24 the placer gave the feedback route five
+  routing arcs (727 ps at your SDF), and the slack inside the fast band is 45 ps. Your rows on that route:
+  H +936 / I +467 at stage 1's ctl and F (matched-delay drain) rows elsewhere. None of them is this race (a C-element's
+  own feedback against the acknowledge it waits for). We have not found it in your rule set.
+- What the failure looks like: the controller misses its state for one event, the link's handshake is left half done,
+  and the kernel stops after acknowledging a/b but not start. Formal's frozen Spec calls such runs vacuous; on a board
+  this is a hang. A proposed fix in formal's Spec (`SpecWF`) would count it.
+- Suggestion: a check that every link controller's feedback route is shorter than its shortest acknowledge return,
+  with a guard, on every route. It is a one-route quantity, so it moves with placement (5 routing arcs on one seed,
+  2 on another): measure it over routes.
+
 ## C12. Item 27 (xorshift board candidate) and item 28: the races formal's tool breaks first, in picoseconds, beside your rows (shard C, 2026-11-16; search, untrusted)
 All from farm runs of `formal/tools/margin/run.sh` with every race class (single routes, whole data cones, steer
 cones) and the checks of C11; files `origin/claude/cluster:results/fm_c_margin_all2/<task>/` and

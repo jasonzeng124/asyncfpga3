@@ -3611,3 +3611,14 @@ item 25 give the same paths and slacks as before. c_explain2's item 25 / fcsel3m
 falseResult_3 st0, all BOUNDARY: through the host) are unaffected: slack +900..+1196 ps fast-mid, +1663..+2192 ps at
 the SDF; their task-7 (item 27 cones) output used the old cone code and is superseded by c_explain3/5.
 Farm c_explain6 (supersedes c_explain4): item 26 / item 28 ulink_n13 races and the falseResult_7 st0 hangs.
+
+### progress 04:32 -- FOR-RESEARCH C13: the falseResult_7 st0 controller-feedback race in ps (fcsel1 s24: +45 ps worst in-band)
+c_explain4 (DAG version; these two traces have short, plausible chains, re-run in c_explain6 with trigger chains):
+fcsel1 s24 hang at 0.09: ulink_n_falseResult_7 st0 ctl's own feedback route (1 LUT + 5 routing, 384 ps mid / SDF 851)
+vs rdly.chain.g[0] -> st1 ctl -> back (3 LUTs + 10 routing, 570 / SDF 1257): slack +186 mid, +45 worst in-band, +406
+SDF (0.69 x worst short-ring error). item 28 at 0.36: feedback 2 routing arcs; +454 / +335 / +1117. research's rows on
+fcsel1/24: H +936 / I +467 (st1 ctl), F = matched-delay drain; no rule covers a controller's own feedback vs its
+acknowledge. item 26's ulink_n13 trace in c_explain4 is the DAG version (split falseResult_5 st0 ctl, slack -534 ps
+SDF): not trusted, waiting for c_explain6. item 27 olink (c_explain5, witness-traced): data pin 0 changes 447 ps after
+close #1 in the witness; paths and slacks as c_explain3. index_15 cone: a stall (runts 75 ps at merge0_rlink.ctl and
+merge1.uarb1.ustate).
