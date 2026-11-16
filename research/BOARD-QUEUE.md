@@ -17,16 +17,17 @@ batch's runs disagreed (mism_st bit 0, FIXED-mode repeatability); the gate never
 falls one call behind (a stray token from a mis-steer) returns the previous call's answer on each batch's first run and
 the right one on its second, and passed. Seen: a constructed late entry condition on xorshift (16 of 19 batches), and 5
 farm steerneg runs judged PASS. Fixed (a disagreeing batch fails). The board script (xsdb_bench_gen.tcl) always
-asserted it, so no board judge is affected. Re-gating with the fixed verdict: items 27 / 29 / 33 families (farm
-regate1), items 28 / 31 / 30 / 32 (farm zt1, which kept every BENCHRES line). Item 31's family so far: 33 / 33 gate runs
-clean with the new check. Items before 23 were judged by other harness scripts; not re-checked.
+asserted it, so no board judge is affected. Re-gated with the fixed verdict: items 27 / 29 / 33 families (farm
+regate1: fxa 168, fxd 168, fisel3m >= 78 gate runs, all PASS), items 28 / 31 / 30 / 32 (farm zt1): no mismatch on any
+clean route. Items before 23 were judged by other harness scripts; not re-checked.
 
 ## 2026-11-16 (evening): the collatz / collatz64 gates never ran n = 1 (zero-trip) -- items 28, 31, 30, 32 re-gating
 The gate vectors col13 / c6414 have no n = 1, so on every call the loop-entry test came out the same and the gate never
 judged the loop-ENTRY steers (a late entry condition passed every gate on the farm, steerneg). collatz(1) = 0 is in the
 full input range. New vectors col14 / c6415 (n = 1 second; oracle compiled from kernels/*.c, kernel_oracle.sh). Farm zt1
-re-gates the four families (32 routes x 3 corners) and repeats the entry-steer control on each board seed. Until it is
-back, items 28 / 31 / 30 / 32 are "gate-clean on n >= 2"; their static rule E rows at the entry steers are clean. xorshift
+re-gated the four families (32 routes x 3 corners): **every clean route PASSES with n = 1, no run-to-run mismatch**
+(the one failure is fcsel3a seed 10, the known 5FF-D defect route). The entry-steer control passes on the old vectors
+and fails with n = 1 on items 28, 30, 32's board seeds: the gap was real, and is closed. xorshift
 and ipow vectors do contain a zero-trip call (rounds 0 / e 0), but only as the FIRST call (see JOURNAL: an entry-steer
 glitch at a loop-entering call leaves a stray token on the skip path that only a LATER zero-trip call would read).
 
