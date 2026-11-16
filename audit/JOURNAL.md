@@ -2293,3 +2293,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - No race. The full-range bound is UNVERIFIED.
 - T124a done: ulink_n13 dynamic 1610 / 4224 ps vs formal's 1343 / 3345. CONFIRMED.
 - research e94d3c6a8: fxsel3 rejected as noise (-0.23 ns median). No claim.
+
+### progress 04:20
+- T125 first pass: item 28 umux2 select +3000 ps (own injection, cs3inj2_20). Own oracle 13/13 at FAST_MIN and worst, which reproduces research selneg task 14 ("gate passes").
+- The select monitor did not attach because umux2's z_ack is the kernel output ack = bridge_i.bench_o_ack. Rerunning with ZACKS (inj2_*).
