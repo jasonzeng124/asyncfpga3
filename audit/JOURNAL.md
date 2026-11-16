@@ -2788,3 +2788,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - mon_x on ucond_br7_req, n_falseResult_9_u_req and the condition net;
   - self-stop at 80 us.
   - Question: does it stall, and does X appear?
+
+### progress 16:24
+- T133 own replay of the steer control (no META_INIT): 0/13 batches by 80 us.
+  - X appears: the condition pin is X at the first token (1.66 us), and the steer's outputs go X.
+  - Inconclusive. Research's "true deadlock, no X" needs a defined start-up, which the own harness lacks: UNVERIFIED. Finding T133; REPORT row updated.
