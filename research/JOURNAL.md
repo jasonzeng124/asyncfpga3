@@ -5659,3 +5659,14 @@ Next:
   in 27 CPU-min (clean ~8), stopped. So the start-up X explained the first X in the earlier trace, but removing it does
   not make the join injection pass: something else stops the run. My correction (the join failures are "only" start-up
   X) is itself too strong; tracing with META_INIT=0 (tr_c28u0j0). fullstack_dump.sh also takes GATE_PLUSARGS now.
+### progress 10:00 UTC (the join hang IS start-up X; +META_INIT as written does not reach it)
+- Trace with +META_INIT=0 (tr_c28u0j0): identical to the first -- the select latch's output (n14__0_data) is X from t = 0
+  to its first token (1646953), its pin X until 1650171, j0 goes X at 1648074 and X spreads. So the earlier correction
+  stands (the select-join "failures" are start-up X), and META_INIT=0 / 1 did not remove it: the latch's initial value
+  is overwritten by its own X inputs (enable / data from controllers that are X before the harness reset), so it is X
+  again before the first token. The opt-in stays (it is inert by default and did not change the clean or the
+  data-LUT runs: PASS 13/13 cycles 2906 / FAIL 6/13), but it is NOT a fix. A fix: treat X on a state node's inputs as
+  "hold" until reset has been released, or reset the data latches. Next session.
+- Net effect on the checks: rule E has no genuine known-bad build on the select-join race (it may be benign at
+  loop-header muxes); rule M has real ones (defined wrong answers). BOARD-QUEUE items rest on E (arrival at steers and
+  joins) + M (mux data) + H / I / hold_bits / TSE (hold) + the gate.
