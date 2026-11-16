@@ -62,7 +62,7 @@ BQ#2/#3 reproduced on default seed: sdf md5s match, GLS 16/16 both (own judge), 
 ### progress 05:01
 Research pass 3 (9a02f6f): xorshift 1.71x/1.72x REFUTED as comparisons (6- vs 14-vector fits; verified journal lines 749/757); dsp_areg control OVERSTATED (detects an illegal injected state, not the real AREG=2 bug); collatz64 provenance overstated (named tool commit lacks rule F) though seed 3 with current tools is clean; bd_prims_sim.v still unfixed. Waiting on formal3 build.
 
-### progress 05:57
+### progress 05:55
 New heads: formal 297d12c (1e7947a tcheck on 4 gcd_hw routes claims rule-pass/tcheck-fail rows incl. J 67/70 -> board risk; reproduction launched), research 7ad18c4. P3 (ArbCorners/PipeTimedN) agent running.
 
 ### progress 05:59
@@ -2460,7 +2460,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Static rule H: falseResult_3 stage 1 at -326 / -330 / -74 is the same row as item 26 (-533..-744, dynamically clean in T113). Dynamic check t126/hdyn30.sh is running.
   - REPORT row updated.
 
-### progress 05:57
+### progress 05:55
 - research f0fd426ba queues BOARD-QUEUE item 32: collatz64 item 30 + proposal round (h4s3p), seed 22, sdf 842dd4d7, 31.4 ns, ratio ~1.11 over item 30. It keeps item 30's select links at 3.
 - Own pipeline t126/item32.sh: builds now (variant c64sel3p); GLS after item 31.
   - It includes the mon_sel classifier (ZACKS as item 30) and bundling from ulink_n14__0 through umux0.
