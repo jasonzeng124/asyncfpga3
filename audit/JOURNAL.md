@@ -2917,3 +2917,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The hazard tracks the unmeasured CARRY4 scale.
   - advD and the 16 own draws are next.
 - research 05a391808: lock only.
+
+### progress 22:24
+- T136:
+  - advD (chains 0.31, rest 0.31, cells 0.20): clean, 17/17. Of the model corners, only those with CARRY4 at 1.0 (worst / advA / advC) show the ucond_br2 / br5 runts.
+  - Own draws dr1 / dr2: 0 steer violations so far. dr4 / dr15 have chains 0.207 and cells 0.39 / 0.90; the rest are running.
+- research c44e64b58 / 5f57dd92d (zt1 done, BOARD-QUEUE): every clean route passes with n = 1; the entry-steer control (+8000 on ucmpi0 -> steer) passes the old vectors and fails or hangs with n = 1 on items 28 / 30 / 32.
+  - Consistent with own T134 (n = 1 clean on the board seeds of 28 / 30 / 31 / 32) and T133b (the collatz steer control deadlocks under defined start-up).
+  - The control figures are UNVERIFIED by own run. No new row.
