@@ -18,10 +18,13 @@ of the latches themselves. The adversary (margin.py) puts these at (1+k) FAST_MA
 checkers (checkrows.py) decide that, not this file.
 
 Rows have races.py's format with pin = 99 (marker: a cone, not a pin) and kre = 0 (no ranking: all are swept).
+--steer adds one row per (non-latch storage gate q, pin i) whose input is reached through at least one logic gate
+(a branch steer's condition, a C-element or arbiter reading data): that cone slow, all else fast; pin = 100 + i.
 """
 import json, sys, argparse
 ap = argparse.ArgumentParser(); ap.add_argument("net"); ap.add_argument("bnd"); ap.add_argument("out")
 ap.add_argument("--maxarcs", type=int, default=200000)
+ap.add_argument("--steer", action="store_true", help="also one row per (non-latch storage gate, pin) whose input comes through a combinational cone with at least one logic gate (a steer / branch condition / C-element reading data)")
 a = ap.parse_args()
 net = json.load(open(a.net)); G = net["gates"]; N = net["nodes"]; idx = {n: i for i, n in enumerate(N)}
 ENV = set(idx[x] for x in json.load(open(a.bnd))["env"])
@@ -57,24 +60,40 @@ for gi in storage:
     key = tuple(sorted(set(ps[p] for p in en)))
     groups.setdefault(key, []).append((gi, data))
 rows = []
-for key, mem in groups.items():
-    arcs = set(); seen = set(); stack = []
-    for gi, data in mem:
-        for p in data:
-            arcs.add((gi, p)); stack.append(G[gi]["ins"][p])
+def cone(starts):
+    """arcs of the combinational cone behind the (gate, pin) starts; also the number of non-copy logic gates met"""
+    arcs = set(); seen = set(); stack = []; nlog = 0
+    for gi, p in starts: arcs.add((gi, p)); stack.append(G[gi]["ins"][p])
     while stack and len(arcs) < a.maxarcs:
         u = stack.pop()
         if u in seen or u in ENV or u not in drv: continue
         seen.add(u); gj = drv[u]
         if gj in storage: continue          # a launching storage node: the cone stops at its output
-        g = G[gj]
+        g = G[gj]; nlog += not is_copy(g)
         for p, v in enumerate(g["ins"]):
             if is_copy(g) or dep(g, p): arcs.add((gj, p)); stack.append(v)
+    return arcs, seen, nlog
+latchq = set(gi for mem in groups.values() for gi, _ in mem)
+for key, mem in groups.items():
+    arcs, seen, _ = cone([(gi, p) for gi, data in mem for p in data])
     q0 = mem[0][0]
     rows.append(dict(node=N[G[q0]["out"]], pin=99, src="+".join(N[s] for s in key), latch=1, fb=0,
                      arcs=[[N[G[x]["out"]], y] for x, y in sorted(arcs)], name="CONE(%d latches, %d arcs, %d nodes)" % (len(mem), len(arcs), len(seen)),
                      kest=0.0, via="cone", kre=0.0, members=[N[G[x]["out"]] for x, _ in mem]))
+nsteer = 0
+if a.steer:
+    for gi in sorted(storage - latchq):
+        g = G[gi]; o = g["out"]
+        for p, u in enumerate(g["ins"]):
+            s0 = chain(u)[0]
+            if not dep(g, p) or s0 == o or s0 in ENV or N[s0].endswith("_WIRE"): continue
+            arcs, seen, nlog = cone([(gi, p)])
+            if nlog == 0: continue           # only a route: the single-pin search (races.py) already has it
+            nsteer += 1
+            rows.append(dict(node=N[o], pin=100 + p, src=N[s0], latch=0, fb=0,
+                             arcs=[[N[G[x]["out"]], y] for x, y in sorted(arcs)], name="STEERCONE(pin %d, %d logic gates, %d arcs)" % (p, nlog, len(arcs)),
+                             kest=0.0, via="steercone", kre=0.0, members=[N[o]]))
 rows.sort(key=lambda r: -len(r["arcs"]))
 json.dump(rows, open(a.out, "w"), indent=0)
-print("storage gates %d; latch groups (one enable source) %d; cone arcs max %d, total %d" %
-      (len(storage), len(rows), max((len(r["arcs"]) for r in rows), default=0), sum(len(r["arcs"]) for r in rows)), file=sys.stderr)
+print("storage gates %d; latch groups (one enable source) %d; steer cones %d; cone arcs max %d, total %d" %
+      (len(storage), len(rows) - nsteer, nsteer, max((len(r["arcs"]) for r in rows), default=0), sum(len(r["arcs"]) for r in rows)), file=sys.stderr)

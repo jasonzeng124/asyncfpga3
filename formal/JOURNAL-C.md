@@ -3369,8 +3369,8 @@ Took LOCK-C (previous C lock 2026-11-15T22:18, that session idle since 23:24). A
 claims. PROGRAM's new top item: research's collatz board candidate item 28 (fcsel3m s20, sdf d86bdde5) with item 25
 beside it under the same settings.
 
-### progress 03:00 -- farm c_margin_sel3m filed: item 28 + item 25 same settings (single-pin sweep), fcsel3m s1/2/24, item 27
-### progress 03:20 -- new race class in the tool: CAPTURE races per latch group (cones.py); first run on item 25
+### progress 02:52 -- farm c_margin_sel3m filed: item 28 + item 25 same settings (single-pin sweep), fcsel3m s1/2/24, item 27
+### progress 03:01 -- new race class in the tool: CAPTURE races per latch group (cones.py); first run on item 25
 Problem: the single-pin adversary slows one route into a storage LUT. Research's question for item 28 is the select
 ARRIVAL race at the muxes (rule E; audit T116: the select reaches umux0's data LUTs after its request went on). That
 is a capture race: the whole data path into a latch slow, its enable path fast. No single pin is that.
@@ -3390,7 +3390,7 @@ now wrong only on a wrong value; a missing answer stays quiet/noanswer (checkrow
 Farm c_margin_cones1: CONES=only on item 28, item 25, fcsel0 s24 and fcsel1 s24 (rule E negative there: the
 positive controls), fcsel2 s1, fcsel3m s1/s2, item 26, item 27.
 
-### progress 03:10 -- capture races on gcd_ps (THE target): none fails <= 0.45; first admissible failure 0.61 (search)
+### progress 03:08 -- capture races on gcd_ps (THE target): none fails <= 0.45; first admissible failure 0.61 (search)
 Plain problem: does a slow data path into some link's latches (vs a fast request) break gcd_ps before its known
 binding races (0.36 livelock, 0.40 finite)? `CONES=only` on gcd_ps_e6bb4aec (default pairs, w 20): 179 latch groups,
 **0 fail at 0.45** (30 s on 4 cores). Sweep 0.45-0.90 to check the adversary bites: 14 groups fail; checkrows:
@@ -3399,14 +3399,14 @@ ulink_n166__0/1 -- their cones share the datapath), first admissible WRONG VALUE
 21 -> 37) and 0.84 (ulink_n_falseResult_93 st0: 21 -> 1). Capture races are not binding on gcd_ps: its margin is
 set by the non-capture races already reported. Files: tools/margin/out/gcd_ps_cones/ (names from the routed JSON).
 
-### progress 03:25 -- item 28 (research's collatz board candidate): kappa_hi 0.42 at ulink_n13's enable (search, checked); FOR-RESEARCH C11
+### progress 03:16 -- item 28 (research's collatz board candidate): kappa_hi 0.42 at ulink_n13's enable (search, checked); FOR-RESEARCH C11
 fm_c_margin_sel3m (SDF d86bdde5 = research's; FASM e4f25940): w 20 and w 0 kappa_hi = 0.42, ulink_n13.lat.pair[6] reading
 ulink_n13.ctl late (ADMISSIBLE). item 25 same commit/settings: w 20 none admissible <= 0.45, w 0 0.42 (falseResult_3 st0).
 fcsel3m seeds 1/2/24: 0.41 / 0.37 (0.33 w 0) / 0.27, all falseResult_3 st0 latch pairs. item 27: none <= 0.45.
 Open: env-only INADMISSIBLE rows at 0.36-0.38 on item 28 (gate checks clean). Next: diagnose env rejections (a_ack
 runts), cones on research's builds (c_margin_cones1).
 
-### progress 03:45 -- two fixes to what the tool counts as a failure; item 25 capture kappa_hi 0.67 (w 20, checked)
+### progress 03:21 -- two fixes to what the tool counts as a failure; item 25 capture kappa_hi 0.67 (w 20, checked)
 Problem: many failing rows came back INADMISSIBLE, so the reported kappa_hi skipped them and the search stopped there.
 Two causes, two fixes (tools/margin):
 1. **H_RUNT-infeasible runs** (w = 20): simx already counts LUT-pin reads that land in a narrow-pulse chain longer
@@ -3420,3 +3420,24 @@ Two causes, two fixes (tools/margin):
 item 25 capture races 0.45-0.90 with both: kappa_hi(w 20) = 0.67 (SLICE_X14Y22.B6 group, quiet, no answer; ADMISSIBLE).
 Earlier 0.84 (X16Y39.B6) also admissible; the bisection is not monotone, so both are upper ends; the min stands.
 Farm c_margin_sel3m2: item 28, item 25, fcsel3m s1/2/24 single-pin again with the fixes (item 28's 0.36-0.38 rows).
+
+(Times in the 2026-11-16 headings above were corrected at 03:36 to the clock; I had first written estimates.)
+
+### progress 03:36 -- steer cones; envcheck's ReqLive was stronger than the Spec; a vacuity class in the frozen Spec (for A)
+* `cones.py --steer` (run.sh `STEER=1`): one row per (non-latch storage gate, pin) whose input passes through at
+  least one logic gate (a steer's condition, a C-element reading data): that cone slow, all else fast. item 25: 106
+  such rows. Spec-admissible kappa_hi (w 20) = 0.62 (SLICE_X14Y22.A6 pin 1, no answer, ADMISSIBLE).
+* checkrows' retry harness: simx's `--datachange handshake` changes data when req falls with the ack still high,
+  which breaks Spec.Env on ordinary runs; the retry now uses `--datachange next` (data moved only just before the
+  next request, all acks low).
+* **envcheck fix (tools/huff/envcheck.py, C's):** it demanded "req low at the end" unconditionally; Spec.ReqLive
+  (Spec.lean:276) obliges the env only when req = ack. A request left high whose ack never rose is the circuit's
+  deadlock. Fixed to the Spec's clause.
+* **Finding for A (frozen Spec, not changed here): partial-ack deadlocks make Spec.Env unsatisfiable, so the
+  statement is VACUOUS on them.** item 25, w 0, steer cones at 0.38-0.40 (12 rows): the kernel acknowledges a and b
+  of the shared request but never start, and goes quiet with req high. Channel a's ReqLive (req = a_ack = 1) needs
+  req to fall; channel start's ReqMoves forbids req falling while start_ack is low. No continuation satisfies Env,
+  so NetCorrectSeq holds vacuously for those delays, while a real harness simply hangs. envcheck now prints
+  "PARTIAL-ACK DEADLOCK" for this end state, and checkrows lists such runs as PHYSICAL (not a Spec counterexample) on a
+  separate kappa_hi.txt line. If the gcd target can reach such a state, a proved kappa_lo would say less than it
+  seems; worth a look by A (does gcd_ps's OneReq boundary have this case?) and by the audit.

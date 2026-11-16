@@ -17,7 +17,7 @@ def setopt(cmd, opt, val):
 pairs = base[base.index("--pairs") + 1:]; pairs = pairs[:next(i for i, x in enumerate(pairs) if x.startswith("--"))]
 bnd = json.load(open(os.path.join(O, "bnd.json"))); bnd["arbs"] = json.load(open(os.path.join(O, "arbs.json")))
 json.dump(bnd, open(os.path.join(O, "bnd_arbs.json"), "w"))
-out = open(os.path.join(O, "checked.txt"), "w"); adm = []
+out = open(os.path.join(O, "checked.txt"), "w"); adm = []; phys = []
 out.write("# every failing row re-run at kappa_fail and checked (gatecheck.py, envcheck.py); UNTRUSTED checkers\n")
 for l in open(os.path.join(O, "margins.txt")):
     if l.startswith("#"): continue
@@ -54,9 +54,9 @@ for l in open(os.path.join(O, "margins.txt")):
     if m and m.group(1) == "0" and m.group(2) == "0" and m.group(3) == "0" and not ok:
         # gate relations clean, Env violated: typically the simulated harness released the data on the first fall of an
         # acknowledge that then glitched back up (Spec.Env wants data held while req or ack is high). Retry with a
-        # harness that holds the data until its next request (--datachange handshake): also a Spec.Env environment.
+        # harness that holds the data until just before its next request, all acks low (--datachange next): also a Spec.Env environment.
         os.unlink(df)
-        cmd = setopt(cmd, "--datachange", "handshake")
+        cmd = setopt(cmd, "--datachange", "next")
         r = subprocess.run(cmd, capture_output=True, text=True, env=e)
         res = ([x for x in r.stdout.splitlines() if x.startswith("RESULT")] or ["NO-VERDICT (event cap)"])[0]
         if os.path.exists(df):
@@ -67,13 +67,14 @@ for l in open(os.path.join(O, "margins.txt")):
             gl = g[-1] if g else "gatecheck: no output"
             m = re.search(r"mismatches (\d+) arcs outside Adm (\d+) lag violations (\d+)", gl)
             ok = m and m.group(1) == "0" and m.group(2) == "0" and m.group(3) == "0" and "Env + SeqEnv: OK" in v
-            envnote = "[env broad violated Env; rerun with --datachange handshake] "
+            envnote = "[env broad violated Env; rerun with --datachange next] "
         else:
-            envnote = "[env broad violated Env; handshake rerun gave no dump] "
+            envnote = "[env broad violated Env; next rerun gave no dump] "
     arb = re.search(r"T >= (\d+)", v)
-    out.write("%s w=%s k=%s %s | %s%s | %s | ArbOK T>=%s | %s\n" % (f[1], w, k, f[2], envnote, "ADMISSIBLE" if ok else "INADMISSIBLE", res,
+    out.write("%s w=%s k=%s %s | %s%s | %s | ArbOK T>=%s | %s\n" % (f[1], w, k, f[2], envnote, ("PHYSICAL(Spec-vacuous: partial-ack deadlock)" if "PARTIAL-ACK DEADLOCK" in v else "ADMISSIBLE") if ok else "INADMISSIBLE", res,
               arb.group(1) if arb else "?", gl)); out.flush()
-    if ok and not res.startswith("RESULT OK"): adm.append((float(k), int(w), f[1], f[2], f[3], res))
+    if ok and not res.startswith("RESULT OK"):
+        (phys if "PARTIAL-ACK DEADLOCK" in v else adm).append((float(k), int(w), f[1], f[2], f[3], res))
     if os.path.exists(df): os.unlink(df)
 out.close()
 # kappa_hi: smallest kappa with an ADMISSIBLE failing run (finite: wrong value, or quiet with an answer missing). A w = 20 behaviour is also a behaviour of the plain
@@ -87,5 +88,9 @@ with open(os.path.join(O, "kappa_hi.txt"), "w") as kh:
             b = min(c); kh.write("w=%d: kappa_hi = %.2f  race %s pin %s from %s (run at w=%d) %s\n" % (w, b[0], b[2], b[3], b[4], b[1], b[5]))
         else:
             kh.write("w=%d: kappa_hi: no admissible failure found among the swept rows (search)\n" % w)
+    for w in (20, 0):
+        c = [x for x in phys if x[1] == w or (w == 0 and x[1] == 20)]
+        if c:
+            b = min(c); kh.write("w=%d: physical (NOT a Spec counterexample: partial-ack deadlock, Spec.Env vacuous): kappa %.2f  race %s pin %s from %s (run at w=%d) %s\n" % (w, b[0], b[2], b[3], b[4], b[1], b[5]))
 print(open(os.path.join(O, "kappa_hi.txt")).read())
 print(open(os.path.join(O, "checked.txt")).read())

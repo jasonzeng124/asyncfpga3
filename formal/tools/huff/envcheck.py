@@ -26,7 +26,18 @@ for ack in ("a_ack", "b_ack", "start_ack"):
         up = not val(req, s - 1)
         need(not val(a, s - 1) if up else val(a, s - 1), "ReqMoves %s at %d" % (ack, s))
 need(rises(req, D["tend"]) <= len(pairs), "at most n rises")
-need(not val(req, D["tend"]), "req low at end (ReqLive: no request left pending)")
+# Spec.ReqLive (Spec.lean:276): only when req = ack (and something is owed) must the env move again. A request left
+# high whose acknowledge never rose is the circuit's deadlock, not an Env violation (fixed 2026-11-16: this used to
+# demand req low at the end unconditionally).
+_te = D["tend"]; _ah = [val(B[x], _te) for x in ("a_ack", "b_ack", "start_ack")]
+if val(req, _te) and any(_ah) and not all(_ah):
+    # the circuit acknowledged some input channels of the shared request and not the others and stopped: no env can
+    # lower req (ReqMoves of the unacknowledged channel) nor keep it (ReqLive of the acknowledged ones), so Spec.Env
+    # has no continuation: the frozen statement is VACUOUS on this behaviour. A real harness hangs: a physical failure.
+    print("PARTIAL-ACK DEADLOCK at end: a/b/start acks %s with req high: Spec.Env unsatisfiable from here (Spec-vacuous; a real harness hangs)" % _ah)
+else:
+    for ack in ("a_ack", "b_ack", "start_ack"):
+        need(not (val(req, _te) and val(B[ack], _te)), "ReqLive %s at end: req = ack = 1, the env owes a fall" % ack)
 def bus(key, t): return sum((1 << i) for i, nm in enumerate(B[key]) if val(nm, t))
 # data: during [rise - su, rise] and whenever req or ack is high (after the first rise): pair k
 for key, ack, j in (("a_data", "a_ack", 0), ("b_data", "b_ack", 1)):

@@ -95,9 +95,9 @@ if [ ! -f "$O/ref_dump.json" ]; then
 fi
 python3 "$H/rank.py" "$O/net.json" "$O/races.json" "$KHI" "$O/ranked.json" "$O/ref_dump.json"
 # CONES=1: also the capture (setup/arrival) races, one per latch group (cones.py: the whole data cone slow, mux selects
-# included); CONES=only: those alone. Rows have pin 99.
+# included); CONES=only: those alone. Rows have pin 99. STEER=1 adds steer cones (cones.py --steer; pin 100+i).
 if [ "${CONES:-0}" != 0 ]; then
-  python3 "$H/cones.py" "$O/net.json" "$O/bnd.json" "$O/cones.json" 2>&1 | tee -a "$O/run.log"
+  python3 "$H/cones.py" "$O/net.json" "$O/bnd.json" "$O/cones.json" $([ "${STEER:-0}" = 1 ] && echo --steer) 2>&1 | tee -a "$O/run.log"
   python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); r=[] if sys.argv[3]=="only" else json.load(open(sys.argv[2])); json.dump(c+r, open(sys.argv[2],"w"), indent=0)' "$O/cones.json" "$O/ranked.json" "$CONES"
 fi
 # 4. sweep + bisection + report
