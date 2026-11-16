@@ -310,6 +310,10 @@ def rule_a_from_link(T, skew, sdf):
                 (t_d, k_d), peer = max(ds)
                 g = T.req_guard(None, t_d)
                 m = r[0] - t_d - g
+                if os.environ.get("CA_DEBUG_FOREIGN"):          # every launch's margin (diagnosis only)
+                    with open(os.environ["CA_DEBUG_FOREIGN"], "a") as dbg:
+                        print("A'%s %s launch %s: req %d data %d (%s) guard %d margin %d" % ("m" if partial else "",
+                              parent, c, r[0], t_d, T.pin_split(peer)[0], g, m), file=dbg)
                 if worst is None or m < worst[0]:
                     worst = (m, g, r[0], r[1], t_d, k_d, peer, c)
         if worst is None:

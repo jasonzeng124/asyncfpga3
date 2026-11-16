@@ -5478,3 +5478,11 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   at worst; rule E clean (0 rows below 0). At +3000 on the same arcs: M -353, gate PASS. So M fails on a build that
   fails and E does not -- M earns its place; on collatz it is stricter than the gate by between 3 and 8 ns of
   injection on this mux (farm mneg covers the other families).
+### progress 07:29 UTC (mneg, first 8 of 14: rule M catches wrong values rule E cannot see; fcsel3b done)
+- mneg (select latch -> one mux's data LUTs, +4000 / +8000 ps): +8000 gives a WRONG VALUE at FAST_MIN (FAIL, not just no
+  completion) on xorshift umux1, ipow umux1 and collatz umux1; rule M on the injected mux -4908 / -2987 / -5811 ps at
+  worst, rule E clean on every one (0 rows). Where the injected mux's M stayed >= 0 (or the injection fell on a mux
+  M did not move), every gate passed. (The base routes' own M rows, xorshift umux1 -117 and ipow umux2 -532, show
+  on every task of that route.)
+- fcsel3b (collatz, mux delays by M + uselect0 6 + ucmpi2 15) complete: vs fcsel3a -0.37 ns per iteration median,
+  22/31 faster; gates 96/96; rule M rows at umux1 on 5/32 (to -419). Item 31 stays the collatz candidate.
