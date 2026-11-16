@@ -5711,3 +5711,10 @@ Next:
   gate at FAST_MIN / worst with +META_INIT=0. PREDICTION: a late condition at a steer whose request arrives while the
   condition still shows the previous token's value mis-steers -> wrong value or hang on most loop-exit steers at +8000;
   rule E flags each. If none fails, rule E at steers is also without a failing build.
+### Session summary (update 10:59 UTC)
+Board list after this session: item 31 collatz 21.5 ns (every check incl. rule M clean, 31 routes); item 29 ipow ~36.2 ns
+(fisel3m, every static row clean on 27 routes); item 33 xorshift 18.9 ns (fxa; rule M rows shown pessimistic in
+simulation); items 30 / 32 collatz64 35 / 31.4 ns provisional (rule M miss at umux0, real in simulation, 60-155 ps).
+Checks: rule M (mux data outputs) new, with genuine failing builds (defined wrong answers); rule E at mux joins has
+no failing build once the gate's start-up X is removed (+META_INIT, opt-in, validated both ways); rule H's hold control
+is a genuine wrong-value failure. Steer E under test (steerneg). Formal C17 confirmed.
