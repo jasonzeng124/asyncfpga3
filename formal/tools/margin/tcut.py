@@ -40,14 +40,14 @@ def setopt(cmd, opt, val):
 cf = os.path.join(O, "tmp", "tcut_%s_%d.json" % (a.node, a.pin)); os.makedirs(os.path.dirname(cf), exist_ok=True)
 json.dump({"S": S, "F": []}, open(cf, "w"))
 nsim = 0
-def run(T, dump=None):
+def run(T, dump=None, tend=None):
     global nsim; nsim += 1
     cmd = setopt(setopt(base, "--kappa", a.kappa), "--classes", cf)
     if "--w" in cmd: i = cmd.index("--w"); del cmd[i:i + 2]
     if a.w: cmd += ["--w", str(a.w)]
     cmd = [x for x in cmd if x not in ("--periodic",)] + ["--periodic"]
     if T is not None: cmd += ["--tcut", str(T)]
-    if dump: cmd = setopt(cmd, "--tmax", str(T + 20000)) + ["--dump", dump]   # the decision is near T: stop soon after (a capped run writes no dump)
+    if dump: cmd = setopt(cmd, "--tmax", str((tend if tend is not None else T) + 20000)) + ["--dump", dump]   # the decision is near T: stop soon after (a capped run writes no dump)
     r = subprocess.run(cmd, capture_output=True, text=True, env=dict(os.environ, **env), cwd=O)
     res = ([x for x in r.stdout.splitlines() if x.startswith("RESULT")] or ["NO-VERDICT"])[0]
     if "unsupported option --tcut" in r.stderr: sys.exit("simx too old: rebuild from simx.cpp")
@@ -122,3 +122,34 @@ for p, u in enumerate(g["ins"]):
     while s in drv and is_copy(G[drv[s]]): s = G[drv[s]]["ins"][0]
     def near(D): return [x for x in flips(D, u) if t0 - 3000 <= x <= t0 + 500]
     print("  pin %d <- %-40s  input flips near: cut T* %s | cut T*-1 %s%s" % (p, nm(s), near(W_), near(R_), "  (own output)" if s == g["out"] else ""))
+# where the deciding pulse comes from: follow the latest pulse (two flips < 300 ps apart) on an input upstream, to the
+# gate whose inputs carry no pulse (the hazard: inputs changing at different times), with the all-fast reference's
+# flips at the same nodes (cut at 0): in the reference the pulse is earlier, or absent, and the capture masks it.
+fz, _ = run(0, os.path.join(O, "tmp", "tcut_0.json"), tend=T)
+Z_ = {int(k): (bool(v[0]), v[1]) for k, v in json.load(open(os.path.join(O, "tmp", "tcut_0.json")))["nodes"].items()}
+def src_(u):
+    while u in drv and is_copy(G[drv[u]]): u = G[drv[u]]["ins"][0]
+    return u
+def pulse_in(D, u, a_, b_):
+    f = [x for x in flips(D, u) if a_ <= x <= b_]
+    pl = [(f[i], f[i + 1]) for i in range(len(f) - 1) if f[i + 1] - f[i] < 300]
+    return pl[-1] if pl else None
+n, tt = g["out"], t0
+print("\nPULSE TRACE (failing run cut at T* | all-fast reference, flips within 2.5 ns before):")
+for step in range(16):
+    gg = G[drv[n]]
+    print("  %-48s %-5s W %s | ref %s" % (nm(n), gg["kind"], [x for x in flips(W_, n) if tt - 2500 <= x <= tt + 60][-4:],
+                                         [x for x in flips(Z_, n) if tt - 2500 <= x <= tt + 60][-4:]))
+    best = None
+    for p, u in enumerate(gg["ins"]):
+        s = src_(u)
+        if s == n: continue
+        pl = pulse_in(W_, u, tt - 1500, tt)
+        if pl and (best is None or pl[0] > best[1]): best = (s, pl[0], p)
+    if best is None:
+        print("  -> the pulse starts here: its inputs' last flips (W | ref):")
+        for p, u in enumerate(gg["ins"]):
+            fw_ = [x for x in flips(W_, u) if tt - 1500 <= x <= tt]; fr_ = [x for x in flips(Z_, u) if tt - 2500 <= x <= tt]
+            if fw_ or fr_: print("     pin %d <- %-40s W %s | ref %s" % (p, nm(src_(u)), fw_[-3:], fr_[-3:]))
+        break
+    n, tt = best[0], best[1]

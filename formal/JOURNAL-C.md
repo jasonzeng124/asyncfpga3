@@ -3837,3 +3837,20 @@ So this w=0 steer failure is a zero-width-glitch artifact of the unfiltered mode
 says nothing about silicon beyond "a 2-input hazard feeds a C-element input", which a real LUT absorbs at 1 ps.
 **Open:** the steer rows that also fail WITH the filter (item 27 SLICE_X14Y30.B6 0.28 w20 PHYSICAL, SLICE_X15Y33.B6
 0.42 w20 ADMISSIBLE; fcsel0 s24 0.37; fcsel3m s2 0.35/0.37) go to the farm: c_tcut1 (TCUT=1, host 2 ns, plus item 25 for names).
+
+### progress 07:28 -- item 25's steer row WITH the filter (w 20, 0.62): the branch condition's glitch arrives after the request
+tcut.py on row 101 (793 slow arcs, kappa 0.62, w 20; local net c6404633 fasm): T* = 402 901 ps (29 simulations, 15 s).
+tcut.py now also traces the deciding pulse upstream, next to the all-fast reference (cut at 0):
+  ulink_n_falseResult_3 st0 ctl (SLICE_X16Y38.A6)  W 402526, 403179, 403220 ...(oscillates, 128 ps)  | ref 402526
+  SLICE_X16Y34.A5 (out = A5 & !A4: request & !condition)  W 402373, 403026-403067 (41 ps)     | ref 402373
+  SLICE_X14Y45.B6 (buffer)                          W 402550-402597                             | ref 401447-401476
+  SLICE_X14Y45.C6 (AND of 4 F8 outputs)              W 402314-402361                             | ref 401401-401430
+  SLICE_X14Y42.F8 (mux: select at pin 2, data F7A)   W 401758-401805: pin-2 arrival 401596, F7A 401767 | ref 401299-401328
+The compare tree's F8 mux glitches in BOTH runs (select and data arrive at different times: a hazard, 29-47 ps wide).
+In the reference the glitch reaches the steer LUT's condition pin ~900 ps BEFORE the request (SLICE_X17Y31.B6, the
+request side, 402289 in both runs), and A5 masks it. With the cone slowed to 1.62 x fmax, the glitch arrives after the
+request: a 41-ps request pulse goes to falseResult_3's controller. Under the transport model the pulse then circulates
+in the controller's own feedback loop (period 128 ps). This is the bundled-data constraint at a branch (condition settles
+before the request), the steer race. At w 20 it needs kappa 0.62, beyond the 0.47 worst measured short-ring error, and
+793 slowed arcs. The w-0 failure of the same cone at 0.38 (previous entry) is a 1-ps hazard pulse instead.
+Untrusted simulation. Names of the non-storage LUTs come from the farm (c_tcut1 task 4, routed JSON).
