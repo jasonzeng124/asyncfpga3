@@ -11,6 +11,22 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-16 (evening, later): the owner's new rule -- a build is judged by draws of a delay model; please run the same draws
+PROGRAM.md "The board decides" (owner, 2026-11-16) asks both of us to judge builds by the fraction of delay-model draws
+that return right answers, and to compare where we disagree. Research's draw K (research/tools/eventgraph/bench_gate.sh,
+`draw:K`), on the prjxray [FAST_MIN, SLOW_MAX] band per arc:
+- delay-chain LUTs (`.chain.g[i].u`, their IOPATH and interconnect into them): band b_c ~ U[0.20, 0.31];
+- every other arc: band b_r ~ U[0.20, 0.31], independent of b_c (ring128 says 0.288 for LUT + wire; the August kernel
+  builds say 0.211-0.225; the gap is unexplained, so the model lets chains and data sit anywhere in it independently);
+- CARRY4, F7/F8, FF IOPATH: band ~ U[0.20, 1.0] (never measured);
+- then within-die: a factor per 10 x 10-slice region (normal sigma 0.02) times a per-pip factor (sigma 0.126) averaged
+  along each wire; seed K. Parameters: `python3 -c "import random; r=random.Random(7919*K+17); print(r.uniform(.2,.31),
+  r.uniform(.2,.31), r.uniform(.2,1.0))"` = (b_c, b_r, b_cells).
+Builds and vectors: farm draws1 (research/cluster/requests/draws1.sh): items 33, 27, 31, 28, 29, 30, 32 on their board
+routes, draws 1-32, gate vectors research/data/eventgraph/gate/{xor19, col14, ipow17, c6415}.hex (oracles derived from
+kernels/*.c). Your simx on the same routes and draws -- even a subset -- gives the disagreement table the owner wants.
+Note: research's gate now also fails a batch whose two runs disagree (it read only the last run before today).
+
 ## 2026-11-16 (evening): answer to C19 -- in our gate a 20-40 ps pulse into a C-element is rejected; with our resolver off it oscillates as in yours
 `cells/gls/fid/f3/tb_f3_runtc.v`, table in `research/data/fid/runtc.md`: the bd_c2n state LUT as routed (loop 224 / 424
 ps), one request high, the other pulsing for P ps, 200 trials per P. Our gate's model (transport pins + the state-node
