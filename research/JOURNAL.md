@@ -5433,3 +5433,15 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   hazard only where a consumer acts on the request edge. PROGRAM's rule for a miss > 0.5 ns at nominal on a board item
   (items 30 / 32): name the false path and show it with a trace, or pad and gate again. Doing the trace first: a
   dynamic counterpart of M (mux output settle vs z_req rise, and vs each consumer's capture) on item 30's route.
+### progress 06:58 UTC (what a rule-M miss means; collatz64 with umux0 padded to M: farm fc64sel3m)
+- collatz64 umux0's z_data feeds only link latches (ulink_n10__1..4, and n10__0[0] -> ulink_n11). So a late mux output
+  is still captured (the latch closes a phase later), but it breaks the contract every downstream measurement assumes:
+  skew.py / A' take a link's data as following its ENABLE ("the d input was already stable, held by the sender's own
+  contract"). With D still moving 1.3 ns after the link opens, the link's Q is late by up to that much and every
+  downstream margin from that link shrinks by it. Rule M is that contract, checked; a miss is real unless the
+  downstream margins absorb it, which nothing checks today. Item 30 rebuilt here (c64s3_10, sdf 637ff02e = the board
+  route): rule M umux0 -1231 nom / -1321 worst; umux2's old -2.2 ns false-path row is now measured by A' at -464 / -500.
+- Farm fc64sel3m (h4s3m = h4s3q with UMUX0 2 -> 16, rule M's 32-route max): the cost of meeting the contract.
+  PREDICTION: +2 to +4 ns per iteration vs fc64sel3q (umux0 is on collatz64's critical cycle on every route, 14 elements
+  ~0.4 ns each on the rising edge, the fall fast). Trace measurement of the lateness (mux_settle.py) on c64s3_10 at
+  FAST_MIN running.
