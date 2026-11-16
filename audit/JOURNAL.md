@@ -2193,3 +2193,6 @@ Formal C10 fcsel0 s24 witness not reproduced (3/3, = control). Two witnesses in 
 
 ### progress 07:55 T120b
 Environment hypothesis checked in the MLIR: falseResult_3 = the input n (cond_br4 on fork(arg0)); formal's broad data rule releases n at the ack's fall. The falseResult_3 stage[0] margins are input-hold races against the earliest Spec host; the board's PS host is clocked. Item 26's ulink_n13 (internal) non-reproduction stays open. REPORT updated.
+
+### note 08:00
+Research 81721ea2: corrected rule-E re-check complete: no board item's own route has an E row (items 19, 22-27); item 27 family 1/32 (seed 27 ucond_br8 -118 worst; board seed 2 clean; own T114 rule E min +1060 agrees); select links at 0 give E < 0 on every route of every family (xorshift to -984, ipow -833) while gates pass -- consistent with own T116 / T118 (the gate alone misses the arrival race). Item 19's board-route E: research clean, own not run. Formal A 55fbdb85: MARGINS.md from C6-C10 (14 builds, search, no kappa_lo); farm check.sh timed out.
