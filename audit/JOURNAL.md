@@ -2545,3 +2545,12 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - falseResult_9 stage 1 (static -31): dynamic min +6654 ps over 46560 closes.
   - HC: the entry pin was never last (0/1454). Not live.
 - **Item 31 complete.** Everything is confirmed except the request-edge select criterion at umux0's data LUTs (owner's decision; T129).
+
+### progress 07:01
+- research f4b094782: a rule M miss breaks the link D-stable contract (late Q shrinks downstream margins); fc64sel3m pads umux0 to M.
+  - Own: LATCHMON on every latch of item 30 gives min setup 7084 / 10227 / 18564 ps, so the propagation is absorbed in own GLS. T129 addendum.
+- T126f item 32 (sdf 842dd4d7 = recipe):
+  - own period **31.331 ns** vs item 30 34.946: **1.115** (research ~1.11), CONFIRMED;
+  - FAST_MIN 14/14;
+  - MUXMON umux0 select 21 ps before z_req, 1300 per-pin late changes (as items 30/31).
+  - GLS continuing.
