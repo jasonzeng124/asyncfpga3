@@ -19,6 +19,8 @@ a counterexample (start's `AckLive` in `Correct`). Not yet adopted: changing THE
 Effect on the list below: none on refutations; a future kappa_lo proved for the frozen form would not cover hangs.
 **Same day:** the positive route already targets the repaired form: `Assembly.netCorrectSeqWF_of_plan` and
 `CertRun.netCorrectSeqWF_of_run` (Assembly/CertRun now take `EnvWF`; only `next_rise` used request liveness).
+Does the repair lower THE target's frontier? A single-pin sweep of gcd_ps with today's checks (C's tool, PHYSICAL class
+for partial-ack hangs) finds none below 0.45: livelock 0.36, finite 0.44 as before (JOURNAL 2026-11-16; search).
 
 ## 2026-11-15 (A): the S6 route changed to ONE run certificate (Lean, check.sh OK)
 `Formal.Target.CertRun.netCorrectSeq_of_run` (generic, OneReq boundary): THE statement from `EpRun` (count facts of one
