@@ -2903,3 +2903,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The oracle-only draw verdict misses this.
   - Finding T136 section 4; REPORT row updated.
 - research ee3e7cf2f / bfed77d80: shrink4 (x0.40 / x0.30 with only the incrementer kept full) and the shrink2/3 results. To read next.
+- research bfed77d80 / ee3e7cf2f read:
+  - shrink2: collatz item 31 sizes pass to x0.55.
+  - shrink3: x0.40c passes 36/36 (median P ~18.6 ns).
+  - shrink4's x0.40a / x0.30a keep only UADDI0 and shrink UCMPI0 to 4 / 3. The rationale: the compare's long carry is simulated.
+  - Own T136 shows exactly UCMPI0 = 4 giving live select changes under req at ucond_br2 / br5 (worst and advA). An oracle-only draw verdict cannot see them.
+  - Owner notified.
