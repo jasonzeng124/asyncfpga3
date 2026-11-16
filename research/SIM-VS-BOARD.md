@@ -19,6 +19,20 @@ row's text. "August" = the owner's board runs, research/board/aug/ (builds, logs
 | 10 | **Voltage and temperature.** | One board, room temperature, one supply; x from that. | Covered only by the band ranges in row 1. |
 | 11 | **Memory inference.** iverilog cannot see yosys memory inference (CLAUDE.md). | isprime's late read (August). | Kernels here have no memories. |
 
-Open: the ns-per-iteration comparison asked for by the owner (xorshift 47.66, collatz 91.96, collatz64 112.71 on the
-board). gcd is done at 0.288 (+9-10%). The other August kernel builds were fitted (x) but not reported as predicted vs
-measured ns per iteration; xorshift's August build was rebuilt after its board runs, so its logs are soft.
+## ns per iteration, August builds, simulated against the board (research/tools/aug_periter.py, 2026-11-16)
+Same bitstreams the board measured (research/board/aug/builds, logs match=yes), full stack at FAST_MIN and SLOW_MAX,
+slope of latency on iteration count; the 0.288 and 0.222 columns interpolate between the corners per vector.
+
+| kernel | vectors | board | FAST_MIN | SLOW_MAX | band 0.288 (ring128) | band 0.222 (kernels' fit; in-sample) |
+|---|---|---|---|---|---|---|
+| collatz | 20 | 92.73 | 65.16 | 188.76 | 100.76 (+8.7%) | 92.60 (-0.1%) |
+| collatz64 | 12 | 117.89 | 83.04 | 237.37 | 127.49 (+8.1%) | 117.30 (-0.5%) |
+| ipow | 17 | 60.46 | 42.20 | 122.53 | 65.34 (+8.1%) | 60.04 (-0.7%) |
+| gcd main loop (research/data/aug_gcd) | 24 | 156.5 | | | 172.0 (+9.9%) | |
+
+The model at the ring band is 8-10% slow on every kernel, consistently; at one kernel-fitted band it is within 1%
+(fitted on these same runs, so that number is not a prediction). PROGRAM quotes collatz 91.96 / collatz64 112.71: other
+vector subsets of the same logs. xorshift (47.66): its August build was rebuilt after the board runs, so there is no
+bitstream to simulate; not compared. Correctness: every simulated result equals the board's on all five builds.
+
+Open: xorshift has no August bitstream to compare.

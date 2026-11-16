@@ -5800,3 +5800,16 @@ on a ctl input in our GLS (already on the Next list).
   and xor19, the fixed verdict, every BENCHRES line kept. zt1 (collatz / collatz64) keeps its BENCHRES lines and is
   re-judged from them. PREDICTION: clean routes show no mismatch (a stray token needs a race that the static rules
   cover), and the steerneg control families do.
+### progress 19:26 (owner's new PROGRAM section read: draws decide; sim-vs-board per iteration; SIM-VS-BOARD.md)
+- PROGRAM 2026-11-16 "The board decides": static rules are tools, not gates; a candidate's result is the fraction of
+  delay-model draws that return right answers, plus speed; the model's error on the August builds goes beside it.
+  The steer / select-rule questions above are closed by it (their tables stay as record).
+- bench_gate.sh draw:K: one draw = delay-chain band and rest band each uniform [0.20, 0.31] independently (spans
+  ring128's 0.288 and the August kernels' 0.211-0.225, which disagree), CARRY4 / F7F8 / FF uniform [0.20, 1.0] (never
+  measured), setting M scatter seeded by K, the fixed verdict. Local first draw on tx27_2 clean and on the
+  ucond_br6 +3000 control (steerneg: fails at FAST_MIN, passes at worst) running before the farm request.
+- Sim vs board, ns per iteration, same August bitstreams (research/tools/aug_periter.py; SIM-VS-BOARD.md): at the ring
+  band 0.288 the model is +8.7% (collatz 100.76 vs 92.73), +8.1% (collatz64 127.49 vs 117.89), +8.1% (ipow 65.34 vs
+  60.46), gcd +9.9%; at 0.222 within 1% (in-sample). xorshift's August bitstream is gone (rebuilt): no comparison.
+- research/SIM-VS-BOARD.md written (11 rows: delay band, unmeasured cells, variation, glitches, metastability, start-up,
+  bits, host incl. today's last-run blind spot, inputs, V/T, memory).
