@@ -2753,3 +2753,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 10:45
 - The container restarted at about 10:43. The working tree, /root tools, worktrees and builds survived. The watcher and its wait were lost and are restarted (one process).
+
+### progress 11:00
+- research 147c956ab (selneg3 partial): with a defined start-up every select-join injection passes. Rule E at mux joins has no failing build.
+  - Consistent with own T131.
+  - The owner-decision row for the select-link rule is updated: the negative-control requirement is unmet for rule E at mux joins; rule M / rule H have genuine controls (research's).
