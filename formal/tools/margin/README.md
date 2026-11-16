@@ -35,6 +35,22 @@ item 28 (collatz board candidate) 0.42; fcsel0-2 0.21-0.32, fcsel3m other seeds 
 capture 0.39. The live table is formal/FOR-RESEARCH.md (C items) and formal/target/MARGINS.md. Details: out/<build>/,
 JOURNAL-C.md 2026-11-15/16.
 
+## The race in picoseconds (2026-11-16; PROGRAM "A kappa is not a result")
+- `explain.py OUT NODE PIN KAPPA [--w W] [--routed R] [--sdf SDF]` (run.sh step 5 runs it on every reported race; give
+  `SDF=`): re-runs the witness and an all-fast reference, finds the CAPTURE (the storage LUT where the race bites),
+  the two racing arrivals, their common launch (where the two trigger chains -- at each gate the input that fired it --
+  meet), and both paths with every LUT, cells / routing apart, at the prjxray fast and slow band midpoints, the worst
+  in-band split and nextpnr's SDF; the slack as a multiple of the median (8.5 %) and worst short-ring (47 %) delay
+  error of the August ring data. CLASS BOUNDARY when a path crosses the host (the next input released after an
+  acknowledge), KERNEL otherwise. Cone rows: aligned by capture count; stalls list the earliest new short pulses.
+  Paths that revisit gates are reported UNRELIABLE (no slack).
+- `HOSTDELAY=H` (simx `--hostdelay`): the host moves input data H ps after the acknowledge it reacts to (default 1,
+  the most adversarial host Spec.Env allows). H = 2000 or 12000 (one PS clock) leaves the kernel's own races.
+- `fbslack.py BUILD.sdf [--grep .ctl.]`: static screen from the SDF alone (5 s): for every LUT reading its own output,
+  its feedback (A) against the fastest structural return to another of its pins (B). run.sh writes fbslack*.txt.
+- `minimize.py OUT NODE PIN KAPPA [--w W]`: delta debugging over a cone row's slowed arcs; the minimal failing set
+  becomes row PIN+200 (explain.py / checkrows take it).
+
 ## Simulator
 `SIM=simx` (recommended): `simx.cpp` (g++ -O2 -std=c++17), a C++ port of tools/huff/simadv.py's options the sweep
 uses, with the net converted once by `simx_conv.py`. Verified identical to simadv (stdout, events, every node's flip
