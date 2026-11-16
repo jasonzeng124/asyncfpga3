@@ -2806,3 +2806,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 18:02
 - research 8ace97c32: rule E steer control on ipow (no completion, E -3238). Rule E now has steer controls on all four families (research's; collatz replayed by own T133b). Owner-decision row updated.
+
+### progress 18:13
+- research 5e2a775a2: handoff; research journal current, research LOCK cleared (research session ended). Formal still active (lock commits). Watcher continues.
