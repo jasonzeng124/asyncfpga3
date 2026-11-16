@@ -2502,3 +2502,12 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - First local control: +3000 PASS; +8000 not completing (item 28's route).
   - Farm mneg is queued on all families.
   - No rule M result is reported for the board seeds of items 30-32, which own GLS shows late at umux0's data LUTs (item 30 confirmed by mon_sel, 101 ps; item 31 by MUXMON, classifier running).
+
+### progress 06:30
+- T126g item 31 mon_sel FAST_MIN: umux0 has 48 select events, all starting with z_req low.
+  - **24 events with data-LUT pins late after z_req rose, max 100 ps.** umux1/umux2: 0 late. Oracle 13/13.
+- Own bundling ulink_n14__0 -> umux0 data -> ulink_n10__1..4:
+  - item 31: min +1491 FAST_MIN / +2119 worst;
+  - item 28: +1360 FAST_MIN;
+  - item 30 for comparison: +198.
+- REPORT row for item 31 added (SLOW_MAX, rules H/E still to come).
