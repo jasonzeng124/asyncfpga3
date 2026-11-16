@@ -209,7 +209,7 @@ int main(int argc, char** argv) {
     const char* netf = argv[1];
     vector<pair<ull, ull>> pairs; vector<string> pairstr; vector<ull> wantv; bool has_want = false; string kernel = "gcd";
     double corner = 0.5, kappa = NAN; const char* classes = nullptr; char cdefault = 'M';
-    bool data0 = false, full = false, pipelined = false; ll R = 20000, su = 0, dout = 3000, dfall = -1, tmax = 5000000, reqgap = 0, maxev = -1;
+    bool data0 = false, full = false, pipelined = false; ll R = 20000, su = 0, dout = 3000, dfall = -1, tmax = 5000000, reqgap = 0, maxev = -1, hostd = 1;
     string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr; bool periodic = false;
     for (int i = 2; i < argc; i++) {
         string o = argv[i];
@@ -234,6 +234,7 @@ int main(int argc, char** argv) {
         else if (o == "--dfall") dfall = atoll(nxt());
         else if (o == "--tmax") tmax = atoll(nxt());
         else if (o == "--reqgap") reqgap = atoll(nxt());
+        else if (o == "--hostdelay") { hostd = atoll(nxt()); if (hostd < 1) hostd = 1; }   // the host moves input data >= this many ps after the acknowledge it reacts to (Spec.Env allows any delay >= 0; default 1 = the most adversarial host)
         else if (o == "--w") W = atoi(nxt());
         else if (o == "--maxev") maxev = atoll(nxt());
         else if (o == "--datachange") { datachange = nxt(); if (datachange != "handshake" && datachange != "broad" && datachange != "rtz" && datachange != "next") die("bad --datachange"); }
@@ -384,18 +385,18 @@ int main(int argc, char** argv) {
             for (int j = 0; j < 2; j++) if (!val(ackn[j], t) && broad_k[j] != k) {
                 broad_k[j] = k;
                 printf("env: %s -> pair %lld at %lld ps (its ack fell)\n", j ? "b_data" : "a_data", k, t + 1);
-                drive_data(t + 1, j ? pairs[k].second : pairs[k].first, j);
+                drive_data(t + hostd, j ? pairs[k].second : pairs[k].first, j);
             }
         }
         if (datachange == "rtz" && !req_state && !anyA && 0 < k && k < np && rtz_done != k) {
             rtz_done = k;
             printf("env: data -> pair %lld at %lld ps (all acks low, before out0)\n", k, t + 1);
-            drive_data(t + 1, pairs[k].first, 0); drive_data(t + 1, pairs[k].second, 1);
+            drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1);
         }
         if (!req_state && !anyA && k < np && next_ok) {
             if (datachange == "next" && k > 0) {
-                drive_data(t + 1, pairs[k].first, 0); drive_data(t + 1, pairs[k].second, 1);
-                env_set(t + 1 + max(su, 1LL), req, true);
+                drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1);
+                env_set(t + hostd + max(su, 1LL), req, true);
             } else env_set(t + max(su, 1LL) + (k > 0 ? reqgap : 0), req, true);
             req_state = true;
         } else if (req_state && allA && val(req, t)) {

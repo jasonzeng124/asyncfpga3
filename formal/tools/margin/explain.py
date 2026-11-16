@@ -364,6 +364,12 @@ print("\nPATH A (must arrive FIRST; the adversary slowed it): split -> %s pin %d
 A = summ(pa, "path A")
 print("PATH B (overtook it in the witness): split -> %s pin %d" % (N[gq["out"]], pj))
 B = summ(pb, "path B")
+hb = [x for x in pa + pb if x[0] == "ENV"]
+if hb:
+    print("\nCLASS: BOUNDARY race -- a path crosses the HARNESS (input data moved %s ps after the acknowledge it reacted to). Spec.Env"
+          " allows a 0 ps host; a clocked host is slower. Re-run with HOSTDELAY=<ps> (simx --hostdelay) for the kernel's own races." % ", ".join(str(x[2]) for x in hb))
+else:
+    print("\nCLASS: KERNEL race -- both paths stay inside the circuit")
 print("\nSLACK (path B - path A; positive = the required order holds):")
 for lab, x, y in (("fast-corner band midpoint", (B["fmin"] + B["fmax"]) / 2, (A["fmin"] + A["fmax"]) / 2),
                   ("slow-corner band midpoint", (B["smin"] + B["smax"]) / 2, (A["smin"] + A["smax"]) / 2),

@@ -3592,3 +3592,11 @@ the setup direction. C12 written in the owner's form (no kappa ranking).
   comparison of the two delay assignments.
 * What this means for the tool: a race whose path B crosses the harness should be reported as a BOUNDARY race,
   separately from kernel races. explain.py marks the HARNESS step; next: make run.sh / checkrows flag such rows.
+
+### progress 04:23 -- HOSTDELAY: the kernel's own races apart from boundary races (simx --hostdelay; explain.py CLASS)
+simx `--hostdelay H` (run.sh / margin.py: `HOSTDELAY=H`): the host moves input data H ps after the acknowledge it reacts
+to (default 1). Spec.Env allows any H >= 0, so every run is still a Spec behaviour; H = 1 is the most adversarial host.
+item 25's binding race (falseResult_3 st0 pair[12] enable route slow): fails at kappa 0.42, 0.45, 0.60 with H = 1;
+correct at all three with H = 500, 1000, 2000, 5000. So it is purely a boundary race (as audit T120b said).
+explain.py prints CLASS: BOUNDARY (a path crosses the harness) or KERNEL. Farm c_margin_host2: every class with
+H = 2000 on items 28/25/27/26, fcsel0/1 s24, fcsel3m s2/s24, with explanations at the SDF.

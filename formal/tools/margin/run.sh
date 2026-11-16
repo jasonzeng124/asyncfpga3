@@ -6,7 +6,7 @@
 # BUILD.fasm: the read-back (fromBit) FASM, plain/.xz/.gz. Next to it (or via env) the build's XDC, yosys JSON and
 # nextpnr routed JSON (for the boundary names): XDC=, SYNTH=, ROUTED=. v0 knows only the gcd_ps kernel boundary.
 # Knobs (env): JOBS (8), TOP (0 = every active candidate), KHI (0.45), KLO (0.20), W0 (1: also without H_RUNT),
-#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root).
+#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root), HOSTDELAY (ps: the host moves input data at least this long after the acknowledge; default 1 = the most adversarial host Spec.Env allows; a clocked host is ns).
 set -euo pipefail
 B=$1; O=$2; mkdir -p "$O"; O=$(cd "$O" && pwd)
 H=$(cd "$(dirname "$0")" && pwd); F=$(cd "$H/../.." && pwd); R=$(cd "$F/.." && pwd)

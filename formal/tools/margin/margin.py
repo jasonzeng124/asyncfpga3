@@ -68,6 +68,7 @@ def sim(arcs, P, w, tmax, tag, dump=None):
     cf = os.path.join(TMP, "c_%s.json" % tag)
     json.dump({"S": arcs, "F": []}, open(cf, "w"))
     cmd = ([SIMX, NETX, "--periodic", "--maxev", os.environ.get("SIMX_MAXEV", "100000000")] + (["--want", a.want] if a.want else [])
+           + (["--hostdelay", os.environ["HOSTDELAY"]] if os.environ.get("HOSTDELAY") else [])
            if SIMX else ["python3", SIM, a.net, a.bnd]) + ["--pairs", *a.pairs, "--kernel", a.kernel, "--corner", "0", "--kappa", "%.2f" % (P / KD),
            "--classes", cf, "--cdefault", "F", "--data0", "--full", "--R", "400000", "--su", "1000",
            "--datachange", "broad", "--nextreq", "seq", "--tmax", str(tmax)] + (["--w", str(w)] if w else [])
