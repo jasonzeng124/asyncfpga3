@@ -3812,3 +3812,28 @@ multiply). Said in the bq29 write-up. collatz64 items 32 / 30: running.
 item 32: ulink_n13 lat.pair[4] hold race (enable route 6 routing, SDF 1752) +987 worst in-band / +3861 SDF, kernel; first
 finite failure with both hosts (0.36). item 30: no finite failure <= 0.45 (both hosts); livelock 0.44, hangs 0.41-0.45.
 item 31 = C15. item 29 (ipow): decoder refuses DSP48. falseResult_7 controllers +838 SDF on both collatz64 routes.
+
+### progress 07:24 -- tcut.py: steer races located in time; item 25's w=0 steer hang is a 1-ps hazard pulse; explain/minimize row-selection bug fixed
+**Bug (explain.py, minimize.py):** both took the FIRST margins.txt row matching node and pin, ignoring w. A minimised
+row (pin 200+) has one row per w with DIFFERENT arc sets, so `explain.py ... 302 0.35 --w 0` on item 27 (c_min1) ran
+the w=20 minimal set at 0.35 and printed "witness RESULT OK". The c_min1 explanations of minimised w=0 rows are void
+(their "no moved arrival / INCONSISTENT" verdicts are not evidence). Both now take the row of the requested w.
+**Tool:** simx `--tcut T`: class-S arcs are slow for input changes before T and get their F delay after, FIFO across
+the cut (a change at u >= T arrives at max(u + fast, T + slow)). The pin sample point is the inverse map. Without
+--tcut the output is unchanged (item 25 row at w 20, S set and empty set: same RESULT / sim lines). tcut.py bisects T:
+run(T*) fails, run(T*-1) passes, and the two differ by 1 ps in the transitions in flight at the cut. Their first
+diverging storage LUT is where the race is decided.
+**Item 25 (collatz s24), steer row SLICE_X14Y22.A6 (ulink_n_index_11 st0 ctl), minimised row 301, kappa 0.38, w 0:**
+- T* = 1 735 195 ps (30 simulations). The divergence at 408 ns that explain.py saw is harmless drift; the damage is done
+  at 1.735 us.
+- SLICE_X16Y26.A5 (LUT5, init 0x44444444 with A3 = 0, A4 = A5 = 1, so out = !A1 & A2) gets A1 (from SLICE_X19Y36.A6)
+  at 1 735 259 and A2 (from SLICE_X17Y26.D6) at 1 735 261. The LUT pin delays are 139 and 136 ps (fast minimum x 0.62),
+  so it emits a 1-ps pulse (1 735 397-398).
+- In run(T*-1), A1 comes 1 ps earlier, both arrive together, and there is no pulse.
+- The pulse reaches ulink_n_falseResult_7 st0's controller (SLICE_X16Y23.B6, pin 0), which then oscillates (1-ps pulses
+  every 108 ps on its own feedback). Then ucontrol_merge1.uarb1.ustate diverges, and the run hangs.
+- A static-hazard pulse 1 ps wide is below H_RUNT's w = 20. At w = 20 the same steer row fails only at 0.62.
+So this w=0 steer failure is a zero-width-glitch artifact of the unfiltered model, not a race with picosecond slack. It
+says nothing about silicon beyond "a 2-input hazard feeds a C-element input", which a real LUT absorbs at 1 ps.
+**Open:** the steer rows that also fail WITH the filter (item 27 SLICE_X14Y30.B6 0.28 w20 PHYSICAL, SLICE_X15Y33.B6
+0.42 w20 ADMISSIBLE; fcsel0 s24 0.37; fcsel3m s2 0.35/0.37) go to the farm: c_tcut1 (TCUT=1, host 2 ns, plus item 25 for names).

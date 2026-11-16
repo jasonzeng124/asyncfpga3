@@ -175,10 +175,15 @@ struct EQ {
 };
 static EQ Q;
 static ll SEQ = 0;
-static vector<int> rd0, rdg, rdd;     // readers CSR: node -> (gate, delay)
+static vector<int> rd0, rdg, rdd, rdf;   // readers CSR: node -> (gate, delay, delay after --tcut)
+static ll TCUT = -1;                   // --tcut T: a slowed arc (class S) takes its F delay for input changes at or after T
 static inline void sched(ll t, int g) { ++SEQ; Q.gate(t, g); }
 static inline void env_set(ll t, int n, bool v) { Q.env.push({t, -1, ++SEQ, 2 * n + (v ? 1 : 0)}); }
-static inline void changed(int n, ll t) { for (int r = rd0[n]; r < rd0[n + 1]; r++) sched(t + rdd[r], rdg[r]); }
+static inline void changed(int n, ll t) {
+    if (TCUT < 0 || t < TCUT) { for (int r = rd0[n]; r < rd0[n + 1]; r++) sched(t + rdd[r], rdg[r]); return; }
+    // FIFO across the cut: a change at u >= T arrives at max(u + fast, T + slow), never before an earlier change
+    for (int r = rd0[n]; r < rd0[n + 1]; r++) sched(max(t + rdf[r], TCUT + rdd[r]), rdg[r]);
+}
 
 static int W = 0; static ll NSKIP = 0;
 static ll NINJ = 0;
@@ -241,6 +246,7 @@ int main(int argc, char** argv) {
         else if (o == "--datachange") { datachange = nxt(); if (datachange != "handshake" && datachange != "broad" && datachange != "rtz" && datachange != "next") die("bad --datachange"); }
         else if (o == "--nextreq") { nextreq = nxt(); if (nextreq != "sample" && nextreq != "seq") die("bad --nextreq"); }
         else if (o == "--dump") dump = nxt();
+        else if (o == "--tcut") TCUT = atoll(nxt());
         else if (o == "--periodic") periodic = true;   // stop with PERIODIC when the run provably (untrusted) repeats
         else if (o == "--pos" || o == "--seed") nxt();
         else die("unsupported option %s (simx ports only simadv's --classes/--full subset)", o.c_str());
@@ -276,7 +282,7 @@ int main(int argc, char** argv) {
         if (!nid.count(kv.first.first)) die("classes: unknown injected node %s", kv.first.first.c_str());
         INJ[{nid[kv.first.first], kv.first.second}] = kv.second; } }
 
-    ds.resize(ins.size()); his.assign(ins.size(), 0.0);
+    ds.resize(ins.size()); his.assign(ins.size(), 0.0); vector<int> dsf(ins.size());
     for (int g = 0; g < NG; g++) {
         for (int i = 0; i < gk[g]; i++) {
             int a = gins0[g] + i;
@@ -292,8 +298,10 @@ int main(int argc, char** argv) {
                 his[a] = ((1 - corner) * (double)afmax[a] + corner * (double)asmax[a]) * (1 + kappa) * 1.0;
                 if (d < W) { if (!(W <= his[a])) die("H_RUNT: w exceeds a LUT pin's upper bound"); d = W; }
             }
-            { auto ij = INJ.find({gout[g], i}); if (ij != INJ.end()) { d += ij->second; NINJ++; } }
-            ds[a] = (int)d;
+            ll df = d;
+            if (k == 'S') { df = ((KD - PK) * FN + KD - 1) / KD; if (W && glut[g] && df < W) df = W; }
+            { auto ij = INJ.find({gout[g], i}); if (ij != INJ.end()) { d += ij->second; df += ij->second; NINJ++; } }
+            ds[a] = (int)d; dsf[a] = (int)df;
         }
     }
     if (NINJ) fprintf(stderr, "simx: %lld injected arcs (outside the prjxray band: NOT a Spec behaviour)\n", NINJ);
@@ -301,9 +309,9 @@ int main(int argc, char** argv) {
     rd0.assign(NN + 1, 0);
     for (int g = 0; g < NG; g++) for (int i = 0; i < gk[g]; i++) rd0[ins[gins0[g] + i] + 1]++;
     for (int n = 0; n < NN; n++) rd0[n + 1] += rd0[n];
-    rdg.resize(ins.size()); rdd.resize(ins.size());
+    rdg.resize(ins.size()); rdd.resize(ins.size()); rdf.resize(ins.size());
     { vector<int> f(rd0.begin(), rd0.end() - 1);
-      for (int g = 0; g < NG; g++) for (int i = 0; i < gk[g]; i++) { int n = ins[gins0[g] + i]; rdg[f[n]] = g; rdd[f[n]] = ds[gins0[g] + i]; f[n]++; } }
+      for (int g = 0; g < NG; g++) for (int i = 0; i < gk[g]; i++) { int n = ins[gins0[g] + i]; rdg[f[n]] = g; rdd[f[n]] = ds[gins0[g] + i]; rdf[f[n]] = dsf[gins0[g] + i]; f[n]++; } }
     H.assign(NN, {}); V0.assign(NN, 0); TOUCH.assign(NN, 0);
 
     int rst = BN["rst"], req = BN["req"], aA = BN["a_ack"], aB = BN["b_ack"], aS = BN["start_ack"],
@@ -334,7 +342,10 @@ int main(int argc, char** argv) {
     if (np) { ll t0d = data0 ? 0 : (su ? R - su - 1 : R); drive_data(t0d, pairs[0].first, 0); drive_data(t0d, pairs[0].second, 1); }
     ll t = 0, nev = 0; vector<pair<ll, ull>> outvals;
     bool req_state = false, pend_state = false, capped = false;
-    const int* INS = ins.data(); const int* DS = ds.data();
+    const int* INS = ins.data(); const int* DS = ds.data(); const int* DSF = dsf.data();
+    if (TCUT >= 0) fprintf(stderr, "simx: --tcut %lld: slowed arcs take their F delay for input changes at or after it\n", TCUT);
+    // the pin's sample point: slow while t < T + slow (changes before T), fast after (inverse of the FIFO arrival map)
+    auto PD = [&](int a, ll tt) -> ll { return (TCUT < 0 || tt < TCUT + DS[a]) ? DS[a] : DSF[a]; };
     while (!Q.empty()) {
         Ev e = Q.pop();
         t = e.t;
@@ -346,10 +357,10 @@ int main(int argc, char** argv) {
         else {
             int g = e.x, kk = gk[g], b0 = gins0[g]; unsigned ad = 0;
             if (W && glut[g]) {
-                for (int i = 0; i < kk; i++) { ll u; bool v = fval(INS[b0 + i], t - DS[b0 + i], u);
+                for (int i = 0; i < kk; i++) { ll u; bool v = fval(INS[b0 + i], t - PD(b0 + i, t), u);
                     if ((double)(t - u) > his[b0 + i]) INF[{g, i}]++;
                     if (v) ad |= 1u << i; }
-            } else for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - DS[b0 + i])) ad |= 1u << i;
+            } else for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - PD(b0 + i, t))) ad |= 1u << i;
             bool v = (initw[ginit0[g] + (ad >> 6)] >> (ad & 63)) & 1;
             if (setv(gout[g], t, v)) changed(gout[g], t);
         }

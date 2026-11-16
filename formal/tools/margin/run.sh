@@ -6,7 +6,7 @@
 # BUILD.fasm: the read-back (fromBit) FASM, plain/.xz/.gz. Next to it (or via env) the build's XDC, yosys JSON and
 # nextpnr routed JSON (for the boundary names): XDC=, SYNTH=, ROUTED=. v0 knows only the gcd_ps kernel boundary.
 # Knobs (env): JOBS (8), TOP (0 = every active candidate), KHI (0.45), KLO (0.20), W0 (1: also without H_RUNT),
-#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), W0FULL (1: sweep every candidate at w = 0 too, not only those failing at w = 20), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root), MINIMIZE (1: for each reported cone/steer race, minimize.py then explain + verify the minimal row), EXPLAIN_ALL (1: explain every failing row, not only the reported races), HOSTDELAY (ps: the host moves input data at least this long after the acknowledge; default 1 = the most adversarial host Spec.Env allows; a clocked host is ns).
+#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), W0FULL (1: sweep every candidate at w = 0 too, not only those failing at w = 20), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root), MINIMIZE (1: for each reported cone/steer race, minimize.py then explain + verify the minimal row), TCUT (1: for each reported cone/steer race, tcut.py: when the damage is done and where), EXPLAIN_ALL (1: explain every failing row, not only the reported races), HOSTDELAY (ps: the host moves input data at least this long after the acknowledge; default 1 = the most adversarial host Spec.Env allows; a clocked host is ns).
 set -euo pipefail
 B=$1; O=$2; mkdir -p "$O"; O=$(cd "$O" && pwd)
 H=$(cd "$(dirname "$0")" && pwd); F=$(cd "$H/../.." && pwd); R=$(cd "$F/.." && pwd)
@@ -139,6 +139,11 @@ for l in lines:
         r2 = subprocess.run(c2, capture_output=True, text=True, timeout=1800) if m.returncode == 0 else None
         with open(os.path.join(O, "explain_%s_%s_k%s_w%s_min.txt" % (node, pin, k, w)), "w") as f:
             f.write(l + m.stdout + m.stderr[-1000:] + ((r2.stdout + r2.stderr[-1000:]) if r2 else ""))
+    if os.environ.get("TCUT") == "1" and int(pin) >= 99:
+        # a cone / steer row: WHEN the slow arcs do the damage (bisection on simx --tcut) and the storage LUT that decides it
+        c3 = ["python3", os.path.join(H, "tcut.py"), O, node, pin, k, "--w", w] + (["--routed", os.path.join(O, "routed.json")] if os.path.exists(os.path.join(O, "routed.json")) else [])
+        r3 = subprocess.run(c3, capture_output=True, text=True, timeout=3600)
+        with open(os.path.join(O, "tcut_%s_%s_k%s_w%s.txt" % (node, pin, k, w)), "w") as f: f.write(l + r3.stdout + r3.stderr[-1500:])
 PYEOF
 # 6. static screen of every feedback race at nextpnr's SDF (fbslack.py; needs SDF=)
 [ -n "${SDF:-}" ] && [ -f "$SDF" ] && { python3 "$H/fbslack.py" "$SDF" --top 60 > "$O/fbslack.txt"; python3 "$H/fbslack.py" "$SDF" --top 30 --grep .ctl. > "$O/fbslack_ctl.txt"; } || true

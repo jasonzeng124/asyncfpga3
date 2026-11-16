@@ -17,7 +17,9 @@ a = ap.parse_args(); O = os.path.abspath(a.out)
 row = None
 for l in open(os.path.join(O, "margins.txt")):
     f = l.split()
-    if len(f) > 4 and not l.startswith("#") and f[1] == a.node and f[2] == str(a.pin): row = f; break
+    if len(f) > 4 and not l.startswith("#") and f[1] == a.node and f[2] == str(a.pin):
+        if f[0] == "w=%d" % a.w: row = f; break           # the row of this w, else the first
+        if row is None: row = f
 if row is None: sys.exit("row not found")
 S = [[x.rsplit("/", 1)[0], int(x.rsplit("/", 1)[1])] for x in row[-1].split(",")]
 base = [l for l in open(os.path.join(O, "witness", "command.txt")) if not l.startswith("#")][0].split()

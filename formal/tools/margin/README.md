@@ -50,6 +50,12 @@ JOURNAL-C.md 2026-11-15/16.
   its feedback (A) against the fastest structural return to another of its pins (B). run.sh writes fbslack*.txt.
 - `minimize.py OUT NODE PIN KAPPA [--w W]`: delta debugging over a cone row's slowed arcs; the minimal failing set
   becomes row PIN+200 (explain.py / checkrows take it).
+- `tcut.py OUT NODE PIN KAPPA [--w W] [--routed R]` (run.sh TCUT=1): WHEN a cone / steer row's slow arcs do the
+  damage. simx `--tcut T` keeps the class-S arcs slow for input changes before T and gives them their F delay after
+  (FIFO across the cut, so no transition overtakes an earlier one). Bisection gives T* with run(T*) failing and
+  run(T*-1) passing. The two runs differ by 1 ps in the transitions in flight at the cut, so their first diverging
+  storage LUT is where the race is decided (0 slack). RUNT flags a pulse narrower than H_RUNT's 20 ps at the first
+  diverging LUTs. Without `--tcut`, simx output is unchanged (checked event for event on item 25 at w 20).
 
 ## Simulator
 `SIM=simx` (recommended): `simx.cpp` (g++ -O2 -std=c++17), a C++ port of tools/huff/simadv.py's options the sweep

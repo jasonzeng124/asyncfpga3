@@ -40,7 +40,10 @@ S = None
 for l in open(os.path.join(O, "margins.txt")):
     f = l.split()
     if len(f) > 4 and not l.startswith("#") and f[1] == a.node and f[2] == str(a.pin):
-        S = [[x.rsplit("/", 1)[0], int(x.rsplit("/", 1)[1])] for x in f[-1].split(",")]; break
+        # one row per w (a minimised row's arc set differs between w): take the row of this w, else the first
+        s_ = [[x.rsplit("/", 1)[0], int(x.rsplit("/", 1)[1])] for x in f[-1].split(",")]
+        if f[0] == "w=%d" % a.w: S = s_; break
+        if S is None: S = s_
 if S is None: sys.exit("row %s %d not in margins.txt" % (a.node, a.pin))
 SL = set((drv[idx[n]], p) for n, p in S)   # (gate index, pin)
 base = [l for l in open(os.path.join(O, "witness", "command.txt")) if not l.startswith("#")][0].split()
