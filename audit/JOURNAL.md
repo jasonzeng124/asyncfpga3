@@ -2214,3 +2214,18 @@ Formal C 80cd8b1e: margin tool fixes -- runs infeasible under H_RUNT no longer c
 
 ### note 09:20
 Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and fcsel0 s24: no single-route failure <= 0.45 on either; the umux select race does produce wrong values from ~0.85 (umux0.udat.pair[10] reading the select from ulink_n14__0 late), on both builds -- under this adversary select links at 3 vs 0 do not separate. Consistent with own T116c / T118: on fcsel0 the select reaches umux0's pins up to ~0.5 ns after z_req at nominal FAST_MIN without a wrong value (downstream matched delays absorb it); the static rule E (research -87..-255 ps) is stricter than what breaks. A also reports a bug in C's run.sh (arbs.json overwritten with [] under pipefail/EPIPE) -- relevant to C's earlier "ArbOK checked" claims if that path ran; to watch.
+
+### progress 03:45
+- formal C 3085bc4e9 (steer cones; "partial-ack deadlocks make Spec.Env unsatisfiable").
+  - Read Spec.lean:265-298 and :392 at 103cc6c3c.
+  - Own lemma audit/lean/T121/EnvVacuous.lean (`env_vacuous`), own Lean, rc 0, axioms propext and Quot.sound.
+  - Finding T121: CONFIRMED as a statement gap. Env forbids partial-ack hangs, so NetCorrectSeq holds vacuously on them.
+  - The item 25 deadlock at kappa 0.38-0.40 is C's search and is UNVERIFIED.
+- Also noted:
+  - formal A 2286e188d: item 28 kappa_hi 0.42, search, the same as the C11 note.
+  - formal A 9ddeef114: FEASIBILITY block.
+  - formal A 103cc6c3c: MARGINS no longer leads with kappa; the race-in-ps column is pending (owner 7acb3a72).
+- Research has new select work:
+  - fxsel3 (027667625) and fisel3/fc64sel3 (c44eae7b7);
+  - selneg2 at +6000/+12000 ps (babb534d8).
+  - These are next in the queue.
