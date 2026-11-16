@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # bench_gate.sh HWDIR DESIGN WORK VECFILE EXPFILE COL -- one full-stack correctness run of a bench route at one corner:
 #   COL = max (SLOW_MAX) | min (FAST_MIN) | worst (delay chains 0.21, CARRY4/F7F8/FF 1, rest 0.288, + M scatter:
-#   region 0.02, wire 0.126, the measured residual -- JOURNAL 2026-11-04 00:24 / 2026-11-05 00:09).
+#   region 0.02, wire 0.126, the measured residual -- JOURNAL 2026-11-04 00:24 / 2026-11-05 00:09)
+#   | draw:K (one draw of the parametric delay model, see the case below; JOURNAL 2026-11-16).
 # Netlist decoded from the .bit (fasm_equiv verdict), prjxray SDF, fid, ps7_bench.v FIXED mode, +FCLK_PS=12000
 # (83.3 MHz), 2 runs per vector.  Verdict: every batch completed 2/2, its runs agreed (mism_st bit 0 clear; added
 # 2026-11-16) and odata == EXPFILE line (derived from the C).
@@ -17,11 +18,24 @@ case $COL in
   worst) python3 "$R/research/tools/band_inst_list.py" "$HW/${D}_routed.json" '\.chain\.g\[\d+\]\.u$' 0.21 "$W/chains.band" > /dev/null
          export GLS_SDF_FIELD=band GLS_SDF_BAND=0.288 GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1 \
                 GLS_SDF_BAND_INST=@$W/chains.band GLS_SCATTER_REGION=0.02 GLS_SCATTER=0.126 GLS_SCATTER_MODE=wire GLS_SCATTER_SEED=1;;
+  draw:*) # one draw of the delay model (PROGRAM 2026-11-16, "the board decides"); parameters from the draw number K,
+         # written to $W/draw_K.txt. Source of each range: research/data/fid/ring128 (LUT + wire band 0.2877, p05-p95
+         # 0.276-0.303) and research/data/aug_kernels (August kernel builds on the board: x 0.211-0.225); the two disagree,
+         # so each class gets its own independent band, uniform over [0.20, 0.31]: delay chains, everything else. CARRY4,
+         # F7/F8 and FF were never measured: uniform over [0.20, 1.0]. Within-die: setting M (region 0.02, wire 0.126,
+         # wire mode; ring128 README), its own seed per draw.
+         K=${COL#draw:}
+         read XC XR XK <<< "$(python3 -c "import random; r=random.Random(7919*$K+17); print(*['%.4f'%v for v in (r.uniform(.20,.31), r.uniform(.20,.31), r.uniform(.20,1.0))])")"
+         echo "draw $K chains $XC rest $XR carry/f7f8/ff $XK region 0.02 wire 0.126 seed $K" > "$W/draw_$K.txt"
+         python3 "$R/research/tools/band_inst_list.py" "$HW/${D}_routed.json" '\.chain\.g\[\d+\]\.u$' $XC "$W/chains_$K.band" > /dev/null
+         export GLS_SDF_FIELD=band GLS_SDF_BAND=$XR GLS_SDF_BAND_CELL=CARRY4=$XK,SELMUX2_1=$XK,SLICE_FFX=$XK \
+                GLS_SDF_BAND_INST=@$W/chains_$K.band GLS_SCATTER_REGION=0.02 GLS_SCATTER=0.126 GLS_SCATTER_MODE=wire GLS_SCATTER_SEED=$K;;
   *) echo "COL?"; exit 2;;
 esac
 # one compile at a time on the machine: build_ps.sh's iverilog peaks at several GB (OOM kills lose runs)
-flock /tmp/eventgraph_compile.lock "$G/ps/build_ps.sh" "$HW" "$W/$COL" "" bit > "$W/$COL.build.log" 2>&1
-cd "$W/$COL"; rm -f gate.vvp
+CD=${COL/:/_}
+flock /tmp/eventgraph_compile.lock "$G/ps/build_ps.sh" "$HW" "$W/$CD" "" bit > "$W/$CD.build.log" 2>&1
+cd "$W/$CD"; rm -f gate.vvp
 vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=1200000 +TEND=20000000 ${GATE_PLUSARGS:-} > run.log 2>&1 || true   # GATE_PLUSARGS: e.g. +META_INIT=0
 rm -f run_baked.vvp
 python3 - "$EXP" run.log "$(grep -o 'VERDICT: [A-Z_ ]*' fid/equiv.txt | head -1)" <<'PY'
