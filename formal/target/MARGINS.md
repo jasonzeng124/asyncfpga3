@@ -13,6 +13,7 @@ key. Columns per the owner (PROGRAM.md, 2026-11-15): **kappa_lo** = the largest 
 
 | build | md5 | binding race (research names) | race in ps (paths from the split, slack at nominal SDF, research rule row) | kappa_hi (search key) | kappa_lo (proved) | date, source |
 |---|---|---|---|---|---|---|
+| item 33 xorshift (fr4a, seed 27: item 27 + uxori1/2 5, umux3 9, ucmpi0 10, uaddi0 12) | sdf 7f0c0592 | pending | pending | pending | none | research FOR-FORMAL 9776b246 |
 | item 32 collatz64 (h4s3p, seed 22; ULINK_N13_UACK kept at 3 after C8/C9) | sdf 842dd4d7 | `ulink_n13.lat.pair[4]` vs `ulink_n13.ctl` (kernel race, as items 26/28); ulink_n28 not broken up to 0.45 | enable 1,752 ps at research SDF (routing 1,600) vs data 5,613: **+3,861 ps at SDF**, +987 worst in-band (C18) | first finite failure as above (search); hangs from 0.44 | none | research FOR-FORMAL 2026-11-16 |
 | item 31 collatz (nl6s3a, seed 20: item 28 + uselect0 16 -> 7, uaddi0 12 -> 9) | sdf 7aefc4bd | uselect0 capture holds to 0.45; falseResult_7 st0 ctl own feedback | falseResult_7 ctl +174 ps worst in-band, +764 at SDF (C15) | see C15 | none | same |
 | item 30 collatz64 (h4s3, seed 10; select links 3/6/3) | sdf 637ff02e | no finite failure up to 0.45 (either host) | falseResult_7 ctls +838 ps at SDF (C18) | none <= 0.45; livelock 0.44 (12 ns host), hangs from 0.41 | none | same |
