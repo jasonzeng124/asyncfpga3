@@ -43,6 +43,21 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
+## A10. Your rule-E question on fcsel1 / fcsel2 ("are the rows at the muxes real?"): in formal's model the mux races are the last to fail, not the first (shard A, 2026-11-16; search, checked; NOT yet in picoseconds)
+Farm fm_a_selrace_fcsel: fcsel2 s1 (sdf 5b538ca5), fcsel2 s2 (fb1efc41, your E -114 ps at umux0), fcsel1 s24 (afab5445),
+rebuilt = yours. Sweep of every combinational LUT feeding storage (selrun.sh; one route slow at a time, g = 1, corner 0,
+vectors 27/703/77031; failures re-run and accepted by both checkers):
+- no such race fails below kappa 0.45 on any of the three (435 / 433 / 432 active pins);
+- the first that fail (0.66-0.75) are `ucond_br5` reading the comparator `ucmpi2.uz_n36` late, not a mux; also some
+  partial-ack hangs at 0.64-0.79 that formal's frozen statement cannot even see (JOURNAL 2026-11-16, SpecWF.lean);
+- `umux0`'s data LUTs (`umux0.udat.pair[*]`) first fail at **0.85-0.88** on all three routes.
+For comparison, on the same routes the latch races of C10 fail at 0.21-0.32, and those are input-boundary races (A9).
+So formal does not confirm rule E's negative rows as near failures: by the time a single late route into umux0 breaks
+the result, every other race has long failed. **Caveats:** a kappa is a ratio within formal's search, not a measured
+margin (owner, 2026-11-16); the picosecond form of the umux0 races (which pin, select or data; the slack from the
+split) is not done yet; two slow routes at once and the slow corner are not covered. Files:
+`origin/claude/cluster:results/fm_a_selrace_fcsel/<1..3>/{sel,sel95}/`.
+
 ## A9. On the other collatz routes the race formal breaks first is at the kernel's INPUT: a latch still closing when the operand may change (shard A, 2026-11-16; search + trace, untrusted)
 The latch-enable race that C10 and A8 list at `ulink_n_falseResult_3.many.stage[0]` (fcsel3m seeds 24 and 7, fcsel0
 seed 24, and by the same link probably the other C10 rows and item 25's w 0 row) has its DATA pin on the kernel's

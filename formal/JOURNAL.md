@@ -2708,3 +2708,6 @@ acknowledge, which the board's PS harness (next operand only after the result is
 the kernel relying on sender hold is a real protocol hazard under Spec.Env, not an artefact of the Spec.
 (Also: a simx run at the slow mid with TFULL 25 us ends 1 us short of collatz's third answer on fcsel3m s24; with
 100 us it is correct. The farm's slow-corner runs, if any, need a longer TFULL.)
+### progress 03:52 -- farm a_selrace_fcsel back: no combinational race below 0.45 on fcsel2 s1/s2, fcsel1 s24; umux0 first at 0.85-0.88 (FOR-RESEARCH A10)
+First combinational failures 0.66-0.75 at ucond_br5 vs ucmpi2 (checked); partial-ack hangs at 0.64-0.79 flagged
+"physical" by C's updated checkrows (the class SpecWF addresses). Not in ps yet.
