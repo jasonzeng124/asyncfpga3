@@ -2302,3 +2302,17 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research 1b00b6ae7 FOR-FORMAL quotes T119 (3/3, ulink_n13 1110 -> 393 ps) and T120/T120b. Checked against findings/T119.md lines 12-18: accurate.
 - research cc0abaa43: exploratory collatz nl6s3a (uselect0 7, uaddi0 9), 21.27 ns on one route (sdf 7aefc4bd); farm fcsel3a. Not on BOARD-QUEUE; to check if queued.
 - research ef180ae09 is tooling.
+
+### progress 04:26
+- research 4666de8df queues BOARD-QUEUE items 29 and 30:
+  - item 29: ipow h4 + select links at 3, seed 19, sdf 4a92cdf3, ratio ~1.10 over item 19;
+  - item 30: collatz64 h4 + select links 3/6/3, pre_eq2, seed 10, sdf 637ff02e, ratio ~1.04 over item 26.
+- Own pipeline t126/run.sh is started (sequential):
+  - own build from the research worktree at its HEAD and an md5 check;
+  - FF scan;
+  - GLS at 3 corners with own oracle and t104 monitors;
+  - own rule H and rule E (new generic wrapper t93/sites_any.py);
+  - collatz64 period by run_per.sh.
+- New build.sh variants: ipsel3, c64sel3.
+- research f75b68056: selneg status. 4 of 13 +3000 injections make the gate fail; rule E flags all 4 and flags 4 more that pass. To be checked against own T125 (item 28 umux2: gate passes, as research says).
+- formal A 63b476454: research's rule H row for item 28 (+1337) agrees with formal's 1343. Own dynamic is 1610 (T124a).
