@@ -29,9 +29,10 @@ the select link's own latch, `ulink_n_index_11.many.stage[0].lat.odd`, against `
 740 ps fast mid, SDF 1555; path B (enable): `ustate` -> merge1's matched delay `udly.chain.g[1]` -> the link's ctl ->
 latch enable: 4 LUTs + 16 routing, 850 ps, SDF 1985. Slack **+110 ps fast mid, +430 ps at your SDF (0.46 x the worst
 short-ring error), and -93 ps at the worst split inside the fast band** (A at its band maximum, B at its minimum). So
-merge1's matched delay (two elements here) covers its data by about 0.1-0.4 ns. uselect0 is on neither path; no capture
-at uselect0's output link fails below 0.82 (the next ones are ulink_n14__1 at 0.82, +1679 ps SDF, and three others
-at 0.84-0.88 with 2.2-9.6 ns of SDF slack). Checking now whether this race alone (path A slowed, nothing else) fails
+merge1's matched delay (two elements here) covers its data by about 0.1-0.4 ns. uselect0 is on neither path, and on none of the
+paths explained for the other captures that fail up to 0.90 (ulink_n14__1 at 0.82, +1679 ps SDF; three others at
+0.84-0.88 with 2.2-9.6 ns of SDF slack; three more traces were rejected as inconsistent). So uselect0's own line is
+not among the races this search breaks; its slack in ps is still not computed. Checking now whether this race alone (path A slowed, nothing else) fails
 inside the band (farm c_verify1). Same structure on item 27 (C12): +1418 / +1423 ps SDF there.
 **fbslack.py agrees.** Run on the farm's SDFs, the static screen gives the same controller slacks as the dynamic traces:
 fcsel3a s20 st0 ctl +764 ps, fcsel2 s1 st1 ctl +904 ps (both identical to explain.py). So `fbslack.py BUILD.sdf --grep .ctl.`
