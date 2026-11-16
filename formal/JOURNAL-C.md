@@ -4001,3 +4001,15 @@ if research's GLS passes these draws.
 item 30 s10 (637ff02e) 108/128 (0.84; Wilson 0.77-0.90), all 20 = the entry-steer split after n = 1; item 30's design
 s1/s2/s3 (4e072a58 / 735ab3f4 / 68a9f1d4) 128/128; item 32 s22 128/128, its design s1 (3822f62c) 127/128 (same split),
 s2/s3 128/128; items 25, 26, 28, 31 128/128. Route-dependent race in the h4s3/h4s3p collatz64 family.
+
+### progress 21:48 -- C21 RETRACTED: the failures were my harness raising the request before its data (simx fixed)
+fm_c_x30ps: at ucond_br3 the request rises at 3,537,286 ps in both runs; the condition (ucmpi0.uz_n4, from the input n)
+at 3,535,148 (1-ps host) vs 3,538,491 (12-ns host). simx's broad host drove n = 97 at ackfall + 12 ns = 3,535,019 but
+had raised the request at 3,530,886 (1 ns after the previous answer): the harness broke bundling at the boundary.
+Host-delay bisection agrees (<= 8 ns pass, >= 16 ns fail). Fix: in --datachange broad the request waits for data + su.
+Check: gcd_ps with an 8-us host: old harness MISMATCH [2, 2], fixed OK [2, 21]; with 1 ps / 12 ns, identical output.
+Consequence: all PASS results stand; item 30's 20/128 and item 32-design s1's 1/128 are void. Every earlier
+HOSTDELAY >= 2000 run of the margin tool (c_margin_host2, bq29 12-ns host, x27r, x33 ...) used the same harness: any
+failure there that involves new input data arriving after a request is suspect; to be re-checked. Rerun: c_draws6.
+Research's rule E row for the steer: ucond_br3/4 +1947 raw / -1331 guarded (launch ulink_n1__1.ctl).
+The owner was notified of C21 at 21:16; a correction follows.

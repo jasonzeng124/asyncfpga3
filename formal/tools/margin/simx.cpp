@@ -376,6 +376,7 @@ int main(int argc, char** argv) {
     { ll md = 0; for (int x : ds) md = max(md, (ll)x); Q.init(md); }
     for (int g = 0; g < NG; g++) sched(0, g);
     // env state
+    ll data_at = 0;
     ll k = 0, done_in = 0; bool out_pending = false, next_ok = true, seq_wait = false;
     bool has_sample = false; ll sample_at = 0; ll broad_k[2] = {-1, -1}; ll rtz_done = -1;
     ll np = pairs.size();
@@ -446,6 +447,7 @@ int main(int argc, char** argv) {
                 broad_k[j] = k;
                 printf("env: %s -> pair %lld at %lld ps (its ack fell)\n", j ? "b_data" : "a_data", k, t + 1);
                 drive_data(t + hostd, j ? pairs[k].second : pairs[k].first, j);
+                data_at = max(data_at, t + hostd);
             }
         }
         if (datachange == "rtz" && !req_state && !anyA && 0 < k && k < np && rtz_done != k) {
@@ -457,7 +459,15 @@ int main(int argc, char** argv) {
             if (datachange == "next" && k > 0) {
                 drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1);
                 env_set(t + hostd + max(su, 1LL), req, true);
-            } else env_set(t + max(su, 1LL) + (k > 0 ? reqgap : 0), req, true);
+            } else {
+                // a host never raises a request before its data (bundled data at the boundary): with --datachange broad
+                // the data of pair k was driven at data_at (hostdelay after its ack fell); the request comes su after
+                // both. (Before 2026-11-16 21:5x the request could precede the data when hostdelay > the time to the
+                // next offer, a boundary violation by the harness: FOR-RESEARCH C21 was that artefact.)
+                ll tr = t + max(su, 1LL) + (k > 0 ? reqgap : 0);
+                if (datachange == "broad" && k > 0) tr = max(tr, data_at + max(su, 1LL));
+                env_set(tr, req, true);
+            }
             req_state = true;
         } else if (req_state && allA && val(req, t)) {
             env_set(t + 1, req, false);

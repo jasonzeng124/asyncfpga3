@@ -3,7 +3,20 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
-## C21. Item 30 (collatz64 h4s3 s10, sdf 637ff02e) fails 5 of 32 of YOUR draws in formal's simulator: a token split at the entry steers after the zero-trip call n = 1 (shard C, 2026-11-16; untrusted simulation)
+## C21-RETRACTED. Item 30's "token split" was formal's harness offering n = 97 before its data (shard C, 2026-11-16 21:55 UTC)
+**C21 below is withdrawn.** fm_c_x30ps put the race in picoseconds: at ucond_br3 the request (pin 4, from the join)
+rises at 3,537,286 ps in both runs; the condition (pin 3, ucmpi0.uz_n4, computed from the kernel INPUT n) moves at
+3,535,148 with a 1-ps host and at 3,538,491 with the 12-ns host. The 12-ns host moved n at 3,535,019 (12 ns after
+n = 1's acknowledge fell), but formal's simulated host had already raised the request for n = 97 at 3,530,886, 1 ns
+after the previous answer: **a host that presents its data after its own request**, which no real host does
+(bench / PS writes the operand, then requests). The thresholds fit this: hosts up to 8 ns pass, 16 ns and more fail.
+simx is fixed (the request now waits for its data plus su; checked: with an 8-us host the old harness reported a false
+MISMATCH on gcd_ps, the fixed one answers right). Every PASS in C20 / C21 stands (a later operand can only make it
+harder); the item 30 failures, item 32's design s1 failure, and the rates in C21 are void. Reruns with the fixed host:
+fm_c_draws6. Research's rule E row for this steer on item 30 (skew.py -v, unchanged): ucond_br3/4 +1947 raw, -1331
+guarded (launch ulink_n1__1.ctl) -- a lead only, as before.
+
+## C21. (WITHDRAWN, see C21-RETRACTED) Item 30 (collatz64 h4s3 s10, sdf 637ff02e) fails 5 of 32 of YOUR draws in formal's simulator: a token split at the entry steers after the zero-trip call n = 1 (shard C, 2026-11-16; untrusted simulation)
 **Problem.** Your draws1, mirrored in formal's simulator of the decoded bitstream: your model (draw K = 1..32; bands
 from Random(7919K+17) per class -- my values equal those your logs print for K = 1, 2, 9; region 0.02; per-pip 0.126),
 the same routes (sdf md5s equal yours), your vectors (xor19, col14, c6415). Formal's LUTs: transport with the 20-ps
