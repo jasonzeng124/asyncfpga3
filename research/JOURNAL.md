@@ -5402,3 +5402,12 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   round cut ULINK_N28_UACK 3 -> 1 because corner_audit's H at nominal / worst allowed it; TSE at FAST_MIN does not.
   fc64sel3q (h4s3q = h4s3p with that ack back at 3) on the farm. Board seed 22 (sdf 842dd4d7) is clean on every row
   but the false path: BOARD-QUEUE item 32 / section 33, with the rows stated.
+### progress 06:24 UTC (rule M: first failing build, farm control on all families; fcsel3a_ps first proposals)
+- Local, item 28's route (c28_20), +8000 ps on ulink_n14__0's select latch -> umux0.udat (32 arcs, SDF only): gate at
+  FAST_MIN completed no batch in ~25 CPU-min (clean route: whole gate 8.9 min), stopped by the session's job limit;
+  re-running to 55 min. +3000 on the same arcs: M -353 ps, gates FAST_MIN / worst PASS 13/13 (cycles unchanged).
+- Farm mneg: the same construction on all four candidates' routes, every mux, +4000 / +8000, corner_audit (M and E)
+  + gates FAST_MIN / worst. PREDICTION: every gate failure has an M row < 0; at loop-header muxes M flags and the gate
+  passes (as for E).
+- fcsel3a_ps (collatz item 31's routes, --shrink-selects, rule M in force), first 4 routes: umux0 6 -> 3 and umux1 5 -> 3
+  bound by A'm (rule M), umux2 11 -> 5 by A', uselect0 7 -> 5-6, ucmpi2 16 -> 12-15, select links 3 -> 2 by E.
