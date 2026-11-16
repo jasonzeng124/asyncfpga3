@@ -2761,3 +2761,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 11:21
 - research 395fd7f71: selneg3 complete, 44/44 join-injection gates pass with META_INIT. Finalises "rule E at mux joins has no failing build" (owner-decision row already updated). Not replayed (no META_INIT in own harness).
+
+### progress 14:04
+- formal A 75e886d56 (session summary): no new claim. It cites audit T124b / T121 / T123 accurately.
+  - "check.sh OK on 7 files" is reproduced by the audit for 3 of 7 (T132).
+  - Formal's open items: the owner decision on SpecWF; the item 29 decoder DSP48E1 gap.
+- No new research claims since 11:19 (lock commits only).
