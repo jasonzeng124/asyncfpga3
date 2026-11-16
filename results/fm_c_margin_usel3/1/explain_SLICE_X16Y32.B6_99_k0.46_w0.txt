@@ -1,0 +1,46 @@
+w=0: kappa 0.46  race SLICE_X16Y32.B6 pin 99 from SLICE_X16Y32.A6 (run at w=0) [margins row]
+witness   (route slow): RESULT MISMATCH: want [111, 170, 350] got [111, 158, 170]
+reference (all fast)  : RESULT OK: want [111, 170, 350] got [111, 170, 350]
+first nodes to diverge (any gate): INT_L_X10Y43/SW2END3(pip)@18*, CLBLL_R_X11Y44/CLBLL_WL1END2(pip)@19*, CLBLL_R_X13Y46/CLBLL_WL1END2(pip)@19*, CLBLL_R_X13Y46/CLBLL_IMUX23(pip)@21*, CLBLL_R_X13Y46/CLBLL_L_C3(pip)@21*, INT_R_X13Y46/SS2END3(pip)@27*   (* = an adversary arc)
+  diverges: SLICE_X16Y25.D6        at 403452 ps
+  diverges: SLICE_X14Y27.A6        at 403509 ps
+  diverges: SLICE_X16Y25.A6        at 403721 ps
+  diverges: SLICE_X15Y33.A6        at 403944 ps
+  diverges: SLICE_X17Y26.B6        at 404051 ps
+  diverges: SLICE_X16Y23.A6        at 404178 ps
+  diverges: SLICE_X17Y25.A6        at 404271 ps
+  diverges: SLICE_X16Y28.C6        at 404283 ps
+
+CAPTURE: SLICE_X16Y32.B6 (SLICE_X16Y32.BLUT.O6) first differs at 1076702 ps
+RACE (capture) at SLICE_X16Y32.B6: close #0 (enable pin 4) at 1082208 ps in the witness; data pin 1 changes 692 ps AFTER it (the reference captured the new value: close at 1076702 ps)
+  trigger chains do not meet within 4001 flips; using the cause DAG's latest common ancestor
+SPLIT (common launch): CLBLM_L_X12Y33/CLBLM_LOGIC_OUTS14 flips at 1081604 ps; driven by the cell SLICE_X16Y33.C6 bridge_i.udut.ucontrol_merge1.uarb1.ustate$LUT6
+
+PATH A (must arrive FIRST; the adversary slowed it): split -> SLICE_X16Y32.B6 pin 1
+  path A: 15 arcs (3 cells, 12 routing)
+    SLICE_X16Y33.B6              pin 4  lut6  fast [87, 108]  slow [211, 261]  bridge_i.udut.ucontrol_merge1.uarb1.ugrant$LUT6
+    SLICE_X17Y32.D6              pin 3  lut6  fast [133, 165]  slow [329, 408]  bridge_i.udut.ucontrol_merge1.$abc$20678$auto$blifparse.cc:557:parse_blif$20679
+    SLICE_X16Y32.B6              pin 1  lut6  fast [217, 270]  slow [506, 628]  bridge_i.udut.ulink_n_index_11.many.stage[0].u.lat.odd.u
+    cell  total: fast [437, 543] mid 490   slow [1046, 1297] mid 1172
+    route total: fast [208, 292] mid 250   slow [574, 731] mid 652
+PATH B (overtook it in the witness): split -> SLICE_X16Y32.B6 pin 4
+  path B: 20 arcs (4 cells, 16 routing)
+    SLICE_X16Y33.C5              pin 3  lut5  fast [138, 172]  slow [365, 453]  bridge_i.udut.ucontrol_merge1.uarb1.ustate$LUT5
+    SLICE_X15Y32.A6              pin 4  lut6  fast [78, 98]  slow [191, 236]  bridge_i.udut.ucontrol_merge1.udly.chain.g[1].u
+    SLICE_X16Y32.A6              pin 1  lut6  fast [219, 272]  slow [513, 636]  bridge_i.udut.ulink_n_index_11.many.stage[0].u.ctl.u.u
+    SLICE_X16Y32.B6              pin 4  lut6  fast [87, 108]  slow [211, 261]  bridge_i.udut.ulink_n_index_11.many.stage[0].u.lat.odd.u
+    cell  total: fast [522, 650] mid 586   slow [1280, 1586] mid 1433
+    route total: fast [220, 309] mid 264   slow [672, 850] mid 761
+
+CLASS: KERNEL race -- both paths stay inside the circuit
+
+SLACK (path B - path A; positive = the required order holds):
+  fast-corner band midpoint                A     740  B     850  slack    +110 ps = +1.53 x median error (8.5 % of 850) = +0.28 x worst short-ring error (47 %)
+  slow-corner band midpoint                A    1824  B    2194  slack    +370 ps = +1.98 x median error (8.5 % of 2194) = +0.36 x worst short-ring error (47 %)
+  worst in-band (A fast max, B fast min)   A     835  B     742  slack     -93 ps = -1.31 x median error (8.5 % of 835) = -0.24 x worst short-ring error (47 %)
+NEXTPNR SDF (nominal; from the cell driving the split):
+  path A: cells 372 + routing 1183 = 1555 ps
+  path B: cells 525 + routing 1460 = 1985 ps
+  slack +430 ps = +2.55 x median error (8.5 % of 1985 ps) = +0.46 x worst short-ring error (47 %)
+  (the ring data also fit measured = 0.938 x SDF + 988 ps per ring period: a ~1 ns constant the SDF does not charge;
+   whether it falls on one of these two paths and not the other is not known)
