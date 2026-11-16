@@ -236,6 +236,13 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    hold_bits clean; two routes carry one hold-side row each (F -213 ucontrol_merge1 flush on s2, I -236 falseResult_9 on
    s3). Board seed 20 (sdf 7aefc4bd, latency 468, near the median 471; item 28's seed, so the two are a minimal pair by
    sizes): every row clean, re-checked locally. Dynamatic 14.05.
+32. **collatz64 at ~31.4 ns per iteration: item 30 + corner_audit's proposal round with the A' fix (uselect0 18 -> 12,
+   uaddi0 25 -> 23, ack lines trimmed)**: #33 below. Farm fc64sel3p, 32 seeds: 30 routes, period median 31.39 ns
+   (29.00-34.10) vs 34.94 (item 30); latency paired vs fc64sel3 on 30 seeds -3.52 ns per iteration (30/30 faster).
+   Gate 90/90; rule E clean everywhere; rule A rows only umux2's traced false path; TSE hold rows at ulink_n28 on 9/30
+   routes (to -295 ps at FAST_MIN; the round trimmed ULINK_N28_UACK 3 -> 1; fc64sel3q restores it, running) and small H
+   rows on 3. Board seed 22 (sdf 842dd4d7, latency 685, near the median 687): every row clean but umux2's, TSE / hold
+   clean. Dynamatic 17.84.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -1091,6 +1098,22 @@ research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/, on claude
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.21 over item 28 (25.81 ns vs 21.27 on seed 20). A FAIL with item 28
 passing is a uselect0 bundling race the checks missed (its line is the only large change): send both logs.
+
+## 33. collatz64 item 30 + proposal round (fc64sel3p, sizes h4s3p) -- 30 routes, gate 90/90
+research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/:
+
+    cp ../build/frontend/collatz64/comp/handshake_transformed.mlir /tmp/c64_hs_orig.mlir
+    cp ../research/data/fifteen/collatz64_preeq2.mlir ../build/frontend/collatz64/comp/handshake_transformed.mlir
+    BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 NEXTPNR_SEED=22 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/collatz64_sizes_T4cdb_h4s3p_bench.vh ./hw/build_bench.sh collatz64
+    cp /tmp/c64_hs_orig.mlir ../build/frontend/collatz64/comp/handshake_transformed.mlir
+    grep -c "usinkeq2" build/gen/collatz64_kernel_bench.v    # must be 1: the rewrite is in
+    md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # 842dd4d7 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/collatz64_bench_gen/collatz64_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_c64_sel3p.tsv
+    (item 30: #31's commands for lc_c64_sel3.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_sel3p.tsv build/hw/lc_c64_sel3.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.11 over item 30 (34.94 ns vs 31.32 on seed 22's route).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

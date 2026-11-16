@@ -5394,3 +5394,11 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
 - eval_task.sh: CA_EXTRA passes flags to step 2's corner_audit. Farm *_ps (STATIC_ONLY, --shrink-selects) on the four
   candidates' sizes and seeds (fcsel3a, fisel3, fc64sel3, fxd): proposals with mux delays checked by rule M and select
   links by rule E, for the next round.
+### progress 05:53 UTC (collatz64 proposal round: 31.4 ns, -3.5 ns per iteration -> BOARD-QUEUE item 32; fc64sel3q)
+- fc64sel3p (h4s3p) vs fc64sel3 (item 30), 30 paired seeds: -3.52 ns per iteration median (-5.47..-0.32), 30/30 faster;
+  period median 31.39 ns (item 30 34.94, item 26 36.23; Dynamatic 17.84). PREDICTION -1.5 to -2.5: beaten (uaddi0's
+  -2 elements sit on the cycle twice, rise and fall). Gate 90/90, E clean, A only umux2's traced false path.
+- Hold side: TSE (C-element hold at FAST_MIN) rows at ulink_n28 on 9/30 routes (to -295 ps), H rows on 3 (to -104). The
+  round cut ULINK_N28_UACK 3 -> 1 because corner_audit's H at nominal / worst allowed it; TSE at FAST_MIN does not.
+  fc64sel3q (h4s3q = h4s3p with that ack back at 3) on the farm. Board seed 22 (sdf 842dd4d7) is clean on every row
+  but the false path: BOARD-QUEUE item 32 / section 33, with the rows stated.
