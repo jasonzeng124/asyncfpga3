@@ -5678,3 +5678,13 @@ Next:
   both ways, and formal's C17 is confirmed. Default simulation unchanged (opt-in).
 - Farm selneg3: selneg2's join injections (+6000 / +12000) with GATE_PLUSARGS=+META_INIT=0. PREDICTION: at loop-header
   muxes every run passes; a failure, if any, is at a mux whose two requests can be pending together.
+### Next (updated 10:14 UTC)
+1. Read farm selneg3 (join injections with +META_INIT=0). Re-check the 2026-11-15 hold control (fcsel0 s24, ulink_n14__1
+   stage[1] enable +15000: "no completion") with +META_INIT: it may be start-up X too, in which case H / I / hold_bits
+   have no genuine known-bad build either (xf2_1 and nc64_7 remain: those fail with wrong values).
+2. Owner decision worth asking for: run every gate with +META_INIT (both values)? It removes a failure mode the device
+   cannot have (an unreset latch is never X) and kept the real failures in every check so far. Until decided, it is
+   opt-in; a "no completion" in the default gate must be traced before it counts.
+3. Rule M downstream composition / per-route mux_settle (collatz64 umux0 real, xorshift pessimistic).
+4. collatz64 items 30 / 32 provisional (umux0 M miss; padding +2.2 ns; entry-link delay breaks a hold).
+5. Formal C19: a forced 20-40 ps pulse on a link ctl input in research's GLS.
