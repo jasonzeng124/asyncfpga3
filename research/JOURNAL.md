@@ -5727,3 +5727,5 @@ is a genuine wrong-value failure. Steer E under test (steerneg). Formal C17 conf
   collatz ucond_br4: every gate passes at +3000 / +8000, E -0.3 .. -6.1 ns). So rule E keeps its place at steers (a late
   condition at req . s loses a token); at loop-header mux joins it has no failing build on any family. The farm has not
   pushed results since 11:44 UTC (steerneg 15 of 40 for 1.5 h): not waited on.
+- 14:25 UTC: the farm has pushed nothing since 11:44 UTC (steerneg stuck at 15 of 40, status "running"):
+  treated as down for now; steer controls continue locally (xorshift ucond_br9 on x27_2, collatz64 ucond_br6 on c64s3_10).
