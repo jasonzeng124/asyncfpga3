@@ -98,6 +98,32 @@ whenever a result here (a completeness proof, a certificate checker) is what it 
 
 A lock dated 2026-11-10 is from before the pause: take it.
 
+## The board decides; every check is a proxy (owner, 2026-11-16)
+
+The owner: "idc about the checks, they dont matter, as long is it works on board / closest
+approximation to board. other checks are just not-very-good proxies of correctness possibly".
+Research's program has the full text under the same heading. For formal it means this, and
+it wins over the sections below where they conflict:
+
+- **No margin, kappa or rule is a product.** The one thing formal owns that is close to the
+  board is a simulator of the circuit decoded from the bitstream itself (simx). Make that
+  the product.
+- **Shard C: a board approximator.** For each of research's board candidates, run many random
+  draws of the delays on the farm and report the fraction of draws that return the right
+  answers, per route. Use research's delay-uncertainty model as soon as it is published
+  (`research/PROGRAM.md`, same heading); until then build one from the August ring data on
+  `claude/research` (`research/data/fid/`) and write its parameters down. No adversary, no
+  start-up changes. Compare your fraction with research's on the same build: a disagreement
+  is traced before anything else.
+- **Shard A: say how close the simulator is to the board.** `gcd_ps` is the one bitstream here
+  that ran on the board with measured latencies (310 ns to 6.34 us, by input). Predict those
+  latencies from the decoded bitstream and report predicted against measured, per input. If
+  you cannot find the measurements in the repository, write `ASK:` in the journal. Then the
+  same for the August bench builds when research or the owner supplies them.
+- **Lean** only where it closes a gap between the simulated circuit and the board (the decoder,
+  the delay bounds). The gcd theorem stays second priority.
+- No subagents, as before. Shard B stays stopped.
+
 ## A kappa is not a result; the race in picoseconds is (owner, 2026-11-16)
 
 The owner, asked whether the margin numbers can be trusted: "i rly dont". He is right about
