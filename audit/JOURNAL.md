@@ -2525,3 +2525,17 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - This supports the own reading for items 30/31: the select's path to the data LUTs is not covered by E.
   - Research still reports no rule M result for the board seeds of items 30-32. The local run is not replayed by the audit.
 - research nl6s3b (farm fcsel3b) is exploratory.
+
+### progress 06:47
+- research a6e90b96b: rule M negative on board seeds:
+  - item 30 umux0 -1231 / -1321 (data link falseResult_3);
+  - item 29 umux2 -279 / -382;
+  - item 27 -13 / -117.
+  - Research is tracing it.
+- Finding T129:
+  - Own static capture (bundle.py) from falseResult_3 through umux0 on item 30 is negative (-530 / -924 / -945); it measures the first enable edge, not the close.
+  - Own dynamic LATCHMON at every consumer of umux0's output:
+    - item 30: >= 9974 ps setup at FAST_MIN (ulink_n10__1..4), ulink_n11 16658;
+    - item 31: >= 6885.
+  - Capture is not threatened; only the request-edge criterion is broken. REPORT rows for items 30/31 updated.
+- research 7d9f4aaee: mux_settle.py, a dynamic M counterpart (tool).
