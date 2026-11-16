@@ -2477,3 +2477,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - HC: the entry pin was never the last input (0/28).
   - Not live, as item 26. REPORT row updated.
 - Item 30's only open point is umux0's late select at the data LUTs (owner's decision).
+
+### progress 06:09
+- T126c item 31:
+  - own period **21.280 ns** (latency 468 = research's) vs item 28 25.840: **ratio 1.214**. Research predicted ~1.21 (25.81 vs 21.27). CONFIRMED.
+  - GLS running.
+- T126f item 32: own sdf **842dd4d7 = recipe**, usinkeq2 1, FF clean. Waiting for item 31's GLS.
