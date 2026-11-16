@@ -5499,3 +5499,29 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   every collatz64 route) and umux2's A' (-1005, the old traced false path, now measured from the upstream links).
   The TSE rows at ulink_n28 (fc64sel3p: 9/30 routes) are mostly gone (hold detail being tabulated). Next collatz64
   candidate = fc64sel3n (q + the rule-M fix per launch) if it comes back clean.
+### Session summary so far (written 07:50 UTC; the session may continue)
+Measured (farm, 32 seeds each unless noted; ns per iteration, paired latency medians; nextpnr 9c732bc6303458df):
+| kernel | build | period median | vs previous | gates | static | board item |
+|---|---|---|---|---|---|---|
+| collatz | fcsel3a: item 28 + uselect0 7 / uaddi0 9 (A' join-peer fix) | 21.48 (31 routes) | -3.93 vs item 28 (30/30) | 93/93 | A / A' / E / M clean on 31/31 | **31** (seed 20) |
+| collatz | fcsel3p: per-cell max 9 / 12 | -- | +1.43 vs 3a | 93/93 | clean | -- |
+| collatz | fcsel3b: + mux delays by M, uselect0 6, ucmpi2 15 | 21.09 | -0.37 vs 3a (22/31) | 96/96 | M rows on 5/32 | -- |
+| ipow | fisel3: select links 3/3/3/3 by E | ~36.1 (26 valid) | -2.71 vs h4 (18/19) | 78/78 | E clean; M umux2 on 15/19 | 29 (provisional, M) |
+| collatz64 | fc64sel3: select links 3/6/3 by E | 34.94 | -1.56 vs h4 (25/27) | 87/87 | E clean; M umux0 on 32/32 | 30 (provisional, M) |
+| collatz64 | fc64sel3p: + proposal round | 31.39 | -3.52 vs fc64sel3 (30/30) | 90/90 | TSE n28 on 9/30; M umux0 | 32 (provisional, M) |
+| collatz64 | fc64sel3q: p + n28 ack back to 3 | 31.79 | +0.41 vs p | 90/90 | M umux0 | -- |
+| xorshift | fxsel3 (selects by E) / fxu (missing ack) | 19.45 / 19.21 | -0.23 / -0.05 vs item 27 | 96/96 each | -- | rejected |
+Checks: rule E's select negative controls on all four families (20 gate failures, E flags all 20; research/data/selneg);
+rule M (new: mux data outputs) with its own known-bad builds (collatz umux0 +8000: no completion, M -5503, E clean; mneg:
+wrong values on xorshift / ipow / collatz umux1 at +8000, M < 0, E clean) and a dynamic counterpart (mux_settle.py) that
+agrees in direction (collatz64 item 30: 352/458 tokens late by <= 155 ps at FAST_MIN; item 31: none).
+Does NOT show: that rule M's misses on items 27 / 29 / 30 / 32 cause failures (every gate passes; the simulated lateness
+is 60-155 ps, absorbed or not by downstream margins nobody checks); anything on silicon; formal margins for items 29-32.
+Next:
+- Farm results to read: fc64sel3n (collatz64 rule-M fix per launch: umux0 4 + entry link delay 4) and fc64sel3m (umux0
+  16): if n is M-clean and every check passes, it replaces items 30 / 32. fxm (xorshift mux delays by M), fisel3m (ipow
+  by M): same question for items 27 / 29. mneg tasks 1-7, 12 (rule M controls on the remaining muxes).
+- Per-launch rule-M fixes for ipow umux2 / xorshift umux1 (the loop-entry link's own DELAY is off the cycle).
+- Enable replication on wide data links (the source of the mux lateness: a 64-bit latch enable net) -- PROGRAM goal-2 lead.
+- Rule I / A downstream composition: a check that a sender's lateness (M miss) is absorbed by the receiver's margins.
+- ucontrol_merge0_olink's request line (xorshift, on the cycle, RTL default 4) feeds a stage no rule audits: a check gap.
