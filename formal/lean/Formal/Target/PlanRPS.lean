@@ -236,7 +236,7 @@ theorem the_on_of_stepR_all {Q : Nat → Nat → Prop} {p : DelayPar} {T R su Δ
     (hR : Cp p * A1 + 87 * (Cp p * M1) + 1 ≤ R) (hstep : StepHypROn Q p T R su Δo) :
     NetCorrectSeqOn Q p T R su Δo := by
   intro x n va vb hb ha he hs hQ
-  exact correct_of_plan AssemblyPS.oneReq_PS he
+  exact correct_of_plan AssemblyPS.oneReq_PS (envWF_of_env he)
     (plan_R hp (islDelay_all hp hk) hR hb he (hstep x n va vb hb ha he hs hQ))
 
 /-- **For every `g > 0`, `0 ≤ κ < 1`**, with a reset of at least `⌈(1+κ)g⌉·(15,600 + 87·3,881) + 1` ps. -/
@@ -271,7 +271,7 @@ theorem the_onN_of_stepR_all {Q : Nat → Nat → Prop} {Nn : Option Nat → Pro
     (hp : Sane p) (hk : p.κ < 1) (hR : Cp p * A1 + 87 * (Cp p * M1) + 1 ≤ R) (hstep : StepHypROnN Q Nn p T R su Δo) :
     NetCorrectSeqOnN Q Nn p T R su Δo := by
   intro x n va vb hN hb ha he hs hQ
-  exact correct_of_plan AssemblyPS.oneReq_PS he
+  exact correct_of_plan AssemblyPS.oneReq_PS (envWF_of_env he)
     (plan_R hp (islDelay_all hp hk) hR hb he (hstep x n va vb hN hb ha he hs hQ))
 
 end Formal.Target.PlanRPS

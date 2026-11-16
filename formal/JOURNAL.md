@@ -2719,3 +2719,14 @@ mid). Same race as item 28's. item 25 (w 0 race): data from a_data, input-bounda
 nc64_7's: uaddi1.udly.chain.g[11] (matched delay of the adder) reads ulink_n13.ctl late, checked (111/42/478). Item 26's
 first combinational failure (0.75) is a real select race (umux0 reads ulink_n14__0 late). The selrace sweep has now
 been run on 9 builds; it finds a race below 0.45 only on the known-bad nc64_7.
+### progress 04:08 -- the positive route now targets the repaired statement: Assembly and CertRun take EnvWF (check.sh OK on 3 files)
+* `Assembly.lean`: quiet_next, ph_all, cov_all, next_rise, correct_of_plan take `EnvWF` (weaker hypothesis). Only
+  `next_rise` used request liveness; it now uses `ReqLiveWF` (at a quiet point every sharer's ack equals the low request
+  for ever, which weak fairness excludes). `netCorrectSeq_of_plan` unchanged in statement (passes `envWF_of_env`); NEW
+  `netCorrectSeqWF_of_plan`.
+* `CertRun.lean`: `plan_of_run` takes EnvWF; `netCorrectSeq_of_run` unchanged in statement; NEW `netCorrectSeqWF_of_run`:
+  THE repaired statement from one run certificate per behaviour.
+* `PlanRPS.lean`: its two `correct_of_plan` calls pass `envWF_of_env he` (mechanical). It and AssemblyPS/PlanPS/CertN1 import
+  the decoded target net and were NOT built here: farm request a_check_wf_dependents builds and checks them.
+* `./check.sh Formal/Target/SpecWF.lean Formal/Target/Assembly.lean Formal/Target/CertRun.lean` -> OK (693 declarations).
+So: no positive result has to be redone for the WF statement; the S6 route (one run certificate) proves it directly.

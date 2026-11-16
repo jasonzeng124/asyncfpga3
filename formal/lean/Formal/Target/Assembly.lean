@@ -1,4 +1,4 @@
-import Formal.Target.Spec
+import Formal.Target.SpecWF
 import Mathlib.Data.Nat.Find
 
 /-!
@@ -179,7 +179,7 @@ theorem envack_stay {r k : Sig} {R t : Nat} (hm : AckMoves r k R) (hR : R ≤ t)
   rw [hk, hr] at this
   exact this rfl
 
-theorem quiet_next (hreq : OneReq B) (he : Env x B R su Δo n va vb) (hp : Plan x B R Δo I) {t : Nat}
+theorem quiet_next (hreq : OneReq B) (he : EnvWF x B R su Δo n va vb) (hp : Plan x B R Δo I) {t : Nat}
     (hR : R ≤ t) (hq : Q x B R I t) (hne : ¬ edge (x B.a.req) t) : Q x B R I (t + 1) := by
   obtain ⟨hI, hL, hc⟩ := hq
   have hr0 : x B.a.req t = false := hL _ (by simp [bnodes])
@@ -222,7 +222,7 @@ theorem step_counts {a t2 t0 : Nat} (hRa : R ≤ a) (hea : edge (x B.a.req) a) (
       rises_const _ R a t0 hs.t0_ge (fun t h1 h2 he => by
         have := hs.o_once t h1 (by have := hs.t0_lt; omega) he; omega)]
 
-theorem ph_all (hreq : OneReq B) (he : Env x B R su Δo n va vb) (hp : Plan x B R Δo I) :
+theorem ph_all (hreq : OneReq B) (he : EnvWF x B R su Δo n va vb) (hp : Plan x B R Δo I) :
     ∀ t, R ≤ t → Ph x B R Δo I t := by
   intro t ht
   induction t, ht using Nat.le_induction with
@@ -256,7 +256,7 @@ theorem ph_all (hreq : OneReq B) (he : Env x B R su Δo n va vb) (hp : Plan x B 
         obtain ⟨c1, c2⟩ := step_counts ha hea hs
         exact ⟨hs.inv, hs.low, by rw [c1, c2, hqa.2.2]⟩
 
-theorem cov_all (hreq : OneReq B) (he : Env x B R su Δo n va vb) (hp : Plan x B R Δo I) {t : Nat} (hR : R ≤ t) :
+theorem cov_all (hreq : OneReq B) (he : EnvWF x B R su Δo n va vb) (hp : Plan x B R Δo I) {t : Nat} (hR : R ≤ t) :
     Cov x B R Δo I t := cov_of_ph hp hR (ph_all hreq he hp t hR)
 
 /-- At a quiet point, the circuit's outputs and the request are low one ps later unless the request rises. -/
@@ -269,7 +269,7 @@ theorem quiet_couts (hp : Plan x B R Δo I) {t : Nat} (hR : R ≤ t) (hq : Q x B
   exact ⟨hr1, (hp.quiet t hR hq.1 hq.2.1 hr1).1⟩
 
 /-- From a quiet point with more pairs owed, the request rises again at a quiet point. -/
-theorem next_rise (hreq : OneReq B) (he : Env x B R su Δo n va vb) (hp : Plan x B R Δo I) {q : Nat} (hR : R ≤ q)
+theorem next_rise (hreq : OneReq B) (he : EnvWF x B R su Δo n va vb) (hp : Plan x B R Δo I) {q : Nat} (hR : R ≤ q)
     (hq : Q x B R I q) (hmore : Offered n (rises (x B.a.req) R q)) :
     ∃ t1, q ≤ t1 ∧ Q x B R I t1 ∧ edge (x B.a.req) t1 := by
   classical
@@ -297,10 +297,14 @@ theorem next_rise (hreq : OneReq B) (he : Env x B R su Δo n va vb) (hp : Plan x
     obtain ⟨hb1, hb2, hb3, ha, hb, hst, ho, hpe⟩ := he
     have hrq : x B.a.req q = x B.a.ack q := by
       rw [hq.2.1 _ (by simp [bnodes]), hq.2.1 _ (by simp [bnodes])]
-    obtain ⟨s, hs, hne⟩ := ha.2.2.1 q hR hrq (Or.inr hmore)
-    have := hall s hs
-    rw [this.2.1 B.a.req (by simp [bnodes]), this.2.1 B.a.ack (by simp [bnodes])] at hne
-    exact hne rfl
+    -- weak fairness: from q on every sharer's acknowledge equals the (low) request, for ever: excluded
+    refine ha.2.2.1 q hR hrq (Or.inr hmore) (fun s hs o ho => ?_)
+    have hQ := hall s hs
+    unfold sharers at ho
+    obtain ⟨c, hc, rfl⟩ := List.mem_map.1 ho
+    have hc' := (List.mem_filter.1 hc).1
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hc'
+    rcases hc' with rfl | rfl | rfl <;> rw [hQ.2.1 _ (by simp [bnodes]), hQ.2.1 _ (by simp [bnodes])]
 
 /-- The `k`-th episode's `out0` count: inside an episode after its `out0` rise, the count is the episode's. -/
 theorem out0_count_in {a t2 t0 t : Nat} (hRa : R ≤ a) (hs : StepCore x B Δo I a t2 t0) (h1 : t0 < t) (h2 : t ≤ t2) :
@@ -361,7 +365,7 @@ theorem live_ll {r k : Sig} {R t t0 : Nat} (hm : AckMoves r k R) (hR : R ≤ t) 
     rw [he.2]
     simpa using hk1
 
-theorem correct_of_plan (hreq : OneReq B) (he : Env x B R su Δo n va vb) (hp : Plan x B R Δo I) :
+theorem correct_of_plan (hreq : OneReq B) (he : EnvWF x B R su Δo n va vb) (hp : Plan x B R Δo I) :
     Correct x B R Δo n va vb := by
   classical
   have hcov := fun {t : Nat} (h : R ≤ t) => cov_all hreq he hp h
@@ -588,6 +592,17 @@ theorem netCorrectSeq_of_plan {N : Net} {B : Boundary} {A : List ArbNodes} {p : 
     (h : ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit N B) x → ArbOK T A x →
       Env x B R su Δo n va vb → SeqEnv x B R → ∃ I, Plan x B R Δo I) :
     NetCorrectSeq N B A p T R su Δo := by
+  intro x n va vb hb ha he hs
+  obtain ⟨I, hp⟩ := h x n va vb hb ha he hs
+  exact correct_of_plan hreq (envWF_of_env he) hp
+
+/-- **The weak-fairness statement (`SpecWF`) from a plan** (shard A, 2026-11-16): the same assembly, for every
+behaviour of the WF environment (which includes every `Env` behaviour and the partial-acknowledge hangs). -/
+theorem netCorrectSeqWF_of_plan {N : Net} {B : Boundary} {A : List ArbNodes} {p : DelayPar} {T R su Δo : Nat}
+    (hreq : OneReq B)
+    (h : ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit N B) x → ArbOK T A x →
+      EnvWF x B R su Δo n va vb → SeqEnv x B R → ∃ I, Plan x B R Δo I) :
+    NetCorrectSeqWF N B A p T R su Δo := by
   intro x n va vb hb ha he hs
   obtain ⟨I, hp⟩ := h x n va vb hb ha he hs
   exact correct_of_plan hreq he hp

@@ -199,7 +199,7 @@ variable {B : Boundary} {x : Beh} {R su Δo : Nat} {n : Option Nat} {va vb : Nat
   {t0 : Nat}
 
 /-- **One run certificate gives `Assembly.Plan`** with the invariant "out0.req and the request have equal counts". -/
-theorem plan_of_run (hreq : OneReq B) (he : Env x B R su Δo n va vb) (hs : SeqEnv x B R)
+theorem plan_of_run (hreq : OneReq B) (he : EnvWF x B R su Δo n va vb) (hs : SeqEnv x B R)
     (hc : EpRun C B x t0 R Δo) :
     Plan x B R Δo (fun t => cnt x t0 B.out0.req t = cnt x t0 B.a.req t) := by
   classical
@@ -401,6 +401,17 @@ theorem netCorrectSeq_of_run {N : Net} {B : Boundary} {A : List ArbNodes} {p : D
       Env x B R su Δo n va vb → SeqEnv x B R → ∃ (C : Nat → Cert Nat) (t0 : Nat), EpRun C B x t0 R Δo) :
     NetCorrectSeq N B A p T R su Δo := by
   apply netCorrectSeq_of_plan hreq
+  intro x n va vb hb ha he hs
+  obtain ⟨C, t0, hc⟩ := h x n va vb hb ha he hs
+  exact ⟨_, plan_of_run hreq (envWF_of_env he) hs hc⟩
+
+/-- **The weak-fairness statement (`SpecWF`) from one run certificate per behaviour** (shard A, 2026-11-16). -/
+theorem netCorrectSeqWF_of_run {N : Net} {B : Boundary} {A : List ArbNodes} {p : DelayPar} {T R su Δo : Nat}
+    (hreq : OneReq B)
+    (h : ∀ (x : Beh) (n : Option Nat) (va vb : Nat → Nat), Behaves p (circuit N B) x → ArbOK T A x →
+      EnvWF x B R su Δo n va vb → SeqEnv x B R → ∃ (C : Nat → Cert Nat) (t0 : Nat), EpRun C B x t0 R Δo) :
+    NetCorrectSeqWF N B A p T R su Δo := by
+  apply netCorrectSeqWF_of_plan hreq
   intro x n va vb hb ha he hs
   obtain ⟨C, t0, hc⟩ := h x n va vb hb ha he hs
   exact ⟨_, plan_of_run hreq he hs hc⟩
