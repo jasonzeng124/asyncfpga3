@@ -5819,3 +5819,9 @@ on a ctl input in our GLS (already on the Next list).
   control failed only at FAST_MIN, which no draw reaches (bands >= 0.20), so it is not a bad build under this model.
 - Farm draws1 (32 tasks): items 33, 27, 31, 28, 29, 30, 32 on their board routes, 32 draws each; control ucond_br6
   +3000 (16 draws) / +8000 (16 draws). PREDICTION: every candidate 32/32; the +8000 control 0/16; +3000 16/16.
+### progress 19:41 (farm shrink1: item 33's sizes scaled 0.85 / 0.70 / 0.55 / 0.40, judged by draws)
+- Every matched delay of fr4a times f (shrink_sizes.py, ceil, floor 1; acks and select links included), routes 27 / 2 /
+  5 / 9, 8 draws each on xor19. PREDICTION: 0.85 and 0.70 pass 32/32 (the sizes carry the static rules' guards, which
+  assumed ~8.5% scatter against the measured 0.76%, and chains at 0.21 vs data at 0.288); 0.55 loses some draws;
+  0.40 fails most. Period: item 33 is 18.9 ns; at 0.70 the ~10.7 ns of delay-chain hops on the cycle lose ~3 ns,
+  so ~16 ns if it holds.
