@@ -2895,3 +2895,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - SLOW_MAX: 17/17, 0 violations, min setup 9310 ps.
   - The model corners and the 16 own draws are running. (The run.sh log line prints the oracle's per_round line; the agreement is read from /root/t90/xd40_27_*_oracle.txt.)
 - research fe63a5699: lock only.
+
+### progress 22:06
+- T136 corners, x0.40 seed 27:
+  - Own oracle 17/17 at FAST_MIN / SLOW_MAX / worst / advA.
+  - At worst and advA, ucond_br2 / br5 change select while req = 1 (3 / 2 events). Their select is ucmpi0, sized 10 -> 4. Margin is 2.07 ns at item 33 sizes against 67-154 ps at x0.40.
+  - The oracle-only draw verdict misses this.
+  - Finding T136 section 4; REPORT row updated.
+- research ee3e7cf2f / bfed77d80: shrink4 (x0.40 / x0.30 with only the incrementer kept full) and the shrink2/3 results. To read next.
