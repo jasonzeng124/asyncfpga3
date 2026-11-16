@@ -3885,3 +3885,17 @@ routes and item 33 and runs research's skew.py -v unchanged.
 
 ### progress 19:19 -- setup.sh not finished here (Mathlib cache unreachable; source build stopped at 30 min)
 No local Lean this session; Lean work, if any, goes to the farm (its lake cache). The margin work needs none.
+
+### progress 19:24 -- PROGRAM bd19bb9b ("The board decides"): shard C builds the board approximator; first farm run filed
+The owner: checks are proxies; what counts is the board, or the closest approximation. For C: per board candidate,
+many random delay draws, the fraction returning right answers, compared with research's on the same build.
+**Built:** simx `--draw SEED` (+ --band/--sreg/--sarc/--regsize) and `tools/margin/draws.py`, `run.sh DRAWS=N`.
+Model = research's fid GLS parameters (band 0.38, region sigma 0.16 on 10x10 slices, arc sigma 0.126; lognormal factors),
+written down in README; differences from research's GLS: scatter per pin arc (cell + route, no pip split) and formal's
+transport LUTs with the 20-ps filter instead of research's metastability resolver; host 12 ns; start-up unchanged.
+**Checked (local, gcd_ps):** 4/4 draws pass, draws differ (last answer 7.47-7.78 us); negative control: sigma_arc 0.6 /
+sigma_region 0.3 gives 2 FAIL + 1 UNDECIDED of 16 (the approximator can fail). No local toolchain for bench builds.
+**Farm c_draws1:** 64 draws each, research's own gate vectors (col15 / c6416 / xor19, oracle kernels.py from the C):
+items 27, 33, 28, 31, 25, 26, 30, 32 on their board seeds; BAD_xf2_1, BAD_nc64_7 and pc64_7 (the bad/good pair);
+items 33 and 32 on 3 more routes each.
+The adversary work (c_margin_x33, c_rulee1) is now secondary; its results will be recorded as leads, not gates.

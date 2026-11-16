@@ -57,6 +57,18 @@ JOURNAL-C.md 2026-11-15/16.
   storage LUT is where the race is decided (0 slack). RUNT flags a pulse narrower than H_RUNT's 20 ps at the first
   diverging LUTs. Without `--tcut`, simx output is unchanged (checked event for event on item 25 at w 20).
 
+## The board approximator (2026-11-16; PROGRAM "The board decides"): `DRAWS=N`
+`DRAWS=64 run.sh BUILD.fasm OUT/` (bench builds as above) skips the adversary and runs `draws.py`: N random draws of
+every arc's delay on the circuit decoded from the bitstream, and the fraction of draws returning the right answers.
+Model (research's fid GLS, research/data/fid/f3_model.md + ring128_summary.md, sized on the August ring data): each pin
+arc (cell + route) = (FAST_MIN + 0.38 (SLOW_MAX - FAST_MIN)) x exp(0.16 N_region) x exp(0.126 N_arc), N_region one
+normal per 10x10-slice region, N_arc one per arc, from a hash of the draw seed (simx `--draw SEED --band --sreg --sarc
+--regsize`). H_RUNT(20) (DRAW_W), host 12 ns after each acknowledge (HOSTDELAY), start-up unchanged. Outputs
+draws_summary.txt (PASS / FAIL / UNDECIDED, Wilson 95 % interval, last-answer times) and draws.txt (one line a draw).
+Checks so far: gcd_ps 4/4 pass and the draws differ (last answer 7.47-7.78 us); with sigma_arc 0.6 / sigma_region 0.3
+2 of 15 decided draws fail (the approximator can fail). Differences from research's GLS: scatter per pin arc, not per
+pip; transport LUTs with the 20-ps filter instead of research's resolver. Untrusted simulation; no Lean.
+
 ## Simulator
 `SIM=simx` (recommended): `simx.cpp` (g++ -O2 -std=c++17), a C++ port of tools/huff/simadv.py's options the sweep
 uses, with the net converted once by `simx_conv.py`. Verified identical to simadv (stdout, events, every node's flip

@@ -82,6 +82,16 @@ if [ ! -f "$O/net.json" ]; then
   fi
 fi
 (cd "$O" && md5sum fromBit.fasm net.json bnd.json arbs.json 2>/dev/null) | tee "$O/md5.txt" || true
+# DRAWS=N: the board approximator instead of the adversary (draws.py: N random delay draws, no adversary; knobs
+#   DRAW_W (20), HOSTDELAY (12000), DRAW_SEED0 (1), DRAW_BAND/DRAW_SREG/DRAW_SARC (research's fid model by default))
+if [ -n "${DRAWS:-}" ]; then
+  log "draws $DRAWS"
+  python3 "$H/draws.py" "$O/net.json" "$O/bnd.json" "$O" --kernel "$KERNEL" --pairs $PAIRS --draws "$DRAWS" --jobs "$JOBS" \
+    --w "${DRAW_W:-20}" --hostdelay "${HOSTDELAY:-12000}" --seed0 "${DRAW_SEED0:-1}" --tmax "${TFULL:-25000000}" --maxev "${SIMX_MAXEV:-1000000000}" \
+    $([ -n "${DRAW_BAND:-}" ] && echo --band $DRAW_BAND) $([ -n "${DRAW_SREG:-}" ] && echo --sreg $DRAW_SREG) \
+    $([ -n "${DRAW_SARC:-}" ] && echo --sarc $DRAW_SARC) 2>&1 | tee -a "$O/run.log"
+  log "done: $O/draws_summary.txt $O/draws.txt"; exit 0
+fi
 
 # 2. candidates (storage gate x live pin), 3. reference run at KHI (dump) and dynamic rank
 log "candidates"

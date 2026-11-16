@@ -210,6 +210,18 @@ static string pylist(const vector<ull>& v) {
     return s + "]";
 }
 
+static bool DRAWON = false; static ll DRAW = 0; static double DBAND = 0.38, DSREG = 0.16, DSARC = 0.126; static int DREGSZ = 10;
+static ull mix64(ull z) { z += 0x9E3779B97F4A7C15ULL; z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL; z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL; return z ^ (z >> 31); }
+static double hash_n(ll seed, ull tag, ull a, ull b) {   // a standard normal from (seed, tag, a, b): Box-Muller on two hashes
+    ull h1 = mix64(mix64(mix64((ull)seed ^ tag) ^ a) ^ b), h2 = mix64(h1 ^ 0xD1B54A32D192ED03ULL);
+    double u1 = ((h1 >> 11) + 1.0) / 9007199254740993.0, u2 = (h2 >> 11) / 9007199254740992.0;
+    return sqrt(-2 * log(u1)) * cos(2 * M_PI * u2);
+}
+static double region_n(const string& nm) {   // the region of a SLICE_XxYy node name; 0 (factor 1) if none
+    size_t p = nm.find("SLICE_X"); if (p == string::npos) return 0;
+    int x = 0, y = 0; if (sscanf(nm.c_str() + p, "SLICE_X%dY%d", &x, &y) != 2) return 0;
+    return hash_n(DRAW, 0x7E6105ULL, (ull)(x / DREGSZ), (ull)(y / DREGSZ));
+}
 int main(int argc, char** argv) {
     if (argc < 2) die("usage: simx NET.simx --pairs a,b ... [simadv options]");
     const char* netf = argv[1];
@@ -247,13 +259,19 @@ int main(int argc, char** argv) {
         else if (o == "--nextreq") { nextreq = nxt(); if (nextreq != "sample" && nextreq != "seq") die("bad --nextreq"); }
         else if (o == "--dump") dump = nxt();
         else if (o == "--tcut") TCUT = atoll(nxt());
-        else if (o == "--periodic") periodic = true;   // stop with PERIODIC when the run provably (untrusted) repeats
+        else if (o == "--periodic") periodic = true;
+        else if (o == "--draw") { DRAW = atoll(nxt()); DRAWON = true; }        // random delay draw (board approximator), seed
+        else if (o == "--band") DBAND = atof(nxt());
+        else if (o == "--sreg") DSREG = atof(nxt());
+        else if (o == "--sarc") DSARC = atof(nxt());
+        else if (o == "--regsize") DREGSZ = atoi(nxt());   // stop with PERIODIC when the run provably (untrusted) repeats
         else if (o == "--pos" || o == "--seed") nxt();
         else die("unsupported option %s (simx ports only simadv's --classes/--full subset)", o.c_str());
     }
     if (dfall < 0) dfall = dout;
     if (kernel != "gcd" && !has_want) die("--kernel %s: pass the expected out0 list with --want (margin.py does, from kernels.py)", kernel.c_str());
     if (!full) die("only --full is ported");
+    if (DRAWON) { if (std::isnan(kappa)) kappa = 0; if (!classes) classes = "/dev/null"; }
     if (!classes || std::isnan(kappa)) die("only --classes with --kappa is ported");
     if (tmax > 2000000000LL) die("--tmax too large (int32 histories)");
     const char* kd = getenv("KDEN"); ll KD = kd ? atoll(kd) : 25; ll PK = (ll)nearbyint(kappa * KD);
@@ -265,7 +283,7 @@ int main(int argc, char** argv) {
 
     // classes: node name -> class, (node name, pin) -> class; F first then S (S wins), as simadv
     map<string, char> CLSn; map<pair<string, int>, char> ACLn; map<pair<string, int>, ll> INJn;
-    { string s = slurp(classes); JP jp{s.c_str()}; JV j = jp.val(); if (j.ty != 4) die("classes: not an object");
+    if (strcmp(classes, "/dev/null")) { string s = slurp(classes); JP jp{s.c_str()}; JV j = jp.val(); if (j.ty != 4) die("classes: not an object");
       for (char kc : {'F', 'S'}) for (auto& kv : j.o) if (kv.first.size() == 1 && kv.first[0] == kc) for (auto& x : kv.second.a) {
           if (x.ty == 3) ACLn[{x.a.at(0).s, (int)x.a.at(1).num}] = kc; else CLSn[x.s] = kc; }
       // "I": [[node, pin, ps], ...]: an EXTRA delay added to that arc (an injection OUTSIDE the prjxray band, for negative
@@ -301,6 +319,13 @@ int main(int argc, char** argv) {
             ll df = d;
             if (k == 'S') { df = ((KD - PK) * FN + KD - 1) / KD; if (W && glut[g] && df < W) df = W; }
             { auto ij = INJ.find({gout[g], i}); if (ij != INJ.end()) { d += ij->second; df += ij->second; NINJ++; } }
+            if (DRAWON) {   // board approximator: band position, lognormal region and per-arc factors (no adversary)
+                double base = (double)afmin[a] + DBAND * ((double)asmax[a] - (double)afmin[a]);
+                double f = exp(DSREG * region_n(names[gout[g]]) + DSARC * hash_n(DRAW, 0x51ED2701ULL, (ull)gout[g], (ull)i));
+                d = (ll)llround(base * f); if (d < 1) d = 1;
+                if (W && glut[g]) { if (d < W) d = W; his[a] = (double)d; }
+                df = d;
+            }
             ds[a] = (int)d; dsf[a] = (int)df;
         }
     }
