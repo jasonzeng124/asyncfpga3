@@ -266,7 +266,7 @@ Links on the cycle: ulink_n26, ulink_n28__1, ulink_n10__x and ulink_n14__0 are r
   - So "remove the ring's delays" is not a measurable what-if on this route. Those delays order the first token's handshakes, not only its data. Levers 2-4 above are therefore read off the cycle, not simulated.
 - Only the first critical cycle. Once a lever shortens it, another ring becomes critical. For xorshift, the xor ring has at least 0.5 ns of slack (`lengthen.tsv`); how much more is not measured.
 
-## Every delay line on collatz's loop (owner's second lead, 2026-11-15) -- ONE route so far (item 25, seed 24)
+## Every delay line on collatz's loop (owner's second lead, 2026-11-15) -- item 25 on one route, then on 28 routes
 
 Tool: `research/tools/itercost/line_account.py` (corner_audit's own worker and the audits' path functions; per line:
 the constraint that sets it, the covered data path split into logic / latch / enable spread / wire, the request path,
@@ -302,3 +302,34 @@ Findings on this route (diagnosis; nothing is shortened from this table alone):
   are 32-bit latch banks whose D pins are tie-offs; their ack lines are built at the RTL default 6 because sizes.vh has
   no macro for them; ULINK_N10__4_UACK too (6, on the datapath cycle's falling edge, rule H says 0).
 - uaddi0 is a real carry path; 0.78 ns of its 0.96 ns enable term is the enable net's spread over 32 latch bits.
+
+### Item 25 on 28 routes (farm fceq_la, worst corner; 2026-11-16)
+
+`research/tools/itercost/la_aggregate.py fceq_la worst` over line_account's per-route tables (31 routes built, 28 with
+an event graph; period median 35.92 ns, 33.38-38.51). A line is listed on a route only when it is on that route's
+critical or near-critical cycle, so "8/8" means: present on 8 routes, on the cycle on all 8. Medians, (range).
+
+| line | routes on cycle | n | ps | on cycle (R+F, ps, median of those) | set by (routes) | margin ps | data logic / latch / enable / wire | n_need | n_logic |
+|---|---|---|---|---|---|---|---|---|---|
+| ulink_n14__1.many.stage[1].u.rdly | 28/28 | 36 | 13494 (12357..14591) | 27805 (25770..30040) | E depends 28 | 13350 (12059..14443) | 0 / 68 / 183 (160..482) / 322 (273..733) | 1 (1..2) | 0 |
+| umux1.udly | 28/28 | 5 | 1491 (1111..1821) | 2388 (1888..3114) | A own 28 | 1815 (1233..2248) | 0 / 0 / 0 / 464 (281..654) | 1 (0..1) | 0 |
+| ulink_n13.uack | 28/28 | 1 | 62 | 1163 (642..1682) | H own 28 | 1161 (446..2062) | -- / -- / -- / -- | 0 | -- |
+| ulink_n14__0.rdly | 8/8 | 18 | 6902 (6178..7193) | 7630 (6835..7920) | E depends 8 | 7043 (6679..7791) | 0 / 68 / 178 (172..482) / 318 (279..601) | 1 (0..1) | 0 |
+| uselect0.udly | 8/8 | 16 | 5546 (5211..6672) | 5812 (5628..7009) | A own 8 | 3167 (2690..4478) | 204 / -- / 0 / 2030 (1672..2330) | 8 (6..9) | 1 |
+| uaddi0.udly | 8/8 | 12 | 4256 (3667..4455) | 4580 (3968..4849) | A' own 8 | 2765 (2326..3243) | 1484 (1330..1500) / 75 (68..76) / 933 (726..1315) / 648 (557..889) | 5 (4..6) | 4 (4..5) |
+| ulink_n10__4.uack | 8/8 | 6 | 1962 (1645..2434) | 2626 (2317..3595) | H own 8 | 2984 (2845..3734) | -- / -- / -- / -- | 0 | -- |
+| umux0.udly | 8/8 | 6 | 1850 (1630..2105) | 2356 (2153..2652) | A own 8 | 2240 (1926..2528) | 0 / 0 / 0 / 500 (329..657) | 1 | 0 |
+| ulink_n_falseResult_9.many.stage[0].u.uack | 8/8 | 3 | 742 (618..856) | 595 (419..703) | H own 8 | 1007 (859..1339) | -- / -- / -- / -- | 0 (0..1) | -- |
+
+Reading, over 28 routes (it confirms the one-route table and makes it general):
+- On every route the critical cycle is umux1's select ring (ulink_n13 -> ulink_n14__1), and ulink_n14__1's 36-element
+  select line is 27.8 ns of it (25.8-30.0, rise + fall). Its rule E margin is +13.4 ns (12.1-14.4): the data it bundles
+  is 0.6 ns (latch 68 + enable spread 183 + wire 322 ps). It needs 1 element as routed (at most 2). Item 28 (select
+  links at 3, fcsel3m) took this: 35.9 -> 25.8 ns.
+- On 8 routes the datapath loop is near-critical. uselect0's 16 elements cover 204 ps of logic and 2.0 ns of wire
+  (1.7-2.3) and need 8 (6-9) as routed, 1 for the logic alone: the 32-bit fanout of the kept LUT1, and the 1.45 ns
+  of borrowed lag from the bundled pairing, as on seed 24. uaddi0 (the 3n+1 carry chain) is real logic (1.48 ns) and
+  needs 5 of its 12. ulink_n10__4's ack (6, no macro in sizes.vh) sits on the datapath cycle's fall with +3.0 ns of
+  rule H margin (fcsel1m: dropping it bought -0.32 ns median).
+- The same table on item 28's own routes (fcsel3m_la), on collatz64 item 26 (fc64eq_la) and ipow item 19 (fipowrh_la)
+  is on the farm.
