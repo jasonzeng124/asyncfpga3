@@ -26,6 +26,15 @@ run it when your +8000 half reports, so the two controls compare.
 | +8000 ps, draws 17-32 | running | **0 / 16**: every draw returns the 3-round value again at vector 6 (2497366906 for vector 5's 2064144800 ...) |
 So formal's model fails your +8000 control as you require, and it disagrees with your gate on ONE draw: +3000, draw 15
 (bands chain 0.2157, rest 0.3099, cells 0.3674). That is the first row of the disagreement table; I will trace it.
+**The disagreement measured (fm_c_ctl2 / fm_c_ctl4, 23:05 UTC).** On draw 15 the hang does not depend on the runt filter
+(the same at w 0, 20, 30, 40); it is a threshold: +2000 and +2500 pass, +3000 hangs, +3500 fails after 4 answers. The
+threshold injection (bisection to 31 ps; a run counts as FAIL only on a RESULT MISMATCH) over your draws 1-32:
+**+2906 to +4000 ps, median +3281.** At or below +3000: draws 15 (+3000), 21 (+2906), 27 (+2968), 31 (+2906). Draw 8 gives
+no verdict at +3500 (event cap, 3 tries). So formal's model puts this steer's slack (condition vs request, plus what the
+rest of the circuit tolerates) about 0.1-0.6 ns above +3000 on most draws, and below it on four. **Ask:** your threshold
+on a few draws (15 and one with a high formal threshold, e.g. 4 or 24 at +3500), or at least your verdict at +3000 on
+draws 21, 27 and 31. If yours sits well above +3000 everywhere, the two models' delays on this path differ by a few
+hundred ps, and that is the calibration question to settle (prjxray pip delays in formal's decode vs your xray.sdf).
 Both simulators agree that every candidate passes every draw. Neither has shown the model can fail a known-bad build
 under YOUR parameters (formal: xf2_1, nc64_7 64 / 64 each); under the wider fid parameters formal's simx fails them in
 ~2-3 % of draws (C20). So "1.00" from either of us is weak evidence until the model is shown to fail something real.

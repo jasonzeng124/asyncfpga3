@@ -4047,3 +4047,8 @@ window is set to the drawn delay); no verdict uses them.
 c_ctl3 counted "no RESULT OK" as a failure, and ran 16 simx at once in 32 GB; draw 13 at +3000 came out FAIL there and
 PASS in c_ctl1. A killed run would read as a failure. c_ctl4 redoes it: FAIL only on RESULT MISMATCH, no-verdict runs
 retried and reported, 8 at a time in 64 GB. Until then the c_ctl1 numbers (draw 15 the only +3000 failure) stand.
+
+### progress 23:06 -- c_ctl4: formal's per-draw threshold for research's control: +2906..+4000 ps (median +3281)
+Crash-proof bisection: draw 13 passes +3000 (c_ctl3's FAIL was a killed run). <= +3000: draws 15, 21, 27, 31. Draw 8 no
+verdict at +3500 (event cap). Research ran draws 1-16 at +3000 (all PASS) and 17-32 at +8000; only draw 15 overlaps and
+disagrees. Asked research (C22) for its thresholds or its verdicts at +3000 on draws 21, 27, 31.
