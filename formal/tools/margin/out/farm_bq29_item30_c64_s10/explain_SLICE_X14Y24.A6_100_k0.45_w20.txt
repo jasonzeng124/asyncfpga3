@@ -1,0 +1,18 @@
+w=20: physical (NOT a Spec counterexample: partial-ack deadlock, Spec.Env vacuous): kappa 0.45  race SLICE_X14Y24.A6 pin 100 from SLICE_X16Y24.A5 (run at w=20) RESULT MISMATCH: want [111, 170, 350] got [111]
+witness   (route slow): RESULT MISMATCH: want [111, 170, 350] got [111]
+reference (all fast)  : RESULT OK: want [111, 170, 350] got [111, 170, 350]
+first nodes to diverge (any gate): INT_L_X8Y25/NE2BEG3(pip)@19*, INT_L_X8Y25/NR1BEG3(pip)@26*, CLBLM_L_X6Y33/CLBLM_EE2BEG3(pip)@28*, CLBLM_L_X8Y34/CLBLM_SW4END3(pip)@36*, CLBLM_L_X8Y26/CLBLM_NE4C3(pip)@36*, INT_L_X8Y37/SS6END3(pip)@40*   (* = an adversary arc)
+  diverges: SLICE_X16Y22.B6        at 408864 ps
+  diverges: SLICE_X14Y24.A6        at 412581 ps  <- the row's storage LUT
+  diverges: SLICE_X14Y24.B6        at 412646 ps
+  diverges: SLICE_X8Y26.C5         at 413004 ps
+  diverges: SLICE_X8Y24.B5         at 413094 ps
+  diverges: SLICE_X14Y27.A6        at 413119 ps
+  diverges: SLICE_X14Y28.C6        at 413121 ps
+  diverges: SLICE_X14Y25.A6        at 413149 ps
+
+CAPTURE: SLICE_X14Y24.A6 (SLICE_X14Y24.ALUT.O6) first differs at 412581 ps
+RACE at SLICE_X14Y24.A6: pin 0 (delayed 2328 ps by the adversary: reference arrival 425005, witness 427333) against pin 2 (arrival 426721)
+  trigger chains meet 72 / 73 flips back
+
+INCONSISTENT: with the reference's own delays path A (73 arcs, 1752 ps) arrives AFTER path B (74 arcs, 1722 ps), but the reference is correct, so these chains are not the race. No slack is reported for this row.

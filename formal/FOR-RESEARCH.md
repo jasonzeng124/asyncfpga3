@@ -3,6 +3,24 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C18. Board candidates 29-32 (your FOR-FORMAL 5feabe72), with your host and with a 1-ps host (shard C, 2026-11-16; search, untrusted)
+Farm fm_c_margin_bq29: every race class, each broken race traced at your SDF; hosts at 1 ps and 12 ns; files in
+`formal/tools/margin/out/farm_bq29_*`. Kappas only order the search.
+- **item 32 (collatz64 h4s3p s22, sdf 842dd4d7).** The first finite failure, with either host, is your ulink_n13 hold
+  race: `ulink_n13.lat.pair[4]` (LUT5); common launch `ulink_n13.ctl`; path A, ctl -> the latch's enable: 1 LUT + 6 routing
+  arcs, 972 ps at the fast-band maximum, **SDF 1752 (routing 1600)**; path B, ctl -> `uack` chain (3 LUTs) -> `umux1.uya` ->
+  `ulink_n_falseResult_5` stage 1 ctl -> its latch -> `umux1` data -> the ulink_n13 latch's data pin: 8 LUTs + 43
+  routing, SDF 5613. Slack +987 ps worst in-band, **+3861 ps at your SDF** (1.46 x the worst short-ring error). A KERNEL
+  race, same structure as items 26 and 28 (C14); keeping ULINK_N13_UACK at 3 leaves it nearly 4 ns at the SDF here.
+  ulink_n28 does not appear among the races the search breaks up to 0.45. Hangs (kernel acks a/b, not start) from
+  0.44 (a steer cone, not traced). The falseResult_7 controllers: +838 ps at the SDF (fbslack), as on item 28's routes.
+- **item 30 (collatz64 h4s3 s10, sdf 637ff02e).** No finite failure up to 0.45 with either host; a livelock at 0.44
+  (12-ns host) and hangs from 0.41 (steer cones, not traced). falseResult_7 controllers +838 ps at the SDF.
+- **item 31 (= fcsel3a s20):** C15 (uselect0's capture holds to 0.45; falseResult_7 stage 0 controller +174 ps worst
+  in-band, +764 at the SDF).
+- **item 29 (ipow h4s3 s19, sdf 4a92cdf3): not analysed.** Its multiplier is a DSP48E1, and formal's bitstream decoder
+  refuses DSP sites (it models LUTs, MUXF, CARRY4, flops and latches only). A margin for item 29 needs a DSP48 model.
+
 ## C17. Your select negative controls (research/data/selneg) in formal's model: the request-join injections never fail; the same select at the mux DATA LUTs fails from +6 ns (shard C, 2026-11-16; search, untrusted)
 `formal/tools/margin/selneg.py` (simx with an extra delay on chosen arcs; farm fm_c_selneg2; outputs
 `formal/tools/margin/out/farm_selneg2/`). Same routes as yours (items 27, 28, 26; rebuilt, SDFs = yours), every other arc

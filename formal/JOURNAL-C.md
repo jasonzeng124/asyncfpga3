@@ -3807,3 +3807,8 @@ c_margin_bq29 tasks 4/6 (ipow h4s3 s19, sdf 4a92cdf3 = research's): decode_base.
 DSP_R_X7Y60.DSP48.DSP_0.ZPREG[0] -- DSP/BRAM sites are REFUSED by design (its header). The multiply sits in a DSP48E1, so
 the margin tool cannot model item 29 until the decoder and Core have a DSP48 model (timing arcs and the combinational
 multiply). Said in the bq29 write-up. collatz64 items 32 / 30: running.
+
+### progress 07:13 -- board candidates 29-32 (FOR-RESEARCH C18)
+item 32: ulink_n13 lat.pair[4] hold race (enable route 6 routing, SDF 1752) +987 worst in-band / +3861 SDF, kernel; first
+finite failure with both hosts (0.36). item 30: no finite failure <= 0.45 (both hosts); livelock 0.44, hangs 0.41-0.45.
+item 31 = C15. item 29 (ipow): decoder refuses DSP48. falseResult_7 controllers +838 SDF on both collatz64 routes.
