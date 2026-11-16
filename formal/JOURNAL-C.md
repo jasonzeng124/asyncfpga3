@@ -3688,3 +3688,14 @@ partial-ack hang appears below 0.45. Earlier capture cones: first failure 0.61.
 Tool gap found and fixed on the way: with W0=1, margin.py swept at w = 0 only the rows that had failed at w = 20, so a
 failure that exists only without the filter could be missed. `W0FULL=1` sweeps every row at both. The farm runs so far
 (all1/all2/host2/x27r/r12) used W0=1 without it: their w = 0 columns are "w 20 failures re-tested", not a full w = 0 sweep.
+
+### progress 05:22 -- c_margin_r12: 5 of 8 back; fcsel3a s20 has the falseResult_7 st0 controller race at +174 ps worst in-band; explain.py consistency guard
+fcsel3a s20 (research's new build, sdf 7aefc4bd), 1-ps host: finite 0.22 = falseResult_3 st0 BOUNDARY race (+393 worst
+in-band, +1216 SDF); hangs from the falseResult_7 controllers: st0 (w 0, 0.24) feedback route 1 LUT + 5 routing (SDF
+772) vs rdly g[0] -> st1 ctl -> back (SDF 1536): +174 worst in-band, +764 SDF (0.71 / 1.06 x worst short-ring); st1
+(0.44) +399 / +1117. item 28 with a 12 ns host: unchanged (ulink_n13 +965 / +3131; st0 controller +335 / +1117). fcsel1
+s24 12 ns: only the 0.09 controller hang (+45 / +406). fcsel1 s1 12 ns: kernel race at falseResult_9 st0's fork near
+the capture (SLICE_X17Y54.D6 pin 0 vs pin 4 through 2 LUTs): +111 worst in-band, +657 SDF. fcsel2 s2 12 ns: steer rows
+only (UNRELIABLE) and one INCONSISTENT trace (path A 182 arcs, slack -13.8 ns at the SDF: the circuit works in the
+reference, so that pair was not the race). explain.py now refuses such pairs (path A must precede B with the
+reference's own delays).

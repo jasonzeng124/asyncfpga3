@@ -319,6 +319,13 @@ else:
         return list(reversed(path))
     pa = crit(A0, AA) + [(q, pi, None)]; pb = crit(B0, AB) + [(q, pj, None)]
 sn, st = sp
+# consistency: in the all-fast reference run the circuit is correct, so the two paths, timed with the reference's delays,
+# must keep the required order (A first). If they do not, the chains found are not the race.
+def tref(pth): return sum(delay(x[0], x[1], False) if x[0] != "ENV" else x[2] for x in pth)
+if tref(pa) > tref(pb):
+    print("\nINCONSISTENT: with the reference's own delays path A (%d arcs, %d ps) arrives AFTER path B (%d arcs, %d ps), but the"
+          " reference is correct, so these chains are not the race. No slack is reported for this row." % (len(pa), tref(pa), len(pb), tref(pb)))
+    sys.exit(0)
 for lab, pth in (("A", pa), ("B", pb)):
     gs = [x[0] for x in pth if x[0] != "ENV"]
     if len(gs) != len(set(gs)):
