@@ -242,7 +242,7 @@ copied from wt-f7, same manifest). Agents: P9 (formal claims), r14 (Fid3 reprodu
 r14 in: formal Fid3 GLS table reproduced (17 rows CONFIRMED, incl. resolver centre bias TLOOP-WIN/2 vs ~TLOOP/2, which I
 read at fid_core.vh:82); Fid3's rise!=fall remark REFUTED in direction. Build of 3e63dc1 and P9 still running.
 
-### progress 08:31
+### progress 08:29
 3e63dc1: clean build EXIT 1 only on withdrawn GLSPass (still under Formal/). Their fixed check.sh now FAILS GLSPass
 (I ran it) -> fix CONFIRMED. P9 in: RigSrc joint witness CONFIRMED (closes UNVERIFIED row); Necessity5 iffs, KleeneWin,
 IpowCells (contracts assumed), LutFbBridge (narrower than 'every') CONFIRMED; Bj5 JSON fixes CONFIRMED, 2 labels mild.
@@ -2643,7 +2643,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - My monitor flags far more than research's mux_settle, and also flags item 28 (304/1279) where research says clean.
   - The monitor's measure is not yet validated; the T130b trace is pending.
 
-### progress 08:31
+### progress 08:29
 - The disk allowance was full (342 MB free). The T131 vvp was truncated (syntax error).
   - Freed space by removing compiled run_baked.vvp / gate.vvp from finished work dirs and the T128 negative-control copies; now 3.2 GB free.
   - The two running GLS (T130b item 28 trace, T126j item 29 v2 FAST_MIN) were left alone.
