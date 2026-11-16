@@ -2841,3 +2841,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - A headline is overstated if it quotes a speed without its passing fraction, or a fraction without the model's error on board data.
 - Pending owner decisions (items 28/30-32 late mux outputs; rule E at joins) are closed by the owner. REPORT owner-decision row added.
 - T134 (n = 1 coverage) continues: it is full-input-range simulation, not a rule.
+
+### progress 19:18
+- research 14612c032: BOARD-QUEUE note that research's gate checked only the last run per batch; re-gating.
+- Own oracle (t65/oracle_*.py check) is not affected:
+  - it checks odata (last run) AND sig, the bench hardware's rotate-xor accumulation over every run in the batch;
+  - sig is compared with the expected value for nruns results, so a wrong earlier run changes sig and fails.
+  - (Read from t65/oracle_collatz.py sig()/check() and ps7_bench.v's sig register.)
