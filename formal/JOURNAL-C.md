@@ -3398,3 +3398,10 @@ first ADMISSIBLE failure **0.61** (quiet, 2nd answer missing; six groups at once
 ulink_n166__0/1 -- their cones share the datapath), first admissible WRONG VALUE 0.77 (ulink_n168 st0 pair[14]:
 21 -> 37) and 0.84 (ulink_n_falseResult_93 st0: 21 -> 1). Capture races are not binding on gcd_ps: its margin is
 set by the non-capture races already reported. Files: tools/margin/out/gcd_ps_cones/ (names from the routed JSON).
+
+### progress 03:25 -- item 28 (research's collatz board candidate): kappa_hi 0.42 at ulink_n13's enable (search, checked); FOR-RESEARCH C11
+fm_c_margin_sel3m (SDF d86bdde5 = research's; FASM e4f25940): w 20 and w 0 kappa_hi = 0.42, ulink_n13.lat.pair[6] reading
+ulink_n13.ctl late (ADMISSIBLE). item 25 same commit/settings: w 20 none admissible <= 0.45, w 0 0.42 (falseResult_3 st0).
+fcsel3m seeds 1/2/24: 0.41 / 0.37 (0.33 w 0) / 0.27, all falseResult_3 st0 latch pairs. item 27: none <= 0.45.
+Open: env-only INADMISSIBLE rows at 0.36-0.38 on item 28 (gate checks clean). Next: diagnose env rejections (a_ack
+runts), cones on research's builds (c_margin_cones1).

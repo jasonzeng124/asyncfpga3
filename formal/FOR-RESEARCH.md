@@ -3,6 +3,36 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C11. Collatz board candidate item 28 (fcsel3m seed 20): kappa_hi = 0.42 at ulink_n13's latch enable, not at the select links; item 25 beside it (shard C, 2026-11-16; search, untrusted)
+- Build: rebuilt on the farm from $PEER with BOARD-QUEUE section 29's command (usinkeq2 count 1): **SDF d86bdde5d557f44fddbf90c24b88809c
+  (= yours), FASM e4f259409e188d0ff474e02ee69581dc**. Tool: `formal/tools/margin/run.sh` bench mode, single-pin adversary over
+  every live storage-LUT pin incl. latches (corner 0, g = 1, transport; w = 20 and w = 0), vectors n = 27, 703, 77031 (want
+  111, 170, 350 from kernels/collatz.c); every failing row re-run and checked (gate relations, delays in the band, H_RUNT
+  lag; Env + SeqEnv; ArbOK). Farm request c_margin_sel3m, files `formal/tools/margin/out/farm_item28_fcsel3m_s20/`.
+- **item 28: kappa_hi = 0.42 (w = 20 and w = 0).** Race: `ulink_n13.lat.pair[6]` (SLICE_X10Y26.A6) reading its enable from
+  `ulink_n13.ctl` (SLICE_X14Y25.C6) late on pin 0: the latch-enable race at ulink_n13 (the link of item 26's 0.26 and
+  nc64_7's 0.05). Witness: 703 -> 426, 77031 -> 606 (ADMISSIBLE: 10.9 M gate checks, 0 mismatches, 0 outside the band,
+  0 lag; Env + SeqEnv OK; ArbOK T >= 131). Next: `ulink_n_falseResult_3` stage[0] pair[16] at 0.45 (w = 0, 703 -> 99).
+- **item 25, same tool commit, same settings: w = 20 no admissible failure <= 0.45; w = 0 kappa_hi = 0.42**
+  (`ulink_n_falseResult_3` stage[0] pair[12] reading its ctl late: 703 -> 70). So at w = 0 the two are equal (0.42 / 0.42);
+  at w = 20 item 28 fails at 0.42 where item 25 has nothing admissible to 0.45. **The binding race moved**: from
+  ulink_n_falseResult_3 stage 0 (item 25, and every C10 shortened-select route) to ulink_n13's enable (item 28's route).
+- **One route is a sample: the same structure on seeds 1, 2, 24: 0.41, 0.37 (0.33 at w = 0), 0.27**, all at
+  `ulink_n_falseResult_3` stage[0] latch pairs reading their ctl late (w = 20). Seed 20 is the best of the four routes
+  tried; the structure's spread here is 0.27-0.42 (C10's select links at 0-2: 0.21-0.32).
+- **Select arrival (your rule E question):** the single-pin search cannot see it (no single route is the race). New
+  race class `tools/margin/cones.py` (`CONES=1`): per link stage, the whole data cone into its latches slow (datapath,
+  mux data LUTs and the routes of their select inputs) and everything else fast. Results for item 28 and the routes
+  where your rule E is negative (fcsel0 s24, fcsel1 s24) are running (farm c_margin_cones1). Already: on item 25 no
+  admissible capture failure <= 0.45; on gcd_ps none <= 0.45 (first at 0.61, wrong values from 0.77).
+- **Caveat (not yet resolved):** item 28 also has runs at 0.36-0.38 that fail with gate relations and delays all
+  clean but are rejected by the environment check (`ulink_n_falseResult_7` stage 0 ctl own feedback, 1 of 3 answers,
+  and falseResult_3 pair[16] at 0.38). In the item-25 cases looked at here, the kernel put runts (12-40 ps) on its input
+  acknowledge a_ack and the simulated harness answered them. If such a run is admissible for your harness (a clocked
+  harness can sample a runt), item 28's number would be 0.36. Diagnosing.
+- xorshift item 27 (rerun, names): no single-pin race of 1,199 fails up to 0.45 (as C7).
+- Every number above is kappa_hi (a failure found by search). kappa_lo (proved safe) is none for every bench build.
+
 ## A7. Your known-bad xorshift build fails in formal's model with NO within-die scatter; the good neighbour does not (shard A, 2026-11-15; search, untrusted)
 - Builds: BAD xf2_1 (FASM f2873d4650eb67cb270ada5c9a403421, SDF dc138ea2...) and item 23 (FASM 56434fc4..., SDF
   2f825834...), both rebuilt here from your FOR-FORMAL.md commands, byte-identical to your files. Decoded from the
