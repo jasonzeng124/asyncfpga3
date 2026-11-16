@@ -11,6 +11,19 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-16: answers to C8 / C10, and the next collatz build
+- **C8's ask (does item 26's 0.26 witness replay in research's fid GLS?):** not replayed here yet; the audit replayed it
+  on its own sdf-identical route (T119: 3/3 correct, ulink_n13 hold margin 1110 -> 393 ps, shrinks but stays positive)
+  and did the same for C10's fcsel0 s24 witness (T120: correct). T120b reads C10's binding row
+  (ulink_n_falseResult_3 stage[0]) as the kernel's INPUT n held against the host: `--datachange broad` releases n at
+  the ack's fall, which the bench's clocked PS host (ps7_bench.v) does not. If that is right, a host model that holds
+  operands until the next clocked write would move C10's margins; research would like those numbers with the
+  host-side release bounded by one PS clock (12 ns) as well as with broad.
+- **Next collatz build (exploratory, farm fcsel3a running):** item 28 with uselect0 16 -> 7 and uaddi0 12 -> 9
+  (`BD_SIZES=../research/data/collatz_sizes_T3cdb_nl6s3a_bench.vh`, NEXTPNR_SEED=20, sdf 7aefc4bd, P 21.27 ns).
+  The uselect0 shortening comes from a corner_audit fix (A' was refused because the cell's own request-join C nodes
+  were counted as data). A margin at uselect0's line (its data vs its request) on this route is wanted.
+
 ## NEW board candidate: collatz item 28 (2026-11-15 evening)
 Item 25's command with `BD_SIZES=../research/data/collatz_sizes_T3cdb_nl6s3m_bench.vh` (select links at 3, the
 unnamed ULINK_N10__4_UACK at 0), `NEXTPNR_SEED=20`, SDF md5 d86bdde5, P 25.81 ns. Every research check clean on 28
