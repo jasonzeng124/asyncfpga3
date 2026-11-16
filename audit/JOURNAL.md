@@ -2316,3 +2316,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - New build.sh variants: ipsel3, c64sel3.
 - research f75b68056: selneg status. 4 of 13 +3000 injections make the gate fail; rule E flags all 4 and flags 4 more that pass. To be checked against own T125 (item 28 umux2: gate passes, as research says).
 - formal A 63b476454: research's rule H row for item 28 (+1337) agrees with formal's 1343. Own dynamic is 1610 (T124a).
+
+### progress 04:35
+- T125 rerun, FAST_MIN: the own select monitor attached (umux2, 34 pins).
+  - **One select event in the whole run, at reset**; nothing while z_req was high.
+  - The +3000 injection is never exercised, so research's "E pessimistic (x_req lead)" does not explain this pass. REPORT row: REFUTED as explanation.
+  - The worst run is still going.
+- T126: ipsel3_19 built. FF scan clean (1956 flops, 0 missing). GLS running.
+- research 42de937c2 (xorshift missing ack macro, farm fxu) is exploratory.
