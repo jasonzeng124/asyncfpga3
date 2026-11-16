@@ -5825,3 +5825,11 @@ on a ctl input in our GLS (already on the Next list).
   assumed ~8.5% scatter against the measured 0.76%, and chains at 0.21 vs data at 0.288); 0.55 loses some draws;
   0.40 fails most. Period: item 33 is 18.9 ns; at 0.70 the ~10.7 ns of delay-chain hops on the cycle lose ~3 ns,
   so ~16 ns if it holds.
+### progress 20:13 (zt1 113/132, regate1 27/96: clean routes all pass, no run-to-run mismatch)
+- zt1 (collatz / collatz64 with n = 1): fcsel3a 86/87 gate runs, fcsel3m 93/93, fc64sel3 75/75, fc64sel3p 72/72 PASS; no
+  batch with the mismatch latch set. The one FAIL: fcsel3a seed 10 at SLOW_MAX (batch 0 X, batch 2 hang), a route with
+  the known 5FF-D bitstream defect (NOT EQUIVALENT, FFMUX-FLAG), already outside item 31's route set.
+- regate1 so far: 81 xor17 + 81 xor19 gate runs, all PASS with the fixed verdict.
+- Local: item 33 sizes x0.55 on seed 27: P 16.14 ns (18.71 at x1), but that route has the same FF defect (NOT
+  EQUIVALENT, FFMUX-FLAG); draws 1 and 2 FAIL 11/19. Not separable from the defect; shrink1's other routes decide.
+- draws1 / shrink1 still queued (the farm's 250-task account limit; zt1 + regate1 hold it).
