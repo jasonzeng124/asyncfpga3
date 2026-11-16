@@ -3786,3 +3786,11 @@ delays the mux's request, the safe direction for the bundle; in a transport mode
 gate fails there, its interconnect delays may be inertial (a 3-12 ns inertial delay swallows short pulses and can hang a
 handshake; a route on silicon does not). Before saying so: c_selneg2 prints event counts (injections applied, runs
 slower) and injects the same select latch's arcs into the mux DATA LUTs (the real arrival race), which should fail.
+
+### progress 06:56 -- correction to my own 06:5x hypothesis: research's gate uses TRANSPORT interconnect
+research/tools/eventgraph/bench_gate.sh -> cells/gls/ps/build_ps.sh compiles run_baked.vvp with -DGLS_TRANSPORT_IC
+(cells/gls/prims.v ICBUF: `always @(I) o <= #D I;`, every edge kept). So an injected interconnect delay is transport in
+their gate as in formal's model, and "inertial pulse swallowing" does NOT explain why their gate fails where formal's
+model passes. Hypothesis withdrawn before it reached FOR-RESEARCH. Remaining differences to look at: their clocked PS
+host (12 ns FCLK, MODE=1) vs formal's simulated host; their LUT cells (specify IOPATH, inertial ~124 ps) vs formal's
+transport LUT arcs; vectors (their 17 vs formal's 4); which arcs exactly were injected. c_selneg2 first.
