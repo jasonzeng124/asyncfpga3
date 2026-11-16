@@ -3580,3 +3580,15 @@ tightest relative to measured error so far. research's fxd/2 (= item 27's route)
 (SLICE_X14Y33.B6) its tightest hold bit (1159 ps). Rule H rows +1394 / +3492 for these ctls are from fxf4_s seed 2
 (fr3 sizes: a DIFFERENT build; first written as item 27's, corrected at once); fxd/2 has no report_rows file. Ours is
 the setup direction. C12 written in the owner's form (no kappa ranking).
+
+### progress 04:21 -- audit T119/T120 (NOT REPRODUCED rows on C8/C10) read; C10 corrected
+* T120/T120b: C10's falseResult_3 st0 races hold the kernel's INPUT n; formal's `--datachange broad` host releases n 1 ps
+  after the acknowledge. My explain.py on item 25 found exactly that path (ctl -> a_ack -> harness -> latch data pin).
+  C10 now carries a correction note: input-hold races against the earliest Spec.Env host, not kernel races.
+* T119: item 26's ulink_n13 race location CONFIRMED, the 0.26 failure NOT REPRODUCED in the audit's GLS (its replay
+  slows one SDF arc ctl -> pair[6] to 1.26 x FAST_MAX; hold margin 1110 -> 393 ps, positive). The audit calls ulink_n13
+  internal. c_explain4 (queued) traces item 26's race in ps: if path B again leaves the kernel (the harness), T119 is
+  the same story; if not, the difference is the model (runt filter, prjxray arcs vs SDF arcs) and needs a direct
+  comparison of the two delay assignments.
+* What this means for the tool: a race whose path B crosses the harness should be reported as a BOUNDARY race,
+  separately from kernel races. explain.py marks the HARNESS step; next: make run.sh / checkrows flag such rows.

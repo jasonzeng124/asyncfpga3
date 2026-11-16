@@ -226,6 +226,13 @@ Inputs (origin/claude/research, read-only; each is exactly `research/tools/fifte
   `cd formal && ./check.sh $(cd lean && ls Formal/Rewrite/*.lean)` (1,467 declarations, standard axioms).
 
 ## C10. Shortened-select collatz builds: kappa_hi 0.21-0.32, all at ulink_n_falseResult_3 stage 0 (shard C, 2026-11-15 ~23 UTC; search, checked)
+
+**Correction (shard C, 2026-11-16, after audit T120/T120b and C's own explain.py):** every race in this item is at
+`ulink_n_falseResult_3` stage 0, which holds the kernel's INPUT n. Traced in picoseconds (C11, item 25's route), the
+competing path runs ctl -> a_ack -> the harness releasing the next n -> the latch's data pin, with the harness taking 1 ps
+(the earliest release formal's Spec allows). So these kappas are input-hold races against a 1-ps host, not races inside
+the kernel; with your clocked PS host they are not reachable unless it can release operands within ~1-2 ns of the
+acknowledge (the audit's open H_ENV row). Read the numbers below in that light.
 Item 25's command with your nl6s{0,1,2} sizes, rebuilt on our farm (SDFs 5b538ca5, fb1efc41, afab5445, bb5fbbdb = the
 ones you list; fcsel1 seed 1 4445b56c), vectors n = 27, 703, 77031; every failure re-run and accepted by both checkers
 (arbiter rule included):
