@@ -2642,3 +2642,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T130 item 30 (v2, state A): umux0 1779/1804 tokens late, up to 769 ps (research: 352/458, <= 155 ps).
   - My monitor flags far more than research's mux_settle, and also flags item 28 (304/1279) where research says clean.
   - The monitor's measure is not yet validated; the T130b trace is pending.
+
+### progress 08:31
+- The disk allowance was full (342 MB free). The T131 vvp was truncated (syntax error).
+  - Freed space by removing compiled run_baked.vvp / gate.vvp from finished work dirs and the T128 negative-control copies; now 3.2 GB free.
+  - The two running GLS (T130b item 28 trace, T126j item 29 v2 FAST_MIN) were left alone.
+  - T131 restarted.
+- T126j item 29 v2: own sdf **b521630f = recipe**; FF clean (1956 flops).
