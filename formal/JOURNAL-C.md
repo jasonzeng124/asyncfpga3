@@ -3950,3 +3950,10 @@ col14, c6415). The first collatz rerun (c_draws2, fid model) stays as a second m
 ### progress 20:41 -- c_draws2 (collatz, fid model, fixed vectors): all candidates 64/64; BAD nc64_7 62/64 vs pc64_7 64/64 (FOR-RESEARCH C20)
 Items 28, 31, 25, 26, 30, 32 (+ item 32's design on seeds 1-3): 64/64 each; sdf md5s = research's. nc64_7 draws 18/38
 wrong step counts. xf2_1 rerun identical to c_draws1 (deterministic). FOR-RESEARCH C20 written (fid-model table).
+
+### progress 20:50 -- c_draws3 failed (research's eval_task.sh leaves no synth JSON); c_draws4 instead, same routes
+Its builds had research's sdf md5s, identical to c_draws1's own builds (7f0c0592, a9bdac53, 7aefc4bd, d86bdde5,
+637ff02e, 842dd4d7): BD_SKEW_AND_JOIN does not change the route. But run.sh's boundary step needs the synth JSON, which
+eval_task.sh's hw dir lacks. c_draws4 = c_draws1's builds with research's model (draw K = 1..32; my bands(K) match the
+values research's log prints for K = 1, 2, 9), research's draws1 vectors (col14, c6415, xor19); the known-bad pair and
+xf2_1 with 64 draws. Item 25 / 26 (not in draws1) left out.
