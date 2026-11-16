@@ -30,49 +30,12 @@ PATH B (overtook it in the witness): split -> SLICE_X16Y21.A6 pin 2
     route total: fast [282, 412] mid 347   slow [775, 1005] mid 890
 
 SLACK (path B - path A; positive = the required order holds):
-  fast-corner band midpoint                A     296  B     766  slack    +470 ps = +7.22 x the measured error (8.5 % of 766 ps)
-  slow-corner band midpoint                A     718  B    1937  slack   +1220 ps = +7.41 x the measured error (8.5 % of 1937 ps)
-  worst in-band (A fast max, B fast min)   A     328  B     655  slack    +327 ps = +5.87 x the measured error (8.5 % of 655 ps)
+  fast-corner band midpoint                A     296  B     766  slack    +470 ps = +7.22 x median error (8.5 % of 766) = +1.31 x worst short-ring error (47 %)
+  slow-corner band midpoint                A     718  B    1937  slack   +1220 ps = +7.41 x median error (8.5 % of 1937) = +1.34 x worst short-ring error (47 %)
+  worst in-band (A fast max, B fast min)   A     328  B     655  slack    +327 ps = +5.87 x median error (8.5 % of 655) = +1.06 x worst short-ring error (47 %)
 NEXTPNR SDF (nominal; from the cell driving the split):
   path A: cells 124 + routing 436 = 560 ps
   path B: cells 372 + routing 1589 = 1961 ps
-  slack +1401 ps = +8.41 x the measured error (8.5 % of 1961 ps)
-witness   (route slow): RESULT MISMATCH: want [2, 21] got []
-reference (all fast)  : RESULT OK: want [2, 21] got [2, 21]
-first nodes to diverge (any gate): INT_L_X12Y21/SS2END3(pip)@462134*, CLBLM_L_X12Y21/CLBLM_IMUX7(pip)@462159*, CLBLM_L_X12Y21/CLBLM_M_A1(pip)@462159*, INT_L_X12Y19/SS2END3(pip)@462166, CLBLL_R_X11Y18/CLBLL_SW2A3(pip)@462188, CLBLM_L_X12Y19/CLBLM_IMUX31(pip)@462191   (* = an adversary arc)
-  diverges: SLICE_X16Y19.C6        at 462246 ps
-  diverges: SLICE_X17Y19.B6        at 462370 ps
-  diverges: SLICE_X17Y18.B6        at 462563 ps
-  diverges: SLICE_X15Y18.D6        at 462905 ps
-  diverges: SLICE_X17Y18.D6        at 463040 ps
-  diverges: SLICE_X12Y60.B6        at 463179 ps
-  diverges: SLICE_X11Y57.B6        at 463368 ps
-  diverges: SLICE_X11Y23.D6        at 463500 ps
-
-CAPTURE: SLICE_X16Y21.A6 (SLICE_X16Y21.ALUT.O6) first differs at 487695 ps
-RACE at SLICE_X16Y21.A6: pin 0 (delayed 426 ps by the adversary: reference arrival 487289, witness 487715) against pin 2 (arrival 487695)
-  A (CLBLM_L_X12Y21/CLBLM_M_A1@487145) ancestors: 3777 flips, 486 LUT flips; latest LUT flips: SLICE_X17Y23.B6@487088, SLICE_X17Y23.D6@486979, SLICE_X16Y23.D6@486855, SLICE_X18Y24.B5@486722, SLICE_X19Y24.A6@486599, SLICE_X10Y17.B6@486339
-  B (CLBLM_L_X12Y21/CLBLM_M_A3@487443) ancestors: 3680 flips, 476 LUT flips; latest LUT flips: SLICE_X16Y19.A6@487386, SLICE_X14Y19.A6@487249, SLICE_X17Y23.B6@487088, SLICE_X17Y23.D6@486979, SLICE_X16Y23.D6@486855, SLICE_X18Y24.B5@486722
-SPLIT (common launch): INT_L_X12Y21/SS2END3 flips at 487120 ps; driven by the cell SLICE_X17Y23.B6 bridge_i.udut.ucontrol_merge4_f.u.genblk1.g2.u.u
-
-PATH A (must arrive FIRST; the adversary slowed it): split -> SLICE_X16Y21.A6 pin 0
-  path A: 3 arcs (1 cells, 2 routing)
-    SLICE_X16Y21.A6              pin 0  lut6  fast [225, 281]  slow [528, 655]  bridge_i.udut.ucontrol_merge4.uarb1.ua2.u
-    cell  total: fast [225, 281] mid 253   slow [528, 655] mid 592
-    route total: fast [38, 47] mid 42   slow [114, 138] mid 126
-PATH B (overtook it in the witness): split -> SLICE_X16Y21.A6 pin 2
-  path B: 17 arcs (3 cells, 14 routing)
-    SLICE_X14Y19.A6              pin 4  lut6  fast [78, 98]  slow [191, 236]  bridge_i.udut.ucontrol_merge4.uarb1.ustate$LUT6
-    SLICE_X16Y19.A6              pin 3  lut6  fast [136, 169]  slow [344, 427]  bridge_i.udut.ucontrol_merge4.uarb1.ugrant$LUT6
-    SLICE_X16Y21.A6              pin 2  lut6  fast [159, 197]  slow [400, 496]  bridge_i.udut.ucontrol_merge4.uarb1.ua2.u
-    cell  total: fast [373, 464] mid 418   slow [935, 1159] mid 1047
-    route total: fast [282, 412] mid 347   slow [775, 1005] mid 890
-
-SLACK (path B - path A; positive = the required order holds):
-  fast-corner band midpoint                A     296  B     766  slack    +470 ps = +7.22 x the measured error (8.5 % of 766 ps)
-  slow-corner band midpoint                A     718  B    1937  slack   +1220 ps = +7.41 x the measured error (8.5 % of 1937 ps)
-  worst in-band (A fast max, B fast min)   A     328  B     655  slack    +327 ps = +5.87 x the measured error (8.5 % of 655 ps)
-NEXTPNR SDF (nominal; from the cell driving the split):
-  path A: cells 124 + routing 436 = 560 ps
-  path B: cells 372 + routing 1589 = 1961 ps
-  slack +1401 ps = +8.41 x the measured error (8.5 % of 1961 ps)
+  slack +1401 ps = +8.41 x median error (8.5 % of 1961 ps) = +1.52 x worst short-ring error (47 %)
+  (the ring data also fit measured = 0.938 x SDF + 988 ps per ring period: a ~1 ns constant the SDF does not charge;
+   whether it falls on one of these two paths and not the other is not known)

@@ -3509,7 +3509,7 @@ Slack +470 ps fast-mid (7.2 x the 8.5 % error), +327 ps worst in-band; **at next
 A 560 (cells 124 + routing 436), B 1961 (cells 372 + routing 1589). The SDF's routing is ~3x prjxray's fast band
 here. Files: tools/margin/out/gcd_ps_explain/. Farm c_explain2 = c_explain1 with the builds' SDFs.
 
-### progress 03:55 -- research's own rows for the races we name (item 28 = fcsel3m s20: origin/claude/cluster results/fcsel3m/20/)
+### progress 03:52 -- research's own rows for the races we name (item 28 = fcsel3m s20: origin/claude/cluster results/fcsel3m/20/)
 | our race | research rule row (nominal SDF, report_rows_nom.txt) | research dynamic hold (hold_bits.tsv / hold.tsv) |
 |---|---|---|
 | item 28 binding: ulink_n13 latch pair[6] vs ulink_n13.ctl (enable late) | H +1337: ulink_n13.ctl, enable 1241, data 2628 (sender), guard 50 | ulink_n13: 14,656 windows, 0 violations, min margin 1566 ps |
@@ -3518,3 +3518,12 @@ here. Files: tools/margin/out/gcd_ps_explain/. Farm c_explain2 = c_explain1 with
 So research's rules look at both links our adversary breaks first, and call them clean by 1.3-2.3 ns at their SDF.
 Ours (pending c_explain2): the same races' slack from the split, at prjxray mid-band and at the same SDF. If they agree in
 size, the kappa is only a restatement of that ns slack under a 1-ps harness / all-fast adversary.
+
+### progress 03:57 -- slack scaled by what the ring data measured, not by 8.5 % alone
+research's cells/hw/README.md (August ring128): 8.5 % is the MEDIAN ratio error (covers 52 % of rings), not a bound;
+on the shortest rings (7 links, the length nearest these sub-2 ns race paths) the ratio runs 0.773-1.470 (p99 47 %);
+and the population fits measured = 0.938 x SDF + 988 ps per ring period, a ~1 ns constant the SDF does not charge.
+explain.py now gives each slack as a multiple of the median error AND of the worst short-ring error (47 %), and
+notes the unexplained constant. gcd_ps's binding race: +1401 ps at nextpnr's SDF = 8.4 x median, 1.5 x worst
+short-ring; +327 ps at the worst in-band split of the prjxray fast corner = 1.1 x worst short-ring. item 25's race
+(through the harness): +1196 ps fast-mid = 8.1 x median, 1.5 x worst short-ring.

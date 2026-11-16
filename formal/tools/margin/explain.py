@@ -26,6 +26,7 @@ ap.add_argument("--w", type=int, default=0); ap.add_argument("--routed", default
 ap.add_argument("--sdfmap", default=None, help="JSON {\"NODE:PIN\": ps} nominal SDF delay per arc (optional)")
 ap.add_argument("--sdf", default=None, help="nextpnr's SDF of this build (needs --routed): the paths' delays at the nominal SDF")
 ap.add_argument("--err", type=float, default=0.085, help="measured relative delay error (median ring scatter)")
+ap.add_argument("--err7", type=float, default=0.47, help="worst measured relative error on the shortest rings (7 links: ratio 0.773..1.470, cells/hw/README.md on claude/research)")
 a = ap.parse_args()
 O = os.path.abspath(a.out)
 net = json.load(open(os.path.join(O, "net.json"))); G = net["gates"]; N = net["nodes"]; idx = {n: i for i, n in enumerate(N)}
@@ -290,11 +291,13 @@ for lab, x, y in (("fast-corner band midpoint", (B["fmin"] + B["fmax"]) / 2, (A[
                   ("slow-corner band midpoint", (B["smin"] + B["smax"]) / 2, (A["smin"] + A["smax"]) / 2),
                   ("worst in-band (A fast max, B fast min)", B["fmin"], A["fmax"])) + ((("nextpnr SDF", B["sdf"], A["sdf"]),) if sdf else ()):
     sl = x - y; L = max(x, y)
-    print("  %-40s A %7.0f  B %7.0f  slack %+7.0f ps = %+.2f x the measured error (%.1f %% of %.0f ps)" % (lab, y, x, sl, sl / (a.err * L) if L else 0, 100 * a.err, L))
+    print("  %-40s A %7.0f  B %7.0f  slack %+7.0f ps = %+.2f x median error (%.1f %% of %.0f) = %+.2f x worst short-ring error (%.0f %%)" % (lab, y, x, sl, sl / (a.err * L) if L else 0, 100 * a.err, L, sl / (a.err7 * L) if L else 0, 100 * a.err7))
 if SDFI is not None:
     ca, ra, ma = sdf_path(pa, sn); cb, rb, mb = sdf_path(pb, sn)
     print("NEXTPNR SDF (nominal; from the cell driving the split):")
     print("  path A: cells %d + routing %d = %d ps%s" % (ca, ra, ca + ra, ("   UNMAPPED: " + ", ".join(ma)) if ma else ""))
     print("  path B: cells %d + routing %d = %d ps%s" % (cb, rb, cb + rb, ("   UNMAPPED: " + ", ".join(mb)) if mb else ""))
     sl = (cb + rb) - (ca + ra); L = max(ca + ra, cb + rb)
-    print("  slack %+d ps = %+.2f x the measured error (%.1f %% of %d ps)%s" % (sl, sl / (a.err * L) if L else 0, 100 * a.err, L, "  (partial: unmapped arcs above)" if ma or mb else ""))
+    print("  slack %+d ps = %+.2f x median error (%.1f %% of %d ps) = %+.2f x worst short-ring error (%.0f %%)%s" % (sl, sl / (a.err * L) if L else 0, 100 * a.err, L, sl / (a.err7 * L) if L else 0, 100 * a.err7, "  (partial: unmapped arcs above)" if ma or mb else ""))
+    print("  (the ring data also fit measured = 0.938 x SDF + 988 ps per ring period: a ~1 ns constant the SDF does not charge;")
+    print("   whether it falls on one of these two paths and not the other is not known)")
