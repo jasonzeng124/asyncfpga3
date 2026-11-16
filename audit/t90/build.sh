@@ -13,6 +13,7 @@ case $V in
   pc64)  K=collatz64; SZ=../research/data/fifteen/selectrule/collatz64_sizes_T4cd_sel19_bench.vh; KN="BDC_CONST_DATA=1";;
   c64r)  K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_bench.vh; KN="$BASE";;
   c64nl) K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_bench.vh; KN="$BASE BDC_NO_LINK=ulink_n30__1";;
+  ipsel3m) K=ipow;    SZ=../research/data/ipow_dsp1_sizes_T9s75_h4s3m_bench.vh; KN="BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0";;
   ipsel3) K=ipow;     SZ=../research/data/ipow_dsp1_sizes_T9s75_h4s3_bench.vh; KN="BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0";;
   c64sel3p) K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_h4s3p_bench.vh; KN="$BASE";;
   c64sel3) K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_h4s3_bench.vh; KN="$BASE";;
