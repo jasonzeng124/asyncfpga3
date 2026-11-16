@@ -203,7 +203,7 @@ check the const-0 assumption against the routed JSON). Worktree ~/wt-r10 = cf1fb
 Research 6e679a5 (DSP hard items MATCH via x) read: disclosed caveat; my OVERSTATED label stands. d958b9d soft ring
 items 'inside the band' -- noted, not audited yet. Seeds 7/9 FAST_MIN/SLOW_MAX rows posted; r9 still running 4/5.
 
-### progress 05:52
+### progress 05:48
 Research 666ea57: gen.py dropped 1134/1218 SETUPHOLDs (negative side), so the default GLS flop setup/hold check was
 silent on 284 flops in all earlier PASS results. Launched r11 agent (verify counts with own parser, rerun BQ#3, forced-
 violation negative control, FFX/BUFGCTRL fid changes 923305d). Worktree ~/wt-r11 = 2f6dc9b.
@@ -2419,7 +2419,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T128 negative control +3000: GLS **PASS 13/13**, so the static bundling check is stricter than the gate. Running +10000 for a failing build.
 - T126 item 30 worst: 14/14.
 
-### progress 05:52
+### progress 05:48
 - T126d, item 30 (c64sel3_10, recipe sdf) at FAST_MIN with the mon_sel classifier (ZACKS fixed); oracle 14/14.
   - umux0: 52 select events, all starting with z_req low (state C); 0 in A or B.
   - **26 events have data-LUT select pins (udat, 32 pins) settling after z_req rose, max 101 ps late.**
