@@ -79,7 +79,7 @@ simulation at the mid of the fast window, no slow arc, research's vectors (`race
 | fcsel3m s24 (`lat.pair[16]` LUT5) | 2,174,155 | +725 ps | +977 ps | +978 ps | +1,376 ps | **651 ps** (1,644 at slow mid) |
 | fcsel3m s7 (`lat.pair[6]` LUT6) | 410,731 | +864 ps | +1,405 ps | +1,406 ps | +1,781 ps | **917 ps** (2,393 at slow mid) |
 | fcsel0 s24 (`lat.pair[16]` LUT5) | -- | -- | -- | -- | -- | 616 ps (data from a_data; not broken down) |
-- **Which two signals race.** Split: the stage-0 controller's close. Path 1: its enable route to the latch bit (725-864
+- **Which two signals race.** Split: the stage-0 controller's close. (Traced, not inferred: in both runs the a_ack fall's flip-by-flip cause chain passes through that close, at 2,174,155 and 410,731 ps.) Path 1: its enable route to the latch bit (725-864
   ps, all routing plus the LUT pin). Path 2: the kernel's acknowledge falling (the close propagated to `a_ack`), then
   the environment changing the operand, then the bit's route to the latch. The environment in formal's statement
   (Spec.Env, four-phase with the "broad" data rule) may change data the moment the acknowledge falls; the runs above
