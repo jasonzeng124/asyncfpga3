@@ -2587,10 +2587,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - REPORT row added. Dynamic rule H (t126/hdyn32.sh) started.
 - research c075fe32e: collatz64 rule-M fix per launch (h4s3n, farm fc64sel3n). 6bed4d9b2: README. Exploratory.
 
-### progress 07:50
+### progress 07:39
 - research 866eaa2b6 (BOARD-QUEUE notes):
   - item 30 worst: 300/458 tokens late, up to 60 ps;
   - item 31: no late data, z_data leads z_req by >= 1.6 ns;
   - items 1-26 were never checked by rule M.
 - Item 31 vs own T126g: the select PINS were late by up to 100 ps, but a pin change need not move the output. New own t130/mon_zdata.py watches the data-LUT outputs after the z_req rise. t130/run.sh on item 31, then item 30 (control) is started.
-- Shell commands were blocked from 07:36 to about 07:49 (the command-safety check returned no verdict).
+- Shell commands were briefly blocked around 07:37-07:39 (the command-safety check returned no verdict).
