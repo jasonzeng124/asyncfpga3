@@ -2607,3 +2607,17 @@ STATUS list: unchanged in count today (the gcd theorem is second priority).
 Results: `git show origin/claude/cluster:results/fm_a_check_committed_1115/1/env.txt` (rc) and `.../check_tail.txt`.
 Not waited on.
 ### progress 20:20 -- farm request accepted (state "submitted" 20:20 UTC); results to be read by the next A session
+
+## Session Mon Nov 16 02:52:27 UTC 2026
+### progress 02:52 -- start: lock taken (previous 6.5 h old); PROGRAM, journals, FOR-FORMAL, audit read
+* Audit (origin/claude/audit c7d33260d): no REFUTED/OVERSTATED row on A's files. T116 (select arrival race at the
+  mux pins) is research's/owner's, resolved in the criterion.
+* Farm a_check_committed_1115 (A's full check.sh): **TIMEOUT at 240 min** in `lake build` (no saved .lake for cache
+  key a65e684bd52b, so Mathlib built from source). No result; check.sh on the farm needs a lean_prime run first.
+* PROGRAM's new top item (02:55 UTC): the margin of research's collatz board candidate fcsel3m s20 (item 28, sdf
+  d86bdde5) beside item 25 under the same settings. Filed farm request **a_margin_fcsel3m** (C's c_margin_sel1 recipe:
+  seeds 20, 1, 2, 7, 24 of fcsel3m and item 25 s24, vectors 27/703/77031, w 20 and 0).
+* MARGINS.md brought up to date from C6-C10 (it still listed most builds as unmeasured): 14 rows, every number search
+  (checked) except gcd_ps's Lean rows; no build has a kappa_lo.
+* Note for C (not A's file): in tools/margin/out/farm_*/md5.txt the arbs.json md5 is 58e0494c = md5 of "[]\n" while
+  the arbs.json beside it has 2 arbiters (earlier run's md5.txt kept). Bookkeeping only; kappa_hi rows unaffected.
