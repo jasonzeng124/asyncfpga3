@@ -18,6 +18,15 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 - **Coverage (A, 2026-11-16):** C's candidates are routes into storage LUTs only; a select reaching a mux's data LUT
   late was invisible. `tools-A/target/selrun.sh` adds every combinational LUT feeding storage: on item 28 and on fcsel0
   no such race fails below 0.45; the umux select race exists but needs ~0.85. Still single-route, corner 0.
+- **Races in picoseconds (A, `tools-A/target/race_ps.py`, after the owner's "a kappa is not a result"):** item 28
+  and item 26 bind on the same internal race (ulink_n13's latch enable against the next data through umux1 from
+  falseResult_5 stage 1): slack 1,343 / 1,209 ps at the fast-window mid (about 6x the 8.5 % ring error). The low
+  kappas of the other collatz routes (fcsel3m s24/s7, fcsel0 s24, item 25 at w 0) are input-boundary races: a latch
+  reading the operand bus still closing when the kernel drops its acknowledge, failing only against a sender that
+  changes data within 0.6-1.2 ns, which the board's PS harness never does (FOR-RESEARCH A9).
+- **The frozen statement has a vacuous case (C found, A proved, `Target/SpecWF.lean`):** with a request shared by
+  several channels, a partial acknowledge makes Spec.Env unsatisfiable, so a hang there is not a counterexample.
+  Weak-fairness repair `NetCorrectSeqRuntWF` keeps every refutation; adoption waits for the audit.
 - **kappa_lo:** none, for any build. A proved lower bound needs every capture certified and the capture list proved
   complete; B's select certificates (SelectCapture/Hold/Tree) and the 185 RaceTablePS rows are single-race pieces.
 - **Decoder (A):** a flop whose D-mux has no bit (nextpnr FASM gap; research's ffmux_scan.py) now decodes as
