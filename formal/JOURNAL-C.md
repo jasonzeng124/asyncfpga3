@@ -3496,7 +3496,7 @@ its input before the latch holding that input has closed, and only a harness tha
 acknowledge can win it. Spec.Env allows a 0-delay harness; a clocked board harness reacts in ns. This is a property
 of the boundary model, not of the loop. Farm c_explain1: the same for items 28, 26, 27 and fcsel3m s1/s2/s24.
 
-### progress 03:58 -- explain.py at nextpnr's SDF; gcd_ps's 0.36/0.40 race in picoseconds
+### progress 03:51 -- explain.py at nextpnr's SDF; gcd_ps's 0.36/0.40 race in picoseconds
 `--sdf` (with `--routed`; run.sh passes `SDF=`): a path's delay at nextpnr's SDF = each LUT/MUXF IOPATH (physical pins,
 as the SDF has them) + the INTERCONNECT from the previous cell's output to this cell's pin, from the cell that drives
 the split (so both paths include the shared trunk). CARRY4 arcs are listed as UNMAPPED if met.
