@@ -2190,3 +2190,6 @@ Replay of formal C10's fcsel0 seed 24 witness (kappa 0.22: falseResult_3 stage[0
 
 ### progress 06:55 T120 done
 Formal C10 fcsel0 s24 witness not reproduced (3/3, = control). Two witnesses in a row fail to reproduce in own GLS; hypothesis: environment model (formal's --datachange broad vs the clocked PS host), both races on latches fed from outside the kernel's release path. REPORT row; owner notified.
+
+### progress 07:55 T120b
+Environment hypothesis checked in the MLIR: falseResult_3 = the input n (cond_br4 on fork(arg0)); formal's broad data rule releases n at the ack's fall. The falseResult_3 stage[0] margins are input-hold races against the earliest Spec host; the board's PS host is clocked. Item 26's ulink_n13 (internal) non-reproduction stays open. REPORT updated.
