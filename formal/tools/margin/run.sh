@@ -106,6 +106,7 @@ python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs 
   --klo "$KLO" --tfull "${TFULL:-5000000}" --pairs $PAIRS --kernel "$KERNEL" --w 20 $([ "$W0" = 1 ] && echo --w0) $([ "${W0FULL:-0}" = 1 ] && echo --w0full) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
 log "check every failing row"; python3 "$H/checkrows.py" "$O" > /dev/null 2>&1 || true
 [ -f "$O/routed.json" ] && python3 "$H/names.py" "$O" > /dev/null 2>&1 || true
+[ -f "$O/routed.json" ] && [ -f "$O/cones.json" ] && python3 "$H/conenames.py" "$O" > /dev/null 2>&1 || true
 # 5. the picosecond form of every reported race (explain.py: capture, split, both paths, slack, x the measured error;
 #    SDF= nextpnr's SDF of the build adds the slack at the nominal SDF)
 log "explain the reported races"
