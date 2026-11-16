@@ -2733,7 +2733,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Consistent with own T131 (join failure = start-up X). Not replayed.
 - T126k item 33: SLOW_MAX GLS running.
 
-### progress 10:37
+### progress 10:36
 - **Item 33 complete: CONFIRMED.**
   - Own period 18.710 ns (latency 404 = research's) vs item 27 19.319: ratio 1.033 (research ~1.03).
   - SLOW_MAX 17/17, min latch setup 13708.
