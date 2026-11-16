@@ -279,6 +279,7 @@ def main():
 
     # ---- per slice: FFs, CARRY4, refusals
     carry_used = set()
+    undef_d = []
     for pre in sorted(sf):
         tile, site, sn = slice_site(pre)
         sname_of[pre] = sn
@@ -296,6 +297,16 @@ def main():
                 mux = [x for x in fs if x.startswith("%s%sMUX." % (L, fx))]
                 if mux:
                     ffs.append((L, fx, mux))
+                elif has(pre, "%s%s.ZRST" % (L, fx)) or has(pre, "%s%s.ZINI" % (L, fx)):
+                    # A placed flop whose D mux has NO bit (shard A, 2026-11-16): nextpnr-xilinx's FASM gap
+                    # (research/tools/ffmux_scan.py; seen on research's fcsel2 seed 24 at SLICE_X12Y24.AFF, a
+                    # yosys dfflegalize emulate_split_set_clr flop whose D is the packer's GND net: site routing
+                    # picks no pip for a constant D). Every xFFMUX value in prjxray-db sets
+                    # at least one bit, so all-zero is no documented configuration: the flop's D on silicon is
+                    # UNDEFINED. Decoded as opaque storage with D = undefined (no route), loudly. Sound for
+                    # the model because a flop's output is a free node anyway (build_net.py); NOT a claim
+                    # about the board, where the build should not go (ffmux_scan.py exit 1).
+                    ffs.append((L, fx, None))
         sync = has(pre, "FFSYNC")
         clkinv = has(pre, "CLKINV")
         has(pre, "NOCLKINV")
@@ -306,13 +317,22 @@ def main():
             ce = walk_pin(tile, site, "CE", "%s CE" % sn) if ceused else {"const": True}
             sr = walk_pin(tile, site, "SR", "%s SR" % sn) if srused else {"const": False}
         for L, fx, mux in ffs:
-            if len(mux) != 1:
-                die("%s: two %s%sMUX values %s" % (sn, L, fx, mux))
-            sel = mux[0].split(".", 1)[1]
-            consumed.add("%s.%s" % (pre, mux[0]))
             i = LS.index(L)
             what = "%s %s%s D" % (sn, L, fx)
-            if fx == "FF":
+            if mux is None:
+                d = {"undef": "FFMUX has no bit (nextpnr FASM gap): D undefined on silicon"}
+                undef_d.append("%s.%s%s" % (sn, L, fx))
+                print("fasm2lean3: WARNING: %s.%s%s (%s) is a placed flop with NO %s%sMUX bit: its D is undefined "
+                      "on silicon (research/tools/ffmux_scan.py flags this); decoded as opaque storage, output free"
+                      % (sn, L, fx, pre, L, fx), file=sys.stderr)
+            elif len(mux) != 1:
+                die("%s: two %s%sMUX values %s" % (sn, L, fx, mux))
+            else:
+                sel = mux[0].split(".", 1)[1]
+                consumed.add("%s.%s" % (pre, mux[0]))
+            if mux is None:
+                pass
+            elif fx == "FF":
                 if sel == L + "X":
                     d = walk_pin(tile, site, L + "X", what)
                 elif sel in ("O6", "O5"):
@@ -542,7 +562,7 @@ def main():
     for c in cells:
         kinds[c["kind"] if c["kind"] != "opaque" else "opaque:" + c["prim"]] += 1
     fl = Extract3.floats
-    res = {"floats": [list(x) for x in fl], "cells": cells, "outputs": outs, "census": dict(kinds), "zero_lut_reads": zero_reads,
+    res = {"undefined_ff_d": undef_d, "floats": [list(x) for x in fl], "cells": cells, "outputs": outs, "census": dict(kinds), "zero_lut_reads": zero_reads,
            "leftover_features": dict(census), "untraced_pips": len(unused), "untraced": sorted(".".join(u) for u in unused),
            "active_pips": sum(len(v) for v in ex.active.values())}
     with open(a.json, "w") as f:

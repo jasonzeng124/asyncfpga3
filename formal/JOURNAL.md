@@ -2621,3 +2621,15 @@ Not waited on.
   (checked) except gcd_ps's Lean rows; no build has a kappa_lo.
 * Note for C (not A's file): in tools/margin/out/farm_*/md5.txt the arbs.json md5 is 58e0494c = md5 of "[]\n" while
   the arbs.json beside it has 2 arbiters (earlier run's md5.txt kept). Bookkeeping only; kappa_hi rows unaffected.
+### progress 02:57 -- decoder: a placed flop with NO D-mux bit now decodes (D undefined, loud warning); fcsel2 s24 unblocked (untrusted Python)
+* C10's refusal reproduced: research's fcsel2 seed 24 (nl6s2 sizes, rebuilt here from FOR-FORMAL's command: SDF
+  2d114670d244f4a4b04cd5cfc7e62ca8, FASM 2edfd2de929ba7136701dd38a87d7224) has `CLBLM_R_X9Y24.SLICEM_X0.AFF.ZINI/ZRST` and
+  no AFFMUX line. In the routed JSON that site (SLICE_X12Y24/AFF) holds `$auto$dfflegalize.cc:389:emulate_split_set_clr$20662`,
+  D = $PACKER_GND_NET, read by one LUT (SLICE_X10Y24/B6LUT pin A2). This is exactly the nextpnr-xilinx FASM gap research
+  already screens with `research/tools/ffmux_scan.py` (it exits 1 on this FASM). Every AFFMUX value in prjxray-db sets
+  at least one bit, so the all-zero mux is no documented configuration: on silicon that flop's D is undefined.
+* `decode_base.py`: such a flop is now decoded as opaque storage with D = undefined (no route) and a WARNING; the JSON
+  lists it under "undefined_ff_d". Sound for the margin model because a flop's output is a free node anyway; it is NOT
+  a statement about the board, where the build should not go. Regression: gcd_ps (fromBit, with its XDC) and item 25
+  decode to the same JSON as before (9,589 and 6,712 cells).
+* Margin tool (C's run.sh, C10's settings) running locally on fcsel2 s24.
