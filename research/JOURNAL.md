@@ -5341,3 +5341,12 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   binding race, kappa 0.26, the link of the bad nc64_7). h4s3p = h4s3 (item 30) + that; farm fc64sel3p.
   PREDICTION: vs fc64sel3 paired -1.5 to -2.5 ns per iteration (uselect0 -6 x ~0.4 on a cycle where it binds on every
   route, uaddi0 -2); E / H / I / hold_bits / TSE clean on >= 30/32.
+### progress 04:50 UTC (fcsel3a, 29 of 32 routes: collatz at 21.5 ns, -3.9 ns per iteration vs item 28)
+- fcsel3a (item 28 + uselect0 7, uaddi0 9; one route's proposal after the A' fix) vs fcsel3m (item 28), 28 paired seeds:
+  -3.93 ns per iteration median (-6.80..-2.30), faster on 28/28. Period median 21.48 ns (20.43-23.05; item 28 25.81;
+  Dynamatic 14.05). Gates 87/87 (3 x 13/13 on 29 routes). Rule A / A' / E clean at nominal and worst on 29/29; tighten's
+  unsized bundled "a" row at uselect0 (the row A' replaces) on some. Hold / close side: F -213 (ucontrol_merge1 fast-fall
+  flush, s2), I -236 (falseResult_9 stage[1], s3); TSE / hold_bits clean so far.
+- So the one-route proposal (7 / 9) holds A' on every route, though the 32-route per-cell max of nl6s3m's proposals asked
+  for 9 / 12: proposals are measured on the old netlist's routes plus a guard, and the max over routes is an upper bound,
+  not the need of a new build. fcsel3p (9 / 12) now mainly shows what that conservatism costs.
