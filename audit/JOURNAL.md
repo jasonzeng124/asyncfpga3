@@ -2470,3 +2470,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T128 control 3 (+3000 on ulink_n10__3 -> uselect0): static -917, gate PASS 13/13. The request bound is loose by more than 3 ns (it takes the earlier input of the steer join).
 - Control 4 (+12000) started.
 - formal A fced4e797: items 29-32 registered as pending in MARGINS. No claim yet.
+
+### progress 06:07
+- T126e item 30 dynamic rule H (FAST_MIN): 0 HVIOL, oracle 14/14.
+  - falseResult_3 stage 1 (static -326): min D-after-release minus close 1641855 ps (the data changes only with the host).
+  - HC: the entry pin was never the last input (0/28).
+  - Not live, as item 26. REPORT row updated.
+- Item 30's only open point is umux0's late select at the data LUTs (owner's decision).
