@@ -2659,3 +2659,11 @@ checkrows.py and names.py unchanged (OUT/sel/). On fcsel2 s24: 822 storage gates
   under `set -o pipefail`; when arbs.py loses the race with head (EPIPE) the good arbs.json is OVERWRITTEN with "[]".
   It happened in A's local runs today (arbs.py standalone gives 2 arbiters). Effect: ArbOK unchecked (vacuous) in
   that run, so failures are accepted more easily; a "none found" is unaffected. Files: tools-A/target/out/*_sel/.
+### progress 03:35 -- item 28 (research's collatz board candidate) margin: kappa_hi 0.42 at ulink_n13's latch enable; other fcsel3m seeds 0.27-0.41 (search, checked; FOR-RESEARCH A8)
+Farm fm_a_margin_fcsel3m (C's run.sh unchanged, C10's settings; SDFs rebuilt = research's d86bdde5 / e001dc27):
+item 28 = fcsel3m s20 **0.42** (w 20 and 0), `ulink_n13.lat.pair[6]` vs `ulink_n13.ctl`; fcsel3m s1 0.41, s2 0.37 (0.33 w 0),
+s24 0.27, s7 0.28 (all `ulink_n_falseResult_3` stage 0 latch pairs vs ctl); item 25 in the same run: none admissible at
+w 20, 0.42 at w 0 (= C6/C9). Arbiters named on the farm (T >= 124-162 ps). PROGRAM's question "is the binding race
+again the latch-enable race at falseResult_3 stage 0": for item 28's own route NO (ulink_n13, same kind); for the
+other four seeds yes. The select-arrival sweep (previous note) adds: no select race below 0.85.
+Not covered: two slow routes, slow corner, kappa_lo (none). MARGINS.md rows added.

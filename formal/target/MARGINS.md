@@ -12,7 +12,9 @@ Columns per the owner (PROGRAM.md, 2026-11-15): **kappa_lo** = the largest κ fo
 
 | build | md5 | kappa_lo (proved) | kappa_hi (found) | binding race (research names) | date, source |
 |---|---|---|---|---|---|
-| fcsel3m s20 (collatz, research's NEW board candidate, BOARD-QUEUE item 28 / ## 29) | sdf d86bdde5 (prefix) | none | **pending**: farm a_margin_fcsel3m (seeds 20, 1, 2, 7, 24 + item 25 under the same settings), filed 2026-11-16 03:0x | -- | A |
+| **fcsel3m s20 = item 28** (collatz, research's NEW board candidate, BOARD-QUEUE ## 29) | fasm e4f25940, sdf d86bdde5 | none | **0.42** (w 20 and w 0), search, checked | `ulink_n13.lat.pair[6]` reads `ulink_n13.ctl` late; no select-arrival race below 0.85 (A's selrun) | 2026-11-16, A8 |
+| fcsel3m s1 / s2 / s24 / s7 (item 28's structure, other seeds) | sdf d7d13c5d / ce8de32a / e2d7c95d / 751c6b81 | none | 0.41 / 0.37 (0.33 w 0) / **0.27** / **0.28**, search, checked | `ulink_n_falseResult_3.many.stage[0]` latch pairs vs its ctl (s24 w 0 also `ulink_n10__3`) | A8 |
+| item25 under A8's run (same settings, same request) | sdf e001dc27 | none | none admissible (w 20); 0.42 (w 0) | as below | A8 |
 | fcsel2 s1 (collatz, select links at 2) | sdf 5b538ca5 | none | 0.22 (w 20), 0.21 (w 0), search, checked | `ulink_n_falseResult_3.many.stage[0]` lat.pair[4] (pair[10] at w 0) reads its ctl late | 2026-11-15, C10 |
 | fcsel2 s2 | sdf fb1efc41 | none | 0.27, search, checked | same link, lat.pair[12] | C10 |
 | fcsel2 s24 | -- | -- | not measured: A's decoder refused it (AFF.ZRST) | -- | C10; decoder fix by A, 2026-11-16 |

@@ -33,6 +33,39 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 - xorshift item 27 (rerun, names): no single-pin race of 1,199 fails up to 0.45 (as C7).
 - Every number above is kappa_hi (a failure found by search). kappa_lo (proved safe) is none for every bench build.
 
+## A8. Your collatz board candidate item 28 (fcsel3m seed 20): kappa_hi 0.42, binding race at ulink_n13's latch enable; its other seeds 0.27-0.41; no select race below 0.85 (shard A, 2026-11-16; search, checked)
+Rebuilt from BOARD-QUEUE ## 29's command on formal's farm and here: SDF d86bdde5d557f44fddbf90c24b88809c (= yours), FASM
+e4f259409e188d0ff474e02ee69581dc. Shard C's margin tool, exactly C10's settings (vectors n = 27, 703, 77031; single-pin
+adversary, g = 1, corner 0; every failure re-run and accepted by both checkers, arbiter rule included: T >= 124-162 ps).
+Item 25 was run in the same request with the same settings, for comparison.
+| build | sdf | kappa_hi (20 ps filter) | without filter | binding race |
+|---|---|---|---|---|
+| **item 28 = fcsel3m seed 20** | d86bdde5 | **0.42** | 0.42 | `ulink_n13.lat.pair[6]` reads `ulink_n13.ctl` late (27/703/77031 -> 111/426/606) |
+| fcsel3m seed 1 | d7d13c5d | 0.41 | 0.41 | `ulink_n_falseResult_3.many.stage[0]` lat.pair[16] vs its ctl |
+| fcsel3m seed 2 | ce8de32a | 0.37 | 0.33 | same link, pair[12] (w 20) / pair[16] (w 0) |
+| fcsel3m seed 24 | e2d7c95d | **0.27** | 0.27 | same link, pair[16]; w 0 also `ulink_n10__3.lat.pair[20]` vs `ulink_n10__3.ctl` |
+| fcsel3m seed 7 | 751c6b81 | **0.28** | 0.28 | same link, pair[6] |
+| item 25 (nl4, seed 24), same run | e001dc27 | none admissible | 0.42 | same link, pair[12] (as C6/C9) |
+- **Reading.** On its own route item 28 is about as robust as item 25 (0.42 vs 0.42 without the filter), and its binding
+  race is NOT the falseResult_3 stage-0 enable race of the other nl6 routes but the same kind at ulink_n13 (the link
+  that broke nc64_7 at 0.05 and item 26 at 0.26). Across seeds the nl6s3m structure spans 0.27-0.42, the fcsel2 range
+  (0.21-0.27) at its low end: the board seed is the best of the five sampled, so a re-route (another seed) of item 28
+  should not be assumed to keep 0.42. Item 25 has only its one route measured.
+- **Select links.** The tool above only slows routes into storage LUTs, so it cannot see a select reaching the mux DATA
+  LUTs late (your rule E, audit T116). Shard A added that sweep (`formal/tools-A/target/selrun.sh`, after run.sh): live
+  pins of every combinational LUT that feeds storage, same adversary. Item 28: 431 active pins, **none fails up to
+  0.45**. fcsel0 seed 24 (select links at 0): none up to 0.45 either. Pushed to 0.95 on the umux data LUTs only, both
+  fail from **0.85**: on fcsel0 a true select race (`umux0.udat.pair[10]` reading the select from `ulink_n14__0.lat.odd`
+  late, 27/703/77031 -> 111/108/275, checked), on item 28 a data race (`umux0.udat.pair[12]` reading
+  `ulink_n_falseResult_9` stage 1 late). So in formal's model, with one route slow at a time, select arrival is far
+  from binding on either build, and select links at 3 vs 0 do not separate. It does not cover two routes slow at
+  once, or a slow corner.
+- Files: farm `origin/claude/cluster:results/fm_a_margin_fcsel3m/<1..6>/` (kappa_hi.txt, checked.txt, names.txt,
+  witness/); select sweep `formal/tools-A/target/out/{item28_fcsel3m_s20,fcsel0_s24}_sel/`.
+- **Ask:** does the ulink_n13 trace (witness/command.txt in task 1: the slow arcs are classes.json) replay as a failure
+  in your fid GLS? If yes, ulink_n13's latch enable on this route is the thing to look at before item 28 goes to the
+  board.
+
 ## A7. Your known-bad xorshift build fails in formal's model with NO within-die scatter; the good neighbour does not (shard A, 2026-11-15; search, untrusted)
 - Builds: BAD xf2_1 (FASM f2873d4650eb67cb270ada5c9a403421, SDF dc138ea2...) and item 23 (FASM 56434fc4..., SDF
   2f825834...), both rebuilt here from your FOR-FORMAL.md commands, byte-identical to your files. Decoded from the
