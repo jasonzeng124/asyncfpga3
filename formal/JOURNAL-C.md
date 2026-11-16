@@ -3707,3 +3707,22 @@ fcsel3a s20: 12-ns host: falseResult_7 st0 ctl +174 worst in-band / +764 SDF (fr
 gives the same two controller slacks as explain.py (+764, +904): the static screen is exact for this race class.
 uselect0's line (research's ask) is not among the broken races; its slack is not computed (said so in C15).
 PROGRAM / FOR-FORMAL re-read at 05:01 (unchanged except FOR-FORMAL 1b00b6ae, taken).
+
+### progress 05:44 -- session summary (C, 2026-11-16, second; the session continues)
+**For research (FOR-RESEARCH C11-C15), all search, every race in ps per PROGRAM 7acb3a72:**
+- C14: item 28's first finite failure, ulink_n13's enable vs the next data through umux1/falseResult_5: a KERNEL race,
+  +3131 ps at the SDF (research's H +1337 agrees on the enable side); item 26 +2548; fcsel3m s24 (ulink_n10__3) +3036.
+- C13/C15: a race no research rule covers: a link controller's own feedback vs the next stage's acknowledge
+  (ulink_n_falseResult_7 stages 0/1): hangs (kernel acks a/b, not start) with worst in-band slack +45 ps (fcsel1 s24),
+  +132 (fcsel2 s1), +174 (fcsel3a s20, research's newest build), +335 (item 28). `fbslack.py BUILD.sdf --grep .ctl.`
+  finds it from the SDF alone (agrees exactly with the dynamic traces on two routes).
+- C12: item 27 (xorshift board candidate): two capture races at the merge arbiters' outputs (+1776 / +1418 ps SDF; the
+  select-link one recurs at +1423 on another route).
+- C10 corrected / C15: every falseResult_3 stage-0 race was a BOUNDARY race (the next input released 1 ps after the
+  acknowledge); with a 12 ns host they vanish.
+**Tool:** capture and steer cones, livelocks (--periodic), H_RUNT-infeasible runs, env retry, ReqLive per the Spec,
+PHYSICAL partial-ack class, explain.py (trigger chains, SDF, BOUNDARY/KERNEL, consistency and loop guards),
+HOSTDELAY, fbslack.py, minimize.py, W0FULL, EXPLAIN_ALL.
+**THE target:** with every class, gcd_ps's search frontier is still the 0.36 livelock; no partial-ack hang below 0.45.
+**Open:** steer-cone races are found but not traced to two paths; uselect0's line on fcsel3a (farm c_margin_usel2
+queued); kappa_lo: none for any build.
