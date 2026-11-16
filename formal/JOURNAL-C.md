@@ -3389,3 +3389,12 @@ Tool fix: margin.py called a run "FAIL-wrong" when it returned a correct PREFIX 
 now wrong only on a wrong value; a missing answer stays quiet/noanswer (checkrows used to dump 100M-event livelocks).
 Farm c_margin_cones1: CONES=only on item 28, item 25, fcsel0 s24 and fcsel1 s24 (rule E negative there: the
 positive controls), fcsel2 s1, fcsel3m s1/s2, item 26, item 27.
+
+### progress 03:10 -- capture races on gcd_ps (THE target): none fails <= 0.45; first admissible failure 0.61 (search)
+Plain problem: does a slow data path into some link's latches (vs a fast request) break gcd_ps before its known
+binding races (0.36 livelock, 0.40 finite)? `CONES=only` on gcd_ps_e6bb4aec (default pairs, w 20): 179 latch groups,
+**0 fail at 0.45** (30 s on 4 cores). Sweep 0.45-0.90 to check the adversary bites: 14 groups fail; checkrows:
+first ADMISSIBLE failure **0.61** (quiet, 2nd answer missing; six groups at once: ulink_n_index_97 st0, ulink_n129__0/1/2,
+ulink_n166__0/1 -- their cones share the datapath), first admissible WRONG VALUE 0.77 (ulink_n168 st0 pair[14]:
+21 -> 37) and 0.84 (ulink_n_falseResult_93 st0: 21 -> 1). Capture races are not binding on gcd_ps: its margin is
+set by the non-capture races already reported. Files: tools/margin/out/gcd_ps_cones/ (names from the routed JSON).
