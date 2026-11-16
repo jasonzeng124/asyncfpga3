@@ -4034,3 +4034,11 @@ is open. Next: (1) research's draws1 verdicts per draw, for the disagreement tab
 Injection on ucond_br6.u$LUT6/LUT5 pin 1 (from ucmpi1.uz_n41). none 32/32; +3000 draws 1-16: 15/16 (draw 15 hangs after
 17 correct answers, before 0x12345678/100); +8000 draws 17-32: 0/16 (wrong values from vector 6). Research's +3000 half:
 16/16 PASS (draws1 tasks 29-30); +8000 half running. Draw 15 at +3000 is the disagreement to trace (C22).
+
+### progress 22:35 -- c_ctl2: the +3000 draw-15 disagreement is a threshold, not the filter
+Draw 15 (bands 0.2157 / 0.3099 / 0.3674): +2000 and +2500 pass; +3000 hangs (pair 18 accepted, no answer); +3500 fails
+after 4 answers; identical at w 0 / 20 / 30 / 40 (not the runt filter). So formal's slack for ucond_br6's condition vs its
+request on this draw is between 2.5 and 3.0 ns; research's gate passes +3000 on all 16 draws. A calibration lead: the two
+models' delays on this race differ by >= a few hundred ps. c_ctl3: formal's threshold per draw 1-32 (bisection to ~30 ps),
+to set beside research's (to ask). Note: in draw mode the H_RUNT "INFEASIBLE pins" counts are meaningless (the filter's
+window is set to the drawn delay); no verdict uses them.
