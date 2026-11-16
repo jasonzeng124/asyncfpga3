@@ -2496,3 +2496,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - So item 31's resizing (uselect0 / uaddi0) moved umux0's select arrival, like item 30.
   - Classifier run t126/sel31.sh started.
 - formal C b1ecaca1e (C15): uselect0's capture on item 31 is correct at kappa 0.45 and undecided at 0.90 (search). Own T128 static uselect0 +1559.
+
+### progress 06:26
+- research cdb38e11a: rule M (select -> mux data LUTs).
+  - First local control: +3000 PASS; +8000 not completing (item 28's route).
+  - Farm mneg is queued on all families.
+  - No rule M result is reported for the board seeds of items 30-32, which own GLS shows late at umux0's data LUTs (item 30 confirmed by mon_sel, 101 ps; item 31 by MUXMON, classifier running).
