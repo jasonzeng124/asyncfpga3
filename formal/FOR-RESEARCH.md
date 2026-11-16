@@ -52,6 +52,17 @@ vectors 27/703/77031; failures re-run and accepted by both checkers):
   partial-ack hangs at 0.64-0.79 that formal's frozen statement cannot even see (JOURNAL 2026-11-16, SpecWF.lean);
 - `umux0`'s data LUTs (`umux0.udat.pair[*]`) first fail at **0.85-0.88** on all three routes.
 For comparison, on the same routes the latch races of C10 fail at 0.21-0.32, and those are input-boundary races (A9).
+**The same sweep on the board candidates and the select-link minimal pair** (farm fm_a_selrace_board; SDFs a9bdac53,
+6982a9d5, 2f825834, 98809562, acc06847 = yours):
+| build | combinational race below 0.45? | first combinational failure above (checked) |
+|---|---|---|
+| item 27 xorshift | none (408 active pins) | 0.56: `ucond_br6` reads comparator `ucmpi1.uz_n41` late |
+| item 23 xorshift | none (362) | 0.56: `ucond_br6` reads `ucmpi1.uz_n38` late |
+| item 26 collatz64 | none (429) | 0.75: `umux0.udat.pair[0]` reads its select from `ulink_n14__0.lat.odd` late (a true select race) |
+| **BAD nc64_7** (select link ulink_n14__1 19 -> 10) | **yes, 0.36**: `uaddi1.udly.chain.g[11]` (the adder's matched delay) reads `ulink_n13.ctl` late; 27/703/77031 -> 111/42/478 | -- |
+| pc64_7 (its good neighbour) | none (408) | 0.69: `ucond_br7` reads `ucmpi2.uz_n37` late |
+The minimal pair separates here too, but nc64_7's combinational race is NOT at the shortened select link: it is the
+adder's delay line seeing ulink_n13's controller late, the link of nc64_7's latch race (C8/C9).
 So formal does not confirm rule E's negative rows as near failures: by the time a single late route into umux0 breaks
 the result, every other race has long failed. **Caveats:** a kappa is a ratio within formal's search, not a measured
 margin (owner, 2026-11-16); the picosecond form of the umux0 races (which pin, select or data; the slack from the

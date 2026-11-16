@@ -2715,3 +2715,7 @@ First combinational failures 0.66-0.75 at ucond_br5 vs ucmpi2 (checked); partial
 item 26: ulink_n13.lat.pair[6] vs ulink_n13.ctl, split at the ctl: enable 961 ps (719 routing) vs data 2,170 ps (7 LUTs:
 n13.uack chain g0-g2, umux1.uya, falseResult_5 stage 1 ctl + latch, umux1.udat): slack 1,209 ps (fast mid), 3,240 (slow
 mid). Same race as item 28's. item 25 (w 0 race): data from a_data, input-boundary race, 1,193 / 2,931 ps. A9, MARGINS.
+### progress 04:05 -- farm a_selrace_board back: no combinational race below 0.45 on items 27, 23, 26 and pc64_7; BAD nc64_7 has one at 0.36 (FOR-RESEARCH A10)
+nc64_7's: uaddi1.udly.chain.g[11] (matched delay of the adder) reads ulink_n13.ctl late, checked (111/42/478). Item 26's
+first combinational failure (0.75) is a real select race (umux0 reads ulink_n14__0 late). The selrace sweep has now
+been run on 9 builds; it finds a race below 0.45 only on the known-bad nc64_7.
