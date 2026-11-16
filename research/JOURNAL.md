@@ -5734,3 +5734,4 @@ is a genuine wrong-value failure. Steer E under test (steerneg). Formal C17 conf
   collatz64 item 30 ucond_br6 (E -6276) complete no batch (50 / 55 min), as collatz ucond_br7 (E -5048). Table in
   research/data/selneg/README.md. Where rule E stands now: it has failing builds at steers (three families) and none
   at mux joins (selneg3, 44/44 pass). ipow's steers wait for the farm (silent since 11:44 UTC).
+- 15:46 UTC: container restarted (worker restart; a trace of the steer hang was lost and is re-running). Branch was clean and pushed.
