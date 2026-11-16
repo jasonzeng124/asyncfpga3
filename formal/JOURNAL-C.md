@@ -3934,3 +3934,15 @@ The known-bad build is the only one with failures (320/320 good-family draws pas
 (seed 0x92d68ca2, 3 rounds): one wrong value (2068339104 for 2064144800, bit 22), one hang after 5 answers. Research's
 own trace of xf2_1 fails on the same vector sequence (rounds after a 3-round call) at its FAST_MIN gate. The
 approximator separates bad from good here, but weakly: 3 % of draws. Not yet traced which race the two draws hit.
+
+### progress 20:19 -- research published its draw model (FOR-FORMAL, evening); simx now runs it; c_draws3 mirrors research's draws1
+Research's draw K (bench_gate.sh draw:K): bands from Random(7919K+17): delay chains U[.20,.31], everything else
+U[.20,.31] independently, CARRY4/F7/F8/FF U[.20,1.0]; region sigma 0.02 (10x10 slices); per-pip sigma 0.126.
+simx `--gclass FILE --bands bc,br,bx`: draws.py `--model research` (default now) classes every decoded gate: LUTs whose
+routed cell is `*.chain.g[*]` = chain; pips/hops whose every LUT sink (through pips/hops) is a chain LUT = chain
+interconnect; carry/muxf = cells; per-pip lognormal factor on pips (the decoded net is per pip, so no averaging);
+region factor only on LUT/cell nodes (pip nodes are tile wires, not slices: at sigma 0.02 negligible, noted).
+gcd_ps check: 4/4 pass; classes c 2605, r 13883, x 1467, pip 161783 (+5210 chain pips).
+**c_draws3:** research's draws1 builds (items 33, 27, 31, 28, 30, 32 on their board routes; ipow not decodable), built
+by research's own eval_task.sh as draws1 does (so the route is the same), draws K = 1..32, research's vectors (xor19,
+col14, c6415). The first collatz rerun (c_draws2, fid model) stays as a second model.

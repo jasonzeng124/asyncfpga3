@@ -28,6 +28,10 @@ ap.add_argument("--w", type=int, default=20); ap.add_argument("--hostdelay", typ
 ap.add_argument("--band", type=float, default=0.38); ap.add_argument("--sreg", type=float, default=0.16)
 ap.add_argument("--sarc", type=float, default=0.126); ap.add_argument("--regsize", type=int, default=10)
 ap.add_argument("--jobs", type=int, default=8); ap.add_argument("--tmax", type=int, default=25000000)
+ap.add_argument("--model", default="research", choices=["research", "fid"],
+                help="research: research's draw K (FOR-FORMAL 2026-11-16; bands per class from Random(7919K+17), region 0.02, "
+                     "per-pip 0.126); fid: one band for all (--band), region --sreg, per-arc --sarc")
+ap.add_argument("--routed", default=None, help="routed.json (research model: delay-chain cells by name)")
 ap.add_argument("--wallcap", type=int, default=1800); ap.add_argument("--maxev", default="100000000")
 a = ap.parse_args()
 os.makedirs(a.out, exist_ok=True)
@@ -43,6 +47,48 @@ NETX = os.path.join(a.out, "net.simx")
 if not os.path.exists(NETX) or os.path.getmtime(NETX) < max(os.path.getmtime(a.net), os.path.getmtime(a.bnd)):
     subprocess.run(["python3", os.path.join(HERE, "simx_conv.py"), a.net, a.bnd, NETX + ".%d" % os.getpid()], check=True)
     os.replace(NETX + ".%d" % os.getpid(), NETX)
+GCL = None
+if a.model == "research":
+    import json, random
+    if not a.routed: sys.exit("--model research needs --routed")
+    if a.sreg == 0.16: a.sreg = 0.02            # research's region sigma (the fid default is 0.16)
+    N = json.load(open(a.net)); G = N["gates"]
+    cells = json.load(open(a.routed))["modules"]["top"]["cells"]
+    bel = {c["attributes"].get("NEXTPNR_BEL"): n for n, c in cells.items() if c.get("attributes", {}).get("NEXTPNR_BEL")}
+    cls = {}
+    for gi, g in enumerate(G):
+        if g["kind"] in ("carry", "muxf"): cls[gi] = "x"
+        elif g["kind"] in ("lut6", "lut5"):
+            m = re.match(r"^(SLICE_X\d+Y\d+)\.([A-D])LUT\.O([56])$", g["name"])
+            nm = bel.get("%s/%s%sLUT" % (m.group(1), m.group(2), m.group(3)), "") if m else ""
+            cls[gi] = "c" if ".chain.g[" in nm else "r"
+    # pips / hops: 'q' (chain interconnect) if every LUT / cell they reach through pips and hops only is a chain LUT
+    drv = {g["out"]: gi for gi, g in enumerate(G)}
+    rd = {}
+    for gi, g in enumerate(G):
+        for i in g["ins"]: rd.setdefault(i, []).append(gi)
+    memo = {}
+    def sinks(gi, depth=0):
+        if gi in memo: return memo[gi]
+        memo[gi] = set()
+        out = set()
+        for r in rd.get(G[gi]["out"], []):
+            if G[r]["kind"] in ("pip", "hop"):
+                if depth < 400: out |= sinks(r, depth + 1)
+            else: out.add(cls.get(r, "r"))
+        memo[gi] = out; return out
+    sys.setrecursionlimit(10000)
+    for gi, g in enumerate(G):
+        if g["kind"] in ("pip", "hop"):
+            sk = sinks(gi); cls[gi] = "q" if sk == {"c"} else "p"
+    GCL = os.path.join(a.out, "gclass.txt")
+    with open(GCL, "w") as f:
+        for gi in sorted(cls): f.write("%d %s\n" % (gi, cls[gi]))
+    import collections
+    print("draws: gate classes %s" % dict(collections.Counter(cls.values())), file=sys.stderr)
+def bands(K):   # research's draw K: (b_c, b_r, b_cells) = Random(7919*K+17).uniform(.2,.31), (.2,.31), (.2,1.0)
+    import random
+    r = random.Random(7919 * K + 17); return (r.uniform(.2, .31), r.uniform(.2, .31), r.uniform(.2, 1.0))
 want = []
 if a.kernel != "gcd":
     sys.path.insert(0, HERE); import kernels
@@ -52,7 +98,8 @@ def run(seed):
     cmd = [SIMX, NETX, "--periodic", "--maxev", a.maxev] + want + ["--hostdelay", str(a.hostdelay),
            "--pairs", *a.pairs, "--kernel", a.kernel, "--corner", "0", "--data0", "--full", "--R", "400000", "--su", "1000",
            "--datachange", "broad", "--nextreq", "seq", "--tmax", str(a.tmax), "--draw", str(seed), "--band", str(a.band),
-           "--sreg", str(a.sreg), "--sarc", str(a.sarc), "--regsize", str(a.regsize)] + (["--w", str(a.w)] if a.w else [])
+           "--sreg", str(a.sreg), "--sarc", str(a.sarc), "--regsize", str(a.regsize)] + (
+           ["--gclass", GCL, "--bands", "%.6f,%.6f,%.6f" % bands(seed)] if GCL else []) + (["--w", str(a.w)] if a.w else [])
     t0 = time.time()
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=a.wallcap)
@@ -80,7 +127,9 @@ def wilson(k, m, z=1.96):
 lo, hi = wilson(n["PASS"], dec)
 with open(os.path.join(a.out, "draws.txt"), "w") as f:
     f.write("# board approximator (formal simx --draw; UNTRUSTED simulation): kernel %s pairs %s\n" % (a.kernel, " ".join(a.pairs)))
-    f.write("# model: band %.3f, region sigma %.3f (%dx%d slices), arc sigma %.3f, lognormal; w %d; host %d ps after ack\n"
+    if GCL: f.write("# model: RESEARCH draw K (bands per K: chain / rest U[.2,.31], CARRY4/F7/F8 U[.2,1]; region sigma %.3f on %dx%d slices (LUT/cell nodes only); per-pip sigma %.3f; lognormal); w %d; host %d ps after ack\n"
+            % (a.sreg, a.regsize, a.regsize, a.sarc, a.w, a.hostdelay))
+    else: f.write("# model: band %.3f, region sigma %.3f (%dx%d slices), arc sigma %.3f, lognormal; w %d; host %d ps after ack\n"
             % (a.band, a.sreg, a.regsize, a.regsize, a.sarc, a.w, a.hostdelay))
     for s, k, msg, dt, o in rows:
         f.write("%d %s %.1fs %s | %s\n" % (s, k, dt, o, msg))
@@ -89,7 +138,7 @@ with open(os.path.join(a.out, "draws_summary.txt"), "w") as f:
             % (len(rows), n["PASS"], n["FAIL"], n["UNDECIDED"], (n["PASS"] / dec) if dec else float("nan"), lo, hi))
     tl = [int(re.search(r"at (\d+) ps", r[4]).group(1)) for r in rows if r[1] == "PASS" and "at " in r[4]]
     if tl: f.write("last answer (PASS draws): min %d mean %d max %d ps after t=0 (reset 400 ns included)\n" % (min(tl), sum(tl) // len(tl), max(tl)))
-    f.write("model: band %.3f sreg %.3f regsize %d sarc %.3f lognormal w %d host %d; seeds %d-%d\n"
+    f.write(("model: RESEARCH draw K (bands per K; --band unused), " if GCL else "") + "band %.3f sreg %.3f regsize %d sarc %.3f lognormal w %d host %d; seeds %d-%d\n"
             % (a.band, a.sreg, a.regsize, a.sarc, a.w, a.hostdelay, seeds[0], seeds[-1]))
     for s, k, msg, dt, o in rows:
         if k != "PASS": f.write("  seed %d %s %s\n" % (s, k, msg[:200]))

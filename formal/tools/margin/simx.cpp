@@ -72,6 +72,7 @@ static vector<double> his;                                  // flattened H_RUNT 
 static map<string, int> BN;
 static vector<int> Bdata[3];                                // a_data, b_data, out0_data
 
+static vector<int> gorig;
 static void load_net(const char* fn) {
     string S = slurp(fn); const char* p = S.c_str(); char* e;
     if (strncmp(p, "SIMX1\n", 6)) die("%s: not a simx_conv.py file", fn);
@@ -82,7 +83,7 @@ static void load_net(const char* fn) {
     for (int i = 0; i < NN; i++) { const char* q = strchr(p, '\n'); names[i].assign(p, q - p); p = q + 1; }
     gk.resize(NG); gout.resize(NG); glut.resize(NG); gins0.resize(NG + 1); ginit0.resize(NG + 1);
     for (int g = 0; g < NG; g++) {
-        strtol(p, &e, 10); p = e;                     // original gate index (unused)
+        gorig.push_back(strtol(p, &e, 10)); p = e;    // original gate index (--gclass)
         gout[g] = strtol(p, &e, 10); p = e; gk[g] = strtol(p, &e, 10); p = e; glut[g] = strtol(p, &e, 10); p = e;
         while (*p == ' ') p++;
         const char* h = p; while (isxdigit((unsigned char)*p)) p++;
@@ -210,6 +211,7 @@ static string pylist(const vector<ull>& v) {
     return s + "]";
 }
 
+static const char* GCLF = nullptr; static double DBC = -1, DBR = -1, DBX = -1;
 static bool DRAWON = false; static ll DRAW = 0; static double DBAND = 0.38, DSREG = 0.16, DSARC = 0.126; static int DREGSZ = 10;
 static ull mix64(ull z) { z += 0x9E3779B97F4A7C15ULL; z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL; z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL; return z ^ (z >> 31); }
 static double hash_n(ll seed, ull tag, ull a, ull b) {   // a standard normal from (seed, tag, a, b): Box-Muller on two hashes
@@ -264,7 +266,9 @@ int main(int argc, char** argv) {
         else if (o == "--band") DBAND = atof(nxt());
         else if (o == "--sreg") DSREG = atof(nxt());
         else if (o == "--sarc") DSARC = atof(nxt());
-        else if (o == "--regsize") DREGSZ = atoi(nxt());   // stop with PERIODIC when the run provably (untrusted) repeats
+        else if (o == "--regsize") DREGSZ = atoi(nxt());
+        else if (o == "--gclass") GCLF = nxt();          // research's draw model: per-gate class file "gi c|r|x|q|p"
+        else if (o == "--bands") { if (sscanf(nxt(), "%lf,%lf,%lf", &DBC, &DBR, &DBX) != 3) die("--bands bc,br,bx"); }   // stop with PERIODIC when the run provably (untrusted) repeats
         else if (o == "--pos" || o == "--seed") nxt();
         else die("unsupported option %s (simx ports only simadv's --classes/--full subset)", o.c_str());
     }
@@ -279,6 +283,12 @@ int main(int argc, char** argv) {
     bool slowc = corner == 1;
 
     load_net(netf);
+    vector<char> GCL(NG, 'r');
+    if (GCLF) { map<int, char> m; FILE* f = fopen(GCLF, "r"); if (!f) die("cannot open %s", GCLF); int gi; char c;
+      while (fscanf(f, "%d %c", &gi, &c) == 2) m[gi] = c; fclose(f);
+      size_t hit = 0; for (int g = 0; g < NG; g++) { auto it = m.find(gorig[g]); if (it != m.end()) { GCL[g] = it->second; hit++; } }
+      if (DBC < 0) die("--gclass needs --bands");
+      fprintf(stderr, "simx: --gclass %zu of %d gates classed\n", hit, NG); }
     fprintf(stderr, "sim: cone %d gates of %d (%d nodes)\n", NG, NGALL, NSEEN);
 
     // classes: node name -> class, (node name, pin) -> class; F first then S (S wins), as simadv
@@ -320,8 +330,13 @@ int main(int argc, char** argv) {
             if (k == 'S') { df = ((KD - PK) * FN + KD - 1) / KD; if (W && glut[g] && df < W) df = W; }
             { auto ij = INJ.find({gout[g], i}); if (ij != INJ.end()) { d += ij->second; df += ij->second; NINJ++; } }
             if (DRAWON) {   // board approximator: band position, lognormal region and per-arc factors (no adversary)
-                double base = (double)afmin[a] + DBAND * ((double)asmax[a] - (double)afmin[a]);
-                double f = exp(DSREG * region_n(names[gout[g]]) + DSARC * hash_n(DRAW, 0x51ED2701ULL, (ull)gout[g], (ull)i));
+                double band = DBAND, f;
+                if (GCLF) {   // research's model (FOR-FORMAL 2026-11-16): band per class; pips: per-pip scatter; all: region
+                    char c = GCL[g]; band = (c == 'c' || c == 'q') ? DBC : c == 'x' ? DBX : DBR;
+                    f = exp(DSREG * region_n(names[gout[g]]) + ((c == 'p' || c == 'q') ? DSARC * hash_n(DRAW, 0x51ED2701ULL, (ull)gout[g], (ull)i) : 0.0));
+                } else
+                    f = exp(DSREG * region_n(names[gout[g]]) + DSARC * hash_n(DRAW, 0x51ED2701ULL, (ull)gout[g], (ull)i));
+                double base = (double)afmin[a] + band * ((double)asmax[a] - (double)afmin[a]);
                 d = (ll)llround(base * f); if (d < 1) d = 1;
                 if (W && glut[g]) { if (d < W) d = W; his[a] = (double)d; }
                 df = d;
