@@ -2297,3 +2297,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 04:20
 - T125 first pass: item 28 umux2 select +3000 ps (own injection, cs3inj2_20). Own oracle 13/13 at FAST_MIN and worst, which reproduces research selneg task 14 ("gate passes").
 - The select monitor did not attach because umux2's z_ack is the kernel output ack = bridge_i.bench_o_ack. Rerunning with ZACKS (inj2_*).
+
+### progress 04:19
+- research 1b00b6ae7 FOR-FORMAL quotes T119 (3/3, ulink_n13 1110 -> 393 ps) and T120/T120b. Checked against findings/T119.md lines 12-18: accurate.
+- research cc0abaa43: exploratory collatz nl6s3a (uselect0 7, uaddi0 9), 21.27 ns on one route (sdf 7aefc4bd); farm fcsel3a. Not on BOARD-QUEUE; to check if queued.
+- research ef180ae09 is tooling.
