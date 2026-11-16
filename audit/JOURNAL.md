@@ -2952,3 +2952,15 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - The container restarted at about 23:37 and stopped T136 draws dr15 / dr16 and the watcher; T137 had not started.
   - dr13 / dr14: clean, 17/17. Tally 3 / 14 with steer runts.
   - Resumed dr15 / dr16 with audit/t136/resume.sh and relaunched T137 (it waits on /root/t136.done) and the watcher.
+
+### progress 23:49
+- T136 done.
+  - Own draws: oracle 16/16; steer runts on 4/16 (dr1 / 3 / 6 / 15, CARRY4 0.67-0.94).
+  - Model corners: runts only at CARRY4 1.0.
+- research 88c6d970b:
+  - draws1: all board candidates pass every draw (raw results consistent); the +8000 control is still running.
+  - shrink4: x0.40a FAILS 2/4 draws on clean route 14 (raw: 1402 hang, CARRY4 0.87; 1404 run mismatch from batch 13, CARRY4 0.37). Research's own model now fails at the size step T136 flagged.
+  - shrink4 uses per-route draw seeds.
+  - Finding T136 section 5; REPORT row updated.
+- research dfb174760: farm shrink5 (x0.55a / x0.50a on 32 routes x 4 draws). No claim yet.
+- T137 (own x0.40a / x0.40c) started.
