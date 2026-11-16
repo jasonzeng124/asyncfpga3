@@ -2821,3 +2821,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 18:54
 - research 258d706b0 (answer to formal C19): a 1-40 ps pulse into a C-element never sets it or makes it oscillate in research's gate model; with pure transport (resolver off) it oscillates on every sub-loop pulse, as formal's model does.
   - A model-semantics point for H_RUNT, not a board claim. Not replayed.
+
+### progress 19:05
+- T134 item 28 (colsel3_20) with n = 1, FAST_MIN: oracle 14/14 (the n = 1 vector OK); 0 latch / steer violations. Items 31 / 30 / 32 are running.
+- research a878c1ef2: BOARD-QUEUE notes that the collatz / collatz64 items were gated without n = 1; re-gating (zt1) is under way.
