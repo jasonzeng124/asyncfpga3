@@ -2607,3 +2607,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Fixed: mon_zdata now counts only while z_ack is not 1.
   - Rerun on item 28 (control, research M clean), item 31 and item 30 (must show late tokens).
 - research e237e606b (journal): the xorshift item 27 mux race is absent in research's simulation; fisel3m static-clean. Not replayed.
+
+### progress 07:52
+- research 760b15f56 / 278bf35d6: exploratory farms (fxa; h4s3o pads umux2 on collatz64). Research restates "item 31 clean under rule M"; own T130 is testing that.
