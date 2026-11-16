@@ -1,3 +1,8 @@
+**Best xorshift that passes the gate and every static check over the full input range except rule M's rows (shown
+pessimistic in simulation on its board route): board item 33 (#34), item 27 + seed 2's own datapath proposal, 18.91 ns
+per iteration (median of 31 farm routes, 17.97-20.86; latency -0.40 ns vs item 27, 22/30 faster). Gap to 15 ns: 3.9 ns.
+(2026-11-16.)**
+
 **Best xorshift that passes the gate, the static check and the hold check over the full input range: board item 27
 (#28), lever 8 (the loop test reads i against n-1), 19.39 ns per iteration (median of 31 farm routes, 18.98-21.16;
 the board seed is clean on every row, 11 of 31 routes carry small H / I rows, pad round fxd2 running). Gap to 15 ns:
@@ -30,7 +35,8 @@ event graph of the previous row's routes (`research/tools/eventgraph`), written 
 | 8. the loop test reads i against n-1, computed once before the loop (pre_dec.py; on R / fr4, without levers 5-7) | MLIR pre-pass (MLIR_OVERRIDE), bdc unchanged | 19 (18-20) on s10 (from xf5_10's graph) | s10 19.15 (period-2: 18.92 / 19.38); 31 farm routes median 19.39 (18.98-21.16), latency -3.76 ns paired vs fxf5 (27/28) | **93/93 -> board item 27**; static A / A' / E 29/31, H / I rows on 11/31 (pads fxd2) |
 | 9. select links sized by rule E (2026-11-16; on 8) | fr4s3: ulink_n12__0/1/2, ulink_n_index_15 5/8/6/5 -> 3 | -0.2 to -0.4 ns / iteration vs fxd | 32 routes median 19.45; latency -0.23 median paired vs fxd (16/31 faster) | 96/96; rejected (noise): the select lines are off xorshift's cycle |
 | 10. ulink_n7f__1's ack (no sizes.vh macro, RTL default 6; on x27_2's critical fall) -> 1 (on 8) | fr4u | -0.5 to -1.0 | 32 routes median 19.21; latency -0.05 paired (16/31) | 96/96; rejected: the next cycle does not contain the line |
-| 11. mux delays sized by rule M (the mux data outputs, never checked before; on 8) | fr4m: umux0/1/2 2 -> 5/7/3, umux3 14 -> 9 | +0.3 to +1.0 (the cost of the contract) | farm fxm running | -- |
+| 11. mux delays sized by rule M (the mux data outputs, never checked before; on 8) | fr4m: umux0/1/2 2 -> 5/7/3, umux3 14 -> 9 | +0.3 to +1.0 (the cost of the contract) | 27 routes median 20.55; +1.20 paired vs fxd (2/26 faster) | 81/81; not adopted: rule M is pessimistic on xorshift in simulation |
+| 12. seed 2's own corner_audit proposal on datapath lines (on 8; the collatz item 31 method) | fr4a: uxori1 / uxori2 7 -> 5, umux3 14 -> 9, ucmpi0 12 -> 10, uaddi0 13 -> 12 | -0.3 to -0.6 | 31 routes median 18.91; -0.40 paired vs fxd (22/30) | **93/93 -> board item 33** (M rows: pessimism, mux_settle) |
 
 The three knobs are new in `bdc/emit.py`, opt-in; with them unset the emitted Verilog is byte-identical on gcd, xorshift,
 collatz, collatz64, ipow and isprime. simcheck PASS with all of them on xorshift.
