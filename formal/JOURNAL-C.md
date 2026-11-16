@@ -3726,3 +3726,12 @@ HOSTDELAY, fbslack.py, minimize.py, W0FULL, EXPLAIN_ALL.
 **THE target:** with every class, gcd_ps's search frontier is still the 0.36 livelock; no partial-ack hang below 0.45.
 **Open:** steer-cone races are found but not traced to two paths; uselect0's line on fcsel3a (farm c_margin_usel2
 queued); kappa_lo: none for any build.
+
+### progress 05:48 -- fcsel3a s20 capture cones to 0.90: merge1 -> ulink_n_index_11 st0: -93 ps worst in-band (FOR-RESEARCH C15 addendum)
+c_margin_usel2 (12-ns host, CONES=only, KHI 0.90, every failing row explained): first capture broken 0.46 at
+ulink_n_index_11 st0 lat.odd: data (ugrant -> merge1 data LUT -> latch, 3 LUTs + 12 routing) vs enable (ustate -> merge1
+udly g[1] -> link ctl -> latch, 4 LUTs + 16 routing): +110 fast mid, +430 SDF, -93 worst in-band. The cone adversary
+needed 0.46 because the cone stops at ugrant (a storage LUT): path A's first arc is outside it. explain.py
+--verify-path (new; run.sh EXPLAIN_VERIFY=1) slows exactly path A; farm c_verify1 asks whether this race fails alone
+inside the band. Three explanations in the run were INCONSISTENT (rejected by the new guard), one partial (CARRY XOR
+unmapped). uselect0 not on any broken path below 0.82.

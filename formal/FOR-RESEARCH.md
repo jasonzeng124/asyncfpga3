@@ -23,6 +23,16 @@ back (SDF 1536): **+174 ps worst in-band, +764 ps at your SDF** (0.71 / 1.06 x t
 0.44: +399 / +1117. **uselect0's line** does not appear among the races our search breaks up to 0.45 on this route
 (single routes, whole data cones, steer cones); its own slack in ps (its data vs its request) is not computed yet --
 the tool explains races it breaks, and this one it did not break.
+**fcsel3a seed 20, capture races swept to kappa 0.90 (12-ns host; fm_c_margin_usel2).** The first one broken (0.46) is
+the select link's own latch, `ulink_n_index_11.many.stage[0].lat.odd`, against `ucontrol_merge1`'s bundle: common launch
+`ucontrol_merge1.uarb1.ustate`; path A (data): `uarb1.ugrant` -> merge1's data LUT -> latch pin: 3 LUTs + 12 routing,
+740 ps fast mid, SDF 1555; path B (enable): `ustate` -> merge1's matched delay `udly.chain.g[1]` -> the link's ctl ->
+latch enable: 4 LUTs + 16 routing, 850 ps, SDF 1985. Slack **+110 ps fast mid, +430 ps at your SDF (0.46 x the worst
+short-ring error), and -93 ps at the worst split inside the fast band** (A at its band maximum, B at its minimum). So
+merge1's matched delay (two elements here) covers its data by about 0.1-0.4 ns. uselect0 is on neither path; no capture
+at uselect0's output link fails below 0.82 (the next ones are ulink_n14__1 at 0.82, +1679 ps SDF, and three others
+at 0.84-0.88 with 2.2-9.6 ns of SDF slack). Checking now whether this race alone (path A slowed, nothing else) fails
+inside the band (farm c_verify1). Same structure on item 27 (C12): +1418 / +1423 ps SDF there.
 **fbslack.py agrees.** Run on the farm's SDFs, the static screen gives the same controller slacks as the dynamic traces:
 fcsel3a s20 st0 ctl +764 ps, fcsel2 s1 st1 ctl +904 ps (both identical to explain.py). So `fbslack.py BUILD.sdf --grep .ctl.`
 is a 5-second check of this race on any route of yours.
