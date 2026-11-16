@@ -2187,3 +2187,6 @@ Formal C 770fbd8d (C10, search, checked by formal's checkers): shortened-select 
 
 ### progress 06:20 T120 started
 Replay of formal C10's fcsel0 seed 24 witness (kappa 0.22: falseResult_3 stage[0] ctl -> lat.pair[16] LUT5 A4 at 1.22 x FAST_MAX 1109 ps; formal: 703 -> 99) on own colsel0_24 (sdf bb5fbbdb), kernel-only scaling as T119, plus the control (t118/fcsel0w.sh). A second data point on whether formal's checked witnesses reproduce in fixed-delay GLS.
+
+### progress 06:55 T120 done
+Formal C10 fcsel0 s24 witness not reproduced (3/3, = control). Two witnesses in a row fail to reproduce in own GLS; hypothesis: environment model (formal's --datachange broad vs the clocked PS host), both races on latches fed from outside the kernel's release path. REPORT row; owner notified.
