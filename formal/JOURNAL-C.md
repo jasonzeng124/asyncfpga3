@@ -3922,3 +3922,15 @@ Collatz / collatz64: 64/64 "got []". c_drawdbg traced it: mk_bnd_sim.py (A) maps
 slots, and draws.py drove research's hex words as (n, 0), so b = 0 overwrote n with 0 and collatz(0) never ends
 (same build, no draw: "27,27" answers 111 at 2.55 us, "27,0" never answers). Not a circuit result. draws.py now uses
 (n, n) for collatz kernels; c_draws2 reruns the collatz tasks (3-11, 15-17).
+
+### progress 20:17 -- board approximator, xorshift (c_draws1; untrusted simulation, research's fid parameters, w 20, host 12 ns, xor19)
+| build | sdf | draws | PASS / FAIL / UNDECIDED | pass fraction (Wilson 95 %) | last answer mean |
+|---|---|---|---|---|---|
+| item 27 s2 | a9bdac53 | 64 | 64 / 0 / 0 | 1.00 (0.94-1.00) | 36.5 us |
+| item 33 s27 | 7f0c0592 | 64 | 64 / 0 / 0 | 1.00 (0.94-1.00) | 36.0 us |
+| item 33's design s1 / s3 / s4 | 796b669f / .. | 3 x 64 | 192 / 0 / 0 | 1.00 each | 35.8 / 36.2 / 36.0 us |
+| **BAD xf2_1** (known-bad) | dc138ea2 (= research's) | 64 | 60 / 2 / 2 | 0.97 (0.89-0.99) | 43.6 us |
+The known-bad build is the only one with failures (320/320 good-family draws pass). Its two failures are at vector 5
+(seed 0x92d68ca2, 3 rounds): one wrong value (2068339104 for 2064144800, bit 22), one hang after 5 answers. Research's
+own trace of xf2_1 fails on the same vector sequence (rounds after a 3-round call) at its FAST_MIN gate. The
+approximator separates bad from good here, but weakly: 3 % of draws. Not yet traced which race the two draws hit.
