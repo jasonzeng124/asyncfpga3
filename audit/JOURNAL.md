@@ -2611,7 +2611,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 07:52
 - research 760b15f56 / 278bf35d6: exploratory farms (fxa; h4s3o pads umux2 on collatz64). Research restates "item 31 clean under rule M"; own T130 is testing that.
 
-### progress 08:00
+### progress 07:58
 - research 83808aea5: BOARD-QUEUE item 29 is replaced by fisel3m.
   - Mux delays sized by rule M (umux0..3 6/8/7/4), seed 19, sdf b521630f, ratio ~1.12 over item 19.
   - The first version (sdf 4a92cdf3, own T126 CONFIRMED) is superseded; REPORT row marked.
