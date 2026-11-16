@@ -3866,3 +3866,13 @@ Two of the w=20 kappas are set by pulses exactly at the H_RUNT width, so they me
 Under transport delay a pulse wider than w circulates for ever in a LUT feedback loop; that is a model property and
 needs a device answer. Asked research (C19) whether its GLS reproduces it with a forced pulse. Not done: picosecond
 slack for the steer's condition-vs-request race (rule E) at the SDF.
+
+## Session Mon Nov 16 18:47:15 UTC 2026 (C, third today; session_01HC49FwYa3Ln6uaPcbP45j2)
+Lock C was 11 h old (07:37, last C commit): taken. Read PROGRAM (top unchanged since the 02:55 / 20:15 sections; no
+subagents), research FOR-FORMAL (new since C19: item 33 = xorshift fr4a seed 27, sdf 7f0c0592; answer to C17; C19's
+pulse question "not tried yet"), audit REPORT (T126k/T130d confirm item 33 in research's GLS; T130 refutes rule M's
+dynamic claim on items 28/31; no new row against C's files since T119/T120).
+
+### progress 18:47 -- farm c_margin_x33 filed: item 33's margin (MARGINS row "pending")
+Item 33 at seed 27 with hosts 12 ns / 1 ps / 2 ns, four more routes (seeds 1 3 4 5, host 2 ns), and item 27 s2 under the
+same settings (host 2 ns) for a like-for-like comparison. All race classes, every broken race explained at the SDF.
