@@ -4013,3 +4013,8 @@ HOSTDELAY >= 2000 run of the margin tool (c_margin_host2, bq29 12-ns host, x27r,
 failure there that involves new input data arriving after a request is suspect; to be re-checked. Rerun: c_draws6.
 Research's rule E row for the steer: ucond_br3/4 +1947 raw / -1331 guarded (launch ulink_n1__1.ctl).
 The owner was notified of C21 at 21:16; a correction follows.
+
+### progress 22:03 -- c_draws6 (fixed host, research model, 128 draws): item 30, item 32 and all six other h4s3/h4s3p routes 128/128
+So no candidate fails any draw in formal's approximator with a legal host. c_draws7: the known-bad trio under the fid
+model with the fixed host (xf2_1's two failures followed the zero-trip vector 0x13579bdf/0 rounds, so may have been the
+same harness artefact; nc64_7's draw 18 is wrong at the FIRST vector, so not).
