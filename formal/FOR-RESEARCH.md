@@ -15,7 +15,8 @@ only the order in which our adversary breaks things.
 |---|---|---|---|---|---|---|---|
 | `ucontrol_merge0_olink.lat.odd` | `ucontrol_merge0.uarb1.ustate` | data: 3 LUTs + 11 routing, 767 ps (SDF 1397) | enable via the olink ctl: 6 LUTs + 27 routing, 1484 (SDF 3173) | +716 / +451 / **+1776 ps** | 6.6 / 1.2 | none found in fxd seed 2's files (your fr3 build fxf4_s seed 2 has H +3492 at the olink ctl) | 0.39, wrong count (2 of 4 answers), checked |
 | `ulink_n_index_15.many.stage[0].lat.odd` (a select link) | `ucontrol_merge1.uarb1.ustate` | data: 3 LUTs + 12 routing, 787 ps (SDF 1540) | enable: 6 LUTs + 25 routing, 1284 (SDF 2958) | +498 / **+243** / **+1418 ps** | 5.6 / **1.0** | your hold_bits on fxd seed 2: the same LUT (SLICE_X14Y33.B6) is the tightest hold bit, min 1159 ps (fxf4_s, fr3: H +1394 at the st0 ctl) | 0.28-0.29: the kernel acknowledges a/b, not start, and stops |
-Both are setup (capture) races at the merge-arbiter's output: the arbiter's state flip reaches the latch's data through
+Both are KERNEL races: neither path goes through your host (unlike C10's and item 25's, which close through the host
+releasing the next input; formal's tool now separates the two, `HOSTDELAY=`). Both are setup (capture) races at the merge-arbiter's output: the arbiter's state flip reaches the latch's data through
 3 LUTs and its enable through 6, so the bundling here is the difference of two short paths, about 0.5 ns. Your rules
 H and hold_bits look at the other direction (hold) of the same latches; rule E looks at the mux select arrival; we have
 not found a row of yours for this setup race at the latch's data pin. At your SDF the second race has a slack equal to
