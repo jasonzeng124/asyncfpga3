@@ -5462,3 +5462,14 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
 - ipow (item 29): rule M / A' maxima over fisel3_ps: umux0 8 -> 6, umux1 9 -> 8, umux2 2 -> 7 (M), umux3 3 -> 4. Farm
   fisel3m (h4s3m). PREDICTION: within +-0.4 ns per iteration of fisel3 (umux1, on the cycle, -1; umux2, off it, +5),
   rule M clean on >= 30/32.
+### progress 07:14 UTC (rule M vs simulation: the direction agrees on both routes; the size is pessimistic)
+| route | rule M (nom / worst) | mux_settle FAST_MIN: late rises / worst lag | worst corner: late / lag |
+|---|---|---|---|
+| collatz64 item 30 (c64s3_10), umux0 | -1231 / -1321 | 352 of 458 / 155 ps | 300 of 458 / 60 ps |
+| collatz64 item 30, umux1 | +869 | 0 (lead >= 2760) | 0 (lead >= 3920) |
+| collatz item 31 (c28a_20), umux0 / umux1 | +1503 / +1145 (worst) | 0 / 0 (leads 1598 / 1790) | -- |
+- Every M miss here is a race that happens in simulation, and every M pass is a race that does not. The static
+  number is ~8-20x the simulated lag (longest data over 64 bits and every launch, shortest request, guard), so M sizing
+  is conservative. A cheaper fix than padding (fc64sel3m pads umux0 2 -> 16): the lag comes from the data link's
+  64-bit enable spread (ulink_n_falseResult_3 C node -> 64 latch LUTs); enable replication (PROGRAM's goal-2 lead
+  list) would shorten the data side instead of lengthening the request side.
