@@ -103,7 +103,13 @@ cands.sort()
 for t, gi in cands[:8]: print("  diverges: %-22s at %d ps%s" % (N[G[gi]["out"]], t, "  <- the row's storage LUT" if N[G[gi]["out"]] == a.node else ""))
 own = [(t, gi) for t, gi in cands if N[G[gi]["out"]] == a.node]
 # a single-pin row names its storage LUT: explain the race there; a cone row: the first diverging storage LUT
-tstar, q = own[0] if (own and a.pin < 99) else cands[0]; gq = G[q]
+if a.pin >= 99 and os.path.exists(os.path.join(O, "cones.json")):
+    # a cone row: the capture is one of the group's latch bits (the cone feeds their data pins), not whatever
+    # storage LUT diverges first downstream
+    mem = next((set(r.get("members", [])) for r in json.load(open(os.path.join(O, "cones.json"))) if r["node"] == a.node and r["pin"] == a.pin), set())
+    own = [(t, gi) for t, gi in cands if N[G[gi]["out"]] in mem]
+    if not own: sys.exit("no latch of the cone row's group diverges")
+tstar, q = own[0] if (own and (a.pin < 99 or os.path.exists(os.path.join(O, "cones.json")))) else cands[0]; gq = G[q]
 print("\nCAPTURE: %s (%s) first differs at %d ps" % (N[gq["out"]], gq["name"], tstar))
 # arrivals at q's pins in both runs around t*
 def arrivals(D, slowset):
