@@ -7,6 +7,22 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-16 (lead): margins for research's builds (first priority); every number is search, none is a lower bound.**
+- **Margin tool (C, `formal/tools/margin/run.sh`; untrusted search, failures re-checked by two checkers):** runs
+  unattended on gcd_ps and on research's bench builds (10-25 min per build on the farm). kappa_hi at g = 1 (smallest
+  within-die scatter with a checked failing assignment, one route slow at a time): gcd_ps 0.40 (0.36 livelock, Lean);
+  research's known-bad builds below their good neighbours (BAD xf2_1 0 vs item 23 > 0.45; nc64_7 0.05 vs pc64_7 0.39);
+  board candidates item 27 xorshift > 0.45, item 25 collatz 0.42 (w 0 only), item 26 collatz64 0.26, **item 28 collatz
+  0.42** (other seeds of its structure 0.27-0.41), shortened-select collatz 0.21-0.32. The binding race on every
+  collatz-family build is one kind: a link's latch bits seeing that link's own enable late (`formal/target/MARGINS.md`).
+- **Coverage (A, 2026-11-16):** C's candidates are routes into storage LUTs only; a select reaching a mux's data LUT
+  late was invisible. `tools-A/target/selrun.sh` adds every combinational LUT feeding storage: on item 28 and on fcsel0
+  no such race fails below 0.45; the umux select race exists but needs ~0.85. Still single-route, corner 0.
+- **kappa_lo:** none, for any build. A proved lower bound needs every capture certified and the capture list proved
+  complete; B's select certificates (SelectCapture/Hold/Tree) and the 185 RaceTablePS rows are single-race pieces.
+- **Decoder (A):** a flop whose D-mux has no bit (nextpnr FASM gap; research's ffmux_scan.py) now decodes as
+  storage with D undefined, with a warning; such a build should not go to the board.
+
 **2026-11-15 (lead): the owner put research's timing rule first (PROGRAM.md, 0691ea88); the gcd theorem is second.**
 - **A, rewrites (Lean, check.sh OK, standard axioms):** research's three loop-test rewrites preserve the function, at
   token level, from the MLIR: `Formal.Rewrite.XorshiftPredec.same_as_original` (xorshift `i + 1 < n` -> `i < n - 1`
