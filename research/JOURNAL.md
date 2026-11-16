@@ -5627,3 +5627,17 @@ Next:
   rule-M miss stays open (padding umux0: +2.2 ns, fc64sel3m).
 - collatz64 rule-M control (local, item 30's route, select latch -> umux0.udat +8000): rule M -7528 ps, E clean; gate
   FAST_MIN no batch in 55 min (clean route: 25 min, PASS 14/14). A no-completion, so possibly the start-up X; untraced.
+### Next (updated 08:55 UTC; supersedes the list in the summary above)
+1. The gate's start-up X (cells/gls/fid_core.vh starts every LUT state node at X; bd_link does not reset its data
+   latch): add an opt-in plusarg that starts LUT latches at 0 (and a second run at 1), with a negative control that
+   still fails; then re-run selneg's join injections with it. Until then a "no completion" may be start-up X: trace
+   before calling it a failure (fullstack_dump.sh XRAY_SDF_IN + vcd_last.py).
+2. Rule M's misses vs the downstream: a check that a sender's late data (M < 0) is absorbed by every consumer's margin
+   from that link (composition), or a dynamic bound (mux_settle) per route. collatz64 umux0 is real in simulation
+   (60-155 ps late on 77% of tokens); xorshift's look like pessimism (item 27: >= 2.3 ns lead). fxa s27 dynamic run going.
+3. collatz64 items 30 / 32 (provisional): umux0 padded to M costs +2.2 ns (fc64sel3m); the entry-link delay broke a hold
+   (fc64sel3n / o). Next try: enable replication on the 64-bit data links feeding umux0 (shorter data side), or umux0
+   at ~6-8 (between n and m).
+4. fxa (xorshift 18.9 ns, -0.40 vs item 27) becomes a board item if its median route's mux data leads in simulation.
+5. Formal C19: force a 20-40 ps pulse onto a link ctl input in research's GLS and see whether the resolver lets it
+   oscillate (formal's model does).
