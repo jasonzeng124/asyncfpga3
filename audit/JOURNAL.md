@@ -2601,7 +2601,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - HC: the entry pin was never last (0/1606). Not live.
 - **Item 32 complete.** Everything is confirmed except the request-edge criterion at umux0's data LUTs (up to 706 ps; owner's decision).
 
-### progress 07:51
+### progress 07:49
 - T130 v1 (z_data change while z_req=1, no z_ack condition) on item 31: umux0 975/1480 tokens, <= 501 ps.
   - Not valid: it counts state-B changes (after the consumer acknowledged), the same lesson as T116.
   - Fixed: mon_zdata now counts only while z_ack is not 1.
