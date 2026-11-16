@@ -3,6 +3,37 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C21. Item 30 (collatz64 h4s3 s10, sdf 637ff02e) fails 5 of 32 of YOUR draws in formal's simulator: a token split at the entry steers after the zero-trip call n = 1 (shard C, 2026-11-16; untrusted simulation)
+**Problem.** Your draws1, mirrored in formal's simulator of the decoded bitstream: your model (draw K = 1..32; bands
+from Random(7919K+17) per class -- my values equal those your logs print for K = 1, 2, 9; region 0.02; per-pip 0.126),
+the same routes (sdf md5s equal yours), your vectors (xor19, col14, c6415). Formal's LUTs: transport with the 20-ps
+filter; host 12 ns after each acknowledge. Farm fm_c_draws4.
+| build | draws passing |
+|---|---|
+| item 27 s2, item 33 s27, item 28 s20, item 31 s20, item 32 s22 (and item 26 s25) | 32 / 32 each |
+| **item 30 s10** | **27 / 32: draws 5, 8, 12, 13, 21 fail** |
+| BAD xf2_1, BAD nc64_7, pc64_7 (64 draws) | 64 / 64 each: your model's spread never reaches their races |
+**The failure (all five draws the same).** Vectors 27, 1, 97, ...: answers 111, 0, then **0 again** for n = 97 (and 118
+arrives later as an extra 4th answer), so the stream is one call behind from there on. Traced on draw 5 (fm_c_x30dbg,
+fm_c_x30dbg2): the n = 97 call is offered at 3.5309 us; the entry steers `ucond_br3`, `ucond_br4`, `ucond_br2`
+(SLICE_X16Y21.A6 / B6, SLICE_X16Y29.C6) fire twice where the passing variant fires once (first difference 3.5374 us),
+then `ucontrol_merge1.uarb1` and `ulink_n8` / `ulink_n_index_11` carry two tokens: one copy leaves on the exit side
+at once (the wrong 0 at 3.5462 us) and one runs the loop (118 at 6.82 us). The steers' condition was left at "exit"
+by the zero-trip call; the request for the next call reaches the steer before the condition has moved. Your rule E
+at the entry steers, after a zero-trip call.
+**What it needs (variants of draw 5, bands b_c / b_r / b_cells = 0.217 / 0.225 / 0.987):**
+- fails as drawn, with b_r 0.27, b_cells 0.50-0.90, no per-pip scatter, no runt filter (w 0), host 12 ns or 100 ns,
+  and with vectors (1, 97);
+- passes with **b_c 0.27** (delay chains slower), **b_cells 0.40**, **a 1-ps host**, or with (97), (27, 97), (2, 97).
+So it needs the zero-trip call just before, delay chains near the fast end of your U[0.20, 0.31] and the CARRY4 / F7 /
+F8 band at 0.5 or more (the part of your model you mark "never measured"). The filter and the pip scatter play no
+part, so this is not a runt-pulse artefact of formal's LUT model.
+**What I would like from you:** your draws1 result for item 30 on draws 5, 8, 12, 13, 21 (tasks 21-24 were still
+running at 21:15 UTC). If your GLS passes them, this is the disagreement the owner asked for and the next thing to
+trace (start-up, host model and the steer LUT model are the candidates). If it fails them too, item 30 should not go
+to the board as is. Files: fm_c_draws4/7 (draws.txt), fm_c_x30dbg (variants), fm_c_x30dbg2 (diverge_*.txt,
+boundary_fail.txt). Reproduce: `DRAWS=32 DRAW_MODEL=research run.sh` (formal/tools/margin/README.md).
+
 ## C20. The board approximator in formal's simulator of the decoded bitstream: every board candidate 64/64; both known-bad builds fail some draws (shard C, 2026-11-16; untrusted simulation)
 **Problem.** Your PROGRAM and ours (owner, 2026-11-16: "the board decides"): judge a build by the fraction of random
 delay draws that return the right answers. This is the same question asked in formal's own simulator: the circuit

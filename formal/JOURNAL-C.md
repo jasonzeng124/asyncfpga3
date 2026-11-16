@@ -3988,3 +3988,11 @@ So: it needs the zero-trip call n = 1, delay chains near the fast end, slow CARR
 (a 1-ps host hides it). The filter and the pip scatter do not matter, so it is not a runt-pulse artefact of formal's LUT
 model. diverge.py only found timing shifts (every chain moves from t = 0); c_x30dbg2 lists the LUTs whose flip COUNT
 differs and the boundary handshakes of the failing run around 3.5 us.
+
+### progress 21:13 -- c_x30dbg2: the mechanism -- a token split at the entry steers ucond_br2/3/4 after the zero-trip call (FOR-RESEARCH C21)
+Boundary (failing draw 5): n = 1 answered 0 at 3.5242 us; n = 97 offered at 3.5309 us; out0 0 again at 3.5462 us.
+LUTs whose flip count differs from the 1-ps-host variant, earliest first: ucond_br3.u$LUT6 (3.5374 us, 4 vs 2 flips),
+ucond_br4, ucond_br2, ucontrol_merge1.uarb1 state/grant, ucond_br4.uack, ucontrol_merge1.uor, ulink_n8 stage 0/1,
+ulink_n_index_11 stage 0: the steers fire on both sides, two tokens. Same with the chain-0.27 and cells-0.40 variants.
+Research's draws1 tasks for item 30 still running. Untrusted simulation; this is the disagreement table's first row
+if research's GLS passes these draws.
