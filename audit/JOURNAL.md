@@ -2803,3 +2803,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 16:42
 - T133b: with the steer's injected pins forced defined (0 and 1) until 10 us, the run completes 1/13 batches (batch 0 only) with no X on the steer outputs, then stalls.
   - The collatz rule E steer control is CONFIRMED under that emulation. REPORT row updated.
+
+### progress 18:02
+- research 8ace97c32: rule E steer control on ipow (no completion, E -3238). Rule E now has steer controls on all four families (research's; collatz replayed by own T133b). Owner-decision row updated.
