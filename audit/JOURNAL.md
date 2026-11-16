@@ -2659,3 +2659,13 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 08:33
 - research 8745e2d8a: the rule M known-bad build is traced; it gives defined wrong answers (batches 8/9), not X. So rule M has a genuine negative control (research's). Not replayed.
+
+### progress 08:39
+- formal A 38e835bf9: MARGINS for items 30-32.
+  - item 32: ulink_n13 kernel race +3861 ps at the SDF / +987 worst in-band. Own static rule H (earliest sender) gives +568 / +785 / +1693.
+  - item 30: no finite failure <= 0.45; falseResult_7 controllers +838 at the SDF. Own t127/fb.py: >= +629 / +900 / +1850 ps.
+  - item 31: as C15 (own T127 addendum).
+  - Consistent with own figures; no overstatement found.
+  - item 29 v2 is NOT analysed by formal (its decoder has no DSP48E1 model). Formal coverage gap, noted.
+- Formal's search finds no failure on items 30/31 up to 0.45. That agrees with own capture margins (T129); formal does not check the request-edge contract (T130).
+- Watcher: duplicate watcher processes from earlier restarts had kept re-reporting old commits. All killed; exactly one runs now.
