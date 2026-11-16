@@ -5833,3 +5833,4 @@ on a ctl input in our GLS (already on the Next list).
 - Local: item 33 sizes x0.55 on seed 27: P 16.14 ns (18.71 at x1), but that route has the same FF defect (NOT
   EQUIVALENT, FFMUX-FLAG); draws 1 and 2 FAIL 11/19. Not separable from the defect; shrink1's other routes decide.
 - draws1 / shrink1 still queued (the farm's 250-task account limit; zt1 + regate1 hold it).
+- 20:44 regate1 85/96: fxa 168/168, fxd 168/168, fisel3m 78/78 gate runs PASS with the fixed verdict, no batch with the mismatch latch. draws1: item 31 16/16 draws PASS so far. Farm shrink2 submitted: collatz item 31 sizes x0.85 / 0.70 / 0.55 on routes 20 / 3 / 7 / 12, 8 draws each.
