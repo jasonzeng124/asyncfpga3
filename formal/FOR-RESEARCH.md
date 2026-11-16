@@ -33,7 +33,12 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 - xorshift item 27 (rerun, names): no single-pin race of 1,199 fails up to 0.45 (as C7).
 - Every number above is kappa_hi (a failure found by search). kappa_lo (proved safe) is none for every bench build.
 
-## A8. Your collatz board candidate item 28 (fcsel3m seed 20): kappa_hi 0.42, binding race at ulink_n13's latch enable; its other seeds 0.27-0.41; no select race below 0.85 (shard A, 2026-11-16; search, checked)
+## A8. Your collatz board candidate item 28 (fcsel3m seed 20): the race formal finds first is ulink_n13's latch enable against that latch's next data; no select-arrival race short of a very lopsided assignment (shard A, 2026-11-16; search, checked; picoseconds to follow, see the note at the top of this item)
+**Owner's rule since 03:30 UTC (PROGRAM.md, "A kappa is not a result"): a kappa only ranks races in our search; it
+is not a margin of the chip and must not be read as one, nor used to call one build better than another. The
+picosecond form of this race (the two paths from their split, cells and routing apart, slack at the nominal SDF, your
+rule row for it, the slack as a multiple of the measured 8.5 % ring error) is the next step; until then read the
+kappa column below only as "which race our adversary breaks first".**
 Rebuilt from BOARD-QUEUE ## 29's command on formal's farm and here: SDF d86bdde5d557f44fddbf90c24b88809c (= yours), FASM
 e4f259409e188d0ff474e02ee69581dc. Shard C's margin tool, exactly C10's settings (vectors n = 27, 703, 77031; single-pin
 adversary, g = 1, corner 0; every failure re-run and accepted by both checkers, arbiter rule included: T >= 124-162 ps).
@@ -46,11 +51,9 @@ Item 25 was run in the same request with the same settings, for comparison.
 | fcsel3m seed 24 | e2d7c95d | **0.27** | 0.27 | same link, pair[16]; w 0 also `ulink_n10__3.lat.pair[20]` vs `ulink_n10__3.ctl` |
 | fcsel3m seed 7 | 751c6b81 | **0.28** | 0.28 | same link, pair[6] |
 | item 25 (nl4, seed 24), same run | e001dc27 | none admissible | 0.42 | same link, pair[12] (as C6/C9) |
-- **Reading.** On its own route item 28 is about as robust as item 25 (0.42 vs 0.42 without the filter), and its binding
-  race is NOT the falseResult_3 stage-0 enable race of the other nl6 routes but the same kind at ulink_n13 (the link
-  that broke nc64_7 at 0.05 and item 26 at 0.26). Across seeds the nl6s3m structure spans 0.27-0.42, the fcsel2 range
-  (0.21-0.27) at its low end: the board seed is the best of the five sampled, so a re-route (another seed) of item 28
-  should not be assumed to keep 0.42. Item 25 has only its one route measured.
+- **Reading.** On item 28's own route the first race broken is NOT the falseResult_3 stage-0 enable race of the other
+  nl6 routes but the same kind at ulink_n13 (the link of nc64_7's and item 26's races). The kappa varies by 0.15 over
+  five routes of this one design, so no comparison with item 25 (one route measured) is made here.
 - **Select links.** The tool above only slows routes into storage LUTs, so it cannot see a select reaching the mux DATA
   LUTs late (your rule E, audit T116). Shard A added that sweep (`formal/tools-A/target/selrun.sh`, after run.sh): live
   pins of every combinational LUT that feeds storage, same adversary. Item 28: 431 active pins, **none fails up to

@@ -2667,3 +2667,9 @@ w 20, 0.42 at w 0 (= C6/C9). Arbiters named on the farm (T >= 124-162 ps). PROGR
 again the latch-enable race at falseResult_3 stage 0": for item 28's own route NO (ulink_n13, same kind); for the
 other four seeds yes. The select-arrival sweep (previous note) adds: no select race below 0.85.
 Not covered: two slow routes, slow corner, kappa_lo (none). MARGINS.md rows added.
+### progress 03:37 -- PROGRAM 7acb3a72 read ("A kappa is not a result; the race in picoseconds is"): A8 and MARGINS reworded
+A8's heading and reading led with kappa and compared item 28 with item 25 on it; reworded (no build ranked on kappa;
+the picosecond form is the next step). MARGINS.md columns reordered: binding race, race in ps (pending), then kappa_hi
+as the search key, kappa_lo. Farm requests a_selrace_board and a_selrace_fcsel filed (select sweep on items 27, 26, 23,
+nc64_7/pc64_7, fcsel2 s1/s2, fcsel1 s24). C's 03:36 finding for A (Spec.Env unsatisfiable on partial-ack deadlocks,
+so NetCorrectSeq is vacuous there) taken up next.

@@ -7,34 +7,35 @@ or tool output). "w" is the runt filter of H_RUNT(w): w = 20 ps is the owner's h
 An upper bound on kappa* is a counterexample (one failing assignment); a lower bound needs either a proof or a
 search whose completeness is stated. Newest builds first.
 
-Columns per the owner (PROGRAM.md, 2026-11-15): **kappa_lo** = the largest κ for which the build is PROVED safe
+Owner, 2026-11-16 (PROGRAM.md, "A kappa is not a result"): the race in picoseconds leads; kappa stays as the search
+key. Columns per the owner (PROGRAM.md, 2026-11-15): **kappa_lo** = the largest κ for which the build is PROVED safe
 (Lean), **kappa_hi** = the smallest κ at which a failure was FOUND (Lean witness or search). Both at g = 1.
 
-| build | md5 | kappa_lo (proved) | kappa_hi (found) | binding race (research names) | date, source |
-|---|---|---|---|---|---|
-| **fcsel3m s20 = item 28** (collatz, research's NEW board candidate, BOARD-QUEUE ## 29) | fasm e4f25940, sdf d86bdde5 | none | **0.42** (w 20 and w 0), search, checked | `ulink_n13.lat.pair[6]` reads `ulink_n13.ctl` late; no select-arrival race below 0.85 (A's selrun) | 2026-11-16, A8 |
-| fcsel3m s1 / s2 / s24 / s7 (item 28's structure, other seeds) | sdf d7d13c5d / ce8de32a / e2d7c95d / 751c6b81 | none | 0.41 / 0.37 (0.33 w 0) / **0.27** / **0.28**, search, checked | `ulink_n_falseResult_3.many.stage[0]` latch pairs vs its ctl (s24 w 0 also `ulink_n10__3`) | A8 |
-| item25 under A8's run (same settings, same request) | sdf e001dc27 | none | none admissible (w 20); 0.42 (w 0) | as below | A8 |
-| fcsel2 s1 (collatz, select links at 2) | sdf 5b538ca5 | none | 0.22 (w 20), 0.21 (w 0), search, checked | `ulink_n_falseResult_3.many.stage[0]` lat.pair[4] (pair[10] at w 0) reads its ctl late | 2026-11-15, C10 |
-| fcsel2 s2 | sdf fb1efc41 | none | 0.27, search, checked | same link, lat.pair[12] | C10 |
-| fcsel2 s24 | -- | -- | not measured: A's decoder refused it (AFF.ZRST) | -- | C10; decoder fix by A, 2026-11-16 |
-| fcsel1 s24 | sdf afab5445 | none | 0.32, search, checked | same link, lat.pair[10] | C10 |
-| fcsel1 s1 | sdf 4445b56c | none | 0.31, search, checked | same link, lat.pair[6] | C10 |
-| fcsel0 s24 | sdf bb5fbbdb | none | 0.22, search, checked | same link, lat.pair[16] | C10 |
-| item26_collatz64_s25 (board candidate) | fasm aded8a8b, sdf 6982a9d5 | none | **0.26** (w 20 and w 0), search, checked | `ulink_n13.lat.pair[6]` reads `ulink_n13.ctl` late (latch enable; nc64_7's link) | 2026-11-15, C8/C9 |
-| BAD nc64_7 (collatz64 known-bad) | fasm 5a196ea0, sdf 98809562 | none | **0.05** (w 0), 0.31 (w 20), search, checked | `ulink_n13.lat.pair[2]` reads `ulink_n13.ctl` late; at w 20 `ulink_n14__1.many.stage[1].u.ctl` | C8/C9 |
-| pc64_7 (nc64_7's good neighbour, minimal pair) | fasm 2e7829c0, sdf acc06847 | none | 0.39, search, checked (quiet deadlock) | `ulink_n_falseResult_7.many.stage[0].u.ctl` own feedback | C8/C9 |
-| item27 xorshift (board candidate) | fasm a7d9b19f, sdf a9bdac53 | none | none up to 0.45 (1,199 storage-LUT pins, research's 4 hold vectors, w 20 and 0), search | -- | C7 |
-| item25_collatz_s24 (board candidate) | fasm c6404633, sdf e001dc27 | none | none admissible at w 20; **0.42 at w 0**, search, checked (703 -> 70) | `ulink_n_falseResult_3.many.stage[0].u.lat.pair[12]` (and 8/10/16) reads that stage's ctl late | C6/C9 |
-| item23_xorshift_s10 (board candidate) | fasm 56434fc4, sdf 2f825834 | none | none up to 0.45 (1,239 pins, hold vectors), search | -- | C6; A (ulink_n7 enable race correct to 0.32) |
-| BAD_xf2_1 (xorshift known-bad) | fasm f2873d46, sdf dc138ea2 | none | **0**, search (A by hand, C's tool unaided) | ulink_n7's latch bits 0/1 read its enable (SLICE_X24Y40.A6, 20-pip route) late | 2026-11-15, A7, C6 |
-| gcd_ps_e6bb4aec (THE gcd target) | .bit aa83c8b7a5e6b68e69729131e984c0f4 | **none**: no whole-circuit safety bound. Single races only: 185 storage-feedback races safe to κ = 0.415 under local premises (`RaceTablePS`, B), the 0.44 feedback race safe to 0.41 (`RaceCertPS.race_margin`) | **0.36, Lean** (`Frontier36.not_seqRunt_le20_above36_R`; w ≤ 20 and w = 0; livelock); 0.40 finite (Lean `CexX16`; C's tool re-finds it) | `ucontrol_merge4.uarb1.ua2` (SLICE_X16Y21.A6) reads `ucontrol_merge4_f` late; also 0.44 (`ulink_n_falseResult_85` feedback, Lean) | 2026-11-07..10; C6 |
+| build | md5 | binding race (research names) | race in ps (paths from the split, slack at nominal SDF, research rule row) | kappa_hi (search key) | kappa_lo (proved) | date, source |
+|---|---|---|---|---|---|---|
+| **fcsel3m s20 = item 28** (collatz, research's NEW board candidate, BOARD-QUEUE ## 29) | fasm e4f25940, sdf d86bdde5 | `ulink_n13.lat.pair[6]` reads `ulink_n13.ctl` late; no select-arrival race below 0.85 (A's selrun) | pending | **0.42** (w 20 and w 0), search, checked | none | 2026-11-16, A8 |
+| fcsel3m s1 / s2 / s24 / s7 (item 28's structure, other seeds) | sdf d7d13c5d / ce8de32a / e2d7c95d / 751c6b81 | `ulink_n_falseResult_3.many.stage[0]` latch pairs vs its ctl (s24 w 0 also `ulink_n10__3`) | pending | 0.41 / 0.37 (0.33 w 0) / **0.27** / **0.28**, search, checked | none | A8 |
+| item25 under A8's run (same settings, same request) | sdf e001dc27 | as below | pending | none admissible (w 20); 0.42 (w 0) | none | A8 |
+| fcsel2 s1 (collatz, select links at 2) | sdf 5b538ca5 | `ulink_n_falseResult_3.many.stage[0]` lat.pair[4] (pair[10] at w 0) reads its ctl late | pending | 0.22 (w 20), 0.21 (w 0), search, checked | none | 2026-11-15, C10 |
+| fcsel2 s2 | sdf fb1efc41 | same link, lat.pair[12] | pending | 0.27, search, checked | none | C10 |
+| fcsel2 s24 | -- | -- | pending | not measured: A's decoder refused it (AFF.ZRST) | -- | C10; decoder fix by A, 2026-11-16 |
+| fcsel1 s24 | sdf afab5445 | same link, lat.pair[10] | pending | 0.32, search, checked | none | C10 |
+| fcsel1 s1 | sdf 4445b56c | same link, lat.pair[6] | pending | 0.31, search, checked | none | C10 |
+| fcsel0 s24 | sdf bb5fbbdb | same link, lat.pair[16] | pending | 0.22, search, checked | none | C10 |
+| item26_collatz64_s25 (board candidate) | fasm aded8a8b, sdf 6982a9d5 | `ulink_n13.lat.pair[6]` reads `ulink_n13.ctl` late (latch enable; nc64_7's link) | pending | **0.26** (w 20 and w 0), search, checked | none | 2026-11-15, C8/C9 |
+| BAD nc64_7 (collatz64 known-bad) | fasm 5a196ea0, sdf 98809562 | `ulink_n13.lat.pair[2]` reads `ulink_n13.ctl` late; at w 20 `ulink_n14__1.many.stage[1].u.ctl` | pending | **0.05** (w 0), 0.31 (w 20), search, checked | none | C8/C9 |
+| pc64_7 (nc64_7's good neighbour, minimal pair) | fasm 2e7829c0, sdf acc06847 | `ulink_n_falseResult_7.many.stage[0].u.ctl` own feedback | pending | 0.39, search, checked (quiet deadlock) | none | C8/C9 |
+| item27 xorshift (board candidate) | fasm a7d9b19f, sdf a9bdac53 | -- | pending | none up to 0.45 (1,199 storage-LUT pins, research's 4 hold vectors, w 20 and 0), search | none | C7 |
+| item25_collatz_s24 (board candidate) | fasm c6404633, sdf e001dc27 | `ulink_n_falseResult_3.many.stage[0].u.lat.pair[12]` (and 8/10/16) reads that stage's ctl late | pending | none admissible at w 20; **0.42 at w 0**, search, checked (703 -> 70) | none | C6/C9 |
+| item23_xorshift_s10 (board candidate) | fasm 56434fc4, sdf 2f825834 | -- | pending | none up to 0.45 (1,239 pins, hold vectors), search | none | C6; A (ulink_n7 enable race correct to 0.32) |
+| BAD_xf2_1 (xorshift known-bad) | fasm f2873d46, sdf dc138ea2 | ulink_n7's latch bits 0/1 read its enable (SLICE_X24Y40.A6, 20-pip route) late | pending | **0**, search (A by hand, C's tool unaided) | none | 2026-11-15, A7, C6 |
+| gcd_ps_e6bb4aec (THE gcd target) | .bit aa83c8b7a5e6b68e69729131e984c0f4 | `ucontrol_merge4.uarb1.ua2` (SLICE_X16Y21.A6) reads `ucontrol_merge4_f` late; also 0.44 (`ulink_n_falseResult_85` feedback, Lean) | pending | **0.36, Lean** (`Frontier36.not_seqRunt_le20_above36_R`; w ≤ 20 and w = 0; livelock); 0.40 finite (Lean `CexX16`; C's tool re-finds it) | **none**: no whole-circuit safety bound. Single races only: 185 storage-feedback races safe to κ = 0.415 under local premises (`RaceTablePS`, B), the 0.44 feedback race safe to 0.41 (`RaceCertPS.race_margin`) | 2026-11-07..10; C6 |
 
-Reading (A, 2026-11-16): every kappa_hi below gcd_ps's 0.40 is on a collatz-family build, and in every one the binding
-race is the same kind: a link's latch bits seeing that link's own controller (the enable) late. Shortening the select
-links (nl6s0-2) moved item 25's binding race from 0.42 (w 0 only) to 0.21-0.32 at the same link
-(`ulink_n_falseResult_3` stage 0), not at the select muxes. "Search, checked" = the margin tool's single-pin adversary
-(one route slow at (1+κ)·FAST_MAX, all else (1-κ)·FAST_MIN, corner 0, g = 1, 3-4 vectors), failure re-run and accepted
+Reading (A, 2026-11-16, reworded after the owner's "A kappa is not a result"): on every collatz-family build the race
+the search breaks first is one kind: a link's latch bits seeing that link's own controller (the enable) late. A
+kappa says only which race the adversary breaks first; it is not a measured margin and builds are not ranked on it
+here. "Search, checked" = the margin tool's single-pin adversary (one route slow at (1+κ)·FAST_MAX, all else
+(1-κ)·FAST_MIN, corner 0, g = 1, 3-4 vectors), failure re-run and accepted
 by two independent checkers. It is an upper bound only; no build has a kappa_lo.
 
 ## Builds received from research (research/FOR-FORMAL.md at b976ce821; files on origin/claude/research)
