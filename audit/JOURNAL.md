@@ -2451,7 +2451,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T128 control +10000 on ulink_n11 -> uselect0: static -8441, gate **PASS 13/13**. The e0 operand delay is not exercised by the vectors (as T125).
 - Started a third control: +3000 on ulink_n10__3 -> uselect0 (17 arcs/SDF; the operand changes every iteration).
 
-### progress 05:58
+### progress 05:54
 - T126 done for item 30.
   - SLOW_MAX 14/14.
   - Own period 34.946 ns vs item 26 36.251: ratio 1.037 (research ~1.04, CONFIRMED).
