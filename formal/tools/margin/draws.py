@@ -31,6 +31,10 @@ ap.add_argument("--jobs", type=int, default=8); ap.add_argument("--tmax", type=i
 ap.add_argument("--wallcap", type=int, default=1800); ap.add_argument("--maxev", default="100000000")
 a = ap.parse_args()
 os.makedirs(a.out, exist_ok=True)
+if a.kernel in ("collatz", "collatz64"):
+    # one-operand kernels: mk_bnd_sim.py maps the operand n into BOTH the a and b slots, so "n,0" would drive n = 0
+    # (collatz(0) never ends). Research's gate hex gives "n 0": use n in both.
+    a.pairs = ["%s,%s" % (p.split(",")[0], p.split(",")[0]) for p in a.pairs]
 SIMX = os.path.join(a.out, "simx")
 if not os.path.exists(SIMX) or os.path.getmtime(SIMX) < os.path.getmtime(os.path.join(HERE, "simx.cpp")):
     subprocess.run(["g++", "-O2", "-std=c++17", "-o", SIMX + ".%d" % os.getpid(), os.path.join(HERE, "simx.cpp")], check=True)

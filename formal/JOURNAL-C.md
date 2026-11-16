@@ -3915,3 +3915,10 @@ breaks has 1.5-2.2 ns guarded slack in research's rule; there formal's failures 
 research's resolver absorbs (research 18:53: "a 1-40 ps pulse into a C-element never sets or oscillates in the gate
 model"). Guarded rule E is negative on 4-10 steers of every route while all these builds pass research's gates. Under
 PROGRAM bd19bb9b this decides nothing; the draws decide.
+
+### progress 20:17 -- c_draws1: xorshift 64/64 and 64/64; every collatz task 0/64 was MY harness bug (fixed; c_draws2)
+items 27 s2 and 33 s27: 64/64 PASS each (Wilson 95 % 0.94-1.00), last answer of xor19 mean 36.5 / 36.0 us.
+Collatz / collatz64: 64/64 "got []". c_drawdbg traced it: mk_bnd_sim.py (A) maps a one-operand kernel's n into BOTH
+slots, and draws.py drove research's hex words as (n, 0), so b = 0 overwrote n with 0 and collatz(0) never ends
+(same build, no draw: "27,27" answers 111 at 2.55 us, "27,0" never answers). Not a circuit result. draws.py now uses
+(n, n) for collatz kernels; c_draws2 reruns the collatz tasks (3-11, 15-17).
