@@ -5335,3 +5335,9 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   route-to-route spread decides how much of it the next cycle eats), every check clean on >= 30/32.
 - fxd_p (xorshift item 27, 32 routes): the max moves little (ucmpi1 9 -> 10, uxori2 7 -> 8 up; acks down); 20 of 64
   proposals keep one H row short (the known falseResult_9 rows). No xorshift round from it; fxu tests the ack.
+- fc64eq3_p (collatz64 h4, 32 routes x 2 corners, all verified clean): per-cell max uselect0 18 -> 12 (min 7), uaddi0
+  25 -> 23 (min 11), acks -1 to -4; the proposal pads umux2 1 -> 16 for its traced false-path A row (kept at 1 by hand)
+  and trims ULINK_N13_UACK 3 -> 2 (kept at 3 by hand: formal C8 / C9 name ulink_n13's latch enable as item 26's
+  binding race, kappa 0.26, the link of the bad nc64_7). h4s3p = h4s3 (item 30) + that; farm fc64sel3p.
+  PREDICTION: vs fc64sel3 paired -1.5 to -2.5 ns per iteration (uselect0 -6 x ~0.4 on a cycle where it binds on every
+  route, uaddi0 -2); E / H / I / hold_bits / TSE clean on >= 30/32.
