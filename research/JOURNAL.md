@@ -5225,3 +5225,10 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
 - itercost/README.md: item 25's line table on 28 routes (la_aggregate.py): the select ring is critical on 28/28,
   ulink_n14__1's select line 27.8 ns of it (rule E margin +13.4 ns, needs 1 element); datapath near-critical on 8,
   where uselect0's 16 elements cover 0.2 ns of logic + 2.0 ns of wire.
+### progress 02:57 UTC (ipow and collatz64 select links sized by E: farm fisel3, fc64sel3)
+- Worst E at select 0 per mux, both corners: ipow (fisel0_s, 31 routes) umux0 -587, umux1 -833, umux2 -578, umux3 -610;
+  collatz64 (fc64sel0_s, 28) umux0 -850, umux1 -1761, umux2 -511 (and umux2's traced false-path A row, -1022).
+  Sizes (h4 base, ~380-400 ps an element, >= ~250 ps over the worst row): ipow 15/8/23/9 -> 3/3/3/3 (h4s3);
+  collatz64 15/19/14 -> 3/6/3 (h4s3). Farm fisel3 / fc64sel3, every check.
+  PREDICTION: E clean on >= 30/32 each; latency vs the h4 base, paired: ipow -2.5 to -3.5 ns per iteration (sel0 -3.9),
+  collatz64 -1.0 to -1.7 (sel0 -1.9). If so, each is that family's next board candidate.
