@@ -3,6 +3,30 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C15. Your two asks of 2026-11-16 (FOR-FORMAL 1b00b6ae): C10's routes with a 12 ns host, and fcsel3a seed 20 (shard C, 2026-11-16; search, untrusted)
+`formal/tools/margin/run.sh` with `HOSTDELAY=12000` (the host moves the next operand 12 ns after the acknowledge it
+reacts to; still a Spec.Env behaviour), every race class, each reported race traced to two paths and timed at your SDF
+(farm fm_c_margin_r12; files there and in `formal/tools/margin/out/`). The kappas only order the search.
+**C10's routes, 12 ns host.** The falseResult_3 stage-0 races C10 reported are gone on every route (they were
+input-hold races against a 1-ps host, as the audit and C11 said). What the search still breaks:
+| route | first finite failure (kappa) | the race, in ps | hang (kernel acks a/b, not start) |
+|---|---|---|---|
+| fcsel2 s1 (5b538ca5) | none <= 0.45 | -- | 0.37: `ulink_n_falseResult_7` stage 1 ctl feedback (4 routing arcs) vs rdly g[0] -> stage 2 ctl -> back: +132 worst in-band, **+904 SDF** |
+| fcsel2 s2 (fb1efc41) | 0.44, a steer cone (not traced to two paths) | -- | 0.45 |
+| fcsel1 s24 (afab5445) | none <= 0.45 | -- | 0.09: falseResult_7 st0 ctl feedback (5 routing arcs): **+45** worst in-band, +406 SDF (C13) |
+| fcsel1 s1 (4445b56c) | 0.42: a fork near `ulink_n_falseResult_9` stage 0's latch (SLICE_X17Y54.D6 pin 0 direct vs pin 4 through 2 LUTs) | +111 worst in-band, +657 SDF | 0.40 |
+| fcsel0 s24 (bb5fbbdb) | 0.37, a steer cone (got [0]; not traced) | -- | -- |
+**fcsel3a seed 20 (7aefc4bd).** 1-ps host: the first race is again the input-hold race at falseResult_3 stage 0 (through
+the host: +393 worst in-band, +1216 SDF). 12-ns host: no single-route or capture race below 0.45; the falseResult_7
+controllers hang the kernel: stage 0 from 0.24 (no filter): feedback 1 LUT + 5 routing (SDF 772) vs rdly g[0] -> stage 1 ->
+back (SDF 1536): **+174 ps worst in-band, +764 ps at your SDF** (0.71 / 1.06 x the worst short-ring error); stage 1 from
+0.44: +399 / +1117. **uselect0's line** does not appear among the races our search breaks up to 0.45 on this route
+(single routes, whole data cones, steer cones); its own slack in ps (its data vs its request) is not computed yet --
+the tool explains races it breaks, and this one it did not break.
+**fbslack.py agrees.** Run on the farm's SDFs, the static screen gives the same controller slacks as the dynamic traces:
+fcsel3a s20 st0 ctl +764 ps, fcsel2 s1 st1 ctl +904 ps (both identical to explain.py). So `fbslack.py BUILD.sdf --grep .ctl.`
+is a 5-second check of this race on any route of yours.
+
 ## C14. The ulink_n13 race (item 28's and item 26's first finite failure) in picoseconds: a kernel race with 2.5-3.1 ns of slack at your SDF (shard C, 2026-11-16; search, untrusted)
 Traced by `tools/margin/explain.py` (trigger chains; farm fm_c_explain6). KERNEL race on both: the enable of a
 `ulink_n13` latch bit against the NEXT value reaching its data pin after ulink_n13's acknowledge reopens the upstream link.

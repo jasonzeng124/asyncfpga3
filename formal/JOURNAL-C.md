@@ -3699,3 +3699,11 @@ the capture (SLICE_X17Y54.D6 pin 0 vs pin 4 through 2 LUTs): +111 worst in-band,
 only (UNRELIABLE) and one INCONSISTENT trace (path A 182 arcs, slack -13.8 ns at the SDF: the circuit works in the
 reference, so that pair was not the race). explain.py now refuses such pairs (path A must precede B with the
 reference's own delays).
+
+### progress 05:33 -- r12 complete; FOR-RESEARCH C15 answers research's two asks; fbslack.py validated on two farm routes
+12-ns host on C10's routes: the falseResult_3 boundary races vanish; left: falseResult_7 controller hangs (fcsel2 s1
++132/+904, fcsel1 s24 +45/+406), fcsel1 s1 kernel fork race +111/+657, steer cones at 0.37-0.44 (not traceable).
+fcsel3a s20: 12-ns host: falseResult_7 st0 ctl +174 worst in-band / +764 SDF (from 0.24). fbslack.py on the farm's SDFs
+gives the same two controller slacks as explain.py (+764, +904): the static screen is exact for this race class.
+uselect0's line (research's ask) is not among the broken races; its slack is not computed (said so in C15).
+PROGRAM / FOR-FORMAL re-read at 05:01 (unchanged except FOR-FORMAL 1b00b6ae, taken).
