@@ -2359,3 +2359,13 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Own pipeline t126/item31.sh is queued after T126 (build variant colsel3a).
   - Note: the audit has no own static rule A (bundling) tool. Item 31's only big change is a bundling line (uselect0), so its evidence will be own GLS (oracle + latch capture monitors, 3 corners, 13 vectors) plus period. Research's rule A/A' clean rows are UNVERIFIED by own static means.
 - T126 item 30: own sdf **637ff02e = recipe**; usinkeq2 1. Period and GLS are running.
+
+### progress 05:12
+- New own tool t128/bundle.py: static bundling check of a fused op on the baked netlist.
+  - For each upstream link U and each downstream latch bit b: slack = (shortest en_U -> request side -> b's enable + en arc) - (longest en_U -> U latch -> combinational cone -> b's D + D arc).
+  - The request side is OR-join (conservative).
+- Item 28 (colsel3_20, uselect0 DELAY 16), uselect0 into ulink_n_falseResult_9 stage 0:
+  - min slack **+484 ps** at FAST_MIN and worst, +1169 SLOW_MAX;
+  - binding: the 1-bit ulink_n11 operand (e0) through the compare into the 32-bit select;
+  - n10__3 +614, n26 +655 (FAST_MIN); n19__4's data is unused.
+- Item 31 cuts this line to 7, so the check is needed on its route. t126/item31.sh is restarted to build now; GLS waits for T126.
