@@ -2780,7 +2780,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Each is condition +8000 with the META_INIT gate: no completion. ipow waits for the farm.
   - Owner-decision row updated. Not replayed (no META_INIT in own harness).
 
-### progress 16:20
+### progress 16:15
 - research d284c335a: the steer race (item 28 ucond_br7 condition +8000) is traced as a true deadlock with no X, so rule E's steer control is genuine.
 - Own replay T133 started:
   - +8000 on ucmpi2.uz_n36 -> ucond_br7.u LUT5/LUT6 A3 in a copy of own colsel3_20;
