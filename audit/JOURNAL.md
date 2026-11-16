@@ -2411,7 +2411,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - Restarted with ZACKS (t126/sel30.sh).
 - formal C 5b58c64dd queues a capture-cone farm on fcsel3a s20 (item 31's uselect0); no result yet.
 
-### progress 05:47
+### progress 05:43
 - research 6edc4d882 (research/data/selneg/README.md): 39 injected runs, 20 gate failures, every one flagged by E; 12 more flagged by E but passing.
   - Its reading for the loop-header muxes ("the select changes only at loop entry / exit ... a late select arms a join that has no request yet") matches own T125.
   - The 20 failures are not replayed by the audit (own replays: T118 collatz fcsel0 umux1 fails at FAST_MIN; T125 item 28 umux2 passes).
