@@ -5259,3 +5259,20 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
 - Farm fcsel3m_p / fxd_p / fc64eq3_p / fipowh4_p: STATIC_ONLY reruns of each family's current sizes with the fix, for
   per-cell-max proposals on 32 routes. PREDICTION (collatz): uselect0 max over routes 8-10 (n_need 6-9 as routed on
   item 25's 8 routes), i.e. -2.2 to -3.1 ns on the critical cycle if it stays the binding line.
+### progress 03:56 UTC (selneg, +3000 ps: first 6 of 14 -- E and the gate disagree in the safe direction)
+| route (board item), mux | select line | rule E on the injected SDF (worst / nom) | gate FAST_MIN / worst / SLOW_MAX |
+|---|---|---|---|
+| xorshift item 27 s2, umux0 | ulink_n12__0, 5 | -1753 / -1566 | 17/17, 17/17, 17/17 |
+| xorshift item 27 s2, umux1 | ulink_n12__1, 8 | -318 / -21 | 17/17 x 3 |
+| xorshift item 27 s2, umux3 | ulink_n_index_15, 5 | -1527 / -1359 | 17/17 x 3 |
+| collatz64 item 26 s25, umux2 | ulink_n_index_11, 14 | none (+1941 at umux2: absorbed) | 14/14 x 3 |
+| ipow item 19 s1, umux0 | ulink_n17__0, 15 | none (+2575: absorbed) | 17/17 x 3 |
+| collatz item 28 s20, umux2 | ulink_n_index_11, 3 | -2079 / -1962 | 13/13 x 3 |
+- Where E stays positive the gate passes (agreement). Where E is -1.4 to -2.1 ns the gate still passes at every corner,
+  cycle counts unchanged: so far no injected select race at +3000 has made any gate fail on the board routes. Rule E
+  compares the select with the select link's own request (ctl_req at the join); the join fires at the later of
+  ctl_req and the data request x_req, and on these muxes x_req evidently arrives > 2 ns after ctl_req, so a select
+  that is late against ctl_req is still early against the join's firing. E is pessimistic by that gap. Not usable
+  to shorten anything: x_req's lead is not bounded statically (different launches); the gate's vectors only sample it.
+- So the negative control needs a bigger defect: selneg2 (+6000 / +12000) is that. The collatz fcsel0 s24 control
+  (select line 0, +3000 -> no completion at FAST_MIN) remains the only gate failure on record.
