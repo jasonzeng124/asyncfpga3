@@ -5694,3 +5694,14 @@ Next:
   On 11-15 the default gate showed "no completion"; with the start-up X removed it is a clean wrong-value failure.
   Rule H flagged that build (-14260 ps at the stage). So the hold checks keep a genuine known-bad build; the
   select-arrival-at-the-join checks (E at loop-header muxes) do not; rule M has genuine ones.
+### progress 10:58 UTC (selneg3: with a defined start-up, every select-join injection passes)
+- Farm selneg3 (selneg2's arcs, +6000 / +12000, gate with +META_INIT=0), 8 of 14 tasks: xorshift umux0-3, ipow umux1 /
+  umux3, collatz umux1 / umux2 -- PASS at FAST_MIN and worst at both sizes, every one. Including xorshift umux1 +6000,
+  which gave FAIL 16/17 under the default gate: that wrong value was start-up X reaching the data too.
+- Reading: on these kernels a select that reaches its mux's request JOIN late, by up to 12 ns, only delays the token
+  (formal C17's result, now reproduced in research's gate). Rule E at a bd_mux join is then a check without a failing
+  build -- by the owner's rule, a blanket rule unless a mux where both requests can be pending together exists
+  (none found in these four kernels: every mux is a loop header (init vs loop-back) or a loop exit). Rule E at a steer
+  (combinational req . s) is a different race and keeps its place only if it too fails somewhere; not yet tested.
+  Proposal for the owner: drop rule E at bd_mux joins whose requests are exclusive (shown per mux), keep rule M (data
+  side, genuine failures) and the hold checks; test steer E with the same construction next.
