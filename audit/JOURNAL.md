@@ -2561,3 +2561,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The late outputs are absorbed in own GLS.
   - Item 29's REPORT row now carries research's provisional status and the own absorption figures.
 - T126f item 32 worst: 14/14; MUXMON umux0 min 45 ps, 780 per-pin late.
+
+### progress 07:16
+- research 4e1c8f784 (journal): rule M misses do race in simulation, M passes do not; the static size is pessimistic. Consistent with own T126d/g and T129. Not a board claim.
+- T126f item 32: SLOW_MAX GLS and the later steps are running.
