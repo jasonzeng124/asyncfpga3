@@ -3,7 +3,8 @@
 #   COL = max (SLOW_MAX) | min (FAST_MIN) | worst (delay chains 0.21, CARRY4/F7F8/FF 1, rest 0.288, + M scatter:
 #   region 0.02, wire 0.126, the measured residual -- JOURNAL 2026-11-04 00:24 / 2026-11-05 00:09).
 # Netlist decoded from the .bit (fasm_equiv verdict), prjxray SDF, fid, ps7_bench.v FIXED mode, +FCLK_PS=12000
-# (83.3 MHz), 2 runs per vector.  Verdict: every batch completed 2/2 and odata == EXPFILE line (derived from the C).
+# (83.3 MHz), 2 runs per vector.  Verdict: every batch completed 2/2, its runs agreed (mism_st bit 0 clear; added
+# 2026-11-16) and odata == EXPFILE line (derived from the C).
 set -euo pipefail
 HW=$(cd "$1" && pwd); D=$2; mkdir -p "$3"; W=$(cd "$3" && pwd); VEC=$(readlink -f "$4"); EXP=$(readlink -f "$5"); COL=$6
 R=$(cd "$(dirname "$0")/../../.." && pwd); G=$R/cells/gls
@@ -29,7 +30,13 @@ exp = open(sys.argv[1]).read().split(); got = {}
 for l in open(sys.argv[2]):
     if l.startswith("BENCHRES"):
         d = dict(re.findall(r"(\w+)=(\S+)", l)); got[int(d["batch"])] = d
-ok = sum(1 for j, e in enumerate(exp) if j in got and got[j]["odata"] == e and got[j]["completed"] == got[j]["n"])
+# mism_st bit 0 = the bench's FIXED-mode repeatability latch: the batch's runs did not all return the same value. odata is
+# the LAST run's result only, so a wrong first run followed by a right one passed this gate until 2026-11-16 (farm
+# steerneg: 5 such runs judged PASS). A batch counts only if every run agreed AND the last one equals the oracle.
+mm = [j for j in got if int(got[j].get("mism_st", "0"), 16) & 1]
+ok = sum(1 for j, e in enumerate(exp) if j in got and got[j]["odata"] == e and got[j]["completed"] == got[j]["n"]
+         and j not in mm)
 cyc = sum(int(got[j]["cycles"]) for j in got)
-print("%s %d/%d cycles %d %s" % ("PASS" if ok == len(exp) else "FAIL", ok, len(exp), cyc, sys.argv[3]))
+print("%s %d/%d cycles %d %s%s" % ("PASS" if ok == len(exp) else "FAIL", ok, len(exp), cyc, sys.argv[3],
+      (" | MISMATCH in batch(es) %s" % ",".join(map(str, sorted(mm)))) if mm else ""))
 PY

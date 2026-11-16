@@ -5780,3 +5780,23 @@ on a ctl input in our GLS (already on the Next list).
   says the condition reaches those steers 4.9 ns after their request (launch ulink_n1__1.ctl, req 7313 / sel 12203 ps at
   worst), yet no mis-steer shows. Tracing the steer on 5 vectors at FAST_MIN (tr_entry) to see what the request waits
   for. The zt1 PREDICTION (the collatz entry control fails on col14) is now doubtful for the same reason.
+### progress 19:13 (GATE BLIND SPOT: the verdict read only the last run of each batch; fixed; regate1 submitted)
+- Trace tr_entry (tx27_2, ucmpi0 -> ucond_br2/3/4 +8000, FAST_MIN, 5 vectors): the mis-steer DOES happen. Batch 1
+  (rounds 0 -> 1): ucond_br3's false output fires at 4212390 ps, the false link acknowledges (4213754), then the true
+  output at 4216941: both branches got the seed. Batch 3 (-> rounds 0): the reverse. The stray tokens wait at mux3 /
+  mux1's unselected inputs and are read by the next call that selects that input, so from batch 3 on every batch's
+  FIRST run returns the previous call's value and its SECOND run (same operands) the right one.
+- bench_gate.sh judged only odata (the last run) and completion, so it passed this build. The bench's FIXED-mode
+  repeatability latch (mism_st bit 0: the batch's runs disagreed) was set on 16 of 19 batches. The board script
+  (xsdb_bench_gen.tcl) does assert it; the GLS gate never did.
+- Farm results re-read for mism_st: 5 steerneg runs the gate called PASS had it set (xorshift ucond_br3 / br4 +8000
+  worst / min, ipow ucond_br2 / br3 +8000 both corners, ipow ucond_br8 +8000 worst). So rule E at the entry steers DOES
+  have failing builds; the "12 steers pass" in the table above was the gate's blind spot, not E's pessimism.
+- Fix: bench_gate.sh fails a batch whose runs disagree (prints "MISMATCH in batch(es) ..."). Checked on the two local
+  runs: the injected one FAIL 3/19 (mismatch batches 3-18), the clean one PASS 19/19.
+- Consequence: every gate PASS made by bench_gate.sh before now (board items 23-34 and their farm families) did not test
+  run-to-run agreement. eval_task.sh does not keep gate BENCHRES lines, so the past farm gates cannot be re-read. Farm
+  regate1 (96 tasks): fxa (item 33), fxd (item 27), fisel3m (ipow item 29), 32 routes each, 3 corners, xorshift on xor17
+  and xor19, the fixed verdict, every BENCHRES line kept. zt1 (collatz / collatz64) keeps its BENCHRES lines and is
+  re-judged from them. PREDICTION: clean routes show no mismatch (a stray token needs a race that the static rules
+  cover), and the steerneg control families do.
