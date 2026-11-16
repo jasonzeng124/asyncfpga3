@@ -1,0 +1,20 @@
+w=0: physical (NOT a Spec counterexample: partial-ack deadlock, Spec.Env vacuous): kappa 0.28  race SLICE_X14Y30.B6 pin 102 from SLICE_X16Y32.C5 (run at w=0) RESULT MISMATCH: want [2064144800, 2008045182, 691148861, 3532304609] got [2064144800] [livelock: eventually periodic, simx --periodic (untrusted)]
+witness (no cut): RESULT MISMATCH: want [2064144800, 2008045182, 691148861, 3532304609] got [2064144800]
+reference (cut at 0, all fast): RESULT OK: want [2064144800, 2008045182, 691148861, 3532304609] got [2064144800, 2008045182, 691148861, 3532304609]
+T* = 425833 ps (29 simulations): the full run cut at T* fails, cut at T*-1 passes (dumps below end at T*+20 ns)
+RUNT: SLICE_X16Y32.C5 [ucond_br9.u$LUT5] pulses 6/11/8 ps wide at 428840 ps in the failing run: narrower than H_RUNT's w = 20 (a w = 20 run filters it)
+first nodes to diverge: INT_L_X12Y32/WL1END0(pip)@425897, CLBLM_L_X12Y32/CLBLM_IMUX32(pip)@425925, CLBLM_L_X12Y32/CLBLM_M_C1(pip)@425925, CLBLM_L_X12Y32/CLBLM_LOGIC_OUTS22(pip)@426079, CLBLM_L_X12Y32/CLBLM_M_CMUX(hop)@426079, SLICE_X16Y32.C5 [ucond_br9.u$LUT5](lut5)@426079, SLICE_X16Y32.C6 [ucond_br9.u$LUT6](lut6)@426085, CLBLM_L_X12Y32/CLBLM_LOGIC_OUTS14(pip)@426085
+  storage diverges: SLICE_X16Y32.D6 [ulink_n_trueResult_12.ctl.u.u] at 426198 ps
+  storage diverges: SLICE_X14Y30.B6 [ucontrol_merge1.uarb1.ustate$LUT6] at 426274 ps
+  storage diverges: SLICE_X16Y32.A6 [ucontrol_merge0_rlink.ctl.u.u] at 426481 ps
+  storage diverges: SLICE_X16Y28.C6 [ucontrol_merge0_f.u.genblk1.g2.u.u] at 426695 ps
+  storage diverges: SLICE_X14Y33.A6 [ulink_n_index_15.many.stage[0].u.ctl.u.u] at 427008 ps
+  storage diverges: SLICE_X14Y33.B6 [ulink_n_index_15.many.stage[0].u.lat.odd.u] at 427093 ps
+
+DECIDED AT: SLICE_X16Y32.D6 [ulink_n_trueResult_12.ctl.u.u] (lut6), first differs at 426198 ps (cut at T* vs T*-1)
+  pin 0 <- INT_L_X12Y32/GND_WIRE                     input flips near: cut T* [] | cut T*-1 []
+  pin 1 <- SLICE_X17Y29.A6 [ucontrol_merge0.uarb1.ua2.u]  input flips near: cut T* [423379] | cut T*-1 [423379]
+  pin 2 <- SLICE_X7Y45.AQ                            input flips near: cut T* [] | cut T*-1 []
+  pin 3 <- SLICE_X16Y32.C6 [ucond_br9.u$LUT6]        input flips near: cut T* [426096, 426114] | cut T*-1 [426096, 426113]
+  pin 4 <- SLICE_X16Y32.D6 [ulink_n_trueResult_12.ctl.u.u]  input flips near: cut T* [426209, 426227, 426292, 426310, 426375, 426393, 426458, 426476, 426541, 426559, 426624, 426642] | cut T*-1 [426209, 426226, 426292, 426309, 426375, 426392, 426458, 426475, 426541, 426558, 426624, 426641]  (own output)
+  pin 5 <- INT_L_X12Y32/GND_WIRE                     input flips near: cut T* [] | cut T*-1 []
