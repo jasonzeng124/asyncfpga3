@@ -5525,3 +5525,10 @@ Next:
 - Enable replication on wide data links (the source of the mux lateness: a 64-bit latch enable net) -- PROGRAM goal-2 lead.
 - Rule I / A downstream composition: a check that a sender's lateness (M miss) is absorbed by the receiver's margins.
 - ucontrol_merge0_olink's request line (xorshift, on the cycle, RTL default 4) feeds a stage no rule audits: a check gap.
+### progress 07:47 UTC (xorshift item 27's mux race in simulation: none; ipow by rule M: static-clean)
+- mux_settle on x27_2 (item 27's board route) at FAST_MIN, vec_xorshift_hold.hex (40 loop tokens): no late data change at
+  any mux; umux1 (rule M -13 nom / -117 worst) leads z_req by >= 2334 ps, umux2 by >= 421. Item 27's M row is
+  static pessimism on this route (dynamic margin > 2 ns), unlike collatz64's umux0 (late on 77% of tokens).
+- fisel3m (ipow item 29 + mux delays by M / A': umux0 6, umux1 8, umux2 7, umux3 4), 30 of 32 routes: static A / A' / E / M
+  clean at both corners on every route so far -- the first ipow family with no static row at all (umux3's old -1.4 ns
+  false-path row is now A', +ve at 4); gates all pass; latency vs fisel3 -0.19 median (noise).
