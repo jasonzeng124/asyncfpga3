@@ -5653,3 +5653,9 @@ Next:
 - Validation on item 28's route at FAST_MIN (running): select-join +3000 with META_INIT=0 and =1 (PREDICTION: both PASS
   13/13: the join race only delays); select -> umux1.udat +8000 with META_INIT=0 (negative control, PREDICTION: FAIL, wrong
   values as traced); the clean route with META_INIT=0 (PREDICTION: PASS, cycles 2906 as without it).
+### progress 09:39 UTC (+META_INIT validation: negative control holds; the join injection STILL hangs -- X was not all of it)
+- Item 28's route, FAST_MIN: clean route with META_INIT=0 PASS 13/13 (cycles 2906, as without); select -> umux1.udat +8000
+  with META_INIT=0 FAIL 6/13 (the real failure stays); select -> umux0 join +3000 with META_INIT=0 and with =1: no batch
+  in 27 CPU-min (clean ~8), stopped. So the start-up X explained the first X in the earlier trace, but removing it does
+  not make the join injection pass: something else stops the run. My correction (the join failures are "only" start-up
+  X) is itself too strong; tracing with META_INIT=0 (tr_c28u0j0). fullstack_dump.sh also takes GATE_PLUSARGS now.
