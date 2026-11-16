@@ -2942,3 +2942,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - 3 of 6 so far. Not monotone in CARRY4 alone, so the per-draw scatter seed matters too.
   - In research's own model the x0.40 build carries runts on a large fraction of draws, all invisible to the oracle verdict.
 - research 79137f779: lock only.
+
+### progress 23:30
+- T136 own draws dr7-dr12: all clean (0 steer runts), oracle 17/17. Their CARRY4 is 0.30-0.66.
+- Tally 3 / 12 draws with ucond_br2 / br5 runts; all have CARRY4 >= 0.67.
+- research aa1853bd3: lock only.
