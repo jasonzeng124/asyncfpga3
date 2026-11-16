@@ -2670,7 +2670,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - Formal's search finds no failure on items 30/31 up to 0.45. That agrees with own capture margins (T129); formal does not check the request-edge contract (T130).
 - Watcher: duplicate watcher processes from earlier restarts had kept re-reporting old commits. All killed; exactly one runs now.
 
-### progress 08:46
+### progress 08:45
 - T131 printed nothing: the stalled run is killed by its timeout and vvp's piped stdout is lost (T118 likewise printed no batch lines).
   - mon_x now $fflush-es and $finish-es itself at 5 us (research puts the first X near 1.65 us). Rerun.
 - research c5cbaaf82: fxa complete (xorshift 18.9 ns, M rows as its family); collatz64 entry-link delay rejected (breaks hold). Exploratory.
