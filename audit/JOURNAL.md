@@ -2554,3 +2554,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - FAST_MIN 14/14;
   - MUXMON umux0 select 21 ps before z_req, 1300 per-pin late changes (as items 30/31).
   - GLS continuing.
+
+### progress 07:06
+- research 242b20ce1 / 371f84b43: rule M miss on item 30 is real in simulation (352/458 tokens, up to 155 ps); items 27/29/30/32 are provisional.
+- Own LATCHMON over all latches: item 29 >= 4246 / 5778 / 11430; item 32 >= 7406 / 10360 (FAST_MIN / worst).
+  - The late outputs are absorbed in own GLS.
+  - Item 29's REPORT row now carries research's provisional status and the own absorption figures.
+- T126f item 32 worst: 14/14; MUXMON umux0 min 45 ps, 780 per-pin late.
