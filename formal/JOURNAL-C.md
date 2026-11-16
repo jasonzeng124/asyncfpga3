@@ -3537,3 +3537,15 @@ gcd_ps, cone 0.61: latch ulink_n_index_97 st0 lat.pair[0] (SLICE_X17Y31.D6). Spl
 routing, 6447 ps fast-mid, 13328 ps SDF. Slack +5.9 ns fast-mid, +12.1 ns SDF (1.9 x the worst short-ring error).
 Caveat printed with it: path A is the reference's critical data path; the adversary slows the whole cone, and the
 path that loses in the witness can be a longer one inside it (not traced yet).
+
+### progress 04:08 -- c_margin_all1 (all classes, today's checks), 4 of 8 back: partial-ack hangs at ulink_n_falseResult_7 st0 ctl, fcsel1 s24 from kappa 0.09
+| build | finite, Spec-admissible (w 20 / w 0) | race (names) | PHYSICAL partial-ack hang (Spec-vacuous) |
+|---|---|---|---|
+| item 25 | 0.39 / 0.39 | ulink_n_falseResult_3 st0 pair[16] (LUT5) vs its ctl -- the w 20 row the old checks dropped | 0.38 (w 0): steer cone at ulink_n_index_11 st0 ctl |
+| item 27 | 0.39 (capture: ucontrol_merge0_olink latch) / 0.35 (steer cone into ulink_n_index_15 st0 ctl) | | 0.28: steer cones at ucontrol_merge1.uarb1.ustate (w 20) and ulink_n_trueResult_12 ctl (w 0) |
+| item 26 | 0.26 / 0.26 (unchanged: ulink_n13 pair[6] vs ulink_n13.ctl) | | 0.37: steer cones at ulink_n28 ctl / ulink_n_falseResult_7 st0 ctl |
+| fcsel1 s24 | 0.27 / 0.27 (ulink_n_falseResult_3 st0 pair[10]) | | **0.09** (w 20; 0.12 w 0): ulink_n_falseResult_7 st0 ctl reading its OWN output late (pin 2) |
+item 28's env-rejected 0.36-0.37 rows (C11 caveat) were the same element, ulink_n_falseResult_7 st0 ctl (own feedback).
+So one controller, ulink_n_falseResult_7 stage 0, recurs as the source of hangs where the kernel acknowledges a/b but
+not start and stops (on fcsel1 s24 from 0.09). The frozen Spec calls these vacuous (A: SpecWF.env_unsat_partial_ack);
+under A's proposed SpecWF they are counterexamples. Farm c_explain4: their picosecond form (fcsel1 s24, item 28).
