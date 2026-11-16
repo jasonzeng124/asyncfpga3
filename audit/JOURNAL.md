@@ -2199,3 +2199,6 @@ Research 81721ea2: corrected rule-E re-check complete: no board item's own route
 
 ### note 08:15
 Research fa196d11 (owner's second lead, delay-line table on 28 routes): spot check -- own rule E on item 25's board route at umux1, launch ulink_n14__1 stage[1]: +13.2 ns worst, inside research's +12.1..14.4 ns; the table's prediction is what item 28 measured. REPORT row. Research 7ab6b0d8: per-family select negative controls by SDF injection on the board candidates' routes (farm) -- to check when back.
+
+### note 08:30
+Owner 7acb3a72 (formal PROGRAM): kappa is not a result; report each binding race in picoseconds (paths from the common launch at nominal SDF, cells vs routing), tied to research's rule row, filter on/off, >= 4 routes, scaled by the measured August ring data (median 8.5 % error). Matches the audit's T119 / T120 experience. Recorded in REPORT's owner-decisions table. Research c44eae7b / 02766762: select links at 3 for xorshift / ipow / collatz64 (farm, sized by rule E).
