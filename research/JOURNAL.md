@@ -5304,3 +5304,17 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   excludes the two known bitstream-defect classes from pairing (ffmux flag, F7 select constant).
 - Next for both: the corner_audit proposal round with the A' fix on top (fipowh4_p, fc64eq3_p): ipow's ushrsi0 / ucmpi2
   and collatz64's uaddi0 / uselect0 are sized well above what corner_audit needs as routed (itercost README).
+### Blanket rules: status 2026-11-16 (update of yesterday's inventory)
+| rule | status today | measured cost / gain |
+|---|---|---|
+| never shorten a select link / mux delay | REPLACED by rule E (arrival) + H / I / hold_bits / TSE (hold) on all four families; items 28-30 rest on it | collatz -10.9 (item 28), ipow -2.7 (item 29), collatz64 -1.6 (item 30), xorshift ~0 (fxsel3, rejected) ns / iteration |
+| the cell's request join counted as data in A' (corner_audit) | a tool bug, not a rule, but it acted as one ("A' refused" = keep the bundled-pairing size): FIXED | collatz uselect0 16 -> 7 proposed; one route -4.5 ns (farm fcsel3a running) |
+| a sized line keeps >= 1 element (--floor 1) | not measured yet | -- |
+| missing sizes.vh macros at RTL defaults | the proposal rounds add them (farm_max_sizes.py adds proposal-only macros) | fcsel1m: -0.32 for ULINK_N10__4_UACK |
+| K = 6 storage crossings in skew.py's walk | open (a soundness question, the unsafe direction) | -- |
+- Select negative controls (owner: a check earns its place by failing): selneg, +3000 ps on the select into each mux's
+  joins on each board candidate's route: the gate failed (no completion within 50 min, clean ~10) on 4 of 13 runs
+  (xorshift umux2, ipow umux1, collatz umux0 / umux1), all at FAST_MIN (collatz umux0 also at worst). Rule E flagged
+  every one of the 4 (-754 to -1952 ps). No gate failure without an E row. E also flagged 4 injections the gate passed
+  (E stricter, never looser). Local re-run of collatz umux0 at FAST_MIN running to confirm the "TIMEOUT" is a hang in
+  the simulation and not a compile / lock artefact; selneg2 (+6000 / +12000) queued.
