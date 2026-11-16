@@ -2687,3 +2687,12 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research af54e68e1: collatz64 rule M control, local (M -7528, E clean, gate **no completion**).
   - Caveat from T131: a no-completion can be start-up X propagation, not a race. Only research's traced wrong-value controls (8745e2d8a) are shown to be genuine. Not replayed.
 - research 9c69a2bc2: journal summary notes the E-control correction.
+
+### progress 09:14
+- T126j item 29 v2: SLOW_MAX 17/17, 0 violations, min latch setup 11565.
+  - Own slope 24.69 / 34.87 ns/iter vs item 19 27.88 / 39.23: **ratio 1.129 / 1.125** (research ~1.12). CONFIRMED.
+  - z_data monitor and rules H/E are running.
+- research 1f945f33a queues **BOARD-QUEUE item 33**: xorshift item 27 + datapath proposal (fr4a), seed 27, sdf 7f0c0592, 18.9 ns, ratio ~1.03 over item 27.
+  - Research claims its rule M rows (umux1 -113 / -192, umux0 -71) are pessimism: "mux data leads z_req by >= 1042 ps (FAST_MIN) on every token".
+  - That is the same kind of claim T130 refuted for item 31.
+  - Own pipeline t126/item33.sh: build now; then own z_data monitor (FAST_MIN and worst), 3-corner GLS, period, rules H/E.
