@@ -5183,3 +5183,25 @@ netlist's fasm.sdf). Gate = bench_gate.sh, fid model, 13 vectors.
   line until it races (no shortening down to 0 raced on any family); and "0/13" is non-completion, not a wrong value.
 - My dynamic select_arrival.py was not run on these (the dumps were the plain route); its disagreement with the audit's
   monitor stays open.
+
+## Session 2026-11-16 02:51 UTC -- E re-check complete; select-at-0 flagged by rule E on every family; per-family select negative controls
+Toolchain: nextpnr 9c732bc6303458df (patches.sha 789a7120c912d393), toolchain.sh OK   Seeds: farm 1-32 per request
+Lock: previous session (21:36 UTC) never cleared it; 5 h stale, taken.
+Read: audit T117 (item 28 CONFIRMED on its board seed incl. pin-level select arrival), T118 (collatz select negative
+control CONFIRMED; the simulated arrival monitor alone does not catch it, static E does), T119 / T120 (formal's item 26
+and fcsel0 witnesses NOT reproduced in the audit's GLS; T120b: falseResult_3 is the input n, i.e. an input-hold race
+against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (xf2_1 kappa* 0, item 23 > 0.32).
+### progress 02:51 UTC (overnight farm: rule E re-check complete, and select links at 0 per family)
+- Rule E rows (corrected summary) on the last families: item 23 (fxf4_s) 0 / 29 routes; item 27 (fxd_s) 1 / 32 (seed 27,
+  steer ucond_br8 -118 ps worst; board seed 2 clean); item 19 (fipowrh_s) 0 / 28; ipow h4 0 / 32. With yesterday's
+  families: no board item's own route has an E row. BOARD-QUEUE's UNKNOWN note closed.
+- Select links at 0, corrected static summary (fx/fi/fc64/fcsel0_s, same seeds as the gated runs):
+  | family | routes with E < 0 (nom / worst) | worst E | cells | gate (earlier, 3 corners) |
+  |---|---|---|---|---|
+  | xorshift fxsel0 | 31 / 31 of 31 | -984 | umux0-3 (+ steers br6/8/9 on a few) | 27/27 PASS |
+  | xorshift fxsel1 | 22 / 22 | -638 | umux0-3 | 24/24 PASS |
+  | ipow fisel0 | 31 / 31 | -833 | umux0-3 | 30/30 PASS |
+  | collatz64 fc64sel0 | 28 / 28 | -1761 | umux0-2 (+ A rows -1022) | 21/21 PASS |
+  | collatz fcsel0 | 29 / 29 | -902 | umux0-2 | 23/23 PASS |
+  So on every family, the select at 0 is a static arrival violation that the gates do not turn into a failure (as
+  on collatz). Rule E is the check that sizes selects; whether it can fail where the gate also fails is next.

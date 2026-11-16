@@ -22,7 +22,11 @@ is back, the E status of items 19 and 22-27 is UNKNOWN.
 Back so far: item 26 (fc64eq family) -- its board seed 25 has no E row; 2 of 30 routes have steer E rows (-191, -250 ps
 worst). Item 24 (fc64nl family): no E row on 29 routes.
 Item 25 (fceq family, nl4): no E row on 28 routes; nl6 (fceq2): none on 30; collatz64 h4 (fc64eq3): none on 32; item 22
-(fcolsz2): none on 29. Still out: items 19, 23, 27 (farm queue).
+(fcolsz2): none on 29. 
+**2026-11-16: the re-check is complete.** Item 23 (fxf4 family): no E row on 29 routes. Item 27 (fxd family): one E row
+on 32 routes (seed 27, steer ucond_br8 -118 ps at worst); its board seed 2 has none. Item 19 (ipowrh family): no E row
+on 28 routes (its rule A rows are umux3's traced false path, as recorded); ipow h4: none on 32. So no board item's own
+route has a rule E row; the E status of items 19 and 22-27 is now KNOWN and clean on each board seed.
 
 **2026-11-15 (later): the hold rows are being closed by pad rounds on 32 routes per family.** Every route clean of H / I
 rows (non-defect routes): collatz n == 2 with nl6 (fceq2, 30/30), ipow with h4 (fipowh4, 23/23), xorshift lever 8 with
