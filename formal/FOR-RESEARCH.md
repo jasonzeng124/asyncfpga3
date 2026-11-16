@@ -3,6 +3,47 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C19. The "steer-cone" failures are runt request pulses into a link controller, at the edge of the 20-ps filter (shard C, 2026-11-16; search, untrusted)
+**Problem.** Since C11 I have reported failures from "steer cones" (every arc into a steer/merge LUT slowed at once,
+host 2 ns) at kappa 0.35-0.44, without naming the race. explain.py looked at the storage LUT where the failure
+surfaced, and that LUT was not where the run went wrong. **New tool:** simx `--tcut T` keeps the slowed arcs slow
+only for input changes before T. `formal/tools/margin/tcut.py` bisects T until run(T) fails and run(T-1) passes;
+the first storage LUT that then differs is where the outcome is decided. It also traces the deciding pulse upstream
+(`run.sh TCUT=1`). Farm fm_c_tcut1 (same routes as c_min1, builds rebuilt from your recipes), plus a local run on
+item 25.
+
+**Finding.** Every one of these failures has the same shape. A pulse 20-41 ps wide leaves a steer or merge LUT and
+reaches a link controller's request pin while the request it gates is already high. In formal's transport-delay
+model the pulse then circulates in the controller's own feedback loop (it oscillates with a period of 68-128 ps)
+and the run fails.
+| build | kappa (w 20) | pulse source -> controller | pulse width |
+|---|---|---|---|
+| item 27 xorshift s2 | 0.28 (PHYSICAL hang), 0.42 | ucond_br9 (SLICE_X16Y32.C6) -> ulink_n_trueResult_12.ctl | 37 / 32 ps |
+| fcsel3m s2 | 0.37 | ucond_br5 (SLICE_X18Y26.C6) -> ulink_n_trueResult_4 st0 ctl | 20 ps |
+| fcsel0 s24 | 0.37 | ucontrol_merge1.udly.chain.g[1] (SLICE_X18Y24.C6) -> ulink_n_index_11 st0 ctl | 20 ps |
+| item 25 collatz s24 (local) | 0.62 | compare-tree F8 glitch -> SLICE_X16Y34.A5 -> ulink_n_falseResult_3 st0 ctl | 41 ps |
+| item 25, w 0 | 0.38 | ucond_br6 (SLICE_X16Y26.A5, out = !A1 & A2, inputs 3 ps apart) -> ulink_n_falseResult_7 st0 ctl | 1 ps |
+
+On item 25 (the case traced end to end) the steer's condition comes from a compare tree whose F8 mux glitches for
+29-47 ps (its select and its data input arrive at different times). In the all-fast reference that glitch reaches
+the steer about 900 ps before the request, and the steer masks it. With the cone at 1.62 x fmax it arrives after the
+request, so the steer passes it on as a request pulse. This is your rule E (the select or condition reaches the
+steer before the request it gates), broken by a glitch rather than by a late final value.
+
+**What this means.**
+- Two of the w=20 rows fail on pulses EXACTLY 20 ps wide, the H_RUNT threshold. The others are 32-41 ps. These
+  kappas measure the filter setting as much as the circuit. At w 0 the same cones fail on 1-ps pulses.
+- Whether such a pulse sustains an oscillation in a LUT feedback loop on silicon is a question about the device, not
+  about routing. Formal's model says yes for any pulse wider than w, because it has no pulse shrinkage. These rows
+  should NOT be read as races with a picosecond slack, and I do not rank builds on them. The binding races I
+  reported with picosecond slack (C13/C16 feedback, C11/C18 latch holds) are two-path races and are unaffected.
+- A question for you: can your GLS show a 20-40 ps pulse on a ctl input (`ulink_*.ctl` pin from a cond_br / merge
+  delay LUT)? If your gate passes such pulses with transport interconnect, a forced one (a pulse injected on
+  ucond_br9's output while ulink_n_trueResult_12's request is high) would show whether your model also oscillates.
+Files: fm_c_tcut1/*/tcut_*.txt on claude/cluster; tool formal/tools/margin/tcut.py; JOURNAL-C 07:2x-07:4x.
+**Correction to C11/C15 wording:** the c_min1 explanations of minimised w=0 rows ran the wrong row (explain.py took
+the w=20 row's arc set). Their "not a two-path race" verdicts are void; this item replaces them.
+
 ## C18. Board candidates 29-32 (your FOR-FORMAL 5feabe72), with your host and with a 1-ps host (shard C, 2026-11-16; search, untrusted)
 Farm fm_c_margin_bq29: every race class, each broken race traced at your SDF; hosts at 1 ps and 12 ns; files in
 `formal/tools/margin/out/farm_bq29_*`. Kappas only order the search.

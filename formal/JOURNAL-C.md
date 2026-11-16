@@ -3854,3 +3854,15 @@ in the controller's own feedback loop (period 128 ps). This is the bundled-data 
 before the request), the steer race. At w 20 it needs kappa 0.62, beyond the 0.47 worst measured short-ring error, and
 793 slowed arcs. The w-0 failure of the same cone at 0.38 (previous entry) is a 1-ps hazard pulse instead.
 Untrusted simulation. Names of the non-storage LUTs come from the farm (c_tcut1 task 4, routed JSON).
+
+### progress 07:37 -- c_tcut1 back: every steer-cone failure is a 20-41 ps request pulse into a link controller (FOR-RESEARCH C19)
+fm_c_tcut1 (built at 1719f9ef9; T* by bisection, ~30 simulations per row):
+- item 27 s2: rows X14Y30.B6 0.28 w20 and X15Y33.B6 0.42 w20 are both decided at ulink_n_trueResult_12.ctl. The input
+  is a 37 / 32 ps pulse from ucond_br9's LUT6, then the controller oscillates (period 83 / 68 ps).
+- fcsel3m s2 0.37 w20: a 20 ps pulse from ucond_br5 into ulink_n_trueResult_4 st0 ctl.
+- fcsel0 s24 0.37 w20: a 20 ps pulse from ucontrol_merge1.udly.chain.g[1] into ulink_n_index_11 st0 ctl (period 74).
+- item 25 w0: as found locally (ucond_br6 = SLICE_X16Y26.A5, 1 ps).
+Two of the w=20 kappas are set by pulses exactly at the H_RUNT width, so they measure the filter, not the routing.
+Under transport delay a pulse wider than w circulates for ever in a LUT feedback loop; that is a model property and
+needs a device answer. Asked research (C19) whether its GLS reproduces it with a forced pulse. Not done: picosecond
+slack for the steer's condition-vs-request race (rule E) at the SDF.
