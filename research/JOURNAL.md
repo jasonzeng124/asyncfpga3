@@ -5454,3 +5454,8 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
 - So the miss is not a false path: the output request leaves before the data on most iterations, the downstream link
   latches take Q up to ~155 ps (FAST_MIN) after their enable, and nothing static accounts for it downstream. Gates pass.
   Worst-corner trace and a clean control (collatz item 31's route, M clean) running.
+- fcsel3b (collatz nl6s3b: mux delays by M, uselect0 6, ucmpi2 15), 25 routes so far vs fcsel3a: -0.37 ns per iteration
+  median (16/24 faster), rule M rows at umux1 on 3 routes (to -228). PREDICTION -0.3 to -0.8: low end. Not worth an item.
+- xorshift's mux delays (umux0/1/2) are 2 in fr4, shrunk in old rounds that never checked their data outputs; rule M's
+  max over fxd_ps asks 5 / 7 / 3, and A' lets umux3 go 14 -> 9. Farm fxm (fr4m). PREDICTION: +0.3 to +1.0 ns per
+  iteration vs fxd (umux0 / umux1 sit on the near-critical cycles c1 / c3, umux3 is off them).
