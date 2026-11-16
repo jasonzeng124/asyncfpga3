@@ -5550,3 +5550,9 @@ Next:
   route ulink_n8 -500, trueResult_4 -232, select +426 ps; up to -1005 over fc64sel3q. The old -2.2 ns rule-A row that
   was "traced as a false path" paired something else. h4s3o = h4s3n + UMUX2 1 -> 6 (off the loop: ~free); farm
   fc64sel3o. PREDICTION: every static row clean on >= 28/32, latency within +0.6 of fc64sel3q.
+### progress 07:49 UTC (item 31's family clean under the new corner_audit; xorshift per-route proposal: farm fxa)
+- fcsel3a_ps (item 31's 29 routes, corner_audit with the join-peer fix, 1-bit links and rule M): no A / A' / E / M row
+  below 0 at either corner. Item 31 stands with every static check, rule M included.
+- fxa (xorshift fr4a = item 27 + seed 2's proposal on datapath / mux lines: uxori1 / uxori2 7 -> 5, umux3 14 -> 9, ucmpi0
+  12 -> 10, uaddi0 13 -> 12). PREDICTION: -0.3 to -0.6 ns per iteration vs fxd (uxori2 is on x27_2's critical cycle,
+  3.7 ns, two elements out; the rest off it); A' clean on >= 26/32.
