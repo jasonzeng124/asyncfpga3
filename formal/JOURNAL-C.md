@@ -3577,5 +3577,6 @@ falseResult_7 st0 ctl own feedback); item 25 0.39/0.39, hang 0.38; item 27 0.39/
 item 27 in ps (c_explain3; cone rows, reference-traced version of explain.py): olink latch +716 ps mid / +451 worst
 in-band / +1776 SDF; ulink_n_index_15 st0 latch +498 / +243 / +1418 SDF = 1.0 x the worst short-ring error, the
 tightest relative to measured error so far. research's fxd/2 (= item 27's route) hold_bits names the same LUT
-(SLICE_X14Y33.B6) its tightest hold bit (1159 ps); its rule H rows for these ctls: +1394, +3492. Ours is the setup
-direction. C12 written in the owner's form (no kappa ranking).
+(SLICE_X14Y33.B6) its tightest hold bit (1159 ps). Rule H rows +1394 / +3492 for these ctls are from fxf4_s seed 2
+(fr3 sizes: a DIFFERENT build; first written as item 27's, corrected at once); fxd/2 has no report_rows file. Ours is
+the setup direction. C12 written in the owner's form (no kappa ranking).

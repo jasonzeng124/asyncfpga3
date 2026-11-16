@@ -13,13 +13,15 @@ only the order in which our adversary breaks things.
 **item 27 (sdf a9bdac53 = your fxd seed 2).** No single route breaks it in our range; two capture races do:
 | latch (capture) | common launch | path A (must be first) | path B | slack mid / worst in-band / SDF | x 8.5 % / x 47 % (SDF) | your rows | kappa |
 |---|---|---|---|---|---|---|---|
-| `ucontrol_merge0_olink.lat.odd` | `ucontrol_merge0.uarb1.ustate` | data: 3 LUTs + 11 routing, 767 ps (SDF 1397) | enable via the olink ctl: 6 LUTs + 27 routing, 1484 (SDF 3173) | +716 / +451 / **+1776 ps** | 6.6 / 1.2 | H +3492 (olink ctl, "sender slow enough") | 0.39, wrong count (2 of 4 answers), checked |
-| `ulink_n_index_15.many.stage[0].lat.odd` (a select link) | `ucontrol_merge1.uarb1.ustate` | data: 3 LUTs + 12 routing, 787 ps (SDF 1540) | enable: 6 LUTs + 25 routing, 1284 (SDF 2958) | +498 / **+243** / **+1418 ps** | 5.6 / **1.0** | H +1394 (st0 ctl); your hold_bits: same LUT (SLICE_X14Y33.B6) is the tightest hold bit, min 1159 ps | 0.28-0.29: the kernel acknowledges a/b, not start, and stops |
+| `ucontrol_merge0_olink.lat.odd` | `ucontrol_merge0.uarb1.ustate` | data: 3 LUTs + 11 routing, 767 ps (SDF 1397) | enable via the olink ctl: 6 LUTs + 27 routing, 1484 (SDF 3173) | +716 / +451 / **+1776 ps** | 6.6 / 1.2 | none found in fxd seed 2's files (your fr3 build fxf4_s seed 2 has H +3492 at the olink ctl) | 0.39, wrong count (2 of 4 answers), checked |
+| `ulink_n_index_15.many.stage[0].lat.odd` (a select link) | `ucontrol_merge1.uarb1.ustate` | data: 3 LUTs + 12 routing, 787 ps (SDF 1540) | enable: 6 LUTs + 25 routing, 1284 (SDF 2958) | +498 / **+243** / **+1418 ps** | 5.6 / **1.0** | your hold_bits on fxd seed 2: the same LUT (SLICE_X14Y33.B6) is the tightest hold bit, min 1159 ps (fxf4_s, fr3: H +1394 at the st0 ctl) | 0.28-0.29: the kernel acknowledges a/b, not start, and stops |
 Both are setup (capture) races at the merge-arbiter's output: the arbiter's state flip reaches the latch's data through
 3 LUTs and its enable through 6, so the bundling here is the difference of two short paths, about 0.5 ns. Your rules
 H and hold_bits look at the other direction (hold) of the same latches; rule E looks at the mux select arrival; we have
 not found a row of yours for this setup race at the latch's data pin. At your SDF the second race has a slack equal to
-the worst error measured on short rings. Not yet checked on other routes of item 27 (one route is a sample).
+the worst error measured on short rings. Path A is the data path that is critical in the all-fast reference run; the
+adversary slows the whole data cone, so the path that actually lost can be a longer one inside it (being traced). Not
+yet checked on other routes of item 27 (one route is a sample).
 **item 28 (sdf d86bdde5).** Besides A8's ulink_n13 race (your H +1337, hold_bits 1566 ps, kappa 0.42): from kappa 0.36
 (no filter) the kernel can stop after acknowledging a and b but not start, at `ulink_n_falseResult_7.many.stage[0]`'s
 controller reading its own output late (a feedback race). The same controller does this on fcsel1 seed 24 from kappa
