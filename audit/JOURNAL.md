@@ -2459,3 +2459,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - umux0 select late by MUXMON at FAST_MIN (min 22 ps lead, 26 events late) and at worst (min 1 ps, 13 events), not at SLOW_MAX (+536).
   - Static rule H: falseResult_3 stage 1 at -326 / -330 / -74 is the same row as item 26 (-533..-744, dynamically clean in T113). Dynamic check t126/hdyn30.sh is running.
   - REPORT row updated.
+
+### progress 05:57
+- research f0fd426ba queues BOARD-QUEUE item 32: collatz64 item 30 + proposal round (h4s3p), seed 22, sdf 842dd4d7, 31.4 ns, ratio ~1.11 over item 30. It keeps item 30's select links at 3.
+- Own pipeline t126/item32.sh: builds now (variant c64sel3p); GLS after item 31.
+  - It includes the mon_sel classifier (ZACKS as item 30) and bundling from ulink_n14__0 through umux0.
+  - The question is whether item 32 shares item 30's late umux0 select.
