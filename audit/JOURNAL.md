@@ -41,7 +41,7 @@ Shard B audit in (1 OVERSTATED + scope notes; 13 CONFIRMED; new necessity result
 ### progress 03:59
 Python claims in: C-10c numbers reproduce exactly but headline overstated (one silicon ring; global median scale drives the ratios). Research fasm2net checker works (negative controls) but reports NOT EQUIVALENT on the reproduced BQ#1 route: 3 A6 pins tied GND in JSON, unrouted, VCC on chip (harmless for those LUTs).
 
-### progress 04:00
+### progress 03:58
 BQ#1 routed GLS reproduced with own judge: 16/16 correct (6149 laps); negative control (uori4 zeroed) fails as it should. routed.json md5 deterministic across my 2 runs (5703...) but != claimed 1c6a1fb9: unresolved.
 
 ### progress 04:07
@@ -2266,7 +2266,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - On item 28 the input race is tighter than the internal ulink_n13 race at FAST_MIN (771 vs 929, own static). A8's "first race internal" is vector-limited.
 - Logged as OVERSTATED (full range); mechanism CONFIRMED. All slacks are positive, and the board PS is µs slow, so there is no board hazard.
 
-### progress 04:00
+### progress 03:58
 - T124a, FAST_MIN half: item 28 dynamic rule H (mon_h, H_THRESH 3000).
   - ulink_n13: min D-after-release minus close is **1610 ps** over 40960 closes; 0 HVIOL; oracle 13/13.
   - formal A8 gives 1343 ps at the fast-window mid (3 traced vectors). Formal's figure is the more conservative one, not overstated.
