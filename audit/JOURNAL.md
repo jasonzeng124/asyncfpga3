@@ -2794,7 +2794,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - X appears: the condition pin is X at the first token (1.66 us), and the steer's outputs go X.
   - Inconclusive. Research's "true deadlock, no X" needs a defined start-up, which the own harness lacks: UNVERIFIED. Finding T133; REPORT row updated.
 
-### progress 16:30
+### progress 16:25
 - T133b: emulate a defined start-up at the injected steer pins only.
   - t133/mon_force.py forces ucond_br7.u LUT5/LUT6 A3 (w17106 / w17112) to 0, then to 1, from t = 0 until 10 us, then releases them.
   - The real condition reaches the pins at ~9.65 us.
