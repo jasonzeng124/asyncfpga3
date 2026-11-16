@@ -2511,3 +2511,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - item 28: +1360 FAST_MIN;
   - item 30 for comparison: +198.
 - REPORT row for item 31 added (SLOW_MAX, rules H/E still to come).
+
+### progress 06:31
+- T126c item 31 complete:
+  - SLOW_MAX 13/13, 0 violations (umux0 late only at FAST_MIN);
+  - own rule E min +305 ps;
+  - own static rule H at falseResult_9 stage 1: -31 / -12 / +245 (OR-join).
+- Dynamic check t126/hdyn31.sh started.
+- Item 32's GLS now starts (T126f).
