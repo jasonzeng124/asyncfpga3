@@ -2489,7 +2489,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The negative control is met: a known-bad build is flagged and the link named.
   - The check is never looser than the gate in 4 runs, and is conservative by more than 3 ns on this path.
 
-### progress 06:20
+### progress 06:19
 - T126c item 31 GLS so far: FAST_MIN 13/13 and worst 13/13.
   - FAST_MIN MUXMON: **umux0 select only 2 ps before z_req, 96 per-pin changes with z_req=1** (3 events x 32 pins). worst: 0 violations.
   - Item 28 (same seed, select links equal): 0 late pins, margins >= 434 ps (T117).
