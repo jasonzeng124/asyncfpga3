@@ -5705,3 +5705,9 @@ Next:
   (combinational req . s) is a different race and keeps its place only if it too fails somewhere; not yet tested.
   Proposal for the owner: drop rule E at bd_mux joins whose requests are exclusive (shown per mux), keep rule M (data
   side, genuine failures) and the hold checks; test steer E with the same construction next.
+### progress 10:59 UTC (farm steerneg: does rule E at the STEERS have a failing build?)
+- steerneg (40 tasks: each board route x each steer ucond_br*): every arc into the steer's LUT except its request join
+  (the condition: e.g. ucmpi1.uz_n41 -> ucond_br6.u$LUT5/6 A2 on item 27's route) +3000 / +8000 ps, SDF only; rule E and the
+  gate at FAST_MIN / worst with +META_INIT=0. PREDICTION: a late condition at a steer whose request arrives while the
+  condition still shows the previous token's value mis-steers -> wrong value or hang on most loop-exit steers at +8000;
+  rule E flags each. If none fails, rule E at steers is also without a failing build.
