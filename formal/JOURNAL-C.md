@@ -4042,3 +4042,8 @@ request on this draw is between 2.5 and 3.0 ns; research's gate passes +3000 on 
 models' delays on this race differ by >= a few hundred ps. c_ctl3: formal's threshold per draw 1-32 (bisection to ~30 ps),
 to set beside research's (to ask). Note: in draw mode the H_RUNT "INFEASIBLE pins" counts are meaningless (the filter's
 window is set to the drawn delay); no verdict uses them.
+
+### progress 22:48 -- c_ctl3 thresholds: +2875..+3500 ps over 32 draws (median ~3218); but its bisection is suspect -> c_ctl4
+c_ctl3 counted "no RESULT OK" as a failure, and ran 16 simx at once in 32 GB; draw 13 at +3000 came out FAIL there and
+PASS in c_ctl1. A killed run would read as a failure. c_ctl4 redoes it: FAIL only on RESULT MISMATCH, no-verdict runs
+retried and reported, 8 at a time in 64 GB. Until then the c_ctl1 numbers (draw 15 the only +3000 failure) stand.
