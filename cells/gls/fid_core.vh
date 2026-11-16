@@ -66,7 +66,7 @@ module FID_RESOLVE (input wire f, input wire f0, input wire f1, input wire en,
     parameter integer SEED  = 1;
     parameter integer TAU   = 150;
     parameter integer WIN   = 150;
-    integer tau, win, seed, gseed, verbose, xmode, off, initv;
+    integer tau, win, seed, gseed, verbose, xmode, off, initv, initon, init_t;
     integer n_meta, n_rej, n_commit, n_fold, n_break;
     reg o_r = 1'bx, fb = 1'bx;
     assign o = o_r;
@@ -90,7 +90,9 @@ module FID_RESOLVE (input wire f, input wire f0, input wire f1, input wire en,
         // a LUT latch powers up 0 or 1.  Without it a race against a latch's FIRST value (bd_link's data latch has
         // no reset) shows as X that a C-element holds forever -- a hang the device cannot have (research JOURNAL
         // 2026-11-16, the select-join injections).  Run both values to cover both power-up states.
-        if (TLOOP != 0 && $value$plusargs("META_INIT=%d", initv)) begin o_r = initv[0]; fb = initv[0]; end
+        initon = 0; init_t = 5000;
+        if (TLOOP != 0 && $value$plusargs("META_INIT=%d", initv)) begin o_r = initv[0]; fb = initv[0]; initon = 1; end
+        if ($value$plusargs("META_INIT_T=%d", init_t)) ;
     end
     always @(f) if (!on) o_r = f;
 
@@ -109,6 +111,9 @@ module FID_RESOLVE (input wire f, input wire f0, input wire f1, input wire en,
             fb = o_r;
         end
         fv = fsel(fb, f0, f1);
+        // +META_INIT: until +META_INIT_T (ps, default 5000: the harness reset defines every controller by ~3 ns), an
+        // X evaluation keeps the node's value -- an unreset latch holds its power-up value, it does not become X
+        if (initon && $time < init_t && fv !== 1'b0 && fv !== 1'b1) fv = o_r;
         if (busy && (fv === 1'b0 || fv === 1'b1) && fv !== vhold) begin
             n_break = n_break + 1;
             if (verbose)
