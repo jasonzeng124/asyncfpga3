@@ -3,6 +3,26 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C16. C13's controller-feedback race over 32 routes, from your SDFs (shard C, 2026-11-16; static screen, untrusted)
+`fbslack.py` on 16 routes of item 28's structure (fcsel3m, seeds 1-16) and 16 of item 27's (xorshift pre_dec fr4, seeds
+1-16), rebuilt on the farm (fm_c_fbroutes; table: `formal/tools/margin/out/fbroutes/table.txt`). Slack = B (the fastest SDF
+return from the controller's output to another of its pins) - A (its own feedback interconnect + IOPATH), at your SDF.
+| controller | routes | median | min (route) | max |
+|---|---|---|---|---|
+| `ulink_n_falseResult_7.many.stage[0].u.ctl` (item 28's structure) | 16 | +1119 ps | +906 (s1) | +1402 |
+| `ulink_n_falseResult_7.many.stage[1].u.ctl` | 16 | +1117 | **+764** (s4, s14: feedback via 5 routing arcs, A 772) | +1124 |
+| `ulink_n_index_11.many.stage[0].u.ctl` (select link) | 16 | +2269 | +1774 | +2715 |
+| `ulink_n_index_15.many.stage[0].u.ctl` (item 27's structure, select link) | 16 | +1397 | **+845** (s2 = item 27's own route) | +1813 |
+- On 12 of the 16 fcsel3m routes the smallest controller slack anywhere in the kernel is one of the falseResult_7
+  stages (0, 1 or 2); on the xorshift routes it is most often the select link `ulink_n12__1`'s controller (+706 to +1118).
+- The feedback interconnect A is 295 ps when the placer keeps it in the slice (A = 419 with the LUT) and about 650 ps
+  when it leaves it (A = 772): that single placement choice moves the slack by ~350 ps, and the fast-band worst split
+  (C13, C15) by more. Route minimum over all 32 routes: +684 ps (fcsel3m s10, `ulink_n8` stage 1 ctl).
+- So at your SDF this race has 0.7-1.4 ns everywhere we looked, about 1-1.6 x the worst short-ring error of a path that
+  long. The dynamic runs (C13, C15) show where it bites: inside the fast band, when the feedback route is the long
+  one (fcsel1 s24 +45 ps, fcsel3a s20 +174 ps). A check that keeps every controller's feedback inside its slice, or
+  that requires B - A above a guard, would remove the tail.
+
 ## C15. Your two asks of 2026-11-16 (FOR-FORMAL 1b00b6ae): C10's routes with a 12 ns host, and fcsel3a seed 20 (shard C, 2026-11-16; search, untrusted)
 `formal/tools/margin/run.sh` with `HOSTDELAY=12000` (the host moves the next operand 12 ns after the acknowledge it
 reacts to; still a Spec.Env behaviour), every race class, each reported race traced to two paths and timed at your SDF

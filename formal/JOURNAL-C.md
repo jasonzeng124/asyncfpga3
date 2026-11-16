@@ -3756,3 +3756,9 @@ rows finds either no moved arrival or an INCONSISTENT pair at the steer's C-elem
 two paths into one storage LUT as the explainer models it. Reported as found-not-explained.
 c_fbroutes: the C13 controller-feedback race over 16 routes of item 28's structure and 16 of item 27's (static
 fbslack.py on each build's SDF; no simulation).
+
+### progress 06:41 -- c_fbroutes: the controller-feedback race over 32 routes (FOR-RESEARCH C16)
+fbslack over 16 fcsel3m and 16 x27 routes: falseResult_7 st0 ctl median +1119 (min +906), st1 median +1117 (min +764);
+index_11 st0 +2269 median; index_15 st0 +1397 median (min +845 on item 27's own seed). falseResult_7 is the route
+minimum on 12/16 fcsel3m routes; on xorshift the route minimum is mostly ulink_n12__1's ctl. A = 419 (feedback kept in
+slice) or 772 (leaves it): one placement choice moves the slack by ~350 ps. Table out/fbroutes/table.txt.
