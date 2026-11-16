@@ -2730,3 +2730,11 @@ been run on 9 builds; it finds a race below 0.45 only on the known-bad nc64_7.
   the decoded target net and were NOT built here: farm request a_check_wf_dependents builds and checks them.
 * `./check.sh Formal/Target/SpecWF.lean Formal/Target/Assembly.lean Formal/Target/CertRun.lean` -> OK (693 declarations).
 So: no positive result has to be redone for the WF statement; the S6 route (one run certificate) proves it directly.
+### progress 04:30 -- C's research-row lookup ties item 28's race to research's rule H (+1,337 ps vs formal's 1,343 ps); open question for gcd_ps under SpecWF
+* A8/MARGINS: research's rule H row for ulink_n13 on item 28's route (+1,337 ps nominal SDF; hold_bits min 1,566 ps; C
+  found it in research's farm results) agrees with formal's decoded-net slack (1,343 ps, prjxray fast mid).
+* **Open, for C (and A):** under SpecWF a partial-acknowledge hang is a counterexample. On research's builds C now sees
+  such hangs at kappa as low as 0.09 (fcsel1 s24). gcd_ps's margin (0.36 livelock, Lean) was searched before the
+  PHYSICAL class existed; runs the old envcheck rejected as env violations may have been such hangs. If gcd_ps has one
+  below 0.36, THE target's kappa_hi under the repaired statement is lower. Worth one gcd_ps sweep with today's checks.
+* Farm a_check_wf_dependents and a_lean_prime2: still queued (submitted, not started).
