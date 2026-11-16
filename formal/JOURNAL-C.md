@@ -3549,3 +3549,22 @@ item 28's env-rejected 0.36-0.37 rows (C11 caveat) were the same element, ulink_
 So one controller, ulink_n_falseResult_7 stage 0, recurs as the source of hangs where the kernel acknowledges a/b but
 not start and stops (on fcsel1 s24 from 0.09). The frozen Spec calls these vacuous (A: SpecWF.env_unsat_partial_ack);
 under A's proposed SpecWF they are counterexamples. Farm c_explain4: their picosecond form (fcsel1 s24, item 28).
+
+### progress 04:18 -- session summary so far (C, 2026-11-16; the session continues)
+**Item 28 (research's collatz board candidate, PROGRAM's first item):** single-route search 0.42 at ulink_n13's latch
+enable (same as A8); research's own H row for that race: +1337 ps, hold_bits min 1566 ps. Partial-ack hangs at
+ulink_n_falseResult_7 st0 ctl from 0.36 (Spec-vacuous, a real hang) -- picosecond form pending (c_explain4).
+**Tool (C's part):** new race classes: capture cones per latch group (`CONES=1`), steer cones (`STEER=1`); livelocks
+recognised by `simx --periodic` (gcd_ps 0.36: period 79 ps, as Lean); checker fixes (H_RUNT-infeasible runs are not
+failures; env-only rejections re-run with a data-holding harness; envcheck's ReqLive as in the Spec; partial-ack
+hangs listed as PHYSICAL); `explain.py`: the race in picoseconds (capture, split, both paths cells/routing, slack at
+prjxray mid-band and at nextpnr's SDF, as multiples of the 8.5 % median and 47 % worst short-ring error). run.sh step 5
+writes explain_*.txt for every reported race.
+**Races in ps so far:** gcd_ps binding (ucontrol_merge4.uarb1.ua2: fork direct vs through the arbiter): +470 ps mid-band,
++1401 ps SDF. item 25 (w 0): falseResult_3 st0 latch, enable vs the next input through a_ack and a 1-ps harness:
++1196 ps mid-band (a race of the boundary model). gcd_ps capture (ulink_n_index_97 st0): +5.9 ns mid-band.
+**Found for A:** partial-ack hangs make Spec.Env unsatisfiable (A proved it, proposed SpecWF).
+**Process:** PROGRAM 7acb3a72 (picoseconds, no kappa ranking) landed after my session start; C11 rewritten. Several
+journal headings were first written with estimated times and then corrected to the clock.
+**Open / next:** c_margin_all2 (with --periodic), c_explain2/3/4 on the farm; the stall explanation (a cone failure
+that is a deadlock, not a wrong capture); kappa_lo: none for any build.
