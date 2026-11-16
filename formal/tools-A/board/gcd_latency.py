@@ -28,6 +28,9 @@ def lat(a, b, corner, c):
         "--R", "400000", "--su", "1000", "--datachange", "broad", "--nextreq", "seq", "--tmax", "100000000", "--dump", d],
         capture_output=True, text=True, env=dict(os.environ, KDEN="100"))
     ok = "RESULT OK" in r.stdout
+    if not ok:
+        print("  FAIL %s,%s corner %d %s: %s %s" % (a, b, corner, c, r.stdout.strip()[-200:], r.stderr.strip()[-200:]), flush=True)
+        return float("nan"), False
     D = json.load(open(d))["nodes"]
     rq = D[str(idx[B["req"]])][1][0]; o = D[str(idx[B["out0_req"]])][1][0]
     return (o - rq) / 1000.0, ok
@@ -37,7 +40,8 @@ with open(OUT, "w") as f:
     for r in rows:
         a, b, k, cp, mn, ci = r[:6]; latmin = float(r[8]); latmax = float(r[9])
         lf, okf = lat(a, b, 0, "F"); ls, oks = lat(a, b, 1, "S")
-        res.append((int(k), int(cp), int(mn), int(ci), (latmin + latmax) / 2 * 10, lf, ls))
+        if okf and oks:
+            res.append((int(k), int(cp), int(mn), int(ci), (latmin + latmax) / 2 * 10, lf, ls))
         f.write("%s\t%s\t%s\t%s\t%s\t%s\t%.0f\t%.1f\t%.1f\t%s\n" % (a, b, k, cp, mn, ci, (latmin + latmax) / 2 * 10, lf, ls, okf and oks))
         print(a, b, "board %.0f ns" % ((latmin + latmax) / 2 * 10), "sim F %.1f S %.1f" % (lf, ls), okf, oks, flush=True)
 X = [[1.0, k, cp, mn, ci] for k, cp, mn, ci, *_ in res]
