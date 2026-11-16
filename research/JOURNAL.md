@@ -5735,3 +5735,9 @@ is a genuine wrong-value failure. Steer E under test (steerneg). Formal C17 conf
   research/data/selneg/README.md. Where rule E stands now: it has failing builds at steers (three families) and none
   at mux joins (selneg3, 44/44 pass). ipow's steers wait for the farm (silent since 11:44 UTC).
 - 15:46 UTC: container restarted (worker restart; a trace of the steer hang was lost and is re-running). Branch was clean and pushed.
+### progress 16:12 UTC (the steer failure is a true deadlock, traced)
+- tr_st7 (collatz item 28's route, ucond_br7 condition +8000, FAST_MIN, +META_INIT=0): no kernel net goes X after 10 ns,
+  all 1415 end defined, the last kernel event is at 3.945 us, then nothing: a deadlock from a mis-steered token. Rule E's
+  steer control is genuine (E -5048). Summary of the select checks after today: E at steers -- genuine failing builds
+  (3 families); E at loop-header mux joins -- none (44/44 pass with a defined start-up); M at mux data -- genuine
+  (defined wrong answers); H hold control -- genuine (wrong answers).

@@ -147,5 +147,6 @@ Two more loop steers, local, same construction (condition +8000 ps, gate FAST_MI
 | xorshift item 27 (x27_2), ucond_br9 | -7266 | no batch in 50 min |
 | collatz64 item 30 (c64s3_10), ucond_br6 | -6276 | no batch in 55 min (clean route: 25 min) |
 | collatz item 28 (c28_20), ucond_br7 | -5048 | no batch in 50 min (clean: 9 min) |
-So rule E fails on a known-bad build at the steers of three families (ipow: no local route; farm steerneg pending). Not
-traced: a no-completion with the start-up X removed is most likely the lost token, but only a trace shows it.
+So rule E fails on a known-bad build at the steers of three families (ipow: no local route; farm steerneg pending).
+Traced (collatz ucond_br7, +8000, +META_INIT=0, tr_st7): no kernel net is X at any time after 10 ns, all 1415 kernel nets
+end defined, and kernel activity stops at 3.945 us: a true deadlock (the token steered the wrong way), not an artefact.
