@@ -2746,3 +2746,6 @@ livelock 0.36 (SLICE_X16Y21.A6 = ucontrol_merge4.uarb1.ua2, period 77-79 ps, as 
 separately because the bisection credits that race with 0.36. No PHYSICAL (partial-ack) row: under this single-pin
 search the repaired statement has the same frontier on THE target. Not covered: steer/capture cones (not run here),
 two slow routes. Files: tools-A/target/out/gcd_ps_wfcheck/.
+### progress 04:49 -- two-hour re-read: PROGRAM.md (last 7acb3a72) and research/FOR-FORMAL.md unchanged; farm queue stalled
+a_lean_prime2 and a_check_wf_dependents still "submitted" (not started) after ~2 h. Building PlanRPS/CertN1 (they import
+the decoded gcd_ps net) locally with 2 Lean slots instead.
