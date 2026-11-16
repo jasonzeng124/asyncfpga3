@@ -2774,3 +2774,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - With start-up X removed, a hang here plausibly means a lost token.
   - Other steers (farm steerneg, 2 of ~25 back) pass at +3000 / +8000.
   - Not replayed (no META_INIT in own harness). Owner-decision row updated: E has a control at steers, none at mux joins.
+
+### progress 15:23
+- research b1a013b71: rule E at loop steers has failing builds on xorshift (ucond_br9, E -7266), collatz64 (ucond_br6, E -6276) and collatz (ucond_br7, E -5048).
+  - Each is condition +8000 with the META_INIT gate: no completion. ipow waits for the farm.
+  - Owner-decision row updated. Not replayed (no META_INIT in own harness).
