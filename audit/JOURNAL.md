@@ -2925,3 +2925,20 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research c44e64b58 / 5f57dd92d (zt1 done, BOARD-QUEUE): every clean route passes with n = 1; the entry-steer control (+8000 on ucmpi0 -> steer) passes the old vectors and fails or hangs with n = 1 on items 28 / 30 / 32.
   - Consistent with own T134 (n = 1 clean on the board seeds of 28 / 30 / 31 / 32) and T133b (the collatz steer control deadlocks under defined start-up).
   - The control figures are UNVERIFIED by own run. No new row.
+
+### progress 22:53
+- T136 own draws on x0.40 (oracle 17/17 on every finished draw).
+  - Steer runts (select change under req at ucond_br2 / br5):
+
+    | Draw | Runts | CARRY4 |
+    |---|---|---|
+    | dr1 | 10 | 0.94 |
+    | dr2 | 0 | 0.80 |
+    | dr3 | 2 | 0.67 |
+    | dr4 | 0 | 0.39 |
+    | dr5 | 0 | 0.94 |
+    | dr6 | 4 | 0.86 |
+
+  - 3 of 6 so far. Not monotone in CARRY4 alone, so the per-draw scatter seed matters too.
+  - In research's own model the x0.40 build carries runts on a large fraction of draws, all invisible to the oracle verdict.
+- research 79137f779: lock only.
