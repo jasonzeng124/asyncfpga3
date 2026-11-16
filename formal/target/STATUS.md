@@ -17,6 +17,8 @@ assignment leading to such a hang. **Proposed repair** (same file): `EnvWF`, wit
 (`not_runtWF_of_not`) with no new proof; `reqLiveWF_partial_ack`: the WF form asks nothing there, so the hang becomes
 a counterexample (start's `AckLive` in `Correct`). Not yet adopted: changing THE statement needs the audit's row.
 Effect on the list below: none on refutations; a future kappa_lo proved for the frozen form would not cover hangs.
+**Same day:** the positive route already targets the repaired form: `Assembly.netCorrectSeqWF_of_plan` and
+`CertRun.netCorrectSeqWF_of_run` (Assembly/CertRun now take `EnvWF`; only `next_rise` used request liveness).
 
 ## 2026-11-15 (A): the S6 route changed to ONE run certificate (Lean, check.sh OK)
 `Formal.Target.CertRun.netCorrectSeq_of_run` (generic, OneReq boundary): THE statement from `EpRun` (count facts of one
