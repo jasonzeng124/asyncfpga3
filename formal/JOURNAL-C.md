@@ -3899,3 +3899,19 @@ sigma_region 0.3 gives 2 FAIL + 1 UNDECIDED of 16 (the approximator can fail). N
 items 27, 33, 28, 31, 25, 26, 30, 32 on their board seeds; BAD_xf2_1, BAD_nc64_7 and pc64_7 (the bad/good pair);
 items 33 and 32 on 3 more routes each.
 The adversary work (c_margin_x33, c_rulee1) is now secondary; its results will be recorded as leads, not gates.
+
+### progress 19:25 -- c_rulee1 back: research's own rule E (skew.py -v, unchanged, nominal SDF) at the C19 steers (a lead only now)
+Rebuilt routes, sdf md5s as research's. Raw = shortest request - longest select from the common launch; guarded =
+with research's GUARD_LO/HI.
+| route | steer C19 traced | research rule E raw / guarded | formal (C19, adversary w 20) |
+|---|---|---|---|
+| item 27 s2 | ucond_br9 (launch ulink_n7f__1.ctl) | +1793 / **-1029** (its worst steer) | 0.28 / 0.42, 32-37 ps pulses |
+| item 33 s27 | ucond_br9 | +1368 / **-1100** | steer rows from 0.32 (c_margin_x33 task 3) |
+| fcsel3m s2 | ucond_br5 | +4480 / +1528 | 0.37, 20-ps pulse |
+| item 25 s24 | ucond_br6 (w 0) / falseResult_3 steer | +5245 / +2222 | 0.62 (w 20), 1-ps pulse (w 0) |
+| fcsel0 s24 | merge1 delay chain (not a steer) | no row | 0.37, 20-ps pulse |
+Agreement only on the xorshift ucond_br9 steer (both say it is the weakest). On the collatz routes the steer formal
+breaks has 1.5-2.2 ns guarded slack in research's rule; there formal's failures are pulses at the filter width, which
+research's resolver absorbs (research 18:53: "a 1-40 ps pulse into a C-element never sets or oscillates in the gate
+model"). Guarded rule E is negative on 4-10 steers of every route while all these builds pass research's gates. Under
+PROGRAM bd19bb9b this decides nothing; the draws decide.
