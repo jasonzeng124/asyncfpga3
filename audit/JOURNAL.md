@@ -2688,7 +2688,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Caveat from T131: a no-completion can be start-up X propagation, not a race. Only research's traced wrong-value controls (8745e2d8a) are shown to be genuine. Not replayed.
 - research 9c69a2bc2: journal summary notes the E-control correction.
 
-### progress 09:14
+### progress 09:12
 - T126j item 29 v2: SLOW_MAX 17/17, 0 violations, min latch setup 11565.
   - Own slope 24.69 / 34.87 ns/iter vs item 19 27.88 / 39.23: **ratio 1.129 / 1.125** (research ~1.12). CONFIRMED.
   - z_data monitor and rules H/E are running.
@@ -2696,3 +2696,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Research claims its rule M rows (umux1 -113 / -192, umux0 -71) are pessimism: "mux data leads z_req by >= 1042 ps (FAST_MIN) on every token".
   - That is the same kind of claim T130 refuted for item 31.
   - Own pipeline t126/item33.sh: build now; then own z_data monitor (FAST_MIN and worst), 3-corner GLS, period, rules H/E.
+  - Note: item33.sh's period line reads the wrong log path (run_per_xs writes /root/t67/xd_27.log); the period will be read from there by hand. The script is running, so it is not edited.
