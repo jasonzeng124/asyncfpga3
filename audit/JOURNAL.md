@@ -59,7 +59,7 @@ Usage limit hit ~04:30-04:50 UTC: BQ#2/#3 and research pass-3 agents stopped mid
 ### progress 04:58
 BQ#2/#3 reproduced on default seed: sdf md5s match, GLS 16/16 both (own judge), #3 +8.7% loop vectors on this seed; rule F's omitted hop term leaves BQ#3 safe (+888 ps). #2 routed.json md5 does not reproduce while #3's does -> REFUTED row (recorded md5s for #1/#2 not from this commit's build).
 
-### progress 05:02
+### progress 05:01
 Research pass 3 (9a02f6f): xorshift 1.71x/1.72x REFUTED as comparisons (6- vs 14-vector fits; verified journal lines 749/757); dsp_areg control OVERSTATED (detects an illegal injected state, not the real AREG=2 bug); collatz64 provenance overstated (named tool commit lacks rule F) though seed 3 with current tools is clean; bd_prims_sim.v still unfixed. Waiting on formal3 build.
 
 ### progress 05:57
@@ -2344,7 +2344,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - **ratio 1.110 / 1.118**. Research predicted ~1.10 (39.78 -> 36.06). CONFIRMED.
 - SLOW_MAX, rule H and rule E are running.
 
-### progress 05:02
+### progress 05:01
 - T126 item 29, recipe sdf 4a92cdf3:
   - gate 17/17 at FAST_MIN / worst / SLOW_MAX, 0 monitor violations at every corner;
   - ratio 1.110 / 1.118 over item 19 (CONFIRMED);
