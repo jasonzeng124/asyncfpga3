@@ -133,3 +133,11 @@ selneg2's arcs (select latch -> umuxN.uj0 / uj1), +6000 and +12000 ps, gate at F
 (cells/gls/fid_core.vh). 11 muxes back (xorshift item 27 umux0-3, collatz64 item 26 umux0 / umux2, ipow item 19 umux1-3,
 collatz item 28 umux1 / umux2): **44 gate runs, 44 PASS**. Every "failure" of selneg / selneg2 on these muxes was the
 start-up X. On these kernels a select late at the request join, by up to 12 ns, only delays the token.
+
+## Rule E at a steer (local, 2026-11-16; farm steerneg partly back)
+Item 28's route, the loop steer ucond_br7: its condition (ucmpi2.uz_n36 -> ucond_br7.u$LUT5 / $LUT6 A3) +8000 ps, SDF
+only, gate FAST_MIN with +META_INIT=0 (no start-up X): no batch completed in 50 min (clean route: 9 min). Rule E at
+ucond_br7: -5048 ps at worst. A condition that arrives after the request at a combinational steer loses the token: rule E
+has a failing build here, unlike at the mux joins. Not traced (the hang may still contain a non-start-up X). Farm
+steerneg (every steer, +3000 / +8000): the first two back, xorshift ucond_br3 and collatz ucond_br4, passed every gate
+at both sizes with E -0.3 .. -6.1 ns (steers whose condition is settled long before the next request).

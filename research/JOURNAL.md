@@ -5721,3 +5721,9 @@ is a genuine wrong-value failure. Steer E under test (steerneg). Formal C17 conf
 ### progress 11:19 UTC (selneg3: 44 / 44 join-injection gates pass with a defined start-up)
 - 11 of 13 muxes back (collatz64 umux1 and collatz umux0 still out): all PASS at both sizes and both corners. Rule E at
   the mux joins has no failing build on any family. selneg README updated.
+### progress 14:15 UTC (rule E at a STEER has a failing build; at the mux joins it has none)
+- Local, item 28's route: the loop steer ucond_br7's condition +8000 ps (SDF only), gate FAST_MIN with +META_INIT=0: no
+  batch in 50 min (clean 9); rule E -5048 ps at ucond_br7. Farm steerneg: 2 of ~25 real steers back (xorshift ucond_br3,
+  collatz ucond_br4: every gate passes at +3000 / +8000, E -0.3 .. -6.1 ns). So rule E keeps its place at steers (a late
+  condition at req . s loses a token); at loop-header mux joins it has no failing build on any family. The farm has not
+  pushed results since 11:44 UTC (steerneg 15 of 40 for 1.5 h): not waited on.
