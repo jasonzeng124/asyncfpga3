@@ -2196,3 +2196,6 @@ Environment hypothesis checked in the MLIR: falseResult_3 = the input n (cond_br
 
 ### note 08:00
 Research 81721ea2: corrected rule-E re-check complete: no board item's own route has an E row (items 19, 22-27); item 27 family 1/32 (seed 27 ucond_br8 -118 worst; board seed 2 clean; own T114 rule E min +1060 agrees); select links at 0 give E < 0 on every route of every family (xorshift to -984, ipow -833) while gates pass -- consistent with own T116 / T118 (the gate alone misses the arrival race). Item 19's board-route E: research clean, own not run. Formal A 55fbdb85: MARGINS.md from C6-C10 (14 builds, search, no kappa_lo); farm check.sh timed out.
+
+### note 08:15
+Research fa196d11 (owner's second lead, delay-line table on 28 routes): spot check -- own rule E on item 25's board route at umux1, launch ulink_n14__1 stage[1]: +13.2 ns worst, inside research's +12.1..14.4 ns; the table's prediction is what item 28 measured. REPORT row. Research 7ab6b0d8: per-family select negative controls by SDF injection on the board candidates' routes (farm) -- to check when back.
