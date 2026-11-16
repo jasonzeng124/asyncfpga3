@@ -5624,3 +5624,5 @@ Next:
   hold_bits at ulink_n_falseResult_3 stage[1] on fc64sel3n s2 (9x, to -825 ps) and fc64sel3o s29 (2x, -742) at FAST_MIN.
   The pipe's request delay is not free: it changes when stage[1] opens relative to its data. Rejected; collatz64's umux0
   rule-M miss stays open (padding umux0: +2.2 ns, fc64sel3m).
+- collatz64 rule-M control (local, item 30's route, select latch -> umux0.udat +8000): rule M -7528 ps, E clean; gate
+  FAST_MIN no batch in 55 min (clean route: 25 min, PASS 14/14). A no-completion, so possibly the start-up X; untraced.

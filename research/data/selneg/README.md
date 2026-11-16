@@ -120,4 +120,6 @@ Reading: all 6 gate failures (3 wrong values: xorshift umux1 2/17, ipow umux1 14
 completion) have rule M below 0 on the injected mux, and rule E has no row below 0 in ANY of these runs: the select's
 path to the data LUTs is a race E does not model. M is stricter than the gate on 7 runs (all at +4000, or on muxes the
 vectors exercise only at loop entry). Where M stayed >= 0 (the injection absorbed by a long mux delay: collatz64 umux1,
-ipow umux0, umux1 at +4000) every gate passed. Missing: collatz64 umux0 (task 5, farm container error as in selneg).
+ipow umux0, umux1 at +4000) every gate passed. collatz64 umux0 (task 5 failed on the farm twice, container error) run locally on item 30's route (c64s3_10), +8000 on the
+select latch -> umux0.udat (64 arcs): rule M -7528 ps at worst, rule E clean, gate FAST_MIN no batch in 55 min (the clean
+route: PASS 14/14 in 25 min). As a no-completion it may carry the start-up X (see the correction above); not traced.
