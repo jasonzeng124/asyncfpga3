@@ -2576,3 +2576,13 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research cfe3868a2 (journal): first mneg results; M catches wrong-value failures that E misses. fcsel3b complete (exploratory).
   - Not a board claim; not replayed.
 - T126f item 32: select classifier run in progress.
+
+### progress 07:35
+- T126f item 32 done:
+  - mon_sel umux0: 26 of 52 events late, **max 706 ps**;
+  - rule E +779;
+  - static rule H falseResult_9 st1 -573 / -479 / -453;
+  - bundling -418 (first-edge bound);
+  - LATCHMON all latches >= 7406 / 10360 / 19481.
+- REPORT row added. Dynamic rule H (t126/hdyn32.sh) started.
+- research c075fe32e: collatz64 rule-M fix per launch (h4s3n, farm fc64sel3n). 6bed4d9b2: README. Exploratory.
