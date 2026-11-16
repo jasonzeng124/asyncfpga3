@@ -113,7 +113,7 @@ python3 - "$O" "$H" <<'PYEOF' || true
 import re, subprocess, sys, os
 O, H = sys.argv[1], sys.argv[2]
 seen = set()
-lines = list(open(os.path.join(O, "kappa_hi.txt")))
+lines = list(open(os.path.join(O, "kappa_hi.txt"))) if os.path.exists(os.path.join(O, "kappa_hi.txt")) else []
 if os.environ.get("EXPLAIN_ALL") == "1":   # every failing row of margins.txt (its first failing kappa), not only the reported ones
     for l in open(os.path.join(O, "margins.txt")):
         f = l.split()
