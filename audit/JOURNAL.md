@@ -2335,3 +2335,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Structure CONFIRMED and positive. fcsel1 s24 (+45 worst in-band) has no own build: UNVERIFIED.
   - C14 (ulink_n13 in ps) is consistent with T124a and the own rule H rows.
 - research 9d046ebdf / 5e1c368a0 are exploratory proposal farms (nl6s3p, h4s3p).
+
+### progress 04:48
+- T126 item 29: worst oracle 17/17, 0 monitor violations.
+- Own slope (t67/ipow_slope.py, 12 pts):
+  - item 29 25.13 ns/iter (FAST_MIN), 35.08 (worst);
+  - item 19 (ipowr_1, own) 27.88, 39.23;
+  - **ratio 1.110 / 1.118**. Research predicted ~1.10 (39.78 -> 36.06). CONFIRMED.
+- SLOW_MAX, rule H and rule E are running.
