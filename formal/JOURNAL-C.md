@@ -3508,3 +3508,13 @@ to ua2 pin 0: 1 LUT + 2 routing arcs, 296 ps at the prjxray fast-band midpoint (
 Slack +470 ps fast-mid (7.2 x the 8.5 % error), +327 ps worst in-band; **at nextpnr's SDF +1401 ps (8.4 x)**:
 A 560 (cells 124 + routing 436), B 1961 (cells 372 + routing 1589). The SDF's routing is ~3x prjxray's fast band
 here. Files: tools/margin/out/gcd_ps_explain/. Farm c_explain2 = c_explain1 with the builds' SDFs.
+
+### progress 03:55 -- research's own rows for the races we name (item 28 = fcsel3m s20: origin/claude/cluster results/fcsel3m/20/)
+| our race | research rule row (nominal SDF, report_rows_nom.txt) | research dynamic hold (hold_bits.tsv / hold.tsv) |
+|---|---|---|
+| item 28 binding: ulink_n13 latch pair[6] vs ulink_n13.ctl (enable late) | H +1337: ulink_n13.ctl, enable 1241, data 2628 (sender), guard 50 | ulink_n13: 14,656 windows, 0 violations, min margin 1566 ps |
+| capture cone (first broken on every collatz route): ulink_n_index_11 st0 lat.odd | H +2275 (st0 ctl: enable 227, data 2552); E +1127/+1247 at umux2 (sel launched by ulink_n_index_11 st1) | ulink_n_index_11.stage[0]: 1 bit, 8 windows, min 1540 ps; research's older fcolsz2h hold file names ulink_n_index_11 as its TIGHTEST hold on every route (down to -21 ps on 2 of 20) |
+| item 25-type race through the harness: ulink_n_falseResult_3 st0 | H +1750: enable 1188, data 2988 "(outside)" -- research does model the boundary data for this latch | falseResult_3.stage[0]: 128 windows, min 2,272,538 ps (not live on its vectors) |
+So research's rules look at both links our adversary breaks first, and call them clean by 1.3-2.3 ns at their SDF.
+Ours (pending c_explain2): the same races' slack from the split, at prjxray mid-band and at the same SDF. If they agree in
+size, the kappa is only a restatement of that ns slack under a 1-ps harness / all-fast adversary.
