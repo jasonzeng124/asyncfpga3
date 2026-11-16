@@ -4058,3 +4058,8 @@ Formal 64/64 on every x0.85 / 0.70 / 0.55 build; x0.40: s27 64/64, s5 64/64, **s
 Research: all 8/8 except x0.55 s27 and s9 (0/8, "NOT EQUIVALENT FFMUX-FLAG": the bitstream differs from the netlist at FF
 muxes; gate fails 11/19 identically every draw). Formal's decode keeps FFs opaque, so it cannot see that class: a formal
 PASS is not evidence against FF-mux / packing defects. Research's x0.40 s2/s5/s9 still running; prediction written in C23.
+
+### progress 23:56 -- c_shrink34: x0.40c 16/16 routes clean; x0.40a fails on ~10/16 routes, x0.30a on 14/16 (FOR-RESEARCH C24)
+x0.40a and x0.40c differ only in UCMPI0 / UCMPI1 (kept in c). Research's shrink4 so far: 40a_14 2/4 and 30a_9 3/4 fail too
+(agree); 40a_7 research 4/4 vs formal 7/27 decided (disagree, p ~0.005); research numbers its draws K = route*100+j, so
+c_shrink4k reruns with those K for a draw-for-draw table.

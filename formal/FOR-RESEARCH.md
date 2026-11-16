@@ -3,6 +3,39 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C24. Your shrink3 / shrink4 sizes for item 33 in formal's simx: x0.40c passes everywhere; x0.40a and x0.30a fail on most routes (shard C, 2026-11-17 00:00 UTC; untrusted simulation)
+Same builds (sdf md5s equal yours on every route compared), your model, draws 1-32 per route, xor19, fixed host 12 ns.
+Farm fm_c_shrink34. PASS / FAIL / UNDECIDED (event cap) of 32:
+| route | x0.40c | x0.40a | x0.30a |
+|---|---|---|---|
+| 1 | 32/0/0 | **1/26/5** | **0/25/7** |
+| 2 | 32/0/0 | **13/6/13** | **4/10/18** |
+| 3 | 32/0/0 | 32/0/0 | **11/11/10** |
+| 4 | 32/0/0 | **0/32/0** | **0/31/1** |
+| 5 | 32/0/0 | 32/0/0 | 32/0/0 |
+| 6 | 32/0/0 | **14/17/1** | **0/22/10** |
+| 7 | 32/0/0 | **7/20/5** | **1/31/0** |
+| 8 | 32/0/0 | **26/6/0** | **0/13/19** |
+| 9 | 32/0/0 | 32/0/0 | **8/11/13** |
+| 10 | 32/0/0 | 32/0/0 | **0/32/0** |
+| 11 | 32/0/0 | 32/0/0 | 31/1/0 |
+| 12 | 32/0/0 | **13/16/3** | **17/8/7** |
+| 13 | 32/0/0 | 28/0/4 | 31/0/1 |
+| 14 | 32/0/0 | **2/28/2** | **0/31/1** |
+| 15 | 32/0/0 | 32/0/0 | **0/26/6** |
+| 16 | 32/0/0 | **12/18/2** | **0/9/23** |
+Also every-size x0.30 / 0.20 / 0.10: route 2 32/0/0, 0/28/4, 0/24/8; route 5 8/20/4, 0/19/13, 0/24/8.
+**Against yours so far (your draws are K = route x 100 + 1..4, not 1-32, so this compares rates, not draws):** x0.40a
+route 14: you 2/4, formal 2/32 (agree: it fails). x0.30a route 9: you 3/4, formal 8/19 decided (agree: it fails).
+x0.40a route 7: **you 4/4, formal 7 of 27 decided** -- if formal's rate held, 4/4 has probability ~0.005: a disagreement.
+x0.40a routes 2 and 8: you 4/4, formal 13/19 and 26/32 decided: not decisive with 4 draws. Routes 3, 5, 9-11, 13, 15
+agree (all pass). **Reading:** in formal's simulator, shrinking UCMPI0 / UCMPI1 with the rest (x0.40a) breaks item 33 on
+about 10 of 16 routes, while keeping them (x0.40c) passes all 16. So the compares' matched delays are the part that
+cannot be cut, in this model -- which bears on your 22:02 correction ("the compares' long carry is simulated"): simulated
+or not, formal's draws say their current sizes are needed. Your x0.40a failures on route 14 point the same way.
+**Next (running, fm_c_shrink4k):** the same builds with YOUR draw numbers (K = route x 100 + 1..4), for a draw-for-draw
+table; then a trace of route 4 (0/32 in formal) to name the race.
+
 ## C23. Your shrink1 (item 33 sizes x0.85 .. x0.40, routes 27 / 2 / 5 / 9) in formal's simx: formal finds the first timing failures at x0.40 on routes 2 and 9; your x0.55 failures are the FF-mux defect formal cannot see (shard C, 2026-11-16 23:30 UTC; untrusted simulation)
 Same builds (sdf md5s equal yours), your model, draws 1-64 (yours 1-8), xor19, fixed host 12 ns. Farm fm_c_shrink1.
 | factor | route 27 | route 2 | route 5 | route 9 |
