@@ -1,0 +1,51 @@
+w=0: physical (NOT a Spec counterexample: partial-ack deadlock, Spec.Env vacuous): kappa 0.28  race SLICE_X14Y30.B6 pin 102 from SLICE_X16Y32.C5 (run at w=0) RESULT MISMATCH: want [2064144800, 2008045182, 691148861, 3532304609] got [2064144800] [livelock: eventually periodic, simx --periodic (untrusted)]
+minimised 1061 -> 31 slow arcs in 300 simulations (107 s)  (budget reached: not 1-minimal)
+  BRKH_INT_X13Y49/BRKH_INT_NN6C0/0
+  BRKH_INT_X13Y49/BRKH_INT_LV15/0
+  INT_R_X13Y37/SS6END1/0
+  INT_R_X13Y35/SS2END1/0
+  INT_R_X13Y34/SL1END1/0
+  INT_R_X13Y32/SS2END1/0
+  INT_L_X12Y32/WL1END0/0
+  CLBLM_L_X12Y32/CLBLM_IMUX32/0
+  INT_R_X13Y45/SS2END2/0
+  INT_R_X13Y33/NN6BEG3/0
+  INT_R_X13Y44/SL1END2/0
+  CLBLL_R_X13Y44/CLBLL_IMUX21/0
+  SLICE_X19Y44.C6/3
+  CLBLL_R_X13Y46/CLBLL_L_A5/0
+  CLBLL_R_X13Y46/CLBLL_L_CMUX/0
+  SLICE_X19Y46.A6/4
+  CLBLL_R_X13Y44/CLBLL_LOGIC_OUTS18/0
+  INT_R_X13Y44/NN2BEG0/0
+  INT_R_X13Y46/NL1BEG_N3/0
+  CLBLL_R_X13Y46/CLBLL_IMUX30/0
+  SLICE_X19Y46.C6/3
+  SLICE_X19Y46.C6/4
+  INT_R_X13Y39/NN6BEG3/0
+  INT_R_X13Y45/NL1BEG2/0
+  INT_R_X13Y46/NL1BEG1/0
+  CLBLL_R_X13Y47/CLBLL_IMUX33/0
+  CLBLL_R_X13Y47/CLBLL_L_C1/0
+  CLBLL_R_X13Y47/CLBLL_IMUX23/0
+  CLBLL_R_X13Y47/CLBLL_L_C5/0
+  SLICE_X19Y47.C6/0
+  SLICE_X19Y47.C6/2
+row added to margins.txt: SLICE_X14Y30.B6 302 (explain.py OUT SLICE_X14Y30.B6 302 0.28 --w 0)
+witness   (route slow): RESULT MISMATCH: want [2064144800, 2008045182, 691148861, 3532304609] got [2064144800]
+reference (all fast)  : RESULT OK: want [2064144800, 2008045182, 691148861, 3532304609] got [2064144800, 2008045182, 691148861, 3532304609]
+first nodes to diverge (any gate): INT_R_X13Y45/SS2END2(pip)@36*, INT_R_X13Y44/SL1END2(pip)@68*, INT_R_X13Y44/SR1END3(pip)@70, CLBLL_R_X13Y46/CLBLL_LOGIC_OUTS8(pip)@85, CLBLL_R_X13Y46/CLBLL_L_A(hop)@85, SLICE_X19Y46.A6(lut6)@85*   (* = an adversary arc)
+  diverges: SLICE_X16Y32.D6        at 426149 ps
+  diverges: SLICE_X14Y30.B6        at 426230 ps  <- the row's storage LUT
+  diverges: SLICE_X16Y32.A6        at 426432 ps
+  diverges: SLICE_X16Y28.C6        at 426646 ps
+  diverges: SLICE_X14Y33.A6        at 426964 ps
+  diverges: SLICE_X14Y33.B6        at 427049 ps
+  diverges: SLICE_X16Y28.A6        at 427069 ps
+  diverges: SLICE_X16Y28.B6        at 427176 ps
+
+CAPTURE: SLICE_X14Y30.B6 (SLICE_X14Y30.BLUT.O6) first differs at 426230 ps
+RACE at SLICE_X14Y30.B6: pin 4 (delayed 38 ps by the adversary: reference arrival 427369, witness 427407) against pin 3 (arrival 426391)
+  trigger chains meet 37 / 0 flips back
+
+INCONSISTENT: with the reference's own delays path A (38 arcs, 1111 ps) arrives AFTER path B (1 arcs, 95 ps), but the reference is correct, so these chains are not the race. No slack is reported for this row.
