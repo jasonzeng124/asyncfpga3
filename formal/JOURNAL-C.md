@@ -3801,3 +3801,9 @@ Event counts confirm the join injections are applied (run end grows by about the
 +12000 on five more lines, never on item 27 umux2; +3000 passes on all 10. So in formal's model the select-arrival
 margin at the data LUTs is 3-6 ns on the tight lines. Research's gate fails with the join injections (20 runs);
 formal's model does not: a model disagreement, recorded in C17 with a request for one failing trace.
+
+### progress 07:04 -- item 29 (ipow, BD_DSP=1): formal's decoder refuses DSP48 sites
+c_margin_bq29 tasks 4/6 (ipow h4s3 s19, sdf 4a92cdf3 = research's): decode_base.py (A's) exits on
+DSP_R_X7Y60.DSP48.DSP_0.ZPREG[0] -- DSP/BRAM sites are REFUSED by design (its header). The multiply sits in a DSP48E1, so
+the margin tool cannot model item 29 until the decoder and Core have a DSP48 model (timing arcs and the combinational
+multiply). Said in the bq29 write-up. collatz64 items 32 / 30: running.
