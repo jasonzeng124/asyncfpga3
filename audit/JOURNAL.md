@@ -2909,3 +2909,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - shrink4's x0.40a / x0.30a keep only UADDI0 and shrink UCMPI0 to 4 / 3. The rationale: the compare's long carry is simulated.
   - Own T136 shows exactly UCMPI0 = 4 giving live select changes under req at ucond_br2 / br5 (worst and advA). An oracle-only draw verdict cannot see them.
   - Owner notified.
+
+### progress 22:15
+- T136:
+  - advC (all fast, CARRY4 1.0): 8 steer select changes under req, oracle 17/17.
+  - advB (CARRY4 0.20): clean.
+  - The hazard tracks the unmeasured CARRY4 scale.
+  - advD and the 16 own draws are next.
+- research 05a391808: lock only.
