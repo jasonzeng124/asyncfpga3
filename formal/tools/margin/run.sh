@@ -6,7 +6,7 @@
 # BUILD.fasm: the read-back (fromBit) FASM, plain/.xz/.gz. Next to it (or via env) the build's XDC, yosys JSON and
 # nextpnr routed JSON (for the boundary names): XDC=, SYNTH=, ROUTED=. v0 knows only the gcd_ps kernel boundary.
 # Knobs (env): JOBS (8), TOP (0 = every active candidate), KHI (0.45), KLO (0.20), W0 (1: also without H_RUNT),
-#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), W0FULL (1: sweep every candidate at w = 0 too, not only those failing at w = 20), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root), EXPLAIN_ALL (1: explain every failing row, not only the reported races), HOSTDELAY (ps: the host moves input data at least this long after the acknowledge; default 1 = the most adversarial host Spec.Env allows; a clocked host is ns).
+#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), W0FULL (1: sweep every candidate at w = 0 too, not only those failing at w = 20), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root), MINIMIZE (1: for each reported cone/steer race, minimize.py then explain + verify the minimal row), EXPLAIN_ALL (1: explain every failing row, not only the reported races), HOSTDELAY (ps: the host moves input data at least this long after the acknowledge; default 1 = the most adversarial host Spec.Env allows; a clocked host is ns).
 set -euo pipefail
 B=$1; O=$2; mkdir -p "$O"; O=$(cd "$O" && pwd)
 H=$(cd "$(dirname "$0")" && pwd); F=$(cd "$H/../.." && pwd); R=$(cd "$F/.." && pwd)
@@ -131,6 +131,14 @@ for l in lines:
     if os.environ.get("EXPLAIN_VERIFY") == "1": cmd += ["--verify-path"]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
     with open(os.path.join(O, "explain_%s_%s_k%s_w%s.txt" % (node, pin, k, w)), "w") as f: f.write(l + r.stdout + r.stderr[-2000:])
+    if os.environ.get("MINIMIZE") == "1" and 99 <= int(pin) < 200:
+        # a cone / steer row: shrink its slow set (ddmin), then explain and verify the minimal row (pin + 200)
+        m = subprocess.run(["python3", os.path.join(H, "minimize.py"), O, node, pin, k, "--w", w, "--budget", "300"], capture_output=True, text=True, timeout=7200)
+        c2 = ["python3", os.path.join(H, "explain.py"), O, node, str(int(pin) + 200), k, "--w", w, "--verify-path"] + cmd[cmd.index("--w") + 2:] if "--w" in cmd else []
+        c2 = [x for x in c2 if x != "--verify-path"] + ["--verify-path"]
+        r2 = subprocess.run(c2, capture_output=True, text=True, timeout=1800) if m.returncode == 0 else None
+        with open(os.path.join(O, "explain_%s_%s_k%s_w%s_min.txt" % (node, pin, k, w)), "w") as f:
+            f.write(l + m.stdout + m.stderr[-1000:] + ((r2.stdout + r2.stderr[-1000:]) if r2 else ""))
 PYEOF
 # 6. static screen of every feedback race at nextpnr's SDF (fbslack.py; needs SDF=)
 [ -n "${SDF:-}" ] && [ -f "$SDF" ] && { python3 "$H/fbslack.py" "$SDF" --top 60 > "$O/fbslack.txt"; python3 "$H/fbslack.py" "$SDF" --top 30 --grep .ctl. > "$O/fbslack_ctl.txt"; } || true
