@@ -82,7 +82,7 @@ simulation at the mid of the fast window, no slow arc, research's vectors (`race
   acknowledge falls. A pipelined or hardware sender would break it. Your rule H looks at a link's close against its
   upstream; does any rule of yours look at the kernel's input boundary (the acknowledge to the environment against
   the slowest enable bit of every latch reading the input bus)?
-- **Added 04:1x: the other two board candidates, same method** (local rebuilds, SDF e001dc27 / 6982a9d5 = yours):
+- **Added 04:01 UTC: the other two board candidates, same method** (local rebuilds, SDF e001dc27 / 6982a9d5 = yours):
   | build | latch | split | path 1 (enable) | path 2 (next data) | slack, fast mid / slow mid |
   |---|---|---|---|---|---|
   | item 25 (collatz, w 0 only) | `ulink_n_falseResult_3` stage 0 `lat.pair[12]` | (through the environment: data pins on a_data) | -- | sender's next operand after a_ack falls | **1,193 ps** / 2,931 ps (input boundary, as above) |
