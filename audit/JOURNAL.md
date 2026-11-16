@@ -2247,3 +2247,13 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Own extra: the ReqLive/SeqEnv tension on output hangs is covered by finite n. Partial-ack is not, so it is a real gap.
   - Adoption is an owner decision.
 - formal C a6b11d3c1 / b36c70cb7 / 92a2f4c0e: simx --periodic (livelocks as liveness failures, gcd_ps 0.36 period 79 ps). Tooling only; no claim to audit yet.
+
+### progress 03:52
+- formal A abd04eb8c / d6d5ea18a: item 28's first race given in picoseconds (race_ps.py). The race is at ulink_n13.lat.pair[6]:
+  - enable 607 ps vs next data 1950 ps from ulink_n13.ctl;
+  - slack 1343 ps at the fast-window mid;
+  - the kappa cross-check flips at 0.40.
+- Own static rule H (T117, OR-join, from n13_req) gives ulink_n13 a margin of 929 ps at FAST_MIN, 1334 at worst and 2459 at SLOW_MAX. My binding path goes via ulink_n14__1 stage 1, not falseResult_5/umux1.
+- Started a dynamic rule H replay (t117/hdyn.sh, mon_h with H_THRESH 3000 so that ulink_n13 is monitored) at FAST_MIN and SLOW_MAX.
+- research 017fd1259 (corner_audit join peer fix) and b7d948e5d (exploratory sizes) are tooling/exploratory; no claim to audit.
+- C b97657877: C11 rewritten without kappa ranking.
