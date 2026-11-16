@@ -5205,3 +5205,14 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   | collatz fcsel0 | 29 / 29 | -902 | umux0-2 | 23/23 PASS |
   So on every family, the select at 0 is a static arrival violation that the gates do not turn into a failure (as
   on collatz). Rule E is the check that sizes selects; whether it can fail where the gate also fails is next.
+### progress 02:54 UTC (select negative controls on every family: farm selneg)
+- research/tools/fifteen/sdf_inject.py: +PS on every INTERCONNECT arc matching source / destination regexes, every
+  other byte copied (same netlist and bits). Checked on x27_2's xray.sdf: each of umux0-3 gets exactly its two select
+  arcs (select latch -> uj0 / uj1), e.g. ulink_n12__1 stage[1] lat -> umux1.uj0/A5 (279:509:595) -> (3279:3509:3595).
+- Farm selneg (14 tasks): each board candidate's own route (xorshift item 27 s2, collatz64 item 26 s25, ipow item 19
+  s1, collatz item 28 s20), one mux per task, +3000 ps on the select into that mux's joins; corner_audit (E) and the
+  full gate at FAST_MIN / worst / SLOW_MAX on the injected SDF (50 min limit each; a clean gate takes ~10).
+  PREDICTION: E flags every injected mux at both corners (<= -2000 ps). The gate fails (wrong value or no completion)
+  at FAST_MIN on most loop-header muxes, as on collatz; some injections (a mux whose select is settled long before
+  its request on every iteration) may pass every gate -- each such case is a row where E is stricter than the gate,
+  not a check that cannot fail.
