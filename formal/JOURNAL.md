@@ -2687,3 +2687,12 @@ so NetCorrectSeq is vacuous there) taken up next.
   NetCorrectSeqRunt. Check: `cd formal && ./check.sh Formal/Target/SpecWF.lean` -> OK (220 declarations).
 * Not done: whether gcd_ps can actually reach a partial-ack hang (C saw it on item 25 at w 0, 0.38-0.40); envcheck
   (C) now reports such runs as PHYSICAL, which matches the WF form's verdict (a counterexample).
+### progress 03:44 -- item 28's binding race in picoseconds (race_ps.py; untrusted analysis of our own simulation)
+`tools-A/target/race_ps.py NET DUMP Q PIN CORNER [--other PINS]`: in a run with no slow class at kappa 0 (every arc's
+delay known exactly), every arrival at the slowed pin is paired with the next arrival at the data pins, and both are
+traced back flip by flip to their split; each path is printed with cells (LUT/MUX/CARRY arcs) and routing apart.
+Item 28 (fcsel3m s20): latch `ulink_n13.lat.pair[6]`, split at `ulink_n13.ctl`; enable 607 ps (253 + 354 routing) vs
+data 1,950 ps (5 LUTs: n13.uack chain, umux1.uya, falseResult_5 stage 1 ctl and latch, umux1.udat), **slack 1,343 ps**
+at the mid of the fast window, 3,345 ps at the slow mid. Research's rule H is the matching check; its row for this
+route is not committed (asked in A8). Caveats: only the arrivals the 3 vectors make; the smallest gap is taken over
+every enable change (opening ones included), so it can only understate the closing slack. Seeds 24 and 7 running.

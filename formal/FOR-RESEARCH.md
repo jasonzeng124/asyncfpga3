@@ -37,6 +37,23 @@ is not a margin of the chip and must not be read as one, nor used to call one bu
 picosecond form of this race (the two paths from their split, cells and routing apart, slack at the nominal SDF, your
 rule row for it, the slack as a multiple of the measured 8.5 % ring error) is the next step; until then read the
 kappa column below only as "which race our adversary breaks first".**
+**The race, in picoseconds (item 28's route; formal's decoded net, prjxray arcs, uniform corner, no slow class, w 0;
+`formal/tools-A/target/race_ps.py`, untrusted).** Storage element: `ulink_n13.lat.pair[6]` (LUT6 SLICE_X10Y26.A6;
+enable on pin A1, data on A3/A4 from `umux1.udat.pair[6]`). Split (common launch): `ulink_n13.ctl`'s output
+(SLICE_X14Y25.C6). Path 1, the enable: ctl -> latch bit pin, 7 hops, no LUT. Path 2, the next data: ctl ->
+`ulink_n13.uack.chain.g[0]` -> `umux1.uya` -> `ulink_n_falseResult_5.many.stage[1].u.ctl` -> its `lat.pair[6]` ->
+`umux1.udat.pair[6]` -> the latch's data pin (5 LUTs, 39 hops). Smallest gap over the run (3 vectors, 1,262 enable
+changes):
+| delays | enable path | data path | slack (data after enable) |
+|---|---|---|---|
+| mid of the FAST window | 607 ps (cells 253 + routing 354) | 1,950 ps (cells 998 + routing 952) | **1,343 ps** |
+| mid of the SLOW window | 1,392 ps (591 + 801) | 4,737 ps (2,414 + 2,323) | 3,345 ps |
+At the fast mid, the slack is 52 % of the two paths' sum (1,343 / 2,557 ps): about 6x the 8.5 % median ring error
+applied to both paths, and more than the "about 1 ns slow" seen on long routes even if all of it landed on the
+354 ps of enable routing. The search's kappa 0.42 is the same fact as a ratio: (1.42 x the enable path's fast max)
+against (0.58 x the data path's fast min). **Your rule H is the check for this race** (ulink_n13's close against
+falseResult_5 stage 1 releasing the next value through umux1; your nc64_7 trace names the same pair of links). Its
+row for this route is not committed; please add it (rule, slack, corner) so the two slacks can be compared.
 Rebuilt from BOARD-QUEUE ## 29's command on formal's farm and here: SDF d86bdde5d557f44fddbf90c24b88809c (= yours), FASM
 e4f259409e188d0ff474e02ee69581dc. Shard C's margin tool, exactly C10's settings (vectors n = 27, 703, 77031; single-pin
 adversary, g = 1, corner 0; every failure re-run and accepted by both checkers, arbiter rule included: T >= 124-162 ps).
