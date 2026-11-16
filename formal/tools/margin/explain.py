@@ -279,6 +279,7 @@ def trig(x0, limit=4000):
     """the TRIGGER chain of a flip: at every gate, the input whose change arrived last (it fired the gate)"""
     ch = [x0]; edges = []; x = x0
     for _ in range(limit):
+        if x[0] == gq["out"] and x != x0: break        # never back through the capture itself
         ps = parents(*x)
         if not ps: break
         y, gi, p, d = max(ps, key=lambda e: (e[0][1] + e[3], e[0][1]))
