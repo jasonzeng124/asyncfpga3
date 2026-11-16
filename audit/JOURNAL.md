@@ -2526,7 +2526,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Research still reports no rule M result for the board seeds of items 30-32. The local run is not replayed by the audit.
 - research nl6s3b (farm fcsel3b) is exploratory.
 
-### progress 06:47
+### progress 06:39
 - research a6e90b96b: rule M negative on board seeds:
   - item 30 umux0 -1231 / -1321 (data link falseResult_3);
   - item 29 umux2 -279 / -382;
