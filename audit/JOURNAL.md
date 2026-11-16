@@ -2594,3 +2594,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - items 1-26 were never checked by rule M.
 - Item 31 vs own T126g: the select PINS were late by up to 100 ps, but a pin change need not move the output. New own t130/mon_zdata.py watches the data-LUT outputs after the z_req rise. t130/run.sh on item 31, then item 30 (control) is started.
 - Shell commands were briefly blocked around 07:37-07:39 (the command-safety check returned no verdict).
+
+### progress 07:45
+- T126i item 32 dynamic rule H (FAST_MIN): 0 HVIOL, oracle 14/14.
+  - falseResult_9 stage 1 (static -573): dynamic min +12026 ps over 102848 closes.
+  - HC: the entry pin was never last (0/1606). Not live.
+- **Item 32 complete.** Everything is confirmed except the request-edge criterion at umux0's data LUTs (up to 706 ps; owner's decision).
