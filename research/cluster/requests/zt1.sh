@@ -3,7 +3,7 @@
 # zt1: the zero-trip input (n = 1, collatz(1) = 0) was missing from the collatz / collatz64 gate vectors (col13, c6414):
 # the loop-ENTRY steers (ucond_br* fed by ucmpi0) never saw their condition change, so the gate could not judge rule E
 # there (farm steerneg: +8000 ps into those steers passed every gate). col14 / c6415 = the old files with n = 1 as the
-# second vector, oracle compiled from kernels/*.c (research/tools/fifteen/collatz_oracle.sh).
+# second vector, oracle compiled from kernels/*.c (research/tools/fifteen/kernel_oracle.sh).
 #   1-32 fcsel3a (BQ item 31 / section 32), 33-64 fcsel3m (item 28 / 29), 65-96 fc64sel3 (item 30 / 31),
 #   97-128 fc64sel3p (item 32 / 33): build + static (STATIC_ONLY) + the gate with the new vectors at SLOW_MAX / FAST_MIN /
 #   worst, default plusargs (as the board items were gated).

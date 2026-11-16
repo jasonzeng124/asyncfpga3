@@ -161,7 +161,7 @@ ucmpi0 (the loop-entry test, evaluated once per call); "loop" = from the loop's 
 |---|---|---|---|---|---|
 | xorshift item 27 s2 | ucond_br2 / 3 / 4 | entry (data) | -776..-325 / -5926..-5475 | PASS / PASS | PASS / PASS |
 | xorshift item 27 s2 | ucond_br5 | entry (control) | -826 / -5976 | PASS / PASS | none / none |
-| xorshift item 27 s2 | ucond_br6 | loop | -2051 / -7201 | none / PASS | FAIL 3/17 / none |
+| xorshift item 27 s2 | ucond_br6 | loop (ucmpi1) | -2051 / -7201 | none / PASS | FAIL 3/17 / none |
 | xorshift item 27 s2 | ucond_br7 | loop | -1689 / -6839 | none / PASS | FAIL 2/17 / none |
 | xorshift item 27 s2 | ucond_br8 / 9 | loop | -1867, -2116 / -7017, -7266 | none / PASS | none / none |
 | collatz64 item 26 s25 | ucond_br2 / 3 / 4 | entry | -228..-40 / -5378..-5190 | PASS / PASS | PASS / PASS |
@@ -169,7 +169,7 @@ ucmpi0 (the loop-entry test, evaluated once per call); "loop" = from the loop's 
 | collatz64 item 26 s25 | ucond_br6 | loop | -1711 / -6861 | none / none | none / none |
 | collatz64 item 26 s25 | ucond_br7 | loop | -1679 / -6829 | PASS / PASS | PASS / PASS |
 | ipow item 19 s1 | ucond_br2 / 3 / 4 | entry | - / -4749..-4154 | PASS / PASS | PASS / PASS |
-| ipow item 19 s1 | ucond_br5 | ? | - / -4534 | PASS / PASS | none / PASS |
+| ipow item 19 s1 | ucond_br5 | entry (control) | - / -4534 | PASS / PASS | none / PASS |
 | ipow item 19 s1 | ucond_br7 | loop | - / -2653 | PASS / PASS | FAIL 3/17 / none |
 | ipow item 19 s1 | ucond_br8 / 9 | loop | - / -2488, -2679 | PASS / PASS | none / PASS |
 | collatz item 28 s20 | ucond_br2 / 3 / 4 | entry | -1807..-968 / -6957..-6118 | PASS / PASS | PASS / PASS |

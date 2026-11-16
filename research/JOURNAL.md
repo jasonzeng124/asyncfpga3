@@ -5754,12 +5754,12 @@ Formal FOR-RESEARCH: C19 (runt pulses into link controllers) is the newest item;
 on a ctl input in our GLS (already on the Next list).
 ### progress 18:48 (farm steerneg done; a gate coverage gap at the loop-entry steers)
 - steerneg (26 steers on the 4 board routes, condition +3000 / +8000, +META_INIT=0): 14 steers fail at +8000 with E < 0,
-  on all four families. 12 pass with E -4..-7 ns: every loop-ENTRY data steer (cond from ucmpi0) and collatz64 ucond_br7.
+  on all four families. 12 pass with E -4..-7 ns: every loop-ENTRY DATA steer (cond from ucmpi0; 11) and collatz64 ucond_br7. The entry CONTROL steers (xorshift, ipow ucond_br5) fail.
   Table in research/data/selneg/README.md.
 - Cause on collatz / collatz64: the gate vectors (col13, c6414) have no n = 1, so the entry test is the same on every
   call and the gate cannot see the entry steers at all. collatz(1) = 0 is a legal input (full-range rule). New vector
   files col14 / c6415 = old + n = 1 as the second vector; oracle compiled from kernels/*.c by
-  research/tools/fifteen/collatz_oracle.sh (reproduces col13.exp / c6414.exp byte for byte).
+  research/tools/fifteen/kernel_oracle.sh (reproduces col13.exp / c6414.exp byte for byte).
 - Farm zt1 (132 tasks): items 31 / 28 / 30 / 32 families, 32 routes each, gated at 3 corners on the new vectors; plus the
   entry-steer +8000 control on each board seed with new and old vectors. PREDICTION: every clean route PASSES (the
   entry-steer E rows on these routes are clean, and n = 1 was simulated before on vec_c64_selflip without failure); the
