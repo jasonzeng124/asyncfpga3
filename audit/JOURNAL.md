@@ -2828,3 +2828,16 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 19:10
 - T134 item 31 (colsel3a_20) with n = 1, FAST_MIN: 14/14 (n = 1 OK); 0 latch / steer violations. Items 30 / 32 (collatz64) are running.
+
+### progress 19:16
+- **Owner 501eda80d (audit PROGRAM) / 33fd1941b (research PROGRAM), 2026-11-16: "the board decides; every check is a proxy".**
+  - Static rules are tools, not gates.
+  - The audit stops auditing rule rows and rule coverage, except as leads to simulation failures.
+  - The audit now audits the board approximation:
+    - the delay-uncertainty model vs the August ring data;
+    - predicted vs measured on the August board builds (xorshift 47.66, collatz 91.96, collatz64 112.71 ns/iter; gcd 310 ns..6.34 us);
+    - full-range passing fractions with honest and sufficient draws;
+    - gaps in research/SIM-VS-BOARD.md.
+  - A headline is overstated if it quotes a speed without its passing fraction, or a fraction without the model's error on board data.
+- Pending owner decisions (items 28/30-32 late mux outputs; rule E at joins) are closed by the owner. REPORT owner-decision row added.
+- T134 (n = 1 coverage) continues: it is full-input-range simulation, not a rule.
