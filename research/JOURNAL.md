@@ -5419,3 +5419,17 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   with --shrink-selects, nominal + worst; hold-side trims and select links NOT taken). Farm fcsel3b, every check.
   PREDICTION: -0.3 to -0.8 ns per iteration vs fcsel3a (ucmpi2 and uselect0 sit on near-critical cycles; umux1 / umux2
   mostly off them); M / E / H / I / TSE clean on >= 28/32.
+### progress 06:36 UTC (rule M on the board families: mux data outputs were never checked by any rule)
+- *_ps reruns with rule M (worst / nom, rows below 0): collatz item 31's family (fcsel3a) none on 29 routes. ipow item
+  29's family (fisel3): umux2 on 15/19 routes, to -780 (board seed 19: -279 nom / -382 worst). collatz64 item 30's
+  family (fc64sel3): umux0 on 32/32, -0.6 to -2.4 ns (board seed 10: -1231 nom / -1321 worst). xorshift item 27's family
+  (fxd): umux0 / 1 / 2 on 23/29, to -734 (board seed 2: umux1 -13 nom / -117 worst).
+- The binding launches are the DATA links (collatz64 umux0: ulink_n_falseResult_3, i.e. x_data -> udat LUT -> z_data
+  against x's request -> join -> udly -> z_req), not the select. So at a bd_mux no rule ever covered ANY data output:
+  tighten's check() found a common source with some trivial peer and returned. The mux delays were sized to nothing
+  (collatz64 umux0 is 2; M asks 6-16 over 32 routes). Every gate on these families passes (hundreds of runs, 3 corners).
+- What it means is open. z_data feeds a fork into links (transparent latches that close a phase later, at the
+  sender's return to zero -- rule I's domain) and, on collatz64, one direct consumer (n10__0). A late mux output is a
+  hazard only where a consumer acts on the request edge. PROGRAM's rule for a miss > 0.5 ns at nominal on a board item
+  (items 30 / 32): name the false path and show it with a trace, or pad and gate again. Doing the trace first: a
+  dynamic counterpart of M (mux output settle vs z_req rise, and vs each consumer's capture) on item 30's route.
