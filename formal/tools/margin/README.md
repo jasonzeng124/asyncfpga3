@@ -2,8 +2,8 @@
 
 Goal (formal/PROGRAM.md, first section): `run.sh BUILD.fasm OUT/` reports, at g = 1 with and without H_RUNT(20),
 every race that can break the build, kappa* (the smallest failing within-die scatter) with its race in the build's
-instance names, and a failing delay assignment just above kappa* (or "none found"). Status: v0 being assembled
-(2026-11-15); nothing here is a result yet.
+instance names, and a failing delay assignment just above kappa* (or "none found"). Status (2026-11-16): in use on
+research's builds via the farm; every number is search (kappa_hi), none is a proof (kappa_lo: none).
 
 ## Run it (from a clean checkout of claude/formal; needs python3, g++, prjxray-db under $TC)
 gcd_ps-style build (XDC, yosys JSON and routed JSON next to the FASM):
@@ -30,8 +30,10 @@ SHARD, ONLY). Cost: gcd_ps (16,990 pins) 23 min on 4 cores; bench builds 1-15 mi
    H_RUNT read-lag bound) and envcheck.py (Env, SeqEnv, ArbOK T, out0). Only ADMISSIBLE failures enter kappa_hi.
 
 ## Results so far (search, untrusted; kappa_hi only)
-gcd_ps 0.36 (w 20), 0.44 also; BAD_xf2_1 0.00; item 23 none <= 0.45; item 25 0.44 (w 0). Details: out/<build>/,
-JOURNAL-C.md 2026-11-15.
+gcd_ps 0.36 livelock / 0.40 finite (w 20); BAD_xf2_1 0.00; item 23 none <= 0.45; item 25 0.42 (w 0); item 26 0.26;
+item 28 (collatz board candidate) 0.42; fcsel0-2 0.21-0.32, fcsel3m other seeds 0.27-0.41; item 27 single-pin none <= 0.45,
+capture 0.39. The live table is formal/FOR-RESEARCH.md (C items) and formal/target/MARGINS.md. Details: out/<build>/,
+JOURNAL-C.md 2026-11-15/16.
 
 ## Simulator
 `SIM=simx` (recommended): `simx.cpp` (g++ -O2 -std=c++17), a C++ port of tools/huff/simadv.py's options the sweep
@@ -45,8 +47,25 @@ times in the dump) on 7 gcd_ps runs incl. the 0.40 deadlock, the 0.36 livelock a
 |---|---|---|---|
 | F feedback | a storage LUT's own loop vs the return path of its switch to a forcing pin | tools-B/ps/allpaths.py | 0.44 (SLICE_X32Y45.A6) |
 | K fork | a storage LUT's input route vs a detour from the same source to another of its pins | forkrace.py | 0.40 / 0.36 (SLICE_X16Y21.A6 pin 0) |
-| L latch capture | latch data vs enable close (setup, hold; rules H/I; select race) | B's select-race work | none found to 0.43 |
+| L latch hold | a latch's enable reaches it late (closes after the next data arrives; rules H/I) | single-pin (LATCH=1) | binding on every collatz build (ulink_n13, ulink_n_falseResult_3 st0) |
+| C capture (setup / arrival) | a link's whole data cone slow, its request fast: data (incl. a mux SELECT, rule E) arrives after the latch closes | cones.py (`CONES=1`) | gcd_ps 0.61 (wrong values from 0.77); collatz: the select link ulink_n_index_11 st0 first |
+| S steer capture | a C-element / steer reading data (a branch condition) through logic, that cone slow | cones.py --steer (`STEER=1`) | item 25 0.62 (w 20) |
 | A arbiter | grant/state settling vs H_ARB(T) | arbiter rows | 0.43 livelock (excluded by H_ARB) |
 | E boundary | the environment's timing (Δo, su) | envcheck.py | finding 4 of BOUNDARY-ps.md |
-Not covered yet: multi-route adversaries (two slow routes at once), glitch (runt) propagation into hold addresses
+Not covered yet: multi-route adversaries other than the C/S cones, glitch (runt) propagation into hold addresses
 other than through one slow pin, corners other than 0 and 1.
+
+## What counts as a failure (2026-11-16)
+- FAIL-wrong (a wrong value) and FAIL-quiet (quiet with an answer missing): finite witnesses, checked by gatecheck +
+  envcheck; only ADMISSIBLE ones give kappa_hi.
+- FAIL-livelock: never quiet, never answering, and `simx --periodic` found the run eventually periodic (whole history
+  over the longest read look-back repeats with period P, boundary and env idle). Checked to the start of the period;
+  the infinite extension rests on the C++ periodicity check (untrusted). Listed on its own kappa_hi.txt line.
+  gcd_ps 0.36: period 79 ps, as Lean's Frontier36.
+- FAIL-noanswer without a period, UNDECIDED (event/memory cap): not failures.
+- INFEASIBLE (w > 0): some LUT read lands in a narrow-pulse chain longer than its delay window; no H_RUNT(w) read map
+  exists, so the run is no behaviour; not a failure (the bisection moves on).
+- Env rejections: a row whose gate checks are clean but whose simulated harness broke Spec.Env (it released data on an
+  acknowledge that then glitched) is re-run with `--datachange next`. PARTIAL-ACK DEADLOCK (the kernel acknowledged
+  some input channels of the shared request, not all, and stopped): Spec.Env has no continuation, so the frozen
+  statement is vacuous there; listed as PHYSICAL (a real harness hangs), not as a Spec counterexample.
