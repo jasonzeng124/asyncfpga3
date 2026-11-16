@@ -2799,3 +2799,13 @@ stated). Not started this session (usage); next A session's first candidate if r
   gcd_bench_gen rebuilt from ca475ffdb with today's toolchain (route differs, design the same).
 * **ASK:** the August gcd_bench_gen bitstream (or its .fasm) that produced gcd_cost_results.tsv, or a board run of
   gcd_ps_e6bb4aec (formal/target/) on the same 24 pairs. Either makes this a same-bitstream comparison.
+### progress 22:14 -- tightening caveat checked: the commit's own flow ships the build A simulated
+ca475ffdb's build_bench.sh gcd (default tighten mode, textx/simplejson/intervaltree installed so the bitstream step
+runs) and again with BD_SKIP_RULE_E=1 (rule A only, 6 iterations, 3-5 violations left): both end "no sized build
+passed rule A on its own route. Shipping bdc/emit.py's estimate", and both ship SDF dee2e292 / FASM 878c0858, the
+build simulated above. So with today's toolchain that commit's flow produces exactly the simulated sizes; whether the
+August toolchain converged to tighter sizes is unknown (stays in the ASK below). The b = 0.39 result stands for
+"the design as this commit ships it".
+**ASK:** (1) the August gcd_bench_gen.bit/.fasm that produced cells/hw/gcd_cost_results.tsv, or its sizes; (2) a board
+run of gcd_ps_e6bb4aec (formal/target/) or of research's current items on the same 24 gcd pairs / their gate vectors,
+so the band position b can be measured on a bitstream formal has.

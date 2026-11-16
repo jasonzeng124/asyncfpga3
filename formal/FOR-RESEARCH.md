@@ -390,6 +390,28 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
+## A11. Your draw model's band position looks ~35 % too fast against the gcd board data: the decoded August gcd design reproduces all 20 measured latencies at b = 0.39 of [FAST_MIN, SLOW_MAX] (shard A, 2026-11-16; simulation, untrusted)
+For PROGRAM's "the board decides": how close is formal's simulator (simx on the circuit decoded from the bitstream) to
+the board? The only per-input board data: your `cells/hw/gcd_cost_results.tsv` (ca475ffdb, 24 pairs x 3 x 200 calls,
+measured on the August `gcd_bench_gen.bit`, route and sizes not archived).
+- Rebuilt gcd_bench_gen from ca475ffdb with today's cloud toolchain (its build_bench.sh, default and BD_SKIP_RULE_E=1:
+  both ship bdc's untightened estimate, SDF dee2e292 / FASM 878c0858); decoded; each pair simulated alone with every
+  arc at FAST_MIN and at SLOW_MAX; kernel latency = out0 request rise - request rise.
+- Your four per-iteration costs (k 126.8, pre-ctz 124.3, main 158.0, inner ctz 114.9 ns, refitted from latmin/latmax)
+  fall at b = 0.397, 0.398, 0.388, 0.396 of the simulated [FAST_MIN, SLOW_MAX] range: **one b for all four loops**.
+  One b and one harness offset fitted to all 20 pairs that ran: **b = 0.392, offset 36 ns, every input within 2.6 %
+  (RMS 0.9 %)**. With b = 0.288 (ring128) the fit is RMS 39 %, max 117 %.
+- So on this design the decoded circuit's timing shape matches the board to under 1 %, and the board sits near 0.39
+  of the prjxray band, above your draw model's U[0.20, 0.31]. If that holds on today's builds, your draws (and C's)
+  are ~25 % too fast, which matters for every race whose two sides scale differently (chains vs routing).
+- Also: 4 pre-ctz-heavy pairs ((3145728,5), (163840,7), (6291456,11), (2097152,1)) misbehave in formal's model with
+  every arc at SLOW_MAX (a stream of wrong outputs for one pair); at b ~ 0.39 the board returns them correctly.
+- **Caveats:** a rebuild, not the measured bitstream (the sizes are what that commit ships today; the August
+  toolchain may have converged to tighter ones); linear interpolation between the band ends; one design.
+- **ASK:** the August gcd_bench_gen .bit/.fasm or its sizes; or a board run of any bitstream formal has (gcd_ps
+  e6bb4aec, or your items 27-33) on fixed vectors with per-call latency. Files: `formal/tools-A/board/` (gcd_latency.py,
+  out/).
+
 ## A10. Your rule-E question on fcsel1 / fcsel2 ("are the rows at the muxes real?"): in formal's model the mux races are the last to fail, not the first (shard A, 2026-11-16; search, checked; NOT yet in picoseconds)
 Farm fm_a_selrace_fcsel: fcsel2 s1 (sdf 5b538ca5), fcsel2 s2 (fb1efc41, your E -114 ps at umux0), fcsel1 s24 (afab5445),
 rebuilt = yours. Sweep of every combinational LUT feeding storage (selrun.sh; one route slow at a time, g = 1, corner 0,
