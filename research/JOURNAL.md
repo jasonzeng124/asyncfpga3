@@ -5328,3 +5328,10 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   it stays at 4 until something audits it.
 - Farm fxu: fr4 + ULINK_N7F__1_UACK 1 (fr4u). PREDICTION: -0.5 to -1.0 ns per iteration vs fxd paired (the line is
   ~2 ns of a two-iteration cycle, the next cycle without it is ~1-2 ns below); hold side (H / I, TSE, hold_bits) clean.
+### progress 04:39 UTC (proposal rounds with the A' fix: collatz uselect0 9 over 32 routes -> farm fcsel3p)
+- fcsel3m_p (32 routes x 2 corners, every proposal verified clean): per-cell max uselect0 16 -> 9 (min 5), uaddi0 stays
+  12, five ack / stage lines -1. PREDICTION (made before the A' fix) 8-10: met. nl6s3p = nl6s3m + that; farm fcsel3p,
+  every check. PREDICTION: period median ~22.5 ns (fcsel3m 25.8; uselect0 -7 elements x ~0.4 ns on the rising edge, the
+  route-to-route spread decides how much of it the next cycle eats), every check clean on >= 30/32.
+- fxd_p (xorshift item 27, 32 routes): the max moves little (ucmpi1 9 -> 10, uxori2 7 -> 8 up; acks down); 20 of 64
+  proposals keep one H row short (the known falseResult_9 rows). No xorshift round from it; fxu tests the ack.
