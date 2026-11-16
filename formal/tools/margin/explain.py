@@ -109,21 +109,21 @@ if not cands: sys.exit("no storage LUT diverges between witness and reference")
 cands.sort()
 for t, gi in cands[:8]: print("  diverges: %-22s at %d ps%s" % (N[G[gi]["out"]], t, "  <- the row's storage LUT" if N[G[gi]["out"]] == a.node else ""))
 own = [(t, gi) for t, gi in cands if N[G[gi]["out"]] == a.node]
-if a.pin < 99:
-    # a single-route row: the slowed route can end at several storage LUTs (one enable route into many latch bits);
+if a.pin < 99 or a.pin >= 200:
+    # a single-route row (or a minimised one, pin 200+): the slowed route can end at several storage LUTs (one enable route into many latch bits);
     # the race bites first at the earliest-diverging of them, before the two timelines drift apart
     sinks = [(t, gi) for t, gi in cands if any((gi, p) in SL for p in range(G[gi]["k"]))]
     if sinks and (not own or sinks[0][0] < own[0][0]):
         print("  (the slowed route also ends at %s, which diverges first: explaining the race there)" % N[G[sinks[0][1]]["out"]])
         own = sinks[:1]
 # a cone row: the first diverging storage LUT of its latch group; a steer row (pin 100+i): its storage LUT
-if a.pin >= 99 and os.path.exists(os.path.join(O, "cones.json")):
+if 99 <= a.pin < 200 and os.path.exists(os.path.join(O, "cones.json")):
     # a cone row: the capture is one of the group's latch bits (the cone feeds their data pins), not whatever
     # storage LUT diverges first downstream
     mem = next((set(r.get("members", [])) for r in json.load(open(os.path.join(O, "cones.json"))) if r["node"] == a.node and r["pin"] == a.pin), set())
     own = [(t, gi) for t, gi in cands if N[G[gi]["out"]] in mem]
     if not own: sys.exit("no latch of the cone row's group diverges")
-tstar, q = own[0] if (own and (a.pin < 99 or os.path.exists(os.path.join(O, "cones.json")))) else cands[0]; gq = G[q]
+tstar, q = own[0] if (own and (a.pin < 99 or a.pin >= 200 or os.path.exists(os.path.join(O, "cones.json")))) else cands[0]; gq = G[q]
 print("\nCAPTURE: %s (%s) first differs at %d ps" % (N[gq["out"]], gq["name"], tstar))
 # arrivals at q's pins in both runs around t*
 def arrivals(D, slowset):

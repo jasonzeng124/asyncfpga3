@@ -3657,3 +3657,12 @@ seeds 1/3/4/5: finite kernel failures from steer cones 0.30-0.45 (not traceable 
 seed 5: capture at the latch fed by ucontrol_merge1.uarb1.ustate (data 3 LUTs, SDF 1398; enable 6 LUTs, SDF 2821),
 +1423 ps SDF = 1.07 x worst short-ring error; item 27 (seed 2) +1418. Explanations of steer rows in this run used the
 old routing ("no holding value") and are superseded by the UNRELIABLE guard.
+
+### progress 05:01 -- minimize.py: ddmin on a cone row's slow arcs; item 25's steer hang needs 16 of 793
+`minimize.py OUT NODE PIN KAPPA [--w W]`: delta debugging over the row's slowed arcs (one simx run per test, --periodic,
+event cap 2e7), keeps a subset if the run still fails; writes the result as row PIN+200 of margins.txt for explain.py /
+checkrows. item 25's steer-cone row (ulink_n_index_11 st0 ctl, SLICE_X14Y22.A6 pin 1, partial-ack hang at 0.38, w 0):
+793 slowed arcs -> 16 (routes into SLICE_X18Y41.B6 pin 1, SLICE_X19Y36.A6 pin 0, SLICE_X19Y45.A6 pin 0 and a route
+through CLBLM_L_X12Y26): the hang needs about four slow routes at once, not the whole cone. explain.py on the minimised
+row still finds no two-path race (the arrivals at the controller descend one from the other: UNRELIABLE), so this
+class stays "found, not explained". explain.py now treats rows with pin >= 200 like single-route rows.
