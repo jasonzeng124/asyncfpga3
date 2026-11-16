@@ -5216,3 +5216,12 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   at FAST_MIN on most loop-header muxes, as on collatz; some injections (a mux whose select is settled long before
   its request on every iteration) may pass every gate -- each such case is a row where E is stricter than the gate,
   not a check that cannot fail.
+### progress 02:56 UTC (xorshift select links sized by E: farm fxsel3; line accounting requests)
+- fxsel1_s rule E rows by mux (both corners, 32 routes): umux0 to -620, umux2 -638, umux3 -238, umux1 -185 ps. At ~400 ps
+  an element, 3 covers all with >= ~160 ps. Farm fxsel3 (fr4s3: select links 5/8/6/5 -> 3/3/3/3), every check.
+  PREDICTION: E clean at both corners on >= 30/32; latency vs fxd paired -0.2 to -0.4 ns per iteration (fxsel1 bought
+  -0.28 median, fxsel0 -0.49). Small: xorshift's select links are not the ring's big term the way collatz's were.
+- Farm fcsel3m_la / fc64eq_la / fipowrh_la: the second lead's line table on item 28, collatz64 item 26, ipow item 19.
+- itercost/README.md: item 25's line table on 28 routes (la_aggregate.py): the select ring is critical on 28/28,
+  ulink_n14__1's select line 27.8 ns of it (rule E margin +13.4 ns, needs 1 element); datapath near-critical on 8,
+  where uselect0's 16 elements cover 0.2 ns of logic + 2.0 ns of wire.
