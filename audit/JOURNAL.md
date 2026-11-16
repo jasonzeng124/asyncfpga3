@@ -2215,7 +2215,7 @@ Formal C 80cd8b1e: margin tool fixes -- runs infeasible under H_RUNT no longer c
 ### note 09:20
 Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and fcsel0 s24: no single-route failure <= 0.45 on either; the umux select race does produce wrong values from ~0.85 (umux0.udat.pair[10] reading the select from ulink_n14__0 late), on both builds -- under this adversary select links at 3 vs 0 do not separate. Consistent with own T116c / T118: on fcsel0 the select reaches umux0's pins up to ~0.5 ns after z_req at nominal FAST_MIN without a wrong value (downstream matched delays absorb it); the static rule E (research -87..-255 ps) is stricter than what breaks. A also reports a bug in C's run.sh (arbs.json overwritten with [] under pipefail/EPIPE) -- relevant to C's earlier "ArbOK checked" claims if that path ran; to watch.
 
-### progress 03:45
+### progress 03:38
 - formal C 3085bc4e9 (steer cones; "partial-ack deadlocks make Spec.Env unsatisfiable").
   - Read Spec.lean:265-298 and :392 at 103cc6c3c.
   - Own lemma audit/lean/T121/EnvVacuous.lean (`env_vacuous`), own Lean, rc 0, axioms propext and Quot.sound.
@@ -2230,9 +2230,20 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - selneg2 at +6000/+12000 ps (babb534d8).
   - These are next in the queue.
 
-### progress 04:05
+### progress 03:41
 - T122: own rule E on item 19's board route (ipowr_1, sdf a6a2951b), 3 corners.
   - Result: 204 rows, min +1696 ps, no negative gate.
   - The OR-join column is negative only at steer ucond_br7 (-2598..-7059). Under the C-element model the same rows are +4574..+12931.
   - Closes the item 19 E gap in the f6c37b63 row.
 - The SLOW_MAX GLS was started only to bake the netlist and was stopped afterwards.
+
+### progress 03:47
+- formal A 0c66d040e SpecWF.lean, finding T123.
+  - Own lake build is OK; own axiom report shows standard axioms only.
+  - env_unsat_partial_ack is the same as my T121.
+  - Env → EnvWF is proved, so refutations carry over.
+  - ReqLiveWF equals the real one-flop harness.
+  - Non-vacuity on a hang is shown for the ReqLive clause only.
+  - Own extra: the ReqLive/SeqEnv tension on output hangs is covered by finite n. Partial-ack is not, so it is a real gap.
+  - Adoption is an owner decision.
+- formal C a6b11d3c1 / b36c70cb7 / 92a2f4c0e: simx --periodic (livelocks as liveness failures, gcd_ps 0.36 period 79 ps). Tooling only; no claim to audit yet.
