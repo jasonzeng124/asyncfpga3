@@ -2418,3 +2418,23 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research db8fa32f7: corner_audit rule M, the select's path to the mux data LUTs. Its first control does not fail the gate (+3000, PASS). No claim to audit yet.
 - T128 negative control +3000: GLS **PASS 13/13**, so the static bundling check is stricter than the gate. Running +10000 for a failing build.
 - T126 item 30 worst: 14/14.
+
+### progress 05:52
+- T126d, item 30 (c64sel3_10, recipe sdf) at FAST_MIN with the mon_sel classifier (ZACKS fixed); oracle 14/14.
+  - umux0: 52 select events, all starting with z_req low (state C); 0 in A or B.
+  - **26 events have data-LUT select pins (udat, 32 pins) settling after z_req rose, max 101 ps late.**
+  - umux1 / umux2: 0 late.
+  - Item 26 (same structure, select link 15): umux0 select-to-z_req +2434 ps, no late pins.
+- Own rule E at the request joins (sites_gen, FAST_MIN / worst):
+  - umux0.uj1 +168 / +197, umux0.uj0 +442 / +608;
+  - umux2.uj1 +318 / +363.
+  - Clean, so research's "rule E clean" is CONFIRMED, but the margin is small.
+- The late pins are on the DATA path, which rule E does not see (research's new rule M, db8fa32f7, covers it).
+- Own bundling (t128/bundle.py) from the select link ulink_n14__0 through umux0's data LUTs to the downstream latches after ufork3:
+  - min **+198 ps** FAST_MIN / **+227 ps** worst (ulink_n10__1);
+  - n10__2..4: +375..+676.
+  - Positive, but small.
+- Reading:
+  - The owner's text "no select change while the output request is high" is violated at the data-LUT pins by up to 101 ps in own GLS at FAST_MIN.
+  - Data capture downstream is still statically safe by about 0.2 ns (OR-join request bound).
+  - To report as OVERSTATED-risk: item 30's "every row clean" did not include the data-path select arrival (rule M postdates the queue entry).
