@@ -3519,7 +3519,7 @@ So research's rules look at both links our adversary breaks first, and call them
 Ours (pending c_explain2): the same races' slack from the split, at prjxray mid-band and at the same SDF. If they agree in
 size, the kappa is only a restatement of that ns slack under a 1-ps harness / all-fast adversary.
 
-### progress 03:57 -- slack scaled by what the ring data measured, not by 8.5 % alone
+### progress 03:53 -- slack scaled by what the ring data measured, not by 8.5 % alone
 research's cells/hw/README.md (August ring128): 8.5 % is the MEDIAN ratio error (covers 52 % of rings), not a bound;
 on the shortest rings (7 links, the length nearest these sub-2 ns race paths) the ratio runs 0.773-1.470 (p99 47 %);
 and the population fits measured = 0.938 x SDF + 988 ps per ring period, a ~1 ns constant the SDF does not charge.
