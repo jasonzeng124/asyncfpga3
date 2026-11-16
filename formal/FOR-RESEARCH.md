@@ -71,6 +71,13 @@ not found a row of yours for this setup race at the latch's data pin. At your SD
 the worst error measured on short rings. Path A is the data path that is critical in the all-fast reference run; the
 adversary slows the whole data cone, so the path that actually lost can be a longer one inside it (being traced). Not
 yet checked on other routes of item 27 (one route is a sample).
+**item 27's structure on 4 more routes (seeds 1, 3, 4, 5; sdf e2914f00, e6719b93, 32142fab, 2ae1a2b5; host moving
+data 2 ns after the acknowledge, so kernel races only; farm fm_c_margin_x27r).** Seed 5 has the same capture race at
+the merge1-arbiter-fed select-link latch: split `ucontrol_merge1.uarb1.ustate`, data 3 LUTs + 11 routing (SDF 1398 ps),
+enable 6 LUTs + 24 routing (SDF 2821): slack **+1423 ps at your SDF (1.07 x the worst short-ring error)**, vs +1418 on
+seed 2. So this race is about 1.4 ns at the SDF on two routes out of two where it shows. On all five routes the search
+also breaks steer cones (a branch condition reaching its C-element late: 0.30-0.45) and finds partial-ack hangs
+(0.23-0.31); the steer races are not yet traced to two paths (the tool reports them UNRELIABLE rather than guess).
 **item 28 (sdf d86bdde5).** Besides A8's ulink_n13 race (your H +1337, hold_bits 1566 ps, kappa 0.42): from kappa 0.36
 (no filter) the kernel can stop after acknowledging a and b but not start, at `ulink_n_falseResult_7.many.stage[0]`'s
 controller reading its own output late (a feedback race). The same controller does this on fcsel1 seed 24 from kappa

@@ -3651,3 +3651,9 @@ explain.py: (1) a single-route row is explained at the earliest-diverging storag
 (2) steer rows (pin 100+) go through the single-route logic, and any path that revisits a gate is reported UNRELIABLE
 with no slack (item 25's steer cone: 757-arc "paths" around the loop). Farm explanations for steer rows in host2
 said "no holding value" (old routing to the latch-group code): superseded.
+
+### progress 04:56 -- item 27's structure on 4 more routes (c_margin_x27r, host 2 ns): the merge1-arbiter capture race recurs at +1.4 ns SDF; C12 updated
+seeds 1/3/4/5: finite kernel failures from steer cones 0.30-0.45 (not traceable yet), hangs 0.23-0.31, livelocks 0.29-0.31.
+seed 5: capture at the latch fed by ucontrol_merge1.uarb1.ustate (data 3 LUTs, SDF 1398; enable 6 LUTs, SDF 2821),
++1423 ps SDF = 1.07 x worst short-ring error; item 27 (seed 2) +1418. Explanations of steer rows in this run used the
+old routing ("no holding value") and are superseded by the UNRELIABLE guard.
