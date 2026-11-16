@@ -98,6 +98,31 @@ whenever a result here (a completeness proof, a certificate checker) is what it 
 
 A lock dated 2026-11-10 is from before the pause: take it.
 
+## A kappa is not a result; the race in picoseconds is (owner, 2026-11-16)
+
+The owner, asked whether the margin numbers can be trusted: "i rly dont". He is right about
+the number. A kappa restates how lopsided one race is in the SDF. It inherits every error of
+the SDF, it moves with a simulator knob (item 25: no failure with the 20 ps filter, 0.42
+without), it moves 0.10 from route to route of one design, and nobody has measured what
+kappa the chip has. So from now on, for every binding race you report:
+
+- **Name it:** the storage element, the two signals that race, and the node where their paths
+  split (the common launch).
+- **Give it in picoseconds:** each path's delay from the split, cells and routing separately,
+  and the slack between them at the nominal SDF.
+- **Tie it to research's checks:** the row for the same race in research's rule output (rule
+  and slack), or the statement that no rule of theirs looks at it. Their "clean" and your
+  kappa are two views of one slack; say whether they agree on its size.
+- **Say how fragile the finding is:** with and without the filter, and on at least 4 routes of
+  the same design before comparing two designs. One route is a sample.
+- **Scale it by something measured:** the August ring data on `claude/research` (SDF against
+  the board: median error 8.5%, long routes about 1 ns slow, 76 of 128 rings slower than the
+  SDF) is the only measured delay error there is. State the slack as a multiple of the
+  measured error for paths of that length.
+
+Keep kappa as the search key and as a column. Do not lead with it, in FOR-RESEARCH.md or in
+MARGINS.md, and do not call a build better or worse than another on kappa alone.
+
 ## Next for the margin tool: research's collatz board candidate (2026-11-16 02:55 UTC)
 
 C10 measured collatz with select links at 0, 1 and 2 (kappa_hi 0.21 to 0.32). The build
