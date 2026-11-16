@@ -151,3 +151,36 @@ Two more loop steers, local, same construction (condition +8000 ps, gate FAST_MI
 So rule E fails on a known-bad build at the steers of all four families.
 Traced (collatz ucond_br7, +8000, +META_INIT=0, tr_st7): no kernel net is X at any time after 10 ns, all 1415 kernel nets
 end defined, and kernel activity stops at 3.945 us: a true deadlock (the token steered the wrong way), not an artefact.
+
+## Farm steerneg complete (2026-11-16 18:44 UTC push): every steer of the four board routes
+Every arc into ONE steer's own LUTs (ucond_brK.u$LUT5 / $LUT6; not its join) +3000 / +8000 ps, SDF only; gate with
++META_INIT=0, 50-min limit ("none" = no batch in the limit). Rule E at that steer, worst corner. "entry" = condition from
+ucmpi0 (the loop-entry test, evaluated once per call); "loop" = from the loop's compare.
+
+| route | steer | kind | E +3000 / +8000 | gate +3000 min / worst | gate +8000 min / worst |
+|---|---|---|---|---|---|
+| xorshift item 27 s2 | ucond_br2 / 3 / 4 | entry (data) | -776..-325 / -5926..-5475 | PASS / PASS | PASS / PASS |
+| xorshift item 27 s2 | ucond_br5 | entry (control) | -826 / -5976 | PASS / PASS | none / none |
+| xorshift item 27 s2 | ucond_br6 | loop | -2051 / -7201 | none / PASS | FAIL 3/17 / none |
+| xorshift item 27 s2 | ucond_br7 | loop | -1689 / -6839 | none / PASS | FAIL 2/17 / none |
+| xorshift item 27 s2 | ucond_br8 / 9 | loop | -1867, -2116 / -7017, -7266 | none / PASS | none / none |
+| collatz64 item 26 s25 | ucond_br2 / 3 / 4 | entry | -228..-40 / -5378..-5190 | PASS / PASS | PASS / PASS |
+| collatz64 item 26 s25 | ucond_br5 | loop | -1130 / -6280 | none / PASS | none / none |
+| collatz64 item 26 s25 | ucond_br6 | loop | -1711 / -6861 | none / none | none / none |
+| collatz64 item 26 s25 | ucond_br7 | loop | -1679 / -6829 | PASS / PASS | PASS / PASS |
+| ipow item 19 s1 | ucond_br2 / 3 / 4 | entry | - / -4749..-4154 | PASS / PASS | PASS / PASS |
+| ipow item 19 s1 | ucond_br5 | ? | - / -4534 | PASS / PASS | none / PASS |
+| ipow item 19 s1 | ucond_br7 | loop | - / -2653 | PASS / PASS | FAIL 3/17 / none |
+| ipow item 19 s1 | ucond_br8 / 9 | loop | - / -2488, -2679 | PASS / PASS | none / PASS |
+| collatz item 28 s20 | ucond_br2 / 3 / 4 | entry | -1807..-968 / -6957..-6118 | PASS / PASS | PASS / PASS |
+| collatz item 28 s20 | ucond_br5 / 6 | loop | - / -5103, -4818 | none / PASS | none / none |
+| collatz item 28 s20 | ucond_br7 | loop | - / -5048 | PASS / PASS | none / PASS |
+(ipow ucond_br6 task did not run; collatz64 / xorshift / ipow / collatz tasks past the last steer had no steer.)
+
+Reading: of 26 steers, 14 (every loop steer but collatz64's ucond_br7, plus xorshift's entry control steer) fail the
+gate at +8000 with E < 0: rule E at steers has failing builds on all four families. The 12 that pass at +8000 with E at
+-4 to -7 ns are the entry DATA steers (12/12) and collatz64 ucond_br7. For collatz and collatz64 the reason is the vectors:
+col13 / c6414 have no n = 1, so the entry condition is true on every call and a late condition shows the same value. That
+is a full-range coverage gap in the gate (collatz(1) = 0 is a legal input): farm zt1 re-gates items 28 / 31 / 30 / 32 with
+n = 1 added (col14, c6415) and repeats the entry-steer injection on both vector sets. xorshift (rounds = 0) and ipow
+(b = 0) vectors do include a zero-trip call, and their entry data steers still pass: not yet explained (traced next).

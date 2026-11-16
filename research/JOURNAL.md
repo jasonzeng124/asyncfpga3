@@ -5746,3 +5746,23 @@ is a genuine wrong-value failure. Steer E under test (steerneg). Formal C17 conf
   gate FAST_MIN with +META_INIT=0: no batch in 50 min; the clean route with the same plusarg PASS 17/17 in 6.7 min. Rule E
   at ucond_br9 -3238 ps. So rule E has a known-bad build at a loop steer on every family; its mux-join half has none.
 - 18:10 UTC: handoff. Farm silent since 11:44 UTC (steerneg 15/40, selneg3 12/14 not re-read since). Next list above (latest 'Next (updated)' entry) stands; owner decisions asked: +META_INIT as the gate default, rule E at loop-header mux joins. LOCK cleared.
+
+## Session 2026-11-16 18:48 UTC -- steerneg read (E at steers: 14 failing builds, 12 passes all at loop-entry steers); collatz gates lacked n = 1
+Toolchain: nextpnr 9c732bc6303458df (patches.sha 789a7120c912d393), toolchain.sh OK   Seeds: farm per request
+Lock: cleared by the previous session; taken 18:44 UTC. Audit: no new REFUTED / OVERSTATED row on research since T131.
+Formal FOR-RESEARCH: C19 (runt pulses into link controllers) is the newest item; it asks for a forced 20-40 ps pulse
+on a ctl input in our GLS (already on the Next list).
+### progress 18:48 (farm steerneg done; a gate coverage gap at the loop-entry steers)
+- steerneg (26 steers on the 4 board routes, condition +3000 / +8000, +META_INIT=0): 14 steers fail at +8000 with E < 0,
+  on all four families. 12 pass with E -4..-7 ns: every loop-ENTRY data steer (cond from ucmpi0) and collatz64 ucond_br7.
+  Table in research/data/selneg/README.md.
+- Cause on collatz / collatz64: the gate vectors (col13, c6414) have no n = 1, so the entry test is the same on every
+  call and the gate cannot see the entry steers at all. collatz(1) = 0 is a legal input (full-range rule). New vector
+  files col14 / c6415 = old + n = 1 as the second vector; oracle compiled from kernels/*.c by
+  research/tools/fifteen/collatz_oracle.sh (reproduces col13.exp / c6414.exp byte for byte).
+- Farm zt1 (132 tasks): items 31 / 28 / 30 / 32 families, 32 routes each, gated at 3 corners on the new vectors; plus the
+  entry-steer +8000 control on each board seed with new and old vectors. PREDICTION: every clean route PASSES (the
+  entry-steer E rows on these routes are clean, and n = 1 was simulated before on vec_c64_selflip without failure); the
+  control FAILS with the new vectors and PASSES with the old on all 4 board seeds.
+- xorshift / ipow vectors do have a zero-trip call (rounds 0, b 0) and their entry data steers still pass: tracing
+  locally on xorshift item 27's route (x27_2, building).
