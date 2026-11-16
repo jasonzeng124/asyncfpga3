@@ -2229,3 +2229,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - fxsel3 (027667625) and fisel3/fc64sel3 (c44eae7b7);
   - selneg2 at +6000/+12000 ps (babb534d8).
   - These are next in the queue.
+
+### progress 04:05
+- T122: own rule E on item 19's board route (ipowr_1, sdf a6a2951b), 3 corners.
+  - Result: 204 rows, min +1696 ps, no negative gate.
+  - The OR-join column is negative only at steer ucond_br7 (-2598..-7059). Under the C-element model the same rows are +4574..+12931.
+  - Closes the item 19 E gap in the f6c37b63 row.
+- The SLOW_MAX GLS was started only to bake the netlist and was stopped afterwards.
