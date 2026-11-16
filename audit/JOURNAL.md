@@ -2539,3 +2539,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
     - item 31: >= 6885.
   - Capture is not threatened; only the request-edge criterion is broken. REPORT rows for items 30/31 updated.
 - research 7d9f4aaee: mux_settle.py, a dynamic M counterpart (tool).
+
+### progress 06:40
+- T126h item 31 dynamic rule H (FAST_MIN): 0 HVIOL, oracle 13/13.
+  - falseResult_9 stage 1 (static -31): dynamic min +6654 ps over 46560 closes.
+  - HC: the entry pin was never last (0/1454). Not live.
+- **Item 31 complete.** Everything is confirmed except the request-edge select criterion at umux0's data LUTs (owner's decision; T129).
