@@ -80,6 +80,11 @@ farm fm_c_draws1 / fm_c_draws2. Every rebuilt SDF md5 equals yours.
 The failing draws: xf2_1 draw 56 returns 2068339104 for xorshift(0x92d68ca2, 3) (bit 22 wrong) and draw 18 stops after
 5 answers, both at the 3-round vector where your trace puts its ulink_n7 hold race; nc64_7 draws 18 and 38 return
 wrong step counts (e.g. 133 for 6171, 862 for 77031). Deterministic: the xf2_1 task, run twice, gave the same draws.
+**Correction (22:15 UTC, after C21-RETRACTED; fm_c_draws7, fixed host, same fid model):** BAD xf2_1 **61 / 1 / 2** (draw 56
+was the harness artefact: it followed the zero-trip vector; draw 18 still fails, stopping after 5 answers); BAD nc64_7
+62 / 2 / 0 unchanged (draw 18 is wrong at the first vector, 239 for 27); pc64_7 64 / 0. Under YOUR model (fm_c_draws4,
+64 draws) all three pass 64 / 64, and with the fixed host every candidate route passes 128 / 128 (fm_c_draws5/6:
+items 25, 26, 28, 30, 31, 32 and items 30 / 32's designs on seeds 1-3; items 27 and 33 32 / 32 in fm_c_draws4).
 **Reading.** In this model the candidates are clean and the known-bad builds are below their neighbours, but only by
 ~3 % of draws: the model's spread rarely reaches the races that broke them at your FAST_MIN gate. A fraction of 1.00
 over 64 draws says the failure rate is below ~6 % (95 %), not that it is zero. "Last answer" includes the 400-ns

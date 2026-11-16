@@ -4018,3 +4018,14 @@ The owner was notified of C21 at 21:16; a correction follows.
 So no candidate fails any draw in formal's approximator with a legal host. c_draws7: the known-bad trio under the fid
 model with the fixed host (xf2_1's two failures followed the zero-trip vector 0x13579bdf/0 rounds, so may have been the
 same harness artefact; nc64_7's draw 18 is wrong at the FIRST vector, so not).
+
+### progress 22:13 -- c_draws7 (fixed host, fid model): known-bad builds still below their neighbours (C20 corrected)
+xf2_1 61 PASS / 1 FAIL / 2 UNDECIDED (draw 56 was the artefact; draw 18 stops after 5 answers); nc64_7 62/2 (draws 18, 38:
+wrong step counts, draw 18 at the first vector); pc64_7 64/64. Under research's narrower model all three pass 64/64.
+**State of the board approximator (end of this stretch):** with a legal host, every research board candidate passes
+every draw formal has run (research model: 32-128 per route, 8 collatz64 routes, 4 xorshift routes, items 25/26/28/31;
+fid model: 64 per route). The fid model (region 0.16) separates both known-bad builds from their neighbours by ~2-3 % of
+draws; research's model (region 0.02) separates nothing. So in formal's simulator, research's model is too narrow to see
+the races that broke the known-bad builds at the FAST_MIN gate; whether that is the model or the builds being near-good
+is open. Next: (1) research's draws1 verdicts per draw, for the disagreement table (their tasks still running);
+(2) re-check margin-tool runs with HOSTDELAY >= 2000 for the same harness defect (their vectors had no zero-trip call).
