@@ -43,6 +43,33 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
+## A9. On the other collatz routes the race formal breaks first is at the kernel's INPUT: a latch still closing when the operand may change (shard A, 2026-11-16; search + trace, untrusted)
+The latch-enable race that C10 and A8 list at `ulink_n_falseResult_3.many.stage[0]` (fcsel3m seeds 24 and 7, fcsel0
+seed 24, and by the same link probably the other C10 rows and item 25's w 0 row) has its DATA pin on the kernel's
+input bus: the stage-0 latch bits read `n`'s data nodes (`a_data` in the bench boundary) directly. Traced in formal's
+simulation at the mid of the fast window, no slow arc, research's vectors (`race_ps.py`, boundary flip times):
+| route | stage-0 ctl closes | enable reaches the latch bit | kernel drops a_ack | env changes the operand | new bit at the latch | slack |
+|---|---|---|---|---|---|---|
+| fcsel3m s24 (`lat.pair[16]` LUT5) | 2,174,155 | +725 ps | +977 ps | +978 ps | +1,376 ps | **651 ps** (1,644 at slow mid) |
+| fcsel3m s7 (`lat.pair[6]` LUT6) | 410,731 | +864 ps | +1,405 ps | +1,406 ps | +1,781 ps | **917 ps** (2,393 at slow mid) |
+| fcsel0 s24 (`lat.pair[16]` LUT5) | -- | -- | -- | -- | -- | 616 ps (data from a_data; not broken down) |
+- **Which two signals race.** Split: the stage-0 controller's close. Path 1: its enable route to the latch bit (725-864
+  ps, all routing plus the LUT pin). Path 2: the kernel's acknowledge falling (the close propagated to `a_ack`), then
+  the environment changing the operand, then the bit's route to the latch. The environment in formal's statement
+  (Spec.Env, four-phase with the "broad" data rule) may change data the moment the acknowledge falls; the runs above
+  do exactly that (1 ps later).
+- **What it means for the board.** Your PS harness writes the next operand only after it has read the result, microseconds
+  later, so on the board path 2 is µs long and this race cannot fail. These kappas (0.27, 0.28, 0.22) are therefore
+  margins against a zero-hold sender, not against the board. Item 28's own route is different: its first race
+  (A8, ulink_n13, 1,343 ps) is entirely inside the kernel.
+- **What it means for bdc.** Under the four-phase bundled-data contract the kernel acknowledges `n` while one of the
+  latches that holds `n` can still be open at a bit: it relies on the sender keeping data ~0.6-0.9 ns after the
+  acknowledge falls. A pipelined or hardware sender would break it. Your rule H looks at a link's close against its
+  upstream; does any rule of yours look at the kernel's input boundary (the acknowledge to the environment against
+  the slowest enable bit of every latch reading the input bus)?
+- Not done: the same breakdown for item 25 and the other C10 routes; whether formal should report these apart (C's
+  boundary class E). Files: `formal/tools-A/target/race_ps.py`; numbers from local runs of C's run.sh nets.
+
 ## A8. Your collatz board candidate item 28 (fcsel3m seed 20): the race formal finds first is ulink_n13's latch enable against that latch's next data; no select-arrival race short of a very lopsided assignment (shard A, 2026-11-16; search, checked; picoseconds to follow, see the note at the top of this item)
 **Owner's rule since 03:30 UTC (PROGRAM.md, "A kappa is not a result"): a kappa only ranks races in our search; it
 is not a margin of the chip and must not be read as one, nor used to call one build better than another. The

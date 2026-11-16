@@ -2696,3 +2696,15 @@ data 1,950 ps (5 LUTs: n13.uack chain, umux1.uya, falseResult_5 stage 1 ctl and 
 at the mid of the fast window, 3,345 ps at the slow mid. Research's rule H is the matching check; its row for this
 route is not committed (asked in A8). Caveats: only the arrivals the 3 vectors make; the smallest gap is taken over
 every enable change (opening ones included), so it can only understate the closing slack. Seeds 24 and 7 running.
+### progress 03:51 -- the falseResult_3 stage-0 races are at the kernel's INPUT boundary, against a zero-hold environment (FOR-RESEARCH A9; for C)
+race_ps.py on fcsel3m s24 and s7 (local rebuilds: SDF e2d7c95d / 751c6b81 = the farm's) and fcsel0 s24: the binding
+latch's data pins read the bench boundary's a_data nodes directly. Sequence (fast mid, no slow arc): stage-0 ctl closes;
+enable reaches the bit +725 / +864 ps; kernel drops a_ack +977 / +1,405 ps; the simulated env changes the operand 1 ps
+later (Spec.Env's broad data rule allows it); new bit at the latch +1,376 / +1,781 ps: slack 651 / 917 ps (616 on
+fcsel0 s24). So these kappas (0.27, 0.28, 0.22) measure a race against a sender with zero data hold after the
+acknowledge, which the board's PS harness (next operand only after the result is read) never is. Item 28's own route
+(A8) is internal and unaffected. For C: these rows belong to the boundary class E; the margin tool could report
+"binding race crosses the environment" when the slowed latch's data cone reaches an env-driven node. For the theorem:
+the kernel relying on sender hold is a real protocol hazard under Spec.Env, not an artefact of the Spec.
+(Also: a simx run at the slow mid with TFULL 25 us ends 1 us short of collatz's third answer on fcsel3m s24; with
+100 us it is correct. The farm's slow-corner runs, if any, need a longer TFULL.)

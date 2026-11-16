@@ -89,7 +89,10 @@ for tp in arr_pin:
 gaps.sort()
 print("race at %s (gate %s): pin %d (source %s) from %s vs the next arrival on another pin; corner %d, mode %s, w 0; %d arrivals "
       "at pin %d" % (a.q, gq["name"], a.pin, N[src_of(pin_src)], N[pin_src], a.corner, a.mode, len(arr_pin), a.pin))
-for gap, tp, to, j in gaps[:a.top]:
+shown = env_n = 0; env_min = None
+for gap, tp, to, j in gaps:
+    if shown >= a.top:
+        break
     ca = chain(gq["ins"][a.pin], tp - dl(gq["arcs"][a.pin]))
     cb = chain(gq["ins"][j], to - dl(gq["arcs"][j]))
     sa = {(n, t): k for k, (n, t, _, _) in enumerate(ca)}
@@ -97,10 +100,15 @@ for gap, tp, to, j in gaps[:a.top]:
     for k, (n, t, _, _) in enumerate(cb):
         if (n, t) in sa:
             split = (sa[(n, t)], k); break
-    print("\n  gap %d ps: pin %d arrival %d, pin %d arrival %d" % (gap, a.pin, tp, j, to))
     if split is None:
-        print("  no common event found within %d / %d flips back (one path starts at the environment)" % (len(ca), len(cb)))
+        # one path starts at the environment (it reacts to a boundary change; its own delay is not in the net)
+        env_n += 1; env_min = gap if env_min is None else min(env_min, gap)
+        if env_n == 1:
+            print("\n  smallest gap whose data path starts at the ENVIRONMENT (no in-circuit split): %d ps "
+                  "(pin %d %d, pin %d %d; data path back to %s)" % (gap, a.pin, tp, j, to, N[cb[-1][0]]))
         continue
+    shown += 1
+    print("\n  gap %d ps: pin %d arrival %d, pin %d arrival %d" % (gap, a.pin, tp, j, to))
     ka, kb = split
     print("  split: %s flips at %d ps" % (N[ca[ka][0]], ca[ka][1]))
     for lab, ch, k, p, tarr in (("pin %d (the slowed pin)" % a.pin, ca, ka, a.pin, tp), ("pin %d (other)" % j, cb, kb, j, to)):
