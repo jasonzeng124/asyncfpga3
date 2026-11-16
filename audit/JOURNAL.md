@@ -2825,3 +2825,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 19:05
 - T134 item 28 (colsel3_20) with n = 1, FAST_MIN: oracle 14/14 (the n = 1 vector OK); 0 latch / steer violations. Items 31 / 30 / 32 are running.
 - research a878c1ef2: BOARD-QUEUE notes that the collatz / collatz64 items were gated without n = 1; re-gating (zt1) is under way.
+
+### progress 19:10
+- T134 item 31 (colsel3a_20) with n = 1, FAST_MIN: 14/14 (n = 1 OK); 0 latch / steer violations. Items 30 / 32 (collatz64) are running.
