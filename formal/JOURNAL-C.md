@@ -3568,3 +3568,14 @@ writes explain_*.txt for every reported race.
 journal headings were first written with estimated times and then corrected to the clock.
 **Open / next:** c_margin_all2 (with --periodic), c_explain2/3/4 on the farm; the stall explanation (a cone failure
 that is a deadlock, not a wrong capture); kappa_lo: none for any build.
+
+### progress 04:20 -- c_margin_all2 back (all classes, livelocks); item 27's two capture races in ps; FOR-RESEARCH C12
+all2 per build (finite w 20 / w 0; livelock; physical partial-ack): item 28 0.42/0.42, livelock 0.42, hang 0.36 (w 0,
+falseResult_7 st0 ctl own feedback); item 25 0.39/0.39, hang 0.38; item 27 0.39/0.39 (olink capture), livelock 0.35
+(w 0), hang 0.28; item 26 0.26/0.26, livelock 0.38, hang 0.37; fcsel0 s24 0.37 (steer, got [0]); fcsel1 s24 0.27, hang
+0.09; fcsel3m s2 0.32, livelock 0.38, hang 0.35; fcsel3m s24 0.27, livelock 0.40, hang 0.37. Files out/farm_all2_*.
+item 27 in ps (c_explain3; cone rows, reference-traced version of explain.py): olink latch +716 ps mid / +451 worst
+in-band / +1776 SDF; ulink_n_index_15 st0 latch +498 / +243 / +1418 SDF = 1.0 x the worst short-ring error, the
+tightest relative to measured error so far. research's fxd/2 (= item 27's route) hold_bits names the same LUT
+(SLICE_X14Y33.B6) its tightest hold bit (1159 ps); its rule H rows for these ctls: +1394, +3492. Ours is the setup
+direction. C12 written in the owner's form (no kappa ranking).

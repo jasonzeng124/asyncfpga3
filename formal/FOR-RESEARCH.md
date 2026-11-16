@@ -3,6 +3,31 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C12. Item 27 (xorshift board candidate) and item 28: the races formal's tool breaks first, in picoseconds, beside your rows (shard C, 2026-11-16; search, untrusted)
+All from farm runs of `formal/tools/margin/run.sh` with every race class (single routes, whole data cones, steer
+cones) and the checks of C11; files `origin/claude/cluster:results/fm_c_margin_all2/<task>/` and
+`fm_c_explain3/7/explain_*.txt`. "Slack" = path B minus path A from their common launch (positive: the required order
+holds), at the prjxray fast-band midpoint, at the worst split inside the fast band, and at YOUR nextpnr SDF; then as a
+multiple of the ring data's median error (8.5 %) and worst short-ring error (47 %, 7-link rings). The kappa column is
+only the order in which our adversary breaks things.
+**item 27 (sdf a9bdac53 = your fxd seed 2).** No single route breaks it in our range; two capture races do:
+| latch (capture) | common launch | path A (must be first) | path B | slack mid / worst in-band / SDF | x 8.5 % / x 47 % (SDF) | your rows | kappa |
+|---|---|---|---|---|---|---|---|
+| `ucontrol_merge0_olink.lat.odd` | `ucontrol_merge0.uarb1.ustate` | data: 3 LUTs + 11 routing, 767 ps (SDF 1397) | enable via the olink ctl: 6 LUTs + 27 routing, 1484 (SDF 3173) | +716 / +451 / **+1776 ps** | 6.6 / 1.2 | H +3492 (olink ctl, "sender slow enough") | 0.39, wrong count (2 of 4 answers), checked |
+| `ulink_n_index_15.many.stage[0].lat.odd` (a select link) | `ucontrol_merge1.uarb1.ustate` | data: 3 LUTs + 12 routing, 787 ps (SDF 1540) | enable: 6 LUTs + 25 routing, 1284 (SDF 2958) | +498 / **+243** / **+1418 ps** | 5.6 / **1.0** | H +1394 (st0 ctl); your hold_bits: same LUT (SLICE_X14Y33.B6) is the tightest hold bit, min 1159 ps | 0.28-0.29: the kernel acknowledges a/b, not start, and stops |
+Both are setup (capture) races at the merge-arbiter's output: the arbiter's state flip reaches the latch's data through
+3 LUTs and its enable through 6, so the bundling here is the difference of two short paths, about 0.5 ns. Your rules
+H and hold_bits look at the other direction (hold) of the same latches; rule E looks at the mux select arrival; we have
+not found a row of yours for this setup race at the latch's data pin. At your SDF the second race has a slack equal to
+the worst error measured on short rings. Not yet checked on other routes of item 27 (one route is a sample).
+**item 28 (sdf d86bdde5).** Besides A8's ulink_n13 race (your H +1337, hold_bits 1566 ps, kappa 0.42): from kappa 0.36
+(no filter) the kernel can stop after acknowledging a and b but not start, at `ulink_n_falseResult_7.many.stage[0]`'s
+controller reading its own output late (a feedback race). The same controller does this on fcsel1 seed 24 from kappa
+0.09, on fcsel3m seeds 2 and 24 at 0.35-0.37, and on items 25 and 26 at 0.37-0.38. Formal's frozen Spec calls these runs
+vacuous (A: `SpecWF`); on a board they are hangs. Picosecond form: farm c_explain4, running.
+**Livelocks** (periodic, never answering; `simx --periodic`): item 28 at 0.42, item 26 0.38, fcsel3m s2 0.38, s24
+0.40, item 27 0.35 (no filter).
+
 ## C11. What formal's margin tool now looks at beyond A8: whole data paths slow at once (capture races), livelocks, and three checker fixes (shard C, 2026-11-16; search, untrusted)
 Item 28's single-route result is A8 (same farm builds, same numbers; C's run: `formal/tools/margin/out/farm_item28_fcsel3m_s20/`).
 Per the owner's rule (PROGRAM.md, "A kappa is not a result") the kappas below only say which race our adversary
