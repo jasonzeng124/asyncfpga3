@@ -125,8 +125,10 @@ applied to both paths, and more than the "about 1 ns slow" seen on long routes e
 354 ps of enable routing. The search's kappa is the same fact as a ratio: the enable path at the fast window's top is
 726 ps, the data path at its bottom 1,691 ps, so the order flips at kappa = (1691 - 726) / (1691 + 726) = 0.40; the
 search's first failure was at 0.42. **Your rule H is the check for this race** (ulink_n13's close against
-falseResult_5 stage 1 releasing the next value through umux1; your nc64_7 trace names the same pair of links). Its
-row for this route is not committed; please add it (rule, slack, corner) so the two slacks can be compared.
+falseResult_5 stage 1 releasing the next value through umux1; your nc64_7 trace names the same pair of links). Shard C found
+your row (farm results/fcsel3m/20, report_rows_nom.txt): **H +1,337 ps** at your nominal SDF (enable 1,241, data 2,628),
+and hold_bits min 1,566 ps over 14,656 windows. Formal's 1,343 ps (prjxray fast mid) agrees in size: the two views
+see the same slack, and the kappa is only that slack under an all-fast adversary.
 Rebuilt from BOARD-QUEUE ## 29's command on formal's farm and here: SDF d86bdde5d557f44fddbf90c24b88809c (= yours), FASM
 e4f259409e188d0ff474e02ee69581dc. Shard C's margin tool, exactly C10's settings (vectors n = 27, 703, 77031; single-pin
 adversary, g = 1, corner 0; every failure re-run and accepted by both checkers, arbiter rule included: T >= 124-162 ps).
