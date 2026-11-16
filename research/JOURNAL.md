@@ -5848,3 +5848,17 @@ on a ctl input in our GLS (already on the Next list).
 - shrink3: x0.30 / 0.20 / 0.10 (where do draws first fail) on routes 2 and 5; x0.40c and x0.55c on routes 1-16, 4 draws
   each. PREDICTION: x0.10 fails every draw; the first failing factor lies between 0.20 and 0.30; x0.40c passes >= 62/64 on
   defect-free routes, median period ~16 ns.
+### progress 22:02 (shrink2 / shrink3: everything passes down to x0.40; keeping the counter costs the gain; shrink4)
+- shrink2 (collatz item 31 sizes): x0.85 / 0.70 / 0.55 all 8/8 draws on every route back (x0.55: 32/32 on routes 20, 3,
+  7, 12; P 18.79 / 18.25 / 16.14 / 18.64 ns vs item 31's 21.5 median).
+- shrink3 so far: x0.40c (counter add + both compares kept) 36/36 draws on 9 routes, P median ~18.6 ns; x0.55c 52/52 on
+  13 routes, P ~18.0-18.7. Seed 7 x0.55c never simulated (the harness misses 83 MHz on that route: a build failure,
+  reported by the request as TIMEOUT). So keeping the counter's three delays leaves item 33's 18.9 ns nearly unchanged:
+  they are the cycle (ucmpi1 alone is 4.4 ns of it, whatif 2026-11-16).
+- Correction to the ASK above: the compares' long carry is simulated after all. A compare's chain ripples through the
+  bits where the operands agree, and every loop's last test compares i = n-2 with n-1, which agree in every upper bit.
+  Only the incrementer's long carry (i = 2^k - 1 for k > 9) is beyond the vectors. shrink4: x0.40a / x0.30a = every size
+  scaled except UADDI0 (12), routes 1-16, 4 draws each. PREDICTION: all draws pass on defect-free routes; P median
+  16-17 ns (x0.40 on route 27 with the add shrunk too: 15.67).
+- Still owed: the draw model's bad build. The +8000 steer control (draws 17-32) has not come back; shrink3 tasks 1-6
+  (x0.30 / 0.20 / 0.10) are the size-side control.
