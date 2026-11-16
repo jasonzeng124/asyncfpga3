@@ -5813,3 +5813,9 @@ on a ctl input in our GLS (already on the Next list).
   60.46), gcd +9.9%; at 0.222 within 1% (in-sample). xorshift's August bitstream is gone (rebuilt): no comparison.
 - research/SIM-VS-BOARD.md written (11 rows: delay band, unmeasured cells, variation, glitches, metastability, start-up,
   bits, host incl. today's last-run blind spot, inputs, V/T, memory).
+### progress 19:40 (first draws local; farm draws1 submitted)
+- tx27_2 (item 27's route), draw 1 (chains 0.270, rest 0.261, CARRY4/F7F8/FF 0.765, M seed 1), xor19: PASS 19/19, 6422
+  cycles; the ucond_br6 +3000 control: PASS 19/19, same cycles (the SDF did change: md5 1fb5d4a2 vs 299debfe). That
+  control failed only at FAST_MIN, which no draw reaches (bands >= 0.20), so it is not a bad build under this model.
+- Farm draws1 (32 tasks): items 33, 27, 31, 28, 29, 30, 32 on their board routes, 32 draws each; control ucond_br6
+  +3000 (16 draws) / +8000 (16 draws). PREDICTION: every candidate 32/32; the +8000 control 0/16; +3000 16/16.
