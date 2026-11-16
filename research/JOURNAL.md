@@ -5473,3 +5473,8 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   is conservative. A cheaper fix than padding (fc64sel3m pads umux0 2 -> 16): the lag comes from the data link's
   64-bit enable spread (ulink_n_falseResult_3 C node -> 64 latch LUTs); enable replication (PROGRAM's goal-2 lead
   list) would shorten the data side instead of lengthening the request side.
+- Rule M's known-bad build, confirmed: item 28's route with +8000 ps on ulink_n14__0's select latch -> umux0.udat (SDF
+  only): gate at FAST_MIN completed no batch in 55 min (the clean route: the whole gate in 8.9 min). Rule M -5503 ps
+  at worst; rule E clean (0 rows below 0). At +3000 on the same arcs: M -353, gate PASS. So M fails on a build that
+  fails and E does not -- M earns its place; on collatz it is stricter than the gate by between 3 and 8 ns of
+  injection on this mux (farm mneg covers the other families).
