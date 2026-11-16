@@ -3976,3 +3976,15 @@ alone. Under the fid parameters (c_draws2, col15 starts 27, 1, 97 too) item 30 p
 for item 30 are still running. Research's model is narrower (region 0.02), so the known-bad builds no longer fail at all.
 **c_x30dbg:** draw 5 with each band moved, the filter off, other hosts, other preceding vectors, and diverge.py (new: the
 first node where a failing and a passing run part, with routed names).
+
+### progress 21:06 -- c_x30dbg: item 30's draw-5 failure is an EXTRA answer for the zero-trip call n = 1, host-timing dependent
+Draw 5, vectors (27, 1, 97): out0 111 at 3.4946 us, 0 at 3.5242, **0 again at 3.5462** (22 ns later), then 118. So the
+n = 1 call answers twice and every later answer is one call late (the "one call behind" stream research's gate now
+catches). Variants of draw 5 (bands b_c, b_r, b_cells = 0.2165, 0.2252, 0.9869):
+- fails: as drawn; b_r 0.27; b_cells 0.50 / 0.60 / 0.70 / 0.80 / 0.90; no per-pip scatter; no runt filter (w 0); host 100 ns;
+  vectors (1, 97).
+- passes: **b_c 0.27** (delay chains slower); **b_cells 0.40**; **host 1 ps**; vectors (97), (27, 97), (2, 97).
+So: it needs the zero-trip call n = 1, delay chains near the fast end, slow CARRY4/F7/F8 and a host that reacts in ns
+(a 1-ps host hides it). The filter and the pip scatter do not matter, so it is not a runt-pulse artefact of formal's LUT
+model. diverge.py only found timing shifts (every chain moves from t = 0); c_x30dbg2 lists the LUTs whose flip COUNT
+differs and the boundary handshakes of the failing run around 3.5 us.

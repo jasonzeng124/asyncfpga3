@@ -42,6 +42,13 @@ for t, n, kind, stor, la, lb, cn in rows:
     print("%10d  %-28s %-6s %s flips %d/%d  %s" % (t, names[n][:28], kind, "STORAGE" if stor else "       ", la, lb, cn))
     shown += 1
     if shown >= a.top: break
+print("# LUT / cell nodes whose flip COUNT differs (the order of events changed there), earliest first divergence:")
+cnt = [r for r in rows if r[2] not in ("pip", "hop", "env/opaque") and r[4] != r[5]]
+for t, n, kind, stor, la, lb, cn in cnt[:a.top]:
+    print("%10d  %-28s %-6s flips %d/%d  %s" % (t, names[n][:28], kind, la, lb, cn))
+envd = [r for r in rows if r[2] == "env/opaque"]
+for t, n, kind, stor, la, lb, cn in envd[:12]:
+    print("env/opaque %10d  %-28s flips %d/%d" % (t, names[n][:40], la, lb))
 st = [r for r in rows if r[3]]
 if st:
     t, n, kind, stor, la, lb, cn = st[0]
