@@ -3495,3 +3495,16 @@ Slack +1196 ps (fast mid) = 8.1 x the measured error; +838 ps worst in-band. So 
 its input before the latch holding that input has closed, and only a harness that changes data within ~1 ns of the
 acknowledge can win it. Spec.Env allows a 0-delay harness; a clocked board harness reacts in ns. This is a property
 of the boundary model, not of the loop. Farm c_explain1: the same for items 28, 26, 27 and fcsel3m s1/s2/s24.
+
+### progress 03:58 -- explain.py at nextpnr's SDF; gcd_ps's 0.36/0.40 race in picoseconds
+`--sdf` (with `--routed`; run.sh passes `SDF=`): a path's delay at nextpnr's SDF = each LUT/MUXF IOPATH (physical pins,
+as the SDF has them) + the INTERCONNECT from the previous cell's output to this cell's pin, from the cell that drives
+the split (so both paths include the shared trunk). CARRY4 arcs are listed as UNMAPPED if met.
+**gcd_ps (THE target), the race behind both the 0.36 livelock and the 0.40 deadlock (same split, same paths):**
+capture `ucontrol_merge4.uarb1.ua2` (SLICE_X16Y21.A6, the arbiter's acknowledge C-element). Split: the fork
+`ucontrol_merge4_f` (SLICE_X17Y23.B6) output, at the route node INT_L_X12Y21/SS2END3. Path A (must be first): straight
+to ua2 pin 0: 1 LUT + 2 routing arcs, 296 ps at the prjxray fast-band midpoint (718 slow). Path B: through the arbiter
+`ustate` (SLICE_X14Y19.A6) and `ugrant` (SLICE_X16Y19.A6) to ua2 pin 2: 3 LUTs + 14 routing arcs, 766 ps (1937).
+Slack +470 ps fast-mid (7.2 x the 8.5 % error), +327 ps worst in-band; **at nextpnr's SDF +1401 ps (8.4 x)**:
+A 560 (cells 124 + routing 436), B 1961 (cells 372 + routing 1589). The SDF's routing is ~3x prjxray's fast band
+here. Files: tools/margin/out/gcd_ps_explain/. Farm c_explain2 = c_explain1 with the builds' SDFs.

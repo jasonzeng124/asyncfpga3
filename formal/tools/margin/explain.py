@@ -24,6 +24,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("out"); ap.add_argument("node"); ap.add_argument("pin", type=int); ap.add_argument("kappa")
 ap.add_argument("--w", type=int, default=0); ap.add_argument("--routed", default=None)
 ap.add_argument("--sdfmap", default=None, help="JSON {\"NODE:PIN\": ps} nominal SDF delay per arc (optional)")
+ap.add_argument("--sdf", default=None, help="nextpnr's SDF of this build (needs --routed): the paths' delays at the nominal SDF")
 ap.add_argument("--err", type=float, default=0.085, help="measured relative delay error (median ring scatter)")
 a = ap.parse_args()
 O = os.path.abspath(a.out)
@@ -208,7 +209,9 @@ if a.routed:
         m = re.match(r"(SLICE_X\d+Y\d+)\.([A-D])LUT\.O([56])", g["name"])
         if m: names[g["out"]] = bel.get("%s/%s%sLUT" % (m.group(1), m.group(2), m.group(3)), "")
 sdf = json.load(open(a.sdfmap)) if a.sdfmap else None
-print("SPLIT (common launch): %s %s flips at %d ps" % (N[sn], names.get(sn, ""), st))
+_u = sn
+while _u in drv and G[drv[_u]]["kind"] not in CELL: _u = G[drv[_u]]["ins"][0]
+print("SPLIT (common launch): %s flips at %d ps; driven by the cell %s %s" % (N[sn], st, N[_u], names.get(_u, "")))
 def summ(arcs, label):
     tot = {"cell": [0, 0, 0, 0, 0], "route": [0, 0, 0, 0, 0]}
     lines = []
@@ -228,6 +231,56 @@ def summ(arcs, label):
     for kind in ("cell", "route"):
         x = tot[kind]; print("    %-5s total: fast [%d, %d] mid %.0f   slow [%d, %d] mid %.0f%s" % (kind, x[0], x[1], (x[0] + x[1]) / 2, x[2], x[3], (x[2] + x[3]) / 2, ("   sdf %d" % x[4]) if sdf else ""))
     return {k: [tot["cell"][i] + tot["route"][i] for i in range(5)][j] for j, k in enumerate(("fmin", "fmax", "smin", "smax", "sdf"))}
+# ---- nominal SDF (nextpnr's model): cells = IOPATH of each LUT / MUXF on the path, routing = INTERCONNECT from the
+# previous cell's output to this cell's pin, starting from the cell that drives the split.
+SDFI = SDFX = None; BELI = {}
+if a.sdf and a.routed:
+    for nm, c in Rj.items():
+        b = c.get("attributes", {}).get("NEXTPNR_BEL")
+        if b: BELI[b] = nm
+    SDFI, SDFX = {}, {}
+    inst = None
+    for l in open(a.sdf):
+        if "(INSTANCE" in l:
+            inst = l.split("(INSTANCE", 1)[1].strip().rstrip(")").strip().replace("\\", "")
+        elif "(IOPATH" in l:
+            f = l.split(); SDFI[(inst, f[1], f[2])] = int(f[3].strip("(").split(":")[1])
+        elif "(INTERCONNECT" in l:
+            f = l.split(); SDFX[(f[1].replace("\\", ""), f[2].replace("\\", ""))] = int(f[3].strip("(").split(":")[1])
+def cellinfo(gi):
+    g = G[gi]
+    m = re.match(r"(SLICE_X\d+Y\d+)\.([A-D])LUT\.O([56])$", g["name"])
+    if m:
+        return BELI.get("%s/%s%sLUT" % (m.group(1), m.group(2), m.group(3))), (lambda p: "A%d" % (p + 1)), "O" + m.group(3)
+    m = re.match(r"(SLICE_X\d+Y\d+)\.(F7A|F7B|F8)$", g["name"])
+    if m:
+        return BELI.get("%s/%sMUX" % (m.group(1), m.group(2))), (lambda p: ["0", "1", "S0"][p]), "OUT"
+    return None
+def sdf_path(arcs, splitnode):
+    """(cells, routing, unmapped) ps at nextpnr's SDF along arcs, from the cell driving splitnode"""
+    u = splitnode
+    while u in drv and G[drv[u]]["kind"] not in CELL: u = G[drv[u]]["ins"][0]
+    prev = cellinfo(drv[u]) if u in drv else None
+    cells = route = 0; miss = []
+    for gi, p, t in arcs:
+        if gi == "ENV":
+            m = re.match(r"(SLICE_X\d+Y\d+)\.([A-D])([56])$", N[p]); prev = None
+            if m: prev = (BELI.get("%s/%s%sLUT" % (m.group(1), m.group(2), m.group(3))), None, "O" + m.group(3))
+            continue
+        if G[gi]["kind"] not in CELL: continue
+        ci = cellinfo(gi)
+        if not ci or not ci[0]: miss.append(N[G[gi]["out"]]); prev = None; continue
+        pin = ci[1](p)
+        if prev and prev[0]:
+            x = SDFX.get((prev[0] + "/" + prev[2], ci[0] + "/" + pin))
+            if x is None: miss.append("route->%s/%s" % (N[G[gi]["out"]], pin))
+            else: route += x
+        else: miss.append("route->%s/%s" % (N[G[gi]["out"]], pin))
+        y = SDFI.get((ci[0], pin, ci[2]))
+        if y is None: miss.append("%s %s->%s" % (N[G[gi]["out"]], pin, ci[2]))
+        else: cells += y
+        prev = ci
+    return cells, route, miss
 print("\nPATH A (must arrive FIRST; the adversary slowed it): split -> %s pin %d" % (N[gq["out"]], pi))
 A = summ(pa, "path A")
 print("PATH B (overtook it in the witness): split -> %s pin %d" % (N[gq["out"]], pj))
@@ -238,3 +291,10 @@ for lab, x, y in (("fast-corner band midpoint", (B["fmin"] + B["fmax"]) / 2, (A[
                   ("worst in-band (A fast max, B fast min)", B["fmin"], A["fmax"])) + ((("nextpnr SDF", B["sdf"], A["sdf"]),) if sdf else ()):
     sl = x - y; L = max(x, y)
     print("  %-40s A %7.0f  B %7.0f  slack %+7.0f ps = %+.2f x the measured error (%.1f %% of %.0f ps)" % (lab, y, x, sl, sl / (a.err * L) if L else 0, 100 * a.err, L))
+if SDFI is not None:
+    ca, ra, ma = sdf_path(pa, sn); cb, rb, mb = sdf_path(pb, sn)
+    print("NEXTPNR SDF (nominal; from the cell driving the split):")
+    print("  path A: cells %d + routing %d = %d ps%s" % (ca, ra, ca + ra, ("   UNMAPPED: " + ", ".join(ma)) if ma else ""))
+    print("  path B: cells %d + routing %d = %d ps%s" % (cb, rb, cb + rb, ("   UNMAPPED: " + ", ".join(mb)) if mb else ""))
+    sl = (cb + rb) - (ca + ra); L = max(ca + ra, cb + rb)
+    print("  slack %+d ps = %+.2f x the measured error (%.1f %% of %d ps)%s" % (sl, sl / (a.err * L) if L else 0, 100 * a.err, L, "  (partial: unmapped arcs above)" if ma or mb else ""))

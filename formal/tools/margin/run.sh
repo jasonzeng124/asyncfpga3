@@ -106,7 +106,8 @@ python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs 
   --klo "$KLO" --tfull "${TFULL:-5000000}" --pairs $PAIRS --kernel "$KERNEL" --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
 log "check every failing row"; python3 "$H/checkrows.py" "$O" > /dev/null 2>&1 || true
 [ -f "$O/routed.json" ] && python3 "$H/names.py" "$O" > /dev/null 2>&1 || true
-# 5. the picosecond form of every reported race (explain.py: capture, split, both paths, slack, x the measured error)
+# 5. the picosecond form of every reported race (explain.py: capture, split, both paths, slack, x the measured error;
+#    SDF= nextpnr's SDF of the build adds the slack at the nominal SDF)
 log "explain the reported races"
 python3 - "$O" "$H" <<'PYEOF' || true
 import re, subprocess, sys, os
@@ -119,6 +120,7 @@ for l in open(os.path.join(O, "kappa_hi.txt")):
     k, node, pin, w = m.group(1), m.group(2), m.group(3), m.group(4)
     cmd = ["python3", os.path.join(H, "explain.py"), O, node, pin, k, "--w", w]
     if os.path.exists(os.path.join(O, "routed.json")): cmd += ["--routed", os.path.join(O, "routed.json")]
+    if os.path.exists(os.path.join(O, "routed.json")) and os.environ.get("SDF") and os.path.exists(os.environ["SDF"]): cmd += ["--sdf", os.environ["SDF"]]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
     with open(os.path.join(O, "explain_%s_%s_k%s_w%s.txt" % (node, pin, k, w)), "w") as f: f.write(l + r.stdout + r.stderr[-2000:])
 PYEOF
