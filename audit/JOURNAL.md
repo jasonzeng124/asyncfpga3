@@ -2202,3 +2202,6 @@ Research fa196d11 (owner's second lead, delay-line table on 28 routes): spot che
 
 ### note 08:30
 Owner 7acb3a72 (formal PROGRAM): kappa is not a result; report each binding race in picoseconds (paths from the common launch at nominal SDF, cells vs routing), tied to research's rule row, filter on/off, >= 4 routes, scaled by the measured August ring data (median 8.5 % error). Matches the audit's T119 / T120 experience. Recorded in REPORT's owner-decisions table. Research c44eae7b / 02766762: select links at 3 for xorshift / ipow / collatz64 (farm, sized by rule E).
+
+### note 08:45
+Formal C 36e4858c: capture races on gcd_ps (search, checked): none fails at kappa <= 0.45, first admissible failure 0.61, first wrong value 0.77; item 25 cone outputs. Kappa-only, search; not the binding race (gcd_ps binds at 0.36, Lean); per owner 7acb3a72 such results now need picosecond race reports -- nothing to audit as a claim yet.
