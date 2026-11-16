@@ -2632,7 +2632,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - This disagrees with research's "item 31 clean under rule M; z_data leads z_req by >= 1.6 ns". Pending the trace (T130b) before reporting.
 - research 9812b5288 / e1d5a0741 (formal C17-C19 journal, tools): no claim.
 
-### progress 08:27
+### progress 08:24
 - **research bd57aa13b CORRECTION**: the select-join injection "gate failures" (selneg / selneg2, and research's collatz fcsel0 control ac048316) are X propagation.
   - The select latch is never initialized in simulation (bd_link resets its controller, not its data latch).
   - The +3000 select reaches the join after the first request, so the join latches X.
