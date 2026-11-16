@@ -2324,3 +2324,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The worst run is still going.
 - T126: ipsel3_19 built. FF scan clean (1956 flops, 0 missing). GLS running.
 - research 42de937c2 (xorshift missing ack macro, farm fxu) is exploratory.
+
+### progress 04:37
+- T125 worst: 13/13. umux2 select has 2 events, both with z_req low; nothing late. The finding is complete.
+- T126 item 29: own sdf **4a92cdf3 = recipe**; FF scan clean; FAST_MIN oracle **17/17**, 0 monitor violations. (The run log's "viol" figure counts summary lines and is not a violation count.)
