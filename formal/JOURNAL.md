@@ -2738,3 +2738,11 @@ So: no positive result has to be redone for the WF statement; the S6 route (one 
   PHYSICAL class existed; runs the old envcheck rejected as env violations may have been such hangs. If gcd_ps has one
   below 0.36, THE target's kappa_hi under the repaired statement is lower. Worth one gcd_ps sweep with today's checks.
 * Farm a_check_wf_dependents and a_lean_prime2: still queued (submitted, not started).
+### progress 04:42 -- gcd_ps re-swept with today's checks: no partial-ack hang below 0.45, so SpecWF does not lower THE target's margin in this search
+C's run.sh (LATCH=1, KLO 0, w 20; 16,990 single-pin candidates, 10 min on 4 cores), checkrows with the PHYSICAL class:
+livelock 0.36 (SLICE_X16Y21.A6 = ucontrol_merge4.uarb1.ua2, period 77-79 ps, as Lean's Frontier36); finite admissible
+0.42 (SLICE_X38Y51.B6 = merge10's arbiter, needs ArbOK T >= 2.48 us, so excluded by any realistic H_ARB) and 0.44
+(ulink_n_falseResult_85, as Lean). The 0.36 race's own finite failure at 0.40 (Lean CexX16) is not re-checked
+separately because the bisection credits that race with 0.36. No PHYSICAL (partial-ack) row: under this single-pin
+search the repaired statement has the same frontier on THE target. Not covered: steer/capture cones (not run here),
+two slow routes. Files: tools-A/target/out/gcd_ps_wfcheck/.
