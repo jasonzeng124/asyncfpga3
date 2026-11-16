@@ -68,6 +68,13 @@ def delay(gi, p, slow, corner=0):
     d = ((KD + PK) * FX) // KD if slow else -((-(KD - PK) * FN) // KD)
     if a.w and G[gi]["kind"] in ("lut6", "lut5") and d < a.w: d = a.w
     return d
+names = {}
+if a.routed:
+    Rj = json.load(open(a.routed))["modules"]["top"]["cells"]
+    bel = {c["attributes"].get("NEXTPNR_BEL"): nm for nm, c in Rj.items() if c.get("attributes", {}).get("NEXTPNR_BEL")}
+    for gi, g in enumerate(G):
+        m = re.match(r"(SLICE_X\d+Y\d+)\.([A-D])LUT\.O([56])", g["name"])
+        if m: names[g["out"]] = bel.get("%s/%s%sLUT" % (m.group(1), m.group(2), m.group(3)), "")
 resw, W = run(S, "wit"); resr, R = run([], "ref")
 print("witness   (route slow): %s" % resw); print("reference (all fast)  : %s" % resr)
 def flips(D, n): return D.get(n, (False, []))[1]
@@ -138,6 +145,23 @@ def single_race():
     print("RACE at %s: pin %d (delayed %d ps by the adversary: reference arrival %d, witness %d) against pin %d (arrival %d)" %
           (N[gq["out"]], pi, dly, air, aiw, pj, ajw))
     return pi, (gq["ins"][pi], ui_w), pj, (gq["ins"][pj], uj)
+def stall_runts(width=300, show=8):
+    """a stall: list the earliest short pulses (< width ps) on storage LUT outputs in the witness that the reference
+    has no pulse of that width on (hazards that can leave a handshake half done)"""
+    def pulses(D, n):
+        fl = flips(D, n); return [(fl[i], fl[i + 1] - fl[i]) for i in range(len(fl) - 1) if fl[i + 1] - fl[i] < width]
+    out = []
+    for gi in storage:
+        n = G[gi]["out"]; pw = pulses(W, n)
+        if not pw: continue
+        pr = set(w for t, w in pulses(R, n))
+        for t, w in pw:
+            if w not in pr: out.append((t, w, n)); break
+    out.sort()
+    print("STALL: earliest short pulses (< %d ps) on storage LUTs in the witness, absent from the reference:" % width)
+    for t, w, n in out[:show]:
+        print("  %8d ps  %4d ps wide  %s %s" % (t, w, N[n], names.get(n, "")))
+    if not out: print("  none")
 def cone_race():
     """cone rows (a setup / capture race). The slowed cone shifts the witness's whole timeline, so the runs are aligned
     by CAPTURE COUNT: the k-th close of the latch (enable arrival with its holding value) in each run. The first k whose
@@ -171,6 +195,7 @@ def cone_race():
         if val(R, o, tr_ + 400) != val(W, o, tw_ + 400): kk = i; break
     if kk is None:
         if len(cw) < len(cr):
+            stall_runts()
             sys.exit("cone row: the latch %s captures the same values in both runs but closes only %d times in the witness (%d in the "
                      "reference): the witness STALLS (deadlock / livelock) before its next capture; it is not a wrong capture at "
                      "this latch, and this tool does not trace stalls yet" % (N[o], len(cw), len(cr)))
@@ -262,13 +287,6 @@ def crit(x0, anc):
     return list(reversed(path))
 pa = crit(A0, AA) + [(q, pi, None)]; pb = crit(B0, AB) + [(q, pj, None)]
 sn, st = sp
-names = {}
-if a.routed:
-    Rj = json.load(open(a.routed))["modules"]["top"]["cells"]
-    bel = {c["attributes"].get("NEXTPNR_BEL"): nm for nm, c in Rj.items() if c.get("attributes", {}).get("NEXTPNR_BEL")}
-    for gi, g in enumerate(G):
-        m = re.match(r"(SLICE_X\d+Y\d+)\.([A-D])LUT\.O([56])", g["name"])
-        if m: names[g["out"]] = bel.get("%s/%s%sLUT" % (m.group(1), m.group(2), m.group(3)), "")
 sdf = json.load(open(a.sdfmap)) if a.sdfmap else None
 _u = sn
 while _u in drv and G[drv[_u]]["kind"] not in CELL: _u = G[drv[_u]]["ins"][0]
