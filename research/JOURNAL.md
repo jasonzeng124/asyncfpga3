@@ -5745,3 +5745,4 @@ is a genuine wrong-value failure. Steer E under test (steerneg). Formal C17 conf
 - ipow item 29's route rebuilt (ip29_19, sdf b521630f = the board route): ucond_br9's condition (ucmpi2.uz_n39) +8000 ps,
   gate FAST_MIN with +META_INIT=0: no batch in 50 min; the clean route with the same plusarg PASS 17/17 in 6.7 min. Rule E
   at ucond_br9 -3238 ps. So rule E has a known-bad build at a loop steer on every family; its mux-join half has none.
+- 18:10 UTC: handoff. Farm silent since 11:44 UTC (steerneg 15/40, selneg3 12/14 not re-read since). Next list above (latest 'Next (updated)' entry) stands; owner decisions asked: +META_INIT as the gate default, rule E at loop-header mux joins. LOCK cleared.
