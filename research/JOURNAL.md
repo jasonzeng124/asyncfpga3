@@ -5834,3 +5834,17 @@ on a ctl input in our GLS (already on the Next list).
   EQUIVALENT, FFMUX-FLAG); draws 1 and 2 FAIL 11/19. Not separable from the defect; shrink1's other routes decide.
 - draws1 / shrink1 still queued (the farm's 250-task account limit; zt1 + regate1 hold it).
 - 20:44 regate1 85/96: fxa 168/168, fxd 168/168, fisel3m 78/78 gate runs PASS with the fixed verdict, no batch with the mismatch latch. draws1: item 31 16/16 draws PASS so far. Farm shrink2 submitted: collatz item 31 sizes x0.85 / 0.70 / 0.55 on routes 20 / 3 / 7 / 12, 8 draws each.
+### progress 21:23 (shrink1: item 33's sizes hold to x0.40 under the draws; shrink3 submitted)
+- shrink1 (11 of 16 tasks; 8 draws per route, xor19): x0.85 32/32 (routes 27, 2, 5, 9); x0.70 24/24 (27, 2, 9; P 18.51 /
+  18.84 / 17.44 ns); x0.55 16/16 on routes 2 and 5 (P 17.83, 15.92) and 0/16 on 27 and 9, which both carry the 5FF-D
+  bitstream defect (FFMUX-FLAG; the draw simulation runs the bits and fails them, as the board would); x0.40 8/8 on
+  route 27 (P 15.67 ns, latency 339 cycles vs 394 at x0.85). Item 33 itself: 18.71 ns on route 27.
+- draws1 so far: items 33 32/32, 27 24/24, 31 32/32, 28 32/32, 29 24/24, 30 8/8, 32 16/16; the +3000 control 16/16 (as
+  predicted: it failed only at FAST_MIN). The +8000 half not back yet: until it fails, the draw model has no shown bad build.
+- The full-range question under the new rule: the counter's add (i + 1) and the compares see at most i ~ 1000 in any
+  vector, while rounds may be 2^31. A draw cannot judge their long carries, so the board candidates keep UADDI0 / UCMPI0 /
+  UCMPI1 at their full-range sizes (x0.40c / x0.55c). ASK: is keeping the static size on paths no vector can reach the
+  right reading of "the kernel's full input range" now that static rules are not gates?
+- shrink3: x0.30 / 0.20 / 0.10 (where do draws first fail) on routes 2 and 5; x0.40c and x0.55c on routes 1-16, 4 draws
+  each. PREDICTION: x0.10 fails every draw; the first failing factor lies between 0.20 and 0.30; x0.40c passes >= 62/64 on
+  defect-free routes, median period ~16 ns.
