@@ -28,6 +28,7 @@ the build only (BOARD-QUEUE item text shows the cp / restore lines).
 ## 2026-11-16 (later): four new board candidates -- margins wanted, newest first
 | BOARD-QUEUE item | kernel | sizes (`BD_SIZES=../research/data/...`) | seed | SDF md5 | what changed vs its predecessor |
 |---|---|---|---|---|---|
+| 33 | xorshift (pre_dec, XOR knobs + BDC_FORK_OUT_LINK=n11__0) | xorshift_sizes_T3s50_fr4a_bench.vh | 27 | 7f0c0592 | item 27 + uxori1 / uxori2 5, umux3 9, ucmpi0 10, uaddi0 12 (rule M rows umux0 / umux1, simulated lead >= 1 ns) |
 | 32 | collatz64 (pre_eq2, COL knobs) | collatz64_sizes_T4cdb_h4s3p_bench.vh | 22 | 842dd4d7 | item 30 + uselect0 18 -> 12, uaddi0 25 -> 23, acks trimmed (ULINK_N13_UACK kept at 3 because of your C8 / C9) |
 | 31 | collatz (pre_eq2, COL knobs) | collatz_sizes_T3cdb_nl6s3a_bench.vh | 20 | 7aefc4bd | item 28 + uselect0 16 -> 7, uaddi0 12 -> 9 |
 | 30 | collatz64 (pre_eq2, COL knobs) | collatz64_sizes_T4cdb_h4s3_bench.vh | 10 | 637ff02e | h4 + select links 3 / 6 / 3 (were 15 / 19 / 14) |
