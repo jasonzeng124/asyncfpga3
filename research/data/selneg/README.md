@@ -64,3 +64,45 @@ Reading:
 - Not covered by these runs: the hold half of the select race (rules H / I, hold_bits, TSE; collatz's +15000 ps
   enable injection on 2026-11-15 is the only hold control), and the select's path to the mux's DATA LUTs (rule M,
   corner_audit 2026-11-16; its own control is in the journal).
+
+## Rule M (the mux data outputs), the same construction (farm mneg, 2026-11-16)
+Late arcs: the select latch ('<select link>.lat.odd.u') into ONE mux's DATA LUTs (umuxN.udat.*), +4000 / +8000 ps, SDF
+only. Rule M = corner_audit's A rows marked "peers no common source reaches" (the mux's data outputs against z_req,
+measured from every upstream link's C node). The injected mux's M value is shown; "-" = no M row for that mux.
+
+| route, mux | inj | rule M on that mux, worst / nom | rule E rows < 0 | gate FAST_MIN | gate worst |
+|---|---|---|---|---|---|
+| xorshift item 27 s2, umux0 | +4000 | -1643 / -1343 | 0 | PASS 17/17 | PASS 17/17 |
+| xorshift item 27 s2, umux0 | +8000 | -5763 / -5463 | 0 | no completion | no completion |
+| xorshift item 27 s2, umux1 | +4000 | -788 / -377 | 0 | PASS 17/17 | PASS 17/17 |
+| xorshift item 27 s2, umux1 | +8000 | -4908 / -4497 | 0 | FAIL 2/17 | PASS 17/17 |
+| xorshift item 27 s2, umux2 | +4000 | -2033 / -1738 | 0 | PASS 17/17 | PASS 17/17 |
+| xorshift item 27 s2, umux2 | +8000 | -6153 / -5858 | 0 | no completion | no completion |
+| xorshift item 27 s2, umux3 | +4000 | - / - | 0 | PASS 17/17 | PASS 17/17 |
+| xorshift item 27 s2, umux3 | +8000 | - / - | 0 | PASS 17/17 | PASS 17/17 |
+| collatz64 item 26 s25, umux1 | +4000 | 942 / 1180 | 0 | PASS 14/14 | PASS 14/14 |
+| collatz64 item 26 s25, umux1 | +8000 | 942 / 1180 | 0 | PASS 14/14 | PASS 14/14 |
+| collatz64 item 26 s25, umux2 | +4000 | - / - | 0 | PASS 14/14 | PASS 14/14 |
+| collatz64 item 26 s25, umux2 | +8000 | - / - | 0 | PASS 14/14 | PASS 14/14 |
+| ipow item 19 s1, umux0 | +4000 | 1604 / 1911 | 0 | PASS 17/17 | PASS 17/17 |
+| ipow item 19 s1, umux0 | +8000 | 73 / 1024 | 0 | PASS 17/17 | PASS 17/17 |
+| ipow item 19 s1, umux1 | +4000 | 1133 / 1831 | 0 | PASS 17/17 | PASS 17/17 |
+| ipow item 19 s1, umux1 | +8000 | -2987 / -2289 | 0 | FAIL 14/17 | PASS 17/17 |
+| ipow item 19 s1, umux2 | +4000 | -532 / -448 | 0 | PASS 17/17 | PASS 17/17 |
+| ipow item 19 s1, umux2 | +8000 | -532 / -448 | 0 | PASS 17/17 | PASS 17/17 |
+| ipow item 19 s1, umux3 | +4000 | - / - | 0 | PASS 17/17 | PASS 17/17 |
+| ipow item 19 s1, umux3 | +8000 | - / - | 0 | PASS 17/17 | PASS 17/17 |
+| collatz item 28 s20, umux0 | +4000 | -1383 / -1043 | 0 | PASS 13/13 | PASS 13/13 |
+| collatz item 28 s20, umux0 | +8000 | -5503 / -5163 | 0 | no completion | PASS 13/13 |
+| collatz item 28 s20, umux1 | +4000 | -1691 / -1380 | 0 | PASS 13/13 | PASS 13/13 |
+| collatz item 28 s20, umux1 | +8000 | -5811 / -5500 | 0 | FAIL 6/13 | PASS 13/13 |
+| collatz item 28 s20, umux2 | +4000 | - / - | 0 | PASS 13/13 | PASS 13/13 |
+| collatz item 28 s20, umux2 | +8000 | - / - | 0 | PASS 13/13 | PASS 13/13 |
+
+runs with a gate failure: 6; rule M below 0 on the injected mux in 6 of them; M below 0 but every gate passed: 7
+
+Reading: all 6 gate failures (3 wrong values: xorshift umux1 2/17, ipow umux1 14/17, collatz umux1 6/13; 3 no
+completion) have rule M below 0 on the injected mux, and rule E has no row below 0 in ANY of these runs: the select's
+path to the data LUTs is a race E does not model. M is stricter than the gate on 7 runs (all at +4000, or on muxes the
+vectors exercise only at loop entry). Where M stayed >= 0 (the injection absorbed by a long mux delay: collatz64 umux1,
+ipow umux0, umux1 at +4000) every gate passed. Missing: collatz64 umux0 (task 5, farm container error as in selneg).

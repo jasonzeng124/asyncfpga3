@@ -5556,3 +5556,8 @@ Next:
 - fxa (xorshift fr4a = item 27 + seed 2's proposal on datapath / mux lines: uxori1 / uxori2 7 -> 5, umux3 14 -> 9, ucmpi0
   12 -> 10, uaddi0 13 -> 12). PREDICTION: -0.3 to -0.6 ns per iteration vs fxd (uxori2 is on x27_2's critical cycle,
   3.7 ns, two elements out; the rest off it); A' clean on >= 26/32.
+### progress 07:59 UTC (mneg: rule M's negative controls on all four families -- 6 gate failures, M flags all 6, E none)
+- Table in research/data/selneg/README.md (tool: research/tools/fifteen/mneg_table.py). 6 runs fail the gate (3 wrong
+  values, 3 no completion) on xorshift umux0 / 1 / 2, ipow umux1, collatz umux0 / 1; rule M < 0 on the injected mux in all
+  6 (-2987 .. -6153 ps), rule E clean in every run. Where M stayed >= 0 the gate passed. So M earns its place on xorshift,
+  ipow and collatz; collatz64's umux0 control (task 5) failed to run on the farm twice (container error).
