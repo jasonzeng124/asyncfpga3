@@ -1,0 +1,18 @@
+w=20: physical (NOT a Spec counterexample: partial-ack deadlock, Spec.Env vacuous): kappa 0.29  race SLICE_X14Y33.B6 pin 99 from SLICE_X14Y33.A6 (run at w=20) RESULT MISMATCH: want [2064144800, 2008045182, 691148861, 3532304609] got [2064144800] [livelock: eventually periodic, simx --periodic (untrusted)]
+witness   (route slow): RESULT MISMATCH: want [2064144800, 2008045182, 691148861, 3532304609] got [2064144800]
+reference (all fast)  : RESULT OK: want [2064144800, 2008045182, 691148861, 3532304609] got [2064144800, 2008045182, 691148861, 3532304609]
+first nodes to diverge (any gate): CLBLL_R_X11Y56/CLBLL_NE2A0(pip)@24*, CLBLL_R_X13Y43/CLBLL_NW2A1(pip)@24*, CLBLL_R_X13Y45/CLBLL_NW2A0(pip)@24*, CLBLL_R_X13Y43/CLBLL_NW2A3(pip)@25*, CLBLL_R_X11Y57/CLBLL_ER1BEG0(pip)@26*, CLBLL_R_X11Y58/CLBLL_ER1BEG0(pip)@26*   (* = an adversary arc)
+  diverges: SLICE_X16Y28.A6        at 404804 ps
+  diverges: SLICE_X16Y29.C6        at 405374 ps
+  diverges: SLICE_X15Y28.A6        at 405692 ps
+  diverges: SLICE_X16Y26.A6        at 405704 ps
+  diverges: SLICE_X16Y32.A6        at 405797 ps
+  diverges: SLICE_X16Y39.A6        at 405904 ps
+  diverges: SLICE_X14Y28.A6        at 406074 ps
+  diverges: SLICE_X17Y28.C6        at 406160 ps
+
+CAPTURE: SLICE_X14Y33.B6 (SLICE_X14Y33.BLUT.O6) first differs at 426626 ps
+STALL: earliest short pulses (< 300 ps) on storage LUTs in the witness, absent from the reference:
+    427813 ps    75 ps wide  SLICE_X16Y32.A6 bridge_i.udut.ucontrol_merge0_rlink.ctl.u.u
+    442336 ps    75 ps wide  SLICE_X14Y30.B6 bridge_i.udut.ucontrol_merge1.uarb1.ustate$LUT6
+cone row: the latch SLICE_X14Y33.B6 captures the same values in both runs but closes only 1 times in the witness (4 in the reference): the witness STALLS (deadlock / livelock) before its next capture; it is not a wrong capture at this latch, and this tool does not trace stalls yet
