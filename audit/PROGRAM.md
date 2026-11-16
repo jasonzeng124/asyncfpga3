@@ -102,6 +102,21 @@ Prioritise BOARD-QUEUE #1-#3, since they are what would go on the board.
 - One session starts per day (owner, 2026-10-29). Run continuously: when a pass is done, re-audit the newest
   commits on both branches. Never end the session on your own.
 
+## The board decides; every check is a proxy (owner, 2026-11-16)
+
+The owner: "idc about the checks, they dont matter, as long is it works on board / closest
+approximation to board. other checks are just not-very-good proxies of correctness possibly".
+Research's and formal's programs have their parts under the same heading. For the audit:
+
+- Stop auditing rule rows and rule coverage, except as a lead to something that fails in
+  simulation.
+- Audit the approximation of the board instead: the delay-uncertainty model against the
+  August ring data; predicted against measured on the builds that ran on the board; whether
+  a passing fraction was computed over the full input range, with honest draws and enough of
+  them; and what is missing from `research/SIM-VS-BOARD.md`.
+- A headline is overstated if it quotes a speed without its passing fraction, or a fraction
+  without the model's error on board data.
+
 ## Formal is back on, and works with research (owner, 2026-11-15)
 
 Formal was off from 2026-11-10 to 2026-11-15. It is on again with a new first job
