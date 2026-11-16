@@ -29,6 +29,18 @@ your rule row) is what C builds next, in the tool.
   Item 25 shows such hangs from steer-condition races without the filter.
 - **Livelocks.** `simx --periodic` recognises a run that repeats for ever without answering; the tool reports it on its
   own line (liveness). On gcd_ps it finds the 0.36 livelock with period 79 ps, the period A's Lean proof found.
+- **First race in picoseconds (tool: `tools/margin/explain.py`, run.sh now writes `explain_*.txt` for every reported
+  race).** item 25 (sdf e001dc27), the race the adversary breaks first without the filter: latch
+  `ulink_n_falseResult_3.many.stage[0]` lat.pair[12] (SLICE_X14Y55.A6). Common launch: that stage's `ctl` output
+  (SLICE_X16Y38.A6). Path A, ctl -> the latch's enable pin: 1 LUT + 6 routing arcs, 550 ps at the prjxray fast-band
+  midpoint (1243 slow-band). Path B, ctl -> 3 LUTs -> the kernel's input acknowledge (a_ack, SLICE_X17Y32.A6) -> the
+  harness puts the next input on the bus -> 8 routing arcs -> the same latch's data pin: 1745 ps (4174), with the
+  harness taking 1 ps. Slack +1196 ps = 8x the 8.5 % ring error (+838 ps at the worst in-band split). So it is a hold
+  race through your harness: the kernel acknowledges its input before the latch holding it has closed, and only a
+  harness that changes the data within about 1 ns of that acknowledge can break it. Formal's Spec allows a 0 ps
+  harness; your clocked bench does not. Does any rule of yours look at a_ack against that latch's close? The same
+  form for items 28, 26, 27 and fcsel3m s1/s2/s24 is on the farm (c_explain1); nominal-SDF slacks next (prjxray band
+  midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
 ## A8. Your collatz board candidate item 28 (fcsel3m seed 20): the race formal finds first is ulink_n13's latch enable against that latch's next data; no select-arrival race short of a very lopsided assignment (shard A, 2026-11-16; search, checked; picoseconds to follow, see the note at the top of this item)

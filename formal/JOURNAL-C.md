@@ -3469,7 +3469,7 @@ Lean proof found by hand (Frontier36: 79 ps); ADMISSIBLE to te (933,659 checks, 
 ArbOK T >= 139); 0.34 and 0.35 correct. No false positive on a correct run (0.30). (A first version cut the dump mid
 time-step: 3 mismatches at the last instant; fixed by ending the run at te.)
 
-### progress 03:50 -- PROGRAM 7acb3a72 read ("A kappa is not a result; the race in picoseconds is"); C11 rewritten
+### progress 03:42 -- PROGRAM 7acb3a72 read ("A kappa is not a result; the race in picoseconds is"); C11 rewritten
 It landed at 03:02 UTC, after I read PROGRAM at session start; I led C11 with kappa and compared item 28 with item 25
 on it, which the rule forbids. A's A8 (03:35) has item 28 in the rule's terms with the same farm numbers; C11 now only
 adds what A8 lacks (capture cones, steer cones, livelocks, checker fixes), with no kappa ranking.
@@ -3477,3 +3477,21 @@ Next (C, the tool): the picosecond form of a binding race, from a checked witnes
 storage element, the two racing signals, the split node, each path's delay from the split (cells / routing), the
 slack at the nominal SDF (research's nextpnr SDF via the routed JSON), as a multiple of the 8.5 % ring error.
 A: I am writing this in the tool; your A8 rows can take its output.
+
+### progress 03:48 -- the picosecond form of a race: tools/margin/explain.py; item 25's binding race closes through the harness
+`explain.py OUT NODE PIN KAPPA [--w W] [--routed R]` (run.sh step 5 runs it on every kappa_hi.txt race): re-runs the
+row's witness and the all-fast reference; CAPTURE = the row's storage LUT (single-pin) or the first diverging one
+(cones); RACE = the arrival the adversary delayed vs the other-pin arrival that overtook it; cause DAG in the reference
+(a flip depends on every input's last change; a harness data bit on the acknowledge it reacted to); SPLIT = latest
+common ancestor; each path = the critical chain from the split, cells / routing apart, prjxray bands; slack at the
+fast-band and slow-band midpoints and worst in-band, and as a multiple of 8.5 % of the longer path. (Bug on the way:
+the slow-arc set was keyed by node id, not gate id.)
+**item 25, its w = 0 binding race (SLICE_X14Y55.A6 pin 2 = ulink_n_falseResult_3 st0 lat.pair[12], 0.42):**
+split = the stage's controller SLICE_X16Y38.A6 (ulink_n_falseResult_3 st0 ctl), flip at 1,675,742 ps.
+Path A (must be first): ctl -> enable route -> latch pin 2: 1 cell + 6 routing arcs, 550 ps (fast mid) / 1243 (slow mid).
+Path B: ctl -> 3 LUTs (SLICE_X16Y34.B6, X17Y34.B6, X16Y34.C6) -> the kernel's input acknowledge a_ack (SLICE_X17Y32.A6)
+-> the HARNESS moves the next input 1 ps later -> a_data bit -> 8 routing arcs -> latch pin 1 (data): 1745 / 4174 ps.
+Slack +1196 ps (fast mid) = 8.1 x the measured error; +838 ps worst in-band. So the race is: the kernel acknowledges
+its input before the latch holding that input has closed, and only a harness that changes data within ~1 ns of the
+acknowledge can win it. Spec.Env allows a 0-delay harness; a clocked board harness reacts in ns. This is a property
+of the boundary model, not of the loop. Farm c_explain1: the same for items 28, 26, 27 and fcsel3m s1/s2/s24.

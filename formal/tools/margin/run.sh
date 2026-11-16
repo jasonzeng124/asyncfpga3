@@ -106,4 +106,20 @@ python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs 
   --klo "$KLO" --tfull "${TFULL:-5000000}" --pairs $PAIRS --kernel "$KERNEL" --w 20 $([ "$W0" = 1 ] && echo --w0) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
 log "check every failing row"; python3 "$H/checkrows.py" "$O" > /dev/null 2>&1 || true
 [ -f "$O/routed.json" ] && python3 "$H/names.py" "$O" > /dev/null 2>&1 || true
-log "done: $O/names.txt $O/kappa_hi.txt $O/checked.txt $O/margins.txt"
+# 5. the picosecond form of every reported race (explain.py: capture, split, both paths, slack, x the measured error)
+log "explain the reported races"
+python3 - "$O" "$H" <<'PYEOF' || true
+import re, subprocess, sys, os
+O, H = sys.argv[1], sys.argv[2]
+seen = set()
+for l in open(os.path.join(O, "kappa_hi.txt")):
+    m = re.search(r"kappa(?:_hi)? (?:= )?([0-9.]+)\s+race (\S+) pin (\d+) from \S+ \(run at w=(\d+)\)", l)
+    if not m or (m.group(2), m.group(3), m.group(1), m.group(4)) in seen: continue
+    seen.add((m.group(2), m.group(3), m.group(1), m.group(4)))
+    k, node, pin, w = m.group(1), m.group(2), m.group(3), m.group(4)
+    cmd = ["python3", os.path.join(H, "explain.py"), O, node, pin, k, "--w", w]
+    if os.path.exists(os.path.join(O, "routed.json")): cmd += ["--routed", os.path.join(O, "routed.json")]
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+    with open(os.path.join(O, "explain_%s_%s_k%s_w%s.txt" % (node, pin, k, w)), "w") as f: f.write(l + r.stdout + r.stderr[-2000:])
+PYEOF
+log "done: $O/names.txt $O/kappa_hi.txt $O/checked.txt $O/margins.txt $O/explain_*.txt"

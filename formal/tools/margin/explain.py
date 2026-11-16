@@ -1,0 +1,240 @@
+#!/usr/bin/env python3
+"""margin/explain.py (shard C, UNTRUSTED): the picosecond form of one failing race (PROGRAM.md, "A kappa is not a result").
+
+    python3 explain.py OUT/ NODE PIN KAPPA [--w 0] [--routed routed.json] [--sdfmap sdf_arcs.json]
+
+OUT/ is a margin run directory (net.json, bnd.json, net.simx, simx, witness/command.txt, margins.txt). NODE PIN KAPPA
+name a failing row of margins.txt (PIN 99 / 100+i for cone rows). The tool
+1. re-runs the row's adversary (its slow arcs at (1+k) FAST_MAX, all else at (1-k) FAST_MIN) and the reference run
+   (no slow arcs, same k) with dumps (w = 0 by default: transport, so every flip has an exact cause);
+2. finds the CAPTURE: the first storage LUT (a LUT reading its own output) whose output history differs between the
+   two runs, at time t*;
+3. finds the two RACING ARRIVALS at that LUT: the arrival the adversary delayed (on a slowed pin, or the latest-moved
+   arrival) and the arrival on another pin that overtook it in the witness;
+4. traces both back, flip by flip (output flip at t caused by the input flip at t - d), in the REFERENCE run to their
+   common launch (the SPLIT: the latest flip both depend on);
+5. reports both paths from the split to the capture: every arc with its prjxray band, cells (LUT, MUXF, CARRY) and
+   routing (pips, hops) apart; the slack at the band MIDPOINTS (fast corner and slow corner) and at nextpnr's SDF when
+   --sdfmap is given; and the slack as a multiple of the measured delay error (8.5 % median ring error, August ring
+   data on claude/research) of the longer path.
+Every number is an untrusted reading of one simulated run; the paths are those of the witness's failure.
+"""
+import argparse, json, os, re, subprocess, sys, bisect
+ap = argparse.ArgumentParser()
+ap.add_argument("out"); ap.add_argument("node"); ap.add_argument("pin", type=int); ap.add_argument("kappa")
+ap.add_argument("--w", type=int, default=0); ap.add_argument("--routed", default=None)
+ap.add_argument("--sdfmap", default=None, help="JSON {\"NODE:PIN\": ps} nominal SDF delay per arc (optional)")
+ap.add_argument("--err", type=float, default=0.085, help="measured relative delay error (median ring scatter)")
+a = ap.parse_args()
+O = os.path.abspath(a.out)
+net = json.load(open(os.path.join(O, "net.json"))); G = net["gates"]; N = net["nodes"]; idx = {n: i for i, n in enumerate(N)}
+ENV = set(idx[x] for x in json.load(open(os.path.join(O, "bnd.json")))["env"])
+drv = {g["out"]: gi for gi, g in enumerate(G) if g["out"] not in ENV}
+CELL = {"lut6", "lut5", "muxf", "carry"}
+def is_copy(g): return g["k"] == 1 and g["init"] == 2
+# the row's slow arcs
+S = None
+for l in open(os.path.join(O, "margins.txt")):
+    f = l.split()
+    if len(f) > 4 and not l.startswith("#") and f[1] == a.node and f[2] == str(a.pin):
+        S = [[x.rsplit("/", 1)[0], int(x.rsplit("/", 1)[1])] for x in f[-1].split(",")]; break
+if S is None: sys.exit("row %s %d not in margins.txt" % (a.node, a.pin))
+SL = set((drv[idx[n]], p) for n, p in S)   # (gate index, pin)
+base = [l for l in open(os.path.join(O, "witness", "command.txt")) if not l.startswith("#")][0].split()
+env = {}
+while "=" in base[0] and not base[0].startswith("/"): k, v = base.pop(0).split("=", 1); env[k] = v
+KD = int(env.get("KDEN", "100"))
+def setopt(cmd, opt, val):
+    cmd = list(cmd)
+    if opt in cmd: cmd[cmd.index(opt) + 1] = val
+    else: cmd += [opt, val]
+    return cmd
+def run(slow, tag):
+    cf = os.path.join(O, "tmp", "ex_%s.json" % tag); df = os.path.join(O, "tmp", "ex_%s_dump.json" % tag)
+    os.makedirs(os.path.dirname(cf), exist_ok=True); json.dump({"S": slow, "F": []}, open(cf, "w"))
+    cmd = setopt(setopt(base, "--kappa", a.kappa), "--classes", cf)
+    if "--w" in cmd: i = cmd.index("--w"); del cmd[i:i + 2]
+    if a.w: cmd += ["--w", str(a.w)]
+    cmd = [x for x in cmd if x != "--periodic"] + ["--periodic", "--dump", df]
+    r = subprocess.run(cmd, capture_output=True, text=True, env=dict(os.environ, **env), cwd=O)
+    res = ([x for x in r.stdout.splitlines() if x.startswith("RESULT")] or ["NO-VERDICT"])[0]
+    d = json.load(open(df)); os.unlink(df)
+    return res, {int(k): (bool(v[0]), v[1]) for k, v in d["nodes"].items()}
+PK = round(float(a.kappa) * KD)
+def delay(gi, p, slow, corner=0):
+    e = G[gi]["arcs"][p]; FN, FX = (e["fmin"], e["fmax"]) if corner == 0 else (e["smin"], e["smax"])
+    d = ((KD + PK) * FX) // KD if slow else -((-(KD - PK) * FN) // KD)
+    if a.w and G[gi]["kind"] in ("lut6", "lut5") and d < a.w: d = a.w
+    return d
+resw, W = run(S, "wit"); resr, R = run([], "ref")
+print("witness   (route slow): %s" % resw); print("reference (all fast)  : %s" % resr)
+def flips(D, n): return D.get(n, (False, []))[1]
+def v0(D, n): return D.get(n, (False, []))[0]
+storage = set()
+for gi, g in enumerate(G):
+    if is_copy(g) or g["out"] in ENV or g["k"] < 2: continue
+    srcs = []
+    for u in g["ins"]:
+        while u in drv and is_copy(G[drv[u]]): u = G[drv[u]]["ins"][0]
+        srcs.append(u)
+    if g["out"] in srcs: storage.add(gi)
+def firstdiff(n):
+    fw, fr = flips(W, n), flips(R, n)
+    if v0(W, n) != v0(R, n): return 0
+    for x, y in zip(fw, fr):
+        if x != y: return min(x, y)
+    if len(fw) != len(fr): return (fw[len(fr)] if len(fw) > len(fr) else fr[len(fw)])
+    return None
+allc = []
+for gi, g in enumerate(G):
+    if g["out"] in ENV: continue
+    t = firstdiff(g["out"])
+    if t is not None: allc.append((t, gi))
+allc.sort()
+print("first nodes to diverge (any gate): " + ", ".join("%s(%s)@%d%s" % (N[G[gi]["out"]], G[gi]["kind"], t, "*" if any((gi, p) in SL for p in range(G[gi]["k"])) else "") for t, gi in allc[:6]) + "   (* = an adversary arc)")
+cands = []
+for gi in storage:
+    t = firstdiff(G[gi]["out"])
+    if t is not None: cands.append((t, gi))
+if not cands: sys.exit("no storage LUT diverges between witness and reference")
+cands.sort()
+for t, gi in cands[:8]: print("  diverges: %-22s at %d ps%s" % (N[G[gi]["out"]], t, "  <- the row's storage LUT" if N[G[gi]["out"]] == a.node else ""))
+own = [(t, gi) for t, gi in cands if N[G[gi]["out"]] == a.node]
+# a single-pin row names its storage LUT: explain the race there; a cone row: the first diverging storage LUT
+tstar, q = own[0] if (own and a.pin < 99) else cands[0]; gq = G[q]
+print("\nCAPTURE: %s (%s) first differs at %d ps" % (N[gq["out"]], gq["name"], tstar))
+# arrivals at q's pins in both runs around t*
+def arrivals(D, slowset):
+    out = []
+    for p, u in enumerate(gq["ins"]):
+        d = delay(q, p, (q, p) in slowset)
+        for t in flips(D, u):
+            if tstar - 20000 <= t + d <= tstar + 20000: out.append((t + d, p, t))
+    return sorted(out)
+aw, ar = arrivals(W, SL), arrivals(R, set())
+slowpins = [p for p in range(gq["k"]) if (q, p) in SL]
+# the delayed arrival: on a slowed pin if q has one, else the arrival whose time moved the most among matching flips
+moved = []
+for p in range(gq["k"]):
+    tw = [x for x in aw if x[1] == p]; tr = [x for x in ar if x[1] == p]
+    for x, y in zip(tw, tr): moved.append((x[0] - y[0], p, x, y))
+moved.sort(reverse=True)
+if slowpins:
+    mi = [m for m in moved if m[1] in slowpins] or moved
+else: mi = moved
+if not mi or mi[0][0] <= 0: sys.exit("no arrival at the capture moved later in the witness (the race is not at a pin of %s)" % N[gq["out"]])
+dly, pi, (aiw, _, ui_w), (air, _, ui_r) = mi[0]
+# the overtaking arrival: another pin's arrival that was after pin pi's in the reference and before it in the witness
+over = [x for x in aw if x[1] != pi and air < x[0] < aiw]
+if not over: over = [x for x in aw if x[1] != pi and x[0] < aiw][-1:]
+if not over: sys.exit("no competing arrival found")
+ajw, pj, uj = over[0]
+print("RACE at %s: pin %d (delayed %d ps by the adversary: reference arrival %d, witness %d) against pin %d (arrival %d)" %
+      (N[gq["out"]], pi, dly, air, aiw, pj, ajw))
+# back-trace in the REFERENCE run: the cause DAG. A flip of node n at t (gate g) depends on, for each pin p that g's
+# INIT depends on, the last flip of that input at or before t - d_p (within a window). The split is the latest flip that
+# is an ancestor of both racing arrivals; each path is the critical chain (latest arrival at every gate) from it.
+def dep(g, j):
+    k, I = g["k"], g["init"]
+    return any(((I >> x) & 1) != ((I >> (x ^ (1 << j))) & 1) for x in range(1 << k))
+WIN = 40000
+BJ = json.load(open(os.path.join(O, "bnd.json")))["boundary"]
+BACKS = [idx[BJ[k]] for k in ("a_ack", "b_ack", "start_ack", "out0_req") if k in BJ and isinstance(BJ[k], str) and BJ[k] in idx]
+BDATA = set(idx[x] for k in ("a_data", "b_data") for x in (BJ.get(k) or []) if isinstance(x, str) and x in idx)
+def parents(n, t):
+    if n in ENV:
+        # the harness: a data bit moves in reaction to an acknowledge (or out0's request); its parents are the last
+        # flips of those boundary nodes at or before t (the harness reacts after >= 1 ps)
+        if n not in BDATA: return []
+        out = []
+        for b in BACKS:
+            fl = flips(R, b); i = bisect.bisect_right(fl, t - 1) - 1
+            if i >= 0 and fl[i] >= t - WIN: out.append(((b, fl[i]), None, 0, t - fl[i]))
+        return out
+    if n not in drv: return []
+    gi = drv[n]; g = G[gi]; out = []
+    for p, u in enumerate(g["ins"]):
+        if not dep(g, p) and not is_copy(g): continue
+        d = delay(gi, p, False); fl = flips(R, u)
+        i = bisect.bisect_right(fl, t - d) - 1
+        if i >= 0 and fl[i] >= t - WIN: out.append(((u, fl[i]), gi, p, d))
+    return out
+def ancestors(x0):
+    seen = {x0: None}; st = [x0]; tmin = x0[1] - WIN
+    while st:
+        x = st.pop()
+        for y, gi, p, d in parents(*x):
+            if y[1] >= tmin and y not in seen: seen[y] = 1; st.append(y)
+    return seen
+def nearflip(n, t):
+    fl = flips(R, n)
+    if not fl: return None
+    i = min(range(len(fl)), key=lambda k: abs(fl[k] - t)); return (n, fl[i])
+A0 = nearflip(gq["ins"][pi], air - delay(q, pi, False)); B0 = nearflip(gq["ins"][pj], uj)
+if A0 is None or B0 is None: sys.exit("racing input flips not found in the reference run")
+AA, AB = ancestors(A0), ancestors(B0)
+common = [x for x in AA if x in AB]
+def show(S0, lab):
+    lut = sorted([x for x in S0 if x[0] in drv and G[drv[x[0]]]["kind"] in ("lut6", "lut5")], key=lambda x: -x[1])
+    print("  %s ancestors: %d flips, %d LUT flips; latest LUT flips: %s" % (lab, len(S0), len(lut), ", ".join("%s@%d" % (N[n], t) for n, t in lut[:6])))
+show(AA, "A (%s@%d)" % (N[A0[0]], A0[1])); show(AB, "B (%s@%d)" % (N[B0[0]], B0[1]))
+if not common:
+    print("\nno common launch within %d ps before the race" % WIN); sys.exit(0)
+sp = max(common, key=lambda x: x[1])
+def crit(x0, anc):
+    """critical chain from the split to x0: walk back from x0 through parents that descend from sp, latest arrival first"""
+    # descendants of sp inside anc: those whose ancestor set contains sp (memoised DFS)
+    memo = {}
+    def hs(x):
+        if x == sp: return True
+        if x in memo: return memo[x]
+        memo[x] = False
+        r = any(y in anc and y[1] >= sp[1] and hs(y) for y, gi, p, d in parents(*x))
+        memo[x] = r; return r
+    sys.setrecursionlimit(100000)
+    path = []; x = x0
+    while x != sp:
+        cand = [(y[1] + d, y, gi, p) for y, gi, p, d in parents(*x) if y in anc and y[1] >= sp[1] and hs(y)]
+        if not cand: break
+        _, y, gi, p = max(cand); path.append((gi, p, x[1]) if gi is not None else ("ENV", x[0], x[1] - y[1])); x = y
+    return list(reversed(path))
+pa = crit(A0, AA) + [(q, pi, None)]; pb = crit(B0, AB) + [(q, pj, None)]
+sn, st = sp
+names = {}
+if a.routed:
+    Rj = json.load(open(a.routed))["modules"]["top"]["cells"]
+    bel = {c["attributes"].get("NEXTPNR_BEL"): nm for nm, c in Rj.items() if c.get("attributes", {}).get("NEXTPNR_BEL")}
+    for gi, g in enumerate(G):
+        m = re.match(r"(SLICE_X\d+Y\d+)\.([A-D])LUT\.O([56])", g["name"])
+        if m: names[g["out"]] = bel.get("%s/%s%sLUT" % (m.group(1), m.group(2), m.group(3)), "")
+sdf = json.load(open(a.sdfmap)) if a.sdfmap else None
+print("SPLIT (common launch): %s %s flips at %d ps" % (N[sn], names.get(sn, ""), st))
+def summ(arcs, label):
+    tot = {"cell": [0, 0, 0, 0, 0], "route": [0, 0, 0, 0, 0]}
+    lines = []
+    for gi, p, t in arcs:
+        if gi == "ENV":
+            lines.append("    HARNESS: %s moves %d ps after the acknowledge it reacts to (simulated harness; Spec.Env allows any delay >= 0)" % (N[p], t))
+            continue
+        g = G[gi]; e = g["arcs"][p]; kind = "cell" if g["kind"] in CELL else "route"
+        sd = sdf.get("%s:%d" % (N[g["out"]], p)) if sdf else None
+        vals = [e["fmin"], e["fmax"], e["smin"], e["smax"], sd if sd is not None else 0]
+        for i in range(5): tot[kind][i] += vals[i]
+        if kind == "cell" or g["kind"] in ("lut6", "lut5"):
+            lines.append("    %-28s pin %d  %-5s fast [%d, %d]  slow [%d, %d]%s  %s" % (N[g["out"]], p, g["kind"], *vals[:4], ("  sdf %d" % sd) if sd is not None else "", names.get(g["out"], "")))
+    nr = sum(1 for gi, p, t in arcs if gi != "ENV" and G[gi]["kind"] not in CELL)
+    print("  %s: %d arcs (%d cells, %d routing)" % (label, len(arcs), len(arcs) - nr, nr))
+    for l in lines: print(l)
+    for kind in ("cell", "route"):
+        x = tot[kind]; print("    %-5s total: fast [%d, %d] mid %.0f   slow [%d, %d] mid %.0f%s" % (kind, x[0], x[1], (x[0] + x[1]) / 2, x[2], x[3], (x[2] + x[3]) / 2, ("   sdf %d" % x[4]) if sdf else ""))
+    return {k: [tot["cell"][i] + tot["route"][i] for i in range(5)][j] for j, k in enumerate(("fmin", "fmax", "smin", "smax", "sdf"))}
+print("\nPATH A (must arrive FIRST; the adversary slowed it): split -> %s pin %d" % (N[gq["out"]], pi))
+A = summ(pa, "path A")
+print("PATH B (overtook it in the witness): split -> %s pin %d" % (N[gq["out"]], pj))
+B = summ(pb, "path B")
+print("\nSLACK (path B - path A; positive = the required order holds):")
+for lab, x, y in (("fast-corner band midpoint", (B["fmin"] + B["fmax"]) / 2, (A["fmin"] + A["fmax"]) / 2),
+                  ("slow-corner band midpoint", (B["smin"] + B["smax"]) / 2, (A["smin"] + A["smax"]) / 2),
+                  ("worst in-band (A fast max, B fast min)", B["fmin"], A["fmax"])) + ((("nextpnr SDF", B["sdf"], A["sdf"]),) if sdf else ()):
+    sl = x - y; L = max(x, y)
+    print("  %-40s A %7.0f  B %7.0f  slack %+7.0f ps = %+.2f x the measured error (%.1f %% of %.0f ps)" % (lab, y, x, sl, sl / (a.err * L) if L else 0, 100 * a.err, L))
