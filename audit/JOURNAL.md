@@ -2656,3 +2656,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - items 28 / 31, which research calls rule M clean, show state-A output changes after z_req on 304/1279 (<= 167 ps) and 975/1480 (<= 501 ps) tokens;
   - item 30: 1779/1804 (<= 769 ps).
   - Capture unaffected (T129). REPORT REFUTED row added.
+
+### progress 08:33
+- research 8745e2d8a: the rule M known-bad build is traced; it gives defined wrong answers (batches 8/9), not X. So rule M has a genuine negative control (research's). Not replayed.
