@@ -2740,3 +2740,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Rule E min +691; rule H min +82 / +105 / +406 (no negative row).
   - z_data clean on all muxes at FAST_MIN and worst.
   - REPORT row added.
+
+### progress 10:39
+- T132: own lake build of SpecWF + Assembly + CertRun at formal 8b66ce09f: exit 0.
+  - Axioms of correct_of_plan, netCorrectSeqWF_of_plan, plan_of_run and netCorrectSeqWF_of_run are standard only.
+  - Formal A's EnvWF change is CONFIRMED for 3 of its 7 files; the 4 heavy dependents are not built (T123 addendum).
