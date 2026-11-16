@@ -66,7 +66,7 @@ module FID_RESOLVE (input wire f, input wire f0, input wire f1, input wire en,
     parameter integer SEED  = 1;
     parameter integer TAU   = 150;
     parameter integer WIN   = 150;
-    integer tau, win, seed, gseed, verbose, xmode, off;
+    integer tau, win, seed, gseed, verbose, xmode, off, initv;
     integer n_meta, n_rej, n_commit, n_fold, n_break;
     reg o_r = 1'bx, fb = 1'bx;
     assign o = o_r;
@@ -86,6 +86,11 @@ module FID_RESOLVE (input wire f, input wire f0, input wire f1, input wire en,
         if ($value$plusargs("META_VERBOSE=%d", verbose)) ;
         if ($value$plusargs("META_X=%d", xmode)) ;
         seed = SEED * 7919 + gseed * 104729 + 17;
+        // +META_INIT=0|1 (opt-in, 2026-11-16): a state node starts at that value instead of X.  Silicon has no X:
+        // a LUT latch powers up 0 or 1.  Without it a race against a latch's FIRST value (bd_link's data latch has
+        // no reset) shows as X that a C-element holds forever -- a hang the device cannot have (research JOURNAL
+        // 2026-11-16, the select-join injections).  Run both values to cover both power-up states.
+        if (TLOOP != 0 && $value$plusargs("META_INIT=%d", initv)) begin o_r = initv[0]; fb = initv[0]; end
     end
     always @(f) if (!on) o_r = f;
 

@@ -21,7 +21,7 @@ esac
 # one compile at a time on the machine: build_ps.sh's iverilog peaks at several GB (OOM kills lose runs)
 flock /tmp/eventgraph_compile.lock "$G/ps/build_ps.sh" "$HW" "$W/$COL" "" bit > "$W/$COL.build.log" 2>&1
 cd "$W/$COL"; rm -f gate.vvp
-vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=1200000 +TEND=20000000 > run.log 2>&1 || true
+vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=1200000 +TEND=20000000 ${GATE_PLUSARGS:-} > run.log 2>&1 || true   # GATE_PLUSARGS: e.g. +META_INIT=0
 rm -f run_baked.vvp
 python3 - "$EXP" run.log "$(grep -o 'VERDICT: [A-Z_ ]*' fid/equiv.txt | head -1)" <<'PY'
 import sys, re

@@ -5646,3 +5646,10 @@ Next:
   lead z_req by >= 1042 / 2286 / 1544 ps, worst corner >= 1469 / 3394 / 2315; no late change anywhere. Static rule M
   said umux1 -113 nom / -192 worst, umux0 -71. BOARD-QUEUE item 33 / section 34 (xorshift 18.9 ns median, -0.40 vs item
   27), with the M rows and this measurement stated. fifteen/README headline unchanged until it is reviewed.
+### progress 09:10 UTC (GLS start-up X: opt-in +META_INIT; validation running)
+- cells/gls/fid_core.vh: +META_INIT=0|1 (opt-in; without it the simulation is unchanged): every LUT state node
+  (TLOOP != 0: latches, C-elements) starts at that value instead of X. bench_gate.sh: GATE_PLUSARGS passes plusargs.
+  Reason: silicon has no X; bd_link's data latch has no reset, so a race against its first value was a permanent X.
+- Validation on item 28's route at FAST_MIN (running): select-join +3000 with META_INIT=0 and =1 (PREDICTION: both PASS
+  13/13: the join race only delays); select -> umux1.udat +8000 with META_INIT=0 (negative control, PREDICTION: FAIL, wrong
+  values as traced); the clean route with META_INIT=0 (PREDICTION: PASS, cycles 2906 as without it).
