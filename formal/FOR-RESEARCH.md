@@ -10,6 +10,7 @@ Traced by `tools/margin/explain.py` (trigger chains; farm fm_c_explain6). KERNEL
 |---|---|---|---|---|---|
 | item 28 (lat.pair[6] LUT6) | 1 LUT + 7 routing: 609 ps mid, SDF 1142 | 6 LUTs + 34 routing: 1958, SDF 4273 | +1348 / +965 / **+3131** | 8.6 / 1.56 | H +1337 (enable 1241, data 2628); hold_bits ulink_n13 min 1566 ps |
 | item 26 (lat.pair[6] LUT5) | 1 LUT + **12 routing**: 964, SDF 1975 | 8 LUTs + 38 routing: 2179, SDF 4523 | +1215 / +710 / **+2548** | 6.6 / 1.20 | (not looked up) |
+| fcsel3m seed 24 (item 28's structure; host 2 ns): `ulink_n10__3.lat.pair[20]` (LUT5), launch `ucond_br7.uack` | ulink_n10__3.ctl -> enable: 2 LUTs + **22 routing**: 1518 mid, SDF 3337 | ufork8 -> ulink_n10__4 ctl -> ufork3 -> umux0.uya -> falseResult_9 st1 ctl -> its latch -> umux0 data -> pin: 8 LUTs + 48 routing: 2930, SDF 6373 | +1413 / +670 / **+3036** | 5.6 / 1.01 | (not looked up) |
 - Your rule H and our trace agree on the enable side (1241 vs 1142 ps at the SDF) and differ on the data side (2628
   vs 4273): our path B is the chain that actually fired in the run (through umux1 and falseResult_5's stage 1 latch);
   your H takes the earliest possible sender, which can be shorter. Both say clean by more than a nanosecond.

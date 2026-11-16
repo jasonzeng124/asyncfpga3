@@ -3672,3 +3672,10 @@ Research asks for C10's margins with the host's operand release bounded by one P
 a margin at uselect0's line (data vs request) on its new build fcsel3a seed 20 (sdf 7aefc4bd: item 28 with uselect0
 16 -> 7, uaddi0 12 -> 9). simx --hostdelay is exactly the first; c_margin_r12: fcsel2 s1/s2, fcsel1 s24/s1, fcsel0 s24
 with H = 12000; fcsel3a s20 with H = 1 and 12000; item 28 with 12000; all classes, explained at the SDF, fbslack.
+
+### progress 05:03 -- c_explain7/8: fcsel1 s24 controller race confirmed with trigger chains; fcsel3m s24's kernel race in ps
+fcsel1 s24 (c_explain7, trigger chains): falseResult_7 st0 ctl feedback race unchanged: +186 mid / +45 worst in-band /
++406 SDF. Its finite race (falseResult_3 st0 pair[10]) is BOUNDARY (through the host), +1744 SDF.
+fcsel3m s24 (c_explain8, host 2 ns): ulink_n10__3 lat.pair[20] enable from its ctl, launch ucond_br7.uack: path A 2 LUTs
++ 22 routing (SDF 3337), path B 8 LUTs + 48 routing (SDF 6373): +1413 / +670 / +3036. A long enable route again (as
+item 26's ulink_n13: 12 routing). Added to C14's table.

@@ -1,0 +1,46 @@
+w=20: kappa_hi = 0.27  race SLICE_X18Y44.A5 pin 1 from SLICE_X18Y35.A6 (run at w=20) RESULT MISMATCH: want [111, 170, 350] got [111, 55, 350]
+witness   (route slow): RESULT MISMATCH: want [111, 170, 350] got [111, 55, 350]
+reference (all fast)  : RESULT OK: want [111, 170, 350] got [111, 170, 350]
+first nodes to diverge (any gate): INT_R_X13Y35/NN6BEG0(pip)@404025*, INT_L_X12Y41/NW2END_S0_0(pip)@404050, CLBLL_R_X11Y40/CLBLL_WW2END3(pip)@404063, INT_R_X13Y41/NN6BEG0(pip)@404074*, INT_L_X12Y41/EL1BEG3(pip)@404076, CLBLL_R_X11Y40/CLBLL_IMUX31(pip)@404091   (* = an adversary arc)
+  diverges: SLICE_X15Y40.C5        at 404202 ps
+  diverges: SLICE_X14Y40.C6        at 1515539 ps
+  diverges: SLICE_X15Y40.C6        at 1515596 ps
+  diverges: SLICE_X18Y41.A6        at 1515654 ps
+  diverges: SLICE_X18Y44.A5        at 1519468 ps  <- the row's storage LUT
+  diverges: SLICE_X18Y44.C5        at 1519593 ps
+  diverges: SLICE_X23Y43.B5        at 1520065 ps
+  diverges: SLICE_X18Y43.D5        at 1520141 ps
+
+CAPTURE: SLICE_X18Y44.A5 (SLICE_X18Y44.ALUT.O5) first differs at 1519468 ps
+RACE at SLICE_X18Y44.A5: pin 1 (delayed 563 ps by the adversary: reference arrival 1518971, witness 1519534) against pin 2 (arrival 1519468)
+  trigger chains meet 6 / 28 flips back
+SPLIT (common launch): CLBLL_R_X13Y35/CLBLL_LOGIC_OUTS12 flips at 1518617 ps; driven by the cell SLICE_X18Y35.A6 bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u.ctl.u.u
+
+PATH A (must arrive FIRST; the adversary slowed it): split -> SLICE_X18Y44.A5 pin 1
+  path A: 7 arcs (1 cells, 6 routing)
+    SLICE_X18Y44.A5              pin 1  lut5  fast [214, 267]  slow [531, 659]  bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u.lat.pair[10].u$LUT5
+    cell  total: fast [214, 267] mid 240   slow [531, 659] mid 595
+    route total: fast [268, 457] mid 362   slow [632, 896] mid 764
+PATH B (overtook it in the witness): split -> SLICE_X18Y44.A5 pin 2
+  path B: 29 arcs (6 cells, 23 routing)
+    SLICE_X17Y34.C6              pin 2  lut6  fast [155, 193]  slow [383, 475]  bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u.uack.chain.g[0].u
+    SLICE_X16Y34.A6              pin 2  lut6  fast [159, 197]  slow [400, 496]  bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u.uack.chain.g[1].u
+    SLICE_X19Y29.B6              pin 4  lut6  fast [79, 99]  slow [193, 240]  bridge_i.udut.ucond_br4.uack
+    SLICE_X19Y28.A6              pin 1  lut6  fast [215, 268]  slow [509, 631]  bridge_i.udut.ufork1.u.genblk1.g2.u.u
+    HARNESS: SLICE_X16Y44.B6 moves 1 ps after the acknowledge it reacts to (simulated harness; Spec.Env allows any delay >= 0)
+    SLICE_X18Y44.A5              pin 2  lut5  fast [149, 185]  slow [399, 494]  bridge_i.udut.ulink_n_falseResult_3.many.stage[0].u.lat.pair[10].u$LUT5
+    cell  total: fast [757, 942] mid 850   slow [1884, 2336] mid 2110
+    route total: fast [399, 552] mid 476   slow [1143, 1443] mid 1293
+
+CLASS: BOUNDARY race -- a path crosses the HARNESS (input data moved 1 ps after the acknowledge it reacted to). Spec.Env allows a 0 ps host; a clocked host is slower. Re-run with HOSTDELAY=<ps> (simx --hostdelay) for the kernel's own races.
+
+SLACK (path B - path A; positive = the required order holds):
+  fast-corner band midpoint                A     603  B    1325  slack    +722 ps = +6.41 x median error (8.5 % of 1325) = +1.16 x worst short-ring error (47 %)
+  slow-corner band midpoint                A    1359  B    3403  slack   +2044 ps = +7.07 x median error (8.5 % of 3403) = +1.28 x worst short-ring error (47 %)
+  worst in-band (A fast max, B fast min)   A     724  B    1156  slack    +432 ps = +4.40 x median error (8.5 % of 1156) = +0.80 x worst short-ring error (47 %)
+NEXTPNR SDF (nominal; from the cell driving the split):
+  path A: cells 152 + routing 970 = 1122 ps
+  path B: cells 646 + routing 2220 = 2866 ps
+  slack +1744 ps = +7.16 x median error (8.5 % of 2866 ps) = +1.29 x worst short-ring error (47 %)
+  (the ring data also fit measured = 0.938 x SDF + 988 ps per ring period: a ~1 ns constant the SDF does not charge;
+   whether it falls on one of these two paths and not the other is not known)
