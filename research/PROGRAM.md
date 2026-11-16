@@ -250,20 +250,12 @@ request format, what a task sees, what comes back, and the limits.
   Two-phase bound 1.78x on xorshift, 1.40 to 1.46x on collatz and ipow; the decoupled
   controller buys nothing. The owner chose to stay four-phase (2026-11-12).
 
-## Two subagents for now (2026-11-15 20:15 UTC)
-
-**At most 2 subagents at a time, down from 4, until this section is removed.** Let the ones
-running finish; start a new one only when fewer than two are running. Reason: the owner's
-weekly usage stood at 33% at 20:07 UTC and has risen about 2.5 points an hour since formal
-came back; the week can carry 0.76. Hitting the limit stops every bot and locks the owner
-out. Effort stays at max. The farm costs no usage: send it everything that is a build, a
-gate or a sweep, and keep the subagents for work that needs thinking.
-
 ## Effort and subagents (owner, 2026-11-05)
 
 The owner raised the budget to about twice the single-thread, high-effort level.
 Sessions run at max effort (`.claude/settings.json`). **You may use subagents,
-but at most 2 at a time** (lowered from 4 on 2026-11-15 20:15 UTC, see the note above). Wait for one to finish before starting another. A
+but at most 4 at a time** (the owner's setting of 2026-11-07; it was 2 from 2026-11-15 20:15 to
+2026-11-16 19:10 UTC on a usage scare, which a 16-hour reading has cleared). Wait for one to finish before starting another. A
 subagent never touches git: it works in its own worktree or scratch directory
 and reports back, and you review and commit what it found. Use them for
 independent work that would otherwise wait (a second sweep while a build runs, a
