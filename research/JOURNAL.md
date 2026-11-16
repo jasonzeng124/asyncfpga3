@@ -5486,3 +5486,10 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   on every task of that route.)
 - fcsel3b (collatz, mux delays by M + uselect0 6 + ucmpi2 15) complete: vs fcsel3a -0.37 ns per iteration median,
   22/31 faster; gates 96/96; rule M rows at umux1 on 5/32 (to -419). Item 31 stays the collatz candidate.
+### progress 07:33 UTC (collatz64 umux0: rule M per launch -> a cheap fix; farm fc64sel3n)
+- corner_audit (CA_DEBUG_FOREIGN now also logs every launch's A' / A'm margin) on item 30's route: umux0's data outputs
+  vs z_req by launch: ulink_n_falseResult_3 (the loop-ENTRY operand) -1321 ps, ulink_n_falseResult_9 (loop-back) -542,
+  the select link +712. The entry side can be paid off the loop: the pipe's own request line (DELAY, no macro before,
+  RTL default 0). h4s3n = h4s3q + UMUX0 2 -> 4 + ULINK_N_FALSERESULT_3 DELAY 4. Farm fc64sel3n.
+  PREDICTION: rule M clean on >= 28/32; +0.4 to +1.0 ns per iteration vs fc64sel3q (two elements on the cycle's rising
+  edge), against +2 to +4 for fc64sel3m.
