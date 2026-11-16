@@ -262,6 +262,14 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    routes (to -295 ps at FAST_MIN; the round trimmed ULINK_N28_UACK 3 -> 1; fc64sel3q restores it, running) and small H
    rows on 3. Board seed 22 (sdf 842dd4d7, latency 685, near the median 687): every row clean but umux2's, TSE / hold
    clean. Dynamatic 17.84.
+33. **xorshift at ~18.9 ns per iteration, FULL INPUT RANGE: item 27 + seed 2's own corner_audit proposal on the datapath
+   lines (uxori1 / uxori2 7 -> 5, umux3 14 -> 9, ucmpi0 12 -> 10, uaddi0 13 -> 12)**: #34 below. Farm fxa, 32 seeds: 31
+   routes, period median 18.91 ns (17.97-20.86) vs 19.39 (item 27); latency paired vs fxd on 30 seeds -0.40 ns per
+   iteration (22/30 faster). Gate 93/93. Static: rule M rows at umux0 / umux1 on most routes (as on item 27's own
+   family under the same corner_audit), H rows on a few, steer E rows on 2. Board seed 27 (sdf 7f0c0592, latency 404 =
+   the median): its only rows are rule M, umux1 -113 nom / -192 worst and umux0 -71 worst; in simulation (mux_settle.py,
+   512 loop tokens) the mux data LEADS z_req by >= 1042 ps (FAST_MIN) / >= 1469 ps (worst) on every token, so these
+   rows are the check's pessimism on this route. Everything else clean (TSE, hold_bits, E, A'). Dynamatic 12.73.
 
 ## 1. gcd_hw, fusion on, cloud toolchain, v4 placement, converged select pads -- 16/16 in routed GLS on 8 seeds
 **Rule J (verify/arb_fork.py, added 2026-10-26) on this route: pass, worst guarded +463 ps**
@@ -1133,6 +1141,23 @@ research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/:
     python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_sel3p.tsv build/hw/lc_c64_sel3.tsv; echo "exit $?"
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.11 over item 30 (34.94 ns vs 31.32 on seed 22's route).
+
+## 34. xorshift item 27 + seed 2's datapath proposal (fxa, sizes fr4a) -- 31 routes, gate 93/93
+research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/:
+
+    cp ../build/frontend/xorshift/comp/handshake_transformed.mlir /tmp/xor_hs_orig.mlir
+    cp ../research/data/fifteen/xorshift_predec.mlir ../build/frontend/xorshift/comp/handshake_transformed.mlir
+    BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_RING_COUNT_OLINKS=1 BDC_FORK_OUT_LINK=n11__0 BDC_MERGE_OUT_LINK=ucontrol_merge0 NEXTPNR_SEED=27 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_fr4a_bench.vh ./hw/build_bench.sh xorshift
+    cp /tmp/xor_hs_orig.mlir ../build/frontend/xorshift/comp/handshake_transformed.mlir
+    grep -c "uforkdec0 (" build/gen/xorshift_kernel_bench.v    # must be 1: the rewrite is in
+    md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # 7f0c0592 = the route gated here
+    python3 ../research/tools/ffmux_scan.py build/hw/xorshift_bench_gen/xorshift_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_a.tsv
+    (item 27: #28's commands for lc_xor_dec.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_a.tsv build/hw/lc_xor_dec.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.03 over item 27 (19.32 ns on its route vs 18.71 here). A FAIL with
+item 27 passing points at the shortened datapath lines or at rule M's umux0 / umux1 (send both logs).
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.

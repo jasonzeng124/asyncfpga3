@@ -5641,3 +5641,8 @@ Next:
 4. fxa (xorshift 18.9 ns, -0.40 vs item 27) becomes a board item if its median route's mux data leads in simulation.
 5. Formal C19: force a 20-40 ps pulse onto a link ctl input in research's GLS and see whether the resolver lets it
    oscillate (formal's model does).
+### progress 09:09 UTC (fxa s27: rule M's rows are pessimism in simulation -> BOARD-QUEUE item 33, xorshift 18.9 ns)
+- xa_27 rebuilt locally (sdf 7f0c0592 = the farm's fxa s27). mux_settle over 512 loop tokens: FAST_MIN umux0 / 1 / 2
+  lead z_req by >= 1042 / 2286 / 1544 ps, worst corner >= 1469 / 3394 / 2315; no late change anywhere. Static rule M
+  said umux1 -113 nom / -192 worst, umux0 -71. BOARD-QUEUE item 33 / section 34 (xorshift 18.9 ns median, -0.40 vs item
+  27), with the M rows and this measurement stated. fifteen/README headline unchanged until it is reviewed.
