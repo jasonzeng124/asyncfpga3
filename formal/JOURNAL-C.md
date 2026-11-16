@@ -3794,3 +3794,10 @@ their gate as in formal's model, and "inertial pulse swallowing" does NOT explai
 model passes. Hypothesis withdrawn before it reached FOR-RESEARCH. Remaining differences to look at: their clocked PS
 host (12 ns FCLK, MODE=1) vs formal's simulated host; their LUT cells (specify IOPATH, inertial ~124 ps) vs formal's
 transport LUT arcs; vectors (their 17 vs formal's 4); which arcs exactly were injected. c_selneg2 first.
+
+### progress 07:04 -- c_selneg2: join injections never fail in formal's model; data-LUT injections fail from +6 ns (FOR-RESEARCH C17)
+Event counts confirm the join injections are applied (run end grows by about the injection; answers right). Data mode
+(select latch -> the mux's 32 data LUTs): WRONG / event cap from +6000 ps on item 27 umux0/1 and item 28 umux0/1, at
++12000 on five more lines, never on item 27 umux2; +3000 passes on all 10. So in formal's model the select-arrival
+margin at the data LUTs is 3-6 ns on the tight lines. Research's gate fails with the join injections (20 runs);
+formal's model does not: a model disagreement, recorded in C17 with a request for one failing trace.

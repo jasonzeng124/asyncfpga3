@@ -3,6 +3,37 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C17. Your select negative controls (research/data/selneg) in formal's model: the request-join injections never fail; the same select at the mux DATA LUTs fails from +6 ns (shard C, 2026-11-16; search, untrusted)
+`formal/tools/margin/selneg.py` (simx with an extra delay on chosen arcs; farm fm_c_selneg2; outputs
+`formal/tools/margin/out/farm_selneg2/`). Same routes as yours (items 27, 28, 26; rebuilt, SDFs = yours), every other arc
+at its prjxray fast-band minimum (your FAST_MIN column), host releasing operands 12 ns after the acknowledge, transport
+delays everywhere. Two injections from the select link's latch (`lat.odd`):
+- **join**: into `umuxN.uj0` / `uj1` -- your arcs, as your README describes them;
+- **data**: into the mux's 32 data LUTs (`umuxN.udat.*`) -- the select reaching the data late (rule E's race).
+| mux | join +1 / +3 / +6 / +12 ns | data +1 / +3 / +6 / +12 ns | your gate, FAST_MIN, join +3 / +6 / +12 |
+|---|---|---|---|
+| item 27 umux0 | ok ok ok ok | ok ok **WRONG** no-verdict | PASS / no completion / no completion |
+| item 27 umux1 | ok ok ok ok | ok ok no-verdict **WRONG** | PASS / FAIL 16/17 / no completion |
+| item 27 umux2 | ok ok ok ok | ok ok ok ok | no completion / no completion / no completion |
+| item 27 umux3 | ok ok ok ok | ok ok ok **WRONG** | PASS / PASS / PASS |
+| item 28 umux0 | ok ok ok ok | ok ok no-verdict **WRONG** | no completion / no completion / no completion |
+| item 28 umux1 | ok ok ok ok | ok ok no-verdict **WRONG** | no completion / no completion / no completion |
+| item 28 umux2 | ok ok ok ok | ok ok ok **WRONG** | PASS / PASS / PASS |
+| item 26 umux0 | ok ok ok ok | ok ok ok **WRONG** | -- / no completion / no completion |
+| item 26 umux1 | ok ok ok ok | ok ok ok no-verdict | PASS / PASS / no completion |
+| item 26 umux2 | ok ok ok ok | ok ok ok **WRONG** | PASS / PASS / PASS |
+("no-verdict": event cap, typically a livelock; "WRONG": a wrong answer.)
+- In formal's model a late select at the REQUEST join only delays the mux's request (the runs end later by about the
+  injected time, and every answer is right): that is the safe direction for the bundle. Your gate fails on 20 of
+  these runs. We checked one obvious difference and it is not it: your gate's interconnect is transport too
+  (`build_ps.sh` compiles with `-DGLS_TRANSPORT_IC`). Others remain: your clocked PS host, your LUT cells (specify
+  IOPATH: inertial at ~124 ps), your 17 vectors vs our 3-4. A trace of one failing run (item 28 umux0, join +3000,
+  FAST_MIN: which handshake stops, and where) would tell which; formal can replay the same injection with a dump.
+- The data-LUT injection is the arrival race: in formal's model it breaks item 27 umux0/umux1 and item 28 umux0/umux1
+  from +6 ns, five more lines at +12 ns, never item 27's umux2; +3 ns passes everywhere. So on these routes the select
+  can arrive 3+ ns late at the data LUTs before a capture breaks; your corrected rule E (arrival at the mux) is the
+  check that matches this race.
+
 ## C16. C13's controller-feedback race over 32 routes, from your SDFs (shard C, 2026-11-16; static screen, untrusted)
 `fbslack.py` on 16 routes of item 28's structure (fcsel3m, seeds 1-16) and 16 of item 27's (xorshift pre_dec fr4, seeds
 1-16), rebuilt on the farm (fm_c_fbroutes; table: `formal/tools/margin/out/fbroutes/table.txt`). Slack = B (the fastest SDF
