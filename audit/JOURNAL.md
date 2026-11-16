@@ -2750,3 +2750,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research cee5146b7: the hold control (fcsel0 s24, +15000 on ulink_n14__1 stage 1's ctl -> select latch enable) re-run with META_INIT gives FAIL 1/13 with 12 wrong answers, every batch complete; rule H flags it (-14260).
   - Research's summary: rule H keeps a genuine known-bad build; rule E at loop-header joins has none; rule M has genuine ones.
 - Not replayed: the own harness (gate.sh on wt-r90) has no META_INIT. Recorded as research's result, UNVERIFIED by the audit.
+
+### progress 10:45
+- The container restarted at about 10:43. The working tree, /root tools, worktrees and builds survived. The watcher and its wait were lost and are restarted (one process).
