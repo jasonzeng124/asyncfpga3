@@ -2860,3 +2860,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 19:35
 - T134 complete: n = 1 coverage at FAST_MIN on items 28 / 31 (14/14) and 30 / 32 (15/15), n = 1 OK, 0 latch / steer violations. Finding T134.
+
+### progress 19:42
+- research a72e1232a: farm draws1 queued (board candidates over 32 draws of draw:K, plus a late-steer control). To audit when results land: draw count, honesty of draws (seeds, independence), full input range, and the passing fraction against the model's error on board data.
