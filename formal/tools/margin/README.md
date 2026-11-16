@@ -68,6 +68,13 @@ draws_summary.txt (PASS / FAIL / UNDECIDED, Wilson 95 % interval, last-answer ti
 Checks so far: gcd_ps 4/4 pass and the draws differ (last answer 7.47-7.78 us); with sigma_arc 0.6 / sigma_region 0.3
 2 of 15 decided draws fail (the approximator can fail). Differences from research's GLS: scatter per pin arc, not per
 pip; transport LUTs with the 20-ps filter instead of research's resolver. Untrusted simulation; no Lean.
+`DRAW_MODEL=research` (default since 2026-11-16 20:3x): research's draw K exactly (FOR-FORMAL: bands per class from
+Random(7919K+17): delay chains / the rest U[.20,.31], CARRY4/F7/F8 U[.20,1.0]; region 0.02; per-pip 0.126); gate classes
+from routed.json (`gclass.txt`). **Host fix (2026-11-16 21:5x):** with `--datachange broad` and HOSTDELAY > the time to
+the next offer, simx raised the next request BEFORE its data (a boundary violation by the harness; it produced the
+withdrawn FOR-RESEARCH C21). The request now waits for its data + su. Margin-tool runs with HOSTDELAY >= 2000 before this
+fix share the defect where an answer came back faster than HOSTDELAY (zero-trip calls); their vectors had none.
+`diverge.py NET A.json B.json --routed R`: the nodes where two dumps part, LUTs whose flip count differs, with names.
 
 ## Simulator
 `SIM=simx` (recommended): `simx.cpp` (g++ -O2 -std=c++17), a C++ port of tools/huff/simadv.py's options the sweep
