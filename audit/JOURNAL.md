@@ -2360,7 +2360,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Note: the audit has no own static rule A (bundling) tool. Item 31's only big change is a bundling line (uselect0), so its evidence will be own GLS (oracle + latch capture monitors, 3 corners, 13 vectors) plus period. Research's rule A/A' clean rows are UNVERIFIED by own static means.
 - T126 item 30: own sdf **637ff02e = recipe**; usinkeq2 1. Period and GLS are running.
 
-### progress 05:12
+### progress 05:04
 - New own tool t128/bundle.py: static bundling check of a fused op on the baked netlist.
   - For each upstream link U and each downstream latch bit b: slack = (shortest en_U -> request side -> b's enable + en arc) - (longest en_U -> U latch -> combinational cone -> b's D + D arc).
   - The request side is OR-join (conservative).
