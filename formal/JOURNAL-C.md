@@ -3996,3 +3996,8 @@ ucond_br4, ucond_br2, ucontrol_merge1.uarb1 state/grant, ucond_br4.uack, ucontro
 ulink_n_index_11 stage 0: the steers fire on both sides, two tokens. Same with the chain-0.27 and cells-0.40 variants.
 Research's draws1 tasks for item 30 still running. Untrusted simulation; this is the disagreement table's first row
 if research's GLS passes these draws.
+
+### progress 21:26 -- c_draws5: 128 research-model draws per route (C21 addendum)
+item 30 s10 (637ff02e) 108/128 (0.84; Wilson 0.77-0.90), all 20 = the entry-steer split after n = 1; item 30's design
+s1/s2/s3 (4e072a58 / 735ab3f4 / 68a9f1d4) 128/128; item 32 s22 128/128, its design s1 (3822f62c) 127/128 (same split),
+s2/s3 128/128; items 25, 26, 28, 31 128/128. Route-dependent race in the h4s3/h4s3p collatz64 family.

@@ -34,6 +34,12 @@ trace (start-up, host model and the steer LUT model are the candidates). If it f
 to the board as is. Files: fm_c_draws4/7 (draws.txt), fm_c_x30dbg (variants), fm_c_x30dbg2 (diverge_*.txt,
 boundary_fail.txt). Reproduce: `DRAWS=32 DRAW_MODEL=research run.sh` (formal/tools/margin/README.md).
 
+**Addendum (21:30 UTC, fm_c_draws5: 128 of your draws per route, your vectors).** Item 30's board route: **108 / 128
+pass (0.84, Wilson 95 % 0.77-0.90)**; all 20 failures are this split ([111, 0, 0 ...]). Item 30's design on seeds 1, 2, 3:
+128 / 128 each. Item 32's design (h4s3p): board route s22 128 / 128; seeds 2, 3 128 / 128; **seed 1 127 / 128, the same
+split**. Items 25, 26, 28, 31: 128 / 128. So the race is in the h4s3 / h4s3p collatz64 family and its rate depends on
+the route; item 30's board route is the worst of the eight routes measured.
+
 ## C20. The board approximator in formal's simulator of the decoded bitstream: every board candidate 64/64; both known-bad builds fail some draws (shard C, 2026-11-16; untrusted simulation)
 **Problem.** Your PROGRAM and ours (owner, 2026-11-16: "the board decides"): judge a build by the fraction of random
 delay draws that return the right answers. This is the same question asked in formal's own simulator: the circuit
