@@ -2488,3 +2488,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T128 control 4 (+12000 on ulink_n10__3 -> uselect0): gate **FAILS 1/13** (wrong values); static -9917 naming ulink_n10__3.
   - The negative control is met: a known-bad build is flagged and the link named.
   - The check is never looser than the gate in 4 runs, and is conservative by more than 3 ns on this path.
+
+### progress 06:20
+- T126c item 31 GLS so far: FAST_MIN 13/13 and worst 13/13.
+  - FAST_MIN MUXMON: **umux0 select only 2 ps before z_req, 96 per-pin changes with z_req=1** (3 events x 32 pins). worst: 0 violations.
+  - Item 28 (same seed, select links equal): 0 late pins, margins >= 434 ps (T117).
+  - So item 31's resizing (uselect0 / uaddi0) moved umux0's select arrival, like item 30.
+  - Classifier run t126/sel31.sh started.
+- formal C b1ecaca1e (C15): uselect0's capture on item 31 is correct at kappa 0.45 and undecided at 0.90 (search). Own T128 static uselect0 +1559.
