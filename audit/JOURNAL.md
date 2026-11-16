@@ -2767,3 +2767,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - "check.sh OK on 7 files" is reproduced by the audit for 3 of 7 (T132).
   - Formal's open items: the owner decision on SpecWF; the item 29 decoder DSP48E1 gap.
 - No new research claims since 11:19 (lock commits only).
+
+### progress 14:18
+- research e795556b2: rule E at a STEER has a failing build.
+  - Item 28's ucond_br7 condition +8000 ps; META_INIT gate: no batch in 50 min; E -5048.
+  - With start-up X removed, a hang here plausibly means a lost token.
+  - Other steers (farm steerneg, 2 of ~25 back) pass at +3000 / +8000.
+  - Not replayed (no META_INIT in own harness). Owner-decision row updated: E has a control at steers, none at mux joins.
