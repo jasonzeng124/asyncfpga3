@@ -41,3 +41,14 @@ c6404633c7d2b095a7ff4e7233a11b72, both byte-identical to research's. Result: `ou
 (rst SLICE_X10Y37.CQ; shared request n_req = start_req = end request = SLICE_X9Y41.DQ, the bench's req_core flop;
 n_ack SLICE_X17Y32.A6; start_ack SLICE_X16Y31.D6; out0_req SLICE_X14Y38.A6; out0_ack SLICE_X6Y43.A6 (bench LUT);
 p_end_ack SLICE_X17Y31.D6; n_data / out0_data 32 distinct nodes each). Untrusted naming.
+
+## Margin helpers (shard A, 2026-11-16; untrusted analysis, on top of shard C's formal/tools/margin)
+- `selrace.py NET BND OUT [--depth 1]` / `selrun.sh OUT/` (after `formal/tools/margin/run.sh BUILD OUT/`): the races C's
+  candidate list leaves out, late inputs of combinational LUTs that feed storage (a select reaching a mux's data LUT
+  late is one); C's rank.py, margin.py, checkrows.py and names.py unchanged; results in OUT/sel/.
+- `race_ps.py NET DUMP Q PIN CORNER [--mode M|F|S] [--other PINS]`: one race in picoseconds. DUMP = simx --dump of a
+  run with no slow class at kappa 0 (every delay known); pairs each arrival at PIN with the next arrival at the
+  other (data) pins, traces both back to their split, and prints each path's cells and routing apart. A data path
+  that starts at the environment (an input bus driven by the simulated env) is reported as such.
+- `decode_base.py`: a flop placed with no D-mux bit (nextpnr FASM gap; research's ffmux_scan.py) decodes with D
+  undefined and a warning (listed under "undefined_ff_d").
