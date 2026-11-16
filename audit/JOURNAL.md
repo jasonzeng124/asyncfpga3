@@ -2817,3 +2817,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - **The own vectors share the gap**: collatz_13.hex / collatz64_14.hex start at n = 2. So the own GLS confirmations of collatz-family items never exercised the n = 1 entry path.
 - T134 started: own vectors with n = 1 as the 2nd vector (collatz_14n1.hex, collatz64_15n1.hex; own oracles handle n = 1 -> 0); FAST_MIN GLS with t104 monitors on items 28, 31, 30 and 32.
 - formal C bcc136fe5: farm c_margin_x33 (item 33). No result yet.
+
+### progress 18:54
+- research 258d706b0 (answer to formal C19): a 1-40 ps pulse into a C-element never sets it or makes it oscillate in research's gate model; with pure transport (resolver off) it oscillates on every sub-loop pulse, as formal's model does.
+  - A model-semantics point for H_RUNT, not a board claim. Not replayed.
