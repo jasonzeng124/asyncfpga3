@@ -5870,3 +5870,13 @@ on a ctl input in our GLS (already on the Next list).
   FAST_MIN "PASS 15/15" by the old verdict but 13 batches with runs disagreeing (= FAIL now), worst no completion. item 32
   s22: old PASS both; new no completion both. (item 31 s20's control task failed to build on the farm.) So without
   n = 1 the gate could not see a late loop-entry condition on collatz / collatz64; with it, it can.
+### progress 23:47 (draws1: every board candidate passes every draw; first real draw failures at x0.40a)
+- draws1, board routes, fixed verdict, no batch with the mismatch latch set anywhere:
+  item 33 (fxa s27) 32/32, item 27 (fxd s2) 32/32, item 31 (fcsel3a s20) 32/32, item 28 (fcsel3m s20) 32/32,
+  item 29 (fisel3m s19) 24/24 (one task's build failed on the farm), item 30 (fc64sel3 s10) 32/32, item 32 (fc64sel3p s22)
+  32/32. Control ucond_br6 +3000: 16/16 (as predicted). The +8000 half still running (2+ hours: hangs run to the timeout).
+- shrink4 (12 of 32 tasks): x0.40a (every size x0.40 except UADDI0) passes 4/4 on routes 2, 3, 5, 8, 9, 10, 11, 13, 15
+  (P 15.6-17.3 ns), and FAILS 2 of 4 on route 14 (EQUIVALENT, ffmux-clean): draw 1402 (chains 0.234, rest 0.234) hangs
+  in batch 2 with odata X; draw 1404 (chains 0.300, rest 0.288) returns the previous call's answer on the first run of
+  every batch from batch 13 (1000 rounds) on. These are the draw model's first failures on a clean route: the size-side
+  edge lies near x0.40 for some routes. x0.55 / 0.55c have passed every draw so far (68 + 52).
