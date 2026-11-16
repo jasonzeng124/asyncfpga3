@@ -2810,7 +2810,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 18:13
 - research 5e2a775a2: handoff; research journal current, research LOCK cleared (research session ended). Formal still active (lock commits). Watcher continues.
 
-### progress 18:57
+### progress 18:51
 - research 27e9752dc:
   - steerneg read: E fails at loop steers on 4 families (14 builds); 12 loop-entry data steers pass.
   - Coverage gap: the collatz / collatz64 gate vectors have no n = 1, so the entry steers are never judged.
