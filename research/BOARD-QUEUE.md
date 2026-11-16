@@ -11,6 +11,16 @@ named here decodes EQUIVALENT (or only the benign GND-buffer kinds). If the md5 
 the full stack's equivalence on it before using the board (cells/gls/ps/build_ps.sh HWDIR WORK "" bit prints the
 fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('const', 0) bits ('const', 1)").
 
+## 2026-11-16 (evening): the GLS gate checked only the LAST run of each batch -- every "gate N/N" before today is partial
+bench_gate.sh judged a batch by its last run's odata and its completion count. The bench also latches whether the
+batch's runs disagreed (mism_st bit 0, FIXED-mode repeatability); the gate never read it. A build whose result stream
+falls one call behind (a stray token from a mis-steer) returns the previous call's answer on each batch's first run and
+the right one on its second, and passed. Seen: a constructed late entry condition on xorshift (16 of 19 batches), and 5
+farm steerneg runs judged PASS. Fixed (a disagreeing batch fails). The board script (xsdb_bench_gen.tcl) always
+asserted it, so no board judge is affected. Re-gating with the fixed verdict: items 27 / 29 / 33 families (farm
+regate1), items 28 / 31 / 30 / 32 (farm zt1, which kept every BENCHRES line). Item 31's family so far: 33 / 33 gate runs
+clean with the new check. Items before 23 were judged by other harness scripts; not re-checked.
+
 ## 2026-11-16 (evening): the collatz / collatz64 gates never ran n = 1 (zero-trip) -- items 28, 31, 30, 32 re-gating
 The gate vectors col13 / c6414 have no n = 1, so on every call the loop-entry test came out the same and the gate never
 judged the loop-ENTRY steers (a late entry condition passed every gate on the farm, steerneg). collatz(1) = 0 is in the
