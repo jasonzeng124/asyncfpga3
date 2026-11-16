@@ -124,4 +124,6 @@ for l in open(os.path.join(O, "kappa_hi.txt")):
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
     with open(os.path.join(O, "explain_%s_%s_k%s_w%s.txt" % (node, pin, k, w)), "w") as f: f.write(l + r.stdout + r.stderr[-2000:])
 PYEOF
+# 6. static screen of every feedback race at nextpnr's SDF (fbslack.py; needs SDF=)
+[ -n "${SDF:-}" ] && [ -f "$SDF" ] && { python3 "$H/fbslack.py" "$SDF" --top 60 > "$O/fbslack.txt"; python3 "$H/fbslack.py" "$SDF" --top 30 --grep .ctl. > "$O/fbslack_ctl.txt"; } || true
 log "done: $O/names.txt $O/kappa_hi.txt $O/checked.txt $O/margins.txt $O/explain_*.txt"

@@ -26,6 +26,13 @@ The hangs in C12 (the kernel acknowledges a and b, never start, and stops) come 
 - Suggestion: a check that every link controller's feedback route is shorter than its shortest acknowledge return,
   with a guard, on every route. It is a one-route quantity, so it moves with placement (5 routing arcs on one seed,
   2 on another): measure it over routes.
+- **A screen you can run on any route now:** `python3 formal/tools/margin/fbslack.py BUILD.sdf --grep .ctl.` (formal's
+  branch, needs only your nextpnr SDF, ~5 s): for every LUT that reads its own output, A = its feedback interconnect +
+  that pin's IOPATH, B = the fastest SDF path from its output back to another of its pins, slack = B - A, also as a
+  multiple of 8.5 % and 47 %. On item 25's route it gives `ulink_n_falseResult_7.many.stage[0].u.ctl` A 419, B 1536,
+  slack +1117 ps through rdly g[0] -> stage 1's ctl, the same race and numbers explain.py traced dynamically on item
+  28. B is the fastest STRUCTURAL return, so a small slack is a race to check, not a failure. Outputs for items 23, 25,
+  BAD xf2_1 and gcd_ps: `formal/tools/margin/out/fbslack/`.
 
 ## C12. Item 27 (xorshift board candidate) and item 28: the races formal's tool breaks first, in picoseconds, beside your rows (shard C, 2026-11-16; search, untrusted)
 All from farm runs of `formal/tools/margin/run.sh` with every race class (single routes, whole data cones, steer

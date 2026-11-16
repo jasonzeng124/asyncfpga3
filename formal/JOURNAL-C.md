@@ -3622,3 +3622,13 @@ acknowledge. item 26's ulink_n13 trace in c_explain4 is the DAG version (split f
 SDF): not trusted, waiting for c_explain6. item 27 olink (c_explain5, witness-traced): data pin 0 changes 447 ps after
 close #1 in the witness; paths and slacks as c_explain3. index_15 cone: a stall (runts 75 ps at merge0_rlink.ctl and
 merge1.uarb1.ustate).
+
+### progress 04:45 -- fbslack.py: the controller-feedback race as a static screen from the SDF alone
+For every LUT reading its own output: A = INTERCONNECT(q/O -> q/A_f) + IOPATH(A_f -> O); B = Dijkstra over the SDF graph
+(INTERCONNECT nets, IOPATH cells; clocked cells end paths; never through q) from q/O back to another pin + its IOPATH;
+slack B - A. 5 s per build. Validation: on item 25 it gives falseResult_7 st0 ctl A 419 / B 1536 / +1117 ps via
+rdly g[0] -> st1 ctl, the race explain.py traced dynamically on item 28 (also 419 / 1536 / +1117 at its SDF).
+Smallest controller slacks: item 25 +838 (falseResult_7 st2 ctl via merge0's arbiter), item 23 +837 (ulink_n_index_15
+st0 ctl via its rdly g[0]: the select link), BAD_xf2_1 +1051, gcd_ps +1215. All latch-pair rows (+381 and up) return
+through the pair's other half; whether that return is live is not known (flagged in the doc). run.sh writes
+fbslack*.txt when SDF= is given. FOR-RESEARCH C13 points research at it.
