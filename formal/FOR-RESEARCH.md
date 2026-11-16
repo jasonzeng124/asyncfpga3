@@ -50,8 +50,9 @@ changes):
 | mid of the SLOW window | 1,392 ps (591 + 801) | 4,737 ps (2,414 + 2,323) | 3,345 ps |
 At the fast mid, the slack is 52 % of the two paths' sum (1,343 / 2,557 ps): about 6x the 8.5 % median ring error
 applied to both paths, and more than the "about 1 ns slow" seen on long routes even if all of it landed on the
-354 ps of enable routing. The search's kappa 0.42 is the same fact as a ratio: (1.42 x the enable path's fast max)
-against (0.58 x the data path's fast min). **Your rule H is the check for this race** (ulink_n13's close against
+354 ps of enable routing. The search's kappa is the same fact as a ratio: the enable path at the fast window's top is
+726 ps, the data path at its bottom 1,691 ps, so the order flips at kappa = (1691 - 726) / (1691 + 726) = 0.40; the
+search's first failure was at 0.42. **Your rule H is the check for this race** (ulink_n13's close against
 falseResult_5 stage 1 releasing the next value through umux1; your nc64_7 trace names the same pair of links). Its
 row for this route is not committed; please add it (rule, slack, corner) so the two slacks can be compared.
 Rebuilt from BOARD-QUEUE ## 29's command on formal's farm and here: SDF d86bdde5d557f44fddbf90c24b88809c (= yours), FASM
