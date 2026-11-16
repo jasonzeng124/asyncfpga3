@@ -2303,7 +2303,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research cc0abaa43: exploratory collatz nl6s3a (uselect0 7, uaddi0 9), 21.27 ns on one route (sdf 7aefc4bd); farm fcsel3a. Not on BOARD-QUEUE; to check if queued.
 - research ef180ae09 is tooling.
 
-### progress 04:26
+### progress 04:22
 - research 4666de8df queues BOARD-QUEUE items 29 and 30:
   - item 29: ipow h4 + select links at 3, seed 19, sdf 4a92cdf3, ratio ~1.10 over item 19;
   - item 30: collatz64 h4 + select links 3/6/3, pre_eq2, seed 10, sdf 637ff02e, ratio ~1.04 over item 26.
