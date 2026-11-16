@@ -2783,3 +2783,19 @@ stated). Not started this session (usage); next A session's first candidate if r
    (Assembly, CertRun) ported, check.sh OK on 7 files; gcd_ps has no such hang below 0.45 (search). Needs owner decision.
 3. MARGINS/FEASIBILITY/STATUS/PR #3 current; items 29-33 registered; item 29 blocked by the decoder's missing
    DSP48E1 model (A's next task). No kappa_lo for any build. No subagent used.
+### progress 20:00 -- PROGRAM bd19bb9b ("the board decides") read; A's new task: how close is the simulator to the board? First numbers for gcd (simulation, untrusted)
+* **Board data found:** research cells/hw/gcd_cost_results.tsv (commit ca475ffdb, 2026-08-24): 24 operand pairs, 3 x 200
+  calls, latency in 10 ns PS-timer cycles with the harness included; fitted costs 127.1 / 108.3 / 156.5 / 114.6 ns per
+  k / pre-ctz / main / inner-ctz iteration. **It was measured on `gcd_bench_gen.bit`, the August bench build, NOT on
+  gcd_ps_e6bb4aec** (research's inventory: "the route and sizes are not archived").
+* `tools-A/board/gcd_latency.py`: each pair simulated alone on the decoded bitstream (simx, sequential env), every
+  arc at FAST_MIN and at SLOW_MAX; kernel latency = out0 request rise - request rise; the board's cost model fitted
+  to both. On **gcd_ps_e6bb4aec** (our target, a different build): board / sim-FAST_MIN per-iteration costs = 3.09
+  (k), 3.10 (pre-ctz), 2.77 (main), 3.12 (inner ctz): the loop-cost SHAPE matches within ~10 % up to one factor. One
+  band position b (lat = F + b (S - F)) and a harness offset fitted to all 24: b = 0.896, offset -38 ns; 22 of 24
+  inputs within +-5.5 % (RMS 2-3 %), the trivial pairs (1,1), (3,3) 39 % over (board 360 ns, predicted 500).
+* **Discrepancy:** b ~ 0.9 of the prjxray [FAST_MIN, SLOW_MAX] band, where research's ring data put the board at
+  0.21-0.29. Likeliest cause: the measured August build had other delay-chain sizes. Test running: the August
+  gcd_bench_gen rebuilt from ca475ffdb with today's toolchain (route differs, design the same).
+* **ASK:** the August gcd_bench_gen bitstream (or its .fasm) that produced gcd_cost_results.tsv, or a board run of
+  gcd_ps_e6bb4aec (formal/target/) on the same 24 pairs. Either makes this a same-bitstream comparison.
