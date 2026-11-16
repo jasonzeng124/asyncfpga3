@@ -3762,3 +3762,9 @@ fbslack over 16 fcsel3m and 16 x27 routes: falseResult_7 st0 ctl median +1119 (m
 index_11 st0 +2269 median; index_15 st0 +1397 median (min +845 on item 27's own seed). falseResult_7 is the route
 minimum on 12/16 fcsel3m routes; on xorshift the route minimum is mostly ulink_n12__1's ctl. A = 419 (feedback kept in
 slice) or 772 (leaves it): one placement choice moves the slack by ~350 ps. Table out/fbroutes/table.txt.
+
+### progress 06:42 -- research FOR-FORMAL 5feabe72 (board candidates 29-32) read; farm c_margin_bq29 filed; kernels.py ipow
+Item 31 = fcsel3a s20 (C15: uselect0's capture holds to 0.45; falseResult_7 st0 controller +174 worst in-band / +764 SDF).
+Items 32 (collatz64 h4s3p s22; research wants ulink_n13 / ulink_n28 hold), 30 (collatz64 h4s3 s10), 29 (ipow h4s3 s19):
+all classes, 1-ps and 12-ns hosts, explained at the SDF (c_margin_bq29). kernels.py: ipow from kernels/ipow/ipow.c
+(i32 wrap; checked by hand: 3^7 = 2187, 7^7 = 823543, 2^31 -> 0x80000000, (-3)^3 -> 2^32 - 27); vectors 3,7 7,7 5,13 3,5.

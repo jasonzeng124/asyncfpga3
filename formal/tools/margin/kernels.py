@@ -4,7 +4,7 @@ result check. Derived from the C source (CLAUDE.md: never from what a run printe
 handshake MLIR's i32 ops: two's-complement wrap-around, arithmetic shift right on the signed int. collatz64 is the
 same C with a 64-bit datapath (the operand sign-extended). Loops are capped: a vector whose reference does not
 terminate within CAP steps is refused (choose terminating vectors).
-usage: kernels.py KERNEL V1 V2 ...   (V = "a,b" for gcd/xorshift, "n" for collatz/collatz64) -> prints want list"""
+usage: kernels.py KERNEL V1 V2 ...   (V = "a,b" for gcd/xorshift/ipow (b,e), "n" for collatz/collatz64) -> prints want list"""
 import sys
 CAP = 1 << 20
 def s32(x): x &= 0xffffffff; return x - (1 << 32) if x >> 31 else x
@@ -24,6 +24,13 @@ def xorshift(seed, rounds):
     while i < rounds:
         x ^= (x << 13) & 0xffffffff; x ^= x >> 17; x ^= (x << 5) & 0xffffffff; i += 1
     return x
+def ipow(b, e):
+    # kernels/ipow/ipow.c: r = 1; while (e > 0) { if ((e & 1) == 1) r = r * b; b = b * b; e = e >> 1; } (i32 wrap, arithmetic shift)
+    b, e, r = s32(b), s32(e), 1
+    while e > 0:
+        if (e & 1) == 1: r = s32(r * b)
+        b = s32(b * b); e = s32(e >> 1)
+    return r & 0xffffffff
 def want(kernel, vecs):
     out = []
     for v in vecs:
@@ -32,6 +39,7 @@ def want(kernel, vecs):
         elif kernel == "collatz": out.append(collatz(p[0]))
         elif kernel == "collatz64": out.append(collatz(p[0], 64))
         elif kernel == "xorshift": out.append(xorshift(*p))
+        elif kernel == "ipow": out.append(ipow(*p))
         else: raise SystemExit("unknown kernel " + kernel)
     return out
 if __name__ == "__main__":
