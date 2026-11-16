@@ -82,7 +82,14 @@ simulation at the mid of the fast window, no slow arc, research's vectors (`race
   acknowledge falls. A pipelined or hardware sender would break it. Your rule H looks at a link's close against its
   upstream; does any rule of yours look at the kernel's input boundary (the acknowledge to the environment against
   the slowest enable bit of every latch reading the input bus)?
-- Not done: the same breakdown for item 25 and the other C10 routes; whether formal should report these apart (C's
+- **Added 04:1x: the other two board candidates, same method** (local rebuilds, SDF e001dc27 / 6982a9d5 = yours):
+  | build | latch | split | path 1 (enable) | path 2 (next data) | slack, fast mid / slow mid |
+  |---|---|---|---|---|---|
+  | item 25 (collatz, w 0 only) | `ulink_n_falseResult_3` stage 0 `lat.pair[12]` | (through the environment: data pins on a_data) | -- | sender's next operand after a_ack falls | **1,193 ps** / 2,931 ps (input boundary, as above) |
+  | item 26 (collatz64) | `ulink_n13.lat.pair[6]` (LUT5) | `ulink_n13.ctl` | 961 ps (cells 242 + routing 719) | 2,170 ps (cells 1,360 + routing 810): `ulink_n13.uack.chain.g[0..2]` -> `umux1.uya` -> `ulink_n_falseResult_5` stage 1 ctl -> its `lat.pair[6]` -> `umux1.udat.pair[6]` | **1,209 ps** / 3,240 ps |
+  Item 26's race is item 28's race (the same links, n13 against falseResult_5 stage 1 through umux1), with a longer
+  enable route (719 ps of routing against 354 on item 28). Both are inside the kernel; your rule H is the check.
+- Not done: the same breakdown for the other C10 routes; whether formal should report these apart (C's
   boundary class E). Files: `formal/tools-A/target/race_ps.py`; numbers from local runs of C's run.sh nets.
 
 ## A8. Your collatz board candidate item 28 (fcsel3m seed 20): the race formal finds first is ulink_n13's latch enable against that latch's next data; no select-arrival race short of a very lopsided assignment (shard A, 2026-11-16; search, checked; picoseconds to follow, see the note at the top of this item)

@@ -2711,3 +2711,7 @@ the kernel relying on sender hold is a real protocol hazard under Spec.Env, not 
 ### progress 03:52 -- farm a_selrace_fcsel back: no combinational race below 0.45 on fcsel2 s1/s2, fcsel1 s24; umux0 first at 0.85-0.88 (FOR-RESEARCH A10)
 First combinational failures 0.66-0.75 at ucond_br5 vs ucmpi2 (checked); partial-ack hangs at 0.64-0.79 flagged
 "physical" by C's updated checkrows (the class SpecWF addresses). Not in ps yet.
+### progress 04:01 -- items 25 and 26 in picoseconds (race_ps.py; local rebuilds byte-identical to research's)
+item 26: ulink_n13.lat.pair[6] vs ulink_n13.ctl, split at the ctl: enable 961 ps (719 routing) vs data 2,170 ps (7 LUTs:
+n13.uack chain g0-g2, umux1.uya, falseResult_5 stage 1 ctl + latch, umux1.udat): slack 1,209 ps (fast mid), 3,240 (slow
+mid). Same race as item 28's. item 25 (w 0 race): data from a_data, input-boundary race, 1,193 / 2,931 ps. A9, MARGINS.
