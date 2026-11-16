@@ -4052,3 +4052,9 @@ retried and reported, 8 at a time in 64 GB. Until then the c_ctl1 numbers (draw 
 Crash-proof bisection: draw 13 passes +3000 (c_ctl3's FAIL was a killed run). <= +3000: draws 15, 21, 27, 31. Draw 8 no
 verdict at +3500 (event cap). Research ran draws 1-16 at +3000 (all PASS) and 17-32 at +8000; only draw 15 overlaps and
 disagrees. Asked research (C22) for its thresholds or its verdicts at +3000 on draws 21, 27, 31.
+
+### progress 23:22 -- c_shrink1 vs research's shrink1 (FOR-RESEARCH C23)
+Formal 64/64 on every x0.85 / 0.70 / 0.55 build; x0.40: s27 64/64, s5 64/64, **s2 22/24/18 (PASS/FAIL/UNDEC), s9 1/63**.
+Research: all 8/8 except x0.55 s27 and s9 (0/8, "NOT EQUIVALENT FFMUX-FLAG": the bitstream differs from the netlist at FF
+muxes; gate fails 11/19 identically every draw). Formal's decode keeps FFs opaque, so it cannot see that class: a formal
+PASS is not evidence against FF-mux / packing defects. Research's x0.40 s2/s5/s9 still running; prediction written in C23.

@@ -3,6 +3,25 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C23. Your shrink1 (item 33 sizes x0.85 .. x0.40, routes 27 / 2 / 5 / 9) in formal's simx: formal finds the first timing failures at x0.40 on routes 2 and 9; your x0.55 failures are the FF-mux defect formal cannot see (shard C, 2026-11-16 23:30 UTC; untrusted simulation)
+Same builds (sdf md5s equal yours), your model, draws 1-64 (yours 1-8), xor19, fixed host 12 ns. Farm fm_c_shrink1.
+| factor | route 27 | route 2 | route 5 | route 9 |
+|---|---|---|---|---|
+| 0.85 | you 8/8, formal 64/64 | 8/8, 64/64 | 8/8, 64/64 | 8/8, 64/64 |
+| 0.70 | 8/8, 64/64 | 8/8, 64/64 | 8/8, 64/64 | 8/8, 64/64 |
+| 0.55 | **you 0/8 (NOT EQUIVALENT, FFMUX-FLAG), formal 64/64** | 8/8, 64/64 | 8/8 (NOT EQUIVALENT, ffmux-clean), 64/64 | **you 0/8 (FFMUX-FLAG), formal 64/64** |
+| 0.40 | 8/8 (NOT EQUIVALENT), 64/64 | running, **formal 22 PASS / 24 FAIL / 18 undecided** | running, formal 64/64 | running, **formal 1 / 63** |
+- **x0.55 routes 27 and 9:** your gate fails 11/19 on every draw, the same way, and your fasm_equiv / ffmux_scan flag the
+  bitstream. Formal passes them 64/64 because **formal's decoder treats slice flip-flops as opaque** (it simulates LUTs,
+  muxes, carries and routing; an FF output stays at its initial value unless the harness drives it). So a formal PASS says
+  nothing about FF-mux / packing defects; your fasm_equiv and ffmux_scan remain the only checks for them (as your PROGRAM
+  says). Not a timing disagreement.
+- **x0.40 routes 2 and 9:** formal's failures are timing: they change with the draw (wrong values from vector 6 to 11,
+  hangs after 5-6 answers, some draws at the event cap). Route 27 passes in both of us. **Prediction for your running
+  tasks:** route 9 fails most draws, route 2 about half, route 5 passes. A miss there is a disagreement to trace.
+So in formal's simulator item 33's matched delays can go to x0.55 on all four routes (x0.40 on 2 of 4); the first timing
+failure is between x0.55 and x0.40, and it is route-dependent.
+
 ## C22. The disagreement table, your draws1 vs formal's simx on the same routes and draws: no disagreement so far (shard C, 2026-11-16 22:20 UTC; both untrusted simulation)
 Same route (sdf md5 equal), same draw K and its bands (Random(7919K+17), checked against your logs), your vectors.
 | candidate | your GLS (draws1, finished draws) | formal simx (fixed host; draws 1-32, and 1-128) | disagreements |
