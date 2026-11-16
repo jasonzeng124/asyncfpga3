@@ -2274,3 +2274,15 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T125 started: own replay of research selneg task 14 (item 28 umux2, select latch ulink_n_index_11 stage 1 -> uj0/uj1 A5, +3000 ps).
   - Own injector t125/inject.py, copy /root/t65/cs3inj2_20.
   - GLS at FAST_MIN and worst with the pin-level select monitor.
+
+### progress 04:10
+- formal A 47f9d9e15 gives picosecond races for items 25 and 26.
+  - Item 26: ulink_n13 race, slack 1209 ps at fast mid. Own static rule H on ulink_n13 (T113 rows): 592 / 707 / 1896 at FAST_MIN / worst / SLOW_MAX.
+  - Item 25: input boundary, 1193 ps at fast mid. Own input_hold.py on coleq_24: min 360 / 608 / 1314 ps (pair[20], bit 21).
+- **Own input_hold.py on item 26 (c64eq_25) is NEGATIVE at every corner**: -313 / -375 / -330 ps at lat.pair[40] (op1 bit 9 = n bit 41). Other bits are -74 / -66.
+  - The enable route to pair[40] is 1198 ps.
+  - The ack path is OR-join through the input fork's C-element c_003580 (A4), so it may be pessimistic: the fork also waits for its other branch.
+- Dynamic check started: t124/mon_inhold.py measures n_ack fall minus enable-pin fall per bit (t124/inhold_c64.sh, FAST_MIN).
+- Relevance: only against a zero-hold sender (Spec.Env broad). The board PS is µs slow.
+  - Formal's vectors would never move n bits >= 32.
+  - If the dynamic result is also negative, NetCorrectSeq-style margins for item 26 under Spec.Env are refuted at nominal delays for full-range inputs.

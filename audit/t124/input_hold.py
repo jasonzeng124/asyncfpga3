@@ -39,14 +39,20 @@ for inst, lst in sorted(luts.items()):
     shared = set.intersection(*cand)
     if len(shared) != 1: print(inst, 'UNMAPPED', len(shared)); continue
     en_b = shared.pop(); en_w = wire_of_bit(en_b)
-    best = {en_w: 0}; hq = [(0, en_w)]
+    best = {en_w: 0}; hq = [(0, en_w)]; prev = {}
     while hq:
         t, net = heapq.heappop(hq)
         if t > best.get(net, 1e18): continue
         if net == ack_w: break
         for (src, dst, d, kind, cell, pin) in N.fan.get(net, ()):
-            if t + d < best.get(dst, 1e18): best[dst] = t + d; heapq.heappush(hq, (t + d, dst))
+            if t + d < best.get(dst, 1e18): best[dst] = t + d; prev[dst] = (net, kind, cell, pin); heapq.heappush(hq, (t + d, dst))
     t_ack = best.get(ack_w)
+    if os.environ.get('PATHS'):
+        n = ack_w; P = []
+        while n in prev:
+            src, kind, cell, pin = prev[n]
+            P.append(f"{best[n]:6d} {'STATE ' if (kind == 'lut' and n in N.state_nets) else ''}{kind}:{cell}.{pin} -> {name_of_wire.get(n, n)}"); n = src
+        print('   ack path:'); [print('     ' + p) for p in reversed(P)]
     rows = []
     for (cn, bel, ins, outs), cs in zip(lst, cand):
         c = c_of_site.get(bel)
@@ -57,12 +63,14 @@ for inst, lst in sorted(luts.items()):
         for p, w in pins.items():
             if not p.startswith('A'): continue
             src = ic_src.get(w)
-            if src == en_w: close = ic_d[w] + N.cells[c]['params'].get(f'T{p}{out}', 124)
+            if src == en_w: close = ic_d[w] + N.cells[c]['params'].get(f'T{p}{out}', 124); enp, en_ic = p, ic_d[w]
             elif src in d_ws: dd.append((ic_d[w] + N.cells[c]['params'].get(f'T{p}{out}', 124), name_of_wire.get(src, src)))
         if close is None or not dd: continue
         dmin = min(dd)
-        rows.append((t_ack + dmin[0] - close, cn, close, dmin[0], dmin[1]))
+        rows.append((t_ack + dmin[0] - close, cn, close, dmin[0], dmin[1], c, enp, en_ic))
     rows.sort()
+    if os.environ.get('JSON'):
+        json.dump(dict(ack=ack_w, en=en_w, t_ack=t_ack, bits=[dict(slack=r[0], name=r[1], close=r[2], data=r[3], cell=r[5], enpin=r[6], en_ic=r[7]) for r in rows]), open(os.environ['JSON'], 'w'), indent=1)
     print(f"{inst}: en {name_of_wire.get(en_w, en_w)}  t_ack(en->{ACK}) = {t_ack} ps  bits {len(rows)}")
     for r in rows[:6]:
         print(f"   slack {r[0]:6d}  close {r[2]:5d}  data(src->D->O) {r[3]:5d}  {r[1]}  src {r[4]}")
