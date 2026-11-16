@@ -3,35 +3,33 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
-## C11. Collatz board candidate item 28 (fcsel3m seed 20): kappa_hi = 0.42 at ulink_n13's latch enable, not at the select links; item 25 beside it (shard C, 2026-11-16; search, untrusted)
-- Build: rebuilt on the farm from $PEER with BOARD-QUEUE section 29's command (usinkeq2 count 1): **SDF d86bdde5d557f44fddbf90c24b88809c
-  (= yours), FASM e4f259409e188d0ff474e02ee69581dc**. Tool: `formal/tools/margin/run.sh` bench mode, single-pin adversary over
-  every live storage-LUT pin incl. latches (corner 0, g = 1, transport; w = 20 and w = 0), vectors n = 27, 703, 77031 (want
-  111, 170, 350 from kernels/collatz.c); every failing row re-run and checked (gate relations, delays in the band, H_RUNT
-  lag; Env + SeqEnv; ArbOK). Farm request c_margin_sel3m, files `formal/tools/margin/out/farm_item28_fcsel3m_s20/`.
-- **item 28: kappa_hi = 0.42 (w = 20 and w = 0).** Race: `ulink_n13.lat.pair[6]` (SLICE_X10Y26.A6) reading its enable from
-  `ulink_n13.ctl` (SLICE_X14Y25.C6) late on pin 0: the latch-enable race at ulink_n13 (the link of item 26's 0.26 and
-  nc64_7's 0.05). Witness: 703 -> 426, 77031 -> 606 (ADMISSIBLE: 10.9 M gate checks, 0 mismatches, 0 outside the band,
-  0 lag; Env + SeqEnv OK; ArbOK T >= 131). Next: `ulink_n_falseResult_3` stage[0] pair[16] at 0.45 (w = 0, 703 -> 99).
-- **item 25, same tool commit, same settings: w = 20 no admissible failure <= 0.45; w = 0 kappa_hi = 0.42**
-  (`ulink_n_falseResult_3` stage[0] pair[12] reading its ctl late: 703 -> 70). So at w = 0 the two are equal (0.42 / 0.42);
-  at w = 20 item 28 fails at 0.42 where item 25 has nothing admissible to 0.45. **The binding race moved**: from
-  ulink_n_falseResult_3 stage 0 (item 25, and every C10 shortened-select route) to ulink_n13's enable (item 28's route).
-- **One route is a sample: the same structure on seeds 1, 2, 24: 0.41, 0.37 (0.33 at w = 0), 0.27**, all at
-  `ulink_n_falseResult_3` stage[0] latch pairs reading their ctl late (w = 20). Seed 20 is the best of the four routes
-  tried; the structure's spread here is 0.27-0.42 (C10's select links at 0-2: 0.21-0.32).
-- **Select arrival (your rule E question):** the single-pin search cannot see it (no single route is the race). New
-  race class `tools/margin/cones.py` (`CONES=1`): per link stage, the whole data cone into its latches slow (datapath,
-  mux data LUTs and the routes of their select inputs) and everything else fast. Results for item 28 and the routes
-  where your rule E is negative (fcsel0 s24, fcsel1 s24) are running (farm c_margin_cones1). Already: on item 25 no
-  admissible capture failure <= 0.45; on gcd_ps none <= 0.45 (first at 0.61, wrong values from 0.77).
-- **Caveat (not yet resolved):** item 28 also has runs at 0.36-0.38 that fail with gate relations and delays all
-  clean but are rejected by the environment check (`ulink_n_falseResult_7` stage 0 ctl own feedback, 1 of 3 answers,
-  and falseResult_3 pair[16] at 0.38). In the item-25 cases looked at here, the kernel put runts (12-40 ps) on its input
-  acknowledge a_ack and the simulated harness answered them. If such a run is admissible for your harness (a clocked
-  harness can sample a runt), item 28's number would be 0.36. Diagnosing.
-- xorshift item 27 (rerun, names): no single-pin race of 1,199 fails up to 0.45 (as C7).
-- Every number above is kappa_hi (a failure found by search). kappa_lo (proved safe) is none for every bench build.
+## C11. What formal's margin tool now looks at beyond A8: whole data paths slow at once (capture races), livelocks, and three checker fixes (shard C, 2026-11-16; search, untrusted)
+Item 28's single-route result is A8 (same farm builds, same numbers; C's run: `formal/tools/margin/out/farm_item28_fcsel3m_s20/`).
+Per the owner's rule (PROGRAM.md, "A kappa is not a result") the kappas below only say which race our adversary
+breaks first; the picosecond form of each race (both paths from their split, cells and routing, slack at your SDF,
+your rule row) is what C builds next, in the tool.
+- **Capture races (new class, `tools/margin/cones.py`, run.sh `CONES=1`).** A8's sweeps slow ONE route. A bundled-data
+  capture fails when the whole data path into a latch is slow and its request path fast. Per link stage, the tool now
+  slows the entire combinational cone into the latch bits (datapath, carry, mux data LUTs and the routes of their
+  select inputs) and keeps everything else fast. `STEER=1` does the same for a C-element or steer reading data (a
+  branch condition). On every collatz/collatz64 route tried, the first capture race the adversary breaks is the
+  one-bit latch of **`ulink_n_index_11.many.stage[0]` (lat.odd)**, one of your select links, whose data cone is the
+  index computation (~770-1550 arcs); on xorshift item 27 it is `ulink_n_index_15` stage 0 (also a select link) and
+  `ucontrol_merge0_olink`'s latch. Checked so far: **item 27 fails as a capture at `ucontrol_merge0_olink`** (2 of 4
+  answers, then quiet), where no single-route race fails in the same search range; fcsel3m seed 2 at
+  `ulink_n_index_11` stage 0 returns a spurious first answer (106, then 111, 170 for want 111, 170, 350). These rest on
+  the old checks; farm c_margin_all2 reruns all classes with the fixes below on items 28, 25, 27, 26, fcsel0 s24,
+  fcsel1 s24, fcsel3m s2/s24.
+- **Checker fixes that change what is reported (all in `tools/margin`, `tools/huff/envcheck.py`):** (1) runs where no
+  20 ps runt filter is consistent with the delay windows are not behaviours and no longer count as failures; (2) a
+  run where only the simulated harness broke the protocol (it released data on an acknowledge that then glitched) is
+  re-run with a harness that holds data until its next request; (3) envcheck's "request low at the end" was stronger
+  than the Spec; a run where your kernel acknowledged a and b but never start and stopped is now reported as
+  PHYSICAL: a real harness hangs, but the frozen Spec is vacuous there (A proved it: `SpecWF.env_unsat_partial_ack`).
+  Item 25 shows such hangs from steer-condition races without the filter.
+- **Livelocks.** `simx --periodic` recognises a run that repeats for ever without answering; the tool reports it on its
+  own line (liveness). On gcd_ps it finds the 0.36 livelock with period 79 ps, the period A's Lean proof found.
+- Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
 ## A8. Your collatz board candidate item 28 (fcsel3m seed 20): the race formal finds first is ulink_n13's latch enable against that latch's next data; no select-arrival race short of a very lopsided assignment (shard A, 2026-11-16; search, checked; picoseconds to follow, see the note at the top of this item)
 **Owner's rule since 03:30 UTC (PROGRAM.md, "A kappa is not a result"): a kappa only ranks races in our search; it

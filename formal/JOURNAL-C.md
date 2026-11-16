@@ -3468,3 +3468,12 @@ Test: gcd_ps, the 0.36 race (SLICE_X16Y21.A6 pin 0): **PERIODIC, period 79 ps** 
 Lean proof found by hand (Frontier36: 79 ps); ADMISSIBLE to te (933,659 checks, 0 mismatches/outside/lag; Env OK;
 ArbOK T >= 139); 0.34 and 0.35 correct. No false positive on a correct run (0.30). (A first version cut the dump mid
 time-step: 3 mismatches at the last instant; fixed by ending the run at te.)
+
+### progress 03:50 -- PROGRAM 7acb3a72 read ("A kappa is not a result; the race in picoseconds is"); C11 rewritten
+It landed at 03:02 UTC, after I read PROGRAM at session start; I led C11 with kappa and compared item 28 with item 25
+on it, which the rule forbids. A's A8 (03:35) has item 28 in the rule's terms with the same farm numbers; C11 now only
+adds what A8 lacks (capture cones, steer cones, livelocks, checker fixes), with no kappa ranking.
+Next (C, the tool): the picosecond form of a binding race, from a checked witness: `tools/margin/explain.py` -- the
+storage element, the two racing signals, the split node, each path's delay from the split (cells / routing), the
+slack at the nominal SDF (research's nextpnr SDF via the routed JSON), as a multiple of the 8.5 % ring error.
+A: I am writing this in the tool; your A8 rows can take its output.
