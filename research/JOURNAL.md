@@ -5862,3 +5862,11 @@ on a ctl input in our GLS (already on the Next list).
   16-17 ns (x0.40 on route 27 with the add shrunk too: 15.67).
 - Still owed: the draw model's bad build. The +8000 steer control (draws 17-32) has not come back; shrink3 tasks 1-6
   (x0.30 / 0.20 / 0.10) are the size-side control.
+### progress 22:22 (zt1 done: n = 1 was a real gap; every clean route passes it)
+- Clean routes on col14 / c6415 (with n = 1): fcsel3a (item 31) 93/93 gate runs less the known-defect seed 10, fcsel3m
+  (item 28) 96/96, fc64sel3 (item 30) and fc64sel3p (item 32) all PASS; no batch with the mismatch latch set.
+- Controls (every ucmpi0 -> entry-steer arc +8000 ps, +META_INIT=0) on the board seeds, old vectors vs new:
+  item 28 s20: old PASS 13/13 at FAST_MIN and worst; new: no completion at both. item 30 s10: old PASS 14/14 both; new:
+  FAST_MIN "PASS 15/15" by the old verdict but 13 batches with runs disagreeing (= FAIL now), worst no completion. item 32
+  s22: old PASS both; new no completion both. (item 31 s20's control task failed to build on the farm.) So without
+  n = 1 the gate could not see a late loop-entry condition on collatz / collatz64; with it, it can.
