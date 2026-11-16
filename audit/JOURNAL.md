@@ -2353,3 +2353,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Item 19 (ipowr_1) has the same row (-340 / -436), which T109 showed is not live: 0 dynamic violations.
   - Started the dynamic check t126/hdyn29.sh (mon_h, FAST_MIN).
 - T126 continues with item 30 (build c64sel3_10).
+
+### progress 05:04
+- research 944ebd16f queues BOARD-QUEUE item 31: collatz item 28 + uselect0 16 -> 7, uaddi0 12 -> 9 (nl6s3a), seed 20, sdf 7aefc4bd, ratio ~1.21 over item 28.
+  - Own pipeline t126/item31.sh is queued after T126 (build variant colsel3a).
+  - Note: the audit has no own static rule A (bundling) tool. Item 31's only big change is a bundling line (uselect0), so its evidence will be own GLS (oracle + latch capture monitors, 3 corners, 13 vectors) plus period. Research's rule A/A' clean rows are UNVERIFIED by own static means.
+- T126 item 30: own sdf **637ff02e = recipe**; usinkeq2 1. Period and GLS are running.

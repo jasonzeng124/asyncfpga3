@@ -15,6 +15,7 @@ case $V in
   c64nl) K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_bench.vh; KN="$BASE BDC_NO_LINK=ulink_n30__1";;
   ipsel3) K=ipow;     SZ=../research/data/ipow_dsp1_sizes_T9s75_h4s3_bench.vh; KN="BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0";;
   c64sel3) K=collatz64; SZ=../research/data/collatz64_sizes_T4cdb_h4s3_bench.vh; KN="$BASE";;
+  colsel3a) K=collatz; SZ=../research/data/collatz_sizes_T3cdb_nl6s3a_bench.vh; KN="$BASE";;
   colsel3) K=collatz;  SZ=../research/data/collatz_sizes_T3cdb_nl6s3m_bench.vh; KN="$BASE";;
   colsel0) K=collatz;  SZ=../research/data/collatz_sizes_T3cdb_nl6s0_bench.vh; KN="$BASE";;
   coleq6) K=collatz;  SZ=../research/data/collatz_sizes_T3cdb_nl6_bench.vh; KN="$BASE";;
