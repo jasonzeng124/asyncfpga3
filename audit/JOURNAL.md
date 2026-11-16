@@ -2617,3 +2617,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The first version (sdf 4a92cdf3, own T126 CONFIRMED) is superseded; REPORT row marked.
 - Own pipeline t126/item29m.sh (variant ipsel3m): builds now; GLS 3 corners, slope, z_data monitor and rules H/E after T130.
 - formal A 03c81568d: MARGINS item 29 updated to fisel3m.
+
+### progress 08:02
+- T130 v2 (state A only) on item 28 (control; research M clean; own T117: 0 late select pins):
+  - **umux0 304 of 1279 tokens with a data-LUT output change in state A, up to 167 ps**; umux1/umux2 0; oracle 13/13.
+  - Either the monitor still mis-resolves something (z_ack alias for collatz umux0 assumed n14__0_ack), or the late changes come from the data inputs, not the select.
+  - Not reported as a finding. A traced variant (first late events with the output net and the select / z_ack / data-input states) follows after T130.
+- research a6b9fe8b1: rule M negative controls, 6 gate failures, M flags all, E none. Not replayed.
