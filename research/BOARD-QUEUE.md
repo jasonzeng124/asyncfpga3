@@ -11,6 +11,26 @@ named here decodes EQUIVALENT (or only the benign GND-buffer kinds). If the md5 
 the full stack's equivalence on it before using the board (cells/gls/ps/build_ps.sh HWDIR WORK "" bit prints the
 fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('const', 0) bits ('const', 1)").
 
+## 2026-11-16 (night): the board candidates judged by draws (PROGRAM "The board decides")
+Each candidate's board route simulated over draws of the parametric delay model (bench_gate.sh draw:K: delay chains and
+everything else each at a band drawn uniformly in [0.20, 0.31], CARRY4 / F7F8 / FF in [0.20, 1.0], setting M within-die
+scatter), the bits-decoded netlist, the fixed verdict (every run of every batch right). Model error on the August
+builds: the simulation at the ring band 0.288 runs 8-10% slower per iteration than the board (collatz, collatz64, ipow,
+gcd; research/SIM-VS-BOARD.md), so the ns below are likely ~8% high. The model fails its known-bad build (a steer
+condition 8 ns late) on 16 / 16 draws.
+
+| item | kernel | ns / iteration (median of farm routes, sim at 0.288) | draws passing on the board route |
+|---|---|---|---|
+| 33 (fxa s27) | xorshift | 18.9 | 32 / 32 |
+| 27 (fxd s2) | xorshift | 19.4 | 32 / 32 |
+| 31 (fcsel3a s20) | collatz | 21.5 | 32 / 32 |
+| 28 (fcsel3m s20) | collatz | 25.8 | 32 / 32 |
+| 29 (fisel3m s19) | ipow | 36.2 | 24 / 24 |
+| 30 (fc64sel3 s10) | collatz64 | 35 | 32 / 32 |
+| 32 (fc64sel3p s22) | collatz64 | 31.4 | 32 / 32 |
+
+Faster candidates chosen by the draws are being measured (farm shrink4 / shrink5: xorshift sizes x0.55 / 0.50 / 0.40).
+
 ## 2026-11-16 (evening): the GLS gate checked only the LAST run of each batch -- every "gate N/N" before today is partial
 bench_gate.sh judged a batch by its last run's odata and its completion count. The bench also latches whether the
 batch's runs disagreed (mism_st bit 0, FIXED-mode repeatability); the gate never read it. A build whose result stream
