@@ -5411,3 +5411,11 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   passes (as for E).
 - fcsel3a_ps (collatz item 31's routes, --shrink-selects, rule M in force), first 4 routes: umux0 6 -> 3 and umux1 5 -> 3
   bound by A'm (rule M), umux2 11 -> 5 by A', uselect0 7 -> 5-6, ucmpi2 16 -> 12-15, select links 3 -> 2 by E.
+### progress 06:34 UTC (rule M catches a build rule E misses; collatz mux delays sized by M: farm fcsel3b)
+- +8000 ps select -> umux0.udat on item 28's route: rule M (corner_audit A'm) umux0 -5503 ps at worst; rule E: no row
+  below 0 (E looks at the joins, not the data LUTs); gate FAST_MIN: no batch in ~25 CPU-min (55-min rerun going). So M
+  flags a failing build that E does not see -- the reason the mux delay needs its own check.
+- nl6s3b = item 31 + umux1 5 -> 3, umux2 11 -> 6 (rule M / A'), uselect0 7 -> 6, ucmpi2 16 -> 15 (seed 20's own proposal
+  with --shrink-selects, nominal + worst; hold-side trims and select links NOT taken). Farm fcsel3b, every check.
+  PREDICTION: -0.3 to -0.8 ns per iteration vs fcsel3a (ucmpi2 and uselect0 sit on near-critical cycles; umux1 / umux2
+  mostly off them); M / E / H / I / TSE clean on >= 28/32.
