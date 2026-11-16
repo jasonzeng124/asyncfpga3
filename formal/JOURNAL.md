@@ -2633,3 +2633,12 @@ Not waited on.
   a statement about the board, where the build should not go. Regression: gcd_ps (fromBit, with its XDC) and item 25
   decode to the same JSON as before (9,589 and 6,712 cells).
 * Margin tool (C's run.sh, C10's settings) running locally on fcsel2 s24.
+### progress 02:58 -- coverage gap in the margin tool: races ending at combinational LUTs (research's select-arrival race) are not candidates; selrace.py + selrun.sh written
+C's races.py lists (storage gate, live pin) only: the slowed route always ends at a LUT that reads its own output.
+Research's most-wanted number for item 28 is the select-link margin ("arrival at umux0/1/2 and hold"); the audit's
+T116 race is the select reaching umux0's DATA LUTs late. Those LUTs are combinational (the capture is one gate later,
+in the next link's latch), so no row of C's sweep slows that route: a kappa_hi from run.sh says nothing about it.
+`tools-A/target/selrace.py`: candidates = live pins of combinational LUTs within DEPTH (default 1) gates of a storage
+gate's non-feedback pin, in races.py's row format; `selrun.sh OUT/` runs it after run.sh with C's rank.py, margin.py,
+checkrows.py and names.py unchanged (OUT/sel/). On fcsel2 s24: 822 storage gates, 231 combinational gates at depth 1,
+853 candidate pins, of which 260 on umux0/umux1's data LUTs (`umuxN.udat.pair[*]`). Not yet run end to end.
