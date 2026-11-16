@@ -5282,3 +5282,12 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   A uxori1 -119 on one; TSE (C-element hold) rows on ulink_n8 on 8+ routes (to -635 at FAST_MIN, s19). Prediction
   (-0.2 to -0.4) at the edge; not worth a new board item. xorshift's select lines are off its critical cycle.
 - research/tools/fifteen/farm_pair.py A B ITERS: paired latency per iteration + gate / E summary of two farm requests.
+### progress 04:16 UTC (collatz uselect0 at 7 on one route: 21.27 ns, every check clean; farm fcsel3a)
+- c28a_20 (nl6s3a = item 28's sizes with uselect0 16 -> 7, uaddi0 12 -> 9; seed 20, new route sdf 7aefc4bd): period
+  21.27 ns (item 28's seed 20: 25.81), latency 468 cycles vs 566 (-4.5 ns per iteration on 261 iterations); EQUIVALENT,
+  ffmux clean; gates 13/13 at SLOW_MAX / FAST_MIN / worst; static A / A' / E and H / I clean at nominal and worst (tighten's
+  unsized bundled "a" row at uselect0 -258, the one A' replaces); hold_trace / hold_bits clean. Predicted -2.2 to -3.1:
+  more, because uaddi0 also moved and the next cycle is further below.
+- Farm fcsel3a: the same sizes on 32 routes, every check (TSE included). This is one route's proposal; the per-cell
+  max over 32 routes (fcsel3m_p) may come back longer on some routes, and fcsel3a will show which routes need it.
+- xorshift item 27's route with the fix: A' now sizes uxori1 / uxori2 7 -> 5 (76 / 63 ps left); nothing else moves.
