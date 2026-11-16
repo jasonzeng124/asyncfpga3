@@ -6,6 +6,18 @@ DecodedPS.boundary DecodedPS.arbs p T R su Δo` (owner decision 4: sequential en
 Updated 2026-11-06 (shard A) from the 2026-11-02 journals of all three shards. Everything below is Lean-checked with
 standard axioms unless marked; "C" / "B" name the shard whose file it is.
 
+## 2026-11-16 (A): THE statement is vacuous on partial-ack hangs; repair proposed (Lean, check.sh OK)
+Shard C found (JOURNAL-C 03:36) that when `a`/`b`/`start` share one request node (gcd_ps's OneReq boundary), a
+circuit that acknowledges `a` but never `start` leaves NO behaviour satisfying `Spec.Env`. `Formal.Target.SpecWF`:
+`env_unsat_partial_ack` (Lean) states it: with `B.a.req = B.start.req`, the request high at t, a's ack high and
+start's low from t on, `¬ Env x B ...`. So `NetCorrectSeq`/`NetCorrectSeqRunt` hold vacuously on any delay
+assignment leading to such a hang. **Proposed repair** (same file): `EnvWF`, with weak-fairness request liveness
+(`ReqLiveWF`: the env may not hold a shared request still for ever while every sharer allows the move);
+`envWF_of_env`, so `NetCorrectSeqRuntWF → NetCorrectSeqRunt` and every refutation above transfers
+(`not_runtWF_of_not`) with no new proof; `reqLiveWF_partial_ack`: the WF form asks nothing there, so the hang becomes
+a counterexample (start's `AckLive` in `Correct`). Not yet adopted: changing THE statement needs the audit's row.
+Effect on the list below: none on refutations; a future kappa_lo proved for the frozen form would not cover hangs.
+
 ## 2026-11-15 (A): the S6 route changed to ONE run certificate (Lean, check.sh OK)
 `Formal.Target.CertRun.netCorrectSeq_of_run` (generic, OneReq boundary): THE statement from `EpRun` (count facts of one
 certificate per behaviour, started during reset at a low boundary; certificate may grow with time, so any number of

@@ -2673,3 +2673,17 @@ the picosecond form is the next step). MARGINS.md columns reordered: binding rac
 as the search key, kappa_lo. Farm requests a_selrace_board and a_selrace_fcsel filed (select sweep on items 27, 26, 23,
 nc64_7/pc64_7, fcsel2 s1/s2, fcsel1 s24). C's 03:36 finding for A (Spec.Env unsatisfiable on partial-ack deadlocks,
 so NetCorrectSeq is vacuous there) taken up next.
+### progress 03:40 -- C's vacuity finding confirmed in Lean; repair proposed as SpecWF.lean (check.sh OK, standard axioms)
+* **Reason for a change to THE (frozen) statement, journaled as PROGRAM requires:** `Spec.Env` puts `ReqLive` and
+  `ReqMoves` on each input channel separately. With a request node shared by `a` and `start` (gcd_ps, the bench
+  builds), a partial acknowledge (a's ack high, start's ack low for ever, the request high) makes `Env` unsatisfiable:
+  a's ReqLive needs the request to fall, start's ReqMoves forbids it. `Formal.Target.SpecWF.env_unsat_partial_ack`
+  proves it. So the frozen statement is vacuously true on such hangs. Refutations are unaffected (their witnesses
+  satisfy Env); a positive kappa_lo would be weaker than it reads.
+* **Proposal, not adopted:** `SpecWF.lean` (new file; Spec.lean untouched): `ReqLiveWF` (weak fairness over the channels
+  sharing the request node), `EnvWF`, `NetCorrectSeqWF`, `NetCorrectSeqRuntWF`; `envWF_of_env` (old Env implies the new
+  one), `netCorrectSeqRunt_of_wf`, `not_runtWF_of_not` (every existing refutation carries over unchanged),
+  `reqLiveWF_partial_ack` (the WF form does not exclude the hang). The audit is asked for a row before it replaces
+  NetCorrectSeqRunt. Check: `cd formal && ./check.sh Formal/Target/SpecWF.lean` -> OK (220 declarations).
+* Not done: whether gcd_ps can actually reach a partial-ack hang (C saw it on item 25 at w 0, 0.38-0.40); envcheck
+  (C) now reports such runs as PHYSICAL, which matches the WF form's verdict (a counterexample).
