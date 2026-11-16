@@ -2767,3 +2767,10 @@ A does not duplicate them; A's PR #3 summary updated.
   fcsel0 s24 177 ps; item 28's smallest race is an input race at bit 19 (771 ps), below its ulink_n13 race (929 ps), so
   A8's "item 28's first race is entirely inside the kernel" was wrong and is withdrawn. Corrected in A8, A9 and MARGINS.
   Lesson: a trace-based slack is a statement about the vectors; say so in the number's own sentence.
+### progress 08:36 -- MARGINS from C15/C18 (items 30-32); item 29 blocked by A's decoder (DSP48E1)
+Items 30-32 filled from C's results (item 32: the ulink_n13 kernel race again, +3,861 ps at research's SDF). **Item 29
+(ipow, research's board candidate) cannot be analysed: decode_base.py refuses DSP48E1 sites.** That gap is A's. What a
+model needs: the DSP's configuration from the FASM (AREG/BREG/MREG/PREG, OPMODE, the used ports), and for the
+combinational use bdc makes of it (BD_DSP=1) a data element whose output may take any value between an input change
+and a settle bound (prjxray has no DSP timing in the band tables used so far: the bound must come from somewhere
+stated). Not started this session (usage); next A session's first candidate if research keeps item 29.
