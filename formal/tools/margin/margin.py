@@ -203,6 +203,7 @@ with open(os.path.join(a.out, "margins.txt"), "w") as f:
                 "quiet@%.2f" % x["kquiet"] if x.get("kquiet") is not None else "quiet:none<=%.2f" % a.khi, (x["note"] or "-").replace(" ", "_"),
                 ",".join("%s/%d" % (n, p) for n, p in x["arcs"])))
 summ = []
+if os.path.exists(os.path.join(a.out, "witness", "command.txt")): os.unlink(os.path.join(a.out, "witness", "command.txt"))
 for w in sorted({x["w"] for x in rows} | {a.w}, reverse=True):
     rw = [x for x in rows if x["w"] == w and x["kfail"] is not None]
     if not rw:
@@ -215,7 +216,7 @@ for w in sorted({x["w"] for x in rows} | {a.w}, reverse=True):
     summ.append("w=%d: candidate kappa_hi = %.2f (search, untrusted, NOT yet checked: see checked.txt)  race: %s pin %d (cell %s) slow route from %s; kind %s; %d races fail <= %.2f"
                 % (w, b["kfail"], b["node"], b["pin"], b["name"], b["src"], b["kind"], len(rw), a.khi))
     if b.get("kquiet") is not None: summ.append("  first quiet (finite) failure of that race: kappa %.2f" % b["kquiet"])
-    if w == a.w:   # the witness: at kappa_fail (command + verdict) and, if any, at the first quiet kappa (with dump)
+    if not os.path.exists(os.path.join(a.out, "witness", "command.txt")):   # the witness of the first w with a failure (checkrows needs its command): at kappa_fail and, if any, at the first quiet kappa (with dump)
         wd = os.path.join(a.out, "witness"); os.makedirs(wd, exist_ok=True)
         json.dump({"S": b["arcs"], "F": []}, open(os.path.join(wd, "classes.json"), "w"))
         with open(os.path.join(wd, "command.txt"), "w") as f:
