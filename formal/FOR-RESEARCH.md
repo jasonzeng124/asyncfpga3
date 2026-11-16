@@ -31,8 +31,12 @@ latch enable: 4 LUTs + 16 routing, 850 ps, SDF 1985. Slack **+110 ps fast mid, +
 short-ring error), and -93 ps at the worst split inside the fast band** (A at its band maximum, B at its minimum). So
 merge1's matched delay (two elements here) covers its data by about 0.1-0.4 ns. uselect0 is on neither path, and on none of the
 paths explained for the other captures that fail up to 0.90 (ulink_n14__1 at 0.82, +1679 ps SDF; three others at
-0.84-0.88 with 2.2-9.6 ns of SDF slack; three more traces were rejected as inconsistent). So uselect0's own line is
-not among the races this search breaks; its slack in ps is still not computed. **Checked (farm c_verify1): this race alone does
+0.84-0.88 with 2.2-9.6 ns of SDF slack; three more traces were rejected as inconsistent). **uselect0's line itself (farm c_margin_usel3, `conenames.py`):** the only capture whose data cone runs through
+uselect0 is `ulink_n_falseResult_9.many.stage[0]` (32 latch bits; cone includes uselect0's data LUTs and `uselect0.uz_n29`).
+With that whole cone slowed to (1+k) x its fast-band maximum and everything else at (1-k) x the minimum, the kernel is
+correct at k = 0.45 (20 ps filter; fm_c_margin_r12 task 7) and the run at k = 0.90 is undecided (event cap). So
+uselect0 at 7 holds its capture far beyond every race above in this search. Its slack in ps is not computed (the tool
+traces races it breaks). **Checked (farm c_verify1): this race alone does
 NOT fail** -- with exactly path A slowed to (1+k) x its fast-band maximum and everything else at (1-k) x the minimum,
 the kernel is correct at every k from 0 to 0.45. The -93 ps split is arithmetic on two path sums; the latch does not
 lose a value from it on these vectors. The cone failure at 0.46 needs more of the data cone slow at once. Same

@@ -3744,3 +3744,7 @@ unmapped). uselect0 not on any broken path below 0.82.
   C12 updated: host-timing-dependent although both paths are internal.
 * Lesson for the tool: a negative "worst in-band" slack from explain.py is a path-sum bound, not a failure; only
   --verify-path (or the adversary) says whether the race bites. explain.py's output says this from now on.
+
+### progress 06:16 -- uselect0's capture on fcsel3a s20 holds to kappa 0.45 (undecided at 0.90); C15 answers research's ask
+conenames.py (c_margin_usel3): the only latch group with uselect0 in its data cone is ulink_n_falseResult_9 st0 (32 bits).
+It passes at 0.45 (w 20) in r12's full sweep and is undecided (event cap) at 0.90 in usel3. Answered in C15.
