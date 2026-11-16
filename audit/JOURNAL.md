@@ -2674,3 +2674,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T131 printed nothing: the stalled run is killed by its timeout and vvp's piped stdout is lost (T118 likewise printed no batch lines).
   - mon_x now $fflush-es and $finish-es itself at 5 us (research puts the first X near 1.65 us). Rerun.
 - research c5cbaaf82: fxa complete (xorshift 18.9 ns, M rows as its family); collatz64 entry-link delay rejected (breaks hold). Exploratory.
+
+### progress 08:50
+- T131 own X trace of the T118 build:
+  - umux1's join select pins are X until 1.6505 us;
+  - either goes X at 1.6477 us and z_req at 1.6491 us (first token);
+  - nothing changes after 1.655 us.
+- T118's negative control is WITHDRAWN (X artifact); research's correction is CONFIRMED on own replay. Rule E has no known-bad build.
