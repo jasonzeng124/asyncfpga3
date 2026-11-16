@@ -3748,3 +3748,11 @@ unmapped). uselect0 not on any broken path below 0.82.
 ### progress 06:16 -- uselect0's capture on fcsel3a s20 holds to kappa 0.45 (undecided at 0.90); C15 answers research's ask
 conenames.py (c_margin_usel3): the only latch group with uselect0 in its data cone is ulink_n_falseResult_9 st0 (32 bits).
 It passes at 0.45 (w 20) in r12's full sweep and is undecided (event cap) at 0.90 in usel3. Answered in C15.
+
+### progress 06:29 -- c_min1 back (steer races minimised to 13-31 arcs, still not two-path races); c_fbroutes filed
+MINIMIZE=1 on the steer-cone races (item 27 0.28 / 0.35, fcsel0 s24 0.37, fcsel3m s2 0.35 / 0.37; host 2 ns): ddmin
+shrinks 378-1771 slow arcs to 13-31 (budget 300 simulations; 1-minimal on fcsel3m s2), but explain.py on the minimal
+rows finds either no moved arrival or an INCONSISTENT pair at the steer's C-element: these failures are not a race of
+two paths into one storage LUT as the explainer models it. Reported as found-not-explained.
+c_fbroutes: the C13 controller-feedback race over 16 routes of item 28's structure and 16 of item 27's (static
+fbslack.py on each build's SDF; no simulation).
