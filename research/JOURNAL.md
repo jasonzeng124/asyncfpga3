@@ -5232,3 +5232,11 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   collatz64 15/19/14 -> 3/6/3 (h4s3). Farm fisel3 / fc64sel3, every check.
   PREDICTION: E clean on >= 30/32 each; latency vs the h4 base, paired: ipow -2.5 to -3.5 ns per iteration (sel0 -3.9),
   collatz64 -1.0 to -1.7 (sel0 -1.9). If so, each is that family's next board candidate.
+### progress 03:16 UTC (selneg: +3000 ps is near the threshold on routes whose select line is long; selneg2)
+- Local check of selneg's pipeline on x27_2 (item 27's route rebuilt here: sdf a9bdac53 = the board route; EQUIVALENT,
+  static clean): +3000 ps on ulink_n12__1's select into umux1.uj0 / uj1 gives rule E only -318 / -290 ps at worst.
+  The join's other input is the select link's own request through its 8-element line (3512 ps), so a select line
+  longer than the injection absorbs most of it. (On fcsel0 s24 the line was 0, hence -3345.) So +3000 on selneg's
+  routes is a near-threshold point: E fires a little, and the gate may well pass -- that row would show E stricter
+  than the gate, not a control. Farm selneg2: the same 14 tasks at +6000 and +12000 ps (past every select line,
+  1.2-9.2 ns), gates at FAST_MIN and worst.
