@@ -2725,3 +2725,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T130d item 33 worst z_data (state A): umux0 0/2624, umux1 0/2624, umux3 0/34; umux2 0 earlier.
   - Research's claim (rule M rows umux1 -113 / -192, umux0 -71 are static pessimism; data leads z_req on every token) is **CONFIRMED** dynamically at FAST_MIN and worst on own vectors.
 - T126k item 33: gate FAST_MIN / worst 17/17 (oracle agreement lines checked), 0 latch / steer violations, min latch setup 5107 / 6913. SLOW_MAX, period and rules H/E are running.
+
+### progress 10:15
+- research e13b762d9 / 421df1aa9: META_INIT (defined start-up) validated.
+  - The join injection now PASSES; the data-LUT injection still FAILS; the clean gate is unchanged.
+  - Formal C17 is confirmed. Farm selneg3 queued.
+  - Consistent with own T131 (join failure = start-up X). Not replayed.
+- T126k item 33: SLOW_MAX GLS running.
