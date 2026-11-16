@@ -11,8 +11,8 @@ name a failing row of margins.txt (PIN 99 / 100+i for cone rows). The tool
    two runs, at time t*;
 3. finds the two RACING ARRIVALS at that LUT: the arrival the adversary delayed (on a slowed pin, or the latest-moved
    arrival) and the arrival on another pin that overtook it in the witness;
-4. traces both back, flip by flip (output flip at t caused by the input flip at t - d), in the REFERENCE run to their
-   common launch (the SPLIT: the latest flip both depend on);
+4. traces both back, flip by flip (output flip at t caused by the input flip at t - d), in the WITNESS run (the failing
+   behaviour, with its delays) to their common launch (the SPLIT: the latest flip both depend on);
 5. reports both paths from the split to the capture: every arc with its prjxray band, cells (LUT, MUXF, CARRY) and
    routing (pips, hops) apart; the slack at the band MIDPOINTS (fast corner and slow corner) and at nextpnr's SDF when
    --sdfmap is given; and the slack as a multiple of the measured delay error (8.5 % median ring error, August ring
@@ -137,36 +137,64 @@ def single_race():
     ajw, pj, uj = over[0]
     print("RACE at %s: pin %d (delayed %d ps by the adversary: reference arrival %d, witness %d) against pin %d (arrival %d)" %
           (N[gq["out"]], pi, dly, air, aiw, pj, ajw))
-    return pi, air, pj, uj
+    return pi, (gq["ins"][pi], ui_w), pj, (gq["ins"][pj], uj)
 def cone_race():
-    """cone rows (a setup / capture race): in the reference the latch takes a data change at t*; the witness's data
-    (its cone slowed) misses the close that follows. Path A = that data arrival, path B = the enable arrival closing
-    the latch next."""
+    """cone rows (a setup / capture race). The slowed cone shifts the witness's whole timeline, so the runs are aligned
+    by CAPTURE COUNT: the k-th close of the latch (enable arrival with its holding value) in each run. The first k whose
+    captured value differs is the failure; in the witness, path A = the first data-pin arrival after that close (the
+    data that came too late), path B = the enable arrival that closed the latch."""
     srcs = set(idx[x] for x in rowsrc.split("+") if x in idx)
     def src0(u):
         while u in drv and is_copy(G[drv[u]]): u = G[drv[u]]["ins"][0]
         return u
-    en = [p for p, u in enumerate(gq["ins"]) if src0(u) in srcs]
-    if not en: sys.exit("cone row: no pin of %s comes from the group's enable source %s" % (N[gq["out"]], rowsrc))
-    if tstar not in flips(R, gq["out"]):
-        sys.exit("cone row: the reference latch does not change at t* (%d); this capture form is not handled yet" % tstar)
-    dat = [x for x in ar if x[1] not in en and x[0] <= tstar]
-    if not dat: sys.exit("cone row: no data arrival before t*")
-    air, pi, ui = max(dat)
-    cl = [x for x in ar if x[1] in en and x[0] > air]
-    if not cl: sys.exit("cone row: no enable arrival after the data")
-    ae, pj, uj = min(cl)
-    print("RACE (capture) at %s: data pin %d arrives %d ps (reference) and must beat the enable pin %d closing the latch at %d ps (setup %d ps in the reference); the witness's data misses it" %
-          (N[gq["out"]], pi, air, pj, ae, ae - air))
-    print("  (path A below is the REFERENCE run's critical data path into that pin; the cone adversary slows every data path,"
-          " so the one that loses in the witness can be another, longer one inside the cone)")
-    return pi, air, pj, uj
+    o = gq["out"]; srcp = [src0(u) for u in gq["ins"]]
+    en = [p for p, u in enumerate(srcp) if u in srcs]
+    fb = [p for p, u in enumerate(srcp) if u == o]
+    if not en or not fb: sys.exit("cone row: %s has no enable pin from %s or no feedback pin" % (N[o], rowsrc))
+    e, f = en[0], fb[0]
+    k, I = gq["k"], gq["init"]
+    hv = [v for v in (0, 1) if all(((I >> x) & 1) == ((I >> (x ^ (1 << f))) & 1) for x in range(1 << k) if ((x >> e) & 1) == v)]
+    if not hv: sys.exit("cone row: no holding value of the enable pin")
+    hv = hv[0]
+    def closes(D, slow):
+        u = gq["ins"][e]; d = delay(q, e, (q, e) in slow); v0_, fl = D.get(u, (False, []))
+        out = []
+        for i, t in enumerate(fl):
+            nv = v0_ ^ (i % 2 == 0)
+            if nv == hv: out.append((t + d, t))
+        return out
+    def val(D, n, t):
+        v0_, fl = D.get(n, (False, [])); return v0_ ^ (bisect.bisect_right(fl, t) % 2 == 1)
+    cr, cw = closes(R, set()), closes(W, SL)
+    kk = None
+    for i, ((tr_, _), (tw_, _)) in enumerate(zip(cr, cw)):
+        if val(R, o, tr_ + 400) != val(W, o, tw_ + 400): kk = i; break
+    if kk is None:
+        if len(cw) < len(cr):
+            sys.exit("cone row: the latch %s captures the same values in both runs but closes only %d times in the witness (%d in the "
+                     "reference): the witness STALLS (deadlock / livelock) before its next capture; it is not a wrong capture at "
+                     "this latch, and this tool does not trace stalls yet" % (N[o], len(cw), len(cr)))
+        sys.exit("cone row: every capture of %s holds the same value in both runs (%d / %d closes)" % (N[o], len(cr), len(cw)))
+    tcw, ucw = cw[kk]
+    dat = [p for p in range(k) if p not in en and p not in fb]
+    late = []
+    for p in dat:
+        u = gq["ins"][p]; d = delay(q, p, (q, p) in SL)
+        for t in flips(W, u):
+            if tcw < t + d <= tcw + 20000: late.append((t + d, p, t)); break
+    if not late: sys.exit("cone row: no data arrival after the %d-th close in the witness" % kk)
+    adw, pi, udw = min(late)
+    print("RACE (capture) at %s: close #%d (enable pin %d) at %d ps in the witness; data pin %d changes %d ps AFTER it (the reference "
+          "captured the new value: close at %d ps)" % (N[o], kk, e, tcw, pi, adw - tcw, cr[kk][0]))
+    return pi, (gq["ins"][pi], udw), e, (gq["ins"][e], ucw)
 rowsrc = None
 for l in open(os.path.join(O, "margins.txt")):
     f = l.split()
     if len(f) > 4 and not l.startswith("#") and f[1] == a.node and f[2] == str(a.pin): rowsrc = f[3]; break
-pi, air, pj, uj = cone_race() if a.pin >= 99 else single_race()
-# back-trace in the REFERENCE run: the cause DAG. A flip of node n at t (gate g) depends on, for each pin p that g's
+pi, A0, pj, B0 = cone_race() if a.pin >= 99 else single_race()
+# both paths are traced in the WITNESS (the failing behaviour, its delays); their nominal delays are then summed below
+TR = W
+# back-trace in the WITNESS run: the cause DAG. A flip of node n at t (gate g) depends on, for each pin p that g's
 # INIT depends on, the last flip of that input at or before t - d_p (within a window). The split is the latest flip that
 # is an ancestor of both racing arrivals; each path is the critical chain (latest arrival at every gate) from it.
 def dep(g, j):
@@ -183,14 +211,14 @@ def parents(n, t):
         if n not in BDATA: return []
         out = []
         for b in BACKS:
-            fl = flips(R, b); i = bisect.bisect_right(fl, t - 1) - 1
+            fl = flips(TR, b); i = bisect.bisect_right(fl, t - 1) - 1
             if i >= 0 and fl[i] >= t - WIN: out.append(((b, fl[i]), None, 0, t - fl[i]))
         return out
     if n not in drv: return []
     gi = drv[n]; g = G[gi]; out = []
     for p, u in enumerate(g["ins"]):
         if not dep(g, p) and not is_copy(g): continue
-        d = delay(gi, p, False); fl = flips(R, u)
+        d = delay(gi, p, (gi, p) in SL); fl = flips(TR, u)
         i = bisect.bisect_right(fl, t - d) - 1
         if i >= 0 and fl[i] >= t - WIN: out.append(((u, fl[i]), gi, p, d))
     return out
@@ -205,8 +233,7 @@ def nearflip(n, t):
     fl = flips(R, n)
     if not fl: return None
     i = min(range(len(fl)), key=lambda k: abs(fl[k] - t)); return (n, fl[i])
-A0 = nearflip(gq["ins"][pi], air - delay(q, pi, False)); B0 = nearflip(gq["ins"][pj], uj)
-if A0 is None or B0 is None: sys.exit("racing input flips not found in the reference run")
+if A0[1] not in flips(TR, A0[0]) or B0[1] not in flips(TR, B0[0]): sys.exit("racing input flips not found in the witness run")
 AA, AB = ancestors(A0), ancestors(B0)
 common = [x for x in AA if x in AB]
 def show(S0, lab):
