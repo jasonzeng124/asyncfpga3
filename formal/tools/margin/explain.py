@@ -109,7 +109,14 @@ if not cands: sys.exit("no storage LUT diverges between witness and reference")
 cands.sort()
 for t, gi in cands[:8]: print("  diverges: %-22s at %d ps%s" % (N[G[gi]["out"]], t, "  <- the row's storage LUT" if N[G[gi]["out"]] == a.node else ""))
 own = [(t, gi) for t, gi in cands if N[G[gi]["out"]] == a.node]
-# a single-pin row names its storage LUT: explain the race there; a cone row: the first diverging storage LUT
+if a.pin < 99:
+    # a single-route row: the slowed route can end at several storage LUTs (one enable route into many latch bits);
+    # the race bites first at the earliest-diverging of them, before the two timelines drift apart
+    sinks = [(t, gi) for t, gi in cands if any((gi, p) in SL for p in range(G[gi]["k"]))]
+    if sinks and (not own or sinks[0][0] < own[0][0]):
+        print("  (the slowed route also ends at %s, which diverges first: explaining the race there)" % N[G[sinks[0][1]]["out"]])
+        own = sinks[:1]
+# a cone row: the first diverging storage LUT of its latch group; a steer row (pin 100+i): its storage LUT
 if a.pin >= 99 and os.path.exists(os.path.join(O, "cones.json")):
     # a cone row: the capture is one of the group's latch bits (the cone feeds their data pins), not whatever
     # storage LUT diverges first downstream
@@ -225,7 +232,7 @@ rowsrc = None
 for l in open(os.path.join(O, "margins.txt")):
     f = l.split()
     if len(f) > 4 and not l.startswith("#") and f[1] == a.node and f[2] == str(a.pin): rowsrc = f[3]; break
-pi, A0, pj, B0 = cone_race() if a.pin >= 99 else single_race()
+pi, A0, pj, B0 = cone_race() if a.pin == 99 else single_race()   # steer rows (100+i): their pin i is the slowed one
 # both paths are traced in the WITNESS (the failing behaviour, its delays); their nominal delays are then summed below
 TR = W
 # back-trace in the WITNESS run: the cause DAG. A flip of node n at t (gate g) depends on, for each pin p that g's
@@ -311,6 +318,13 @@ else:
         return list(reversed(path))
     pa = crit(A0, AA) + [(q, pi, None)]; pb = crit(B0, AB) + [(q, pj, None)]
 sn, st = sp
+for lab, pth in (("A", pa), ("B", pb)):
+    gs = [x[0] for x in pth if x[0] != "ENV"]
+    if len(gs) != len(set(gs)):
+        print("\nUNRELIABLE: path %s revisits gates (%d arcs): the two arrivals are separated by whole trips around a loop, so"
+              " this is not a race between two paths from one launch (typical of a steer cone, whose slowed cone shifts a whole"
+              " handshake cycle). No slack is reported for this row." % (lab, len(pth)))
+        sys.exit(0)
 sdf = json.load(open(a.sdfmap)) if a.sdfmap else None
 _u = sn
 while _u in drv and G[drv[_u]]["kind"] not in CELL: _u = G[drv[_u]]["ins"][0]

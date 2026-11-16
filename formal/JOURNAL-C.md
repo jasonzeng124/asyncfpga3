@@ -3639,3 +3639,15 @@ its latch -> umux1 data -> pin): +1348 / +965 worst in-band / +3131 SDF. researc
 item 26: enable route 12 routing arcs (SDF 1975); B SDF 4523: +1215 / +710 / +2548. The kappa is the slack ratio:
 (1872 - 1162)/(1872 + 1162) = 0.23 ~ the 0.26 found. falseResult_7 st0 hang on item 28 unchanged with trigger chains
 (+454 / +335 / +1117). fcsel1 s24 task 1 of c_explain6 produced no explain file (to check).
+
+### progress 04:55 -- c_margin_host2 (host 2 ns: kernel races only) back; explain.py fixes for single-route sinks and steer rows
+host2 (HOSTDELAY=2000; finite kernel races, w 20 / w 0): item 28 0.42 (ulink_n13, unchanged: a kernel race); item 27 0.39
+(olink capture, unchanged); item 26 0.26 (ulink_n13); fcsel0 s24 0.37 (steer cone, got [0]); fcsel1 s24: NONE (its
+falseResult_3 race was a boundary race; only the 0.09 controller hang remains); fcsel3m s2 0.37 / 0.35 (steer cones);
+fcsel3m s24 0.27 (ulink_n10__3 pair[20]: a single-route race, explanation failed, see below). item 25: task ran 3 min,
+no kappa_hi file (to check). The falseResult_7 controller hangs remain on every collatz route (kernel races).
+explain.py: (1) a single-route row is explained at the earliest-diverging storage LUT at the END of its slowed route
+(an enable route feeds many latch bits; the row's own bit can diverge microseconds later, after the runs drift);
+(2) steer rows (pin 100+) go through the single-route logic, and any path that revisits a gate is reported UNRELIABLE
+with no slack (item 25's steer cone: 757-arc "paths" around the loop). Farm explanations for steer rows in host2
+said "no holding value" (old routing to the latch-group code): superseded.
