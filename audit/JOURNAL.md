@@ -2519,3 +2519,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - own static rule H at falseResult_9 stage 1: -31 / -12 / +245 (OR-join).
 - Dynamic check t126/hdyn31.sh started.
 - Item 32's GLS now starts (T126f).
+
+### progress 06:35
+- research 72d0a3eac: +8000 select -> umux0.udat on item 28's route. Rule M -5503 at worst; rule E has no negative row; gate FAST_MIN not completing.
+  - This supports the own reading for items 30/31: the select's path to the data LUTs is not covered by E.
+  - Research still reports no rule M result for the board seeds of items 30-32. The local run is not replayed by the audit.
+- research nl6s3b (farm fcsel3b) is exploratory.
