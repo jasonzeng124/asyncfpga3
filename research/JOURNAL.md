@@ -5670,3 +5670,11 @@ Next:
 - Net effect on the checks: rule E has no genuine known-bad build on the select-join race (it may be benign at
   loop-header muxes); rule M has real ones (defined wrong answers). BOARD-QUEUE items rest on E (arrival at steers and
   joins) + M (mux data) + H / I / hold_bits / TSE (hold) + the gate.
+### progress 10:14 UTC (+META_INIT fixed: the join injection passes, the data-LUT one fails, clean unchanged)
+- fid_core.vh +META_INIT now also holds a state node's value against X evaluations until +META_INIT_T (default 5 ns, after
+  the harness reset). Item 28's route, FAST_MIN, gate col13: select -> umux0 join +3000: PASS 13/13 with META_INIT=0 and
+  with =1 (2913 cycles; clean 2906: the 3 ns delay, nothing else); select -> umux1.udat +8000: FAIL 7/13 (the real
+  failure stays); clean: PASS 13/13, 2906 cycles (unchanged). So the select-join "failures" were start-up X, now shown
+  both ways, and formal's C17 is confirmed. Default simulation unchanged (opt-in).
+- Farm selneg3: selneg2's join injections (+6000 / +12000) with GATE_PLUSARGS=+META_INIT=0. PREDICTION: at loop-header
+  muxes every run passes; a failure, if any, is at a mux whose two requests can be pending together.
