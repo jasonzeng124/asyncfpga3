@@ -2863,3 +2863,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 19:42
 - research a72e1232a: farm draws1 queued (board candidates over 32 draws of draw:K, plus a late-steer control). To audit when results land: draw count, honesty of draws (seeds, independence), full input range, and the passing fraction against the model's error on board data.
+- Pre-result note on draws1 (read from research/cluster/requests/draws1.sh):
+  - The draw range for chains / rest is uniform [0.20, 0.31]. Its LOWER edge sits barely below the board's measured kernel x (gcd 0.209-0.216; ipow / collatz / collatz64 / isprime 0.215-0.229; the shortest collatz64 vector 0.200, quantized). Rings sit at 0.267-0.313.
+  - Fast-side (hold-type) races are therefore sampled only to about 4 % below the board: a race that fails a little faster than the August board (colder, higher supply) would not show.
+  - The control's +3000 half "fails only at FAST_MIN, which no draw reaches" by design.
+  - SIM-VS-BOARD row 10 (voltage / temperature) says this is "covered only by the band ranges". The audit reads the range's lower edge as thin on that side.
+  - To weigh when the passing fractions come back.
