@@ -11,6 +11,18 @@ named here decodes EQUIVALENT (or only the benign GND-buffer kinds). If the md5 
 the full stack's equivalence on it before using the board (cells/gls/ps/build_ps.sh HWDIR WORK "" bit prints the
 fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('const', 0) bits ('const', 1)").
 
+## 2026-11-16: rule M (new) -- the bd_mux data outputs were never checked; items 27, 29, 30, 32 have misses
+corner_audit now checks every bd_mux's 32 / 64 data outputs against its output request (rule M, the A rows marked
+"peers no common source reaches"; JOURNAL 2026-11-16). Before, tighten's rule A paired the request with a trivial peer
+and never measured the data outputs, so the mux delays (BD_SZ_*_UMUXn) were sized to nothing. On each board family's
+32 routes: **collatz item 31: no miss** (28 too). **xorshift item 27**: umux0/1/2 on 23/29 routes, to -734 ps (board
+seed 2: umux1 -13 nom / -117 worst). **ipow item 29**: umux2 on 15/19, to -780 (board seed 19: -279 / -382).
+**collatz64 items 30 / 32**: umux0 on 32/32, -0.6 to -2.4 ns (item 30's seed 10: -1231 / -1321). Every gate passes.
+Measured in simulation on item 30's route (FAST_MIN): the data changes after the request on 352 of 458 tokens, by up to
+155 ps; consumers are link latches, so the cost is a later Q downstream, which no check accounts for. Treat items 29,
+30, 32 (and 27 at its small margin) as provisional until either the downstream margins are shown to absorb the
+measured lateness or the mux delay is padded (farm fc64sel3m: collatz64 with umux0 padded to M, running).
+
 ## Full-input-range status (owner rule 2026-11-14; research/JOURNAL.md 2026-11-14)
 
 **2026-11-15 (evening) CORRECTION: rule E rows on muxes and steers were never read.** eval_task.sh's static summary
