@@ -2403,3 +2403,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Item 26 (select link 15, same structure) has umux0 at +2434 ps and 0 such changes. umux1/umux2 on item 30 are clean (+2805 / +106).
 - MUXMON does not look at z_ack (T116 lesson), so running mon_sel (A = req=1/ack=0 vs B/C) at FAST_MIN: t126/sel30.sh.
 - Own rule E for item 30 is still to come in the T126 pipeline.
+
+### progress 05:36
+- T126d: the first mon_sel run found no z_ack wire for umux0/umux2. Resolved:
+  - umux0's z_ack n9_ack is ufork3's top C-element = bridge_i.udut.n14__0_ack;
+  - umux2's is out0_ack = bridge_i.bench_o_ack.
+- Restarted with ZACKS (t126/sel30.sh).
+- formal C 5b58c64dd queues a capture-cone farm on fcsel3a s20 (item 31's uselect0); no result yet.
