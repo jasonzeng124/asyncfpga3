@@ -328,7 +328,6 @@ int main(int argc, char** argv) {
             }
             ll df = d;
             if (k == 'S') { df = ((KD - PK) * FN + KD - 1) / KD; if (W && glut[g] && df < W) df = W; }
-            { auto ij = INJ.find({gout[g], i}); if (ij != INJ.end()) { d += ij->second; df += ij->second; NINJ++; } }
             if (DRAWON) {   // board approximator: band position, lognormal region and per-arc factors (no adversary)
                 double band = DBAND, f;
                 if (GCLF) {   // research's model (FOR-FORMAL 2026-11-16): band per class; pips: per-pip scatter; all: region
@@ -341,6 +340,7 @@ int main(int argc, char** argv) {
                 if (W && glut[g]) { if (d < W) d = W; his[a] = (double)d; }
                 df = d;
             }
+            { auto ij = INJ.find({gout[g], i}); if (ij != INJ.end()) { d += ij->second; df += ij->second; NINJ++; } }
             ds[a] = (int)d; dsf[a] = (int)df;
         }
     }

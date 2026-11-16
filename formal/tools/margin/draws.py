@@ -32,6 +32,7 @@ ap.add_argument("--model", default="research", choices=["research", "fid"],
                 help="research: research's draw K (FOR-FORMAL 2026-11-16; bands per class from Random(7919K+17), region 0.02, "
                      "per-pip 0.126); fid: one band for all (--band), region --sreg, per-arc --sarc")
 ap.add_argument("--routed", default=None, help="routed.json (research model: delay-chain cells by name)")
+ap.add_argument("--inject", default=None, help="simx classes JSON with an 'I' list [[node, pin, ps], ..]: extra delay on those arcs (a negative control; not a model draw)")
 ap.add_argument("--wallcap", type=int, default=1800); ap.add_argument("--maxev", default="100000000")
 a = ap.parse_args()
 os.makedirs(a.out, exist_ok=True)
@@ -99,7 +100,7 @@ def run(seed):
            "--pairs", *a.pairs, "--kernel", a.kernel, "--corner", "0", "--data0", "--full", "--R", "400000", "--su", "1000",
            "--datachange", "broad", "--nextreq", "seq", "--tmax", str(a.tmax), "--draw", str(seed), "--band", str(a.band),
            "--sreg", str(a.sreg), "--sarc", str(a.sarc), "--regsize", str(a.regsize)] + (
-           ["--gclass", GCL, "--bands", "%.6f,%.6f,%.6f" % bands(seed)] if GCL else []) + (["--w", str(a.w)] if a.w else [])
+           ["--gclass", GCL, "--bands", "%.6f,%.6f,%.6f" % bands(seed)] if GCL else []) + (["--classes", a.inject] if a.inject else []) + (["--w", str(a.w)] if a.w else [])
     t0 = time.time()
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=a.wallcap)

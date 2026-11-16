@@ -90,7 +90,7 @@ if [ -n "${DRAWS:-}" ]; then
   python3 "$H/draws.py" "$O/net.json" "$O/bnd.json" "$O" --kernel "$KERNEL" --pairs $PAIRS --draws "$DRAWS" --jobs "$JOBS" \
     --w "${DRAW_W:-20}" --hostdelay "${HOSTDELAY:-12000}" --seed0 "${DRAW_SEED0:-1}" --tmax "${TFULL:-25000000}" --maxev "${SIMX_MAXEV:-1000000000}" \
     $([ -n "${DRAW_BAND:-}" ] && echo --band $DRAW_BAND) $([ -n "${DRAW_SREG:-}" ] && echo --sreg $DRAW_SREG) \
-    $([ -n "${DRAW_SARC:-}" ] && echo --sarc $DRAW_SARC) --model "${DRAW_MODEL:-research}" \
+    $([ -n "${DRAW_SARC:-}" ] && echo --sarc $DRAW_SARC) --model "${DRAW_MODEL:-research}" $([ -n "${DRAW_INJECT:-}" ] && echo --inject "$DRAW_INJECT") \
     $([ -f "$O/routed.json" ] && echo --routed "$O/routed.json") 2>&1 | tee -a "$O/run.log"
   log "done: $O/draws_summary.txt $O/draws.txt"; exit 0
 fi
