@@ -5881,3 +5881,8 @@ on a ctl input in our GLS (already on the Next list).
   every batch from batch 13 (1000 rounds) on. These are the draw model's first failures on a clean route: the size-side
   edge lies near x0.40 for some routes. x0.55 / 0.55c have passed every draw so far (68 + 52).
 - 23:47 farm shrink5: x0.55a / x0.50a (every size but UADDI0), routes 1-32, 4 draws each. PREDICTION: x0.55a passes >= 126/128 on defect-free routes; x0.50a loses a few; P median x0.55a ~17 ns.
+### progress 23:57 (draws1 done: the draw model fails its known-bad build 16/16)
+- Control on item 27's route, ucond_br6's condition late (SDF only): +3000 ps 16/16 draws PASS (it failed only at FAST_MIN,
+  outside the model's band range); +8000 ps 0/16 (every draw: no completion in 100 min). PREDICTION met on both halves.
+- Board candidates' pass fractions (draws1, above) stand: 216/216 draws over 7 items, no mismatch latch.
+- shrink4 so far: x0.30a fails 1 of 4 on route 9 (draw 902 hangs); x0.40a 2 of 4 on route 14; every other route 4/4.
