@@ -2275,7 +2275,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Own injector t125/inject.py, copy /root/t65/cs3inj2_20.
   - GLS at FAST_MIN and worst with the pin-level select monitor.
 
-### progress 04:10
+### progress 04:05
 - formal A 47f9d9e15 gives picosecond races for items 25 and 26.
   - Item 26: ulink_n13 race, slack 1209 ps at fast mid. Own static rule H on ulink_n13 (T113 rows): 592 / 707 / 1896 at FAST_MIN / worst / SLOW_MAX.
   - Item 25: input boundary, 1193 ps at fast mid. Own input_hold.py on coleq_24: min 360 / 608 / 1314 ps (pair[20], bit 21).
