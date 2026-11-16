@@ -2265,3 +2265,12 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - formal A9's ps column traced only vectors with bits <= 17. It names pair[16] (616 ps at fast mid); the full-range binding bit is pair[26].
 - On item 28 the input race is tighter than the internal ulink_n13 race at FAST_MIN (771 vs 929, own static). A8's "first race internal" is vector-limited.
 - Logged as OVERSTATED (full range); mechanism CONFIRMED. All slacks are positive, and the board PS is µs slow, so there is no board hazard.
+
+### progress 04:00
+- T124a, FAST_MIN half: item 28 dynamic rule H (mon_h, H_THRESH 3000).
+  - ulink_n13: min D-after-release minus close is **1610 ps** over 40960 closes; 0 HVIOL; oracle 13/13.
+  - formal A8 gives 1343 ps at the fast-window mid (3 traced vectors). Formal's figure is the more conservative one, not overstated.
+  - SLOW_MAX is running.
+- T125 started: own replay of research selneg task 14 (item 28 umux2, select latch ulink_n_index_11 stage 1 -> uj0/uj1 A5, +3000 ps).
+  - Own injector t125/inject.py, copy /root/t65/cs3inj2_20.
+  - GLS at FAST_MIN and worst with the pin-level select monitor.
