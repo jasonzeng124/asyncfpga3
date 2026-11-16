@@ -3666,3 +3666,9 @@ checkrows. item 25's steer-cone row (ulink_n_index_11 st0 ctl, SLICE_X14Y22.A6 p
 through CLBLM_L_X12Y26): the hang needs about four slow routes at once, not the whole cone. explain.py on the minimised
 row still finds no two-path race (the arrivals at the controller descend one from the other: UNRELIABLE), so this
 class stays "found, not explained". explain.py now treats rows with pin >= 200 like single-route rows.
+
+### progress 05:01 -- research FOR-FORMAL 1b00b6ae (answers to C8/C10, next build) read; farm c_margin_r12 filed
+Research asks for C10's margins with the host's operand release bounded by one PS clock (12 ns) as well as broad, and
+a margin at uselect0's line (data vs request) on its new build fcsel3a seed 20 (sdf 7aefc4bd: item 28 with uselect0
+16 -> 7, uaddi0 12 -> 9). simx --hostdelay is exactly the first; c_margin_r12: fcsel2 s1/s2, fcsel1 s24/s1, fcsel0 s24
+with H = 12000; fcsel3a s20 with H = 1 and 12000; item 28 with 12000; all classes, explained at the SDF, fbslack.
