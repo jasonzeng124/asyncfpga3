@@ -2714,3 +2714,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T126k item 33 z_data: only umux2 was mapped (0 late of 2570 / 2624 tokens at FAST_MIN / worst). umux0/1/3, the muxes research's M rows name, were unmapped.
 - z_ack resolved by hand: umux0 n12__0_ack (uforkdec0 C-element), umux1 n12__1_ack (ulink_n8 uack), umux3 bench_o_ack. Rerun t130/run33.sh.
 - research e6f81b328: META_INIT validation, a start-up initialization for the X problem. Their negative control holds; the join injection still hangs; tracing. Tooling.
+
+### progress 10:01
+- T130d item 33 FAST_MIN z_data (state A): umux0 0/2570, umux1 0/2570, umux3 0/33, plus umux2 0/2570 earlier.
+  - Research's "rule M rows are pessimism on this route" holds dynamically at FAST_MIN. Worst is running.
+- T126k item 33 mon1_fastmin: 0 latch / steer violations, min latch setup 5107. Further corners running.
+- research 6491470fc (journal): the join hang is start-up X; META_INIT does not reach the unreset latch (not a fix). Consistent with T131.
