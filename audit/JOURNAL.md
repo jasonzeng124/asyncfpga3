@@ -2876,3 +2876,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - regate1 (xorshift) so far 162/162 PASS.
   - Consistent with own T134 (board seeds of 28 / 30 / 31 / 32 clean with n = 1).
 - draws1 is still queued (farm task limit).
+
+### progress 20:46
+- research 88b0cab41: farm shrink2 queued (collatz item 31's sizes scaled, judged by draws); regate1 nearly done, all clean. No claim yet. draws1 still pending.
