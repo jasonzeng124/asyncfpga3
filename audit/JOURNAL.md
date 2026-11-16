@@ -2483,3 +2483,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - own period **21.280 ns** (latency 468 = research's) vs item 28 25.840: **ratio 1.214**. Research predicted ~1.21 (25.81 vs 21.27). CONFIRMED.
   - GLS running.
 - T126f item 32: own sdf **842dd4d7 = recipe**, usinkeq2 1, FF clean. Waiting for item 31's GLS.
+
+### progress 06:12
+- T128 control 4 (+12000 on ulink_n10__3 -> uselect0): gate **FAILS 1/13** (wrong values); static -9917 naming ulink_n10__3.
+  - The negative control is met: a known-bad build is flagged and the link named.
+  - The check is never looser than the gate in 4 runs, and is conservative by more than 3 ns on this path.
