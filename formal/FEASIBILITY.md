@@ -7,6 +7,12 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-16 evening (lead): the board decides (owner). How close is the simulator to the board?** The decoded
+August gcd design (rebuilt from the measuring commit) reproduces the board's 20 per-input latencies to 0.9 % RMS with
+one band position b = 0.39 of prjxray's [FAST_MIN, SLOW_MAX] and a 36 ns harness offset (FOR-RESEARCH A11; simulation,
+untrusted; a rebuild, not the measured bitstream). The timing shape is right; the scale sits above research's draw
+model (0.20-0.31). Asked for the measured bitstream or a board run of one formal has.
+
 **2026-11-16 (lead): margins for research's builds (first priority); every number is search, none is a lower bound.**
 - **Margin tool (C, `formal/tools/margin/run.sh`; untrusted search, failures re-checked by two checkers):** runs
   unattended on gcd_ps and on research's bench builds (10-25 min per build on the farm). kappa_hi at g = 1 (smallest
