@@ -5318,3 +5318,13 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   every one of the 4 (-754 to -1952 ps). No gate failure without an E row. E also flagged 4 injections the gate passed
   (E stricter, never looser). Local re-run of collatz umux0 at FAST_MIN running to confirm the "TIMEOUT" is a hang in
   the simulation and not a compile / lock artefact; selneg2 (+6000 / +12000) queued.
+### progress 04:31 UTC (xorshift item 27: line account on its board route; a missing ack macro on the cycle; farm fxu)
+- x27_2 (item 27's route, sdf a9bdac53), graph at stride 2: 38.63 ns per two iterations (19.32 / iteration), 83 arcs;
+  the next four cycles are within 0.6-2.0 ns. Lines on the critical cycle (line_account, worst, A' fix):
+  ucmpi1 9 (needs 7, A'), ulink_n12__1 select 8 (needs 1; fxsel3 showed selects buy ~0), uxori1 7 (needs 3, proposal 5),
+  ulink_n7f__1's ack 6 = 2.85 ns of the cycle's FALL, NOT in sizes.vh (bdc's RTL default 6), rule H margin +3763 ps, needs
+  0; ucontrol_merge0_olink's request line 4, also not in sizes.vh, rising 1.87 ns, set by no rule -- and corner_audit
+  says the stage it feeds is "not audited" (rule I has no launch for it). That second one is a CHECK GAP, not a lever:
+  it stays at 4 until something audits it.
+- Farm fxu: fr4 + ULINK_N7F__1_UACK 1 (fr4u). PREDICTION: -0.5 to -1.0 ns per iteration vs fxd paired (the line is
+  ~2 ns of a two-iteration cycle, the next cycle without it is ~1-2 ns below); hold side (H / I, TSE, hold_bits) clean.
