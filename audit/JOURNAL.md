@@ -2799,3 +2799,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - t133/mon_force.py forces ucond_br7.u LUT5/LUT6 A3 (w17106 / w17112) to 0, then to 1, from t = 0 until 10 us, then releases them.
   - The real condition reaches the pins at ~9.65 us.
   - If both values stall with no X on the steer outputs, the deadlock is genuine.
+
+### progress 16:42
+- T133b: with the steer's injected pins forced defined (0 and 1) until 10 us, the run completes 1/13 batches (batch 0 only) with no X on the steer outputs, then stalls.
+  - The collatz rule E steer control is CONFIRMED under that emulation. REPORT row updated.
