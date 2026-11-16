@@ -181,6 +181,7 @@ static inline void env_set(ll t, int n, bool v) { Q.env.push({t, -1, ++SEQ, 2 * 
 static inline void changed(int n, ll t) { for (int r = rd0[n]; r < rd0[n + 1]; r++) sched(t + rdd[r], rdg[r]); }
 
 static int W = 0; static ll NSKIP = 0;
+static ll NINJ = 0;
 static ll PER_L = 0; static vector<int> PER_B; static bool PER_HIT = false;
 static map<pair<int, int>, ll> INF;
 static inline bool fval(int n, ll r, ll& u) {
@@ -257,17 +258,23 @@ int main(int argc, char** argv) {
     fprintf(stderr, "sim: cone %d gates of %d (%d nodes)\n", NG, NGALL, NSEEN);
 
     // classes: node name -> class, (node name, pin) -> class; F first then S (S wins), as simadv
-    map<string, char> CLSn; map<pair<string, int>, char> ACLn;
+    map<string, char> CLSn; map<pair<string, int>, char> ACLn; map<pair<string, int>, ll> INJn;
     { string s = slurp(classes); JP jp{s.c_str()}; JV j = jp.val(); if (j.ty != 4) die("classes: not an object");
       for (char kc : {'F', 'S'}) for (auto& kv : j.o) if (kv.first.size() == 1 && kv.first[0] == kc) for (auto& x : kv.second.a) {
-          if (x.ty == 3) ACLn[{x.a.at(0).s, (int)x.a.at(1).num}] = kc; else CLSn[x.s] = kc; } }
-    vector<char> CLS(NN, 0); map<pair<int, int>, char> ACL;
+          if (x.ty == 3) ACLn[{x.a.at(0).s, (int)x.a.at(1).num}] = kc; else CLSn[x.s] = kc; }
+      // "I": [[node, pin, ps], ...]: an EXTRA delay added to that arc (an injection OUTSIDE the prjxray band, for negative
+      // controls such as research's SDF injections; a run with injections is not a Spec behaviour)
+      for (auto& kv : j.o) if (kv.first == "I") for (auto& x : kv.second.a) INJn[{x.a.at(0).s, (int)x.a.at(1).num}] = (ll)x.a.at(2).num; }
+    vector<char> CLS(NN, 0); map<pair<int, int>, char> ACL; map<pair<int, int>, ll> INJ;
     { size_t found = 0; map<string, int> want; for (auto& kv : CLSn) want[kv.first] = 1; for (auto& kv : ACLn) want[kv.first.first] = 1;
       map<string, int> nid;
       for (int i = 0; i < NN; i++) { auto it = want.find(names[i]); if (it != want.end()) { nid[names[i]] = i; found++; } }
       for (auto& kv : want) if (!nid.count(kv.first)) die("classes: unknown node %s", kv.first.c_str());
       for (auto& kv : CLSn) CLS[nid[kv.first]] = kv.second;
-      for (auto& kv : ACLn) ACL[{nid[kv.first.first], kv.first.second}] = kv.second; }
+      for (auto& kv : ACLn) ACL[{nid[kv.first.first], kv.first.second}] = kv.second;
+      for (auto& kv : INJn) { auto it = nid.find(kv.first.first); if (it == nid.end()) { for (int i = 0; i < NN; i++) if (names[i] == kv.first.first) { nid[names[i]] = i; break; } }
+        if (!nid.count(kv.first.first)) die("classes: unknown injected node %s", kv.first.first.c_str());
+        INJ[{nid[kv.first.first], kv.first.second}] = kv.second; } }
 
     ds.resize(ins.size()); his.assign(ins.size(), 0.0);
     for (int g = 0; g < NG; g++) {
@@ -285,9 +292,11 @@ int main(int argc, char** argv) {
                 his[a] = ((1 - corner) * (double)afmax[a] + corner * (double)asmax[a]) * (1 + kappa) * 1.0;
                 if (d < W) { if (!(W <= his[a])) die("H_RUNT: w exceeds a LUT pin's upper bound"); d = W; }
             }
+            { auto ij = INJ.find({gout[g], i}); if (ij != INJ.end()) { d += ij->second; NINJ++; } }
             ds[a] = (int)d;
         }
     }
+    if (NINJ) fprintf(stderr, "simx: %lld injected arcs (outside the prjxray band: NOT a Spec behaviour)\n", NINJ);
     // readers CSR (simadv: readers[n].append in cone order, pin order)
     rd0.assign(NN + 1, 0);
     for (int g = 0; g < NG; g++) for (int i = 0; i < gk[g]; i++) rd0[ins[gins0[g] + i] + 1]++;

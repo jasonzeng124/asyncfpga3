@@ -3768,3 +3768,12 @@ Item 31 = fcsel3a s20 (C15: uselect0's capture holds to 0.45; falseResult_7 st0 
 Items 32 (collatz64 h4s3p s22; research wants ulink_n13 / ulink_n28 hold), 30 (collatz64 h4s3 s10), 29 (ipow h4s3 s19):
 all classes, 1-ps and 12-ns hosts, explained at the SDF (c_margin_bq29). kernels.py: ipow from kernels/ipow/ipow.c
 (i32 wrap; checked by hand: 3^7 = 2187, 7^7 = 823543, 2^31 -> 0x80000000, (-3)^3 -> 2^32 - 27); vectors 3,7 7,7 5,13 3,5.
+
+### progress 06:44 -- simx injections ('I' in classes) and selneg.py: research's select negative controls in formal's model (farm c_selneg)
+PROGRAM item 2 (known-bad builds) for the select race: research constructed select-arrival failures by SDF injection
+(research/data/selneg/README.md: +3000/+6000/+12000 ps on the select latch -> umuxN.uj0/uj1 arcs; its gate fails on 20
+runs, rule E flags all 20). simx now takes "I": [[node, pin, ps]] in the classes file: an extra delay on that arc
+(outside the band: printed as NOT a Spec behaviour). selneg.py maps research's arcs by instance name (the uj0/uj1 pin
+whose input comes from a lat.odd select latch) and runs the model at the fast-band minimum and at mid-band, 12-ns host.
+Test on gcd_ps: +3000 ps on ua2's pin 0 hangs it, no injection correct. Farm c_selneg: items 27, 28, 26 (research's
+routes), every mux, three injections: does formal's model fail where research's gate fails?
