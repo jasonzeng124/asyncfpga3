@@ -22,6 +22,10 @@ Measured in simulation on item 30's route (FAST_MIN): the data changes after the
 155 ps; consumers are link latches, so the cost is a later Q downstream, which no check accounts for. Treat items 29,
 30, 32 (and 27 at its small margin) as provisional until either the downstream margins are shown to absorb the
 measured lateness or the mux delay is padded (farm fc64sel3m: collatz64 with umux0 padded to M, running).
+At the worst corner the same route shows 300 of 458 tokens late by up to 60 ps; item 31's route (M clean) shows none
+(data leads z_req by >= 1.6 ns). Rule M's known-bad builds: SDF injections on the select -> data-LUT arcs give wrong
+values / no completion at FAST_MIN on collatz, xorshift and ipow with M < 0 and rule E clean (farm mneg, JOURNAL).
+Items 1-26 were never checked by rule M either; their mux delays mostly come from the same unchecked rounds.
 
 ## Full-input-range status (owner rule 2026-11-14; research/JOURNAL.md 2026-11-14)
 

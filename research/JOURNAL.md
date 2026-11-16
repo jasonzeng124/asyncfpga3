@@ -5493,3 +5493,9 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   RTL default 0). h4s3n = h4s3q + UMUX0 2 -> 4 + ULINK_N_FALSERESULT_3 DELAY 4. Farm fc64sel3n.
   PREDICTION: rule M clean on >= 28/32; +0.4 to +1.0 ns per iteration vs fc64sel3q (two elements on the cycle's rising
   edge), against +2 to +4 for fc64sel3m.
+### progress 07:45 UTC (fc64sel3q: the ulink_n28 ack back at 3 costs +0.4 ns)
+- fc64sel3q (h4s3p with ULINK_N28_UACK 1 -> 3) vs fc64sel3p, 29 paired seeds: +0.41 ns per iteration median (9/29
+  faster); period median 31.79 ns; gates 90/90; E clean. Its static rows now include rule M (umux0 to -2401, as on
+  every collatz64 route) and umux2's A' (-1005, the old traced false path, now measured from the upstream links).
+  The TSE rows at ulink_n28 (fc64sel3p: 9/30 routes) are mostly gone (hold detail being tabulated). Next collatz64
+  candidate = fc64sel3n (q + the rule-M fix per launch) if it comes back clean.
