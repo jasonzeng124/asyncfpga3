@@ -3876,3 +3876,9 @@ dynamic claim on items 28/31; no new row against C's files since T119/T120).
 ### progress 18:47 -- farm c_margin_x33 filed: item 33's margin (MARGINS row "pending")
 Item 33 at seed 27 with hosts 12 ns / 1 ps / 2 ns, four more routes (seeds 1 3 4 5, host 2 ns), and item 27 s2 under the
 same settings (host 2 ns) for a like-for-like comparison. All race classes, every broken race explained at the SDF.
+
+### progress 18:51 -- farm c_rulee1 filed: research's own rule-E rows for the steer races of C19
+C19 left open the picosecond slack of the steer races (condition vs request). Research's rule E (cells/verify/skew.py
+on claude/research: shortest request path vs longest select path from a common state-node launch) is exactly that check,
+but it needs the routed JSON, which only a rebuild gives (no toolchain in this sandbox). c_rulee1 rebuilds the four C19
+routes and item 33 and runs research's skew.py -v unchanged.
