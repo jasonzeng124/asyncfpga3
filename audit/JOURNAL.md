@@ -2650,7 +2650,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - T131 restarted.
 - T126j item 29 v2: own sdf **b521630f = recipe**; FF clean (1956 flops).
 
-### progress 08:36
+### progress 08:32
 - T130b trace (item 28): the late umux0 output changes (bits 12 / 14, 167 / 101 ps after z_req) follow the **y data input** n_falseResult_9_data, i.e. the pipe's stage-1 Q. Not the select.
 - Finding T130:
   - items 28 / 31, which research calls rule M clean, show state-A output changes after z_req on 304/1279 (<= 167 ps) and 975/1480 (<= 501 ps) tokens;
