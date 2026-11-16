@@ -2631,3 +2631,14 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - So the state-A changes appear real. The select pins were at most 100 ps late (T126g), so the late changes likely come from the DATA inputs.
 - This disagrees with research's "item 31 clean under rule M; z_data leads z_req by >= 1.6 ns". Pending the trace (T130b) before reporting.
 - research 9812b5288 / e1d5a0741 (formal C17-C19 journal, tools): no claim.
+
+### progress 08:27
+- **research bd57aa13b CORRECTION**: the select-join injection "gate failures" (selneg / selneg2, and research's collatz fcsel0 control ac048316) are X propagation.
+  - The select latch is never initialized in simulation (bd_link resets its controller, not its data latch).
+  - The +3000 select reaches the join after the first request, so the join latches X.
+  - Formal C17 (join injections never fail) is right. Rule E has no genuine known-bad build. The mneg (rule M) wrong values look real per research.
+- Own T118 replay (FAST_MIN stall after one select transition) matches that mechanism and was never checked for X.
+  - T118's "negative control CONFIRMED" is withdrawn pending T131: an X trace of umux1's join select pins / either / z_req on the same injected build.
+- T130 item 30 (v2, state A): umux0 1779/1804 tokens late, up to 769 ps (research: 352/458, <= 155 ps).
+  - My monitor flags far more than research's mux_settle, and also flags item 28 (304/1279) where research says clean.
+  - The monitor's measure is not yet validated; the T130b trace is pending.
