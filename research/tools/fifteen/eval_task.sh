@@ -32,8 +32,9 @@ ln -sf "$RD/xray.sdf" "$CA/seed1/pnr/soak_xray.sdf"; ln -sf "$HW/${K}_bench_gen_
 cp "$R/$Z" "$CA/seed1/pnr/sizes.vh"
 cp "$R/${MLIR_OVERRIDE:-build/frontend/$K/comp/handshake_transformed.mlir}" "$CA/input.mlir"
 if [ -z "${TSE_ONLY:-}" ]; then
-python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. --out "$CA/worst" > "$CA/worst.log" 2>&1 &
-python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. --uniform 0.288 --out "$CA/nom" > "$CA/nom.log" 2>&1 &
+# CA_EXTRA: extra corner_audit flags for step 2 (e.g. --shrink-selects: mux delays and select links proposed by rules M / E)
+python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. ${CA_EXTRA:-} --out "$CA/worst" > "$CA/worst.log" 2>&1 &
+python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. ${CA_EXTRA:-} --uniform 0.288 --out "$CA/nom" > "$CA/nom.log" 2>&1 &
 fi
 if [ -n "${SPEC_CASES:-}" ]; then   # BDC_SPEC_INC cells: the static check per case (LONG / SHORT), corner_audit --drop-inst/--cut
   for sc in ${SPEC_CASES//,/ }; do

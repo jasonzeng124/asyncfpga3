@@ -5384,3 +5384,13 @@ against formal's earliest host). Formal C8-C10, A6 (both rewrites proved), A7 (x
   construction (SDF injection), not by a shortened line (none raced).
 - Rule M's first control (item 28's route, +3000 on ulink_n14__0's latch -> umux0.udat, 32 arcs): M -353 ps at worst,
   gate FAST_MIN PASS 13/13 (cycles unchanged 2906): stricter than the gate, no failing build yet; +8000 running.
+### progress 05:43 UTC (fxu rejected; fcsel3p confirms 3a; rounds with mux delays sized by rule M)
+- fxu (xorshift item 27 + ULINK_N7F__1_UACK 6 -> 1) vs fxd, 31 paired seeds: -0.05 ns per iteration median, 16/31
+  faster: nothing. PREDICTION (-0.5 to -1.0) FAILED: on x27_2 the next cycle without that line (c3, 38.0 vs 38.6 per two
+  iterations) does not contain it, and on other routes the cycle differs. Gates 96/96; E rows on one route.
+- fcsel3p (collatz, uselect0 9 / uaddi0 12, the 32-route proposal max) vs fcsel3a (7 / 9): +1.43 ns per iteration, 4/30
+  faster; both pass everything. Item 31 (fcsel3a) stands; the per-cell max of proposals over old routes is the
+  conservative way and costs 1.4 ns here.
+- eval_task.sh: CA_EXTRA passes flags to step 2's corner_audit. Farm *_ps (STATIC_ONLY, --shrink-selects) on the four
+  candidates' sizes and seeds (fcsel3a, fisel3, fc64sel3, fxd): proposals with mux delays checked by rule M and select
+  links by rule E, for the next round.
