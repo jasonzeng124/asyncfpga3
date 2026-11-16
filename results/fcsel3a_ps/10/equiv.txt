@@ -1,0 +1,45 @@
+1. CELLS  routed JSON 7369 bels, bitstream 7368 bels, common 7368
+2. CONFIG  compared {'BUFGCTRL': 1, 'CARRY4': 80, 'SLICE_FFX': 1923} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+2b. DSP48E1  0 compared: control words (OPMODE/ALUMODE/INMODE/CARRYINSEL/CARRYIN), register/input parameters, drivers of every data pin the modelled function reads
+3. CONNECTIVITY  23092 pins with the same driver on both sides
+   driver->sink pairs: json 24801, bits 35303, common 23092
+4. LUT FUNCTIONS  5078 LUTs compared, 5077 identical over every input assignment
+5. ROUTING  8011 nets with identical pip sets, 1 differ (4 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+
+DIFFERENCES (10 kinds):
+       1  BUFGCTRL I1 unconnected in JSON, connected on the board by the mux's all-zero default (deselected)
+            BUFGCTRL_X0Y0/BUFGCTRL/I1 <- ('const', 1)
+       1  DRIVER DIFFERS
+            SLICE_X12Y25/C/A3 json ('bel', 'SLICE_X13Y26/BFF', 'Q') bits ('const', 1)
+       1  LUT FUNCTION DIFFERS
+            SLICE_X12Y25/C6LUT ($abc$20761$auto$blifparse.cc:557:parse_blif$21428) on 2 of 8 input assignments
+    8539  LUT pin unconnected in routed JSON, constant 1 on the board, gen.py ties 0 (harmless iff section 4 finds the function identical)
+            SLICE_X0Y30/C/A1
+            SLICE_X0Y30/C/A5
+            SLICE_X0Y31/C/A5
+            SLICE_X0Y31/D/A4
+       1  NET ROUTED DIFFERENTLY (pip sets differ)
+            ('SLICE_X13Y26/BFF', 'Q'): 1 pips json-only, 0 bits-only, 0 common; e.g. json-only [('INT_R_X9Y25/IMUX22', 'CLBLM_R_X9Y25/CLBLM_M_C3')] bits-only []
+    1708  PS7 input tied to a constant in JSON, not modelled (outside ps7_pins.py)
+            PS7_X0Y0/PS7/DMA0ACLK <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DAREADY <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRLAST <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRTYPE0 <- ('const', 0)
+       1  cell in routed JSON, not configured by the bits (HAS LOADS)
+            SLICE_X13Y26/BFF SLICE_FFX $auto$dfflegalize.cc:389:emulate_split_set_clr$20651
+       4  json pips that ARE in the bits but reach no live sink (routing to a dead bel)
+            ('BUFGCTRL_X0Y0/BUFGCTRL', 'O'): 2 pips, e.g. [('INT_R_X9Y26/CLK0', 'CLBLM_R_X9Y26/CLBLM_L_CLK'), ('INT_R_X9Y26/GCLK_B0_EAST', 'INT_R_X9Y26/CLK0')]
+            ('SLICE_X10Y43/B6LUT', 'O6'): 6 pips, e.g. [('INT_R_X9Y26/FAN_ALT6', 'INT_R_X9Y26/FAN6'), ('INT_R_X9Y26/BYP_BOUNCE1', 'INT_R_X9Y26/FAN_ALT6')]
+            ('SLICE_X12Y25/D6LUT', 'O6'): 5 pips, e.g. [('CLBLM_R_X9Y25/CLBLM_LOGIC_OUTS23', 'INT_R_X9Y25/NR1BEG1'), ('INT_R_X9Y26/GFAN0', 'INT_R_X9Y26/CTRL0')]
+            ('SLICE_X13Y26/BFF', 'Q'): 4 pips, e.g. [('INT_L_X8Y25/ER1BEG2', 'INT_R_X9Y25/IMUX22'), ('CLBLM_R_X9Y26/CLBLM_L_BQ', 'CLBLM_R_X9Y26/CLBLM_LOGIC_OUTS1')]
+    1044  pin unconnected in routed JSON, same constant (0) on the board as gen.py's tie
+            SLICE_X0Y23/B5FF/SR
+            SLICE_X0Y24/AFF/SR
+            SLICE_X0Y25/B5FF/SR
+            SLICE_X0Y28/BFF/SR
+    2626  pin unconnected in routed JSON, same constant (1) on the board as gen.py's tie
+            SLICE_X0Y30/C/A6
+            SLICE_X0Y31/C/A6
+            SLICE_X0Y31/D/A6
+            SLICE_X0Y32/D/A6
+VERDICT: NOT EQUIVALENT: cell in routed JSON, not configured by the bits (HAS LOADS); DRIVER DIFFERS; LUT FUNCTION DIFFERS; NET ROUTED DIFFERENTLY (pip sets differ)
