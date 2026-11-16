@@ -2257,3 +2257,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - Started a dynamic rule H replay (t117/hdyn.sh, mon_h with H_THRESH 3000 so that ulink_n13 is monitored) at FAST_MIN and SLOW_MAX.
 - research 017fd1259 (corner_audit join peer fix) and b7d948e5d (exploratory sizes) are tooling/exploratory; no claim to audit.
 - C b97657877: C11 rewritten without kappa ranking.
+
+### progress 04:05
+- T124b: own input_hold.py (zero-hold sender race at the kernel input latch ulink_n_falseResult_3 stage 0, all 32 bits).
+  - fcsel0 s24: 177 / 282 / 767 ps at FAST_MIN / worst / SLOW_MAX, all on pair[26].
+  - item 28: 771 / 1088 / 2328 ps (bit 19).
+- formal A9's ps column traced only vectors with bits <= 17. It names pair[16] (616 ps at fast mid); the full-range binding bit is pair[26].
+- On item 28 the input race is tighter than the internal ulink_n13 race at FAST_MIN (771 vs 929, own static). A8's "first race internal" is vector-limited.
+- Logged as OVERSTATED (full range); mechanism CONFIRMED. All slacks are positive, and the board PS is µs slow, so there is no board hazard.
