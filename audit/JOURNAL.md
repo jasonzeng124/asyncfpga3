@@ -2343,3 +2343,13 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - item 19 (ipowr_1, own) 27.88, 39.23;
   - **ratio 1.110 / 1.118**. Research predicted ~1.10 (39.78 -> 36.06). CONFIRMED.
 - SLOW_MAX, rule H and rule E are running.
+
+### progress 05:02
+- T126 item 29, recipe sdf 4a92cdf3:
+  - gate 17/17 at FAST_MIN / worst / SLOW_MAX, 0 monitor violations at every corner;
+  - ratio 1.110 / 1.118 over item 19 (CONFIRMED);
+  - own rule E min **+406 ps**, no negative gate (204 rows).
+- Own static rule H (OR-join): ulink_n_trueResult_10 stage 1 is -215 / -282 / -160 ps at FAST_MIN / worst / SLOW_MAX.
+  - Item 19 (ipowr_1) has the same row (-340 / -436), which T109 showed is not live: 0 dynamic violations.
+  - Started the dynamic check t126/hdyn29.sh (mon_h, FAST_MIN).
+- T126 continues with item 30 (build c64sel3_10).
