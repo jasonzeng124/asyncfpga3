@@ -2964,3 +2964,12 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Finding T136 section 5; REPORT row updated.
 - research dfb174760: farm shrink5 (x0.55a / x0.50a on 32 routes x 4 draws). No claim yet.
 - T137 (own x0.40a / x0.40c) started.
+
+### progress 23:59
+- research 0a3494d35: draws1 done. The +8000 late-steer control fails 16/16 draws (raw: every draw no completion); +3000 passes 16/16. The model now has a shown bad build.
+- research e4d656078: BOARD-QUEUE re-reported with draw pass fractions per item and the speed error from SIM-VS-BOARD (b4f2ce555: +8.1 to +9.9 % at 0.288 on collatz / collatz64 / ipow / gcd).
+  - Arithmetic checked: aug_periter.py interpolates research's per-vector corner latencies; the +8-10 % is kernel x 0.222 against 0.288, as T135.
+  - The REPORT row for items 19-33 is narrowed: OVERSTATED for the xorshift items 33 / 27 (no xorshift board comparison); UNVERIFIED for the rest until the corner numbers are reproduced.
+  - Gaps listed: no confidence bound; no pass-model error on a board failure; an oracle-only verdict.
+- T137: x0.40a built (sdf c869a0a1, ff clean); GLS running.
+- T138 queued (after T137): own GLS of the August collatz bitstream at FAST_MIN / SLOW_MAX, own vectors, 100 MHz bench clock, own slope fit.
