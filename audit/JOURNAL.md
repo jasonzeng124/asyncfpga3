@@ -2370,7 +2370,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - n10__3 +614, n26 +655 (FAST_MIN); n19__4's data is unused.
 - Item 31 cuts this line to 7, so the check is needed on its route. t126/item31.sh is restarted to build now; GLS waits for T126.
 
-### progress 05:20
+### progress 05:13
 - T128: own static bundling tool t128/bundle.py. It excludes delay-chain gate inputs on the rising request (the first version's uaddi0 negatives on item 28 were that model error).
 - Item 31 (own build, sdf **7aefc4bd = recipe**, usinkeq2 1, FF clean):
   - uselect0: +1559 / +2070 / +4519 ps;
