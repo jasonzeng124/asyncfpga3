@@ -5729,3 +5729,8 @@ is a genuine wrong-value failure. Steer E under test (steerneg). Formal C17 conf
   pushed results since 11:44 UTC (steerneg 15 of 40 for 1.5 h): not waited on.
 - 14:25 UTC: the farm has pushed nothing since 11:44 UTC (steerneg stuck at 15 of 40, status "running"):
   treated as down for now; steer controls continue locally (xorshift ucond_br9 on x27_2, collatz64 ucond_br6 on c64s3_10).
+### progress 15:20 UTC (rule E at the loop steers: failing builds on xorshift, collatz64, collatz)
+- Condition +8000 ps into the loop steer, gate FAST_MIN with +META_INIT=0: xorshift item 27 ucond_br9 (E -7266) and
+  collatz64 item 30 ucond_br6 (E -6276) complete no batch (50 / 55 min), as collatz ucond_br7 (E -5048). Table in
+  research/data/selneg/README.md. Where rule E stands now: it has failing builds at steers (three families) and none
+  at mux joins (selneg3, 44/44 pass). ipow's steers wait for the farm (silent since 11:44 UTC).

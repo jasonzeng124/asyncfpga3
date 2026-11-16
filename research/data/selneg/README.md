@@ -141,3 +141,11 @@ ucond_br7: -5048 ps at worst. A condition that arrives after the request at a co
 has a failing build here, unlike at the mux joins. Not traced (the hang may still contain a non-start-up X). Farm
 steerneg (every steer, +3000 / +8000): the first two back, xorshift ucond_br3 and collatz ucond_br4, passed every gate
 at both sizes with E -0.3 .. -6.1 ns (steers whose condition is settled long before the next request).
+Two more loop steers, local, same construction (condition +8000 ps, gate FAST_MIN with +META_INIT=0):
+| route, steer | rule E at the steer (worst) | gate FAST_MIN |
+|---|---|---|
+| xorshift item 27 (x27_2), ucond_br9 | -7266 | no batch in 50 min |
+| collatz64 item 30 (c64s3_10), ucond_br6 | -6276 | no batch in 55 min (clean route: 25 min) |
+| collatz item 28 (c28_20), ucond_br7 | -5048 | no batch in 50 min (clean: 9 min) |
+So rule E fails on a known-bad build at the steers of three families (ipow: no local route; farm steerneg pending). Not
+traced: a no-completion with the start-up X removed is most likely the lost token, but only a trace shows it.
