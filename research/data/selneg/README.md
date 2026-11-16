@@ -184,3 +184,10 @@ col13 / c6414 have no n = 1, so the entry condition is true on every call and a 
 is a full-range coverage gap in the gate (collatz(1) = 0 is a legal input): farm zt1 re-gates items 28 / 31 / 30 / 32 with
 n = 1 added (col14, c6415) and repeats the entry-steer injection on both vector sets. xorshift (rounds = 0) and ipow
 (b = 0) vectors do include a zero-trip call, and their entry data steers still pass: not yet explained (traced next).
+
+**CORRECTION (2026-11-16, later): the 12 "passes" at the entry steers were the gate's blind spot.** bench_gate.sh read
+only the last of each batch's two runs. Traced on xorshift item 27 (ucond_br2/3/4 +8000, FAST_MIN): the steer does
+mis-steer, both branches get the token, and from then on every batch's first run returns the previous call's answer
+(the run-to-run mismatch latch was set on 16 of 19 batches). Five of steerneg's PASS runs had that latch set. The gate
+now fails such batches. PROGRAM (owner, 2026-11-16) closes the question of which static rule earns its place; these
+tables stay as record.
