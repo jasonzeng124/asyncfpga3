@@ -333,3 +333,71 @@ Reading, over 28 routes (it confirms the one-route table and makes it general):
   rule H margin (fcsel1m: dropping it bought -0.32 ns median).
 - The same table on item 28's own routes (fcsel3m_la), on collatz64 item 26 (fc64eq_la) and ipow item 19 (fipowrh_la)
   is on the farm.
+
+### Item 28 (collatz, select links at 3), collatz64 item 26, ipow item 19 -- 28-30 routes each (2026-11-16)
+
+Same tool and reading as above (worst corner; a line is listed on the routes where it is on a critical or
+near-critical cycle). Sizes as built (BD_NO_TIGHTEN=1 with each item's sizes.vh); "n_need" is corner_audit's own
+length for the route as routed, "n_logic" the length for the logic alone.
+
+**collatz item 28 (fcsel3m_la; fcsel3m_la: 30 routes built; period median 25.80 mean 25.59 best 24.51 worst 27.55 ns; gate 0/0 PASS; static CLEAN at both corners on 30/30)**
+
+| line | routes on cycle | n | ps | on cycle (R+F, ps, median of those) | set by (routes) | margin ps | data logic / latch / enable / wire | n_need | n_logic |
+|---|---|---|---|---|---|---|---|---|---|
+| uselect0.udly | 30/30 | 16 | 5622 (4888..6510) | 6520 (5688..7430) | A own 30 | 2992 (2037..4259) | 204 / -- / 0 / 2054 (1618..2304) | 9 (6..10) | 1 |
+| uaddi0.udly | 30/30 | 12 | 4194 (3390..4689) | 4951 (4015..5551) | A' own 30 | 2598 (1137..3392) | 1464 (1138..1500) / 75 (68..78) / 836 (471..1639) / 654 (466..921) | 5 (4..9) | 4 (4..6) |
+| ulink_n_falseResult_9.many.stage[0].u.uack | 30/30 | 3 | 816 (530..1173) | 1821 (536..2345) | H own 30 | 1003 (685..1806) | -- / -- / -- / -- | 1 (0..2) | -- |
+| umux0.udly | 27/27 | 6 | 1906 (1489..2182) | 2418 (1843..2769) | A own 27 | 2231 (1597..2719) | 0 / 0 / 0 / 453 (279..657) | 1 | 0 |
+| ulink_n14__0.rdly | 27/27 | 3 | 751 (566..1021) | 1169 (888..1437) | E depends 27 | 857 (407..1219) | 0 / 68 / 186 (170..602) / 323 (252..698) | 1 (0..3) | 0 |
+| ulink_n10__3.uack | 7/7 | 1 | 62 | 497 (396..627) | H own 7 | 2041 (1867..2454) | -- / -- / -- / -- | 0 | -- |
+| ulink_n11.uack | 2/2 | 1 | 62 | 613 (416..810) | H own 2 | 3840 (3548..4132) | -- / -- / -- / -- | 0 | -- |
+
+With the select ring gone, the datapath loop binds on every route. uselect0's 16 elements are 6.5 ns of it and need
+9 (6-10) as routed, 1 for its logic (0.2 ns of logic, 2.1 ns of wire); uaddi0's 12 need 5 (4-9). Both were sized by
+tighten's bundled pairing (A), not by A': corner_audit refused A' at uselect0 because its own request-join C nodes were
+counted as data (fixed 2026-11-16, JOURNAL); on seed 20 the fix gives A' +5539 ps at 16, a proposal of 7.
+
+**collatz64 item 26 (fc64eq_la; fc64eq_la: 30 routes built; period median 36.23 mean 36.15 best 34.38 worst 38.15 ns; gate 0/0 PASS; static CLEAN at both corners on 0/30)**
+
+| line | routes on cycle | n | ps | on cycle (R+F, ps, median of those) | set by (routes) | margin ps | data logic / latch / enable / wire | n_need | n_logic |
+|---|---|---|---|---|---|---|---|---|---|
+| uaddi0.udly | 29/29 | 25 | 9225 (8064..10493) | 9547 (8378..10738) | A' own 29 | 5708 (4151..7304) | 2167 (1465..2392) / 75 (68..77) / 2023 (1180..3324) / 775 (557..1210) | 10 (8..14) | 6 (4..7) |
+| uselect0.udly | 29/29 | 18 | 6538 (5919..8006) | 6843 (6147..8323) | A own 29 | 2557 (671..4521) | 204 (0..204) / -- / 0 / 2619 (1912..2993) | 12 (9..17) | 1 (0..1) |
+| ulink_n14__0.rdly | 29/29 | 15 | 5503 (4563..5992) | 6073 (5042..6802) | E depends 29 | 5500 (4358..6227) | 0 / 68 / 173 (147..605) / 623 (326..781) | 2 (1..3) | 0 |
+| ulink_n10__4.uack | 29/29 | 6 | 1962 (1680..2370) | 2815 (2469..3389) | H own 29 | 2110 (1255..2984) | -- / -- / -- / -- | 1 (0..3) | -- |
+| ulink_n_falseResult_9.many.stage[0].u.uack | 29/29 | 5 | 1549 (1221..1984) | 644 (408..897) | H own 29 | 937 (-305..1811) | -- / -- / -- / -- | 3 (0..7) | -- |
+| umux0.udly | 29/29 | 1 | 62 | 374 (182..639) | A own 29 | 218 (-135..476) | 0 / 0 / 0 / 464 (317..715) | 1 (0..1) | 0 |
+| ulink_n_falseResult_9.many.stage[1].u.uack | 7/7 | 5 | 1503 (1098..1707) | 608 (355..867) | H own 7 | 1242 (280..1542) | -- / -- / -- / -- | 2 (1..5) | -- |
+| ulink_n10__3.uack | 6/6 | 1 | 62 | 799 (565..904) | H own 6 | 1778 (447..2192) | -- / -- / -- / -- | 0 | -- |
+
+The datapath loop on every route: uaddi0's 25 elements (the 64-bit 3n+1) are 9.5 ns of it and need 10 (8-14) as routed,
+6 for the logic; uselect0's 18 need 12 (9-17), 1 for the logic (2.6 ns of wire); the select link ulink_n14__0 (15)
+needs 2 (E).
+
+**ipow item 19 (fipowrh_la; fipowrh_la: 30 routes built; period median 38.91 mean 38.97 best 36.21 worst 42.14 ns; gate 0/0 PASS; static CLEAN at both corners on 0/30)**
+
+| line | routes on cycle | n | ps | on cycle (R+F, ps, median of those) | set by (routes) | margin ps | data logic / latch / enable / wire | n_need | n_logic |
+|---|---|---|---|---|---|---|---|---|---|
+| ushrsi0.udly | 28/28 | 23 | 8584 (7570..9634) | 8869 (8003..9938) | A' own 28 | 4972 (3635..6478) | 814 (608..1102) / 68 (68..76) / 1170 (747..1476) / 3032 (2544..4243) | 11 (8..13) | 3 (2..4) |
+| ucmpi2.udly | 28/28 | 18 | 6545 (5856..7587) | 6783 (6263..8001) | A' own 28 | 4652 (3682..6049) | 960 (752..1074) / 74 (68..76) / 876 (489..1190) / 1701 (1392..1942) | 6 (5..8) | 3 (3..4) |
+| umux1.udly | 28/28 | 9 | 3206 (2653..3884) | 3808 (3123..4668) | A own 28 | 3698 (2998..4644) | 0 / 0 / 0 / 435 (279..676) | 1 (0..2) | 0 |
+| ulink_n17__1.rdly | 28/28 | 8 | 2740 (2108..3185) | 3131 (2481..3744) | E depends 28 | 2883 (2150..3485) | 0 / 68 / 182 (149..209) / 316 (289..671) | 1 (0..2) | 0 |
+| ucontrol_merge0.udly | 28/28 | 7 | 2241 (1860..2815) | 2610 (2278..3303) | A own 28 | 2574 (2019..3216) | 74 (68..136) / 0 / 0 / 844 (630..1235) | 1 (0..1) | 1 |
+| ucontrol_merge0_olink.rdly | 28/28 | 4 | 1283 (867..1972) | 1690 (1245..2675) | - none 28 | -- | -- / -- / -- / -- | -- | -- |
+| ulink_n_trueResult_12.many.stage[0].u.rdly | 28/28 | 2 | 452 (244..672) | 886 (627..1249) | I own 28 | 1859 (1468..2819) | 0 / 68 / 280 (167..615) / 379 (301..576) | 0 (0..1) | -- |
+| ulink_n_trueResult_12.many.stage[1].u.rdly | 28/28 | 2 | 442 (244..619) | 804 (604..1010) | I own 28 | 1859 (1468..2819) | 0 / 68 / 280 (167..615) / 379 (301..576) | 0 (0..1) | -- |
+| uselect0.udly | 2/2 | 39 | 14903 (14444..15362) | 15260 (14666..15853) | A own 2 | 6327 (6068..6586) | 6021 / -- / 0 / 2336 (2080..2593) | 24 (23..24) | 16 (16..17) |
+| ulink_n17__0.many.stage[1].u.rdly | 2/2 | 15 | 5516 (5398..5635) | 5851 (5842..5860) | E depends 2 | 5650 (5614..5687) | 0 / 68 / 176 (170..182) / 334 | 0 (0..1) | 0 |
+| umux0.udly | 2/2 | 8 | 3540 (3033..4048) | 4358 (3771..4945) | A own 2 | 4255 (3625..4885) | 0 / 0 / 0 / 496 (372..619) | 1 | 0 |
+| ulink_n17__0.many.stage[0].u.rdly | 2/2 | 3 | 796 (530..1063) | 1170 (867..1472) | I own 2 | 2778 (1744..3813) | 0 / 68 / 326 (144..507) / 435 (312..558) | 0 | -- |
+| ulink_n10__2.many.stage[0].u.rdly | 2/2 | 2 | 564 (423..706) | 884 (702..1067) | I own 2 | 745 (334..1156) | 0 / 74 (74..75) / 1319 (1179..1459) / 602 (501..704) | 2 | -- |
+| ulink_n_trueResult_8.many.stage[0].u.uack | 2/2 | 1 | 62 | 461 (308..614) | H own 2 | 19 (-273..311) | -- / -- / -- / -- | 2 (1..2) | -- |
+
+The loop on every route runs through ushrsi0 (e >> 1) and ucmpi2: ushrsi0's 23 elements are 8.9 ns, cover 0.8 ns of
+logic and 3.0 ns of wire, and need 11 (8-13) as routed, 3 for the logic; ucmpi2's 18 need 6 (5-8). Item 19's sizes are
+x0.75 of an older round (T9s75), never re-sized by corner_audit, so most of both lines is old margin: about 10 elements
+each, ~3.5 ns per line on the cycle. umux1 (9) and the select link ulink_n17__1 (8) need 1 each.
+
+Common to the three: the lines that bind are sized above what corner_audit needs as routed (the per-cell max over
+routes and, for uselect0, the A' refusal). Next: proposals with the A' fix on 32 routes per family (farm *_p), per-cell
+max, every check.
