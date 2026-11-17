@@ -151,6 +151,131 @@ def main():
     def load_star(n, depth=0):
         return load[n] + (sum(load_star(m, depth + 1) for m in pass_out.get(n, ())) if depth < 20 else 0)
 
+    # ---- (shard A, 2026-11-17) RC_TREE=1: prjxray Elmore tree as research's xray_delay.py
+    # (cells/gls/fid/xray_delay.py on claude/research, evaluating prjxray/timing.py). Off by default:
+    # without RC_TREE nothing below runs and the output is byte-identical. The tree: a WIRE is a
+    # prjxray node, R and C summed over its tile wires (LV nodes: two wires' RC); a buffered pip is
+    # Buffer(R = pip res, C = in_cap), a pass pip PassTransistor(R); the root is the site output pin
+    # (drive R), the leaves the site input pins (pin C). Elmore terms (ohm * fF * 1e-3 = ps), each on
+    # every corner, ceil'd once per gate:
+    #   pip gate  += R_pip * Cup(dst) + R_dst * (C_dst/2 + Cdown(dst))     [the pip and its dst wire]
+    #   hop gate  += R_drive * Cup(src) + R_src * (C_src/2 + Cdown(src))   [output pin and its wire]
+    # Cdown(n) = sum over n's children (buffer: in_cap; pass pip: Cup(its dst); input pin: pin C),
+    # Cup(n) = C_n + Cdown(n). A sink's sum along its path is then prjxray's Elmore delay to it. Also as
+    # research: the hop carries the output pin's intrinsic delay and, unless RC_TREE_OUTMUX=0, the
+    # slice OUTMUX routing-BEL arc (x6lut/x5lut/f7/f8/carry4/x5ff -> xMUX, timings/slice[lm].sdf);
+    # a LUT route-through (prjxray is_pseudo) pip carries its input site pin's delay.
+    RC_TREE = os.environ.get("RC_TREE") == "1"
+    if RC_TREE:
+        import importlib.util as _ilu
+        _sp = _ilu.spec_from_file_location("db", os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                              "decode_base.py"))
+        _DBm = _ilu.module_from_spec(_sp)
+        _sp.loader.exec_module(_DBm)
+        rfab = _DBm.Fabric3()
+        rc_kids = defaultdict(list)        # node -> [(R, is_pass, in_cap, dst node)]
+        for (t, dw, sw), (ps, sn, dn) in pips_on.items():
+            p, rev = tt(t)["_by"][(dw, sw)]
+            s2d = (p.get("dst_to_src") if rev else p.get("src_to_dst")) or {}
+            rc_kids[sn].append((float(s2d.get("res") or 0), bool(p["is_pass_transistor"]),
+                                float(s2d.get("in_cap") or 0), dn))
+            if not p["is_pass_transistor"] and not float(s2d.get("res") or 0) and p["is_pseudo"] != "1":
+                fidelity["RC_TREE: buffered pip with R 0 (no Elmore term of its own)"] += 1
+        rc_pin = defaultdict(float)        # node -> input pin C of the site pins it feeds
+        _seen = set()
+        for c in D["cells"]:
+            for v in c["conn"].values():
+                r = v.get("_route") if isinstance(v, dict) else None
+                if r and tuple(r["sinkwire"]) not in _seen:
+                    _seen.add(tuple(r["sinkwire"]))
+                    spn = tt(r["sinkwire"][0])["_sp"].get(r["sinkwire"][1])
+                    rc_pin[r["sink"]] += float((spn[2].get("cap") if spn else 0) or 0)
+        _wrc = {}
+
+        def wire_rc(n):
+            """(R ohm, C fF) of node n: its tile wires summed (xray_delay.py node_rc)."""
+            if n not in _wrc:
+                t0, w0 = n.split("/", 1)
+                if t0 not in tiles:
+                    _wrc[n] = (0.0, 0.0)
+                    fidelity["RC_TREE: node not in the tile grid (wire RC 0)"] += 1
+                    return _wrc[n]
+                ws = sorted(rfab.node(t0, w0))
+                els = []
+                for t2, w2 in ws:
+                    wd = tt(t2).get("wires")
+                    rc = wd.get(w2) if isinstance(wd, dict) else None
+                    if rc and (float(rc.get("res") or 0) or float(rc.get("cap") or 0)):
+                        els.append((float(rc.get("res") or 0), float(rc.get("cap") or 0)))
+                if any(w2.startswith("LV") for _, w2 in ws):
+                    els = els[:2]
+                _wrc[n] = (sum(e[0] for e in els), sum(e[1] for e in els))
+            return _wrc[n]
+        _cd = {}
+
+        def cdown(n, depth=0):
+            if n not in _cd:
+                if depth > 200:
+                    die("RC_TREE: node %s: tree deeper than 200 (a loop?)" % n)
+                _cd[n] = rc_pin[n] + sum((cup(dn, depth + 1) if pt else ic) for _r, pt, ic, dn in rc_kids[n])
+            return _cd[n]
+
+        def cup(n, depth=0):
+            return wire_rc(n)[1] + cdown(n, depth)
+
+        def wire_term(n):
+            R, C = wire_rc(n)
+            return R * (C / 2 + cdown(n))
+
+        rb = {}
+        for st in ("SLICEL", "SLICEM"):
+            txt = open(os.path.join(DB, "timings", st.lower() + ".sdf")).read()
+            for cell in re.finditer(r'\(CELLTYPE "ROUTING_BEL"\)\s*\(INSTANCE ([^)]*)\)(.*?)\n    \)', txt, re.S):
+                for m in re.finditer(r"\(INTERCONNECT (\S+) (\S+) \(([\d.]+)::([\d.]+)\)\(([\d.]+)::([\d.]+)\)\)",
+                                     cell.group(2)):
+                    rb[(cell.group(1).strip(), m.group(1))] = [int(round(float(m.group(i)) * 1000))
+                                                               for i in (3, 4, 5, 6)]
+
+        def outmux(r, net):
+            """slice OUTMUX routing-BEL arc for a route leaving through xMUX, or None."""
+            if not r.get("srcpin"):
+                fidelity["RC_TREE: route with no recorded source pin (no OUTMUX arc)"] += 1
+                return None
+            t, pin, stype = r["srcpin"][0], r["srcpin"][1], r["srcpin"][2]
+            if stype not in ("SLICEL", "SLICEM") or not re.match(r"^[A-D]MUX$", pin):
+                return None
+            s = str(net).split(".", 1)[-1]
+            m = re.match(r"^([A-D])([56])$", s)
+            src = ("%s%slut" % (m.group(1).lower(), m.group(2)) if m else
+                   {"F7A": "f7amux", "F7B": "f7bmux", "F8": "f8mux"}.get(s) or
+                   (re.sub(r"^XOR(\d)$", r"carry4_o\1", s) if s.startswith("XOR") else
+                    re.sub(r"^CO(\d)$", r"carry4_co\1", s) if s.startswith("CO") else
+                    re.sub(r"^([A-D])5Q$", lambda q: q.group(1).lower() + "5ff", s)))
+            d = rb.get(("%s/%s" % (stype, pin), src))
+            if d is None:
+                fidelity["RC_TREE: OUTMUX %s from %s: no routing-BEL arc in prjxray-db (0)" % (pin, s)] += 1
+            return d
+
+        def hop_arc(src, r, net):
+            """Output pin (drive R, intrinsic delay) + its node's wire term [+ OUTMUX]."""
+            spn = None
+            for t2, w2 in sorted(rfab.node(*src.split("/", 1))):
+                x = tt(t2)["_sp"].get(w2)
+                if x and x[2].get("res") is not None:
+                    spn = x
+                    break
+            d = (ps4(spn[2].get("delay")) if spn else None) or [0, 0, 0, 0]
+            if spn is None:
+                fidelity["RC_TREE: site output pin with no drive R in prjxray-db (R 0)"] += 1
+            rdrv = float(spn[2].get("res") or 0) if spn else 0.0
+            rc = int(-(-(rdrv * cup(src) + wire_term(src)) * 1e-3 // 1))
+            om = outmux(r, net) if os.environ.get("RC_TREE_OUTMUX", "1") == "1" else None
+            if om:
+                d = [x + y for x, y in zip(d, om)]
+                fidelity["RC_TREE: slice OUTMUX routing-BEL arc on the site output hop"] += 1
+            fidelity["RC_TREE: site output hop = output pin delay + Elmore (drive R, wire)"] += 1
+            return {"fmin": d[0] + rc, "fmax": d[1] + rc, "smin": d[2] + rc, "smax": d[3] + rc}
+
     def pip_arc(t, dw, sw, dn):
         p, rev = tt(t)["_by"][(dw, sw)]
         s2d = (p.get("dst_to_src") if rev else p.get("src_to_dst")) or {}
@@ -165,6 +290,17 @@ def main():
             d = [m, M, m, M]
             fidelity["pip delay record not ordered in prjxray-db: widened to [min, max] at both corners"] += 1
         r = float(s2d.get("res") or 0)
+        if RC_TREE:
+            # (shard A, 2026-11-17) RC_TREE=1: the pip's and its dst wire's Elmore terms, all corners
+            rc = int(-(-(r * cup(dn) + wire_term(dn)) * 1e-3 // 1))
+            if p["is_pseudo"] == "1":
+                # a LUT route-through: research (as Vivado) charges the input site pin too
+                spn = tt(t)["_sp"].get(dw if rev else sw)
+                pd = (ps4(spn[2].get("delay")) if spn else None) or [0, 0, 0, 0]
+                d = [x + y for x, y in zip(d, pd)]
+                fidelity["RC_TREE: route-through pip charged its input site pin delay"] += 1
+            fidelity["RC_TREE: pip = intrinsic + Elmore (pip R * Cup(dst) + dst wire), all corners"] += 1
+            return {"fmin": d[0] + rc, "fmax": d[1] + rc, "smin": d[2] + rc, "smax": d[3] + rc}
         rc = int(-(-r * load_star(dn) * 1e-3 // 1))   # ceil, ps
         if rc and os.environ.get("RC_ALL") == "1":
             # (shard A, 2026-11-17) research's xray_delay.py and prjxray's own model add the one RC term to every
@@ -212,8 +348,10 @@ def main():
         elif src not in hop_done:
             hop_done.add(src)
             add_gate({"name": "hop " + src, "kind": "hop", "k": 1, "init": 2, "ins": [node(v["net"])],
-                      "arcs": [dict(Z)], "out": node(src), "prov": {"srcpin": r["srcpin"], "net": v["net"]}})
-            fidelity["site output hop, arc 0 (in the BEL arc, prjxray)"] += 1
+                      "arcs": [hop_arc(src, r, v["net"]) if RC_TREE else dict(Z)], "out": node(src),
+                      "prov": {"srcpin": r["srcpin"], "net": v["net"]}})
+            if not RC_TREE:
+                fidelity["site output hop, arc 0 (in the BEL arc, prjxray)"] += 1
         return node(r["sink"])
 
     def sitepin_delay(v):

@@ -2912,3 +2912,10 @@ Committed before the board run.
 Formal's arcs are ~20 % faster, so research's [0.20, 0.31] is ~[0.365, 0.49] in formal's coordinates. CARRY needs no
 translation (A16). C's item 35 knife edge (CARRY ~0.9 at chains 0.20 / rest 0.31) is therefore on the pessimistic side.
 Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
+
+### progress 21:18 -- A18: build_net RC_TREE=1 (prjxray Elmore tree like research's xray_delay; subagent-written, lead-checked)
+- Default output: cmp-identical (checked on item 36 s1).
+- Per-sink accuracy against research's xray.sdf: +1 ps median on LUT and F7-select sinks.
+- With it, collatz needs b = 0.216 (research 0.222) and the August rings 0.286 (0.288), so the models coincide.
+- One fix by the lead: routes with no recorded source pin (77 on collatz) get no OUTMUX arc and a fidelity line.
+- FF CE / SR / D sinks are still short (FF-side site muxes are not modelled).

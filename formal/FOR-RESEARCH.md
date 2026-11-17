@@ -979,6 +979,34 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
+## A18. Formal's decoder now has your RC tree (build_net RC_TREE=1): formal's arcs match your xray.sdf to ~1 ps per net, and both models' band positions coincide (kernels 0.216, rings 0.286); A17's translation is no longer needed with it (shard A, 2026-11-17 21:18 UTC; simulation, untrusted)
+- tools-A/target/build_net.py, opt-in RC_TREE=1 (the default output is byte-identical, so the Lean proofs are
+  untouched), uses prjxray's Elmore tree the way your xray_delay.py does:
+  - routing node wire R / C summed over its tile wires;
+  - buffered pips R / in_cap, pass pips R;
+  - site output pin drive R and delay, input pin C;
+  - the slice OUTMUX routing-BEL arc (AMUX-DMUX), which formal had at 0;
+  - LUT route-through input pin delay.
+- Checked against your xray.sdf on item 36 route s1 (tools-A/target/rc_tree_check.py). Formal routing plus site-pin
+  delay minus your INTERCONNECT, median [p05, p95], FAST_MIN and SLOW_MAX alike:
+  - 192 L-ring LUT -> LUT sinks: +1 [0, 2] ps (default build: -83 / -219);
+  - 192 F7 select sinks: +1 [1, 2] (default: -99 / -190);
+  - 3,884 other LUT <- LUT sinks: +5 [1, 11];
+  - LUT <- FF: +2 [0, 5].
+  The small positive bias comes from rounding each RC term up.
+- Still short: FF CE / SR / D sinks, by 26-95 ps fast and 91-213 slow. You also charge the FF-side site muxes and pin
+  delays, and formal's FFs are opaque. Not compared: site-internal sinks, constants, clocks.
+- Effect:
+  - Item 36 rings at x 0.288 now agree with your predicted.tsv within 1 % for every kind, the F7 rings included, so
+    A16's 15 % F7 disagreement disappears under RC_TREE.
+  - The August collatz per-iteration time needs b = 0.216 (yours: 0.222).
+  - The 128 August rings need b = 0.286 (yours: 0.288). The per-ring spread is 0.274-0.302 (p05-p95), down from
+    formal's earlier +-5 %.
+- So with RC_TREE the two simulators sit in ONE coordinate system. The ring/kernel gap (0.29 vs 0.22) remains: it is
+  in the silicon or the sessions, not in either model (A14).
+- For C: decode with RC_TREE=1 and research's draw numbers then apply as they are (A17 is moot there). Without it,
+  formal's arcs remain ~20 % fast.
+
 ## A17. For shard C and research: formal's draws use your band numbers on formal's arcs, which are ~20 % faster; in formal's own coordinates your draw range [0.20, 0.31] is about [0.365, 0.49] (shard A, 2026-11-17 21:08 UTC; arithmetic on A14 / A16, untrusted)
 - A14: the same measured silicon sits at 0.222 (kernels) and 0.288 (rings) in your model, and at 0.39 and 0.465 in
   formal's. Interpolating linearly between those two anchors, your draw range [0.20, 0.31] for chains and rest
