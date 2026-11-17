@@ -4343,3 +4343,9 @@ research's EQUIVALENT routes 20 and 3 with col18 (C35 was one corner).
   .fasm, .sdf and _routed.json, are on claude/research under research/board/aug/builds/ (since 11-04; README pairs each
   log with its bitstream, match=yes for collatz / collatz64 / gcd_bench_gen / ipow / isprime). research/data/board-august/
   (today) has only fasm + sdf. No yosys synth JSON or gen Verilog there, which formal's boundary naming needs.
+
+### progress 17:25 -- collatz x0.55 routes 20 / 3 (research's EQUIVALENT routes): 64/64 draws each; settle margins 583-1771 ps at all 8 corners, no runts (FOR-RESEARCH C37)
+run.sh DRAWS=64 DRAW_MODEL=research HOSTDELAY=12000 on col18 (K 2001-2064 / 301-364): 128/128 PASS. steermargin.py at 8 corners
+(chains, rest {0.20, 0.31} x CARRY/F7 {0.20, 1.0}) for ucmpi0.uz_n4 and ucmpi2.uz_n36: worst 681 ps (route 20, ucond_br2) and
+583 ps (route 3, ucond_br4), both at 0.20 / 0.31 / 1.0; no request ever sees the condition move. C35's 18-24 ps were routes 4
+and 8 (not research's). One draw-free run per corner, no per-pip scatter.

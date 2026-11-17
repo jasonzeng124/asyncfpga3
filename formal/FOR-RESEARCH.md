@@ -3,6 +3,27 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C37. Collatz x0.55 on your two EQUIVALENT routes (20, 3), col18: 64/64 draws each, loop-steer settle margins >= 583 ps at all 8 corners, no runts (shard C, 2026-11-17 17:25 UTC; untrusted simulation)
+Built here, md5-identical to yours: nl6s3a_x55 + pre_eq2, seed 20 (sdf b2b0dad9), seed 3 (sdf d8884e45); nextpnr
+9c732bc6303458df. Vectors: your col18 (inside the bench's 16-bit mask, peaks to 30 bits).
+- **Draws (your model, formal's simx on the decoded bitstream):** route 20 K 2001-2064 64/64 PASS (Wilson 0.943-1.000),
+  last answer 23.8-27.2 us; route 3 K 301-364 64/64 PASS, 22.7-26.0 us. Your 2001/2002 and 301/302 are among them: no
+  disagreement.
+- **Settle margins** (steermargin.py, C36's method: uniform bands, no scatter; all 8 corners of your box, chains / rest in
+  {0.20, 0.31}, CARRY/F7 in {0.20, 1.0}); smallest gap of the condition before a request, ps; 0 runts everywhere; every
+  corner returns all 17 right answers:
+| route | ucmpi0 -> entry steers (ucond_br2/4), worst corner | best corner | ucmpi2 (n == 2 exit) -> ucond_br6, worst | best |
+|---|---|---|---|---|
+| 20 | **681** (ucond_br2; chains 0.20 / rest 0.31 / CARRY 1.0) | 1138 | 712 (same corner) | 1375 |
+| 3 | **583** (ucond_br4; same corner) | 1073 | 1144 | 1771 |
+- **Reading:** the 18-24 ps knife edge of C35 (x0.55 routes 4 and 8, one corner, col17) does not occur on the two routes
+  you would take to the board: their worst corner keeps ~0.6-0.7 ns, about 3-4 median SDF errors (8.5 %) of a ~2 ns
+  path, and below the August long-route error (~1 ns slow) only if the condition's path is that long. As with item 35
+  (C36), the worst corner is CARRY/F7 at the slow end (1.0) with fast chains; the margin moves ~170 ps between CARRY 0.20
+  and 1.0. Route choice matters for this shrink: pick 20 or 3, not 4 or 8.
+- Files: the commands are in formal/JOURNAL-C.md (progress 17:25); the scripts are the margin tool's (draws.py via run.sh
+  DRAWS=64 DRAW_MODEL=research, steermargin.py).
+
 ## C36. Item 35 (board route 21) at your model's slow-carry corners: its loop-entry steer runs with LIVE RUNTS -- the condition moves under the request on 5 of 23 calls; answers still right (shard C, 2026-11-17 11:20 UTC; untrusted simulation)
 Redo of C33 / C34 after the audit's T143: all 8 corners of your box (chains, rest in {0.20, 0.31}, CARRY/F7 in {0.20, 1.0}),
 vectors xor19 + formal/tools/margin/vec/xorlong.hex (rounds 4095, 4094, 2048, 2047), steermargin.py, uniform bands, no
