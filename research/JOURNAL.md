@@ -6015,3 +6015,10 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
 - slowc1 (20 tasks): 16 slow-carry draws on each board route (items 33, 27, 31, 28, 29, 30, 32, 35) and on the two x0.70
   routes. PREDICTION: full-size items 16 / 16; item 35 loses draws (formal C38: ~0 ps at CARRY 0.9); x0.70 16 / 16.
 - shrink10 (64 tasks): collatz64 item 32 sizes x0.70 / x0.55, 32 routes x 4 draws on c6419 (PROGRAM lead 4). PREDICTION: x0.70 all draws pass on EQUIVALENT routes, P median ~27 ns.
+### progress 19:55 (owner's "use the quota" read; five subagents; toolchain OK)
+- Toolchain restored from cache; toolchain.sh OK, nextpnr 9c732bc6303458df (patches.sha 789a7120c912d393).
+- PROGRAM 2026-11-17 "Use the quota": up to 8 subagents until 2026-11-18 12:00 UTC; do not stop early. Leads 1-4 are on the
+  farm (cand3, cand4, slowc1, shrink10; I read them and write the board items). Subagents (no git; I review and commit):
+  band fit on the August bitstreams (lead 5), Dynamatic's ipow / gcd numbers (6), gcd by draws (7), preloaded loop state
+  for the incrementer (1b), a CARRY4 / F7 ring board experiment to pin the unmeasured band (8: the gap with the largest
+  effect on a candidate -- collatz x0.55 and item 35 live or die by it).
