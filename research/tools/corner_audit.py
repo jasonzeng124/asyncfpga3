@@ -451,6 +451,7 @@ def rule_a_joined(T, skew, sdf, aprime):
     -> {parent: constraint dict + "sized" (False: the cell keeps its A' row, this one is reported as rule "j")}"""
     sdf = pathlib.Path(sdf)
     edges, back, stops = T.routed_graph(sdf)
+    celltype = T.parse_sdf(sdf)[1]                    # instance -> SDF CELLTYPE
     and_nodes = {o for o in stops if skew.RE_CTREE_C.search(o)}     # always AND here: the rule's premise
     binc, srcs_of = collections.defaultdict(list), collections.defaultdict(set)
     for s, lst in edges.items():
@@ -533,6 +534,12 @@ def rule_a_joined(T, skew, sdf, aprime):
                 seen.add(d)
                 if d in sel_req:
                     caps[d] = (sel_req[d][0], "select", sel_req[d][1])
+                    continue
+                if not T.is_output(d) and not edges.get(d):
+                    # no arc on: a pin its LUT / carry / mux ignores (pruned or never timed: no path), or an input of
+                    # a cell that is not combinational (an FF's D, the PS7, an IO): a sink this rule cannot time
+                    if celltype.get(T.pin_split(d)[0]) not in ("SLICE_LUTX", "CARRY4", "SELMUX2_1"):
+                        odd.add(d)
                     continue
                 if not T.is_output(d) and any(o in stops for o, _ in edges.get(d, ())):
                     inst = T.pin_split(d)[0]
