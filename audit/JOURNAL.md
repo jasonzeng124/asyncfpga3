@@ -3090,3 +3090,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research 740fd41fb: item 31 and x0.55 pass col18 locally. Consistent; x0.55 is not reproduced by the audit.
 - 06:11 research add7b1cda: lock only. T141 August runs still going.
 - 06:42 T141: August collatz bitstream 9/9 at FAST_MIN on the max-peak vectors; SLOW_MAX running. research e8c26ff60: lock only.
+
+### progress 06:51
+- T141 done. The August collatz bitstream is 9/9 at FAST_MIN and SLOW_MAX on the max-peak vectors. Items 31 / 28 are 9/9 at three corners. Finding T141 closed.
+- Open own checks:
+  - T142 (an xorshift rounds = 4095 vector on items 35 / 33);
+  - the xorshift sim-vs-board comparison (awaiting research's use of the owner's August fasm / sdf).
