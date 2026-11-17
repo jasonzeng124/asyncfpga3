@@ -573,10 +573,15 @@ def rule_a_joined(T, skew, sdf, aprime):
                         # a credit path is the sibling's own handshake, not a lap: from L0 it crosses at most one link
                         # C node (the sibling's source, entered by its request or its acknowledge) and otherwise only
                         # C-tree joins, never a latch, never S; and S is reached from L0 directly (no crossing)
-                        ps = [n for n in path(e2p, ri[1], ip) if n in stops and n != L0] if ri else []
+                        pp = path(e2p, ri[1], ip) if ri else []
+                        ps = [n for n in pp if n in stops and n != L0]
+                        # ... and that link C node is entered by its request (I0) from a forward ancestor, by its
+                        # acknowledge (I1) from an acknowledge source: the pairing of transitions the bound assumes
+                        lc = [i for i, n in enumerate(pp) if RE_LINK_C.search(n) and n != L0]
                         if ri is None or rS is None or rS[1] != 0 or S in ps or \
                                 any(n not in and_nodes and not RE_LINK_C.search(n) for n in ps) or \
-                                sum(1 for n in ps if RE_LINK_C.search(n)) > 1:
+                                len(lc) > 1 or (lc and (lc[0] == 0 or pp[lc[0] - 1] != c_inputs(pp[lc[0]])[
+                                    0 if L0 in anc else 1])):
                             ok = False
                             break
                         cands.append((ri[0] - rS[0], L0, ri[1], " > ".join(short(n) for n in ps), rS[0]))
