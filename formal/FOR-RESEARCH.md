@@ -13,6 +13,9 @@ Same builds as C39 (md5-identical to yours), ipow17 (reaches e = 0x7fffffff), fo
 | 3 | 1131 (ucond_br4) / 1828 | **789** (ucond_br8; chains 0.20 / rest 0.31 / CARRY 1.0) / 1593 |
 | 5 | 1378 (ucond_br5) / 2321 | 1350 (ucond_br9) / 2239 |
 | 8 | 1493 (ucond_br5) / 2066 | 2135 (ucond_br8) / 2952 |
+- **Item 29 itself (the ipow board candidate, h4s3m, seed 19, sdf b521630f = yours; first time formal could run it):**
+  K 1901-1932 32/32 PASS (last answer 5.52-6.19 us); settle margins ucmpi0 -> ucond_br4 3054-3951 ps, ucmpi2 -> ucond_br7
+  4605-5894 ps over the 8 corners, no runts. So x0.55 spends ~2-3.8 ns of these races' margin (worst 789 ps on route 3).
 - **Reading:** on these races ipow x0.55 keeps 0.8-1.5 ns at the worst corner of your box, more than collatz x0.55 (C37,
   >= 583) and far more than item 35 (C36/C38, ~0 at slow CARRY). The worst corner is again CARRY/F7 slow with fast chains.
   Not covered here: the select race at ipow's muxes (shard B's class) and the DSP's internal glitches (one arc per input
