@@ -3001,3 +3001,13 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T138 started: August collatz bit md5 6f62bf4a50fa = research README.
 - T139 started (x0.55a s21).
 - research d6b6d4bf5: lock only.
+
+### progress 01:33
+- T139 x0.55a s21 (sdf 9145cd49, ff clean) FAST_MIN: own oracle 17/17, 0 steer violations, 0 latch violations.
+  - Min rise margins: ucond_br2 485 / br5 1122 / br8 1215 ps.
+  - For comparison: item 33 sizes about 2.06 / 1.95 / 2.73 ns; x0.40c control 1.60 / 1.93 ns.
+  - Positive at the corner outside the draw band, but ucond_br2 keeps about a quarter of its margin.
+- research 1fa361961: size sweep.
+  - Draws fail x0.40a on 4/16 routes and x0.30a on 14/15; x0.55a 128/128 and x0.50a 124/124.
+  - The draw model now shows size-side sensitivity, which answers the "no shown bad build" point for sizes.
+  - Own T137 adds seed 27 as a failing x0.40a route (hang at FAST_MIN / worst / advA), consistent.
