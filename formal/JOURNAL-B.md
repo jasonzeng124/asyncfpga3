@@ -4448,7 +4448,7 @@ FPGA toolchain restored from the cache (key d7ce266cff0c8e1e), toolchain.sh ok, 
 sdf 9145cd49) by preloading the loop counter, check against the C oracle from the same state, then judge UADDI0 by
 draws (with a shortened-UADDI0 negative control that the preload must catch and ordinary vectors must miss). Then
 collatz64's 63-bit values.
-### progress 20:3x -- the preload works on item 35 (untrusted simulation): the incrementer's 30-bit carry is reached and the answers match the C from the same state
+### progress 20:06 -- the preload works on item 35 (untrusted simulation): the incrementer's 30-bit carry is reached and the answers match the C from the same state
 Tools (new, `formal/tools-B/preload/`; shard C's simx / draws.py / run.sh unchanged):
 - `preload_net.py`: in the decoded net, the latch state nodes of the loop variable's ENTRY link (xorshift: `ulink_n6`, a
   2-stage pipe whose 64 latch halves read GND -- i's initial 0) get the constant truth table of their bit of I0. Checked
@@ -4472,3 +4472,27 @@ Note: 0x7fffffff + 1 never happens in the C (i < rounds <= 2^31 - 1), so a 30-bi
   only at 1.0) but no answer and no answer time changes (as A13: matched delays set the cycle).
 - UADDI0 7 (item 35's x0.55 applied to the incrementer too; seed 21 -> new route, sdf 0a993f62): xor19 4/4, set A
   16/16, set B 16/16. UADDI0 2 and 0 building (the negative control the preload has to catch).
+### progress 20:30 -- UADDI0 down to 0 still passes the preloaded draws (its long carry is shadowed); the preload CAN fail; collatz64 at 63 bits
+- **The incrementer's size does not decide correctness on seed 21:** UADDI0 2 (sdf fafe42b5) and 0 (96a395ab), new
+  routes of item 35's command: xor19 4/4, preload A 8/8, B 8/8 (draws 2101..). UADDI0 12 / 7 above.
+- **Negative control (the preload must be able to fail where vectors cannot):** `inject_carry.py` adds PS ps to the
+  carry-in arc of every output of one CARRY4 (outside the band; simx's "I" injection, as research's SDF injections). On
+  item 35, +20 ns on uaddi0 slice[4] (the carry into bit 16, SLICE_X22Y54): xor19 2/2 PASS (that carry-in never moves
+  with rounds <= 4095), preload A 2/2 FAIL (wrong answers exactly on the calls whose loop uses i + 1 = 0x40000000).
+- **The slack of the long carry** (`carryslack.sh`: bisect the injected delay to 50 ps, 4 draws 2101-2104 must all
+  pass): item 35 (UADDI0 12) >= 9140 ps (fails 9179); UADDI0 0 (seed 21) >= 8828 (8867); UADDI0 7 (seed 21, its own
+  route) >= 8164 (8203). Consequence slack (an upper bound of the settle margin), on the carry into bit 16 only.
+  Reading: i + 1 waits at loop steer cond_br6 for the compare (cmpi1 i < n - 1, its own 32-bit chain + UCMPI1), so
+  the incrementer's matched delay is not what times its result; the 30-bit carry arrives ~8-9 ns before it matters.
+- Period (preloaded single long call, 271 iterations, median per-iteration ps of umux0.uor rises, draws 2101 / 2102):
+  UADDI0 12: 14427 / 14214; 7: 13901 / 14123; 2: 13883 / 13590; 0: 14193 / 14196 (one route each: route scatter).
+- **collatz64 item 32** (h4s3p, seed 22, rebuilt here, sdf 842dd4d7 = research's): its kernel boundary in the decoded
+  net carries all 64 input bits (the bench's high-word mask is outside), so 63-bit values are ordinary inputs here.
+  c64hi = 0x1555555555555555 (3n+1 = 2^62: a 62-bit carry), 0x0555555555555555 (60-bit), and 4 random odd 62-bit n
+  whose trajectories peak in [2^62, 2^63) without overflow (63 / 61 / 203 / 211 / 214 / 224 steps; kernels.py): 8/8
+  draws PASS (K 3201-3208). Research's c6419 already peaks at 49 bits (+20 ns on the 3n+1 carry into bit 48 fails it);
+  +5 ns into bit 56 passes both; the carry into bit 56 tolerates 16484 ps (fails 16523) on c64hi.
+- Steps counter (i32, entry ulink_n7, preloaded 0x3ffffff0; oracle.c now does collatz / collatz64 from S0): c64hi 8/8;
+  its carry into bit 16 (uaddi1 slice[4]) tolerates the whole 20 ns searched.
+- Running (batch35.sh, background): UADDI0 12 vs 0 on seeds 2 / 4 / 5 (sdf 12: b2470514 / ee6304d0 / 7a448319 -- the
+  first two = C36's routes 2 / 4; 0: 2b8ef891 / f5223fdd / b4b07f06): ordinary, preload A / B, carry slack, period.
