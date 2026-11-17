@@ -37,6 +37,10 @@ and for a bench kernel with a memory (cells/hw/build_bench.sh K, emit --host-mem
 The RAMB18E1's clock-to-out sits at `GLS_SDF_BAND` (0.288) in bench_gate.sh's `worst` and `draw:K` unless
 `RAMB18E1_RAMB18E1` is added to their `GLS_SDF_BAND_CELL` lists; it was never measured on the board, so the slow end
 (1 in `worst`, the unmeasured class's XK in `draw:K`) is the conservative choice for bd_mem (its DCO must cover it).
+With the key, gen.py moves the 18 IOPATH arcs of each RAM (`GLS_SDF_BAND_CELL: ... (IOPATH arcs moved: ...
+RAMB18E1_RAMB18E1 36 ...)` on memsum's two RAMs); interconnect into and out of the RAM keeps the wire band.
+On memsum seed 1 the baked clock-to-out is 1343-1347 ps at 0.288 and 2934-2943 ps at 1 (both after the M-scatter
+maximum over the 16 DOADO arcs: gen.py takes a group's largest arc, as for the DSP).
 
 ## Measured (nextpnr 9c732bc6303458df, toolchain.sh all ok)
 
