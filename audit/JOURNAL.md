@@ -3030,3 +3030,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Board 92.73 at x = 0.223; band 0.288 is +8.6 %. Research's speed error is reproduced on collatz.
   - Caveat: T139's hangdog (which watches every vvp) stopped T138's SLOW_MAX at 01:49 with 10/13 vectors done. The three longest SLOW_MAX vectors are missing; the slope is from 8 vectors.
   - A full SLOW_MAX rerun is queued after T139.
+
+### progress 02:13
+- T139 done. Item 35 SLOW_MAX: 17/17, 0 violations, margins 1603 / 3231 / 2917 ps. Item 35 is CONFIRMED clean at all four own corners. The binding margin is ucond_br2 at 264-485 ps on the fast side. Owner notified.
+- The T138b full SLOW_MAX rerun starts now (it waited on t139.done).
