@@ -775,6 +775,37 @@ BDC_FASTFALL = compute.BDC_FASTFALL
 # is not (bd_pipe, bd_mem); verify/tighten.py rule F audits the drain.
 BDC_LINK_FASTFALL = os.environ.get("BDC_LINK_FASTFALL", "0") == "1"
 
+# BDC_AUTO=1 (off by default; unset, nothing below runs and the output is byte-identical): the hand recipes' general
+# knobs on, and their instance-named ones replaced by rules over the graph (bdc/auto.py; research/data/auto/README.md).
+# A knob set explicitly in the environment wins over what AUTO would choose.  Per function, in Emitter.__init__:
+# BDC_MERGE_OUT_LINK + BDC_MERGE_RES_LINK on every loop-header arbitrated control_merge (rule M), BDC_FORK_OUT_LINK on
+# every fork output that feeds its loop steer while a sibling feeds that steer's test (rule F), BDC_LINK_FASTFALL where
+# the function has no memory port (fast fall is not audited there).  Here: BDC_CONST_DATA and BDC_RING_COUNT_OLINKS.
+import auto as _auto  # noqa: E402
+_ENV_MO, _ENV_MR, _ENV_FO = set(MERGE_OUT_LINK), set(MERGE_RES_LINK), set(FORK_OUT_LINK)
+if _auto.AUTO:
+    if "BDC_CONST_DATA" not in os.environ:
+        BDC_CONST_DATA = True
+    if "BDC_RING_COUNT_OLINKS" not in os.environ:
+        RING_COUNT_OLINKS = True
+
+
+def _auto_apply(func):
+    """BDC_AUTO's per-function choices, written into the module knobs the emitter already reads."""
+    global MERGE_OUT_LINK, MERGE_RES_LINK, FORK_OUT_LINK, BDC_LINK_FASTFALL
+    hdr = _auto.loop_header_merges(func, instname)
+    if "BDC_MERGE_OUT_LINK" not in os.environ:
+        MERGE_OUT_LINK = _ENV_MO | hdr
+    if "BDC_MERGE_RES_LINK" not in os.environ:
+        MERGE_RES_LINK = _ENV_MR | hdr
+    if "BDC_FORK_OUT_LINK" not in os.environ:
+        FORK_OUT_LINK = _ENV_FO | _auto.steer_fork_outputs(func, vname)
+    if "BDC_LINK_FASTFALL" not in os.environ:
+        BDC_LINK_FASTFALL = not _auto.has_memory(func)
+    print(f"auto: {func.name}: merge out/res links {sorted(MERGE_OUT_LINK)} / {sorted(MERGE_RES_LINK)}; "
+          f"fork out links {sorted(FORK_OUT_LINK)}; link fast fall {int(BDC_LINK_FASTFALL)}; "
+          f"const data {int(BDC_CONST_DATA)}; ring counts olinks {int(RING_COUNT_OLINKS)}", file=sys.stderr)
+
 
 class _UnionFind:
     """Union-find with a hard cap on merged component size."""
@@ -1725,6 +1756,8 @@ class Emitter:
         self.lines = []
         self.delays = []    # (instance, default) in emission order
         self.units = {}     # module name -> source text, for generated cells
+        if _auto.AUTO:
+            _auto_apply(func)
         self._resolve_widths()
         # Which load/store/mem_controller SSA results round-trip entirely
         # inside a station -- no net -- and how each accessor and controller

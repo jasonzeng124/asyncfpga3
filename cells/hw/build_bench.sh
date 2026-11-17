@@ -168,6 +168,12 @@ MLIR="../build/frontend/$KERNEL/comp/handshake_transformed.mlir"
 [ -e "$MLIR" ] || { echo "missing: $MLIR (kernel not compiled to handshake IR yet)"; exit 2; }
 
 mkdir -p build/gen
+# BDC_AUTO=1 (off by default; unset, this block does nothing): every MLIR rewrite with a proof (bdc/auto.py PROVEN:
+# formal A6) applied where it applies, before bdc/emit.py.  The storage rules run inside emit.py itself.
+if [ "${BDC_AUTO:-0}" = 1 ]; then
+    python3 ../bdc/auto.py "$MLIR" "build/gen/${KERNEL}_auto.mlir" || exit 2
+    MLIR="build/gen/${KERNEL}_auto.mlir"
+fi
 python3 ../bdc/emit.py "$MLIR" --no-top -o "build/gen/${KERNEL}_kernel_bench.v"
 
 # TOP itself was computed above, before the default-tighten dispatch; this is
