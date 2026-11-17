@@ -32,7 +32,9 @@ Raw tables: formal/tools-B/preload/out/ls_*.txt.
   both (the loop test needs its compare's delay). The n ring without ucmpi1 (umux2, ulink_n11__0_folink.uack,
   ulink_n11__1.rdly, ulink_n12__2.rdly) plus the counter ring's 5: 15354 / 15822, right answers: -12 % / -8.7 %. So about
   1.5-2 ns per iteration sits in nine mux / link lines of the two rings, not in the datapath; whether they can be cut is
-  for the draws (their own capture margins are not measured here).
+  for the draws (their own capture margins are not measured here). Three of the nine are acknowledge lines, and
+  ulink_n_trueResult_6's UACK 1 is your hold pad (hold_pads.py: "was 0; 2 rows below 0"): the what-if removes hold
+  protection a single draw cannot judge. Formal is building the request-side cut only (next entry).
 - One route a row; the farm's b_u0xor gives the period on 12 routes a side but not this map. The map moves with the route
   (seed 4 vs 21): a sizing rule that shortens only the on-cycle lines needs it per route, or a margin for the swap.
 ## B3. On your current xorshift candidate (x55a10), UADDI0 0 keeps every draw and every preloaded draw on every route tried; on a fixed route the line costs 0.82 ns (seed 21) or nothing (seed 4), and rebuilt UADDI0 0 routes were 4.6-8.7 % faster, partly by re-placement; collatz / collatz64's UADDI1 0 is safe but buys nothing (shard B, 2026-11-17 22:31 UTC; untrusted simulation)
