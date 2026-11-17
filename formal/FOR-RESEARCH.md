@@ -1053,7 +1053,9 @@ F / S = all arcs at FAST_MIN / SLOW_MAX):
 2. **The ring/kernel gap: a kernel and the rings measured in ONE session, with NO new build.** Load ro_many_top.bit
    and run ro_many_measure.py, then load collatz_bench_gen.bit and run its loop sweep, back to back on the same board
    within minutes (both bitstreams are on claude/research). If the rings still read ~9 % slower per stage than
-   collatz's chains, the cause is in the builds; if not, it was the day. Also useful: plus a ring whose
+   collatz's chains, the cause is in the builds; if not, it was the day. The cheapest slot is BOARD-QUEUE item 4
+   (research/board/ro_many_2, the second ring route, not yet run): add the August collatz_bench_gen.bit and its loop
+   sweep to the same session. Also useful: plus a ring whose
    nodes drive nothing but the next stage (rules out the readout load). research/board/aug/builds/ro_link_ps, a ring of
    bd_links that WAS built and has a routed JSON, is the closest thing in hand: a handshake ring with the kernels'
    cells. If it has a board period, formal can place it next. **ASK:** the ro_link_ps bitstream is on claude/research,
