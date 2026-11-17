@@ -14,13 +14,13 @@ c=json.load(open('$B/routed.json'))['modules']['top']['cells']
 m=[v['attributes']['NEXTPNR_BEL'].split('/')[0] for n,v in c.items() if re.search(r'''$RX''',n)]
 assert len(m)==1, m; print(m[0])")
 echo "carryslack: $RX at $SL, kernel $K, preload $I0 $LINK, draws $S0+$ND" | tee "$O/carryslack.txt"
-ok() { python3 "$H/inject_carry.py" "$B/net.json" "$SL" "$1" "$O/inj$1.json"
+ok() { local r; python3 "$H/inject_carry.py" "$B/net.json" "$SL" "$1" "$O/inj$1.json"
   if [ "$I0" = "-" ]; then
     python3 "$M/draws.py" "$B/net.json" "$B/bnd.json" "$O/d$1" --kernel "$K" --pairs $PAIRS --draws "$ND" --seed0 "$S0" --jobs 4 \
       --routed "$B/routed.json" --tmax 400000000 --inject "$O/inj$1.json" 2>/dev/null | grep -q "FAIL 0 UNDECIDED 0"
   else
     DRAWS_EXTRA="--inject $O/inj$1.json" "$H/prun.sh" "$B" "$O/d$1" "$I0" "$LINK" "$PAIRS" "$ND" "$S0" 4 2>/dev/null | grep -q "FAIL 0 UNDECIDED 0"
-  fi; }
+  fi; r=$?; rm -f "$O/d$1/net.json" "$O/d$1/net.simx" "$O/d$1/simx" "$O/d$1/gclass.txt"; return $r; }   # each probe's net copy is ~50 MB
 ok "$HI" && { echo "no failure up to $HI ps" | tee -a "$O/carryslack.txt"; exit 0; }
 lo=0; hi=$HI
 ok 0 || { echo "fails with no injection" | tee -a "$O/carryslack.txt"; exit 0; }
