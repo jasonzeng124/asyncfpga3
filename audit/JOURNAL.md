@@ -3165,3 +3165,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 18:42
 - T145 collatz: ns/iter 90.12 at CARRY / F7 / FF 0.20 and at 1.0 (+0.0 %), oracle 13/13 both. The August collatz data cannot pin the CARRY band. collatz64 / ipow running.
+
+### progress 19:07
+- T145 done. CARRY / F7 / FF 0.20 -> 1.0 changes ns/iter by 0.0 % (collatz), 0.0 % (collatz64), +0.2 % (ipow); oracle right in all six runs.
+  - The August kernels pin LUT / routing at x = 0.22-0.23 but do not pin CARRY / F7 at all.
+  - Item 35's race stays in an unmeasured band.
+  - Finding T145; REPORT row. Owner notified.
