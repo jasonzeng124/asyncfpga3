@@ -4546,7 +4546,7 @@ Vectors for research in tools-B/preload/vec/ (c64hi, c32hi; .exp from oracle.c).
 | collatz64 item 32 s22, UADDI1 0 (65a92f2d) | c6419 8/8 | c64hi 8/8 | 8/8 | >= 14804 | 25419 / 26511 |
 One route per variant (each a different route); collatz x0.70 seeds 2-4 of both variants building (bq3.sh) for the
 period comparison.
-### progress 22:0x -- x55a10 seeds 1-3, collatz x0.70 seed 2; farm b_u0xor filed (waiting behind the 200-core ceiling)
+### progress 21:59 -- x55a10 seeds 1-3, collatz x0.70 seed 2; farm b_u0xor filed (waiting behind the 200-core ceiling)
 x55a10 (item 35 + UCMPI0 10) rows, UADDI0 12 | 0 (each its own route): xor19 8/8 + slow-carry 4/4 and preload A 16/16 +
 slow-carry 8/8 on every build so far. carry slack seed 1: 8632 | 9062; seed 2: 8789 | 7773; seed 3: 8007 | (running).
 Period (ps, K 2101 / 2102): seed 1 14169 / 14002 | 13785 / 13717; seed 2 14041 / 13925 | 12929 / 12813; seed 3 14005 / 13658 | -.
