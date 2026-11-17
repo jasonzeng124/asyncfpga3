@@ -6260,3 +6260,17 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - Determinism: the four it 0 routes rebuilt after the restart have the same sdf md5s as the killed loops' (e9a7370c,
   b0aaeccd, 82a2f474, d68acaae); x55a10 seed 21 rebuilt here = the farm's cand3b route 21 byte for byte (sdf 42b4fb4c...,
   P 16494 ps). Its bit (6a68b04e) is being judged for a board item: 32 draws + 3 corners on xor19.
+### progress 23:44 (AUTO it 1: the pinning ratchet shrinks on compact routes; farm gcddraw1 timed out; suite1 narrowed)
+- AUTO it 1 (seed 1, the route built from it 0's proposal): xorshift 3 constraints short (A'm umux2 -476, A' ucmpi0
+  -202, I -49) -> 3 lines raised and pinned, 8 lowered: UCMPI1 26 -> 22 (now bound by E at ucond_br8, 16 ps left),
+  UXORI1 / UXORI2 6 / 5 -> 4 / 3 (hand: 3 / 3), UADDI0 8 -> 6, UADDIDEC0 22 -> 6. collatz 16 short (A' uaddi1 -1302,
+  E ucond_br6 -460, A' ucmpi0 -370, A' ucmpi2 -207, ...) -> 6 raised (UADDI1 3 -> 11, UCMPI2 5 -> 8, UCMPI0 6 -> 9 ...),
+  2 lowered. As the loop's header predicted, a proposal priced on the estimates route under-delivers on the compact
+  route it produces; the re-check catches it. Note UADDI1 (collatz's steps + 1) now 11 > UCMPI2 8 at their shared
+  join: the case formal B3 says pays for a capture that never happens (joinrule subagent).
+- Farm gcddraw1: 42 of 64 tasks hit the 150-min limit after their build (gcd18's draws take hours in the decoded-netlist
+  simulation: e.g. task 10 built gd1_75_10, P 91.6 ns, EQUIVALENT, then timed out in the checks), 2 failed at container
+  start, 20 running. Not a verdict on gcd; a lesson on budgets.
+- So suite1 (still waiting) now asks 4 kernels x 8 seeds (32 tasks); for gcd and isprime the suite uses one long vector
+  for P (gcd (7fffffff, 1), isprime 2003) and gcd8 for gcd's draws (gcd18's edges and its longest pair), expected values
+  still compiled from the C at run time.
