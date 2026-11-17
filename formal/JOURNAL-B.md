@@ -4601,3 +4601,10 @@ control does fail. Here (RC arcs, x55a10, seeds 21 / 4): period 12: 17378 / 1732
 15871 / 16181 ps (sdf 42b4fb4c, e3a39490, 57fee21d, 27a25487 / 05a84ea0, d122d782, 3881aa40, c5751262); all draws pass.
 12 / 4 / 1 agree with research (no trend); 0 alone is faster. bd_delay_gated at N = 0 is a wire, at N = 1 one LUT1: the
 ~1.2 ns gap is not the line's length; not traced. Added to B3 with an ask for research's P at UADDI0 0.
+### progress 23:17 -- what UADDI0 costs on a fixed route: 0.82 ns on seed 21, 0 on seed 4 (zeroline.py)
+`zeroline.py`: scale a matched-delay line's LUT arcs (floored at 20 ps: simx's H_RUNT(20) refuses a LUT pin bound < w) and
+the pips between its LUTs to 0 in the decoded net, same placement. x55a10 seed 21 (42b4fb4c): 17469 / 17286 -> 16604 / 16511;
+seed 4 (05a84ea0): 17333 / 17308 -> unchanged. Sensitivity: +500 ps on the line's first LUT moves seed 21's period by +500
+(UADDI0 12) and the UADDI0 1 route's by 0. So the line sets the period on some routes (seed 21, by ~0.8 ns before the
+next cycle takes over) and not on others; the rebuilt UADDI0 0 builds' remaining gain is re-placement. B3 corrected (the
+"one LUT cannot be 1.2 ns" paragraph replaced by this).
