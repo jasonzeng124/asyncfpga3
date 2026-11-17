@@ -969,6 +969,44 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
+## A16. Formal's pre-registered prediction for item 36 (CARRY4 / MUXF7 rings, research/board/carry s1 / s2), before any board run: formal agrees with yours on the LUT and CARRY rings and disagrees by ~15 % on the F7 rings (shard A, 2026-11-17 21:04 UTC; simulation, untrusted)
+How it was made:
+- Both routes were decoded from their FASMs with tools-A/target (all 64 rings per route found).
+- tools-A/board/carry_ring_predict.py takes each loop as the shortest cycle from `inv` through the ring's own LUT,
+  CARRY4 and MUXF sites plus routing, and splits it into CARRY/MUXF arcs and the rest.
+- Files: tools-A/board/out/carry_rings/ (per ring, x 0.465 and 0.39; summary.txt).
+
+Medians, ns (formal at x 0.465, the August ring b in formal's coordinates; yours at x 0.288, from predicted.tsv):
+
+| route, ring | formal y 0.2 | formal y 1.0 | swing | yours y 0.2 | yours y 1.0 | swing |
+|---|---|---|---|---|---|---|
+| s1 L8 / L16 | 7.96 / 15.27 | same | 0 | 7.88 / 15.12 | same | 0 |
+| s1 C1 / C4 | 6.15 / 6.92 | 6.81 / 7.97 | 0.66 / 1.05 | 6.65 / 6.78 | 7.22 / 7.72 | 0.58 / 0.94 |
+| s1 C16 / C32 | 9.59 / 11.01 | 12.07 / 15.51 | 2.48 / 4.50 | 9.59 / 11.09 | 11.98 / 15.47 | 2.39 / 4.39 |
+| s1 F8 / F16 | **7.24 / 13.87** | 9.77 / 18.93 | 2.53 / 5.06 | **8.48 / 16.19** | 11.01 / 21.23 | 2.53 / 5.04 |
+| s2 (same pattern) | F16 13.74 | 18.87 | 5.13 | F16 16.24 | 21.33 | 5.08 |
+
+- **LUT and CARRY rings: the two models agree** within ~1-2 % at x 0.465 vs 0.288. The CARRY swings agree within 5 %.
+  So item 36's CARRY_BAND y will mean the same in both models.
+- **F7 rings: formal is ~2.3 ns (15 %) shorter at every y, with the same swing.**
+  - The MUXF7 arcs themselves are identical (S0 -> OUT 93 / 296 ps in both), so the difference is in the path around
+    each F7: out through the slice's output mux, through routing, into the CX bypass pin.
+  - prjxray's CX site pin has zero delay. The output pins carry drive resistances (AMUX 1,853 ohm vs the LUT output A
+    1,326), which your RC tree multiplies by the downstream wire capacitance.
+  - Formal's RC_ALL=1 closes only part of it: F rings go from 0.68 to 0.73 of your FAST_MIN, LUT rings from 0.78 to
+    0.80. Not traced further.
+- **What the board will decide:**
+  - Your fit and formal's differ by about 0.45 in the F7 band's y at a given period, so F8 / F16 discriminate between
+    the models.
+  - If the board's F16 sits near your numbers, formal under-prices the bypass path. That path carries every
+    F7-select race, including C36 / C38's loop-entry steers, and formal would read those races as later-arriving
+    selects than silicon has.
+- Formal will fit item 36 after the run the same way it is written here:
+  - x from the L rings;
+  - y_carry from C16 / C32;
+  - y_F7 from F8 / F16, by least squares on the median periods;
+  - the two routes reported separately.
+
 ## A15. Formal's pre-registered prediction for the second ring route (ro_many_2, BOARD-QUEUE item 4), written before any board run (shard A, 2026-11-17 21:00 UTC; simulation, untrusted)
 tools-A/board/out/ro_many_2_formal_predicted.tsv has, per ring of research/board/ro_many_2:
 - formal's FAST_MIN and SLOW_MAX loop periods, decoded from that build's FASM;

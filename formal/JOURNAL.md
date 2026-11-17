@@ -2895,3 +2895,10 @@ New tools: chain_gates.py, chainstage.py; scale_net CHAIN / B_CHAIN / B_DSP env.
 ro_many_2 was decoded and its loops were found: 128 rings, none missing. At the August ring b (0.465), formal's periods
 come out at a median 1.010 of research's own prediction, with +-5 % per ring. Committed before any board run of that
 route. The same-session collatz run proposed in A14 can share that board session.
+
+### progress 21:04 -- A16: formal's pre-registered prediction for item 36 (CARRY4 / MUXF7 rings; simulation, untrusted)
+Both carry-ring routes were decoded: 64 / 64 loops found on each. At x 0.465, formal matches research's own prediction
+on the LUT and CARRY rings within 1-2 %, including the CARRY swing over y (C32: 4.50 vs 4.39 ns). On the F7 rings
+formal is 15 % shorter at every y, with the same swing. The F7 arcs agree, so the difference is in the output-mux ->
+routing -> CX path: research's RC tree, with the slice output drive resistance. RC_ALL closes only part of it.
+Committed before the board run.
