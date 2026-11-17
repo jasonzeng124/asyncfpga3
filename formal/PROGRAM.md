@@ -118,8 +118,12 @@ it wins over the sections below where they conflict:
 - **Shard A: say how close the simulator is to the board.** `gcd_ps` is the one bitstream here
   that ran on the board with measured latencies (310 ns to 6.34 us, by input). Predict those
   latencies from the decoded bitstream and report predicted against measured, per input. If
-  you cannot find the measurements in the repository, write `ASK:` in the journal. Then the
-  same for the August bench builds when research or the owner supplies them.
+  you cannot find the measurements in the repository, write `ASK:` in the journal. Your ASK
+  of 2026-11-16 is answered in part: the August `gcd_bench_gen` `.fasm` and `.sdf`, and the
+  other four bench builds, are on `claude/research` under `research/data/board-august/`
+  since 2026-11-17 (read its README: dated the same day as `gcd_cost_results.tsv`, but not
+  proved to be the measured build). A new board run is not possible: the owner does not have
+  the board with him.
 - **Lean** only where it closes a gap between the simulated circuit and the board (the decoder,
   the delay bounds). The gcd theorem stays second priority.
 - No subagents, as before. Shard B stays stopped.
