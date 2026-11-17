@@ -20,6 +20,17 @@ def lines(args):
                 if l.strip():
                     yield l.strip()
 
+def hand_ref():
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hand_ref.tsv")
+    out = {}
+    if os.path.exists(p):
+        for l in open(p):
+            if l.startswith("#") or not l.strip():
+                continue
+            k, ns, how = (l.rstrip("\n").split("\t") + ["", ""])[:3]
+            out[k] = (float(ns), how)
+    return out
+
 def dyn_ref():
     p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dynamatic_ref.tsv")
     out = {}
@@ -38,9 +49,9 @@ for l in lines(sys.argv[1:]):
         continue
     d = dict(re.findall(r"(\w+)=(\S+)", l))
     rows.setdefault(t[0], []).append(dict(seed=t[1], _l=l, **d))
-DY = dyn_ref()
-print("| kernel | status | routes judged / built | draws passing | ns per iteration (P), median (range) | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio |")
-print("|---|---|---|---|---|---|---|---|---|")
+DY = dyn_ref(); HD = hand_ref()
+print("| kernel | status | routes judged / built | draws passing | ns per iteration (P), median (range) | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns |")
+print("|---|---|---|---|---|---|---|---|---|---|")
 npass, ratios = 0, []
 for k in sorted(rows):
     rs = rows[k]
@@ -63,12 +74,18 @@ for k in sorted(rows):
     ratio = (Pm / dy[0]) if (Pm and dy) else None
     if ratio and ok:
         ratios.append(ratio)
-    print("| %s | %s | %d / %d | %s | %s | %s | %s | %s | %s |" % (
+    hd = HD.get(k)
+    print("| %s | %s | %d / %d | %s | %s | %s | %s | %s | %s | %s |" % (
         k, status, len(judged), len(rs), ("%d / %d" % (dp, dn)) if dn else "-",
         ("%.2f (%.2f-%.2f)" % (Pm, min(Ps), max(Ps))) if Ps else "-",
         ("%d" % max(lat)) if lat else "-", ("%d" % st.median(luts)) if luts else "-",
-        ("%.2f (%s)" % dy[:2]) if dy else "-", ("%.2f" % ratio) if ratio else "-"))
+        ("%.2f (%s)" % dy[:2]) if dy else "-", ("%.2f" % ratio) if ratio else "-",
+        ("%.2f" % hd[0]) if hd else "-"))
 notes = sorted({(k, v[2]) for k, v in DY.items() if k in rows})
+hnotes = sorted({(k, v[1]) for k, v in HD.items() if k in rows})
+if hnotes:
+    print()
+    print("Hand recipes (per-kernel knobs and sizes, the column the automatic path has to close): " + "; ".join("%s: %s" % kv for kv in hnotes) + ".")
 if notes:
     print()
     print("Dynamatic's figures: " + "; ".join("%s: %s" % kv for kv in notes) + ".")
