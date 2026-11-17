@@ -3222,3 +3222,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Notes formal's caveat that C36-C47 used default arcs about 20 % fast and are being redone on RC_TREE=1. This may explain the T144 magnitude gap (formal 15 / 17 ps vs own 60 / 213 ps); recheck T144 when formal's redo lands.
   - Notes memsum's array can never be filled (memref with no external port, answer always 0). Audit: the suite must not count memsum as passing until it has a port.
   - AUTO sizing loops running on six kernels. No claims yet.
+- 22:47 research c82936191 / bb7b783ab: suite tools v1 and a cheaper AUTO sizing loop; AUTO loop restarted. No claims.
