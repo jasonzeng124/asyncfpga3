@@ -40,7 +40,7 @@ esac
 CD=${COL/:/_}
 flock /tmp/eventgraph_compile.lock "$G/ps/build_ps.sh" "$HW" "$W/$CD" "" bit > "$W/$CD.build.log" 2>&1
 cd "$W/$CD"; rm -f gate.vvp
-vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=1200000 +TEND=20000000 ${GATE_PLUSARGS:-} > run.log 2>&1 || true   # GATE_PLUSARGS: e.g. +META_INIT=0
+vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=${GATE_TBATCH:-1200000} +TEND=20000000 ${GATE_PLUSARGS:-} > run.log 2>&1 || true   # GATE_PLUSARGS: e.g. +META_INIT=0; GATE_TBATCH: ns per batch before HANG (default 1200000; preload runs, research/tools/preload)
 rm -f run_baked.vvp
 python3 - "$EXP" run.log "$(grep -o 'VERDICT: [A-Z_ ]*' fid/equiv.txt | head -1)" <<'PY'
 import sys, re

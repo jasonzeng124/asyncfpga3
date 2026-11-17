@@ -50,6 +50,11 @@ def main():
             sys.exit("gen_preload: net %r has no placed driver (constant?)" % name)
         bel, port, typ = drv[b]
         pin = bel + "/" + port
+        cn = [n for n, c in cells.items() if c["attributes"].get("NEXTPNR_BEL") == bel]
+        own = cells[cn[0]] if cn else None
+        if not own or ".lat." not in cn[0] or not any(
+                b in v for q, v in own["connections"].items() if own["port_directions"][q] == "input"):
+            sys.exit("gen_preload: %r is not driven by a LUT latch with its own feedback (%s)" % (name, cn))
         if pin not in by_pin:
             sys.exit("gen_preload: %r -> %s not in %s" % (name, pin, nmap))
         if typ != "SLICE_LUTX":

@@ -6036,3 +6036,12 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
 - Does NOT show: measured Dynamatic routes for ipow / gcd (needs a Dynamatic build: run dyn_baseline.sh on >= 4 seeds,
   x5 for ipow, x3 + 1 per shift for gcd). The three earlier numbers are themselves single routes.
 - 20:01 owner (PROGRAM 759d353b4): 8 subagents allowed until the reset 2026-11-18 23:00 UTC. New subagent: gcd iteration-cost diagnosis (research/data/gcd_itercost/), since gcd is 3-4x behind Dynamatic.
+### progress 20:09 (band fit: first point; board-august = August builds)
+- research/data/board-august/ (owner, 2026-11-17) is byte-identical to research/board/aug/builds for all ten .fasm / .sdf.
+- August collatz bitstream, LUT + routing x 0.222, CARRY4 / F7F8 / FF y 0.2, 8 board vectors (6-153 steps): all right,
+  no mismatch; 92.68 ns per iteration vs board 92.76 (-0.09%); per-vector latencies within 1 cycle of the board's.
+  Refitted x at y 0.2: 0.2227 (same as 0.222 with every cell at one band, and audit T145's 0.223).
+- xorshift's August board logs come from at least two builds (trip_N logs ~25 ns per round; repeat / run / soak ~48 ns,
+  = PROGRAM's 47.66); all are match=NO against the archived .bit. Not simulated yet.
+- Running locally (one at a time, ~15 min each): collatz y 1.0; collatz64 (x 0.224) / ipow (x 0.225) at y 0.2 / 1.0; then
+  y 2.0 / 3.0 (beyond SLOW_MAX, extrapolated) on all three as a correctness bound. Scripts research/data/bandfit/.
