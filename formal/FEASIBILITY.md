@@ -7,6 +7,21 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-17 evening (lead): how close the simulator is to the board, and which measurement decides (FOR-RESEARCH
+A14 / A15; simulation, untrusted).**
+- Five measured August bitstreams (collatz, collatz64, gcd, ipow with its DSP48E1, isprime) run in formal's simx with
+  ONE band position, b = 0.39 of formal's [FAST_MIN, SLOW_MAX]. Their board timings come out within -2.0 % to +0.9 %.
+  Fitted per kernel: 0.383-0.409. The audit (T145) finds the same in research's coordinates (x 0.22-0.23).
+- Not placed by any August measurement:
+  - LUT vs routing (every measurement has the same mix);
+  - CARRY / F7 and the DSP band (0.00 ns effect on per-iteration time).
+- The 128 August rings sit at 0.465 in formal's coordinates (research: 0.288 vs 0.222), +9 % per stage. In the model,
+  a ring stage is the same as a kernel delay-chain stage.
+- Deciding tests:
+  - the August ring and kernel bitstreams back to back in one session (no build);
+  - CARRY4 / F7 rings (BOARD-QUEUE item 36).
+- Formal's prediction for the second ring route is committed before its board run (A15).
+
 **2026-11-17 (lead): the band question on the August BOARD bitstreams (FOR-RESEARCH A13).** Formal decodes the
 bitstreams that ran (collatz, collatz64, gcd), names their boundary from the routed JSONs, and reproduces the board's
 per-iteration costs with ONE band position per delay model: b = 0.38-0.40 in formal's arcs (research's full stack:
