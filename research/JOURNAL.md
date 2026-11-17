@@ -5917,3 +5917,10 @@ Failures are hangs (no completion) and result streams that fall a call behind (t
 bits are EQUIVALENT. So the model is sensitive on the size side as well as to the injected late steer, and x0.55a sits
 two steps above where it starts to fail.
 - 02:01 draws2 done: x0.55a seed 21 32/32 draws, gate 6/6 (xor17 / xor19 x 3 corners). BOARD-QUEUE item 35 added (sdf 9145cd49).
+### progress 02:29 (collatz: keeping the arithmetic gains nothing; vectors that reach 31-bit carries instead)
+- shrink6 (13 of 32 back): x0.55s (item 31 x0.55 with USELECT0 / UADDI0 / UADDI1 kept) 48 / 48 draws, P median 21.30 ns:
+  no gain over item 31 (21.5). The 3n+1 select's delay is collatz's cycle.
+- Unlike xorshift's incrementer, collatz's long carries CAN be simulated: n = 77671 climbs to 1570824736 (31 bits) in 231
+  steps; 94959 and 109881 peak at 30 bits (the highest peaks of any n < 113383, where int32 trajectories end). col17 =
+  col14 + these three (oracle compiled from the C: 231, 301, 309 steps). shrink7: x0.55 and x0.70 of EVERY size, 32
+  routes x 4 draws on col17. PREDICTION: x0.70 128/128; x0.55 >= 124/128, median ~18 ns (shrink2 on 4 routes: 16.1-18.8).
