@@ -37,18 +37,18 @@
 //             counter follows; they are the same in every carry ring and
 //             cancel in any difference between lengths.
 //   F8, F16   MUXF7 select path: fb -> 8 / 16 MUXF7 stages -> z, each stage
-//             O = S ? I1 : I0 with I1 = en, I0 = ~en (two LUT1s of the stage's
-//             own slice), so O = S while enabled: the ring runs through the
-//             F7 S0 -> OUT arc (the select arc of every bd_mux) once per stage.
+//             O = S ? I1 : I0 with I1 = 1, I0 = 0 (constant LUTs of the
+//             stage's own slice), so O = S: the ring runs through the F7
+//             S0 -> OUT arc (the select arc of every bd_mux) once per stage.
 //             Same hop count as L8 / L16, so the difference is F7 S0->OUT
 //             against LUT A->O6, per stage.
 //
-// THE STATIC INPUTS ARE LUTs OF en, NOT CONSTANTS, deliberately: a CARRY4 S
-// pin and a MUXF7 data pin can only be driven by the LUT6 of their own slice,
-// so each gets its own (* keep *) LUT1 of en.  That also stops the ring
-// cleanly: with en = 0, S = 0 everywhere (CO3 = DI = 0) and the F7 stages
-// pass I0 = 1 -> the NAND parks at fb = 1 as in ro_many.  None of these LUTs
-// is in a loop; they switch once, when the group is selected.
+// THE CARRY S INPUTS ARE LUTs OF en: a CARRY4 S pin can only be driven by the
+// LUT6 of its own slice, so each gets its own (* keep *) LUT1 of en.  Parked
+// (en = 0), S = 0 everywhere, so every CO = DI = 0 and the NAND holds fb = 1;
+// selecting the group turns S to 1 under CIN = 0 (no edge), and the NAND then
+// releases exactly ONE edge.  None of these LUTs is in a loop.  (The MUXF7
+// data inputs are constants instead -- see the F stage below for why.)
 //
 // WHAT IS MEASURED.  Per ring, prjxray gives each arc a [FAST_MIN, SLOW_MAX]
 // band, so the period is linear in two numbers:
@@ -174,11 +174,18 @@ module carry_ro_top (output wire led_red, output wire led_green);
             if (KC == 2) begin : fring
                 (* keep *) wire [N:0] s;
                 assign s[0] = fb;
+                // I0 = 0, I1 = 1 as CONSTANTS (nextpnr ties each to a
+                // constant LUT of the stage's slice), so every stage is a
+                // buffer whether or not the group is selected.  A first
+                // version used I1 = en, I0 = ~en: parked, every stage was an
+                // INVERTER, and selecting the group flipped all of them at
+                // once -- several edges injected into the ring, which then
+                // ran at a fraction of its period (seen in the GLS: F8 at
+                // 1.0 ns instead of 9.3).  Silicon would keep such a
+                // multi-edge mode too.  With buffers the parked ring is all
+                // ones and the NAND releases exactly one edge.
                 for (i = 0; i < N; i = i + 1) begin : fk
-                    wire lo, hi;
-                    (* keep *) LUT1 #(.INIT(2'h1)) ulo (.I0(en), .O(lo));   // ~en
-                    (* keep *) LUT1 #(.INIT(2'h2)) uhi (.I0(en), .O(hi));   //  en
-                    (* keep *) MUXF7 m (.I0(lo), .I1(hi), .S(s[i]), .O(s[i+1]));
+                    (* keep *) MUXF7 m (.I0(1'b0), .I1(1'b1), .S(s[i]), .O(s[i+1]));
                 end
                 assign z = s[N];
             end
