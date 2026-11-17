@@ -3183,3 +3183,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 19:56 research c17cbbb79 / 9d7ab49b4 / 637fe5514: farm shrink10 (collatz64 x0.70 / x0.55 on c6419), cand3 / cand4 / slowc1 resubmitted. No claims.
 - 20:00 research f808695e9 (WIP gcd x0.70 sizes, unreviewed); formal c8a6572d8 (steercorners.sh tool). No claims.
 - 20:03 owner 759d353b4: research/PROGRAM.md subagent limits only; audit unchanged. research 877820b87 dynamatic_ref: ipow / gcd 'Dynamatic ns/iter estimates (no Dynamatic build here); gcd is 3-4x behind'. UNVERIFIED (estimates, no build); flag if quoted as a headline. research 90907cef4 / 59db3a632: unreviewed subagent WIP and journal.
+- 20:10 research 065a87410 bandfit: collatz August build at LUT x 0.222 / CARRY y 0.2 = 92.68 vs board 92.76 ns/iter.
+  - Consistent with own T138 (x 0.223, linear interpolation 92.59).
+  - Own T145 band run with setting-M scatter gave 90.12 at x 0.223: scatter shifts the fitted x slightly upward. Not a contradiction.
+  - Per T145, y is not pinned by this data. research 2e65b466e / 5f88ed2e8: unreviewed WIP.
