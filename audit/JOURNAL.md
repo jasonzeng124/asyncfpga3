@@ -3157,3 +3157,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Formal's direction is confirmed (near-zero margin at the slow CARRY end). The magnitude is not (formal 15 / 17 ps with runts).
   - Finding T144; REPORT row.
 - T145 (CARRY sensitivity on the August bitstreams) starting.
+
+### progress 18:03
+- T145 first attempt invalid: relative vector path, so batches = 0 (0/13 is a harness error, not a result). Fixed to an absolute path and restarted.
+- formal b586c3691 (C40): ipow x0.55 routes 3 / 5 / 8 at 96/96 draws, loop-steer margins >= 789 ps at 8 corners. formal ba19cb6d5: scale_net.py (two-band placement) for the owner's fit. Neither reproduced yet (no board item).

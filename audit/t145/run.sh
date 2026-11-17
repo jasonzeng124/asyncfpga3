@@ -7,10 +7,10 @@
 # kernels cannot pin the CARRY band.
 set -u
 A=/home/user/asyncfpga3/audit; L=/root/t145.log
-until [ -f /root/t144.done ]; do sleep 60; done
+true  # (T144 done; rerun after the relative-path fix)
 echo "T145 $(date -u)" > $L
 cd $A/t90
-run() { K=$1 X=$2 C=$3; H=aug_$K; V=$(ls ../t65/${K}_1?.hex); T=cx${C/./}
+run() { K=$1 X=$2 C=$3; H=aug_$K; V=$(ls $A/t65/${K}_1?.hex); T=cx${C/./}
   HWD=$H GLS_SDF_FIELD=band VECF=$V FCLK=10000 BAND_CHAIN=$X BAND_REST=$X BAND_CELLX=$C TBATCH=3000000 timeout 9000 bash ../t142/gate.sh $K $T
   python3 ../t65/oracle_$K.py check $V /root/t65/${H}_$T.log 2 > /root/t90/${H}_${T}_oracle.txt 2>&1
   echo "$K band $X CARRY $C: $(grep agreement /root/t90/${H}_${T}_oracle.txt)" >> $L
