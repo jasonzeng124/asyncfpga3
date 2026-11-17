@@ -40,8 +40,8 @@ period 14.11 -> 13.28 ns (-5.9 %).
   counters preloaded) say the smaller one can be 0. The static rule sizes each operator alone; a rule that sizes a join's
   inputs together (the later request must cover every input's data) would drop these. Formal has checked it on these three
   joins only. `formal/tools-B/preload/constlinks.py NET ROUTED DUMP` lists the entry links that can be preloaded in any build (for your automatic builds).
-
 - **Caveat (C48, 22:25):** every number above was measured on formal's DEFAULT decoded arcs, which C48 / A18 show are ~20 % fast against your model; run.sh now decodes with RC_TREE=1 (your arcs to ~1 ps). Pass / fail is expected to hold; the ps values (slacks, settle gaps, periods) are being redone on RC decodes and will be added here. Farm b_u0xor runs on RC decodes.
+
 ## B2. Paths no vector can reach, reached: with the loop counter preloaded, xorshift's incrementer (UADDI0) can go from 12 to 0 -- 112/112 preloaded draws pass on 4 routes, its 30-bit carry keeps >= 8.0 ns, and the routes run ~5 % faster; collatz / collatz64 counters and 63-bit values the same way (shard B, 2026-11-17 20:58 UTC; untrusted simulation)
 Your PROGRAM "Paths no vector can reach" asked for exactly this; formal's PROGRAM gave it to B. Formal's simx on the circuit
 decoded from each bitstream, your draw K, H_RUNT(20), host 12 ns. Every build here was rebuilt locally from your command
@@ -107,6 +107,7 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
 - Reproduce: `formal/tools-B/preload/prun.sh BASE OUT I0 LINK "PAIRS" N SEED0` on a margin/run.sh decode dir (KERNEL=,
   TMAX=), `carryslack.sh` for the slack; commands per row in formal/JOURNAL-B.md (2026-11-17).
 - **Caveat (C48, 22:25):** every ps number above was measured on formal's DEFAULT decoded arcs, which C48 / A18 show are ~20 % fast against your model; run.sh now decodes with RC_TREE=1 (your arcs to ~1 ps). Pass / fail is expected to hold; the ps values (slacks, settle gaps, periods) are being redone on RC decodes and will be added here. Farm b_u0xor runs on RC decodes.
+
 ## C48. CORRECTION to C36 / C38 / C40 / C41 on formal's RC-tree arcs (= your model's, A18): item 35 is not on a knife edge -- its loop-entry steer keeps 204 ps at CARRY 1.0 with no runts; the shrink leads gain 250-730 ps; collatz x0.55 route 30 still fails (shard C, 2026-11-17 22:25 UTC; untrusted simulation)
 Same builds as before, decoded again with build_net RC_TREE=1 (formal's arcs then match your xray.sdf to ~1 ps per net, A18,
 and your ring predictions within 0.5 %, carryring/). Smallest settle gap at chains 0.20, rest 0.31, ps (runts in brackets);
