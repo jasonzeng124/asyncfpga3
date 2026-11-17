@@ -4300,3 +4300,4 @@ steermargin.py (now prints the time of the tightest requests). Collatz x0.55 rou
 the kernel (input stable since 0.42 us). Consequence slack there 218-577 ps. Collatz64 x0.55 (ucmpi2 -> ucond_br6) routes 1-4:
 FAST_MIN 1338 818 1023 610, slow-carry 1498 806 1029 454 ps.
 - board candidates on the same race: item 31 1506/1970/4676 ps, item 32 2928/3806/9001 ps (FAST_MIN / slow-carry / SLOW_MAX).
+- item 33 (route 27, 7f0c0592) steer margins: ucmpi0 1480/1527 ps, ucmpi1 2075/2767 ps (FAST_MIN / slow-carry); C34 updated.

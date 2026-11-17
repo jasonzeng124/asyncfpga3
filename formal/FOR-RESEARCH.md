@@ -42,6 +42,9 @@ Draws: your K = 100r+1..8 on routes 1-4 all PASS (8/8 each); route 21 = C28. Sma
 - Scaled by the measured error: 166 ps is about one median SDF error (8.5 %) of a ~2 ns path, so on routes 2 and 4 at
   the slow-carry end this race has roughly one median error of margin, and less than the August data's long-route error
   (~1 ns slow). Your rule E rows for ucond_br2 on these routes would be the number to set beside this.
+- Against item 33 (unshrunk fr4a, route 27, sdf 7f0c0592, built here; 8/8 draws): ucmpi0 steers 1480 ps (FAST_MIN) / 1527 ps
+  (slow-carry), ucmpi1 steers 2075 / 2767 ps. So x0.55a spent ~1.2 ns of this race's margin (1.48 -> 0.32-0.36 ns on the
+  board routes) to save ~2 ns per iteration (C28 / your shrink5).
 - These are uniform-band margins on one draw each (no per-pip scatter). The board route (21) is not the tightest.
 - Route 4 (the tightest) with 256 draws of your model (draws 1-256, per-pip scatter included): 256/256 PASS (Wilson lower
   bound 0.985). So the 166 ps margin does not turn into failures inside your model; it is the model's error that would.
