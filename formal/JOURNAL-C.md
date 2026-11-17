@@ -4325,3 +4325,21 @@ draws in formal's simx for the disagreement table, loop-steer settle margins at 
 method) on ipow17; (2) route 19: does formal's bitstream-decoded simx reproduce the failure, and does fixing the one F7
 select bit in the FASM remove it (the attribution the audit left UNVERIFIED); (3) collatz x0.55 8-corner steer margins on
 research's EQUIVALENT routes 20 and 3 with col18 (C35 was one corner).
+
+### progress 17:18 -- research's leads rebuilt here, md5-identical; ipow blocked by the DSP48 decode (subagent on it); collatz x0.55 4/4 draws on routes 20 and 3
+- Built locally (nextpnr 9c732bc6303458df, toolchain.sh ok), every SDF md5 equal to research's: ipow x0.55 (shrink8's
+  ipow_dsp1_sizes_T9s75_h4s3m_x55) seeds 3 / 5 / 8 / 19 -> 0b333646 / e7c5057d / 70048ae0 / d63bfd80; collatz x0.55
+  (nl6s3a_x55, pre_eq2) seeds 20 / 3 -> b2b0dad9 / d8884e45; item 35 (fr4a_x55a, pre_dec, seed 21) -> 9145cd49.
+- **ipow cannot be simulated by formal yet:** A's decode_base.py refuses DSP48E1 sites (known since 11-16 07:04). The six
+  DSPs in these builds are all-combinational (AREG/BREG/M/P/C regs off, OPMODE etc. tied with inversion bits, A/P
+  cascades). A subagent is writing a C-owned wrapper decoder + a combinational DSP gate for simx
+  (formal/tools/margin/dsp/), acceptance: ipow route 5 draws 501/502 pass as in research's GLS, a negative control
+  that fails, and the route-19 F7-select attribution (decoded select value; fail as built; pass with the select forced to
+  the json's 0). Nothing of A's is edited.
+- collatz x0.55 on col18 (research's vectors, inside the bench mask), research's draw model: route 20 draws 2001-2004 4/4
+  PASS (last answer 24.1-27.2 us), route 3 draws 301-304 4/4 PASS (22.8-25.1 us); agrees with research's 2/2 + 2/2. 64
+  draws per route and the 8-corner steer margins running.
+- For A (band fit, research PROGRAM 17:15 "First: where does the board sit"): the MEASURED August builds, with .bit,
+  .fasm, .sdf and _routed.json, are on claude/research under research/board/aug/builds/ (since 11-04; README pairs each
+  log with its bitstream, match=yes for collatz / collatz64 / gcd_bench_gen / ipow / isprime). research/data/board-august/
+  (today) has only fasm + sdf. No yosys synth JSON or gen Verilog there, which formal's boundary naming needs.
