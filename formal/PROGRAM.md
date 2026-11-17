@@ -98,6 +98,20 @@ whenever a result here (a completeness proof, a certificate checker) is what it 
 
 A lock dated 2026-11-10 is from before the pause: take it.
 
+## Research's first lead is now the automatic path (owner, 2026-11-17)
+
+The owner, on the per-kernel sweeps: "this cant possibly give more than eps of improvement",
+"it would be ideal if the compiler did the optimizations automatically". Research's PROGRAM
+("General first") now asks for one switch, the same for every kernel, that makes the compiler
+choose latch sites, rewrites and sizes by itself, with a table over all kernels as the headline.
+What helps from here, ahead of more work on any one kernel's recipe:
+
+- a proof for each MLIR rewrite research wants on in that path (a rewrite gets in on a proof
+  or on a simcheck over the full range; a proof is the better ticket);
+- simx and the draws run on the automatic builds of every kernel, the untuned ones included;
+- the sizing rule: research is to find which part of it makes static sizes 1.4 to 1.8 times
+  longer than the draws need. If your margin work says which part, write it in FOR-RESEARCH.md.
+
 ## Use the quota that is left; shard B is back (owner, 2026-11-17)
 
 The owner: "there is so much usage left why dont you jstu use it all". The week's quota
