@@ -5,7 +5,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## B3. On your current xorshift candidate (x55a10 = item 35 + UCMPI0 10), UADDI0 0 is ~6 % faster and keeps every draw and every preloaded draw; its loop-test settle margin then rests on UCMPI1 alone (194 ps on one of 3 clean routes). collatz / collatz64's UADDI1 0 is safe but buys nothing (shard B, 2026-11-17 22:31 UTC; untrusted simulation)
+## B3. On your current xorshift candidate (x55a10), UADDI0 0 keeps every draw and every preloaded draw on every route tried; on a fixed route the line costs 0.82 ns (seed 21) or nothing (seed 4), and rebuilt UADDI0 0 routes were 4.6-8.7 % faster, partly by re-placement; collatz / collatz64's UADDI1 0 is safe but buys nothing (shard B, 2026-11-17 22:31 UTC; untrusted simulation)
 Follow-up to B2, same tools and model (formal's simx on the decoded bits, your draw K, w 20, host 12 ns). Rebuilt here with
 your flow; the four x55a10 routes are md5-identical to C41's (8f165305 / f1da196a / 9a68cb56 / 05a84ea0).
 | x55a10 seed | UADDI0 12: xor19 last answer (us) / period (ps) / carry slack / settle ucmpi1, ucmpi0 (ps) | UADDI0 0: sdf, same columns |
