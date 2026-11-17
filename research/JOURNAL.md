@@ -5890,3 +5890,16 @@ on a ctl input in our GLS (already on the Next list).
 - shrink4 15/32: x0.40a fails on routes 12 (1 of 4: a hang) and 14 (2 of 4); x0.30a fails 1 of 4 on route 9 (a hang).
   x0.40 is past the edge for some routes, so the candidate comes from shrink5 (x0.55a / x0.50a, queued).
 - shrink3's x0.20 / x0.10 tasks are still running (their draws hang to the 100-min timeout).
+### progress 00:54 (shrink5 done: xorshift 16.85 ns with every draw passing; candidate chosen)
+| sizes (item 33 x f, UADDI0 kept) | routes (ffmux-flag excluded) | draws passing | period median (range), ns |
+|---|---|---|---|
+| x0.55a | 32 (0) | 128 / 128 | 16.85 (15.93-18.19) |
+| x0.50a | 32 (1) | 124 / 124 | 16.74 (15.64-19.19) |
+| x0.40a | 16 so far | fails on routes 12 (1/4) and 14 (2/4) | 15.6-17.3 |
+| x1 (item 33, fxa) | 31 | board route 32 / 32 | 18.91 |
+- x0.55a and x0.50a tie (0.1 ns), so by PROGRAM's rule the longer is taken: x0.55a, -2.06 ns per iteration against item
+  33 (-11%), gap to 15 ns 1.85 (sim at band 0.288, which the August builds say is ~8% slow). The first size that fails
+  is x0.40a, two steps (0.15 of the scale) below the choice. UADDI0 stays at 12: the incrementer's 31-bit carry is
+  beyond any vector.
+- Board route: seed 21 (P 16.84 = the median, EQUIVALENT, ffmux-clean). Farm draws2: 32 more draws on it and the
+  3-corner gate on xor17 / xor19. PREDICTION: 32/32 and 6/6 PASS.
