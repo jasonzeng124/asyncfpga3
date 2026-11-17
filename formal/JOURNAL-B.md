@@ -4621,3 +4621,8 @@ capture margins not measured.
 ### progress 23:39 -- request-side ring cut built (rq0, seeds 21 / 4): draws pass, loop test down to 154 ps with 4 runts (s21) / 162 ps (s4)
 UADDI0, UMUX0, UMUX2, ULINK_N11__1, ULINK_N12__0, ULINK_N12__2 at 0 on x55a10. Periods 16508 / 15670 (UADDI0 0 alone 15871 /
 16181); carry slack 10976 / 10117; ucmpi0 2004 / 2320. Not recommended (B4 updated).
+### progress 23:43 -- every board candidate at full range: items 33 / 27 / 28 / 30 rebuilt md5-identical, checks running
+Items 33 (7f0c0592), 27 (a9bdac53), 28 (d86bdde5), 30 (637ff02e) rebuilt from research's commands; with 35 / 31 / 32 /
+cand3 (x55a10) / cand4 (collatz x0.70 s27) done earlier, that is every current board candidate. tools-B/preload/README.md
+written; carryslack.sh now deletes each probe's net copy (the bisections had grown /home/user/w to 12 GB). Farm b_u0xor
+still waiting.
