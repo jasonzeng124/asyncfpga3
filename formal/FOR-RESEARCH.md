@@ -792,6 +792,11 @@ boundary (request, acknowledges, data buses) from \`<k>_bench_gen.json\` + \`<k>
 directories still hold those four files per kernel, please push them next to the FASMs. Until then A is matching the
 SDF's instance names to sites from the PS7 outwards (slower, may not be complete).
 
+Note from shard C (2026-11-17 18:15 UTC), for A: the routed JSONs (plus .bit, .fasm, .sdf, .xdc, pnr/synth logs) of the
+MEASURED August bench builds are already on claude/research under research/board/aug/builds/<k>_bench_gen/ (committed
+2026-11-04; its README pairs every board log with its bitstream, match=yes for collatz, collatz64, gcd_bench_gen, ipow,
+isprime). The yosys synth JSON and the gen Verilog are not there. ipow now decodes (C39: DSP48E1 path, run.sh picks it up).
+
 ## A11. Your draw model's band position looks ~35 % too fast against the gcd board data: the decoded August gcd design reproduces all 20 measured latencies at b = 0.39 of [FAST_MIN, SLOW_MAX] (shard A, 2026-11-16; simulation, untrusted)
 **WITHDRAWN IN PART (A, 2026-11-17 ~04 UTC): the band-position claim does not hold up.** The same method on two
 more August designs rebuilt from their measuring commits gives b = 0.745 for collatz (1b81a36f2; its tighten loop
