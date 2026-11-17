@@ -5935,3 +5935,12 @@ two steps above where it starts to fail.
 4. Formal: FOR-FORMAL asks it to run the same draws (simx) on draws1's routes; read formal/FOR-RESEARCH.md for answers.
 5. shrink6 (collatz x0.55s) is obsolete (no gain); its remaining tasks need no reading.
 - 04:46 farm: no push since 03:37 UTC; shrink7 / shrink8 still queued (submitted 02:30 / 02:41). Local fallback: collatz x0.55 on route 20 with col17, draws 1-2.
+### progress 05:07 (the long-carry collatz vectors catch a shrink the old vectors passed)
+- Local: collatz item 31's sizes x0.55 (every size) on route 20 (sdf b2b0dad9, EQUIVALENT, ffmux-clean, P 18.79 ns), col17,
+  draws 1 and 2: FAIL 14/17 both. Exactly the three new vectors are wrong, identically on both runs (no mismatch latch):
+  n = 77671 -> 0xf9 (want 0xe7 = 231), 94959 -> 0x98 (want 301), 109881 -> 0xc2 (want 309). The trajectories that climb
+  to 30-31 bits take a different path: the shortened 3n+1 delay misses the long carry. shrink2 passed x0.55 on col14 (whose
+  trajectories stay below ~21 bits) 32/32: that pass was the vectors' blind spot, not margin.
+- So the full-range rule bites on collatz exactly where the owner said it would. Next, at once: does item 31 itself
+  (unshrunk) return the right counts for these inputs? Its gates never ran a trajectory above ~21 bits. Running item 31's
+  board route on col17 at worst and two draws.
