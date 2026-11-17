@@ -180,6 +180,10 @@ Every run returned all right answers. Draws (your model, xor19, K 100r+1..8): 8/
 - **UCMPI0 10 on 5 more routes** (19:45; seeds 1 / 3 / 5 / 6 / 7, sdf 8f165305 / 9a68cb56 / b073c245 / d7201a17 / dca58e5f), CARRY
   1.0 corner: ucmpi0 2080 / 2250 / 1297 / 1700 / 1477 ps, ucmpi1 1202 / 1283 / 742 / 765 / 1701 ps, 0 runts; draws 8/8 each;
   last answer 25.97-27.44 us. Over 8 routes the worst is route 21's ucmpi1, 387 ps.
+- **x55a10 (your cand3b file, same netlist) on seeds 8-13** (21:45; sdf 1f3323ed 22075b66 592d08a1 4a3bf9dd cf3572af
+  a413481b): your K 100S+1..4 4/4 and slow-carry K 100S+51..54 (DRAW_XBAND 0.8,1.0 = your DRAW_CARRY) 4/4 on every route
+  (48/48); at CARRY 1.0, rest 0.31 / 0.20: ucmpi0 >= 1005 ps, ucmpi1 >= 758 ps (route 11), 0 runts. Over 14 routes now
+  (1-13, 21) the worst is route 21's ucmpi1, 387 ps; next 742. The farm repeat on 32 routes (c_c41x32) is queued.
 - **Cost:** last answer on xor19, same 8 draws on seed 21: item 35 mean 26.98 us, UCMPI0 8 26.55 us, UCMPI0 10 26.76 us;
   seeds 2 / 4 at 10: 26.57 / 26.32 us. No cost visible above route scatter, as expected for a per-call delay.
 - **But the loop test is the other half:** with UCMPI0 at 8 the new route 21 puts ucmpi1 -> ucond_br6 at 19 ps with 6 runts
