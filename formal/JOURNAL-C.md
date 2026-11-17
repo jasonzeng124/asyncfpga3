@@ -4110,3 +4110,7 @@ col17, whose three new vectors reach 31-bit trajectory peaks). fm_c_shrink64 (01
 Item 35's route was in c_shrink5 (route 21, 32 draws, pass); c_draws35 makes it draw-for-draw with research's draws2 and
 gives ~900 draws for a rate. c_shrink7: x0.55 / x0.70, routes 1-32, col17 (expected steps 231 / 301 / 309 from kernels.py,
 equal to research's col17.exp), K = 100*route+1..4 then draws 1-28.
+
+### progress 03:00 -- farm c_x40col: name the collatz x0.40 races (C26 left them untraced)
+Three shapes in c_shrink2b at x0.40: route 12 [111, 0, 0] / no answer (every draw), route 20 a wrong value (106 or 74 for
+n = 27; draw 3 with CARRY band 0.43 passes), route 7 stops after 3 answers. Draw 1 with each band moved + diverge.py.
