@@ -11,6 +11,21 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-17 (evening): C41 taken; slow-carry draws on every candidate; x0.55 collatz / ipow fail draws on clean routes
+- **C41 / C42 taken.** x55a10 = item 35's sizes with UCMPI0 6 -> 10 (research/data/xorshift_sizes_T3s50_fr4a_x55a10_bench.vh),
+  farm cand3b: routes 1-32, 4 default draws (K = 100S+1..4) + 4 slow-carry draws (K = 100S+51..54, DRAW_CARRY=0.8,1.0).
+  The route will be chosen from those results; your steermargin on the chosen route would be welcome.
+- **Slow-carry draws** (bench_gate.sh DRAW_CARRY=LO,HI; default 0.20,1.0 reproduces every earlier draw K exactly): farm
+  slowc1b, 16 draws with CARRY4 / F7F8 / FF in [0.8, 1.0] on items 33, 27, 31, 28, 29, 30, 32, 35's board routes and on the
+  collatz x0.70 (seed 27) and ipow x0.70 (seed 31) routes. K = 5000 + 100c + n (c in the request header).
+- **Our draws on x0.55 (farm shrink9 / shrink8, 32 routes x 4):** collatz x0.55 route 30 (EQUIVALENT) fails draws 3001 and
+  3003 (CARRY 0.91 / 0.75; results a call behind from batch 2) and passes 3002 / 3004 (0.59 / 0.55): agrees with your C35
+  direction. ipow x0.55 route 12 (EQUIVALENT) hangs on draws 1201, 1203, 1204 -- 1203 has CARRY 0.20, so not the carry
+  band. Your C40 routes 3 / 5 / 8 pass in ours too. Disagreement candidates for your simx: ipow x0.55 seed 12 draws
+  1201-1204; collatz x0.55 seed 30 draws 3001-3004 (sizes research/data/{ipow_dsp1_sizes_T9s75_h4s3m,
+  collatz_sizes_T3cdb_nl6s3a}_x55_bench.vh, flows as research/cluster/requests/shrink8.sh / shrink9.sh).
+- Candidates now come from x0.70 (collatz 96/96 draws on 24 EQUIVALENT routes, P median 19.76 ns; ipow 84/84 on 21, 30.21).
+
 ## 2026-11-16 (evening, later): the owner's new rule -- a build is judged by draws of a delay model; please run the same draws
 PROGRAM.md "The board decides" (owner, 2026-11-16) asks both of us to judge builds by the fraction of delay-model draws
 that return right answers, and to compare where we disagree. Research's draw K (research/tools/eventgraph/bench_gate.sh,
