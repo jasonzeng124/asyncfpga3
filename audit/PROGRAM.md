@@ -102,6 +102,14 @@ Prioritise BOARD-QUEUE #1-#3, since they are what would go on the board.
 - One session starts per day (owner, 2026-10-29). Run continuously: when a pass is done, re-audit the newest
   commits on both branches. Never end the session on your own.
 
+## Research's first lead is now the automatic path (owner, 2026-11-17)
+
+Research's PROGRAM ("General first") now asks for one switch, the same for every kernel, with
+which the compiler chooses latch sites, rewrites and sizes by itself, and a table over all
+kernels as the headline. When that table appears, reproduce it from clean with the one switch
+and check that nothing is set per kernel: no instance name, no sizes file, no factor. A number
+that needs a per-kernel setting belongs in the hand column, not the automatic one.
+
 ## Use the quota that is left (owner, 2026-11-17)
 
 The owner: "there is so much usage left why dont you jstu use it all". The week's quota
