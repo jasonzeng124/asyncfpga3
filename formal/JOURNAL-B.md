@@ -4434,3 +4434,17 @@ premises discharged, and the capture list proved complete. Today added 20 of the
 cones with `krow_tree`; (3) setup (rule I) via C's AO data-layer claims; (4) the select race on research's
 negative-control pair nc64_7 / pc64_7 (FOR-FORMAL "Known bad" 2): a select-hold row should FAIL on nc64_7's
 ulink_n13 and pass on pc64_7 -- the check research asked for (needs A's decode of both; C's tools/margin exists).
+
+## Session 2026-11-17 19:53 UTC (shard B, session_01HC49FufsXisaNpmS7mPBwG)
+Lock: LOCK-B dated 2026-11-15 20:04 (before the 2026-11-17 20:00 restart): taken (PROGRAM "Use the quota").
+Read: CLAUDE.md, PROGRAM (top sections to "Shards"), JOURNAL-B tail, JOURNAL-C to C42, FOR-RESEARCH to C42, research
+FOR-FORMAL (no entry newer than 11-16 evening), research PROGRAM "Paths no vector can reach", BOARD-QUEUE item 35, audit
+REPORT (no open REFUTED / OVERSTATED row on B's files found in the newest passes).
+Setup: formal/setup.sh started, but cache.mathlib.org is unreachable here so it began building Mathlib from source
+(hours on 4 cores, and C's 11-17 runs were OOM-killed beside a Mathlib build). Stopped it: this session's work is
+simulation (PROGRAM: B's work now is the preloaded-state simx runs, not Lean). Lean, when needed, goes to the farm.
+FPGA toolchain restored from the cache (key d7ce266cff0c8e1e), toolchain.sh ok, nextpnr 9c732bc6303458df.
+**Plan (PROGRAM "Use the quota", B):** make simx reach the incrementer's long carry on xorshift item 35 (route 21,
+sdf 9145cd49) by preloading the loop counter, check against the C oracle from the same state, then judge UADDI0 by
+draws (with a shortened-UADDI0 negative control that the preload must catch and ordinary vectors must miss). Then
+collatz64's 63-bit values.
