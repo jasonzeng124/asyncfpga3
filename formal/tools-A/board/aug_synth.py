@@ -68,6 +68,14 @@ for port, expr in re.findall(r"\.(\w+)\s*\(([^)]*)\)", inst):
         r = resolve(w)
         if r: names[P + w] = r
         else: missing.append((port, w))
+    # (5) a vector whose high bits synthesis made constant (isprime's 0/1 result): nextpnr keeps only the low bits;
+    # pad to the declared width with "0" (stated; the run's oracle check catches a wrong constant)
+    for w in re.findall(r"[A-Za-z_]\w*", expr):
+        wd = re.search(r"wire\s*\[(\d+):0\]\s*%s\b" % re.escape(w), bv)
+        if wd and P + w in names and len(names[P + w]) < int(wd.group(1)) + 1:
+            print("aug_synth: %s has %d of %d bits; padding with constant 0" % (w, len(names[P + w]), int(wd.group(1)) + 1),
+                  file=sys.stderr)
+            names[P + w] = names[P + w] + ["0"] * (int(wd.group(1)) + 1 - len(names[P + w]))
 # last resort, one 1-bit kernel INPUT left: the only net driven outside udut and read inside it not yet named
 if len(missing) == 1:
     drv = {}; rd = {}

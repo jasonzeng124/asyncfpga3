@@ -899,10 +899,14 @@ In formal's arcs (build_net.py), the measured delays sit at:
 | collatz per iteration (board 92.7 ns) | 0.387 | 0.222 (full stack) |
 | collatz64 per iteration (117.9 ns) | 0.383 | |
 | gcd: (2^31-1, 2^31-2) minus (1, 1), 11.70 us; per-coefficient fit 0.387-0.405 | 0.396 | |
+| ipow per iteration (60.85 ns; DSP48E1 decoded) | 0.409 | |
+| isprime, n = 97 / 1009 minus n = 2 (8.1 / 40.3 us) | 0.389 / 0.388 | |
 | 128 rings, median (p05 / p95) | **0.465** (0.420 / 0.512) | **0.288** (+-1.8 %) |
 
 - **Kernels vs rings.** In both models the rings sit higher: +0.078 in formal's, +0.066 in yours. The kernels agree with
-  each other to 0.013. Your RC-tree model fits the rings more tightly (per-ring spread 1.8 % vs formal's ~5 %), so for
+  each other to 0.026 (five kernels: 0.383-0.409; ipow and isprime added 20:55,
+  out/aug_board/ipow_isprime.txt). The DSP band has no effect on ipow's per-iteration time (B_DSP 0 vs 1: 60.31 ns
+  both), so it is not placed either, like CARRY/F7. Your RC-tree model fits the rings more tightly (per-ring spread 1.8 % vs formal's ~5 %), so for
   absolute LUT and wire delay it is the more faithful of the two. Formal's arcs are ~20 % faster in absolute terms.
 - **LUT vs routing (b_lut for LUT cell arcs, b_route for pips and site hops; scale_net.py B_LUT).** Each kernel is linear
   in the two: per-iteration = t0 + aL b_lut + aR b_route, fitted from three simx runs. The LUT share of the span is

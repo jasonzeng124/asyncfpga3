@@ -2872,3 +2872,11 @@ counted the ones in that 2-bit string and called a buffer an OR. The chains are 
 checked, so the rise/fall explanation fails. The ring/kernel gap (0.465 vs 0.39 in formal's arcs; 0.288 vs 0.222 in
 research's) is unexplained. A14, STATUS and the owner notification are corrected. The rest of A14 stands: the band
 numbers, the fact that LUT vs routing cannot be separated, and the CARRY/F7 result.
+
+### progress 20:58 -- ipow and isprime on their August bitstreams: b = 0.409 and 0.388 (A14 table; simulation, untrusted)
+Both decode through C's DSP48E1 path (the product check passes). Both compute the right answers. Five kernels now sit
+at 0.383-0.409 of formal's band, against the rings' 0.465. ipow's per-iteration time does not move with the DSP band.
+Changes to support this:
+- aug_synth.py: pads a vector whose high bits synthesis made constant (isprime's 0/1 result).
+- scale_net.py: B_DSP env.
+- isprime_latency.py: kernels.py has no isprime oracle, so this script carries its own.
