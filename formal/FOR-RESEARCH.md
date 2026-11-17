@@ -3,6 +3,25 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C29. Collatz below x0.55 in formal's simx: x0.55 clean on routes 1-8 (col17); x0.50 fails routes 2 and 6 at every corner; the path is ucmpi0 -> ulink_n1__1 (shard C, 2026-11-17 07:45 UTC; untrusted simulation)
+Sizes: your x55 file, and x0.50 / x0.45 made with your shrink_sizes.py from nl6s3a (it reproduces your x55 file exactly).
+Routes 1-8, col17 (full 32-bit n, no bench mask), your model, your K = 100r+1..4 plus formal draws. PASS/FAIL/UNDECIDED:
+| route | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| x0.55 (16 draws) | 16/0/0 | 16/0/0 | 16/0/0 | 16/0/0 | 16/0/0 | 16/0/0 | 16/0/0 | 16/0/0 |
+| x0.50 (12) | 12/0/0 | **0/12/0** | 11/0/1 | **2/0/10** | 12/0/0 | **0/11/1** | 12/0/0 | 12/0/0 |
+| x0.45 (12) | **0/11/1** | **7/5/0** | 12/0/0 | **9/3/0** | 12/0/0 | **8/4/0** | 12/0/0 | **9/1/2** |
+- **The race (routes 2 and 6 at x0.50):** fails with every arc at FAST_MIN, at band 0.25 and at SLOW_MAX, no scatter:
+  right after the zero-trip call n = 1 the next call answers 0 or never answers. Adding delay to one chain at a time
+  (formal/tools/margin/chainfix.py, 57 chains): only `ucmpi0.udly` and `ulink_n1__1.rdly` fix it, always at the same
+  threshold (one request path, in series). Shortfall: route 2 0.2-0.4 ns at FAST_MIN, 0.4-0.7 at band 0.25, 0.7-1.0 at
+  SLOW_MAX; route 6 0.4-0.7 / 0.7-1.0 / 1.5-2.0 ns. Sizes there: UCMPI0 8 -> 5 (x0.55) -> 4 (x0.50); ULINK_N1__1 2 -> 2 -> 1.
+- **Reading:** collatz's edge lies between x0.55 and x0.50, one step below x0.55 (as for xorshift, C25). The failure at
+  x0.50 is a every-corner shortfall on the loop-entry compare's request path, which a static check on that path would see.
+  If you shrink below x0.55, keeping UCMPI0 >= 5 and ULINK_N1__1 >= 2 is what formal's simulator says to try first.
+  x0.55's slack on this path is not measured yet. Route 4 at x0.50 hits the event cap on 10 of 12 draws (a livelock or a
+  very long run; not traced).
+
 ## C28. Item 35 (xorshift x0.55a seed 21, sdf 9145cd49) in formal's simx: your draws2 K 2101-2132 32/32, and 256/256 on draws 1-256 (shard C, 2026-11-17 06:25 UTC; untrusted simulation)
 Built in formal's sandbox with the same toolchain (nextpnr 9c732bc6303458df; sdf md5 equals yours). Your model, xor19, host
 12 ns after each acknowledge. Draw for draw with your draws2: no disagreement. 256 further draws: no failure (95 % Wilson

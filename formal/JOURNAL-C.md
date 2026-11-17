@@ -4210,3 +4210,27 @@ Sizes collatz_sizes_T3cdb_nl6s3a_x55 (research's), seeds 1-8 (sdf a962f090 4d051
 06af3676 55cd1694), research model; per route research's K = 100r+1..4 and draws 1-12: all 16/16 PASS, last answer (col17)
 means 24.1-26.1 us. With C26 (col14, 8 routes incl. 20, 3, 7, 12) and C27 (route 20 col17), x0.55 has no failure in
 formal's simx on 13 distinct routes. Next: x0.50 / x0.45 on the same routes, to place the edge (x0.40 fails on 3 of 4).
+
+### progress 07:40 -- collatz edge between x0.55 and x0.50; the binding race named (ucmpi0 -> ulink_n1__1 request path), in ps (local, untrusted simx)
+x0.50 / x0.45 of every size (research's shrink_sizes.py on nl6s3a; it reproduces research's x55 file exactly), routes 1-8, col17,
+research's K 100r+1..4 + draws 1-8 (PASS/FAIL/UNDECIDED of 12):
+| route | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| x0.55 (16 draws) | 16/0/0 | 16/0/0 | 16/0/0 | 16/0/0 | 16/0/0 | 16/0/0 | 16/0/0 | 16/0/0 |
+| x0.50 | 12/0/0 | **0/12/0** | 11/0/1 | **2/0/10** | 12/0/0 | **0/11/1** | 12/0/0 | 12/0/0 |
+| x0.45 | **0/11/1** | **7/5/0** | 12/0/0 | **9/3/0** | 12/0/0 | **8/4/0** | 12/0/0 | **9/1/2** |
+x0.50 routes 2 and 6 fail at every uniform corner too (all arcs FAST_MIN / band 0.25 / SLOW_MAX, no scatter): [111, 0] and
+[111, 0, 0] -- right after the zero-trip call n = 1 the next call answers 0 or hangs (same signature as x0.40 route 12).
+Route 4's undecided runs hit the event cap (a livelock or a very long run; not traced).
+**chainfix.py** (new): +EXTRA ps on one delay chain at a time (its g[0] input arcs), uniform bands, no scatter. Of 57 chains,
+on both routes exactly two fix the run, always at the same threshold, so they are in series: **bridge_i.udut.ucmpi0.udly**
+(UCMPI0: 8 nl6s3a, 5 at x0.55, 4 at x0.50) and **bridge_i.udut.ulink_n1__1.rdly** (ULINK_N1__1: 2, 2, 1). Shortfall at x0.50
+(smallest extra that fixes, on the 100/200/400/700/1000/1500/2000 grid):
+| route | FAST_MIN | band 0.25 (CARRY 0.6) | SLOW_MAX |
+|---|---|---|---|
+| 2 | 200-400 ps | 400-700 ps | 700-1000 ps |
+| 6 | 400-700 ps | 700-1000 ps | 1500-2000 ps |
+So this request path is short by 0.2-2 ns at x0.50: a static (every-corner) shortfall, not a draw-model effect. x0.55's slack
+on the same race is NOT measured: a negative injection can make an arc delay negative (simx does not guard it; those runs
+were discarded, and chainfix.py now refuses --extra <= 0). For research: when shrinking collatz below x0.55, keep UCMPI0 >= 5
+and ULINK_N1__1 >= 2 (as xorshift's x0.40c kept UCMPI0/1), or check this path on every route.
