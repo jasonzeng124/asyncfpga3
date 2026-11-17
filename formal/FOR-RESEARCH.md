@@ -1113,7 +1113,8 @@ In formal's arcs (build_net.py), the measured delays sit at:
   - The rings' excess over the model at b = 0.39 is proportional to length: x1.088-1.095, ~74 ps per stage at 7, 15,
     31 and 63 links. It is per stage, not a readout constant.
   - Splitting each kernel into its delay chains and the rest (scale_net CHAIN / B_CHAIN), the four kernels fit best
-    with the chains at b 0.35 and the rest at 0.52 (errors <= 0.9 %).
+    with the chains at b 0.35 and the rest at 0.52 (errors <= 0.9 %). With isprime added, five kernels give chains
+    0.36 and rest 0.48 (errors <= 1.0 %). Bootstrap 90 % for b_chain: 0.29-0.43, which excludes the rings' 0.465.
   - Forcing the chains to the rings' 0.465 needs the rest at 0.19 and leaves errors up to 2.7 %. So the kernel data do
     not support "the chains run as slowly as the ring stages".
   - Same stage, different speed: the leading explanation is a difference between the two builds or sessions (ring
