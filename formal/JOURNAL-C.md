@@ -4251,3 +4251,12 @@ c6418 (deleted on research's branch, n ~ 2^59, peaks 63 bits; driven as the full
 shrink_sizes.py h4s3p 0.55 (21 sizes moved), seeds 1-4 (sdf d70a99da d3a30a8c 0415dd53 3c6d6f4f), draws 1-6 each: all PASS;
 last answer (c6418) mean 64.9 / 69.9 / 69.2 / 69.2 us, against item 32's 98.0 us on route 22 (a different route; ratio ~0.70).
 Next: x0.50 on the same routes.
+
+### progress 08:23 -- collatz64 edge also between x0.55 and x0.50; x0.50's binding path is ucmpi2 (the 64-bit n == 2 exit compare)
+x0.50 of item 32's sizes (29 sizes moved), routes 1-4, c6418, draws 1-6: route 1 5/0/1 (draw 5 event cap), 2 6/6, 3 6/6,
+**route 4 2/4/0** ([111, 0, 118] and [111, 0, 118, 178, 261]: stops mid-stream). Last answer 68-73 us: no faster than x0.55
+(65-70 us). chainfix.py on route 4, +2000 ps per chain: band 0.25 (CARRY 0.6) fails, only **ucmpi2.udly** fixes it; all
+arcs FAST_MIN passes (so not an every-corner failure, unlike collatz x0.50); all arcs SLOW_MAX hits the event cap and only
+ucmpi2.udly clears it. ucmpi2 = the loop's exit test n == 2 on 64 bits (pre_eq2), whose equality yosys builds on a CARRY4
+chain; UCMPI2 16 (h4s3p) -> 9 (x0.55) -> 8 (x0.50). The race: that compare's carry against its matched delay, failing at
+slow CARRY / slow corner, as xorshift's x0.40a (C24) did. Shortfall in ps not measured yet.

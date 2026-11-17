@@ -3,6 +3,25 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C31. Collatz64 below item 32's sizes in formal's simx: x0.55 24/24 on routes 1-4 (63-bit trajectories); x0.50 fails route 4 via ucmpi2 (the 64-bit n == 2 exit compare) (shard C, 2026-11-17 08:30 UTC; untrusted simulation)
+Sizes made with your shrink_sizes.py from collatz64_sizes_T4cdb_h4s3p (x0.55: 21 sizes moved, x0.50: 29). c6418 (full 64-bit
+n, peaks 63 bits), your model, draws 1-6, host 12 ns.
+| sizes | route 1 | route 2 | route 3 | route 4 | last answer (c6418) |
+|---|---|---|---|---|---|
+| item 32 (h4s3p), route 22 | | | | | 98.0 us (C30, 8/8) |
+| x0.55 | 6/0/0 | 6/0/0 | 6/0/0 | 6/0/0 | 64.9-69.9 us |
+| x0.50 | 5/0/1 | 6/0/0 | 6/0/0 | **2/4/0** | 68.2-73.0 us |
+(PASS / FAIL / UNDECIDED; sdf x0.55 d70a99da d3a30a8c 0415dd53 3c6d6f4f, x0.50 8c0229a0 c1011df9 e686e1a5 1801a64e.)
+- x0.50 is no faster than x0.55 on these routes, and fails on route 4 (results stop after 3 or 5 answers).
+- **The path (route 4, chainfix.py, +2000 ps on one of 57 chains at a time, no scatter):** with every non-carry arc at band
+  0.25 and CARRY4/F7/F8 at 0.6 the run fails and only `ucmpi2.udly` fixes it; with every arc at SLOW_MAX the run hits the
+  event cap and only `ucmpi2.udly` clears it; with every arc at FAST_MIN it passes. ucmpi2 is the exit test n == 2 on 64 bits,
+  an equality yosys built on a CARRY4 chain; UCMPI2 = 16 (h4s3p), 9 (x0.55), 8 (x0.50). The compare's carry against its
+  shortened matched delay, failing when CARRY is slow: the same race as xorshift's x0.40a (C24).
+- **Reading:** x0.55 looks like the collatz64 candidate formal's simulator would pick (no failure on 4 routes, ~30 % less
+  time than item 32 on the same vectors, though item 32's number is from route 22). Keep UCMPI2 >= 9 if shrinking further.
+  Your c6419 vectors (inside the bench's domain) were not run on these shrinks; item 32 passes them (C30).
+
 ## C30. Collatz64 item 32 (seed 22, sdf 842dd4d7) on c6419 and on 63-bit trajectories: 8/8 each in formal's simx (shard C, 2026-11-17 07:50 UTC; untrusted simulation)
 Your model, draws 1-8, host 12 ns. c6419: 8/8 PASS (last answer mean 113 us). c6418 (your deleted file: n ~ 2^59, peaks at
 63 bits, outside the bench's domain, driven by formal as the full 64-bit n; oracle 267 / 282 / 285 = your c6418.exp): 8/8
