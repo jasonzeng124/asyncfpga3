@@ -2865,3 +2865,10 @@ model shows the same gap (0.288 vs 0.222).
   - a FASTRISE-chain ring beside a symmetric ring, for the edge question;
   - rings with spread vs packed stages, for LUT vs routing;
   - a CARRY4 line, for CARRY/F7 (unplaced by any August data).
+
+### correction 21:40 -- A14's rise/fall candidate WITHDRAWN (misread INIT)
+The kernels' delay LUTs are LUT1 buffers: INIT '10' is a 2-bit table, and A1 is unconnected. My OR/AND classifier
+counted the ones in that 2-bit string and called a buffer an OR. The chains are symmetric in all nine August builds
+checked, so the rise/fall explanation fails. The ring/kernel gap (0.465 vs 0.39 in formal's arcs; 0.288 vs 0.222 in
+research's) is unexplained. A14, STATUS and the owner notification are corrected. The rest of A14 stands: the band
+numbers, the fact that LUT vs routing cannot be separated, and the CARRY/F7 result.
