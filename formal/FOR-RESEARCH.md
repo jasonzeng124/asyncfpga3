@@ -3,6 +3,21 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C40. ipow x0.55 routes 3 / 5 / 8: 32/32 draws each; loop-steer settle margins >= 789 ps at all 8 corners, no runts (shard C, 2026-11-17 18:10 UTC; untrusted simulation)
+Same builds as C39 (md5-identical to yours), ipow17 (reaches e = 0x7fffffff), formal's simx with the DSP48E1 decode.
+- **Draws (your model, K = 100r+1..32):** route 3 32/32 (last answer 4.33-4.81 us), route 5 32/32 (4.11-4.64 us), route 8
+  32/32 (4.35-5.01 us). Wilson lower bound 0.893 per route.
+- **Settle margins** (steermargin.py, 8 corners as C36/C37; ps; 0 runts everywhere; all answers right at every corner):
+| route | ucmpi0 (e > 0 entry) -> steers, worst / best | ucmpi2 (loop test) -> steers, worst / best |
+|---|---|---|
+| 3 | 1131 (ucond_br4) / 1828 | **789** (ucond_br8; chains 0.20 / rest 0.31 / CARRY 1.0) / 1593 |
+| 5 | 1378 (ucond_br5) / 2321 | 1350 (ucond_br9) / 2239 |
+| 8 | 1493 (ucond_br5) / 2066 | 2135 (ucond_br8) / 2952 |
+- **Reading:** on these races ipow x0.55 keeps 0.8-1.5 ns at the worst corner of your box, more than collatz x0.55 (C37,
+  >= 583) and far more than item 35 (C36/C38, ~0 at slow CARRY). The worst corner is again CARRY/F7 slow with fast chains.
+  Not covered here: the select race at ipow's muxes (shard B's class) and the DSP's internal glitches (one arc per input
+  group; prjxray's DSP arcs are faster than nextpnr's SDF, C39).
+
 ## C39. ipow in formal's simulator (DSP48E1 now decoded); your route-19 failure IS the F7-select bit: wrong at every corner as built, right with that one select set to the netlist's 0 (shard C, 2026-11-17 18:05 UTC; untrusted simulation)
 - **New:** the margin tool now decodes DSP48E1 sites from the bits (formal/tools/margin/dsp/: wraps A's decoder, every
   register must be off, OPMODE/ALUMODE/INMODE/CARRYIN decoded from tie-offs and inverter bits, anything else refused;
@@ -29,9 +44,9 @@ before ucond_br6/7, ps; runts = requests under which the condition moved:
 | CARRY/F7 band | 0.2 | 0.3 | 0.4 | 0.5 | 0.6 | 0.7 | 0.8 | 0.9 | 1.0 |
 |---|---|---|---|---|---|---|---|---|---|
 | ucmpi0 -> ucond_br2, rest 0.31 | 408 | 354 | 301 | 247 | 194 | 137 | 72 | **8** | **12, 10 runts** |
-| ucmpi0 -> ucond_br2, rest 0.20 | 490 | 436 | 383 | 329 | 271 | 207 | 142 | (running) | (C36: 17) |
+| ucmpi0 -> ucond_br2, rest 0.20 | 490 | 436 | 383 | 329 | 271 | 207 | 142 | 78 | **14** |
 | ucmpi1 -> ucond_br6/7, rest 0.31 | 620 | 620 | 620 | 620 | 604 | 539 | 473 | 408 | (C36: 321+) |
-| ucmpi1 -> ucond_br6/7, rest 0.20 | 683 | 683 | 683 | 683 | 643 | 578 | 513 | | |
+| ucmpi1 -> ucond_br6/7, rest 0.20 | 683 | 683 | 683 | 683 | 643 | 578 | 513 | 382 | 317 |
 Every run returned all right answers (runts absorbed in formal's simulator, as in C36).
 - **Reading:** the margin is nearly linear in the CARRY/F7 band: ~-55 ps per 0.1 (rest 0.31), zero near 0.9. If your fit
   puts CARRY/F7 where the August kernels put everything (0.22), item 35 keeps ~0.4-0.5 ns here (~2-3 median SDF errors of a

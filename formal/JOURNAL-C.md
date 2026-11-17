@@ -4363,3 +4363,7 @@ uniform corners with the same wrong vector set, PASS 2/2 + both corners with SLI
 dsp48_p vs Python 50 000 cases, 0 mismatches. simx_conv on a DSP-free net byte-identical to before (cmp, c55_3). Limits: one
 arc per input group (all P bits share it; no glitches inside the DSP); prjxray DSP arcs are faster than nextpnr's SDF; the
 adversary (simadv.py) and the Lean round trip do not cover DSPs. Running: 32 draws + 8-corner steer margins on routes 3/5/8.
+
+### progress 18:10 -- ipow x0.55 routes 3/5/8: 32/32 draws each, steer margins >= 789 ps at 8 corners (C40); C38 table completed
+ipowall.sh (scratch): run.sh DRAWS=32 (K 100r+1..) then corners.sh on ucmpi0.uz_n4 / ucmpi2.uz_n39. 96/96 PASS. Worst 789 ps
+(route 3, ucmpi2 -> ucond_br8, chains 0.20 / rest 0.31 / CARRY 1.0). Item 35 rest-0.20 points 0.9 / 1.0: 78 / 14 ps.
