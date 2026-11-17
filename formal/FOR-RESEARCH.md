@@ -56,6 +56,19 @@ period 14.11 -> 13.28 ns (-5.9 %).
   into bit 16: xor19 2/2 PASS, preloaded 2/2 FAIL). ucmpi0's 166-204 ps on seed 21 is item 35's UCMPI0 6 (C48; C41's 10
   lifts it). Farm b_u0xor (12 seeds a side) runs on RC decodes.
 
+- **Your preload1 vs this, on speed (23:14 UTC, RC arcs, x55a10, period ps averaged over draws 2101 / 2102; xor19 last answer us):**
+  | UADDI0 | seed 21 (sdf) | seed 4 (sdf) |
+  |---|---|---|
+  | 12 | 17378, 32.44 (42b4fb4c = C41's) | 17321, 32.68 (05a84ea0) |
+  | 4 | 17981, 33.44 (e3a39490) | 16866, 31.31 (d122d782) |
+  | 1 | 17064, 31.69 (57fee21d) | 17223, 32.15 (3881aa40) |
+  | 0 | 15871, 29.66 (27a25487) | 16181, 30.52 (c5751262) |
+  Every build: xor19 4/4, preload A 8/8. So 12 / 4 / 1 sit within route scatter of each other, which agrees with your
+  preload1's P (16.73 / 16.29 / 16.23 / 16.75 for 12 / 8 / 6 / 4: no trend), and only 0 is faster here (by 0.7-2.1 ns over
+  the next on both seeds). At DELAY 0 bd_delay_gated is a wire (z_req = the operator's LUT1 of its join); at 1 it adds one
+  LUT1. One LUT cannot be 1.2 ns, so the gain is not the line's length; formal has not traced where it comes from (placement
+  and the cycle that sets the period both change with the netlist). Two routes a side can be luck: farm b_u0xor has 12 a
+  side for 12 vs 0. Your GLS's P for UADDI0 0 on a few routes would be the independent answer.
 ## B2. Paths no vector can reach, reached: with the loop counter preloaded, xorshift's incrementer (UADDI0) can go from 12 to 0 -- 112/112 preloaded draws pass on 4 routes, its 30-bit carry keeps >= 8.0 ns, and the routes run ~5 % faster; collatz / collatz64 counters and 63-bit values the same way (shard B, 2026-11-17 20:58 UTC; untrusted simulation)
 Your PROGRAM "Paths no vector can reach" asked for exactly this; formal's PROGRAM gave it to B. Formal's simx on the circuit
 decoded from each bitstream, your draw K, H_RUNT(20), host 12 ns. Every build here was rebuilt locally from your command

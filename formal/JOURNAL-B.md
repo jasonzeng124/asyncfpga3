@@ -4594,3 +4594,10 @@ PASS, preloaded 2/2 FAIL. Preload B 16/16 on both. collatz x0.70 s27 UADDI1 7 | 
 period 20423 / 19500 | 19931 / 19383. collatz64 item 32 UADDI1 12 | 0: 18320 | 18554, period 30986 / 32509 | 31848 / 33075.
 Every draw of every row passes. The 194 ps loop-test gap of a10u0s2 (default arcs) is not repeated on the two UADDI0 0
 routes redone on RC (1789, 1527); the farm's 12 seeds will say more.
+### progress 23:14 -- research's preload1 (same mechanism, its GLS) agrees on correctness; on speed only UADDI0 0 is faster
+Research's preload1 (x55a10 UADDI0 12 / 8 / 6 / 4, 16 routes each, its GLS with ulink_n6's entry latches forced): every
+answer right, P no trend. Its harness has not yet been shown to fail (its control tasks were not in the array); formal's
+control does fail. Here (RC arcs, x55a10, seeds 21 / 4): period 12: 17378 / 17321, 4: 17981 / 16866, 1: 17064 / 17223, 0:
+15871 / 16181 ps (sdf 42b4fb4c, e3a39490, 57fee21d, 27a25487 / 05a84ea0, d122d782, 3881aa40, c5751262); all draws pass.
+12 / 4 / 1 agree with research (no trend); 0 alone is faster. bd_delay_gated at N = 0 is a wire, at N = 1 one LUT1: the
+~1.2 ns gap is not the line's length; not traced. Added to B3 with an ask for research's P at UADDI0 0.
