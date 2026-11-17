@@ -364,14 +364,16 @@ int main(int argc, char** argv) {
     H.assign(NN, {}); V0.assign(NN, 0); TOUCH.assign(NN, 0);
     if (getenv("RACES") && atoi(getenv("RACES"))) {
         RACEON = true; if (getenv("RACES_PS")) RACEX = atoll(getenv("RACES_PS"));
-        RACEG.assign(NG, 0); vector<char> stnode(NN, 0);
-        for (int g = 0; g < NG; g++) if (glut[g]) for (int i = gins0[g]; i < gins0[g + 1]; i++) if (ins[i] == gout[g]) { RACEG[g] = 1; stnode[gout[g]] = 0; }
+        RACEG.assign(NG, 0);
+        vector<int> drv0(NN, -1); for (int g = 0; g < NG; g++) drv0[gout[g]] = g;
+        // a decoded LUT reads its own output through a copy chain (pips / hops: k = 1, INIT 2), as races.py's chain()
+        auto src = [&](int u) { for (int d = 0; d < 200; d++) { int h = drv0[u]; if (h < 0 || glut[h] || gk[h] != 1 || initw[ginit0[h]] != 2) break; u = ins[gins0[h]]; } return u; };
+        for (int g = 0; g < NG; g++) if (glut[g]) for (int i = gins0[g]; i < gins0[g + 1]; i++) if (src(ins[i]) == gout[g]) { RACEG[g] = 1; break; }
         // class 1: LUTs whose output a storage LUT reads (directly or through pips / hops only)
         vector<char> feeds(NN, 0);
         for (int g = 0; g < NG; g++) if (RACEG[g] == 1) for (int i = gins0[g]; i < gins0[g + 1]; i++) if (ins[i] != gout[g]) feeds[ins[i]] = 1;
-        vector<int> drv(NN, -1); for (int g = 0; g < NG; g++) drv[gout[g]] = g;
         for (int it = 0; it < 400; it++) { bool ch = false;   // walk back through non-LUT single-input gates (pips, hops)
-            for (int g = 0; g < NG; g++) if (!glut[g] && feeds[gout[g]] && gk[g] == 1 && !feeds[ins[gins0[g]]]) { feeds[ins[gins0[g]]] = 1; ch = true; }
+            for (int g = 0; g < NG; g++) if (!glut[g] && feeds[gout[g]] && gk[g] == 1 && initw[ginit0[g]] == 2 && !feeds[ins[gins0[g]]]) { feeds[ins[gins0[g]]] = 1; ch = true; }
             if (!ch) break; }
         for (int g = 0; g < NG; g++) if (glut[g] && !RACEG[g] && feeds[gout[g]]) RACEG[g] = 2;
     }
@@ -550,11 +552,14 @@ int main(int argc, char** argv) {
         // tens of ps came that close to a different outcome in this run. Transparent latches pass D glitches legitimately,
         // so a narrow pulse is a pointer for tracing, not a failure. Widths in ps; NEARMISS_PS (default 200) is the count bound.
         const char* nm = getenv("NEARMISS_PS"); ll NB = nm ? atoll(nm) : 200;
+        vector<int> DRV0(NN, -1); for (int g = 0; g < NG; g++) DRV0[gout[g]] = g;
         vector<tuple<ll, ll, int>> pl; ll cnt = 0;   // (width, time of the first edge, node)
         for (int g = 0; g < NG; g++) {
             if (!glut[g]) continue;
             int o = gout[g]; bool st = false;
-            for (int i = gins0[g]; i < gins0[g + 1]; i++) if (ins[i] == o) { st = true; break; }
+            for (int i = gins0[g]; i < gins0[g + 1]; i++) { int u = ins[i];
+                for (int d = 0; d < 200 && u != o; d++) { int h = DRV0[u]; if (h < 0 || glut[h] || gk[h] != 1 || initw[ginit0[h]] != 2) break; u = ins[gins0[h]]; }
+                if (u == o) { st = true; break; } }
             if (!st) continue;
             const vector<int>& h = H[o]; ll best = -1, bt = 0;
             for (size_t i = 1; i < h.size(); i++) {

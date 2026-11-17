@@ -4140,3 +4140,23 @@ Its draws (draws.py, correct "n,n" pairs) reproduce c_shrink2b: route 12 draws 1
 [74, 0], [111, 0] (draw 3 passes), route 7 [111, 0, 118]. But my hand-written variant command passed col14's "n 0" lines
 as "n,0", which mk_bnd maps to n = 0 (collatz(0) never ends): every variant "got []". c_x40col2: same with "n,n" and
 RACES=1 on the variants.
+
+### progress 03:23 -- c_x40col2: two of the three x0.40 failures are a matched delay against a delay chain; RACES fixed
+Draw 1 (bands chain 0.270 / rest 0.261 / CARRY 0.765) with one class moved (PASS = right answers on all 14 of col14):
+| variant | route 12 | route 20 | route 7 |
+|---|---|---|---|
+| as drawn | [111, 0, 0] | [106, 0] | [111, 0, 118] |
+| CARRY 0.20 / 0.43 | fail | wrong values from n = 27 on (106, 112, 169 ...), all 14 answered | fail |
+| chains 0.31 | fail | PASS | fail |
+| chains 0.40 / 0.55 | fail ([111, 0, 0, 3] at 0.55) | PASS | PASS |
+| rest 0.20 | fail | PASS | fail |
+| rest 0.31 | fail | fail | fail (2 answers) |
+| no pip scatter / no filter | fail | fail | fail |
+Routes 20 and 7 pass when delay chains are slower or the rest faster: a matched delay shrunk to x0.40 losing to the logic
+it matches (route 20 also returns wrong VALUES when only CARRY moves: the arithmetic's carry against its shortened delay).
+Route 12 fails under every variant tried, including chains at 0.55: after the zero-trip call n = 1 the next call (97)
+answers 0, i.e. the loop's exit steer sees a stale condition; no band move inside the model clears it, so on that route it
+is a race with a gap larger than the model's spread. diverge.py vs the chain variants only lists the global shift (every
+ulink_n19__* ack chain moves); not the race. Next for these: the RACES line, which printed nothing because simx tested
+"reads its own output" directly, while decoded LUTs read it through pip / hop copies. Fixed (copy chains as races.py);
+toy with a pip in the feedback (test/toy_latch_pip.simx) finds it. c_nm1 (still queued) gets the fix.
