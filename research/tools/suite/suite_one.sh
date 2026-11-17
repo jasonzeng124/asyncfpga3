@@ -24,8 +24,10 @@ case $K in
   collatz) V=research/data/eventgraph/gate/col18.hex; PV=research/data/fifteen/vec_collatz.hex; OR="research/tools/fifteen/kernel_oracle.sh collatz";;
   collatz64) V=research/data/eventgraph/gate/c6419.hex; PV=research/data/fifteen/vec_c64_871.hex; OR="research/tools/fifteen/kernel_oracle.sh collatz64";;
   ipow) V=research/data/eventgraph/gate/ipow17.hex; PV=research/data/fifteen/vec_ipow.hex; OR="research/tools/fifteen/kernel_oracle.sh ipow";;
-  isprime) V=research/data/alltable/isp17.hex; PV=research/data/alltable/vec_isprime_cost.hex; OR="research/tools/fifteen/kernel_oracle.sh isprime";;
-  gcd) V=research/data/eventgraph/gate/gcd18.hex; PV=research/data/aug_gcd/gcdcost_vec.hex; OR="research/data/gcd_draws/gcd_oracle.sh";;
+  # gcd / isprime: one long vector for P (their cost vectors run for hours in the decoded-netlist simulation); gcd's
+  # draws on gcd8 (gcd18's edges and its longest pair; farm gcddraw1 timed out on 42 of 64 tasks with gcd18)
+  isprime) V=research/data/alltable/isp17.hex; PV=research/data/suite/vec/isprime_period.hex; OR="research/tools/fifteen/kernel_oracle.sh isprime";;
+  gcd) V=research/data/suite/vec/gcd8.hex; PV=research/data/suite/vec/gcd_period.hex; OR="research/data/gcd_draws/gcd_oracle.sh";;
   *) V=kernels/$K/vec.hex; PV=kernels/$K/period.hex; [ -f "$R/$PV" ] || PV=$V; OR="research/tools/suite/oracle.sh $K";;
 esac
 fin() { echo "$K $S $*" | tee "$O/result.txt"; exit 0; }
