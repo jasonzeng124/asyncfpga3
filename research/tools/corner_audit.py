@@ -690,8 +690,19 @@ def main():
     measured_lines = [mac for mac in lines if mac in sizes and sizes[mac] > 0]
     protected = set() if a.shrink_selects else select_path_macros(a.route_dir, list(sizes))
     sens = {}                   # mac -> {key: dM}
-    for mac in ([] if a.no_size else sorted(measured_lines)):   # --no-size: report only, no per-line sensitivity runs
-        r = run_worker(sdf, {**spec, "scale": {b: 0.0 for b in lines[mac]}})
+    sens_macs = [] if a.no_size else sorted(measured_lines)   # --no-size: report only, no per-line sensitivity runs
+    # CA_JOBS=N runs the per-line sensitivity workers N at a time (each is a deterministic subprocess, so the results are
+    # the same as one at a time; unset = 1, the old sequential order).  The cluster node sets it for the sizing loop.
+    ca_jobs = max(1, int(os.environ.get("CA_JOBS", "1") or 1))
+    if ca_jobs > 1 and len(sens_macs) > 1:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=ca_jobs) as ex:
+            sens_runs = dict(zip(sens_macs, ex.map(
+                lambda mac: run_worker(sdf, {**spec, "scale": {b: 0.0 for b in lines[mac]}}), sens_macs)))
+    else:
+        sens_runs = None
+    for mac in sens_macs:
+        r = sens_runs[mac] if sens_runs is not None else run_worker(sdf, {**spec, "scale": {b: 0.0 for b in lines[mac]}})
         s = {}
         for k, c in cons.items():
             c2 = r["constraints"].get(k)

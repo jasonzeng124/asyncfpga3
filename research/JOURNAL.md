@@ -6171,7 +6171,7 @@ fast; being redone on RC_TREE=1), C46 / C47 (cand4 routes and slow-carry draws p
 cluster: the previous session's node (node4512) is gone with its local runs (the AUTO-at-estimates builds); this node is
 node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GLS compile lock becomes N slots
 (/tmp/eventgraph_compile.slots = 4 here; unset = the old single flock, so the farm is unchanged).
-### progress 22:40 (owner PROGRAM 4c65db3b3 read: a benchmark suite; four subagents; AUTO loops on six kernels)
+### progress 22:25 (owner PROGRAM 4c65db3b3 read: a benchmark suite; four subagents; AUTO loops on six kernels)
 - PROGRAM "A benchmark suite for the compiler" (owner, 22:1x): 20-30 kernels by shape, kernels/SUITE.md, Dynamatic's
   integer integration tests too, one command that runs the suite through the automatic path and writes the table (pass
   under draws, ns/iteration, LUTs, Dynamatic's figure, ratio; last line N pass and the geometric mean). The frontend now
@@ -6192,3 +6192,21 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   shrink10b (collatz64 item 32 sizes): x0.70 88 / 88 on EQUIVALENT routes, P median 27.71 (26.40-30.83); x0.55 68 / 88,
   failing on routes 9 18 20 21 22 28 31 (302 mismatch batches: a stream one call behind).
   gcddraw1 2 / 64 finished (the queue is full); preload1 61 / 64.
+### progress 22:35 (the suite's one command, first version; the sizing loop made cheaper; AUTO it 0 on six kernels)
+- research/tools/suite/: suite_one.sh K SEED [NDRAWS] [MAXIT] (BDC_AUTO=1 + auto_size.sh, the bits checked, draws with
+  K = 10000 + 100 S + j so every route gets its own model points, expected values compiled from the C at run time, P,
+  latency, kernel LUTs), run_suite.sh (every kernel x seeds, then the table), suite_table.py (the table; last line N pass
+  and the geometric mean of the ratio), dynamatic_ref.tsv (Dynamatic's figures with how each was obtained; the three
+  measured ones are single 2026-08 routes, ipow an estimate). Not yet run end to end: xorshift seed 2 is the first test.
+- The loop's cost: corner_audit runs one sensitivity worker per line, ~70 lines, ~25 min per iteration; and every
+  iteration ran the full stack. Now: CA_JOBS=N runs the workers N at a time (deterministic subprocesses; unset = the old
+  order; equality being checked on collatz it 0); lane2.sh LANE_NORUN=1 builds the route and its prjxray SDF only, and
+  auto_size.sh runs the full stack (lane2_run.sh, the old tail of lane2.sh, unchanged) once, on the route it keeps.
+- AUTO it 0 (emit.py's estimates), seed 1: P xorshift 65.59, ipow 64.71, collatz 84.81 (bits NOT EQUIVALENT: 3 x
+  F7BMUX/0 driven by nextpnr's GND LUT; subagent pnrfix has the defect class), collatz64 132.72 ns. Rule on collatz's
+  it 0: 38 lines changed, kernel links 493 -> 114, verify clean.
+- Subagents 5 and 6: dynref (Dynamatic's figure for any kernel from Dynamatic's own buffer placement, a cycle-level
+  simulation checked against the C, and a period from Dynamatic's timing data calibrated on the three measured
+  kernels; export-rtl is not in the owner's build, so measured figures cannot be made here); pnrfix (the NOT
+  EQUIVALENT routes, 10-15 % of all routes: real or a checker false alarm per kind, a nextpnr patch that changes only the
+  encoding if real, a toolchain.sh fingerprint that fails on the installed binary; nothing installed).

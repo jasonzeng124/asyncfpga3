@@ -35,18 +35,12 @@ fi
 B=$WT/cells/build/hw/${K}_bench_gen
 cp "$B/${K}_bench_gen".{bit,sdf,fasm} "$B/${K}_bench_gen_routed.json" "$WT/cells/build/gen/${K}_kernel_bench.v" "$HW/"
 flock -u 9   # the worktree is free for the next build; the run reads only HW
-md5=$(md5sum "$HW/${K}_bench_gen.sdf" | cut -c1-8)
-ff=$(python3 "$R/research/tools/ffmux_scan.py" "$HW/${K}_bench_gen.fasm" > "$HW/ffmux.txt" 2>&1 && echo ffmux-clean || echo FFMUX-FLAG)
-"$R/research/tools/eventgraph/fullstack_dump.sh" "$HW" ${K}_bench_gen "$RD" "$VEC" > "$RD/../$N.run.log" 2>&1 || true
-python3 "$R/research/tools/eventgraph/eventgraph.py" "$RD" auto --rj "$HW/${K}_bench_gen_routed.json" \
-    --kv "$HW/${K}_kernel_bench.v" > "$RD/eventgraph.log" 2>&1 || true
-rm -f "$RD/dump.vcd" "$RD/netlist_baked.v"
-mkdir -p "$G"
-cp "$RD"/eventgraph/{nodes.tsv,arcs.tsv,check.txt} "$G/" 2>/dev/null || true
-cp "$HW/${K}_kernel_bench.v" "$G/kernel.v"; cp "$RD/provenance.txt" "$G/" 2>/dev/null || true
-grep BENCHRES "$RD/run.log" | sed 's/sig=[0-9a-f]* //' > "$G/benchres.txt" || true
-echo "$N $md5 $*" > "$G/build.txt"
-P=$(grep -o 'period P = [0-9]*' "$G/check.txt" 2>/dev/null | grep -o '[0-9]*$' || echo NA)
-od=$(grep -o 'odata=[0-9a-f]*' "$G/benchres.txt" | sort -u | tr '\n' ' ')
-v=$(grep -o 'VERDICT: [A-Z ]*' "$RD/fid/equiv.txt" 2>/dev/null | head -1 || echo "VERDICT ?")
-echo "$N $md5 P=$P $od $v $ff"
+if [ "${LANE_NORUN:-0}" = 1 ]; then   # no full stack: only the prjxray SDF that corner_audit reads (auto_size.sh's
+  # intermediate routes; lane2_run.sh runs the full stack on the route the loop keeps)
+  md5=$(md5sum "$HW/${K}_bench_gen.sdf" | cut -c1-8)
+  ff=$(python3 "$R/research/tools/ffmux_scan.py" "$HW/${K}_bench_gen.fasm" > "$HW/ffmux.txt" 2>&1 && echo ffmux-clean || echo FFMUX-FLAG)
+  PYTHONPATH=${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7-src/prjxray python3 "$R/cells/gls/fid/xray_delay.py" \
+      --routed "$HW/${K}_bench_gen_routed.json" --sdf "$HW/${K}_bench_gen.sdf" --out "$RD/xray.sdf" > "$RD/xray.log" 2>&1
+  echo "$N $md5 P=NORUN $ff"; exit 0
+fi
+exec "$R/research/tools/fifteen/lane2_run.sh" "$N" "$K" "$VEC" "$@"
