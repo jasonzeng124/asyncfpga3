@@ -4391,3 +4391,5 @@ Check for others: every number reported today comes from a run that printed its 
 
 ### progress 20:45 -- C45 (interim): collatz x0.55 r30 formal fails 3001/3003/3004 (research 3001/3003), entry steer 24-28 ps with runts even at fast CARRY; ipow x0.55 r12 formal passes 1201-1204 (research hangs 3). Running research's bench_gate.sh here on r12 draw 1203 (default, +META_INIT=0); XRAY_DB has to point at the toolchain's prjxray-db.
 - 20:55 research's bench_gate.sh here on ip55_12 (sdf c3542c6d): draws 1201/1203/1204 PASS 17/17 (1203 also with +META_INIT=0). Research's farm 'hangs' are not reproduced by its own gate on this build. C45 updated.
+
+### progress 21:05 -- PROGRAM re-read (owner 20:xx: shard B back on unreachable paths; C: 'draws on research's candidates, and C41 on more routes'; up to 4 subagents until 11-18 23:00; do not stop early). Farm c_c41x32 submitted (cand3b in formal's simx, 32 routes, default + slow-carry draws draw for draw, steer margins). Local: cand4 (collatz x0.70 s27, ipow x0.70 s31) 32 + 16 slow-carry draws, 8-corner margins.
