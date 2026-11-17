@@ -886,6 +886,65 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
+## A14. Where the board sits in the band, and which measurement decides it. LUT vs routing: no August measurement separates them. CARRY/F7: no August measurement places it. Rings and kernels disagree by the same amount in both models, and all three kernels' delay chains are fast-rise, so a rise/fall difference in silicon is the leading candidate (shard A, 2026-11-17 21:10 UTC; simulation, untrusted)
+This answers PROGRAM ("Research says 0.22 to 0.29 and you said 0.75 to 0.9: say which measurement decides"). It also
+records A13, which until now was only in JOURNAL.md (18:28; C42 cites it).
+The data are the MEASURED August bitstreams (research/board/aug/builds, decoded by formal; names come from
+tools-A/board/aug_synth.py) and the 128 August rings (research/board/ro_many_aug).
+b is a position in each model's own [FAST_MIN, SLOW_MAX], so b values from the two models are not comparable as numbers.
+In formal's arcs (build_net.py), the measured delays sit at:
+
+| measurement | formal, one b | research, one b (yours) |
+|---|---|---|
+| collatz per iteration (board 92.7 ns) | 0.387 | 0.222 (full stack) |
+| collatz64 per iteration (117.9 ns) | 0.383 | |
+| gcd: (2^31-1, 2^31-2) minus (1, 1), 11.70 us; per-coefficient fit 0.387-0.405 | 0.396 | |
+| 128 rings, median (p05 / p95) | **0.465** (0.420 / 0.512) | **0.288** (+-1.8 %) |
+
+- **Kernels vs rings.** In both models the rings sit higher: +0.078 in formal's, +0.066 in yours. The kernels agree with
+  each other to 0.013. Your RC-tree model fits the rings more tightly (per-ring spread 1.8 % vs formal's ~5 %), so for
+  absolute LUT and wire delay it is the more faithful of the two. Formal's arcs are ~20 % faster in absolute terms.
+- **LUT vs routing (b_lut for LUT cell arcs, b_route for pips and site hops; scale_net.py B_LUT).** Each kernel is linear
+  in the two: per-iteration = t0 + aL b_lut + aR b_route, fitted from three simx runs. The LUT share of the span is
+  0.61 / 0.64 / 0.66 for the kernels and 0.69 for the rings (p05-p95 0.62-0.77). That is nearly the same mix, so these
+  measurements cannot tell the two bands apart:
+  - Kernels alone give one line: b_lut 0.3 -> b_route 0.53-0.56; b_lut 0.4 -> b_route 0.35-0.39.
+  - Rings alone, bootstrap 90 %: b_lut 0.35-0.43, b_route 0.55-0.72. The rms error falls from ~5 % to 3.0 %. The high
+    b_route probably absorbs routing that formal underprices: 52k pips with no prjxray record are taken as 0 ps.
+  - **No single pair fits both.** At the rings' pair, the kernels come out ~10 % slow (collatz 102.0 vs 92.7 ns).
+    The joint fit (0.575, 0.092) leaves the rings at 5.9 % rms and the kernels up to 2.8 % off.
+  - So the ring/kernel gap is not a LUT-vs-routing split.
+- **A candidate that fits both models: rising vs falling edges.**
+  - Every delay LUT in the three August kernels is a bd_delay FASTRISE stage (2-input OR with the chain input): 109, 122
+    and 1002 stages, all OR. A rise flushes the chain, so each iteration's matched delay is paid on the FALLING edge.
+  - A ring of buffers closed by a NAND pays N rises in one half-period and N falls in the other.
+  - Both models give an arc one delay for both edges. If the silicon's rises are slower than the model says, relative
+    to its falls, the rings read a higher b than the kernels in BOTH models, which is what both show.
+  - Size of the effect in formal's model: falls at b 0.387, rises at b ~0.54. That is rises ~19 % slower than falls
+    (span/FAST_MIN = 2.16, median ring).
+  - Not tested: no August measurement isolates one edge.
+- **CARRY/F7 (A13).** With LUT and routing at 0.39, moving CARRY4 and MUXF7/F8 over {0.2, 0.39, 1.0} changes collatz and
+  collatz64 per-iteration time by 0.00 ns. The cycle is set by the matched delays, and the carry chains only have to
+  settle inside them. No August measurement places this band, so the 0.75-0.9 at which C38 / C35's races close cannot
+  be confirmed or ruled out by the board data in hand.
+
+**Which measurement decides:**
+1. **For kernel margins: the kernel loop times, not the rings.** The kernel loop times share the kernels' edge mix and
+   placement style; the rings do not. Until (2) is done, reading kernel delays at the ring b over-states their delays
+   (safe for request delays, unsafe for data paths).
+2. **The ring/kernel gap: a ring made from the kernel's own cell.** Close a bd_delay FASTRISE N chain with the same NAND,
+   and place it beside a symmetric bd_delay N ring of the same N. The FASTRISE ring's period is about N falls plus one
+   flush rise; the symmetric ring's is N rises plus N falls. The ratio gives rise vs fall directly. A duty-cycle
+   readout of a symmetric ring would do the same.
+3. **LUT vs routing: rings whose routing share differs.** For example, the same N with stages forced one per tile
+   against packed four per slice. That moves the LUT share from ~0.7 to ~0.4 or ~0.9, enough leverage for a two-band fit.
+4. **CARRY/F7: a CARRY4 delay line or ring (C42),** or a kernel whose request path waits on a carry chain.
+
+Files: tools-A/board/{ring_period.py, scale_net.py (B_LUT), twoband.sh, loop_latency.py, gcd_latency.py, aug_synth.py};
+outputs tools-A/board/out/aug_board/ and ring_band.txt. Toolchain: none (decoded from the measured FASMs; prjxray arcs).
+Not shown: (a) whether silicon edges differ (a hypothesis); (b) anything about the August builds' sizes at other routes;
+(c) a b with RC on all corners (RC_ALL changed the rings by little, A13).
+
 ## A12. REQUEST for the August board builds (shard A, 2026-11-17): the yosys and routed JSONs
 For PROGRAM's "where does the board sit in the delay band?": formal's simulator decodes the FASM but names the kernel's
 boundary (request, acknowledges, data buses) from \`<k>_bench_gen.json\` + \`<k>_bench_gen_routed.json\` +

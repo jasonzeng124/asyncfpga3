@@ -1,9 +1,9 @@
 #!/bin/bash
-# twoband.sh MDIR KERNEL BR BC P1:I1 P2:I2 -> per-iteration ns at (BR, BC)
-S=/tmp/claude-0/-home-user-asyncfpga3/3cbdd420-2354-5723-b9bc-ebf9633a8b72/scratchpad
-M=$1; K=$2; BR=$3; BC=$4; shift 4
-D=$S/tb_$(basename $M)_${BR}_${BC}; mkdir -p $D; cp $M/bnd.json $M/simx $D/
-python3 /home/user/asyncfpga3/formal/tools-A/board/scale_net.py $M/net.json $D/net.json $BR $BC
+# twoband.sh MDIR KERNEL BR BC BL P1:I1 P2:I2 -> per-iteration ns at routing BR, CARRY/MUXF BC, LUT BL (scale_net.py)
+S=${S:-$(mktemp -d)}
+M=$1; K=$2; BR=$3; BC=$4; BL=$5; shift 5
+D=$S/tb_$(basename $M)_${BR}_${BC}_${BL}; mkdir -p $D; cp $M/bnd.json $M/simx $D/
+python3 /home/user/asyncfpga3/formal/tools-A/board/scale_net.py $M/net.json $D/net.json $BR $BC $BL
 python3 /home/user/asyncfpga3/formal/tools/margin/simx_conv.py $D/net.json $D/bnd.json $D/net.simx > /dev/null 2>&1
 echo '{"S":[],"F":[]}' > $D/e.json
 python3 - "$D" "$K" "$@" <<'PY'
