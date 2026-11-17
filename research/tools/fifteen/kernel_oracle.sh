@@ -7,7 +7,10 @@ set -euo pipefail
 K=$1; R=$(cd "$(dirname "$0")/../../.." && pwd); T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/dynamatic"; echo '#define CALL_KERNEL(f, ...) f(__VA_ARGS__)' > "$T/dynamatic/Integration.h"
 sed 's/^int main(void)/int main_unused(void)/' "$R/kernels/$K/$K.c" > "$T/k.c"
-case $K in collatz64) ARG='(in_int_t)(((unsigned long long)hi<<32)|lo)';; collatz) ARG='(in_int_t)lo';; *) ARG='(in_int_t)lo, (in_int_t)hi';; esac
+# The bench masks operands before the kernel sees them (cells/hw/gen_bench.py DOMAIN_RESTRICTIONS): collatz n & 0xFFFF,
+# collatz64 high word 0, xorshift rounds & 0xFFF. The oracle applies the same masks, so a vector outside the domain gets
+# the answer the bench will actually produce (2026-11-17: three collatz vectors above the mask looked like kernel errors).
+case $K in collatz64) ARG='(in_int_t)lo';; collatz) ARG='(in_int_t)(lo & 0xFFFFu)';; xorshift) ARG='(in_int_t)lo, (in_int_t)(hi & 0xFFFu)';; *) ARG='(in_int_t)lo, (in_int_t)hi';; esac
 cat > "$T/d.c" <<C
 #include <stdio.h>
 #include "$K.h"
