@@ -18,7 +18,11 @@ bel-level, so everything is compared by bel name:
                    IMUX reads VCC through its default ppip) is HARMLESS, and
                    counted as such, iff the bits' LUT function does not read
                    that pin (both halves, the other pins at their own drivers);
-                   otherwise it is a hard difference.
+                   otherwise it is a hard difference.  A driver LUT whose
+                   output is the same for every value of its non-constant pins
+                   (nextpnr's GND feed-through LUT1 into an F7 data input) is
+                   compared as that constant, on each side by its own INIT and
+                   pins (lut_fold; listed as CONST_IN_LUT, not hidden).
   4. LUT function  every LUT, evaluated over every assignment of the distinct
                    nets on its pins, each side with ITS OWN pin map and constants
                    -- JSON through gen.py's X_ORIG_PORT expansion (the logical
@@ -41,6 +45,7 @@ import fasm2net                                     # noqa: E402
 
 CONST = {"PSEUDO_VCC": 1, "PSEUDO_GND": 0}
 FOLDED = []         # pins whose driver lut_const() folded to a constant (reported as CONST_LUT)
+FOLDED_IN = []      # pins whose driver lut_fold() folded to a constant (reported as CONST_IN_LUT)
 
 
 def load(path):
@@ -93,6 +98,46 @@ def lut_const(c):
     return None
 
 
+CONST_IN_LUT = ("driver is a LUT whose output is constant given the constants on its own pins (nextpnr's "
+                "$PACKER_GND_NET/VCC feed-through LUT1), compared as that constant")
+
+
+def lut_fold(cells, drv, d):
+    """0 / 1 if the LUT output d = (cell, port) is the same for every value of its non-constant pins, with its
+    pins driven by a constant cell held at that constant; else None.  Unconnected pins and pins on a live net are
+    free (both values tried), so this never folds a LUT that reads a live signal.
+
+    Why: nextpnr feeds a constant into a MUXF7 data input (or a CARRY4 S) through a LUT1 buffer,
+    '$PACKER_GND_NET$LUT$n' (INIT 2, I0 on $PACKER_GND_NET).  When the GND fill (Arch::routeVcc) cannot reach
+    that LUT's pin, fixupRouting drops its X_ORIG_PORT and the FASM writer encodes INIT 0: the die computes 0,
+    the JSON computes a buffer of GND = 0.  Section 3 folded only the bits side (lut_const: INIT all 0) and so
+    reported a DRIVER DIFFERS between ('bel', the LUT) and ('const', 0) for one and the same value."""
+    cn, port = d
+    c = cells[cn]
+    if c.get("type") != "SLICE_LUTX" or port not in ("O5", "O6"):
+        return None
+    init = str(c.get("parameters", {}).get("INIT", ""))
+    if not init or not set(init) <= {"0", "1"}:
+        return None
+    t = gen.expand_lut_init(init, c.get("attributes", {}), port)
+    n = 6 if port == "O6" else 5
+    fixed, free = {}, []
+    for i in range(n):
+        bl = c.get("connections", {}).get("A%d" % (i + 1))
+        x = drv.get(bl[0]) if bl else None
+        if x is not None and cells[x[0]]["type"] in CONST:
+            fixed[i] = CONST[cells[x[0]]["type"]]
+        else:
+            free.append(i)
+    outs = set()
+    for v in range(1 << len(free)):
+        a = sum(b << i for i, b in fixed.items()) | sum(((v >> j) & 1) << i for j, i in enumerate(free))
+        outs.add((t >> a) & 1)
+        if len(outs) > 1:
+            return None
+    return outs.pop()
+
+
 def pin_drivers(cells, drv, gen_ties):
     """-> {(bel or lut position, pin): driver} where driver is
     ('bel', bel, pin) | ('const', v) | ('tie', v) (unconnected: gen.py's TIE)."""
@@ -118,6 +163,9 @@ def pin_drivers(cells, drv, gen_ties):
                 elif lut_const(cells[d[0]]) is not None:
                     v = ("const", lut_const(cells[d[0]]))
                     FOLDED.append("%s/%s <- %s" % (b, p, belof[d[0]]))
+                elif lut_fold(cells, drv, d) is not None:
+                    v = ("const", lut_fold(cells, drv, d))
+                    FOLDED_IN.append("%s/%s <- %s = %d" % (b, p, belof[d[0]], v[1]))
                 elif cells[d[0]]["type"] == "PAD":
                     v = ("undriven",)       # fasm2net names the pad as the driver of its own net
                 else:
@@ -438,6 +486,8 @@ def main():
         flag("DRIVER DIFFERS", "%s/%s json %s bits %s" % (k[0], k[1], a_, b_))
     for e in sorted(set(FOLDED)):
         flag(CONST_LUT, e)
+    for e in sorted(set(FOLDED_IN)):
+        flag(CONST_IN_LUT, e)
     say("3. CONNECTIVITY  %d pins with the same driver on both sides" % n_same)
     # driver -> sink pairs, as sets
     pairs = lambda pd: {(v, k) for k, v in pd.items() if k[0] in common_pos and v[0] in ("bel", "const")}
@@ -610,7 +660,7 @@ def main():
               "json pips that ARE in the bits", "pin unconnected in routed JSON, same constant",
               "LUT pin unconnected in routed JSON", "BUFGCTRL I1 unconnected in JSON",
               "bits-only pip into a deselected BUFGCTRL I1", "bits-only always-on ppip",
-              HARMLESS_CONST, CONST_LUT, "bits-only LUT with a constant function")
+              HARMLESS_CONST, CONST_LUT, CONST_IN_LUT, "bits-only LUT with a constant function")
     hard = [k for k in bad if not k.startswith(benign)]
     say("VERDICT: %s" % ("EQUIVALENT (only the benign kinds above)" if not hard else
                          "NOT EQUIVALENT: " + "; ".join(hard)))
