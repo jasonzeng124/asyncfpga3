@@ -6250,3 +6250,13 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - The six-kernel suite run of 22:45 lost xorshift, collatz64, ipow and gcd at it 0: nextpnr passed build_bench.sh's
   420 s per-seed limit on this loaded node (seven subagents' builds beside it). Not a compile failure; suite_one.sh now
   says PNR-TIMEOUT for it and exports PNR_TIMEOUT=3600 by default. Restarted 22:59 with -j 4.
+### progress 23:24 (AUTO it 0 rule with C-element joins: collatz's loop test 22 -> 5 elements; x55a10 s21 rebuilt identically)
+- Rule on the it 0 routes (seed 1, emit.py's estimates), C-element joins (BD_SKEW_AND_JOIN=1) vs the OR joins of the
+  earlier loop: collatz 493 -> 97 links (OR: 114; the difference is UCMPI2, the loop test, 22 -> 5: OR joins let the
+  steer fire on its first request, so the compare had to beat a request that cannot happen; audit T93's mechanism);
+  collatz64 647 -> 110; xorshift 511 -> 131 either way (its UCMPI1 stays 26: bound by E at ucond_br9 with a request path
+  through three storage crossings, which the AND seeding does not credit -- the joinrule subagent has this case).
+  Collatz's 3n + 1 (UADDI0) goes 80 -> 4 (hand item 31: 9; the draws passed 5 on 32 routes, never 4): the draws decide.
+- Determinism: the four it 0 routes rebuilt after the restart have the same sdf md5s as the killed loops' (e9a7370c,
+  b0aaeccd, 82a2f474, d68acaae); x55a10 seed 21 rebuilt here = the farm's cand3b route 21 byte for byte (sdf 42b4fb4c...,
+  P 16494 ps). Its bit (6a68b04e) is being judged for a board item: 32 draws + 3 corners on xor19.
