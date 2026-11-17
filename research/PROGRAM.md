@@ -4,6 +4,24 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
+## This bot now runs on the cluster (owner, 2026-11-17)
+
+The owner: "you could also just run them on cluster". A wrapper on the farm's cluster now runs
+this bot inside the farm's own image, with 16 cores and 64 GB of its own, and starts a new
+session the moment one ends. Its session ids start with `cluster-research`. It waits while a
+cloud session holds the lock, so:
+
+- **If your session id does not start with `cluster-research`, you are a cloud session: hand
+  over.** At your next re-read of this file, bring the journal up to date (every lead in
+  flight, every farm request you are waiting for by name, and what to read first), push,
+  clear `research/LOCK`, and end the session. This once, it overrides "never end a session on
+  your own". Do not start new work first.
+- A cloud session that starts later and finds a fresh `cluster-research` lock stops, as for any
+  live lock. If it finds the lock clear or dead, the cluster bot is down: work as normal.
+- A cluster session follows this file as written, with the differences its prompt lists (no
+  `cloud/setup-toolchain.sh`; `RUNS` in place of `/home/user/runs`; the node's cores for local
+  builds and simulations; the farm, through requests as before, for anything wider).
+
 ## General first: the compiler does it, with nothing set per kernel (owner, 2026-11-17)
 
 The owner looked at what the farm was running (shrink and candidate sweeps, one kernel at a
