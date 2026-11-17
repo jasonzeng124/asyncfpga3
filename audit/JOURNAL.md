@@ -3192,3 +3192,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research 0e5fad0c2: BOARD-QUEUE item 36, CARRY4 / MUXF7 ring experiment (the measurement T145 called for).
   - Pre-run check T146: own FF scan clean on s1 / s2; predicted.tsv internally consistent (64/64 rows, linear in x and y); C32 / F16 rings move 4.3 / 5.1 ns across the CARRY / F7 band, so it discriminates.
   - Arc coefficients UNVERIFIED. No objection to running it first.
+- 20:36 owner d35499132 (research/PROGRAM.md only): 'general first'.
+  - One compiler switch (e.g. BDC_AUTO=1), byte-identical output when unset, chooses everything the per-kernel recipes chose, with sizes from one rule.
+  - Audit program unchanged. To check when claimed:
+    - (a) byte-identical output with the switch unset, by own diff of builds;
+    - (b) auto results on untuned kernels, by own GLS and oracle;
+    - (c) no instance names or per-kernel knobs inside the auto path.
