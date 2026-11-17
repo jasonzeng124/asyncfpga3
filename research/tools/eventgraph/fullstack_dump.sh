@@ -21,13 +21,13 @@ export GLS_SDF=$XS GLS_SDF_FIELD=${DUMP_FIELD:-band} GLS_SDF_BAND=0.288 GLS_SDF_
 # DUMP_FIELD=min|max: a prjxray corner column instead of the calibrated bands (no band settings with it; gen.py refuses)
 if [ "${DUMP_FIELD:-band}" != band ]; then unset GLS_SDF_BAND GLS_SDF_BAND_CELL GLS_SDF_BAND_INST; export GLS_SDF_FIELD=$DUMP_FIELD; fi
 # one compile at a time on the machine: build_ps.sh's iverilog peaks at several GB (OOM kills lose runs)
-flock /tmp/eventgraph_compile.lock "$G/ps/build_ps.sh" "$HW" "$W" "" bit > "$W/build.log" 2>&1
+"$R/research/tools/compile_slot.sh" "$G/ps/build_ps.sh" "$HW" "$W" "" bit > "$W/build.log" 2>&1
 rm -f "$W/run_baked.vvp" "$W/gate.vvp"
 cat > "$W/dump.v" <<'V'
 module dump_all; initial begin $dumpfile("dump.vcd"); $dumpvars(1, tb_ps.dut); end endmodule
 V
 cd "$W"
-flock /tmp/eventgraph_compile.lock iverilog -gspecify -DGLS_TRANSPORT_IC -DGLS_FID -I"$G" -I. -o run.vvp "$G/ps/tb_ps.v" netlist_baked.v "$G/prims.v" \
+"$R/research/tools/compile_slot.sh" iverilog -gspecify -DGLS_TRANSPORT_IC -DGLS_FID -I"$G" -I. -o run.vvp "$G/ps/tb_ps.v" netlist_baked.v "$G/prims.v" \
     "$G/ps/ps7_bench.v" dump.v 2>&1 | grep -v 'procedural continuous' || true
 vvp run.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=1200000 +TEND=3000000 ${GATE_PLUSARGS:-} > run.log 2>&1 || true
 rm -f run.vvp
