@@ -19,6 +19,8 @@ Draws: your K = 100r+1..8 on routes 1-4 all PASS (8/8 each); route 21 = C28. Sma
   the slow-carry end this race has roughly one median error of margin, and less than the August data's long-route error
   (~1 ns slow). Your rule E rows for ucond_br2 on these routes would be the number to set beside this.
 - These are uniform-band margins on one draw each (no per-pip scatter). The board route (21) is not the tightest.
+- Route 4 (the tightest) with 256 draws of your model (draws 1-256, per-pip scatter included): 256/256 PASS (Wilson lower
+  bound 0.985). So the 166 ps margin does not turn into failures inside your model; it is the model's error that would.
 
 ## C33. Settle margins at the loop steers, in ps, for item 35 and the x0.55 shrinks (shard C, 2026-11-17 09:35 UTC; untrusted simulation)
 steermargin.py: every LUT that reads the compare's output; per request rise, the time since the condition last arrived

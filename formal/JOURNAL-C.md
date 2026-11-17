@@ -4292,3 +4292,4 @@ row has the condition moving under a request. One route each, uniform bands, no 
 Local builds seeds 1-4 (sdf 33852d52 b2470514 7b649492 ee6304d0), research K 100r+1..8 all PASS. Smallest settle margins at
 rest 0.20 + CARRY/F7 1.0: 341 / 181 / 230 / 166 ps (route 21: 321). No condition moves under a request anywhere. ~1 median
 SDF error of margin on routes 2 and 4.
+- route 4 (tightest) 256 research-model draws: 256/256 PASS.
