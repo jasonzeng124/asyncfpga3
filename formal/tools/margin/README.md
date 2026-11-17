@@ -145,3 +145,4 @@ read P/PCOUT bit; `--check N`: the decoded multiplies against x*y mod 2^32). Del
 e.g. OOM-killed). Used for FOR-RESEARCH C36-C42. Check: c55_3 ucmpi0 at 0.20,0.31,1.0 -> 583 ps (= C37).
 Typical conditions: xorshift 'ucmpi0\.uz_n3' 'ucmpi1\.uz_n41'; collatz 'ucmpi0\.uz_n4' 'ucmpi2\.uz_n36'; ipow 'ucmpi0\.uz_n4'
 'ucmpi2\.uz_n39' (names from the kernel's bdc_fused_ucmpi* modules: the `uz_n*` LUT1).
+**Arcs (2026-11-17 22:30):** run.sh now decodes with build_net RC_TREE=1 by default (A18; matches research's arcs ~1 ps per net; the older default arcs were ~20 % fast, C48). RC_TREE=0 restores them.

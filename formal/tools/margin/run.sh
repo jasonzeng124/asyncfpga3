@@ -55,6 +55,9 @@ export TC
 
 # 1. decode (reused if OUT/net.json exists)
 A=$F/tools-A/target
+# RC_TREE (build_net.py, A18): 1 = arcs with the RC tree, matching research's xray.sdf ~1 ps per net; 0 = the older arcs
+# (~20 % fast, used by every margin before 2026-11-17 22:30 UTC; FOR-RESEARCH C48). Default 1 since then.
+export RC_TREE=${RC_TREE:-1}
 # decode_net XDC: A's decode_base.py + build_net.py -> d0.json, net.json. A FASM with DSP48E1 site configuration goes
 # through margin/dsp/ instead (decode_base.py refuses DSP features): decode_dsp.py (decode_base + combinational DSP48E1
 # sites, checked against ROUTED when given), build_net.py, dsp_gates.py (the DSP's gates; --check: the decoded multiply
