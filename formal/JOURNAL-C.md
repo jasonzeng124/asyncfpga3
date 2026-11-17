@@ -4093,3 +4093,7 @@ shortened UCMPI matched delay (the loop test steers a 4-round call to the exit).
 transport LUTs + 20-ps filter instead of a resolver; the fid model separates the known-bad builds by ~3 % of draws,
 research's model by none. **Not done:** the gcd theorem (second priority), Lean for anything above, the C19 resolver
 question on silicon (research's BOARD-QUEUE item 2).
+
+### progress 00:50 -- c_shrink2: collatz item 31 sizes x0.85 / 0.70 / 0.55 32/32 on every route (8 routes at x0.55), as research's 8/8
+Last answer (col14) mean ~16.5 us at x0.85 -> ~13.4 us at x0.55. c_shrink2b: x0.40-0.10 (research's shrink_sizes.py on
+nl6s3a, inside the task) on routes 20, 3, 7, 12, to find formal's first failing factor for collatz.
