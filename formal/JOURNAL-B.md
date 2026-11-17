@@ -4496,7 +4496,7 @@ Note: 0x7fffffff + 1 never happens in the C (i < rounds <= 2^31 - 1), so a 30-bi
   its carry into bit 16 (uaddi1 slice[4]) tolerates the whole 20 ns searched.
 - Running (batch35.sh, background): UADDI0 12 vs 0 on seeds 2 / 4 / 5 (sdf 12: b2470514 / ee6304d0 / 7a448319 -- the
   first two = C36's routes 2 / 4; 0: 2b8ef891 / f5223fdd / b4b07f06): ordinary, preload A / B, carry slack, period.
-### progress 21:05 -- collatz item 31 / x0.70 seed 27 / collatz64 item 32: full-range values and preloaded steps counters pass; slacks
+### progress 20:52 -- collatz item 31 / x0.70 seed 27 / collatz64 item 32: full-range values and preloaded steps counters pass; slacks
 - prun.sh had `--tmax 40000000` (40 us) hard-coded: item 31's preloaded draws need ~39-41 us and 5 of 8 first "failed" by a
   missing LAST answer. Not a circuit result: TMAX now defaults to 400 us and the same 8 draws pass. (xorshift runs end by
   2.3 us; unaffected.)
@@ -4509,7 +4509,7 @@ Note: 0x7fffffff + 1 never happens in the C (i < rounds <= 2^31 - 1), so a 30-bi
 - collatz x0.70 seed 27 (research's cand4 route; sdf f11ff1ee here, research has not listed its md5): col18 4/4, c32hi
   16/16, steps preloaded 16/16; steps last-increment carry >= 8007 ps (UADDI1 7); 3n+1 into bit 28 >= 8320 ps.
 - collatz64 item 32: steps last-increment carry >= 14609 ps (c64hi + n = 0x10000).
-### progress 21:1x -- UADDI0 12 vs 0 on seeds 21 / 2 / 4 / 5: all preloaded draws pass, slack >= 8.0 ns, period -4.9 %; FOR-RESEARCH B2
+### progress 20:58 -- UADDI0 12 vs 0 on seeds 21 / 2 / 4 / 5: all preloaded draws pass, slack >= 8.0 ns, period -4.9 %; FOR-RESEARCH B2
 batch35.sh (per build: xor19 8 draws, preload A / B 16 draws each, carry slack into bit 16, period of a 271-iteration
 preloaded call): every draw PASS on all 8 builds. Slack, UADDI0 12: 8906 / 9453 / 9531 (seeds 2 / 4 / 5; 21: 9140);
 UADDI0 0: 8125 / 8046 / 8359 (21: 8828). Period mean over the 4 seeds x 2 draws: 14281 -> 13582 ps; xor19 last answer
