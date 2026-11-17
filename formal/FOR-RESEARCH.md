@@ -108,6 +108,25 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   TMAX=), `carryslack.sh` for the slack; commands per row in formal/JOURNAL-B.md (2026-11-17).
 - **Caveat (C48, 22:25):** every ps number above was measured on formal's DEFAULT decoded arcs, which C48 / A18 show are ~20 % fast against your model; run.sh now decodes with RC_TREE=1 (your arcs to ~1 ps). Pass / fail is expected to hold; the ps values (slacks, settle gaps, periods) are being redone on RC decodes and will be added here. Farm b_u0xor runs on RC decodes.
 
+## C49. C37 / C40 / C43 / C46 and collatz64 x0.70 rerun on RC-tree arcs (your model's): verdicts unchanged, margins larger, except collatz x0.55 route 8 which now FAILS (shard C, 2026-11-17 23:00 UTC; untrusted simulation)
+Each build decoded again with RC_TREE=1 (the margin tool's default since 22:30); 8 draws of your model (K 100r+1..8) and
+steercorners.sh at chains 0.20 with (rest, CARRY) = (0.31, 0.20), (0.31, 1.0), (0.20, 1.0); worst settle gap, ps:
+| build (route) | draws RC | entry compare -> steers | loop test -> steers | default arcs said |
+|---|---|---|---|---|
+| collatz x0.55 (20) | 8/8 | 721 | 842 | 681 / 712 (C37) |
+| ipow x0.55 (3 / 5 / 8) | 8/8 each | 1873 / 1832 / 1432 | 1441 / 2226 / 2224 | >= 789 (C40) |
+| item 29 ipow (19) | 8/8 | 3672 | 5395 | 3054 / 4605 |
+| collatz x0.70 cand4 (27) | 8/8 | 677 | 2617 | 622 / 1764 (C46) |
+| ipow x0.70 cand4 (31) | 8/8 | 2763 | 2779 | 2199 / 2498 (C46) |
+| collatz64 x0.70 (1 / 2) | 8/8 each | 1420 / **581** | 2045 / 1813 | 961 / 176 (journal) |
+| collatz x0.55 (4) | 8/8 | **205** | 1360 | 22 (C43) |
+| collatz x0.55 (8) | **7/8, 1 livelock** (K 803, event cap) | **104, 6 runts, WRONG answers** at 0.31 / 1.0 | 1, 12 runts | 6 (C43) |
+| collatz x0.55 + UCMPI0 8 (4 / 8) | 8/8 each | 1467 / 914 | 2282 / 2343 | 1172 / 691 (C43) |
+(collatz x0.55 route 8: the other two corners' runs printed no rows -- they did not finish inside the memory here, i.e.
+probably the same livelock; not counted.) Last answers ~20 % longer than on default arcs, as expected.
+- So on your model's arcs: collatz x0.55 fails on routes 30 (C48) and 8, and route 4 keeps only ~0.2 ns, all on the loop-entry
+  steer; keeping UCMPI0 at 8 (C43) clears all three. The ipow leads, item 29, cand4 and collatz64 x0.70 have >= 0.58 ns.
+
 ## C48. CORRECTION to C36 / C38 / C40 / C41 on formal's RC-tree arcs (= your model's, A18): item 35 is not on a knife edge -- its loop-entry steer keeps 204 ps at CARRY 1.0 with no runts; the shrink leads gain 250-730 ps; collatz x0.55 route 30 still fails (shard C, 2026-11-17 22:25 UTC; untrusted simulation)
 Same builds as before, decoded again with build_net RC_TREE=1 (formal's arcs then match your xray.sdf to ~1 ps per net, A18,
 and your ring predictions within 0.5 %, carryring/). Smallest settle gap at chains 0.20, rest 0.31, ps (runts in brackets);

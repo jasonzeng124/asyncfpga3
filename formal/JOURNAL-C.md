@@ -4404,3 +4404,5 @@ Check for others: every number reported today comes from a run that printed its 
 
 ### progress 22:25 -- RC_TREE reruns (FOR-RESEARCH C48, CORRECTION): item 35 r21 ucmpi0 204 ps / 0 runts at CARRY 1.0 (default arcs: 12 ps / 10 runts); x55a10 923; collatz x55 r3 850; ipow x55 r11 898; collatz x55 r30 still fails (47-124 ps with runts, wrong answers). Two OOM'd rows (c55_30 at 0.31/0.31/1.0) not reported. C38 sweep on RC running.
 - 22:35 C38 sweep on RC arcs: 665 -> 204 ps over CARRY 0.2 -> 1.0, no runts (C48 updated).
+
+### progress 23:00 -- RC reruns of C37/C40/C43/C46 + collatz64 x0.70 (FOR-RESEARCH C49): all pass with larger margins except collatz x0.55 r8 (wrong answers at slow CARRY, 1 livelocked draw); r4 205 ps; UCMPI0 8 clears both.
