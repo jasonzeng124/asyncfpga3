@@ -6210,3 +6210,24 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   kernels; export-rtl is not in the owner's build, so measured figures cannot be made here); pnrfix (the NOT
   EQUIVALENT routes, 10-15 % of all routes: real or a checker false alarm per kind, a nextpnr patch that changes only the
   encoding if real, a toolchain.sh fingerprint that fails on the installed binary; nothing installed).
+### progress 22:46 (the AUTO loop's first proposal was locking in the estimates route's pessimism; loop restarted)
+- xorshift AUTO it 0 (estimates, seed 1): the rule's proposal took the kernel's delay links 511 -> 131 (hand x55a10: 105),
+  but UCMPI1 (the loop test i < n - 1) 30 -> 26, bound by rule E at the steer ucond_br9 (request 6048 ps through three
+  storage crossings vs the compare's select 4168 ps), where the hand recipe runs UCMPI1 = 5 with every draw passing
+  (cand3b 200 / 200) and formal B3 measures >= 194 ps of settle on three routes. The compare's data path is long on a
+  route placed with 511 links of delay (estimates: UXORI1 96, UXORI2 48 elements).
+- auto_size.sh's ratchet made that first proposal a floor for every line (S_{i+1} = max(S_i, P_i) from it 1 on), so the
+  loop could never use the compact routes it builds next. Now (ratchet.py): only lines the rule ever lengthened are
+  pinned; the others follow each proposal; the loop goes on while a clean route still shortens a line, and ships the last
+  clean route. The rule now runs with C-element (AND) joins (audit T93): on xorshift it 0 the proposal is identical
+  either way (20 C-elements seeded), so that is fidelity, not speed.
+- corner_audit CA_JOBS=4 vs 1 on collatz it 0: sizes / lines / negatives identical. Loop iterations no longer run the
+  full stack (LANE_NORUN); the kept route does.
+- Restarted: run_suite.sh on the six original kernels, seed 1, 4 draws, MAXIT 4 (22:45 UTC). Earlier loops (old
+  ratchet) killed; their it 0 numbers above stand (estimates: P xorshift 65.6, ipow 64.7, collatz 84.8, collatz64 132.7,
+  gcd 56.5 ns).
+- Formal C48 (RC-tree arcs = this model's): item 35's loop-entry steer keeps 204 ps at CARRY 1.0, no runts (C36's 15 ps
+  was formal's fast default arcs); x55a10 1425 / 923 ps; collatz x0.55 route 30 still fails (wrong answers) on the same
+  entry-steer race, C43's UCMPI0 8 removes it. Formal B3: x55a10 with UADDI0 0 is ~6 % faster, every draw and preloaded
+  draw passes, loop-test settle 194 ps on one of 3 routes; and a sizing-rule idea: size a join's inputs together when
+  both start from the same token (only the later request must cover both data). Noted for the rule (below).
