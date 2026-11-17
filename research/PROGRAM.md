@@ -87,6 +87,48 @@ quota that is left" and before more work on any one kernel.
 When a lever needs a choice that only one kernel can justify, say so and leave it out of the
 automatic path.
 
+## A benchmark suite for the compiler (owner, 2026-11-17)
+
+The owner, when the three untuned kernels arrived: "tell it to make more kernels too, ideally
+a bench suite for the compiler". This is part of "General first": the suite is what the
+automatic path is judged on.
+
+- **What.** `kernels/` grows into a suite a compiler can be judged on: 20 to 30 small kernels
+  to begin with, chosen to cover shapes, not to flatter the flow. `kernels/SUITE.md` lists
+  each one: what it exercises, its input range, where its expected values come from.
+- **Shapes, at least one kernel each:** straight-line arithmetic; a counted loop; a trip
+  count that depends on the data; loop nests two and three deep; two loops in sequence; a
+  loop inside a branch, and a branch inside a loop that if-conversion cannot remove; an early
+  exit (a search); several live values across the back edge; multiply (the DSP path), 64-bit
+  arithmetic, shifts by a variable, a chain of compares; memory: read only, write,
+  read-modify-write (a histogram), two arrays (dot product, fir), an index read from memory
+  (`a[b[i]]`). Division and modulo if they lower; `kernels/README.md` lists the frontend's
+  traps.
+- **Take Dynamatic's own integration tests too**, the integer ones that fit
+  (`dynamatic/integration-test/`, 95 of them, sources only). They are what Dynamatic reports
+  on, so they make the comparison fair. Say which do not compile, and why.
+- **Rules for a suite kernel.** Small enough to route in minutes. Its expected values are
+  computed from the C source, never recorded from a run. Its vectors include the edges of
+  the range (0, 1, the largest value, a trip count of 0). Nothing anywhere in the flow is
+  set for it by name. A kernel the compiler refuses, or gets wrong, stays in the suite and
+  is marked so: "does not compile" and "wrong answer" are results, and each is work for
+  goal 1 or goal 3.
+- **One command runs the suite through the automatic path and writes the table:** compiles;
+  every answer right under the delay draws; ns per iteration; LUTs; Dynamatic's figure where
+  one exists (say how it was obtained, and mark an estimate as one) and the ratio. Last
+  line: how many of N pass, and the geometric mean of the ratio. When it exists, this table
+  is the headline, in place of the six-kernel one.
+- **You can run the frontend yourself now.** On the cluster its tools are in
+  `$HOME/dynamatic` (clang, opt, dynamatic-opt and the rest, the owner's own build; checked
+  2026-11-17 22:30 UTC: `bdc/frontend.sh` there reproduces the fixtures of xorshift,
+  isprime, collatz64, nested, branchloop and memsum byte for byte). In the clone:
+  `ln -sfn $HOME/dynamatic dynamatic`, then `./bdc/frontend.sh <kernel>`. Never commit that
+  link (`echo /dynamatic >> .git/info/exclude`; from the next job on the wrapper does both).
+  Commit the six `comp/*.mlir` files under `cloud/fixtures/frontend/<kernel>/comp/`, so farm
+  tasks and the cloud bots have them. No `ASK` is needed for a new kernel any more.
+- **Order.** About ten kernels across the shapes first, and the one command working end to
+  end on them; then widen. The farm's 200 cores are for this.
+
 ## Use the quota that is left (owner, 2026-11-17)
 
 The owner: "there is so much usage left why dont you jstu use it all". The week's quota
