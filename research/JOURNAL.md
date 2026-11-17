@@ -6035,3 +6035,4 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
   behind; its RTZ / per-shift cost is the lead (journal leads: "gcd pays 23 cycles, cause unexplained").
 - Does NOT show: measured Dynamatic routes for ipow / gcd (needs a Dynamatic build: run dyn_baseline.sh on >= 4 seeds,
   x5 for ipow, x3 + 1 per shift for gcd). The three earlier numbers are themselves single routes.
+- 20:01 owner (PROGRAM 759d353b4): 8 subagents allowed until the reset 2026-11-18 23:00 UTC. New subagent: gcd iteration-cost diagnosis (research/data/gcd_itercost/), since gcd is 3-4x behind Dynamatic.
