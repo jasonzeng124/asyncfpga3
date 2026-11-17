@@ -4394,3 +4394,4 @@ Check for others: every number reported today comes from a run that printed its 
 
 ### progress 21:05 -- PROGRAM re-read (owner 20:xx: shard B back on unreachable paths; C: 'draws on research's candidates, and C41 on more routes'; up to 4 subagents until 11-18 23:00; do not stop early). Farm c_c41x32 submitted (cand3b in formal's simx, 32 routes, default + slow-carry draws draw for draw, steer margins). Local: cand4 (collatz x0.70 s27, ipow x0.70 s31) 32 + 16 slow-carry draws, 8-corner margins.
 - 21:05 cand4 local: collatz x0.70 s27 (f11ff1ee) / ipow x0.70 s31 (3d6fba5c): 48/48 draws each (incl. 16 slow-carry); steer worst 622 / 2199 ps (FOR-RESEARCH C46).
+- 21:10 slow-carry draws (XBAND 0.8-1.0): item 35 r21 32/32 (xor19, xor19+long), item 29 r19 16/16 (FOR-RESEARCH C47).

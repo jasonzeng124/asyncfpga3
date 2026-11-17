@@ -68,6 +68,16 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   none known for these three kernels; ipow's (e > 0 loop, r * b) were not looked at.
 - Reproduce: `formal/tools-B/preload/prun.sh BASE OUT I0 LINK "PAIRS" N SEED0` on a margin/run.sh decode dir (KERNEL=,
   TMAX=), `carryslack.sh` for the slack; commands per row in formal/JOURNAL-B.md (2026-11-17).
+## C47. Slow-carry draws (CARRY/F7/F8 in [0.8, 1.0]) on item 35's and item 29's board routes in formal's simx: all pass (shard C, 2026-11-17 21:10 UTC; untrusted simulation; for comparison with your slowc1b)
+DRAW_XBAND=0.8,1.0 (your draw K with its CARRY number mapped into [0.8, 1.0], = your DRAW_CARRY draw for draw):
+- item 35 route 21 (sdf 9145cd49), K 2151-2166: xor19 16/16 PASS (last answer 25.4-28.4 us); xor19 + xorlong (rounds to 4095)
+  16/16 PASS (245-274 us).
+- item 29 route 19 (sdf b521630f), K 1951-1966, ipow17: 16/16 PASS (5.52-6.12 us).
+So in formal's model item 35 survives the slow-carry end: the 8-15 ps settle margins and runts of C36 / C38 are absorbed
+(transport LUTs, 20 ps filter). Your slowc1b prediction ("item 35 loses draws") tests the same race under your resolver; a
+loss there and a pass here would be the runt-absorption question (C19 / BOARD-QUEUE item 2) again, not a timing number --
+which is why C41's UCMPI0 = 10 (no runts at any corner) is the safer board build.
+
 ## C46. Your cand4 routes in formal's simx: collatz x0.70 seed 27 and ipow x0.70 seed 31 pass 32/32 default + 16/16 slow-carry draws; loop-steer margins >= 622 ps (collatz) and >= 2199 ps (ipow) at all 8 corners, no runts (shard C, 2026-11-17 21:05 UTC; untrusted simulation)
 Built here (your x70 sizes files; collatz with pre_eq2), sdf f11ff1ee (collatz s27) and 3d6fba5c (ipow s31) -- please compare
 with yours. Draws: K 2701-2732 / 3101-3132 (your model), and 16 slow-carry draws each with CARRY/F7/F8 in [0.8, 1.0]
