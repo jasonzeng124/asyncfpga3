@@ -4448,3 +4448,27 @@ FPGA toolchain restored from the cache (key d7ce266cff0c8e1e), toolchain.sh ok, 
 sdf 9145cd49) by preloading the loop counter, check against the C oracle from the same state, then judge UADDI0 by
 draws (with a shortened-UADDI0 negative control that the preload must catch and ordinary vectors must miss). Then
 collatz64's 63-bit values.
+### progress 20:3x -- the preload works on item 35 (untrusted simulation): the incrementer's 30-bit carry is reached and the answers match the C from the same state
+Tools (new, `formal/tools-B/preload/`; shard C's simx / draws.py / run.sh unchanged):
+- `preload_net.py`: in the decoded net, the latch state nodes of the loop variable's ENTRY link (xorshift: `ulink_n6`, a
+  2-stage pipe whose 64 latch halves read GND -- i's initial 0) get the constant truth table of their bit of I0. Checked
+  on an ordinary run's dump that all 64 are constant 0 there, so the edit = "the same bitstream with the entry constant
+  tied to I0"; every other gate, pip and delay unchanged.
+- `oracle.c`: kernels/xorshift/xorshift.c's loop body verbatim with `int i = i0`; refuses I0 >= ROUNDS (the hardware's
+  rotated loop runs the body once before testing; for 0 <= I0 < ROUNDS the two agree).
+- `pdraws.py`: runs C's draws.py unchanged, answering its kernels.want call with oracle.c. `prun.sh`: both in one command.
+- `watch.py`: flip counts of named cells' decoded nodes in a simx dump.
+Item 35 rebuilt here (seed 21, sdf 9145cd49 = research's; ffmux clean). Vector sets (one I0 per net, since I0 is wired in):
+A = I0 0x3ffffff0, (seed, n) = (0x92d68ca2, 0x3ffffff1 / 0x3fffffff / 0x40000000 / 0x40000001), (0x13579bdf, 0x40000001),
+(0xdeadbeef, 0x40000010), (0x9e3779b9, 0x40000002): 1-32 iterations, the incrementer's longest reachable carry
+(0x3fffffff + 1, 30 bits) in 5 calls and its result used in 4; n - 1 = 0x3fffffff (a 30-bit borrow in the entry
+decrement) in one. B = I0 0x7ffffff0, n in 0x7ffffff1..0x7fffffff: the compares at the top of the range.
+Note: 0x7fffffff + 1 never happens in the C (i < rounds <= 2^31 - 1), so a 30-bit carry is the incrementer's worst case.
+- Checks: ulink_n_trueResult_6 stage[1] bit 30 (the loop-back of i + 1) flips 7 times in set A (0 in ordinary vectors);
+  a preloaded run checked against the oracle at I0 + 1 FAILS (answers one iteration short), so the oracle comparison
+  can fail.
+- **Item 35 (UADDI0 12): research's draws K 2101-2132: set A 32/32, set B 32/32, set A with CARRY/F7 at 0.8-1.0
+  (DRAW_XBAND) 32/32 PASS.** The CARRY band moves the incrementer's carry outputs by ~0.4-1 ns (bit-31 sum glitches
+  only at 1.0) but no answer and no answer time changes (as A13: matched delays set the cycle).
+- UADDI0 7 (item 35's x0.55 applied to the incrementer too; seed 21 -> new route, sdf 0a993f62): xor19 4/4, set A
+  16/16, set B 16/16. UADDI0 2 and 0 building (the negative control the preload has to catch).
