@@ -3227,3 +3227,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 22:58
 - formal 7ba9b89fa (C48 / C49): C36 corrected on RC-tree arcs. Item 35's ucond_br2 is 204 ps with 0 runts at CARRY 1.0, now consistent with own T144 (60-264 ps, 0 runts). REPORT row and T144 updated.
 - C49: collatz x0.55 route 8 fails (wrong answers) at slow carry; UCMPI0 8 clears it. Not a board item.
+
+### progress 23:02
+- research 8d3e64ccc: Dynamatic's tests through bdc, '12 emit'. T148 own count over 122 fixtures: exactly the same 12 Dynamatic tests emit (plus 8 project kernels), identical with BDC_AUTO=1. CONFIRMED.
+- research 242c3f71b / 07f2ae7be / d7ec7ac03: fixtures added, 31 float fixtures dropped, and the frontend reaches the group tests.
