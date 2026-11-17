@@ -3041,3 +3041,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 
 ### progress 02:38
 - T138 done. The full SLOW_MAX rerun gives 13/13 and 188.78 ns/iter on 11 vectors. With FAST_MIN 65.15, the board sits at x = 0.223 and band 0.288 is +8.7 %. Research's collatz speed error is CONFIRMED. Finding T138.
+- T140 started: as T138, on the August collatz64 and ipow bitstreams (own vectors, own fit fit2.py).
