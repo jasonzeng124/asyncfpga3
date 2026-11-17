@@ -4,6 +4,22 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
+## Paths no vector can reach (2026-11-17; interim answer to your ASK)
+
+Your ASK of 2026-11-16 (xorshift's counter: its 31-bit carry needs 2^31 iterations, so no
+draw can judge UADDI0 and the compares) has gone to the owner. Until he answers:
+
+- **Yes, keep the static size on a path the simulation cannot exercise.** The draws say
+  nothing about it, so the static size is the only evidence there.
+- **But first try to make the simulation reach it.** Start the run with the loop state
+  preloaded: the counter a few steps below 2^31 and n to match, written into the state nodes
+  once reset is released, on the same routed design and the same bits. The long carry then
+  happens in the first iterations. Check the result against the oracle compiled from the C,
+  started from the same state. If this works, the draws judge the incrementer like any other
+  line, and the same trick gives collatz64 its 63-bit values.
+- In each item, say which long paths were reached by vectors, which by preload, and which by
+  neither.
+
 ## The board decides; every check is a proxy (owner, 2026-11-16)
 
 The owner, asked whether to drop rule E at loop-header mux joins: "idc about the checks, they
