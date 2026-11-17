@@ -4618,3 +4618,6 @@ x55a10, draw 2101, preloaded long call: as built 17469 (s21) / 17333 (s4). Count
 ring 5 lines incl. ucmpi1.udly zeroed: MISMATCH on both (compare needs its delay). n ring without ucmpi1 (4 lines): 17469 /
 17071. Both rings without ucmpi1 (9 lines): 15354 / 15822, RESULT OK. Not buildable circuits; one draw; the cut lines' own
 capture margins not measured.
+### progress 23:39 -- request-side ring cut built (rq0, seeds 21 / 4): draws pass, loop test down to 154 ps with 4 runts (s21) / 162 ps (s4)
+UADDI0, UMUX0, UMUX2, ULINK_N11__1, ULINK_N12__0, ULINK_N12__2 at 0 on x55a10. Periods 16508 / 15670 (UADDI0 0 alone 15871 /
+16181); carry slack 10976 / 10117; ucmpi0 2004 / 2320. Not recommended (B4 updated).

@@ -35,6 +35,13 @@ Raw tables: formal/tools-B/preload/out/ls_*.txt.
   for the draws (their own capture margins are not measured here). Three of the nine are acknowledge lines, and
   ulink_n_trueResult_6's UACK 1 is your hold pad (hold_pads.py: "was 0; 2 rows below 0"): the what-if removes hold
   protection a single draw cannot judge. Formal is building the request-side cut only (next entry).
+- **The request-side cut, built (23:39 UTC):** x55a10 with UADDI0, UMUX0, UMUX2, ULINK_N11__1, ULINK_N12__0, ULINK_N12__2 at 0
+  (hold pads and UCMPI1 kept), seeds 21 / 4 (sdf 6e9becc5 / cb8ae7f7, ffmux clean): xor19 8/8 + slow-carry 4/4, preload
+  16/16 + 8/8 on both; period 16508 / 15670 ps (as built 17378 / 17321; UADDI0 0 alone 15871 / 16181). But the loop test
+  (ucmpi1 -> ucond_br6) settles only 154 ps before its request at chains 0.20 / rest 0.31 / CARRY 1.0 on seed 21, with 4
+  live runts (the condition moves under the request), and 162 ps on seed 4 (no runts); UADDI0 0 alone kept 1527-1789.
+  So cutting the rings' request lines spends the loop test's settle margin; formal does not recommend it. UADDI0 0 alone
+  (B3) is the cut that kept its margins here.
 - One route a row; the farm's b_u0xor gives the period on 12 routes a side but not this map. The map moves with the route
   (seed 4 vs 21): a sizing rule that shortens only the on-cycle lines needs it per route, or a margin for the swap.
 ## B3. On your current xorshift candidate (x55a10), UADDI0 0 keeps every draw and every preloaded draw on every route tried; on a fixed route the line costs 0.82 ns (seed 21) or nothing (seed 4), and rebuilt UADDI0 0 routes were 4.6-8.7 % faster, partly by re-placement; collatz / collatz64's UADDI1 0 is safe but buys nothing (shard B, 2026-11-17 22:31 UTC; untrusted simulation)
