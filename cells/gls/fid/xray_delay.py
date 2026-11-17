@@ -378,7 +378,72 @@ class CellArcs(object):
             return arcs.get(("I" if a.startswith("I") else a, z))
         if ctype == "DSP48E1_DSP48E1":
             return self.dsp(S, params, a, z)
+        if ctype == "RAMB18E1_RAMB18E1":
+            return self.ram(S, st, a, z)
         return None
+
+    # RAMB18E1 (bd_mem's configuration only: TDP x18, DOA_REG=0, WRITE_FIRST --
+    # gen.py and fasm2net.py refuse anything else).  prjxray-db files the arcs
+    # under the RAMBFIFO36E1 site with the HALF as a pin suffix: L = the lower
+    # RAMB18 (site type FIFO18E1, FASM RAMB18_Y0), U = the upper (RAMB18E1, Y1).
+    RAM_DO_CELL = {"L": "RAMBFIFO36E1RAM_MODE_L_FIFO18_DOA_REG_L_0_EN_ECC_READ_FALSE",
+                   "U": "RAMBFIFO36E1RAM_MODE_U_RAMB18TDP_U_DOA_REG_U_0_EN_ECC_READ_FALSE"}
+
+    @staticmethod
+    def ram_half(site_type):
+        return "L" if site_type == "FIFO18E1" else "U"
+
+    def ram(self, S, st, a, z):
+        """CLKARDCLK -> DOADO<i> / DOPADOP<i>: the unregistered (DOA_REG=0) read."""
+        if a != "CLKARDCLK":
+            return None
+        g = re.sub(r"\d+$", "", z)
+        if g not in ("DOADO", "DOPADOP"):
+            return None
+        h = self.ram_half(st)
+        arcs = S.get((self.RAM_DO_CELL[h], "RAMBFIFO36E1")) or {}
+        return arcs.get(("CLKARDCLK" + h, g + h))
+
+    def ram_checks(self, tile_type):
+        """-> {pin class: (setup ps, hold ps)} for bd_mem's configuration, the
+        LARGEST of each (min::max) window prjxray-db gives (a timing check is
+        a bound, so the conservative end).  ASSUMPTION, stated: the database
+        has the address, WE, EN and RST windows and the TDP data window only
+        for the UPPER half (ADDRAU, WEAU, ENARDENU, RSTRAMAU, DIADIU in
+        RAMB18TDP_U WRITE_MODE_U_WF); the lower half (a FIFO18E1 site in RAM
+        mode) has no TDP entry at all, so both halves take the upper half's
+        numbers -- the same silicon, mirrored."""
+        if not hasattr(self, "_ramchk"):
+            self._ramchk = {}
+        if tile_type in self._ramchk:
+            return self._ramchk[tile_type]
+        p = os.path.join(self.xdb.timing_dir, tile_type + ".sdf")
+        chk = {}
+        cur = None
+        rx = re.compile(r"\((SETUP|HOLD)\s+(\w+)\s+\(posedge\s+(\w+)\)\s+\(([-\d.]*):[-\d.]*:([-\d.]*)\)\)")
+        for line in open(p):
+            m = re.search(r'\(CELLTYPE "([^"]*)"\)', line)
+            if m:
+                cur = m.group(1)
+                continue
+            m = rx.search(line)
+            if m and cur:
+                chk[(cur, m.group(1), m.group(2), m.group(3))] = max(float(m.group(4) or 0), float(m.group(5) or 0))
+        want = {"ADDR": ("RAMBFIFO36E1", "ADDRAU", "CLKARDCLKU"),
+                "WE": ("RAMBFIFO36E1", "WEAU", "CLKARDCLKU"),
+                "EN": ("RAMBFIFO36E1_ISFIFO_FALSE", "ENARDENU", "CLKARDCLKU"),
+                "RST": ("RAMBFIFO36E1_ISFIFO_FALSE", "RSTRAMAU", "CLKARDCLKU"),
+                "DI": ("RAMBFIFO36E1RAM_MODE_RAMB18TDP_U_WRITE_MODE_U_WF_EN_ECC_READ_FALSE_EN_ECC_WRITE_FALSE",
+                       "DIADIU", "CLKARDCLKU")}
+        out = {}
+        for k, (ct, pin, clk) in want.items():
+            su, hd = chk.get((ct, "SETUP", pin, clk)), chk.get((ct, "HOLD", pin, clk))
+            if su is None or hd is None:
+                sys.exit("xray_delay: %s has no SETUP/HOLD %s (posedge %s) in %s -- the RAMB18E1 checks "
+                         "cannot be written" % (p, pin, clk, ct))
+            out[k] = (ps(su), ps(hd))
+        self._ramchk[tile_type] = out
+        return out
 
     def dsp(self, S, params, a, z):
         """Combinational DSP48E1 (all *REG=0, USE_MULT=MULTIPLY): pick the
@@ -830,6 +895,54 @@ def main():
     arcs_rows = []
     inst = None
     n_ic = n_ic_x = n_io = n_io_x = 0
+
+    # RAMB18E1: nextpnr writes the cell with NO arc and NO check at all, so the
+    # template has nothing to renumber.  Insert them after the cell's INSTANCE
+    # line: the clock-to-out of every port A output, and the setup/hold window
+    # of every port A input class (gen.py bakes them; prims.v checks them).
+    ram_has_arcs = set()
+    _ct = _in = None
+    for line in open(args.sdf):
+        m = re.search(r'\(CELLTYPE "([^"]*)"\)', line)
+        if m:
+            _ct = m.group(1)
+        m = RE_INST.search(line)
+        if m:
+            _in = unesc(m.group(1))
+        if _ct == "RAMB18E1_RAMB18E1" and "IOPATH" in line:
+            ram_has_arcs.add(_in)
+    ram_pins = {"ADDR": ["ADDRARDADDR%d" % i for i in range(14)],
+                "DI": ["DIADI%d" % i for i in range(16)] + ["DIPADIP0", "DIPADIP1"],
+                "WE": ["WEA%d" % i for i in range(4)], "EN": ["ENARDEN"], "RST": ["RSTRAMARSTRAM"]}
+    n_ram = 0
+
+    def ram_block(iname, c):
+        bel = c["attributes"].get("NEXTPNR_BEL", "")
+        si = CELLARCS.site_info(bel.split("/")[0]) if "/" in bel else None
+        if si is None:
+            sys.exit("xray_delay: RAMB18E1 %s: no site for bel %r" % (iname, bel))
+        tile, tt, st = si
+        L = ["    (DELAY", "      (ABSOLUTE"]
+        for z in ["DOADO%d" % i for i in range(16)] + ["DOPADOP0", "DOPADOP1"]:
+            v = CELLARCS.lookup(c["type"], bel, c["attributes"], c.get("parameters", {}), "CLKARDCLK", z)
+            if v is None:
+                sys.exit("xray_delay: RAMB18E1 %s: no CLKARDCLK -> %s arc in timings/%s.sdf" % (iname, z, tt))
+            x, y, w_ = ps(v[0]), ps(v[2]), ps(v[3])
+            L.append("        (IOPATH CLKARDCLK %s (%d:%d:%d) (%d:%d:%d))" % (z, x, y, w_, x, y, w_))
+            arcs_rows.append(("IO", iname + "/CLKARDCLK", iname + "/" + z, -1) + tuple(ps(q) for q in v)
+                             + (0, 0, "ram", "", 0, 0, 0, 0, -1))
+        L += ["      )", "    )", "    (TIMINGCHECK"]
+        for k, (su, hd) in sorted(CELLARCS.ram_checks(tt).items()):
+            for p in ram_pins[k]:
+                for e in ("posedge", "negedge"):
+                    L.append("      (SETUPHOLD (%s %s) (posedge CLKARDCLK) (%d:%d:%d) (%d:%d:%d))"
+                             % (e, p, su, su, su, hd, hd, hd))
+                # an SH row: the setup window in fast_min_ps, the hold window in fast_max_ps
+                arcs_rows.append(("SH", iname + "/" + p, iname + "/CLKARDCLK", -1, su, hd, 0, 0,
+                                  0, 0, "ram-" + k, "", 0, 0, 0, 0, -1))
+        L.append("    )")
+        return "".join(x + "\n" for x in L)
+
     for line in open(args.sdf):
         m = RE_IC.search(line)
         if m:
@@ -883,6 +996,10 @@ def main():
         if m:
             inst = unesc(m.group(1))
             out.append(line)
+            c = cells.get(inst)
+            if c is not None and c["type"] == "RAMB18E1_RAMB18E1" and inst not in ram_has_arcs:
+                out.append(ram_block(inst, c))
+                n_ram += 1
             continue
         m = RE_IO.search(line)
         if m and inst in cells:
@@ -916,6 +1033,11 @@ def main():
     unres = sum(n.unresolved for n in nets.values())
     sys.stderr.write("xray_delay: INTERCONNECT %d, %d from prjxray; IOPATH %d, %d from prjxray; "
                      "%d nets, %.0f s\n" % (n_ic, n_ic_x, n_io, n_io_x, len(nets), time.time() - t0))
+    if n_ram or ram_has_arcs:
+        sys.stderr.write("xray_delay: %d RAMB18E1 cell(s) given prjxray's clock-to-out and setup/hold "
+                         "(nextpnr writes none)%s\n" % (n_ram, "; %d already had arcs in the template "
+                                                        "(renumbered as IOPATHs)" % len(ram_has_arcs)
+                                                        if ram_has_arcs else ""))
     for k, v in sorted(stats.items()):
         sys.stderr.write("  %-40s %s\n" % (k, v))
     if stats["pip_unresolved"] or stats["outpin_unresolved"] or stats["inpin_unresolved"] \

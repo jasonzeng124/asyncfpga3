@@ -400,6 +400,8 @@ class Design:
                 self.decode_ioi(tile)
             elif tt in ("DSP_L", "DSP_R"):
                 self.decode_dsp(tile)
+            elif tt in ("BRAM_L", "BRAM_R"):
+                self.decode_bram(tile)
             elif tt == "PSS2" and self.ps7:
                 self.decode_ps7(tile)
 
@@ -1034,6 +1036,145 @@ class Design:
                              "%s: %s" % (c.name, "; ".join(why)))
                 c.attrs["FASM2NET_REFUSED"] = "; ".join(why)
 
+    # ------------------------------------------------------------- RAMB18E1
+    # ONE configuration is modelled: the one cells/rtl/bd_mem.v instantiates
+    # (cells/gls/prims.v RAMB18E1_RAMB18E1).  A RAMB18 half configured any other
+    # way is REFUSED, never decoded as this one.
+    #
+    # The lower half (FASM RAMB18_Y0) is prjxray's FIFO18E1 site, whose pins
+    # carry FIFO names (DO, RDCLK, RDEN, RST, ...); the upper half (RAMB18_Y1)
+    # is the RAMB18E1 site.  Both sites' TILE WIRES carry the RAMB18E1 names
+    # (BRAM_FIFO18_DOADO3, BRAM_RAMB18_CLKARDCLK), and so does nextpnr's
+    # routing (SITEWIRE/RAMB18_X0Y26/DOADO3), so pins are named from the wire.
+    BRAM_IN = [("ADDRARDADDR", 14), ("ADDRATIEHIGH", 2), ("DIADI", 16), ("DIPADIP", 2), ("WEA", 4),
+               ("CLKARDCLK", 0), ("ENARDEN", 0), ("RSTRAMARSTRAM", 0), ("RSTREGARSTREG", 0),
+               ("REGCEAREGCE", 0), ("ADDRBWRADDR", 14), ("ADDRBTIEHIGH", 2), ("DIBDI", 16),
+               ("DIPBDIP", 2), ("WEBWE", 8), ("CLKBWRCLK", 0), ("ENBWREN", 0), ("RSTRAMB", 0),
+               ("RSTREGB", 0), ("REGCEB", 0)]
+    BRAM_OUT = [("DOADO", 16), ("DOPADOP", 2), ("DOBDO", 16), ("DOPBDOP", 2)]
+    # the pins prims.v reads; every other input may float (port B, the output
+    # register's pins) -- check_bram() proves port B is off
+    BRAM_READ = re.compile(r"^(ADDRARDADDR\d+|DIADI\d+|DIPADIP\d|WEA\d|CLKARDCLK|ENARDEN|RSTRAMARSTRAM)$")
+    BRAM_INV = ("CLKARDCLK", "CLKBWRCLK", "ENARDEN", "ENBWREN", "RSTRAMARSTRAM", "RSTRAMB",
+                "RSTREGARSTREG", "RSTREGB")
+    # configuration features of a USED half that this model accepts (value
+    # checked in check_bram), and the all-zero encodings bit2fasm prints for
+    # an UNUSED half and for the tile (the defaults: nothing configured)
+    BRAM_USED_OK = {"IN_USE", "READ_WIDTH_A_18", "WRITE_WIDTH_A_18", "READ_WIDTH_B_1", "WRITE_WIDTH_B_1",
+                    "RDADDR_COLLISION_HWCONFIG_DELAYED_WRITE", "RSTREG_PRIORITY_A_RSTREG",
+                    "RSTREG_PRIORITY_B_RSTREG", "ZINIT_A", "ZINIT_B", "ZSRVAL_A", "ZSRVAL_B"} | \
+        {"ZINV_" + p for p in BRAM_INV}
+    BRAM_UNUSED_OK = {"READ_WIDTH_A_1", "READ_WIDTH_B_1", "WRITE_WIDTH_A_1", "WRITE_WIDTH_B_1",
+                      "RDADDR_COLLISION_HWCONFIG_DELAYED_WRITE", "RSTREG_PRIORITY_A_RSTREG",
+                      "RSTREG_PRIORITY_B_RSTREG"}
+    BRAM_TILE_OK = {"ZALMOST_EMPTY_OFFSET", "ZALMOST_FULL_OFFSET",
+                    "RAMB36.RAM_EXTENSION_A_NONE_OR_UPPER", "RAMB36.RAM_EXTENSION_B_NONE_OR_UPPER"}
+
+    def decode_bram(self, tile):
+        """A used RAMB18 half -> one RAMB18E1_RAMB18E1 cell named <site>/RAMB18E1
+        (nextpnr's bel name).  Every configuration feature of the tile is
+        consumed here or refused: a feature this decoder does not know is not
+        left for the 'not consumed' list to mention, it stops the build."""
+        fs = self.feats[tile]
+        used_halves = set()
+        for s, sname in self.fab.sites(tile):
+            if s["type"] not in ("FIFO18E1", "RAMB18E1"):
+                continue
+            h = s["y_coord"]
+            pfx = "RAMB18_Y%d." % h
+            if not self.has(tile, pfx + "IN_USE"):
+                continue
+            used_halves.add(h)
+            wpre = "BRAM_FIFO18_" if s["type"] == "FIFO18E1" else "BRAM_RAMB18_"
+            pins = {}
+            for p, v in s["site_pins"].items():
+                if v and v["wire"].startswith(wpre):
+                    pins[v["wire"][len(wpre):]] = v["wire"]
+            c = Cell("%s/RAMB18E1" % sname, "RAMB18E1_RAMB18E1", root=True)
+            for p in self._bus(self.BRAM_IN):
+                c.ins[p] = ("route", tile, pins[p], sname, p)
+            c.outs = self._bus(self.BRAM_OUT)
+            self.add(c)
+            for p in c.outs:
+                self.sout(tile, pins, sname, p, (c.name, p))
+            c._bram = (tile, h, pfx)
+            c._float_ok = {p for p in c.ins if not self.BRAM_READ.match(p)}
+        # every configuration feature of the tile (pips were consumed by collect_pips)
+        for f, v in fs.items():
+            if not v or (tile, f) in self.used:
+                continue
+            m = re.match(r"^RAMB18_Y(\d)\.(\w+?)(\[\d+\])?$", f)
+            if m:
+                ok = self.BRAM_USED_OK if int(m.group(1)) in used_halves else self.BRAM_UNUSED_OK
+                if m.group(2) in ok:
+                    self.used.add((tile, f))
+                else:
+                    self.problem("REFUSED: RAMB18 configuration outside bd_mem's (not modelled)",
+                                 "%s.%s%s" % (tile, f, "" if int(m.group(1)) in used_halves else " (unused half)"))
+                continue
+            if f in self.BRAM_TILE_OK:
+                self.used.add((tile, f))
+            elif "." not in f or f.startswith("RAMB36.") or not re.match(r"^BRAM_\w+\.BRAM_\w+$", f):
+                self.problem("REFUSED: BRAM tile configuration outside bd_mem's (RAMB36, cascade, FIFO...)",
+                             "%s.%s" % (tile, f))
+
+    def check_bram(self):
+        """The constants, inversions and configuration of every decoded RAMB18E1,
+        as the parameters gen.py reads (nextpnr's names and value format)."""
+        readers = collections.defaultdict(list)
+        for c in self.cells.values():
+            for p in c.ins:
+                d = self.driver_of(c, p)
+                if d[0] == "drv" and d[1][0] in self.cells and \
+                        self.cells[d[1][0]].type == "RAMB18E1_RAMB18E1":
+                    readers[d[1]].append("%s/%s" % (c.name, p))
+        for c in self.cells.values():
+            if c.type != "RAMB18E1_RAMB18E1":
+                continue
+            tile, h, pfx = c._bram
+            has = lambda f: self.has(tile, pfx + f)
+            why = []
+            inv = {p: not has("ZINV_" + p) for p in self.BRAM_INV}
+
+            def eff(p):
+                d = self.driver_of(c, p)
+                return (d[1] ^ int(inv.get(p, False))) if d[0] == "const" else d[0]
+            if not (has("READ_WIDTH_A_18") and has("WRITE_WIDTH_A_18")):
+                why.append("port A is not x18 (READ/WRITE_WIDTH_A_18)")
+            if not (has("READ_WIDTH_B_1") and has("WRITE_WIDTH_B_1")):
+                why.append("port B width is not the unused-port encoding (_1)")
+            # port B must be OFF: its enable a constant 0 after the site inverter.
+            # Only then are READ/WRITE_WIDTH_B_1 the unused encoding (nextpnr's
+            # netlist says 0), and nothing on port B can touch the array.
+            if eff("ENBWREN") != 0:
+                why.append("port B is not provably off (ENBWREN %s)" % (eff("ENBWREN"),))
+            for o in [o for o in c.outs if re.match(r"^DOP?BDOP?\d+$", o)]:
+                if readers.get((c.name, o)):
+                    why.append("port B output %s is read (%s)" % (o, readers[(c.name, o)][0]))
+            if self.driver_of(c, "CLKARDCLK")[0] != "drv":
+                why.append("CLKARDCLK is %s, not a net" % (self.driver_of(c, "CLKARDCLK"),))
+            for p in ("ADDRATIEHIGH0", "ADDRATIEHIGH1"):
+                if eff(p) != 1:
+                    why.append("%s is %s (nextpnr ties it high; anything else is not modelled)" % (p, eff(p)))
+            zi, zs = self.val(tile, pfx + "ZINIT_A"), self.val(tile, pfx + "ZSRVAL_A")
+            self.val(tile, pfx + "ZINIT_B"), self.val(tile, pfx + "ZSRVAL_B")
+            c.params.update({
+                "RAM_MODE": "TDP", "READ_WIDTH_A": format(18, "032b"), "WRITE_WIDTH_A": format(18, "032b"),
+                "READ_WIDTH_B": format(0, "032b"), "WRITE_WIDTH_B": format(0, "032b"),
+                "DOA_REG": format(0, "032b"), "DOB_REG": format(0, "032b"),
+                "WRITE_MODE_A": "WRITE_FIRST", "WRITE_MODE_B": "WRITE_FIRST",
+                "INIT_A": format(~zi & 0x3FFFF, "018b"), "SRVAL_A": format(~zs & 0x3FFFF, "018b")})
+            for p in self.BRAM_INV:
+                if inv[p]:
+                    c.params["IS_%s_INVERTED" % p] = format(1, "032b")
+            for p in [q for q in c.ins if q in c._float_ok and self.driver_of(c, q)[0] == "float"]:
+                c.ins.pop(p)            # an unread pin with no driver: left unconnected
+            c.attrs["FASM2NET_RAM"] = "x18 TDP WRITE_FIRST DOA_REG=0 EN=%s RST=%s ENB=%s CLK%s" % (
+                eff("ENARDEN"), eff("RSTRAMARSTRAM"), eff("ENBWREN"), " inverted" if inv["CLKARDCLK"] else "")
+            if why:
+                self.problem("REFUSED: RAMB18E1 outside bd_mem's configuration", "%s: %s" % (c.name, "; ".join(why)))
+                c.attrs["FASM2NET_REFUSED"] = "; ".join(why)
+
     def check_bufg(self):
         for c in self.cells.values():
             if c.type != "BUFGCTRL":
@@ -1406,6 +1547,7 @@ def main():
     des.build()
     des.check_bufg()
     des.check_dsp()
+    des.check_bram()
     des.check_outputs()
     emit(des, a.out, a.names, a.sdf)
 

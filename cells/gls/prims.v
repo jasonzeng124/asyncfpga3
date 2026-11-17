@@ -1028,6 +1028,192 @@ module DSP48E1_DSP48E1 (
 endmodule
 
 
+// ---- RAMB18E1_RAMB18E1 ----------------------------- bd_mem's RAMB18E1 --
+// ONE configuration: the one cells/rtl/bd_mem.v instantiates.  TDP, port A x18
+// (READ/WRITE_WIDTH_A = 18), port B disabled, DOA_REG = 0 (an unregistered
+// read: the output latch changes one clock-to-out after the edge),
+// WRITE_FIRST, no INIT content (the array powers up 0, the output latch at
+// INIT_A).  gen.py refuses every other parameter value and fasm2net.py every
+// other configuration bit, so a different RAM can never simulate as this one.
+// Port B's pins are not ports here: gen.py refuses a cell whose ENBWREN is not
+// a constant 0 (after IS_ENBWREN_INVERTED) or whose DOBDO/DOPBDOP have loads.
+//
+// Port A, on a clean rising edge of CLKARDCLK ^ IS_CLKARDCLK_INVERTED with
+// EN = ENARDEN ^ IS_ENARDEN_INVERTED high:
+//   WEA all 1  ->  mem[a] = {DIPADIP, DIADI} and DO = that word (WRITE_FIRST)
+//   WEA all 0  ->  DO = mem[a]
+//   RST = RSTRAMARSTRAM ^ IS_RSTRAMARSTRAM_INVERTED high -> DO = SRVAL_A
+//                  (a write in the same edge still happens)
+// with a = ADDRARDADDR[13:4] (x18: [3:0] are not address bits).  WEA bits that
+// disagree (a byte write) are not modelled: the word and DO go X.  nextpnr
+// wires the x18 cell's WEA[1:0] to the site's WEA0..3 in pairs (X_ORIG_PORT),
+// and bd_mem drives all of them from one net.
+//
+// TIMING.  DO follows the edge by the SDF's CLKARDCLK -> DOADO / DOPADOP arc
+// (prjxray-db timings/BRAM_*.sdf via fid/xray_delay.py; nextpnr writes no arc
+// for this cell at all, and gen.py refuses to build one without it).  The
+// checks are the SDF's SETUPHOLD windows, one pair per pin class, baked as
+// parameters because iverilog applies no TIMINGCHECK (the SLICE_FFX approach):
+// an ADDR / DI / WE / EN / RST change inside TSU before or THD after the edge
+// poisons what that edge did -- DO goes X, and a write's word goes X (for an
+// address that moved, both candidate words; for an unknown address, every
+// word).  A clock that leaves 0 for x is an edge that may have happened, and
+// is treated the same way.  X is the conservative answer here: the bench
+// compares against the oracle and an X never matches it, which is what makes
+// this the RAM boundary audited as a bundling boundary (bd_mem.v's header).
+// The violation messages carry the pin class and the margin, like SLICE_FFX's.
+//
+// The output is a TRANSPORT delay in the baked build (-DGLS_TRANSPORT_IC, as
+// ICBUF: every edge kept), and a specify path for $sdf_annotate otherwise.
+// Parity (DIPADIP/DOPADOP) is stored and returned like the data bits.
+module RAMB18E1_RAMB18E1 (
+    input  wire CLKARDCLK, ENARDEN, RSTRAMARSTRAM,
+    input  wire WEA0, WEA1, WEA2, WEA3,
+    input  wire ADDRARDADDR0, ADDRARDADDR1, ADDRARDADDR2, ADDRARDADDR3, ADDRARDADDR4, ADDRARDADDR5, ADDRARDADDR6, ADDRARDADDR7, ADDRARDADDR8, ADDRARDADDR9, ADDRARDADDR10, ADDRARDADDR11, ADDRARDADDR12, ADDRARDADDR13,
+    input  wire DIADI0, DIADI1, DIADI2, DIADI3, DIADI4, DIADI5, DIADI6, DIADI7, DIADI8, DIADI9, DIADI10, DIADI11, DIADI12, DIADI13, DIADI14, DIADI15,
+    input  wire DIPADIP0, DIPADIP1,
+    output wire DOADO0, DOADO1, DOADO2, DOADO3, DOADO4, DOADO5, DOADO6, DOADO7, DOADO8, DOADO9, DOADO10, DOADO11, DOADO12, DOADO13, DOADO14, DOADO15,
+    output wire DOPADOP0, DOPADOP1
+);
+    parameter [0:0] IS_CLKARDCLK_INVERTED = 1'b0, IS_ENARDEN_INVERTED = 1'b0,
+                    IS_RSTRAMARSTRAM_INVERTED = 1'b0;
+    parameter [17:0] INIT_A = 18'h0, SRVAL_A = 18'h0;
+    parameter TCLK_DO = 1000, TCLK_DOP = 1000;   // gen.py refuses to leave these at the default
+    parameter TSU_ADDR = 0, THD_ADDR = 0, TSU_DI = 0, THD_DI = 0, TSU_WE = 0, THD_WE = 0,
+              TSU_EN = 0, THD_EN = 0, TSU_RST = 0, THD_RST = 0;
+
+    wire        clk  = CLKARDCLK ^ IS_CLKARDCLK_INVERTED;
+    wire        en   = ENARDEN ^ IS_ENARDEN_INVERTED;
+    wire        rst  = RSTRAMARSTRAM ^ IS_RSTRAMARSTRAM_INVERTED;
+    wire [13:0] addr = {ADDRARDADDR13, ADDRARDADDR12, ADDRARDADDR11, ADDRARDADDR10, ADDRARDADDR9, ADDRARDADDR8, ADDRARDADDR7, ADDRARDADDR6, ADDRARDADDR5, ADDRARDADDR4, ADDRARDADDR3, ADDRARDADDR2, ADDRARDADDR1, ADDRARDADDR0};
+    wire [17:0] din  = {DIPADIP1, DIPADIP0, DIADI15, DIADI14, DIADI13, DIADI12, DIADI11, DIADI10, DIADI9, DIADI8, DIADI7, DIADI6, DIADI5, DIADI4, DIADI3, DIADI2, DIADI1, DIADI0};
+    wire [3:0]  we   = {WEA3, WEA2, WEA1, WEA0};
+
+    reg  [17:0] mem [0:1023];
+    reg  [17:0] q;                 // the output latch, before clock-to-out
+    integer     i, nviol;
+    initial begin
+        for (i = 0; i < 1024; i = i + 1) mem[i] = 18'h0;
+        q = INIT_A;
+        nviol = 0;
+    end
+
+    // last change of each pin class (0 = not since time 0), the address before
+    // the last change, and what the last edge did (for the hold side)
+    time t_addr = 0, t_di = 0, t_we = 0, t_en = 0, t_rst = 0, t_ck = 0;
+    reg  [13:0] a_now = 14'bx, a_old = 14'bx;
+    reg         e_valid = 1'b0, e_wr = 1'b0, e_en = 1'b0;
+    reg  [13:0] e_a = 14'bx;
+
+    task poison(input [13:0] a);
+        begin
+            if (^a[13:4] === 1'bx) for (i = 0; i < 1024; i = i + 1) mem[i] = 18'bx;
+            else mem[a[13:4]] = 18'bx;
+        end
+    endtask
+    task viol(input [8*4-1:0] cls, input integer moved, input integer need, input integer hold);
+        begin
+            nviol = nviol + 1;
+            $display("RAMB18 %0s VIOLATION %m %0s at %0t (input moved %0t ps %0s the edge, needs %0d ps)",
+                     hold ? "HOLD" : "SETUP", cls, $time, moved, hold ? "after" : "before", need);
+        end
+    endtask
+
+    reg ckp = 1'bx;
+    reg va, vd, vw, ve, vr, clean, may_wr;
+    always @(clk) begin
+        clean = (ckp === 1'b0 && clk === 1'b1);
+        if (clean || (ckp === 1'b0 && clk !== 1'b0)) begin
+            // a rising edge, or 0 -> x: one that may have happened
+            t_ck = $time;
+            va = TSU_ADDR > 0 && t_addr > 0 && $time - t_addr < TSU_ADDR;
+            vd = TSU_DI   > 0 && t_di   > 0 && $time - t_di   < TSU_DI && we !== 4'b0000;
+            vw = TSU_WE   > 0 && t_we   > 0 && $time - t_we   < TSU_WE;
+            ve = TSU_EN   > 0 && t_en   > 0 && $time - t_en   < TSU_EN;
+            vr = TSU_RST  > 0 && t_rst  > 0 && $time - t_rst  < TSU_RST;
+            if (va) viol("ADDR", $time - t_addr, TSU_ADDR, 0);
+            if (vd) viol("DI",   $time - t_di,   TSU_DI,   0);
+            if (vw) viol("WE",   $time - t_we,   TSU_WE,   0);
+            if (ve) viol("EN",   $time - t_en,   TSU_EN,   0);
+            if (vr) viol("RST",  $time - t_rst,  TSU_RST,  0);
+            if (!clean) $display("RAMB18 CLOCK %m went 0 -> %b at %0t: treated as a possible edge", clk, $time);
+            may_wr  = (we !== 4'b0000) && (en !== 1'b0);
+            e_valid = 1'b1; e_wr = may_wr; e_en = (en !== 1'b0); e_a = addr;
+            if (en === 1'b0 && !ve && clean) begin
+                // port disabled: the edge does nothing
+            end else if (!clean || va || vd || vw || ve || vr || en !== 1'b1
+                         || (we !== 4'b0000 && we !== 4'b1111) || ^addr[13:4] === 1'bx) begin
+                if (may_wr) begin
+                    poison(addr);
+                    if (va) poison(a_old);
+                end
+                q = 18'bx;
+            end else if (we === 4'b1111) begin
+                mem[addr[13:4]] = din;
+                q = (rst === 1'b1) ? SRVAL_A : (rst === 1'b0) ? din : 18'bx;
+            end else begin
+                q = (rst === 1'b1) ? SRVAL_A : (rst === 1'b0) ? mem[addr[13:4]] : 18'bx;
+            end
+        end
+        ckp = clk;
+    end
+
+    // the hold side: a change THD or less after the last edge undoes it
+    always @(addr) begin
+        if (e_valid && THD_ADDR > 0 && $time - t_ck < THD_ADDR) begin
+            viol("ADDR", $time - t_ck, THD_ADDR, 1);
+            if (e_en) q = 18'bx;
+            if (e_wr) begin poison(e_a); poison(addr); end
+        end
+        a_old = a_now; a_now = addr;
+        if ($time > 0) t_addr = $time;
+    end
+    always @(din) begin
+        if (e_valid && e_wr && THD_DI > 0 && $time - t_ck < THD_DI) begin
+            viol("DI", $time - t_ck, THD_DI, 1);
+            poison(e_a); q = 18'bx;
+        end
+        if ($time > 0) t_di = $time;
+    end
+    always @(we) begin
+        if (e_valid && e_en && THD_WE > 0 && $time - t_ck < THD_WE) begin
+            viol("WE", $time - t_ck, THD_WE, 1);
+            poison(e_a); q = 18'bx;
+        end
+        if ($time > 0) t_we = $time;
+    end
+    always @(en) begin
+        if (e_valid && THD_EN > 0 && $time - t_ck < THD_EN) begin
+            viol("EN", $time - t_ck, THD_EN, 1);
+            q = 18'bx;
+            if (we !== 4'b0000) poison(e_a);
+        end
+        if ($time > 0) t_en = $time;
+    end
+    always @(rst) begin
+        if (e_valid && e_en && THD_RST > 0 && $time - t_ck < THD_RST) begin
+            viol("RST", $time - t_ck, THD_RST, 1);
+            q = 18'bx;
+        end
+        if ($time > 0) t_rst = $time;
+    end
+
+`ifdef GLS_TRANSPORT_IC
+    reg [17:0] dq;
+    initial dq = INIT_A;
+    always @(q[15:0])  dq[15:0]  <= #(TCLK_DO)  q[15:0];
+    always @(q[17:16]) dq[17:16] <= #(TCLK_DOP) q[17:16];
+    assign {DOPADOP1, DOPADOP0, DOADO15, DOADO14, DOADO13, DOADO12, DOADO11, DOADO10, DOADO9, DOADO8, DOADO7, DOADO6, DOADO5, DOADO4, DOADO3, DOADO2, DOADO1, DOADO0} = dq;
+`else
+    assign {DOPADOP1, DOPADOP0, DOADO15, DOADO14, DOADO13, DOADO12, DOADO11, DOADO10, DOADO9, DOADO8, DOADO7, DOADO6, DOADO5, DOADO4, DOADO3, DOADO2, DOADO1, DOADO0} = q;
+    specify
+        (CLKARDCLK *> DOADO0, DOADO1, DOADO2, DOADO3, DOADO4, DOADO5, DOADO6, DOADO7, DOADO8, DOADO9, DOADO10, DOADO11, DOADO12, DOADO13, DOADO14, DOADO15) = TCLK_DO;
+        (CLKARDCLK *> DOPADOP0, DOPADOP1) = TCLK_DOP;
+    endspecify
+`endif
+endmodule
+
+
 // ---- BUFGCTRL -------------------------------------------------- BUFG bel --
 // All three came from a plain BUFG (X_ORIG_TYPE), with IS_S1/IS_CE1/
 // IS_IGNORE1_INVERTED set so the I1 half of the glitchless mux is permanently

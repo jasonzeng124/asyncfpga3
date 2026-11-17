@@ -76,6 +76,8 @@ OUTPUT_PORTS = {
                            + ["PCOUT%d" % i for i in range(48)]
                            + ["ACOUT%d" % i for i in range(30)]),
     "PAD": set(),          # PAD/PAD is an INTERCONNECT destination: an input here
+    "RAMB18E1_RAMB18E1": set(["DOADO%d" % i for i in range(16)] + ["DOPADOP0", "DOPADOP1"]
+                             + ["DOBDO%d" % i for i in range(16)] + ["DOPBDOP0", "DOPBDOP1"]),
 }
 
 # PS7 (gcd_ps): only M_AXI_GP0 and FCLK are modelled (gls/ps/ps7_master.v, a
@@ -296,6 +298,115 @@ def dsp_reg_conn(c):
         else:
             out.append((p, "1'b1" if p in vcc else "1'b0"))   # dsp_config() refused anything else
     return out
+
+
+# ---- RAMB18E1 -----------------------------------------------------------------
+# prims.v models ONE configuration: the one cells/rtl/bd_mem.v instantiates (see
+# RAMB18E1_RAMB18E1 there).  These are its ports in prims.v's order; port B's
+# pins are not ports of the model, so bram_config() proves port B is off and
+# that nothing reads its outputs.
+RAM_T = "RAMB18E1_RAMB18E1"
+PORT_ORDER[RAM_T] = (["CLKARDCLK", "ENARDEN", "RSTRAMARSTRAM", "WEA0", "WEA1", "WEA2", "WEA3"]
+                     + ["ADDRARDADDR%d" % i for i in range(14)] + ["DIADI%d" % i for i in range(16)]
+                     + ["DIPADIP0", "DIPADIP1"] + ["DOADO%d" % i for i in range(16)]
+                     + ["DOPADOP0", "DOPADOP1"])
+# Parameters a routed RAMB18E1 of this flow carries, and the value each must have
+# (None = any value, read below).  Anything else is refused: an unmodelled RAM
+# mode would otherwise simulate as this one.  READ/WRITE_WIDTH_B 0 is "port B
+# unused" in nextpnr's netlist; fasm2net.py decodes the bits' unused-port width
+# (1) to the same 0 once it has proved ENBWREN is a constant 0.
+RAM_PARAMS = {"RAM_MODE": "TDP", "READ_WIDTH_A": 18, "WRITE_WIDTH_A": 18, "READ_WIDTH_B": 0,
+              "WRITE_WIDTH_B": 0, "DOA_REG": 0, "DOB_REG": 0, "WRITE_MODE_A": "WRITE_FIRST",
+              "WRITE_MODE_B": "WRITE_FIRST", "SIM_DEVICE": None, "INIT_A": None, "SRVAL_A": None,
+              "INIT_B": None, "SRVAL_B": None, "RDADDR_COLLISION_HWCONFIG": "DELAYED_WRITE",
+              "RSTREG_PRIORITY_A": None, "RSTREG_PRIORITY_B": None}
+RAM_INV = ("CLKARDCLK", "ENARDEN", "RSTRAMARSTRAM", "CLKBWRCLK", "ENBWREN", "RSTRAMB",
+           "RSTREGARSTREG", "RSTREGB")
+# the SETUPHOLD pin classes prims.v checks, by pin name
+RAM_SH_CLASS = (("ADDR", re.compile(r"^ADDRARDADDR\d+$")), ("DI", re.compile(r"^DIP?ADIP?\d+$")),
+                ("WE", re.compile(r"^WEA\d$")), ("EN", re.compile(r"^ENARDEN$")),
+                ("RST", re.compile(r"^RSTRAMARSTRAM$")))
+
+
+def ram_config(cname, c, netname, arcs, shs, read_bits):
+    """-> parameter text for the routed RAMB18E1 `c` (both netlists' shared part,
+    and the baked timing part), or exit naming what is not modelled."""
+    def refuse(why):
+        sys.exit("gen.py: RAMB18E1 %s: %s -- prims.v models only bd_mem's configuration "
+                 "(see its RAMB18E1_RAMB18E1 header); refusing rather than simulating this "
+                 "one as another." % (cname, why))
+    params, conns = c.get("parameters", {}), c["connections"]
+
+    def val(v):
+        return int(v, 2) if isinstance(v, str) and v and set(v) <= set("01") else v
+    inv = {}
+    for k, v in params.items():
+        m = re.match(r"^IS_(\w+)_INVERTED$", k)
+        if m and m.group(1) in RAM_INV:
+            inv[m.group(1)] = val(v) & 1
+        elif re.match(r"^INITP?_[0-9A-F]{2}$", k):
+            if val(v) not in (0, None) and str(v).strip("0"):
+                refuse("%s is set: memory INIT content is not modelled (bd_mem has none)" % k)
+        elif k not in RAM_PARAMS:
+            refuse("parameter %s=%s is not one this model knows" % (k, v))
+        elif RAM_PARAMS[k] is not None and val(v) != RAM_PARAMS[k]:
+            refuse("%s=%s (modelled: %s)" % (k, v, RAM_PARAMS[k]))
+
+    def const_of(pin):
+        bl = conns.get(pin)
+        if not bl:
+            return None
+        n = netname.get(bl[0], "")
+        return 1 if n == "$PACKER_VCC_NET" else 0 if n == "$PACKER_GND_NET" else None
+    enb = const_of("ENBWREN")
+    if enb is None or enb ^ inv.get("ENBWREN", 0):
+        refuse("port B is not provably off (ENBWREN %s, IS_ENBWREN_INVERTED %d)"
+               % ("live" if enb is None else enb, inv.get("ENBWREN", 0)))
+    # an output is a problem only if something READS it (fasm2net's netlist gives
+    # every output pin of a decoded bel its own net, read or not)
+    for p, bl in conns.items():
+        if bl and bl[0] in read_bits and re.match(r"^DOP?BDOP?\d+$", p):
+            refuse("port B output %s is read" % p)
+        if bl and bl[0] in read_bits and c.get("port_directions", {}).get(p) == "output" \
+                and p not in OUTPUT_PORTS[RAM_T]:
+            refuse("output %s is read and not modelled" % p)
+    if not conns.get("CLKARDCLK"):
+        refuse("CLKARDCLK is not connected")
+    # timing: the SDF must carry the clock-to-out and the setup/hold windows
+    # (nextpnr's own SDF has neither for this cell -- fid/xray_delay.py writes them)
+    tdo = [ps for a, z, ps in arcs if a == "CLKARDCLK" and re.match(r"^DOADO\d+$", z)]
+    tdp = [ps for a, z, ps in arcs if a == "CLKARDCLK" and re.match(r"^DOPADOP\d$", z)]
+    if not tdo and os.environ.get("GLS_RAM_NOMINAL") != "1":
+        refuse("the SDF has no CLKARDCLK -> DOADO arc (nextpnr writes none; use the SDF from "
+               "cells/gls/fid/xray_delay.py, or GLS_RAM_NOMINAL=1 for prims.v's 1000 ps nominal)")
+    cls = {}
+    for _e, sig, su, hd in shs:
+        for name, rx in RAM_SH_CLASS:
+            if rx.match(sig):
+                s0, h0 = cls.get(name, (0, 0))
+                cls[name] = (max(s0, su), max(h0, hd))
+    missing = [n for n, _ in RAM_SH_CLASS if n not in cls]
+    if missing and os.environ.get("GLS_RAM_NOMINAL") != "1":
+        refuse("the SDF has no SETUPHOLD for %s (the RAM boundary is a bundling boundary; "
+               "use the SDF from cells/gls/fid/xray_delay.py)" % ", ".join(missing))
+
+    def p18(k):
+        v = params.get(k)
+        v = val(v) if v is not None else 0
+        return v if isinstance(v, int) else refuse("%s=%s" % (k, params.get(k)))
+    shared = ", ".join(["%s(1'b%d)" % (".IS_%s_INVERTED" % p, inv.get(p, 0))
+                        for p in ("CLKARDCLK", "ENARDEN", "RSTRAMARSTRAM")]
+                       + [".INIT_A(18'h%05x)" % (p18("INIT_A") & 0x3FFFF),
+                          ".SRVAL_A(18'h%05x)" % (p18("SRVAL_A") & 0x3FFFF)])
+    timing = ""
+    if tdo:
+        timing += ", .TCLK_DO(%d)" % max(tdo)
+    if tdp:
+        timing += ", .TCLK_DOP(%d)" % max(tdp)
+    for name, _ in RAM_SH_CLASS:
+        if name in cls:
+            timing += ", .TSU_%s(%d), .THD_%s(%d)" % (name, cls[name][0], name, cls[name][1])
+    return shared, timing
 
 
 RE_ORIG_PORT = re.compile(r"I\d+")
@@ -722,6 +833,18 @@ def main():
         dsp_group_ps[cname] = g
         iopaths[cname] = [(a, z, g[(dsp_group(a), dsp_group(z))])
                           for a, z, _ in iopaths[cname]]
+    # The same for a RAMB18E1: prims.v has one clock-to-out per output group
+    # (DOADO, DOPADOP), so each group's arcs all take the group's LARGEST.
+    for cname, c in cells.items():
+        if c["type"] != RAM_T or cname not in iopaths:
+            continue
+        grp = lambda z: re.sub(r"\d+$", "", z)
+        g = {}
+        for a, z, ps in iopaths[cname]:
+            if a != "CLKARDCLK" or grp(z) not in ("DOADO", "DOPADOP"):
+                sys.exit("gen.py: RAMB18E1 %s: SDF arc %s -> %s has no path in the model" % (cname, a, z))
+            g[grp(z)] = max(g.get(grp(z), 0), ps)
+        iopaths[cname] = [(a, z, g[grp(z)]) for a, z, _ in iopaths[cname]]
     sys.stderr.write("delays: SDF column %s%s, scale %g, scatter sigma %g (seed %s, mode %s)\n"
                      % (os.environ.get("GLS_SDF_FIELD", "min"),
                         " %g%s%s" % (SDF_BAND, " cells %s" % SDF_BAND_CELL if SDF_BAND_CELL else "",
@@ -825,6 +948,7 @@ def main():
                  % (ps, k, net_of_pin(src), k))
 
     unexpected = []
+    read_bits = None            # bits some input reads (built on the first RAMB18E1)
     for cname in order:
         c = cells[cname]
         t = c["type"]
@@ -940,6 +1064,14 @@ def main():
                      % (init, sr_val, asy, nn, ", ".join(conn)))
             B.append("  SLICE_FFX #(.INIT(1'b%d), .SRVAL(1'b%d)%s%s) %s (%s);"
                      % (init, sr_val, asy, tps, nn, ", ".join(conn)))
+        elif t == RAM_T:
+            if read_bits is None:
+                read_bits = {bl[0] for c2 in cells.values() for p2, bl in c2.get("connections", {}).items()
+                             if bl and c2.get("port_directions", {}).get(p2) == "input"}
+            shared, timing = ram_config(cname, c, netname, iopaths.get(cname, []),
+                                        setuphold.get(cname, []), read_bits)
+            L.append("  %s #(%s) %s (%s);" % (t, shared, nn, ", ".join(conn)))
+            B.append("  %s #(%s%s) %s (%s);" % (t, shared, timing, nn, ", ".join(conn)))
         elif t == DSP_T:
             zmux, acasc, extra = dsp_config(cname, c, netname)
             cfg = ".ZMUX(%d), .ACASC(%d)%s" % (zmux, acasc, extra)

@@ -155,8 +155,8 @@ def pin_drivers(cells, drv, gen_ties, fold=None):
             continue            # a pad is the port itself; its net has no driver on either side
         b = belof[cn]
         key = lutpos(b) or b
-        if t == gen.DSP_T:
-            continue            # compared in section 2b, pins the model reads only
+        if t in (gen.DSP_T, gen.RAM_T):
+            continue            # compared in section 2b / 2c, pins the model reads only
         for p, bl in c["connections"].items():
             if c.get("port_directions", {}).get(p) not in ("input", "inout"):
                 continue
@@ -429,6 +429,66 @@ def main():
                      % (b, p, d(j, jd, jc, bj), d(f, fd, fc, bf)))
     say("2b. DSP48E1  %d compared: control words (OPMODE/ALUMODE/INMODE/CARRYINSEL/CARRYIN), "
         "register/input parameters, drivers of every data pin the modelled function reads" % n_dsp)
+
+    # ---- 2c. RAMB18E1: configuration, the EFFECTIVE control values (a pin's
+    # constant XOR its IS_*_INVERTED -- nextpnr turns a GND tie into VCC plus an
+    # inversion, so the two sides may spell one value two ways), and the driver
+    # of every pin prims.v reads.  Port B: only that it is off on both sides.
+    def ram_view(c, drv, cells, bm):
+        params, conns = c.get("parameters", {}), c["connections"]
+
+        def pv(k, d=0):
+            v = params.get(k)
+            if v is None:
+                return d
+            return int(v, 2) if isinstance(v, str) and v and set(v) <= set("01") else v
+
+        def src(p):
+            bl = conns.get(p)
+            if not bl:
+                return None
+            x = drv.get(bl[0])
+            if x is None:
+                return ("undriven",)
+            if cells[x[0]]["type"] in CONST:
+                return ("const", CONST[cells[x[0]]["type"]])
+            if lut_const(cells[x[0]]) is not None:
+                FOLDED.append("%s/%s <- %s" % (bel(c, ""), p, bm[x[0]]))
+                return ("const", lut_const(cells[x[0]]))
+            return (bm[x[0]], x[1])
+
+        def eff(p):
+            s = src(p)
+            if s is not None and s[0] == "const":
+                return ("const", s[1] ^ (int(pv("IS_%s_INVERTED" % p)) & 1))
+            return ("net", s, int(pv("IS_%s_INVERTED" % p)) & 1)
+        out = {k: pv(k, "default") for k in ("RAM_MODE", "READ_WIDTH_A", "WRITE_WIDTH_A", "READ_WIDTH_B",
+                                             "WRITE_WIDTH_B", "DOA_REG", "DOB_REG", "WRITE_MODE_A")}
+        out["INIT_A"], out["SRVAL_A"] = pv("INIT_A"), pv("SRVAL_A")
+        out["INIT content"] = sorted(k for k, v in params.items()
+                                     if re.match(r"^INITP?_[0-9A-F]{2}$", k) and str(v).strip("0"))
+        for p in ("CLKARDCLK", "ENARDEN", "RSTRAMARSTRAM", "ENBWREN"):
+            out[p] = eff(p)
+        for p in ["ADDRARDADDR%d" % i for i in range(14)] + ["DIADI%d" % i for i in range(16)] + \
+                 ["DIPADIP0", "DIPADIP1"] + ["WEA%d" % i for i in range(4)]:
+            out[p] = src(p)
+        return out
+    n_ram = 0
+    bj_ = {cn: bel(c, cn) for cn, c in jc.items()}
+    bf_ = {cn: bel(c, cn) for cn, c in fc.items()}
+    for b in sorted(set(jb) & set(fb)):
+        (jn, j), (fn, f) = jb[b], fb[b]
+        if j["type"] != gen.RAM_T:
+            continue
+        n_ram += 1
+        vj, vf = ram_view(j, jd, jc, bj_), ram_view(f, fd, fc, bf_)
+        for k in sorted(set(vj) | set(vf)):
+            if vj.get(k) != vf.get(k):
+                flag("RAMB18E1 DIFFERS", "%s %s: json %s bits %s" % (b, k, vj.get(k), vf.get(k)))
+        if "FASM2NET_REFUSED" in f["attributes"]:
+            flag("RAMB18E1 REFUSED by the bit decoder", "%s: %s" % (b, f["attributes"]["FASM2NET_REFUSED"]))
+    say("2c. RAMB18E1  %d compared: configuration (mode, widths, output register, write mode, INIT_A/SRVAL_A, "
+        "INIT content), effective CLK/EN/RST and port B enable, drivers of every ADDR/DI/DIP/WE pin" % n_ram)
 
     # ---- 3. connectivity
     jfold, ffold = {}, {}
