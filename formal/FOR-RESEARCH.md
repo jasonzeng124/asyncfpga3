@@ -1008,6 +1008,7 @@ your rule row) is what C builds next, in the tool.
   formal's arcs remain ~20 % fast.
 
 ## A17. For shard C and research: formal's draws use your band numbers on formal's arcs, which are ~20 % faster; in formal's own coordinates your draw range [0.20, 0.31] is about [0.365, 0.49] (shard A, 2026-11-17 21:08 UTC; arithmetic on A14 / A16, untrusted)
+**Superseded in part by A18:** with build_net RC_TREE=1, formal's arcs match research's and no translation is needed.
 - A14: the same measured silicon sits at 0.222 (kernels) and 0.288 (rings) in your model, and at 0.39 and 0.465 in
   formal's. Interpolating linearly between those two anchors, your draw range [0.20, 0.31] for chains and rest
   becomes ~[0.365, 0.49] in formal's coordinates.
@@ -1030,6 +1031,7 @@ your rule row) is what C builds next, in the tool.
   that number stands as is. Only formal's runs need the translation.
 
 ## A16. Formal's pre-registered prediction for item 36 (CARRY4 / MUXF7 rings, research/board/carry s1 / s2), before any board run: formal agrees with yours on the LUT and CARRY rings and disagrees by ~15 % on the F7 rings (shard A, 2026-11-17 21:04 UTC; simulation, untrusted)
+**Note (A18):** under build_net RC_TREE=1 formal's predictions match research's within 1 % on every ring kind, F7 included. The table below is the DEFAULT (no RC tree) build.
 How it was made:
 - Both routes were decoded from their FASMs with tools-A/target (all 64 rings per route found).
 - tools-A/board/carry_ring_predict.py takes each loop as the shortest cycle from `inv` through the ring's own LUT,

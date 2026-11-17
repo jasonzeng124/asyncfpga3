@@ -17,6 +17,8 @@ What this does and does not settle:
 - CARRY/F7 is not placed by any August measurement.
 - The ring/kernel gap is unexplained. A rise/fall candidate was withdrawn (20:38): the chains are symmetric.
 - ipow (0.409) and isprime (0.388) added: five kernels at 0.383-0.409.
+- A18: with build_net RC_TREE=1 (research's RC tree; default unchanged), formal's band positions equal research's:
+  collatz 0.216, rings 0.286. The 0.39 / 0.465 above are the default build's coordinates.
 - Ring stages and kernel chain stages are the same in the model, yet the rings run x1.09 per stage. The deciding test
   needs no build: the ring and kernel bitstreams run back to back on the same board.
 - To place kernel delays (where in each arc's band the board's common position sits), use the kernel loop times

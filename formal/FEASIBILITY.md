@@ -7,6 +7,11 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-17 late (lead): one delay model (FOR-RESEARCH A18).** `build_net.py` RC_TREE=1 adds prjxray's Elmore tree
+as research's calculator does. Per-sink delays now match research's SDF to ~1 ps, except FF control pins. With it the
+band positions coincide: August collatz 0.216 (research 0.222), rings 0.286 (0.288). Formal's earlier 0.39 was missing
+RC, not a different board. The default build is unchanged; the proofs use it.
+
 **2026-11-17 evening (lead): how close the simulator is to the board, and which measurement decides (FOR-RESEARCH
 A14 / A15; simulation, untrusted).**
 - Five measured August bitstreams (collatz, collatz64, gcd, ipow with its DSP48E1, isprime) run in formal's simx with
