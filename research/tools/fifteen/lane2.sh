@@ -7,7 +7,7 @@
 #   eventgraph.py (period, critical cycle, check against trace.py).
 # Keeps: /home/user/runs/hw/NAME (bit, sdf, routed.json, kernel.v, fasm), /home/user/runs/r/NAME (run + eventgraph),
 # and research/data/eventgraph/graphs/NAME (nodes/arcs/check/kernel/provenance/benchres/build.txt).
-# SIZES_VH is relative to the repo root, or "default" (the flow's own sizing; the sizes it chose go to HW/sizes.vh), or "none" (emit.py's estimates).  Prints one line: NAME sdf-md5 period odata verdict.
+# SIZES_VH is relative to the repo root (or absolute), or "default" (the flow's own sizing; the sizes it chose go to HW/sizes.vh), or "none" (emit.py's estimates).  Prints one line: NAME sdf-md5 period odata verdict.
 set -euo pipefail
 L=$1; N=$2; K=$3; Z=$4; S=$5; VEC=$(readlink -f "$6"); shift 6
 R=$(cd "$(dirname "$0")/../../.." && pwd); RUNS=${RUNS:-/home/user/runs}
@@ -28,7 +28,8 @@ elif [ "$Z" = none ]; then   # SIZES_VH "none": every matched delay at bdc/emit.
       ./hw/build_bench.sh "$K" ) > "$HW/build.log" 2>&1 || { echo "$N BUILD FAILED (see $HW/build.log)"; exit 1; }
   : > "$HW/sizes.vh"
 else
-( cd "$WT/cells" && env "$@" NEXTPNR_SEED=$S BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES="$WT/$Z" \
+case $Z in /*) ZP=$Z;; *) ZP=$WT/$Z;; esac   # an absolute SIZES_VH is used in place (local sizing loops)
+( cd "$WT/cells" && env "$@" NEXTPNR_SEED=$S BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES="$ZP" \
     ./hw/build_bench.sh "$K" ) > "$HW/build.log" 2>&1 || { echo "$N BUILD FAILED (see $HW/build.log)"; exit 1; }
 fi
 B=$WT/cells/build/hw/${K}_bench_gen
