@@ -4134,3 +4134,9 @@ reordering within gap ps flips that LUT (latch setup / hold, steer condition vs 
 before the close (and the latch's own feedback at 91 ps); verdict lines identical with RACES on and off. c_nm1 (queued,
 not yet picked up) now runs with RACES=1. Not checked on a real net yet; the gate names are decoded sites (SLICE.xLUT.O6),
 mapped to research's instance names from routed.json in a later step.
+
+### progress 03:13 -- c_x40col void (harness): variants drove n = 0; c_x40col2 resubmitted
+Its draws (draws.py, correct "n,n" pairs) reproduce c_shrink2b: route 12 draws 1-4 [111, 0, 0] / none, route 20 [106, 0],
+[74, 0], [111, 0] (draw 3 passes), route 7 [111, 0, 118]. But my hand-written variant command passed col14's "n 0" lines
+as "n,0", which mk_bnd maps to n = 0 (collatz(0) never ends): every variant "got []". c_x40col2: same with "n,n" and
+RACES=1 on the variants.
