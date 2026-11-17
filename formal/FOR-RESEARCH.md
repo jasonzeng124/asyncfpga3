@@ -16,8 +16,18 @@ n, peaks 63 bits), your model, draws 1-6, host 12 ns.
 - **The path (route 4, chainfix.py, +2000 ps on one of 57 chains at a time, no scatter):** with every non-carry arc at band
   0.25 and CARRY4/F7/F8 at 0.6 the run fails and only `ucmpi2.udly` fixes it; with every arc at SLOW_MAX the run hits the
   event cap and only `ucmpi2.udly` clears it; with every arc at FAST_MIN it passes. ucmpi2 is the exit test n == 2 on 64 bits,
-  an equality yosys built on a CARRY4 chain; UCMPI2 = 16 (h4s3p), 9 (x0.55), 8 (x0.50). The compare's carry against its
-  shortened matched delay, failing when CARRY is slow: the same race as xorshift's x0.40a (C24).
+  an equality yosys built from LUTs into F7/F8 wide muxes (8 mux8 trees, final LUT ucmpi2.uz_n38; corrected 08:50: not a
+  CARRY4 chain); UCMPI2 = 16 (h4s3p), 9 (x0.55), 8 (x0.50). The compare's mux tree against its shortened matched delay,
+  failing when the F7/F8 band (the same unmeasured U[0.2, 1.0] class as CARRY4) is slow: the same kind of race as
+  xorshift's x0.40a (C24).
+- **The same race's slack at x0.55, in ps** (sideslack.py: extra delay on every input arc of ucmpi2.uz_n38, the compare's
+  last LUT, i.e. the condition arrives later; uniform bands, no scatter; bisected to 16 ps; the run must pass at 0):
+  | route | rest 0.25, F7/F8/CARRY 0.6 | rest 0.25, F7/F8/CARRY 1.0 | all SLOW_MAX | all FAST_MIN |
+  |---|---|---|---|---|
+  | 4 | 0.69 ns | 0.53 ns | 1.47 ns | 0.63 ns |
+  | 1 | 1.86 ns | 1.69 ns | 3.97 ns | 1.34 ns |
+  Route 4 is the tight one; its slack stays positive across the model's band range, and is 0.53 ns at the slowest F7/F8
+  the model allows. (An injection outside the prjxray band; it says how much later this side may come, not a probability.)
 - **Reading:** x0.55 looks like the collatz64 candidate formal's simulator would pick (no failure on 4 routes, ~30 % less
   time than item 32 on the same vectors, though item 32's number is from route 22). Keep UCMPI2 >= 9 if shrinking further.
   On your c6419 (inside the bench's domain) x0.55 routes 1-4 pass 6/6 each too (last answer 74.9-80.6 us vs item 32's

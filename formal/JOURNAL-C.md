@@ -4257,8 +4257,14 @@ x0.50 of item 32's sizes (29 sizes moved), routes 1-4, c6418, draws 1-6: route 1
 **route 4 2/4/0** ([111, 0, 118] and [111, 0, 118, 178, 261]: stops mid-stream). Last answer 68-73 us: no faster than x0.55
 (65-70 us). chainfix.py on route 4, +2000 ps per chain: band 0.25 (CARRY 0.6) fails, only **ucmpi2.udly** fixes it; all
 arcs FAST_MIN passes (so not an every-corner failure, unlike collatz x0.50); all arcs SLOW_MAX hits the event cap and only
-ucmpi2.udly clears it. ucmpi2 = the loop's exit test n == 2 on 64 bits (pre_eq2), whose equality yosys builds on a CARRY4
-chain; UCMPI2 16 (h4s3p) -> 9 (x0.55) -> 8 (x0.50). The race: that compare's carry against its matched delay, failing at
+ucmpi2.udly clears it. ucmpi2 = the loop's exit test n == 2 on 64 bits (pre_eq2), whose equality yosys builds from LUTs into F7/F8 muxes
+(corrected 08:50; not CARRY4); UCMPI2 16 (h4s3p) -> 9 (x0.55) -> 8 (x0.50). The race: that compare's carry against its matched delay, failing at
 slow CARRY / slow corner, as xorshift's x0.40a (C24) did. Shortfall in ps not measured yet.
 
 ### progress 08:28 -- collatz64 x0.55 routes 1-4 on c6419: 6/6 each (last answer 74.9-80.6 us; item 32 route 22: 113 us). C31 updated.
+
+### progress 08:47 -- sideslack.py: ucmpi2's race at collatz64 x0.55 has 0.53-0.69 ns (route 4) / 1.3-1.9 ns (route 1) at the model's bands
+New tool: +X ps on every input arc of the LUTs matching a name (the race's slow side), uniform bands, no scatter, bisect the
+first failing X. collatz64 x0.55 on c6418, ucmpi2.uz_n38 (the 64-bit == 2 compare's last LUT): route 4 0.69 ns (rest 0.25,
+F7/CARRY 0.6), 0.53 ns (F7/CARRY 1.0), 1.47 ns (all SLOW_MAX), 0.63 ns (all FAST_MIN); route 1 1.86 / 1.69 / 3.97 / 1.34 ns.
+C31 updated. Running the same on collatz x0.55 routes 2 / 6 (ucmpi0.uz_n4).
