@@ -3180,3 +3180,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Research picks x0.70 for collatz / ipow.
   - Audit note for the next items: research says draws_table.py counts NOT EQUIVALENT routes as clean (it excludes only FFMUX-FLAG). Pass fractions must state which routes are counted.
 - formal C41 / A13 (cited by research): UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 on 8 routes at no speed cost. A candidate fix for item 35's race. To check when it becomes an item.
+- 19:56 research c17cbbb79 / 9d7ab49b4 / 637fe5514: farm shrink10 (collatz64 x0.70 / x0.55 on c6419), cand3 / cand4 / slowc1 resubmitted. No claims.
