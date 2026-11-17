@@ -3182,3 +3182,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - formal C41 / A13 (cited by research): UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 on 8 routes at no speed cost. A candidate fix for item 35's race. To check when it becomes an item.
 - 19:56 research c17cbbb79 / 9d7ab49b4 / 637fe5514: farm shrink10 (collatz64 x0.70 / x0.55 on c6419), cand3 / cand4 / slowc1 resubmitted. No claims.
 - 20:00 research f808695e9 (WIP gcd x0.70 sizes, unreviewed); formal c8a6572d8 (steercorners.sh tool). No claims.
+- 20:03 owner 759d353b4: research/PROGRAM.md subagent limits only; audit unchanged. research 877820b87 dynamatic_ref: ipow / gcd 'Dynamatic ns/iter estimates (no Dynamatic build here); gcd is 3-4x behind'. UNVERIFIED (estimates, no build); flag if quoted as a headline. research 90907cef4 / 59db3a632: unreviewed subagent WIP and journal.
