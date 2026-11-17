@@ -45,9 +45,11 @@
 //
 // THE CARRY S INPUTS ARE LUTs OF en: a CARRY4 S pin can only be driven by the
 // LUT6 of its own slice, so each gets its own (* keep *) LUT1 of en.  Parked
-// (en = 0), S = 0 everywhere, so every CO = DI = 0 and the NAND holds fb = 1;
-// selecting the group turns S to 1 under CIN = 0 (no edge), and the NAND then
-// releases exactly ONE edge.  None of these LUTs is in a loop.  (The MUXF7
+// (en = 0), every S but the first CARRY4's S0 is 0, so each CO3 = DI3 = 0 and
+// the NAND holds fb = 1; selecting the group makes the first CARRY4 propagate
+// its S0 = 1 (one edge) while every later CARRY4 turns to propagate under
+// CIN = 0 (no edge): exactly ONE edge enters the ring (the GLS confirms the
+// predicted period).  None of these LUTs is in a loop.  (The MUXF7
 // data inputs are constants instead -- see the F stage below for why.)
 //
 // WHAT IS MEASURED.  Per ring, prjxray gives each arc a [FAST_MIN, SLOW_MAX]
