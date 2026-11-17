@@ -6124,3 +6124,20 @@ PROGRAM a3b699817 (owner): this bot moves to the cluster; a cloud session hands 
   Each README says how far it got; verify before use.
 - **ASK (owner):** frontend outputs for kernels/nested, kernels/branchloop, kernels/memsum.
 LOCK cleared.
+
+## Session 2026-11-17 21:57 UTC -- (in progress) cluster bot, first session: BDC_AUTO applied and verified; automatic sizing
+Toolchain: patches.sha 789a7120c912d393, nextpnr 9c732bc6303458df (toolchain.sh all ok on node4512)   Seeds: per item
+Lock: empty at start (the cloud session handed over at 21:57); taken 21:57 UTC as cluster-research-29458663-1.
+Audit: newest rows T144-T146 (item 35's race in the unmeasured CARRY band; T145 = our band fit; T146 pre-checks item 36);
+no new REFUTED / OVERSTATED row on my files. Audit notes to keep: draws_table.py now excludes NOT EQUIVALENT routes (fixed
+19:52); the bench masks xorshift's rounds to 12 bits, so a preloaded counter tests inputs the bench cannot deliver (it
+tests the full C range the owner asked for, 2026-11-14). Formal: B2 (preload: UADDI0 12 -> 0 passes 112/112 preloaded
+draws on 4 routes, -4.9 % period; "the static rule sizes an operator for a capture that does not happen"), C47 (slow-carry
+draws pass on items 35 / 29), C46 (cand4 routes pass), and a caveat: C36-C47 used formal's default arcs, ~20 % fast.
+cluster: no cloud/setup-toolchain.sh (installed); RUNS=/tmp/bot/runs; 16 cores; the farm by requests as before.
+### progress 22:05 (farm: auto1 and sizerule1 withdrawn before they started)
+- auto1 called bdc/auto.py with BDC_AUTO=1, but the BDC_AUTO change was never applied (WIP patch): every task would have
+  built the plain default or failed. sizerule1 tested CA_SIZERULE with per-kernel floors taken from failing draws, which
+  is per-kernel data an untuned kernel does not have. Both were "waiting"; removed (3f43bbca4). They come back reviewed.
+- gcddraw1 runs 64 tasks, not 33: the runner took the request at 59db3a632, before the x0.70 half was dropped. Tasks
+  33-64 (gcd x0.70) will be read as data, not as a recipe.
