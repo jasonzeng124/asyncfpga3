@@ -56,8 +56,8 @@ blanket rules", BOARD-QUEUE wording).
   47.66, collatz 91.96, collatz64 112.71; gcd 310 ns to 6.34 us by input). Simulate those
   same builds today and report predicted against measured. If this exists, cite it in the
   headline. If not, it is the first job of the next session, beside the speed work. The
-  owner's machine holds the August `.fasm` and `.sdf` of the bench builds: write `ASK:` in
-  the journal if you need them pushed.
+  August `.fasm` and `.sdf` of the five bench builds, xorshift's included, are in
+  `research/data/board-august/` since 2026-11-17 (read its README first).
 - **Keep `research/SIM-VS-BOARD.md`:** every known way the simulation is not the board (glitch
   filtering, arbiters, start-up, voltage and temperature, the host), what the board showed
   in August if anything, and what the simulation does about it.
