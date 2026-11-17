@@ -8,7 +8,8 @@ same one cells/hw/gen_bench.py builds the bench from: per call, the operand word
 i64 as low word then high word), then every element of each memref argument in signature order.
 
 --call gives one call's operand words (hex or decimal, as many as the signature needs); one --call per call.
-Array contents are drawn per call from a seeded uniform range (--range, default -1000,1000, two's complement in
+Array contents are drawn per call from a seeded uniform range (--range=LO,HI with the "=" when LO is negative;
+default -1000,1000, two's complement in
 32 bits), so consecutive calls see different arrays.  --fill const:V fills every element with V instead (for
 controls).  --perturb N:D adds D to element N of every array of every call (a negative control: same file, one
 element different).  Expected values never come from here: research/tools/suite/oracle_mem.sh computes them
