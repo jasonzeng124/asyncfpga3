@@ -3,6 +3,30 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C41. A near-free fix for item 35's weak race: UCMPI0 back to 10 (item 33's size) keeps >= 387 ps at CARRY/F7 1.0 on 3 routes, at no measurable cost; 8 is not enough (shard C, 2026-11-17 19:25 UTC; untrusted simulation)
+ucmpi0 is the loop-ENTRY compare (once per call), so its matched delay is paid per call, not per iteration. Item 35's sizes
+(fr4a_x55a) with only BD_SZ_..._UCMPI0 changed (6 -> 8, 6 -> 10), built here on seeds 21 / 2 / 4 (sizes files:
+x55a with that one line edited; the netlist change reroutes, so each is a new route). steermargin.py at chains 0.20 / rest
+0.31 (C36's worst corner), xor19 + xorlong; smallest settle gap, ps (runts = requests under which the condition moved):
+| UCMPI0 | route | ucmpi0 -> entry steers, CARRY 0.2 / 0.6 / 1.0 | ucmpi1 -> loop steers, CARRY 0.2 / 0.6 / 1.0 |
+|---|---|---|---|
+| 6 (item 35) | 21 | 408 / 194 / **12, 10 runts** | 620 / 604 / 321 (C36) |
+| 6 | 2 / 4 | C36: 114 / 124 at 1.0 | C36: **114, 2 runts** (route 2) / 622 |
+| 8 | 21 (sdf c50cea4f) | 951 / 693 / 436 | 431 / 160 / **19, 6 runts** |
+| 8 | 2 (c48e1518) | 730 / 523 / 289 | 1241 / 675 / 414 |
+| 8 | 4 (4bfc5a87) | 1262 / 1016 / 771 | 1345 / 1083 / 822 |
+| 10 | 21 (42b4fb4c) | 1424 / 1170 / 916 | 917 / 646 / 387 |
+| 10 | 2 (f1da196a) | 1592 / 1370 / 1134 | 1026 / 1026 / 1026 |
+| 10 | 4 (05a84ea0) | 1504 / 1275 / 1047 | 1337 / 1317 / 1046 |
+Every run returned all right answers. Draws (your model, xor19, K 100r+1..8): 8/8 PASS on all six builds.
+- **Cost:** last answer on xor19, same 8 draws on seed 21: item 35 mean 26.98 us, UCMPI0 8 26.55 us, UCMPI0 10 26.76 us;
+  seeds 2 / 4 at 10: 26.57 / 26.32 us. No cost visible above route scatter, as expected for a per-call delay.
+- **But the loop test is the other half:** with UCMPI0 at 8 the new route 21 puts ucmpi1 -> ucond_br6 at 19 ps with 6 runts
+  at CARRY 1.0 (UCMPI1 is 5 in every row), and item 35's route 2 already had it at 114 ps. ucmpi1 is per ITERATION, so
+  lengthening it costs speed. With UCMPI0 10 its worst is 387 ps on these three routes; three routes are a sample.
+- **Suggestion:** if item 35 goes to the board, take UCMPI0 = 10 (no speed cost) and choose the route by ucmpi1's margin at
+  the slow-CARRY corner (formal can run steermargin on any route you name in under 10 minutes).
+
 ## C40. ipow x0.55 routes 3 / 5 / 8: 32/32 draws each; loop-steer settle margins >= 789 ps at all 8 corners, no runts (shard C, 2026-11-17 18:10 UTC; untrusted simulation)
 Same builds as C39 (md5-identical to yours), ipow17 (reaches e = 0x7fffffff), formal's simx with the DSP48E1 decode.
 - **Draws (your model, K = 100r+1..32):** route 3 32/32 (last answer 4.33-4.81 us), route 5 32/32 (4.11-4.64 us), route 8

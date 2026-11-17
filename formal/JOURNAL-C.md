@@ -4372,3 +4372,9 @@ ipowall.sh (scratch): run.sh DRAWS=32 (K 100r+1..) then corners.sh on ucmpi0.uz_
 ### progress 18:15 -- next: item 35 with only UCMPI0 restored (8 and 10, x55a has 6), routes 21 / 2 / 4
 ucmpi0 is the loop-ENTRY compare (once per call), so a longer matched delay there should cost per call, not per iteration.
 Measuring: settle margin at chains 0.20 / rest 0.31 / CARRY 0.2..1.0, draws, and last-answer time against item 35.
+
+### progress 19:25 -- item 35 with UCMPI0 8 / 10 on seeds 21 / 2 / 4 (FOR-RESEARCH C41)
+At chains 0.20 / rest 0.31 / CARRY 1.0: UCMPI0 10 -> ucmpi0 916-1134 ps, ucmpi1 387-1046 ps on three routes; UCMPI0 8 -> route 21
+ucmpi1 19 ps with 6 runts. Last answer on xor19 unchanged (26.3-26.8 vs 26.98 us). 11 of the 36 steermargin runs were OOM-killed
+the first time (Mathlib build + long-vector dumps; rows printed nothing) and rerun alone; the Lean build is paused again.
+Check for others: every number reported today comes from a run that printed its rows (C37/C38/C40 tables are complete).
