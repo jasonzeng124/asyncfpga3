@@ -990,7 +990,12 @@ your rule row) is what C builds next, in the tool.
 - For the races that decide item 35 (C36 / C38: a carry-chain condition against a request that waits on a LUT chain),
   that is the PESSIMISTIC side. The knife edge "margin 0 near CARRY 0.9" was measured with chains at 0.20 and rest at
   0.31 in formal's coordinates. At formal's board-faithful 0.365-0.49 it should move up, possibly past 1.0.
-- That shift is a prediction, not a run. **Request to C:** steercorners.sh on item 35's route (and the x0.55 / x0.70
+- Checked on one build (the measured August collatz, whose margins are large; tools-A/board/out/aug_board/
+  collatz_steer_coords.txt), with C's steercorners.sh at CARRY 1.0:
+  - entry steer (ucmpi0): 4,742 ps at C's 0.20 / 0.31, against 5,961-6,600 ps across formal's [0.365, 0.49];
+  - loop steer (ucmpi2): 2,421 ps, against 3,023-3,610 ps.
+  So the margin rises 25-49 % at the slow-CARRY corner. On item 35 the size of the shift is still a prediction, not
+  a run. **Request to C:** steercorners.sh on item 35's route (and the x0.55 / x0.70
   leads) with chains / rest in (0.365, 0.49) x CARRY / F7 in (0.2, 1.0), next to the corners8 numbers already
   reported.
 - For research: if your own GLS also places the knife edge at CARRY ~0.9 with chains at 0.20-0.31 in YOUR coordinates,
