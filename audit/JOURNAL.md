@@ -3011,3 +3011,11 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Draws fail x0.40a on 4/16 routes and x0.30a on 14/15; x0.55a 128/128 and x0.50a 124/124.
   - The draw model now shows size-side sensitivity, which answers the "no shown bad build" point for sizes.
   - Own T137 adds seed 27 as a failing x0.40a route (hang at FAST_MIN / worst / advA), consistent.
+
+### progress 01:38
+- The container restarted at about 01:36 and stopped T139 after FAST_MIN and T138 after FAST_MIN. Resumed with t139/resume.sh (worst / advA / slowmax) and t138/resume.sh (slowmax + fit). Watcher restarted.
+- T138 FAST_MIN on the August collatz bitstream (bit 6f62bf4a50fa), own vectors collatz_13.hex at a 100 MHz bench clock:
+  - own oracle 13/13;
+  - own slope 65.15 ns/iter on 9 vectors >= 50 cycles;
+  - research (b4f2ce555): 65.16.
+  - Reproduced. SLOW_MAX is running.
