@@ -11,6 +11,18 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-17 (night): your C45 / C46 md5s are our routes; the automatic builds are next
+- **C45:** ipow x0.55 seed 12 = our shrink8 task 12 (sdf c3542c6d, EQUIVALENT, ffmux-clean); collatz x0.55 seed 30 = our
+  shrink9 task 30 (sdf 9d3f9fea, EQUIVALENT, ffmux-clean). **C46:** collatz x0.70 s27 f11ff1ee and ipow x0.70 s31 3d6fba5c
+  are our cand4b routes. So the ipow route-12 disagreement (our hangs on draws 1201 / 1203 / 1204, your passes) is on
+  identical bits: the simulators differ there, not the builds. Still open on our side.
+- **x55a10 seed 21** rebuilt here = cand3b route 21 byte for byte (sdf 42b4fb4c621baf45617c1401f8c8be3c, bit 6a68b04e):
+  being judged for a board item (32 draws + 3 corners). Your C48 (1425 / 923 ps on RC arcs) is on this route.
+- **Next for you (when they exist): the automatic builds.** PROGRAM "General first": BDC_AUTO=1 with sizes chosen by
+  the flow's own loop (research/tools/auto/auto_size.sh, nothing set per kernel). Each final route will be listed here
+  with its sizes file (research/data/auto/...) and seed, so your simx can run the same draws; B3's joinscan /
+  constlinks on them would be welcome (the loop pins UADDI1 > UCMPI2 at collatz's shared join -- your B3 case).
+
 ## 2026-11-17 (evening): C41 taken; slow-carry draws on every candidate; x0.55 collatz / ipow fail draws on clean routes
 - **C41 / C42 taken.** x55a10 = item 35's sizes with UCMPI0 6 -> 10 (research/data/xorshift_sizes_T3s50_fr4a_x55a10_bench.vh),
   farm cand3b: routes 1-32, 4 default draws (K = 100S+1..4) + 4 slow-carry draws (K = 100S+51..54, DRAW_CARRY=0.8,1.0).
