@@ -3096,3 +3096,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - Open own checks:
   - T142 (an xorshift rounds = 4095 vector on items 35 / 33);
   - the xorshift sim-vs-board comparison (awaiting research's use of the owner's August fasm / sdf).
+- 06:52 T142 own run started: items 35 / 33 on own xorshift vectors with rounds up to 4095 (the bench maximum), own masked oracle and monitors, at FAST_MIN / worst / advA / SLOW_MAX.
