@@ -1041,7 +1041,7 @@ F / S = all arcs at FAST_MIN / SLOW_MAX):
 | gcd, (2^31-1, 2^31-2) minus (1, 1), ns | 11695 | 6305 | 19911 | 11611 | -0.7 % |
 | ipow, ns / iteration | 60.85 | 32.41 | 102.16 | 59.61 | -2.0 % |
 | isprime, n 97 minus n 2, ns | 8100 | 4411 | 13901 | 8112 | +0.1 % |
-| isprime, n 1009 minus n 2, ns | 40335 | 21972 | 69317 | 40437 | +0.3 % |
+| isprime, n 1009 minus n 2, ns | 40335 | 21972 | 69250 | 40410 | +0.2 % |
 | 128 rings, median period error | - | - | - | - | +8.8 % (rings slower) |
 
 (xorshift is left out: the August README marks 25 of its board logs match=NO against the bitstream.)
