@@ -140,3 +140,8 @@ read P/PCOUT bit; `--check N`: the decoded multiplies against x*y mod 2^32). Del
 `dsp/force_pin.py` ties one decoded cell pin to a constant (what-if). Not covered: simadv.py (adversary), Lean.
 `DRAW_XBAND=lo,hi` (2026-11-17): research's draw K with its CARRY4/F7/F8 band mapped linearly from [0.20, 1.0] into
 [lo, hi] (for redrawing candidates once the board fit places the CARRY/F7 band; K's other numbers unchanged).
+**`steercorners.sh OUT KERNEL VECHEX corners8|"b,b,b ..." CONDREGEX...`** (2026-11-17): steermargin.py over band triples
+(chains, rest, CARRY/F7), one summary line each (smallest settle gap, its steer, runts; flags runs that printed no rows,
+e.g. OOM-killed). Used for FOR-RESEARCH C36-C42. Check: c55_3 ucmpi0 at 0.20,0.31,1.0 -> 583 ps (= C37).
+Typical conditions: xorshift 'ucmpi0\.uz_n3' 'ucmpi1\.uz_n41'; collatz 'ucmpi0\.uz_n4' 'ucmpi2\.uz_n36'; ipow 'ucmpi0\.uz_n4'
+'ucmpi2\.uz_n39' (names from the kernel's bdc_fused_ucmpi* modules: the `uz_n*` LUT1).
