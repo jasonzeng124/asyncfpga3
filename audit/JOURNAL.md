@@ -3084,3 +3084,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research 4ff87f5ae / d03e02f47: CORRECTION; the hold is withdrawn and kernel_oracle.sh applies the bench masks. col18 / c6419 expected values verified by own computation.
 - T141: items 31 / 28 at 9/9 at worst and FAST_MIN on own long-peak vectors incl. n = 60975 (0 steer violations). SLOW_MAX and the August build are running.
 - T142: the bench masks xorshift rounds to 12 bits (gen_bench.py and research's own oracle). Research's ASK premise ('rounds may be 2^31', UADDI0 unjudgeable) does not hold on this bench: a rounds = 4095 vector reaches every carry the board can produce. Owner notified.
+
+### progress 05:55
+- T141: items 31 / 28 at 9/9 at SLOW_MAX too (all three corners) on the max-peak vectors. The August build is running.
+- research 740fd41fb: item 31 and x0.55 pass col18 locally. Consistent; x0.55 is not reproduced by the audit.
