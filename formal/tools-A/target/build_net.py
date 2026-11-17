@@ -166,6 +166,11 @@ def main():
             fidelity["pip delay record not ordered in prjxray-db: widened to [min, max] at both corners"] += 1
         r = float(s2d.get("res") or 0)
         rc = int(-(-r * load_star(dn) * 1e-3 // 1))   # ceil, ps
+        if rc and os.environ.get("RC_ALL") == "1":
+            # (shard A, 2026-11-17) research's xray_delay.py and prjxray's own model add the one RC term to every
+            # corner; the default below keeps the historical choice (upper ends only, a wider band) for the proofs
+            fidelity["pip RC (Elmore, R * downstream C) added to all four corners (RC_ALL=1)"] += 1
+            return {"fmin": d[0] + rc, "fmax": d[1] + rc, "smin": d[2] + rc, "smax": d[3] + rc}
         if rc:
             fidelity["pip RC (Elmore, R * downstream C) added to the upper ends only"] += 1
         return {"fmin": d[0], "fmax": d[1] + rc, "smin": d[2], "smax": d[3] + rc}

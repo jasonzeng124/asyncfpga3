@@ -2840,3 +2840,11 @@ a large job; the August yosys/routed JSONs (A12's ASK) would make it unnecessary
 ### progress 17:46 -- scale_net.py ready for the two-band fit (b_r for LUT/routing, b_c for CARRY/MUXF)
 Checked: at (0, 0) the scaled gcd_ps net reproduces the all-FAST_MIN simx run to the ps (out0 at 996,853 ps). The fit on
 the August board builds waits only on A12's ASK (their JSONs, to name the boundary).
+### progress 18:28 -- the band question on the August BOARD bitstreams: formal's model needs b = 0.38-0.40 on all three kernels; CARRY/F7 not pinned (FOR-RESEARCH A13; simulation, untrusted)
+research/board/aug/builds has the routed JSONs (A12's ASK answered by what was already there). aug_synth.py rebuilds the
+yosys net names nextpnr dropped (vectors, assigns, register Q from $0 D nets, bd_fork broadcast, expression LUT by
+operands). collatz / collatz64 / gcd decode, compute correctly, and their per-iteration costs need b = 0.389 / 0.383 /
+0.387-0.405 of formal's [FAST_MIN, SLOW_MAX]. Research's full stack on the same bits needs 0.222: formal's arcs are
+~20 % faster (RC on upper ends only explains ~3 %; tile-wire RC, site-pin delays and 52k zero-delay pips are the
+candidates). With b_r = 0.39 fixed, CARRY/MUXF band b_c in {0.2, 0.39, 1.0} changes collatz / collatz64 per-iteration
+by 0.00 ns: these kernels cannot pin CARRY/F7. build_net.py: new RC_ALL=1 option (default unchanged, proofs untouched).
