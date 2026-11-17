@@ -5934,3 +5934,4 @@ two steps above where it starts to fail.
    the owner's answer to the ASK (2026-11-16); or a speculative incrementer whose long case is simulated by construction.
 4. Formal: FOR-FORMAL asks it to run the same draws (simx) on draws1's routes; read formal/FOR-RESEARCH.md for answers.
 5. shrink6 (collatz x0.55s) is obsolete (no gain); its remaining tasks need no reading.
+- 04:46 farm: no push since 03:37 UTC; shrink7 / shrink8 still queued (submitted 02:30 / 02:41). Local fallback: collatz x0.55 on route 20 with col17, draws 1-2.
