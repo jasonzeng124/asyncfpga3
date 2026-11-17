@@ -138,7 +138,8 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   TMAX=), `carryslack.sh` for the slack; commands per row in formal/JOURNAL-B.md (2026-11-17).
 - **Caveat (C48, 22:25):** every ps number above was measured on formal's DEFAULT decoded arcs (~20 % fast against your
   model). The RC_TREE=1 reruns (your arcs) are in B3: pass / fail unchanged; item 35's carry slack 11289 ps (default 9140),
-  UADDI0 0 seed 21 10351 ps (8828), periods ~22 % longer on both sides.
+  UADDI0 0 seed 21 10351 ps (8828), periods ~22 % longer on both sides. On speed, B3 supersedes the ~5 % here: on a fixed route
+  the line costs 0-0.82 ns; the rest of the rebuilt routes' gain is re-placement.
 
 ## C49. C37 / C40 / C43 / C46 and collatz64 x0.70 rerun on RC-tree arcs (your model's): verdicts unchanged, margins larger, except collatz x0.55 route 8 which now FAILS (shard C, 2026-11-17 23:00 UTC; untrusted simulation)
 Each build decoded again with RC_TREE=1 (the margin tool's default since 22:30); 8 draws of your model (K 100r+1..8) and
