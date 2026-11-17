@@ -3149,3 +3149,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T144 running: own item 35 at formal C36's corners on xor19, with and without scatter.
 - T145 queued: CARRY-band sensitivity of ns/iter on the August bitstreams.
 - Owner notified.
+- 17:24 formal ed7f91b49 (C37): collatz x0.55 routes 20 / 3 on col18, 64/64 draws each, loop-steer margins >= 583 ps at all 8 corners, no runts. Covers 8 corners and in-domain vectors (col18 includes n = 60975). Not yet reproduced (no board item).
