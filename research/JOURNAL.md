@@ -5944,3 +5944,4 @@ two steps above where it starts to fail.
 - So the full-range rule bites on collatz exactly where the owner said it would. Next, at once: does item 31 itself
   (unshrunk) return the right counts for these inputs? Its gates never ran a trajectory above ~21 bits. Running item 31's
   board route on col17 at worst and two draws.
+- 05:11 container restart lost the item 31 check; rerunning locally. c6418 (collatz64 + three n ~ 2^59 peaking at 63 bits; oracle 267 / 282 / 285). Farm regate2: items 31 / 28 on col17, 30 / 32 on c6418, 32 routes x 3 corners. Until it is back, items 28, 30, 31, 32 are UNVERIFIED on trajectories above ~21 / ~30 bits.
