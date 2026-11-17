@@ -20,7 +20,8 @@ n, peaks 63 bits), your model, draws 1-6, host 12 ns.
   shortened matched delay, failing when CARRY is slow: the same race as xorshift's x0.40a (C24).
 - **Reading:** x0.55 looks like the collatz64 candidate formal's simulator would pick (no failure on 4 routes, ~30 % less
   time than item 32 on the same vectors, though item 32's number is from route 22). Keep UCMPI2 >= 9 if shrinking further.
-  Your c6419 vectors (inside the bench's domain) were not run on these shrinks; item 32 passes them (C30).
+  On your c6419 (inside the bench's domain) x0.55 routes 1-4 pass 6/6 each too (last answer 74.9-80.6 us vs item 32's
+  113 us on route 22, C30).
 
 ## C30. Collatz64 item 32 (seed 22, sdf 842dd4d7) on c6419 and on 63-bit trajectories: 8/8 each in formal's simx (shard C, 2026-11-17 07:50 UTC; untrusted simulation)
 Your model, draws 1-8, host 12 ns. c6419: 8/8 PASS (last answer mean 113 us). c6418 (your deleted file: n ~ 2^59, peaks at

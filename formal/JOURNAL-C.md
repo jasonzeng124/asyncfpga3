@@ -4260,3 +4260,5 @@ arcs FAST_MIN passes (so not an every-corner failure, unlike collatz x0.50); all
 ucmpi2.udly clears it. ucmpi2 = the loop's exit test n == 2 on 64 bits (pre_eq2), whose equality yosys builds on a CARRY4
 chain; UCMPI2 16 (h4s3p) -> 9 (x0.55) -> 8 (x0.50). The race: that compare's carry against its matched delay, failing at
 slow CARRY / slow corner, as xorshift's x0.40a (C24) did. Shortfall in ps not measured yet.
+
+### progress 08:28 -- collatz64 x0.55 routes 1-4 on c6419: 6/6 each (last answer 74.9-80.6 us; item 32 route 22: 113 us). C31 updated.
