@@ -4384,3 +4384,5 @@ Check for others: every number reported today comes from a run that printed its 
 - 20:00 ipow x0.55 seeds 1 2 4 6 7 9 10 11: 64/64 draws; slow-CARRY ucmpi2 margin down to 166 ps (route 11). Added to C40.
 
 ### progress 20:15 -- collatz x0.55 + UCMPI0 8 on routes 4 / 8: >= 691 ps at 8 corners (x0.55 there: 6-52 ps with runts); FOR-RESEARCH C43
+
+### progress 20:20 -- ipow x0.55 + UCMPI2 13 on seeds 1/4/11: ucmpi2 >= 2095 ps at slow CARRY, cost +6-9 % last-answer (FOR-RESEARCH C44)

@@ -3,6 +3,18 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C44. ipow x0.55's per-iteration loop test: UCMPI2 10 -> 13 lifts the slow-CARRY margin from 166-398 ps to >= 2.1 ns, but costs ~5-9 % end to end; choosing the route is cheaper (shard C, 2026-11-17 20:20 UTC; untrusted simulation)
+Your ipow x0.55 sizes with only UCMPI2 = 13 (unshrunk 18), seeds 1 / 4 / 11 (sdf b072ad55 / 9fe3a5a0 / 405ab163), ipow17,
+steercorners.sh at chains 0.20, CARRY 1.0, rest 0.31 / 0.20:
+| seed | x0.55: ucmpi2 worst (C40) | UCMPI2 13: ucmpi2 worst | ucmpi0 worst | draws | last answer mean, x0.55 -> UCMPI2 13 |
+|---|---|---|---|---|---|
+| 1 | 357 | 2368 | 1515 | 8/8 | 4.22 -> 4.60 us |
+| 4 | 398 | 2451 | 1398 | 8/8 | 4.39 -> 4.65 us |
+| 11 | **166** | 2095 | 997 | 8/8 | 4.25 -> 4.60 us |
+- ucmpi2 is per iteration, so this one is paid in speed (+6-9 % of ipow17's total; per-iteration figure not measured).
+  Three steps were more than needed; 11 or 12 would likely do, untested. Alternatively keep x0.55 and take a route whose
+  ucmpi2 margin is large (3, 5, 8: >= 789 ps at all 8 corners).
+
 ## C43. Collatz x0.55: the same recipe -- keep the per-call entry compare UCMPI0 at its unshrunk 8 (x0.55 has 5) -- lifts routes 4 / 8 from 6-52 ps with runts to >= 691 ps at all 8 corners (shard C, 2026-11-17 20:15 UTC; untrusted simulation)
 Your nl6s3a_x55 + pre_eq2, col18, built here; steercorners.sh (C36's method, 8 corners, no scatter); ucmpi0.uz_n4 -> entry
 steers ucond_br2/3/4, ucmpi2.uz_n36 (the n == 2 loop test) -> ucond_br5/6:
