@@ -4,6 +4,67 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
+## General first: the compiler does it, with nothing set per kernel (owner, 2026-11-17)
+
+The owner looked at what the farm was running (shrink and candidate sweeps, one kernel at a
+time, about 900 cores) and said: "are these really efficient ways to get faster i feel like
+this cant possibly give more than eps of improvement", and "especially in the general case
+(rmb that it would be ideal if the compiler did the optimizations automatically)".
+
+He is right, on your own numbers. The sweeps were this file's instruction, not your mistake;
+the instruction changes here.
+
+- **Sizing is nearly used up on xorshift.** x1.0 is 18.91 ns and x0.55 is 16.85, so the sized
+  delays were about 4.6 ns of the period and about 2.5 ns are left. x0.40 already fails. More
+  shrinking can give well under 1 ns, and the gap to 15 is 1.85.
+- **Nothing since item 14 is in the compiler.** Every result is a recipe: a sizes file for
+  one kernel, and knobs that name instances (`BDC_FORK_OUT_LINK=n11__0`,
+  `BDC_MERGE_RES_LINK=ucontrol_merge0`, `BDC_LINK_DEPTHS=ulink_n_trueResult_8=2`), all off
+  by default. A kernel nobody tuned gets none of it.
+
+From now on the first lead is the automatic path. This comes before the list under "Use the
+quota that is left" and before more work on any one kernel.
+
+1. **One switch, the same for every kernel.** Call it what you like (`BDC_AUTO=1`); unset,
+   the output stays byte-identical. With it, and with no instance name, no sizes file and no
+   factor given by hand, the flow chooses by itself what the recipes chose by hand: where the
+   latches go and how deep the links are (the event graph's search, run inside the flow),
+   ring-floor counting, fast fall, the loop-test rewrite and every other MLIR rewrite that
+   has a proof from formal or a simcheck over the full range, the incrementer's short delay
+   where the graph says it pays, and the sizes.
+2. **Sizes from one rule, not a factor per kernel.** The draws say the static sizes are 1.4
+   to 1.8 times longer than needed (x0.55 passes on xorshift, x0.70 on collatz and ipow).
+   Find which part of the sizing rule carries that (the guard, the corner, the band position,
+   a floor) and change the rule once, for every kernel, with the reason written down. The
+   draws then check it. A factor found per kernel by a farm sweep is no longer a result.
+3. **The headline is one table over all kernels, built with the one switch**: ns per
+   iteration, Dynamatic's number, the ratio, and the hand recipe's best beside it. The gap
+   between the automatic column and the hand column is the work. Put it at the top of
+   `research/data/fifteen/README.md` and of every report. Include kernels nobody tuned:
+   isprime and gcd are in the fixtures now, and fir, single_loop and test_loop_free are
+   there if they build. For a new one, commit the C under `kernels/` and write
+   `ASK: frontend output for <name>` in the journal: the frontend runs on the owner's
+   machine and its output comes back as a fixture. Ask for at least three with different
+   shapes (a nested loop, a branch that survives if-conversion, memory).
+4. **xorshift's 15 ns target stands, and it now has to be reached by the automatic path.**
+   A recipe that reaches it by hand is a lead for what the compiler should learn, not the
+   result.
+5. **The farm is for this**: the automatic flow on every kernel, many routes, the draws. Let
+   the requests that are running finish and read them: they check candidates already on
+   the list. Do not submit new shrink or scale sweeps for one kernel.
+6. **Where more than a few percent can come from**, by your own budget (ideas, not a list to
+   follow; write the prediction before each build):
+   - wires were about 5 ns of the cycle on lever 3's route. Placement helped on some seeds
+     and not others when it was set by hand; a constraint the compiler emits for every ring
+     has not been tried as a rule;
+   - latch placement took xorshift from 30 to 20.6 ns. On collatz, ipow and collatz64 the
+     search found nothing with the knobs it had. What would a search over all sites find
+     (Dynamatic places its buffers with a solver over the same kind of graph)?
+   - the rising pass: handshake stages on the counter ring, fused by a pass, for any loop.
+
+When a lever needs a choice that only one kernel can justify, say so and leave it out of the
+automatic path.
+
 ## Use the quota that is left (owner, 2026-11-17)
 
 The owner: "there is so much usage left why dont you jstu use it all". The week's quota
@@ -17,7 +78,9 @@ resets on 2026-11-18 at 23:00 UTC, and what is unused is lost.
   owner next looks, and that has cost many hours this week. End only when the context is
   nearly used up, and say so in the handoff.
 - **Re-read this file every two hours.**
-- **Run these side by side, one subagent each; you read the results and decide:**
+- **Run these side by side, one subagent each; you read the results and decide.** (Later the
+  same day: "General first" above comes before this list. Items 2 to 4 now mean reading the
+  requests that are already running, nothing new.)
   1. xorshift below 16.85: formal's C41 fix (UCMPI0 back to 10) on item 35, judged again by
      draws; then the incrementer through a preloaded loop state ("Paths no vector can reach").
   2. collatz: read `shrink9`, choose the candidate, write the board item.
