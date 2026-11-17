@@ -6,6 +6,19 @@ DecodedPS.boundary DecodedPS.arbs p T R su Δo` (owner decision 4: sequential en
 Updated 2026-11-06 (shard A) from the 2026-11-02 journals of all three shards. Everything below is Lean-checked with
 standard axioms unless marked; "C" / "B" name the shard whose file it is.
 
+## 2026-11-17 (A): where the board sits in the band (FOR-RESEARCH A13 / A14; simulation, untrusted)
+The measured August bitstreams, decoded and run in formal's simulator, give these band positions in formal's arcs:
+- collatz, collatz64 and gcd per-iteration times sit at b = 0.38-0.40.
+- The 128 August rings sit at 0.465.
+- Research's model shows the same ring/kernel gap (0.288 vs 0.222).
+
+What this does and does not settle:
+- LUT vs routing cannot be separated: the measurements all have the same mix.
+- CARRY/F7 is not placed by any August measurement.
+- The kernels' delay chains are all FASTRISE, which makes a silicon rise/fall difference the candidate for the gap.
+- For THE target's kappa, use the kernel loop times (b ~0.39 of formal's band); kappa is a band position in the same
+  coordinates.
+
 ## 2026-11-16 (A): THE statement is vacuous on partial-ack hangs; repair proposed (Lean, check.sh OK)
 Shard C found (JOURNAL-C 03:36) that when `a`/`b`/`start` share one request node (gcd_ps's OneReq boundary), a
 circuit that acknowledges `a` but never `start` leaves NO behaviour satisfying `Spec.Env`. `Formal.Target.SpecWF`:
