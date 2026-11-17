@@ -1015,8 +1015,36 @@ In formal's arcs (build_net.py), the measured delays sit at:
   entries.
 - **CARRY/F7 (A13).** With LUT and routing at 0.39, moving CARRY4 and MUXF7/F8 over {0.2, 0.39, 1.0} changes collatz and
   collatz64 per-iteration time by 0.00 ns. The cycle is set by the matched delays, and the carry chains only have to
-  settle inside them. No August measurement places this band, so the 0.75-0.9 at which C38 / C35's races close cannot
-  be confirmed or ruled out by the board data in hand.
+  settle inside them. No August measurement places this band, so the CARRY band of ~0.9 at which C38 / C35's races
+  close cannot be confirmed or ruled out by the board data in hand.
+
+**PROGRAM's "0.22-0.29 vs 0.75-0.9".**
+- Formal's 0.75-0.9 is WITHDRAWN. It came from my tightened REBUILDS of the August kernels (A11). Their tighten loops
+  did not converge, so their delay sizes differ from the bitstreams that were measured.
+- On the measured bitstreams, formal says 0.38-0.41 and research says 0.22-0.29. These are the same silicon in two
+  coordinate systems: formal's arcs are ~20 % faster in absolute terms than research's RC-tree arcs, so the same ns
+  sit higher in formal's band.
+- The two models agree on both shapes:
+  - kernels lower than rings;
+  - one b fits every kernel, within 0.026 in formal's coordinates and 1 % in research's.
+- "A kernel is mostly carry chains where a ring has none" does not explain the difference. Moving CARRY/F7 over its
+  whole band changes no kernel's per-iteration time (0.00 ns). The kernels' per-iteration time is ~73 % delay-chain
+  LUT stages, the same stages the rings are made of.
+
+**Rows for research/SIM-VS-BOARD.md** (formal's simx, the measured August bitstreams, one b = 0.39 for every arc;
+F / S = all arcs at FAST_MIN / SLOW_MAX):
+
+| kernel | measured | formal F | formal S | formal at b 0.39 | error |
+|---|---|---|---|---|---|
+| collatz, ns / iteration | 92.73 | 50.35 | 159.81 | 93.04 | +0.3 % |
+| collatz64, ns / iteration | 117.89 | 64.43 | 204.16 | 118.92 | +0.9 % |
+| gcd, (2^31-1, 2^31-2) minus (1, 1), ns | 11695 | 6305 | 19911 | 11611 | -0.7 % |
+| ipow, ns / iteration | 60.85 | 32.41 | 102.16 | 59.61 | -2.0 % |
+| isprime, n 97 minus n 2, ns | 8100 | 4411 | 13901 | 8112 | +0.1 % |
+| isprime, n 1009 minus n 2, ns | 40335 | 21972 | 69317 | 40437 | +0.3 % |
+| 128 rings, median period error | - | - | - | - | +8.8 % (rings slower) |
+
+(xorshift is left out: the August README marks 25 of its board logs match=NO against the bitstream.)
 
 **Which measurement decides:**
 1. **For kernel margins: the kernel loop times, not the rings.** The kernel loop times share the kernels' edge mix and
