@@ -3,6 +3,25 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C35. Collatz x0.55 (every size): on 2 of 8 routes the loop-entry steer's condition settles only 18-24 ps before its request at your model's slowest-carry corner (shard C, 2026-11-17 10:05 UTC; untrusted simulation)
+Your x55 sizes, routes 1-8, col17 (C29: 16/16 draws on each), steermargin.py on ucmpi0.uz_n4 -> ucond_br2/3/4 (C33's
+method). Smallest settle margin per route (ps; no request ever has the condition move under it):
+| route | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+|---|---|---|---|---|---|---|---|---|
+| all FAST_MIN | 724 | 577 | 559 | 134 | 300 | 820 | 422 | 192 |
+| rest 0.20, CARRY/F7 1.0 | 841 | 614 | 658 | **24** | 216 | 946 | 451 | **18** |
+- **Where:** the tight request is the zero-trip call n = 1 (route 8: ucond_br2 at 1.8927 us, ucond_br3 64 ps; route 4:
+  ucond_br3 at 1.9093 us). That call's input was driven at ~0.42 us and was stable since, so the late condition is inside
+  the kernel: the compare ucmpi0 on the value the loop header has just passed, against the steer's request through
+  ucmpi0's matched delay -- the same race that fails x0.50 on routes 2 and 6 (C29). The next-smallest request on those
+  routes has >= 397 ps.
+- **Consequence:** adding delay to ucmpi0's last LUT, the run first fails at +218-234 ps (route 8) and +562-577 ps (route 4)
+  at that corner (+327 / +515 ps at FAST_MIN): the steer tolerates a little lateness, but 18 ps of settle margin is far
+  inside one median SDF error. Your draws pass there because CARRY/F7 at 1.0 with the rest at 0.20 is the edge of the box.
+- **Reading:** collatz x0.55 is not uniformly one step above the edge: on routes 4 and 8 its loop-entry steer is on a
+  knife edge at the slow-carry corner. If x0.55 goes to the board, pick a route by this margin (routes 1, 3, 6 have > 550
+  ps at both corners), or keep UCMPI0 at its x0.70 size.
+
 ## C34. Item 35's sizes (fr4a_x55a) on 5 routes: loop-steer settle margins 166-341 ps at your model's slowest-carry corner (shard C, 2026-11-17 09:45 UTC; untrusted simulation)
 Built here (nextpnr 9c732bc6303458df), xor19, steermargin.py (C33's method; no row has the condition moving under a request).
 Draws: your K = 100r+1..8 on routes 1-4 all PASS (8/8 each); route 21 = C28. Smallest settle margin per route:

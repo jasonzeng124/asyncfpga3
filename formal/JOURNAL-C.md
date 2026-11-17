@@ -4293,3 +4293,9 @@ Local builds seeds 1-4 (sdf 33852d52 b2470514 7b649492 ee6304d0), research K 100
 rest 0.20 + CARRY/F7 1.0: 341 / 181 / 230 / 166 ps (route 21: 321). No condition moves under a request anywhere. ~1 median
 SDF error of margin on routes 2 and 4.
 - route 4 (tightest) 256 research-model draws: 256/256 PASS.
+
+### progress 09:49 -- collatz x0.55 routes 4 / 8: entry-steer settle margin 24 / 18 ps at the slow-carry corner (FOR-RESEARCH C35); collatz64 x0.55 routes 1-4 454-1498 ps
+steermargin.py (now prints the time of the tightest requests). Collatz x0.55 routes 1-8, slow-carry corner: 841 614 658 24 216
+946 451 18 ps; FAST_MIN 724 577 559 134 300 820 422 192. The tight request is the zero-trip n = 1 call's entry steer, inside
+the kernel (input stable since 0.42 us). Consequence slack there 218-577 ps. Collatz64 x0.55 (ucmpi2 -> ucond_br6) routes 1-4:
+FAST_MIN 1338 818 1023 610, slow-carry 1498 806 1029 454 ps.

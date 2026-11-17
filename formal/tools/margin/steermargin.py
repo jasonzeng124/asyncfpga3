@@ -61,8 +61,8 @@ for gi, g in enumerate(G):
                 if not up or t < 405000: continue
                 tf = next((x for x, u in ev[i + 1:] if not u), 1e18)
                 k = bisect.bisect_right(cd, t)
-                if k: gaps.append(round(t - cd[k - 1]))
+                if k: gaps.append((round(t - cd[k - 1]), round(t)))
                 if any(t < x < tf for x in cd): runts += 1
             gaps.sort()
-            print("%s pin %d (request %s) vs pin %d (condition): %d requests, %d with the condition moving under them; smallest settle gaps %s ps"
-                  % (cell(names[g["out"]]), p, cell(names[src[p][0]]), q, len(gaps), runts, gaps[:5]))
+            print("%s pin %d (request %s) vs pin %d (condition): %d requests, %d with the condition moving under them; smallest settle gaps %s ps (at t = %s ps)"
+                  % (cell(names[g["out"]]), p, cell(names[src[p][0]]), q, len(gaps), runts, [x for x, _ in gaps[:5]], [y for _, y in gaps[:3]]))
