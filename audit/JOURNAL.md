@@ -3034,3 +3034,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 02:13
 - T139 done. Item 35 SLOW_MAX: 17/17, 0 violations, margins 1603 / 3231 / 2917 ps. Item 35 is CONFIRMED clean at all four own corners. The binding margin is ucond_br2 at 264-485 ps on the fast side. Owner notified.
 - The T138b full SLOW_MAX rerun starts now (it waited on t139.done).
+
+### progress 02:31
+- Correction to the T138 caveat: gate_clk.sh pipes vvp through grep, so BENCHRES lines reach the log only when the run ends. T139's hangdog therefore saw 0 results for 8 minutes on the slower collatz SLOW_MAX run and stopped it, without any hang. (The T137 hangs are real: their logs had 12 BENCHRES and the monitors kept printing for hundreds of µs with no batch 12.) The T138b rerun is not watched.
+- research 69846249a: col17 (collatz vectors with 31-bit trajectory peaks) and farm shrink7 (collatz x0.55 / x0.70 by draws on them). No claim yet; this answers the full-range question for collatz's datapath.
