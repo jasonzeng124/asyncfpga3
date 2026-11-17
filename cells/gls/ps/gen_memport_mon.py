@@ -93,6 +93,14 @@ def main():
         for s in range(len(kn)):
             L.append("    always @(posedge sreq%d[%d]) nk%d = nk%d + 1;" % (k, s, k, k))
         blocks.append((k, mi))
+    # The monitor's own negative control: +MEMPORTMON_FORCE holds memory 0's host request high for 200 ns, 2 us into
+    # the first batch, while the kernel's slots are busy -- the run must then print MEMPORT ONEHOT FAIL (and fail).
+    h0 = L[[i for i, l in enumerate(L) if l.startswith("    wire [")][0]].split("{")[1].split(",")[0].strip()
+    L.append("    initial if ($test$plusargs(\"MEMPORTMON_FORCE\")) begin : force_overlap")
+    L.append("        wait (bench_busy === 1'b1); #2000000;")
+    L.append('        $display("MEMPORTMON FORCE t=%%0t: %s held high for 200 ns (negative control)", $time);' % h0)
+    L.append("        force %s = 1'b1; #200000; release %s;" % (h0, h0))
+    L.append("    end")
     L.append("    always @(negedge bench_busy) begin")
     for k, mi in blocks:
         L.append('        $display("MEMPORTMON batch=%%0d mem=%d host_reqs=%%0d kernel_reqs=%%0d overlaps=%%0d", batch, nh%d, nk%d, no%d);'
