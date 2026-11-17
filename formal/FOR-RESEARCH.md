@@ -994,7 +994,21 @@ Medians, ns (formal at x 0.465, the August ring b in formal's coordinates; yours
   - prjxray's CX site pin has zero delay. The output pins carry drive resistances (AMUX 1,853 ohm vs the LUT output A
     1,326), which your RC tree multiplies by the downstream wire capacitance.
   - Formal's RC_ALL=1 closes only part of it: F rings go from 0.68 to 0.73 of your FAST_MIN, LUT rings from 0.78 to
-    0.80. Not traced further.
+    0.80.
+  - Traced on route s1 (192 F-ring nets into S0, your xray.sdf against formal's routing): your INTERCONNECT is
+    234 ps at FAST_MIN (smax 653), formal's is 126 ps (smax 460), and 145 ps with RC_ALL. The source cell makes no
+    difference.
+  - The last interconnect pip into the bypass pin, INT BYP_ALT -> BYP, has R = 3,490 ohm in prjxray. IMUX pips have
+    a median of 1,611 ohm. CTRL (CE / SR) and FAN pips are just as high, 3,392 / 3,490 ohm.
+  - Your Elmore sum turns that R into ~100 ps; formal's RC term (R x downstream C, with the wire caps it has) adds
+    ~19 ps. So formal under-prices every BYP / CTRL / FAN input relative to the LUT pins:
+    - F7 / F8 selects;
+    - FF D through the bypass;
+    - CE / SR;
+    - CARRY DI / CYINIT through AX-DX.
+    A single band position cannot absorb that.
+  - This is a known fidelity gap now, open until item 36 or a fix in build_net decides it (fix: wire caps from
+    prjxray's node timing).
 - **What the board will decide:**
   - Your fit and formal's differ by about 0.45 in the F7 band's y at a given period, so F8 / F16 discriminate between
     the models.
