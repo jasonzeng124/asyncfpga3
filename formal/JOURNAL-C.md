@@ -4382,3 +4382,5 @@ Check for others: every number reported today comes from a run that printed its 
 
 ### progress 19:50 -- FOR-RESEARCH C42: A13 says CARRY/F7 is not pinned by loop times, so C41's UCMPI0 = 10 is the way to make item 35 independent of it
 - 20:00 ipow x0.55 seeds 1 2 4 6 7 9 10 11: 64/64 draws; slow-CARRY ucmpi2 margin down to 166 ps (route 11). Added to C40.
+
+### progress 20:15 -- collatz x0.55 + UCMPI0 8 on routes 4 / 8: >= 691 ps at 8 corners (x0.55 there: 6-52 ps with runts); FOR-RESEARCH C43

@@ -3,6 +3,23 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C43. Collatz x0.55: the same recipe -- keep the per-call entry compare UCMPI0 at its unshrunk 8 (x0.55 has 5) -- lifts routes 4 / 8 from 6-52 ps with runts to >= 691 ps at all 8 corners (shard C, 2026-11-17 20:15 UTC; untrusted simulation)
+Your nl6s3a_x55 + pre_eq2, col18, built here; steercorners.sh (C36's method, 8 corners, no scatter); ucmpi0.uz_n4 -> entry
+steers ucond_br2/3/4, ucmpi2.uz_n36 (the n == 2 loop test) -> ucond_br5/6:
+| build | route (sdf) | ucmpi0 worst / best, ps | runts | ucmpi2 worst | draws (K 100r+1..8) | last answer mean |
+|---|---|---|---|---|---|---|
+| x0.55 | 4 (bc2b7d14) | **22** (0.20/0.20/1.0) / 402 | 2 at 0.20/0.31/1.0 | 1006 | 8/8 | 23.98 us |
+| x0.55 | 8 (55cd1694) | **6** (0.20/0.31/0.20) / 451 | 3 at 0.20/0.31/0.20, 6 at 0.20/0.31/1.0 | 578 | 8/8 | 23.68 us |
+| x0.55, UCMPI0 8 | 4 (40d5ea59) | 1172 / 1697 | 0 | 1476 | 8/8 | 25.69 us |
+| x0.55, UCMPI0 8 | 8 (fa596415) | 691 / 1369 | 0 | 1392 | 8/8 | 21.99 us |
+(x0.55 routes 20 / 3, C37: 681 / 583 ps worst, no runts.) Every corner run returned all 17 right answers.
+- On route 8 the knife edge is there with CARRY/F7 at its FAST end (6 ps, 3 runts at chains 0.20 / rest 0.31 / CARRY 0.20):
+  this race is not only a CARRY-band question; fast chains against a slower rest close it.
+- Cost: the restored UCMPI0 is per call; last answers moved +7 % (route 4) and -7 % (route 8), i.e. inside route scatter.
+- **Recommendation for both shrink leads:** shrink the per-iteration delays, keep the loop-ENTRY compares (UCMPI0 here,
+  UCMPI0 in xorshift C41) at their unshrunk sizes. With that, the remaining slow-CARRY exposure is the per-iteration loop
+  test (ucmpi1 in xorshift, ucmpi2 in ipow: 166 ps on ipow route 11, C40), which is where route choice still matters.
+
 ## C42. With A13 (CARRY/F7 not pinned by any August loop time), the "redraw at the fitted CARRY/F7 band" step cannot narrow it: take C41's fix instead of waiting for the fit (shard C, 2026-11-17 19:50 UTC)
 - A13 (shard A, 18:28): on the August board bitstreams, moving the CARRY/F7 band over {0.2, 0.39, 1.0} changes collatz /
   collatz64 per-iteration time by 0.00 ns -- in bundled data the cycle is set by matched delays (LUT chains), and the carry
