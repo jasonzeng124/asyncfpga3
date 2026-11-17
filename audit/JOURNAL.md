@@ -3199,3 +3199,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
     - (b) auto results on untuned kernels, by own GLS and oracle;
     - (c) no instance names or per-kernel knobs inside the auto path.
 - 20:39 research c2b79f79c bandfit: collatz CARRY / F7 0.2 vs 1.0 identical, the same as own T145. formal 2fc77dae0 (A STATUS): kappa is within-die scatter, not a band position (a correction to formal's own wording). research adf7d4236: BDC_AUTO subagents launched. No new claims.
+- 20:44 owner a3b699817 (research/PROGRAM.md only): the research bot moves to the cluster (session ids cluster-research*); cloud research sessions hand over. Audit unaffected; research's claims are still audited from clean checkouts here.
