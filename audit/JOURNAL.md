@@ -3215,3 +3215,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - No AUTO build exists yet.
 - 22:12 research 85b1b3b90: auto_size.sh, the flow's own sizing loop for BDC_AUTO=1 (estimates -> CA_SIZERULE -> re-route -> ratchet until clean); preload1 re-judged. Tooling; no AUTO result claimed yet.
 - 22:17 owner bec64b884: frontend output for the untuned kernels (nested, branchloop, memsum). research 4ce0399eb: new cluster session lock. No claims.
+- 22:19 owner 4c65db3b3 / 411a48df5 (research/PROGRAM.md only): a compiler benchmark suite (20-30 kernels by shape, plus Dynamatic's integer integration tests); the frontend runs on the cluster. Audit to check, when results are claimed: each suite kernel's expected values and input range against the bench's domain masks (gen_bench.py DOMAIN_RESTRICTIONS; cf. the col17 error, T141), and that the suite is not chosen to flatter the flow.
