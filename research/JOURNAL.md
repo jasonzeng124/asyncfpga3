@@ -5916,3 +5916,4 @@ on a ctl input in our GLS (already on the Next list).
 Failures are hangs (no completion) and result streams that fall a call behind (the mismatch latch), on routes whose
 bits are EQUIVALENT. So the model is sensitive on the size side as well as to the injected late steer, and x0.55a sits
 two steps above where it starts to fail.
+- 02:01 draws2 done: x0.55a seed 21 32/32 draws, gate 6/6 (xor17 / xor19 x 3 corners). BOARD-QUEUE item 35 added (sdf 9145cd49).

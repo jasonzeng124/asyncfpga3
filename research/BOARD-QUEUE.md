@@ -29,7 +29,9 @@ condition 8 ns late) on 16 / 16 draws.
 | 30 (fc64sel3 s10) | collatz64 | 35 | 32 / 32 |
 | 32 (fc64sel3p s22) | collatz64 | 31.4 | 32 / 32 |
 
-Faster candidates chosen by the draws are being measured (farm shrink4 / shrink5: xorshift sizes x0.55 / 0.50 / 0.40).
+| 35 (fr4a_x55a s21) | xorshift | 16.85 (32 routes, all draws passing: 128 / 128) | 32 / 32 + 6 / 6 corner gates |
+
+Item 35 is the first chosen by the draws (sizes shortened while every draw passes; first failure at x0.40a).
 
 ## 2026-11-16 (evening): the GLS gate checked only the LAST run of each batch -- every "gate N/N" before today is partial
 bench_gate.sh judged a batch by its last run's odata and its completion count. The bench also latches whether the
@@ -1198,6 +1200,27 @@ research/JOURNAL.md 2026-11-16. nextpnr 9c732bc6303458df. From cells/:
 
 Pass: `=== PASS ... ===`, exit 0. Ratio predicted ~1.03 over item 27 (19.32 ns on its route vs 18.71 here). A FAIL with
 item 27 passing points at the shortened datapath lines or at rule M's umux0 / umux1 (send both logs).
+
+## 35. xorshift item 33's sizes x0.55 except the incrementer (fr4a_x55a), chosen by the delay-model draws -- 16.85 ns, 128 / 128 draws on 32 routes
+research/JOURNAL.md 2026-11-16 / 17 (PROGRAM "The board decides"). nextpnr 9c732bc6303458df. Board route seed 21 (P 16.84 ns =
+the median of 32 routes, 15.93-18.19; item 33 is 18.91). Its route: 32 / 32 draws (farm draws2) and the gate at SLOW_MAX,
+FAST_MIN and worst on xor17 and xor19, 6 / 6 PASS with every run of every batch right. The draws first fail at x0.40a (4 of
+16 routes); x0.50a ties with this at 16.74 and the longer was taken. Model error on the August builds: the simulation runs
+~8% slow per iteration (SIM-VS-BOARD.md), so the board should show ~15.5 ns. From cells/:
+
+    cp ../build/frontend/xorshift/comp/handshake_transformed.mlir /tmp/xor_hs_orig.mlir
+    cp ../research/data/fifteen/xorshift_predec.mlir ../build/frontend/xorshift/comp/handshake_transformed.mlir
+    BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_RING_COUNT_OLINKS=1 BDC_FORK_OUT_LINK=n11__0 BDC_MERGE_OUT_LINK=ucontrol_merge0 NEXTPNR_SEED=21 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_fr4a_x55a_bench.vh ./hw/build_bench.sh xorshift
+    cp /tmp/xor_hs_orig.mlir ../build/frontend/xorshift/comp/handshake_transformed.mlir
+    md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # 9145cd49 = the route judged here (the .bit md5 varies by build time)
+    python3 ../research/tools/ffmux_scan.py build/hw/xorshift_bench_gen/xorshift_bench_gen.fasm; echo "exit $?"   # must be 0
+    CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_x55a.tsv
+    (item 33: #34's commands for lc_xor_a.tsv, if not already run)
+    python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_x55a.tsv build/hw/lc_xor_a.tsv; echo "exit $?"
+
+Pass: `=== PASS ... ===`, exit 0 (every point's derived oracle). Predicted ratio over item 33 ~1.11 (18.71 -> 16.84 on
+their board routes). A FAIL here with item 33 passing means the draws' delay model is too generous on this die: that is
+the most useful result this item can give, so send both logs.
 
 ## Owner-side check, not a board experiment (cheap, still useful)
 ANSWERED in the cloud on 2026-10-25: the failure was the netlist, not the patch or the chipdb.
