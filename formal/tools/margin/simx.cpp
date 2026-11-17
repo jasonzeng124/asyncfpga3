@@ -509,6 +509,31 @@ int main(int argc, char** argv) {
         s += "]";
         fprintf(stderr, "HRUNT w=%d: LUT gates %zu, skipped reads %lld, INFEASIBLE pins %zu %s\n", W, nlut, NSKIP, INF.size(), s.c_str());
     }
+    {   // NEARMISS (2026-11-17, informational, no verdict): pulses on the outputs of storage LUTs (a LUT reading its own
+        // output: C-elements, latches, arbiter state) after reset. A state node that flips and flips back within a few
+        // tens of ps came that close to a different outcome in this run. Transparent latches pass D glitches legitimately,
+        // so a narrow pulse is a pointer for tracing, not a failure. Widths in ps; NEARMISS_PS (default 200) is the count bound.
+        const char* nm = getenv("NEARMISS_PS"); ll NB = nm ? atoll(nm) : 200;
+        vector<tuple<ll, ll, int>> pl; ll cnt = 0;   // (width, time of the first edge, node)
+        for (int g = 0; g < NG; g++) {
+            if (!glut[g]) continue;
+            int o = gout[g]; bool st = false;
+            for (int i = gins0[g]; i < gins0[g + 1]; i++) if (ins[i] == o) { st = true; break; }
+            if (!st) continue;
+            const vector<int>& h = H[o]; ll best = -1, bt = 0;
+            for (size_t i = 1; i < h.size(); i++) {
+                if (h[i - 1] < R) continue;
+                ll wdt = (ll)h[i] - h[i - 1];
+                if (wdt < NB) cnt++;
+                if (best < 0 || wdt < best) { best = wdt; bt = h[i - 1]; }
+            }
+            if (best >= 0) pl.push_back({best, bt, o});
+        }
+        sort(pl.begin(), pl.end());
+        string s = "[";
+        for (size_t i = 0; i < pl.size() && i < 3; i++) { char b[512]; snprintf(b, sizeof b, "%s(%lld, '%s', %lld)", i ? ", " : "", get<0>(pl[i]), names[get<2>(pl[i])].c_str(), get<1>(pl[i])); s += b; }
+        fprintf(stderr, "NEARMISS storage-output pulses < %lld ps: %lld; narrowest (width, node, t) %s]\n", NB, cnt, s.c_str());
+    }
     if (capped) {
         fprintf(stderr, "simx: MAXEV cap %lld events hit at t = %lld ps: no verdict\n", maxev, t);
         fflush(stdout); return 3;

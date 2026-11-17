@@ -4114,3 +4114,13 @@ equal to research's col17.exp), K = 100*route+1..4 then draws 1-28.
 ### progress 03:00 -- farm c_x40col: name the collatz x0.40 races (C26 left them untraced)
 Three shapes in c_shrink2b at x0.40: route 12 [111, 0, 0] / no answer (every draw), route 20 a wrong value (106 or 74 for
 n = 27; draw 3 with CARRY band 0.43 passes), route 7 stops after 3 answers. Draw 1 with each band moved + diverge.py.
+
+### progress 03:01 -- simx NEARMISS line (informational) + farm c_nm1 to calibrate it
+The farm is congested (research's shrink6 running since 00:55, shrink7/8 queued; fm_c_shrink64 queued since 01:03), and
+this sandbox has no FPGA toolchain or prjxray db, so nothing simulates locally. Meanwhile: a pass fraction says nothing
+about how close a passing draw came to failing (audit T136: research's oracle-only verdict missed live steer runts). simx
+now prints, per run, the number of storage-LUT output pulses narrower than NEARMISS_PS (200) after reset and the 3
+narrowest (width, node, time); draws.py appends it to each draw line and lists the 5 narrowest over the PASS draws in
+draws_summary.txt. Verdicts unchanged (only a stderr line added; compiles, g++ -O2). Not yet run: a transparent latch passes
+D glitches legitimately, so whether the narrowest pulse separates near-failing passes from safe ones is what c_nm1 tests
+(collatz x0.40 route 20, xorshift x0.50a route 18, item 35).

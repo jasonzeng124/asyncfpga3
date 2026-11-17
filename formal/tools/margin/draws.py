@@ -110,6 +110,8 @@ def run(seed):
     per = re.search(r"PERIODIC P=(\d+) from (\d+)", r.stdout + r.stderr)
     ts = [int(m.group(1)) for m in re.finditer(r"^out0 #\d+ at (\d+) ps", r.stdout, re.M)]
     out0 = "last out0 at %d ps (%d answers)" % (ts[-1], len(ts)) if ts else "no out0"
+    nm = re.search(r"^NEARMISS storage-output pulses < \d+ ps: (\d+); narrowest \(width, node, t\) \[\((\d+), '([^']*)', (\d+)\)", r.stderr, re.M)
+    if nm: out0 += " [nearmiss %s; min %s ps at %s t=%s]" % nm.groups()
     if not res:
         return seed, "UNDECIDED", (r.stderr[-200:].replace("\n", " ") or "no RESULT (rc %d)" % r.returncode), time.time() - t0, ""
     if res[0].startswith("RESULT OK"):
@@ -143,4 +145,8 @@ with open(os.path.join(a.out, "draws_summary.txt"), "w") as f:
             % (a.band, a.sreg, a.regsize, a.sarc, a.w, a.hostdelay, seeds[0], seeds[-1]))
     for s, k, msg, dt, o in rows:
         if k != "PASS": f.write("  seed %d %s %s\n" % (s, k, msg[:200]))
+    nmw = sorted((int(m.group(1)), s, m.group(2)) for s, k, msg, dt, o in rows if k == "PASS"
+                 for m in [re.search(r"min (\d+) ps at (\S+)", o)] if m)
+    if nmw: f.write("nearmiss (PASS draws, narrowest storage-output pulse; informational): %s\n"
+                    % ", ".join("seed %d %d ps %s" % (s, w, n) for w, s, n in nmw[:5]))
 print(open(os.path.join(a.out, "draws_summary.txt")).read(), end="")
