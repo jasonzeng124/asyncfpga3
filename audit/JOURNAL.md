@@ -3232,3 +3232,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research 8d3e64ccc: Dynamatic's tests through bdc, '12 emit'. T148 own count over 122 fixtures: exactly the same 12 Dynamatic tests emit (plus 8 project kernels), identical with BDC_AUTO=1. CONFIRMED.
 - research 242c3f71b / 07f2ae7be / d7ec7ac03: fixtures added, 31 float fixtures dropped, and the frontend reaches the group tests.
 - 23:14 research 24094e8ea / 55a78ec0f: suite README (the one command, what pass means; no table yet) and suite_table.py with hand_ref.tsv (the hand recipes' best beside the automatic column). No results yet. When the table lands, check hand_ref.tsv's numbers against their cited sources and the audit's own figures (e.g. item 35 16.85, item 33 18.91).
+- 23:25 research 2da42f403: AUTO rule with C-element joins (collatz loop test 22 -> 5); determinism checks. Work in progress; no result claimed.
