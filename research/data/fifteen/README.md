@@ -1,3 +1,10 @@
+**2026-11-17, judged by draws (PROGRAM "The board decides"): xorshift 16.85 ns per iteration** -- item 33's sizes x0.55
+except the incrementer (fr4a_x55a), median of 32 farm routes (15.93-18.19), every one of 128 delay-model draws returning
+every right answer (bench_gate.sh draw:K; the model fails a known-bad build 16 / 16). Gap to 15 ns: 1.85 ns. The
+simulation at band 0.288 runs ~8% slower per iteration than the board on the August builds (research/SIM-VS-BOARD.md), so
+the board figure is probably nearer 15.5. The first size that fails draws is x0.40a (2 of 16 routes). Before it: item 33,
+18.91 ns (static rules as gates).
+
 **Best xorshift that passes the gate and every static check over the full input range except rule M's rows (shown
 pessimistic in simulation on its board route): board item 33 (#34), item 27 + seed 2's own datapath proposal, 18.91 ns
 per iteration (median of 31 farm routes, 17.97-20.86; latency -0.40 ns vs item 27, 22/30 faster). Gap to 15 ns: 3.9 ns.

@@ -5903,3 +5903,4 @@ on a ctl input in our GLS (already on the Next list).
   beyond any vector.
 - Board route: seed 21 (P 16.84 = the median, EQUIVALENT, ffmux-clean). Farm draws2: 32 more draws on it and the
   3-corner gate on xor17 / xor19. PREDICTION: 32/32 and 6/6 PASS.
+- 00:54 fifteen/README headline: xorshift 16.85 ns by draws. Farm shrink6: collatz x0.55s (item 31 x0.55, the 3n+1 select and both adds kept), 32 routes x 4 draws. PREDICTION: 128/128, median ~18 ns (item 31: 21.5).
