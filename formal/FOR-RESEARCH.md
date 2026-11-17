@@ -5,6 +5,29 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+
+## B4. Which matched delays set the period, per route: on research's candidates 3-5 of ~55 delay lines do, and they are loop RINGS, not the datapath; the rest cost area, not speed (shard B, 2026-11-17 23:21 UTC; untrusted simulation, RC arcs)
+For the sizing rule (formal PROGRAM "Research's first lead"). `formal/tools-B/preload/linesens.py` (18 s a route): for every
+delay line (each `...chain.g[0].u`), +500 ps on its first LUT, alone, and the change of the loop header's per-iteration
+period (umux0's request OR, median over a long call; your draw K, w 20). dP/dX = 1: the line is on the cycle that sets the
+period; 0: shortening it buys nothing on this route (another cycle is longer by >= 500 ps); between: within 500 ps of it.
+Raw tables: formal/tools-B/preload/out/ls_*.txt.
+| build (route, draw) | reference period | lines with dP/dX > 0 (dP for +500 ps) |
+|---|---|---|
+| xorshift x55a10 seed 21 (42b4fb4c), K 2101 / 2102 | 17469 / 17286 ps | uaddi0.udly, umux0.udly, ulink_n12__0.rdly, ulink_n7f__1.uack, ulink_n_trueResult_6 stage[0].uack: 500 each, both draws |
+| xorshift x55a10 seed 4 (05a84ea0), K 2101 | 17333 | ucmpi1.udly, umux2.udly, ulink_n11__0_folink.uack, ulink_n11__1.rdly, ulink_n12__2.rdly: 500; the seed-21 five: 238; ulink_n_trueResult_10 stage[0].uack: 27 |
+| same, K 2102 | 17308 | the same five: 500; ulink_n_trueResult_10: 160; the seed-21 five: 32 |
+| collatz x0.70 seed 27 (f11ff1ee, your cand4 route), K 3101, n = 0xee2f | 20423 | uaddi0.udly, uselect0.udly, ulink_n_falseResult_9 stage[0].uack: 500 |
+| collatz64 item 32 (842dd4d7), K 3201, n = 0x1ed6135ab2dfefd1 | 30986 | uaddi0.udly, uselect0.udly, ulink_n_falseResult_9 stage[0].uack, ulink_n10__4.uack: 500 |
+- **xorshift:** the period is set by the counter's ring (umux0 -> forkdec0 -> uaddi0 -> ucond_br6 -> ulink_n_trueResult_6 ->
+  umux0, with its control link ulink_n12__0) or by the n ring (umux2 -> ucmpi1 -> ucond_br8 -> ulink_n_trueResult_10 ->
+  umux2, ulink_n11 / n12__2), within 0.03-0.47 ns of each other on seed 4; the xorshift datapath (uxori*, ushli*, ushrui*)
+  is off the cycle on both routes. So after UADDI0 (B3) the next lines to shorten are umux0 / umux2's and those links'
+  acknowledge / request lines, and the two rings have to come down together.
+- **collatz / collatz64:** 3n + 1 (UADDI0) and the select (USELECT0) are on the cycle; their long carries ARE reached by
+  inputs (c32hi / c64hi, B2), so shortening them is judged by full-range draws, not by preload.
+- One route a row; the farm's b_u0xor gives the period on 12 routes a side but not this map. The map moves with the route
+  (seed 4 vs 21): a sizing rule that shortens only the on-cycle lines needs it per route, or a margin for the swap.
 ## B3. On your current xorshift candidate (x55a10), UADDI0 0 keeps every draw and every preloaded draw on every route tried; on a fixed route the line costs 0.82 ns (seed 21) or nothing (seed 4), and rebuilt UADDI0 0 routes were 4.6-8.7 % faster, partly by re-placement; collatz / collatz64's UADDI1 0 is safe but buys nothing (shard B, 2026-11-17 22:31 UTC; untrusted simulation)
 Follow-up to B2, same tools and model (formal's simx on the decoded bits, your draw K, w 20, host 12 ns). Rebuilt here with
 your flow; the four x55a10 routes are md5-identical to C41's (8f165305 / f1da196a / 9a68cb56 / 05a84ea0).

@@ -4608,3 +4608,8 @@ seed 4 (05a84ea0): 17333 / 17308 -> unchanged. Sensitivity: +500 ps on the line'
 (UADDI0 12) and the UADDI0 1 route's by 0. So the line sets the period on some routes (seed 21, by ~0.8 ns before the
 next cycle takes over) and not on others; the rebuilt UADDI0 0 builds' remaining gain is re-placement. B3 corrected (the
 "one LUT cannot be 1.2 ns" paragraph replaced by this).
+### progress 23:21 -- linesens.py: which delay lines set the period (FOR-RESEARCH B4)
++500 ps on each delay line's first LUT, alone, period of the header over a long call. x55a10 seed 21: the counter ring's 5
+lines at dP/dX 1 (both draws); seed 4: the n ring's 5 (ucmpi1, umux2, ulink_n11*, n12__2) at 1, the counter ring at 0.48 /
+0.06. collatz x0.70 s27: uaddi0, uselect0, ulink_n_falseResult_9 ack. collatz64 item 32: the same + ulink_n10__4 ack.
+Every other line 0. Untrusted simulation (RC arcs), one route a row. Tables in tools-B/preload/out/.
