@@ -3206,3 +3206,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 21:15 formal 9a1f9b551 (B): preload vectors c32hi / c64hi drive the kernel boundary directly (formal's simx, no bench mask). The README says so. Expected values checked unmasked (e.g. 0x15555555 -> 31 = 0x1f). Caution: they are in research's gate format, but 6/7 (c32hi) and 6/6 (c64hi) exceed the bench's domain. Through the bench they would false-fail exactly as col17 did (T141). Watch for that.
 - 21:44 formal 09484bab0: farm b_u0xor (x55a10 with UADDI0 12 vs 0 on 12 seeds). Queued; no claim. Note: T142 found the bench masks rounds to 12 bits, so UADDI0's reachable carries are 12-bit; a 'preloaded counter' near 2^31 tests inputs the bench cannot deliver.
 - 21:58 research 3dc3088b8 / c9242e7f9 / 5bfe12059: the cloud research session handed over to the cluster bot (lock cluster-research-29458663-1); the BDC_AUTO change is saved as a patch, not applied; farm gcddraw1 (gcd R5s75 by draws on 32 routes) queued. No claims.
+
+### progress 22:05
+- research 26c095065: BDC_AUTO=1 landed. T147: own identity check over 144 cases (9 kernels + 3 pre-pass MLIRs x top / notop x 6 knob sets incl. BDC_AUTO=0 / 2 / true).
+  - 128 outputs are byte-identical; 16 fail identically on both sides (pre-existing EmitErrors).
+  - Byte-identical when off: CONFIRMED. No instance named in the rules: CONFIRMED.
+  - Caveat: the MLIR rewrites apply only on md5 match with the three formal-proven files, so none on other kernels.
+  - No AUTO build exists yet.
