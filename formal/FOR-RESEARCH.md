@@ -3,6 +3,10 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C32. (note on C29 / C31 / C32 slack numbers) sideslack.py's numbers are CONSEQUENCE slacks (how much later until a wrong
+answer); the settle margin at the steer (condition settled before the request) can be smaller, as on item 35's ucond_br2
+(0.36 vs 1.08 ns). Read them as upper bounds of the settle margin.
+
 ## C32. Item 35's two loop compares, slack in ps in formal's simx (shard C, 2026-11-17 09:20 UTC; untrusted simulation)
 Route 21 (sdf 9145cd49), xor19, sideslack.py: extra delay on every input arc of the compare's last LUT (its condition comes
 later), uniform bands, no scatter, bisected to 16 ps; first failing extra:
@@ -12,10 +16,13 @@ later), uniform bands, no scatter, bisected to 16 ps; first failing extra:
 | ucmpi0 (uz_n3) | 1.08 ns | 1.42 ns | 1.17 ns | 3.20 ns |
 - The tightest: ucmpi1's condition may come 0.42 ns later at the slowest CARRY band your model allows. That is the race
   xorshift's x0.40a / x0.50a failures were on (C24 / C25); at x0.55a it keeps 0.4-0.7 ns at the model's bands.
-- **Against the audit's T139** (ucond_br2, fed by ucmpi0: 264-485 ps at the fast corners): formal's slack on ucmpi0's side
-  is 1.08 ns at FAST_MIN, 2-4x more. The two measure different things (T139: when the steer's condition settles against
-  its request; formal: how much later the condition can come before a wrong answer), so a steer may tolerate some late
-  settling (a condition glitch while no request is there). Not traced; the order of magnitude agrees, the factor does not.
+- **Against the audit's T139** (ucond_br2, fed by ucmpi0: 264-485 ps at the fast corners). Traced (09:30): in formal's own
+  all-FAST_MIN run, at ucond_br2's pins (request p2 from ucond_br2_j, condition p3 from ucmpi0.uz_n3; arrival = source flip +
+  path FAST_MIN), the condition settles >= **363 ps** before each of the 19 requests (next: 392, 392, 397, 399 ps) and never
+  moves while a request is high: **agrees with T139**. The consequence slack is larger (1.08 ns) because between +0.36 and
+  +1.08 ns the condition moves under a live request -- a steer runt -- and the answers still come out right in formal's
+  simulator (as the audit saw in T136). Per CLAUDE.md, the number to use is the settle margin, 0.36 ns at FAST_MIN; the
+  1.08 ns says only that the runts formal's model produces in between are absorbed downstream.
 
 ## C31. Collatz64 below item 32's sizes in formal's simx: x0.55 24/24 on routes 1-4 (63-bit trajectories); x0.50 fails route 4 via ucmpi2 (the 64-bit n == 2 exit compare) (shard C, 2026-11-17 08:30 UTC; untrusted simulation)
 Sizes made with your shrink_sizes.py from collatz64_sizes_T4cdb_h4s3p (x0.55: 21 sizes moved, x0.50: 29). c6418 (full 64-bit

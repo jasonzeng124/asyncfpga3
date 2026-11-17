@@ -4276,3 +4276,9 @@ sideslack.py on ucmpi0.uz_n4, col17: route 2 0.80 / 1.08 / 2.25 ns (FAST_MIN / 0
 ### progress 09:17 -- item 35's compare races in ps: ucmpi1 0.42-0.69 ns (1.86 at SLOW_MAX), ucmpi0 1.08-1.42 ns (FOR-RESEARCH C32)
 sideslack.py on ucmpi1.uz_n41 / ucmpi0.uz_n3, route 21, xor19. Audit T139 has 264-485 ps for ucond_br2 (fed by ucmpi0) at
 the fast corners; formal 1.08 ns at FAST_MIN on that side: different quantities (settling vs consequence); not traced.
+
+### progress 09:18 -- item 35 ucond_br2: formal's settle margin 363 ps at FAST_MIN = audit T139's 264-485 ps; the consequence slack (1.08 ns) includes absorbed steer runts
+Arrival times at ucond_br2's LUT pins in an all-FAST_MIN dump (no scatter): condition (ucmpi0.uz_n3) settles >= 363 ps before
+each of 19 request rises; never moves under a request. So formal and the audit agree on the raw race; sideslack's 1.08 ns
+counts runts that the model absorbs. Caveat recorded in C32: quote the settle margin. Same caveat applies to C29 / C31's
+sideslack numbers (they are consequence slacks, upper bounds on the settle margin).
