@@ -6160,3 +6160,35 @@ cluster: no cloud/setup-toolchain.sh (installed); RUNS=/tmp/bot/runs; 16 cores; 
   P median 16.73 / 16.29 / 16.23 / 16.75 ns (route scatter, no trend). The negative-control tasks (65-68) were not in
   the submitted array, so this harness has not yet been shown to fail on a defect: NOT a result until it is.
   (Formal B2's own preload control does fail: +20 ns on the carry into bit 16.)
+
+## Session 2026-11-17 22:15 UTC -- (in progress) cluster bot, session 2: the compiler suite (owner 4c65db3b3) and the automatic column
+Toolchain: patches.sha 789a7120c912d393, nextpnr 9c732bc6303458df (toolchain.sh all ok on node3627)   Seeds: per item
+Lock: cluster-research-29458663-1 (the previous session of this wrapper) taken 22:15 UTC as cluster-research-29466208-1.
+Audit: newest row T147 (BDC_AUTO off byte-identical, own check over 144 cases; caveat: the MLIR rewrites apply only on an
+md5 match with formal's three proven files, so on no other kernel). No new REFUTED / OVERSTATED row on my files.
+Formal: B2 (preload: UADDI0 12 -> 0 passes 112/112 preloaded draws, -4.9 %), C36-C47 caveat (formal's default arcs ~20 %
+fast; being redone on RC_TREE=1), C46 / C47 (cand4 routes and slow-carry draws pass in formal's simx).
+cluster: the previous session's node (node4512) is gone with its local runs (the AUTO-at-estimates builds); this node is
+node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GLS compile lock becomes N slots
+(/tmp/eventgraph_compile.slots = 4 here; unset = the old single flock, so the farm is unchanged).
+### progress 22:40 (owner PROGRAM 4c65db3b3 read: a benchmark suite; four subagents; AUTO loops on six kernels)
+- PROGRAM "A benchmark suite for the compiler" (owner, 22:1x): 20-30 kernels by shape, kernels/SUITE.md, Dynamatic's
+  integer integration tests too, one command that runs the suite through the automatic path and writes the table (pass
+  under draws, ns/iteration, LUTs, Dynamatic's figure, ratio; last line N pass and the geometric mean). The frontend now
+  runs here ($HOME/dynamatic, linked as dynamatic/, excluded from git).
+- build_bench.sh accepts any kernel with a frontend fixture (3def8ecfb); it listed the six by name.
+- Subagents (no git; I review and commit): suitek (about twelve scalar kernels, one per shape, generic C oracle, simcheck
+  from the C, SUITE.md), suited (triage of Dynamatic's 95 tests: frontend / bdc / bench, blockers ranked), suiteb (bench
+  ABI: more than two argument words, host access to arrays through a slot on the generated memport, read-back), bandfit
+  (finish "where the board sits": ipow at y 0.2 / 1.0, the y 2 / 3 bound, the shared table in SIM-VS-BOARD.md).
+- Found while briefing: a memref argument becomes a bd_mem with no external port, so memsum emits but its array can
+  never be filled (its answer is always 0); stores do not emit (single_loop: "store accessor"). suiteb has both.
+- Local: research/tools/auto/auto_size.sh (BDC_AUTO=1, sizes from CA_SIZERULE, re-route and ratchet) on xorshift,
+  collatz, collatz64, ipow, gcd, isprime, seed 1, MAXIT 5. First point: ipow it 0 (emit.py's estimates) P 64.71 ns,
+  EQUIVALENT, ffmux-clean.
+- Farm, read (hand recipes; under "General first" they are the hand column, not the headline):
+  cand3b (x55a10 = item 35 with UCMPI0 10): 200 / 200 draws on 28 EQUIVALENT routes, P median 16.76 ns (15.73-18.55).
+  slowc1b (slow-carry draws, CARRY4 / F7F8 / FF 0.8-1.0, on every board route + cx70 s27 + ix70 s31): every block passes.
+  shrink10b (collatz64 item 32 sizes): x0.70 88 / 88 on EQUIVALENT routes, P median 27.71 (26.40-30.83); x0.55 68 / 88,
+  failing on routes 9 18 20 21 22 28 31 (302 mismatch batches: a stream one call behind).
+  gcddraw1 2 / 64 finished (the queue is full); preload1 61 / 64.
