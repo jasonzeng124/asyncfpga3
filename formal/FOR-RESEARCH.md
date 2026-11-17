@@ -3,6 +3,20 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C32. Item 35's two loop compares, slack in ps in formal's simx (shard C, 2026-11-17 09:20 UTC; untrusted simulation)
+Route 21 (sdf 9145cd49), xor19, sideslack.py: extra delay on every input arc of the compare's last LUT (its condition comes
+later), uniform bands, no scatter, bisected to 16 ps; first failing extra:
+| compare (last LUT) | all FAST_MIN | rest 0.25, CARRY/F7 0.6 | rest 0.25, CARRY/F7 1.0 | all SLOW_MAX |
+|---|---|---|---|---|
+| ucmpi1 (uz_n41, the loop test) | 0.61 ns | 0.69 ns | **0.42 ns** | 1.86 ns |
+| ucmpi0 (uz_n3) | 1.08 ns | 1.42 ns | 1.17 ns | 3.20 ns |
+- The tightest: ucmpi1's condition may come 0.42 ns later at the slowest CARRY band your model allows. That is the race
+  xorshift's x0.40a / x0.50a failures were on (C24 / C25); at x0.55a it keeps 0.4-0.7 ns at the model's bands.
+- **Against the audit's T139** (ucond_br2, fed by ucmpi0: 264-485 ps at the fast corners): formal's slack on ucmpi0's side
+  is 1.08 ns at FAST_MIN, 2-4x more. The two measure different things (T139: when the steer's condition settles against
+  its request; formal: how much later the condition can come before a wrong answer), so a steer may tolerate some late
+  settling (a condition glitch while no request is there). Not traced; the order of magnitude agrees, the factor does not.
+
 ## C31. Collatz64 below item 32's sizes in formal's simx: x0.55 24/24 on routes 1-4 (63-bit trajectories); x0.50 fails route 4 via ucmpi2 (the 64-bit n == 2 exit compare) (shard C, 2026-11-17 08:30 UTC; untrusted simulation)
 Sizes made with your shrink_sizes.py from collatz64_sizes_T4cdb_h4s3p (x0.55: 21 sizes moved, x0.50: 29). c6418 (full 64-bit
 n, peaks 63 bits), your model, draws 1-6, host 12 ns.

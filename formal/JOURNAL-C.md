@@ -4272,3 +4272,7 @@ C31 updated. Running the same on collatz x0.55 routes 2 / 6 (ucmpi0.uz_n4).
 ### progress 09:04 -- collatz x0.55 slack on the ucmpi0 -> steer race: 0.8-1.4 ns at FAST_MIN / band 0.25, 2.3 ns at SLOW_MAX (routes 2, 6)
 sideslack.py on ucmpi0.uz_n4, col17: route 2 0.80 / 1.08 / 2.25 ns (FAST_MIN / 0.25+CARRY 0.6 / SLOW_MAX), route 6 1.02 /
 1.36 / 2.27 ns. Consistent with x0.50's shortfall (route 2 0.2-0.7 ns): one step of both chains ~1.2-3 ns. C29 updated.
+
+### progress 09:17 -- item 35's compare races in ps: ucmpi1 0.42-0.69 ns (1.86 at SLOW_MAX), ucmpi0 1.08-1.42 ns (FOR-RESEARCH C32)
+sideslack.py on ucmpi1.uz_n41 / ucmpi0.uz_n3, route 21, xor19. Audit T139 has 264-485 ps for ucond_br2 (fed by ucmpi0) at
+the fast corners; formal 1.08 ns at FAST_MIN on that side: different quantities (settling vs consequence); not traced.
