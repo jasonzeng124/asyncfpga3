@@ -1,5 +1,5 @@
 #!/bin/bash
-#CLUSTER array=1-20 cores=8 mem=32G time=300
+#CLUSTER array=1-20 cores=8 mem=32G time=240
 # slowc1 (PROGRAM 2026-11-17 "where does the board sit"): no August board latency pins the CARRY4 / F7F8 / FF band (own
 # runs, audit T145, formal A13), so the board candidates are re-judged at its slow end: 16 draws each on the board route
 # with DRAW_CARRY=0.8,1.0 (chains and rest drawn as usual). K = 5000 + 100c + n. Task = candidate c (0-9) x block of 8.

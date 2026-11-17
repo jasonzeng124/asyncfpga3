@@ -6022,3 +6022,4 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
   band fit on the August bitstreams (lead 5), Dynamatic's ipow / gcd numbers (6), gcd by draws (7), preloaded loop state
   for the incrementer (1b), a CARRY4 / F7 ring board experiment to pin the unmeasured band (8: the gap with the largest
   effect on a candidate -- collatz x0.55 and item 35 live or die by it).
+- 20:4x: cand3 / cand4 / slowc1 / shrink10 rejected by the farm (time limit 240 min, I asked 300); resubmitted as cand3b / cand4b / slowc1b / shrink10b, otherwise identical.

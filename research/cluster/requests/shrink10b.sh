@@ -1,5 +1,5 @@
 #!/bin/bash
-#CLUSTER array=1-64 cores=8 mem=32G time=300
+#CLUSTER array=1-64 cores=8 mem=32G time=240
 # shrink10 (PROGRAM 2026-11-17 lead 4): collatz64 by draws on c6419 (in-domain vectors whose trajectories peak at 48-49 bits,
 # plus n = 1). Item 32's sizes (fc64sel3p, h4s3p; 31.4 ns) x 0.70 and x 0.55 of EVERY size, routes 1-32, 4 default draws each
 # (K = 100S + 10f + j). PREDICTION (from collatz shrink9 / ipow shrink8): x0.70 128/128 on EQUIVALENT routes, P median ~27 ns;

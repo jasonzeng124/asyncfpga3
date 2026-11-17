@@ -1,5 +1,5 @@
 #!/bin/bash
-#CLUSTER array=1-32 cores=8 mem=32G time=300
+#CLUSTER array=1-32 cores=8 mem=32G time=240
 # cand3: item 35's sizes with UCMPI0 6 -> 10 (x55a10; formal C41: at CARRY/F7 1.0 x55a keeps ~0 ps at the loop-entry steer
 # ucond_br2, x55a10 >= 387 ps on 8 routes, no visible cost). Routes 1-32; per route 4 default draws (K = 100S+1..4, the model
 # as in shrink5) and 4 slow-carry draws (K = 100S+51..54, DRAW_CARRY=0.8,1.0: CARRY4 / F7F8 / FF only in the top fifth of

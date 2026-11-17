@@ -1,5 +1,5 @@
 #!/bin/bash
-#CLUSTER array=1-10 cores=8 mem=32G time=300
+#CLUSTER array=1-10 cores=8 mem=32G time=240
 # cand4: the collatz and ipow candidates chosen by the draws (x0.55 fails draws on clean routes: collatz route 30 at CARRY
 # 0.75 / 0.91, ipow route 12 at CARRY 0.20 too; x0.70 passed every draw: collatz 96/96 on 24 EQUIVALENT routes, P median 19.76 ns;
 # ipow 84/84 on 21 EQUIVALENT routes, P median 30.21). Board route = the median EQUIVALENT ffmux-clean route: collatz x0.70
