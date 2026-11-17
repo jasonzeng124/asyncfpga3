@@ -107,7 +107,8 @@ Prioritise BOARD-QUEUE #1-#3, since they are what would go on the board.
 The owner: "there is so much usage left why dont you jstu use it all". The week's quota
 resets on 2026-11-18 at 23:00 UTC, and what is unused is lost.
 
-- Until 2026-11-18 12:00 UTC you may run up to 4 subagents at a time; after that 2 again.
+- Until the reset (2026-11-18 23:00 UTC) you may run up to 4 subagents at a time; after that
+  2 again. The owner, later the same day: a slight overrun of the quota is fine.
 - Do not end the session early: nothing restarts it until the owner next looks.
 - Side by side: the draw model's parameters against the ring data; item 35 with formal's
   C36 and C41; the ipow and collatz candidates as they appear; formal B's preloaded runs
