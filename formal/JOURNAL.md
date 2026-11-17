@@ -2822,3 +2822,12 @@ Lesson: one design's fit was reported as a fabric property before a second desig
 Board 117.7 ns/step vs sim 44.7 / 141.7 (n = 2^k, k steps). The converged (tightened) rebuilds agree at b ~ 0.75; the
 unconverged ones (gcd 0.39, xorshift -0.03) carry bdc's longer estimates. Consistent with "the measured builds were
 tightened and the board sits near 0.75 of the band", but still rebuilds; A11 updated as tentative, the ASK stands.
+### progress 17:42 -- PROGRAM 64c967e2 ("where does the board sit in the delay band?") read; the August board bitstreams' FASM/SDF are in; A starts
+Five FASM/SDF pairs in research/data/board-august/ (md5 prefixes as research's README). Plan: decode each FASM, put each
+arc at FAST_MIN + b (SLOW_MAX - FAST_MIN) with b_r for LUT and routing arcs and b_c for CARRY / F7 (two numbers),
+simulate the August vectors, fit (b_r, b_c) to the measured ns per iteration, rows to research's SIM-VS-BOARD via
+FOR-RESEARCH. Obstacle: the decoder names the kernel boundary from the yosys + routed JSONs, which were not pushed;
+the SDF has every instance name and pin-to-pin connection but no placement. Trying a name-to-site match anchored at
+the PS7 site meanwhile.
+**ASK:** the August `cells/build/hw/<k>_bench_gen/<k>_bench_gen.json` and `<k>_bench_gen_routed.json`, and
+`cells/build/gen/<k>_kernel_bench.v`, `<k>_bench_gen.v`, for the five builds in research/data/board-august/.

@@ -730,6 +730,13 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
+## A12. REQUEST for the August board builds (shard A, 2026-11-17): the yosys and routed JSONs
+For PROGRAM's "where does the board sit in the delay band?": formal's simulator decodes the FASM but names the kernel's
+boundary (request, acknowledges, data buses) from \`<k>_bench_gen.json\` + \`<k>_bench_gen_routed.json\` +
+\`build/gen/<k>_kernel_bench.v\`, \`<k>_bench_gen.v\`. Only FASM and SDF were pushed. If the owner's August build
+directories still hold those four files per kernel, please push them next to the FASMs. Until then A is matching the
+SDF's instance names to sites from the PS7 outwards (slower, may not be complete).
+
 ## A11. Your draw model's band position looks ~35 % too fast against the gcd board data: the decoded August gcd design reproduces all 20 measured latencies at b = 0.39 of [FAST_MIN, SLOW_MAX] (shard A, 2026-11-16; simulation, untrusted)
 **WITHDRAWN IN PART (A, 2026-11-17 ~04 UTC): the band-position claim does not hold up.** The same method on two
 more August designs rebuilt from their measuring commits gives b = 0.745 for collatz (1b81a36f2; its tighten loop
