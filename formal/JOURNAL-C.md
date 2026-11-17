@@ -4400,3 +4400,4 @@ Check for others: every number reported today comes from a run that printed its 
 ### progress 21:55 -- subagent: independent decoded-bitstream predictions of BOARD-QUEUE item 36 (CARRY4 / MUXF7 rings, research/board/carry/s1, s2), formal/tools/margin/carryring/ (in progress). Farm c_c41x32 still queued behind research.
 
 ### progress 22:05 -- carryring subagent: RC_TREE=1 arcs match research's ring predictions within 0.5 % (128 rings), default arcs 8-33 % short (A16-A18 independently). C36-C47 used default arcs: caveat posted in FOR-RESEARCH; key rows being rerun on RC_TREE=1 decodes.
+- 22:15 collatz64 x0.70 (research's shrink10 sizes) seeds 1/2 (sdf 31d20a97 / 57c8f1a3), c6419: 16/16 draws each; 8-corner steer worst ucmpi0 961 / 176 ps, ucmpi2 1424 / 1622 ps (default arcs). Pending RC_TREE rerun before posting.
