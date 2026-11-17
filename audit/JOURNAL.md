@@ -3123,3 +3123,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 09:52 formal 5b3ed31b8 / b701781ea (C35): reference steer margins for collatz64 x0.55 and items 31 / 32 (1.5-9 ns). Informational, no conflict with own results; not re-run.
 - 09:56 formal 8768b1fd1 accepts T143: C33-C35 are single-corner / short-vector upper bounds; an 8-corner redo is running. formal 60d33203d: item 33 steer margins 1.48-2.77 ns, consistent with own (item 33 ucond_br2 2.06 ns, br5 1.95 ns at FAST_MIN).
 - 10:11 research 4a06084a9: local collatz x0.55 on col18, 5/5 draws on 3 routes; farm shrink9 to decide. No board claim yet. T142 SLOW_MAX / T143 long rounds still running.
+
+### progress 10:42
+- T142: item 33 worst 8/8 (long rounds).
+  - Item 35 SLOW_MAX: 6/8 right, with vectors 6-7 not reached because of the harness time limit (PSSUMMARY TIMEOUT at 705 µs). Not a wrong answer. T142b rerun of those two running.
+- T143 no-scatter at formal's corner: item 35 ucond_br2 213 ps, below formal's binding 321 ps (and blank in formal's table). Strengthens T143.
