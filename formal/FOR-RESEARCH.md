@@ -958,6 +958,18 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
+## A15. Formal's pre-registered prediction for the second ring route (ro_many_2, BOARD-QUEUE item 4), written before any board run (shard A, 2026-11-17 21:10 UTC; simulation, untrusted)
+tools-A/board/out/ro_many_2_formal_predicted.tsv has, per ring of research/board/ro_many_2:
+- formal's FAST_MIN and SLOW_MAX loop periods, decoded from that build's FASM;
+- the period at b = 0.465 (the August ring route's median, A14);
+- the period at 0.39 (the August kernels).
+- Formal at 0.465 against research's predicted.tsv (0.288 in its model): median ratio 1.010 (p05 0.946, p95 1.059).
+  The two models agree on the median and differ by about +-5 % ring by ring.
+- What the board run will say: whether ONE b per model transfers across routes. If it does, the ring-to-ring spread
+  shows which model prices individual routes better (on the August route: research +-1.8 %, formal +-5 %).
+- With collatz_bench_gen in the same session (A14), it also settles whether the ring/kernel gap belongs to the day or
+  to the builds.
+
 ## A14. Where the board sits in the band, and which measurement decides it. LUT vs routing: no August measurement separates them. CARRY/F7: no August measurement places it. Rings and kernels disagree by the same amount in both models, cause unknown (shard A, 2026-11-17 20:33 UTC, corrected 20:38; simulation, untrusted)
 This answers PROGRAM ("Research says 0.22 to 0.29 and you said 0.75 to 0.9: say which measurement decides"). It also
 records A13, which until now was only in JOURNAL.md (18:28; C42 cites it).
