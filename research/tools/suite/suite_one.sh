@@ -13,6 +13,7 @@
 # Writes $RUNS/suite/KERNEL_SEED/{result.txt, draws.txt, exp.txt}; prints the result line.
 set -uo pipefail
 K=$1; S=$2; ND=${3:-4}; MAXIT=${4:-4}
+export PNR_TIMEOUT=${PNR_TIMEOUT:-3600}   # build_bench.sh's per-seed limit (default 420 s): a loaded machine passed it
 R=$(cd "$(dirname "$0")/../../.." && pwd); RUNS=${RUNS:-/home/user/runs}; export RUNS
 O=$RUNS/suite/${K}_$S; mkdir -p "$O"; : > "$O/draws.txt"
 D=${K}_bench_gen
@@ -38,7 +39,11 @@ case $AR in
   CLEAN*) IT=$(echo "$AR" | grep -o 'it=[0-9]*' | cut -d= -f2); RULE=clean;;
   "NOT CLEAN after"*) IT=$(echo "$AR" | sed -n "s/^NOT CLEAN after \([0-9]*\).*/\1/p"); RULE=not-clean;;
   "NOT CLEAN it="*) IT=$(echo "$AR" | grep -o 'it=[0-9]*' | cut -d= -f2); RULE=not-clean-unfixable;;
-  "BUILD FAILED it=0"*) fin "status=DOES-NOT-COMPILE ($(grep -m1 -i 'error' "$RUNS/hw/${N}_0/build.log" | cut -c1-160))";;
+  "BUILD FAILED it="*) BI=$(echo "$AR" | grep -o 'it=[0-9]*' | cut -d= -f2); BL=$RUNS/hw/${N}_$BI/build.log
+    # a place-and-route that ran out of time is the machine, not the compiler (PNR_TIMEOUT, build_bench.sh)
+    if grep -q "per-seed timeout" "$BL" 2>/dev/null; then fin "status=PNR-TIMEOUT (it=$BI; raise PNR_TIMEOUT or load less)"; fi
+    [ "$BI" = 0 ] && fin "status=DOES-NOT-COMPILE ($(grep -m1 -iE 'error|failed' "$BL" | cut -c1-160))"
+    fin "status=FLOW-FAILED (build it=$BI: $(grep -m1 -iE 'error|failed' "$BL" | cut -c1-140))";;
   *) fin "status=FLOW-FAILED ($AR)";;
 esac
 RT=${N}_$IT; HW=$RUNS/hw/$RT; RD=$RUNS/r/$RT

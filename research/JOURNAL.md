@@ -6231,3 +6231,22 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   entry-steer race, C43's UCMPI0 8 removes it. Formal B3: x55a10 with UADDI0 0 is ~6 % faster, every draw and preloaded
   draw passes, loop-test settle 194 ps on one of 3 routes; and a sizing-rule idea: size a join's inputs together when
   both start from the same token (only the later request must cover both data). Noted for the rule (below).
+### progress 23:00 (Dynamatic's integration tests triaged; four AUTO builds lost to nextpnr's 420 s limit under load)
+- suited (subagent, reviewed; d7ec7ac03, 07f2ae7be, 8d3e64ccc, 242c3f71b): Dynamatic's 95 test directories are 118
+  tests (memory/ holds 23, sharing/ 2; frontend.sh now reaches them). 33 use float/double (out of scope; their 31
+  fixtures dropped again), 4 fail at the frontend (translate-llvm-to-std: llvm.abs, external calls, sqrt, cos). **12
+  emit through bdc** (factorial, fir, gcd, if_loop_1, if_loop_2, iterative_division, iterative_sqrt, sumi3_mem,
+  test_bitint, test_int16, test_loop_free, unused_arg), identically with BDC_AUTO=1; **4 fit today's bench** (factorial,
+  gcd, iterative_division, iterative_sqrt). Blockers of the 71 blocked integer tests, by tests needing each: lsq 39
+  (only blocker of 25; nothing exists), a store on a memory controller 33 (only blocker of 9; emit.py
+  _op_mem_controller), two accessors with a load first 21 (small), > 2 accessors 4, handshake.ram 3, divsi / divui /
+  remsi 3 / 1 / 1, memref > 1024 words 2. The three memory-controller items alone unlock 26 tests. ASKed back to me:
+  force-mc (compile LSQ tests with memory controllers) would leave 36 of 39 needing only those items, but nothing shows
+  bdc's token chain orders a load after a store of the previous iteration (test_memory_5: a[i] = a[i-1] + a[i-2] + 5):
+  not taken; a measurement at most.
+- Bench bugs it found (forwarded to suiteb, who owns gen_bench.py): array arguments give invalid Verilog
+  (`.x_data ({})`), so memsum cannot synthesize; the result width is never checked (test_int16's 16-bit result leaves
+  16 host bits undriven); the input-domain table is keyed by kernel name.
+- The six-kernel suite run of 22:45 lost xorshift, collatz64, ipow and gcd at it 0: nextpnr passed build_bench.sh's
+  420 s per-seed limit on this loaded node (seven subagents' builds beside it). Not a compile failure; suite_one.sh now
+  says PNR-TIMEOUT for it and exports PNR_TIMEOUT=3600 by default. Restarted 22:59 with -j 4.
