@@ -65,6 +65,7 @@ if [ "$eq" != EQUIVALENT ] || [ "$ff" != ffmux-clean ]; then fin "status=NOT-A-B
 draw() { local k=$1 g
   g=$("$R/research/tools/eventgraph/bench_gate.sh" "$HW" "$D" "$RUNS/g/$RT/d$k" "$R/$V" "$O/exp.txt" "draw:$k" 2>&1 | tail -1)
   echo "draw $k $(cut -d' ' -f3-8 "$RUNS/g/$RT/d$k/draw_$k.txt" 2>/dev/null) :: ${g:-none}" > "$O/draw_$k.txt"
+  grep '^BENCHRES' "$RUNS/g/$RT/d$k/draw_$k/run.log" 2>/dev/null | sed 's/sig=[0-9a-f]* //' > "$O/benchres_$k.txt"
   rm -rf "$RUNS/g/$RT/d$k/draw_$k" 2>/dev/null; }
 mkdir -p "$RUNS/g/$RT"; [ -f "$RD/xray.sdf" ] && for j in $(seq 1 "$ND"); do k=$((10000 + 100 * S + j)); mkdir -p "$RUNS/g/$RT/d$k"; cp "$RD/xray.sdf" "$RUNS/g/$RT/d$k/xray.sdf"; done
 for j in $(seq 1 "$ND"); do
@@ -74,4 +75,18 @@ done; wait
 pass=0
 for j in $(seq 1 "$ND"); do k=$((10000 + 100 * S + j)); cat "$O/draw_$k.txt" >> "$O/draws.txt"; grep -q ":: PASS " "$O/draw_$k.txt" && pass=$((pass + 1)); done
 st=PASS; [ "$pass" = "$ND" ] || st=FAIL
-fin "status=$st draws=$pass/$ND $base"
+# latency per call under the draws: per vector the median over draws of latmin (host cycles of 12 ns), then the median
+# and the sum over the vectors
+lat=$(python3 - "$O" <<'PY'
+import glob, re, statistics as st, sys
+per = {}
+for f in glob.glob(sys.argv[1] + "/benchres_*.txt"):
+    for l in open(f):
+        d = dict(re.findall(r"(\w+)=(\S+)", l))
+        if "batch" in d and "latmin" in d:
+            per.setdefault(int(d["batch"]), []).append(int(d["latmin"]) * 12)
+v = [st.median(x) for _, x in sorted(per.items())]
+print("lat_call_med_ns=%d lat_call_sum_ns=%d nvec=%d" % (st.median(v), sum(v), len(v)) if v else "lat_call_med_ns=NA")
+PY
+)
+fin "status=$st draws=$pass/$ND $base $lat"
