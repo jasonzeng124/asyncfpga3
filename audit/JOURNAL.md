@@ -2984,3 +2984,14 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 00:36
 - T137: x0.40a worst also HANGS at batch 12 after ucond_br2 runts and a ucond_br8 select change at 32.54 µs. Stopped the hung vvp. REPORT row now reads FAST_MIN and worst.
 - research 4861ad9f6: lock only.
+
+### progress 00:57
+- T137: x0.40a advA also hangs at batch 12. x0.40a on seed 27 fails at FAST_MIN, worst and advA. The x0.40c control is running.
+- research affc211d5 / 2e6b965b3:
+  - shrink5 picks x0.55a (UCMPI0 6, UCMPI1 5, UADDI0 12): 128/128 draws on 32 routes, median 16.85 ns.
+  - Board route seed 21; draws2 (32 more draws + a 3-corner gate) is queued. shrink6 is collatz x0.55s.
+  - Audit points:
+    - the draws never reach FAST_MIN, where x0.40a first hangs (T137);
+    - 0/128 failures bounds the per-draw rate at 2.3 % (95 %);
+    - the verdict is oracle-only (T136 runts).
+  - T139 queued: own build of x0.55a s21, GLS FAST_MIN / worst / advA / SLOW_MAX with steer monitors.
