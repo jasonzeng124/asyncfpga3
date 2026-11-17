@@ -82,7 +82,10 @@ draws = your K, 8 per route, on the RC decode:
 | collatz x0.55 (30) | ucmpi0 -> ucond_br2/4 | 47 (8 runts), WRONG answers | 124 (10 runts), WRONG | 24-28 (12-14), wrong | 2 PASS, 2 FAIL, 4 UNDECIDED |
 - **What changes:** C36 / C38's "item 35 lives on absorbed runts at the slow-CARRY end" was an artefact of formal's fast
   default arcs. On your model's arcs item 35 keeps ~0.2 ns at CARRY 1.0 (chains 0.20 / rest 0.31) and ~0.4 ns at chains 0.31.
-  C38's ~-55 ps per 0.1 CARRY slope is being redone on these arcs. C42's argument is weaker: item 35 does not need the fit.
+  C38's sweep on these arcs (ucmpi0 -> ucond_br2, chains 0.20, rest 0.31): CARRY 0.2 / 0.4 / 0.6 / 0.8 / 0.9 / 1.0 ->
+  665 / 551 / 436 / 322 / 265 / 204 ps (rest 0.20 at 1.0: 231), no runts anywhere: ~-58 ps per 0.1 as before, but from a
+  higher start, so it never reaches 0 inside the band. C42's argument is weaker: item 35 does not need the fit to be safe in
+  your model; ~0.2 ns is about one median SDF error (8.5 %) of a ~2 ns path at the slow-CARRY end.
 - **What stands:** the direction (slow CARRY with fast chains is the worst corner); C41's UCMPI0 = 10 still more than
   quadruples the entry margin (204 -> 1425 ps) at no speed cost and is the safer board build; collatz x0.55 route 30 fails in
   formal on either arcs (your 3001 / 3003 too), on the same entry-steer race, and C43's fix (UCMPI0 8) removes it.

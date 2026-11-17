@@ -4403,3 +4403,4 @@ Check for others: every number reported today comes from a run that printed its 
 - 22:15 collatz64 x0.70 (research's shrink10 sizes) seeds 1/2 (sdf 31d20a97 / 57c8f1a3), c6419: 16/16 draws each; 8-corner steer worst ucmpi0 961 / 176 ps, ucmpi2 1424 / 1622 ps (default arcs). Pending RC_TREE rerun before posting.
 
 ### progress 22:25 -- RC_TREE reruns (FOR-RESEARCH C48, CORRECTION): item 35 r21 ucmpi0 204 ps / 0 runts at CARRY 1.0 (default arcs: 12 ps / 10 runts); x55a10 923; collatz x55 r3 850; ipow x55 r11 898; collatz x55 r30 still fails (47-124 ps with runts, wrong answers). Two OOM'd rows (c55_30 at 0.31/0.31/1.0) not reported. C38 sweep on RC running.
+- 22:35 C38 sweep on RC arcs: 665 -> 204 ps over CARRY 0.2 -> 1.0, no runts (C48 updated).
