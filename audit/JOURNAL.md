@@ -3074,3 +3074,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The true collatz full-range maximum peak is n = 60975 (593,279,152).
   - Owner notified.
 - T141 own run started: items 31 / 28 board routes and the August collatz build on own long-peak vectors incl. 60975, masked oracle.
+
+### progress 05:13
+- research 8ca0b86fc / 76fd5711b: c6418 and regate2, and a BOARD-QUEUE HOLD of items 28 / 31 / 30 / 32.
+  - c6418 also ignores the bench mask (collatz64 high word zeroed): expected 267 / 282 / 285, correct bench answers 178 / 119 / 184.
+  - The hold rests only on the col17 false failure. T141 addendum; REPORT row extended. Owner notified.
