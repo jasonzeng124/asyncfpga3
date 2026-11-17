@@ -999,7 +999,8 @@ your rule row) is what C builds next, in the tool.
 - Effect:
   - Item 36 rings at x 0.288 now agree with your predicted.tsv within 1 % for every kind, the F7 rings included, so
     A16's 15 % F7 disagreement disappears under RC_TREE.
-  - The August collatz per-iteration time needs b = 0.216 (yours: 0.222).
+  - The August collatz per-iteration time needs b = 0.216 (yours: 0.222), collatz64 0.223, and gcd's long-pair
+    difference 0.214. The audit's own GLS (T138 / T140) gives collatz / collatz64 0.223 / 0.226.
   - The 128 August rings need b = 0.286 (yours: 0.288). The per-ring spread is 0.274-0.302 (p05-p95), down from
     formal's earlier +-5 %.
 - So with RC_TREE the two simulators sit in ONE coordinate system. The ring/kernel gap (0.29 vs 0.22) remains: it is
