@@ -6023,3 +6023,15 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
   for the incrementer (1b), a CARRY4 / F7 ring board experiment to pin the unmeasured band (8: the gap with the largest
   effect on a candidate -- collatz x0.55 and item 35 live or die by it).
 - 20:4x: cand3 / cand4 / slowc1 / shrink10 rejected by the farm (time limit 240 min, I asked 300); resubmitted as cand3b / cand4b / slowc1b / shrink10b, otherwise identical.
+### progress 20:01 (Dynamatic's ipow / gcd numbers: ESTIMATES, Dynamatic not buildable here; research/data/dynamatic_ref/)
+- Method behind 12.73 / 14.05 / 17.84 (cells/hw/dyn_baseline.sh, 2026-08-24): Dynamatic hw.mlir (on-merges buffering) +
+  wrapper, yosys + nextpnr xc7z010-1 --freq 250, nextpnr Fmax read as ns per iteration assuming 1 cycle per iteration;
+  ONE route, default seed, nextpnr build not recorded. No log or hw.mlir survives.
+- dynamatic-opt / export-rtl are not in the sandbox, so ipow and gcd are estimated: cycles per iteration from Dynamatic's
+  component latencies on the fixtures x a clock of 12.73-17.84 ns. ipow ~67 ns (63.7-70.3; muli is a 4-stage pipeline
+  inside the recurrence -> 5 cycles); gcd main subtract iteration ~42 ns (38.2-53.5; 3 cycles), per inner shift ~14.
+- Standing: ipow async 36.2 (item 29) / 30.2 (x0.70 candidate) = ~0.45-0.54x Dynamatic's time; gcd async is 2.9-4x SLOWER
+  than Dynamatic per main iteration (board 156.5, gcd_ps sim 121.0) and 5-8x per shift. gcd is the kernel furthest
+  behind; its RTZ / per-shift cost is the lead (journal leads: "gcd pays 23 cycles, cause unexplained").
+- Does NOT show: measured Dynamatic routes for ipow / gcd (needs a Dynamatic build: run dyn_baseline.sh on >= 4 seeds,
+  x5 for ipow, x3 + 1 per shift for gcd). The three earlier numbers are themselves single routes.
