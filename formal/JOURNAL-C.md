@@ -4076,3 +4076,20 @@ seed (zero trips): the loop test from ucmpi1 steers to the exit; insensitive to 
 (passes further at 0.20): the compare's carry chain vs its shortened UCMPI matched delay.
 
 ### progress 00:41 -- c_shrink5: x0.55a 1024/1024; x0.50a 1016/1024 (routes 7, 18; slow CARRY draws); research's K: no disagreement (C25)
+
+### progress 00:41 -- session summary (C, 2026-11-16/17; the session continues)
+**Built (formal/tools/margin, untrusted simulation):** the board approximator. `run.sh DRAWS=N` -> draws.py -> simx `--draw`:
+random delay draws on the circuit decoded from the bitstream, research's draw model exactly (`DRAW_MODEL=research`:
+bands per class from Random(7919K+17), region 0.02, per-pip 0.126) or the fid parameters (`fid`); injections
+(`DRAW_INJECT`); diverge.py (where two runs part, with routed names). Host fix: simx's broad host could raise a request
+before its data (C21 withdrawn); fixed and checked.
+**Results (FOR-RESEARCH C20-C25):** every board candidate passes every draw in formal's simx (items 25-28, 30-33; ipow not
+decodable); research's draws1 vs formal: one disagreement (control +3000, draw 15; formal's threshold there 2.97 ns,
++2.9..+4.0 ns over 32 draws); research's control +8000 fails 16/16 in both. Item 33 sizes: x0.40c clean on 16 routes;
+x0.40a / x0.30a fail on most routes in formal and on the same fragile routes in research (exact agreement on route 12);
+x0.55a 1024/1024; x0.50a 1016/1024 (routes 7, 18; slow CARRY draws). The race: the compare's carry chain vs its
+shortened UCMPI matched delay (the loop test steers a 4-round call to the exit).
+**Known limits:** FFs are opaque in formal's decode (FF-mux / packing defects invisible: research's x0.55 s27/s9);
+transport LUTs + 20-ps filter instead of a resolver; the fid model separates the known-bad builds by ~3 % of draws,
+research's model by none. **Not done:** the gcd theorem (second priority), Lean for anything above, the C19 resolver
+question on silicon (research's BOARD-QUEUE item 2).
