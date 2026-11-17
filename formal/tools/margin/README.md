@@ -84,6 +84,12 @@ check: `RACES=1 simx test/toy_latch.simx --kernel collatz --want 1,0,1 --pairs 1
 /dev/null --data0 --full --R 4000 --su 100 --datachange broad --nextreq seq --tmax 100000 --hostdelay 500` reports the latch's
 D arriving 49 ps before its enable closes (with RACES_T0=0; by default the first 5 ns after reset release are skipped, as start-up settling, for RACES and NEARMISS alike). Transparent latches legitimately pass D glitches: a small gap is a pointer
 for tracing, not a failure.
+**Naming a race and its slack in ps (2026-11-17):** `chainfix.py OUT --kernel K --pairs .. --bands bc,br,bx [--extra PS]
+[--only REGEX]`: for a run that fails, adds PS to one delay chain at a time (its g[0] input arcs), uniform bands, no
+scatter; the chains that turn it into a PASS are the matched delays that are too short (smallest fixing PS = the
+shortfall). `sideslack.py OUT CELLREGEX --kernel K --pairs .. --bands ..`: for a run that passes, adds X to every input arc
+of the named LUTs (a race's slow side, e.g. a compare's last LUT) and bisects the first failing X (16 ps): the slack.
+Both inject outside the prjxray band (simx `--classes {"I": ...}`); positive injections only.
 `diverge.py NET A.json B.json --routed R`: the nodes where two dumps part, LUTs whose flip count differs, with names.
 
 ## Simulator
