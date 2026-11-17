@@ -2837,3 +2837,6 @@ colour refinement. Tested on A's own collatz rebuild (truth from its routed JSON
 locally (the decoder sees the pins a LUT's INIT depends on, the SDF the pins nextpnr connected: 232 more SDF LUT cells,
 pin-count histograms differ), and exact refinement amplifies any local difference. A fuzzy matcher might work but is
 a large job; the August yosys/routed JSONs (A12's ASK) would make it unnecessary. Not continued for now.
+### progress 17:46 -- scale_net.py ready for the two-band fit (b_r for LUT/routing, b_c for CARRY/MUXF)
+Checked: at (0, 0) the scaled gcd_ps net reproduces the all-FAST_MIN simx run to the ps (out0 at 996,853 ps). The fit on
+the August board builds waits only on A12's ASK (their JSONs, to name the boundary).
