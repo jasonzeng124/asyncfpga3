@@ -3136,3 +3136,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 11:53 research 9a38ab8b9: local ipow x0.55 route 19 fails, attributed to an F7-select bitstream defect (not timing). UNVERIFIED: a new defect class not covered by the own 5FF scan. To check if ipow x0.55 becomes a board candidate.
   - Checked: ipow has no bench mask (gen_bench.py: 'gcd, ipow, isprime: no mask'), so the six large-e failures are on real inputs, not a mask artefact like col17. The F7-defect attribution is UNVERIFIED (no board candidate yet).
 - 12:31 research 6daa8df0a: local ipow x0.55 route 3 passes 2/2 draws at 26.41 ns (item 29 ~36.2). A lead, not a board claim; 2 draws only.
+- 14:30 research 377d1b356: local ipow x0.55 6/6 draws on 3 clean routes, 25.9-27.6 ns (item 29 ~36.2). Still a lead, not a board item. To audit when a route is named (own build, oracle on ipow_17 incl. e up to 0x7fffffff, steer monitors, FAST_MIN / worst / advA / SLOW_MAX).
