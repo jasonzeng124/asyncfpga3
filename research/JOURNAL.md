@@ -6074,3 +6074,13 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
   (two rings sharing a token), a branch whose arm holds a loop (survives if-conversion), and a loop reading an array
   (memory). PROGRAM "General first" item 3 asks for at least these three shapes; please run the frontend and return each
   as cloud/fixtures/frontend/<name>/.
+### progress 21:55 (gcd by draws: tooling + vectors done; farm gcddraw1 submitted without its shrink half)
+- gcd judged on the kernel bench with BQ item 5's sizes (gcd_hw R5s75, bench prefix; research/data/gcd_draws/), flags
+  BDC_LINK_FASTFALL=1, v4 placement, gcd_hw_pads.json select pads. Oracle from Dynamatic's gcd.c (audit copy) with the
+  bench mask; matches research/board/gcd_ps_vec1000.hex byte for byte. gcd18: 18 in-domain pairs, no answer 0, no two
+  consecutive answers equal (a stream one call behind cannot pass), longest pair 31 main iterations + 59 shifts.
+- Local, route 1 (sdf 5c1abff4, EQUIVALENT, ffmux-clean): P 87.2 ns per main iteration + one shift; draws 101 / 102 PASS
+  18/18. The worst corner was OOM-killed twice locally (gcd's compile peaks ~9.3 GB) -- not a verdict.
+- Farm gcddraw1 (33 tasks): routes 1-32 x 4 draws + the three corners on route 1. The subagent's x0.70 half was dropped
+  (General first: no per-kernel shrink sweeps). PREDICTION: every draw passes on EQUIVALENT ffmux-clean routes; 3/3.
+- Caveat: this judges gcd's kernel and sizes on the bench harness, not inside gcd_hw / gcd_ps (the board items).

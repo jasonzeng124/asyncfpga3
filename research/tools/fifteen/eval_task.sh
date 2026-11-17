@@ -29,7 +29,7 @@ cp "$RD/fid/equiv.txt" "$O/equiv.txt" 2>/dev/null   # fasm_equiv: which kinds ma
 [ -f "$HW/${K}_bench_gen.sdf" ] || { echo "RESULT build-failed" >> "$E"; tail -20 "$HW/build.log" > "$O/build_tail.txt" 2>/dev/null; exit 1; }
 CA=$RUNS/ca/$N; mkdir -p "$CA/seed1/pnr"
 ln -sf "$RD/xray.sdf" "$CA/seed1/pnr/soak_xray.sdf"; ln -sf "$HW/${K}_bench_gen_routed.json" "$CA/seed1/pnr/soak_routed.json"
-cp "$R/$Z" "$CA/seed1/pnr/sizes.vh"
+if [ "$Z" = default ] || [ "$Z" = none ]; then cp "$HW/sizes.vh" "$CA/seed1/pnr/sizes.vh"; else cp "$R/$Z" "$CA/seed1/pnr/sizes.vh"; fi   # "default" / "none": lane2.sh
 cp "$R/${MLIR_OVERRIDE:-build/frontend/$K/comp/handshake_transformed.mlir}" "$CA/input.mlir"
 if [ -z "${TSE_ONLY:-}" ]; then
 # CA_EXTRA: extra corner_audit flags for step 2 (e.g. --shrink-selects: mux delays and select links proposed by rules M / E)

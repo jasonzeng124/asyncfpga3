@@ -69,6 +69,28 @@ REPO = HERE.parent.parent
 VERIFY = REPO / "cells" / "verify"
 SCRATCH = pathlib.Path("/tmp/claude-0/-home-user-asyncfpga3/5430fd50-f33d-52a5-8a52-f19d5b6000df/scratchpad/cs")
 RE_LINK = re.compile(r"^(?P<base>.+)\.chain\.g\[(?P<i>\d+)\]\.u$")
+# CA_SIZERULE=1 (opt-in, 2026-11-17; research/data/sizerule/README.md): "sizerule1", one sizing rule for every kernel.
+# Unset, every output of this tool is byte-identical to before.  Set, three things change and nothing else:
+#   1. ONE band for the delay chains and the rest of the fabric (LUT + wire): --band defaults to 0.21 and no
+#      --inst-rx override is applied, so a chain and the data path it matches sit at the same band position (the audit's
+#      corner row: never mix corners).  The default corner put chains at 0.21 and the data's LUTs and wires at 0.288.
+#      CARRY4 / F7F8 / FF stay at SLOW_MAX (--cell default): they were never measured (SIM-VS-BOARD row 2) and the draws
+#      take them up to 1.0.  The residual guards (--guard-lo/hi, --a-frac/--a-min) are unchanged: they already are the
+#      measured within-die scatter, not the band.
+#   2. A shortened line is priced at its own MEAN link step as routed: D(m) = D(n) - (n - m) * c_own.  The default
+#      prices removal at the line's dearest step and caps the rebuilt line at lut_lo + (m - 1) * c_lo, c_lo the single
+#      cheapest hop anywhere on the route; on the farm's line accounts (fipowrh_la, fcsel3m_la, fc64eq_la) that gave
+#      proposals ~1.6-2x what the line needs as routed.  How a re-placed chain's cost moves is a route-to-route spread,
+#      which the per-cell max over routes (max_sizes.py) and the draws on fresh routes already cover; pricing it again
+#      per route counted it twice.  CA_SIZERULE_MLO=1 adds the cap lut_lo + (m - 1) * c_mlo back, c_mlo the lowest MEAN
+#      step of any chain of >= 3 links on the route (still milder than the default's single cheapest hop).  Padding
+#      keeps the default price (c_lo: more links, never fewer).
+#   3. Select paths are sized like any other line (implies --shrink-selects): PROGRAM 2026-11-15 withdrew the select
+#      rule; rules E and M, which this tool sizes on, model the select races.
+#   CA_SIZERULE_FLOOR=sizes.vh: no line is proposed below its value there (the largest size that failed a draw + 1).
+SIZERULE = os.environ.get("CA_SIZERULE", "") == "1"
+SIZERULE_FLOOR = os.environ.get("CA_SIZERULE_FLOOR", "")
+SIZERULE_MLO = os.environ.get("CA_SIZERULE_MLO", "") == "1"
 NOMINAL = {"E": None}          # rule E: the request leg is guarded at GUARD_LO; set from args
 SIZED_RULES = set("AEFHIKLBC")  # D is a screen; J has no delay line
 
@@ -532,7 +554,7 @@ def main():
     ap.add_argument("--guard-hi", type=float, default=1.03)
     ap.add_argument("--a-frac", type=float, default=0.03)
     ap.add_argument("--a-min", type=int, default=50)
-    ap.add_argument("--band", type=float, default=0.288)
+    ap.add_argument("--band", type=float, default=None, help="LUT / wire band (default 0.288; 0.21 with CA_SIZERULE=1)")
     ap.add_argument("--cell", default="CARRY4=1,SELMUX2_1=1,SLICE_FFX=1")
     ap.add_argument("--inst-rx", action="append", default=None)
     ap.add_argument("--fast-min", action="store_true", help="band 0, no cell or instance overrides")
@@ -560,8 +582,12 @@ def main():
     a = ap.parse_args()
     global MPFX
     MPFX = macro(a.prefix)
+    if a.band is None:
+        a.band = 0.21 if SIZERULE else 0.288
     if a.inst_rx is None:
-        a.inst_rx = [r"\.chain\.g\[\d+\]\.u$:0.21"]
+        a.inst_rx = [] if SIZERULE else [r"\.chain\.g\[\d+\]\.u$:0.21"]
+    if SIZERULE:
+        a.shrink_selects = True
     if a.fast_min:
         a.band, a.cell, a.inst_rx = 0.0, "", []
     if a.uniform is not None:
@@ -632,6 +658,7 @@ def main():
     c_lo = min(all_steps) if all_steps else None
     lut_lo = min(all_luts) if all_luts else 0
     means = {b: sum(g["steps"]) / len(g["steps"]) for b, g in geo.items() if g["steps"]}
+    c_mlo = min((v for b, v in means.items() if len(geo[b]["steps"]) >= 2), default=c_lo)   # CA_SIZERULE only
 
     def d_of(mac):
         return max((geo[b]["D"] or 0) for b in lines[mac])
@@ -645,6 +672,11 @@ def main():
             return D + (m - n) * c_lo
         if m == 0:
             return 0
+        if SIZERULE:
+            c_own = means.get(b, D / n if n else D)
+            if SIZERULE_MLO:
+                return max(0, min(D - (n - m) * c_own, lut_lo + (m - 1) * c_mlo))
+            return max(0, D - (n - m) * c_own)
         c_rm = max(g["steps"]) if g["steps"] else D
         return max(0, min(D - (n - m) * c_rm, lut_lo + (m - 1) * c_lo))
 
@@ -774,6 +806,12 @@ def main():
             prop[mac] = best
             bind = min(on, key=lambda k: budget[k])
             why[mac] = ("floor %d" % a.floor if best == a.floor else "bound by %s (%d ps left)" % (bind, budget[bind]))
+        if SIZERULE and SIZERULE_FLOOR:      # never below the largest size that failed a draw (+1), per line
+            for mac, v in read_sizes(pathlib.Path(SIZERULE_FLOOR))[0].items():
+                if mac in prop and prop[mac] < min(v, sizes[mac]) and not padded.get(mac):
+                    budget_note = "draw floor %d (was %d)" % (min(v, sizes[mac]), prop[mac])
+                    prop[mac] = min(v, sizes[mac])
+                    why[mac] = (why.get(mac, "") + "; " if why.get(mac) else "") + budget_note
         # 3. verify on the corner SDF with predicted chain delays, bump what fails
         nver = 0
         for it in range(a.max_iter):
@@ -844,6 +882,11 @@ def main():
     rep.append("  per-link cost at this corner: c_lo %s ps (cheapest link-to-link step on the route), lut_lo %d ps; "
                "chain mean steps %s-%s ps" % (c_lo, lut_lo, int(min(means.values())) if means else "-",
                                                int(max(means.values())) if means else "-"))
+    if SIZERULE:
+        rep.append("  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band %g, CARRY4/F7F8/FF at --cell; "
+                   "shortened lines priced at own mean step%s; selects sized by E/M; floor file %s"
+                   % (a.band, (", capped by lowest chain mean c_mlo %s ps" % (int(c_mlo) if c_mlo else "-")) if SIZERULE_MLO
+                      else "", SIZERULE_FLOOR or "none"))
     for w in warn:
         rep.append("  WARNING " + w)
     neg = sorted((c["margin"], k) for k, c in cons.items() if c["margin"] < 0)
@@ -880,6 +923,9 @@ def main():
     hdr = ("// corner_audit.py %s: per-line proposal at corner %s, guards lo %.3f hi %.3f, rule-A guard max(%.3f*t, %d), "
            "slack %d, floor %d; c_lo %s ps. ONE route: re-route and run the full stack before using it.\n"
            % (rd, corner, a.guard_lo, a.guard_hi, a.a_frac, a.a_min, a.slack, a.floor, c_lo))
+    if SIZERULE:
+        hdr += "// CA_SIZERULE=1 (sizerule1, research/data/sizerule/README.md): c_mlo %s ps, floor file %s\n" % (
+            int(c_mlo) if c_mlo else "-", SIZERULE_FLOOR or "none")
     with open(out / "sizes.vh", "w") as f:
         f.write(hdr)
         for mac in order:
