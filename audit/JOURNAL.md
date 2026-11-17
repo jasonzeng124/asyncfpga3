@@ -3171,3 +3171,12 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The August kernels pin LUT / routing at x = 0.22-0.23 but do not pin CARRY / F7 at all.
   - Item 35's race stays in an unmeasured band.
   - Finding T145; REPORT row. Owner notified.
+
+### progress 19:53
+- research c97ea9e01 (cites T145):
+  - regate3: items 31 / 28 on col18 and 30 / 32 on c6419, 365/366 PASS (the one FAIL is the known NOT EQUIVALENT fcsel3a s10). Consistent with own T141.
+  - shrink9: collatz x0.55 fails 2 draws on route 30 at CARRY 0.91 / 0.75, passes at 0.59 / 0.55, so it is CARRY-band dependent as T145 / C36 imply. x0.70 is 128/128.
+  - shrink8: ipow x0.55 route 12 hangs 3/4, incl. at CARRY 0.20 (not CARRY). x0.70 is 104/104 on 26 clean routes.
+  - Research picks x0.70 for collatz / ipow.
+  - Audit note for the next items: research says draws_table.py counts NOT EQUIVALENT routes as clean (it excludes only FFMUX-FLAG). Pass fractions must state which routes are counted.
+- formal C41 / A13 (cited by research): UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 on 8 routes at no speed cost. A candidate fix for item 35's race. To check when it becomes an item.
