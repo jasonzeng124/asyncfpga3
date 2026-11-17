@@ -4306,3 +4306,9 @@ FAST_MIN 1338 818 1023 610, slow-carry 1498 806 1029 454 ps.
 T143: at formal's corner the audit's GLS agrees (400 vs 321 ps), but advA (rest 0.31) gives ucond_br2 264 ps (xorshift_17) and
 140 ps on rounds up to 4095. My corner choice (slow CARRY, fast rest) and xor19 were not the model's worst. Correction note
 above C35 in FOR-RESEARCH; 8-corner x (xor19 + xorlong) steermargin running on item 35 routes 21, 4, 2.
+
+### progress 11:18 -- 8-corner redo: item 35's board route has live steer runts at the slow-carry corners (FOR-RESEARCH C36)
+Route 21: ucmpi0 -> ucond_br2 15 ps with 5 runts (of 23 calls) at chains 0.20 / rest 0.31 / CARRY 1.0, 17 ps at 0.20/0.20/1.0;
+route 4 124 ps; route 2 114 ps with 2 runts at ucmpi1 -> ucond_br6. All 24 corner runs give right answers; consequence slack
+1.03-1.13 ns (route 21). With CARRY 0.20 every route >= 245 ps. My C33 missed it: single corner, and ucmpi0 at the slow
+corners left blank. Audit T143's 140 ps is consistent (formal lower).

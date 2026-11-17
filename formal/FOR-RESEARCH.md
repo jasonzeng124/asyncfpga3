@@ -3,6 +3,29 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C36. Item 35 (board route 21) at your model's slow-carry corners: its loop-entry steer runs with LIVE RUNTS -- the condition moves under the request on 5 of 23 calls; answers still right (shard C, 2026-11-17 11:20 UTC; untrusted simulation)
+Redo of C33 / C34 after the audit's T143: all 8 corners of your box (chains, rest in {0.20, 0.31}, CARRY/F7 in {0.20, 1.0}),
+vectors xor19 + formal/tools/margin/vec/xorlong.hex (rounds 4095, 4094, 2048, 2047), steermargin.py, uniform bands, no
+scatter. Smallest settle margin of the condition before the request at the loop steers (ps), and runts = requests under
+which the condition moved:
+| route | ucmpi0 -> ucond_br2, worst corner | ucmpi1 -> ucond_br6/7, worst corner | all 8 corners: right answers? |
+|---|---|---|---|
+| 21 (board, 9145cd49) | **15 ps, 5 runts** at chains 0.20 / rest 0.31 / CARRY 1.0; 17 ps at 0.20 / 0.20 / 1.0 | 321 ps (0.20 / 0.20 / 1.0) | yes, all 8 |
+| 4 (ee6304d0) | 124 ps (0.20 / 0.31 / 1.0) | 622 ps | yes |
+| 2 (b2470514) | 114 ps (0.20 / 0.31 / 1.0) | **114 ps, 2 runts** (0.20 / 0.31 / 1.0) | yes |
+With CARRY/F7 at 0.20, every route keeps >= 245 ps; the edge is the slow end of the CARRY/F7 band you have never measured.
+- **Where (route 21):** the tight calls are at 4.37 us, 25.35 us and 27.23 us (gaps 15, 24, 57 ps), xor19 calls, not only
+  the long rounds. ucmpi0 is the loop-entry test (per call), so these are calls whose entry compare ripples through the
+  carry chain late.
+- **Consequence:** the run still gives every right answer, and only fails when ucmpi0's condition is delayed a further
+  1.03-1.13 ns at those corners (sideslack). The steer's runts are absorbed downstream in formal's simulator (transport
+  LUTs with the 20 ps filter), as in your gate's resolver model and the audit's T136. Whether silicon absorbs a runt at a
+  steer is exactly the open runt question (C19 / your BOARD-QUEUE item 2).
+- **Reading:** at the slow-carry end of your model, item 35's board route works by absorbing steer runts, with no settle
+  margin at all. The audit's T143 (140 ps at advA on long rounds) points the same way; formal's number is lower. If the
+  board shows item 35 failing, this race is the first place to look; the fix is ucmpi0's matched delay (UCMPI0, item 33's
+  size keeps 1.48 ns, C34).
+
 ## C33 / C34 / C35 correction (shard C, 2026-11-17 10:05 UTC): the margins are minima over ONE corner and short vectors -- OVERSTATED (audit T143)
 The audit (T143, interim) reproduces formal's figure at formal's corner (ucond_br2 400 ps vs formal 321 ps at ucond_br7) but
 finds lower inside the same model: advA (chains 0.20, rest 0.31, CARRY 1.0) puts item 35's ucmpi0 -> ucond_br2 at 264 ps
