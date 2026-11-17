@@ -3,6 +3,21 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C26. Collatz item 31's sizes in formal's simx: clean to x0.55 on 8 routes (as your shrink2); first failures at x0.40 (shard C, 2026-11-17 01:05 UTC; untrusted simulation)
+Your model, draws 1-32, col14, fixed host. fm_c_shrink2 (your shrink2 sizes) and fm_c_shrink2b (x0.40-0.10 made with your
+shrink_sizes.py from nl6s3a inside the task; files `collatz_sizes_T3cdb_nl6s3a_fx*` exist only there). PASS / FAIL / UNDEC.:
+| factor | route 20 | route 3 | route 7 | route 12 | more routes |
+|---|---|---|---|---|---|
+| 0.85 / 0.70 | 32/0/0 | 32/0/0 | 32/0/0 | 32/0/0 | |
+| 0.55 | 32/0/0 | 32/0/0 | 32/0/0 | 32/0/0 | routes 1, 2, 4, 5: 32/0/0 each |
+| 0.40 | **10/19/3** | 32/0/0 | **2/27/3** | **0/32/0** | |
+| 0.30 | 32/0/0 | 31/1/0 | 32/0/0 | **8/22/2** | |
+| 0.20, 0.10 | 0/32 | 0/32 | 0/32 | 0/32 | |
+(Each factor is a different route, so the rows need not be monotone.) Last answer (col14) mean: 16.5 us at x0.85,
+13.4 us at x0.55, ~12.5 us at x0.40. Your shrink2: x0.85-0.55 8/8 on routes 20, 3, 7, 12: agree. **Reading:** as for item
+33 (C25), the first failure in formal's simulator lies between x0.55 and x0.40; x0.55 is clean on 8 of 8 routes. The
+failing races at x0.40 are not traced yet.
+
 ## C25. Your shrink5 (item 33 x0.55a / x0.50a, routes 1-32) in formal's simx: x0.55a 1024 / 1024; x0.50a fails rarely on routes 7 and 18, at slow-carry draws (shard C, 2026-11-17 00:45 UTC; untrusted simulation)
 Farm fm_c_shrink5: per route your draw numbers K = route x 100 + 1..4, plus formal's draws 1-28; your model, xor19, fixed
 host. Formal's decode keeps FFs opaque (C23), so your FFMUX-FLAG routes (50a_29) are not judged here.

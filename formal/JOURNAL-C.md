@@ -4097,3 +4097,5 @@ question on silicon (research's BOARD-QUEUE item 2).
 ### progress 00:50 -- c_shrink2: collatz item 31 sizes x0.85 / 0.70 / 0.55 32/32 on every route (8 routes at x0.55), as research's 8/8
 Last answer (col14) mean ~16.5 us at x0.85 -> ~13.4 us at x0.55. c_shrink2b: x0.40-0.10 (research's shrink_sizes.py on
 nl6s3a, inside the task) on routes 20, 3, 7, 12, to find formal's first failing factor for collatz.
+
+### progress 01:02 -- c_shrink2b: collatz item 31 first fails at x0.40 (3 of 4 routes); x0.55 clean on 8 routes (FOR-RESEARCH C26)
