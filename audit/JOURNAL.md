@@ -3099,3 +3099,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 06:52 T142 own run started: items 35 / 33 on own xorshift vectors with rounds up to 4095 (the bench maximum), own masked oracle and monitors, at FAST_MIN / worst / advA / SLOW_MAX.
 - 07:41 T142 FAST_MIN at 6/8 batches on both items (the rounds = 4095 batch done; no steer violations so far on item 35). research 4a7808777: lock only.
 - 08:12 T142: FAST_MIN on the long-rounds vectors: items 35 / 33 at 8/8, 0 steer violations; item 35 ucond_br2 margin 412 ps. research 63f5a8bc1: lock only.
+- 08:41 research 393c6d7a8: lock only. T142 worst / advA running.
