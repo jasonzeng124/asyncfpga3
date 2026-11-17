@@ -6055,3 +6055,9 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
   Negative control (+300 / 500 / 1000 ps fixed on every carry ring) FAILs the fit's consistency checks every time.
 - The GLS caught a design bug first (F rings released several edges at once: 1.0 ns instead of 9.3).
 - Does NOT measure: CARRY4 XOR outputs, DI->CO, MUXF7 data arcs, MUXF8 (they inherit y through one band per cell type).
+### progress 20:37 (band fit: collatz insensitive to CARRY/F7 within the bench's 10 ns resolution; farm partial)
+- August collatz bitstream at x 0.222: y (CARRY4 / F7F8 / FF band) 0.2 and 1.0 give identical per-vector latencies, cycle
+  for cycle (1808 CARRY4 / 2007 F7F8 / 1924 FF arcs moved; checked in the log header). The host samples on 10 ns edges, so
+  |d(ns/iter)/dy| < 10 ns / 153 iterations / 0.8 = 0.08 ns per unit band (< 0.1% of 92.7). Our own number for audit T145.
+- Farm (20:37 UTC): cand3b 3/32, cand4b 5/10, slowc1b 1/20, shrink10b 3/64 tasks finished; every draw back so far passes,
+  including 8 slow-carry draws (0.85-0.97) on x55a10 routes 1-2 and ipow x0.70 seed 31's 8 draws.
