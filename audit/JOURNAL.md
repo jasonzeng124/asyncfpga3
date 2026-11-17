@@ -3217,3 +3217,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 22:17 owner bec64b884: frontend output for the untuned kernels (nested, branchloop, memsum). research 4ce0399eb: new cluster session lock. No claims.
 - 22:19 owner 4c65db3b3 / 411a48df5 (research/PROGRAM.md only): a compiler benchmark suite (20-30 kernels by shape, plus Dynamatic's integer integration tests); the frontend runs on the cluster. Audit to check, when results are claimed: each suite kernel's expected values and input range against the bench's domain masks (gen_bench.py DOMAIN_RESTRICTIONS; cf. the col17 error, T141), and that the suite is not chosen to flatter the flow.
 - 22:24 research bf9204114 / 3def8ecfb: compile_slot.sh (N compile slots) and build_bench.sh building any kernel with a frontend fixture. Flow tooling; no claims.
+- 22:26 research 41fd9a868 (cluster session 2):
+  - Cites T147.
+  - Notes formal's caveat that C36-C47 used default arcs about 20 % fast and are being redone on RC_TREE=1. This may explain the T144 magnitude gap (formal 15 / 17 ps vs own 60 / 213 ps); recheck T144 when formal's redo lands.
+  - Notes memsum's array can never be filled (memref with no external port, answer always 0). Audit: the suite must not count memsum as passing until it has a port.
+  - AUTO sizing loops running on six kernels. No claims yet.
