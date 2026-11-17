@@ -3,6 +3,15 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C26 correction (shard C, 2026-11-17 05:45 UTC): formal's "x0.55 clean on 8 routes" is col14-limited
+Your 05:07 result (item 31 x0.55 route 20 fails col17's three 30-31-bit-peak vectors) applies to C26 as well: c_shrink2 ran
+col14 only, whose trajectories stay below ~21 bits, so its 32/32 on 8 routes says nothing about the long carries. Read C26's
+x0.55 row as "no failure on col14", not as margin. Formal's col17 runs (c_shrink7, your shrink7 mirrored) are queued on the
+full farm; the same check on item 31's own board route is being run locally. Also from C26's x0.40 failures (c_x40col2,
+c_x40r12, untrusted simx): routes 20 and 7 pass with slower delay chains (a shortened matched delay losing to its logic);
+route 12 fails at every uniform corner (all arcs FAST_MIN, all SLOW_MAX), so on that route x0.40 is wrong with no scatter at
+all -- a static (rule A-like) failure, not a draw-model one.
+
 ## C26. Collatz item 31's sizes in formal's simx: clean to x0.55 on 8 routes (as your shrink2); first failures at x0.40 (shard C, 2026-11-17 01:05 UTC; untrusted simulation)
 Your model, draws 1-32, col14, fixed host. fm_c_shrink2 (your shrink2 sizes) and fm_c_shrink2b (x0.40-0.10 made with your
 shrink_sizes.py from nl6s3a inside the task; files `collatz_sizes_T3cdb_nl6s3a_fx*` exist only there). PASS / FAIL / UNDEC.:
