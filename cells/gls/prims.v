@@ -1102,7 +1102,7 @@ module RAMB18E1_RAMB18E1 (
     // the last change, and what the last edge did (for the hold side)
     time t_addr = 0, t_di = 0, t_we = 0, t_en = 0, t_rst = 0, t_ck = 0;
     reg  [13:0] a_now = 14'bx, a_old = 14'bx;
-    reg         e_valid = 1'b0, e_wr = 1'b0, e_en = 1'b0;
+    reg         e_valid = 1'b0, e_wr = 1'b0, e_en = 1'b0, e_we = 1'b0;
     reg  [13:0] e_a = 14'bx;
 
     task poison(input [13:0] a);
@@ -1140,7 +1140,7 @@ module RAMB18E1_RAMB18E1 (
             if (vr) viol("RST",  $time - t_rst,  TSU_RST,  0);
             if (!clean) $display("RAMB18 CLOCK %m went %b -> %b at %0t: treated as a possible edge", ckp, clk, $time);
             may_wr  = (we !== 4'b0000) && (en !== 1'b0);
-            e_valid = 1'b1; e_wr = may_wr; e_en = (en !== 1'b0); e_a = addr;
+            e_valid = 1'b1; e_wr = may_wr; e_en = (en !== 1'b0); e_we = (we !== 4'b0000); e_a = addr;
             if (en === 1'b0 && !ve && clean) begin
                 // port disabled: the edge does nothing
             end else if (!clean || va || vd || vw || ve || vr || en !== 1'b1
@@ -1189,7 +1189,7 @@ module RAMB18E1_RAMB18E1 (
         if (e_valid && THD_EN > 0 && $time - t_ck < THD_EN) begin
             viol("EN", $time - t_ck, THD_EN, 1);
             q = 18'bx;
-            if (we !== 4'b0000) poison(e_a);
+            if (e_we) poison(e_a);      // the edge may have been an enabled write
         end
         if ($time > 0) t_en = $time;
     end
