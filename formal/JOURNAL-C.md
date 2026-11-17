@@ -4160,3 +4160,12 @@ is a race with a gap larger than the model's spread. diverge.py vs the chain var
 ulink_n19__* ack chain moves); not the race. Next for these: the RACES line, which printed nothing because simx tested
 "reads its own output" directly, while decoded LUTs read it through pip / hop copies. Fixed (copy chains as races.py);
 toy with a pip in the feedback (test/toy_latch_pip.simx) finds it. c_nm1 (still queued) gets the fix.
+
+### progress 03:36 -- c_x40r12: collatz x0.40 route 12 fails at EVERY uniform corner (all arcs FAST_MIN, all SLOW_MAX)
+Draw 1 with chains 0.70: [111, 0, 3, 118, ...] (an extra answer 3, then one call late); chains 1.0: oscillation (event cap,
+outside the model); rest 0.10 / 0.05: fail; all classes at 1.0 (SLOW_MAX): [111, 0, 0]; all at 0.0 (FAST_MIN): [111, 0, 0,
+3]. So on this route the x0.40 sizes are wrong without any within-die scatter: a matched delay shorter than its logic at
+both corners, i.e. what a static rule-A check would catch, not a draw-model finding. The closest storage race in both the
+drawn run and SLOW_MAX: SLICE_X22Y33.A6 pin 4, 71-72 ps, at 1.925 us (inside the n = 1 call that precedes the wrong
+answer). RACES / NEARMISS now work on real nets (576 storage events within 300 ps in the drawn run). draws.py's name map
+missed the decoded node form SITE.<L>6 (fixed; namelines.py added). c_x40r12n names the LUTs and their pin sources.

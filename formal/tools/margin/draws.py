@@ -93,7 +93,7 @@ if a.routed:
     BEL = {c["attributes"].get("NEXTPNR_BEL"): n for n, c in json.load(open(a.routed))["modules"]["top"]["cells"].items()
            if c.get("attributes", {}).get("NEXTPNR_BEL")}
 def cellname(node):   # decoded LUT output node SLICE_XxYy.<L>LUT.O6 / .O5 -> the yosys instance nextpnr placed there
-    m = re.match(r"^(SLICE_X\d+Y\d+)\.([A-D])LUT\.O([56])$", node)
+    m = re.match(r"^(SLICE_X\d+Y\d+)\.([A-D])(?:LUT\.O)?([56])$", node)
     return BEL.get("%s/%s%sLUT" % m.groups(), node) if m else node
 def bands(K):   # research's draw K: (b_c, b_r, b_cells) = Random(7919*K+17).uniform(.2,.31), (.2,.31), (.2,1.0)
     import random
