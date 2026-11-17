@@ -383,13 +383,17 @@ def rule_a_from_link(T, skew, sdf):
     return out
 
 
-def walk_floor(skew, walked_edges, stops, binc, feed, launch, longest, and_nodes, floor=None):
+def walk_floor(skew, walked_edges, stops, binc, feed, launch, longest, and_nodes, floor=None, req_only=None):
     """skew.walk() (one arrival table per storage crossing; on the earliest walk a positive C-element in `and_nodes`
     is seeded with its LATEST input reached at the level, every other storage node with its earliest), plus one thing
     for CA_JOINAWARE: `floor` {AND node: t}, a lower bound on that node's firing relative to the launch from an input
     the launch does not reach at that level (rule_a_joined's sibling credit).  The seed is max(reached, floor); the
-    predecessor stays the reached input.  -> (levels, preds), as skew.walk."""
+    predecessor stays the reached input.  `req_only` {link C node: its request pin}: on the earliest walk that node is
+    seeded from its request pin alone -- C(req_in, ~c_next) cannot RISE (its latch cannot open) before its request
+    arrives, so this is a lower bound on the opening, and it keeps an acknowledge arriving on c_next (a lap: the stage
+    behind it emptying, another token) from standing in for the request.  -> (levels, preds), as skew.walk."""
     floor = floor or {}
+    req_only = req_only or {}
     better = (lambda a, b: a > b) if longest else (lambda a, b: a < b)
     cap = len(walked_edges) + 1
     out, pred_out = [], []
@@ -434,7 +438,7 @@ def walk_floor(skew, walked_edges, stops, binc, feed, launch, longest, and_nodes
                     seed_pred[o] = (lvl, best_v[1])
                 continue
             for ip, arc in binc.get(o, ()):
-                if (o, ip) in feed or ip not in tab:
+                if (o, ip) in feed or ip not in tab or (not longest and o in req_only and ip != req_only[o]):
                     continue
                 v = tab[ip] + arc
                 if o not in seeds or better(v, seeds[o]):
@@ -477,11 +481,11 @@ def rule_a_joined(T, skew, sdf, aprime):
                 sel_req[q] = (rq, "%s %s" % (kind, par))
     cache = {}
 
-    def wk(launch, lng, floor=None):
-        key = (launch, lng, tuple(sorted((floor or {}).items())))
+    def wk(launch, lng, floor=None, ro=True):
+        key = (launch, lng, tuple(sorted((floor or {}).items())), ro)
         if key not in cache:
             cache[key] = walk_floor(skew, edges if lng else early_edges, stops, binc, feed, launch, lng, and_nodes,
-                                    floor)
+                                    floor, req_pin if ro else None)
         return cache[key]
 
     def at(levels, pin, maxl=None):
@@ -504,6 +508,8 @@ def rule_a_joined(T, skew, sdf, aprime):
         inst = T.pin_split(node)[0]
         ports = T.orig_ports(jcells[inst]) if inst in jcells else {}
         return tuple("%s/%s" % (inst, ports[i]) if i in ports else None for i in ("I0", "I1"))
+
+    req_pin = {c: c_inputs(c)[0] for c in stops if RE_LINK_C.search(c) and c_inputs(c)[0]}
 
     def hs_sources(pin):                              # the handshake nodes (storage, not a latch) driving `pin`
         return sorted(s for s in T.starts_reaching(back, pin, stops)
@@ -575,7 +581,7 @@ def rule_a_joined(T, skew, sdf, aprime):
                         continue
                     cands, ok = [], True
                     for L0 in anc + ack:
-                        e2, e2p = wk(L0, False)
+                        e2, e2p = wk(L0, False, None, L0 in anc)    # an ack launch enters the sibling by its c_next
                         ri, rS = at(e2, ip), at(wk(L0, True)[0], S)
                         # a credit path is the sibling's own handshake, not a lap: from L0 it crosses at most one link
                         # C node (the sibling's source, entered by its request or its acknowledge) and otherwise only
