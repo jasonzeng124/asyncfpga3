@@ -5983,3 +5983,23 @@ Toolchain nextpnr 9c732bc6303458df throughout.
 Next: read shrink9 / shrink8 / regate3 with research/tools/draws_table.py; for a candidate passing every draw, copy
 draws2.sh for its median EQUIVALENT route and add a BOARD-QUEUE item like 35. Then collatz64 (c6419) the same way.
 LOCK cleared.
+
+## Session 2026-11-17 19:50 UTC -- (in progress) where the board sits: LUT band fitted, CARRY/F7 unpinned by latency; farm shrink8/9 read
+Toolchain: (setup running)   Seeds: farm per request
+Lock: empty at start; taken 19:49 UTC. Audit: T145 (LUT/routing x 0.22-0.23 on the measured bitstreams; CARRY/F7 not pinned
+by any kernel; xorshift's archived bitstream matches no board log); no new REFUTED / OVERSTATED row on my files beyond the
+col17 / x0.40a rows already withdrawn. Formal FOR-RESEARCH newest C42 / C41 / A13: CARRY/F7 cannot be placed by latencies;
+item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 on 8 routes at no speed cost.
+### progress 19:50 (farm shrink8 / shrink9 / regate3 read)
+- regate3 (items 31 / 28 on col18, 30 / 32 on c6419, 3 corners, ~32 routes each): 365 / 366 gate runs PASS; the one FAIL is
+  fcsel3a seed 10 at SLOW_MAX, the known NOT EQUIVALENT route. The four collatz-family board items pass with the
+  highest-peak in-domain inputs on every clean route.
+- shrink9, collatz item 31 sizes x f on col18, 32 routes x 4 draws:
+  x0.70 128 / 128, P median 19.59 ns (18.17-22.95; item 31 21.27). x0.55 122 / 124: route 30 (EQUIVALENT, ffmux-clean)
+  fails draws 3001 and 3003 (results a call behind from batch 2 on), whose CARRY4/F7F8/FF band is 0.91 and 0.75; it passes
+  3002 / 3004 (0.59 / 0.55). So collatz x0.55 lives or dies by the unmeasured CARRY/F7 band, exactly formal's point.
+- shrink8, ipow item 29 sizes x f, ipow17, 32 routes x 4 draws: x0.70 104 / 104 on 26 clean routes, P median 30.37
+  (28.06-33.38; item 29 ~36.2). x0.55: route 12 (EQUIVALENT, ffmux-clean) hangs on 3 of 4 draws, including draw 1203 at
+  CARRY 0.20 (chains 0.22, rest 0.24): not a CARRY effect. Route 19 is the known F7-select defect (11/17 every draw).
+  (draws_table.py counts NOT EQUIVALENT routes as clean; it excludes only FFMUX-FLAG. To fix.)
+- So: collatz and ipow candidates come from x0.70, not x0.55.
