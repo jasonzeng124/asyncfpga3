@@ -4546,3 +4546,15 @@ Vectors for research in tools-B/preload/vec/ (c64hi, c32hi; .exp from oracle.c).
 | collatz64 item 32 s22, UADDI1 0 (65a92f2d) | c6419 8/8 | c64hi 8/8 | 8/8 | >= 14804 | 25419 / 26511 |
 One route per variant (each a different route); collatz x0.70 seeds 2-4 of both variants building (bq3.sh) for the
 period comparison.
+### progress 22:0x -- x55a10 seeds 1-3, collatz x0.70 seed 2; farm b_u0xor filed (waiting behind the 200-core ceiling)
+x55a10 (item 35 + UCMPI0 10) rows, UADDI0 12 | 0 (each its own route): xor19 8/8 + slow-carry 4/4 and preload A 16/16 +
+slow-carry 8/8 on every build so far. carry slack seed 1: 8632 | 9062; seed 2: 8789 | 7773; seed 3: 8007 | (running).
+Period (ps, K 2101 / 2102): seed 1 14169 / 14002 | 13785 / 13717; seed 2 14041 / 13925 | 12929 / 12813; seed 3 14005 / 13658 | -.
+Settle gaps at chains 0.20 / rest 0.31 / CARRY 1.0 (ucmpi1 loop test; ucmpi0 entry), ps: seed 1 1202, 2080 | 1182, 319;
+seed 2 1026, 1134 | 194 (ucond_br8), 1820; seed 3 1283, 2250 | -. No runts anywhere. Reading so far: UADDI0 0 is faster
+(-0.4 to -1.1 ns per iteration) and keeps every draw; its loop-test margin then rests on UCMPI1 = 5 alone, and on seed 2
+that margin is 194 ps (positive, no runts) -- the trade research would make; the entry margin is route scatter (C41).
+collatz x0.70 seed 2: UADDI1 7 | 0: col18 8/8 | 8/8, c32hi 8/8 | 8/8, steps preloaded 8/8 | 8/8, last-carry slack 7812 |
+7382, period 16168 / 15490 | 15781 / 15791. No speed change, as expected when UADDI1 (7) < UCMPI2 (12) at ucond_br5; seed
+27's -1.1 ns was route scatter.
+Farm `b_u0xor` (x55a10 vs + UADDI0 0, seeds 1-12, 2 cores a task): state "waiting" (200-core ceiling) at 21:44.
