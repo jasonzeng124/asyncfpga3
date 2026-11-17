@@ -3128,3 +3128,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T142: item 33 worst 8/8 (long rounds).
   - Item 35 SLOW_MAX: 6/8 right, with vectors 6-7 not reached because of the harness time limit (PSSUMMARY TIMEOUT at 705 µs). Not a wrong answer. T142b rerun of those two running.
 - T143 no-scatter at formal's corner: item 35 ucond_br2 213 ps, below formal's binding 321 ps (and blank in formal's table). Strengthens T143.
+- 11:13 research 92a435248: farm silent; local ipow x0.55. No claim. T142b and T143 long-rounds advC still running.
