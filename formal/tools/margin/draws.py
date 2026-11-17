@@ -87,6 +87,14 @@ if a.model == "research":
         for gi in sorted(cls): f.write("%d %s\n" % (gi, cls[gi]))
     import collections
     print("draws: gate classes %s" % dict(collections.Counter(cls.values())), file=sys.stderr)
+BEL = {}
+if a.routed:
+    import json
+    BEL = {c["attributes"].get("NEXTPNR_BEL"): n for n, c in json.load(open(a.routed))["modules"]["top"]["cells"].items()
+           if c.get("attributes", {}).get("NEXTPNR_BEL")}
+def cellname(node):   # decoded LUT output node SLICE_XxYy.<L>LUT.O6 / .O5 -> the yosys instance nextpnr placed there
+    m = re.match(r"^(SLICE_X\d+Y\d+)\.([A-D])LUT\.O([56])$", node)
+    return BEL.get("%s/%s%sLUT" % m.groups(), node) if m else node
 def bands(K):   # research's draw K: (b_c, b_r, b_cells) = Random(7919*K+17).uniform(.2,.31), (.2,.31), (.2,1.0)
     import random
     r = random.Random(7919 * K + 17); return (r.uniform(.2, .31), r.uniform(.2, .31), r.uniform(.2, 1.0))
@@ -111,10 +119,10 @@ def run(seed):
     ts = [int(m.group(1)) for m in re.finditer(r"^out0 #\d+ at (\d+) ps", r.stdout, re.M)]
     out0 = "last out0 at %d ps (%d answers)" % (ts[-1], len(ts)) if ts else "no out0"
     nm = re.search(r"^NEARMISS storage-output pulses < \d+ ps: (\d+); narrowest \(width, node, t\) \[\((\d+), '([^']*)', (\d+)\)", r.stderr, re.M)
-    if nm: out0 += " [nearmiss %s; min %s ps at %s t=%s]" % nm.groups()
+    if nm: out0 += " [nearmiss %s; min %s ps at %s t=%s]" % (nm.group(1), nm.group(2), cellname(nm.group(3)), nm.group(4))
     for c in ("storage", "feeding-storage"):   # simx RACES=1: the closest input reordering that would flip a LUT
         rc = re.search(r"^RACES %s within \d+ ps: (\d+) events .*?closest \(gap, gate, pin, pin's source, t\) \[\((\d+), '([^']*)', (\d+), '([^']*)', (\d+)\)" % c, r.stderr, re.M)
-        if rc: out0 += " [race %s %s ps at %s pin %s from %s t=%s; %s within window]" % ((c,) + rc.groups()[1:] + (rc.group(1),))
+        if rc: out0 += " [race %s %s ps at %s pin %s from %s t=%s; %s within window]" % (c, rc.group(2), cellname(rc.group(3)), rc.group(4), cellname(rc.group(5)), rc.group(6), rc.group(1))
     if not res:
         return seed, "UNDECIDED", (r.stderr[-200:].replace("\n", " ") or "no RESULT (rc %d)" % r.returncode), time.time() - t0, ""
     if res[0].startswith("RESULT OK"):
