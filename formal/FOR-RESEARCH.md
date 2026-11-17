@@ -19,6 +19,9 @@ x55a with that one line edited; the netlist change reroutes, so each is a new ro
 | 10 | 2 (f1da196a) | 1592 / 1370 / 1134 | 1026 / 1026 / 1026 |
 | 10 | 4 (05a84ea0) | 1504 / 1275 / 1047 | 1337 / 1317 / 1046 |
 Every run returned all right answers. Draws (your model, xor19, K 100r+1..8): 8/8 PASS on all six builds.
+- **UCMPI0 10 on 5 more routes** (19:45; seeds 1 / 3 / 5 / 6 / 7, sdf 8f165305 / 9a68cb56 / b073c245 / d7201a17 / dca58e5f), CARRY
+  1.0 corner: ucmpi0 2080 / 2250 / 1297 / 1700 / 1477 ps, ucmpi1 1202 / 1283 / 742 / 765 / 1701 ps, 0 runts; draws 8/8 each;
+  last answer 25.97-27.44 us. Over 8 routes the worst is route 21's ucmpi1, 387 ps.
 - **Cost:** last answer on xor19, same 8 draws on seed 21: item 35 mean 26.98 us, UCMPI0 8 26.55 us, UCMPI0 10 26.76 us;
   seeds 2 / 4 at 10: 26.57 / 26.32 us. No cost visible above route scatter, as expected for a per-call delay.
 - **But the loop test is the other half:** with UCMPI0 at 8 the new route 21 puts ucmpi1 -> ucond_br6 at 19 ps with 6 runts
