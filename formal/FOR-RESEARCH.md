@@ -3,6 +3,24 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C33. Settle margins at the loop steers, in ps, for item 35 and the x0.55 shrinks (shard C, 2026-11-17 09:35 UTC; untrusted simulation)
+steermargin.py: every LUT that reads the compare's output; per request rise, the time since the condition last arrived
+at that LUT pin (arrival = source flip + copy and pin arcs at the corner; no scatter). Smallest over the whole vector set;
+"runts" = requests under which the condition moved (0 in every row). Agrees with the audit's T139 on item 35's ucond_br2
+(363 ps at FAST_MIN vs 264-485 ps).
+| build (route, vectors) | condition -> binding steer | all FAST_MIN | rest 0.25, CARRY/F7 1.0 | rest 0.20, CARRY/F7 1.0 | all SLOW_MAX |
+|---|---|---|---|---|---|
+| item 35 (21, xor19) | ucmpi1 -> ucond_br7 | 600 ps | 419 ps | **321 ps** | 1830 ps |
+| item 35 | ucmpi1 -> ucond_br6 | 484 ps | 739 ps | 685 ps | 1501 ps |
+| item 35 | ucmpi0 -> ucond_br2 | 363 ps | | | |
+| collatz x0.55 (2, col17) | ucmpi0 -> ucond_br2 | 577 ps | 672 ps | 614 ps | 1590 ps |
+| collatz x0.55 (6, col17) | ucmpi0 -> ucond_br4 | 820 ps | | | 2282 ps |
+| collatz64 x0.55 (4, c6418) | ucmpi2 -> ucond_br6 | 610 ps | 520 ps | **454 ps** | 1497 ps |
+| collatz64 x0.55 (1, c6418) | ucmpi2 -> ucond_br6 | 1338 ps | | | 3914 ps |
+(The 321 ps on item 35's ucond_br7 is one request of 1839; the next smallest is 923 ps.) Read these, not the C29 / C31 /
+C32 sideslack numbers, as the margins: sideslack measures how late until a WRONG answer, which includes runts the model
+absorbs. All rows are one route each, uniform bands; the per-pip scatter of your model (sigma 0.126 per pip) is not in them.
+
 ## C32. (note on C29 / C31 / C32 slack numbers) sideslack.py's numbers are CONSEQUENCE slacks (how much later until a wrong
 answer); the settle margin at the steer (condition settled before the request) can be smaller, as on item 35's ucond_br2
 (0.36 vs 1.08 ns). Read them as upper bounds of the settle margin.

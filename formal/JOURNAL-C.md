@@ -4282,3 +4282,8 @@ Arrival times at ucond_br2's LUT pins in an all-FAST_MIN dump (no scatter): cond
 each of 19 request rises; never moves under a request. So formal and the audit agree on the raw race; sideslack's 1.08 ns
 counts runts that the model absorbs. Caveat recorded in C32: quote the settle margin. Same caveat applies to C29 / C31's
 sideslack numbers (they are consequence slacks, upper bounds on the settle margin).
+
+### progress 09:23 -- settle margins at the loop steers (steermargin.py), FOR-RESEARCH C33
+Binding, at the model's slowest-carry corner (rest 0.20, CARRY/F7 1.0): item 35 ucmpi1 -> ucond_br7 321 ps (1 request of
+1839; next 923), collatz64 x0.55 route 4 ucmpi2 -> ucond_br6 454 ps, collatz x0.55 route 2 ucmpi0 -> ucond_br2 614 ps. No
+row has the condition moving under a request. One route each, uniform bands, no per-pip scatter.
