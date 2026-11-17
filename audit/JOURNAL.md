@@ -3187,3 +3187,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Consistent with own T138 (x 0.223, linear interpolation 92.59).
   - Own T145 band run with setting-M scatter gave 90.12 at x 0.223: scatter shifts the fitted x slightly upward. Not a contradiction.
   - Per T145, y is not pinned by this data. research 2e65b466e / 5f88ed2e8: unreviewed WIP.
+
+### progress 20:33
+- research 0e5fad0c2: BOARD-QUEUE item 36, CARRY4 / MUXF7 ring experiment (the measurement T145 called for).
+  - Pre-run check T146: own FF scan clean on s1 / s2; predicted.tsv internally consistent (64/64 rows, linear in x and y); C32 / F16 rings move 4.3 / 5.1 ns across the CARRY / F7 band, so it discriminates.
+  - Arc coefficients UNVERIFIED. No objection to running it first.
