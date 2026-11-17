@@ -4299,3 +4299,4 @@ steermargin.py (now prints the time of the tightest requests). Collatz x0.55 rou
 946 451 18 ps; FAST_MIN 724 577 559 134 300 820 422 192. The tight request is the zero-trip n = 1 call's entry steer, inside
 the kernel (input stable since 0.42 us). Consequence slack there 218-577 ps. Collatz64 x0.55 (ucmpi2 -> ucond_br6) routes 1-4:
 FAST_MIN 1338 818 1023 610, slow-carry 1498 806 1029 454 ps.
+- board candidates on the same race: item 31 1506/1970/4676 ps, item 32 2928/3806/9001 ps (FAST_MIN / slow-carry / SLOW_MAX).

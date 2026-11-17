@@ -21,6 +21,9 @@ method). Smallest settle margin per route (ps; no request ever has the condition
 - **Reading:** collatz x0.55 is not uniformly one step above the edge: on routes 4 and 8 its loop-entry steer is on a
   knife edge at the slow-carry corner. If x0.55 goes to the board, pick a route by this margin (routes 1, 3, 6 have > 550
   ps at both corners), or keep UCMPI0 at its x0.70 size.
+- The current board candidates on the same race (unshrunk sizes): item 31 (route 20, ucmpi0 -> ucond_br2/3/4) 1506 ps at
+  FAST_MIN, 1970 ps at the slow-carry corner, 4676 ps at SLOW_MAX; item 32 (route 22, ucmpi2 -> ucond_br6) 2928 / 3806 /
+  9001 ps. So the knife edge appears only with the x0.55 shrink.
 - For comparison, collatz64 x0.55 (C31), ucmpi2 -> ucond_br6, routes 1-4: FAST_MIN 1338 / 818 / 1023 / 610 ps, slow-carry
   corner 1498 / 806 / 1029 / 454 ps: no knife edge on those four routes.
 
