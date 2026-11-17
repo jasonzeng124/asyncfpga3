@@ -4517,3 +4517,14 @@ UADDI0 0: 8125 / 8046 / 8359 (21: 8828). Period mean over the 4 seeds x 2 draws:
 per-seed differences mix route scatter; the mean is over 4 routes a side. FOR-RESEARCH B2 written (top), with the sizing
 reading for PROGRAM's "Research's first lead" item 3 (the static rule sizes an operator for a capture at its request's
 arrival; here i + 1 is joined with the compare at ucond_br6 and held by transparent latches for an iteration).
+### progress 21:16 -- loop-test settle margins with UADDI0 0 (C's steermargin, worst corners, xor19 + xorlong); x55a10 builds running
+ucmpi1 (i < n - 1) -> loop steers, smallest settle gap (ps) at chains 0.20 / rest 0.31 / CARRY 1.0 and 0.20 / 0.20 / 1.0:
+UADDI0 12: seed 21 (item 35) 343 / 317; seed 2 114 with 2 live runts / 323 (= C36's route 2); seed 4 710 / 620;
+seed 5 1276 / (running). UADDI0 0: seed 21 1719 / 1636; seed 2 309 / 285 (at ucond_br9); seed 4 524 / 403. No runts on any
+UADDI0 0 route measured. So removing UADDI0 does not by itself eat the loop test's margin (route scatter dominates);
+ucond_br6's join still waits for ucmpi1's own request (UCMPI1 = 5) after its chain.
+Running (bq2.sh / bq2run.sh): research's current candidate x55a10 (item 35 + C41's UCMPI0 10) with UADDI0 kept (12) vs 0,
+seeds 1-4: xor19 8 draws + 4 slow-carry draws, preload A 16 + 8 slow-carry, carry slack, period, steermargin for ucmpi1
+and ucmpi0 at 0.20 / 0.31 / 1.0. Queued after: collatz x0.70 seed 27 with UADDI1 0 (steps adder joined at ucond_br5 with
+the n == 2 compare, UCMPI2 12 > UADDI1 7: the same shape; prediction: safe).
+Vectors for research in tools-B/preload/vec/ (c64hi, c32hi; .exp from oracle.c).
