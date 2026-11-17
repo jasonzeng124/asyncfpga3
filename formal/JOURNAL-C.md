@@ -4204,3 +4204,9 @@ Build: local toolchain (nextpnr 9c732bc6303458df), seed 21, sdf 9145cd49 = resea
   latch closes a phase after the downstream stage took the value, so data moving at the close is harmless. The metric
   flags closes that do not matter: a small gap is not a near miss. Kept as an informational line (tracing aid), not to be
   read or reported as margin. A near-miss figure needs a consequence (injection) test per candidate, as the adversary did.
+
+### progress 06:17 -- collatz x0.55 (every size) routes 1-8 on col17 (full 32-bit n): 128/128 (local)
+Sizes collatz_sizes_T3cdb_nl6s3a_x55 (research's), seeds 1-8 (sdf a962f090 4d051e46 d8884e45 bc2b7d14 d601876c a711a28f
+06af3676 55cd1694), research model; per route research's K = 100r+1..4 and draws 1-12: all 16/16 PASS, last answer (col17)
+means 24.1-26.1 us. With C26 (col14, 8 routes incl. 20, 3, 7, 12) and C27 (route 20 col17), x0.55 has no failure in
+formal's simx on 13 distinct routes. Next: x0.50 / x0.45 on the same routes, to place the edge (x0.40 fails on 3 of 4).
