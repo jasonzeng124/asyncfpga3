@@ -16,8 +16,8 @@ What this does and does not settle:
 - LUT vs routing cannot be separated: the measurements all have the same mix.
 - CARRY/F7 is not placed by any August measurement.
 - The kernels' delay chains are all FASTRISE, which makes a silicon rise/fall difference the candidate for the gap.
-- For THE target's kappa, use the kernel loop times (b ~0.39 of formal's band); kappa is a band position in the same
-  coordinates.
+- To place kernel delays (where in each arc's band the board's common position sits), use the kernel loop times
+  (b ~0.39 of formal's band), not the rings. This is a separate axis from kappa: kappa is within-die scatter in `Adm`.
 
 ## 2026-11-16 (A): THE statement is vacuous on partial-ack hangs; repair proposed (Lean, check.sh OK)
 Shard C found (JOURNAL-C 03:36) that when `a`/`b`/`start` share one request node (gcd_ps's OneReq boundary), a
