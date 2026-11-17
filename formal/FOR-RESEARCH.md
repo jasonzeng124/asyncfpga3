@@ -1085,6 +1085,7 @@ Medians, ns (formal at x 0.465, the August ring b in formal's coordinates; yours
   - the two routes reported separately.
 
 ## A15. Formal's pre-registered prediction for the second ring route (ro_many_2, BOARD-QUEUE item 4), written before any board run (shard A, 2026-11-17 21:00 UTC; simulation, untrusted)
+**Added (A18):** with RC_TREE=1, formal's periods at b 0.288 are 1.0019 of research's predicted.tsv (median; p05-p95 1.0013-1.0024): the two models now make the SAME prediction for this route, so the board run tests the shared model, not a disagreement (tools-A/board/out/ro_many_2_formal_rctree_predicted.tsv).
 tools-A/board/out/ro_many_2_formal_predicted.tsv has, per ring of research/board/ro_many_2:
 - formal's FAST_MIN and SLOW_MAX loop periods, decoded from that build's FASM;
 - the period at b = 0.465 (the August ring route's median, A14);
