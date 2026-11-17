@@ -3042,3 +3042,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 02:38
 - T138 done. The full SLOW_MAX rerun gives 13/13 and 188.78 ns/iter on 11 vectors. With FAST_MIN 65.15, the board sits at x = 0.223 and band 0.288 is +8.7 %. Research's collatz speed error is CONFIRMED. Finding T138.
 - T140 started: as T138, on the August collatz64 and ipow bitstreams (own vectors, own fit fit2.py).
+
+### progress 02:59
+- Owner fcf87627a (research/PROGRAM.md only): interim answer on paths no vector can reach.
+  - Keep the static size there, but first try preloading the loop state so the long carry is simulated.
+  - Each item must state which long paths were reached by vectors, by preload, or by neither.
+  - Audit program unchanged. Future items are to be checked against that last requirement.
+- T140: collatz64 FAST_MIN own oracle 14/14; SLOW_MAX and ipow running.
