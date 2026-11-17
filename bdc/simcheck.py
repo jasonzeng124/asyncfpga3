@@ -36,6 +36,20 @@ REFERENCE IMPLEMENTATIONS
 Keyed by handshake.func name, in REFS below.  A kernel with no entry there
 fails loudly rather than being skipped -- see main().
 
+THE --c-oracle PATH (suite kernels, kernels/SUITE.md)
+
+    python3 bdc/simcheck.py build/frontend/horner/comp/handshake_transformed.mlir --c-oracle
+    python3 bdc/simcheck.py <mlir> --c-oracle --vecfile kernels/horner/vec.hex
+
+Opt-in; without it nothing below changes.  The reference is the kernel's own C, compiled the way the suite's gate
+oracle compiles it (research/tools/suite/oracle.sh: gcc -O1 -fwrapv, CALL_KERNEL stubbed), and the vectors are a
+bench-format file (two hex words per vector; default kernels/<name>/vec.hex), so a suite kernel needs no Python
+transcription and no entry in REFS / VECTORS.  The words map onto the handshake.func's data arguments as the bench
+maps them (cells/hw/gen_bench.py): in order, one word per i32, two (low, high) per i64, at most two in all.  The
+oracle reads the same words off the C signature; if the two ever disagree the answers are wrong and the run FAILS,
+loudly.  --timeout-us raises the testbench's wedge timeout (default: the same 40 us as the REFS path) for vector
+files with long trip counts.
+
 THE --dut OVERRIDE
 
 For proving the gate has teeth: point --dut at a hand-corrupted copy of a
@@ -309,7 +323,7 @@ def _lit(width, value):
     return f"{width}'h{u(value, width):0{nhex}x}"
 
 
-def gen_testbench(func, vectors, expected, tb_name, dut_module):
+def gen_testbench(func, vectors, expected, tb_name, dut_module, timeout_ps=None):
     """One self-checking testbench, as Verilog text.
 
     `vectors` is a list of {argname: int} for DATA args (control args need no
@@ -440,7 +454,7 @@ def gen_testbench(func, vectors, expected, tb_name, dut_module):
     # by one never got its ack, a sink whose n is short never got its token,
     # and which of those it is decides where to look next.
     lines.append("    initial begin")
-    lines.append("        #40_000_000;")
+    lines.append("        #40_000_000;" if timeout_ps is None else f"        #{timeout_ps};")
     lines.append(f'        $display("{tb_name} FAIL (timeout) on vector %0d", cur);')
     for a in args:
         b = bname(a)
@@ -490,6 +504,38 @@ def run_iverilog(dut_path, tb_path, tb_name, route_ps=0, vcd=False):
     return ok, log
 
 
+def c_oracle_vectors(func, vecfile):
+    """(vectors, expected) for --c-oracle: the bench-format words of `vecfile` mapped onto func's data arguments as
+    cells/hw/gen_bench.py maps them, and the answers of research/tools/suite/oracle.sh (the kernel's C) for them."""
+    words = [int(w, 16) for w in open(vecfile).read().split()]
+    if not words or len(words) % 2:
+        raise SystemExit(f"simcheck: {vecfile}: expected two hex words per vector, got {len(words)} words")
+    data = [a for a in func.args if not a.is_control and not a.raw.startswith("memref")]
+    if any(a.raw.startswith("memref") for a in func.args):
+        raise SystemExit(f"simcheck: {func.name} has a memory argument: the C oracle drives scalar arguments only")
+    if any(a.width not in (32, 64) for a in data) or sum(a.width // 32 for a in data) > 2:
+        raise SystemExit(f"simcheck: {func.name}'s arguments " + ", ".join(f"{a.name}:i{a.width}" for a in data)
+                         + " do not fit the bench's two 32-bit words")
+    outs = [r for r in func.results if not r.is_control]
+    if len(outs) != 1 or outs[0].width > 32:
+        raise SystemExit(f"simcheck: {func.name}: the C oracle answers one result of at most 32 bits")
+    vectors = []
+    for j in range(0, len(words), 2):
+        pair, k, v = words[j:j + 2], 0, {}
+        for a in data:
+            v[a.name] = pair[k] if a.width == 32 else pair[k] | (pair[k + 1] << 32)
+            k += a.width // 32
+        vectors.append(v)
+    oracle = os.path.join(REPO, "research", "tools", "suite", "oracle.sh")
+    feed = "".join("%08x %08x\n" % tuple(words[j:j + 2]) for j in range(0, len(words), 2))
+    cp = subprocess.run([oracle, func.name], input=feed, capture_output=True, text=True)
+    got = cp.stdout.split()
+    if cp.returncode != 0 or len(got) != len(vectors):
+        raise SystemExit(f"simcheck: {oracle} {func.name} failed (exit {cp.returncode}, {len(got)} answers for "
+                         f"{len(vectors)} vectors): {cp.stderr.strip()}")
+    return vectors, [{outs[0].name: int(e, 16)} for e in got]
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -504,6 +550,12 @@ def main():
     ap.add_argument("--vcd", action="store_true",
                     help="dump a VCD next to the log, for when the failure is "
                          "a wedge rather than a wrong answer")
+    ap.add_argument("--c-oracle", action="store_true",
+                    help="expected values from the kernel's own C (research/tools/suite/oracle.sh) on a "
+                         "bench-format vector file, instead of REFS / VECTORS (suite kernels)")
+    ap.add_argument("--vecfile", help="with --c-oracle: the vector file (default kernels/<name>/vec.hex)")
+    ap.add_argument("--timeout-us", type=int, default=0,
+                    help="testbench wedge timeout in us (default 0 = the usual 40 us)")
     args = ap.parse_args()
 
     funcs = [f for f in parse.parse_module(open(args.mlir).read(),
@@ -516,13 +568,15 @@ def main():
     func = funcs[0]
     name = func.name
 
-    if name not in REFS:
+    if args.c_oracle:
+        pass
+    elif name not in REFS:
         print(f"simcheck: no reference implementation registered for "
              f"kernel {name!r}. Known: {sorted(REFS)}. Add one to "
              f"bdc/simcheck.py's REFS -- guessing is exactly what this gate "
              f"exists to refuse.", file=sys.stderr)
         return 2
-    if name not in VECTORS:
+    if not args.c_oracle and name not in VECTORS:
         print(f"simcheck: no test vectors registered for kernel {name!r}.",
              file=sys.stderr)
         return 2
@@ -539,17 +593,25 @@ def main():
             f.write(text)
         print(f"regenerated {dut_path}: module bdc_{name}, {len(delays)} matched delay(s)")
 
-    vectors = VECTORS[name]
-    if args.vectors:
-        vectors = vectors[:args.vectors]
-    expected = [REFS[name](v) for v in vectors]
+    if args.c_oracle:
+        vecfile = args.vecfile or os.path.join(REPO, "kernels", name, "vec.hex")
+        vectors, expected = c_oracle_vectors(func, vecfile)
+        print(f"reference: the C (research/tools/suite/oracle.sh {name}) on {vecfile}")
+        if args.vectors:
+            vectors, expected = vectors[:args.vectors], expected[:args.vectors]
+    else:
+        vectors = VECTORS[name]
+        if args.vectors:
+            vectors = vectors[:args.vectors]
+        expected = [REFS[name](v) for v in vectors]
 
     print(f"{len(vectors)} test vector(s) for {name}:")
     for v, e in zip(vectors, expected):
         print(f"  {v} -> {e}")
 
     tb_name = f"tb_simcheck_{name}"
-    tb_text = gen_testbench(func, vectors, expected, tb_name, f"bdc_{name}")
+    tb_text = gen_testbench(func, vectors, expected, tb_name, f"bdc_{name}",
+                            timeout_ps=args.timeout_us * 1_000_000 if args.timeout_us else None)
     tb_path = os.path.join(OUTDIR, f"{tb_name}.v")
     with open(tb_path, "w") as f:
         f.write(tb_text)

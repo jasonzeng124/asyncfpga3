@@ -38,13 +38,34 @@ demanding one. Shift-and-subtract long division is non-affine, so the idiom
 matcher leaves it alone. If a future kernel fails with `no width rule for
 handshake op 'divui'`, this is why.
 
+## The suite
+
+`kernels/SUITE.md` lists every kernel here as a compiler benchmark: its shape, its input range, its vectors, where its
+expected values come from, and how far it gets (frontend, bdc, simcheck, a routed gate). Two more traps found writing
+it: `%` stops in Dynamatic's own frontend (`lower-cf-to-handshake` cannot legalize `arith.remui`; `/` lowers to
+`divui`, which bdc has no cell for). Not a trap but a cost: LLVM folds a rotate `(x << 1) | (x >> 31)` into
+`llvm.fshl.i32`, which `translate-llvm-to-std` expands into shifts on an i64 concatenation (checked 2026-11-17: it
+compiles and passes simcheck, on a datapath twice as wide), so the suite's shift kernels avoid that shape.
+
 ## Adding one
 
 Write `kernels/<name>/<name>.{c,h}` in the shape the shipped tests use (a
-kernel function plus a `main` calling `CALL_KERNEL`), then add a reference
-implementation and vectors to `bdc/simcheck.py`. The reference must be
-transcribed from the C, not from the emitted MLIR or Verilog -- an answer that
-shares assumptions with the thing it is checking is not a check.
+kernel function plus a `main` calling `CALL_KERNEL`), with a header comment that
+says what shape it exercises and the input range in which its C is defined.
+
+A suite kernel (scalar arguments, at most two 32-bit words: the bench's ABI) needs
+no Python transcription: its expected values come from its own C, compiled by
+`research/tools/suite/oracle.sh` (gcc -O1 -fwrapv), on a bench-format vector file
+`kernels/<name>/vec.hex`, and `bdc/simcheck.py --c-oracle` uses the same oracle:
 
     ./bdc/frontend.sh <name>
+    research/tools/suite/oracle.sh <name> < kernels/<name>/vec.hex > kernels/<name>/vec.exp
+    python3 research/tools/suite/veclint.py kernels/<name>/vec.hex kernels/<name>/vec.exp
+    python3 bdc/simcheck.py build/frontend/<name>/comp/handshake_transformed.mlir --c-oracle
+
+The older route still works: add a reference implementation and vectors to
+`bdc/simcheck.py`'s REFS / VECTORS. The reference must be transcribed from the C,
+not from the emitted MLIR or Verilog -- an answer that shares assumptions with
+the thing it is checking is not a check.
+
     python3 bdc/simcheck.py build/frontend/<name>/comp/handshake_transformed.mlir
