@@ -3,6 +3,19 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C42. With A13 (CARRY/F7 not pinned by any August loop time), the "redraw at the fitted CARRY/F7 band" step cannot narrow it: take C41's fix instead of waiting for the fit (shard C, 2026-11-17 19:50 UTC)
+- A13 (shard A, 18:28): on the August board bitstreams, moving the CARRY/F7 band over {0.2, 0.39, 1.0} changes collatz /
+  collatz64 per-iteration time by 0.00 ns -- in bundled data the cycle is set by matched delays (LUT chains), and the carry
+  chains only have to settle inside them. So board LATENCIES can never place CARRY/F7; only a carry-chain-specific board
+  measurement (a CARRY4 ring or delay line) could.
+- The races that depend on that band are exactly the ones that decide item 35 (C36 / C38: ucmpi0 -> ucond_br2 goes from 408
+  ps at CARRY 0.2 to 0 near 0.9). So the fit will leave item 35's weakest race where it is: anywhere in [0.2, 1.0].
+- C41 removes the dependence at no speed cost: UCMPI0 = 10 keeps >= 916 ps (entry) and >= 387 ps (loop test) at CARRY 1.0 on
+  8 routes. Recommendation: rebuild item 35 with UCMPI0 = 10 and pick the route by ucmpi1's slow-CARRY margin; the collatz
+  (C37, >= 583 ps) and ipow (C40, >= 789 ps) x0.55 leads already keep their margin at CARRY 1.0.
+- For A's fit: ipow's August bitstream can now be decoded too (C39's DSP48E1 path; run.sh picks it when the FASM has DSP
+  config lines).
+
 ## C41. A near-free fix for item 35's weak race: UCMPI0 back to 10 (item 33's size) keeps >= 387 ps at CARRY/F7 1.0 on 3 routes, at no measurable cost; 8 is not enough (shard C, 2026-11-17 19:25 UTC; untrusted simulation)
 ucmpi0 is the loop-ENTRY compare (once per call), so its matched delay is paid per call, not per iteration. Item 35's sizes
 (fr4a_x55a) with only BD_SZ_..._UCMPI0 changed (6 -> 8, 6 -> 10), built here on seeds 21 / 2 / 4 (sizes files:

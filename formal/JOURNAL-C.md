@@ -4379,3 +4379,5 @@ ucmpi1 19 ps with 6 runts. Last answer on xor19 unchanged (26.3-26.8 vs 26.98 us
 the first time (Mathlib build + long-vector dumps; rows printed nothing) and rerun alone; the Lean build is paused again.
 Check for others: every number reported today comes from a run that printed its rows (C37/C38/C40 tables are complete).
 - 19:45 UCMPI0 10 on seeds 1/3/5/6/7: ucmpi0 >= 1297, ucmpi1 >= 742 ps at CARRY 1.0, 40/40 draws. Added to C41.
+
+### progress 19:50 -- FOR-RESEARCH C42: A13 says CARRY/F7 is not pinned by loop times, so C41's UCMPI0 = 10 is the way to make item 35 independent of it
