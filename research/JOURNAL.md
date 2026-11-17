@@ -5957,3 +5957,4 @@ two steps above where it starts to fail.
   shrink7 (built on them, never started) replaced by regate3 and shrink9.
 - Lesson for the vector files: every vector must be inside DOMAIN_RESTRICTIONS, or the oracle must apply the same mask.
 - 05:53 Local, col18 (inside the bench domain, trajectories peaking at 30 bits): item 31's route (sdf 7aefc4bd) at worst PASS 17/17; item 31 sizes x0.55 on route 20 (sdf b2b0dad9, P 18.79 ns vs 21.27) draw 1 PASS 17/17. The 30-bit carries of the 3n+1 adder are now in the vectors; shrink9 (x0.55 / x0.70, 32 routes x 4 draws on col18) decides the collatz candidate.
+- 09:10 farm: regate3 / shrink9 waiting since 05:39 ('the farm is full'), shrink8 since 02:41; shrink6 holds slots at 14/32. Local fallback: collatz x0.55 routes 3 and 7, 2 draws each on col18.
