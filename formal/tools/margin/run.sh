@@ -55,14 +55,33 @@ export TC
 
 # 1. decode (reused if OUT/net.json exists)
 A=$F/tools-A/target
+# decode_net XDC: A's decode_base.py + build_net.py -> d0.json, net.json. A FASM with DSP48E1 site configuration goes
+# through margin/dsp/ instead (decode_base.py refuses DSP features): decode_dsp.py (decode_base + combinational DSP48E1
+# sites, checked against ROUTED when given), build_net.py, dsp_gates.py (the DSP's gates; --check: the decoded multiply
+# network against x * y mod 2^32 on 2000 random operand pairs). Knobs: DSP_CORRUPT="SITE:opmode|alumode|inmode:BIT ..."
+# (negative control: flip decoded DSP bits), DSP_SDF=nextpnr SDF (widen DSP arcs' SLOW_MAX to it where larger).
+decode_net() {
+  if grep -qE '^DSP_[LR]_X[0-9]+Y[0-9]+\.DSP48\.' "$O/fromBit.fasm"; then
+    local rt=""; [ -n "$ROUTED" ] && { cat_any "$ROUTED" > "$O/routed.json"; rt="$O/routed.json"; }
+    log "decode: DSP48E1 sites present (margin/dsp/decode_dsp.py)"
+    python3 "$H/dsp/decode_dsp.py" "$O/fromBit.fasm" "$1" --json "$O/d0.json" ${rt:+--routed "$rt"} \
+      $(for c in ${DSP_CORRUPT:-}; do echo --corrupt "$c"; done) 2>&1 | grep -E "^(decode_dsp|fasm2lean3: \{)" | tee -a "$O/run.log"
+    python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net0.json" > /dev/null
+    python3 "$H/dsp/dsp_gates.py" "$O/d0.json" "$O/net0.json" "$O/net.json" ${rt:+--routed "$rt" --check 2000} \
+      ${DSP_SDF:+--sdf "$DSP_SDF"} 2>&1 | tee -a "$O/run.log"
+    rm -f "$O/net0.json"
+  else
+    python3 "$A/decode_base.py" "$O/fromBit.fasm" "$1" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
+    python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
+  fi
+}
 if [ ! -f "$O/net.json" ]; then
   log "decode"
   cat_any "$B" > "$O/fromBit.fasm"
   [ -z "${BND:-}" ] && [ -z "${BENCH:-}" ] && { cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"; }
   if [ -n "${BENCH:-}" ]; then
     : > "$O/empty.xdc"
-    python3 "$A/decode_base.py" "$O/fromBit.fasm" "$O/empty.xdc" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
-    python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
+    decode_net "$O/empty.xdc"
     cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"
     python3 "$H/boundary_bench.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$KV" "$BV" "$O/bnd_bench.json" | tail -1 | tee -a "$O/run.log"
     python3 "$A/mk_bnd_sim.py" "$O/bnd_bench.json" "$O/bnd.json" | tee -a "$O/run.log"
@@ -71,12 +90,10 @@ if [ ! -f "$O/net.json" ]; then
     [ -s "$O/arbs.json" ] || echo "[]" > "$O/arbs.json"
   elif [ -n "${BND:-}" ]; then
     : > "$O/empty.xdc"
-    python3 "$A/decode_base.py" "$O/fromBit.fasm" "$O/empty.xdc" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
-    python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
+    decode_net "$O/empty.xdc"
     cp "$BND" "$O/bnd.json"; echo "[]" > "$O/arbs.json"   # bench arbiters not named yet: no ArbOK flag
   else
-    python3 "$A/decode_base.py" "$O/fromBit.fasm" "$XDC" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
-    python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
+    decode_net "$XDC"
     python3 "$A/boundary_ps.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$O/bnd.json" | tail -1 | tee -a "$O/run.log"
     python3 "$A/arbs.py" "$O/routed.json" "$O/d0.json" "$O/net.json" "$O/arbs.json" | head -1 | tee -a "$O/run.log"
   fi

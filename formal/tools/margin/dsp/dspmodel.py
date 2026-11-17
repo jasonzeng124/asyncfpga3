@@ -2,7 +2,7 @@
 """margin/dsp/dspmodel.py (shard C, UNTRUSTED): the combinational DSP48E1 datapath (every register off), in Python.
 
 The reference for simx.cpp's dsp48 gate (the C++ is a transcription of dsp_p() below; selftest() compares the two
-through simx --dsptest) and for decode_dsp.py's numeric check. Semantics: yosys's cells_sim.v DSP48E1 model
+through simx --dsptest: `dspmodel.py PATH/TO/simx`) and for decode_dsp.py's numeric check. Semantics: yosys's cells_sim.v DSP48E1 model
 (share/yosys/xilinx/cells_sim.v of the toolchain: the model research's GLS simulates), specialised to
 AREG = BREG = ACASCREG = BCASCREG = CREG = DREG = ADREG = MREG = PREG = 0, OPMODEREG = ALUMODEREG = INMODEREG =
 CARRYINREG = CARRYINSELREG = 0, USE_DPORT = FALSE, USE_SIMD = ONE48 (UG479 ch. 2):
@@ -18,6 +18,7 @@ CARRYINREG = CARRYINSELREG = 0, USE_DPORT = FALSE, USE_SIMD = ONE48 (UG479 ch. 2
   ALU    = cells_sim's: Z' = ALUMODE[0] ? ~Z : Z; s = X ^ Y ^ Z', c = maj(X, Y, Z'); s' = ALUMODE[3] ? c : s;
            c' = ALUMODE[2] ? 0 : c; sum = ({c', cin} + s') mod 2^48; P = ALUMODE[1] ? ~sum : sum.  PCOUT = P.
 """
+import sys
 M48 = (1 << 48) - 1
 
 
@@ -89,3 +90,18 @@ if __name__ == "__main__":
         assert dsp_p(0b1010101, 0, 0, 0, a, b, 0, pc, 0) == (a * b + sext(pc >> 17, 31)) & M48
         assert dsp_p(0b0000101, 0b0011, 0, 0, a, b, 0, 0, 0) == (-(a * b)) & M48   # Z - (X + Y + cin), Z = 0
     print("dspmodel: self-check ok")
+    if len(sys.argv) > 1:   # dspmodel.py SIMX: simx.cpp's dsp48_p against dsp_p on random supported configurations
+        import subprocess
+        cases = []
+        while len(cases) < 50000:
+            opm, alu, inm = r.getrandbits(7), r.getrandbits(4), r.getrandbits(5)
+            try:
+                check_cfg(opm, alu, inm, 0)
+            except Refused:
+                continue
+            cases.append((opm, alu, inm, 0, r.getrandbits(30), r.getrandbits(18), r.getrandbits(48), r.getrandbits(48), r.getrandbits(1)))
+        out = subprocess.run([sys.argv[1], "--dsptest"], input="".join("%d %d %d %d %x %x %x %x %d\n" % c for c in cases),
+                             capture_output=True, text=True, check=True).stdout.split()
+        bad = sum(1 for c, o in zip(cases, out) if int(o, 16) != dsp_p(*c))
+        print("dspmodel: simx --dsptest: %d cases (%d configurations), %d mismatches" % (len(out), len({c[:3] for c in cases}), bad + abs(len(out) - len(cases))))
+        sys.exit(1 if bad or len(out) != len(cases) else 0)

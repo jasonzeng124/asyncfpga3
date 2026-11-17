@@ -14,6 +14,8 @@
 // out0 list (bench kernels: collatz, xorshift, ..) replaces gcd(a,b) per pair in the RESULT check; gcd is the default.
 // Pair/out0 values are unsigned 64-bit. Undriven nodes (opaque outputs: FFs, LATCH-mode storage) stay at their
 // initial value 0 unless the env drives them (bnd 'env' list / data bits), exactly as in simadv.
+// DSP48E1 sites (margin/dsp/): gates with flag 2 in the .simx file evaluate the combinational DSP48E1 datapath
+// (dsp48_p, = margin/dsp/dspmodel.py; simx --dsptest compares them); every input pin transport with its own arc.
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -72,6 +74,26 @@ static vector<double> his;                                  // flattened H_RUNT 
 static map<string, int> BN;
 static vector<int> Bdata[3];                                // a_data, b_data, out0_data
 
+// DSP48E1 output-bit gates (flag 2 in the .simx file; margin/dsp/dsp_gates.py, model margin/dsp/dspmodel.py): the
+// combinational DSP48E1 datapath (every register off; yosys cells_sim.v semantics), bit obit of P (= PCOUT).
+// Inputs: data pins, role = port * 64 + bit (port 0 A_muxed, 1 B_muxed, 2 C, 3 PCIN); constant pins are in base[].
+struct DspG { int obit, opm, alu, inm, cis, cin; ull base[4]; vector<int> roles; };
+static vector<DspG> DSPG; static vector<int> gdsp;          // gdsp[g]: index into DSPG, or -1
+static const ull M48 = (1ULL << 48) - 1;
+static inline ll sxt(ull v, int w) { v &= (1ULL << w) - 1; return (v >> (w - 1)) ? (ll)v - (1LL << w) : (ll)v; }
+static ull dsp48_p(int opm, int alu, int inm, int cis, ull A, ull B, ull C, ull PCIN, int cin) {
+    int x = opm & 3, y = (opm >> 2) & 3, z = (opm >> 4) & 7;
+    ll am = (inm & 2) ? 0 : sxt(A, 25); ull m = (ull)(am * sxt(B, 18)) & M48;
+    ull X = x == 0 ? 0 : x == 1 ? m : (((A & ((1ULL << 30) - 1)) << 18) | (B & ((1ULL << 18) - 1))) & M48;
+    ull Y = y == 3 ? (C & M48) : y == 2 ? M48 : 0;
+    ull Z = z == 0 ? 0 : z == 1 ? (PCIN & M48) : z == 3 ? (C & M48) : ((ull)sxt((PCIN & M48) >> 17, 31) & M48);
+    if (x == 2 || (x == 1) != (y == 1) || z == 2 || z == 4 || z == 6 || z == 7 || cis != 0) die("dsp48: configuration not modelled");
+    int ci = (alu & 12) ? 0 : (cin & 1);
+    ull Zi = (alu & 1) ? (~Z & M48) : Z, sx = X ^ Y ^ Zi, cx = (X & Y) | (X & Zi) | (Y & Zi);
+    ull s2 = (alu & 8) ? cx : sx, c2 = (alu & 4) ? 0 : cx;
+    ull tot = (((c2 << 1) | (ull)ci) + s2) & M48;
+    return (alu & 2) ? (~tot & M48) : tot;
+}
 static vector<int> gorig;
 static void load_net(const char* fn) {
     string S = slurp(fn); const char* p = S.c_str(); char* e;
@@ -85,10 +107,12 @@ static void load_net(const char* fn) {
     for (int g = 0; g < NG; g++) {
         gorig.push_back(strtol(p, &e, 10)); p = e;    // original gate index (--gclass)
         gout[g] = strtol(p, &e, 10); p = e; gk[g] = strtol(p, &e, 10); p = e; glut[g] = strtol(p, &e, 10); p = e;
+        bool isdsp = glut[g] == 2; if (isdsp) glut[g] = 0;   // a DSP48E1 output bit: no truth table, not a LUT
+        gdsp.push_back(-1);
         while (*p == ' ') p++;
         const char* h = p; while (isxdigit((unsigned char)*p)) p++;
         ginit0[g] = initw.size();
-        int nw = gk[g] <= 6 ? 1 : (1 << (gk[g] - 6));
+        int nw = (gk[g] <= 6 || isdsp) ? 1 : (1 << (gk[g] - 6));
         vector<uint64_t> w(nw, 0);
         int nd = p - h;   // hex digits, least significant last
         for (int j = 0; j < nd; j++) {
@@ -102,6 +126,15 @@ static void load_net(const char* fn) {
         for (int i = 0; i < gk[g]; i++) {
             afmin.push_back(strtoll(p, &e, 10)); p = e; afmax.push_back(strtoll(p, &e, 10)); p = e;
             asmin.push_back(strtoll(p, &e, 10)); p = e; asmax.push_back(strtoll(p, &e, 10)); p = e;
+        }
+        if (isdsp) {
+            while (*p == ' ') p++; if (*p != 'D') die("bad dsp gate line"); p++;
+            DspG d; d.obit = strtol(p, &e, 10); p = e; d.opm = strtol(p, &e, 10); p = e; d.alu = strtol(p, &e, 10); p = e;
+            d.inm = strtol(p, &e, 10); p = e; d.cis = strtol(p, &e, 10); p = e; d.cin = strtol(p, &e, 10); p = e;
+            for (int j = 0; j < 4; j++) { d.base[j] = strtoull(p, &e, 16); p = e; }
+            for (int i = 0; i < gk[g]; i++) { d.roles.push_back(strtol(p, &e, 10)); p = e; }
+            dsp48_p(d.opm, d.alu, d.inm, d.cis, 0, 0, 0, 0, d.cin);   // refuses an unmodelled configuration at load
+            gdsp[g] = DSPG.size(); DSPG.push_back(d);
         }
         while (*p == ' ') p++; if (*p != '\n') die("bad gate line"); p++;
     }
@@ -234,6 +267,11 @@ static double region_n(const string& nm) {   // the region of a SLICE_XxYy node 
     return hash_n(DRAW, 0x7E6105ULL, (ull)(x / DREGSZ), (ull)(y / DREGSZ));
 }
 int main(int argc, char** argv) {
+    if (argc == 2 && !strcmp(argv[1], "--dsptest")) {   // stdin "opm alu inm cis A B C PCIN cin" (hex values) -> P (hex)
+        int o, al, im, cs, ci; ull A, B, C, PC;
+        while (scanf("%d %d %d %d %llx %llx %llx %llx %d", &o, &al, &im, &cs, &A, &B, &C, &PC, &ci) == 9) printf("%llx\n", dsp48_p(o, al, im, cs, A, B, C, PC, ci));
+        return 0;
+    }
     if (argc < 2) die("usage: simx NET.simx --pairs a,b ... [simadv options]");
     const char* netf = argv[1];
     vector<pair<ull, ull>> pairs; vector<string> pairstr; vector<ull> wantv; bool has_want = false; string kernel = "gcd";
@@ -425,8 +463,13 @@ int main(int argc, char** argv) {
                 for (int i = 0; i < kk; i++) { ll u; bool v = fval(INS[b0 + i], t - PD(b0 + i, t), u);
                     if ((double)(t - u) > his[b0 + i]) INF[{g, i}]++;
                     if (v) ad |= 1u << i; }
-            } else for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - PD(b0 + i, t))) ad |= 1u << i;
-            bool v = (initw[ginit0[g] + (ad >> 6)] >> (ad & 63)) & 1;
+            } else if (gdsp[g] < 0) for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - PD(b0 + i, t))) ad |= 1u << i;
+            bool v;
+            if (gdsp[g] >= 0) {   // DSP48E1 output bit: every data pin read at t - its arc (transport), the datapath, bit obit
+                const DspG& d = DSPG[gdsp[g]]; ull pv[4] = {d.base[0], d.base[1], d.base[2], d.base[3]};
+                for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - PD(b0 + i, t))) pv[d.roles[i] >> 6] |= 1ULL << (d.roles[i] & 63);
+                v = (dsp48_p(d.opm, d.alu, d.inm, d.cis, pv[0], pv[1], pv[2], pv[3], d.cin) >> d.obit) & 1;
+            } else v = (initw[ginit0[g] + (ad >> 6)] >> (ad & 63)) & 1;
             if (RACEON && t >= R + RACET0 && RACEG[g]) {
                 // RACES (informational; rewritten 2026-11-17 06:1x): a LUT's SENSITIVITY window on a pin. With ad the inputs
                 // read now and ap the inputs read just before (each pin at its sample point - 1 ps), pin q is "open" when

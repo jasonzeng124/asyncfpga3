@@ -3,6 +3,7 @@
 
     python3 simx_conv.py NET.json BND.json OUT.simx
 
+DSP48E1 gates (kind "dsp", margin/dsp/dsp_gates.py) are written with flag 2 and their parameters (simx.cpp dsp48).
 Mirrors the --full setup of tools/huff/simadv.py exactly: env nodes' drivers dropped (later gate wins a node),
 the gate order is Python's iteration order of set(drv.values()) (simadv evaluates/schedules in that order, which
 fixes the heap's FIFO tie-breaks), readers in that order. Also records the kernel-cone counts simadv prints.
@@ -42,8 +43,12 @@ with open(outf, "w") as f:
         g = gates[gi]
         lut = 1 if (g["name"].endswith("LUT.O6") or g["name"].endswith("LUT.O5")) else 0
         assert len(g["ins"]) == g["k"] == len(g["arcs"])
-        f.write("%d %d %d %d %x %s %s\n" % (gi, g["out"], g["k"], lut, g["init"], " ".join(map(str, g["ins"])),
-                " ".join("%d %d %d %d" % (e["fmin"], e["fmax"], e["smin"], e["smax"]) for e in g["arcs"])))
+        # a DSP48E1 output bit (margin/dsp/dsp_gates.py): flag 2, its function's parameters after the arcs
+        dd = g.get("dsp") if g["kind"] == "dsp" else None
+        f.write("%d %d %d %d %x %s %s%s\n" % (gi, g["out"], g["k"], 2 if dd else lut, g["init"], " ".join(map(str, g["ins"])),
+                " ".join("%d %d %d %d" % (e["fmin"], e["fmax"], e["smin"], e["smax"]) for e in g["arcs"]),
+                (" D %d %d %d %d %d %d %s %s" % (dd["obit"], dd["opmode"], dd["alumode"], dd["inmode"], dd["carryinsel"], dd["carryin"],
+                 " ".join("%x" % b for b in dd["base"]), " ".join(map(str, dd["roles"])))) if dd else ""))
     for k in ("rst", "req", "a_ack", "b_ack", "start_ack", "out0_req", "out0_ack", "pend_ack"):
         f.write("%s %d\n" % (k, nb(k)))
     for k in ("a_data", "b_data", "out0_data"):
