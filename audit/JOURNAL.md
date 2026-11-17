@@ -3019,3 +3019,14 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - own slope 65.15 ns/iter on 9 vectors >= 50 cycles;
   - research (b4f2ce555): 65.16.
   - Reproduced. SLOW_MAX is running.
+
+### progress 02:03
+- T139 x0.55a s21 = BOARD-QUEUE item 35 (eec25884b, route sdf 9145cd49 = own build).
+  - FAST_MIN / worst / advA: own oracle 17/17, 0 steer and 0 latch violations.
+  - ucond_br2 margin 485 / 326 / 264 ps.
+  - Finding T139: CONFIRMED pending SLOW_MAX.
+- T138 done.
+  - August collatz: own FAST_MIN 65.15, SLOW_MAX 188.76 ns/iter (research 65.16 / 188.76).
+  - Board 92.73 at x = 0.223; band 0.288 is +8.6 %. Research's speed error is reproduced on collatz.
+  - Caveat: T139's hangdog (which watches every vvp) stopped T138's SLOW_MAX at 01:49 with 10/13 vectors done. The three longest SLOW_MAX vectors are missing; the slope is from 8 vectors.
+  - A full SLOW_MAX rerun is queued after T139.
