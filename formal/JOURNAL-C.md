@@ -4246,3 +4246,8 @@ far from the start are partly length; the ones listed are in the first call (402
 Research model, draws 1-8, host 12 ns: c6419 (research's, 32-bit n, peaks 49 bits) 8/8 PASS, last answer mean 113 us;
 c6418 (deleted on research's branch, n ~ 2^59, peaks 63 bits; driven as the full 64-bit n, no bench mask) 8/8 PASS (267 /
 282 / 285 steps), mean 98 us. Next: item 32's sizes x0.55 (shrink_sizes.py on h4s3p) on routes 1-4, c6418.
+
+### progress 07:54 -- collatz64 item 32's sizes x0.55 (every size), routes 1-4, c6418 (63-bit peaks): 24/24 (local)
+shrink_sizes.py h4s3p 0.55 (21 sizes moved), seeds 1-4 (sdf d70a99da d3a30a8c 0415dd53 3c6d6f4f), draws 1-6 each: all PASS;
+last answer (c6418) mean 64.9 / 69.9 / 69.2 / 69.2 us, against item 32's 98.0 us on route 22 (a different route; ratio ~0.70).
+Next: x0.50 on the same routes.
