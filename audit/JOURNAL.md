@@ -3223,3 +3223,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Notes memsum's array can never be filled (memref with no external port, answer always 0). Audit: the suite must not count memsum as passing until it has a port.
   - AUTO sizing loops running on six kernels. No claims yet.
 - 22:47 research c82936191 / bb7b783ab: suite tools v1 and a cheaper AUTO sizing loop; AUTO loop restarted. No claims.
+
+### progress 22:58
+- formal 7ba9b89fa (C48 / C49): C36 corrected on RC-tree arcs. Item 35's ucond_br2 is 204 ps with 0 runts at CARRY 1.0, now consistent with own T144 (60-264 ps, 0 runts). REPORT row and T144 updated.
+- C49: collatz x0.55 route 8 fails (wrong answers) at slow carry; UCMPI0 8 clears it. Not a board item.
