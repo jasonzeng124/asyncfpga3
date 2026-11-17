@@ -4586,3 +4586,11 @@ LUTs only.
   Everything of mine today used default arcs. Caveat added to B2 and B3. Reruns on RC decodes: item 35 and UADDI0 0 seed 21,
   collatz x0.70 s27 UADDI1 7 / 0, collatz64 item 32 UADDI1 12 / 0 (rebuilding: their fasm went in the cleanup), x55a10 seed 4
   pair (decoding). Farm b_u0xor, still waiting, will run on RC decodes (it runs run.sh from the head it is picked up at).
+### progress 23:02 -- RC_TREE=1 reruns done: pass / fail unchanged, ps values up ~15-25 %; B2 / B3 updated
+On RC decodes (run.sh default since 22:30): x55a10 seed 4 UADDI0 12 | 0: slack 11484 | 10039, period 17333 / 17308 | 16247 /
+16114, settle ucmpi1 1354 | 1789, ucmpi0 1710 | 2300. Item 35 | UADDI0 0 seed 21: slack 11289 | 10351, period 17719 / 17402 |
+16774 / 16732, settle ucmpi1 566 | 1527, ucmpi0 204 | 166 (item 35's 566 / 204 = C48's). Negative control on RC: xor19 2/2
+PASS, preloaded 2/2 FAIL. Preload B 16/16 on both. collatz x0.70 s27 UADDI1 7 | 0: steps last-carry slack 10000 | 8867,
+period 20423 / 19500 | 19931 / 19383. collatz64 item 32 UADDI1 12 | 0: 18320 | 18554, period 30986 / 32509 | 31848 / 33075.
+Every draw of every row passes. The 194 ps loop-test gap of a10u0s2 (default arcs) is not repeated on the two UADDI0 0
+routes redone on RC (1789, 1527); the farm's 12 seeds will say more.

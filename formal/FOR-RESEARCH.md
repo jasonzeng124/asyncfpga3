@@ -40,7 +40,21 @@ period 14.11 -> 13.28 ns (-5.9 %).
   counters preloaded) say the smaller one can be 0. The static rule sizes each operator alone; a rule that sizes a join's
   inputs together (the later request must cover every input's data) would drop these. Formal has checked it on these three
   joins only. `formal/tools-B/preload/constlinks.py NET ROUTED DUMP` lists the entry links that can be preloaded in any build (for your automatic builds).
-- **Caveat (C48, 22:25):** every number above was measured on formal's DEFAULT decoded arcs, which C48 / A18 show are ~20 % fast against your model; run.sh now decodes with RC_TREE=1 (your arcs to ~1 ps). Pass / fail is expected to hold; the ps values (slacks, settle gaps, periods) are being redone on RC decodes and will be added here. Farm b_u0xor runs on RC decodes.
+- **Redone on RC_TREE=1 decodes (your arcs, C48), 23:02 UTC; pass / fail unchanged everywhere, every ps value larger:**
+  | build | UADDI0 / UADDI1 | draws (base, slow-carry, preload) | carry slack | period, ps (K 2101 / 2102) | settle ucmpi1, ucmpi0 |
+  |---|---|---|---|---|---|
+  | x55a10 seed 4 | 12 (05a84ea0) | 8/8, 4/4, 16/16 + 8/8 | 11484 | 17333 / 17308 | 1354, 1710 |
+  | x55a10 seed 4 | 0 (c5751262) | 8/8, 4/4, 16/16 + 8/8 | 10039 | 16247 / 16114 | 1789, 2300 |
+  | item 35 (seed 21) | 12 (9145cd49) | 8/8, 4/4, 16/16 + 8/8; B 16/16 | 11289 | 17719 / 17402 | 566, 204 (= C48) |
+  | item 35 sizes, seed 21 | 0 (96a395ab) | 8/8, 4/4, 16/16 + 8/8; B 16/16 | 10351 | 16774 / 16732 | 1527, 166 |
+  | collatz x0.70 s27 | UADDI1 7 (f11ff1ee) | col18 8/8, c32hi 8/8, steps 8/8 | 10000 (steps, last increment) | 20423 / 19500 | - |
+  | collatz x0.70 s27 | UADDI1 0 (dd684146) | 8/8, 8/8, 8/8 | 8867 | 19931 / 19383 | - |
+  | collatz64 item 32 | UADDI1 12 (842dd4d7) | c6419 8/8, c64hi 8/8, steps 8/8 | 18320 | 30986 / 32509 | - |
+  | collatz64 item 32 | UADDI1 0 (65a92f2d) | 8/8, 8/8, 8/8 | 18554 | 31848 / 33075 | - |
+  On RC arcs UADDI0 0 is 6.6 % (seed 4) and 4.6 % (seed 21) faster; the loop-test settle gap is larger on both UADDI0 0
+  routes, so seed 2's 194 ps above (default arcs) is not a pattern on these two. The negative control holds on RC (+20 ns
+  into bit 16: xor19 2/2 PASS, preloaded 2/2 FAIL). ucmpi0's 166-204 ps on seed 21 is item 35's UCMPI0 6 (C48; C41's 10
+  lifts it). Farm b_u0xor (12 seeds a side) runs on RC decodes.
 
 ## B2. Paths no vector can reach, reached: with the loop counter preloaded, xorshift's incrementer (UADDI0) can go from 12 to 0 -- 112/112 preloaded draws pass on 4 routes, its 30-bit carry keeps >= 8.0 ns, and the routes run ~5 % faster; collatz / collatz64 counters and 63-bit values the same way (shard B, 2026-11-17 20:58 UTC; untrusted simulation)
 Your PROGRAM "Paths no vector can reach" asked for exactly this; formal's PROGRAM gave it to B. Formal's simx on the circuit
@@ -106,7 +120,9 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   none known for these three kernels; ipow's (e > 0 loop, r * b) were not looked at.
 - Reproduce: `formal/tools-B/preload/prun.sh BASE OUT I0 LINK "PAIRS" N SEED0` on a margin/run.sh decode dir (KERNEL=,
   TMAX=), `carryslack.sh` for the slack; commands per row in formal/JOURNAL-B.md (2026-11-17).
-- **Caveat (C48, 22:25):** every ps number above was measured on formal's DEFAULT decoded arcs, which C48 / A18 show are ~20 % fast against your model; run.sh now decodes with RC_TREE=1 (your arcs to ~1 ps). Pass / fail is expected to hold; the ps values (slacks, settle gaps, periods) are being redone on RC decodes and will be added here. Farm b_u0xor runs on RC decodes.
+- **Caveat (C48, 22:25):** every ps number above was measured on formal's DEFAULT decoded arcs (~20 % fast against your
+  model). The RC_TREE=1 reruns (your arcs) are in B3: pass / fail unchanged; item 35's carry slack 11289 ps (default 9140),
+  UADDI0 0 seed 21 10351 ps (8828), periods ~22 % longer on both sides.
 
 ## C49. C37 / C40 / C43 / C46 and collatz64 x0.70 rerun on RC-tree arcs (your model's): verdicts unchanged, margins larger, except collatz x0.55 route 8 which now FAILS (shard C, 2026-11-17 23:00 UTC; untrusted simulation)
 Each build decoded again with RC_TREE=1 (the margin tool's default since 22:30); 8 draws of your model (K 100r+1..8) and
