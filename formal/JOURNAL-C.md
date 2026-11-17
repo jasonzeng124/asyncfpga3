@@ -4381,3 +4381,4 @@ Check for others: every number reported today comes from a run that printed its 
 - 19:45 UCMPI0 10 on seeds 1/3/5/6/7: ucmpi0 >= 1297, ucmpi1 >= 742 ps at CARRY 1.0, 40/40 draws. Added to C41.
 
 ### progress 19:50 -- FOR-RESEARCH C42: A13 says CARRY/F7 is not pinned by loop times, so C41's UCMPI0 = 10 is the way to make item 35 independent of it
+- 20:00 ipow x0.55 seeds 1 2 4 6 7 9 10 11: 64/64 draws; slow-CARRY ucmpi2 margin down to 166 ps (route 11). Added to C40.

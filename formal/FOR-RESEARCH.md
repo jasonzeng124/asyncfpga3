@@ -53,6 +53,12 @@ Same builds as C39 (md5-identical to yours), ipow17 (reaches e = 0x7fffffff), fo
 | 3 | 1131 (ucond_br4) / 1828 | **789** (ucond_br8; chains 0.20 / rest 0.31 / CARRY 1.0) / 1593 |
 | 5 | 1378 (ucond_br5) / 2321 | 1350 (ucond_br9) / 2239 |
 | 8 | 1493 (ucond_br5) / 2066 | 2135 (ucond_br8) / 2952 |
+- **8 more routes (20:00; seeds 1 2 4 6 7 9 10 11, sdf f0ea1d9f 65fe87c1 fa33c8ae 2064e904 8adfc041 e47afcf8 8ae050c7
+  bc8ddf0f):** draws K 100r+1..8: 64/64 PASS (last answer 3.99-4.88 us). Slow-CARRY corner only (chains 0.20 / rest 0.31 /
+  CARRY 1.0), ucmpi0 / ucmpi2 settle margins: 891/357, 1387/1468, 1074/398, 1300/1509, 453/1499, 695/516, 1176/1320, **617/166**
+  ps; no runts. So over 11 routes ipow x0.55's loop test (ucmpi2 -> ucond_br6) goes down to **166 ps on route 11** (357 / 398 on
+  routes 1 / 4): like collatz x0.55, the shrink is route-sensitive at the slow-CARRY end, and the board route should be
+  chosen by this margin (3, 5, 8 keep >= 789 ps at all 8 corners).
 - **Item 29 itself (the ipow board candidate, h4s3m, seed 19, sdf b521630f = yours; first time formal could run it):**
   K 1901-1932 32/32 PASS (last answer 5.52-6.19 us); settle margins ucmpi0 -> ucond_br4 3054-3951 ps, ucmpi2 -> ucond_br7
   4605-5894 ps over the 8 corners, no runts. So x0.55 spends ~2-3.8 ns of these races' margin (worst 789 ps on route 3).
