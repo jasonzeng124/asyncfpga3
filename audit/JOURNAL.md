@@ -3135,3 +3135,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T143 done. Formal's corner on long rounds: ucond_br2 315 ps (with scatter). The binding figure is 140 ps (advA, long rounds). OVERSTATED, accepted by formal.
 - 11:53 research 9a38ab8b9: local ipow x0.55 route 19 fails, attributed to an F7-select bitstream defect (not timing). UNVERIFIED: a new defect class not covered by the own 5FF scan. To check if ipow x0.55 becomes a board candidate.
   - Checked: ipow has no bench mask (gen_bench.py: 'gcd, ipow, isprime: no mask'), so the six large-e failures are on real inputs, not a mask artefact like col17. The F7-defect attribution is UNVERIFIED (no board candidate yet).
+- 12:31 research 6daa8df0a: local ipow x0.55 route 3 passes 2/2 draws at 26.41 ns (item 29 ~36.2). A lead, not a board claim; 2 draws only.
