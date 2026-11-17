@@ -4613,3 +4613,8 @@ next cycle takes over) and not on others; the rebuilt UADDI0 0 builds' remaining
 lines at dP/dX 1 (both draws); seed 4: the n ring's 5 (ucmpi1, umux2, ulink_n11*, n12__2) at 1, the counter ring at 0.48 /
 0.06. collatz x0.70 s27: uaddi0, uselect0, ulink_n_falseResult_9 ack. collatz64 item 32: the same + ulink_n10__4 ack.
 Every other line 0. Untrusted simulation (RC arcs), one route a row. Tables in tools-B/preload/out/.
+### progress 23:24 -- headroom of the two xorshift rings on a fixed placement (zr.sh / zeroline.py), added to B4
+x55a10, draw 2101, preloaded long call: as built 17469 (s21) / 17333 (s4). Counter ring 5 lines zeroed: 16538 / 17333. n
+ring 5 lines incl. ucmpi1.udly zeroed: MISMATCH on both (compare needs its delay). n ring without ucmpi1 (4 lines): 17469 /
+17071. Both rings without ucmpi1 (9 lines): 15354 / 15822, RESULT OK. Not buildable circuits; one draw; the cut lines' own
+capture margins not measured.

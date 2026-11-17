@@ -26,6 +26,13 @@ Raw tables: formal/tools-B/preload/out/ls_*.txt.
   acknowledge / request lines, and the two rings have to come down together.
 - **collatz / collatz64:** 3n + 1 (UADDI0) and the select (USELECT0) are on the cycle; their long carries ARE reached by
   inputs (c32hi / c64hi, B2), so shortening them is judged by full-range draws, not by preload.
+- **Headroom, same placement (zeroline.py what-if: the named lines' LUTs at 20 ps and the pips between them at 0; not a
+  buildable circuit; one call, draw 2101):** seed 21 / seed 4 periods 17469 / 17333 ps as built. Counter ring's 5 lines
+  zeroed: 16538 / 17333 (seed 4's n ring takes over). The n ring's lines zeroed INCLUDING ucmpi1.udly: wrong answers on
+  both (the loop test needs its compare's delay). The n ring without ucmpi1 (umux2, ulink_n11__0_folink.uack,
+  ulink_n11__1.rdly, ulink_n12__2.rdly) plus the counter ring's 5: 15354 / 15822, right answers: -12 % / -8.7 %. So about
+  1.5-2 ns per iteration sits in nine mux / link lines of the two rings, not in the datapath; whether they can be cut is
+  for the draws (their own capture margins are not measured here).
 - One route a row; the farm's b_u0xor gives the period on 12 routes a side but not this map. The map moves with the route
   (seed 4 vs 21): a sizing rule that shortens only the on-cycle lines needs it per route, or a margin for the swap.
 ## B3. On your current xorshift candidate (x55a10), UADDI0 0 keeps every draw and every preloaded draw on every route tried; on a fixed route the line costs 0.82 ns (seed 21) or nothing (seed 4), and rebuilt UADDI0 0 routes were 4.6-8.7 % faster, partly by re-placement; collatz / collatz64's UADDI1 0 is safe but buys nothing (shard B, 2026-11-17 22:31 UTC; untrusted simulation)
