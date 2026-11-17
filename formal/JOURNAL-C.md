@@ -4268,3 +4268,7 @@ New tool: +X ps on every input arc of the LUTs matching a name (the race's slow 
 first failing X. collatz64 x0.55 on c6418, ucmpi2.uz_n38 (the 64-bit == 2 compare's last LUT): route 4 0.69 ns (rest 0.25,
 F7/CARRY 0.6), 0.53 ns (F7/CARRY 1.0), 1.47 ns (all SLOW_MAX), 0.63 ns (all FAST_MIN); route 1 1.86 / 1.69 / 3.97 / 1.34 ns.
 C31 updated. Running the same on collatz x0.55 routes 2 / 6 (ucmpi0.uz_n4).
+
+### progress 09:04 -- collatz x0.55 slack on the ucmpi0 -> steer race: 0.8-1.4 ns at FAST_MIN / band 0.25, 2.3 ns at SLOW_MAX (routes 2, 6)
+sideslack.py on ucmpi0.uz_n4, col17: route 2 0.80 / 1.08 / 2.25 ns (FAST_MIN / 0.25+CARRY 0.6 / SLOW_MAX), route 6 1.02 /
+1.36 / 2.27 ns. Consistent with x0.50's shortfall (route 2 0.2-0.7 ns): one step of both chains ~1.2-3 ns. C29 updated.

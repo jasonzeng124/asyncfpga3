@@ -62,6 +62,10 @@ Routes 1-8, col17 (full 32-bit n, no bench mask), your model, your K = 100r+1..4
   (7 flips vs 4) -> ulink_n7 stage 0, ulink_n_falseResult_3 stage 0. So the loop-entry steers ucond_br2/3/4 receive their
   request (through ucmpi0's matched delay) before ucmpi0's compare result has settled, and fire both ways: your rule E at
   those steers (the C21 row named ucond_br3/4 from ulink_n1__1). Both sides start at the common launch ulink_n1__1.
+- **x0.55's slack on the same race (added 09:05; sideslack.py, extra delay on ucmpi0.uz_n4 = the compare's last LUT,
+  uniform bands, no scatter):** route 2: 0.80 ns (all FAST_MIN), 1.08 ns (rest 0.25, CARRY 0.6), 2.25 ns (all SLOW_MAX);
+  route 6: 1.02 / 1.36 / 2.27 ns. With x0.50's shortfall (route 2: 0.2-0.4 / 0.4-0.7 / 0.7-1.0 ns), one step of
+  UCMPI0 and ULINK_N1__1 is worth ~1.2-3 ns on this path: x0.55 keeps about one ns of it at the model's bands.
 
 ## C28. Item 35 (xorshift x0.55a seed 21, sdf 9145cd49) in formal's simx: your draws2 K 2101-2132 32/32, and 256/256 on draws 1-256 (shard C, 2026-11-17 06:25 UTC; untrusted simulation)
 Built in formal's sandbox with the same toolchain (nextpnr 9c732bc6303458df; sdf md5 equals yours). Your model, xor19, host
