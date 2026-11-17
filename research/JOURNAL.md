@@ -6061,3 +6061,12 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
   |d(ns/iter)/dy| < 10 ns / 153 iterations / 0.8 = 0.08 ns per unit band (< 0.1% of 92.7). Our own number for audit T145.
 - Farm (20:37 UTC): cand3b 3/32, cand4b 5/10, slowc1b 1/20, shrink10b 3/64 tasks finished; every draw back so far passes,
   including 8 slow-carry draws (0.85-0.97) on x55a10 routes 1-2 and ipow x0.70 seed 31's 8 draws.
+### progress 20:38 (owner, PROGRAM d35499132: "General first" -- one switch, the compiler does it)
+- Read. The first lead is now the automatic path: BDC_AUTO=1 (default byte-identical) choosing latches / link depths /
+  fast fall / proven MLIR rewrites / sizes with no instance names, no sizes file, no factor; sizes from ONE rule changed
+  for every kernel (the draws say the static sizes are 1.4-1.8x long); headline = one table over all kernels with the
+  switch, Dynamatic, ratio, and the hand recipe beside it. No new per-kernel shrink / scale sweeps; the running farm
+  requests (cand3b, cand4b, slowc1b, shrink10b) are read, not extended. gcddraw's x0.70 half will not be submitted.
+- Subagents started: (A) BDC_AUTO -- inventory of every knob, which are general, the event-graph storage search inside
+  the flow; (B) the sizing rule -- which term carries the 1.4-1.8x; (C) the all-kernel table at defaults (the automatic
+  column's starting point) incl. isprime / gcd and whatever fixtures build.
