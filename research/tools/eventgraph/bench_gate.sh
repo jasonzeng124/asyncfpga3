@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bench_gate.sh HWDIR DESIGN WORK VECFILE EXPFILE COL -- one full-stack correctness run of a bench route at one corner:
-#   COL = max (SLOW_MAX) | min (FAST_MIN) | worst (delay chains 0.21, CARRY4/F7F8/FF 1, rest 0.288, + M scatter:
+#   COL = max (SLOW_MAX) | min (FAST_MIN) | worst (delay chains 0.21, CARRY4/F7F8/FF and the RAMB18E1 1, rest 0.288, + M scatter:
 #   region 0.02, wire 0.126, the measured residual -- JOURNAL 2026-11-04 00:24 / 2026-11-05 00:09)
 #   | draw:K (one draw of the parametric delay model, see the case below; JOURNAL 2026-11-16).
 # Netlist decoded from the .bit (fasm_equiv verdict), prjxray SDF, fid, ps7_bench.v FIXED mode, +FCLK_PS=12000
@@ -22,7 +22,7 @@ export GLS_SDF=$XS GLS_MODEL=fid PS_DESIGN=$D PS_HOST=ps7_bench.v PYTHONPATH=$PX
 case $COL in
   max) export GLS_SDF_FIELD=max;; min) export GLS_SDF_FIELD=min;;
   worst) python3 "$R/research/tools/band_inst_list.py" "$HW/${D}_routed.json" '\.chain\.g\[\d+\]\.u$' 0.21 "$W/chains.band" > /dev/null
-         export GLS_SDF_FIELD=band GLS_SDF_BAND=0.288 GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1 \
+         export GLS_SDF_FIELD=band GLS_SDF_BAND=0.288 GLS_SDF_BAND_CELL=CARRY4=1,SELMUX2_1=1,SLICE_FFX=1,RAMB18E1_RAMB18E1=1 \
                 GLS_SDF_BAND_INST=@$W/chains.band GLS_SCATTER_REGION=0.02 GLS_SCATTER=0.126 GLS_SCATTER_MODE=wire GLS_SCATTER_SEED=1;;
   draw:*) # one draw of the delay model (PROGRAM 2026-11-16, "the board decides"); parameters from the draw number K,
          # written to $W/draw_K.txt. Source of each range: research/data/fid/ring128 (LUT + wire band 0.2877, p05-p95
@@ -38,7 +38,7 @@ case $COL in
          read XC XR XK <<< "$(python3 -c "import random; r=random.Random(7919*$K+17); a=r.uniform(.20,.31); b=r.uniform(.20,.31); u=r.random(); lo,hi=$DC; print(*['%.4f'%v for v in (a, b, lo+u*(hi-lo))])")"
          echo "draw $K chains $XC rest $XR carry/f7f8/ff $XK region 0.02 wire 0.126 seed $K${DRAW_CARRY:+ carry-range $DC}" > "$W/draw_$K.txt"
          python3 "$R/research/tools/band_inst_list.py" "$HW/${D}_routed.json" '\.chain\.g\[\d+\]\.u$' $XC "$W/chains_$K.band" > /dev/null
-         export GLS_SDF_FIELD=band GLS_SDF_BAND=$XR GLS_SDF_BAND_CELL=CARRY4=$XK,SELMUX2_1=$XK,SLICE_FFX=$XK \
+         export GLS_SDF_FIELD=band GLS_SDF_BAND=$XR GLS_SDF_BAND_CELL=CARRY4=$XK,SELMUX2_1=$XK,SLICE_FFX=$XK,RAMB18E1_RAMB18E1=$XK \
                 GLS_SDF_BAND_INST=@$W/chains_$K.band GLS_SCATTER_REGION=0.02 GLS_SCATTER=0.126 GLS_SCATTER_MODE=wire GLS_SCATTER_SEED=$K;;
   *) echo "COL?"; exit 2;;
 esac
