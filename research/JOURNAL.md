@@ -5904,3 +5904,15 @@ on a ctl input in our GLS (already on the Next list).
 - Board route: seed 21 (P 16.84 = the median, EQUIVALENT, ffmux-clean). Farm draws2: 32 more draws on it and the
   3-corner gate on xor17 / xor19. PREDICTION: 32/32 and 6/6 PASS.
 - 00:54 fifteen/README headline: xorshift 16.85 ns by draws. Farm shrink6: collatz x0.55s (item 31 x0.55, the 3n+1 select and both adds kept), 32 routes x 4 draws. PREDICTION: 128/128, median ~18 ns (item 31: 21.5).
+### progress 01:32 (the size sweep's failing side: the draw model fails shrunk sizes broadly below x0.50)
+| xorshift sizes (item 33 x f) | routes | routes with a failing draw | draws passing |
+|---|---|---|---|
+| x0.55a | 32 | 0 | 128 / 128 |
+| x0.50a | 31 (1 ffmux) | 0 | 124 / 124 |
+| x0.40a | 16 | 4 (routes 4, 12, 14, 16) | 55 / 64 |
+| x0.30a | 15 | 14 | 6 / 60 |
+| x0.30 (UADDI0 too) | 2 | 1 | 14 / 16 |
+| x0.20, x0.10 | 2 each | 2 | 0 (no draw completed before the task limit) |
+Failures are hangs (no completion) and result streams that fall a call behind (the mismatch latch), on routes whose
+bits are EQUIVALENT. So the model is sensitive on the size side as well as to the injected late steer, and x0.55a sits
+two steps above where it starts to fail.
