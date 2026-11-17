@@ -1,6 +1,7 @@
 #!/bin/bash
 #CLUSTER array=1-128 cores=8 mem=32G time=150
 # regate2 -- read its own header further down; the zt1 header that follows describes the template it was made from.
+# regate3 = regate2 with vectors INSIDE the bench domain (collatz n <= 0xFFFF, collatz64 n < 2^32; cells/hw/gen_bench.py DOMAIN_RESTRICTIONS): col18 adds n = 60975 / 65307 / 63823 (peaks 30 / 29 / 27 bits, the highest any 16-bit n reaches); c6419 adds three 32-bit n peaking at 49 / 49 / 48 bits. regate2 used n above the mask and was withdrawn before it ran.
 # zt1: the zero-trip input (n = 1, collatz(1) = 0) was missing from the collatz / collatz64 gate vectors (col13, c6414):
 # the loop-ENTRY steers (ucond_br* fed by ucmpi0) never saw their condition change, so the gate could not judge rule E
 # there (farm steerneg: +8000 ps into those steers passed every gate). col14 / c6415 = the old files with n = 1 as the
@@ -11,8 +12,8 @@
 #   129-132: the board seeds of those four (fcsel3a 20, fcsel3m 20, fc64sel3 10, fc64sel3p 22): negative control, every
 #   ucmpi0 -> entry-steer LUT arc +8000 ps (SDF only), gate FAST_MIN / worst with +META_INIT=0, on the new AND old vectors.
 # regate2: the collatz / collatz64 gate vectors never drove the 3n+1 adder past ~21 bits (collatz) / ~30 bits (collatz64):
-#   item 31's sizes x0.55 passed col14 32/32 and FAIL col17 (wrong step counts on exactly the 30-31-bit trajectories;
-#   JOURNAL 2026-11-17). col17 = col14 + n = 77671, 94959, 109881 (peaks 31 / 30 / 30 bits); c6418 = c6415 + three
+#   item 31's sizes x0.55 passed col14 32/32 and FAIL col18 (wrong step counts on exactly the 30-31-bit trajectories;
+#   JOURNAL 2026-11-17). col18 = col14 + n = 77671, 94959, 109881 (peaks 31 / 30 / 30 bits); c6419 = c6415 + three
 #   n ~ 2^59 whose trajectories peak at 63 bits (267 / 282 / 285 steps). Oracles: kernel_oracle.sh.
 #   Same families and routes as zt1, the gate at FAST_MIN / worst / SLOW_MAX, the fixed verdict, no controls.
 set -uo pipefail
@@ -25,9 +26,9 @@ case $F in
   3) N=fc64sel3p; K=collatz64; Z=research/data/collatz64_sizes_T4cdb_h4s3p_bench.vh;;
 esac
 G=research/data/eventgraph/gate
-if [ $K = collatz ]; then GN=$G/col17; else GN=$G/c6418; fi
+if [ $K = collatz ]; then GN=$G/col18; else GN=$G/c6419; fi
 export BD_SKEW_AND_JOIN=1 MLIR_OVERRIDE=research/data/fifteen/${K}_preeq2.mlir
-NM=rg2_${N}_$T
+NM=rg3_${N}_$T
 echo "family $N kernel $K seed $T task $TASK" > "$OUT/task.txt"
 STATIC_ONLY=1 research/tools/fifteen/eval_task.sh $NM $K $Z $T research/data/fifteen/vec_collatz.hex $GN.hex $GN.exp \
   BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 > "$OUT/log_eval.txt" 2>&1

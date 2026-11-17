@@ -1,7 +1,8 @@
 #!/bin/bash
 #CLUSTER array=1-64 cores=8 mem=32G time=240
 # shrink7: shrink6's x0.55s (arithmetic kept) gave 21.30 ns, no gain: the 3n+1 delay IS collatz's cycle. Instead put the
-#   long carries into the vectors: col17 = col14 + n = 77671, 94959, 109881, whose trajectories peak at 1570824736 (31 bits),
+# shrink9 = shrink7 with col18 (inside the bench domain n <= 0xFFFF; shrink7 used n above the mask and was withdrawn before it ran).
+#   long carries into the vectors: col18 = col14 + n = 77671, 94959, 109881, whose trajectories peak at 1570824736 (31 bits),
 #   720170836, 593279152 (the highest peaks below 113383, where int32 trajectories end). x0.55 and x0.70 of EVERY size,
 #   routes 1-32, 4 draws each.
 # (was) shrink6: collatz candidate -- item 31's sizes x0.55 except the arithmetic whose long carries no vector reaches
@@ -13,10 +14,10 @@
 # period (event graph), the fraction of draws passing, and fasm_equiv / ffmux. Task = f x route.
 set -uo pipefail
 FS=(55 70); F=${FS[$(( (TASK-1) / 32 ))]}; S=$(( (TASK-1) % 32 + 1 ))
-G=research/data/eventgraph/gate; K=collatz; V=col17
+G=research/data/eventgraph/gate; K=collatz; V=col18
 Z=research/data/collatz_sizes_T3cdb_nl6s3a_x${F}_bench.vh
 export BD_SKEW_AND_JOIN=1 MLIR_OVERRIDE=research/data/fifteen/collatz_preeq2.mlir
-NM=s7_x${F}_$S
+NM=s9_x${F}_$S
 echo "factor 0.$F seed $S sizes $Z" > "$OUT/task.txt"
 STATIC_ONLY=1 research/tools/fifteen/eval_task.sh $NM $K $Z $S research/data/fifteen/vec_collatz.hex $G/$V.hex $G/$V.exp \
   BDC_CONST_DATA=1 BDC_MERGE_OUT_LINK=ucontrol_merge0 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 > "$OUT/log_eval.txt" 2>&1

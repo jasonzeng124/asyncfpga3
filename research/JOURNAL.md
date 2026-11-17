@@ -5945,3 +5945,14 @@ two steps above where it starts to fail.
   (unshrunk) return the right counts for these inputs? Its gates never ran a trajectory above ~21 bits. Running item 31's
   board route on col17 at worst and two draws.
 - 05:11 container restart lost the item 31 check; rerunning locally. c6418 (collatz64 + three n ~ 2^59 peaking at 63 bits; oracle 267 / 282 / 285). Farm regate2: items 31 / 28 on col17, 30 / 32 on c6418, 32 routes x 3 corners. Until it is back, items 28, 30, 31, 32 are UNVERIFIED on trajectories above ~21 / ~30 bits.
+### progress 05:39 (CORRECTION: the collatz "long-carry failures" were vectors outside the bench's input mask)
+- Item 31's own route (sdf 7aefc4bd) on col17, worst and draw 1: the same three "wrong" answers, 0xf9 / 0x98 / 0xc2, as
+  the x0.55 build. Identical across sizes and delays, so not timing: the bench masks collatz's n to 16 bits
+  (cells/hw/gen_bench.py DOMAIN_RESTRICTIONS, n & 0xFFFF; collatz64's high word to 0), and collatz(77671 & 0xFFFF) = 0xf9,
+  collatz(94959 & 0xFFFF) = 0x98, collatz(109881 & 0xFFFF) = 0xc2. The kernel was right both times. My 05:0x entry
+  ("x0.55 fails on long carries; the old vectors were blind") is WRONG, and the BOARD-QUEUE hold is withdrawn.
+- What stands: inside the bench's domain the highest collatz peak is 593279152 (30 bits, n = 60975; gen_bench.py's own
+  note), and collatz64's is ~3e14 (49 bits, n < 2^32). New vectors inside it: col18 (+ n = 60975, 65307, 63823; peaks 30 /
+  29 / 27 bits) and c6419 (+ three 32-bit n peaking at 49 / 49 / 48 bits). col17 / c6418 deleted; requests regate2 and
+  shrink7 (built on them, never started) replaced by regate3 and shrink9.
+- Lesson for the vector files: every vector must be inside DOMAIN_RESTRICTIONS, or the oracle must apply the same mask.

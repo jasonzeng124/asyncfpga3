@@ -11,12 +11,11 @@ named here decodes EQUIVALENT (or only the benign GND-buffer kinds). If the md5 
 the full stack's equivalence on it before using the board (cells/gls/ps/build_ps.sh HWDIR WORK "" bit prints the
 fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('const', 0) bits ('const', 1)").
 
-## 2026-11-17: HOLD items 28, 31 (collatz) and 30, 32 (collatz64) -- their gates never ran a long carry
-The collatz gate vectors keep every trajectory below ~21 bits (collatz64: ~30 bits), so the 3n+1 adder's long carries
-were never simulated. Shown on collatz: item 31's sizes x0.55 pass the old vectors (32 / 32 draws) and return WRONG step
-counts for n = 77671, 94959, 109881 (trajectories peaking at 30-31 bits), on both runs, at every draw. Whether the
-unshrunk items get these right is being checked (local: item 31's route; farm regate2: all four families on col17 /
-c6418, the latter with three inputs peaking at 63 bits). Do not program these four until that is back.
+## 2026-11-17: (withdrawn) hold on items 28, 31, 30, 32
+A hold placed at 05:2x UTC is WITHDRAWN: the "wrong step counts" came from vectors above the bench's input mask
+(collatz n is masked to 16 bits by gen_bench.py; the kernel returned collatz(n & 0xFFFF), which is right). Item 31's route
+on the out-of-domain vectors returned exactly collatz(n & 0xFFFF) for all three. Farm regate3 re-gates the four families
+with the highest-peak inputs INSIDE the mask (col18, c6419); the items stand on their earlier evidence meanwhile.
 
 ## 2026-11-16 (night): the board candidates judged by draws (PROGRAM "The board decides")
 Each candidate's board route simulated over draws of the parametric delay model (bench_gate.sh draw:K: delay chains and
