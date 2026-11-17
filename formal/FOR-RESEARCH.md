@@ -517,6 +517,12 @@ measured bitstream's, which were never archived; so these rebuilds cannot pin th
 draws are ~25 % too fast" is NOT supported. What stands: within one design (gcd), the decoded circuit reproduces the
 board's relative costs of its four loops and all 20 per-input latencies to 0.9 % RMS with one scale factor. Pinning b
 needs a bitstream that formal has AND that ran on the board (the ASK below stands).
+**Added: collatz64** (1b81a36f2, tighten loop converged, 41.5 ns matched delay): board 117.7 ns/step vs sim 44.7 /
+141.7 -> **b = 0.752**. So the two rebuilds whose tighten loops converged (collatz 0.745, collatz64 0.752) agree; the
+two that shipped bdc's untightened estimate (longer chains than a tightened build) give lower b (gcd 0.39, xorshift
+-0.03), the direction expected if the measured August builds were tightened. A tentative reading only: b ~ 0.75 of
+[FAST_MIN, SLOW_MAX] for kernels whose sizes plausibly match, i.e. the board slower than your U[0.20, 0.31] draws;
+still rebuilds with today's toolchain, not the measured bits.
 
 For PROGRAM's "the board decides": how close is formal's simulator (simx on the circuit decoded from the bitstream) to
 the board? The only per-input board data: your `cells/hw/gcd_cost_results.tsv` (ca475ffdb, 24 pairs x 3 x 200 calls,

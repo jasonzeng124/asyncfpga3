@@ -2818,3 +2818,7 @@ the spread follows the rebuilds' matched-delay sizes, which differ from the meas
 band position is supported, and the "research's draws ~25 % too fast" reading in A11 and in my notification is
 withdrawn. What stands: gcd's within-design shape (four loop costs, 20 latencies, one scale, 0.9 % RMS).
 Lesson: one design's fit was reported as a fabric property before a second design was tried.
+### progress 03:53 -- collatz64 (tightened rebuild) b = 0.752, matching collatz (0.745); the untightened rebuilds give lower b (tentative)
+Board 117.7 ns/step vs sim 44.7 / 141.7 (n = 2^k, k steps). The converged (tightened) rebuilds agree at b ~ 0.75; the
+unconverged ones (gcd 0.39, xorshift -0.03) carry bdc's longer estimates. Consistent with "the measured builds were
+tightened and the board sits near 0.75 of the band", but still rebuilds; A11 updated as tentative, the ASK stands.
