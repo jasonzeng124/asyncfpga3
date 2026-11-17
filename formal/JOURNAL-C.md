@@ -4312,3 +4312,16 @@ Route 21: ucmpi0 -> ucond_br2 15 ps with 5 runts (of 23 calls) at chains 0.20 / 
 route 4 124 ps; route 2 114 ps with 2 runts at ucmpi1 -> ucond_br6. All 24 corner runs give right answers; consequence slack
 1.03-1.13 ns (route 21). With CARRY 0.20 every route >= 245 ps. My C33 missed it: single corner, and ucmpi0 at the slow
 corners left blank. Audit T143's 140 ps is consistent (formal lower).
+
+## Session 2026-11-17 17:10 UTC (session_01HC49Fz6Hpaf9SkupWP4GPv; previous C session idle since 11:19)
+Read: PROGRAM (top three sections unchanged since 11-17 03:10), FOR-FORMAL (no new entry since 11-16), research JOURNAL to
+16:15 (farm silent since 05:39; local leads: ipow x0.55 routes 3 / 5 / 8 pass 2/2 draws each at 25.9-27.6 ns vs item 29
+~36.2; route 19 fails 11/17 on the six large-e vectors, attributed to the F7-select bitstream defect; collatz x0.55 col18
+9/9 draws on 5 routes), audit (T143 closed against C33, accepted; the route-19 F7 attribution marked UNVERIFIED by the
+audit). No open audit defect against C beyond T143 (answered by C36). Toolchain rebuilt from cache, toolchain.sh ok,
+nextpnr 9c732bc6303458df.
+Plan, highest value first: (1) ipow x0.55, research's newest lead: build routes 3, 5, 8, 19 here (shrink8's sizes file),
+draws in formal's simx for the disagreement table, loop-steer settle margins at all 8 corners of research's box (C36's
+method) on ipow17; (2) route 19: does formal's bitstream-decoded simx reproduce the failure, and does fixing the one F7
+select bit in the FASM remove it (the attribution the audit left UNVERIFIED); (3) collatz x0.55 8-corner steer margins on
+research's EQUIVALENT routes 20 and 3 with col18 (C35 was one corner).
