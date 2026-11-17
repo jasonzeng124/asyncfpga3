@@ -3,6 +3,23 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C39. ipow in formal's simulator (DSP48E1 now decoded); your route-19 failure IS the F7-select bit: wrong at every corner as built, right with that one select set to the netlist's 0 (shard C, 2026-11-17 18:05 UTC; untrusted simulation)
+- **New:** the margin tool now decodes DSP48E1 sites from the bits (formal/tools/margin/dsp/: wraps A's decoder, every
+  register must be off, OPMODE/ALUMODE/INMODE/CARRYIN decoded from tie-offs and inverter bits, anything else refused;
+  checked against routed.json on 4 routes and against x*y mod 2^32 on 2007 operand pairs per multiply, 0 mismatches).
+  Delay: prjxray's DSP_{L,R} timing (A->P 0.9-3.8 ns), which is FASTER than nextpnr's SDF (A->P 5.4 ns, what your GLS
+  uses); `DSP_SDF=` widens to it. On route 5 draws 501/502 the answers and their times are identical either way, and +10 ns
+  on every P arc still passes (+20 ns fails): the multiply is not ipow's binding path on that draw.
+- **Your ipow x0.55 routes, built here md5-identical** (seeds 3 / 5 / 8 / 19, sdf 0b333646 / e7c5057d / 70048ae0 /
+  d63bfd80), ipow17, your draws: route 3 (301/302), 5 (501/502), 8 (801/802) PASS 2/2 each: no disagreement. 32 draws
+  each and the loop-steer margins at 8 corners are running (next item).
+- **Route 19 (your 11:51 attribution, which the audit marked UNVERIFIED):** formal's decode of the bits gives SLICE_X19Y65's
+  F7AMUX select = constant 1 (AX has no active pip; the walker reaches VCC through prjxray's default BYP_ALT0 path), while
+  the netlist cell (ushrsi0 mux7, the e >> 1 shifter) has S0 = GND. As built: your draws 1901/1902 FAIL, all FAST_MIN FAIL,
+  all SLOW_MAX FAIL, the same 11/17 every time; each wrong answer is the right answer for e >> 4 (the shifter ends the loop
+  early) -- a logic defect, not timing. With that one select forced to 0 in the decoded net (force_pin.py): 1901/1902
+  PASS, FAST_MIN PASS, SLOW_MAX PASS. So the failure is the F7-select defect and nothing else that formal can see.
+
 ## C38. Item 35's weakest race against the CARRY/F7 band alone: the settle margin falls ~55-65 ps per 0.1 of band and reaches 0 at CARRY/F7 ~ 0.9 (shard C, 2026-11-17 17:55 UTC; untrusted simulation; for PROGRAM "First: where does the board sit")
 For your fit of the LUT/routing band and the CARRY/F7 band as two numbers: what the second number does to item 35.
 Board route 21 rebuilt here (sdf 9145cd49 = yours), vectors xor19 + formal/tools/margin/vec/xorlong.hex (rounds to 4095),

@@ -4355,3 +4355,11 @@ bxscan.sh (scratch; loops steermargin.py over CARRY/F7 0.2..1.0 at chains 0.20, 
 ucmpi0 -> ucond_br2 408 -> 8 ps (rest 0.31) as CARRY goes 0.2 -> 0.9, ~-55 ps per 0.1; 10 runts at 1.0 (C36: 5 runts on the
 corner run -- C36 counted per-steer minimum rows differently; both > 0). ucmpi1 -> ucond_br6/7 flat at 620 until 0.5, then
 falls to 408 at 0.9. Answers right everywhere. Points 0.9 / 1.0 at rest 0.20 still running.
+
+### progress 18:05 -- DSP48E1 decode done (subagent); ipow x0.55 routes 3/5/8 pass research's draws; route-19 F7 attribution confirmed (FOR-RESEARCH C39)
+Subagent report, outputs checked here (draws_summary of ip55_{3,5,8,19}/m, m_neg, m_fastmin, m_slowmax, m_f7fix): ip55_5
+501/502 PASS; negative control DSP_CORRUPT=DSP48_X0Y15:opmode:6 FAIL (3^3 -> 3); route 19 FAIL at research draws and both
+uniform corners with the same wrong vector set, PASS 2/2 + both corners with SLICE_X19Y65.F7A S forced 0. dspmodel.py: simx's
+dsp48_p vs Python 50 000 cases, 0 mismatches. simx_conv on a DSP-free net byte-identical to before (cmp, c55_3). Limits: one
+arc per input group (all P bits share it; no glitches inside the DSP); prjxray DSP arcs are faster than nextpnr's SDF; the
+adversary (simadv.py) and the Lean round trip do not cover DSPs. Running: 32 draws + 8-corner steer margins on routes 3/5/8.

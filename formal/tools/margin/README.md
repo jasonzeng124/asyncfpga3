@@ -131,3 +131,10 @@ other than through one slow pin, corners other than 0 and 1.
   acknowledge that then glitched) is re-run with `--datachange next`. PARTIAL-ACK DEADLOCK (the kernel acknowledged
   some input channels of the shared request, not all, and stopped): Spec.Env has no continuation, so the frozen
   statement is vacuous there; listed as PHYSICAL (a real harness hangs), not as a Spec counterexample.
+
+## DSP48E1 (2026-11-17): ipow builds
+A FASM with `DSP48.` config lines is decoded by `dsp/decode_dsp.py` (wraps A's decode_base.py; every DSP register must be
+off; control pins must be constants; unsupported modes refused) and `dsp/dsp_gates.py` (one combinational `dsp` gate per
+read P/PCOUT bit; `--check N`: the decoded multiplies against x*y mod 2^32). Delay arcs from prjxray timings/DSP_{L,R}.sdf
+(`DSP_SDF=nextpnr.sdf` widens the slow end to nextpnr's). Negative control knob `DSP_CORRUPT=SITE:opmode|alumode|inmode:BIT`.
+`dsp/force_pin.py` ties one decoded cell pin to a constant (what-if). Not covered: simadv.py (adversary), Lean.
