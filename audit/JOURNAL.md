@@ -3066,3 +3066,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 03:48
 - research 88dc44038: lock only. Nothing to audit.
 - 04:17 research cba702162: lock only.
+- 04:47 research 35e63f4c1: the farm is slow; local collatz x0.55 col17 check in progress. No claim.
