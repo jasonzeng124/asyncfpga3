@@ -4099,3 +4099,14 @@ Last answer (col14) mean ~16.5 us at x0.85 -> ~13.4 us at x0.55. c_shrink2b: x0.
 nl6s3a, inside the task) on routes 20, 3, 7, 12, to find formal's first failing factor for collatz.
 
 ### progress 01:02 -- c_shrink2b: collatz item 31 first fails at x0.40 (3 of 4 routes); x0.55 clean on 8 routes (FOR-RESEARCH C26)
+
+## Session Tue Nov 17 02:59:06 UTC 2026 (C)
+Lock taken at 02:59 (previous C lock 01:02, >90 min). Read PROGRAM (top sections unchanged since 11-16 02:55 note; no
+subagents), research's FOR-FORMAL (no new entry since C26) and journal: new BOARD-QUEUE item 35 (xorshift fr4a_x55a seed 21,
+sdf 9145cd49, chosen by draws, research draws2 32/32 + gate 6/6) and farm shrink7 (collatz x0.55 / x0.70 of every size on
+col17, whose three new vectors reach 31-bit trajectory peaks). fm_c_shrink64 (01:03) still queued.
+
+### progress 02:59 -- farm c_draws35 (item 35: research's K 2101-2132 + 896 formal draws) and c_shrink7 (research's shrink7 mirrored)
+Item 35's route was in c_shrink5 (route 21, 32 draws, pass); c_draws35 makes it draw-for-draw with research's draws2 and
+gives ~900 draws for a rate. c_shrink7: x0.55 / x0.70, routes 1-32, col17 (expected steps 231 / 301 / 309 from kernels.py,
+equal to research's col17.exp), K = 100*route+1..4 then draws 1-28.
