@@ -25,8 +25,12 @@ case $COL in
          # F7/F8 and FF were never measured: uniform over [0.20, 1.0]. Within-die: setting M (region 0.02, wire 0.126,
          # wire mode; ring128 README), its own seed per draw.
          K=${COL#draw:}
-         read XC XR XK <<< "$(python3 -c "import random; r=random.Random(7919*$K+17); print(*['%.4f'%v for v in (r.uniform(.20,.31), r.uniform(.20,.31), r.uniform(.20,1.0))])")"
-         echo "draw $K chains $XC rest $XR carry/f7f8/ff $XK region 0.02 wire 0.126 seed $K" > "$W/draw_$K.txt"
+         # DRAW_CARRY=LO,HI (default 0.20,1.0) narrows the CARRY4 / F7F8 / FF range, e.g. 0.8,1.0 for slow-carry draws
+         # (2026-11-17: no August board latency pins that band, PROGRAM "where does the board sit"); the other two
+         # bands are drawn exactly as in the default, so draw K differs from the default draw K only in that band.
+         DC=${DRAW_CARRY:-0.20,1.0}
+         read XC XR XK <<< "$(python3 -c "import random; r=random.Random(7919*$K+17); a=r.uniform(.20,.31); b=r.uniform(.20,.31); u=r.random(); lo,hi=$DC; print(*['%.4f'%v for v in (a, b, lo+u*(hi-lo))])")"
+         echo "draw $K chains $XC rest $XR carry/f7f8/ff $XK region 0.02 wire 0.126 seed $K${DRAW_CARRY:+ carry-range $DC}" > "$W/draw_$K.txt"
          python3 "$R/research/tools/band_inst_list.py" "$HW/${D}_routed.json" '\.chain\.g\[\d+\]\.u$' $XC "$W/chains_$K.band" > /dev/null
          export GLS_SDF_FIELD=band GLS_SDF_BAND=$XR GLS_SDF_BAND_CELL=CARRY4=$XK,SELMUX2_1=$XK,SLICE_FFX=$XK \
                 GLS_SDF_BAND_INST=@$W/chains_$K.band GLS_SCATTER_REGION=0.02 GLS_SCATTER=0.126 GLS_SCATTER_MODE=wire GLS_SCATTER_SEED=$K;;

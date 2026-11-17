@@ -6003,3 +6003,14 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
   CARRY 0.20 (chains 0.22, rest 0.24): not a CARRY effect. Route 19 is the known F7-select defect (11/17 every draw).
   (draws_table.py counts NOT EQUIVALENT routes as clean; it excludes only FFMUX-FLAG. To fix.)
 - So: collatz and ipow candidates come from x0.70, not x0.55.
+### progress 19:52 (farm cand3 / cand4 / slowc1 submitted; slow-carry draws)
+- bench_gate.sh: DRAW_CARRY=LO,HI narrows the CARRY4 / F7F8 / FF range of a draw (default 0.20,1.0 reproduces every
+  existing draw K exactly; checked on K 1201 / 3001 / 2101). draws_table.py now also excludes NOT EQUIVALENT routes:
+  shrink9 x0.70 96 / 96 on 24 EQUIVALENT routes (P median 19.76); shrink8 ipow x0.70 84 / 84 on 21 (30.21); x0.55 still
+  fails on clean routes (collatz 30, ipow 12).
+- cand3 (32 tasks): item 35's sizes with UCMPI0 6 -> 10 (formal C41), routes 1-32, 4 default + 4 slow-carry (0.8-1.0) draws.
+  PREDICTION: 256 / 256 on EQUIVALENT routes, P median 16.85 +- 0.2 ns.
+- cand4 (10 tasks): collatz x0.70 seed 27 and ipow x0.70 seed 31 (median EQUIVALENT routes), 32 draws + 3-corner gate each.
+  PREDICTION: 32 / 32 and 3 / 3 for both.
+- slowc1 (20 tasks): 16 slow-carry draws on each board route (items 33, 27, 31, 28, 29, 30, 32, 35) and on the two x0.70
+  routes. PREDICTION: full-size items 16 / 16; item 35 loses draws (formal C38: ~0 ps at CARRY 0.9); x0.70 16 / 16.
