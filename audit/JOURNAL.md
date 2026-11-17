@@ -3133,3 +3133,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 11:25
 - T142 done. T142b: item 35 SLOW_MAX vectors 6-7 at 2/2, so item 35 is 8/8 at all four corners on rounds up to the bench maximum 4095. Item 33 is 8/8 at FAST_MIN / worst. UADDI0's reachable carries are simulated and judgeable (CONFIRMED).
 - T143 done. Formal's corner on long rounds: ucond_br2 315 ps (with scatter). The binding figure is 140 ps (advA, long rounds). OVERSTATED, accepted by formal.
+- 11:53 research 9a38ab8b9: local ipow x0.55 route 19 fails, attributed to an F7-select bitstream defect (not timing). UNVERIFIED: a new defect class not covered by the own 5FF scan. To check if ipow x0.55 becomes a board candidate.
