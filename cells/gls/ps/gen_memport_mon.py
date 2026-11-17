@@ -101,12 +101,18 @@ def main():
     L.append('        $display("MEMPORTMON FORCE t=%%0t: %s held high for 200 ns (negative control)", $time);' % h0)
     L.append("        force %s = 1'b1; #200000; release %s;" % (h0, h0))
     L.append("    end")
-    L.append("    always @(negedge bench_busy) begin")
+    # a batch ends when bench_busy goes 1 -> 0; its x -> 0 at reset is not one (that edge used to be counted, so the
+    # lines were labelled one batch late)
+    L.append("    reg busy_q = 1'b0;")
+    L.append("    always @(bench_busy) begin")
+    L.append("      if (busy_q === 1'b1 && bench_busy === 1'b0) begin")
     for k, mi in blocks:
         L.append('        $display("MEMPORTMON batch=%%0d mem=%d host_reqs=%%0d kernel_reqs=%%0d overlaps=%%0d", batch, nh%d, nk%d, no%d);'
                  % (mi, k, k, k))
         L.append("        nh%d = 0; nk%d = 0; no%d = 0;" % (k, k, k))
     L.append("        batch = batch + 1;")
+    L.append("      end")
+    L.append("      busy_q = bench_busy;")
     L.append("    end")
     L.append("endmodule")
     open(out, "w").write("\n".join(L) + "\n")
