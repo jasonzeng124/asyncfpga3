@@ -3120,3 +3120,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T143 advC (formal's corner) on xorshift_17: ucond_br2 400 / br6 404 / br7 932 ps, 17/17. Same order as formal's 321 at that corner.
 - But advA (264 ps) and long rounds (140 ps) are lower inside the same model. Formal C33 OVERSTATED as item 35's margin (interim). Finding T143; REPORT row.
 - formal 231232939 (C34): item 35 sizes on routes 1-4 give 166-341 ps; noted in T143.
+- 09:52 formal 5b3ed31b8 / b701781ea (C35): reference steer margins for collatz64 x0.55 and items 31 / 32 (1.5-9 ns). Informational, no conflict with own results; not re-run.
