@@ -4386,3 +4386,5 @@ Check for others: every number reported today comes from a run that printed its 
 ### progress 20:15 -- collatz x0.55 + UCMPI0 8 on routes 4 / 8: >= 691 ps at 8 corners (x0.55 there: 6-52 ps with runts); FOR-RESEARCH C43
 
 ### progress 20:20 -- ipow x0.55 + UCMPI2 13 on seeds 1/4/11: ucmpi2 >= 2095 ps at slow CARRY, cost +6-9 % last-answer (FOR-RESEARCH C44)
+
+### progress 20:30 -- research's farm back (journal 19:50): collatz x0.55 route 30 fails draws 3001/3003 (CARRY 0.91/0.75), ipow x0.55 route 12 hangs 3/4 incl. CARRY 0.20; research adopted C41 (farm cand3). Rebuilding both routes here for the draw-for-draw comparison, plus collatz route 30 with UCMPI0 8 (C43's fix).
