@@ -2831,3 +2831,9 @@ the SDF has every instance name and pin-to-pin connection but no placement. Tryi
 the PS7 site meanwhile.
 **ASK:** the August `cells/build/hw/<k>_bench_gen/<k>_bench_gen.json` and `<k>_bench_gen_routed.json`, and
 `cells/build/gen/<k>_kernel_bench.v`, `<k>_bench_gen.v`, for the five builds in research/data/board-august/.
+### progress 17:46 -- naming the August board nets without their JSONs: exact graph matching does not converge (tool committed as WIP)
+`tools-A/board/sdfmatch.py`: decoded output nets vs SDF cell outputs, typed pin edges, PS7 pins anchored by name,
+colour refinement. Tested on A's own collatz rebuild (truth from its routed JSON): 0 matches. The two graphs differ
+locally (the decoder sees the pins a LUT's INIT depends on, the SDF the pins nextpnr connected: 232 more SDF LUT cells,
+pin-count histograms differ), and exact refinement amplifies any local difference. A fuzzy matcher might work but is
+a large job; the August yosys/routed JSONs (A12's ASK) would make it unnecessary. Not continued for now.
