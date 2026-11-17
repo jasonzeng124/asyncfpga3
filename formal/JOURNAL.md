@@ -2873,7 +2873,7 @@ checked, so the rise/fall explanation fails. The ring/kernel gap (0.465 vs 0.39 
 research's) is unexplained. A14, STATUS and the owner notification are corrected. The rest of A14 stands: the band
 numbers, the fact that LUT vs routing cannot be separated, and the CARRY/F7 result.
 
-### progress 20:58 -- ipow and isprime on their August bitstreams: b = 0.409 and 0.388 (A14 table; simulation, untrusted)
+### progress 20:52 -- ipow and isprime on their August bitstreams: b = 0.409 and 0.388 (A14 table; simulation, untrusted)
 Both decode through C's DSP48E1 path (the product check passes). Both compute the right answers. Five kernels now sit
 at 0.383-0.409 of formal's band, against the rings' 0.465. ipow's per-iteration time does not move with the DSP band.
 Changes to support this:
@@ -2881,7 +2881,7 @@ Changes to support this:
 - scale_net.py: B_DSP env.
 - isprime_latency.py: kernels.py has no isprime oracle, so this script carries its own.
 
-### progress 21:15 -- the ring/kernel gap is per stage, and the same stage differs between builds (A14 addendum; simulation, untrusted)
+### progress 20:57 -- the ring/kernel gap is per stage, and the same stage differs between builds (A14 addendum; simulation, untrusted)
 A ring stage and a kernel delay-chain stage are identical in formal's arcs: LUT 154 ps and routing 38 ps median at
 FAST_MIN. The rings exceed the model by a constant factor of x1.09 at every length.
 Splitting each kernel into chains and the rest:

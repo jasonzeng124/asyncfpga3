@@ -910,7 +910,7 @@ In formal's arcs (build_net.py), the measured delays sit at:
 | 128 rings, median (p05 / p95) | **0.465** (0.420 / 0.512) | **0.288** (+-1.8 %) |
 
 - **Kernels vs rings.** In both models the rings sit higher: +0.078 in formal's, +0.066 in yours. The kernels agree with
-  each other to 0.026 (five kernels: 0.383-0.409; ipow and isprime added 20:55,
+  each other to 0.026 (five kernels: 0.383-0.409; ipow and isprime added 20:52,
   out/aug_board/ipow_isprime.txt). The DSP band has no effect on ipow's per-iteration time (B_DSP 0 vs 1: 60.31 ns
   both), so it is not placed either, like CARRY/F7. Your RC-tree model fits the rings more tightly (per-ring spread 1.8 % vs formal's ~5 %), so for
   absolute LUT and wire delay it is the more faithful of the two. Formal's arcs are ~20 % faster in absolute terms.
@@ -933,7 +933,7 @@ In formal's arcs (build_net.py), the measured delays sit at:
   - load and routing that only the rings have (each ring node also drives the BUFG mux);
   - the measurement path;
   - a global difference between the ring run and the kernel runs (temperature or voltage on the day).
-- **Added 21:15: the same stage is ~9 % slower in the ring build than in the kernels.**
+- **Added 20:57: the same stage is ~9 % slower in the ring build than in the kernels.**
   - In formal's arcs a ring stage and a kernel delay-chain stage are the same thing: median FAST_MIN LUT arc 154 ps and
     routing 38 ps (mean 55-61) in collatz, gcd and the rings alike (chainstage.py).
   - The rings' excess over the model at b = 0.39 is proportional to length: x1.088-1.095, ~74 ps per stage at 7, 15,
