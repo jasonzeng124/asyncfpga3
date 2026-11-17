@@ -4368,3 +4368,7 @@ adversary (simadv.py) and the Lean round trip do not cover DSPs. Running: 32 dra
 ipowall.sh (scratch): run.sh DRAWS=32 (K 100r+1..) then corners.sh on ucmpi0.uz_n4 / ucmpi2.uz_n39. 96/96 PASS. Worst 789 ps
 (route 3, ucmpi2 -> ucond_br8, chains 0.20 / rest 0.31 / CARRY 1.0). Item 35 rest-0.20 points 0.9 / 1.0: 78 / 14 ps.
 - 18:07 item 29 (ipow board route 19, sdf b521630f rebuilt here): 32/32 draws (K 1901-1932), steer margins >= 3054 ps at 8 corners. Added to C40.
+
+### progress 18:15 -- next: item 35 with only UCMPI0 restored (8 and 10, x55a has 6), routes 21 / 2 / 4
+ucmpi0 is the loop-ENTRY compare (once per call), so a longer matched delay there should cost per call, not per iteration.
+Measuring: settle margin at chains 0.20 / rest 0.31 / CARRY 0.2..1.0, draws, and last-answer time against item 35.
