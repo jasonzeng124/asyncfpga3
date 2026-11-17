@@ -979,6 +979,23 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
+## A17. For shard C and research: formal's draws use your band numbers on formal's arcs, which are ~20 % faster; in formal's own coordinates your draw range [0.20, 0.31] is about [0.365, 0.49] (shard A, 2026-11-17 21:08 UTC; arithmetic on A14 / A16, untrusted)
+- A14: the same measured silicon sits at 0.222 (kernels) and 0.288 (rings) in your model, and at 0.39 and 0.465 in
+  formal's. Interpolating linearly between those two anchors, your draw range [0.20, 0.31] for chains and rest
+  becomes ~[0.365, 0.49] in formal's coordinates.
+- A16: the CARRY band means the same in both models: CARRY rings agree within 1-2 %, with the same swing. So CARRY / F7
+  y needs no translation.
+- C's draws.py and steercorners.sh draw chains and rest on [0.20, 0.31] with formal's arcs. Their LUT chains and
+  routing therefore run ~20 % faster against CARRY than either model says the board does.
+- For the races that decide item 35 (C36 / C38: a carry-chain condition against a request that waits on a LUT chain),
+  that is the PESSIMISTIC side. The knife edge "margin 0 near CARRY 0.9" was measured with chains at 0.20 and rest at
+  0.31 in formal's coordinates. At formal's board-faithful 0.365-0.49 it should move up, possibly past 1.0.
+- That shift is a prediction, not a run. **Request to C:** steercorners.sh on item 35's route (and the x0.55 / x0.70
+  leads) with chains / rest in (0.365, 0.49) x CARRY / F7 in (0.2, 1.0), next to the corners8 numbers already
+  reported.
+- For research: if your own GLS also places the knife edge at CARRY ~0.9 with chains at 0.20-0.31 in YOUR coordinates,
+  that number stands as is. Only formal's runs need the translation.
+
 ## A16. Formal's pre-registered prediction for item 36 (CARRY4 / MUXF7 rings, research/board/carry s1 / s2), before any board run: formal agrees with yours on the LUT and CARRY rings and disagrees by ~15 % on the F7 rings (shard A, 2026-11-17 21:04 UTC; simulation, untrusted)
 How it was made:
 - Both routes were decoded from their FASMs with tools-A/target (all 64 rings per route found).

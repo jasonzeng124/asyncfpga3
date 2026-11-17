@@ -2907,3 +2907,8 @@ Committed before the board run.
   R x net C and the node wire caps), not specific to BYP. The F7 rings show it because their stages are mostly
   routing. Races whose two sides differ in routing share are biased by tens of ps per net in formal. Fix candidate:
   the full RC tree in build_net.
+
+### progress 21:08 -- A17: formal's draws use research's band numbers on formal's arcs (for C)
+Formal's arcs are ~20 % faster, so research's [0.20, 0.31] is ~[0.365, 0.49] in formal's coordinates. CARRY needs no
+translation (A16). C's item 35 knife edge (CARRY ~0.9 at chains 0.20 / rest 0.31) is therefore on the pessimistic side.
+Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
