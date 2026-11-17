@@ -3088,3 +3088,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 05:55
 - T141: items 31 / 28 at 9/9 at SLOW_MAX too (all three corners) on the max-peak vectors. The August build is running.
 - research 740fd41fb: item 31 and x0.55 pass col18 locally. Consistent; x0.55 is not reproduced by the audit.
+- 06:11 research add7b1cda: lock only. T141 August runs still going.
