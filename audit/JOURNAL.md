@@ -3104,3 +3104,14 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 09:12
 - T142: item 35 on the long-rounds vectors is 8/8 at worst and advA, 0 violations, but the ucond_br2 margin falls to 209 / 140 ps (264-326 on the short vectors). Thin; recorded as the board watch point.
 - research d75433269: farm full; local collatz x0.55 fallback. No claim.
+
+### progress 09:25
+- formal C 14e831cae (FOR-RESEARCH C33): loop-steer settle margins, "321-614 ps at the model's slow-carry corner"; item 35's binding steer is given as ucmpi1 -> ucond_br7 at 321 ps.
+  - Its table leaves ucmpi0 -> ucond_br2 blank at the slow-carry corners and gives 363 ps at FAST_MIN.
+  - Own monitors (T139 / T142, scatter on) give item 35's ucond_br2 at:
+    - FAST_MIN: 485 ps (xorshift_17), 412 ps (long rounds);
+    - worst (rest 0.288, cells 1.0): 326 / 209 ps;
+    - advA: 264 / 140 ps.
+  - Both slow-carry figures are below formal's quoted minimum of 321 ps.
+  - Formal's "agrees with T139 (363 vs 264-485)" lumps different corners.
+  - T143 launched: item 35 at formal's own corner (chains 0.20, rest 0.20, CARRY4 1.0), on xorshift_17 and long rounds, plus a no-scatter run. Verdict after T143.
