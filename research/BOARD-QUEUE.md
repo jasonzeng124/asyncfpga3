@@ -11,6 +11,35 @@ named here decodes EQUIVALENT (or only the benign GND-buffer kinds). If the md5 
 the full stack's equivalence on it before using the board (cells/gls/ps/build_ps.sh HWDIR WORK "" bit prints the
 fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('const', 0) bits ('const', 1)").
 
+## 2026-11-17 (evening): item 36 -- the CARRY4 / MUXF7 band; the most useful board run now
+No August latency can place the CARRY4 / F7 delay band (in bundled data the matched LUT chains set the cycle), yet the
+fastest candidates' correctness depends on it: collatz x0.55 fails draws only with that band at 0.75-0.91, and item 35's
+loop-entry race falls to ~0 ps near 0.9 (formal C38). Item 36 measures it directly; its answer replaces the draw model's
+uniform [0.20, 1.0] for these cells. Simulation and construction checks only so far (fid GLS of the decoded bits within
+30 ps of the prjxray walk on 96 points; both routes' bits EQUIVALENT; chains checked in the decoded bits; the fit's
+negative control fails). Run it before the speed items.
+
+36. **The CARRY4 / MUXF7 band (carry_ro_top): the one number no kernel can give** -- research/board/carry/ (two routes,
+   s1 bit 40a85473, s2 bit 19ae3639; predictions committed before any run; cells/hw/carry_ring/README.md). 64 ring
+   oscillators per bitstream on ro_many's JTAG harness: LUT-only rings (pin the LUT/wire band x again), rings through
+   1 / 4 / 16 / 32 chained CARRY4 (CIN->CO3) and through 8 / 16 MUXF7 selects (S0->OUT), 8 placements of each. About
+   2-3 minutes per bitstream (8 groups x 2 windows x 4 s). From cells/:
+
+       for s in s1 s2; do
+         hw/board.sh python3 hw/carry_ring/carry_measure.py ../research/board/carry/$s/carry_ro_top.bit \
+           ../research/board/carry/$s/predicted.tsv build/hw/carry_ro_top_$s; echo "measure $s exit $?"
+       done
+
+   (xsdb / hw_server from VIVADO_LAB as for item 5; the script programs the device itself on the first group.)
+   Pass: exit 0 and `=== PASS ===` on both routes. Exit 2 = the readback failed its own checks (constants, group
+   echo, liveness, poison, overflow) or a ring is not the ring asked for: nothing is a measurement. Exit 1 = the
+   band model does not explain these arcs (residual > 3%, C16 vs C32 or F8 vs F16 disagree, or the slope fit
+   disagrees with the absolute fit); the line says which. The answer is the three lines before the verdict:
+   `CARRY_BAND y=... +-...`, `F7_BAND y=... +-...`, `LUT_BAND x=...`; please paste them (and build/hw/carry_ro_top_s*/
+   measured.tsv + raw/) back. Simulated: C32 is 11.1 ns at y = 0.2 and 15.5 ns at y = 1.0 (x 0.288), F16 16.2 / 21.3
+   ns; at 1% ring scatter the fit resolves y to +-0.01-0.02. The two routes must agree with each other within their
+   sigmas; if they do not, that is the finding.
+
 ## 2026-11-17: (withdrawn) hold on items 28, 31, 30, 32
 A hold placed at 05:2x UTC is WITHDRAWN: the "wrong step counts" came from vectors above the bench's input mask
 (collatz n is masked to 16 bits by gen_bench.py; the kernel returned collatz(n & 0xFFFF), which is right). Item 31's route

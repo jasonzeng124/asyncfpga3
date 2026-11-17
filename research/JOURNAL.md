@@ -6045,3 +6045,13 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
   = PROGRAM's 47.66); all are match=NO against the archived .bit. Not simulated yet.
 - Running locally (one at a time, ~15 min each): collatz y 1.0; collatz64 (x 0.224) / ipow (x 0.225) at y 0.2 / 1.0; then
   y 2.0 / 3.0 (beyond SLOW_MAX, extrapolated) on all three as a correctness bound. Scripts research/data/bandfit/.
+### progress 20:31 (BOARD-QUEUE item 36: a ring experiment that measures the CARRY4 / MUXF7 band)
+- cells/hw/carry_ring/ (subagent, reviewed): ro_many's JTAG harness with 64 rings per bitstream: LUT-only L8 / L16 (pin x
+  again), CARRY4 chains C1 / C4 / C16 / C32 (S0->CO3 then CIN->CO3), MUXF7 select chains F8 / F16; 8 placements each.
+  Period linear in (x, y_carry, y_f7); carry_fit.py fits all three. Two routes (s1 bit 40a85473, s2 bit 19ae3639; md5s
+  checked), nextpnr 9c732bc6303458df, --freq 100; bits EQUIVALENT to routed JSON; chains present in the decoded bits.
+- Simulated (x 0.288): C32 11.1 ns at y 0.2 vs 15.5 at 1.0 (+39%); F16 16.2 vs 21.3; L rings unchanged. The fid GLS of
+  the decoded bits agrees with the prjxray walk to <= 30 ps on 96 points. At 1% ring scatter y resolves to +-0.01-0.02.
+  Negative control (+300 / 500 / 1000 ps fixed on every carry ring) FAILs the fit's consistency checks every time.
+- The GLS caught a design bug first (F rings released several edges at once: 1.0 ns instead of 9.3).
+- Does NOT measure: CARRY4 XOR outputs, DI->CO, MUXF7 data arcs, MUXF8 (they inherit y through one band per cell type).

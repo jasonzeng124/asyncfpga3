@@ -185,10 +185,65 @@ def gen_child(sdf):
                 print("P %d %d %d" % (g, b, t["lo"]))
 
 
+def read_tsv(path):
+    import csv
+    return list(csv.DictReader(open(path), delimiter="\t"))
+
+
+def summary(path):
+    """per kind: median terms and the period at y = 0.2 / 1.0 (x = 0.288)"""
+    import statistics as st
+    rows = read_tsv(path)
+    by = defaultdict(list)
+    for r in rows:
+        by[r["kind"] + r["n"]].append(r)
+    print("kind  n  LO_ps   R_ps   C_ps   F_ps  P(x.288,y.2)  P(x.288,y1.0)  change  P_fastmin..P_slowmax  nonxray")
+    for k in sorted(by, key=lambda k: ("LCF".index(k[0]), int(k[1:]))):
+        v = by[k]
+        f = lambda c: st.median(float(r[c]) for r in v)
+        p2, p10 = f("P_x288_y02"), f("P_x288_y10")
+        print("%-4s %2d %6d %6d %6d %6d %13d %14d %6.1f%%  %8d..%-8d %s" % (
+            k, len(v), f("lo_ps"), f("R_ps"), f("C_ps"), f("F_ps"), p2, p10, 100 * (p10 / p2 - 1),
+            f("P_fastmin"), f("P_slowmax"), ",".join(r["ring"] for r in v if r["flag"] != "ok") or "-"))
+
+
+def compare_gls(pred, gls):
+    """event GLS periods (group 0) against the linear terms at the same point"""
+    P = {(int(r["g"]), int(r["b"])): r for r in read_tsv(pred)}
+    worst = 0
+    print("field  x      y     slot kind  GLS_ps  walk_ps  diff")
+    for r in read_tsv(gls):
+        t = P[(0, int(r["slot"]))]
+        if r["field"] == "min":
+            x = y = 0.0
+        elif r["field"] == "max":
+            x = y = 1.0
+        else:
+            x, y = float(r["x"]), float(r["y"])
+        w = float(t["lo_ps"]) + x * float(t["R_ps"]) + y * (float(t["C_ps"]) + float(t["F_ps"]))
+        if r["period_ps"] == "DEAD":
+            d = float("inf")
+            print("%-5s %-6s %-5s %4s %-5s DEAD" % (r["field"], r["x"], r["y"], r["slot"], t["kind"] + t["n"]))
+        else:
+            d = float(r["period_ps"]) - w
+            print("%-5s %-6s %-5s %4s %-5s %7s %8.0f %+5.0f" % (r["field"], r["x"], r["y"], r["slot"],
+                                                               t["kind"] + t["n"], r["period_ps"], w, d))
+        # the GLS mean period is an integer-ps average; the walk rounds per arc
+        worst = max(worst, abs(d) - int(t["arcs"]))
+    ok = worst <= 2
+    print("GLS vs walk: worst |diff| beyond 1 ps/arc: %.0f ps -> %s" % (max(worst, 0), "AGREE" if ok else "DISAGREE"))
+    return 0 if ok else 1
+
+
 def main():
     if len(sys.argv) > 2 and sys.argv[1] == "--gen-child":
         gen_child(sys.argv[2])
         return 0
+    if sys.argv[1] == "--summary":
+        summary(sys.argv[2])
+        return 0
+    if sys.argv[1] == "--compare-gls":
+        return compare_gls(sys.argv[2], sys.argv[3])
     sdf = sys.argv[1]
     res, bad = load_all(sdf)
     for g, b, err in bad:
