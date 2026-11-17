@@ -95,9 +95,13 @@ if a.routed:
 def cellname(node):   # decoded LUT output node SLICE_XxYy.<L>LUT.O6 / .O5 -> the yosys instance nextpnr placed there
     m = re.match(r"^(SLICE_X\d+Y\d+)\.([A-D])(?:LUT\.O)?([56])$", node)
     return BEL.get("%s/%s%sLUT" % m.groups(), node) if m else node
+XB = tuple(float(v) for v in os.environ['DRAW_XBAND'].split(',')) if os.environ.get('DRAW_XBAND') else None
 def bands(K):   # research's draw K: (b_c, b_r, b_cells) = Random(7919*K+17).uniform(.2,.31), (.2,.31), (.2,1.0)
     import random
-    r = random.Random(7919 * K + 17); return (r.uniform(.2, .31), r.uniform(.2, .31), r.uniform(.2, 1.0))
+    r = random.Random(7919 * K + 17); c, q, x = r.uniform(.2, .31), r.uniform(.2, .31), r.uniform(.2, 1.0)
+    if XB:   # DRAW_XBAND lo,hi: the same draw's CARRY4/F7/F8 band mapped linearly into [lo, hi] (a fitted CARRY/F7 band; K's other numbers unchanged)
+        x = XB[0] + (x - .2) / .8 * (XB[1] - XB[0])
+    return (c, q, x)
 want = []
 if a.kernel != "gcd":
     sys.path.insert(0, HERE); import kernels

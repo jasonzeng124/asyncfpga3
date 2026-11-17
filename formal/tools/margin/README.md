@@ -138,3 +138,5 @@ off; control pins must be constants; unsupported modes refused) and `dsp/dsp_gat
 read P/PCOUT bit; `--check N`: the decoded multiplies against x*y mod 2^32). Delay arcs from prjxray timings/DSP_{L,R}.sdf
 (`DSP_SDF=nextpnr.sdf` widens the slow end to nextpnr's). Negative control knob `DSP_CORRUPT=SITE:opmode|alumode|inmode:BIT`.
 `dsp/force_pin.py` ties one decoded cell pin to a constant (what-if). Not covered: simadv.py (adversary), Lean.
+`DRAW_XBAND=lo,hi` (2026-11-17): research's draw K with its CARRY4/F7/F8 band mapped linearly from [0.20, 1.0] into
+[lo, hi] (for redrawing candidates once the board fit places the CARRY/F7 band; K's other numbers unchanged).
