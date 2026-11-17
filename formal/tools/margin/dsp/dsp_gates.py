@@ -248,12 +248,13 @@ def check(D, N, routed, n):
             if names[x] in src_of or g is None: continue
             if g["kind"] in ("dsp", "dspcasc") or (g["k"] == 1 and g["init"] == 2): todo += g["ins"]
     r = random.Random(12345)
-    bad = 0
+    tbad = 0
     for pb, bits in sorted(res.items()):
+        bad = 0
         seen = set()
         for b in bits.values(): cone(idx[b], seen)
         ops = sorted({src_of[names[i]][0] for i in seen if names[i] in src_of})
-        if len(ops) != 2 and not (len(ops) == 1):
+        if len(ops) not in (1, 2):
             die("product %s: operands %s" % (pb, ops))
         vecs = [(0, 0), (1, 1), (0xffffffff, 0xffffffff), (0x7fffffff, 0x7fffffff), (0x80000000, 3), (0x1ffff, 0x1ffff),
                 (0x20000, 0x20000)] + [(r.getrandbits(32), r.getrandbits(32)) for _ in range(n)]
@@ -285,6 +286,8 @@ def check(D, N, routed, n):
                 if bad <= 5:
                     print("  MISMATCH %s = %s * %s: %#x * %#x -> %#010x, want %#010x" % (pb, ops[0], ops[-1], opv[ops[0]], opv[ops[-1]], got, want), file=sys.stderr)
         print("dsp_gates --check: %s = %s * %s mod 2^32: %d vectors, %d mismatches" % (pb, ops[0], ops[-1], len(vecs), bad), file=sys.stderr)
+        tbad += bad
+    bad = tbad
     if bad and any(c["dsp"].get("corrupted") for c in dsps.values()):
         print("dsp_gates --check: mismatches EXPECTED (negative control: a decoded DSP bit was flipped)", file=sys.stderr)
     elif bad:

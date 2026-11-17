@@ -360,6 +360,8 @@ def main():
                         if net_map.setdefault(jn, dn) != dn or net_map_r.setdefault(dn, jn) != jn:
                             die("%s %s: json net %s <-> decoded %s not one-to-one" % (sn, pin, jn, dn))
             cell["dsp"]["json_cell"] = cn
+        if J is not None and "json_cell" not in cell["dsp"] and jbel.get("%s/DSP48E1" % sn):
+            cell["dsp"]["json_cell"] = jbel["%s/DSP48E1" % sn][0]   # (a corrupted site: named, not checked)
         for fld, bit in corrupt.get(sn, ()):
             cell["dsp"][fld] ^= 1 << bit
             cell["dsp"]["corrupted"] = cell["dsp"].get("corrupted", []) + ["%s[%d]" % (fld, bit)]
