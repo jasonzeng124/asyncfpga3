@@ -4234,3 +4234,10 @@ So this request path is short by 0.2-2 ns at x0.50: a static (every-corner) shor
 on the same race is NOT measured: a negative injection can make an arc delay negative (simx does not guard it; those runs
 were discarded, and chainfix.py now refuses --extra <= 0). For research: when shrinking collatz below x0.55, keep UCMPI0 >= 5
 and ULINK_N1__1 >= 2 (as xorshift's x0.40c kept UCMPI0/1), or check this path on every route.
+
+### progress 07:40 -- the x0.50 race's two sides: ucond_br2/3/4 steers' request (via ucmpi0.udly) vs ucmpi0's compare result
+diverge.py on route 6 x0.50 (band 0.25, no scatter), failing vs +1000 ps on ulink_n1__1.rdly: first LUTs with different flip
+counts: ulink_n1__1.rdly g[0], ucmpi0.uor, ucmpi0.udly g[0..3], ucond_br2/3/4_j joins, then the steers ucond_br4/2/3 (7 vs 4
+flips), ulink_n7 stage 0, ulink_n_falseResult_3 stage 0. A steer firing both ways = request before condition (rule E at the
+loop-entry steers). Caveat: the two dumps cover different lengths (the failing run stops early), so flip-count differences
+far from the start are partly length; the ones listed are in the first call (402-405 ns). FOR-RESEARCH C29 addendum.

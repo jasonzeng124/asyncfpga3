@@ -21,6 +21,12 @@ Routes 1-8, col17 (full 32-bit n, no bench mask), your model, your K = 100r+1..4
   If you shrink below x0.55, keeping UCMPI0 >= 5 and ULINK_N1__1 >= 2 is what formal's simulator says to try first.
   x0.55's slack on this path is not measured yet. Route 4 at x0.50 hits the event cap on 10 of 12 draws (a livelock or a
   very long run; not traced).
+- **Which signals race (route 6, x0.50, band 0.25; failing run vs the same run with +1000 ps on ulink_n1__1.rdly,
+  diverge.py):** the first storage / steer LUTs whose event counts differ, in order: ulink_n1__1.rdly.chain.g[0] ->
+  ucmpi0.uor -> ucmpi0.udly.chain.g[0..3] -> the joins ucond_br2/3/4_j -> the steers ucond_br4, ucond_br2, ucond_br3
+  (7 flips vs 4) -> ulink_n7 stage 0, ulink_n_falseResult_3 stage 0. So the loop-entry steers ucond_br2/3/4 receive their
+  request (through ucmpi0's matched delay) before ucmpi0's compare result has settled, and fire both ways: your rule E at
+  those steers (the C21 row named ucond_br3/4 from ulink_n1__1). Both sides start at the common launch ulink_n1__1.
 
 ## C28. Item 35 (xorshift x0.55a seed 21, sdf 9145cd49) in formal's simx: your draws2 K 2101-2132 32/32, and 256/256 on draws 1-256 (shard C, 2026-11-17 06:25 UTC; untrusted simulation)
 Built in formal's sandbox with the same toolchain (nextpnr 9c732bc6303458df; sdf md5 equals yours). Your model, xor19, host
