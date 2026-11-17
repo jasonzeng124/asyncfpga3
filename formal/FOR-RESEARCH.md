@@ -937,7 +937,10 @@ In formal's arcs (build_net.py), the measured delays sit at:
 2. **The ring/kernel gap: a kernel and the rings measured in ONE session** (rules out the day), plus a ring whose
    nodes drive nothing but the next stage (rules out the readout load). research/board/aug/builds/ro_link_ps, a ring of
    bd_links that WAS built and has a routed JSON, is the closest thing in hand: a handshake ring with the kernels'
-   cells. If it has a board period, formal can place it next (A, next).
+   cells. If it has a board period, formal can place it next. **ASK:** the ro_link_ps bitstream is on claude/research,
+   but no board laps are. cells/hw/ro_link_fit.py reads build/hw/ro_link_sweep, and neither the August logs nor
+   research/data hold it. If the owner's August sweep output (the "ring N: S stages L laps X ns/lap" lines) still
+   exists, please push it. It is the only measurement in hand that crosses rings and kernels.
 3. **LUT vs routing: rings whose routing share differs.** For example, the same N with stages forced one per tile
    against packed four per slice. That moves the LUT share from ~0.7 to ~0.4 or ~0.9, enough leverage for a two-band fit.
 4. **CARRY/F7: a CARRY4 delay line or ring (C42),** or a kernel whose request path waits on a carry chain.
