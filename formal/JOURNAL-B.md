@@ -4496,3 +4496,16 @@ Note: 0x7fffffff + 1 never happens in the C (i < rounds <= 2^31 - 1), so a 30-bi
   its carry into bit 16 (uaddi1 slice[4]) tolerates the whole 20 ns searched.
 - Running (batch35.sh, background): UADDI0 12 vs 0 on seeds 2 / 4 / 5 (sdf 12: b2470514 / ee6304d0 / 7a448319 -- the
   first two = C36's routes 2 / 4; 0: 2b8ef891 / f5223fdd / b4b07f06): ordinary, preload A / B, carry slack, period.
+### progress 21:05 -- collatz item 31 / x0.70 seed 27 / collatz64 item 32: full-range values and preloaded steps counters pass; slacks
+- prun.sh had `--tmax 40000000` (40 us) hard-coded: item 31's preloaded draws need ~39-41 us and 5 of 8 first "failed" by a
+  missing LAST answer. Not a circuit result: TMAX now defaults to 400 us and the same 8 draws pass. (xorshift runs end by
+  2.3 us; unaffected.)
+- collatz item 31 (nl6s3a, seed 20, sdf 7aefc4bd = research's): col18 4/4; c32hi (0x15555555: 3n+1 = 2^30; 0x05555555;
+  0x12b8b5b3, 0x18516cd5, 0x25b7b92d, 0x266e0471 peaking up to 0x746c9680 < 2^31; 0xee2f) 8/8; steps preloaded 0x3ffffff0
+  on c32hi + col18 without n = 1 (the hardware answers n = 1 from a constant-0 path; oracle refuses it) 8/8.
+  Slacks (4 draws, K 3101-3104): steps carry into bit 16 >= 96728 ps when the carry happens 15+ iterations before the
+  answer (absorbed: the high bits are next read only at the output), so the worst case is the carry in the LAST increment:
+  n = 0x10000 (16 steps -> exactly 0x40000000): >= 10546 ps. 3n+1 carry into bit 28 (uaddi0 slice[7]) on c32hi: >= 9765 ps.
+- collatz x0.70 seed 27 (research's cand4 route; sdf f11ff1ee here, research has not listed its md5): col18 4/4, c32hi
+  16/16, steps preloaded 16/16; steps last-increment carry >= 8007 ps (UADDI1 7); 3n+1 into bit 28 >= 8320 ps.
+- collatz64 item 32: steps last-increment carry >= 14609 ps (c64hi + n = 0x10000).
