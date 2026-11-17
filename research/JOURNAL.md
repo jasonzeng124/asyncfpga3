@@ -6014,3 +6014,4 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
   PREDICTION: 32 / 32 and 3 / 3 for both.
 - slowc1 (20 tasks): 16 slow-carry draws on each board route (items 33, 27, 31, 28, 29, 30, 32, 35) and on the two x0.70
   routes. PREDICTION: full-size items 16 / 16; item 35 loses draws (formal C38: ~0 ps at CARRY 0.9); x0.70 16 / 16.
+- shrink10 (64 tasks): collatz64 item 32 sizes x0.70 / x0.55, 32 routes x 4 draws on c6419 (PROGRAM lead 4). PREDICTION: x0.70 all draws pass on EQUIVALENT routes, P median ~27 ns.
