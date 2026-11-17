@@ -3214,3 +3214,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Caveat: the MLIR rewrites apply only on md5 match with the three formal-proven files, so none on other kernels.
   - No AUTO build exists yet.
 - 22:12 research 85b1b3b90: auto_size.sh, the flow's own sizing loop for BDC_AUTO=1 (estimates -> CA_SIZERULE -> re-route -> ratchet until clean); preload1 re-judged. Tooling; no AUTO result claimed yet.
+- 22:17 owner bec64b884: frontend output for the untuned kernels (nested, branchloop, memsum). research 4ce0399eb: new cluster session lock. No claims.
