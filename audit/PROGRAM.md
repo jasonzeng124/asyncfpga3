@@ -102,6 +102,17 @@ Prioritise BOARD-QUEUE #1-#3, since they are what would go on the board.
 - One session starts per day (owner, 2026-10-29). Run continuously: when a pass is done, re-audit the newest
   commits on both branches. Never end the session on your own.
 
+## Use the quota that is left (owner, 2026-11-17)
+
+The owner: "there is so much usage left why dont you jstu use it all". The week's quota
+resets on 2026-11-18 at 23:00 UTC, and what is unused is lost.
+
+- Until 2026-11-18 12:00 UTC you may run up to 4 subagents at a time; after that 2 again.
+- Do not end the session early: nothing restarts it until the owner next looks.
+- Side by side: the draw model's parameters against the ring data; item 35 with formal's
+  C36 and C41; the ipow and collatz candidates as they appear; formal B's preloaded runs
+  once it reports; the disagreement about where the board sits in the delay band.
+
 ## The board decides; every check is a proxy (owner, 2026-11-16)
 
 The owner: "idc about the checks, they dont matter, as long is it works on board / closest
