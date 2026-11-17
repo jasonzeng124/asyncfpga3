@@ -2880,3 +2880,13 @@ Changes to support this:
 - aug_synth.py: pads a vector whose high bits synthesis made constant (isprime's 0/1 result).
 - scale_net.py: B_DSP env.
 - isprime_latency.py: kernels.py has no isprime oracle, so this script carries its own.
+
+### progress 21:15 -- the ring/kernel gap is per stage, and the same stage differs between builds (A14 addendum; simulation, untrusted)
+A ring stage and a kernel delay-chain stage are identical in formal's arcs: LUT 154 ps and routing 38 ps median at
+FAST_MIN. The rings exceed the model by a constant factor of x1.09 at every length.
+Splitting each kernel into chains and the rest:
+- The best fit puts the chains at 0.35 and the rest at 0.52.
+- The chains at the ring b (0.465) fit worse: errors up to 2.7 % against <= 0.9 %.
+Leading explanation, not shown: the two measurement sessions or builds differ (a day, a supply). The deciding test needs
+no new build: run ro_many and collatz back to back on the same board.
+New tools: chain_gates.py, chainstage.py; scale_net CHAIN / B_CHAIN / B_DSP env.

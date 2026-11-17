@@ -933,6 +933,18 @@ In formal's arcs (build_net.py), the measured delays sit at:
   - load and routing that only the rings have (each ring node also drives the BUFG mux);
   - the measurement path;
   - a global difference between the ring run and the kernel runs (temperature or voltage on the day).
+- **Added 21:15: the same stage is ~9 % slower in the ring build than in the kernels.**
+  - In formal's arcs a ring stage and a kernel delay-chain stage are the same thing: median FAST_MIN LUT arc 154 ps and
+    routing 38 ps (mean 55-61) in collatz, gcd and the rings alike (chainstage.py).
+  - The rings' excess over the model at b = 0.39 is proportional to length: x1.088-1.095, ~74 ps per stage at 7, 15,
+    31 and 63 links. It is per stage, not a readout constant.
+  - Splitting each kernel into its delay chains and the rest (scale_net CHAIN / B_CHAIN), the four kernels fit best
+    with the chains at b 0.35 and the rest at 0.52 (errors <= 0.9 %).
+  - Forcing the chains to the rings' 0.465 needs the rest at 0.19 and leaves errors up to 2.7 %. So the kernel data do
+    not support "the chains run as slowly as the ring stages".
+  - Same stage, different speed: the leading explanation is a difference between the two builds or sessions (ring
+    build Aug 23 ~21:15 local, kernels Aug 24), not between kinds of stage. Not shown.
+  - Data: out/aug_board/chain_vs_rest.txt.
   Neither model can represent a rise/fall difference anyway: the August collatz SDF has rise = fall on all 54,592
   entries.
 - **CARRY/F7 (A13).** With LUT and routing at 0.39, moving CARRY4 and MUXF7/F8 over {0.2, 0.39, 1.0} changes collatz and
@@ -944,7 +956,10 @@ In formal's arcs (build_net.py), the measured delays sit at:
 1. **For kernel margins: the kernel loop times, not the rings.** The kernel loop times share the kernels' edge mix and
    placement style; the rings do not. Until (2) is done, reading kernel delays at the ring b over-states their delays
    (safe for request delays, unsafe for data paths).
-2. **The ring/kernel gap: a kernel and the rings measured in ONE session** (rules out the day), plus a ring whose
+2. **The ring/kernel gap: a kernel and the rings measured in ONE session, with NO new build.** Load ro_many_top.bit
+   and run ro_many_measure.py, then load collatz_bench_gen.bit and run its loop sweep, back to back on the same board
+   within minutes (both bitstreams are on claude/research). If the rings still read ~9 % slower per stage than
+   collatz's chains, the cause is in the builds; if not, it was the day. Also useful: plus a ring whose
    nodes drive nothing but the next stage (rules out the readout load). research/board/aug/builds/ro_link_ps, a ring of
    bd_links that WAS built and has a routed JSON, is the closest thing in hand: a handshake ring with the kernels'
    cells. If it has a board period, formal can place it next. **ASK:** the ro_link_ps bitstream is on claude/research,

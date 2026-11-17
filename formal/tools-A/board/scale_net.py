@@ -11,8 +11,10 @@ simx at --corner 0 --kappa 0 --cdefault F runs exactly these delays.
 import json, os, sys
 net = json.load(open(sys.argv[1])); br, bc = float(sys.argv[3]), float(sys.argv[4])
 bl = float(sys.argv[5]) if len(sys.argv) > 5 else br      # optional: LUT arcs (site pin + IOPATH) apart from routing
-for g in net["gates"]:
+chain = set(json.load(open(os.environ["CHAIN"]))) if "CHAIN" in os.environ else set()   # optional: gate indices at B_CHAIN
+for gi, g in enumerate(net["gates"]):
     b = bc if g["kind"] in ("carry", "muxf") else bl if g["kind"] in ("lut6", "lut5") else float(os.environ["B_DSP"]) if "B_DSP" in os.environ and g["kind"] in ("dsp", "dspcasc") else br
+    if gi in chain: b = float(os.environ["B_CHAIN"])
     for a in g["arcs"]:
         d = int(round(a["fmin"] + b * (a["smax"] - a["fmin"])))
         a["fmin"] = a["fmax"] = a["smin"] = a["smax"] = d

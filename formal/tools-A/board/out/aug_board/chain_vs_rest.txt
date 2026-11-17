@@ -1,0 +1,15 @@
+Same stage, two builds: per-stage FAST_MIN in formal's arcs (chainstage.py), median LUT arc / routing (mean routing)
+  collatz udly chains   119 stages: 154 / 38 ps (55)
+  gcd udly chains      1157 stages: 154 / 38 ps (60)
+  128 August rings     3840 stages: 154 / 38 ps (61)
+Rings, measured minus model at b = 0.39, by length: 7 links +555 ps (x1.095), 15 +1147 (x1.089), 31 +2270 (x1.088),
+63 +4638 (x1.088): ~74 ps per stage, a constant ratio -- per stage, not a readout constant.
+Kernels split into delay chains (chain_gates.py: chain LUTs + routing into them) and the rest (scale_net CHAIN/B_CHAIN):
+per-iteration = t0 + ac b_chain + ar b_rest (CARRY 0.4)
+kernel     t0      ac       ar      board   chain share  b_rest if b_chain = 0.465
+collatz    50.35   79.97    29.49   92.73   0.731        0.176
+collatz64  64.43   108.45   31.29   117.89  0.776        0.097
+gcd(diff)  6305.1  10350.4  3239.7  11695   0.762        0.178
+ipow       32.41   48.60    21.94   60.85   0.689        0.266
+LSQ over the four: b_chain 0.347, b_rest 0.519, rel errs +0.8/+0.4/-0.9/-0.3 %
+b_chain fixed 0.39 -> b_rest 0.401, errs up to 1.2 %; 0.465 -> b_rest 0.193, errs up to 2.7 %; 0.50 -> 0.095, up to 3.4 %
