@@ -4287,3 +4287,8 @@ sideslack numbers (they are consequence slacks, upper bounds on the settle margi
 Binding, at the model's slowest-carry corner (rest 0.20, CARRY/F7 1.0): item 35 ucmpi1 -> ucond_br7 321 ps (1 request of
 1839; next 923), collatz64 x0.55 route 4 ucmpi2 -> ucond_br6 454 ps, collatz x0.55 route 2 ucmpi0 -> ucond_br2 614 ps. No
 row has the condition moving under a request. One route each, uniform bands, no per-pip scatter.
+
+### progress 09:35 -- item 35's sizes on routes 1-4: steer settle margins down to 166 ps (route 4, ucmpi0 -> ucond_br2) at the slow-carry corner; FOR-RESEARCH C34
+Local builds seeds 1-4 (sdf 33852d52 b2470514 7b649492 ee6304d0), research K 100r+1..8 all PASS. Smallest settle margins at
+rest 0.20 + CARRY/F7 1.0: 341 / 181 / 230 / 166 ps (route 21: 321). No condition moves under a request anywhere. ~1 median
+SDF error of margin on routes 2 and 4.

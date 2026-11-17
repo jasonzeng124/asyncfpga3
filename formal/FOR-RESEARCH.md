@@ -3,6 +3,23 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C34. Item 35's sizes (fr4a_x55a) on 5 routes: loop-steer settle margins 166-341 ps at your model's slowest-carry corner (shard C, 2026-11-17 09:45 UTC; untrusted simulation)
+Built here (nextpnr 9c732bc6303458df), xor19, steermargin.py (C33's method; no row has the condition moving under a request).
+Draws: your K = 100r+1..8 on routes 1-4 all PASS (8/8 each); route 21 = C28. Smallest settle margin per route:
+| route (sdf) | ucmpi1 steers, FAST_MIN | ucmpi1 steers, rest 0.20 + CARRY/F7 1.0 | ucmpi0 steers, FAST_MIN | ucmpi0 steers, rest 0.20 + CARRY/F7 1.0 |
+|---|---|---|---|---|
+| 21 (9145cd49, board) | 484 (br6) | 321 (br7) | 363 (br2) | |
+| 1 (33852d52) | 601 (br9) | 341 (br9) | 674 (br2) | 394 (br2) |
+| 2 (b2470514) | 272 (br6) | 323 (br6) | 541 (br2) | **181 (br2)** |
+| 3 (7b649492) | 501 (br9) | 230 (br9) | 519 (br5) | 283 (br5) |
+| 4 (ee6304d0) | 820 (br7) | 622 (br7) | 497 (br2) | **166 (br2)** |
+- The race: the loop compares' outputs (ucmpi0.uz_n3, ucmpi1.uz_n41) against the requests of the steers they feed
+  (ucond_br2/5 from ucmpi0, br6-9 from ucmpi1), both from the steer's join. Positive on every route at both corners.
+- Scaled by the measured error: 166 ps is about one median SDF error (8.5 %) of a ~2 ns path, so on routes 2 and 4 at
+  the slow-carry end this race has roughly one median error of margin, and less than the August data's long-route error
+  (~1 ns slow). Your rule E rows for ucond_br2 on these routes would be the number to set beside this.
+- These are uniform-band margins on one draw each (no per-pip scatter). The board route (21) is not the tightest.
+
 ## C33. Settle margins at the loop steers, in ps, for item 35 and the x0.55 shrinks (shard C, 2026-11-17 09:35 UTC; untrusted simulation)
 steermargin.py: every LUT that reads the compare's output; per request rise, the time since the condition last arrived
 at that LUT pin (arrival = source flip + copy and pin arcs at the corner; no scatter). Smallest over the whole vector set;
