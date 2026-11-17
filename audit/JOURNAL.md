@@ -3150,3 +3150,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T145 queued: CARRY-band sensitivity of ns/iter on the August bitstreams.
 - Owner notified.
 - 17:24 formal ed7f91b49 (C37): collatz x0.55 routes 20 / 3 on col18, 64/64 draws each, loop-steer margins >= 583 ps at all 8 corners, no runts. Covers 8 corners and in-domain vectors (col18 includes n = 60975). Not yet reproduced (no board item).
+
+### progress 17:43
+- T144 done: item 35 on xor19 at formal C36's corners.
+  - Without scatter: ucond_br2 60 ps, ucond_br6 70 ps at 0.20 / 0.31 / CARRY 1.0, no runts; 213 ps at 0.20 / 0.20 / 1.0.
+  - Formal's direction is confirmed (near-zero margin at the slow CARRY end). The magnitude is not (formal 15 / 17 ps with runts).
+  - Finding T144; REPORT row.
+- T145 (CARRY sensitivity on the August bitstreams) starting.
