@@ -4,6 +4,7 @@
 # Does it separate draws that pass near a failure from draws far from one? Task 1: collatz x0.40 route 20 (C26: 10/19/3 of
 # 32); task 2: xorshift x0.50a route 18 (C25: fails draws 4, 5, 10, 12, 21); task 3: item 35 (x0.55a route 21; all pass so
 # far). Research's model, draws 1-32, fixed host 12 ns.
+# RACES=1: simx also reports the closest input reorderings (gap ps) at storage LUTs and LUTs feeding them.
 set -uo pipefail
 R=$PEER
 case $TASK in
@@ -21,7 +22,7 @@ source "$TC/openxc7/export.sh" > /dev/null
 B=$R/cells/build/hw/${K}_bench_gen; echo "$K $SZ route $SEED" > $OUT/build.txt; md5sum $B/${K}_bench_gen.sdf >> $OUT/build.txt
 PAIRS=$(awk 'NF==2{printf "0x%s,0x%s ", $1, $2}' $R/research/data/eventgraph/gate/$V.hex)
 W=$RUNS/m; mkdir -p $W
-DRAWS=32 DRAW_MODEL=research HOSTDELAY=12000 SIM=simx KERNEL=$K PAIRS="$PAIRS" TFULL=400000000 LATCH=1 JOBS=8 \
+RACES=1 DRAWS=32 DRAW_MODEL=research HOSTDELAY=12000 SIM=simx KERNEL=$K PAIRS="$PAIRS" TFULL=400000000 LATCH=1 JOBS=8 \
   SYNTH=$B/${K}_bench_gen.json ROUTED=$B/${K}_bench_gen_routed.json KV=$R/cells/build/gen/${K}_kernel_bench.v \
   BV=$R/cells/build/gen/${K}_bench_gen.v bash formal/tools/margin/run.sh $B/${K}_bench_gen.fasm $W > $OUT/run.txt 2>&1
 for f in draws.txt draws_summary.txt; do [ -f $W/$f ] && cp $W/$f $OUT/; done

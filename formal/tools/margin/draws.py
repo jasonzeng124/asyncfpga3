@@ -112,6 +112,9 @@ def run(seed):
     out0 = "last out0 at %d ps (%d answers)" % (ts[-1], len(ts)) if ts else "no out0"
     nm = re.search(r"^NEARMISS storage-output pulses < \d+ ps: (\d+); narrowest \(width, node, t\) \[\((\d+), '([^']*)', (\d+)\)", r.stderr, re.M)
     if nm: out0 += " [nearmiss %s; min %s ps at %s t=%s]" % nm.groups()
+    for c in ("storage", "feeding-storage"):   # simx RACES=1: the closest input reordering that would flip a LUT
+        rc = re.search(r"^RACES %s within \d+ ps: (\d+) events .*?closest \(gap, gate, pin, pin's source, t\) \[\((\d+), '([^']*)', (\d+), '([^']*)', (\d+)\)" % c, r.stderr, re.M)
+        if rc: out0 += " [race %s %s ps at %s pin %s from %s t=%s; %s within window]" % ((c,) + rc.groups()[1:] + (rc.group(1),))
     if not res:
         return seed, "UNDECIDED", (r.stderr[-200:].replace("\n", " ") or "no RESULT (rc %d)" % r.returncode), time.time() - t0, ""
     if res[0].startswith("RESULT OK"):
@@ -147,6 +150,11 @@ with open(os.path.join(a.out, "draws_summary.txt"), "w") as f:
         if k != "PASS": f.write("  seed %d %s %s\n" % (s, k, msg[:200]))
     nmw = sorted((int(m.group(1)), s, m.group(2)) for s, k, msg, dt, o in rows if k == "PASS"
                  for m in [re.search(r"min (\d+) ps at (\S+)", o)] if m)
+    for c in ("storage", "feeding-storage"):
+        rw = sorted((int(m.group(1)), s, k, m.group(2), m.group(3)) for s, k, msg, dt, o in rows
+                    for m in [re.search(r"race %s (\d+) ps at (\S+) pin (\d+)" % c, o)] if m)
+        if rw: f.write("closest %s races (gap ps, draw, verdict, LUT node, pin; informational): %s\n"
+                       % (c, ", ".join("%d d%d %s %s p%s" % x for x in rw[:6])))
     if nmw: f.write("nearmiss (PASS draws, narrowest storage-output pulse; informational): %s\n"
                     % ", ".join("seed %d %d ps %s" % (s, w, n) for w, s, n in nmw[:5]))
 print(open(os.path.join(a.out, "draws_summary.txt")).read(), end="")

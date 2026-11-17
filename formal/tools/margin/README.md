@@ -74,6 +74,16 @@ from routed.json (`gclass.txt`). **Host fix (2026-11-16 21:5x):** with `--datach
 the next offer, simx raised the next request BEFORE its data (a boundary violation by the harness; it produced the
 withdrawn FOR-RESEARCH C21). The request now waits for its data + su. Margin-tool runs with HOSTDELAY >= 2000 before this
 fix share the defect where an answer came back faster than HOSTDELAY (zero-trip calls); their vectors had none.
+**Near misses (2026-11-17, informational, verdicts unchanged):** simx prints `NEARMISS` (storage-LUT output pulses
+narrower than NEARMISS_PS = 200 ps after reset; the 3 narrowest) and, with env `RACES=1`, `RACES` lines: at every
+evaluation of a storage LUT (class storage) or of a LUT a storage LUT reads (class feeding-storage), each other pin q that
+arrived gap < RACES_PS (300) ps earlier and whose old value would have given an output different from both the new and the
+previous one (a latch setup / hold, a steer condition against its request); per (gate, pin) the smallest gap, the 5
+closest printed. draws.py appends both to each draw line and lists the closest over all draws in draws_summary.txt. Toy
+check: `RACES=1 simx test/toy_latch.simx --kernel collatz --want 1,0,1 --pairs 1,1 0,0 1,1 --corner 0 --kappa 0 --classes
+/dev/null --data0 --full --R 4000 --su 100 --datachange broad --nextreq seq --tmax 100000 --hostdelay 500` reports the latch's
+D arriving 49 ps before its enable closes. Transparent latches legitimately pass D glitches: a small gap is a pointer
+for tracing, not a failure.
 `diverge.py NET A.json B.json --routed R`: the nodes where two dumps part, LUTs whose flip count differs, with names.
 
 ## Simulator

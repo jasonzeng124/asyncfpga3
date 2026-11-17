@@ -187,6 +187,15 @@ static inline void changed(int n, ll t) {
 }
 
 static int W = 0; static ll NSKIP = 0;
+// RACES=1 (env): closest input reorderings at storage LUTs (class 0) and at LUTs feeding one (class 1), after reset
+static bool RACEON = false; static ll RACEX = 300; static vector<char> RACEG;
+struct RaceRec { ll gap; int g, q; ll t; };
+static vector<RaceRec> RACEB[2]; static ll RACEN[2] = {0, 0}; static map<pair<int, int>, ll> RACEMIN[2];
+static void race_note(int c, ll gap, int g, int q, ll t) {
+    RACEN[c]++;
+    auto key = make_pair(g, q); auto it = RACEMIN[c].find(key);
+    if (it == RACEMIN[c].end() || gap < it->second) { RACEMIN[c][key] = gap; RACEB[c].push_back({gap, g, q, t}); }
+}
 static ll NINJ = 0;
 static ll PER_L = 0; static vector<int> PER_B; static bool PER_HIT = false;
 static map<pair<int, int>, ll> INF;
@@ -353,6 +362,19 @@ int main(int argc, char** argv) {
     { vector<int> f(rd0.begin(), rd0.end() - 1);
       for (int g = 0; g < NG; g++) for (int i = 0; i < gk[g]; i++) { int n = ins[gins0[g] + i]; rdg[f[n]] = g; rdd[f[n]] = ds[gins0[g] + i]; rdf[f[n]] = dsf[gins0[g] + i]; f[n]++; } }
     H.assign(NN, {}); V0.assign(NN, 0); TOUCH.assign(NN, 0);
+    if (getenv("RACES") && atoi(getenv("RACES"))) {
+        RACEON = true; if (getenv("RACES_PS")) RACEX = atoll(getenv("RACES_PS"));
+        RACEG.assign(NG, 0); vector<char> stnode(NN, 0);
+        for (int g = 0; g < NG; g++) if (glut[g]) for (int i = gins0[g]; i < gins0[g + 1]; i++) if (ins[i] == gout[g]) { RACEG[g] = 1; stnode[gout[g]] = 0; }
+        // class 1: LUTs whose output a storage LUT reads (directly or through pips / hops only)
+        vector<char> feeds(NN, 0);
+        for (int g = 0; g < NG; g++) if (RACEG[g] == 1) for (int i = gins0[g]; i < gins0[g + 1]; i++) if (ins[i] != gout[g]) feeds[ins[i]] = 1;
+        vector<int> drv(NN, -1); for (int g = 0; g < NG; g++) drv[gout[g]] = g;
+        for (int it = 0; it < 400; it++) { bool ch = false;   // walk back through non-LUT single-input gates (pips, hops)
+            for (int g = 0; g < NG; g++) if (!glut[g] && feeds[gout[g]] && gk[g] == 1 && !feeds[ins[gins0[g]]]) { feeds[ins[gins0[g]]] = 1; ch = true; }
+            if (!ch) break; }
+        for (int g = 0; g < NG; g++) if (glut[g] && !RACEG[g] && feeds[gout[g]]) RACEG[g] = 2;
+    }
 
     int rst = BN["rst"], req = BN["req"], aA = BN["a_ack"], aB = BN["b_ack"], aS = BN["start_ack"],
         oR = BN["out0_req"], oA = BN["out0_ack"], eA = BN["pend_ack"];
@@ -403,6 +425,20 @@ int main(int argc, char** argv) {
                     if (v) ad |= 1u << i; }
             } else for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - PD(b0 + i, t))) ad |= 1u << i;
             bool v = (initw[ginit0[g] + (ad >> 6)] >> (ad & 63)) & 1;
+            if (RACEON && t >= R && RACEG[g]) {
+                // RACES (informational): pin q arrived gap ps before t (arrival = its source's last flip read by this
+                // evaluation + the pin's delay); had q arrived after t instead (its old value now), the output would differ
+                // both from its new value and from its value just before t: a reordering of two arrivals within gap ps
+                // flips this LUT (latch setup / hold, steer condition vs request). gap 0 (simultaneous) is skipped.
+                bool vprev = cur(gout[g]);
+                for (int q = 0; q < kk; q++) {
+                    ll s = t - PD(b0 + q, t); const vector<int>& h = H[INS[b0 + q]];
+                    ll idx = (ll)(upper_bound(h.begin(), h.end(), (int)s) - h.begin()) - 1; if (idx < 0) continue;
+                    ll gap = s - h[idx]; if (gap <= 0 || gap >= RACEX) continue;
+                    unsigned alt = ad ^ (1u << q); bool va = (initw[ginit0[g] + (alt >> 6)] >> (alt & 63)) & 1;
+                    if (va != v && va != vprev) race_note(RACEG[g] - 1, gap, g, q, t);
+                }
+            }
             if (setv(gout[g], t, v)) changed(gout[g], t);
         }
         if (periodic && t > R && (nev & ((1 << 18) - 1)) == 0 && Q.env.empty() && LASTN >= 0) {
@@ -533,6 +569,16 @@ int main(int argc, char** argv) {
         string s = "[";
         for (size_t i = 0; i < pl.size() && i < 3; i++) { char b[512]; snprintf(b, sizeof b, "%s(%lld, '%s', %lld)", i ? ", " : "", get<0>(pl[i]), names[get<2>(pl[i])].c_str(), get<1>(pl[i])); s += b; }
         fprintf(stderr, "NEARMISS storage-output pulses < %lld ps: %lld; narrowest (width, node, t) %s]\n", NB, cnt, s.c_str());
+    }
+    if (RACEON) for (int c = 0; c < 2; c++) {
+        vector<pair<ll, pair<int, int>>> v; for (auto& x : RACEMIN[c]) v.push_back({x.second, x.first});
+        sort(v.begin(), v.end());
+        string s = "[";
+        for (size_t i = 0; i < v.size() && i < 5; i++) { int g = v[i].second.first, q = v[i].second.second; ll tt = 0;
+            for (auto& r : RACEB[c]) if (r.g == g && r.q == q && r.gap == v[i].first) { tt = r.t; break; }
+            char b[600]; snprintf(b, sizeof b, "%s(%lld, '%s', %d, '%s', %lld)", i ? ", " : "", v[i].first, names[gout[g]].c_str(), q, names[ins[gins0[g] + q]].c_str(), tt); s += b; }
+        fprintf(stderr, "RACES %s within %lld ps: %lld events at %zu (gate, pin); closest (gap, gate, pin, pin's source, t) %s]\n",
+                c ? "feeding-storage" : "storage", RACEX, RACEN[c], RACEMIN[c].size(), s.c_str());
     }
     if (capped) {
         fprintf(stderr, "simx: MAXEV cap %lld events hit at t = %lld ps: no verdict\n", maxev, t);

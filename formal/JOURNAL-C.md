@@ -4124,3 +4124,13 @@ narrowest (width, node, time); draws.py appends it to each draw line and lists t
 draws_summary.txt. Verdicts unchanged (only a stderr line added; compiles, g++ -O2). Not yet run: a transparent latch passes
 D glitches legitimately, so whether the narrowest pulse separates near-failing passes from safe ones is what c_nm1 tests
 (collatz x0.40 route 20, xorshift x0.50a route 18, item 35).
+
+### progress 03:04 -- simx RACES=1: the closest input reordering per draw, in ps (informational)
+At each evaluation of a storage LUT or a LUT feeding one (after reset): for every other pin q that arrived gap ps before
+the evaluation, would q's old value have given an output different from both the new and the previous output? If so, a
+reordering within gap ps flips that LUT (latch setup / hold, steer condition vs request). Smallest gap per (gate, pin),
+5 closest printed with node names and times; draws.py carries them per draw and over all draws. Toy check
+(formal/tools/margin/test/toy_latch.simx, a LUT latch whose enable closes 800 ps after req falls): finds D arriving 49 ps
+before the close (and the latch's own feedback at 91 ps); verdict lines identical with RACES on and off. c_nm1 (queued,
+not yet picked up) now runs with RACES=1. Not checked on a real net yet; the gate names are decoded sites (SLICE.xLUT.O6),
+mapped to research's instance names from routed.json in a later step.
