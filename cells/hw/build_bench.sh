@@ -27,11 +27,12 @@ KERNEL=${1:-}
 NULL=0
 if [ "${2:-}" = "--null" ]; then NULL=1; fi
 
-case "$KERNEL" in
-    gcd|ipow|collatz|collatz64|isprime|xorshift) ;;
-    *) echo "usage: hw/build_bench.sh <gcd|ipow|collatz|collatz64|isprime|xorshift> [--null]"
-       exit 2 ;;
-esac
+# Any kernel with a frontend fixture builds (the compiler benchmark suite, PROGRAM 2026-11-17: nothing in the flow is
+# set for a kernel by name). The six original kernels are still the ones gen_bench.py has input-domain notes for.
+if [ -z "$KERNEL" ] || [ ! -f "../build/frontend/$KERNEL/comp/handshake_transformed.mlir" ]; then
+    echo "usage: hw/build_bench.sh <kernel with build/frontend/<kernel>/comp/handshake_transformed.mlir> [--null]"
+    exit 2
+fi
 
 # TOP is deliberately "_bench_gen"/"_null_bench_gen", NOT "_bench": build_hw.sh
 # (owned by someone else, off limits) already has a "gcd_bench" case that
