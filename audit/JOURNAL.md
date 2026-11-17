@@ -3129,3 +3129,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Item 35 SLOW_MAX: 6/8 right, with vectors 6-7 not reached because of the harness time limit (PSSUMMARY TIMEOUT at 705 µs). Not a wrong answer. T142b rerun of those two running.
 - T143 no-scatter at formal's corner: item 35 ucond_br2 213 ps, below formal's binding 321 ps (and blank in formal's table). Strengthens T143.
 - 11:13 research 92a435248: farm silent; local ipow x0.55. No claim. T142b and T143 long-rounds advC still running.
+
+### progress 11:25
+- T142 done. T142b: item 35 SLOW_MAX vectors 6-7 at 2/2, so item 35 is 8/8 at all four corners on rounds up to the bench maximum 4095. Item 33 is 8/8 at FAST_MIN / worst. UADDI0's reachable carries are simulated and judgeable (CONFIRMED).
+- T143 done. Formal's corner on long rounds: ucond_br2 315 ps (with scatter). The binding figure is 140 ps (advA, long rounds). OVERSTATED, accepted by formal.
