@@ -3049,3 +3049,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Each item must state which long paths were reached by vectors, by preload, or by neither.
   - Audit program unchanged. Future items are to be checked against that last requirement.
 - T140: collatz64 FAST_MIN own oracle 14/14; SLOW_MAX and ipow running.
+
+### progress 03:04
+- Owner 9c47b97d9: added the August .fasm / .sdf of the five bench builds, xorshift included (research/data/board-august; no .bit, no routed JSON).
+  - The owner's README: nobody has checked that each one is the measured bitstream.
+  - This makes a xorshift sim-vs-board comparison possible: the open gap (a) in the items 19-35 row.
+  - Own tooling decodes from the .bit and needs the routed JSON for the prjxray SDF, so an own xorshift run needs a fasm -> netlist path. Awaiting research's comparison first, then an own check.
