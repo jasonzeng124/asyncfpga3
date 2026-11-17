@@ -4537,3 +4537,12 @@ Vectors for research in tools-B/preload/vec/ (c64hi, c32hi; .exp from oracle.c).
 - x55a10 seed 1 (sdf 8f165305 = C41's route): xor19 8/8, slow-carry xor19 4/4, preload A 16/16 + slow-carry 8/8, carry
   slack >= 8632, period 14169 / 14002, settle gaps ucmpi1 1202 ps (= C41), ucmpi0 2080 ps (= C41), no runts.
 - UADDI0 0 seed 5 settle gaps: 286 / 403 ps (no runts); UADDI0 12 seed 5: 1276 / 1380.
+### progress 21:37 -- join-shadow prediction holds on collatz x0.70 seed 27 and collatz64 item 32 (UADDI1 0); re-read PROGRAM / FOR-FORMAL (nothing new for B)
+| build | base draws | full-range draws | steps preloaded | steps last-carry slack | period (2 draws, ps) |
+|---|---|---|---|---|---|
+| collatz x0.70 s27, UADDI1 7 (f11ff1ee) | col18 4/4 | c32hi 8/8 | 8/8 | >= 8007 | 16880 / 16118 |
+| collatz x0.70 s27, UADDI1 0 (dd684146) | col18 8/8 | c32hi 8/8 | 8/8 | >= 7070 | 15540 / 15242 |
+| collatz64 item 32 s22, UADDI1 12 (842dd4d7) | c6419 2/2 | c64hi 8/8 | 8/8 | >= 14609 | (running) |
+| collatz64 item 32 s22, UADDI1 0 (65a92f2d) | c6419 8/8 | c64hi 8/8 | 8/8 | >= 14804 | 25419 / 26511 |
+One route per variant (each a different route); collatz x0.70 seeds 2-4 of both variants building (bq3.sh) for the
+period comparison.
