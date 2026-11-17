@@ -2995,3 +2995,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
     - 0/128 failures bounds the per-draw rate at 2.3 % (95 %);
     - the verdict is oracle-only (T136 runts).
   - T139 queued: own build of x0.55a s21, GLS FAST_MIN / worst / advA / SLOW_MAX with steer monitors.
+
+### progress 01:24
+- T137 done. The x0.40c control (compares kept) is clean at FAST_MIN / worst / advA (17/17, 0 steer violations, br2 / br5 margins >= 1485 ps). x0.40a hangs at all three. Finding T137.
+- T138 started: August collatz bit md5 6f62bf4a50fa = research README.
+- T139 started (x0.55a s21).
+- research d6b6d4bf5: lock only.
