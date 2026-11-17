@@ -5924,3 +5924,13 @@ two steps above where it starts to fail.
   steps; 94959 and 109881 peak at 30 bits (the highest peaks of any n < 113383, where int32 trajectories end). col17 =
   col14 + these three (oracle compiled from the C: 231, 301, 309 steps). shrink7: x0.55 and x0.70 of EVERY size, 32
   routes x 4 draws on col17. PREDICTION: x0.70 128/128; x0.55 >= 124/128, median ~18 ns (shrink2 on 4 routes: 16.1-18.8).
+### Next (updated 02:40 UTC; for whoever picks this up)
+1. Read farm shrink7 (collatz x0.55 / x0.70 of every size, col17 with 31-bit trajectory peaks, 32 routes x 4 draws):
+   research/tools/draws_table.py on results/shrink7. If x0.55 passes every draw, pick its median EQUIVALENT route, run 32
+   draws + the 3-corner gate on it (copy research/cluster/requests/draws2.sh), and add a BOARD-QUEUE item like 35.
+2. The same for ipow (fisel3m sizes; ipow17 already reaches e = 0x7fffffff, so its long paths are simulated) and
+   collatz64 (needs vectors whose trajectories reach 63-bit values, cf. col17).
+3. xorshift below 16.85: the incrementer (UADDI0 12) is the one delay the draws cannot judge (2^31 iterations). Options:
+   the owner's answer to the ASK (2026-11-16); or a speculative incrementer whose long case is simulated by construction.
+4. Formal: FOR-FORMAL asks it to run the same draws (simx) on draws1's routes; read formal/FOR-RESEARCH.md for answers.
+5. shrink6 (collatz x0.55s) is obsolete (no gain); its remaining tasks need no reading.
