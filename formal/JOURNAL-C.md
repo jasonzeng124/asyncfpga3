@@ -4192,3 +4192,15 @@ passes in formal on route 20. col17 kept at formal/tools/margin/vec/ (deleted on
 now reads it from there. RACES / NEARMISS on these runs: closest storage events are at reset release (~400 ns, ulink_n19__*
 pair[0]) and the feeding-storage class is dominated by umux0/1 data LUTs (1-14 ps): both need filtering (start-up window,
 data-mux pins) before they mean anything. Informational only.
+
+### progress 05:55 -- item 35 locally: 32/32 on research's draws 2101-2132 (draw for draw = research's draws2) and 256/256 on draws 1-256; the RACES near-miss metric is NOT discriminating (negative result)
+Build: local toolchain (nextpnr 9c732bc6303458df), seed 21, sdf 9145cd49 = research's item 35. Research model, xor19, fixed host.
+- K 2101-2132: 32/32 PASS (research: 32/32): no disagreement. Draws 1-256: 256/256 (Wilson 0.985-1.000). Last answer mean
+  26.8 us (xor19). About 1 min per 32 draws on 4 cores here.
+- RACES, rewritten as a sensitivity-window test (setup: a pin open before an evaluation and closed after it, gap = time since
+  it last arrived; hold: a pin arriving while closed, gap = time since the pin that closed it), finds on 43 of 256 draws a
+  1-50 ps race at ulink_n25.lat.pair[0] (bit 0/1 latch: enable p4 = ulink_n25.ctl, data p3 = uxori1). **Consequence test:
+  +50 / +200 / +1000 ps injected on the data pin, +50 / +300 on the enable, draws 36 and 147: all still right.** A bd_link
+  latch closes a phase after the downstream stage took the value, so data moving at the close is harmless. The metric
+  flags closes that do not matter: a small gap is not a near miss. Kept as an informational line (tracing aid), not to be
+  read or reported as margin. A near-miss figure needs a consequence (injection) test per candidate, as the adversary did.

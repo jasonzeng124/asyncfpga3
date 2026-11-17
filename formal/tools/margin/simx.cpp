@@ -428,17 +428,35 @@ int main(int argc, char** argv) {
             } else for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - PD(b0 + i, t))) ad |= 1u << i;
             bool v = (initw[ginit0[g] + (ad >> 6)] >> (ad & 63)) & 1;
             if (RACEON && t >= R + RACET0 && RACEG[g]) {
-                // RACES (informational): pin q arrived gap ps before t (arrival = its source's last flip read by this
-                // evaluation + the pin's delay); had q arrived after t instead (its old value now), the output would differ
-                // both from its new value and from its value just before t: a reordering of two arrivals within gap ps
-                // flips this LUT (latch setup / hold, steer condition vs request). gap 0 (simultaneous) is skipped.
-                bool vprev = cur(gout[g]);
+                // RACES (informational; rewritten 2026-11-17 06:1x): a LUT's SENSITIVITY window on a pin. With ad the inputs
+                // read now and ap the inputs read just before (each pin at its sample point - 1 ps), pin q is "open" when
+                // flipping q changes the output.
+                //  setup: q was open before and is closed now (another pin's arrival at t closed it), q not arriving at t:
+                //         gap = t - q's last arrival (data settled gap ps before the window closed);
+                //  hold:  q arrives at t and is closed now, and was open with some pin p at its value before p's last
+                //         arrival: gap = t - p's arrival (data moved gap ps after the window closed).
+                // A reordering within gap ps flips what this LUT stores or passes. gap 0 is skipped.
+                auto F = [&](unsigned x) -> bool { return (initw[ginit0[g] + (x >> 6)] >> (x & 63)) & 1; };
+                unsigned ap = 0; ll arr[8]; bool now[8];
                 for (int q = 0; q < kk; q++) {
-                    ll s = t - PD(b0 + q, t); const vector<int>& h = H[INS[b0 + q]];
-                    ll idx = (ll)(upper_bound(h.begin(), h.end(), (int)s) - h.begin()) - 1; if (idx < 0) continue;
-                    ll gap = s - h[idx]; if (gap <= 0 || gap >= RACEX) continue;
-                    unsigned alt = ad ^ (1u << q); bool va = (initw[ginit0[g] + (alt >> 6)] >> (alt & 63)) & 1;
-                    if (va != v && va != vprev) race_note(RACEG[g] - 1, gap, g, q, t);
+                    ll sp = t - PD(b0 + q, t); const vector<int>& h = H[INS[b0 + q]];
+                    ll idx = (ll)(upper_bound(h.begin(), h.end(), (int)sp) - h.begin()) - 1;
+                    arr[q] = idx < 0 ? -1 : t - (sp - h[idx]); now[q] = arr[q] == t;
+                    if (val(INS[b0 + q], sp - 1)) ap |= 1u << q;
+                }
+                for (int q = 0; q < kk; q++) {
+                    bool openNow = F(ad) != F(ad ^ (1u << q));
+                    if (openNow) continue;
+                    if (!now[q]) {
+                        bool openPrev = F(ap) != F(ap ^ (1u << q));
+                        if (openPrev && arr[q] >= 0 && t - arr[q] < RACEX) race_note(RACEG[g] - 1, t - arr[q], g, q, t);
+                    } else {
+                        ll best = -1; int bp = -1;
+                        for (int p2 = 0; p2 < kk; p2++) if (p2 != q && !now[p2] && arr[p2] >= 0 && t - arr[p2] < RACEX) {
+                            unsigned x = ad ^ (1u << p2); if (F(x) != F(x ^ (1u << q)) && (best < 0 || t - arr[p2] < best)) { best = t - arr[p2]; bp = p2; }
+                        }
+                        if (best > 0) race_note(RACEG[g] - 1, best, g, bp, t);   // reported at the closing pin bp
+                    }
                 }
             }
             if (setv(gout[g], t, v)) changed(gout[g], t);
