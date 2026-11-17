@@ -6,6 +6,12 @@
 # Netlist decoded from the .bit (fasm_equiv verdict), prjxray SDF, fid, ps7_bench.v FIXED mode, +FCLK_PS=12000
 # (83.3 MHz), 2 runs per vector.  Verdict: every batch completed 2/2, its runs agreed (mism_st bit 0 clear; added
 # 2026-11-16) and odata == EXPFILE line (derived from the C).
+# v2 vector files (research/data/suite/bench/README.md: more operand words, arrays behind the host port): a batch
+# also FAILS if filling its arrays failed (a BENCHMEM ... FILL FAILED line) or, with +MEMCHECK=1 in GATE_PLUSARGS,
+# if any word read back differs.  GATE_MEMEXP=FILE (research/tools/suite/oracle_mem.sh's ORACLE_MEMOUT, the C's final
+# array contents per call) adds +MEMDUMP=1 and FAILS a batch whose arrays, read back after it, differ.  GATE_NRUNS
+# (default 2) is the runs per batch: a kernel that writes its arrays sees its own writes on the next run, so its
+# oracle must be run with the same count (ORACLE_RUNS).
 set -euo pipefail
 HW=$(cd "$1" && pwd); D=$2; mkdir -p "$3"; W=$(cd "$3" && pwd); VEC=$(readlink -f "$4"); EXP=$(readlink -f "$5"); COL=$6
 R=$(cd "$(dirname "$0")/../../.." && pwd); G=$R/cells/gls
@@ -39,22 +45,56 @@ esac
 # one compile at a time on the machine: build_ps.sh's iverilog peaks at several GB (OOM kills lose runs)
 CD=${COL/:/_}
 "$R/research/tools/compile_slot.sh" "$G/ps/build_ps.sh" "$HW" "$W/$CD" "" bit > "$W/$CD.build.log" 2>&1
-cd "$W/$CD"; rm -f gate.vvp
-vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=${GATE_TBATCH:-1200000} +TEND=20000000 ${GATE_PLUSARGS:-} > run.log 2>&1 || true   # GATE_PLUSARGS: e.g. +META_INIT=0; GATE_TBATCH: ns per batch before HANG (default 1200000; preload runs, research/tools/preload)
+cd "$W/$CD"
+# GATE_ANNOTATE=1: also run gate.vvp (cells/gls/build.sh: the SDF through iverilog's annotator, which names every arc it
+# cannot place) -- it must print ANNOTATE_DONE with no SDF warning or error (CLAUDE.md); the verdict line says which.
+ANN=""
+if [ "${GATE_ANNOTATE:-0}" = 1 ]; then
+  vvp gate.vvp > annotate.log 2>&1 || true
+  ANN=" | annotate $(grep -q ANNOTATE_DONE annotate.log && echo DONE || echo MISSING) sdf-warn/err $(grep -ciE 'SDF (WARNING|ERROR)' annotate.log || true)"
+fi
+rm -f gate.vvp
+vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=${GATE_NRUNS:-2} +VECFILE="$VEC" ${GATE_MEMEXP:+"+MEMDUMP=1"} +TBATCH=${GATE_TBATCH:-1200000} +TEND=20000000 ${GATE_PLUSARGS:-} > run.log 2>&1 || true   # GATE_PLUSARGS: e.g. +META_INIT=0; GATE_TBATCH: ns per batch before HANG (default 1200000; preload runs, research/tools/preload)
 rm -f run_baked.vvp
-python3 - "$EXP" run.log "$(grep -o 'VERDICT: [A-Z_ ]*' fid/equiv.txt | head -1)" <<'PY'
+python3 - "$EXP" run.log "$(grep -o 'VERDICT: [A-Z_ ]*' fid/equiv.txt | head -1)" "${GATE_MEMEXP:-}" "$ANN" <<'PY'
 import sys, re
 exp = open(sys.argv[1]).read().split(); got = {}
+memexp = {}
+if sys.argv[4]:   # the C's final array contents per call (oracle_mem.sh ORACLE_MEMOUT)
+    for l in open(sys.argv[4]):
+        d = dict(re.findall(r"(\w+)=(\S+)", l)); memexp[(int(d["call"]), int(d["mem"]))] = d["data"]
+memgot, membad = {}, set()
+mon, onehot_fail = [], 0
 for l in open(sys.argv[2]):
     if l.startswith("BENCHRES"):
         d = dict(re.findall(r"(\w+)=(\S+)", l)); got[int(d["batch"])] = d
+    elif l.startswith("BENCHMEMCHK"):
+        d = dict(re.findall(r"(\w+)=(\S+)", l))
+        if int(d["bad"]): membad.add(int(d["batch"]))
+    elif l.startswith("BENCHMEM ") and "FILL FAILED" in l:
+        membad.add(int(re.search(r"batch=(\d+)", l).group(1)))
+    elif l.startswith("BENCHMEM "):
+        d = dict(re.findall(r"(\w+)=(\S+)", l)); memgot[(int(d["batch"]), int(d["mem"]))] = d["data"]
+    elif l.startswith("MEMPORTMON"):   # cells/gls/ps/gen_memport_mon.py (PS_MON_GEN): the ports' one-hot check
+        d = dict(re.findall(r"(\w+)=(\S+)", l)); mon.append(d)
+        if int(d["overlaps"]): membad.add(int(d["batch"]))
+    elif l.startswith("MEMPORT ONEHOT FAIL"):
+        onehot_fail += 1
+for (j, m), v in memexp.items():
+    if memgot.get((j, m)) != v: membad.add(j)
+for j in membad: got.pop(j, None)   # a batch whose arrays were not what the C had is not a pass
 # mism_st bit 0 = the bench's FIXED-mode repeatability latch: the batch's runs did not all return the same value. odata is
 # the LAST run's result only, so a wrong first run followed by a right one passed this gate until 2026-11-16 (farm
 # steerneg: 5 such runs judged PASS). A batch counts only if every run agreed AND the last one equals the oracle.
 mm = [j for j in got if int(got[j].get("mism_st", "0"), 16) & 1]
+if onehot_fail: got.clear()   # two slots of one port at once: no batch of this run is a pass
 ok = sum(1 for j, e in enumerate(exp) if j in got and got[j]["odata"] == e and got[j]["completed"] == got[j]["n"]
          and j not in mm)
 cyc = sum(int(got[j]["cycles"]) for j in got)
-print("%s %d/%d cycles %d %s%s" % ("PASS" if ok == len(exp) else "FAIL", ok, len(exp), cyc, sys.argv[3],
-      (" | MISMATCH in batch(es) %s" % ",".join(map(str, sorted(mm)))) if mm else ""))
+print("%s %d/%d cycles %d %s%s%s" % ("PASS" if ok == len(exp) else "FAIL", ok, len(exp), cyc, sys.argv[3],
+      (" | MISMATCH in batch(es) %s" % ",".join(map(str, sorted(mm)))) if mm else "",
+      (" | MEMORY wrong in batch(es) %s" % ",".join(map(str, sorted(membad)))) if membad else "") + sys.argv[5]
+      + ((" | memport one-hot: %d batch line(s), host reqs %d, kernel reqs %d, overlaps %d%s" % (
+          len(mon), sum(int(d["host_reqs"]) for d in mon), sum(int(d["kernel_reqs"]) for d in mon),
+          sum(int(d["overlaps"]) for d in mon), " ONEHOT FAIL" if onehot_fail else "")) if mon or onehot_fail else ""))
 PY

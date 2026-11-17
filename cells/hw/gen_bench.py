@@ -302,9 +302,13 @@ def load_signature(kernel, frontend_dir):
             [r.name for r in func.results if r.is_control and r.name == "end"] != ["end"]:
         raise SystemExit(f"{mlir}: @{func.name} needs exactly one `start` argument and one `end` result")
     data_res = [r for r in func.results if not r.is_control]
-    if [r.name for r in data_res] != ["out0"] or data_res[0].width > 32:
+    # One result, out0, of at most 32 bits.  Narrower is ZERO-extended into ODATA (emit() below): the handshake type
+    # is signless, so the C type's signedness is not known here, and an undriven upper half is not a value.  The
+    # oracle masks the C's result to the same width (research/tools/suite/oracle_mem.sh).  Wider (an i64 result)
+    # would need a second ODATA word through result_hold/SIG/the mismatch latch: refused, not truncated.
+    if [r.name for r in data_res] != ["out0"] or not 1 <= data_res[0].width <= 32:
         raise SystemExit(f"{mlir}: @{func.name} returns {[(r.name, r.width) for r in data_res]}; the bench "
-                         f"captures exactly one result, out0, of at most 32 bits")
+                         f"captures exactly one result, out0, of 1 to 32 bits")
     memspec = []
     for a in mems:
         m = re.fullmatch(r"memref<(\d+)x[iu](\d+)>", a.raw)
@@ -320,12 +324,12 @@ def load_signature(kernel, frontend_dir):
         memspec.append((a.name, depth, dw, max(1, (depth - 1).bit_length())))
     if len(memspec) > MAX_MEMS:
         raise SystemExit(f"{kernel}: {len(memspec)} memories; the host path addresses at most {MAX_MEMS}")
-    return data_args, memspec, ctl_in, ctl_out
+    return data_args, memspec, ctl_in, ctl_out, data_res[0].width
 
 
 def emit(kernel, is_null, top_name):
     frontend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "build", "frontend")
-    data_args, mems, ctl_in, ctl_out = load_signature(kernel, frontend_dir)
+    data_args, mems, ctl_in, ctl_out, ow = load_signature(kernel, frontend_dir)
     nargs = len(data_args)
     restr = DOMAIN_RESTRICTIONS.get(kernel, {})
     # nw = operand words the kernel needs; the register file always has OP0/OP1, and OP2.. only when nw > 2.
@@ -1345,6 +1349,8 @@ def emit(kernel, is_null, top_name):
     P(f"        .req_out(in_req), .ack_in({{{fork_ack_list}}}));")
     P("")
     P("    bd_delay #(.N(2)) upsnk (.a(p_end_req), .z(p_end_ack));")
+    if ow < 32 and not is_null:   # out0 is narrower than ODATA: zero above it, stated (see load_signature)
+        P(f"    assign o_data_pl[31:{ow}] = {32 - ow}'b0;   // out0 is i{ow}: ODATA holds it zero-extended")
     for c in ctl_out:   # a memory's <m>_end (memEnd) is taken like end
         P(f"    bd_delay #(.N(2)) u{portname(c.name)}_snk (.a({portname(c.name)}_req), .z({portname(c.name)}_ack));")
     P("")
@@ -1397,7 +1403,10 @@ def emit(kernel, is_null, top_name):
     for k, c in enumerate(ctl_in):
         P(f"        .{portname(c.name)}_req (in_req[{nargs + k}]), .{portname(c.name)}_ack ({portname(c.name)}_ack),")
     P(f"        .start_req (in_req[{nargs + len(ctl_in)}]), .start_ack (start_ack),")
-    P(f"        .out0_req  (o_req_pl),  .out0_ack  (o_ack_pl),  .out0_data (o_data_pl),")
+    if ow < 32 and not is_null:
+        P(f"        .out0_req  (o_req_pl),  .out0_ack  (o_ack_pl),  .out0_data (o_data_pl[{ow - 1}:0]),")
+    else:
+        P(f"        .out0_req  (o_req_pl),  .out0_ack  (o_ack_pl),  .out0_data (o_data_pl),")
     tail = [f"        .p_end_req (p_end_req), .p_end_ack (p_end_ack),"]
     for c in ctl_out:
         tail.append(f"        .{portname(c.name)}_req ({portname(c.name)}_req), "

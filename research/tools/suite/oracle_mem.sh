@@ -9,7 +9,8 @@
 #   element (an element narrower than 32 bits takes the word's low bits, as the bench's host port does).
 #   The array's length is the C's own (`T a[N]` -> sizeof), so a file built for another length does not line up
 #   with whole calls and is refused.
-# Prints one 8-hex-digit line per call: the result (the bench's 32-bit out0).
+# Prints one 8-hex-digit line per call: the result (the bench's 32-bit out0; a result narrower than 32 bits is masked
+# to its width, because the bench zero-extends it -- cells/hw/gen_bench.py load_signature).
 # ORACLE_RUNS=R (default 1) calls the kernel R times per call on the same arrays without refilling them, as the
 #   bench does with NRUNS=R, and prints the LAST result (a kernel that writes its arrays sees its own writes).
 # ORACLE_MEMOUT=FILE also writes, per call, every array's final contents: "call=J mem=M data=w0,w1,..." (8 hex digits
@@ -37,6 +38,8 @@ m = re.search(r"(^|[;}\n])\s*([A-Za-z_][\w \t]*?)\b" + re.escape(k) + r"\s*\(([^
 if not m:
     die("oracle_mem.sh: no definition of %s(...) { in the C" % k)
 ret, params = m.group(2).strip(), m.group(3).strip()
+if re.sub(r"\b(static|inline|extern)\b", "", ret).strip() == "void":
+    die("oracle_mem.sh: %s returns void: the bench completes a run on out0, so a kernel without a result is not supported yet (research/data/suite/bench/README.md)" % k)
 scal, arrs, args = [], [], []
 if params and params != "void":
     for p in params.split(","):
@@ -99,7 +102,7 @@ int main(int argc, char **argv) {
 %(decl)s
 %(fill)s
     for (r = 0; r < runs; r++) res = (unsigned)%(k)s(%(args)s);
-    printf("%%08x\\n", res);
+    printf("%%08x\\n", res & msk((int)sizeof(%(ret)s)));   /* the bench zero-extends a narrower out0 */
 %(dump)s
   }
   return 0;
