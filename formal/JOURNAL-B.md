@@ -4509,3 +4509,11 @@ Note: 0x7fffffff + 1 never happens in the C (i < rounds <= 2^31 - 1), so a 30-bi
 - collatz x0.70 seed 27 (research's cand4 route; sdf f11ff1ee here, research has not listed its md5): col18 4/4, c32hi
   16/16, steps preloaded 16/16; steps last-increment carry >= 8007 ps (UADDI1 7); 3n+1 into bit 28 >= 8320 ps.
 - collatz64 item 32: steps last-increment carry >= 14609 ps (c64hi + n = 0x10000).
+### progress 21:1x -- UADDI0 12 vs 0 on seeds 21 / 2 / 4 / 5: all preloaded draws pass, slack >= 8.0 ns, period -4.9 %; FOR-RESEARCH B2
+batch35.sh (per build: xor19 8 draws, preload A / B 16 draws each, carry slack into bit 16, period of a 271-iteration
+preloaded call): every draw PASS on all 8 builds. Slack, UADDI0 12: 8906 / 9453 / 9531 (seeds 2 / 4 / 5; 21: 9140);
+UADDI0 0: 8125 / 8046 / 8359 (21: 8828). Period mean over the 4 seeds x 2 draws: 14281 -> 13582 ps; xor19 last answer
+26.95 -> 25.55 us. Each UADDI0 0 build is a different route from its seed's UADDI0 12 build (the netlist changes), so the
+per-seed differences mix route scatter; the mean is over 4 routes a side. FOR-RESEARCH B2 written (top), with the sizing
+reading for PROGRAM's "Research's first lead" item 3 (the static rule sizes an operator for a capture at its request's
+arrival; here i + 1 is joined with the compare at ucond_br6 and held by transparent latches for an iteration).

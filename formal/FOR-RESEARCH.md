@@ -3,6 +3,72 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+
+## B2. Paths no vector can reach, reached: with the loop counter preloaded, xorshift's incrementer (UADDI0) can go from 12 to 0 -- 112/112 preloaded draws pass on 4 routes, its 30-bit carry keeps >= 8.0 ns, and the routes run ~5 % faster; collatz / collatz64 counters and 63-bit values the same way (shard B, 2026-11-17 20:58 UTC; untrusted simulation)
+Your PROGRAM "Paths no vector can reach" asked for exactly this; formal's PROGRAM gave it to B. Formal's simx on the circuit
+decoded from each bitstream, your draw K, H_RUNT(20), host 12 ns. Every build here was rebuilt locally from your command
+(nextpnr 9c732bc6303458df); sdf md5s below.
+- **How (one command, `formal/tools-B/preload/prun.sh`):** a loop counter enters its loop from a CONSTANT (xorshift's i = 0
+  goes through the pipe `ulink_n6`, whose 64 latch halves read GND; collatz's steps = 0 through `ulink_n7`). The tool gives
+  those latch state nodes the constant value I0 from t = 0, after checking on an ordinary run that they are constant 0 there,
+  so the run is the same bitstream with the entry constant tied to I0 instead of 0; nothing else changes. The expected
+  answers come from `oracle.c`, the kernel's C loop copied verbatim with `int i = i0` (`int steps = s0`), refusing inputs
+  where the two cannot agree (xorshift needs I0 < rounds: the hardware's loop runs the body once before testing).
+  Checks: bit 30 of i + 1 (ulink_n_trueResult_6) flips 7 times in a preloaded run and never in xor19; the same run checked
+  against the oracle at I0 + 1 fails.
+- **The preload can fail where your vectors cannot (negative control):** +20 ns on the carry-in of uaddi0's slice[4] (the
+  carry into bit 16; formal's simx injection, like your SDF injections): xor19 PASS (that carry never moves for rounds <=
+  4095), preloaded FAIL, wrong exactly on the calls that use i + 1 = 0x40000000.
+- **Vectors.** A: I0 0x3ffffff0, rounds 0x3ffffff1 / 0x3fffffff / 0x40000000 / 0x40000001 (x2) / 0x40000002 / 0x40000010
+  (1-32 iterations; i + 1 = 0x40000000, the longest carry the C can ever produce, since i < rounds <= 2^31 - 1, in 5
+  calls, its result used in 4; n - 1 = 0x3fffffff in one). B: I0 0x7ffffff0, rounds 0x7ffffff1 .. 0x7fffffff (the compares
+  at the top of the range). Ordinary vectors with rounds = 0x80000000 / 0xffffffff / 0xc0000000 (loop skipped): 8/8 on item 35.
+| xorshift, item 35's sizes with UADDI0 = | route (sdf) | xor19 draws | preload A | preload B | carry-into-bit-16 slack, ps | period, ps (2 draws) |
+|---|---|---|---|---|---|---|
+| 12 (item 35) | 21 (9145cd49) | 2/2 | 32/32 (+ 32/32 at CARRY 0.8-1.0) | 32/32 | >= 9140 (fails 9179) | 14427 / 14214 |
+| 12 | 2 (b2470514) | 8/8 | 16/16 | 16/16 | >= 8906 | 14213 / 13982 |
+| 12 | 4 (ee6304d0) | 8/8 | 16/16 | 16/16 | >= 9453 | 14855 / 14402 |
+| 12 | 5 (7a448319) | 8/8 | 16/16 | 16/16 | >= 9531 | 14137 / 14020 |
+| 7 (x0.55) | 21 (0a993f62) | 4/4 | 16/16 | 16/16 | >= 8164 | 13901 / 14123 |
+| 2 | 21 (fafe42b5) | 4/4 | 8/8 | 8/8 | - | 13883 / 13590 |
+| 0 | 21 (96a395ab) | 4/4 | 8/8 | 8/8 | >= 8828 | 14193 / 14196 |
+| 0 | 2 (2b8ef891) | 8/8 | 16/16 | 16/16 | >= 8125 | 13331 / 13421 |
+| 0 | 4 (f5223fdd) | 8/8 | 16/16 | 16/16 | >= 8046 | 13245 / 13307 |
+| 0 | 5 (b4b07f06) | 8/8 | 16/16 | 16/16 | >= 8359 | 13510 / 13454 |
+Draws are your K from 2101; preload columns are formal's draws with the oracle from the preloaded state. "Slack" =
+carryslack.sh: the largest extra delay on the carry into bit 16 at which 4 preloaded draws (K 2101-2104) all stay right,
+bisected to 50 ps: a consequence slack (an upper bound of the settle margin). "Period" = median per-iteration time of
+umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (formal's simx time scale, not your P).
+- **Reading.** Every preloaded draw passes at every UADDI0 down to 0, and the 30-bit carry keeps >= 8.0 ns with UADDI0 = 0.
+  i + 1 goes to the loop steer ucond_br6, whose join also waits for ucmpi1 (i < n - 1, UCMPI1 = 5, its own 32-bit chain);
+  nothing captures i + 1 until the next iteration, ~14 ns later. Same 4 seeds, UADDI0 12 -> 0 (each a different route,
+  since the netlist changes): period mean 14.28 -> 13.58 ns (-4.9 %; per seed 21 / 2 / 4 / 5: -0.13 / -0.72 / -1.35 /
+  -0.60 ns), xor19 last answer 26.95 -> 25.55 us (-5.2 %). Reading (an inference, not traced): at that join UADDI0's 12
+  units outlast UCMPI1's 5, so the incrementer's matched delay sits on the critical cycle of most routes while buying
+  nothing a draw can see, even at its worst carry. Four routes a side are a sample; your P on the same routes decides.
+- **For the sizing rule (formal PROGRAM, "Research's first lead"):** the part of the static rule this exposes is that it
+  sizes an operator's delay for its own worst carry, as if its result were captured when its request arrives. Here the
+  result is joined with a sibling (the compare) and then held by transparent latches for a whole iteration; the static
+  size pays for a capture that does not happen. Formal has not checked how general this is beyond the counters below.
+- **collatz, item 31** (nl6s3a, seed 20, sdf 7aefc4bd = yours): col18 4/4; full-range 32-bit n (0x15555555, i.e. 3n + 1 =
+  2^30, and five more peaking to 0x746c9680, all below 2^31) 8/8; steps preloaded at 0x3ffffff0 on those + col18 (n = 1
+  excluded: the hardware answers it from a constant) 8/8. Steps carry into bit 16, the carry in the LAST increment (n =
+  0x10000: steps ends at exactly 0x40000000): >= 10546 ps. 3n + 1's carry into bit 28: >= 9765 ps.
+- **collatz x0.70 seed 27** (your cand4 route; sdf f11ff1ee here): col18 4/4, full-range 16/16, steps preloaded 16/16;
+  steps last-increment carry >= 8007 ps (UADDI1 7); 3n + 1 into bit 28 >= 8320 ps. So x0.70's UADDI1 7 is safe for the
+  steps counter's full range on this route.
+- **collatz64, item 32** (h4s3p, seed 22, sdf 842dd4d7 = yours): its kernel boundary in the decoded net takes all 64 bits
+  (the bench's high-word mask is outside the kernel), so 63-bit values are ordinary inputs here: n = 0x1555555555555555
+  (3n + 1 = 2^62, a 62-bit carry), 0x0555555555555555, and four odd 62-bit n peaking in [2^62, 2^63) without overflow:
+  8/8. Your c6419 already reaches bit 48 (+20 ns on the 3n + 1 carry into bit 48 fails it). The carry into bit 56 keeps
+  >= 16484 ps on these vectors. Steps preloaded: 8/8; last-increment carry into bit 16 >= 14609 ps.
+- **Which long paths by what:** xorshift: incrementer carries > 12 bits by preload only; compare ripple, entry compare and
+  n - 1 at full width by inputs (they are inputs at the kernel boundary). collatz / collatz64: 3n + 1 at full width by
+  inputs outside the bench's mask; the steps counter's carries > ~10 bits by preload only. Not reached by anything here:
+  none known for these three kernels; ipow's (e > 0 loop, r * b) were not looked at.
+- Reproduce: `formal/tools-B/preload/prun.sh BASE OUT I0 LINK "PAIRS" N SEED0` on a margin/run.sh decode dir (KERNEL=,
+  TMAX=), `carryslack.sh` for the slack; commands per row in formal/JOURNAL-B.md (2026-11-17).
+
 ## C45. Your two x0.55 disagreement candidates, draw for draw (shard C, 2026-11-17 20:45 UTC, updated 20:55; untrusted simulation)
 Built here with your flows (shrink8 / shrink9 sizes, nextpnr 9c732bc6303458df): ipow x0.55 seed 12 (sdf c3542c6d), collatz
 x0.55 seed 30 (sdf 9d3f9fea) -- please confirm these md5s are your routes. Formal's simx on the decoded bits, your draw K:
