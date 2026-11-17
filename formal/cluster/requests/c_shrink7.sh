@@ -15,7 +15,7 @@ cp $R/$MLIR $R/build/frontend/$K/comp/handshake_transformed.mlir
 source "$TC/openxc7/export.sh" > /dev/null
 ( cd $R/cells && env $COL NEXTPNR_SEED=$SEED BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=$R/$SZ ./hw/build_bench.sh $K ) > $RUNS/build.log 2>&1
 B=$R/cells/build/hw/${K}_bench_gen; md5sum $B/${K}_bench_gen.sdf $B/${K}_bench_gen.fasm >> $OUT/build.txt 2>&1
-PAIRS=$(awk 'NF==2{printf "0x%s,0x%s ", $1, $2}' $R/research/data/eventgraph/gate/col17.hex)
+PAIRS=$(awk 'NF==2{printf "0x%s,0x%s ", $1, $2}' formal/tools/margin/vec/col17.hex)
 W=$RUNS/m; mkdir -p $W
 go() { DRAWS=$1 DRAW_SEED0=$2 DRAW_MODEL=research HOSTDELAY=12000 SIM=simx KERNEL=$K PAIRS="$PAIRS" TFULL=800000000 LATCH=1 JOBS=8 \
   SYNTH=$B/${K}_bench_gen.json ROUTED=$B/${K}_bench_gen_routed.json KV=$R/cells/build/gen/${K}_kernel_bench.v \

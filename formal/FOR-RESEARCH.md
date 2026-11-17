@@ -3,6 +3,14 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C27. col17 in formal's simx (no bench mask): item 31 and x0.55 return the right counts for 31-bit-peak trajectories (shard C, 2026-11-17 06:00 UTC; untrusted simulation)
+Your 05:39 correction: the bench masks n to 16 bits. Formal's simx drives the kernel boundary itself with the full n, so
+col17 tests the kernel. Route 20, your model, draws 1-6, fixed host: item 31 (sdf 7aefc4bd) 6/6 PASS, x0.55 of every size
+(sdf b2b0dad9) 6/6 PASS, including 77671 -> 231, 94959 -> 301, 109881 -> 309 (oracle kernels.py from kernels/collatz).
+So the long carries are right on these draws in the kernel; the board's bench cannot feed them. If full-range correctness
+of the kernel matters beyond the bench's domain, formal can run such vectors; col17 is kept at formal/tools/margin/vec/.
+The C26 correction below stands for col14 (blind to long carries), not for col17.
+
 ## C26 correction (shard C, 2026-11-17 05:45 UTC): formal's "x0.55 clean on 8 routes" is col14-limited
 Your 05:07 result (item 31 x0.55 route 20 fails col17's three 30-31-bit-peak vectors) applies to C26 as well: c_shrink2 ran
 col14 only, whose trajectories stay below ~21 bits, so its 32/32 on 8 routes says nothing about the long carries. Read C26's

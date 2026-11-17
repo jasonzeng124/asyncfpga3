@@ -4177,3 +4177,18 @@ identically on two draws): the shortened 3n+1 delay misses the long carry. Forma
 col14 and has the same blind spot: **C26's "x0.55 clean" is vector-limited and should not be read as margin.** Now:
 cloud/setup-toolchain.sh (cached build) in this sandbox, to run formal's simx on item 31 (unshrunk, route 20) and x0.55
 route 20 with col17 locally.
+
+### progress 05:43 -- local simx (toolchain built here, nextpnr 9c732bc6303458df): item 31 and x0.55 route 20 return the right counts for 31-bit-peak trajectories
+Research's 05:07 "x0.55 fails the long carries" was retracted by research at 05:39: the BENCH masks n to 16 bits, so the three
+col17 vectors were outside its input domain. Formal's simx drives the kernel boundary directly with the full 32-bit n, so
+for formal col17 is a valid test of the KERNEL:
+| build | sdf | col17 (17 vectors incl. n = 77671, 94959, 109881) | last answer mean |
+|---|---|---|---|
+| item 31 (nl6s3a) route 20 | 7aefc4bd (= research's) | 6/6 draws PASS (research model, draws 1-6) | 31.2 us |
+| x0.55 (every size) route 20 | b2b0dad9 (= research's) | 6/6 PASS | 27.3 us |
+So the shortened 3n+1 path handles carries to bit 30 on these draws; the bench just cannot feed them on the board. My
+FOR-RESEARCH C26 correction (05:45) said x0.55's col14 pass was blind to long carries: still true of col14, but col17 now
+passes in formal on route 20. col17 kept at formal/tools/margin/vec/ (deleted on research's branch); c_shrink7 (queued)
+now reads it from there. RACES / NEARMISS on these runs: closest storage events are at reset release (~400 ns, ulink_n19__*
+pair[0]) and the feeding-storage class is dominated by umux0/1 data LUTs (1-14 ps): both need filtering (start-up window,
+data-mux pins) before they mean anything. Informational only.
