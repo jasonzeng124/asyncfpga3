@@ -196,6 +196,9 @@ steercorners.sh at chains 0.20 with (rest, CARRY) = (0.31, 0.20), (0.31, 1.0), (
 | collatz x0.55 + UCMPI0 8 (4 / 8) | 8/8 each | 1467 / 914 | 2282 / 2343 | 1172 / 691 (C43) |
 (collatz x0.55 route 8: the other two corners' runs printed no rows -- they did not finish inside the memory here, i.e.
 probably the same livelock; not counted.) Last answers ~20 % longer than on default arcs, as expected.
+- **cand3b (x55a10) on RC arcs, seeds 1-13** (00:00 UTC 11-18): slow-carry draws (K 100S+51..54, CARRY in [0.8, 1.0]) 52/52
+  PASS; at CARRY 1.0 (rest 0.31 / 0.20) ucmpi0 >= 1591 ps, ucmpi1 896 (route 3) / 959 (5, 13) / 1054 (10) / 1089 (6) and
+  >= 1354 on the rest; route 21: 1425 / 923 (C48). For a board route, any of 1, 4, 7, 8, 9, 11, 12 keeps both above 1.3 ns.
 - So on your model's arcs: collatz x0.55 fails on routes 30 (C48) and 8, and route 4 keeps only ~0.2 ns, all on the loop-entry
   steer; keeping UCMPI0 at 8 (C43) clears all three. The ipow leads, item 29, cand4 and collatz64 x0.70 have >= 0.58 ns.
 

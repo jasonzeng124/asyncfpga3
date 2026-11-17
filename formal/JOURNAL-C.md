@@ -4406,3 +4406,4 @@ Check for others: every number reported today comes from a run that printed its 
 - 22:35 C38 sweep on RC arcs: 665 -> 204 ps over CARRY 0.2 -> 1.0, no runts (C48 updated).
 
 ### progress 23:00 -- RC reruns of C37/C40/C43/C46 + collatz64 x0.70 (FOR-RESEARCH C49): all pass with larger margins except collatz x0.55 r8 (wrong answers at slow CARRY, 1 livelocked draw); r4 205 ps; UCMPI0 8 clears both.
+- 00:00 x55a10 RC, seeds 1-13: 52/52 slow-carry draws, ucmpi1 worst 896 ps (route 3). C49 updated.
