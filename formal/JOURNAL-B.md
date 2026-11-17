@@ -4558,3 +4558,17 @@ collatz x0.70 seed 2: UADDI1 7 | 0: col18 8/8 | 8/8, c32hi 8/8 | 8/8, steps prel
 7382, period 16168 / 15490 | 15781 / 15791. No speed change, as expected when UADDI1 (7) < UCMPI2 (12) at ucond_br5; seed
 27's -1.1 ns was route scatter.
 Farm `b_u0xor` (x55a10 vs + UADDI0 0, seeds 1-12, 2 cores a task): state "waiting" (200-core ceiling) at 21:44.
+### progress 22:1x -- collatz x0.70 UADDI1 7 vs 0 on seeds 27 / 2 / 3 / 4: all pass, no speed change; a10u0s3 is an FFMUX-FLAG route
+| collatz x0.70 seed | UADDI1 7: sdf, steps last-carry slack, period (ps, 2 draws) | UADDI1 0: sdf, slack, period |
+|---|---|---|
+| 27 | f11ff1ee, 8007, 16880 / 16118 | dd684146, 7070, 15540 / 15242 |
+| 2 | 0063fe05, 7812, 16168 / 15490 | c03c2484, 7382, 15781 / 15791 |
+| 3 | e963d572, 7773, 15696 / 15258 | d94d3040, 7734, 15492 / 15398 |
+| 4 | 60058e36, 8593, 16737 / 16094 | 6fee8e19, 7890, 16823 / 16374 |
+Every build: col18 8/8, c32hi 8/8, steps preloaded 8/8. Mean period 16.06 -> 15.81 ns, all of it from seed 27; seeds 2-4
+alone 15.91 -> 15.95. So UADDI1 0 keeps the steps counter's full range (>= 7.07 ns at its worst carry) and changes no speed,
+as predicted where the steps adder (7) is already shorter than the n == 2 compare (12) at ucond_br5: it saves its delay
+LUTs only.
+- x55a10 + UADDI0 0 seed 3 (sdf 9e4de472): ffmux_scan flags CLBLM_R_X9Y34.SLICEL_X1.CFF (research's FFMUX-FLAG bitstream
+  defect; such routes are excluded). bvar2.sh stopped there under set -e (fixed: ffmux now records FLAG and goes on). It is
+  run anyway, as a check that the draws see the defect.
