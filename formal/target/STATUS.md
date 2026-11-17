@@ -15,7 +15,7 @@ The measured August bitstreams, decoded and run in formal's simulator, give thes
 What this does and does not settle:
 - LUT vs routing cannot be separated: the measurements all have the same mix.
 - CARRY/F7 is not placed by any August measurement.
-- The ring/kernel gap is unexplained. A rise/fall candidate was withdrawn (21:40): the chains are symmetric.
+- The ring/kernel gap is unexplained. A rise/fall candidate was withdrawn (20:38): the chains are symmetric.
 - To place kernel delays (where in each arc's band the board's common position sits), use the kernel loop times
   (b ~0.39 of formal's band), not the rings. This is a separate axis from kappa: kappa is within-die scatter in `Adm`.
 

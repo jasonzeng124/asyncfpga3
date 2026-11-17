@@ -886,7 +886,7 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
-## A14. Where the board sits in the band, and which measurement decides it. LUT vs routing: no August measurement separates them. CARRY/F7: no August measurement places it. Rings and kernels disagree by the same amount in both models, cause unknown (shard A, 2026-11-17 21:10 UTC, corrected 21:40; simulation, untrusted)
+## A14. Where the board sits in the band, and which measurement decides it. LUT vs routing: no August measurement separates them. CARRY/F7: no August measurement places it. Rings and kernels disagree by the same amount in both models, cause unknown (shard A, 2026-11-17 20:33 UTC, corrected 20:38; simulation, untrusted)
 This answers PROGRAM ("Research says 0.22 to 0.29 and you said 0.75 to 0.9: say which measurement decides"). It also
 records A13, which until now was only in JOURNAL.md (18:28; C42 cites it).
 The data are the MEASURED August bitstreams (research/board/aug/builds, decoded by formal; names come from
@@ -914,7 +914,7 @@ In formal's arcs (build_net.py), the measured delays sit at:
   - **No single pair fits both.** At the rings' pair, the kernels come out ~10 % slow (collatz 102.0 vs 92.7 ns).
     The joint fit (0.575, 0.092) leaves the rings at 5.9 % rms and the kernels up to 2.8 % off.
   - So the ring/kernel gap is not a LUT-vs-routing split.
-- **WITHDRAWN 21:40: the rise/fall candidate.** The first version of this entry said every kernel delay LUT is a
+- **WITHDRAWN 20:38: the rise/fall candidate.** The first version of this entry said every kernel delay LUT is a
   bd_delay FASTRISE (OR) stage. That came from a misread INIT. The routed cells are LUT1 buffers: INIT 2'b10, A1
   unconnected, e.g. uselect0.udly.chain.g[9].u. The chains are SYMMETRIC in collatz, collatz64, gcd, xorshift, ipow,
   isprime, gcd_ps, gcd_hw and ro_link_ps. A four-phase cycle therefore pays both edges through them, as a ring does,

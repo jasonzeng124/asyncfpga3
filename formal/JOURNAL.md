@@ -2849,7 +2849,7 @@ operands). collatz / collatz64 / gcd decode, compute correctly, and their per-it
 candidates). With b_r = 0.39 fixed, CARRY/MUXF band b_c in {0.2, 0.39, 1.0} changes collatz / collatz64 per-iteration
 by 0.00 ns: these kernels cannot pin CARRY/F7. build_net.py: new RC_ALL=1 option (default unchanged, proofs untouched).
 
-### progress 21:10 -- which measurement decides the band (FOR-RESEARCH A14; simulation, untrusted)
+### progress 20:33 -- which measurement decides the band (FOR-RESEARCH A14; simulation, untrusted)
 The 128 August rings in formal's arcs (ring_period.py: each loop is the shortest cycle through the ring's own LUTs and
 routing from the NAND output) give a median b of 0.465 (p05-p95 0.420-0.512). The kernels give 0.383-0.396. Research's
 model shows the same gap (0.288 vs 0.222).
@@ -2866,7 +2866,7 @@ model shows the same gap (0.288 vs 0.222).
   - rings with spread vs packed stages, for LUT vs routing;
   - a CARRY4 line, for CARRY/F7 (unplaced by any August data).
 
-### correction 21:40 -- A14's rise/fall candidate WITHDRAWN (misread INIT)
+### correction 20:38 -- A14's rise/fall candidate WITHDRAWN (misread INIT)
 The kernels' delay LUTs are LUT1 buffers: INIT '10' is a 2-bit table, and A1 is unconnected. My OR/AND classifier
 counted the ones in that 2-bit string and called a buffer an OR. The chains are symmetric in all nine August builds
 checked, so the rise/fall explanation fails. The ring/kernel gap (0.465 vs 0.39 in formal's arcs; 0.288 vs 0.222 in
