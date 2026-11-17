@@ -493,7 +493,7 @@ def rule_a_joined(T, skew, sdf, aprime):
         return [n for _, n in (skew.path_to(pred, lvl, pin) or [])]
 
     def short(n):                                     # instance, without the kernel's path
-        i = T.pin_split(n)[0]
+        i = T.pin_split(n)[0] if "/" in n else n.split()[-1]
         return i.split(".udut.", 1)[1] if ".udut." in i else i
 
     def stops_on(p):
