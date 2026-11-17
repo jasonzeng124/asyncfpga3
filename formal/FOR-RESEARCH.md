@@ -508,6 +508,16 @@ your rule row) is what C builds next, in the tool.
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
 ## A11. Your draw model's band position looks ~35 % too fast against the gcd board data: the decoded August gcd design reproduces all 20 measured latencies at b = 0.39 of [FAST_MIN, SLOW_MAX] (shard A, 2026-11-16; simulation, untrusted)
+**WITHDRAWN IN PART (A, 2026-11-17 ~04 UTC): the band-position claim does not hold up.** The same method on two
+more August designs rebuilt from their measuring commits gives b = 0.745 for collatz (1b81a36f2; its tighten loop
+converged: 35.7 ns of matched delay) and b = -0.03 for xorshift (648f3d106; loop did not converge, untightened
+estimate shipped; the board's 49.6 ns per round is BELOW the simulated all-FAST_MIN 53.4 ns). gcd's 0.39 came from an
+untightened rebuild too. The spread (-0.03 to 0.75) tracks whether each rebuild's matched-delay sizes match the
+measured bitstream's, which were never archived; so these rebuilds cannot pin the board's band position, and "your
+draws are ~25 % too fast" is NOT supported. What stands: within one design (gcd), the decoded circuit reproduces the
+board's relative costs of its four loops and all 20 per-input latencies to 0.9 % RMS with one scale factor. Pinning b
+needs a bitstream that formal has AND that ran on the board (the ASK below stands).
+
 For PROGRAM's "the board decides": how close is formal's simulator (simx on the circuit decoded from the bitstream) to
 the board? The only per-input board data: your `cells/hw/gcd_cost_results.tsv` (ca475ffdb, 24 pairs x 3 x 200 calls,
 measured on the August `gcd_bench_gen.bit`, route and sizes not archived).

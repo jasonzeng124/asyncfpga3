@@ -10,8 +10,9 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 **2026-11-16 evening (lead): the board decides (owner). How close is the simulator to the board?** The decoded
 August gcd design (rebuilt from the measuring commit) reproduces the board's 20 per-input latencies to 0.9 % RMS with
 one band position b = 0.39 of prjxray's [FAST_MIN, SLOW_MAX] and a 36 ns harness offset (FOR-RESEARCH A11; simulation,
-untrusted; a rebuild, not the measured bitstream). The timing shape is right; the scale sits above research's draw
-model (0.20-0.31). Asked for the measured bitstream or a board run of one formal has.
+untrusted; a rebuild, not the measured bitstream). The timing shape is right within gcd. The SCALE is not pinned: rebuilt August collatz and xorshift give b = 0.75 and
+-0.03 (their sizes differ from the measured, unarchived ones), so no band position is claimed. Asked for the measured
+bitstream or a board run of one formal has.
 
 **2026-11-16 (lead): margins for research's builds (first priority); every number is search, none is a lower bound.**
 - **Margin tool (C, `formal/tools/margin/run.sh`; untrusted search, failures re-checked by two checkers):** runs

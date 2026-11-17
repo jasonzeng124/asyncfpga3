@@ -2809,3 +2809,12 @@ August toolchain converged to tighter sizes is unknown (stays in the ASK below).
 **ASK:** (1) the August gcd_bench_gen.bit/.fasm that produced cells/hw/gcd_cost_results.tsv, or its sizes; (2) a board
 run of gcd_ps_e6bb4aec (formal/target/) or of research's current items on the same 24 gcd pairs / their gate vectors,
 so the band position b can be measured on a bitstream formal has.
+### progress 03:45 -- PROGRAM 28f90d66 (two subagents allowed again) read; A11's band-position claim WITHDRAWN after two more designs
+`tools-A/board/loop_latency.py` (trip-count sweeps, slope per iteration at FAST_MIN and SLOW_MAX): August collatz
+rebuilt from 1b81a36f2 (tighten loop converged, 35.7 ns matched delay): board 92.7 ns/step vs sim 35.6 / 112.3 ->
+b = 0.745. August xorshift from 648f3d106 (loop did not converge, untightened estimate shipped): board 49.6 ns/round
+vs sim 53.4 / 168.5 -> b = -0.03 (the board is faster than every arc at FAST_MIN). With gcd's 0.39 (untightened),
+the spread follows the rebuilds' matched-delay sizes, which differ from the measured, unarchived bitstreams. So no
+band position is supported, and the "research's draws ~25 % too fast" reading in A11 and in my notification is
+withdrawn. What stands: gcd's within-design shape (four loop costs, 20 latencies, one scale, 0.9 % RMS).
+Lesson: one design's fit was reported as a fabric property before a second design was tried.
