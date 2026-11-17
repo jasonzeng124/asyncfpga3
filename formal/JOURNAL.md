@@ -2890,3 +2890,8 @@ Splitting each kernel into chains and the rest:
 Leading explanation, not shown: the two measurement sessions or builds differ (a day, a supply). The deciding test needs
 no new build: run ro_many and collatz back to back on the same board.
 New tools: chain_gates.py, chainstage.py; scale_net CHAIN / B_CHAIN / B_DSP env.
+
+### progress 21:00 -- A15: formal's pre-registered prediction for the second ring route (simulation, untrusted)
+ro_many_2 was decoded and its loops were found: 128 rings, none missing. At the August ring b (0.465), formal's periods
+come out at a median 1.010 of research's own prediction, with +-5 % per ring. Committed before any board run of that
+route. The same-session collatz run proposed in A14 can share that board session.

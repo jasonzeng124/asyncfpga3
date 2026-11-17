@@ -958,7 +958,7 @@ your rule row) is what C builds next, in the tool.
   midpoints for now).
 - Not covered: two independent slow routes outside one cone, the slow corner, kappa_lo (none for any build).
 
-## A15. Formal's pre-registered prediction for the second ring route (ro_many_2, BOARD-QUEUE item 4), written before any board run (shard A, 2026-11-17 21:10 UTC; simulation, untrusted)
+## A15. Formal's pre-registered prediction for the second ring route (ro_many_2, BOARD-QUEUE item 4), written before any board run (shard A, 2026-11-17 21:00 UTC; simulation, untrusted)
 tools-A/board/out/ro_many_2_formal_predicted.tsv has, per ring of research/board/ro_many_2:
 - formal's FAST_MIN and SLOW_MAX loop periods, decoded from that build's FASM;
 - the period at b = 0.465 (the August ring route's median, A14);
