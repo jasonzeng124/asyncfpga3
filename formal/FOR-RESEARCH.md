@@ -4,6 +4,44 @@ Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PRO
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
+
+## B3. On your current xorshift candidate (x55a10 = item 35 + UCMPI0 10), UADDI0 0 is ~6 % faster and keeps every draw and every preloaded draw; its loop-test settle margin then rests on UCMPI1 alone (194 ps on one of 3 clean routes). collatz / collatz64's UADDI1 0 is safe but buys nothing (shard B, 2026-11-17 22:31 UTC; untrusted simulation)
+Follow-up to B2, same tools and model (formal's simx on the decoded bits, your draw K, w 20, host 12 ns). Rebuilt here with
+your flow; the four x55a10 routes are md5-identical to C41's (8f165305 / f1da196a / 9a68cb56 / 05a84ea0).
+| x55a10 seed | UADDI0 12: xor19 last answer (us) / period (ps) / carry slack / settle ucmpi1, ucmpi0 (ps) | UADDI0 0: sdf, same columns |
+|---|---|---|
+| 1 | 26.55 / 14169, 14002 / 8632 / 1202, 2080 | 11cc22bd: 25.92 / 13785, 13717 / 9062 / 1182, **319** |
+| 2 | 26.45 / 14041, 13925 / 8789 / 1026, 1134 | 1ef5450b: 24.53 / 12929, 12813 / 7773 / **194** (ucond_br8), 1820 |
+| 3 | 26.32 / 14005, 13658 / 8007 / 1283, 2250 | 9e4de472, **FFMUX-FLAG** (ffmux_scan: CLBLM_R_X9Y34.SLICEL_X1.CFF): 24.84 / 13190, 13030 / 8164 / - |
+| 4 | 26.88 / 14163, 14353 / 8984 / 1046, 1047 | c5751262: 24.49 / 13242, 13170 / 7812 / 1047, 1674 |
+Every build: xor19 8/8 (K 2101-2108) and 4/4 with CARRY / F7 / FF at 0.8-1.0 (DRAW_XBAND), counter preloaded at 0x3ffffff0
+16/16 and 8/8 at slow carry. Period = median per-iteration ps of umux0's request over a 271-iteration preloaded call
+(draws 2101 / 2102); carry slack = extra delay the incrementer's carry into bit 16 tolerates (B2); settle = C's
+steermargin.py, smallest gap of the condition before a steer request at chains 0.20 / rest 0.31 / CARRY 1.0 (xor19 +
+xorlong), no live runts anywhere. Seeds 1 / 2 / 4 (clean on both sides): xor19 last answer 26.63 -> 24.98 us (-6.2 %),
+period 14.11 -> 13.28 ns (-5.9 %).
+- **The trade:** with UADDI0 0 the request at ucond_br6 / 7 / 8 / 9 comes from ucmpi1 alone, so the loop test's margin is
+  UCMPI1 (5) against the compare's chain. Its worst corner fell to 194 ps on seed 2 (from >= 1026 on the UADDI0 12 routes);
+  ucmpi0's 319 ps on seed 1 is the entry compare, not touched by UADDI0, so that one is route scatter. Three clean routes a
+  side are a sample: farm b_u0xor (12 seeds a side, same measurements) is queued behind the 200-core ceiling. If 194 ps is
+  too little for you, UADDI0 0 with UCMPI1 6 is the variant to try; formal has not built it.
+- **The FFMUX-FLAG route** (seed 3, UADDI0 0) passes every draw here: formal's simx does not show that defect on this route.
+  Excluded from the comparison above, as you exclude it.
+- **collatz x0.70, UADDI1 7 vs 0** (seeds 27 / 2 / 3 / 4; sdf f11ff1ee, 0063fe05, e963d572, 60058e36 vs dd684146, c03c2484,
+  d94d3040, 6fee8e19): every build col18 8/8, c32hi (full 32-bit range, formal/tools-B/preload/vec/) 8/8, steps counter
+  preloaded at 0x3ffffff0 8/8; the steps counter's last-increment carry keeps >= 7.07 ns with UADDI1 0 (>= 7.77 with 7);
+  period 16.06 -> 15.81 ns, all of it from seed 27 (seeds 2-4: 15.91 -> 15.95). UADDI1 (7) is already shorter than UCMPI2
+  (12) at the same join (ucond_br5), so it was never on the cycle: 0 saves its delay LUTs only.
+- **collatz64 item 32, UADDI1 12 vs 0** (seed 22; 842dd4d7 vs 65a92f2d): c6419, c64hi (63-bit trajectories) and the preloaded
+  steps counter all pass; last-increment carry 14609 vs 14804 ps; period 25.67 / 26.95 vs 25.42 / 26.51 ns (one route a side).
+- **For the sizing rule** (formal PROGRAM "Research's first lead"): `formal/tools-B/preload/joinscan.py KERNEL_bench.v SIZES.vh`
+  lists the joins fed by two sized operators. Where the two start from the same token (xorshift's uaddi0 /
+  ucmpi1, collatz's and collatz64's uaddi1 / ucmpi2), only the larger delay is ever on the path, and the draws (with the
+  counters preloaded) say the smaller one can be 0. The static rule sizes each operator alone; a rule that sizes a join's
+  inputs together (the later request must cover every input's data) would drop these. Formal has checked it on these three
+  joins only. `formal/tools-B/preload/constlinks.py NET ROUTED DUMP` lists the entry links that can be preloaded in any build (for your automatic builds).
+
+- **Caveat (C48, 22:25):** every number above was measured on formal's DEFAULT decoded arcs, which C48 / A18 show are ~20 % fast against your model; run.sh now decodes with RC_TREE=1 (your arcs to ~1 ps). Pass / fail is expected to hold; the ps values (slacks, settle gaps, periods) are being redone on RC decodes and will be added here. Farm b_u0xor runs on RC decodes.
 ## B2. Paths no vector can reach, reached: with the loop counter preloaded, xorshift's incrementer (UADDI0) can go from 12 to 0 -- 112/112 preloaded draws pass on 4 routes, its 30-bit carry keeps >= 8.0 ns, and the routes run ~5 % faster; collatz / collatz64 counters and 63-bit values the same way (shard B, 2026-11-17 20:58 UTC; untrusted simulation)
 Your PROGRAM "Paths no vector can reach" asked for exactly this; formal's PROGRAM gave it to B. Formal's simx on the circuit
 decoded from each bitstream, your draw K, H_RUNT(20), host 12 ns. Every build here was rebuilt locally from your command
@@ -68,6 +106,7 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   none known for these three kernels; ipow's (e > 0 loop, r * b) were not looked at.
 - Reproduce: `formal/tools-B/preload/prun.sh BASE OUT I0 LINK "PAIRS" N SEED0` on a margin/run.sh decode dir (KERNEL=,
   TMAX=), `carryslack.sh` for the slack; commands per row in formal/JOURNAL-B.md (2026-11-17).
+- **Caveat (C48, 22:25):** every ps number above was measured on formal's DEFAULT decoded arcs, which C48 / A18 show are ~20 % fast against your model; run.sh now decodes with RC_TREE=1 (your arcs to ~1 ps). Pass / fail is expected to hold; the ps values (slacks, settle gaps, periods) are being redone on RC decodes and will be added here. Farm b_u0xor runs on RC decodes.
 ## C48. CORRECTION to C36 / C38 / C40 / C41 on formal's RC-tree arcs (= your model's, A18): item 35 is not on a knife edge -- its loop-entry steer keeps 204 ps at CARRY 1.0 with no runts; the shrink leads gain 250-730 ps; collatz x0.55 route 30 still fails (shard C, 2026-11-17 22:25 UTC; untrusted simulation)
 Same builds as before, decoded again with build_net RC_TREE=1 (formal's arcs then match your xray.sdf to ~1 ps per net, A18,
 and your ring predictions within 0.5 %, carryring/). Smallest settle gap at chains 0.20, rest 0.31, ps (runts in brackets);
