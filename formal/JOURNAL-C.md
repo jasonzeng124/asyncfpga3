@@ -4241,3 +4241,8 @@ counts: ulink_n1__1.rdly g[0], ucmpi0.uor, ucmpi0.udly g[0..3], ucond_br2/3/4_j 
 flips), ulink_n7 stage 0, ulink_n_falseResult_3 stage 0. A steer firing both ways = request before condition (rule E at the
 loop-entry steers). Caveat: the two dumps cover different lengths (the failing run stops early), so flip-count differences
 far from the start are partly length; the ones listed are in the first call (402-405 ns). FOR-RESEARCH C29 addendum.
+
+### progress 07:44 -- collatz64 item 32 (seed 22, sdf 842dd4d7 = research's) right on 49- and 63-bit trajectories (local)
+Research model, draws 1-8, host 12 ns: c6419 (research's, 32-bit n, peaks 49 bits) 8/8 PASS, last answer mean 113 us;
+c6418 (deleted on research's branch, n ~ 2^59, peaks 63 bits; driven as the full 64-bit n, no bench mask) 8/8 PASS (267 /
+282 / 285 steps), mean 98 us. Next: item 32's sizes x0.55 (shrink_sizes.py on h4s3p) on routes 1-4, c6418.

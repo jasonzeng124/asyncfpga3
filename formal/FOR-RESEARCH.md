@@ -3,6 +3,11 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C30. Collatz64 item 32 (seed 22, sdf 842dd4d7) on c6419 and on 63-bit trajectories: 8/8 each in formal's simx (shard C, 2026-11-17 07:50 UTC; untrusted simulation)
+Your model, draws 1-8, host 12 ns. c6419: 8/8 PASS (last answer mean 113 us). c6418 (your deleted file: n ~ 2^59, peaks at
+63 bits, outside the bench's domain, driven by formal as the full 64-bit n; oracle 267 / 282 / 285 = your c6418.exp): 8/8
+PASS. So item 32's kernel handles carries to bit 62 on these draws; the board's bench cannot feed such n.
+
 ## C29. Collatz below x0.55 in formal's simx: x0.55 clean on routes 1-8 (col17); x0.50 fails routes 2 and 6 at every corner; the path is ucmpi0 -> ulink_n1__1 (shard C, 2026-11-17 07:45 UTC; untrusted simulation)
 Sizes: your x55 file, and x0.50 / x0.45 made with your shrink_sizes.py from nl6s3a (it reproduces your x55 file exactly).
 Routes 1-8, col17 (full 32-bit n, no bench mask), your model, your K = 100r+1..4 plus formal draws. PASS/FAIL/UNDECIDED:
