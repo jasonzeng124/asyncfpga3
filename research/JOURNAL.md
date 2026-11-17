@@ -5964,3 +5964,22 @@ two steps above where it starts to fail.
 - 12:30 Local ipow x0.55 route 3 (sdf 0b333646, EQUIVALENT, ffmux-clean): draws 301 / 302 PASS 17/17, P 26.41 ns (item 29: ~36.2 median, -27%). Route 19 failed only through its F7-select defect. 2 draws on one clean route is a lead, not a candidate: shrink8 (32 routes x 4 draws) decides when the farm returns.
 - 14:28 Local ipow x0.55: route 5 (sdf e7c5057d, P 25.86 ns) and route 8 (sdf 70048ae0, P 27.56) 2/2 draws PASS each, both EQUIVALENT / ffmux-clean. Clean routes so far 3 / 5 / 8: 6/6 draws, P 25.9-27.6 ns vs item 29 ~36.2 (about -27%). Still a lead (3 routes); shrink8 (32 routes) makes it a candidate.
 - 16:15 Local collatz x0.55 on col18: routes 12 (P 18.64) and 5 (P 17.00) 2/2 draws PASS each, but both NOT EQUIVALENT (not usable as board routes until the kinds are judged benign). Totals for collatz x0.55 on col18: 9/9 draws on 5 routes, P 16.1-18.8 ns vs item 31's 21.27 on its route; 2 of the 5 routes EQUIVALENT (20, 3). shrink9 still decides.
+### Session summary and handoff (2026-11-17 17:12 UTC)
+Toolchain nextpnr 9c732bc6303458df throughout.
+- Gate verdict fixed: it read only the last of each batch's two runs (missed result streams a call behind). All current
+  board families re-gated with the fix: clean.
+- collatz / collatz64 vectors had no n = 1: added (col14 / c6415); clean routes pass; the entry-steer control now fails.
+- PROGRAM 2026-11-16 ("the board decides"): bench_gate.sh draw:K; SIM-VS-BOARD.md; sim vs board on the August builds
+  +8-10% per iteration at band 0.288. Board candidates 27-33 pass every draw; the model fails its known-bad build 16/16.
+- BOARD-QUEUE item 35: xorshift 16.85 ns (item 33 x0.55, incrementer kept), 128/128 draws on 32 routes; its route 32/32
+  + 6/6 gates. Draws first fail at x0.40a.
+- Withdrawn the same day: a collatz "long-carry failure" that was vectors above the bench's 16-bit mask. kernel_oracle.sh
+  now applies the bench masks; col18 / c6419 carry the highest-peak inputs inside the domain.
+- Leads (local, few routes): collatz x0.55 9/9 draws on 5 routes, 16.1-18.8 ns (item 31: 21.27); ipow x0.55 6/6 draws
+  on 3 clean routes, 25.9-27.6 ns (item 29: ~36.2). Their farm sweeps (shrink9, shrink8) and regate3 are queued; the farm
+  pushed nothing after 05:39 UTC 2026-11-17.
+- Formal C19 answered (runt pulses: rejected by our resolver, oscillate without it). ASK (owner): the incrementer's
+  31-bit carry is beyond any vector -- keep its static size?
+Next: read shrink9 / shrink8 / regate3 with research/tools/draws_table.py; for a candidate passing every draw, copy
+draws2.sh for its median EQUIVALENT route and add a BOARD-QUEUE item like 35. Then collatz64 (c6419) the same way.
+LOCK cleared.
