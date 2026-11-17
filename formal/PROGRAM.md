@@ -98,6 +98,11 @@ whenever a result here (a completeness proof, a certificate checker) is what it 
 
 A lock dated 2026-11-10 is from before the pause: take it.
 
+## The farm holds at most 200 cores at a time (owner, 2026-11-17)
+
+Read "Limits" in `formal/cluster/README.md` before the next request: tasks run
+`floor(200 / cores)` at a time, and a request waits for the ones before it.
+
 ## Research's first lead is now the automatic path (owner, 2026-11-17)
 
 The owner, on the per-kernel sweeps: "this cant possibly give more than eps of improvement",
