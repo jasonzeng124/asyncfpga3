@@ -98,6 +98,30 @@ whenever a result here (a completeness proof, a certificate checker) is what it 
 
 A lock dated 2026-11-10 is from before the pause: take it.
 
+## Use the quota that is left; shard B is back (owner, 2026-11-17)
+
+The owner: "there is so much usage left why dont you jstu use it all". The week's quota
+resets on 2026-11-18 at 23:00 UTC, and what is unused is lost.
+
+- **Shard B runs again from 2026-11-17 20:00 UTC.** A `formal/LOCK-B` dated before that is
+  from before the stop: take it. B's work now is not the Lean cell proofs. It is to **make
+  formal's simulator reach the paths no vector can reach.** xorshift's counter needs 2^31
+  iterations before its 31-bit carry happens, so neither simulator has ever exercised the
+  incrementer (UADDI0) or the compares at full width, and research keeps them at their old
+  static sizes. That is what stands between 16.85 ns and less. In simx, start a run with
+  the loop state preloaded (the counter a few steps below 2^31 and n to match, written into
+  the decoded state nodes after reset, on the same bitstream), check the result against the
+  C oracle started from the same state, then judge UADDI0's size by draws on item 35's
+  route. Then collatz64's 63-bit values the same way. Report as B-numbered entries in
+  `formal/FOR-RESEARCH.md`. Research is trying the same in its own simulator: two
+  independent answers are the point.
+- **Shard A:** the band question (next section) for LUT-and-routing as well as CARRY / F7.
+  Research says 0.22 to 0.29 and you said 0.75 to 0.9: say which measurement decides.
+- **Shard C:** carry on: draws on research's candidates, and C41 on more routes.
+- **Subagents:** at most 2 at a time for each shard, as now.
+- **Do not stop early.** When a session ends, nothing restarts it until the owner next looks.
+  End only when the context is nearly used up.
+
 ## First: where does the board sit in the delay band? (2026-11-17 17:15 UTC)
 
 Research and formal disagree, and the xorshift candidate depends on the answer.
@@ -151,8 +175,8 @@ it wins over the sections below where they conflict:
   the board with him.
 - **Lean** only where it closes a gap between the simulated circuit and the board (the decoder,
   the delay bounds). The gcd theorem stays second priority.
-- Subagents: at most 2 at a time again, for shards A and C, since 2026-11-17 03:10 UTC (usage
-  is inside the week's budget). Shard B stays stopped.
+- Subagents: at most 2 at a time for each shard. Shard B is back since 2026-11-17 20:00 UTC
+  (top section).
 
 ## A kappa is not a result; the race in picoseconds is (owner, 2026-11-16)
 
@@ -188,19 +212,6 @@ item's command). **Its margin and binding race come first.** Say whether the bin
 again the latch-enable race at `ulink_n_falseResult_3` stage 0, and give item 25 (select
 links unshortened) under the SAME search settings beside it, so the two numbers compare.
 Then xorshift's item 27, if `formal/target/MARGINS.md` has no row for it yet.
-
-## Shard B: stop (2026-11-15 20:15 UTC)
-
-**Shard B: finish the step you are on, then stop.** Commit and push what is checked. Write in
-the journal and in `formal/FOR-RESEARCH.md` what is proved, what is only searched, and what
-you would have done next. Empty `formal/LOCK-B` and end the session. Shard B's daily start is
-switched off, so it does not come back tomorrow.
-Reason: usage. The week stood at 33% at 20:07 UTC and has risen about 2.5 points an hour
-since formal came back; it can carry 0.76. B is the shard to stop because its part of the
-first priority is checked: SelectCapture, SelectHold, SelectTree and the 20 select-hold rows
-on the target. Shards A and C: carry on. Whichever of you
-is nearer takes B's next step when research's builds need it: the same select certificates
-for a build listed in `research/FOR-FORMAL.md`.
 
 ## Effort and subagents (owner, 2026-11-05)
 
