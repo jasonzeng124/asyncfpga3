@@ -4528,7 +4528,7 @@ seeds 1-4: xor19 8 draws + 4 slow-carry draws, preload A 16 + 8 slow-carry, carr
 and ucmpi0 at 0.20 / 0.31 / 1.0. Queued after: collatz x0.70 seed 27 with UADDI1 0 (steps adder joined at ucond_br5 with
 the n == 2 compare, UCMPI2 12 > UADDI1 7: the same shape; prediction: safe).
 Vectors for research in tools-B/preload/vec/ (c64hi, c32hi; .exp from oracle.c).
-### progress 21:3x -- joinscan; x55a10 seed 1 checked; collatz / collatz64 UADDI1 0 built
+### progress 21:21 -- joinscan; x55a10 seed 1 checked; collatz / collatz64 UADDI1 0 built
 - `joinscan.py` (static; sizes, not arrival times): joins fed by two sized operators. xorshift: ucond_br6 <- ucmpi1 5 /
   uaddi0 12; ucond_br7 <- ucmpi1 5 / uxori2 3. collatz x0.70: ucond_br5 <- ucmpi2 12 / uaddi1 7; ucond_br7 <- ucmpi2 12 /
   uselect0 5. collatz64 item 32: ucond_br5 <- ucmpi2 16 / uaddi1 12; ucond_br7 <- ucmpi2 16 / uselect0 12. The steps
