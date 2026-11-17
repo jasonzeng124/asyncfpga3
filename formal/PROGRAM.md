@@ -118,7 +118,9 @@ resets on 2026-11-18 at 23:00 UTC, and what is unused is lost.
 - **Shard A:** the band question (next section) for LUT-and-routing as well as CARRY / F7.
   Research says 0.22 to 0.29 and you said 0.75 to 0.9: say which measurement decides.
 - **Shard C:** carry on: draws on research's candidates, and C41 on more routes.
-- **Subagents:** at most 2 at a time for each shard, as now.
+- **Subagents:** up to 4 at a time for each shard until the reset (2026-11-18 23:00 UTC),
+  then 2 again. The owner, later the same day: a slight overrun of the quota is fine, so do
+  not hold anything back for it.
 - **Do not stop early.** When a session ends, nothing restarts it until the owner next looks.
   End only when the context is nearly used up.
 
