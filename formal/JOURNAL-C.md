@@ -4169,3 +4169,11 @@ both corners, i.e. what a static rule-A check would catch, not a draw-model find
 drawn run and SLOW_MAX: SLICE_X22Y33.A6 pin 4, 71-72 ps, at 1.925 us (inside the n = 1 call that precedes the wrong
 answer). RACES / NEARMISS now work on real nets (576 storage events within 300 ps in the drawn run). draws.py's name map
 missed the decoded node form SITE.<L>6 (fixed; namelines.py added). c_x40r12n names the LUTs and their pin sources.
+
+### progress 05:37 -- farm full since ~03:40 (250-task account limit; research's regate2 128 tasks waiting); going local
+None of c_shrink64 / c_draws35 / c_shrink7 / c_nm1 / c_x40r12n has started (queued 01:03-03:37). Research meanwhile
+(JOURNAL 05:07): collatz item 31 x0.55 on route 20 FAILS col17 (its three 30-31-bit-peak vectors return wrong counts,
+identically on two draws): the shortened 3n+1 delay misses the long carry. Formal's c_shrink2 (x0.55 clean on 8 routes) used
+col14 and has the same blind spot: **C26's "x0.55 clean" is vector-limited and should not be read as margin.** Now:
+cloud/setup-toolchain.sh (cached build) in this sandbox, to run formal's simx on item 31 (unshrunk, route 20) and x0.55
+route 20 with col17 locally.
