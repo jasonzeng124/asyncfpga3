@@ -1,0 +1,152 @@
+module {
+  memref.global "private" constant @__const.main.inp : memref<30xf32> = dense<[0.838658094, -0.493658334, -4.557200e-01, -0.182672814, 0.789224267, -0.986266374, -0.112344235, -0.607068598, -0.264422655, 1.00797248, -1.03517795, 0.778603374, -0.219463661, -0.711719334, 0.802783071, 0.763099074, -1.01777542, -0.159266844, -0.49239406, -0.243099123, 0.789343178, -0.217009842, -0.939968109, 0.468218029, 0.20811832, 0.976879715, 0.326607972, 0.014025473, -0.1994313, -4.441970e-01]> {alignment = 16 : i64}
+  memref.global "private" constant @__const.main.KKT_inv : memref<900xf32> = dense<"0xD72822419FBDC23F24D2A0BE2B2E38BFD7A9003F394B013EE89F3B409FBDC23F24D2203F2B2EB83ED7A9003F394B81BEE89F3B409FBD42C024D2A0BE2B2EB83ED7A980BF394B013E9FBD42C017B3F83F0684C43EA7C4033F54529F3CBC0F033E9FBDC23F17B3F83F068444BFA7C483BE54529F3CBC0F83BE9FBDC23F05CC41410684C43EA7C483BE54521FBDBC0F033EEFF3BFBE1815AF3F9EB2B13F9D60E33EFDDBA6BE3CCA3ABCEFF33F3E1815AF3F4AAD30C09D6063BEFDDBA6BE3CCABA3CEFF33F3E18152FC09EB2B13F9D6063BEFDDB263F3CCA3ABC24D2203F0684C43EB679EB3F013379BF9A8F23BE9BC417BE24D2A0BE0684C43E3D9E44410C34F93E9A8F23BE9BC4973E24D2A0BE068444BFB679EB3F0C34F93E9A8FA33E9BC417BE0DDA013E434076BE3C33B13F38842BC08088073FF76EDDBD0DDA81BD434076BE242E30C05089AC3F8088073FF76E5D3E0DDA81BD4340F63E3C33B13F5089AC3FFB8787BFF76EDDBD2B2E38BFA7C483BE0C34F93E16564941DAB6A63F1CA21D3E2B2EB83EA7C483BE013379BF539AD83FDAB6A63F1BA29DBE2B2EB83EA7C4033F0C34F93E539AD83FC2B125C01CA21D3ED7A980BF54529F3C9A8F23BEC2B125C027B3C83FB092F03ED7A9003F54529F3C9A8FA33EDAB6A63F27B3C83FA59170BFD7A9003F54521FBD9A8F23BEDAB6A63FE14F4D41B092F03E299930BF6A643B3EDAA197BE1DAA9DBF952C923F4ACA113F2999B03E6A643B3EDAA1173FA3AA1D3F952C923F1AC08FBF2999B03E6A64BBBEDAA197BEA3AA1D3F7D2711C04ACA113F394B81BEBC0F033E9BC417BE1BA29DBEB092F03E2C00B43E394B013EBC0F033E9BC4973E1CA21D3EB092F03EA83C7441394B013EBC0F83BE9BC417BE1CA21D3EA59170BF2C00B43E06BC0DBD977ABE3C4DFABEBCFB35F8BCFB548F3D0E68823D06BC8D3C977ABE3C4DFA3E3DFB35783CFB548F3DC224E4BD06BC8D3C977A3EBD4DFABEBCFB35783CFA540FBE0E68823DE89F3B40EFF3BFBE24D2A0BE2B2EB83E299930BF394B013ED7282241EFF33F3E24D2A0BE2B2E38BF2999B03E394B013EE89F3B40EFF33F3E24D2203F2B2EB83E2999B03E394B81BE9FBDC23F18152FC00684C43EA7C483BE6A64BBBEBC0F033E9FBD42C01815AF3F0684C43EA7C4033F6A643B3EBC0F033E9FBDC23F1815AF3F068444BFA7C483BE6A643B3EBC0F83BEEFF33F3EFF7D43419EB2B13F9D6063BED63B933E3CCA3ABCEFF3BFBE9EE5F03F9EB2B13F9D60E33ED63B13BE3CCA3ABCEFF33F3E9EE5F03F4AAD30C09D6063BED63B13BE3CCABA3C24D2A0BE4AAD30C0B679EB3F0C34F93EDAA1173F9BC417BE24D2203F9EB2B13FB679EB3F013379BFDAA197BE9BC417BE24D2A0BE9EB2B13F3D9E44410C34F93EDAA197BE9BC4973E0DDA81BD82B15EBF3C33B13F5089AC3FBE4CEA3CF76EDDBD0DDA013E8DB2DE3E3C33B13F38842BC0B64C6ABCF76EDDBD0DDA81BD8DB2DE3E242E30C05089AC3FB64C6ABCF76E5D3E2B2EB83E9D60E33E0C34F93E539AD83F1DAA9DBF1CA21D3E2B2E38BF9D6063BE0C34F93E16564941A3AA1D3F1CA21D3E2B2EB83E9D6063BE013379BF539AD83FA3AA1D3F1BA29DBED7A9003FFDDB263F9A8F23BEDAB6A63F7D2711C0B092F03ED7A980BFFDDBA6BE9A8F23BEC2B125C0952C923FB092F03ED7A9003FFDDBA6BE9A8FA33EDAB6A63F952C923FA59170BF2999B03ED63B933EDAA197BEA3AA1D3FC6FD5B414ACA113F299930BFD63B13BEDAA197BE1DAA9DBF95FB8D3F4ACA113F2999B03ED63B13BEDAA1173FA3AA1D3F95FB8D3F1AC08FBF394B013E3CCABA3C9BC417BE1CA21D3E1AC08FBF2C00B43E394B81BE3CCA3ABC9BC417BE1BA29DBE4ACA113F2C00B43E394B013E3CCA3ABC9BC4973E1CA21D3E4ACA113FA83C744106BC8D3CBB82ACBB4DFABEBCFB35783CF30742BE0E68823D06BC0DBDBB822C3B4DFABEBCFB35F8BC1F0CC23D0E68823D06BC8D3CBB822C3B4DFA3E3DFB35783C1F0CC23DC224E4BDE89F3B40EFF33F3E0DDA013E2B2EB83E2999B03E06BC0DBDE89F3B40EFF3BFBE0DDA81BD2B2EB83E299930BF06BC8D3CD7282241EFF33F3E0DDA81BD2B2E38BF2999B03E06BC8D3C9FBDC23F1815AF3F4340F63EA7C483BE6A643B3E977A3EBD9FBDC23F18152FC0434076BEA7C483BE6A64BBBE977ABE3C9FBD42C01815AF3F434076BEA7C4033F6A643B3E977ABE3CEFF33F3E9EE5F03F82B15EBF9D6063BED63B13BEBB82ACBBEFF33F3EFF7D43418DB2DE3E9D6063BED63B933EBB822C3BEFF3BFBE9EE5F03F8DB2DE3E9D60E33ED63B13BEBB822C3B24D2A0BE9EB2B13F242E30C00C34F93EDAA197BE4DFA3E3D24D2A0BE4AAD30C03C33B13F0C34F93EDAA1173F4DFABEBC24D2203F9EB2B13F3C33B13F013379BFDAA197BE4DFABEBC0DDA81BD8DB2DE3E0C1F46415089AC3FB64C6ABC302A413D0DDA81BD82B15EBF7D76E53F5089AC3FBE4CEA3C302AC1BC0DDA013E8DB2DE3E7D76E53F38842BC0B64C6ABC302AC1BC2B2EB83E9D6063BE38842BC0539AD83FA3AA1D3FFB35F8BC2B2EB83E9D60E33E5089AC3F539AD83F1DAA9DBFFB35783C2B2E38BF9D6063BE5089AC3F16564941A3AA1D3FFB35783CD7A9003FFDDBA6BEFB8787BFDAB6A63F952C923FFA540FBED7A9003FFDDB263F8088073FDAB6A63F7D2711C0FB548F3DD7A980BFFDDBA6BE8088073FC2B125C0952C923FFB548F3D2999B03ED63B13BEBE4CEA3CA3AA1D3F95FB8D3FF30742BE2999B03ED63B933EB64C6ABCA3AA1D3FC6FD5B411F0CC23D299930BFD63B13BEB64C6ABC1DAA9DBF95FB8D3F1F0CC23D394B013E3CCA3ABCF76E5D3E1CA21D3E4ACA113FC224E4BD394B013E3CCABA3CF76EDDBD1CA21D3E1AC08FBF0E68823D394B81BE3CCA3ABCF76EDDBD1BA29DBE4ACA113F0E68823D06BC8D3CBB822C3B302A413DFB35783C1F0CC23D275C7F4106BC8D3CBB82ACBB302AC1BCFB35783CF30742BE2394433C06BC0DBDBB822C3B302AC1BCFB35F8BC1F0CC23D2394433C9FBD42C0EFF33F3E0DDA81BDD7A980BF2999B03E06BC8D3C9FBDC23FEFF33F3E0DDA013ED7A9003F2999B03E06BC0DBD9FBDC23FEFF3BFBE0DDA81BDD7A9003F299930BF06BC8D3C05CC41411815AF3F434076BE54521FBD6A643B3E977ABE3C17B3F83F1815AF3F4340F63E54529F3C6A643B3E977A3EBD17B3F83F18152FC0434076BE54529F3C6A64BBBE977ABE3C18152FC09EE5F03F8DB2DE3EFDDB263FD63B13BEBB822C3B1815AF3F9EE5F03F82B15EBFFDDBA6BED63B13BEBB82ACBB1815AF3FFF7D43418DB2DE3EFDDBA6BED63B933EBB822C3B068444BF9EB2B13F3C33B13F9A8FA33EDAA197BE4DFABEBC0684C43E9EB2B13F242E30C09A8F23BEDAA197BE4DFA3E3D0684C43E4AAD30C03C33B13F9A8F23BEDAA1173F4DFABEBC4340F63E8DB2DE3E7D76E53FFB8787BFB64C6ABC302AC1BC434076BE8DB2DE3E0C1F46418088073FB64C6ABC302A413D434076BE82B15EBF7D76E53F8088073FBE4CEA3C302AC1BCA7C4033F9D6063BE5089AC3FC2B125C0A3AA1D3FFB35783CA7C483BE9D6063BE38842BC0DAB6A63FA3AA1D3FFB35F8BCA7C483BE9D60E33E5089AC3FDAB6A63F1DAA9DBFFB35783C54521FBDFDDBA6BE8088073FE14F4D41952C923FFB548F3D54529F3CFDDBA6BEFB8787BF27B3C83F952C923FFA540FBE54529F3CFDDB263F8088073F27B3C83F7D2711C0FB548F3D6A64BBBED63B13BEB64C6ABC7D2711C095FB8D3F1F0CC23D6A643B3ED63B13BEBE4CEA3C952C923F95FB8D3FF30742BE6A643B3ED63B933EB64C6ABC952C923FC6FD5B411F0CC23DBC0F83BE3CCA3ABCF76EDDBDA59170BF4ACA113F0E68823DBC0F033E3CCA3ABCF76E5D3EB092F03E4ACA113FC224E4BDBC0F033E3CCABA3CF76EDDBDB092F03E1AC08FBF0E68823D977A3EBDBB822C3B302AC1BCFA540FBE1F0CC23D2394433C977ABE3CBB822C3B302A413DFB548F3D1F0CC23D275C7F41977ABE3CBB82ACBB302AC1BCFB548F3DF30742BE2394433C9FBDC23F24D2203F0DDA81BDD7A9003F394B81BE06BC8D3C9FBD42C024D2A0BE0DDA81BDD7A980BF394B013E06BC8D3C9FBDC23F24D2A0BE0DDA013ED7A9003F394B013E06BC0DBD17B3F83F068444BF434076BE54529F3CBC0F83BE977ABE3C05CC41410684C43E434076BE54521FBDBC0F033E977ABE3C17B3F83F0684C43E4340F63E54529F3CBC0F033E977A3EBD1815AF3F4AAD30C08DB2DE3EFDDBA6BE3CCABA3CBB822C3B18152FC09EB2B13F8DB2DE3EFDDB263F3CCA3ABCBB822C3B1815AF3F9EB2B13F82B15EBFFDDBA6BE3CCA3ABCBB82ACBB0684C43E3D9E44413C33B13F9A8F23BE9BC4973E4DFABEBC068444BFB679EB3F3C33B13F9A8FA33E9BC417BE4DFABEBC0684C43EB679EB3F242E30C09A8F23BE9BC417BE4DFA3E3D434076BE242E30C07D76E53F8088073FF76E5D3E302AC1BC4340F63E3C33B13F7D76E53FFB8787BFF76EDDBD302AC1BC434076BE3C33B13F0C1F46418088073FF76EDDBD302A413DA7C483BE013379BF5089AC3FDAB6A63F1BA29DBEFB35783CA7C4033F0C34F93E5089AC3FC2B125C01CA21D3EFB35783CA7C483BE0C34F93E38842BC0DAB6A63F1CA21D3EFB35F8BC54529F3C9A8FA33E8088073F27B3C83FA59170BFFB548F3D54521FBD9A8F23BE8088073FE14F4D41B092F03EFB548F3D54529F3C9A8F23BEFB8787BF27B3C83FB092F03EFA540FBE6A643B3EDAA1173FB64C6ABC952C923F1AC08FBF1F0CC23D6A64BBBEDAA197BEB64C6ABC7D2711C04ACA113F1F0CC23D6A643B3EDAA197BEBE4CEA3C952C923F4ACA113FF30742BEBC0F033E9BC4973EF76EDDBDB092F03EA83C74410E68823DBC0F83BE9BC417BEF76EDDBDA59170BF2C00B43E0E68823DBC0F033E9BC417BEF76E5D3EB092F03E2C00B43EC224E4BD977ABE3C4DFA3E3D302AC1BCFB548F3DC224E4BD2394433C977A3EBD4DFABEBC302AC1BCFA540FBE0E68823D2394433C977ABE3C4DFABEBC302A413DFB548F3D0E68823D275C7F41"> {alignment = 16 : i64}
+  func.func @admm(%arg0: f32, %arg1: memref<30xf32>, %arg2: memref<900xf32>, %arg3: memref<2xf32>, %arg4: memref<30xf32>, %arg5: memref<30xf32>, %arg6: memref<30xf32>, %arg7: memref<30xf32>, %arg8: memref<30xf32>) {
+    %c0_i32 = arith.constant 0 : i32
+    %cst = arith.constant 0.000000e+00 : f32
+    %c1_i32 = arith.constant 1 : i32
+    %c30_i32 = arith.constant 30 : i32
+    %cst_0 = arith.constant 5.000000e-01 : f32
+    %cst_1 = arith.constant -6.000000e-01 : f32
+    %cst_2 = arith.constant 1.000000e+01 : f32
+    %cst_3 = arith.constant 1.000000e-01 : f32
+    %c7_i32 = arith.constant 7 : i32
+    %c1_i64 = arith.constant 1 : i64
+    cf.br ^bb1(%c0_i32 : i32)
+  ^bb1(%0: i32):  // 2 preds: ^bb0, ^bb1
+    %1 = arith.extui %0 : i32 to i64
+    %2 = arith.index_cast %1 : i64 to index
+    %3 = memref.load %arg1[%2] {handshake.name = "load0"} : memref<30xf32>
+    %4 = arith.negf %3 : f32
+    %5 = arith.extui %0 : i32 to i64
+    %6 = arith.index_cast %5 : i64 to index
+    memref.store %4, %arg7[%6] {handshake.deps = #handshake<deps[{dstAccess : "load8", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load23", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load25", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "store22", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store1"} : memref<30xf32>
+    %7 = arith.extui %0 : i32 to i64
+    %8 = arith.index_cast %7 : i64 to index
+    memref.store %cst, %arg4[%8] {handshake.deps = #handshake<deps[{dstAccess : "load11", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load19", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "store12", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store2"} : memref<30xf32>
+    %9 = arith.extui %0 : i32 to i64
+    %10 = arith.index_cast %9 : i64 to index
+    memref.store %cst, %arg5[%10] {handshake.deps = #handshake<deps[{dstAccess : "load14", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load20", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "store16", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store3"} : memref<30xf32>
+    %11 = arith.extui %0 : i32 to i64
+    %12 = arith.index_cast %11 : i64 to index
+    memref.store %cst, %arg6[%12] {handshake.deps = #handshake<deps[{dstAccess : "load15", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load17", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load21", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "store18", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store4"} : memref<30xf32>
+    %13 = arith.addi %0, %c1_i32 : i32
+    %14 = arith.cmpi ult, %13, %c30_i32 : i32
+    cf.cond_br %14, ^bb1(%13 : i32), ^bb2
+  ^bb2:  // pred: ^bb1
+    %15 = arith.mulf %arg0, %cst_0 : f32
+    %16 = arith.negf %15 : f32
+    cf.br ^bb3(%c0_i32 : i32)
+  ^bb3(%17: i32):  // 2 preds: ^bb2, ^bb9
+    cf.br ^bb4(%c0_i32 : i32)
+  ^bb4(%18: i32):  // 2 preds: ^bb3, ^bb4
+    %19 = arith.extui %18 : i32 to i64
+    %20 = arith.index_cast %19 : i64 to index
+    memref.store %cst, %arg8[%20] {handshake.deps = #handshake<deps[{dstAccess : "load6", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load10", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load13", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "store9", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store5"} : memref<30xf32>
+    %21 = arith.addi %18, %c1_i32 : i32
+    %22 = arith.cmpi ult, %21, %c30_i32 : i32
+    cf.cond_br %22, ^bb4(%21 : i32), ^bb5(%c0_i32 : i32)
+  ^bb5(%23: i32):  // 2 preds: ^bb4, ^bb7
+    %24 = arith.extui %23 : i32 to i64
+    %25 = arith.extui %23 : i32 to i64
+    %26 = arith.index_cast %25 : i64 to index
+    %27 = memref.load %arg8[%26] {handshake.name = "load6"} : memref<30xf32>
+    cf.br ^bb6(%c0_i32, %27 : i32, f32)
+  ^bb6(%28: i32, %29: f32):  // 2 preds: ^bb5, ^bb6
+    %30 = arith.extui %28 : i32 to i64
+    %c30_i64 = arith.constant 30 : i64
+    %31 = arith.muli %24, %c30_i64 : i64
+    %32 = arith.addi %31, %30 : i64
+    %33 = arith.index_cast %32 : i64 to index
+    %34 = memref.load %arg2[%33] {handshake.name = "load7"} : memref<900xf32>
+    %35 = arith.extui %28 : i32 to i64
+    %36 = arith.index_cast %35 : i64 to index
+    %37 = memref.load %arg7[%36] {handshake.name = "load8"} : memref<30xf32>
+    %38 = arith.mulf %34, %37 : f32
+    %39 = arith.addf %29, %38 : f32
+    %40 = arith.index_cast %25 : i64 to index
+    memref.store %39, %arg8[%40] {handshake.deps = #handshake<deps[{dstAccess : "store5", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load6", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load10", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load13", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store9"} : memref<30xf32>
+    %41 = arith.addi %28, %c1_i32 : i32
+    %42 = arith.cmpi ult, %41, %c30_i32 : i32
+    cf.cond_br %42, ^bb6(%41, %39 : i32, f32), ^bb7
+  ^bb7:  // pred: ^bb6
+    %43 = arith.extui %23 : i32 to i64
+    %44 = arith.index_cast %43 : i64 to index
+    %45 = memref.load %arg8[%44] {handshake.name = "load10"} : memref<30xf32>
+    %46 = arith.extui %23 : i32 to i64
+    %47 = arith.index_cast %46 : i64 to index
+    %48 = memref.load %arg4[%47] {handshake.name = "load11"} : memref<30xf32>
+    %49 = arith.mulf %48, %cst_1 : f32
+    %50 = arith.addf %45, %49 : f32
+    %51 = arith.extui %23 : i32 to i64
+    %52 = arith.index_cast %51 : i64 to index
+    memref.store %50, %arg4[%52] {handshake.deps = #handshake<deps[{dstAccess : "store2", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load11", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load19", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store12"} : memref<30xf32>
+    %53 = arith.extui %23 : i32 to i64
+    %54 = arith.index_cast %53 : i64 to index
+    %55 = memref.load %arg8[%54] {handshake.name = "load13"} : memref<30xf32>
+    %56 = arith.extui %23 : i32 to i64
+    %57 = arith.index_cast %56 : i64 to index
+    %58 = memref.load %arg5[%57] {handshake.name = "load14"} : memref<30xf32>
+    %59 = arith.mulf %58, %cst_1 : f32
+    %60 = arith.addf %55, %59 : f32
+    %61 = arith.extui %23 : i32 to i64
+    %62 = arith.index_cast %61 : i64 to index
+    %63 = memref.load %arg6[%62] {handshake.name = "load15"} : memref<30xf32>
+    %64 = arith.mulf %63, %cst_2 : f32
+    %65 = arith.addf %60, %64 : f32
+    %66 = arith.cmpf olt, %65, %16 : f32
+    %67 = arith.cmpf ogt, %65, %15 : f32
+    %68 = arith.select %67, %15, %65 : f32
+    %69 = arith.select %66, %16, %68 : f32
+    %70 = arith.extui %23 : i32 to i64
+    %71 = arith.index_cast %70 : i64 to index
+    memref.store %69, %arg5[%71] {handshake.deps = #handshake<deps[{dstAccess : "store3", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load14", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load20", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store16"} : memref<30xf32>
+    %72 = arith.extui %23 : i32 to i64
+    %73 = arith.index_cast %72 : i64 to index
+    %74 = memref.load %arg6[%73] {handshake.name = "load17"} : memref<30xf32>
+    %75 = arith.subf %60, %69 : f32
+    %76 = arith.mulf %75, %cst_3 : f32
+    %77 = arith.addf %74, %76 : f32
+    %78 = arith.extui %23 : i32 to i64
+    %79 = arith.index_cast %78 : i64 to index
+    memref.store %77, %arg6[%79] {handshake.deps = #handshake<deps[{dstAccess : "store4", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load15", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load17", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load21", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store18"} : memref<30xf32>
+    %80 = arith.addi %23, %c1_i32 : i32
+    %81 = arith.cmpi ult, %80, %c30_i32 : i32
+    cf.cond_br %81, ^bb5(%80 : i32), ^bb8(%c0_i32 : i32)
+  ^bb8(%82: i32):  // 2 preds: ^bb7, ^bb8
+    %83 = arith.extui %82 : i32 to i64
+    %84 = arith.index_cast %83 : i64 to index
+    %85 = memref.load %arg4[%84] {handshake.name = "load19"} : memref<30xf32>
+    %86 = arith.extui %82 : i32 to i64
+    %87 = arith.index_cast %86 : i64 to index
+    %88 = memref.load %arg5[%87] {handshake.name = "load20"} : memref<30xf32>
+    %89 = arith.mulf %88, %cst_3 : f32
+    %90 = arith.addf %85, %89 : f32
+    %91 = arith.extui %82 : i32 to i64
+    %92 = arith.index_cast %91 : i64 to index
+    %93 = memref.load %arg6[%92] {handshake.name = "load21"} : memref<30xf32>
+    %94 = arith.subf %90, %93 : f32
+    %95 = arith.extui %82 : i32 to i64
+    %96 = arith.index_cast %95 : i64 to index
+    memref.store %94, %arg7[%96] {handshake.deps = #handshake<deps[{dstAccess : "store1", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load8", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load23", loopDepth : 0, distance : 0, isActive : true}, {dstAccess : "load25", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store22"} : memref<30xf32>
+    %97 = arith.addi %82, %c1_i32 : i32
+    %98 = arith.cmpi ult, %97, %c30_i32 : i32
+    cf.cond_br %98, ^bb8(%97 : i32), ^bb9
+  ^bb9:  // pred: ^bb8
+    %99 = arith.addi %17, %c1_i32 : i32
+    %100 = arith.cmpi ult, %99, %c7_i32 : i32
+    cf.cond_br %100, ^bb3(%99 : i32), ^bb10
+  ^bb10:  // pred: ^bb9
+    %c0 = arith.constant 0 : index
+    %101 = memref.load %arg7[%c0] {handshake.name = "load23"} : memref<30xf32>
+    %c0_4 = arith.constant 0 : index
+    memref.store %101, %arg3[%c0_4] {handshake.name = "store24"} : memref<2xf32>
+    %c1_i64_5 = arith.constant 1 : i64
+    %102 = arith.index_cast %c1_i64_5 : i64 to index
+    %103 = memref.load %arg7[%102] {handshake.name = "load25"} : memref<30xf32>
+    %c1_i64_6 = arith.constant 1 : i64
+    %104 = arith.index_cast %c1_i64_6 : i64 to index
+    memref.store %103, %arg3[%104] {handshake.name = "store26"} : memref<2xf32>
+    return
+  }
+}
