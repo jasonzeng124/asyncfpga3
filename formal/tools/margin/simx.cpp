@@ -188,7 +188,7 @@ static inline void changed(int n, ll t) {
 
 static int W = 0; static ll NSKIP = 0;
 // RACES=1 (env): closest input reorderings at storage LUTs (class 0) and at LUTs feeding one (class 1), after reset
-static bool RACEON = false; static ll RACEX = 300; static vector<char> RACEG;
+static bool RACEON = false; static ll RACEX = 300, RACET0 = 5000; static vector<char> RACEG;   // RACES_T0: skip this long after reset release (start-up settling)
 struct RaceRec { ll gap; int g, q; ll t; };
 static vector<RaceRec> RACEB[2]; static ll RACEN[2] = {0, 0}; static map<pair<int, int>, ll> RACEMIN[2];
 static void race_note(int c, ll gap, int g, int q, ll t) {
@@ -363,7 +363,7 @@ int main(int argc, char** argv) {
       for (int g = 0; g < NG; g++) for (int i = 0; i < gk[g]; i++) { int n = ins[gins0[g] + i]; rdg[f[n]] = g; rdd[f[n]] = ds[gins0[g] + i]; rdf[f[n]] = dsf[gins0[g] + i]; f[n]++; } }
     H.assign(NN, {}); V0.assign(NN, 0); TOUCH.assign(NN, 0);
     if (getenv("RACES") && atoi(getenv("RACES"))) {
-        RACEON = true; if (getenv("RACES_PS")) RACEX = atoll(getenv("RACES_PS"));
+        RACEON = true; if (getenv("RACES_PS")) RACEX = atoll(getenv("RACES_PS")); if (getenv("RACES_T0")) RACET0 = atoll(getenv("RACES_T0"));
         RACEG.assign(NG, 0);
         vector<int> drv0(NN, -1); for (int g = 0; g < NG; g++) drv0[gout[g]] = g;
         // a decoded LUT reads its own output through a copy chain (pips / hops: k = 1, INIT 2), as races.py's chain()
@@ -427,7 +427,7 @@ int main(int argc, char** argv) {
                     if (v) ad |= 1u << i; }
             } else for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - PD(b0 + i, t))) ad |= 1u << i;
             bool v = (initw[ginit0[g] + (ad >> 6)] >> (ad & 63)) & 1;
-            if (RACEON && t >= R && RACEG[g]) {
+            if (RACEON && t >= R + RACET0 && RACEG[g]) {
                 // RACES (informational): pin q arrived gap ps before t (arrival = its source's last flip read by this
                 // evaluation + the pin's delay); had q arrived after t instead (its old value now), the output would differ
                 // both from its new value and from its value just before t: a reordering of two arrivals within gap ps
@@ -563,7 +563,7 @@ int main(int argc, char** argv) {
             if (!st) continue;
             const vector<int>& h = H[o]; ll best = -1, bt = 0;
             for (size_t i = 1; i < h.size(); i++) {
-                if (h[i - 1] < R) continue;
+                if (h[i - 1] < R + 5000) continue;   // start-up settling after reset release
                 ll wdt = (ll)h[i] - h[i - 1];
                 if (wdt < NB) cnt++;
                 if (best < 0 || wdt < best) { best = wdt; bt = h[i - 1]; }

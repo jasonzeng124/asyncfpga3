@@ -82,7 +82,7 @@ previous one (a latch setup / hold, a steer condition against its request); per 
 closest printed. draws.py appends both to each draw line and lists the closest over all draws in draws_summary.txt. Toy
 check: `RACES=1 simx test/toy_latch.simx --kernel collatz --want 1,0,1 --pairs 1,1 0,0 1,1 --corner 0 --kappa 0 --classes
 /dev/null --data0 --full --R 4000 --su 100 --datachange broad --nextreq seq --tmax 100000 --hostdelay 500` reports the latch's
-D arriving 49 ps before its enable closes. Transparent latches legitimately pass D glitches: a small gap is a pointer
+D arriving 49 ps before its enable closes (with RACES_T0=0; by default the first 5 ns after reset release are skipped, as start-up settling, for RACES and NEARMISS alike). Transparent latches legitimately pass D glitches: a small gap is a pointer
 for tracing, not a failure.
 `diverge.py NET A.json B.json --routed R`: the nodes where two dumps part, LUTs whose flip count differs, with names.
 
