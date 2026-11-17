@@ -55,7 +55,7 @@ Same builds (sdf md5s equal yours), your model, draws 1-64 (yours 1-8), xor19, f
 So in formal's simulator item 33's matched delays can go to x0.55 on all four routes (x0.40 on 2 of 4); the first timing
 failure is between x0.55 and x0.40, and it is route-dependent.
 
-## C22. The disagreement table, your draws1 vs formal's simx on the same routes and draws: no disagreement so far (shard C, 2026-11-16 22:20 UTC; both untrusted simulation)
+## C22. (00:10 UTC: your draws1 is complete; final: 0 disagreements on candidates, 1 on the control -- +3000 draw 15) The disagreement table, your draws1 vs formal's simx on the same routes and draws: no disagreement so far (shard C, 2026-11-16 22:20 UTC; both untrusted simulation)
 Same route (sdf md5 equal), same draw K and its bands (Random(7919K+17), checked against your logs), your vectors.
 | candidate | your GLS (draws1, finished draws) | formal simx (fixed host; draws 1-32, and 1-128) | disagreements |
 |---|---|---|---|
@@ -63,7 +63,7 @@ Same route (sdf md5 equal), same draw K and its bands (Random(7919K+17), checked
 | item 27 fxd s2 | 32 / 32 | 32 / 32 | none |
 | item 31 fcsel3a s20 | 32 / 32 | 32 / 32; 128 / 128 | none |
 | item 28 fcsel3m s20 | 32 / 32 | 32 / 32; 128 / 128 | none |
-| item 30 fc64sel3 s10 | 16 / 16 (16 running) | 128 / 128 | none |
+| item 30 fc64sel3 s10 | 32 / 32 | 128 / 128 | none |
 | item 32 fc64sel3p s22 | 32 / 32 | 128 / 128 | none |
 | item 29 ipow | 24 / 24 | not decodable (DSP48E1) | -- |
 Your control (fxd s2, ucond_br6's condition +3000 / +8000 ps by SDF injection) has no counterpart yet: formal's
@@ -75,7 +75,7 @@ run it when your +8000 half reports, so the two controls compare.
 |---|---|---|
 | none, draws 1-32 | (candidate row c1) 32 / 32 | 32 / 32 |
 | +3000 ps, draws 1-16 | 16 / 16 | **15 / 16: draw 15 hangs** after 17 correct answers (before 0x12345678, 100 rounds) |
-| +8000 ps, draws 17-32 | running | **0 / 16**: every draw returns the 3-round value again at vector 6 (2497366906 for vector 5's 2064144800 ...) |
+| +8000 ps, draws 17-32 | 0 / 16 | **0 / 16**: every draw returns the 3-round value again at vector 6 (2497366906 for vector 5's 2064144800 ...) |
 So formal's model fails your +8000 control as you require, and it disagrees with your gate on ONE draw: +3000, draw 15
 (bands chain 0.2157, rest 0.3099, cells 0.3674). That is the first row of the disagreement table; I will trace it.
 **The disagreement measured (fm_c_ctl2 / fm_c_ctl4, 23:05 UTC).** On draw 15 the hang does not depend on the runt filter

@@ -4063,3 +4063,8 @@ PASS is not evidence against FF-mux / packing defects. Research's x0.40 s2/s5/s9
 x0.40a and x0.40c differ only in UCMPI0 / UCMPI1 (kept in c). Research's shrink4 so far: 40a_14 2/4 and 30a_9 3/4 fail too
 (agree); 40a_7 research 4/4 vs formal 7/27 decided (disagree, p ~0.005); research numbers its draws K = route*100+j, so
 c_shrink4k reruns with those K for a draw-for-draw table.
+
+### progress 00:04 -- (container restarted ~00:00; watchers lost, re-created) research's draws1 complete: one disagreement in all
+draws1 final: every candidate 32/32 (ipow 24/24), control +3000 16/16, +8000 0/16. Formal: candidates all pass, +8000 0/16,
++3000 15/16 (draw 15). So over 7 x 32 + 32 draws the two simulators disagree on one (C22 updated). c_shrink4k and c_x40a4
+submitted 23:57 and still running.
