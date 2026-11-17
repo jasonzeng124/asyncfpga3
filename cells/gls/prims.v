@@ -1119,12 +1119,14 @@ module RAMB18E1_RAMB18E1 (
         end
     endtask
 
-    reg ckp = 1'bx;
+    reg ckp = 1'bx, ckdef = 1'bx;  // previous value; last 0/1 value (x only before the first)
     reg va, vd, vw, ve, vr, clean, may_wr;
     always @(clk) begin
         clean = (ckp === 1'b0 && clk === 1'b1);
-        if (clean || (ckp === 1'b0 && clk !== 1'b0)) begin
-            // a rising edge, or 0 -> x: one that may have happened
+        if (clean || (ckp === 1'b0 && clk !== 1'b0)
+                  || (ckdef === 1'b1 && ckp !== 1'b0 && ckp !== 1'b1 && clk === 1'b1)) begin
+            // a rising edge, or 0 -> x, or 1 -> x -> 1 (it may have dipped to 0):
+            // one that may have happened
             t_ck = $time;
             va = TSU_ADDR > 0 && t_addr > 0 && $time - t_addr < TSU_ADDR;
             vd = TSU_DI   > 0 && t_di   > 0 && $time - t_di   < TSU_DI && we !== 4'b0000;
@@ -1136,7 +1138,7 @@ module RAMB18E1_RAMB18E1 (
             if (vw) viol("WE",   $time - t_we,   TSU_WE,   0);
             if (ve) viol("EN",   $time - t_en,   TSU_EN,   0);
             if (vr) viol("RST",  $time - t_rst,  TSU_RST,  0);
-            if (!clean) $display("RAMB18 CLOCK %m went 0 -> %b at %0t: treated as a possible edge", clk, $time);
+            if (!clean) $display("RAMB18 CLOCK %m went %b -> %b at %0t: treated as a possible edge", ckp, clk, $time);
             may_wr  = (we !== 4'b0000) && (en !== 1'b0);
             e_valid = 1'b1; e_wr = may_wr; e_en = (en !== 1'b0); e_a = addr;
             if (en === 1'b0 && !ve && clean) begin
@@ -1156,6 +1158,7 @@ module RAMB18E1_RAMB18E1 (
             end
         end
         ckp = clk;
+        if (clk === 1'b0 || clk === 1'b1) ckdef = clk;
     end
 
     // the hold side: a change THD or less after the last edge undoes it
