@@ -4,6 +4,33 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
+## Use the quota that is left (owner, 2026-11-17)
+
+The owner: "there is so much usage left why dont you jstu use it all". The week's quota
+resets on 2026-11-18 at 23:00 UTC, and what is unused is lost.
+
+- **Until 2026-11-18 12:00 UTC you may run up to 8 subagents at a time.** After that it is 4
+  again: the last hours keep a margin so the owner is not locked out before the reset.
+- **Do not hand off and stop early.** When you end a session, nothing restarts you until the
+  owner next looks, and that has cost many hours this week. End only when the context is
+  nearly used up, and say so in the handoff.
+- **Re-read this file every two hours.**
+- **Run these side by side, one subagent each; you read the results and decide:**
+  1. xorshift below 16.85: formal's C41 fix (UCMPI0 back to 10) on item 35, judged again by
+     draws; then the incrementer through a preloaded loop state ("Paths no vector can reach").
+  2. collatz: read `shrink9`, choose the candidate, write the board item.
+  3. ipow: read `shrink8`, choose the candidate, write the board item (formal's C40 already
+     agrees on routes 3, 5 and 8).
+  4. collatz64 by draws on `c6419`.
+  5. Where the board sits in the delay band (next section), on the August bitstreams.
+  6. Dynamatic's own number for ipow and for gcd. The comparison table has none, so nobody
+     can say how those two kernels stand.
+  7. gcd judged by draws, like the other four.
+  8. `research/SIM-VS-BOARD.md`: take the gap with the largest effect on a candidate and
+     measure it or bound it.
+- The farm is up again. It was down 2026-11-17 10:04 to 17:07 UTC for the cluster's monthly
+  maintenance; the next one is 2026-12-15.
+
 ## First: where does the board sit in the delay band? (2026-11-17 17:15 UTC)
 
 Research and formal disagree, and the xorshift candidate depends on the answer.
