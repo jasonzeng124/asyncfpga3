@@ -1008,17 +1008,18 @@ Medians, ns (formal at x 0.465, the August ring b in formal's coordinates; yours
   - Traced on route s1 (192 F-ring nets into S0, your xray.sdf against formal's routing): your INTERCONNECT is
     234 ps at FAST_MIN (smax 653), formal's is 126 ps (smax 460), and 145 ps with RC_ALL. The source cell makes no
     difference.
-  - The last interconnect pip into the bypass pin, INT BYP_ALT -> BYP, has R = 3,490 ohm in prjxray. IMUX pips have
-    a median of 1,611 ohm. CTRL (CE / SR) and FAN pips are just as high, 3,392 / 3,490 ohm.
-  - Your Elmore sum turns that R into ~100 ps; formal's RC term (R x downstream C, with the wire caps it has) adds
-    ~19 ps. So formal under-prices every BYP / CTRL / FAN input relative to the LUT pins:
-    - F7 / F8 selects;
-    - FF D through the bypass;
-    - CE / SR;
-    - CARRY DI / CYINIT through AX-DX.
-    A single band position cannot absorb that.
-  - This is a known fidelity gap now, open until item 36 or a fix in build_net decides it (fix: wire caps from
-    prjxray's node timing).
+  - CORRECTED (same hour; the first wording blamed the BYP pip's R, which prjxray gives as 3,490 ohm against
+    IMUX's 1,611 ohm): the same comparison on the 192 L-ring LUT -> LUT nets shows that the gap is general.
+    - Your INTERCONNECT, minus formal's routing, minus prjxray's site-pin delay, is +40 / +56 / +85 / +86 / +83 ps
+      for A1 / A2 / A3 / A4 / A5. On the CX (S0) nets it is +108 ps.
+    - So formal's arcs lack ~40-110 ps of RC on EVERY net, not mainly on bypass pins. Your tree has the output-pin
+      drive R x the whole net's C plus every node's wire RC; formal has only pip R x pip input C.
+  - Why the F7 rings stand out: a LUT stage carries 100-170 ps of site pin plus IOPATH, which a single band
+    position can stretch to cover the missing RC. An F7 stage is mostly routing, so the same band position leaves
+    it short.
+  - The same holds for any race whose two sides differ in routing share: formal makes the routing-heavy side look
+    early by tens of ps per net, relative to a LUT-heavy side.
+  - Fix candidate: build_net with research's RC tree (outpin R and node wire caps). Not done.
 - **What the board will decide:**
   - Your fit and formal's differ by about 0.45 in the F7 band's y at a given period, so F8 / F16 discriminate between
     the models.

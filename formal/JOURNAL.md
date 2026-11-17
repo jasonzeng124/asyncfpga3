@@ -2902,7 +2902,8 @@ on the LUT and CARRY rings within 1-2 %, including the CARRY swing over y (C32: 
 formal is 15 % shorter at every y, with the same swing. The F7 arcs agree, so the difference is in the output-mux ->
 routing -> CX path: research's RC tree, with the slice output drive resistance. RC_ALL closes only part of it.
 Committed before the board run.
-- A16 traced (minutes later): on BYP pins your INTERCONNECT is 234 ps and formal's 126 ps (145 ps with RC_ALL). The
-  last pip, BYP_ALT -> BYP, has R = 3,490 ohm against IMUX's 1,611 ohm. Formal's RC term lacks the downstream wire C
-  to make that R count. A fidelity gap for every BYP / CTRL / FAN input (F7 selects, CE / SR, bypass D); fix
-  candidate: node wire caps in build_net.
+- A16 traced, then corrected: on the CX (S0) nets research's INTERCONNECT is 234 ps and formal's 126 ps. On LUT -> LUT
+  nets the gap, after the site-pin delay, is 40-86 ps. So the missing RC is general (formal lacks the output-pin drive
+  R x net C and the node wire caps), not specific to BYP. The F7 rings show it because their stages are mostly
+  routing. Races whose two sides differ in routing share are biased by tens of ps per net in formal. Fix candidate:
+  the full RC tree in build_net.
