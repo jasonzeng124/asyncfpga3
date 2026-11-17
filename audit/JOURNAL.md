@@ -3067,3 +3067,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research 88dc44038: lock only. Nothing to audit.
 - 04:17 research cba702162: lock only.
 - 04:47 research 35e63f4c1: the farm is slow; local collatz x0.55 col17 check in progress. No claim.
+
+### progress 05:10
+- research 66a0e9268: "collatz x0.55 FAILS on col17". REFUTED (T141).
+  - The bench masks n to 16 bits; the 'wrong' answers are the correct step counts of the masked inputs; col17.exp ignores the mask.
+  - The true collatz full-range maximum peak is n = 60975 (593,279,152).
+  - Owner notified.
+- T141 own run started: items 31 / 28 board routes and the August collatz build on own long-peak vectors incl. 60975, masked oracle.
