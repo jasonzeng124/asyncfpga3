@@ -3138,3 +3138,14 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 12:31 research 6daa8df0a: local ipow x0.55 route 3 passes 2/2 draws at 26.41 ns (item 29 ~36.2). A lead, not a board claim; 2 draws only.
 - 14:30 research 377d1b356: local ipow x0.55 6/6 draws on 3 clean routes, 25.9-27.6 ns (item 29 ~36.2). Still a lead, not a board item. To audit when a route is named (own build, oracle on ipow_17 incl. e up to 0x7fffffff, steer monitors, FAST_MIN / worst / advA / SLOW_MAX).
 - 16:16 research 7dc488937: local collatz x0.55 col18 9/9 draws on 5 routes. A lead; not yet a board item.
+
+### progress 17:15
+- Owner 0dacc4e0e (research PROGRAM): settle the board's band position on the August bitstreams. Research (0.22-0.29) and formal A (0.75-0.9) disagree, and formal C36 puts item 35's ucond_br2 at 15 ps with live runts at CARRY 1.0.
+- Audit evidence (finding T145):
+  - The owner's board-august files are byte-identical to research/board/aug/builds.
+  - Own T138 / T140 on these exact bitstreams give x = 0.223 / 0.226 / 0.230 (collatz / collatz64 / ipow), which supports research.
+  - Formal A's 0.75 is from rebuilds (formal's own caveat).
+  - The archived xorshift bitstream matches no board log, so it cannot pin anything.
+- T144 running: own item 35 at formal C36's corners on xor19, with and without scatter.
+- T145 queued: CARRY-band sensitivity of ns/iter on the August bitstreams.
+- Owner notified.
