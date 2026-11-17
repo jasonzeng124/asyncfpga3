@@ -4572,3 +4572,17 @@ LUTs only.
 - x55a10 + UADDI0 0 seed 3 (sdf 9e4de472): ffmux_scan flags CLBLM_R_X9Y34.SLICEL_X1.CFF (research's FFMUX-FLAG bitstream
   defect; such routes are excluded). bvar2.sh stopped there under set -e (fixed: ffmux now records FLAG and goes on). It is
   run anyway, as a check that the draws see the defect.
+### progress 22:4x -- B3 written; C48: default arcs ~20 % fast, so B2 / B3 ps values are being redone on RC_TREE=1 decodes
+- x55a10 seed 4 UADDI0 12 | 0 (05a84ea0 = C41's | c5751262): all draws pass; slack 8984 | 7812; period 14163 / 14353 |
+  13242 / 13170; settle ucmpi1 1046 | 1047, ucmpi0 1047 | 1674 (seed 4 UADDI0 12 = C41's 1046 / 1047 exactly).
+- a10u0s3 (FFMUX-FLAG route) passes every draw and preloaded draw: simx does not show that defect on this route.
+- Disk: the per-session allowance filled at ~22:10 (steermargin's 175 MB dumps on xorlong plus ~30 decode dirs of 130 MB);
+  a10s4's first run died on it and was rerun; deleted the decodes' d0 / synth / fasm copies and the slack bisections'
+  per-injection nets.
+- FOR-RESEARCH B3 (top): x55a10 + UADDI0 0, seeds 1 / 2 / 4 clean: xor19 -6.2 %, period -5.9 %, every draw passes; loop-test
+  settle margin rests on UCMPI1 (194 ps on seed 2); UADDI1 0 in collatz / collatz64 safe, no gain; joinscan for the sizing
+  rule.
+- C48 (22:25): formal's default decoded arcs are ~20 % fast against research's model; run.sh now decodes with RC_TREE=1.
+  Everything of mine today used default arcs. Caveat added to B2 and B3. Reruns on RC decodes: item 35 and UADDI0 0 seed 21,
+  collatz x0.70 s27 UADDI1 7 / 0, collatz64 item 32 UADDI1 12 / 0 (rebuilding: their fasm went in the cleanup), x55a10 seed 4
+  pair (decoding). Farm b_u0xor, still waiting, will run on RC decodes (it runs run.sh from the head it is picked up at).
