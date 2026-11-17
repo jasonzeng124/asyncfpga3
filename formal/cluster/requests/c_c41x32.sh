@@ -5,6 +5,7 @@
 # K = 100S+1..4 and 4 slow-carry draws K = 100S+51..54 with CARRY/F7/FF in [0.8, 1.0] (DRAW_XBAND, = research's DRAW_CARRY
 # draw for draw), then loop-steer settle margins (steercorners.sh) at chains 0.20, CARRY 1.0, rest 0.31 / 0.20.
 set -uo pipefail
+export RC_TREE=1   # formal arcs with the RC tree (A18; default arcs ~20 % fast)
 R=$PEER; S=$TASK; K=xorshift
 SZ=research/data/xorshift_sizes_T3s50_fr4a_x55a10_bench.vh
 XOR="BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_RING_COUNT_OLINKS=1 BDC_FORK_OUT_LINK=n11__0 BDC_MERGE_OUT_LINK=ucontrol_merge0"
