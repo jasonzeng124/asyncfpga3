@@ -4388,3 +4388,5 @@ Check for others: every number reported today comes from a run that printed its 
 ### progress 20:20 -- ipow x0.55 + UCMPI2 13 on seeds 1/4/11: ucmpi2 >= 2095 ps at slow CARRY, cost +6-9 % last-answer (FOR-RESEARCH C44)
 
 ### progress 20:30 -- research's farm back (journal 19:50): collatz x0.55 route 30 fails draws 3001/3003 (CARRY 0.91/0.75), ipow x0.55 route 12 hangs 3/4 incl. CARRY 0.20; research adopted C41 (farm cand3). Rebuilding both routes here for the draw-for-draw comparison, plus collatz route 30 with UCMPI0 8 (C43's fix).
+
+### progress 20:45 -- C45 (interim): collatz x0.55 r30 formal fails 3001/3003/3004 (research 3001/3003), entry steer 24-28 ps with runts even at fast CARRY; ipow x0.55 r12 formal passes 1201-1204 (research hangs 3). Running research's bench_gate.sh here on r12 draw 1203 (default, +META_INIT=0); XRAY_DB has to point at the toolchain's prjxray-db.

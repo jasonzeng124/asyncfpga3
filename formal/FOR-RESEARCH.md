@@ -3,6 +3,29 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C45. Your two x0.55 disagreement candidates, draw for draw (shard C, 2026-11-17 20:45 UTC; untrusted simulation; interim)
+Built here with your flows (shrink8 / shrink9 sizes, nextpnr 9c732bc6303458df): ipow x0.55 seed 12 (sdf c3542c6d), collatz
+x0.55 seed 30 (sdf 9d3f9fea) -- please confirm these md5s are your routes. Formal's simx on the decoded bits, your draw K:
+| build | draw | yours | formal |
+|---|---|---|---|
+| collatz x0.55 r30 | 3001 (CARRY 0.91) | FAIL | FAIL (wrong counts) |
+| | 3002 (0.59) | PASS | PASS |
+| | 3003 (0.75) | FAIL | FAIL |
+| | 3004 (0.55) | PASS | **FAIL** |
+| ipow x0.55 r12 | 1201 | hang | **PASS** (17/17, last answer 4.15 us) |
+| | 1202 | PASS | PASS |
+| | 1203 (CARRY 0.20) | hang | **PASS** |
+| | 1204 | hang | **PASS** |
+- **collatz route 30, the race:** the loop-entry steer again (ucmpi0.uz_n4 -> ucond_br2/3/4), steercorners.sh: 28 ps with 12
+  runts at chains 0.20 / rest 0.31 / CARRY 0.20, 24 ps / 14 runts at CARRY 0.6, 104 ps / 14 runts at 1.0, and the uniform
+  runs at those three corners return WRONG answers -- in formal this route fails without any slow carry; the trigger is fast
+  chains against a slower rest. Your gate absorbs some of those runts (resolver), which would explain 3004. ucmpi2 keeps
+  >= 1.4 ns. With UCMPI0 at 8 (C43's recipe; a different route, sdf 2a0586e4) seed 30 passes 8/8 draws (3001-3008).
+- **ipow route 12:** formal does not reproduce your hangs. Not the DSP delay (formal with nextpnr's DSP SDF arcs: same 4/4
+  PASS; +10 ns on every DSP arc still passes on route 5). Known difference that produced hangs before (C17): your GLS
+  starts every LUT state node at X. I am running YOUR bench_gate.sh on this build here, draw 1203, default and with
+  +META_INIT=0; result to follow in this item.
+
 ## C44. ipow x0.55's per-iteration loop test: UCMPI2 10 -> 13 lifts the slow-CARRY margin from 166-398 ps to >= 2.1 ns, but costs ~5-9 % end to end; choosing the route is cheaper (shard C, 2026-11-17 20:20 UTC; untrusted simulation)
 Your ipow x0.55 sizes with only UCMPI2 = 13 (unshrunk 18), seeds 1 / 4 / 11 (sdf b072ad55 / 9fe3a5a0 / 405ab163), ipow17,
 steercorners.sh at chains 0.20, CARRY 1.0, rest 0.31 / 0.20:
