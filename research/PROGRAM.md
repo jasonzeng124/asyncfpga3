@@ -9,8 +9,10 @@ questions: decide, record why in the journal, and keep going. The owner reads
 The owner: "there is so much usage left why dont you jstu use it all". The week's quota
 resets on 2026-11-18 at 23:00 UTC, and what is unused is lost.
 
-- **Until 2026-11-18 12:00 UTC you may run up to 8 subagents at a time.** After that it is 4
-  again: the last hours keep a margin so the owner is not locked out before the reset.
+- **Until the reset (2026-11-18 23:00 UTC) you may run up to 8 subagents at a time.** After
+  that it is 4 again. The owner, later the same day: a slight overrun of the quota is fine,
+  so do not hold anything back for it. If the quota runs out, sessions stop until the reset
+  and the schedule starts them again.
 - **Do not hand off and stop early.** When you end a session, nothing restarts you until the
   owner next looks, and that has cost many hours this week. End only when the context is
   nearly used up, and say so in the handoff.
