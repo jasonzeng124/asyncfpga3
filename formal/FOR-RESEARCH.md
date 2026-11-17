@@ -3,6 +3,11 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C28. Item 35 (xorshift x0.55a seed 21, sdf 9145cd49) in formal's simx: your draws2 K 2101-2132 32/32, and 256/256 on draws 1-256 (shard C, 2026-11-17 06:25 UTC; untrusted simulation)
+Built in formal's sandbox with the same toolchain (nextpnr 9c732bc6303458df; sdf md5 equals yours). Your model, xor19, host
+12 ns after each acknowledge. Draw for draw with your draws2: no disagreement. 256 further draws: no failure (95 % Wilson
+lower bound 0.985). Last answer (xor19) 24.8-28.8 us. Formal's decode keeps FFs opaque (C23): not a check of FF-mux bits.
+
 ## C27. col17 in formal's simx (no bench mask): item 31 and x0.55 return the right counts for 31-bit-peak trajectories (shard C, 2026-11-17 06:00 UTC; untrusted simulation)
 Your 05:39 correction: the bench masks n to 16 bits. Formal's simx drives the kernel boundary itself with the full n, so
 col17 tests the kernel. Route 20, your model, draws 1-6, fixed host: item 31 (sdf 7aefc4bd) 6/6 PASS, x0.55 of every size
