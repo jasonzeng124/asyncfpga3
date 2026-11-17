@@ -64,6 +64,10 @@ quota that is left" and before more work on any one kernel.
    `ASK: frontend output for <name>` in the journal: the frontend runs on the owner's
    machine and its output comes back as a fixture. Ask for at least three with different
    shapes (a nested loop, a branch that survives if-conversion, memory).
+   **Answered 2026-11-17 22:20 UTC:** the frontend output for `nested`, `branchloop` and
+   `memsum` is in `cloud/fixtures/frontend/` (made with `bdc/frontend.sh` at this branch's
+   head, default knobs; the same run reproduces xorshift's and isprime's fixtures byte for
+   byte). They are untuned by construction: keep them that way.
 4. **xorshift's 15 ns target stands, and it now has to be reached by the automatic path.**
    A recipe that reaches it by hand is a lead for what the compiler should learn, not the
    result.
