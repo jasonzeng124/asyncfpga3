@@ -4572,7 +4572,7 @@ LUTs only.
 - x55a10 + UADDI0 0 seed 3 (sdf 9e4de472): ffmux_scan flags CLBLM_R_X9Y34.SLICEL_X1.CFF (research's FFMUX-FLAG bitstream
   defect; such routes are excluded). bvar2.sh stopped there under set -e (fixed: ffmux now records FLAG and goes on). It is
   run anyway, as a check that the draws see the defect.
-### progress 22:4x -- B3 written; C48: default arcs ~20 % fast, so B2 / B3 ps values are being redone on RC_TREE=1 decodes
+### progress 22:32 -- B3 written; C48: default arcs ~20 % fast, so B2 / B3 ps values are being redone on RC_TREE=1 decodes
 - x55a10 seed 4 UADDI0 12 | 0 (05a84ea0 = C41's | c5751262): all draws pass; slack 8984 | 7812; period 14163 / 14353 |
   13242 / 13170; settle ucmpi1 1046 | 1047, ucmpi0 1047 | 1674 (seed 4 UADDI0 12 = C41's 1046 / 1047 exactly).
 - a10u0s3 (FFMUX-FLAG route) passes every draw and preloaded draw: simx does not show that defect on this route.
