@@ -4398,3 +4398,5 @@ Check for others: every number reported today comes from a run that printed its 
 - 21:45 x55a10 seeds 8-13: 48/48 draws (default + slow-carry), ucmpi1 >= 758 ps at CARRY 1.0. C41 updated. (21:2x the disk filled: OOM-killed steermargin runs had left 1.2 GB dumps; cleared, old worktrees removed.)
 
 ### progress 21:55 -- subagent: independent decoded-bitstream predictions of BOARD-QUEUE item 36 (CARRY4 / MUXF7 rings, research/board/carry/s1, s2), formal/tools/margin/carryring/ (in progress). Farm c_c41x32 still queued behind research.
+
+### progress 22:05 -- carryring subagent: RC_TREE=1 arcs match research's ring predictions within 0.5 % (128 rings), default arcs 8-33 % short (A16-A18 independently). C36-C47 used default arcs: caveat posted in FOR-RESEARCH; key rows being rerun on RC_TREE=1 decodes.

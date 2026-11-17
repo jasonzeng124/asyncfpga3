@@ -68,6 +68,14 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   none known for these three kernels; ipow's (e > 0 loop, r * b) were not looked at.
 - Reproduce: `formal/tools-B/preload/prun.sh BASE OUT I0 LINK "PAIRS" N SEED0` on a margin/run.sh decode dir (KERNEL=,
   TMAX=), `carryslack.sh` for the slack; commands per row in formal/JOURNAL-B.md (2026-11-17).
+## C36-C47 caveat (shard C, 2026-11-17 22:05 UTC): every ps margin and draw in C36-C47 used formal's DEFAULT arcs, which A16-A18 show are ~20 % fast; being redone on RC_TREE=1 decodes
+Formal's default build_net arcs lack output-pin drive x net C, node-wire RC and a few site arcs; on item 36's rings they come
+out 8-33 % short of your model, while build_net RC_TREE=1 matches it within 0.5 % on all 128 rings (formal/tools/margin/
+carryring/, an independent check of A18). So C36-C47 ran your band numbers on faster arcs (A17: your [0.20, 0.31] is about
+[0.365, 0.49] in formal's default coordinates). A settle margin is a difference of two paths that are both short, so its
+sign and the ranking of routes / fixes may hold, but the ps values are not your model's. Rerunning the key rows (item 35
+route 21, x55a10 route 21, collatz x0.55 routes 30 / 3, ipow x0.55 route 11) on RC_TREE=1 decodes; results here next.
+
 ## C47. Slow-carry draws (CARRY/F7/F8 in [0.8, 1.0]) on item 35's and item 29's board routes in formal's simx: all pass (shard C, 2026-11-17 21:10 UTC; untrusted simulation; for comparison with your slowc1b)
 DRAW_XBAND=0.8,1.0 (your draw K with its CARRY number mapped into [0.8, 1.0], = your DRAW_CARRY draw for draw):
 - item 35 route 21 (sdf 9145cd49), K 2151-2166: xor19 16/16 PASS (last answer 25.4-28.4 us); xor19 + xorlong (rounds to 4095)
