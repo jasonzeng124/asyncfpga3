@@ -6070,3 +6070,7 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
 - Subagents started: (A) BDC_AUTO -- inventory of every knob, which are general, the event-graph storage search inside
   the flow; (B) the sizing rule -- which term carries the 1.4-1.8x; (C) the all-kernel table at defaults (the automatic
   column's starting point) incl. isprime / gcd and whatever fixtures build.
+- ASK: frontend output for nested, branchloop, memsum (kernels/<name>/<name>.c, committed 20:39 UTC): a loop nest
+  (two rings sharing a token), a branch whose arm holds a loop (survives if-conversion), and a loop reading an array
+  (memory). PROGRAM "General first" item 3 asks for at least these three shapes; please run the frontend and return each
+  as cloud/fixtures/frontend/<name>/.
