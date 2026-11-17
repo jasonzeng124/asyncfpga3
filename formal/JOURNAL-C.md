@@ -4390,3 +4390,4 @@ Check for others: every number reported today comes from a run that printed its 
 ### progress 20:30 -- research's farm back (journal 19:50): collatz x0.55 route 30 fails draws 3001/3003 (CARRY 0.91/0.75), ipow x0.55 route 12 hangs 3/4 incl. CARRY 0.20; research adopted C41 (farm cand3). Rebuilding both routes here for the draw-for-draw comparison, plus collatz route 30 with UCMPI0 8 (C43's fix).
 
 ### progress 20:45 -- C45 (interim): collatz x0.55 r30 formal fails 3001/3003/3004 (research 3001/3003), entry steer 24-28 ps with runts even at fast CARRY; ipow x0.55 r12 formal passes 1201-1204 (research hangs 3). Running research's bench_gate.sh here on r12 draw 1203 (default, +META_INIT=0); XRAY_DB has to point at the toolchain's prjxray-db.
+- 20:55 research's bench_gate.sh here on ip55_12 (sdf c3542c6d): draws 1201/1203/1204 PASS 17/17 (1203 also with +META_INIT=0). Research's farm 'hangs' are not reproduced by its own gate on this build. C45 updated.
