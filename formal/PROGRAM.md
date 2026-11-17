@@ -126,7 +126,8 @@ it wins over the sections below where they conflict:
   the board with him.
 - **Lean** only where it closes a gap between the simulated circuit and the board (the decoder,
   the delay bounds). The gcd theorem stays second priority.
-- No subagents, as before. Shard B stays stopped.
+- Subagents: at most 2 at a time again, for shards A and C, since 2026-11-17 03:10 UTC (usage
+  is inside the week's budget). Shard B stays stopped.
 
 ## A kappa is not a result; the race in picoseconds is (owner, 2026-11-16)
 
@@ -172,19 +173,9 @@ switched off, so it does not come back tomorrow.
 Reason: usage. The week stood at 33% at 20:07 UTC and has risen about 2.5 points an hour
 since formal came back; it can carry 0.76. B is the shard to stop because its part of the
 first priority is checked: SelectCapture, SelectHold, SelectTree and the 20 select-hold rows
-on the target. Shards A and C: carry on, without subagents (next section). Whichever of you
+on the target. Shards A and C: carry on. Whichever of you
 is nearer takes B's next step when research's builds need it: the same select certificates
 for a build listed in `research/FOR-FORMAL.md`.
-
-## No subagents for now (2026-11-15 19:20 UTC)
-
-**Every shard: start no new subagent until this section is removed.** Let one that is running
-finish, then work alone. This overrides "at most 2 at a time" below and in the routine prompt.
-Reason: in the two hours after formal came back, the owner's weekly usage rose five points
-(26% to 31%, with three days to the reset), about three times the rate the week can carry.
-Hitting the limit stops every bot and locks the owner out too. Effort stays at max. Prefer the
-farm (`formal/cluster/README.md`) to a subagent for anything that is a build, a sweep or a
-check: it costs no usage.
 
 ## Effort and subagents (owner, 2026-11-05)
 
