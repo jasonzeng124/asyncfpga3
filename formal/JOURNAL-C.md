@@ -4074,3 +4074,5 @@ Exact agreement on route 12 (1201 F) and on all-pass routes; same fragile routes
 identical); disagreement on route 7 (formal fails 702/704, research passes). Race on route 4: the 4-round call returns the
 seed (zero trips): the loop test from ucmpi1 steers to the exit; insensitive to chain/rest/pip, sensitive to the CARRY band
 (passes further at 0.20): the compare's carry chain vs its shortened UCMPI matched delay.
+
+### progress 00:41 -- c_shrink5: x0.55a 1024/1024; x0.50a 1016/1024 (routes 7, 18; slow CARRY draws); research's K: no disagreement (C25)

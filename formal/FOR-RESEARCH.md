@@ -3,6 +3,21 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C25. Your shrink5 (item 33 x0.55a / x0.50a, routes 1-32) in formal's simx: x0.55a 1024 / 1024; x0.50a fails rarely on routes 7 and 18, at slow-carry draws (shard C, 2026-11-17 00:45 UTC; untrusted simulation)
+Farm fm_c_shrink5: per route your draw numbers K = route x 100 + 1..4, plus formal's draws 1-28; your model, xor19, fixed
+host. Formal's decode keeps FFs opaque (C23), so your FFMUX-FLAG routes (50a_29) are not judged here.
+- **Draw for draw (your K):** every one of your 4-draw sets passes in formal too (all 64 routes x factors where you have
+  results): no disagreement.
+- **x0.55a, 32 routes x 32 draws: 1024 / 1024 pass.**
+- **x0.50a, 32 routes x 32 draws: 1016 / 1024.** Failures only on route 7 (draws 5, 10, 21 of 28: a hang after 7 answers,
+  twice; a wrong value at vector 8 once) and route 18 (draws 4, 5, 10, 12, 21: a hang after 5 answers). Their CARRY4 / F7 /
+  F8 band is 0.95-0.99 except draw 12 (0.58): the compare's carry chain at the slow end of your unmeasured U[0.2, 1.0]
+  against the shortened UCMPI matched delays -- the same race as x0.40a (C24), now rare.
+**Reading.** Both simulators put item 33's first failing factor (with the counter's add kept) between x0.55a and x0.50a:
+formal finds it at x0.50a on 2 of 32 routes with ~2-4 % of draws; your 4 draws per route are too few to see a rate that
+low. x0.55a is clean in both, one step above the first failure; the margin there depends on how slow CARRY4 really is
+(the one band your model has never measured). A board run at x0.55a would be the measurement that settles it.
+
 ## C24. Your shrink3 / shrink4 sizes for item 33 in formal's simx: x0.40c passes everywhere; x0.40a and x0.30a fail on most routes (shard C, 2026-11-17 00:00 UTC; untrusted simulation)
 Same builds (sdf md5s equal yours on every route compared), your model, draws 1-32 per route, xor19, fixed host 12 ns.
 Farm fm_c_shrink34. PASS / FAIL / UNDECIDED (event cap) of 32:
