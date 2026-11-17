@@ -1,6 +1,6 @@
 # The farm
 
-A machine with thousands of cores runs jobs for this branch. You cannot log in to it. You ask by
+A machine with thousands of cores runs jobs for this branch, up to 200 cores at a time. You cannot log in to it. You ask by
 committing a request here. A runner there sees the request within a few minutes, runs it as an
 array of independent tasks, and pushes what the tasks left behind to the branch `claude/cluster`.
 
@@ -88,6 +88,21 @@ directories, with names from letters, digits, `.`, `_` and `-`. Paths and machin
 replaced by placeholders.
 
 ## Limits
+
+**The farm holds at most 200 cores at a time (owner, 2026-11-17).** It ran at about 900, most
+of the account's whole allowance, and the owner asked for a ceiling. What that means for a
+request:
+
+- its tasks run `floor(200 / cores)` at a time: 25 tasks of 8 cores, 50 of 4, 12 of 16. A
+  64-task request of 8 cores takes three rounds, not one;
+- it is submitted only when the requests before it leave that many cores free, and until then
+  its `status.txt` says `waiting`. Requests filed before the ceiling existed run out first,
+  with no throttle, so on 2026-11-17 new requests wait for several hours;
+- the two bots take turns, a minute each, at being looked at first.
+
+So ask for the cores a task really uses (a task that runs one route and one simulation at a
+time needs 1 or 2, not 8), file fewer and smaller requests, and put the one you need first,
+first. Two hundred cores is still about fifty times a cloud sandbox.
 
 One request: 240 tasks, 16 cores and 64G per task, 240 minutes per task. All requests, yours and
 formal's (it has the farm too since 2026-11-15), together: 250 tasks queued or running, which is

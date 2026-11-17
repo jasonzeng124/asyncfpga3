@@ -420,6 +420,9 @@ uselect0 is one or two LUT levels behind a 16-element line. Before any more leve
 
 ## The farm: thousands of cores, by request (owner, 2026-11-14)
 
+**2026-11-17: the farm now holds at most 200 cores at a time (owner). Read "Limits" in
+`research/cluster/README.md` before the next request; where this section says thousands, read 200.**
+
 The owner: "you can use as many cpus as you want if it helps you". A cluster now runs jobs for
 this branch. You commit a request, it runs as up to 256 parallel tasks in the cloud's own
 toolchain image, and the results come back on the branch `claude/cluster`. A seed gives the same
