@@ -4528,3 +4528,12 @@ seeds 1-4: xor19 8 draws + 4 slow-carry draws, preload A 16 + 8 slow-carry, carr
 and ucmpi0 at 0.20 / 0.31 / 1.0. Queued after: collatz x0.70 seed 27 with UADDI1 0 (steps adder joined at ucond_br5 with
 the n == 2 compare, UCMPI2 12 > UADDI1 7: the same shape; prediction: safe).
 Vectors for research in tools-B/preload/vec/ (c64hi, c32hi; .exp from oracle.c).
+### progress 21:3x -- joinscan; x55a10 seed 1 checked; collatz / collatz64 UADDI1 0 built
+- `joinscan.py` (static; sizes, not arrival times): joins fed by two sized operators. xorshift: ucond_br6 <- ucmpi1 5 /
+  uaddi0 12; ucond_br7 <- ucmpi1 5 / uxori2 3. collatz x0.70: ucond_br5 <- ucmpi2 12 / uaddi1 7; ucond_br7 <- ucmpi2 12 /
+  uselect0 5. collatz64 item 32: ucond_br5 <- ucmpi2 16 / uaddi1 12; ucond_br7 <- ucmpi2 16 / uselect0 12. The steps
+  adders start from the same token as the n == 2 compare, so the size comparison is meaningful there: prediction, UADDI1
+  0 is safe in both. Built: collatz x0.70 seed 27 with UADDI1 0 (sdf dd684146), collatz64 item 32 with UADDI1 0 (65a92f2d).
+- x55a10 seed 1 (sdf 8f165305 = C41's route): xor19 8/8, slow-carry xor19 4/4, preload A 16/16 + slow-carry 8/8, carry
+  slack >= 8632, period 14169 / 14002, settle gaps ucmpi1 1202 ps (= C41), ucmpi0 2080 ps (= C41), no runts.
+- UADDI0 0 seed 5 settle gaps: 286 / 403 ps (no runts); UADDI0 12 seed 5: 1276 / 1380.
