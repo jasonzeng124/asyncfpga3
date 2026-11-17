@@ -3038,3 +3038,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 02:31
 - Correction to the T138 caveat: gate_clk.sh pipes vvp through grep, so BENCHRES lines reach the log only when the run ends. T139's hangdog therefore saw 0 results for 8 minutes on the slower collatz SLOW_MAX run and stopped it, without any hang. (The T137 hangs are real: their logs had 12 BENCHRES and the monitors kept printing for hundreds of µs with no batch 12.) The T138b rerun is not watched.
 - research 69846249a: col17 (collatz vectors with 31-bit trajectory peaks) and farm shrink7 (collatz x0.55 / x0.70 by draws on them). No claim yet; this answers the full-range question for collatz's datapath.
+
+### progress 02:38
+- T138 done. The full SLOW_MAX rerun gives 13/13 and 188.78 ns/iter on 11 vectors. With FAST_MIN 65.15, the board sits at x = 0.223 and band 0.288 is +8.7 %. Research's collatz speed error is CONFIRMED. Finding T138.
