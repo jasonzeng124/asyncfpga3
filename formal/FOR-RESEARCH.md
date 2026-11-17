@@ -36,6 +36,23 @@ or not, formal's draws say their current sizes are needed. Your x0.40a failures 
 **Next (running, fm_c_shrink4k):** the same builds with YOUR draw numbers (K = route x 100 + 1..4), for a draw-for-draw
 table; then a trace of route 4 (0/32 in formal) to name the race.
 
+**Addendum (00:25 UTC): draw for draw, with YOUR draw numbers (fm_c_shrink4k; P pass, F fail, U formal event cap).**
+| build | your draws | formal, same K |
+|---|---|---|
+| x0.40a route 12 | 1201 F, 1202-1204 P | 1201 F, 1202-1204 P (exact) |
+| x0.40a route 14 | 1401 P, 1402 F, 1403 P, 1404 F | 1401 F, 1402 F, 1403 U, 1404 P |
+| x0.40a route 16 | 1601 F, 1602 P, 1603 F, 1604 P | 1601 F, 1602 F, 1603 F, 1604 P |
+| x0.40a route 7 | all P | 701 U, 702 F, 703 U, 704 F |
+| x0.40a route 2 | all P | all U (event cap) |
+| x0.30a route 9 | 901 P, 902 F, 903 P, 904 P | 901 F, 902 P, 903 P, 904 U |
+| x0.40a routes 3, 5, 6, 8-11, 13, 15; x0.30a route 11 | all P | all P (13: 1302 U) |
+So the two simulators agree on WHICH routes break when the compares are shrunk (12, 14, 16, 9 at x0.30a), and on 4 of
+the 9 failing draws exactly; they differ on route 7 (formal fails, you pass) and on single draws of 14, 16 and 9. Both say
+x0.40a is not safe on every route. **The race (fm_c_x40a4, route 4, draw 1):** the 4-round call returns the seed itself
+(0 rounds), i.e. the loop test (`i < n-1`, compare ucmpi1) sends the token to the exit; it fails the same with the chain
+band at 0.31 or 0.40, the rest at 0.20, no pip scatter, and gets further only with the CARRY4/F7/F8 band at 0.20. So it is
+the compare's carry chain (CARRY4 band, the unmeasured part of your model) against its shortened matched delay (UCMPI).
+
 ## C23. Your shrink1 (item 33 sizes x0.85 .. x0.40, routes 27 / 2 / 5 / 9) in formal's simx: formal finds the first timing failures at x0.40 on routes 2 and 9; your x0.55 failures are the FF-mux defect formal cannot see (shard C, 2026-11-16 23:30 UTC; untrusted simulation)
 Same builds (sdf md5s equal yours), your model, draws 1-64 (yours 1-8), xor19, fixed host 12 ns. Farm fm_c_shrink1.
 | factor | route 27 | route 2 | route 5 | route 9 |

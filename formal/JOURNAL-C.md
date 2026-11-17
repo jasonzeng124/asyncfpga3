@@ -4068,3 +4068,9 @@ c_shrink4k reruns with those K for a draw-for-draw table.
 draws1 final: every candidate 32/32 (ipow 24/24), control +3000 16/16, +8000 0/16. Formal: candidates all pass, +8000 0/16,
 +3000 15/16 (draw 15). So over 7 x 32 + 32 draws the two simulators disagree on one (C22 updated). c_shrink4k and c_x40a4
 submitted 23:57 and still running.
+
+### progress 00:20 -- c_shrink4k (research's draw numbers) and c_x40a4: models agree on which routes break at x0.40a (C24 addendum)
+Exact agreement on route 12 (1201 F) and on all-pass routes; same fragile routes 14, 16, x0.30a 9 (4 of 9 failing draws
+identical); disagreement on route 7 (formal fails 702/704, research passes). Race on route 4: the 4-round call returns the
+seed (zero trips): the loop test from ucmpi1 steers to the exit; insensitive to chain/rest/pip, sensitive to the CARRY band
+(passes further at 0.20): the compare's carry chain vs its shortened UCMPI matched delay.
