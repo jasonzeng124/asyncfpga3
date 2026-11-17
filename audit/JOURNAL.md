@@ -3079,3 +3079,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research 8ca0b86fc / 76fd5711b: c6418 and regate2, and a BOARD-QUEUE HOLD of items 28 / 31 / 30 / 32.
   - c6418 also ignores the bench mask (collatz64 high word zeroed): expected 267 / 282 / 285, correct bench answers 178 / 119 / 184.
   - The hold rests only on the col17 false failure. T141 addendum; REPORT row extended. Owner notified.
+
+### progress 05:42
+- research 4ff87f5ae / d03e02f47: CORRECTION; the hold is withdrawn and kernel_oracle.sh applies the bench masks. col18 / c6419 expected values verified by own computation.
+- T141: items 31 / 28 at 9/9 at worst and FAST_MIN on own long-peak vectors incl. n = 60975 (0 steer violations). SLOW_MAX and the August build are running.
+- T142: the bench masks xorshift rounds to 12 bits (gen_bench.py and research's own oracle). Research's ASK premise ('rounds may be 2^31', UADDI0 unjudgeable) does not hold on this bench: a rounds = 4095 vector reaches every carry the board can produce. Owner notified.
