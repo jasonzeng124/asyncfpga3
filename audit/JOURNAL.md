@@ -2973,3 +2973,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Gaps listed: no confidence bound; no pass-model error on a board failure; an oracle-only verdict.
 - T137: x0.40a built (sdf c869a0a1, ff clean); GLS running.
 - T138 queued (after T137): own GLS of the August collatz bitstream at FAST_MIN / SLOW_MAX, own vectors, 100 MHz bench clock, own slope fit.
+
+### progress 00:08
+- T137: x0.40a seed 27 HANGS at FAST_MIN (own oracle: batch 12, op1 = 5, never returns), right after ucond_br8 changes select under req at 32.5 µs.
+  - ucond_br8's select is ucmpi1, the loop compare, 9 -> 4.
+  - First own simulation failure on a shrink candidate. Finding T137.
+- research e1f9e38fd: "x0.40 is past the edge for some routes"; the candidate will come from shrink5 (x0.55a / x0.50a).
