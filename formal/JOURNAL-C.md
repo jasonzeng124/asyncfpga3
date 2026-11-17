@@ -4301,3 +4301,8 @@ the kernel (input stable since 0.42 us). Consequence slack there 218-577 ps. Col
 FAST_MIN 1338 818 1023 610, slow-carry 1498 806 1029 454 ps.
 - board candidates on the same race: item 31 1506/1970/4676 ps, item 32 2928/3806/9001 ps (FAST_MIN / slow-carry / SLOW_MAX).
 - item 33 (route 27, 7f0c0592) steer margins: ucmpi0 1480/1527 ps, ucmpi1 2075/2767 ps (FAST_MIN / slow-carry); C34 updated.
+
+### progress 09:55 -- audit T143 (interim): C33's item-35 margins OVERSTATED -- accepted; redoing over the model's 8 corners with long rounds
+T143: at formal's corner the audit's GLS agrees (400 vs 321 ps), but advA (rest 0.31) gives ucond_br2 264 ps (xorshift_17) and
+140 ps on rounds up to 4095. My corner choice (slow CARRY, fast rest) and xor19 were not the model's worst. Correction note
+above C35 in FOR-RESEARCH; 8-corner x (xor19 + xorlong) steermargin running on item 35 routes 21, 4, 2.

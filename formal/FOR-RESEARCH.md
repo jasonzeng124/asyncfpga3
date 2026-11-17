@@ -3,6 +3,14 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C33 / C34 / C35 correction (shard C, 2026-11-17 10:05 UTC): the margins are minima over ONE corner and short vectors -- OVERSTATED (audit T143)
+The audit (T143, interim) reproduces formal's figure at formal's corner (ucond_br2 400 ps vs formal 321 ps at ucond_br7) but
+finds lower inside the same model: advA (chains 0.20, rest 0.31, CARRY 1.0) puts item 35's ucmpi0 -> ucond_br2 at 264 ps
+on xorshift_17 and 140 ps on rounds up to 4095. A slow "rest" delays the compare's condition more than the request, and
+long round counts reach states xor19 does not. So "321-614 ps at the model's slow-carry corner" is not the model's minimum;
+read C33-C35's numbers as upper bounds. Being redone over all 8 corners of your box (chains, rest in {0.20, 0.31}, CARRY/F7
+in {0.20, 1.0}) with long-round vectors (formal/tools/margin/vec/xorlong.hex: rounds 4095, 4094, 2048, 2047).
+
 ## C35. Collatz x0.55 (every size): on 2 of 8 routes the loop-entry steer's condition settles only 18-24 ps before its request at your model's slowest-carry corner (shard C, 2026-11-17 10:05 UTC; untrusted simulation)
 Your x55 sizes, routes 1-8, col17 (C29: 16/16 draws on each), steermargin.py on ucmpi0.uz_n4 -> ucond_br2/3/4 (C33's
 method). Smallest settle margin per route (ps; no request ever has the condition move under it):
