@@ -6084,3 +6084,43 @@ item 35's loop-entry race rests on it; UCMPI0 = 10 keeps >= 387 ps at CARRY 1.0 
 - Farm gcddraw1 (33 tasks): routes 1-32 x 4 draws + the three corners on route 1. The subagent's x0.70 half was dropped
   (General first: no per-kernel shrink sweeps). PREDICTION: every draw passes on EQUIVALENT ffmux-clean routes; 3/3.
 - Caveat: this judges gcd's kernel and sizes on the bench harness, not inside gcd_hw / gcd_ps (the board items).
+### progress 21:57 (farm read before handover)
+- cand3b (x55a10 = item 35 with UCMPI0 10), 30 of 32 tasks: 192 / 192 draws pass on the EQUIVALENT routes, including 96
+  slow-carry draws (CARRY4 / F7F8 / FF 0.8-1.0); P median 16.79 ns (15.73-18.55) vs x55a 16.85: no cost, as formal C41
+  said. 3 routes NOT EQUIVALENT, route 32 never simulated.
+- slowc1b (slow-carry draws 0.8-1.0 on the board routes), 17 of 20: 8 / 8 on every block back -- items 33, 31, 28, 29,
+  32, 35 (x55a route 21: 16 / 16, against my prediction of lost draws), collatz x0.70 s27, ipow x0.70 s31. item 27
+  (fxd s2) block 0: "no xray.sdf" (build failure on the farm, not a verdict); block 1 8 / 8. Item 30 not back.
+- cand4b: collatz x0.70 seed 27 (sdf f11ff1ee, EQUIVALENT, ffmux-clean, P 19.77 ns) 16 draws pass; its other 16 draws and
+  its gate task produced no draws (to look at); ipow x0.70 seed 31 (sdf 3d6fba5c, EQUIVALENT, ffmux-clean, P 30.21 ns)
+  16 draws pass + SLOW_MAX / FAST_MIN / worst 17/17. Note: the .bit md5 differs between tasks of one build (timestamp?)
+  -- check before naming a bit in a board item.
+- shrink10b (collatz64 item 32 sizes), 58 of 64: x0.70 88 / 88 on EQUIVALENT routes, P median 27.71 ns (item 32 31.4);
+  x0.55 68 / 88, fails on 7 routes (9 18 20 21 22 28 31), result streams a call behind (302 mismatch batches).
+- band fit, collatz64 August bitstream at x 0.224: y 0.2 117.61 vs y 1.0 117.59 ns per iteration, board 118.04 (-0.4%):
+  again no CARRY / F7 sensitivity. ipow and the y 2 / 3 bound runs were not run (killed at handover).
+
+## Handover (cloud session -> cluster bot), 2026-11-17 21:57 UTC
+PROGRAM a3b699817 (owner): this bot moves to the cluster; a cloud session hands over at its next re-read. Done here:
+- **Read first:** PROGRAM "General first" (owner d35499132): the automatic path (BDC_AUTO=1) is lead 1; no per-kernel
+  shrink sweeps; the farm holds 200 cores (6553f4160).
+- **Farm requests in flight, read with research/tools/draws_table.py:** cand3b (2 tasks left), slowc1b (3 left: item 30,
+  item 27 block 0 failed to build -- rerun if it matters), shrink10b (6 left), gcddraw1 (gcd R5s75 on the kernel bench,
+  routes 1-32 x 4 draws + task 33 = corners on route 1; research/data/gcd_draws/README.md). cand4b is done (above).
+- **Board items to write from those results:** item 35's route with UCMPI0 10 (pick the median EQUIVALENT cand3b route,
+  run draws2-style 32 draws + gate); collatz x0.70 s27 and ipow x0.70 s31 (cand4b) -- but under "General first" these are
+  hand recipes: list them as the hand column, not the headline.
+- **BOARD-QUEUE item 36 (new):** CARRY4 / MUXF7 band rings (cells/hw/carry_ring/, research/board/carry/). Most useful board
+  run now; the draw model's CARRY band [0.20, 1.0] is otherwise unpinnable.
+- **Band fit (research/data/bandfit/):** collatz / collatz64 August bitstreams: LUT + routing x 0.222 / 0.224 reproduce the
+  board within 0.1-0.4%; CARRY / F7 0.2 vs 1.0 changes nothing. To finish: ipow at y 0.2 / 1.0 and the y 2 / 3 correctness
+  bound (research/data/bandfit/queue.txt, run1.sh -- paths under /tmp/claude-0 must be adapted), then the shared table in
+  SIM-VS-BOARD.md.
+- **Subagent work stopped mid-way (unreviewed, committed as WIP):** research/data/auto/ (BDC_AUTO inventory/design; the
+  bdc code change is NOT applied: research/data/auto/wip/bdc_auto_unverified.patch + auto.py, byte-identity unproven),
+  research/data/sizerule/ (which term of the sizing rule carries the 1.4-1.8x), research/data/alltable/ (all-kernel
+  default table), research/data/preload/ + research/tools/preload/ (preloaded loop counter for UADDI0), research/data/
+  gcd_itercost/ (gcd's cycle composition; gcd is 3-4x behind Dynamatic's ESTIMATE, research/data/dynamatic_ref/).
+  Each README says how far it got; verify before use.
+- **ASK (owner):** frontend outputs for kernels/nested, kernels/branchloop, kernels/memsum.
+LOCK cleared.
