@@ -87,6 +87,14 @@ fi
 # vendored tree. Same-named directory in kernels/ shadows the shipped one.
 SRC_DIR="$PWD/kernels/$KERNEL"
 [ -d "$SRC_DIR" ] || SRC_DIR="$DYN/integration-test/$KERNEL"
+# Two of the shipped directories are groups, not tests: integration-test/memory/ holds 23 tests
+# (memory/test_memory_1/test_memory_1.c, ...) and sharing/ holds 2. When neither place above has the name, take the
+# ONE group member of that name; none or several and the error below stands. Names that resolved before resolve
+# exactly as before (research/data/suite/dyn/README.md).
+if [ ! -d "$SRC_DIR" ]; then
+  NESTED=( "$DYN"/integration-test/*/"$KERNEL"/"$KERNEL".c )
+  if [ "${#NESTED[@]}" -eq 1 ] && [ -f "${NESTED[0]}" ]; then SRC_DIR="$(dirname "${NESTED[0]}")"; fi
+fi
 SRC_C="$SRC_DIR/$KERNEL.c"
 [ -f "$SRC_C" ] || { echo "no such kernel source: $SRC_C"; exit 2; }
 echo "== $KERNEL: source $SRC_C =="
