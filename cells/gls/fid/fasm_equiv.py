@@ -116,6 +116,8 @@ def lut_fold(cells, drv, d):
     c = cells[cn]
     if c.get("type") != "SLICE_LUTX" or port not in ("O5", "O6"):
         return None
+    if not c.get("attributes", {}).get("X_ORIG_TYPE", "LUT").startswith("LUT"):
+        return None     # a LUTRAM / SRL: its INIT is only the initial content
     init = str(c.get("parameters", {}).get("INIT", ""))
     if not init or not set(init) <= {"0", "1"}:
         return None
