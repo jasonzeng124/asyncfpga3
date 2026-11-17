@@ -922,7 +922,8 @@ In formal's arcs (build_net.py), the measured delays sit at:
     to its falls, the rings read a higher b than the kernels in BOTH models, which is what both show.
   - Size of the effect in formal's model: falls at b 0.387, rises at b ~0.54. That is rises ~19 % slower than falls
     (span/FAST_MIN = 2.16, median ring).
-  - Not tested: no August measurement isolates one edge.
+  - Not tested: no August measurement isolates one edge. Neither model can represent the difference: the August collatz
+    SDF has rise = fall on all 54,592 IOPATH / INTERCONNECT entries, and prjxray's delay records have no edge split.
 - **CARRY/F7 (A13).** With LUT and routing at 0.39, moving CARRY4 and MUXF7/F8 over {0.2, 0.39, 1.0} changes collatz and
   collatz64 per-iteration time by 0.00 ns. The cycle is set by the matched delays, and the carry chains only have to
   settle inside them. No August measurement places this band, so the 0.75-0.9 at which C38 / C35's races close cannot
