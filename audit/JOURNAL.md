@@ -3055,3 +3055,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The owner's README: nobody has checked that each one is the measured bitstream.
   - This makes a xorshift sim-vs-board comparison possible: the open gap (a) in the items 19-35 row.
   - Own tooling decodes from the .bit and needs the routed JSON for the prjxray SDF, so an own xorshift run needs a fasm -> netlist path. Awaiting research's comparison first, then an own check.
+
+### progress 03:17
+- T140 collatz64 (own vectors): FAST_MIN 82.93 / SLOW_MAX 237.46 ns/iter, oracle 14/14 at both, board at x = 0.226, band 0.288 +8.1 %. Research's 83.04 / 237.37 / +8.1 % is CONFIRMED. ipow running.
