@@ -295,4 +295,11 @@ See `research/data/fid/f2_gcd_hw.md`.
   example F7AMUX input order) would be invisible to `fasm_equiv.py`.
 * **A subset.** DSP configurations of `dsp_model.py` only (combinational, and registered A/B/C/M/P with nominal clock-to-out timing); latches checked only on a three-latch
   test design (`research/data/fid/f2_phase2.md`); LUTRAM, async flops and
-  BRAM are refused.
+  BRAM other than bd_mem's RAMB18E1 are refused.
+* **The RAMB18E1 is a model, not a measurement.** Its behaviour is UG473's for
+  the one decoded configuration; its clock-to-out and setup/hold windows are
+  prjxray-db's (sign-off bounds, the upper half's windows applied to both
+  halves); none of it has been checked against the board. The model goes X on
+  a violation instead of resolving metastably (GLS_FID's flops resolve), which
+  is the pessimistic side for a gate. Byte writes (WEA bits that disagree)
+  and a live port B are not modelled (X, and refused, respectively).
