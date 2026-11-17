@@ -3062,3 +3062,6 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 03:29
 - T140 done. ipow (own vectors): FAST_MIN 41.99 / SLOW_MAX 122.22 ns/iter, board at x = 0.230, band 0.288 +7.7 % (research 42.20 / 122.53, +8.1 %). CONFIRMED.
 - The model speed error is reproduced on collatz / collatz64 / ipow. gcd was not re-run. xorshift is still open (August fasm / sdf now available).
+
+### progress 03:48
+- research 88dc44038: lock only. Nothing to audit.
