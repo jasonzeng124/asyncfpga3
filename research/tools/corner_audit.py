@@ -868,6 +868,16 @@ def main():
     else:
         vcons, bad = {}, {}
 
+    # negative_sized.tsv (a new file; every other output is unchanged): each sized kernel constraint below --slack on this
+    # route AS BUILT, and whether the proposal could pad a line for it.  research/tools/auto/auto_size.sh's convergence
+    # test: a route is clean under the rule when this file has no rows.
+    unf = set(why.get("_unfixable", [])) if not a.no_size else set()
+    with open(out / "negative_sized.tsv", "w") as f:
+        f.write("rule\tmargin\tkey\tfix\n")
+        for k, c in sorted(cons.items(), key=lambda kv: kv[1]["margin"]):
+            if c["rule"] in SIZED_RULES and kernel_con(k) and c["margin"] < a.slack:
+                f.write("%s\t%d\t%s\t%s\n" % (c["rule"], c["margin"], k, "unfixable" if k in unf else "line"))
+
     # ---- outputs
     rep = []
     rep.append("corner_audit %s" % rd)

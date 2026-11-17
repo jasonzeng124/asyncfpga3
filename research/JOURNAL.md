@@ -6141,3 +6141,22 @@ cluster: no cloud/setup-toolchain.sh (installed); RUNS=/tmp/bot/runs; 16 cores; 
   is per-kernel data an untuned kernel does not have. Both were "waiting"; removed (3f43bbca4). They come back reviewed.
 - gcddraw1 runs 64 tasks, not 33: the runner took the request at 59db3a632, before the x0.70 half was dropped. Tasks
   33-64 (gcd x0.70) will be read as data, not as a recipe.
+### progress 22:12 (BDC_AUTO applied; the automatic sizing loop written; preload1 re-judged)
+- BDC_AUTO=1 applied from the WIP patch (26c095065): unset or 0, 80/80 emitted files byte-identical to HEAD on the 9
+  fixtures x {top, --no-top} x {no knobs, BDC_AUTO=0, the three hand knob sets} + the pre-pass MLIRs (header line = input
+  path only), exit codes identical. Choices: research/data/auto/ident/auto_choices.txt (gcd 5 merges + 6 fork links,
+  isprime 4 + 9, fir now emits: fast fall is off for functions with a memory port).
+- research/tools/auto/auto_size.sh: the flow's own sizing, nothing per kernel. it 0 = emit.py's estimates
+  (est_sizes.py), then corner_audit CA_SIZERULE=1 proposes every line; each later iteration routes the proposal and
+  re-runs the rule on the route actually built; clean = no sized kernel constraint below slack as built
+  (corner_audit's new negative_sized.tsv); else ratchet max(S_i, proposal_i) and route again (ratchet.py). Why the loop:
+  CA_SIZERULE prices a shortened line at its own mean step, which under-delivers when the short line re-places more
+  compactly (tighten_loop.sh header: -27 % per element); the re-check on the built route is what makes it safe.
+- AUTO at estimates, seed 1, 5 kernels: routed in ~6 min each (nextpnr 9c732bc6303458df); full stack running.
+- preload1 (farm, x55a10 with UADDI0 12 / 8 / 6 / 4, 16 routes each, xp1 = xor19 + 10 preloaded rows) re-judged: the
+  verdict line said FAIL 28/29 on every draw, but every answer is right; batch 13 (xor19's 1000-round vector, ~17 us
+  per run) had its second run cut by the request's 30 us batch limit (preload_gate.sh's default at d3549913, since
+  raised to 120 us). On EQUIVALENT routes: UADDI0 12: 48 draws, 8: 40, 6: 48, 4: 32, every answer right in all;
+  P median 16.73 / 16.29 / 16.23 / 16.75 ns (route scatter, no trend). The negative-control tasks (65-68) were not in
+  the submitted array, so this harness has not yet been shown to fail on a defect: NOT a result until it is.
+  (Formal B2's own preload control does fail: +20 ns on the carry into bit 16.)
