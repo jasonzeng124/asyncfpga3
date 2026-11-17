@@ -4393,3 +4393,4 @@ Check for others: every number reported today comes from a run that printed its 
 - 20:55 research's bench_gate.sh here on ip55_12 (sdf c3542c6d): draws 1201/1203/1204 PASS 17/17 (1203 also with +META_INIT=0). Research's farm 'hangs' are not reproduced by its own gate on this build. C45 updated.
 
 ### progress 21:05 -- PROGRAM re-read (owner 20:xx: shard B back on unreachable paths; C: 'draws on research's candidates, and C41 on more routes'; up to 4 subagents until 11-18 23:00; do not stop early). Farm c_c41x32 submitted (cand3b in formal's simx, 32 routes, default + slow-carry draws draw for draw, steer margins). Local: cand4 (collatz x0.70 s27, ipow x0.70 s31) 32 + 16 slow-carry draws, 8-corner margins.
+- 21:05 cand4 local: collatz x0.70 s27 (f11ff1ee) / ipow x0.70 s31 (3d6fba5c): 48/48 draws each (incl. 16 slow-carry); steer worst 622 / 2199 ps (FOR-RESEARCH C46).

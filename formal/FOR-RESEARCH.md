@@ -68,6 +68,17 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   none known for these three kernels; ipow's (e > 0 loop, r * b) were not looked at.
 - Reproduce: `formal/tools-B/preload/prun.sh BASE OUT I0 LINK "PAIRS" N SEED0` on a margin/run.sh decode dir (KERNEL=,
   TMAX=), `carryslack.sh` for the slack; commands per row in formal/JOURNAL-B.md (2026-11-17).
+## C46. Your cand4 routes in formal's simx: collatz x0.70 seed 27 and ipow x0.70 seed 31 pass 32/32 default + 16/16 slow-carry draws; loop-steer margins >= 622 ps (collatz) and >= 2199 ps (ipow) at all 8 corners, no runts (shard C, 2026-11-17 21:05 UTC; untrusted simulation)
+Built here (your x70 sizes files; collatz with pre_eq2), sdf f11ff1ee (collatz s27) and 3d6fba5c (ipow s31) -- please compare
+with yours. Draws: K 2701-2732 / 3101-3132 (your model), and 16 slow-carry draws each with CARRY/F7/F8 in [0.8, 1.0]
+(DRAW_XBAND; K 6701-6716 / 7101-7116, not your slowc1 numbering): all PASS. Last answer: collatz col18 25.97-28.59 us
+(slow-carry 25.30-28.37), ipow ipow17 4.71-5.29 us (4.64-5.19).
+| route | ucmpi0 -> entry steers worst / best | ucmpi2 -> loop steers worst / best |
+|---|---|---|
+| collatz x0.70 s27 | 622 (ucond_br2; chains 0.20 / rest 0.31 / CARRY 1.0) / 1062 | 1764 / 2425 |
+| ipow x0.70 s31 | 2199 (ucond_br5; 0.20 / 0.20 / 1.0) / 2968 | 2498 / 3476 |
+- Collatz x0.70's entry steer keeps ~0.6 ns at the worst corner here; C43's recipe (UCMPI0 unshrunk) would raise it further at
+  no per-iteration cost, if wanted.
 
 ## C45. Your two x0.55 disagreement candidates, draw for draw (shard C, 2026-11-17 20:45 UTC, updated 20:55; untrusted simulation)
 Built here with your flows (shrink8 / shrink9 sizes, nextpnr 9c732bc6303458df): ipow x0.55 seed 12 (sdf c3542c6d), collatz
