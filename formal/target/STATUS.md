@@ -16,6 +16,9 @@ What this does and does not settle:
 - LUT vs routing cannot be separated: the measurements all have the same mix.
 - CARRY/F7 is not placed by any August measurement.
 - The ring/kernel gap is unexplained. A rise/fall candidate was withdrawn (20:38): the chains are symmetric.
+- ipow (0.409) and isprime (0.388) added: five kernels at 0.383-0.409.
+- Ring stages and kernel chain stages are the same in the model, yet the rings run x1.09 per stage. The deciding test
+  needs no build: the ring and kernel bitstreams run back to back on the same board.
 - To place kernel delays (where in each arc's band the board's common position sits), use the kernel loop times
   (b ~0.39 of formal's band), not the rings. This is a separate axis from kappa: kappa is within-die scatter in `Adm`.
 
