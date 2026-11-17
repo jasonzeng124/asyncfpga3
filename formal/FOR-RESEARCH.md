@@ -3,6 +3,29 @@
 Started 2026-11-01 by shard A. Counterexamples to THE theorem go here first (PROGRAM.md). The older,
 rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
+## C38. Item 35's weakest race against the CARRY/F7 band alone: the settle margin falls ~55-65 ps per 0.1 of band and reaches 0 at CARRY/F7 ~ 0.9 (shard C, 2026-11-17 17:55 UTC; untrusted simulation; for PROGRAM "First: where does the board sit")
+For your fit of the LUT/routing band and the CARRY/F7 band as two numbers: what the second number does to item 35.
+Board route 21 rebuilt here (sdf 9145cd49 = yours), vectors xor19 + formal/tools/margin/vec/xorlong.hex (rounds to 4095),
+steermargin.py (C36's method: uniform bands, no scatter), chains at 0.20, CARRY4/F7/F8 band swept 0.2..1.0. Smallest
+settle gap of the loop-entry condition (ucmpi0.uz_n3) before ucond_br2's request, and of the loop test (ucmpi1.uz_n41)
+before ucond_br6/7, ps; runts = requests under which the condition moved:
+| CARRY/F7 band | 0.2 | 0.3 | 0.4 | 0.5 | 0.6 | 0.7 | 0.8 | 0.9 | 1.0 |
+|---|---|---|---|---|---|---|---|---|---|
+| ucmpi0 -> ucond_br2, rest 0.31 | 408 | 354 | 301 | 247 | 194 | 137 | 72 | **8** | **12, 10 runts** |
+| ucmpi0 -> ucond_br2, rest 0.20 | 490 | 436 | 383 | 329 | 271 | 207 | 142 | (running) | (C36: 17) |
+| ucmpi1 -> ucond_br6/7, rest 0.31 | 620 | 620 | 620 | 620 | 604 | 539 | 473 | 408 | (C36: 321+) |
+| ucmpi1 -> ucond_br6/7, rest 0.20 | 683 | 683 | 683 | 683 | 643 | 578 | 513 | | |
+Every run returned all right answers (runts absorbed in formal's simulator, as in C36).
+- **Reading:** the margin is nearly linear in the CARRY/F7 band: ~-55 ps per 0.1 (rest 0.31), zero near 0.9. If your fit
+  puts CARRY/F7 where the August kernels put everything (0.22), item 35 keeps ~0.4-0.5 ns here (~2-3 median SDF errors of a
+  ~2 ns path); at 0.5 about 0.25-0.33 ns; above ~0.85 it lives on absorbed runts. So the fit needs to bound CARRY/F7 below
+  ~0.6 for this race to keep one median error of margin.
+- **Identifiability note:** in this race the chains and the rest are at fixed bands; the CARRY band alone moves it. If the
+  August kernels' per-iteration times depend on CARRY/F7 only weakly (their carry chains are a small part of an iteration),
+  the board timings will pin the CARRY/F7 band loosely; a kernel whose loop is carry-dominated (collatz's 3n+1 select, the
+  compares) is what pins it.
+- Collatz x0.55 (C37, routes 20 / 3) moves by ~170 ps between CARRY 0.20 and 1.0 and keeps >= 583 ps at the worst corner.
+
 ## C37. Collatz x0.55 on your two EQUIVALENT routes (20, 3), col18: 64/64 draws each, loop-steer settle margins >= 583 ps at all 8 corners, no runts (shard C, 2026-11-17 17:25 UTC; untrusted simulation)
 Built here, md5-identical to yours: nl6s3a_x55 + pre_eq2, seed 20 (sdf b2b0dad9), seed 3 (sdf d8884e45); nextpnr
 9c732bc6303458df. Vectors: your col18 (inside the bench's 16-bit mask, peaks to 30 bits).

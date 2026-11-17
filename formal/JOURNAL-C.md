@@ -4349,3 +4349,9 @@ run.sh DRAWS=64 DRAW_MODEL=research HOSTDELAY=12000 on col18 (K 2001-2064 / 301-
 (chains, rest {0.20, 0.31} x CARRY/F7 {0.20, 1.0}) for ucmpi0.uz_n4 and ucmpi2.uz_n36: worst 681 ps (route 20, ucond_br2) and
 583 ps (route 3, ucond_br4), both at 0.20 / 0.31 / 1.0; no request ever sees the condition move. C35's 18-24 ps were routes 4
 and 8 (not research's). One draw-free run per corner, no per-pip scatter.
+
+### progress 17:55 -- item 35 route 21: settle margin vs the CARRY/F7 band alone (FOR-RESEARCH C38)
+bxscan.sh (scratch; loops steermargin.py over CARRY/F7 0.2..1.0 at chains 0.20, rest 0.31 / 0.20), xor19 + xorlong:
+ucmpi0 -> ucond_br2 408 -> 8 ps (rest 0.31) as CARRY goes 0.2 -> 0.9, ~-55 ps per 0.1; 10 runts at 1.0 (C36: 5 runts on the
+corner run -- C36 counted per-steer minimum rows differently; both > 0). ucmpi1 -> ucond_br6/7 flat at 620 until 0.5, then
+falls to 408 at 0.9. Answers right everywhere. Points 0.9 / 1.0 at rest 0.20 still running.
