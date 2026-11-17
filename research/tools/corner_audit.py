@@ -91,6 +91,29 @@ RE_LINK = re.compile(r"^(?P<base>.+)\.chain\.g\[(?P<i>\d+)\]\.u$")
 SIZERULE = os.environ.get("CA_SIZERULE", "") == "1"
 SIZERULE_FLOOR = os.environ.get("CA_SIZERULE_FLOOR", "")
 SIZERULE_MLO = os.environ.get("CA_SIZERULE_MLO", "") == "1"
+# CA_JOINAWARE=1 (opt-in, 2026-11-17; research/data/sizerule/joinaware.md): an operator's data is checked where it is
+# CAPTURED, not at its own request.  Unset, every output of this tool is byte-identical to before.  Set:
+#   * for every cell with an A' row (a generated operator whose data comes only from its upstream links), the data's
+#     forward cone is followed to every capture: a bd_latch data pin (event: that latch's enable; compared at the latch
+#     output, data via D->Q against the enable via EN->Q -- the latch-OPEN contract every other rule measures from: A'
+#     launches the next cell's data at the link's C node, rule E crosses a latch on its enable, rule I composes a stage
+#     from the sender's enable), or a steer / mux select pin (event: the request pin on the same LUT, as rule E pairs
+#     them).  Launch: each upstream link's C node, as A'; the capture side walked with C-elements waiting for their
+#     LAST input (skew.py's AND seeding, always on here).  This is row "A'j" (sized, rule A); the cell's A' row becomes
+#     rule "a" (reported, not sized).  A cell whose cone reaches anything else (a C-element or FF input not through a
+#     select, a pin outside the kernel, a capture its own request does not lead to) keeps A' and gets an unsized "j" row
+#     saying why.
+#   * the join credit (formal FOR-RESEARCH B3: "the later request must cover every input's data"): when the operator's
+#     request reaches exactly one storage node, a join J (so its acknowledge is J's), J's other inputs (siblings) are
+#     credited with a lower bound on their arrival relative to the launch S: min over S's forward ancestors A (the
+#     C nodes driving S's req_in) of s(A -> sibling) - l(A -> S) [S fired by its request], and over S's acknowledge
+#     sources K (the C nodes driving S's c_next) of s(K -> sibling) - l(K -> S) [S released by its acknowledge, which
+#     is J's, which the sibling's acknowledge also waits for]; the min of the two is a lower bound in every interleaving
+#     (research/data/sizerule/joinaware.md).  J's firing is then max(own input, credited sibling) on the capture walk.
+#   * a line that no measured constraint depends on, and whose cell has an A'j row, may go to --floor (it is measured
+#     free, not unmeasured); every other line on no constraint is kept, as before.
+JOINAWARE = os.environ.get("CA_JOINAWARE", "") == "1"
+RE_LINK_C = re.compile(r"\.ctl\.u\.u/O6$")     # a bd_link (Muller) controller's C node
 NOMINAL = {"E": None}          # rule E: the request leg is guarded at GUARD_LO; set from args
 SIZED_RULES = set("AEFHIKLBC")  # D is a screen; J has no delay line
 
@@ -216,6 +239,16 @@ def worker(sdf, spec):
             k = "A %s" % parent
             if k in out["constraints"]:
                 out["constraints"][k]["rule"] = "a"        # reported; A' is what is sized on
+        if JOINAWARE:                                      # A'j: the operator's data at its captures (see top)
+            aprime = {k.split(" ", 1)[1]: c["margin"] for k, c in out["constraints"].items() if k.startswith("A' ")}
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                jr = rule_a_joined(T, skew, sdf, aprime)
+            for parent, d in jr.items():
+                sized = d.pop("sized")
+                out["constraints"]["A'j %s" % parent] = d
+                if sized:
+                    out["constraints"]["A' %s" % parent]["rule"] = "a"   # reported; A'j is what is sized on
     if spec.get("chains"):
         out["chains"] = chain_geometry(T, sdf)
     for k in ("tighten_log", "skew_log", "arb_log"):
@@ -345,6 +378,259 @@ def rule_a_from_link(T, skew, sdf):
                        "text": "%s%s %d links  from %s: req %d (%dx)  data %d (%dx, %s)  guard %d  margin %d"
                                % (parent, " [peers no common source reaches: %d]" % len(peers) if partial else "",
                                   len(links), c, t_r, k_r, t_d, k_d, T.pin_split(peer)[0], g, m)}
+    return out
+
+
+def walk_floor(skew, walked_edges, stops, binc, feed, launch, longest, and_nodes, floor=None):
+    """skew.walk() (one arrival table per storage crossing; on the earliest walk a positive C-element in `and_nodes`
+    is seeded with its LATEST input reached at the level, every other storage node with its earliest), plus one thing
+    for CA_JOINAWARE: `floor` {AND node: t}, a lower bound on that node's firing relative to the launch from an input
+    the launch does not reach at that level (rule_a_joined's sibling credit).  The seed is max(reached, floor); the
+    predecessor stays the reached input.  -> (levels, preds), as skew.walk."""
+    floor = floor or {}
+    better = (lambda a, b: a > b) if longest else (lambda a, b: a < b)
+    cap = len(walked_edges) + 1
+    out, pred_out = [], []
+    seeds, seed_pred = {launch: 0}, {launch: None}
+    for lvl in range(skew.K + 1):
+        tab, pred = dict(seeds), dict(seed_pred)
+        seeded = set(seeds)
+        frontier = list(seeds)
+        passes = 0
+        while frontier:
+            passes += 1
+            if passes > cap:
+                raise skew.CombinationalCycle(sorted(frontier)[0])
+            nxt = []
+            for pn in frontier:
+                tv = tab[pn]
+                for d, w in walked_edges.get(pn, ()):
+                    if (pn, d) in feed or d in seeded:
+                        continue
+                    if d not in tab or better(tv + w, tab[d]):
+                        tab[d] = tv + w
+                        pred[d] = (lvl, pn)
+                        if d not in stops:
+                            nxt.append(d)
+            frontier = nxt
+        out.append(tab)
+        pred_out.append(pred)
+        seeds, seed_pred = {}, {}
+        for o in stops:
+            if o == launch:
+                continue
+            if not longest and o in and_nodes:
+                best_v = None
+                for ip, arc in binc.get(o, ()):
+                    if (o, ip) in feed or ip not in tab:
+                        continue
+                    v = tab[ip] + arc
+                    if best_v is None or v > best_v[0]:
+                        best_v = (v, ip)
+                if best_v is not None:
+                    seeds[o] = max(best_v[0], floor.get(o, best_v[0]))
+                    seed_pred[o] = (lvl, best_v[1])
+                continue
+            for ip, arc in binc.get(o, ()):
+                if (o, ip) in feed or ip not in tab:
+                    continue
+                v = tab[ip] + arc
+                if o not in seeds or better(v, seeds[o]):
+                    seeds[o] = v
+                    seed_pred[o] = (lvl, ip)
+        if not seeds:
+            break
+    return out, pred_out
+
+
+def rule_a_joined(T, skew, sdf, aprime):
+    """CA_JOINAWARE=1: rule A' moved from the operator's own request to its data's CAPTURES (the comment at the top of
+    this file; the argument in research/data/sizerule/joinaware.md).  `aprime`: the cells with an A' row.
+    -> {parent: constraint dict + "sized" (False: the cell keeps its A' row, this one is reported as rule "j")}"""
+    sdf = pathlib.Path(sdf)
+    edges, back, stops = T.routed_graph(sdf)
+    and_nodes = {o for o in stops if skew.RE_CTREE_C.search(o)}     # always AND here: the rule's premise
+    binc, srcs_of = collections.defaultdict(list), collections.defaultdict(set)
+    for s, lst in edges.items():
+        for d, w in lst:
+            binc[d].append((s, w))
+            srcs_of[d].add(s)
+    feed = {(o, ip) for o in stops for ip, _ in binc.get(o, ()) if o in srcs_of[ip]}
+    side = T.fastfall_side_arcs(edges)
+    early_edges = {s: [(d, w) for d, w in lst if (s, d) not in side] for s, lst in edges.items()}
+    chains = T.find_chains(edges)
+    jpath = sdf.with_name(sdf.stem + "_routed.json")
+    jcells = list(json.load(open(jpath))["modules"].values())[0]["cells"]
+    en_of = collections.defaultdict(set)              # bd_latch instance -> its enable pins
+    for c in stops:
+        if not T.RE_BD_LATCH.search(T.pin_split(c)[0]):
+            for dst, _ in T.latch_enables(edges, c):
+                en_of[T.pin_split(dst)[0]].add(dst)
+    sel_req = {}                                      # steer / mux select pin -> (request pins on its LUT, label)
+    for kind, par, reqs, sels in T.select_consumers(jpath) or []:
+        for q in sels:
+            rq = [r for r in reqs if T.pin_split(r)[0] == T.pin_split(q)[0]]
+            if rq:
+                sel_req[q] = (rq, "%s %s" % (kind, par))
+    cache = {}
+
+    def wk(launch, lng, floor=None):
+        key = (launch, lng, tuple(sorted((floor or {}).items())))
+        if key not in cache:
+            cache[key] = walk_floor(skew, edges if lng else early_edges, stops, binc, feed, launch, lng, and_nodes,
+                                    floor)
+        return cache[key]
+
+    def at(levels, pin, maxl=None):
+        for k, tab in enumerate(levels if maxl is None else levels[:maxl]):
+            if pin in tab:
+                return tab[pin], k
+        return None
+
+    def path(pred, lvl, pin):
+        return [n for _, n in (skew.path_to(pred, lvl, pin) or [])]
+
+    def short(n):                                     # instance, without the kernel's path
+        i = T.pin_split(n)[0]
+        return i.split(".udut.", 1)[1] if ".udut." in i else i
+
+    def stops_on(p):
+        return " > ".join(short(n) for n in p if n in stops) or "-"
+
+    def c_inputs(node):                               # a link C node (bd_c2n: I0 req_in, I1 c_next): physical pins
+        inst = T.pin_split(node)[0]
+        ports = T.orig_ports(jcells[inst]) if inst in jcells else {}
+        return tuple("%s/%s" % (inst, ports[i]) if i in ports else None for i in ("I0", "I1"))
+
+    def hs_sources(pin):                              # the handshake nodes (storage, not a latch) driving `pin`
+        return sorted(s for s in T.starts_reaching(back, pin, stops)
+                      if s in stops and not T.RE_BD_LATCH.search(T.pin_split(s)[0]))
+
+    def out_arc(pin, worst):                          # a latch pin's cell arc to its own output
+        ws = [w for d, w in edges.get(pin, ()) if T.is_output(d) and T.pin_split(d)[0] == T.pin_split(pin)[0]]
+        return (max(ws) if worst else min(ws)) if ws else 0
+
+    out = {}
+    for parent, head, tail, links in T.request_sites(edges, back, chains):
+        if parent not in aprime:
+            continue
+        own = set(links)
+        inside = [p for p in edges if T.is_output(p) and T.pin_split(p)[0].startswith(parent + ".")]
+        downstream = T.reaches(edges, tail, stops)
+        upstream = {p for p in inside if head in T.reaches(edges, p, stops)}
+        peers = sorted(p for p in inside if T.pin_split(p)[0] not in own and p not in downstream and p not in upstream
+                       and not T.pin_split(p)[0].startswith(parent + ".ujoin."))
+        # the data's forward cone, to every storage input it reaches; a select pin ends the cone at its gate
+        caps, odd = {}, set()
+        seen, work = set(peers), list(peers)
+        while work:
+            p = work.pop()
+            for d, _ in edges.get(p, ()):
+                if d in seen:
+                    continue
+                seen.add(d)
+                if d in sel_req:
+                    caps[d] = (sel_req[d][0], "select", sel_req[d][1])
+                    continue
+                if not T.is_output(d) and any(o in stops for o, _ in edges.get(d, ())):
+                    inst = T.pin_split(d)[0]
+                    if T.RE_BD_LATCH.search(inst) and en_of.get(inst) and d not in en_of[inst]:
+                        caps[d] = (sorted(en_of[inst]), "latch", inst)
+                    else:
+                        odd.add(d)
+                    continue
+                if d not in stops:
+                    work.append(d)
+        bnd = T.cell_boundary(edges, back, stops, parent)
+        ups = set(T.upstream_bd_links(bnd))
+        if os.environ.get("CA_ODD_LINKS") != "0":
+            ups |= {mm.group(1) for q in bnd for mm in [re.match(r"^(.*?)\.lat\.odd\.u$", T.pin_split(q)[0])] if mm}
+        srcs = [c for link in sorted(ups) for c in (link + ".ctl.u.u/O6", link + ".ctl.ub/O6") if c in stops]
+        reach_tail = T.reaches(edges, tail, stops)
+        rs = sorted(q for q in reach_tail if q in stops)
+        J = rs[0] if len(rs) == 1 and rs[0] in and_nodes else None
+        worst, notes = None, []
+        for S in srcs:
+            lo, _ = wk(S, True)
+            dat = {p: r for p in caps for r in [at(lo, p, 3)] if r}
+            if not dat:
+                continue
+            # the join credit: J's inputs this launch does not reach, at their earliest arrival relative to S
+            floor, ctext = {}, ""
+            if J is not None:
+                rq, ck = c_inputs(S)
+                anc = hs_sources(rq) if rq else []
+                ack = hs_sources(ck) if ck else []
+                for ip, arc in binc.get(J, ()):
+                    if (J, ip) in feed or ip in reach_tail or not anc or not ack:
+                        continue
+                    cands, ok = [], True
+                    for L0 in anc + ack:
+                        e2, e2p = wk(L0, False)
+                        ri, rS = at(e2, ip), at(wk(L0, True)[0], S)
+                        # a credit path is the sibling's own handshake, not a lap: from L0 it crosses at most one link
+                        # C node (the sibling's source, entered by its request or its acknowledge) and otherwise only
+                        # C-tree joins, never a latch, never S; and S is reached from L0 directly (no crossing)
+                        ps = [n for n in path(e2p, ri[1], ip) if n in stops and n != L0] if ri else []
+                        if ri is None or rS is None or rS[1] != 0 or S in ps or \
+                                any(n not in and_nodes and not RE_LINK_C.search(n) for n in ps) or \
+                                sum(1 for n in ps if RE_LINK_C.search(n)) > 1:
+                            ok = False
+                            break
+                        cands.append((ri[0] - rS[0], L0, ri[1], " > ".join(short(n) for n in ps)))
+                    if ok and cands:
+                        c = min(cands)
+                        if c[0] + arc > floor.get(J, -math.inf):
+                            floor[J] = c[0] + arc
+                            sib = sorted(short(q) for q in srcs_of.get(ip, ()))
+                            ctext = "join %s: sibling from %s credited %+d ps (worst of %d launches: %s > %s)" % (
+                                short(J), ",".join(sib[:2]), c[0], len(cands), short(c[1]), c[3])
+            ea, eap = wk(S, False)
+            ef, efp = wk(S, False, floor) if floor else (ea, eap)
+            for p, (t_d, k_d) in sorted(dat.items()):
+                evs, kind, label = caps[p]
+                a_d = out_arc(p, True) if kind == "latch" else 0     # data compared at the latch output (D -> Q)
+                res = {}
+                for tag, tabs, preds in (("cred", ef, efp), ("own", ea, eap)):
+                    best = None
+                    for e in evs:                                    # the enable (EN -> Q) / the gate's request
+                        r = at(tabs, e)
+                        if r is not None:
+                            a_e = out_arc(e, False) if kind == "latch" else 0
+                            if best is None or r[0] + a_e < best[0]:
+                                best = (r[0] + a_e, r[1], e)
+                    pe = path(preds, best[1], best[2]) if best else []
+                    if best is None or tail not in pe:      # no capture event, or not one this cell's request leads to
+                        res = None
+                        break
+                    res[tag] = (best, pe)
+                if res is None:
+                    odd.add(p)
+                    continue
+                g = T.req_guard(None, t_d + a_d)
+                (t_e, k_e, e), pe = res["cred"]
+                m = t_e - (t_d + a_d) - g
+                m_own = res["own"][0][0] - (t_d + a_d) - g
+                if worst is None or m < worst[0]:
+                    worst = [m, g, S, p, t_d + a_d, k_d, e, t_e, k_e, kind, label,
+                             stops_on(path(wk(S, True)[1], k_d, p)), stops_on(pe), ctext, m_own]
+        if odd or worst is None:
+            why = ("its data reaches %d input(s) that are not a latch's data or a select (%s)"
+                   % (len(odd), ", ".join(sorted(short(q) + "/" + q.rsplit("/", 1)[1] for q in odd)[:3]))
+                   if odd else "no capture of its data from its upstream links (%d capture pin(s) in its cone, "
+                   "none reached from %s within 2 crossings)" % (len(caps), ", ".join(short(x) for x in srcs) or "-"))
+            out[parent] = {"rule": "j", "margin": aprime[parent], "knob": None, "sized": False,
+                           "text": "%s joined: not applied, keeps A': %s" % (parent, why)}
+            continue
+        m, g, S, p, t_d, k_d, e, t_e, k_e, kind, label, dpath, cpath, ctext, m_own = worst
+        out[parent] = {"rule": "A", "margin": int(m), "sized": True,
+                       "knob": parent if (not ctext or m_own == m) else None,
+                       "text": "%s %d links joined: %d capture(s); worst %s %s  launch %s: data %d (%dx: %s) at %s  "
+                               "capture %d (%dx: %s) at %s%s  guard %d  margin %d  (own-request bound %d)"
+                               % (parent, len(links), len(caps), kind, short(label), short(S), t_d, k_d, dpath,
+                                  short(p) + "/" + p.rsplit("/", 1)[1], t_e, k_e, cpath,
+                                  short(e) + "/" + e.rsplit("/", 1)[1], ("  [" + ctext + "]") if ctext else "",
+                                  g, m, m_own)}
     return out
 
 
@@ -803,6 +1089,14 @@ def main():
                 why[mac] = "select path: never shortened (see docstring)"
                 continue
             if not on:
+                kj = "A'j " + knob_path[mac]
+                if JOINAWARE and kj in cons and cons[kj]["rule"] == "A" and prop[mac] > a.floor:
+                    # measured free, not unmeasured: its own capture row (A'j) does not move when the line is removed,
+                    # i.e. a sibling's request is the capture's last input (the join credit), and nothing else
+                    # measured depends on it either
+                    prop[mac] = a.floor
+                    why[mac] = "A'j: on no measured constraint (another input is the capture's last): floor %d" % a.floor
+                    continue
                 why[mac] = "on no measured constraint: kept"
                 continue
             n = prop[mac]
@@ -908,6 +1202,12 @@ def main():
                    "shortened lines priced at own mean step%s; selects sized by E/M; floor file %s"
                    % (a.band, (", capped by lowest chain mean c_mlo %s ps" % (int(c_mlo) if c_mlo else "-")) if SIZERULE_MLO
                       else "", SIZERULE_FLOOR or "none"))
+    if JOINAWARE:
+        nj = sum(1 for k, c in cons.items() if k.startswith("A'j ") and c["rule"] == "A")
+        rep.append("  join-aware: CA_JOINAWARE=1: %d operator(s) sized at their data's captures (A'j: latch data vs its "
+                   "enable, select vs its gate's request; C-elements wait for their last input; join credit), their "
+                   "A' rows reported as 'a'; %d kept on A' (rows 'j' say why)"
+                   % (nj, sum(1 for k, c in cons.items() if k.startswith("A'j ") and c["rule"] == "j")))
     for w in warn:
         rep.append("  WARNING " + w)
     neg = sorted((c["margin"], k) for k, c in cons.items() if c["margin"] < 0)
