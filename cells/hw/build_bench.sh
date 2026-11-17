@@ -175,7 +175,9 @@ if [ "${BDC_AUTO:-0}" = 1 ]; then
     python3 ../bdc/auto.py "$MLIR" "build/gen/${KERNEL}_auto.mlir" || exit 2
     MLIR="build/gen/${KERNEL}_auto.mlir"
 fi
-python3 ../bdc/emit.py "$MLIR" --no-top -o "build/gen/${KERNEL}_kernel_bench.v"
+# --host-mem: every memory gets a host port (bdc/emit.py HOST_MEM), which gen_bench.py drives through its MEM*
+# registers.  A no-op for a kernel without a memref argument: its emitted Verilog is byte-identical either way.
+python3 ../bdc/emit.py "$MLIR" --no-top --host-mem -o "build/gen/${KERNEL}_kernel_bench.v"
 
 # TOP itself was computed above, before the default-tighten dispatch; this is
 # just the gen_bench.py call the dispatch had no reason to duplicate.

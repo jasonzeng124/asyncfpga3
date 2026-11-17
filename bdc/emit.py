@@ -159,6 +159,28 @@ class EmitError(Exception):
 # the probe-port block in emit_func for what a probe is and is not.
 PROBE = [p for p in os.environ.get("BDC_PROBE", "").split(",") if p]
 
+# --host-mem / BDC_HOST_MEM=1: a HOST PORT on every memory, so a test harness
+# can fill an array before a call and read it back after one (suiteb,
+# 2026-11-17; research/data/suite/bench/README.md).  Off, nothing changes: the
+# output is byte-identical to before this existed, and so it is for any kernel
+# without a memref argument even when it is on.  On, each mem_controller's
+# plain port gets ONE MORE one-hot slot, the last one, wired to six new kernel
+# ports per memref argument, in signature order:
+#
+#     <m>_host_req  in     <m>_host_addr[AW-1:0]  in    <m>_host_we  in
+#     <m>_host_ack  out    <m>_host_wdata[DW-1:0] in    <m>_host_rdata[DW-1:0] out
+#
+# It is the bdc_memport's own slot protocol and nothing else: four-phase on
+# req/ack, addr/wdata/we bundled by req, rdata valid while ack is high.  The
+# ack is the port's SHARED acknowledge, so the host sees the kernel's accesses
+# too -- which is how it can wait for the port to be quiet before it asks.
+# No new cell and no arbiter: the one-hot obligation the plain port puts on
+# its caller is discharged by the harness, which only drives this slot while
+# the kernel is between calls (cells/hw/gen_bench.py refuses a host access
+# while a batch is running or the kernel is held in reset).  The port's
+# simulation check still fires if anyone breaks that.
+HOST_MEM = os.environ.get("BDC_HOST_MEM", "0") == "1"
+
 
 # Verilog keywords that a Dynamatic argName/resName can collide with.  `end`
 # is not hypothetical: it is the resName of every kernel's completion channel.
@@ -168,6 +190,14 @@ RESERVED = {
     "endmodule", "case", "default", "function", "task", "and", "or", "not",
     "buf", "xor", "nand", "nor", "xnor", "if", "else", "for", "while",
 }
+
+
+def host_base(func, memref_ssa):
+    """The port base of a memref argument's host port (HOST_MEM): `<m>_host`."""
+    for arg in func.args:
+        if arg.ssa_name == memref_ssa:
+            return portname(arg.name) + "_host"
+    raise EmitError(f"memref %{memref_ssa} is not an argument of @{func.name}")
 
 
 def vname(ssa):
@@ -1753,6 +1783,7 @@ class Emitter:
         self.ch = {}        # ssa name -> (width, is_control)
         self.memrefs = {}   # ssa name -> (aw, dw), disjoint from self.ch --
                              # a memref never gets _req/_ack/_data nets
+        self.host_wired = set()   # memrefs whose host port a controller drives (HOST_MEM)
         self.lines = []
         self.delays = []    # (instance, default) in emission order
         self.units = {}     # module name -> source text, for generated cells
@@ -2071,6 +2102,7 @@ class Emitter:
                 "aw": aw, "dw": dw, "slots": n, "arb": arb,
                 "inst": mc_inst, "accessors": accessors_desc,
                 "memstart": memstart, "ctrlend": ctrlend,
+                "memref": memref_ssa,
             }
 
     def width(self, ssa):
@@ -2655,8 +2687,24 @@ class Emitter:
         aw, dw, n, arb = info["aw"], info["dw"], info["slots"], info["arb"]
         accessors = info["accessors"]
 
-        pname = f"bdc_memport{'_arb' if arb else ''}_{aw}_{dw}_{n}"
-        self.units.setdefault(pname, mem.emit_port(aw, dw, slots=n, arb=arb))
+        # HOST_MEM: one more slot, the last, wired to the kernel's
+        # <m>_host_* ports (see HOST_MEM at the top of this file).  The
+        # kernel's own slots keep their numbers, so its stations, its wires
+        # and its BD_SZ keys are exactly what they were.
+        host = None
+        if HOST_MEM:
+            if arb:
+                raise EmitError(
+                    f"mem_controller at line {node.src_line}: --host-mem on an "
+                    f"arbitrated port (2 accessors) would need a third slot, "
+                    f"and bdc_memport_arb arbitrates exactly two (an arbiter "
+                    f"tree is not built). Not implemented.")
+            host = host_base(self.func, info["memref"])
+            self.host_wired.add(info["memref"])
+        nport = n + (1 if host else 0)
+
+        pname = f"bdc_memport{'_arb' if arb else ''}_{aw}_{dw}_{nport}"
+        self.units.setdefault(pname, mem.emit_port(aw, dw, slots=nport, arb=arb))
 
         # ONE PAIR OF DELAYS PER RAM -- mem.py's own header: each bd_mem in
         # a gang is placed and routed separately, so rule B and rule C
@@ -2688,7 +2736,9 @@ class Emitter:
 
         def cat(sig):
             names = [f"{inst}_s{k}_{sig}" for k in range(n)]
-            return names[0] if n == 1 else "{" + ", ".join(reversed(names)) + "}"
+            if host:
+                names.append(f"{host}_{sig}")
+            return names[0] if len(names) == 1 else "{" + ", ".join(reversed(names)) + "}"
 
         ack_port = f".s_ack({cat('ack')})" if arb else f".p_ack({inst}_s0_ack)"
         self.emit(f"    {pname} #({', '.join(parms)}) {inst}_uport (")
@@ -2697,6 +2747,12 @@ class Emitter:
                   f".s_wdata({cat('wdata')}),")
         self.emit(f"        .s_we({cat('we')}), {ack_port}, "
                   f".p_rdata({inst}_rdata));")
+        if host:
+            # The plain port's acknowledge and read data are shared by every
+            # slot; the kernel's stations gate them with their own `joined`,
+            # so an idle station ignores a host access (bdc/mem.py: done).
+            self.emit(f"    assign {host}_ack = {inst}_s0_ack;")
+            self.emit(f"    assign {host}_rdata = {inst}_rdata;")
 
         # memStart / ctrlEnd / memEnd.
         #
@@ -3030,6 +3086,33 @@ def emit_func(func, table=None):
         if not res.is_control:
             ports.append(f"    output wire [{res.width - 1}:0]     {b}_data")
 
+    # ---- host memory ports (HOST_MEM; see its note at the top of this file) --
+    # One set per memref argument, in signature order, after every channel, so
+    # nothing a caller already connects by position moves.
+    if HOST_MEM:
+        taken = {portname(a.name) for a in func.args} | {portname(r.name) for r in func.results}
+        for arg in func.args:
+            if arg.ssa_name not in e.memrefs:
+                continue
+            aw, dw = e.memrefs[arg.ssa_name]
+            b = host_base(func, arg.ssa_name)
+            if b in taken:
+                raise EmitError(f"--host-mem: the host port of memref {arg.name!r} would be named "
+                                f"{b!r}, which is already a channel of @{func.name}")
+            ports += [f"    input  wire             {b}_req",
+                      f"    output wire             {b}_ack",
+                      f"    input  wire [{aw - 1}:0]     {b}_addr",
+                      f"    input  wire [{dw - 1}:0]     {b}_wdata",
+                      f"    input  wire             {b}_we",
+                      f"    output wire [{dw - 1}:0]     {b}_rdata"]
+            if arg.ssa_name not in e.host_wired:
+                # No mem_controller reads or writes this memref, so there is no
+                # RAM behind its host port: complete every handshake at once and
+                # read zero, which is what the kernel itself would see.
+                e.emit(f"    // {arg.name}: no mem_controller uses this memref; its host port has no RAM.")
+                e.emit(f"    assign {b}_ack = {b}_req;")
+                e.emit(f"    assign {b}_rdata = {dw}'b0;")
+
     # ---- probe ports -------------------------------------------------------
     # BDC_PROBE=<chan>[,<chan>...] brings an INTERNAL channel out of the kernel
     # so it can be latched and read back over JTAG.
@@ -3243,6 +3326,15 @@ def emit_top(func, delays, inst="uut"):
         obs.append(f"{b}_req")
         if not res.is_control:
             obs.append(f"^{b}_data")
+    if HOST_MEM:
+        # The host ports are idle here: this top never fills a memory.
+        for a in func.args:
+            m = re.fullmatch(r"memref<(\d+)x[iu](\d+)>", a.raw) if a.raw.startswith("memref") else None
+            if m:
+                b = host_base(func, a.ssa_name)
+                aw = max(1, (int(m.group(1)) - 1).bit_length())
+                conns.append(f"        .{b}_req(1'b0), .{b}_addr({aw}'b0), "
+                             f".{b}_wdata({m.group(2)}'b0), .{b}_we(1'b0),")
     conns[-1] = conns[-1].rstrip(",")
 
     decls = []
@@ -3351,10 +3443,18 @@ def main():
                     help="bring these internal channels out as read-only "
                          "probe ports (names as they appear in the emitted "
                          "Verilog, e.g. n136_u); also settable as BDC_PROBE")
+    ap.add_argument("--host-mem", action="store_true",
+                    help="give every memory a host port: one more one-hot slot "
+                         "on its bdc_memport, wired to <memref>_host_* kernel "
+                         "ports (a no-op for a kernel without memref "
+                         "arguments); also settable as BDC_HOST_MEM=1")
     args = ap.parse_args()
 
     if args.probe:
         PROBE[:] = [p for p in args.probe.split(",") if p]
+    if args.host_mem:
+        global HOST_MEM
+        HOST_MEM = True
 
     text, func, delays = generate(args.mlir, top=not args.no_top)
     if args.out:

@@ -220,12 +220,67 @@ BENCH_PROG = r'''
         axi_write(32'h00, 32'h0);                       // release the kernel's reset
         repeat (8) @(posedge MAXIGP0ACLK);
         if (rungap >= 0) axi_write(32'h50, rungap);
+        if (vfmt == 2) begin
+            // v2: the bench describes itself (gen_bench.py LAYOUT 0xA0, MEMINFO[m] 0xC0 + 4m) and must agree with
+            // the file's header; a kernel with <= 2 words and no memory has no LAYOUT register and reads 0 there.
+            axi_read(32'hA0, lay);
+            if (lay[15:0] == 16'hB5C2 ? (lay[23:16] != vwords || lay[31:24] != vmems) : (vwords > 2 || vmems > 0)) begin
+                $display("BENCHSUMMARY LAYOUT MISMATCH: bench LAYOUT=%08h, %0s says words=%0d mems=%0d", lay, vecfile,
+                         vwords, vmems);
+                $finish;
+            end
+            vcall = vwords;
+            for (m = 0; m < vmems; m = m + 1) begin
+                axi_read(32'hC0 + 4 * m, minfo);
+                mdepth[m] = minfo[31:16]; mwidth[m] = minfo[15:8]; vcall = vcall + mdepth[m];
+            end
+            nvf = vcall > 0 ? vtot / vcall : 0;
+            if (vcall == 0 || nvf * vcall != vtot) begin
+                $display("BENCHSUMMARY VECFILE %0s holds %0d words, not a whole number of %0d-word calls", vecfile, vtot,
+                         vcall);
+                $finish;
+            end
+            if (!$value$plusargs("NBATCH=%d", nbatch)) nbatch = nvf;
+            if (nbatch > nvf) nbatch = nvf;
+        end
         for (j = 0; j < nbatch; j = j + 1) begin
             if (j > 0) fclk_ps = fclk_ps + pstep;       // bench idle: only the AXI slave sees the change
             repeat (4) @(posedge MAXIGP0ACLK);
             axi_write(32'h20, 32'h2); axi_write(32'h20, 32'h0);   // bench_rst: stickies read 0 first
             axi_read(32'h58, ill);
             if (ill[3] || ill[7]) $display("BENCHPRE batch=%0d ILL=%08h not clear after bench_rst", j, ill);
+            if (vfmt == 2) begin
+                vbase = j * vcall;
+                op0 = vwords > 0 ? vbig[vbase] : 32'h0; op1 = vwords > 1 ? vbig[vbase + 1] : 32'h0; opstep = 0;
+                for (k2 = 2; k2 < vwords; k2 = k2 + 1) axi_write(32'h60 + 4 * (k2 - 2), vbig[vbase + k2]);
+                // fill every memory through its host port, the kernel idle (between batches)
+                axi_write(32'h8C, 32'h0);                // MEMSTAT: clear the count and the stickies
+                vo = vbase + vwords;
+                for (m = 0; m < vmems; m = m + 1) begin
+                    axi_write(32'h80, m << 16);
+                    for (i = 0; i < mdepth[m]; i = i + 1) axi_write(32'h84, vbig[vo + i]);
+                    vo = vo + mdepth[m];
+                end
+                if (vmems > 0) begin
+                    axi_read(32'h8C, mstat);
+                    if (mstat[2:1] != 2'b0 || mstat[31:16] != vcall - vwords)
+                        $display("BENCHMEM batch=%0d FILL FAILED MEMSTAT=%08h (%0d accesses expected)", j, mstat,
+                                 vcall - vwords);
+                end
+                if (memchk && vmems > 0) begin
+                    nbad = 0; vo = vbase + vwords;
+                    for (m = 0; m < vmems; m = m + 1) begin
+                        wmask = mwidth[m] >= 32 ? 32'hFFFFFFFF : (32'h1 << mwidth[m]) - 32'h1;
+                        axi_write(32'h80, m << 16);
+                        for (i = 0; i < mdepth[m]; i = i + 1) begin
+                            axi_write(32'h88, 32'h1); axi_read(32'h90, rd);
+                            if (rd !== (vbig[vo + i] & wmask)) nbad = nbad + 1;
+                        end
+                        vo = vo + mdepth[m];
+                    end
+                    $display("BENCHMEMCHK batch=%0d words=%0d bad=%0d", j, vcall - vwords, nbad);
+                end
+            end else
             if (nvf > 0) begin op0 = vmem[2 * j]; op1 = vmem[2 * j + 1]; opstep = 0; end
             axi_write(32'h08, op0 + j * opstep); axi_write(32'h0C, op1); axi_write(32'h14, nruns);
             axi_write(32'h20, 32'h0); axi_write(32'h20, 32'h1 | ((mode & 3) << 2));
@@ -242,6 +297,22 @@ BENCH_PROG = r'''
                      j, fclk_ps, mode, op0 + j * opstep, op1, nruns, bs[31:16], cyc, prep, lmin, lmax, sig, odata,
                      mism, ill, ill[7], ":", ill[10:8], ill[13:11], ill[3], illc, fsm, $time, bs[1] ? "DONE" : "HANG");
             axi_write(32'h20, 32'h0);
+            if (vfmt == 2 && memdump && vmems > 0 && bs[1]) begin
+                // every memory after the batch, read through the host port (a written array's final contents)
+                axi_write(32'h8C, 32'h0);
+                for (m = 0; m < vmems; m = m + 1) begin
+                    axi_write(32'h80, m << 16);
+                    $write("BENCHMEM batch=%0d mem=%0d n=%0d data=", j, m, mdepth[m]);
+                    for (i = 0; i < mdepth[m]; i = i + 1) begin
+                        axi_write(32'h88, 32'h1); axi_read(32'h90, rd);
+                        if (i > 0) $write(",");
+                        $write("%08h", rd);
+                    end
+                    $write("\n");
+                end
+                axi_read(32'h8C, mstat);
+                $display("BENCHMEMSTAT batch=%0d memstat=%08h", j, mstat);
+            end
             if (!bs[1]) begin
                 nhang = nhang + 1;
                 axi_write(32'h20, 32'h2); axi_write(32'h20, 32'h0);
@@ -267,10 +338,17 @@ BENCH_BODY = r'''
     //   +RUNGAP=<n>     inter-run gap register (default: leave the reset value)
     //   +VECFILE=<file> hex "op0 op1" per line ($readmemh, 2 words per vector): batch j runs vector j
     //                   (overrides OP0/OP1/OPSTEP; NBATCH defaults to the number of vectors read)
+    //                   A file whose FIRST line is "// benchvec words=W mems=M" is the v2 format instead
+    //                   (research/data/suite/bench/README.md): per call, W operand words in signature order
+    //                   (OP0, OP1 at 0x08/0x0C, OP2.. at 0x60..), then every element of each of the M memories in
+    //                   signature order, its depth read from the bench's MEMINFO; the bench's LAYOUT must agree.
+    //   +MEMCHECK=1     v2: after filling the memories, read every word back through the host port and compare
+    //   +MEMDUMP=1      v2: after each batch, print every memory's contents (BENCHMEM lines)
     //   +TBATCH=<ns>    a batch that is not done after this is a HANG (default 200 + 20 us per run)
     // Same AXI3 master as gcd_ps's (gen_ps7.py), running hw/xsdb_bench_gen.tcl's run_batch.
     localparam integer TCO = 100;
     localparam [11:0] ID = 12'h3E7;
+    localparam integer VBIG = 262144;
     reg fclk = 1'b0;
     integer fclk_ps, pstep, nbatch, nruns, mode, rungap, tbatch_ns, j, idmis, nhang;
     reg [31:0] op0, op1, opstep;
@@ -285,6 +363,12 @@ BENCH_BODY = r'''
     integer nvf;
     reg        timed_out;
     time       t0;
+    // v2 vector files (gen_bench.py's wider ABI: more operand words, memories behind host ports)
+    reg [31:0] vbig [0:VBIG - 1];
+    reg [8*256-1:0] vline;
+    integer vfmt, vwords, vmems, vfd, vtot, vcall, vbase, vo, m, i, k2, memchk, memdump, nbad;
+    integer mdepth [0:7], mwidth [0:7];
+    reg [31:0] lay, minfo, mstat, rd, wmask;
     initial begin
         fclk_ps = 10000; pstep = 0; nbatch = 1; nruns = 8; mode = 1; rungap = -1;
         op0 = 32'h30; op1 = 32'h12; opstep = 0;
@@ -300,12 +384,31 @@ BENCH_BODY = r'''
         tbatch_ns = 200000 + 20000 * nruns;
         if ($value$plusargs("TBATCH=%d", tbatch_ns)) ;
         nvf = 0;
+        vfmt = 0; vwords = 2; vmems = 0; vtot = 0; vcall = 0; memchk = 0; memdump = 0;
+        if ($value$plusargs("MEMCHECK=%d", memchk)) ;
+        if ($value$plusargs("MEMDUMP=%d", memdump)) ;
         if ($value$plusargs("VECFILE=%s", vecfile)) begin
+            // v2 says so on its first line; any other file is the two-word format, read exactly as before
+            vfd = $fopen(vecfile, "r");
+            if (vfd != 0) begin
+                vline = 0;
+                if ($fgets(vline, vfd) != 0)
+                    if ($sscanf(vline, "// benchvec words=%d mems=%d", vwords, vmems) == 2) vfmt = 2;
+                $fclose(vfd);
+            end
+            if (vfmt == 2) begin
+                // the count of whole calls needs the memories' depths, read from the bench once AXI is up
+                for (j = 0; j < VBIG; j = j + 1) vbig[j] = 32'hxxxxxxxx;
+                $readmemh(vecfile, vbig);
+                while (vtot < VBIG && vbig[vtot] !== 32'hxxxxxxxx) vtot = vtot + 1;
+            end else begin
+            vwords = 2; vmems = 0;
             for (j = 0; j < 512; j = j + 1) vmem[j] = 32'hxxxxxxxx;
             $readmemh(vecfile, vmem);
             while (nvf < 256 && vmem[2 * nvf + 1] !== 32'hxxxxxxxx) nvf = nvf + 1;
             if (!$value$plusargs("NBATCH=%d", nbatch)) nbatch = nvf;
             if (nbatch > nvf) nbatch = nvf;
+            end
         end
     end
     always #(fclk_ps / 2) fclk = ~fclk;

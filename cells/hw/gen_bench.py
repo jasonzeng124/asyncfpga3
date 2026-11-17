@@ -70,7 +70,22 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "bdc"))
 from hs import parse  # noqa: E402
 
-MAX_WORDS = 2  # every kernel in kernels/ needs at most this many 32-bit words
+# THE OPERAND FILE (suiteb, 2026-11-17).  It was two words, OP0/OP1 at 7'h02/7'h03, because each of the six original
+# kernels needed at most two.  The benchmark suite has kernels with more arguments, so the file is now up to
+# MAX_WORDS words: OP0/OP1 where they always were, OP2..OP9 at 7'h18..7'h1F (byte 0x60..0x7C).  The extra registers
+# are emitted ONLY for a kernel that needs more than two words, so for every kernel that needs two or fewer --
+# all six of the originals among them -- this generator's output is byte-identical to what it was.  Arguments map
+# onto words in signature order, an i64 as its low word then its high word (research/data/suite/bench/README.md).
+MAX_WORDS = 10
+OPX_BASE = 0x18          # word address of OP2; OPk is at OPX_BASE + k - 2
+
+# A memref argument is not an operand word: it is a memory behind bdc/emit.py --host-mem's host port, which the bench
+# drives through the MEM* registers below (research/data/suite/bench/README.md).  Word addresses:
+MEM_ADDR, MEM_WDATA, MEM_CMD, MEM_STAT, MEM_RDATA = 0x20, 0x21, 0x22, 0x23, 0x24
+LAYOUT, MEMINFO_BASE = 0x28, 0x30   # LAYOUT {nmem, nwords, 16'hB5C2}; MEMINFO[m] {depth, elem width, addr width}
+LAYOUT_MAGIC = 0xB5C2
+MAX_MEMS = 8
+HOST_TIMEOUT = 0x7FF     # aclk cycles a host access may wait for the port before it is abandoned (and flagged)
 
 # Per-kernel operand domain restriction: kernel name -> list of one entry per
 # data arg, each either None (no restriction) or a dict describing the mask.
@@ -144,6 +159,114 @@ def kernel_delay_params(dut_module):
           "proposals will have nothing to attach to" % dut_module, file=sys.stderr)
     return []
 
+# bdc/emit.py's portname(): an argName/resName as a Verilog port base.  Repeated here rather than imported because
+# importing emit.py reads its build-time environment knobs (BDC_SELECT_PADS and friends) at import time.
+_RESERVED = {
+    "end", "begin", "module", "wire", "reg", "input", "output", "inout",
+    "assign", "always", "initial", "parameter", "localparam", "generate",
+    "endmodule", "case", "default", "function", "task", "and", "or", "not",
+    "buf", "xor", "nand", "nor", "xnor", "if", "else", "for", "while",
+}
+
+
+def portname(name):
+    s = re.sub(r"[^A-Za-z0-9_]", "_", name)
+    return "p_" + s if s in _RESERVED or not s[:1].isalpha() else s
+
+
+def host_mem_lines(mems):
+    """The bench's side of bdc/emit.py --host-mem's host ports: registers, a
+    four-phase sequencer in the aclk domain, one 2-flop synchroniser per
+    acknowledge.  Emitted only for a kernel with memref arguments."""
+    nm = len(mems)
+    L = []
+    A = L.append
+    A("    // ---- the host memory path (gen_bench.py host_mem_lines) ---------------------------------------")
+    A("    // Each memref argument's memory has a HOST PORT: bdc/emit.py --host-mem gave its bdc_memport one more")
+    A("    // one-hot slot, wired to the kernel's <m>_host_* ports.  This sequencer drives those slots from the")
+    A("    // PS side, one access at a time, so the host can fill an array before a call and read it back after:")
+    A("    //   MEMADDR  7'h20 RW [15:0] element index, [23:16] memory (signature order of the memref args)")
+    A("    //   MEMWDATA 7'h21 W  mem[MEMADDR] <= wdata, then index += 1.  R: MEMRDATA")
+    A("    //   MEMCMD   7'h22 W  [0]=1: MEMRDATA <= mem[MEMADDR], then index += 1")
+    A("    //   MEMSTAT  7'h23 R  [0] busy [1] refused (sticky) [2] timeout (sticky) [31:16] accesses done;")
+    A("    //                   W  clears [1], [2] and the count")
+    A("    //   MEMRDATA 7'h24 R  the word the last access read (a write reads back what it wrote: WRITE_FIRST)")
+    A("    // The AXI response to a MEMWDATA/MEMCMD write is held until the access is over, so a run of writes")
+    A("    // paces itself and a read's data is in MEMRDATA by the time its write response arrives.")
+    A("    //")
+    A("    // The slot is ONE-HOT with the kernel's own (the plain bdc_memport's obligation on its caller): an")
+    A("    // access is REFUSED (MEMSTAT[1], the write still answered) while a batch runs or the kernel is held")
+    A("    // in reset (its port's acknowledge C-tree is reset with it, so the access could never finish).  So")
+    A("    // the host uses the port between calls only.  Before raising its request the sequencer also waits")
+    A("    // for the port's SHARED acknowledge to be low: the last access, the kernel's or its own, has")
+    A("    // returned to zero, so this request makes a fresh rising edge on the RAM's manufactured clock.")
+    A("    //")
+    A("    // Every acknowledge is an asynchronous signal entering this clocked FSM, so each gets a 2-flop")
+    A("    // synchroniser (CLAUDE.md) and is never read raw.  Address, data and we are flops set one aclk")
+    A("    // BEFORE the request rises and held until the acknowledge has been seen low again: the bundling")
+    A("    // margin is a whole clock period on top of the port's own DSETUP.  The read data is sampled once")
+    A("    // the synchronised acknowledge is high, two clocks after the RAM produced it and while it holds.")
+    A("    localparam M_IDLE = 2'd0, M_REQ = 2'd1, M_ACK = 2'd2, M_RTZ = 2'd3;")
+    A("    reg [1:0]  mst;")
+    A("    reg [15:0] mem_idx, mem_count;")
+    A("    reg [7:0]  mem_sel;")
+    A("    reg [31:0] mem_wd, mem_rd;")
+    A("    reg        mem_we, mem_busy, mem_resp, mem_refused, mem_timeout;")
+    A("    reg [10:0] mem_tmo;")
+    A(f"    reg [{nm - 1}:0] mem_hreq;")
+    for m, (name, depth, dw, aw) in enumerate(mems):
+        A(f"    wire       mem_hack{m};                  // {name}: the port's acknowledge (async)")
+        A(f"    wire [{dw - 1}:0] mem_hrd{m};")
+        A(f"    reg  [1:0] sync_hack{m};")
+    sel_ack = " : ".join(f"(mem_sel == 8'd{m}) ? sync_hack{m}[1]" for m in range(nm)) + " : 1'b0"
+    A(f"    wire       hack_s = {sel_ack};")
+    sel_rd = " : ".join(f"(mem_sel == 8'd{m}) ? {{{32 - dw}'b0, mem_hrd{m}}}" if dw < 32
+                        else f"(mem_sel == 8'd{m}) ? mem_hrd{m}"
+                        for m, (_, _, dw, _) in enumerate(mems)) + " : 32'b0"
+    A(f"    wire [31:0] hrd_sel = {sel_rd};")
+    A("    wire       mem_cmd   = do_write && (axi_awaddr == 7'h21 || (axi_awaddr == 7'h22 && wdata[0]));")
+    A(f"    wire       mem_ok    = !mem_busy && !bench_busy && !ctrl_rst && (mem_sel < 8'd{nm});")
+    A("    wire       mem_start = mem_cmd && mem_ok;")
+    onehot = "{" + ", ".join(f"mem_sel == 8'd{m}" for m in reversed(range(nm))) + "}"
+    A("    always @(posedge aclk or negedge aresetn) begin")
+    A("        if (!aresetn) begin")
+    A("            mst <= M_IDLE; mem_idx <= 16'b0; mem_count <= 16'b0; mem_sel <= 8'b0;")
+    A("            mem_wd <= 32'b0; mem_rd <= 32'b0; mem_we <= 1'b0; mem_busy <= 1'b0; mem_resp <= 1'b0;")
+    A(f"            mem_refused <= 1'b0; mem_timeout <= 1'b0; mem_tmo <= 11'b0; mem_hreq <= {nm}'b0;")
+    A("            " + " ".join(f"sync_hack{m} <= 2'b0;" for m in range(nm)))
+    A("        end else begin")
+    A("            " + " ".join(f"sync_hack{m} <= {{sync_hack{m}[0], mem_hack{m}}};" for m in range(nm)))
+    A("            mem_resp <= 1'b0;")
+    A("            if (do_write && axi_awaddr == 7'h20) begin mem_idx <= wdata[15:0]; mem_sel <= wdata[23:16]; end")
+    A("            if (do_write && axi_awaddr == 7'h23) begin mem_refused <= 1'b0; mem_timeout <= 1'b0; mem_count <= 16'b0; end")
+    A("            if (mem_cmd && !mem_ok) mem_refused <= 1'b1;")
+    A("            case (mst)")
+    A("                M_IDLE: if (mem_start) begin")
+    A("                    mem_we <= (axi_awaddr == 7'h21);")
+    A("                    if (axi_awaddr == 7'h21) mem_wd <= wdata;")
+    A("                    mem_busy <= 1'b1; mem_tmo <= 11'b0; mst <= M_REQ;")
+    A("                end")
+    A("                // address, data and we have been stable since the last edge; ask once the port is quiet")
+    A(f"                M_REQ: if (!hack_s) begin mem_hreq <= {onehot}; mst <= M_ACK; end")
+    A("                M_ACK: if (hack_s) begin mem_rd <= hrd_sel; mem_hreq <= " + f"{nm}'b0; mst <= M_RTZ; end")
+    A("                M_RTZ: if (!hack_s) begin")
+    A("                    mst <= M_IDLE; mem_busy <= 1'b0; mem_resp <= 1'b1;")
+    A("                    mem_idx <= mem_idx + 16'd1; mem_count <= mem_count + 16'd1;")
+    A("                end")
+    A("            endcase")
+    A("            // No acknowledge for HOST_TIMEOUT cycles: abandon the access, flag it, answer the AXI write.")
+    A("            if (mst != M_IDLE) begin")
+    A("                mem_tmo <= mem_tmo + 11'd1;")
+    A(f"                if (mem_tmo == 11'h{HOST_TIMEOUT:03X}) begin")
+    A(f"                    mem_timeout <= 1'b1; mem_hreq <= {nm}'b0; mst <= M_IDLE; mem_busy <= 1'b0; mem_resp <= 1'b1;")
+    A("                end")
+    A("            end")
+    A("        end")
+    A("    end")
+    A("")
+    return L
+
+
 def words_for(width):
     assert width % 32 == 0, f"arg width {width} is not a multiple of 32 -- unsupported"
     return width // 32
@@ -159,7 +282,10 @@ def load_signature(kernel, frontend_dir):
     if len(funcs) != 1:
         raise SystemExit(f"{mlir}: expected exactly one defined handshake.func, found {len(funcs)}")
     func = funcs[0]
-    data_args = [a for a in func.args if not a.is_control]
+    # A memref parses as a width-0 NON-control channel (bdc/hs/parse.py), so it must be taken out before the data
+    # args are counted: it has no _req/_ack/_data port on the kernel (bdc/emit.py) and no operand word here.
+    mems = [a for a in func.args if a.raw.startswith("memref")]
+    data_args = [a for a in func.args if not a.is_control and not a.raw.startswith("memref")]
     total_words = sum(words_for(a.width) for a in data_args)
     if total_words > MAX_WORDS:
         raise SystemExit(f"{kernel}: needs {total_words} operand words, this generator's fixed "
@@ -168,14 +294,48 @@ def load_signature(kernel, frontend_dir):
     if func.name != kernel:
         raise SystemExit(f"{mlir}: handshake.func @{func.name} does not match kernel name "
                           f"{kernel!r} passed on the command line")
-    return data_args
+    # Control arguments other than `start` (a memory's memStart, `<m>_start`) are offered with every call, like
+    # start; control results other than `end` (a memory's memEnd, `<m>_end`) are taken by a sink, like end.
+    ctl_in = [a for a in func.args if a.is_control and a.name != "start"]
+    ctl_out = [r for r in func.results if r.is_control and r.name != "end"]
+    if [a.name for a in func.args if a.is_control and a.name == "start"] != ["start"] or \
+            [r.name for r in func.results if r.is_control and r.name == "end"] != ["end"]:
+        raise SystemExit(f"{mlir}: @{func.name} needs exactly one `start` argument and one `end` result")
+    data_res = [r for r in func.results if not r.is_control]
+    if [r.name for r in data_res] != ["out0"] or data_res[0].width > 32:
+        raise SystemExit(f"{mlir}: @{func.name} returns {[(r.name, r.width) for r in data_res]}; the bench "
+                         f"captures exactly one result, out0, of at most 32 bits")
+    memspec = []
+    for a in mems:
+        m = re.fullmatch(r"memref<(\d+)x[iu](\d+)>", a.raw)
+        if not m:
+            raise SystemExit(f"{kernel}: memref argument {a.name!r} is {a.raw!r}, not memref<NxiW>")
+        depth, dw = int(m.group(1)), int(m.group(2))
+        if dw > 32:
+            raise SystemExit(f"{kernel}: memref {a.name!r} has {dw}-bit elements; the host path moves one "
+                             f"32-bit word per element -- elements wider than 32 bits are not supported")
+        if (a.name + "_start") not in [c.name for c in ctl_in] or (a.name + "_end") not in [c.name for c in ctl_out]:
+            raise SystemExit(f"{kernel}: memref {a.name!r} has no {a.name}_start argument / {a.name}_end result")
+        # bdc/emit.py's own address width for this memref (_resolve_widths): the host port is that wide.
+        memspec.append((a.name, depth, dw, max(1, (depth - 1).bit_length())))
+    if len(memspec) > MAX_MEMS:
+        raise SystemExit(f"{kernel}: {len(memspec)} memories; the host path addresses at most {MAX_MEMS}")
+    return data_args, memspec, ctl_in, ctl_out
 
 
 def emit(kernel, is_null, top_name):
     frontend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "build", "frontend")
-    data_args = load_signature(kernel, frontend_dir)
+    data_args, mems, ctl_in, ctl_out = load_signature(kernel, frontend_dir)
     nargs = len(data_args)
     restr = DOMAIN_RESTRICTIONS.get(kernel, {})
+    # nw = operand words the kernel needs; the register file always has OP0/OP1, and OP2.. only when nw > 2.
+    nw = sum(words_for(a.width) for a in data_args)
+    nwr = max(2, nw)
+    wide = nw > 2
+    nm = len(mems)
+    if is_null and (mems or ctl_in or ctl_out):
+        raise SystemExit(f"{kernel}: --null is not built for a kernel with memories or extra control channels "
+                         f"(the null DUT would need a memory behind each host port)")
 
     dut_module = f"bdc_null_{kernel}" if is_null else f"bdc_{kernel}"
     kernel_file_comment = (f"// DUT: {dut_module} -- trivial pass-through, same port shape as bdc_{kernel}"
@@ -190,6 +350,11 @@ def emit(kernel, is_null, top_name):
       f"{kernel}{' --null' if is_null else ''} -o <path>")
     P(kernel_file_comment)
     P(f"// {nargs} data arg(s): " + ", ".join(f"{a.name}:i{a.width}" for a in data_args))
+    if wide:
+        P(f"// {nw} operand words: OP0, OP1 at 7'h02/7'h03, OP2..OP{nw - 1} at 7'h{OPX_BASE:02X}.. (gen_bench.py MAX_WORDS)")
+    if mems:
+        P(f"// {nm} memor{'y' if nm == 1 else 'ies'}, each behind a host port (bdc/emit.py --host-mem): "
+          + ", ".join(f"{n}[{d}] i{w} (aw {aw})" for n, d, w, aw in mems))
     if restr:
         P("// Domain restrictions applied to the uniform-random generator (see gen_bench.py header):")
         for name, rule in restr.items():
@@ -301,6 +466,9 @@ def emit(kernel, is_null, top_name):
     P("")
     P("    reg        ctrl_i_req, ctrl_o_ack, ctrl_rst;")
     P("    reg [31:0] op0, op1;                 // fixed two-word operand file (host-facing)")
+    if wide:
+        P("    reg [31:0] " + ", ".join(f"op{k}" for k in range(2, nw)) +
+          f";   // OP2..: 7'h{OPX_BASE:02X}.. (gen_bench.py MAX_WORDS)")
     P("    reg [31:0] n_runs, cycles, prep_cycles, lat_min, lat_max;")
     P("    reg        bctrl_start, bctrl_rst;")
     P("    reg [1:0]  bctrl_mode;                // 0=uniform 1=fixed 2=legacy-biased")
@@ -427,7 +595,12 @@ def emit(kernel, is_null, top_name):
     P("    reg [31:0] lfsr;")
     P("    wire [31:0] lfsr_n1 = {lfsr[30:0], lfsr[31]^lfsr[21]^lfsr[1]^lfsr[0]};")
     P("    wire [31:0] lfsr_n2 = {lfsr_n1[30:0], lfsr_n1[31]^lfsr_n1[21]^lfsr_n1[1]^lfsr_n1[0]};")
+    for k in range(3, nw + 1):   # UNIFORM draws word k from the LFSR advanced k times
+        P(f"    wire [31:0] lfsr_n{k} = {{lfsr_n{k - 1}[30:0], lfsr_n{k - 1}[31]^lfsr_n{k - 1}[21]^"
+          f"lfsr_n{k - 1}[1]^lfsr_n{k - 1}[0]}};")
     P("    reg [31:0] bench_op0, bench_op1;")
+    if wide:
+        P("    reg [31:0] " + ", ".join(f"bench_op{k}" for k in range(2, nw)) + ";")
     P("    reg        start_d;")
     P("    reg        have_ref;                  // FIXED-mode repeatability reference latched")
     P("")
@@ -437,6 +610,8 @@ def emit(kernel, is_null, top_name):
     P("    // bench_op0/1 while a request is in flight.  S_PREP settles them first.")
     P("    wire [31:0] op0_to_core = bench_busy ? bench_op0 : op0;")
     P("    wire [31:0] op1_to_core = bench_busy ? bench_op1 : op1;")
+    for k in range(2, nw):
+        P(f"    wire [31:0] op{k}_to_core = bench_busy ? bench_op{k} : op{k};")
     P("")
     P("    wire req_clr = i_ack_pl | ~aresetn;")
     P("    reg  req_core = 1'b0;")
@@ -688,6 +863,8 @@ def emit(kernel, is_null, top_name):
     P("            cycles <= 32'b0; prep_cycles <= 32'b0;")
     P("            lat_min <= 32'hFFFFFFFF; lat_max <= 32'b0;")
     P("            lfsr <= 32'h1; bench_op0 <= 32'b0; bench_op1 <= 32'b0;")
+    if wide:
+        P("            " + " ".join(f"bench_op{k} <= 32'b0;" for k in range(2, nw)))
     P("            last_op0 <= 32'b0; last_op1 <= 32'b0; start_d <= 1'b0;")
     P("            sig <= 32'b0; mismatch_sticky <= 1'b0; mismatch_idx <= 32'b0;")
     P("            mismatch_val <= 32'b0; mismatch_ref <= 32'b0; have_ref <= 1'b0;")
@@ -815,18 +992,25 @@ def emit(kernel, is_null, top_name):
     P("                    S_PREP: begin")
     P("                        if (prep_ctr == 32'd0) begin")
     P("                            case (bctrl_mode)")
-    fixed0, fixed1 = apply_domain_masks(kernel, data_args, "op0", "op1")
-    P(f"                                2'd1: begin bench_op0 <= {fixed0}; bench_op1 <= {fixed1}; end")
-    legacy0, legacy1 = apply_domain_masks(
+    fixed = apply_domain_masks(kernel, data_args, [f"op{k}" for k in range(nwr)])
+    if not wide:
+        P(f"                                2'd1: begin bench_op0 <= {fixed[0]}; bench_op1 <= {fixed[1]}; end")
+    else:
+        P("                                2'd1: begin")
+        for k in range(nw):
+            P(f"                                    bench_op{k} <= {fixed[k]};")
+        P("                                end")
+    # LEGACY is gcd's old biased draw for words 0 and 1; any further word is run as written (FIXED).
+    legacy = apply_domain_masks(
         kernel, data_args,
-        "({8'b0, lfsr[23:0]} | 32'd1)",
-        "({8'b0, {lfsr[11:0], lfsr[23:12]}} | 32'd1)")
+        ["({8'b0, lfsr[23:0]} | 32'd1)",
+         "({8'b0, {lfsr[11:0], lfsr[23:12]}} | 32'd1)"] + [f"op{k}" for k in range(2, nw)])
     P("                                2'd2: begin")
-    P(f"                                    bench_op0 <= {legacy0};")
-    P(f"                                    bench_op1 <= {legacy1};")
+    for k in range(nwr):
+        P(f"                                    bench_op{k} <= {legacy[k]};")
     P("                                    lfsr <= {lfsr[30:0], lfsr[31]^lfsr[21]^lfsr[1]^lfsr[0]};")
     P("                                end")
-    uni0, uni1 = apply_domain_masks(kernel, data_args, "lfsr", "lfsr_n1")
+    uni = apply_domain_masks(kernel, data_args, ["lfsr"] + [f"lfsr_n{k}" for k in range(1, nwr)])
     P("                                default: begin")
     P("                                    // lfsr_n1/lfsr_n2 (declared above) are two successive")
     P("                                    // LFSR states computed combinationally from the CURRENT")
@@ -841,9 +1025,9 @@ def emit(kernel, is_null, top_name):
     P("                                    // write: a later `bench_opN <= bench_opN & mask` in this")
     P("                                    // block would read the PRE-edge bench_opN, discarding")
     P("                                    // the draw above it entirely).")
-    P(f"                                    bench_op0 <= {uni0};")
-    P(f"                                    bench_op1 <= {uni1};")
-    P("                                    lfsr <= lfsr_n2;")
+    for k in range(nwr):
+        P(f"                                    bench_op{k} <= {uni[k]};")
+    P(f"                                    lfsr <= lfsr_n{nwr};")
     P("                                end")
     P("                            endcase")
     P("                        end")
@@ -982,6 +1166,9 @@ def emit(kernel, is_null, top_name):
     P("        end")
     P("    end")
     P("")
+    if mems:
+        for line in host_mem_lines(mems):
+            P(line)
     P("    // ---- AXI slave ----------------------------------------------------------")
     P("    always @(posedge aclk or negedge aresetn) begin")
     P("        if (!aresetn) begin")
@@ -990,6 +1177,8 @@ def emit(kernel, is_null, top_name):
     P("            axi_bid <= 12'b0;    axi_rid <= 12'b0;   aw_en <= 1'b1;")
     P("            ctrl_i_req <= 1'b0;  ctrl_o_ack <= 1'b0; ctrl_rst <= 1'b1;")
     P("            op0 <= 32'b0; op1 <= 32'b0;")
+    if wide:
+        P("            " + " ".join(f"op{k} <= 32'b0;" for k in range(2, nw)))
     P("            n_runs <= 32'b0;")
     P("            run_gap <= 32'd15;   // matches the original fixed prep_ctr==15")
     P("            bctrl_start <= 1'b0; bctrl_rst <= 1'b0; bctrl_mode <= 2'b0;")
@@ -1014,6 +1203,8 @@ def emit(kernel, is_null, top_name):
     P("                    7'h0: begin ctrl_i_req <= wdata[0]; ctrl_o_ack <= wdata[1]; ctrl_rst <= wdata[2]; end")
     P("                    7'h2: op0       <= wdata;")
     P("                    7'h3: op1       <= wdata;")
+    for k in range(2, nw):
+        P(f"                    7'h{OPX_BASE + k - 2:02X}: op{k} <= wdata;")
     P("                    7'h5: n_runs    <= wdata;")
     P("                    7'h14: run_gap  <= wdata;   // inter-run gap, aclk cycles")
     P("                    7'h8: begin bctrl_start <= wdata[0]; bctrl_rst <= wdata[1]; bctrl_mode <= wdata[3:2]; end")
@@ -1021,8 +1212,16 @@ def emit(kernel, is_null, top_name):
     P("                endcase")
     P("            end")
     P("")
-    P("            if (do_write && ~axi_bvalid) axi_bvalid <= 1'b1;")
-    P("            else if (bready && axi_bvalid) axi_bvalid <= 1'b0;")
+    if not mems:
+        P("            if (do_write && ~axi_bvalid) axi_bvalid <= 1'b1;")
+        P("            else if (bready && axi_bvalid) axi_bvalid <= 1'b0;")
+    else:
+        P("            // A MEMWDATA / MEMCMD write that starts a host access is answered when the access is over")
+        P("            // (mem_resp), not now: the response is the host's flow control, and aw_en keeps the next")
+        P("            // write out until it has been taken.  Every other write is answered as before.")
+        P("            if (do_write && ~axi_bvalid && !mem_start) axi_bvalid <= 1'b1;")
+        P("            else if (mem_resp && ~axi_bvalid) axi_bvalid <= 1'b1;")
+        P("            else if (bready && axi_bvalid) axi_bvalid <= 1'b0;")
     P("")
     P("            if (~axi_arready && arvalid) begin")
     P("                axi_arready <= 1'b1; axi_araddr <= araddr[8:2]; axi_rid <= arid;")
@@ -1109,25 +1308,45 @@ def emit(kernel, is_null, top_name):
       f"8'd{data_args[-1].width if data_args else 0}}}; // {{nargs, arg0_width, argN_width}} metadata")
     P("            // zero-extended: the bucket is 16 bits wide, the register is 32")
     P("            7'b1zzzzzz: rdata_r = {16'b0, hist[axi_araddr[5:0]]};  // 0x40-0x7F -> hist[0..63]")
+    for k in range(2, nw):
+        P(f"            7'h{OPX_BASE + k - 2:02X}: rdata_r = op{k};")
+    if mems:
+        P(f"            7'h{MEM_ADDR:02X}: rdata_r = {{8'b0, mem_sel, mem_idx}};   // MEMADDR")
+        P(f"            7'h{MEM_WDATA:02X}: rdata_r = mem_rd;")
+        P(f"            7'h{MEM_STAT:02X}: rdata_r = {{mem_count, 13'b0, mem_timeout, mem_refused, mem_busy}};   // MEMSTAT")
+        P(f"            7'h{MEM_RDATA:02X}: rdata_r = mem_rd;                     // MEMRDATA")
+        for m, (name, depth, dw, aw) in enumerate(mems):
+            P(f"            7'h{MEMINFO_BASE + m:02X}: rdata_r = {{16'd{depth}, 8'd{dw}, 8'd{aw}}};   // MEMINFO[{m}]: {name}")
+    if wide or mems:
+        P(f"            7'h{LAYOUT:02X}: rdata_r = {{8'd{nm}, 8'd{nw}, 16'h{LAYOUT_MAGIC:04X}}};   // LAYOUT {{nmem, nwords, magic}}")
     P("            default: rdata_r = 32'b0;")
     P("        endcase")
     P("    end")
     P("    assign rdata = rdata_r;")
     P("")
     P("    // ---- the kernel and its environment --------------------------------------")
-    n_fork = nargs + 1
-    fork_ack_list = ", ".join(["start_ack"] + [a.name + "_ack" for a in reversed(data_args)])
+    # Fork outputs: the data args in signature order, then any other control argument (a memory's <m>_start: its
+    # mem_controller's memStart, one token per call like start), then start.  No extra controls -> as before.
+    n_fork = nargs + len(ctl_in) + 1
+    fork_ack_list = ", ".join(["start_ack"] + [portname(c.name) + "_ack" for c in reversed(ctl_in)]
+                              + [a.name + "_ack" for a in reversed(data_args)])
     P(f"    wire [{n_fork - 1}:0] in_req;")
     P(f"    wire start_ack;")
     for a in data_args:
         P(f"    wire {a.name}_ack;")
+    for c in ctl_in:
+        P(f"    wire {portname(c.name)}_ack;")
     P("    wire p_end_req, p_end_ack;")
+    for c in ctl_out:
+        P(f"    wire {portname(c.name)}_req, {portname(c.name)}_ack;")
     P("")
     P(f"    bd_fork #(.N({n_fork})) ufork (")
     P(f"        .rst(rst_pl), .req(i_req_pl), .ack(i_ack_pl),")
     P(f"        .req_out(in_req), .ack_in({{{fork_ack_list}}}));")
     P("")
     P("    bd_delay #(.N(2)) upsnk (.a(p_end_req), .z(p_end_ack));")
+    for c in ctl_out:   # a memory's <m>_end (memEnd) is taken like end
+        P(f"    bd_delay #(.N(2)) u{portname(c.name)}_snk (.a({portname(c.name)}_req), .z({portname(c.name)}_ack));")
     P("")
     # ---- per-instance matched-delay overrides ------------------------------
     # The kernel takes one `parameter DELAY_<INST>` per delay-bearing cell and,
@@ -1175,9 +1394,22 @@ def emit(kernel, is_null, top_name):
         word_idx += nw
     for i, (a, expr) in enumerate(core_exprs):
         P(f"        .{a.name}_req  (in_req[{i}]), .{a.name}_ack  ({a.name}_ack), .{a.name}_data ({expr}),")
-    P(f"        .start_req (in_req[{nargs}]), .start_ack (start_ack),")
+    for k, c in enumerate(ctl_in):
+        P(f"        .{portname(c.name)}_req (in_req[{nargs + k}]), .{portname(c.name)}_ack ({portname(c.name)}_ack),")
+    P(f"        .start_req (in_req[{nargs + len(ctl_in)}]), .start_ack (start_ack),")
     P(f"        .out0_req  (o_req_pl),  .out0_ack  (o_ack_pl),  .out0_data (o_data_pl),")
-    P(f"        .p_end_req (p_end_req), .p_end_ack (p_end_ack));")
+    tail = [f"        .p_end_req (p_end_req), .p_end_ack (p_end_ack),"]
+    for c in ctl_out:
+        tail.append(f"        .{portname(c.name)}_req ({portname(c.name)}_req), "
+                    f".{portname(c.name)}_ack ({portname(c.name)}_ack),")
+    for m, (name, depth, dw, aw) in enumerate(mems):
+        h = portname(name) + "_host"
+        tail.append(f"        .{h}_req ({'mem_hreq' if nm == 1 else f'mem_hreq[{m}]'}), .{h}_ack (mem_hack{m}), "
+                    f".{h}_addr (mem_idx[{aw - 1}:0]),")
+        tail.append(f"        .{h}_wdata (mem_wd[{dw - 1}:0]), .{h}_we (mem_we), .{h}_rdata (mem_hrd{m}),")
+    tail[-1] = tail[-1][:-1] + ");"
+    for line in tail:
+        P(line)
     P("")
     P("    assign core_i_ack = i_ack_pl;")
     P("    assign core_o_req = o_req_pl;")
@@ -1256,11 +1488,12 @@ def emit(kernel, is_null, top_name):
     return "\n".join(lines)
 
 
-def apply_domain_masks(kernel, data_args, raw0, raw1):
+def apply_domain_masks(kernel, data_args, raws):
     """Given the UNMASKED Verilog expressions that would be drawn into
-    bench_op0/bench_op1 this cycle (raw0, raw1 -- e.g. 'lfsr'/'lfsr_n1' for
-    UNIFORM, 'op0'/'op1' for FIXED), return the MASKED expressions that
-    should actually be assigned, per the kernel's DOMAIN_RESTRICTIONS.
+    bench_op0, bench_op1, ... this cycle (raws, one per operand word -- e.g.
+    'lfsr'/'lfsr_n1' for UNIFORM, 'op0'/'op1' for FIXED), return the MASKED
+    expressions that should actually be assigned, per the kernel's
+    DOMAIN_RESTRICTIONS, as a list of the same length.
 
     Masking is applied to the raw expression INLINE, in the same
     non-blocking assignment that draws the word -- never as a later,
@@ -1268,7 +1501,7 @@ def apply_domain_masks(kernel, data_args, raw0, raw1):
     for why that reads stale data under Verilog's NBA semantics).
     """
     restr = DOMAIN_RESTRICTIONS.get(kernel, {})
-    raw = {0: raw0, 1: raw1}
+    raw = dict(enumerate(raws))
     masked = dict(raw)
     word_idx = 0
     for a in data_args:
@@ -1322,7 +1555,7 @@ def apply_domain_masks(kernel, data_args, raw0, raw1):
                 for w in range(lo, hi + 1):
                     masked[w] = f"(({raw[w]}) & 32'h7FFFFFFF)" if w == hi else raw[w]
         word_idx += nw
-    return masked[0], masked[1]
+    return [masked[k] for k in range(len(raws))]
 
 
 def main():
