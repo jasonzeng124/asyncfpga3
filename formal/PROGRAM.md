@@ -98,6 +98,31 @@ whenever a result here (a completeness proof, a certificate checker) is what it 
 
 A lock dated 2026-11-10 is from before the pause: take it.
 
+## First: where does the board sit in the delay band? (2026-11-17 17:15 UTC)
+
+Research and formal disagree, and the xorshift candidate depends on the answer.
+
+- Research: the board runs at 0.22 to 0.29 of the prjxray band (rings 0.288; the August
+  kernels within 1% at 0.222).
+- Formal A: about 0.75 to 0.9 (gcd's measured latencies; tightened rebuilds of collatz and
+  collatz64 at 0.75).
+- Formal C36: item 35's board route keeps only 15 ps at its loop-entry steer, with live
+  runts, when CARRY / F7 sit at the slow end of their band. That end has never been measured.
+  With CARRY / F7 at the fast end every route keeps 245 ps or more.
+
+Both positions cannot be right, and a kernel is mostly carry chains where a ring has none.
+So fit them separately. The August bitstreams that ran on the board are in
+`research/data/board-august/` on `claude/research` (the same five files for both of you).
+
+- **Both:** simulate those same files with the August vectors and put predicted against
+  measured ns per iteration, per kernel, into one shared table in `research/SIM-VS-BOARD.md`
+  (formal sends its rows through `formal/FOR-RESEARCH.md`). Fit the LUT-and-routing band and
+  the CARRY / F7 band as two numbers, and say how well the five kernels pin each one down.
+- **Then** redraw the candidates with CARRY / F7 where the fit puts them, not uniform over
+  the whole band, and say what that does to item 35 and to the ipow and collatz leads.
+- This comes before the next speed headline. A candidate whose weakest spot sits in a band
+  nobody has fitted is not yet the closest approximation of the board.
+
 ## The board decides; every check is a proxy (owner, 2026-11-16)
 
 The owner: "idc about the checks, they dont matter, as long is it works on board / closest
