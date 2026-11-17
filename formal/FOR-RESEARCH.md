@@ -68,6 +68,28 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   none known for these three kernels; ipow's (e > 0 loop, r * b) were not looked at.
 - Reproduce: `formal/tools-B/preload/prun.sh BASE OUT I0 LINK "PAIRS" N SEED0` on a margin/run.sh decode dir (KERNEL=,
   TMAX=), `carryslack.sh` for the slack; commands per row in formal/JOURNAL-B.md (2026-11-17).
+## C48. CORRECTION to C36 / C38 / C40 / C41 on formal's RC-tree arcs (= your model's, A18): item 35 is not on a knife edge -- its loop-entry steer keeps 204 ps at CARRY 1.0 with no runts; the shrink leads gain 250-730 ps; collatz x0.55 route 30 still fails (shard C, 2026-11-17 22:25 UTC; untrusted simulation)
+Same builds as before, decoded again with build_net RC_TREE=1 (formal's arcs then match your xray.sdf to ~1 ps per net, A18,
+and your ring predictions within 0.5 %, carryring/). Smallest settle gap at chains 0.20, rest 0.31, ps (runts in brackets);
+draws = your K, 8 per route, on the RC decode:
+| build (route) | condition | CARRY 0.20 | CARRY 1.0 | default arcs said (C36-C41) | draws RC |
+|---|---|---|---|---|---|
+| item 35 (21) | ucmpi0 -> ucond_br2 | 665 | **204 (0 runts)** | 12 (10 runts) | 8/8 |
+| item 35 (21) | ucmpi1 -> ucond_br6 | 566 | 566 | 321 | |
+| x55a10 / cand3b (21) | ucmpi0 / ucmpi1 | 1933 / 1465 | 1425 / **923** | 916 / 387 | 8/8 |
+| collatz x0.55 (3) | ucmpi0 -> ucond_br4 | 1020 | **850** | 583 | 8/8 |
+| ipow x0.55 (11) | ucmpi2 -> ucond_br6 | 1219 | **898** | 166 | 8/8 |
+| collatz x0.55 (30) | ucmpi0 -> ucond_br2/4 | 47 (8 runts), WRONG answers | 124 (10 runts), WRONG | 24-28 (12-14), wrong | 2 PASS, 2 FAIL, 4 UNDECIDED |
+- **What changes:** C36 / C38's "item 35 lives on absorbed runts at the slow-CARRY end" was an artefact of formal's fast
+  default arcs. On your model's arcs item 35 keeps ~0.2 ns at CARRY 1.0 (chains 0.20 / rest 0.31) and ~0.4 ns at chains 0.31.
+  C38's ~-55 ps per 0.1 CARRY slope is being redone on these arcs. C42's argument is weaker: item 35 does not need the fit.
+- **What stands:** the direction (slow CARRY with fast chains is the worst corner); C41's UCMPI0 = 10 still more than
+  quadruples the entry margin (204 -> 1425 ps) at no speed cost and is the safer board build; collatz x0.55 route 30 fails in
+  formal on either arcs (your 3001 / 3003 too), on the same entry-steer race, and C43's fix (UCMPI0 8) removes it.
+- Absolute times on the RC decode are ~22 % longer (item 35 last answer on xor19 33.0 vs 27.0 us), as A17 predicts.
+- Every other C-number of 2026-11-17 (C37, C40 rest, C43-C47) is on default arcs; treat their ps values as lower than your
+  model's (margins here grew 250-730 ps on RC), their pass/fail as unchanged unless rerun.
+
 ## C36-C47 caveat (shard C, 2026-11-17 22:05 UTC): every ps margin and draw in C36-C47 used formal's DEFAULT arcs, which A16-A18 show are ~20 % fast; being redone on RC_TREE=1 decodes
 Formal's default build_net arcs lack output-pin drive x net C, node-wire RC and a few site arcs; on item 36's rings they come
 out 8-33 % short of your model, while build_net RC_TREE=1 matches it within 0.5 % on all 128 rings (formal/tools/margin/

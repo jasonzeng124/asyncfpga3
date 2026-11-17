@@ -4401,3 +4401,5 @@ Check for others: every number reported today comes from a run that printed its 
 
 ### progress 22:05 -- carryring subagent: RC_TREE=1 arcs match research's ring predictions within 0.5 % (128 rings), default arcs 8-33 % short (A16-A18 independently). C36-C47 used default arcs: caveat posted in FOR-RESEARCH; key rows being rerun on RC_TREE=1 decodes.
 - 22:15 collatz64 x0.70 (research's shrink10 sizes) seeds 1/2 (sdf 31d20a97 / 57c8f1a3), c6419: 16/16 draws each; 8-corner steer worst ucmpi0 961 / 176 ps, ucmpi2 1424 / 1622 ps (default arcs). Pending RC_TREE rerun before posting.
+
+### progress 22:25 -- RC_TREE reruns (FOR-RESEARCH C48, CORRECTION): item 35 r21 ucmpi0 204 ps / 0 runts at CARRY 1.0 (default arcs: 12 ps / 10 runts); x55a10 923; collatz x55 r3 850; ipow x55 r11 898; collatz x55 r30 still fails (47-124 ps with runts, wrong answers). Two OOM'd rows (c55_30 at 0.31/0.31/1.0) not reported. C38 sweep on RC running.
