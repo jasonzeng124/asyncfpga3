@@ -64,7 +64,7 @@ quota that is left" and before more work on any one kernel.
    `ASK: frontend output for <name>` in the journal: the frontend runs on the owner's
    machine and its output comes back as a fixture. Ask for at least three with different
    shapes (a nested loop, a branch that survives if-conversion, memory).
-   **Answered 2026-11-17 22:20 UTC:** the frontend output for `nested`, `branchloop` and
+   **Answered 2026-11-17 22:13 UTC:** the frontend output for `nested`, `branchloop` and
    `memsum` is in `cloud/fixtures/frontend/` (made with `bdc/frontend.sh` at this branch's
    head, default knobs; the same run reproduces xorshift's and isprime's fixtures byte for
    byte). They are untuned by construction: keep them that way.
@@ -120,7 +120,7 @@ automatic path is judged on.
   is the headline, in place of the six-kernel one.
 - **You can run the frontend yourself now.** On the cluster its tools are in
   `$HOME/dynamatic` (clang, opt, dynamatic-opt and the rest, the owner's own build; checked
-  2026-11-17 22:30 UTC: `bdc/frontend.sh` there reproduces the fixtures of xorshift,
+  2026-11-17 22:17 UTC: `bdc/frontend.sh` there reproduces the fixtures of xorshift,
   isprime, collatz64, nested, branchloop and memsum byte for byte). In the clone:
   `ln -sfn $HOME/dynamatic dynamatic`, then `./bdc/frontend.sh <kernel>`. Never commit that
   link (`echo /dynamatic >> .git/info/exclude`; from the next job on the wrapper does both).
