@@ -2979,3 +2979,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - ucond_br8's select is ucmpi1, the loop compare, 9 -> 4.
   - First own simulation failure on a shrink candidate. Finding T137.
 - research e1f9e38fd: "x0.40 is past the edge for some routes"; the candidate will come from shrink5 (x0.55a / x0.50a).
+- 00:09 T137: stopped the hung x0.40a FAST_MIN vvp (no result for 250+ µs of simulated time) so the remaining corners run; the log is kept at /root/t65/xdx40a_27_fastmin.log.
