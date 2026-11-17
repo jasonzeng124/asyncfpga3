@@ -5886,3 +5886,7 @@ on a ctl input in our GLS (already on the Next list).
   outside the model's band range); +8000 ps 0/16 (every draw: no completion in 100 min). PREDICTION met on both halves.
 - Board candidates' pass fractions (draws1, above) stand: 216/216 draws over 7 items, no mismatch latch.
 - shrink4 so far: x0.30a fails 1 of 4 on route 9 (draw 902 hangs); x0.40a 2 of 4 on route 14; every other route 4/4.
+### progress 00:06 (worker restarted ~00:00; branch intact)
+- shrink4 15/32: x0.40a fails on routes 12 (1 of 4: a hang) and 14 (2 of 4); x0.30a fails 1 of 4 on route 9 (a hang).
+  x0.40 is past the edge for some routes, so the candidate comes from shrink5 (x0.55a / x0.50a, queued).
+- shrink3's x0.20 / x0.10 tasks are still running (their draws hang to the 100-min timeout).
