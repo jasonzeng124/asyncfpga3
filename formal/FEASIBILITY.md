@@ -7,6 +7,12 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–13). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-17 (lead): the band question on the August BOARD bitstreams (FOR-RESEARCH A13).** Formal decodes the
+bitstreams that ran (collatz, collatz64, gcd), names their boundary from the routed JSONs, and reproduces the board's
+per-iteration costs with ONE band position per delay model: b = 0.38-0.40 in formal's arcs (research's full stack:
+0.22; its arcs are ~20 % slower, cause partly traced). The CARRY / F7 band does not affect any of these loop times
+(0.00 ns over b_c 0.2-1.0), so the August data cannot fit it. Superseded: the rebuild-based numbers of 2026-11-16/17.
+
 **2026-11-16 evening (lead): the board decides (owner). How close is the simulator to the board?** The decoded
 August gcd design (rebuilt from the measuring commit) reproduces the board's 20 per-input latencies to 0.9 % RMS with
 one band position b = 0.39 of prjxray's [FAST_MIN, SLOW_MAX] and a 36 ns harness offset (FOR-RESEARCH A11; simulation,
