@@ -3115,3 +3115,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Both slow-carry figures are below formal's quoted minimum of 321 ps.
   - Formal's "agrees with T139 (363 vs 264-485)" lumps different corners.
   - T143 launched: item 35 at formal's own corner (chains 0.20, rest 0.20, CARRY4 1.0), on xorshift_17 and long rounds, plus a no-scatter run. Verdict after T143.
+
+### progress 09:38
+- T143 advC (formal's corner) on xorshift_17: ucond_br2 400 / br6 404 / br7 932 ps, 17/17. Same order as formal's 321 at that corner.
+- But advA (264 ps) and long rounds (140 ps) are lower inside the same model. Formal C33 OVERSTATED as item 35's margin (interim). Finding T143; REPORT row.
+- formal 231232939 (C34): item 35 sizes on routes 1-4 give 166-341 ps; noted in T143.
