@@ -22,9 +22,11 @@ to FASM by prjxray's bit2fasm -- and rebuilds the design from prjxray-db alone:
   * sites, from their configuration bits: SLICEL/SLICEM (LUT6/LUT5 INIT,
     F7/F8, CARRY4 with PRECYINIT and CY0, FF/5FF with ZINI/ZRST/FFSYNC/
     CEUSEDMUX/SRUSEDMUX/CLKINV, OUTMUX/FFMUX), BUFGCTRL, BSCAN, OLOGIC
-    D1->OQ, IOB33 output.  Anything the board would run that is not modelled is
-    REFUSED (LATCH, CLKINV, async SR, LUTRAM/SRL, DSP, BRAM...), and every
-    configured feature this script did not consume is listed in report.txt.
+    D1->OQ, IOB33 output, DSP48E1 (dsp_model.py's subset), RAMB18E1 (bd_mem's
+    configuration only: decode_bram()).  Anything the board would run that is
+    not modelled is REFUSED (LATCH, CLKINV, async SR, LUTRAM/SRL, other DSP or BRAM
+    modes...), and every configured feature this script did not consume is
+    listed in report.txt.
   * which bels exist is decided by the bits, not by the netlist: a LUT exists
     because something the board configured consumes its output.
 

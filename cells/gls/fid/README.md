@@ -181,6 +181,49 @@ applies to the full-stack bitstream items' guard).
   0; the board's 965/2016 correct ipow products contradict that.) USE_MULT has no bit in prjxray-db and is
   assumed MULTIPLY. The pattern detector bits (MASK, PATTERN, ...) are
   consumed, but no modelled output reads them.
+* **RAMB18E1** (bd_mem's configuration only; 2026-11-17). A RAMB18 half with
+  `RAMB18_Y<h>.IN_USE` becomes one `RAMB18E1_RAMB18E1` cell named like
+  nextpnr's bel (`RAMB18_X0Y26/RAMB18E1`). The lower half is prjxray's
+  FIFO18E1 site, whose pins carry FIFO names (DO, RDCLK, RDEN, RST); both
+  sites' tile wires carry the RAMB18E1 names (`BRAM_FIFO18_DOADO3`,
+  `BRAM_RAMB18_CLKARDCLK`), so pins are named from the wire. Accepted, and
+  nothing else (`decode_bram()` refuses every other feature of a BRAM tile,
+  so an unknown bit stops the build instead of reaching the not-consumed
+  list): port A x18 (`READ/WRITE_WIDTH_A_18`), port B at the unused encoding
+  (`_1`) AND its enable a constant 0 after the site inverter (`ZINV_ENBWREN`
+  absent = inverted; nextpnr ties ENBWREN to VCC with IS_ENBWREN_INVERTED),
+  no DOA/DOB_REG, WRITE_FIRST (no WRITE_MODE bit), no INIT/INITP content,
+  `ZINIT_A`/`ZSRVAL_A` (INIT_A/SRVAL_A = their complement, modelled),
+  ADDRATIEHIGH0/1 decoded to 1, CLKARDCLK a live net, no reader of DOBDO/
+  DOPBDOP; the unused half's and the tile's all-zero encodings (`*_WIDTH_*_1`,
+  `RDADDR_COLLISION_HWCONFIG_DELAYED_WRITE`, `RSTREG_PRIORITY_*_RSTREG`,
+  `RAMB36.RAM_EXTENSION_*_NONE_OR_UPPER`, `ZALMOST_*_OFFSET`) are consumed.
+  Refused: cascade, FIFO mode, ECC, SDP, other widths, output registers,
+  READ_FIRST/NO_CHANGE, INIT content, a live port B, and a RAMB36 that sets
+  any RAMB36-level bit (widths 1 and 9). LIMITATION: a RAMB36 at width 36
+  has NO bit of its own in prjxray-db (nextpnr writes READ/WRITE_WIDTH_18 in
+  each half), and the site-pin pips of the RAMB18 and RAMB36 sites are the
+  same always-on ppips, so the bits cannot tell it from two RAMB18 halves at
+  one address: it decodes as two RAMB18E1 cells, and `fasm_equiv.py` then
+  reports the cell sets differing (NOT EQUIVALENT). bd_mem never uses one. The model is
+  `prims.v RAMB18E1_RAMB18E1` (its header: write-first x18 on a clean
+  rising edge, power-up 0, a setup/hold violation of ADDR/DI/WE/EN/RST
+  poisons the edge's word and DO with X). Timing: nextpnr writes NO arc and
+  NO check for this cell, so `xray_delay.py` inserts them from prjxray-db
+  `timings/BRAM_*.sdf`: CLKARDCLK -> DOADO/DOPADOP (585 : 1353 : 2454 ps,
+  the DOA_REG=0 read) and the windows (largest end of each): ADDR 566/360,
+  DI 737/667 (TDP WRITE_FIRST), WE 532/197, EN 443/227, RST 359/453 ps
+  setup/hold. ASSUMPTION: the database has these windows only for the
+  upper half (ADDRAU, ...), and both halves take them. `gen.py` refuses a
+  RAMB18E1 whose SDF carries no clock-to-out or no SETUPHOLD
+  (`GLS_RAM_NOMINAL=1` overrides, for a debugging run only). The SDF cell
+  type is `RAMB18E1_RAMB18E1`, so `GLS_SDF_BAND_CELL=RAMB18E1_RAMB18E1=<b>`
+  places its clock-to-out in the band (never measured on the board: like
+  CARRY4/F7/FF, the slow end is the conservative corner for bd_mem, whose
+  DCO must cover it). `fasm_equiv.py` section 2c compares the configuration,
+  the EFFECTIVE CLK/EN/RST/ENB values (constant XOR inversion: nextpnr writes
+  a GND tie as VCC + IS_*_INVERTED) and the driver of every ADDR/DI/DIP/WE
+  pin. Self-test: `bram/README.md`.
 * **Latches** (LDCE/LDPE: the four FFs of a slice with `LATCH` set). The latch
   is open while the clock pin equals the CLKINV bit. ZRST selects asynchronous
   clear, otherwise preset. `gen.py` now emits `SLICE_LATX` (`prims.v`) for a
@@ -190,7 +233,7 @@ applies to the full-stack bitstream items' guard).
   - CLKINV on a flop;
   - asynchronous SR on a flop;
   - a 5FF in a latch slice;
-  - LUTRAM/SRL and BRAM;
+  - LUTRAM/SRL, and any BRAM configuration other than bd_mem's RAMB18E1 (above);
   - ILOGIC in ISERDES/IDDR mode, and OLOGIC in any mode other than D1 to OQ;
   - a DSP outside its subset (see above; registered A/B/C/M/P are modelled);
   - a BUFGCTRL that does not reduce to O = I0.

@@ -328,7 +328,7 @@ RAM_SH_CLASS = (("ADDR", re.compile(r"^ADDRARDADDR\d+$")), ("DI", re.compile(r"^
                 ("RST", re.compile(r"^RSTRAMARSTRAM$")))
 
 
-def ram_config(cname, c, netname, arcs, shs, read_bits):
+def ram_config(cname, c, netname, arcs, shs, read_bits, const_bits):
     """-> parameter text for the routed RAMB18E1 `c` (both netlists' shared part,
     and the baked timing part), or exit naming what is not modelled."""
     def refuse(why):
@@ -353,9 +353,13 @@ def ram_config(cname, c, netname, arcs, shs, read_bits):
             refuse("%s=%s (modelled: %s)" % (k, v, RAM_PARAMS[k]))
 
     def const_of(pin):
+        # by the net's DRIVER (PSEUDO_VCC/GND) or its packer name: fasm2net's
+        # netlist also hangs routed-JSON alias names on a constant net
         bl = conns.get(pin)
         if not bl:
             return None
+        if bl[0] in const_bits:
+            return const_bits[bl[0]]
         n = netname.get(bl[0], "")
         return 1 if n == "$PACKER_VCC_NET" else 0 if n == "$PACKER_GND_NET" else None
     enb = const_of("ENBWREN")
@@ -948,7 +952,7 @@ def main():
                  % (ps, k, net_of_pin(src), k))
 
     unexpected = []
-    read_bits = None            # bits some input reads (built on the first RAMB18E1)
+    read_bits = const_bits = None   # bits some input reads, constant bits (built on the first RAMB18E1)
     for cname in order:
         c = cells[cname]
         t = c["type"]
@@ -1068,8 +1072,11 @@ def main():
             if read_bits is None:
                 read_bits = {bl[0] for c2 in cells.values() for p2, bl in c2.get("connections", {}).items()
                              if bl and c2.get("port_directions", {}).get(p2) == "input"}
+                const_bits = {c2["connections"]["Y"][0]: 1 if c2["type"] == "PSEUDO_VCC" else 0
+                              for c2 in cells.values() if c2["type"] in ("PSEUDO_VCC", "PSEUDO_GND")
+                              and c2.get("connections", {}).get("Y")}
             shared, timing = ram_config(cname, c, netname, iopaths.get(cname, []),
-                                        setuphold.get(cname, []), read_bits)
+                                        setuphold.get(cname, []), read_bits, const_bits)
             L.append("  %s #(%s) %s (%s);" % (t, shared, nn, ", ".join(conn)))
             B.append("  %s #(%s%s) %s (%s);" % (t, shared, timing, nn, ", ".join(conn)))
         elif t == DSP_T:
