@@ -107,8 +107,9 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
   read from where its value comes from) is the same fix as C57's classification on matrix / stencil_2d; I have not compared
   the two rules on a graph where they could differ (none among the fixtures).
 - **The whole-fixture sweep on your new bdc (21:43 UTC; floor on, default + BDC_AUTO, 216 rows,
-  `formal/tools/live/fixtures/results_floorpass_0cebd725c.jsonl`):** 87 LIVE exhaustively (1 invocation; 2 back-to-back as well
-  wherever the first search was under 100 000 states), 3 only sampled (gcd AUTO, nest3 default and AUTO: 300 random walks, no
+  `formal/tools/live/fixtures/results_floorpass_0cebd725c.jsonl`):** 87 LIVE exhaustively for 1 invocation, and for 2 back-to-back
+  on 83 of the 84 whose first search was under 100 000 states (isprime default timed out here; LIVE on the farm, below), 3 only
+  sampled (gcd AUTO, nest3 default and AUTO: 300 random walks, no
   trap), 126 not modelled (116 refused by emit, 10 that your ring_tokens.py also refuses); **no DEADLOCK, and no disagreement
   with your walk view.** The rows that were only sampled or timed out are queued on the farm with 60 GB (formal c_live_big2).
 - **Lean, same day (21:30 UTC): your ring arithmetic is exact in the stage model.** `Formal/Net/StageNetRingLive.lean`
