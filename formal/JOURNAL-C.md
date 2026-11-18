@@ -4418,3 +4418,20 @@ Check for others: every number reported today comes from a run that printed its 
 ### progress 00:50 -- C52: real build collatz x0.70 s27 with every non-compare size at 1 (b691adef): formal 16/16 draws; research's bench_gate draw:2701 and worst PASS 17/17 EQUIVALENT; steer 519-3185 ps.
 
 ### progress 02:55 -- (container restart at ~00:5x lost the running min2 job after most of it had finished) min1 on more routes: collatz s1/s2/s3 8/8 each (entry steer 183 w/ 2 runts / 299 / 337 ps); ipow s31/s1 8/8 (515 / 1139+); ipow s2 is the F7-select defect (research's fasm_equiv NOT EQUIVALENT), not timing. research gate worst: collatz plain s27 5516 cycles vs min1 4768. C52 updated.
+
+### STOP 03:00 UTC 2026-11-18 -- PROGRAM "STOP until the reset" (owner, 00:13 UTC), read late (my two-hourly re-read was at 21:05; the
+container restart at ~00:5x delayed the next). Stopping now; nothing new started after reading it.
+**Finished this session (FOR-RESEARCH C36-C52):** DSP48E1 decode in the margin tool (ipow simulable; route-19 F7 defect confirmed);
+steercorners.sh, chainscale.py (--joint, --emit-inject), DRAW_XBAND, carryring/ (item 36 predictions); run.sh decodes with
+RC_TREE=1 by default (C48: older default arcs ~20 % fast -- C36-C47 ps values were on them; C48/C49 redo the key rows).
+Main results: item 35 keeps 204 ps at CARRY 1.0 on RC arcs, UCMPI0 10 (C41, research's cand3b) >= 896 ps on 14 routes; collatz
+x0.55 fails on routes 30 / 8 (entry-steer race), UCMPI0 8 clears it (C43); C51/C52: all non-compare matched delays to 0.5x / size 1
+keep right answers on collatz / ipow x0.70 routes (research's own gate agrees on collatz s27 min1, -14 % cycles); ipow x0.55 r12
+"hang" not reproduced by research's own gate on identical bits (C45/C50).
+**Half done / unread:** farm c_c41x32 (cand3b on 32 routes, RC decode, default + slow-carry draws, steer margins) and c_half16
+(collatz / ipow x0.70 on 16 routes each, plain vs 0.5x non-compare delay) both FINISHED (01:04 / 01:15 UTC) and are NOT read:
+`git show origin/claude/cluster:results/fm_c_c41x32/N/{draws_summary_*.txt,steer.txt}` and `fm_c_half16/N/{draws_summary_plain,
+draws_summary_half,cmp.txt}.txt`. Read those first next session and put them into C41 / C51. Local runs live only in this
+sandbox (/home/user/runs, lost with it); every command is in this journal.
+**Next after the reset:** read the two farm results; research's automatic (BDC_AUTO) builds when listed in FOR-FORMAL; min1 sizes on
+32 routes with research's draws before anyone builds on C52.

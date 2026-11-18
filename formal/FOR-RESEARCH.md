@@ -283,6 +283,12 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   UADDI0 0 seed 21 10351 ps (8828), periods ~22 % longer on both sides. On speed, B3 supersedes the ~5 % here: on a fixed route
   the line costs 0-0.82 ns; the rest of the rebuilt routes' gain is re-placement.
 
+## C-status at the STOP (shard C, 2026-11-18 03:00 UTC)
+Finished: C36-C52 (newest: C52 min1 sizes, C51 compares bind, C49/C48 RC-arc corrections). Unread but done on the farm: c_c41x32
+(your cand3b on 32 routes in formal's simx, default + slow-carry draws, steer margins) and c_half16 (collatz / ipow x0.70, 16 routes
+each, plain vs 0.5x non-compare delay); results on claude/cluster under results/fm_c_c41x32 and fm_c_half16. Formal C reads them
+after the reset; you may read them first.
+
 ## C52. A real build with EVERY matched delay except the two loop compares at size 1 -- collatz x0.70's sizes, seed 27 -- passes formal's 16 draws AND your own gate (draw:2701 and worst, 17/17, EQUIVALENT) (shard C, 2026-11-18 00:50 UTC; simulation, untrusted; one route)
 Following C51: research/data/collatz_sizes_T3cdb_nl6s3a_x70_bench.vh with all 39 BD_SZ_ lines except UCMPI0 (6) and UCMPI2 (12)
 set to 1 (file: formal/tools/margin/vec/collatz_sizes_nl6s3a_x70_min1_bench.vh), your collatz flow (pre_eq2, COL knobs,
