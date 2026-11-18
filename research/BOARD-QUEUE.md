@@ -45,6 +45,26 @@ negative control fails). Run it before the speed items.
    ns; at 1% ring scatter the fit resolves y to +-0.01-0.02. The two routes must agree with each other within their
    sigmas; if they do not, that is the finding.
 
+## 2026-11-18: item 39 -- automatic collatz (BDC_AUTO=1, the loop's own sizes): 18.99 ns, faster than every hand collatz item
+
+39. **collatz at ~19.0 ns per iteration, automatic (BDC_AUTO=1, sizes from auto_size.sh flow v3, seed 6)** -- farm suite4:
+   7 automatic collatz routes, 56 / 56 draws, P median 18.98 ns (17.71-20.60); this rule-CLEAN route is the median:
+   sdf c56def07, P 18.99 ns, EQUIVALENT, ffmux-clean; SLOW_MAX / FAST_MIN / worst 17/17 each and **32 / 32 draws**
+   (K 30601-30632, col18). bdc/auto.py applies the proven n == 2 exit test (pre_eq2, formal A6) by itself. Sizes:
+   research/data/suite/board/collatz_v3_s6_sizes.vh (the loop's sizes_final.vh, nothing edited). Hand: item 31, 21.5 ns.
+   Built on the farm with nextpnr 9c732bc6303458df; rebuilt here with 6e5d224472232d5d, identical. From cells/:
+
+       BDC_AUTO=1 NEXTPNR_SEED=6 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/collatz_v3_s6_sizes.vh ./hw/build_bench.sh collatz
+       md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # c56def07 = the route judged here
+       python3 ../research/tools/ffmux_scan.py build/hw/collatz_bench_gen/collatz_bench_gen.fasm; echo "exit $?"   # must be 0
+       CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_col_auto.tsv
+       (item 25: #26's commands for lc_col_eq.tsv, if not already run)
+       python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_auto.tsv build/hw/lc_col_eq.tsv; echo "exit $?"
+
+   Pass: `=== PASS ... ===`, exit 0. Predicted ratio over item 25 ~1.89 (35.92 ns on its route vs 18.99 here; the
+   simulation runs ~8 % slow per iteration against the August board, so expect ~17.5 ns). A FAIL with item 25 passing is
+   the automatic flow's silicon counterexample: send both logs.
+
 ## 2026-11-18: item 38 -- the FIRST AUTOMATIC build: ipow with BDC_AUTO=1 and the flow's own sizes (nothing set by hand)
 PROGRAM "General first": one switch, no sizes chosen per kernel. This route came out of the automatic sizing loop
 (research/tools/auto/auto_size.sh, flow v3) on the farm (suite4) and was rebuilt here byte for byte. It is faster than
@@ -125,6 +145,7 @@ condition 8 ns late) on 16 / 16 draws.
 | 35 (fr4a_x55a s21) | xorshift | 16.85 (32 routes, all draws passing: 128 / 128) | 32 / 32 + 6 / 6 corner gates |
 | 37 (x55a10 s21) | xorshift | 16.76 (28 EQUIVALENT routes, 200 / 200 draws incl. 96 slow-carry) | 32 / 32 + 3 / 3 corners |
 | 38 (AUTOMATIC, v3 s2) | ipow | 24.10 (8 automatic routes, 64 / 64 draws); this route 22.71 | 32 / 32 + 3 / 3 corners |
+| 39 (AUTOMATIC, v3 s6) | collatz | 18.98 (7 automatic routes, 56 / 56 draws); this route 18.99 | 32 / 32 + 3 / 3 corners |
 
 Item 35 is the first chosen by the draws (sizes shortened while every draw passes; first failure at x0.40a).
 
