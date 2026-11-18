@@ -117,7 +117,7 @@ while :; do
   [ "$i" = 1 ] && [ "$ph" = 1 ] && ro="--nopin"
   st=$(python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
        "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" $ro)
-  echo "it $i $(cat "$O/it_$i.txt") | $(echo "$st" | head -1)${ro:+ (raise-only)}" >> "$O/log.txt"
+  echo "it $i $(cat "$O/it_$i.txt") | $(echo "$st" | head -1)${ro:+ ($ro)}" >> "$O/log.txt"
   echo "$st" > "$O/ratchet_$i.txt"
   read -r _ nr _ _ _ neg _ nl _ _ <<< "$(echo "$st" | head -1)"
   if [ "$neg" = 0 ]; then LC=$i; [ "$nl" = 0 ] || [ "$ph" = 2 ] && break; fi   # clean: done, or go on while it shortens
