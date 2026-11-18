@@ -6438,3 +6438,14 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   for all 17 batches and the same verdict (PASS 17/17, cycles 5090, EQUIVALENT). Memory kernels can now run in the
   suite (memsum passed 4 seeds at worst in suiteb's runs); stores still do not emit.
 - bdc/auto.py exits 1 when a proven rewrite's script is missing (04ef56a1c).
+### progress 02:09 (rejudge works: farm suite1's xorshift seed 3 passes 4 / 4; collatz64 seed 1 4 / 4; memsum joins)
+- research/tools/suite/rejudge.sh on suite1's xorshift seed 3: rebuilt here from its sizes_final.vh = the farm's route
+  (sdf ea3c2aad, P 23178 ps), EQUIVALENT under today's checker, **4 / 4 draws** (xor19 19/19 each). So the suite1
+  routes the old checker refused can be judged; that is the plan for suite1's and suite2's NOT EQUIVALENT rows.
+- Local seed 1, collatz64: **4 / 4 draws** at P 30.01 ns (c6419). Headline (top of research/data/fifteen/README.md,
+  preliminary, one route each): xorshift 21.08, collatz 18.06, collatz64 30.01 ns, every draw passing.
+- Memory kernels in the suite runner: a v2 vector file (arrays) takes oracle_mem.sh and GATE_MEMEXP (every array read
+  back after each call must equal the C's); kernels/memsum/vec.hex = suiteb's five calls.
+- eventgraph.py: with no cycle through its marker it now writes the marker's measured period instead of an IndexError
+  (the reason the automatic ipow route had no P).
+- x55a10 seed 21 (board-item candidate, hand column): 3 corners + 15 draws so far, all PASS.
