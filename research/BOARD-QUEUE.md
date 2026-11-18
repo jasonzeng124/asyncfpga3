@@ -16,6 +16,17 @@ named here decodes EQUIVALENT (or only the benign GND-buffer kinds). If the md5 
 the full stack's equivalence on it before using the board (cells/gls/ps/build_ps.sh HWDIR WORK "" bit prints the
 fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('const', 0) bits ('const', 1)").
 
+## Run order now (2026-11-18 18:00 UTC; each item below judges itself)
+1. **Item 36** (the CARRY4 / MUXF7 band, research/board/carry/): the one delay band no kernel can pin; every draw model
+   below assumes it uniform over [0.20, 1.0].
+2. **Item 37** (xorshift x55a10 seed 21, 16.49 ns in simulation): the fastest xorshift, a hand recipe.
+3. **Items 38 / 39 / 40 / 41** (ipow 22.71, collatz 18.99, collatz64 23.71, xorshift 20.11 ns in simulation): the
+   automatic flow (BDC_AUTO=1, its own sizes, nothing set per kernel), each 35 or more judgments passing. A failure
+   here, with its hand-item partner passing, is the most informative result this list can return.
+4. Then the list "Board list, in order" further down (older items; several superseded by the ones above).
+The simulation runs ~8 % slower per iteration than the August board (research/SIM-VS-BOARD.md), so expect each ns
+figure above about 8 % lower on the board.
+
 ## 2026-11-17 (evening): item 36 -- the CARRY4 / MUXF7 band; the most useful board run now
 No August latency can place the CARRY4 / F7 delay band (in bundled data the matched LUT chains set the cycle), yet the
 fastest candidates' correctness depends on it: collatz x0.55 fails draws only with that band at 0.75-0.91, and item 35's
