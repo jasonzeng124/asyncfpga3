@@ -6845,3 +6845,20 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   (AUTO_SEARCH_RESIZE=1). Cherry-picked (f09d45c6f); xsearch1 (waiting, not yet submitted) withdrawn, **xsearch2** filed:
   the same 32 resumed A/B tasks, AUTO_SEARCH_MAXIT=4. Draws on xorgap's local p8 routes: s3 draw 10301 PASS 19/19, rest
   running (its report is due 22:40).
+### progress 19:49 (owner T156: no list of kernels in the automatic path -- the md5-keyed rewrites are off by default)
+- PROGRAM (owner, 19:30 UTC, auditor T156): bdc/auto.py applied pre_dec / pre_eq2 only when the output's md5 was one of
+  three proven files (xorshift, collatz, collatz64): a per-kernel setting. **BDC_AUTO=1 now copies the MLIR unchanged;
+  BDC_AUTO_REWRITES=1 is the named variant with the three rewrites** (every automatic route before today used it).
+  Checked on all of build/frontend: with the switch off auto.py's output equals its input on every fixture; with it on,
+  only collatz, collatz64 and xorshift differ.
+- The same test on the rest of the automatic path (bdc/auto.py rules M / F, emit.py, mem.py, compute.py, auto_size.sh,
+  ratchet.py, est_sizes.py, merge_rules.py, corner_audit.py, skew.py, tighten.py, arb_fork.py, search.py, whatif.py,
+  build_bench.sh): no other key on a kernel's name, a file's hash, an instance name or a literal line of one kernel's
+  MLIR. Kernel names appear only in comments and docstrings, in compute.py's multiplier-delay constant (calibrated once
+  on ipow, the starting estimate of every kernel's multiplier), and in cells/hw/gen_bench.py's input-domain masks (the
+  bench's harness: collatz n & 0xFFFF, xorshift rounds & 0xFFF -- verification data, not the compiler; they limit what
+  the bench can test, as the audit noted before).
+- BOARD-QUEUE items 39 / 40 / 41: commands now say BDC_AUTO_REWRITES=1 (the same routes). xsearch2 withdrawn while
+  waiting (it measured the search on the rewritten flow). **Farm norw1 filed first**: xorshift / collatz / collatz64 x
+  8 seeds with the rewrites off, flow v6, 8 draws: the headline's automatic column; suite6 is the "with the three
+  rewrites" column beside it. The search lever (xorgap) will run on norw1's states next.

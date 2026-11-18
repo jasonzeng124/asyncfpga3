@@ -134,9 +134,21 @@ PROVEN = {
 REWRITES = ("pre_dec.py", "pre_eq2.py")
 
 
+# OFF unless BDC_AUTO_REWRITES=1 (owner, 2026-11-18, auditor T156): PROVEN is a list of three kernels' output files and
+# the matchers match one kernel each, so applying them is a per-kernel setting, which the automatic path must not carry.
+# BDC_AUTO=1 alone (the automatic column) copies the MLIR unchanged; BDC_AUTO_REWRITES=1 is the named variant "with the
+# three proven rewrites" (every automatic route built before this change, board items 39-41 included, used it). A rewrite
+# comes back into the automatic path as a PASS: a structure matched on any kernel, the pass proved, not an output file.
+REWRITES_ON = os.environ.get("BDC_AUTO_REWRITES", "0") == "1"
+
+
 def rewrite_mlir(src_path, dst_path, log=print):
     """Apply each proven rewrite whose output is in PROVEN; write the result (or the input unchanged) to dst_path."""
     import hashlib, shutil, subprocess, sys, tempfile
+    if not REWRITES_ON:
+        shutil.copyfile(src_path, dst_path)
+        log("auto: MLIR rewrites off (BDC_AUTO_REWRITES=1 applies the three md5-keyed proven rewrites)")
+        return []
     here = os.path.dirname(os.path.abspath(__file__))
     tools = os.path.join(here, "..", "research", "tools", "fifteen")
     cur = open(src_path, "rb").read()
