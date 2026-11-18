@@ -25,6 +25,9 @@ cur, order = rd(sys.argv[1])
 prop, _ = rd(sys.argv[2])
 neg = [l.rstrip("\n").split("\t") for l in open(sys.argv[3]) if l.strip() and not l.startswith("rule\t")]
 RAISE_ONLY = "--raise-only" in sys.argv   # the finish phase (auto_size.sh): every line max(CUR, PROP), none lowered
+HEADROOM = 0                               # --headroom N: a line raised gets N more elements than the rule asks
+if "--headroom" in sys.argv:
+    i = sys.argv.index("--headroom"); HEADROOM = int(sys.argv[i + 1]); del sys.argv[i:i + 2]
 sys.argv = [a for a in sys.argv if a != "--raise-only"]
 pf = sys.argv[5] if len(sys.argv) > 5 else os.path.join(os.path.dirname(os.path.abspath(sys.argv[4])), "pinned.txt")
 pinned = set(l.strip() for l in open(pf)) if os.path.exists(pf) else set()
@@ -37,6 +40,8 @@ with open(sys.argv[4], "w") as f:
         if p > cur[mac]:
             pinned.add(mac)
         v = max(cur[mac], p) if (mac in pinned or RAISE_ONLY) else p
+        if p > cur[mac]:
+            v += HEADROOM
         if v > cur[mac]:
             raised.append("%s %d->%d" % (mac, cur[mac], v))
         elif v < cur[mac]:

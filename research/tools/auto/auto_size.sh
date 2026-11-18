@@ -103,7 +103,9 @@ while :; do
   i=$((i + 1))
   build "$i" "$O/sizes_$i.vh" || { echo "BUILD FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
   rule "$i" "$O/sizes_$i.vh" || { echo "RULE FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
-  ro=""; [ "$ph" = 2 ] && ro=--raise-only
+  # phase 2 raises with one element of headroom: each re-route moves the small margins by a few hundred ps (local v4
+  # xorshift seed 8: 5, 3, 4 constraints short at -5..-278 ps on three raise-only routes), about one element
+  ro=""; [ "$ph" = 2 ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1}"
   st=$(python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
        "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" $ro)
   echo "it $i $(cat "$O/it_$i.txt") | $(echo "$st" | head -1)${ro:+ (raise-only)}" >> "$O/log.txt"
@@ -117,7 +119,7 @@ while :; do
     ph=2; IMAX=$((MAXIT + FIN))
     # the next sizes without the lowering phase 1's last ratchet did
     python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
-       "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only > /dev/null
+       "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" > /dev/null
     echo "phase 2 (raise-only) from it $((i + 1))" >> "$O/log.txt"
   elif [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then break; fi
 done
