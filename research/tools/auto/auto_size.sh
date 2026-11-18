@@ -266,7 +266,11 @@ search_phase() {
   local RS=${AUTO_SEARCH_RESIZE:-0}; local M3=${AUTO_SEARCH_MAXIT:-$([ "$RS" = 1 ] && echo 6 || echo 4)} SC3=${AUTO_START_SCALE:-0.3} ONLY3=${AUTO_START_ONLY:-'^(?!.*_UMEM[0-9]+_(USETUP|UCO)$)'}
   if ! grep -q "period P = [0-9]" "$G/check.txt" 2>/dev/null; then
     echo "search: no event graph for route ${N}_$X: skipped" >> "$O/log.txt"; return 0; fi
-  python3 "$R/research/tools/eventgraph/search.py" "$G" "$O/sizes_$X.vh" --depth-only > "$O/search.txt" 2>&1
+  # AUTO_SEARCH_ARGS (default --depth-only): the search's candidates. "--all-sites --buildable-only --wire 1000" adds a
+  # latch on any fork output and on any merge output / result branch (search.py --all-sites, subagent graphsearch:
+  # research/data/eventgraph/search_all.md); its ENV names every link of each knob it sets, rules F / M's included.
+  python3 "$R/research/tools/eventgraph/search.py" "$G" "$O/sizes_$X.vh" ${AUTO_SEARCH_ARGS:---depth-only} \
+    > "$O/search.txt" 2>&1
   XENV=$(sed -n 's/^ENV //p' "$O/search.txt")
   echo "search on ${N}_$X: $(grep -E '^(base|chosen)' "$O/search.txt" | tr '\n' ' ')" >> "$O/log.txt"
   [ -n "$XENV" ] || return 0
