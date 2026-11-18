@@ -2030,6 +2030,95 @@ def _apply_link_depths(func, linked, depth, floor):
 
 
 # ---------------------------------------------------------------------------
+# Results no call bounds: joined with the call's end token
+#
+# A `source` offers a token forever (cells/rtl/bd_end.v: req = ~ack).  Inside a function that is harmless wherever an
+# op joins the source's token with one that came from an argument -- the literal operand of an addi waits for the
+# other operand, so it fires once per call.  It is not harmless where a source's tokens reach a function RESULT
+# without any such join: bdc lowered `end` to wires, so that port produced tokens with no call at all.  Two of
+# Dynamatic's tests do it (kernels/SUITE.md, suitew item 2): test_int16 (`return -1`: out0 = constant(source), 94162
+# tokens in 400 us for one start) and unused_arg (the frontend drops the unread memref `a` and drives its memEnd,
+# a_end, from a source: with the bench's acknowledge delay that is a ring oscillator, which the rule refuses as a
+# combinational cycle with no storage).
+#
+# What Dynamatic means.  Its `end` is the function's terminator, its operands ARE the results, and it has no RTL (wires
+# in its export); a source-fed result is simply valid on every clock.  Its testbench (tools/hls-verifier, HlsTb.cpp)
+# sends start once and takes the call's outputs TOGETHER: one tb_join over the valid of every result and every control
+# output (memory ends, end), whose ready goes back to all of them.  So a source-fed result is consumed exactly once per
+# call, when the call's other outputs are there.  bdc's bench takes each output alone (out0 is captured as the call's
+# completion, `end` and every <m>_end go to their own sinks), so the join has to be in the circuit: a result no call
+# bounds is joined (bd_join, a C-element with reset) with a copy (bd_fork) of every CONTROL result the call does bound
+# -- `end` and each memory's end.  Not start alone: Dynamatic's `end` IS start (in all 104 fixtures that parse it is the
+# start argument through forks only), so joined with it alone a source-fed out0 would tell the bench "done" at the
+# call's start, while its memories may still be in use (gaussian's out0, a folded constant, is that shape); a memory's
+# end comes after its accesses.  Not the data result: the bench takes it on its own, and a control result's timing
+# beyond once per call does not matter to the bench.  Data, if any, is wired through: it is valid from the result's
+# own request until its acknowledge, which is the joined channel's acknowledge, so the bundling holds with no delay (a
+# constant is valid forever).  The bd_src now sits behind a consumer that resets (COMPILER-PLAN.md asks that of it).
+#
+# "No call bounds" is decided on tokens, not on reachability: a source reaches a result in 101 of the 102 fixtures
+# that parse (every literal operand of every kernel), and nearly all of those are bounded by the op the literal
+# feeds.  free_running() is the least fixpoint of: a source is free; a fork / constant / br / reshape / load is free
+# when its (first) operand is (a load fires once per address); a join of channels (every compute op -- the dividers
+# too, which bdc does not lower yet --, cmpi, select, cond_br, join, store, mem_controller) when ALL its operands are; a merge / control_merge when ANY is (one free
+# input floods it); a mux when its select and any data input are.  Function arguments are never free.  An op not in
+# that table with a free operand stops the emitter (do not assume).
+#
+# BDC_CALL_JOIN=0 restores the old wiring, byte for byte (the negative control).  A kernel with no free result emits
+# exactly what it did before either way.
+CALL_JOIN = os.environ.get("BDC_CALL_JOIN", "1") != "0"
+_CJ_FIRST = ("constant", "fork", "lazy_fork", "br", "buffer", "trunci", "extui", "extsi", "load")
+_CJ_ALL = ("join", "cond_br", "select", "cmpi", "addi", "subi", "muli", "andi", "ori", "xori", "shli", "shrsi",
+           "shrui", "divsi", "divui", "remsi", "remui", "store", "mem_controller")
+_CJ_ANY = ("merge", "control_merge")
+
+
+def free_running(func):
+    """The SSA values whose tokens no call bounds (see the block comment above)."""
+    free = set()
+    changed = True
+    while changed:
+        changed = False
+        for node in func.nodes:
+            if not node.results or node.results[0] in free:
+                continue
+            f = [o in free for o in node.operands]
+            if node.op == "source":
+                hit = True
+            elif node.op in _CJ_FIRST:
+                hit = bool(f) and f[0]
+            elif node.op in _CJ_ALL:
+                hit = bool(f) and all(f)
+            elif node.op in _CJ_ANY:
+                hit = any(f)
+            elif node.op == "mux":
+                hit = bool(f) and f[0] and any(f[1:])
+            elif any(f):
+                raise EmitError(f"line {node.src_line}: {node.op!r} reads a channel no call bounds (a source's) and "
+                                f"free_running() has no rule for it -- add one, do not assume")
+            else:
+                hit = False
+            if hit:
+                free.update(node.results)
+                changed = True
+    return free
+
+
+def call_join_plan(func, end_node):
+    """([indices of the control results the call bounds], [indices of the results no call bounds]), or None when
+    every result is bounded."""
+    free = free_running(func)
+    joined = [i for i, v in enumerate(end_node.operands) if v in free]
+    if not joined:
+        return None
+    tied = [i for i, (r, v) in enumerate(zip(func.results, end_node.operands)) if r.is_control and v not in free]
+    if not tied:
+        raise EmitError(f"@{func.name}: result(s) {[func.results[i].name for i in joined]} take tokens from a source "
+                        f"with no call bounding them, and no control result is bounded by the call to join them with")
+    return tied, joined
+
+
+# ---------------------------------------------------------------------------
 # The emitter
 
 class Emitter:
@@ -2830,17 +2919,48 @@ class Emitter:
         self.emit(f"    assign {self.ack(ctl)} = {self.oack(z)};")
 
     def _op_end(self, node, inst):
-        """The function's results, which are ports, not cells."""
+        """The function's results, which are ports, not cells -- except a result no call bounds, which is joined with
+        a copy of every control result the call does bound (see free_running() and the block comment above it)."""
         if len(node.operands) != len(self.func.results):
             raise EmitError(
                 f"end at line {node.src_line} has {len(node.operands)} "
                 f"operand(s) for {len(self.func.results)} function result(s)")
-        for res, src in zip(self.func.results, node.operands):
-            base = portname(res.name)
-            self.emit(f"    assign {base}_req = {self.req(src)};")
-            self.emit(f"    assign {self.ack(src)} = {base}_ack;")
+        plan = call_join_plan(self.func, node) if CALL_JOIN else None
+        tied, joined = plan if plan is not None else ([], [])
+        base = [portname(r.name) for r in self.func.results]
+        if plan is not None:
+            fb = ", ".join(base[i] for i in joined)
+            self.emit(f"    // {fb}: no call bounds {'this result' if len(joined) == 1 else 'these results'} (a source's "
+                      f"tokens, joined with no argument's): joined with a")
+            self.emit(f"    // copy of every control result the call bounds ({', '.join(base[t] for t in tied)}), so "
+                      f"each leaves once per call, with them.")
+            # One fork per bounded control result: copy 0 to its port, copy j + 1 to free result j's join.
+            for t in tied:
+                tok = node.operands[t]
+                cp = [f"{inst}_{base[t]}_c{j}" for j in range(len(joined))]
+                self.emit(f"    wire {', '.join(f'{c}_req, {c}_ack' for c in cp)};")
+                reqs = ", ".join([f"{c}_req" for c in reversed(cp)] + [f"{base[t]}_req"])
+                acks = ", ".join([f"{c}_ack" for c in reversed(cp)] + [f"{base[t]}_ack"])
+                self.emit(f"    bd_fork #(.N({len(joined) + 1})) {inst}_ufork_{base[t]} (")
+                self.emit(f"        .rst(rst), .req({self.req(tok)}), .ack({self.ack(tok)}),")
+                self.emit(f"        .req_out({{{reqs}}}), .ack_in({{{acks}}}));")
+            for j, i in enumerate(joined):
+                src = node.operands[i]
+                cp = [f"{inst}_{base[t]}_c{j}" for t in tied]
+                reqs = ", ".join([f"{c}_req" for c in reversed(cp)] + [self.req(src)])
+                acks = ", ".join([f"{c}_ack" for c in reversed(cp)] + [self.ack(src)])
+                self.emit(f"    bd_join #(.N({len(tied) + 1})) {inst}_ujoin_{base[i]} (")
+                self.emit(f"        .rst(rst), .req_in({{{reqs}}}), .ack_out({{{acks}}}),")
+                self.emit(f"        .req({base[i]}_req), .ack({base[i]}_ack));")
+                if not self.is_control(src):
+                    self.emit(f"    assign {base[i]}_data = {self.data(src)};")
+        for i, (res, src) in enumerate(zip(self.func.results, node.operands)):
+            if i in joined or i in tied:
+                continue
+            self.emit(f"    assign {base[i]}_req = {self.req(src)};")
+            self.emit(f"    assign {self.ack(src)} = {base[i]}_ack;")
             if not self.is_control(src):
-                self.emit(f"    assign {base}_data = {self.data(src)};")
+                self.emit(f"    assign {base[i]}_data = {self.data(src)};")
 
     # -- memory --------------------------------------------------------
 

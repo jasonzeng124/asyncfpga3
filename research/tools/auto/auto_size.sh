@@ -105,6 +105,19 @@ else python3 "$R/research/tools/shrink_sizes.py" "$O/sizes_est.vh" "$SC" "$O/siz
 build 0 "$O/sizes_0.vh" || { echo "BUILD FAILED it=0" | tee -a "$O/result.txt"; exit 1; }
 echo "it 0 $(cat "$O/it_0.txt") lines $(grep -c '^`define' "$O/sizes_0.vh")" >> "$O/log.txt"
 rule 0 "$O/sizes_0.vh" || { echo "RULE FAILED it=0" | tee -a "$O/result.txt"; exit 1; }
+if ! grep -q '^`define' "$O/sizes_est.vh"; then
+  # Nothing to size: the kernel has no matched delay (est_sizes.py; test_int16, a constant joined with the call's end
+  # token).  Every further route would be the same circuit, so the route built at it 0 is the one judged: CLEAN when
+  # the rule finds no negative kernel constraint on it, else NOT CLEAN with no line that could fix it.
+  neg=$(tail -n +2 "$RUNS/ca/${N}_0/rule/negative_sized.tsv" | grep -c .)
+  echo "it 0 rule: nothing to size (no matched delay); $neg negative rows" >> "$O/log.txt"
+  final 0; cp "$O/sizes_0.vh" "$O/sizes_final.vh"
+  if [ "$neg" = 0 ]; then
+    echo "CLEAN it=0 route=${N}_0 (nothing to size) $(cat "$O/it_0.txt")" | tee -a "$O/result.txt"; exit 0
+  fi
+  echo "NOT CLEAN it=0: $neg negative, none fixable by a line (nothing to size; route ${N}_0) $(cat "$O/it_0.txt")" \
+    | tee -a "$O/result.txt"; exit 3
+fi
 cp "$RUNS/ca/${N}_0/rule/sizes.vh" "$O/sizes_1.vh"
 echo "it 0 rule: $(grep -c . "$RUNS/ca/${N}_0/rule/negative_sized.tsv") negative rows (incl. header); $(grep '^proposal' "$O/ca_0.txt")" >> "$O/log.txt"
 rm -f "$O/pinned.txt"; LC=""; FIN=${AUTO_FINISH:-3}
