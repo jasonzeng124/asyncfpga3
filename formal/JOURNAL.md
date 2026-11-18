@@ -3143,3 +3143,12 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   - no new timing;
   - pre_eq2 still per-program.
 * FOR-RESEARCH A23 (supersedes A22's plain-form paragraph); FEASIBILITY row 14.
+
+### progress 21:45 -- status files: MARGINS (B9 cuts, B11 suite routes), FEASIBILITY row 9 (C's ring / cycle liveness)
+* pre_eq2 as a pass: not attempted. Any matcher is specific to the collatz step function, so a "pass" would match
+  only collatz and collatz64, and A6 already proves those per program. A22's plain statement stands.
+* MARGINS.md: B9's cut builds by seed (collatz -17 to -21 % on 3 seeds; collatz64 -13 to -16 %; ipow -18.5 %;
+  xorshift -5 %; the entry-compare cut FAILS), and B11's 13 NOT CLEAN suite routes (all pass). Untrusted simulation,
+  no kappa_lo.
+* FEASIBILITY row 9: C's StageNetRingLive (S >= 2T + 1 exact in the stage model), cycle_noTrap_iff_count, and
+  LiveCerts / LiveCertsPass. Row 14: plain pre_dec is a certificate-checked pass.

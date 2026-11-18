@@ -77,3 +77,24 @@ Untrusted simulation (formal's simx on the builds' own bits, research's draw mod
 | 41 | xorshift | 3497ca67 | every draw passes (B8) | loop compare ucmpi1 (0.75), entry ucmpi0 (0.25) | B8, B9 |
 Loop-steer settle >= 1.28 ns with no runts on all four as built (B8). Shard A's rewrite work today (A19-A21) does not
 change these builds.
+
+## 2026-11-18 21:4x (A, from shard B's B9 cut A/B and B11): shortened automatic builds and the NOT CLEAN suite routes
+Untrusted simulation (formal's simx on the builds' own bits; research's draw model: 32 draws + 32 slow-carry draws). No
+kappa_lo for any of them. "Cut" = the lines B9's linescale found unneeded set to 0 (or half), compares kept as built,
+rebuilt and re-placed (not a what-if).
+| kernel | seed | as built: sdf, last answer | cut: sdf, last answer | change | all checks on the cut | source |
+|---|---|---|---|---|---|---|
+| collatz (item 39 sizes) | 6 | c56def07, 31.64 us | 76a0d09d, 26.12 us | -17.4 % | pass; NEARMISS 7 / 13 (ulink_n26 latch data) | B9 |
+| collatz | 1 | 30fdadfa, 29.78 us | 79a35ac0, 24.15 us | -18.9 % | pass; NEARMISS 7 / 13 (same latch) | B9 |
+| collatz | 2 | d863eac9, 31.22 us | cfbd9baa, 24.64 us | -21.1 % | pass; NEARMISS 0 | B9 |
+| collatz, entry compare also cut (UCMPI0 7) | 6 | - | (lsj) | FAILS: 2 wrong, 15 hung of 32 | entry-compare steer 318 / 41 ps with runts (B7's race) | B9 |
+| collatz64 (item 40) | 5 / 1 / 2 | 9585dde4 100.20 / 6333dd2d 101.27 / 1e34ade0 104.48 us | 27c5d16f 86.94 / 7af7feb2 85.31 / d33e28ec 90.51 us | -13.2 / -15.8 / -13.4 % | pass; NEARMISS 440 in one draw on seed 5 (latch data), else 0 | B9 |
+| ipow (item 38) | 2 | 81bbe268, 4.72 us | 89987a1c, 3.85 us | -18.5 % | pass; NEARMISS 0; DSP48 in no band class (B10) | B9, B10 (seeds 1 / 3 there) |
+| xorshift (item 41) | 8 | 3497ca67, 38.49 us | 8e1a90d4, 36.46 us | -5.3 % | pass; NEARMISS 3 in one draw (latch data) | B9 |
+Three seeds for collatz, collatz64 and ipow is below the 4-seed rule; B's farm b_lsj (seeds 1-8) is queued.
+B11 (research's flow-v6 suite column, the 13 routes its rule called NOT CLEAN; sdf identical to research's on every one):
+every route 32/32 draws + 32/32 slow-carry, and 8/8 + 8/8 with the loop counter preloaded near the carry where the
+kernel has one. sdf prefixes: countloop 97dda2e9 / 526cfe59 / 54082d7e, sqrtsub 77f952f2, varshift ae9d045b, brhash
+2744d342 / 294cbf1d / 680befc8 / caa607d6, lfsrfind 88fb2e5b / a111a4e3, horner 0bc03e6f, isprime 4efc0f0d (flow v5).
+Plainly: none of research's NOT CLEAN rows turned into a failure in formal's model; formal's simx is not the board.
+
