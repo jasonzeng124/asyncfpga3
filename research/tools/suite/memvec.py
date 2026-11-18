@@ -10,7 +10,8 @@ i64 as low word then high word), then every element of each memref argument in s
 --call gives one call's operand words (hex or decimal, as many as the signature needs); one --call per call.
 A --call may also set one call's arrays, after the words: "W0 W1;a=SPEC;b=SPEC" (an array it does not name takes
 the file-wide default below).  SPEC: const:V (every element V), rand:LO,HI (seeded uniform), seq:A,D (element i is
-A + D * i), list:V0,V1,... (repeated to the depth).  The spec is written into the call's comment line.
+A + D * i), list:V0,V1,... (repeated to the depth); any of them may end in overrides @I=V (element I is V, e.g.
+"const:999@599=1000": a loop's exit placed at one element).  The spec is written into the call's comment line.
 Array contents are drawn per call from a seeded uniform range (--range=LO,HI with the "=" when LO is negative;
 default -1000,1000, two's complement in
 32 bits), so consecutive calls see different arrays.  --fill const:V fills every element with V instead (for
@@ -69,6 +70,7 @@ def main():
         out.append(" ".join("%08x" % (int(w, 0) & 0xFFFFFFFF) for w in c) if c else "")
         for name, depth, w in mems:
             sp = specs[j].get(name, "")
+            sp, *over = sp.split("@")   # overrides: SPEC@I=V@J=W (element I is V), applied after SPEC
             if sp.startswith("const:"):
                 vals = [int(sp[6:], 0)] * depth
             elif sp.startswith("rand:"):
@@ -86,6 +88,11 @@ def main():
                 vals = [int(a.fill[6:], 0)] * depth
             else:
                 vals = [rng.randint(lo, hi) for _ in range(depth)]
+            for o in over:
+                oi, ov = (int(x, 0) for x in o.split("="))
+                if not 0 <= oi < depth:
+                    sys.exit("memvec.py: call %d: override @%s outside %s[%d]" % (j, o, name, depth))
+                vals[oi] = ov
             if a.perturb:
                 n, d = (int(x, 0) for x in a.perturb.split(":"))
                 vals[n] += d

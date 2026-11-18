@@ -12,6 +12,8 @@
 # array contents per call) adds +MEMDUMP=1 and FAILS a batch whose arrays, read back after it, differ.  GATE_NRUNS
 # (default 2) is the runs per batch: a kernel that writes its arrays sees its own writes on the next run, so its
 # oracle must be run with the same count (ORACLE_RUNS).
+# A `void` line in EXPFILE (oracle_mem.sh: the kernel returns nothing; gen_bench.py completes its call on its control
+# results and ODATA reads 0) has no result to compare: that call passes only on its arrays, so only with GATE_MEMEXP.
 set -euo pipefail
 HW=$(cd "$1" && pwd); D=$2; mkdir -p "$3"; W=$(cd "$3" && pwd); VEC=$(readlink -f "$4"); EXP=$(readlink -f "$5"); COL=$6
 R=$(cd "$(dirname "$0")/../../.." && pwd); G=$R/cells/gls
@@ -88,9 +90,19 @@ for j in membad: got.pop(j, None)   # a batch whose arrays were not what the C h
 # steerneg: 5 such runs judged PASS). A batch counts only if every run agreed AND the last one equals the oracle.
 mm = [j for j in got if int(got[j].get("mism_st", "0"), 16) & 1]
 if onehot_fail: got.clear()   # two slots of one port at once: no batch of this run is a pass
-ok = sum(1 for j, e in enumerate(exp) if j in got and got[j]["odata"] == e and got[j]["completed"] == got[j]["n"]
+# `void` (oracle_mem.sh, a kernel that returns nothing): no out0; the bench's ODATA is its constant 0 and the answer is
+# the arrays, so such a call passes only if GATE_MEMEXP held this call's arrays and they matched (membad above).
+def right(j, e):
+    if e == "void":
+        return got[j]["odata"] == "00000000" and any(c == j for c, _ in memexp)
+    return got[j]["odata"] == e
+ok = sum(1 for j, e in enumerate(exp) if j in got and right(j, e) and got[j]["completed"] == got[j]["n"]
          and j not in mm)
 cyc = sum(int(got[j]["cycles"]) for j in got)
+nvoid = sum(1 for e in exp if e == "void")
+if nvoid:
+    sys.argv[5] = (" | void: arrays only" if memexp else " | void kernel WITHOUT GATE_MEMEXP: nothing checked, no pass") \
+        + sys.argv[5]
 print("%s %d/%d cycles %d %s%s%s" % ("PASS" if ok == len(exp) else "FAIL", ok, len(exp), cyc, sys.argv[3],
       (" | MISMATCH in batch(es) %s" % ",".join(map(str, sorted(mm)))) if mm else "",
       (" | MEMORY wrong in batch(es) %s" % ",".join(map(str, sorted(membad)))) if membad else "") + sys.argv[5]

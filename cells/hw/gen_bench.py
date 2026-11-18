@@ -267,6 +267,50 @@ def host_mem_lines(mems):
     return L
 
 
+def void_completion_lines(ctl_out):
+    """A VOID kernel's completion: the bench's o_req is the join of every control result.
+
+    A kernel with no out0 (most of Dynamatic's array kernels) has nothing for the batch FSM to wait on, so the call's
+    completion is made from its control results, as Dynamatic's own testbench joins all of a kernel's outputs: `end`
+    and every memory's <m>_end (its mem_controller's memEnd).  The join drives o_req_pl and takes o_ack_pl, so the
+    batch FSM, the latency counters and the acknowledge's return to zero are exactly as for out0; ODATA reads 0 and
+    the result is the arrays, read back through the host port after the batch (bench_gate.sh GATE_MEMEXP).
+
+    Why memEnd is the completion: for a memory with a store, bdc orders its ctrlEnd after every store of the call
+    (research/data/suite/stores.md), and memEnd waits for ctrlEnd, so a run is not complete -- and the host does not
+    read an array back, nor start the next run -- before the last store has reached the RAM.
+
+    Why `end` goes through a link first: in bdc's lowering `end` is the start token passed straight through (the
+    start fork's other outputs start the loop).  A join input acknowledges only when the call is complete, and a
+    fork acknowledges only when all its outputs have, so `end` straight into the join would hold the start fork's
+    request high until the call ends -- its other outputs could not return to zero, and a loop header waiting on that
+    deadlocks (stores.md measured exactly this inside the kernel).  A one-token bd_link acknowledges the token at once
+    and holds it for the join: the bd_link + bd_join pair bdc itself builds for a memory's memStart (emit.py
+    _op_mem_controller).  memEnds need no link: each is made from the exit block's single control token, so all of
+    them can arrive while the join holds the others."""
+    L = []
+    A = L.append
+    A("    // ---- a VOID kernel's completion (gen_bench.py void_completion_lines) ---------------------------------")
+    A("    // No out0: the result is the arrays, read back after the batch.  A call is complete when every control")
+    A("    // result has arrived -- `end` and each memory's <m>_end (memEnd: after every store of the call, bdc's store")
+    A("    // lowering) -- as Dynamatic's testbench joins all outputs.  The join is o_req; ODATA reads 0.  `end` is the")
+    A("    // start token passed through, so it is held in a link (acknowledged at once): joined directly, it would")
+    A("    // hold the start fork's request high, and with it the loop, until the call ended.")
+    A("    wire end_hold_req, end_hold_ack;")
+    A("    bd_link #(.W(1)) uend_hold (")
+    A("        .rst(rst_pl),")
+    A("        .req_in(p_end_req), .ack_in(p_end_ack), .data_in(1'b0),")
+    A("        .req_out(end_hold_req), .ack_out(end_hold_ack), .data_out());")
+    reqs = ", ".join([f"{portname(c.name)}_req" for c in reversed(ctl_out)] + ["end_hold_req"])
+    acks = ", ".join([f"{portname(c.name)}_ack" for c in reversed(ctl_out)] + ["end_hold_ack"])
+    A(f"    bd_join #(.N({len(ctl_out) + 1})) ucomplete (")
+    A(f"        .rst(rst_pl), .req_in({{{reqs}}}),")
+    A(f"        .ack_out({{{acks}}}),")
+    A("        .req(o_req_pl), .ack(o_ack_pl));")
+    A("    assign o_data_pl = 32'b0;")
+    return L
+
+
 def words_for(width):
     assert width % 32 == 0, f"arg width {width} is not a multiple of 32 -- unsupported"
     return width // 32
@@ -306,7 +350,10 @@ def load_signature(kernel, frontend_dir):
     # is signless, so the C type's signedness is not known here, and an undriven upper half is not a value.  The
     # oracle masks the C's result to the same width (research/tools/suite/oracle_mem.sh).  Wider (an i64 result)
     # would need a second ODATA word through result_hold/SIG/the mismatch latch: refused, not truncated.
-    if [r.name for r in data_res] != ["out0"] or not 1 <= data_res[0].width <= 32:
+    # Or none at all: a VOID kernel (most of Dynamatic's array kernels), whose result is its arrays.  Its call
+    # completes on its control results instead (emit(), "a void kernel's completion"); it needs a memory (checked
+    # below), or nothing it does could be seen.
+    if data_res and ([r.name for r in data_res] != ["out0"] or not 1 <= data_res[0].width <= 32):
         raise SystemExit(f"{mlir}: @{func.name} returns {[(r.name, r.width) for r in data_res]}; the bench "
                          f"captures exactly one result, out0, of 1 to 32 bits")
     memspec = []
@@ -324,7 +371,11 @@ def load_signature(kernel, frontend_dir):
         memspec.append((a.name, depth, dw, max(1, (depth - 1).bit_length())))
     if len(memspec) > MAX_MEMS:
         raise SystemExit(f"{kernel}: {len(memspec)} memories; the host path addresses at most {MAX_MEMS}")
-    return data_args, memspec, ctl_in, ctl_out, data_res[0].width
+    if not data_res and not memspec:
+        raise SystemExit(f"{mlir}: @{func.name} returns nothing and has no memory: the bench would have nothing to "
+                         f"read (a void kernel's result is its arrays, read back through the host port)")
+    # ow = out0's width; 0 marks a void kernel (emit())
+    return data_args, memspec, ctl_in, ctl_out, (data_res[0].width if data_res else 0)
 
 
 def emit(kernel, is_null, top_name):
@@ -337,6 +388,7 @@ def emit(kernel, is_null, top_name):
     nwr = max(2, nw)
     wide = nw > 2
     nm = len(mems)
+    void = ow == 0   # no out0: the call completes on its control results (see "a void kernel's completion" below)
     if is_null and (mems or ctl_in or ctl_out):
         raise SystemExit(f"{kernel}: --null is not built for a kernel with memories or extra control channels "
                          f"(the null DUT would need a memory behind each host port)")
@@ -359,6 +411,9 @@ def emit(kernel, is_null, top_name):
     if mems:
         P(f"// {nm} memor{'y' if nm == 1 else 'ies'}, each behind a host port (bdc/emit.py --host-mem): "
           + ", ".join(f"{n}[{d}] i{w} (aw {aw})" for n, d, w, aw in mems))
+    if void:
+        P("// void: no out0 -- a call completes when `end` and every <m>_end have arrived; ODATA reads 0, the "
+          "result is the arrays")
     if restr:
         P("// Domain restrictions applied to the uniform-random generator (see gen_bench.py header):")
         for name, rule in restr.items():
@@ -1348,11 +1403,15 @@ def emit(kernel, is_null, top_name):
     P(f"        .rst(rst_pl), .req(i_req_pl), .ack(i_ack_pl),")
     P(f"        .req_out(in_req), .ack_in({{{fork_ack_list}}}));")
     P("")
-    P("    bd_delay #(.N(2)) upsnk (.a(p_end_req), .z(p_end_ack));")
-    if ow < 32 and not is_null:   # out0 is narrower than ODATA: zero above it, stated (see load_signature)
-        P(f"    assign o_data_pl[31:{ow}] = {32 - ow}'b0;   // out0 is i{ow}: ODATA holds it zero-extended")
-    for c in ctl_out:   # a memory's <m>_end (memEnd) is taken like end
-        P(f"    bd_delay #(.N(2)) u{portname(c.name)}_snk (.a({portname(c.name)}_req), .z({portname(c.name)}_ack));")
+    if void:
+        for line in void_completion_lines(ctl_out):
+            P(line)
+    else:
+        P("    bd_delay #(.N(2)) upsnk (.a(p_end_req), .z(p_end_ack));")
+        if ow < 32 and not is_null:   # out0 is narrower than ODATA: zero above it, stated (see load_signature)
+            P(f"    assign o_data_pl[31:{ow}] = {32 - ow}'b0;   // out0 is i{ow}: ODATA holds it zero-extended")
+        for c in ctl_out:   # a memory's <m>_end (memEnd) is taken like end
+            P(f"    bd_delay #(.N(2)) u{portname(c.name)}_snk (.a({portname(c.name)}_req), .z({portname(c.name)}_ack));")
     P("")
     # ---- per-instance matched-delay overrides ------------------------------
     # The kernel takes one `parameter DELAY_<INST>` per delay-bearing cell and,
@@ -1403,7 +1462,9 @@ def emit(kernel, is_null, top_name):
     for k, c in enumerate(ctl_in):
         P(f"        .{portname(c.name)}_req (in_req[{nargs + k}]), .{portname(c.name)}_ack ({portname(c.name)}_ack),")
     P(f"        .start_req (in_req[{nargs + len(ctl_in)}]), .start_ack (start_ack),")
-    if ow < 32 and not is_null:
+    if void:
+        pass   # no out0 port: o_req_pl / o_ack_pl / o_data_pl are the completion join's (void_completion_lines)
+    elif ow < 32 and not is_null:
         P(f"        .out0_req  (o_req_pl),  .out0_ack  (o_ack_pl),  .out0_data (o_data_pl[{ow - 1}:0]),")
     else:
         P(f"        .out0_req  (o_req_pl),  .out0_ack  (o_ack_pl),  .out0_data (o_data_pl),")

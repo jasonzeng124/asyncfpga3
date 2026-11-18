@@ -18,7 +18,8 @@ Everything here is pre-route RTL (cells/sim/bd_prims_sim.v arc timing) unless a 
   through its `--host-mem` slot, R = 2 runs per call without refilling, read every array back; out0 and every array
   against the kernel's C (oracle_mem.sh, or the same recipe for void kernels and N-D arrays); a run that does not end
   within 5000 us of circuit time is a TIMEOUT. Vectors: the suite's v2 files; for Dynamatic's nine store tests new
-  files in research/data/suite/vec/ (memvec.py; inputs chosen so the C stays in bounds: if_convert's a >= 60, loop_path
+  files in research/data/suite/hangs/vec/ (moved there 2026-11-18 when the suite's own vectors of the same names landed
+  from subagent dyntests; memvec.py; inputs chosen so the C stays in bounds: if_convert's a >= 60, loop_path
   and single_loop / nested_loop with exits before N, while_loop_3's bound <= 10000 and INT_MIN).
 
 "before" = the branch as cloned (7197d85c2); "after" = with the token floor's pass-through modes (section 2). The
@@ -236,8 +237,8 @@ for steer runts. The LINK_RST route's sizing was not audited (the sizes are the 
 - `research/tools/suite/memtb.py` (new): RTL check of any kernel with memories (or none), out0 and every array against
   the C; `--route-ps`, `--vcd`, `--dut`. Negative controls: `BDC_MEM_NEG_STORE=addr` on fill FAILS 4 / 5 calls (32, 32,
   13, 2 elements wrong, the n = 0 call stores nothing), `=data` on simple_example_1 FAILS 2 / 2 (a[0] = 0x65, the C 0x64).
-- `research/data/suite/vec/{if_convert,loop_path,matrix,nested_loop,simple_example_1,single_loop,stencil_2d,
-  test_flatten_array,while_loop_3}.hex` (new, memvec.py).
+- `research/data/suite/hangs/vec/{if_convert,loop_path,matrix,nested_loop,simple_example_1,single_loop,stencil_2d,
+  test_flatten_array,while_loop_3}.hex` (new, memvec.py; first under research/data/suite/vec/, moved).
 - `kernels/SUITE.md`: the four stale "deadlock" cells, the memory rows' RTL column, a section with this table, finding 6.
 - This file.
 
