@@ -6431,3 +6431,10 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   flow's hangs). Farm suite3 (16 suite kernels x 4 seeds) submitted; kernels.txt now lists 22.
 - Rejudge test: the farm's xorshift seed 3 route rebuilt here from its sizes_final.vh is the same route (sdf ea3c2aad,
   P 23178) and EQUIVALENT under today's checker; its draws are running.
+### progress 01:48 (bench ABI landed after a regression gate; auto.py refuses a missing rewrite)
+- suiteb's 13 commits applied (3-way; fasm_equiv.py merged with the comparison-only fold): MAX_WORDS 10, the host memory
+  slot (emit --host-mem), v2 vector files, oracle_mem.sh, RAMB18E1 in the bits-decoded GLS, the memport monitor, sum3.
+  Regression before landing: the patched GLS re-ran collatz AUTO seed 1's draw 10101 (533a7474) with identical BENCHRES
+  for all 17 batches and the same verdict (PASS 17/17, cycles 5090, EQUIVALENT). Memory kernels can now run in the
+  suite (memsum passed 4 seeds at worst in suiteb's runs); stores still do not emit.
+- bdc/auto.py exits 1 when a proven rewrite's script is missing (04ef56a1c).
