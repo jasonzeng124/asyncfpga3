@@ -8,7 +8,12 @@ ROUTED.json is nextpnr's routed design (what gls/gen.py simulates);
 FASM_ROUTED.json and ROUTES.tsv come from fasm2net.py (the bits).  Both are
 bel-level, so everything is compared by bel name:
 
-  1. cell set      same bels, same cell type
+  1. cell set      same bels, same cell type.  A JSON cell the bits do not
+                   configure is benign only if it is DEAD: no load, or
+                   every load dead, transitively (dead_cells; nextpnr keeps
+                   the unused outputs of a keep_hierarchy region, e.g. a
+                   LUT8 whose F8 nothing reads, and the FASM writer rightly
+                   gives its F7s/F8 no output-mux bit).
   2. config        FF INIT and set/reset sense, CARRY4 carry-in, BUFG inversions
   3. connectivity  every input pin: same driver (bel/pin, or the same constant).
                    The two LUT bels of one position (A6LUT/A5LUT) share six
@@ -31,6 +36,10 @@ bel-level, so everything is compared by bel name:
                    bug lives.
   5. routing       per net, the set of pips as (src node, dst node) pairs: the
                    JSON's ROUTING attribute against the pips the bits enable.
+                   JSON-only always-on ppips (no bits) whose every sink is a
+                   site pin read only by DEAD cells the bits do not configure
+                   are listed apart (the tail of a route into a dead mux's
+                   select, where the decoder, tracing from live sinks, stops).
 
 Exit status 0 only if every check is clean.  Nothing is skipped silently: an
 item a check cannot compare is counted as such.
@@ -247,6 +256,61 @@ HARMLESS_CONST = ("HARMLESS: LUT pin on a different constant in the routed JSON 
                   "(an IMUX nextpnr tied to GND but never routed reads VCC through its default "
                   "ppip), and the bits' LUT function does not read that pin")
 
+# Slice logic: the only cells that can be dead (below).  Everything else -- pads, the PS7, clock buffers, BSCAN, DSP,
+# BRAM -- is always live, whatever reads it.
+DEAD_TYPES = ("SLICE_LUTX", "SELMUX2_1", "CARRY4", "SLICE_FFX")
+DEAD_LOADS = ("cell in routed JSON, not configured by the bits (DEAD: every load is a dead cell, transitively -- e.g. "
+              "an F7 whose only load is an F8 with no loads)")
+DEAD_TAIL = ("json-only always-on ppips (no bits) whose every sink is a pin of a DEAD cell (routing to an "
+             "unconfigured dead mux's select)")
+
+
+def json_loads(cells):
+    """cell -> the set of OTHER cells with an input/inout port on one of its output bits."""
+    users = collections.defaultdict(set)
+    for cn, c in cells.items():
+        for p, bl in c["connections"].items():
+            if c.get("port_directions", {}).get(p) in ("input", "inout"):
+                for b in bl:
+                    users[b].add(cn)
+    out = {}
+    for cn, c in cells.items():
+        s = set()
+        for p, bl in c["connections"].items():
+            if c.get("port_directions", {}).get(p) == "output":
+                for b in bl:
+                    s |= users[b]
+        s.discard(cn)
+        out[cn] = s
+    return out
+
+
+def dead_cells(cells, loads):
+    """Slice-logic cells of the routed JSON that nothing live reads: no load, or (to a fixpoint) every load dead.
+    nextpnr keeps dead cells -- a keep_hierarchy region's unused outputs (bdc's fused regions: a 64-bit shift of which
+    the kernel keeps 9 bits) stay in the routed JSON with their LUT7/LUT8 trees -- and its FASM writer gives a dead
+    F7/F8 no output-mux bit, which is right: on the die nothing reads it.  The decoder keeps only what a live sink
+    reads, so such a cell is JSON-only; an F7 whose only load is a dead F8 HAS a load, but not a live one.
+    A cycle of dead cells is not found (conservative: it stays a hard difference)."""
+    dead = set()
+    grew = True
+    while grew:
+        more = {cn for cn, c in cells.items() if cn not in dead and c["type"] in DEAD_TYPES and loads[cn] <= dead}
+        dead |= more
+        grew = bool(more)
+    return dead
+
+
+def can_read(c, pin):
+    """Can a cell of this kind read this slice site pin?  A plain LUT reads only A1..D6; the bypass pins AX..DX feed
+    the F7/F8 selects, the FFs' D, CARRY4 and LUTRAM; anything else: assume yes."""
+    if re.match(r"^[A-D][1-6]$", pin):
+        return c["type"] == "SLICE_LUTX"
+    if re.match(r"^[A-D]X$", pin):
+        return not (c["type"] == "SLICE_LUTX" and
+                    c.get("attributes", {}).get("X_ORIG_TYPE", "LUT").startswith("LUT"))
+    return True
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -274,15 +338,22 @@ def main():
 
     # ---- 1. cells
     only_j = sorted(set(jb) - set(fb))
+    only_j_set = set(only_j)
     only_f = sorted(set(fb) - set(jb))
     say("1. CELLS  routed JSON %d bels, bitstream %d bels, common %d"
         % (len(jb), len(fb), len(set(jb) & set(fb))))
+    jloads = json_loads(jc)
+    jdead = dead_cells(jc, jloads)
     for b in only_j:
         cn, c = jb[b]
         loads = sum(1 for x in jc.values() for p, bl in x["connections"].items()
                     if x.get("port_directions", {}).get(p) == "input" and bl and
                     any(bl[0] == c["connections"].get(o, [None])[0]
                         for o, d in c["port_directions"].items() if d == "output"))
+        if loads and cn in jdead:
+            flag(DEAD_LOADS, "%s %s %s <- loads %s" % (b, c["type"], cn[:60],
+                                                       ", ".join(sorted(bel(jc[x], x) for x in jloads[cn]))[:120]))
+            continue
         flag("cell in routed JSON, not configured by the bits%s" % (" (it has NO loads)" if loads == 0 else " (HAS LOADS)"),
              "%s %s %s" % (b, c["type"], cn[:80]))
     for b in only_f:
@@ -616,6 +687,9 @@ def main():
         jpips = {}
         jconst = set()
         belof = {cn: bel(c, cn) for cn, c in jc.items()}
+        jtree = {}      # key -> raw wire -> raw wires it feeds (SITEWIRE entries included)
+        jraw = {}       # key -> (src node, dst node) -> raw dst wires
+        jbit = {}       # key -> the net's bit
         for name, nn in jt["netnames"].items():
             r = nn.get("attributes", {}).get("ROUTING")
             if not r or len(nn["bits"]) != 1:
@@ -627,12 +701,59 @@ def main():
                 ("const", lut_const(jc[d[0]])) if lut_const(jc[d[0]]) is not None else (belof[d[0]], d[1])
             f = r.split(";")
             s = jpips.setdefault(key, set())
+            tr = jtree.setdefault(key, collections.defaultdict(set))
+            rw = jraw.setdefault(key, collections.defaultdict(set))
+            jbit[key] = nn["bits"][0]
             for i in range(0, len(f) - 2, 3):
                 pip = f[i + 1]
-                if not pip or "SITEWIRE" in pip or "SITEPIP" in pip:
+                if not pip or "SITEPIP" in pip:
                     continue
                 src, dst = pip.split("->")
+                tr[src].add(dst)
+                if "SITEWIRE" in pip:
+                    continue
                 s.add((nd(src), nd(dst)))
+                rw[(nd(src), nd(dst))].add(dst)
+        jusers = collections.defaultdict(list)      # bit -> cells with an input on it
+        for cn, c in jc.items():
+            for p, bl in c["connections"].items():
+                if c.get("port_directions", {}).get(p) in ("input", "inout"):
+                    for b_ in bl:
+                        jusers[b_].append(cn)
+
+        def nobits(p):
+            """(src node, dst node) is an always-on ppip of some tile: the bits cannot show it."""
+            sn, dn = p
+            for t, w in fab.nodes[dn]:
+                for s_ in fab.tt(fab.ttype[t])["always"].get(w, ()):
+                    if fab.node(t, s_) == sn:
+                        return True
+            return False
+
+        def dead_sitepin(key, sw):
+            """SITEWIRE/<site>/<pin> on this net: every cell of the net in that site that can read the pin is
+            dead in the JSON AND not configured by the bits (and there is one).  A dead cell the bits do configure
+            is a sink the decoder traces, so a route to it that the bits lack is a real difference."""
+            m = re.match(r"^SITEWIRE/([^/]+)/([^/]+)$", sw)
+            if not m:
+                return False
+            site, pin = m.groups()
+            rd = [cn for cn in jusers.get(jbit[key], ()) if belof[cn].startswith(site + "/") and can_read(jc[cn], pin)]
+            return bool(rd) and all(cn in jdead and belof[cn] in only_j_set for cn in rd)
+
+        def json_terminals(key, w0):
+            """The site pins (first SITEWIRE) and dangling wires the JSON route reaches from raw wire w0."""
+            tr, out, st, seen = jtree[key], set(), [w0], {w0}
+            while st:
+                w = st.pop()
+                if w.startswith("SITEWIRE/") or not tr.get(w):
+                    out.add(w)
+                    continue
+                for x in tr[w]:
+                    if x not in seen:
+                        seen.add(x)
+                        st.append(x)
+            return out
         fpips = collections.defaultdict(set)
         always = set()
         for line in open(a.routes):
@@ -698,6 +819,24 @@ def main():
                      "%s: %d pips, e.g. %s" % (key, len(dead), [(fab.node_name(x), fab.node_name(y))
                                                                for x, y in list(dead)[:2]]))
                 A = A - dead
+            # json-only pips with no bits whose every sink is a pin of a DEAD cell: the tail of a route into the
+            # select of an F7/F8 nextpnr kept but nothing reads (dead_cells).  The bits cannot show an always-on
+            # ppip, and the decoder traces only from live sinks, so the route stops where it branches off a live
+            # one (BYP_ALT -> BYP_BOUNCE -> a live IMUX, and BYP_ALT -> BYP -> the dead mux's AX/BX/CX).
+            tail = set()
+            if key in jraw:
+                for p in A - B:
+                    if not nobits(p):
+                        continue
+                    terms = set()
+                    for w in jraw[key].get(p, ()):
+                        terms |= json_terminals(key, w)
+                    if terms and all(dead_sitepin(key, t_) for t_ in terms):
+                        tail.add(p)
+            if tail:
+                flag(DEAD_TAIL, "%s: %d pips, e.g. %s" % (key, len(tail), [(fab.node_name(x), fab.node_name(y))
+                                                                            for x, y in sorted(tail)[:2]]))
+                A = A - tail
             ap = (B - A) & always
             if ap:
                 flag("bits-only always-on ppip the JSON does not list (no bits: a fixed wire)",
@@ -731,7 +870,7 @@ def main():
     print(txt)
     if a.out:
         open(a.out, "w").write(txt + "\n")
-    benign = ("cell in routed JSON, not configured by the bits (it has NO loads)",
+    benign = ("cell in routed JSON, not configured by the bits (it has NO loads)", DEAD_LOADS, DEAD_TAIL,
               "PS7 input tied to a constant in JSON, not modelled",
               "json pips that ARE in the bits", "pin unconnected in routed JSON, same constant",
               "LUT pin unconnected in routed JSON", "BUFGCTRL I1 unconnected in JSON",
