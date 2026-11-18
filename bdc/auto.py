@@ -142,6 +142,11 @@ def rewrite_mlir(src_path, dst_path, log=print):
     cur = open(src_path, "rb").read()
     applied = []
     for rw in REWRITES:
+        if not os.path.exists(os.path.join(tools, rw)):
+            # a copy of bdc/ without research/tools/fifteen (research/data/alltable/run_default.sh's tree) skipped
+            # every rewrite silently and built a different circuit under the same switch (suitek, 2026-11-18)
+            raise SystemExit(f"auto: rewrite script {os.path.join(tools, rw)} not found: BDC_AUTO=1 needs "
+                             "research/tools/fifteen beside bdc/ (refusing to build without its proven rewrites)")
         with tempfile.TemporaryDirectory() as td:
             a, b = os.path.join(td, "in.mlir"), os.path.join(td, "out.mlir")
             open(a, "wb").write(cur)
