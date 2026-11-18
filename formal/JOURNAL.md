@@ -3019,3 +3019,11 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 18:30 -- check.sh OK on the whole rewrite chain (28 files: libs, RingMap, Arith, SplitComp, Rename, five kernels x {Hw, instance, RdHw, Tie})
 * A first check.sh run of only the new files FAILED for a harness reason (file mode builds only the files given;
   imports from earlier files had no oleans in the run's dir), not a proof error; rerun with the full chain: OK, rc 0.
+### progress 18:32 -- what is still off (FOR-RESEARCH A19 list); two side checks
+* fold64: the widened-ring form `slt9(ext i, ext(n) - 1)` equals `ult9(ext i + 1, ext n)` on all 65,536 (i, n) pairs
+  (exhaustive, Python): no correction term needed there. Needs a RingMap variant (extui between ring fork and test).
+* C's autoproof on countloop: original PROVED-candidate written (Python side; not compiled here); the rewritten
+  countloop_rd.mlir NOT PROVED (its guess pool has no `n - 1` for the ring value). So autoproof is not a shortcut
+  for rewritten kernels without extending its candidate pool; the per-pattern theorems are.
+* Running: subagent (simcheck --c-oracle, default and BDC_AUTO, original vs rewritten, five ring kernels; pre-route
+  times) -- whether the rewrite pays is the open question before more shapes are proved.
