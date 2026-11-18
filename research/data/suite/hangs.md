@@ -2,7 +2,7 @@
 
 PROGRAM 2026-11-18, lead 3: "the suite kernels that deadlock or hang ... fixed in bdc, for every kernel."
 Everything here is pre-route RTL (cells/sim/bd_prims_sim.v arc timing) unless a row says routed. The routed numbers
-(section 4) were built by nextpnr `6e5d224472232d5d` (`cells/verify/toolchain.sh` all ok before every build).
+(sections 2 and 3) were built by nextpnr `6e5d224472232d5d` (`cells/verify/toolchain.sh` all ok before every build).
 
 ## 1. The table: every fixture that emits, both flows
 
@@ -184,6 +184,10 @@ from the bot's 00:58 rebuild with 9c732bc6303458df, 447950e1 -> a41f1ae5: the co
   rejected. (3, 3) as the FIRST call passes too (3 / 3 for (3, 3), (3, 1), (5, 13) with no +META_INIT, =0 and =1; not
   traced: "1 > 0" has a value once bits 0 and 31 do, "0 > 0" only once all 32 do). **So
   +META_INIT=0 / 1 passing never showed the route right; X start-up is the one place the gate catches this race.**
+- **A clean route has none of it.** The ipow board candidate (flow v3 seed 2, BOARD-QUEUE item 38, sizes
+  research/data/suite/board/ipow_v3_s2_sizes.vh; rebuilt here: sdf 81bbe268 = the bot's, P 22711 ps, EQUIVALENT,
+  ffmux-clean; UCMPI2 = 10), the same draw, vectors and +META_INIT=0, 9 us: **no pulse narrower than 1 ns on any of
+  the eight steer outputs** (every pulse a whole handshake); both calls right.
 - The rebuilt route with the reset polarity below (different placement) has none of it: in the same 6 us trace,
   draw 10401, ipow17, no +META_INIT, no pulse narrower than 1 ns on any of the eight steer outputs; cmpi2's data
   arrives 1.3 ns BEFORE its request there (it arrived 452 ps after it on the original route).
