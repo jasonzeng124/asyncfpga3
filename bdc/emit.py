@@ -102,6 +102,18 @@ FORK_OUT_FASTFALL = os.environ.get("BDC_FORK_OUT_FASTFALL", "0") == "1"
 # arbiter's output return-to-zero waits for the result latch's, which waits for the loop steer; a second stage lets the
 # first empty while the steer holds the second.
 MERGE_RES_DEPTH = int(os.environ.get("BDC_MERGE_RES_DEPTH", "1"))
+# BDC_SPLIT_SOURCES=1 (off by default; byte-identical without it): a `source` whose token is FORKED to several constants
+# (Dynamatic shares one source between the literals of a block: collatz's source2 -> fork5 -> {true, 1 -> fork6 -> five
+# readers}) is replaced by one source + constant per reader, so each literal has one reader and compute_fusion folds it
+# into its fused region like every unshared literal (no channel, no join input).  Why: the shared fork cannot take the
+# next token before EVERY reader has acknowledged, so the readers' return-to-zero is coupled across the loop body;
+# research/data/eventgraph/search_all.md (subagent graphsearch): the critical cycle runs through such a fork on 7 of 11
+# automatic collatz / ipow / collatz64 routes (0.5-2.9 ns of the period in the timed event graph).  Only where it is the
+# same function: every reader is a fused-able op with another operand that is NOT a source's literal (so it fires once
+# per arrival of that operand, and an infinite stream of one value in place of another infinite stream of the same value
+# changes nothing it computes), or a sink (dropped with its literal: a lone source -> sink pair would oscillate).  A tree
+# with any other reader is left as it is.  split_shared_sources() below.
+SPLIT_SOURCES = os.environ.get("BDC_SPLIT_SOURCES", "0") == "1"
 # BDC_NO_LINK=ulink_<chan>[,...] (empty by default; byte-identical without it): drop the named links from the link set
 # before ring_depths() runs, so a ring that needs storage still gets it (ring_depths deepens another link on it, or
 # refuses).  A measurement knob for research/data/fifteen: a rule-1 (measurability) link on a loop's ring costs a
@@ -2308,6 +2320,86 @@ def _const_value(node):
     return getattr(v, "value", v)
 
 
+def split_shared_sources(func):
+    """BDC_SPLIT_SOURCES (see the knob): every source tree (a source, the forks of its token, the constants it fires, the
+    forks of their values) with more than one reader becomes one source + constant per reader.  Returns
+    [(source name, [reader names])] for the trees rewritten; [] (graph untouched) when there is none.  Idempotent."""
+    plan = getattr(func, "_bdc_split_plan", None)
+    if plan is not None:
+        return plan
+    nodes = func.nodes
+    cons = collections.defaultdict(list)
+    for i, n in enumerate(nodes):
+        for k, o in enumerate(n.operands):
+            cons[o].append((i, k))
+    # every value a source tree carries (a source's token, a fork of it, a constant it fires, a fork of that)
+    lit = set()
+    for i, n in enumerate(nodes):
+        if n.op == "source":
+            todo = [n.results[0]]
+            while todo:
+                v = todo.pop()
+                if v in lit:
+                    continue
+                lit.add(v)
+                for (ci, _k) in cons.get(v, []):
+                    if nodes[ci].op in ("fork", "constant"):
+                        todo += nodes[ci].results
+    taken = {r for n in nodes for r in n.results} | {a.ssa_name for a in func.args}
+    hnames = {n.attrs.get("handshake.name") for n in nodes}
+    drop, new_nodes, plan = set(), [], []
+    for si, src in enumerate(nodes):
+        if src.op != "source":
+            continue
+        tree, leaves, ok = {si}, [], True
+        todo = [(src.results[0], None)]          # (value, the constant node it carries, or None for the bare token)
+        while todo and ok:
+            v, c = todo.pop()
+            for (ci, k) in cons.get(v, []):
+                n = nodes[ci]
+                if n.op == "fork":
+                    tree.add(ci); todo += [(r, c) for r in n.results]
+                elif n.op == "constant" and c is None:
+                    tree.add(ci); todo.append((n.results[0], ci))
+                elif n.op == "sink":
+                    tree.add(ci)
+                elif (c is not None and n.op in FUSABLE_OPS and n.operands.count(v) == 1
+                      and any(o not in lit for o in n.operands)):
+                    leaves.append((ci, v, c))
+                else:
+                    ok = False
+                    break
+        if not ok or not any(nodes[t].op == "fork" for t in tree) or not leaves:
+            continue
+        for j, (ci, v, c) in enumerate(leaves):
+            cn = nodes[c]
+            sres, cres = f"{src.results[0]}_ss{j}", f"{cn.results[0]}_ss{j}"
+            sname = f"{src.attrs.get('handshake.name', 'source')}_ss{j}"
+            cname = f"{cn.attrs.get('handshake.name', 'constant')}_ss{j}"
+            if {sres, cres} & taken or {sname, cname} & hnames:
+                raise EmitError(f"{func.name}: BDC_SPLIT_SOURCES: name {sres} / {cres} / {sname} / {cname} is taken")
+            taken |= {sres, cres}; hnames |= {sname, cname}
+            sattrs = dict(src.attrs); sattrs["handshake.name"] = sname
+            if "handshake.bb" in nodes[ci].attrs:
+                sattrs["handshake.bb"] = nodes[ci].attrs["handshake.bb"]
+            cattrs = dict(cn.attrs); cattrs["handshake.name"] = cname
+            if "handshake.bb" in nodes[ci].attrs:
+                cattrs["handshake.bb"] = nodes[ci].attrs["handshake.bb"]
+            new_nodes.append(parse.Node(op="source", arg_items=[], results=[sres], attrs=sattrs,
+                                        src_line=src.src_line, type_sig=src.type_sig))
+            new_nodes.append(parse.Node(
+                op="constant", arg_items=[parse.OperandSegment(wrap="", items=[parse.OperandItem(value=sres)])],
+                results=[cres], attrs=cattrs, src_line=cn.src_line, type_sig=cn.type_sig))
+            _replace_operand(nodes[ci], v, cres)
+        drop |= tree
+        plan.append((src.attrs.get("handshake.name"), [nodes[ci].attrs.get("handshake.name") for ci, _v, _c in leaves]))
+    if plan:
+        func.nodes[:] = [n for i, n in enumerate(nodes) if i not in drop] + new_nodes
+        _rebuild_index(func)
+    func._bdc_split_plan = plan
+    return plan
+
+
 def store_completion_rewrite(func):
     """Join every store's completion into its block's outgoing control token
     (see the block comment above).  Returns the plan, a list of
@@ -2460,6 +2552,10 @@ class Emitter:
         # AUTO's rules included -- sees the graph that is built.  [] and no
         # change at all for a function without a store.
         self.store_plan = store_completion_rewrite(func)
+        if SPLIT_SOURCES:
+            for sname, readers in split_shared_sources(func):
+                print(f"emit: split sources: {func.name}: {sname} -> one source per literal of {readers}",
+                      file=sys.stderr)
         if _auto.AUTO:
             _auto_apply(func)
         self._resolve_widths()
