@@ -3382,3 +3382,4 @@ Dynamatic tests; the automatic table from clean.
 - 18:01 T153 done: item 39 CONFIRMED (9/9 at 5 corners, min steer 1644 ps, 0 runts). T154 item 41: advC 19/19 (1917 ps), worst 19/19 (1891 ps); SLOW_MAX running; item 40 GLS started.
 - 18:15 T154 item 41 done: 19/19 at 5 corners, min steer 1536 ps, 0 runts. CONFIRMED (draws UNVERIFIED). Item 40 GLS running.
 - 18:49 T154 item 40 done: 14/14 at 5 corners, min steer 1587 ps, 0 runts. CONFIRMED (draws UNVERIFIED). All three new board items (39-41) reproduce and pass own GLS.
+- 18:50 owner 5a95d2a08: after 23:00 UTC at most 2 subagents. Subagent E started: own build + axiom audit of formal's 4 heavy modules (AssemblyPS, PlanPS, PlanRPS, CertN1; T123 addendum gap). Subagent D (no-rewrite AUTO) still running.
