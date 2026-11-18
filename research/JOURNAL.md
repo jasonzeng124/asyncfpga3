@@ -6285,3 +6285,15 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   to 20). On the spread-out route the request's own wires covered most of the data path; on the compact route they do
   not. The loop is what makes the rule safe; a better first point would save routes (to do: start from a tighter
   estimate than emit.py's deliberately generous one).
+### progress 00:03 (CORRECTION: ipow x0.55 route 12 never failed a draw -- the three "hangs" were the farm wrapper's timeout)
+- Formal C50: on the identical bits (c3542c6d) our own bench_gate.sh passes draws 1201 / 1203 / 1204 (PASS 17/17, ~380 s
+  each on one core). Our farm record (shrink8 task 12) reads "=> TIMEOUT/none" for those three: the request's
+  `timeout 100m` fired with four draws sharing the task's cores; the gate never gave a verdict. The journal entry of
+  2026-11-17 19:50 ("route 12 ... hangs on 3 of 4 draws, including draw 1203 at CARRY 0.20: not a CARRY effect") and
+  the conclusion drawn from it ("ipow candidates come from x0.70, not x0.55") were wrong: there was no failure.
+- research/tools/draws_table.py now counts TIMEOUT/none as undecided, never as a fail. Re-tallied: ipow x0.55 81 / 81
+  draws pass on the EQUIVALENT routes (+ 3 undecided), P median 26.41 ns (x0.70: 30.21); unchanged elsewhere (real
+  wrong answers): collatz x0.55 110 / 112 (route 30), collatz64 x0.55 69 / 89 (302 mismatch batches), xorshift x0.40a
+  47 / 55 (+ 5 undecided). The suite's own runner has no wrapper timeout (the gate's HANG cutoff is its only one).
+- Local re-run of route 12's draws without a wrapper (niced) to close it here too. ipow x0.55 is a hand-recipe point
+  (a per-kernel factor); under "General first" it goes to the hand column, not the headline.
