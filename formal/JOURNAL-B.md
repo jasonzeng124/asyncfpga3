@@ -4757,3 +4757,18 @@ all nine patches from research's patches/ locally (/home/user/nb/build.sh, scrat
   item 39 col18 K 30601-30632 32/32, slow-carry K 30651-30682 32/32. Same K as research's board-item draws (both 32/32).
 - Running: collatz full range + preloaded steps counter + carry slacks on item 39 (`tools-B/auto/cchecks.sh`); item 41
   (xorshift seed 8) building.
+### progress 17:16 -- item 39 full range + preload + slacks pass; steer settle margins on 38 / 39; item 41 passes everything so far; item 40 built
+- Item 39 (collatz c56def07; `tools-B/auto/cchecks.sh`, K 30601-30608): c32hi (31-bit trajectories; the decoded boundary
+  carries all 32 bits) 8/8; steps counter preloaded 0x3ffffff0 via ulink_n7 (c32hi + col18 without n = 1) 8/8; steps
+  carry into bit 16 in the LAST increment (n = 0x10000) slack 12382 ps (fails 12421: the control, path reached); 3n+1
+  carry into bit 28 on c32hi 10898 ps (fails 10937). Both above item 31's (10546 / 9765).
+- Steer settle (C's steercorners, 8 corners chains/rest {.20,.31} x CARRY {.20,1.0}, no scatter; smallest gap condition ->
+  request at the steer LUT; runts = condition moving under a high request): item 38 (ipow17): entry e > 0 (ucmpi0) min
+  1284 ps at ucond_br4 (chains .20 / rest .31 / CARRY 1.0), loop test (ucmpi2) min 3218 ps at ucond_br9; 0 runts at every
+  corner. Item 39 (col18): entry n == 1 (ucmpi0) min 3444 ps at ucond_br3, loop n == 2 (ucmpi2) min 2165 ps at ucond_br6;
+  0 runts. (The audit's T152 has ucond_br4 at 483-584 ps on item 38 in its GLS, another delay model: not traced.)
+  Note: steermargin needs net.json / routed.json in the run directory (symlinked from m/); without them it prints no rows.
+- Item 41 (xorshift 3497ca67, bits md5 f7e44665 = the flow's own .bit): xor19 K 30801-30832 32/32, slow-carry K
+  30851-30882 32/32; xorchecks: counter preloaded 0x3ffffff0 via ulink_n6 8/8, +20 ns into uaddi0 slice[4] (SLICE_X22Y54)
+  ordinary 2/2 PASS, preloaded 2/2 FAIL (the path is reached). Slack and steer corners running.
+- Item 40 (collatz64) rebuilt: sdf 9585dde4 = research's, ffmux 0; decoded; draws + c64hi + preload running.
