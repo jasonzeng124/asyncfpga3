@@ -1,28 +1,48 @@
-**THE AUTOMATIC COLUMN (PROGRAM "General first", owner 2026-11-17) -- one switch, nothing set per kernel.** BDC_AUTO=1
-with the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model; the hand
-recipes beside it. **Farm suite4, flow v3 (commit 312abcc32: start at emit.py's estimates x 0.3; the rule with
-C-element joins at the draw model's two worst vertices, merged per line; a raise-only finish phase), nextpnr
-9c732bc6303458df, 8 draws per route, complete 2026-11-18 06:56 UTC: 27 routes, 216 / 216 draws right.** gcd and isprime
-are on the farm separately (suite5 / suite7, 8 cores). Flow v6 (+ join credit, the steer self-bound, the token floor,
-iteration 1 as a recalibration, nextpnr 6e5d224472232d5d) runs as suite6 / suite3 and replaces this table when read.
+**THE AUTOMATIC COLUMN over every kernel judged so far (PROGRAM "General first" / "A benchmark suite for the compiler") --
+one switch, nothing set per kernel: BDC_AUTO=1 with the flow's own sizing loop (research/tools/auto/auto_size.sh, flow
+v6: start at emit.py's estimates x 0.3, the rule with C-element joins at the draw model's two worst vertices, join
+credit, the steer self-bound, the token floor, a raise-only finish phase), judged by draws of the delay model. Farm
+suite6 (the four original fast kernels, 8 seeds, 8 draws, nextpnr 6e5d224472232d5d) + suite3a / suite3b / suite8 (suite
+kernels, seeds 1-4 / 1-2, 4 draws, same nextpnr) + suite7 (isprime, flow v5); 2026-11-18.** Every judged route returns
+every right answer under every draw. Many suite kernels have fewer than 4 judged routes because their sizing loop hit
+the farm's 240-minute task limit (60-80 min per iteration at 2 cores); suite9 (23 kernels x 4 seeds, resumable)
+fills them in, and gcd / isprime wait for a faster rule step (subagent loopfast).
 
 | kernel | status | routes judged / built | draws passing | ns per iteration (P), median (range) | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns |
 |---|---|---|---|---|---|---|---|---|---|
-| collatz | PASS | 7 / 7 | 56 / 56 | 18.98 (17.71-20.60) | 5436 | 1220 | 14.05 (measured, 1 route) | 1.35 | 21.50 |
-| collatz64 | PASS | 5 / 5 | 40 / 40 | 23.71 (21.50-27.86) | 9804 | 1775 | 17.84 (measured, 1 route) | 1.33 | 31.40 |
-| ipow | PASS | 8 / 8 | 64 / 64 | 24.10 (21.47-25.00) | 828 | 1317 | 49.98 (ESTIMATE) | 0.48 | 36.20 |
-| xorshift | PASS | 7 / 8 | 56 / 56 | 20.11 (18.87-20.49) | 5304 | 1362 | 12.73 (measured, 1 route) | 1.58 | 16.76 |
+| brhash | PASS | 4 / 4 | 16 / 16 | - | 8664 | 2110 | 36.40 (ESTIMATE) | - | - |
+| collatz | PASS | 8 / 8 | 64 / 64 | 17.04 (14.96-19.46) | 5136 | 1214 | 14.05 (measured, 1 route) | 1.21 | 21.50 |
+| collatz64 | PASS | 7 / 8 | 56 / 56 | 23.27 (22.03-26.12) | 9192 | 1767 | 17.84 (measured, 1 route) | 1.30 | 31.40 |
+| countloop | PASS | 4 / 4 | 16 / 16 | 25.05 (22.15-26.60) | 6864 | 1772 | 8.36 (ESTIMATE) | 3.00 | - |
+| dot2 | PASS | 1 / 1 | 4 / 4 | 156.00 (156.00-156.00) | 960 | 1434 | - | - | - |
+| fold64 | PASS | 1 / 1 | 4 / 4 | - | 5868 | 2773 | 11.93 (ESTIMATE) | - | - |
+| gather | PASS | 1 / 1 | 4 / 4 | 55.22 (55.22-55.22) | 1824 | 1523 | - | - | - |
+| horner | PASS | 2 / 2 | 8 / 8 | 29.13 (28.03-30.22) | 7788 | 1737 | 41.81 (ESTIMATE) | 0.70 | - |
+| ipow | PASS | 7 / 7 | 56 / 56 | 21.58 (19.84-23.36) | 780 | 1331 | 49.98 (ESTIMATE) | 0.43 | 36.20 |
+| isprime | PASS | 1 / 2 | 4 / 4 | 363.19 (363.19-363.19) | 16116 | 3918 | 9.26 (ESTIMATE) | 39.22 | - |
+| lfsrfind | PASS | 4 / 4 | 16 / 16 | 26.90 (23.18-29.27) | 7536 | 890 | 19.52 (ESTIMATE) | 1.38 | - |
+| quadrec | BUILD-FAILED (it=5: TIMING FAILED: 81.74 MHz < 83 MHz target.) | 0 / 1 | - | - | - | - | 9.09 (ESTIMATE) | - | - |
+| sqrtsub | PASS | 1 / 1 | 4 / 4 | 21.17 (21.17-21.17) | 5484 | 1394 | 8.36 (ESTIMATE) | 2.53 | - |
+| straight | PASS | 4 / 4 | 16 / 16 | - | 72 | 1327 | - | - | - |
+| test_bitint | PASS | 2 / 2 | 8 / 8 | - | 300 | 633 | 44.32 (ESTIMATE) | - | - |
+| test_int16 | PASS | 4 / 4 | 16 / 16 | - | 60 | 3 | - | - | - |
+| test_loop_free | PASS | 2 / 2 | 8 / 8 | - | 72 | 1005 | - | - | - |
+| unused_arg | PASS | 4 / 4 | 16 / 16 | - | 72 | 86 | - | - | - |
+| varshift | PASS | 1 / 2 | 4 / 4 | 39.06 (39.06-39.06) | 10056 | 2542 | 11.84 (ESTIMATE) | 3.30 | - |
+| xorshift | PASS | 7 / 7 | 56 / 56 | 22.28 (19.43-23.46) | 6060 | 1365 | 12.73 (measured, 1 route) | 1.75 | 16.76 |
 
-4 of 4 kernels pass; geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.42; including ESTIMATED figures (n = 4): 1.08. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs.
+19 of 20 kernels pass (quadrec: the bench's PS-side clock missed 83 MHz on its one finished route, a build failure, not a
+wrong answer); geometric mean of the ratio over the three MEASURED Dynamatic figures: 1.40; with the ESTIMATES (n = 10):
+2.02 (countloop 3.00, sqrtsub 2.53, varshift 3.30: the simple counted loops are where the automatic flow is furthest
+behind Dynamatic's estimate; isprime's 39 compares an outer-trial period with Dynamatic's inner-shift cycle: not a
+ratio yet). Our ns are the simulation's (~8 % slower per iteration than the August board, research/SIM-VS-BOARD.md);
+Dynamatic's measured figures are single nextpnr routes (Fmax x cycles), not board runs. Hand recipes: xorshift 16.76
+(x55a10, 28 routes), collatz 21.5, collatz64 31.4, ipow 36.2. Flow v6 against v3 (suite4) on the same four kernels:
+collatz 18.98 -> 17.04, collatz64 23.71 -> 23.27, ipow 24.10 -> 21.58, xorshift 20.11 -> 22.28 (subagent xorgap).
+Board items from the automatic path: 38 (ipow), 39 (collatz), 40 (collatz64), 41 (xorshift), all flow v3.
 
-Against the hand recipes: faster on collatz (18.98 vs 21.5), collatz64 (23.71 vs 31.4) and ipow (24.10 vs 36.2), 3.4 ns
-behind on xorshift (20.11 vs 16.76: its loop-test compare UCMPI1 is held long by rule E at the steers; the steer
-self-bound of v5 takes it 17 -> 8 on one route, 16.62 ns, and the ejoin work is on the rest). Flow v2 (suite2, the
-one-band rule) was faster (xorshift 18.63, collatz 18.86) but sizes for one band where the judge draws two; its v1
-predecessor failed a draw (below). 16 of the 27 loops ended clean by the rule, 11 not (every draw passed on both).
-Earlier (flow v1, farm suite1, rejudged): two failures in ~26 routes -- xorshift seed 8, the zero-trip call (1 of 8
-draws; the one-band rule left the entry compare at 5) and ipow seed 4 (2 of 4 draws hang at the first call with x in
-the bench: the start-up class; both pass with +META_INIT=0).
+Previous headline (flow v3, suite4, 27 routes, 216 / 216 draws): collatz 18.98, collatz64 23.71, ipow 24.10, xorshift
+20.11 ns per iteration.
 
 **2026-11-17, judged by draws (PROGRAM "The board decides"): xorshift 16.85 ns per iteration** -- item 33's sizes x0.55
 except the incrementer (fr4a_x55a), median of 32 farm routes (15.93-18.19), every one of 128 delay-model draws returning
