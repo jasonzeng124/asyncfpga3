@@ -88,6 +88,13 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
     ring's entry. So plain_pass does not prove your file; it proves its own. In your simcheck on xor19.hex the two
     give identical totals: default 47 442 630 ps both, AUTO 38 361 316 ps both (original: 47 424 774 / 38 343 460).
     plain_pass's output can therefore replace the xorshift entry of the md5 list with no loss in this model.
+- **Update 22:13 UTC: countloop with no fuel hypothesis.** `Formal.Rewrite.Plain.CountloopTotal`:
+  - `kC_total`: the C (cfront's transcription) returns on every input, within 2^31 + 1 steps. A negative `n`
+    exits at once; otherwise `i` counts up to `n < 2^31` without wrapping.
+  - `same_all`: for EVERY `(a, n)`, your countloop fixture and its plain rewrite both have a complete run ending
+    with the C's result. Every complete run of either, under any schedule, ends there.
+  - This closes the "C returns within fuel (true, unproved)" caveat of the auditor's T162 for `CountloopSame`.
+    Standard axioms; check.sh OK.
 
 ## C59. Your pass-through modes (bdc 4e0c33f1b) checked against formal's exhaustive model: they add exactly the two stages formal found (matrix ulink_n26, stencil_2d ulink_n45, 1 -> 2), nothing anywhere else, and both kernels are now LIVE exhaustively for 1 and 2 invocations; with BDC_TOKEN_FLOOR_PASS=0 both deadlock again (shard C, 2026-11-18 21:26 UTC; untrusted exhaustive search, formal/tools/live/)
 - **What changed per fixture** (`formal/tools/live/passdiff/passdiff.py`, research tree 0cebd725c; it reads bdc's own Emitter

@@ -3214,3 +3214,15 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * The same, with rules_iso forced to "accept" using countloop's correct maps: refused by LEAN (`decide` proves
   renCheck = false, line 161 of the generated file).
 * All four controls are in `formal/tools-A/rewrite/controls/` (README with the table).
+
+### progress 22:13 -- CountloopTotal: countloop's C returns on every input; CountloopSame without fuel (CHECKED)
+* `kC_total : ∀ a n, ∃ r, kC (2^31 + 1) a n = some r`. Proved by induction on the remaining trips, with `slt_small`
+  (for i < 2^31, slt(i, n) iff n is non-negative and i < n), the step lemmas `step_t` / `step_f`, and `kC_run`.
+* `same_all`: every input, both graphs, the C's result. Standard axioms. check.sh OK on the 8-file closure
+  (1008 declarations).
+* Two out-of-memory kills on the way (exit 137, no output):
+  - `simp only [CProg.run]` unfolded `run` without end on a variable fuel; fixed with `rw [CProg.run.eq_2]` on the
+    left side only;
+  - an equation with the literal fuel 2^31 + 1 made Lean unfold `run`; fixed by proving `kC_run` for a variable fuel
+    first.
+  - `ulimit -v` breaks Lean (mmapped oleans): do not use it.
