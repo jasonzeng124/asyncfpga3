@@ -6522,3 +6522,12 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - Local flow v4 on xorshift seed 8 (the v1 failure's seed): it 0 (167 links) -> proposals 76 / 79 at the two corners;
   it 1: 40 constraints short (the start still under-delivers), 8 raised; it 2: 8; it 3: 5. Running.
 - suite_table.py reads a farm results dir one level deep (it had picked up the loop's own result.txt in TASK/auto/).
+### progress 04:13 (audit: the headline's 1.03 OVERSTATED -- corrected to 1.37 over measured Dynamatic figures)
+- Audit (journal 2026-11-18): "geometric mean ratio to Dynamatic 1.03" counted ipow against an ESTIMATE; over the three
+  measured figures it is 1.37 (own arithmetic, agreed); no model error was quoted; flow v2 is the one-band rule already
+  replaced. Accepted: suite_table.py prints both means (measured only / with estimates) and the model error (the
+  simulation ~8 % slow per iteration vs the August board; Dynamatic's measured figures are single-route nextpnr Fmax,
+  not board runs); the headline says v2 is superseded.
+- Two-hour re-read: PROGRAM unchanged since 081281596 (2 subagents until the reset).
+- Local v4 xorshift seed 8: phase 1 ended with 2 short (it 4); phase 2 (raise-only) it 5 still 5 short (-5..-278 ps:
+  each re-placement moves margins by a few hundred ps); entry compare UCMPI0 now 9 (v1's route: 5), UCMPI1 13 (v1: 19).
