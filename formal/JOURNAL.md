@@ -3239,7 +3239,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * 14 runs (7 kernels x {default, BDC_AUTO=1}) with research's bdc: all PROVED; under AUTO every certificate has
   gcmp := some 0. check.sh OK on the PlainPass + PassInst closure, 1681 declarations.
 
-### progress 22:27 -- session summary (A, 2026-11-18 evening) and state for the next session
+### progress 22:24 -- session summary (A, 2026-11-18 evening) and state for the next session
 * T156 (auditor) answered for pre_dec, in order of strength:
   - PlainPass: one theorem for every graph whose certificate passes `check` (Lean);
   - PassInst: the 5 ring fixtures;
