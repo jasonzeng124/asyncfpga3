@@ -137,6 +137,16 @@ CLEAN under the rule; every bitstream EQUIVALENT and ffmux clean.
    (tighten.py `combinational cycle with no storage`: usource0 and ua_end_snk). Dynamatic's `end` is wires too (no
    end.v in its handshake library); in its clocked semantics such an output is simply valid every cycle. bdc needs a
    result tied to the call (joined with start; for a dropped memref, memEnd = its memStart). Work for the compiler.
+   **Fixed in bdc (2026-11-18, research/data/suite/srcjoin.md): a result no call bounds is joined with the call's
+   bounded control results.** emit.py finds the results whose tokens no call bounds (a least fixpoint over tokens:
+   test_int16's out0, unused_arg's a_end, and gaussian's out0, which bdc refuses earlier at lsq) and joins each with a
+   copy of every control result the call bounds (`end`, which Dynamatic makes start itself, and each memory's end) --
+   what Dynamatic's testbench join waits for. --no-top output of the 107 fixtures, four ways: only test_int16 and
+   unused_arg change; BDC_CALL_JOIN=0 restores the old wiring byte for byte. simcheck test_int16 PASS 1/1 and 6/6 in
+   both flows (the old wiring: the same timeout, 94162 tokens). Routed smoke (suite_one.sh K 1 2 3, nextpnr
+   6e5d224472232d5d): test_int16 PASS 2/2 draws (CLEAN it=0, nothing to size), unused_arg PASS 2/2 draws (6/6 each,
+   CLEAN it=1), both EQUIVALENT, ffmux clean; with BDC_CALL_JOIN=0 both stop at the rule again (combinational cycle
+   with no storage). One seed each: a smoke test.
 3. **The oracles.** All 13 kernels' answers come from their C in a tree without `dynamatic/` (checked: identical to
    the answers with it). Four of Dynamatic's tests have no header (types in the .c: compiled into the driver), use
    `int main()` (renamed too), and test_bitint needs clang (`_BitInt`; gcc 13 has none): a machine without clang gives
@@ -150,6 +160,9 @@ CLEAN under the rule; every bitstream EQUIVALENT and ffmux clean.
 6. **A kernel with no delay line cannot enter the automatic path.** test_int16 emits (bdc: 0 matched delays), but
    auto_size.sh's estimates step stops (`est_sizes.py: no module bdc_test_int16 with parameters`) and suite_one.sh
    reports it as `status=DOES-NOT-COMPILE ()`. Not changed here (the kernel is wrong anyway, item 2).
+   **Fixed (2026-11-18, srcjoin.md):** est_sizes.py writes a sizes file with no lines for a kernel with no matched
+   delay, and auto_size.sh builds such a kernel once and judges that route (`CLEAN it=0 ... (nothing to size)` or
+   `NOT CLEAN it=0`); test_int16 (still 0 delays after item 2's fix) goes through.
 
 ## What the suite found (work for the compiler)
 

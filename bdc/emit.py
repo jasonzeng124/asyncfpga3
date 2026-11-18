@@ -2030,7 +2030,7 @@ def _apply_link_depths(func, linked, depth, floor):
 
 
 # ---------------------------------------------------------------------------
-# Results no call bounds: joined with the call's end token
+# Results no call bounds: joined with the control results the call does bound
 #
 # A `source` offers a token forever (cells/rtl/bd_end.v: req = ~ack).  Inside a function that is harmless wherever an
 # op joins the source's token with one that came from an argument -- the literal operand of an addi waits for the
@@ -2050,19 +2050,20 @@ def _apply_link_depths(func, linked, depth, floor):
 # bounds is joined (bd_join, a C-element with reset) with a copy (bd_fork) of every CONTROL result the call does bound
 # -- `end` and each memory's end.  Not start alone: Dynamatic's `end` IS start (in all 104 fixtures that parse it is the
 # start argument through forks only), so joined with it alone a source-fed out0 would tell the bench "done" at the
-# call's start, while its memories may still be in use (gaussian's out0, a folded constant, is that shape); a memory's
-# end comes after its accesses.  Not the data result: the bench takes it on its own, and a control result's timing
-# beyond once per call does not matter to the bench.  Data, if any, is wired through: it is valid from the result's
-# own request until its acknowledge, which is the joined channel's acknowledge, so the bundling holds with no delay (a
-# constant is valid forever).  The bd_src now sits behind a consumer that resets (COMPILER-PLAN.md asks that of it).
+# call's start, while its loops may still be running (gaussian's out0, a folded constant, is that shape); a memory's end
+# comes after the exit block's control token (its ctrlEnd).  Not the data result: the bench takes it on its own, and a
+# control result's timing beyond once per call does not matter to the bench.  Data, if any, is wired through: it is
+# valid from the result's own request until its acknowledge, which is the joined channel's acknowledge, so the bundling
+# holds with no delay (a constant is valid forever).  The bd_src now sits behind a consumer that resets
+# (COMPILER-PLAN.md asks that of it).
 #
-# "No call bounds" is decided on tokens, not on reachability: a source reaches a result in 101 of the 102 fixtures
+# "No call bounds" is decided on tokens, not on reachability: a source reaches a result in 103 of the 104 fixtures
 # that parse (every literal operand of every kernel), and nearly all of those are bounded by the op the literal
 # feeds.  free_running() is the least fixpoint of: a source is free; a fork / constant / br / reshape / load is free
-# when its (first) operand is (a load fires once per address); a join of channels (every compute op -- the dividers
-# too, which bdc does not lower yet --, cmpi, select, cond_br, join, store, mem_controller) when ALL its operands are; a merge / control_merge when ANY is (one free
-# input floods it); a mux when its select and any data input are.  Function arguments are never free.  An op not in
-# that table with a free operand stops the emitter (do not assume).
+# when its (first) operand is (a load fires once per address); a join of channels (every compute op, the dividers bdc
+# does not lower yet included, cmpi, select, cond_br, join, store, mem_controller) when ALL its operands are; a merge /
+# control_merge when ANY is (one free input floods it); a mux when its select and any data input are.  Function
+# arguments are never free.  An op not in that table with a free operand stops the emitter (do not assume).
 #
 # BDC_CALL_JOIN=0 restores the old wiring, byte for byte (the negative control).  A kernel with no free result emits
 # exactly what it did before either way.
@@ -2930,8 +2931,9 @@ class Emitter:
         base = [portname(r.name) for r in self.func.results]
         if plan is not None:
             fb = ", ".join(base[i] for i in joined)
-            self.emit(f"    // {fb}: no call bounds {'this result' if len(joined) == 1 else 'these results'} (a source's "
-                      f"tokens, joined with no argument's): joined with a")
+            what = "this result" if len(joined) == 1 else "these results"
+            self.emit(f"    // {fb}: no call bounds {what} (a source's tokens, joined with no argument's): "
+                      f"joined with a")
             self.emit(f"    // copy of every control result the call bounds ({', '.join(base[t] for t in tied)}), so "
                       f"each leaves once per call, with them.")
             # One fork per bounded control result: copy 0 to its port, copy j + 1 to free result j's join.
