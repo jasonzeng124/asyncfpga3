@@ -41,8 +41,19 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   rm -rf "$CA"; mkdir -p "$CA/seed1/pnr"
   ln -sf "$RD/xray.sdf" "$CA/seed1/pnr/soak_xray.sdf"; ln -sf "$HW/${D}_routed.json" "$CA/seed1/pnr/soak_routed.json"
   cp "$Z" "$CA/seed1/pnr/sizes.vh"
-  BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. --out "$CA/rule" \
-      > "$O/ca_$i.txt" 2>&1
+  # The rule at the delay model's worst vertices (AUTO_RULE_CORNERS, default "0.20 0.31": the band of everything but the
+  # delay chains, the chains at 0.20, CARRY4 / F7F8 / FF at SLOW_MAX), merged per line by the max (merge_rules.py).
+  # Why two: bench_gate.sh's draws -- the judge -- take the chains and the rest independently from [0.20, 0.31]; a
+  # race's margin is linear in the two bands, the chains sit on the request side (worst at 0.20), the rest on both
+  # sides (worst at either end).  One band for both (CA_SIZERULE's own default, 0.21) sized xorshift seed 8's entry
+  # compare UCMPI0 at 5, and the draw with chains 0.212 / rest 0.277 got the zero-trip call wrong (farm suite1).
+  local c; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
+    BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
+        --band "$c" --inst-rx '\.chain\.g\[\d+\]\.u$:0.20' --out "$CA/rule_$c" > "$O/ca_${i}_$c.txt" 2>&1 &
+  done; wait
+  local dirs=(); for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
+    [ -f "$CA/rule_$c/sizes.vh" ] && [ -f "$CA/rule_$c/negative_sized.tsv" ] || return 1; dirs+=("$CA/rule_$c"); done
+  python3 "$T/merge_rules.py" "$CA/rule" "${dirs[@]}" && grep -h '^proposal' "$O/ca_${i}_"*.txt > "$O/ca_$i.txt"
   [ -f "$CA/rule/sizes.vh" ] && [ -f "$CA/rule/negative_sized.tsv" ]
 }
 build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); final() runs the full stack on the kept one
