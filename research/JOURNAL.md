@@ -6398,3 +6398,15 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - auto_size.sh flow v2 (2e5b0e013): the loop starts at emit.py's estimates x 0.3 (AUTO_START_SCALE, one number for
   every kernel; the rule still sets every size). Farm suite2 = flow v2 on the six kernels x seeds 1-8 with the fixed
   checker; prediction in its header.
+### progress 01:27 (C50 closed: ipow x0.55 route 12 passes all four draws here; the checker fix had a one-sided fold, fixed)
+- ipow x0.55 seed 12 rebuilt here = the farm's route (sdf c3542c6d, P 24.65 ns): draws 1201 / 1202 / 1203 / 1204 PASS
+  17/17 each with no wrapper timeout (581-1152 s each on this loaded node, niced). With the farm's 81 / 81 that is
+  every draw passing on every EQUIVALENT ipow x0.55 route (a hand-recipe point, P median 26.41 ns vs x0.70's 30.21).
+  Formal C50 reproduced.
+- But the same gate called those bits NOT EQUIVALENT, and so did AUTO ipow seed 1's (9a5c155d): 745cb181a (pnrfix) folded
+  the JSON side's GND LUT in pin_drivers, so where both sides name the same LUT the JSON side became const 0 and the
+  bits side stayed a bel: DRIVER DIFFERS (F7BMUX/0, CARRY4/DI0-2). 601010f1b folds only in the comparison, where one
+  side is that LUT and the other a constant: c3542c6d, 9a5c155d, 533a7474, b0aaeccd all EQUIVALENT; pnrfix's two
+  negative controls still NOT EQUIVALENT. Farm suite2 was picked up at 3e47c10ad (with the one-sided fold), so its NOT
+  EQUIVALENT routes will be re-judged from their returned sizes (rejudge.sh).
+- x55a10 seed 21 (bit 6a68b04e): SLOW_MAX / FAST_MIN / worst PASS 19/19 each; draws 2101-2105 PASS so far (32 queued).
