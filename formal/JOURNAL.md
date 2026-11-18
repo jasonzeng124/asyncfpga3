@@ -2972,3 +2972,14 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   Classical.choice). NOT yet through `formal/check.sh` / lake: Mathlib is still building from source here (setup.sh;
   one OOM kill during it). Lean was run outside slot.sh (single small processes, Core only).
 * Open: the MLIR tool + per-kernel structural check (subagent 1 for the literal case); sle / sgt forms.
+### progress 17:47 -- CHECKED: SplitComp; countloop's rewritten MLIR tied to the theorem (Lean + an untrusted iso script)
+* bdc fuses at most 4 ops per region, so the 5-op corrected test is emitted as two regions (seen in dfimport's import of
+  the hand-rewritten countloop MLIR). `SplitComp.lean`: `comp [x,y] z F` vs `fork y; comp [x,y1] w F1; comp [y2,w] z F2`
+  with `F2(b, F1(a,b)) = F(a,b)`, any graph, both directions (relation with existential witnesses for the w tokens in
+  flight). `CountloopRewrite.same3_*`: rules -> rs3 (ring, moved test, split). All standard axioms.
+* `tools-A/rewrite/rules_iso.py` (untrusted): import of `tools-A/rewrite/out/countloop_rd.mlir` (md5 0d43ba36) is
+  isomorphic to `rs3`; the original fixture is not (negative control). FOR-RESEARCH A19 updated.
+* Lesson (cost me two minutes, could have cost a false claim): a `lean` run killed by the OOM killer prints nothing, and
+  my error grep then shows nothing. The `hH := fun a b => rfl` of the split instance blew memory (definitional
+  unfolding of the 32-bit ops); replaced by simp. Every compile is now checked by exit code, and every claimed theorem
+  by `#print axioms` from its olean.

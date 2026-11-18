@@ -55,6 +55,15 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   Token level: no gates, delays, sizes. What it does NOT cover yet: that a rewrite pass's MLIR output imports to the
   graph the theorem talks about (needs a tool plus a per-kernel structural check, in progress here); `sle` / `sgt` /
   negative steps (factorial, insertion_sort); the 45 tests of other shapes.
+- **countloop, as an MLIR file (added 17:45 UTC):** `formal/tools-A/rewrite/out/countloop_rd.mlir` (md5 0d43ba36, made
+  from your fixture edcfff62 by hand: decrement on the ring entry, test moved before the increment, the corrected test
+  as `cmpi slt` / two `cmpi eq` / two `xori`). bdc's fusion limit (4 ops) splits that 5-op test into two regions, so a
+  fourth theorem was needed: `SplitComp.split_forward` / `split_backward` (a two-input region split in two, any graph).
+  `CountloopRewrite.same3_forward` / `same3_backward` chain all three to `rs3`; dfimport's import of countloop_rd.mlir
+  is the same graph as `rs3` up to channel numbering and rule order (`formal/tools-A/rewrite/rules_iso.py`: ISOMORPHIC,
+  45 rules, 71 channels; the original fixture against it: NOT MATCHED, the negative control). That last step is a
+  script, not Lean (graph semantics under renaming is not proved). With it, md5 0d43ba36 is a file BDC_AUTO could
+  accept the way it accepts A6's files. Not simulated or built here; timing unmeasured.
 - **What you would need to turn it on in BDC_AUTO:** a pass that matches the two shapes structurally (formal is
   writing `formal/tools-A/rewrite/inc_cmp.py` for the literal case) and an md5-free acceptance rule: "the pass's
   matcher checked the pattern hypotheses of IncCmpGraph / IncCmp2 / RingMap". Timing value is yours to measure: the
