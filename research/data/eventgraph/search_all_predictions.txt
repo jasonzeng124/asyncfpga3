@@ -1,0 +1,61 @@
+2026-11-18T17:09:32Z base rebuilds (no edit), my clone at eaef0dec7, BDC_AUTO=1, farm suite3a final sizes, nextpnr 6e5d224472232d5d:
+  gs_countloop_2 (seed 2): expect the farm's route if bdc emission is unchanged since e18df972: sdf 526cfe59, P 22148 ps
+  gs_countloop_4 (seed 4): expect sdf f25a41ff, P 24301 ps
+
+2026-11-18T17:24:47Z B builds: BDC_AUTO=1 + one more fork-output link chosen by the all-sites search (research/tools/eventgraph/search.py --all-sites),
+farm sizes of the same seed + the new link at DELAY 1 / UACK 1 (flow v6's size for rule F's folink), same NEXTPNR_SEED as the farm route.
+Graph prediction (whatif, all-sites model; wire 0 / 1000 / 2000 ps per inserted stage); the new stage ends off the critical cycle,
+so the 1-3 ns stage-wire under-charge should mostly not apply; re-placement scatter ~1 ns per route.
+  xorshift BDC_FORK_OUT_LINK=n11__0,n32__2 (n32__2 = loop-test fork9 -> x steer cond_br7's condition):
+    s2 (su_xorshift_2_7, A P 19.715): 19.06 / 19.06 / 19.21
+    s3 (v6x_xorshift_3,  A P 22.465): 17.61 / 17.68 / 19.51
+    s4 (v6x_xorshift_4,  A P 19.429): 15.90 / 15.90 / 16.71
+    s8 (v6x_xorshift_8,  A P 22.961): 18.57 / 18.57 / 18.62
+    mean of 4: A 21.14 -> predicted 17.79 (wire 0), 18.51 (wire 2000)
+  countloop BDC_FORK_OUT_LINK=n15__0,n22__0,n24__3 (n24__3 = loop-test fork9 -> s steer cond_br7's condition):
+    s2 (gs_countloop_2, A P 22.148): 20.41 / 20.41 / 20.41
+    s4 (gs_countloop_4, A P 24.301): 19.79 / 19.79 / 19.95
+
+2026-11-18T17:33:22Z base rebuilds (no edit; graphs for the search), farm suite6 final sizes, BDC_AUTO=1: expect the farm's routes
+  gs_ipow_3 sdf 67b6018e P 23358; gs_ipow_4 4ca3f89a P 22570; gs_collatz_3 6c329a2a P 19463; gs_collatz_6 092880c3 P 19026;
+  gs_collatz64_7 cdc90356 P 26116; gs_collatz64_8 7e9207f3 P 24567
+
+2026-11-18T17:55:55Z ipow seed 1, BDC_AUTO=1 + BDC_AUTO_SEARCH=picks of search.py --all-sites --buildable-only on v6x_ipow_1 (xorgap's
+rebuild of farm suite6 ipow s1, sdf fcbfe8af, A P 21.727): BDC_LINK_DEPTHS ulink_n_trueResult_10=3,ulink_n15=2; BDC_FORK_OUT_LINK n22__1,n19__0
+(n22__1 = source2's fork -> constant 0 -> loop test cmpi2; n19__0 = source1's fork -> constant true -> the select's andi);
+sizes: farm s1 + new links 1/1, ulink_n15 SDELAY 1. Predicted (wire 0 / 1000 / 2000 per inserted stage): 18.34 / see below
+  gsB_ipow_1: predicted 18.3-19.6 ns (A 21.727)
+  gsB_countloop_2/4 as above (20.41 / 19.79); gs0_xorshift_3 = farm it 0 route of xorshift s3 (expect sdf 413cf18e), for the search at it 0
+2026-11-18T17:57:11Z gsC_ipow_1: ipow s1 + BDC_FORK_OUT_LINK n19__0 only (the search's pick with 1 ns of wire per stage): predicted 20.92 / 21.28 / 23.28 (wire 0/1000/2000), A 21.727
+2026-11-18T18:23:38Z gsB_ipow_1 is built with the explicit knobs BDC_LINK_DEPTHS=ulink_n_trueResult_10=3,ulink_n15=2 BDC_FORK_OUT_LINK=n31__0,n22__1,n19__0 (n31__0 = rule F's own pick; same structure as the picks file, prediction unchanged)
+2026-11-18T18:29:03Z gsB_countloop_1 / _3: the same site as s2 / s4 (n24__3; no base graph of these routes, so no per-route prediction: expected below the farm's P 26.60 / 25.80 by 1-5 ns as on s2 / s4)
+
+2026-11-18T18:35:04Z MEASURED so far (nextpnr 6e5d224472232d5d, my clone at eaef0dec7 + tools only; fixed farm sizes + new link 1/1):
+  xorshift n32__2: s2 19.715 -> 17.897 (pred 19.06), s3 22.465 -> 16.321 (pred 17.61), s4 19.429 -> 15.467 (pred 15.90), s8 22.961 -> 18.079 (pred 18.57)
+  countloop n24__3: s2 22.148 -> 20.831 (pred 20.41), s4 24.301 -> 19.323 (pred 19.79)
+  it-0 route of xorshift s3 (gs0_xorshift_3, sdf 413cf18e = the farm's it 0, P 26.082): at its rising floor (25.889); the search finds nothing
+    there (wire 0 and 1000) -> the search must run on a sized route (xorgap's phase, on the shipped route), not at it 0.
+2026-11-18T18:54:51Z MEASURED gsB_ipow_1 (4 picks, wire-0 search): P 20.228 (A 21.727; predicted 18.34 / 22.08 / 26.08 at wire 0 / 1000 / 2000): between the wire-0 and wire-1000 predictions; its critical cycle still runs through usource2 (fork8).
+
+2026-11-18T18:58:58Z BDC_SPLIT_SOURCES=1 (new opt-in bdc knob: one source + constant per reader of a shared source; constants then folded by
+compute_fusion: no channel, no join input). Builds only if simcheck --c-oracle passes on the gate vectors.
+  gsS_ipow_1 (farm s1 sizes, A 21.727): graph bound with the source network's arcs removed 19.36 (v6x_ipow_1); the real design
+    also loses 4 join inputs: predicted 19.0-20.5 ns.
+  gsS_collatz_3 (farm s3 sizes, A 19.463; no graph of this route): if its cycle runs through source2 as on 3 of 4 older routes,
+    -0.5..-2.0 ns (bound on those routes), else ~0 (+- route scatter 1 ns).
+2026-11-18T19:02:59Z gsS_collatz64_7 (farm s7 sizes, A 26.116; its cycle runs through usource3): graph bound without the source network 24.74; predicted 24.0-25.0 ns (fewer join inputs too)
+
+2026-11-18T19:10:50Z MEASURED BDC_SPLIT_SOURCES=1: gsS_ipow_1 20.493 (A 21.727, predicted 19.0-20.5); gsS_collatz_3 16.666 (A 19.463, predicted
+  -0.5..-2.0 if its cycle ran through source2). Both EQUIVALENT, ffmux-clean; draws queued. Neither new cycle passes a source.
+More seeds, farm sizes, same knob (no graphs of these A routes): predicted, from the 7 of 11 older routes where the shared source
+binds (0.5-2.9 ns) and the 4 where it does not (~0): each within [A - 3, A + 1] ns, mean gain 1-2 ns:
+  gsS_collatz_6 (A 19.026), gsS_collatz_2 (A 14.965: the fastest collatz route; expect ~0), gsS_ipow_4 (A 22.570), gsS_ipow_2 (A 21.202),
+  gsS_collatz64_4 (A 22.126), gsS_collatz64_8 (A 24.567)
+2026-11-18T19:16:45Z MEASURED gsS_collatz64_7: 23.798 (A 26.116; predicted 24.0-25.0). gsB_countloop_4 draw 10401 PASS 10/10; gsB_countloop_2 draw 10201 PASS 10/10.
+2026-11-18T19:27:35Z more split seeds for n = 4 per kernel: gsS_collatz_4 (A 17.105), gsS_ipow_3 (A 23.358), gsS_collatz64_2 (A 23.273): each within [A - 3, A + 1]
+2026-11-18T19:48:32Z MEASURED gsB_countloop_1 21.399 (A 26.600), gsB_countloop_3 21.784 (A 25.796); gsS_collatz_6 17.809 (A 19.026). Draws gsS_ipow_1 2/2, gsS_collatz_3 2/2 PASS.
+2026-11-18T19:59:43Z MEASURED gsS_collatz_2 15.540 (A 14.965: +0.58; at its rising floor, the loop-control ring); gsS_ipow_4 22.368 (A 22.570: -0.20; RTZ 3.8 on the b ring via the index fork into mux0's select)
+2026-11-18T20:14:17Z gsS_ipow_2: P per iteration 19.61 ns from the full-stack trace (13 equal 2-iteration intervals of 39229 ps; the event graph needs 16, so no graph; A 21.202, farm latency 60 host cycles per call vs 56 here). gsB_countloop_1 draw PASS.
+2026-11-18T20:49:14Z MEASURED gsS_collatz_4 15.190 (A 17.105), gsS_ipow_3 18.971 (A 23.358). Draws: gsS_ipow_4, gsS_ipow_2, gsS_collatz_2, gsS_collatz_6, gsS_collatz64_7 PASS.
+2026-11-18T21:04:43Z MEASURED gsS_collatz64_4 19.811 (A 22.126), gsS_collatz64_8 24.599 (A 24.567).
+2026-11-18T21:38:50Z draws: gsS_ipow_3, gsB_ipow_1, gsS_collatz_4, gsS_collatz64_4, gsS_collatz64_8 PASS (every judged route of this session passed every draw).
