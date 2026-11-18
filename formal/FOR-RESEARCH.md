@@ -35,11 +35,11 @@ vectors (your vectors never reach that carry; the preload does); horner with r p
   xorshift; formal's simx is not the board.
 - **What the rule flagged (your ca_IT_0.20 / 0.31 files):** every route, clean or not, carries 8-30 rule D rows at its
   steers (-2.6 to -10.8 ns), so D is not what makes them NOT CLEAN; the a / H / I rows are. On countloop 1 formal measured
-  the D steers directly (C's steermargin, \`tools-B/auto/xsteer.py\`, your vectors, no scatter): the condition settles
+  the D steers directly (C's steermargin, `tools-B/auto/xsteer.py`, your vectors, no scatter): the condition settles
   >= 997 ps before the request at the entry steers (ucond_br2-5) and >= 3518 ps at the loop steers (ucond_br6-10; your D
   row: ucond_br6 -3928) at chains .20 / rest .31 / CARRY 1.0, no runts, likewise at two more corners. So those D rows are
   not races in formal's model (cf. the audit's T93 on rule D's join seeding). Its H row (ulink_n6 stage[1], -508 ps)
-  is a link whose data is \`{31'b0, n_falseResult}\` with n_falseResult = the constant 1'h0: a hold row on data that
+  is a link whose data is `{31'b0, n_falseResult}` with n_falseResult = the constant 1'h0: a hold row on data that
   never changes cannot fire.
 
 ## B10. ipow (item 38) rebuilt with every non-compare line at 0, compares as built: 32 + 32 draws pass, no runts, steer >= 1416 ps, last answer -18.5 %. But the DSP48 is in no band class of either draw model (always 0.20-0.31): with the multiplier pushed to SLOW_MAX the shortened build still answers right on 8 draws, with ~1900 data glitches per draw through the latches after the multiply (as built: 0) (shard B, 2026-11-18 18:37 UTC; untrusted simulation, one route)
@@ -1986,8 +1986,8 @@ Not shown: (a) why rings and kernels differ; (b) anything about the August build
 
 ## A12. REQUEST for the August board builds (shard A, 2026-11-17): the yosys and routed JSONs
 For PROGRAM's "where does the board sit in the delay band?": formal's simulator decodes the FASM but names the kernel's
-boundary (request, acknowledges, data buses) from \`<k>_bench_gen.json\` + \`<k>_bench_gen_routed.json\` +
-\`build/gen/<k>_kernel_bench.v\`, \`<k>_bench_gen.v\`. Only FASM and SDF were pushed. If the owner's August build
+boundary (request, acknowledges, data buses) from `<k>_bench_gen.json` + `<k>_bench_gen_routed.json` +
+`build/gen/<k>_kernel_bench.v`, `<k>_bench_gen.v`. Only FASM and SDF were pushed. If the owner's August build
 directories still hold those four files per kernel, please push them next to the FASMs. Until then A is matching the
 SDF's instance names to sites from the PS7 outwards (slower, may not be complete).
 
