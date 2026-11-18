@@ -120,6 +120,37 @@
 `define BD_RAM_THOLD_DI   667
 `define BD_RAM_THOLD_WE   197
 
+// -- opt-in: a per-instance scatter of every LUT arc (BD_JITTER) -------------
+// OFF unless -DBD_JITTER: without it nothing below changes the model.  With it,
+// each LUT output gets ONE delay drawn per instance, (arc + BD_ROUTE_PS) times
+// (1 + u), u uniform in [-JPCT, +JPCT] percent (plusarg +JPCT=<n>, default 30),
+// the draw a hash of the instance path and +JSEED=<n> (default 1), so a seed is
+// a reproducible delay assignment.  arc = 124 (O6) / 150 (O5).  The assignment
+// is inertial, as the specify paths it replaces (left out under BD_JITTER).
+// What it is for: a protocol whose order holds only because some paths happen
+// to be faster than others at the nominal arcs fails under some seed; one whose
+// order holds by construction passes every seed.  What it is NOT: the matched
+// delays are LUT chains and scatter too, so a bundling constraint can break --
+// read a failure (which signal, which edge) before blaming the protocol.
+`ifdef BD_JITTER
+`define BD_JITTER_DECL \
+    integer jd6 = 124 + `BD_ROUTE_PS, jd5 = 150 + `BD_ROUTE_PS; \
+    reg [8*160-1:0] jnm; integer jh, jk, jc, jseed, jpct; \
+    initial begin \
+        $sformat(jnm, "%m"); jh = 5381; \
+        for (jk = 0; jk < 160; jk = jk + 1) begin \
+            jc = (jnm >> (8 * jk)) & 255; if (jc != 0) jh = (jh * 33 + jc) & 32'h7fffffff; end \
+        if (!$value$plusargs("JSEED=%d", jseed)) jseed = 1; \
+        if (!$value$plusargs("JPCT=%d", jpct)) jpct = 30; \
+        jh = (jh ^ ((jseed * 32'h9e3779b1) & 32'h7fffffff)) & 32'h7fffffff; \
+        jh = (jh * 1103515245 + 12345) & 32'h7fffffff; \
+        jh = (jh * 1103515245 + 12345) & 32'h7fffffff; \
+        jd6 = ((124 + `BD_ROUTE_PS) * (1000 + (jh % (20 * jpct + 1)) - 10 * jpct)) / 1000; \
+        jh = (jh * 1103515245 + 12345) & 32'h7fffffff; \
+        jd5 = ((150 + `BD_ROUTE_PS) * (1000 + (jh % (20 * jpct + 1)) - 10 * jpct)) / 1000; \
+    end
+`endif
+
 // ---------------------------------------------------------------------------
 // Each LUT is a mux tree, not an indexed lookup, and the difference matters
 // here more than anywhere else.  Every feedback loop in this library powers up
@@ -134,24 +165,39 @@
 
 module LUT1 (output O, input I0);
     parameter [1:0] INIT = 2'h0;
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? INIT[1] : INIT[0];
+`else
     assign O = I0 ? INIT[1] : INIT[0];
     specify (I0 => O) = (`BD_T6); endspecify
+`endif
 endmodule
 
 module LUT2 (output O, input I0, I1);
     parameter [3:0] INIT = 4'h0;
     wire [1:0] s1 = I1 ? INIT[3:2] : INIT[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? s1[1] : s1[0];
+`else
     assign O = I0 ? s1[1] : s1[0];
     specify (I0 => O) = (`BD_T6); (I1 => O) = (`BD_T6); endspecify
+`endif
 endmodule
 
 module LUT3 (output O, input I0, I1, I2);
     parameter [7:0] INIT = 8'h0;
     wire [3:0] s2 = I2 ? INIT[7:4] : INIT[3:0];
     wire [1:0] s1 = I1 ?   s2[3:2] :   s2[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? s1[1] : s1[0];
+`else
     assign O = I0 ? s1[1] : s1[0];
     specify (I0 => O) = (`BD_T6); (I1 => O) = (`BD_T6); (I2 => O) = (`BD_T6);
     endspecify
+`endif
 endmodule
 
 module LUT4 (output O, input I0, I1, I2, I3);
@@ -159,10 +205,15 @@ module LUT4 (output O, input I0, I1, I2, I3);
     wire [7:0] s3 = I3 ? INIT[15:8] : INIT[7:0];
     wire [3:0] s2 = I2 ?   s3[7:4]  :   s3[3:0];
     wire [1:0] s1 = I1 ?   s2[3:2]  :   s2[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? s1[1] : s1[0];
+`else
     assign O = I0 ? s1[1] : s1[0];
     specify (I0 => O) = (`BD_T6); (I1 => O) = (`BD_T6);
             (I2 => O) = (`BD_T6); (I3 => O) = (`BD_T6);
     endspecify
+`endif
 endmodule
 
 module LUT5 (output O, input I0, I1, I2, I3, I4);
@@ -171,11 +222,16 @@ module LUT5 (output O, input I0, I1, I2, I3, I4);
     wire [7:0]  s3 = I3 ?   s4[15:8]  :   s4[7:0];
     wire [3:0]  s2 = I2 ?   s3[7:4]   :   s3[3:0];
     wire [1:0]  s1 = I1 ?   s2[3:2]   :   s2[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? s1[1] : s1[0];
+`else
     assign O = I0 ? s1[1] : s1[0];
     specify (I0 => O) = (`BD_T5_0); (I1 => O) = (`BD_T5_1);
             (I2 => O) = (`BD_T5_2); (I3 => O) = (`BD_T5_3);
             (I4 => O) = (`BD_T5_4);
     endspecify
+`endif
 endmodule
 
 module LUT6 (output O, input I0, I1, I2, I3, I4, I5);
@@ -185,10 +241,15 @@ module LUT6 (output O, input I0, I1, I2, I3, I4, I5);
     wire [7:0]  s3 = I3 ?   s4[15:8]  :   s4[7:0];
     wire [3:0]  s2 = I2 ?   s3[7:4]   :   s3[3:0];
     wire [1:0]  s1 = I1 ?   s2[3:2]   :   s2[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? s1[1] : s1[0];
+`else
     assign O = I0 ? s1[1] : s1[0];
     specify (I0 => O) = (`BD_T6); (I1 => O) = (`BD_T6); (I2 => O) = (`BD_T6);
             (I3 => O) = (`BD_T6); (I4 => O) = (`BD_T6); (I5 => O) = (`BD_T6);
     endspecify
+`endif
 endmodule
 
 // O6 sees all six pins and carries the 6LUT arc; O5 is a tap on the lower half
@@ -205,12 +266,20 @@ module LUT6_2 (output O6, output O5, input I0, I1, I2, I3, I4, I5);
     wire [7:0]  s3 = I3 ?   s4[15:8]  :   s4[7:0];
     wire [3:0]  s2 = I2 ?   s3[7:4]   :   s3[3:0];
     wire [1:0]  s1 = I1 ?   s2[3:2]   :   s2[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O6 = I0 ? s1[1] : s1[0];
+`else
     assign O6 = I0 ? s1[1] : s1[0];
+`endif
 
     wire [15:0] t4 = I4 ? INIT[31:16] : INIT[15:0];
     wire [7:0]  t3 = I3 ?   t4[15:8]  :   t4[7:0];
     wire [3:0]  t2 = I2 ?   t3[7:4]   :   t3[3:0];
     wire [1:0]  t1 = I1 ?   t2[3:2]   :   t2[1:0];
+`ifdef BD_JITTER
+    assign #(jd5) O5 = I0 ? t1[1] : t1[0];
+`else
     assign O5 = I0 ? t1[1] : t1[0];
 
     specify
@@ -220,6 +289,7 @@ module LUT6_2 (output O6, output O5, input I0, I1, I2, I3, I4, I5);
         (I2 => O5) = (`BD_T5_2); (I3 => O5) = (`BD_T5_3);
         (I4 => O5) = (`BD_T5_4);
     endspecify
+`endif
 endmodule
 
 module BUFG (output O, input I);

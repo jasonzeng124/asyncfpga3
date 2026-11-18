@@ -21,6 +21,22 @@ Never recorded from a run.
 Per call it prints `MEMTB call=J run=R out0=... exp=... ok|BAD` (a kernel with a data result) and `MEMTB call=J mem=M
 bad=K`; a run that does not finish within T us of circuit time prints `MEMTB TIMEOUT call=J run=R` with every
 result's token count and stops.  Last line: `MEMTB SUMMARY PASS|FAIL|TIMEOUT ...`.
+
+THE RAM BOUNDARY IN THIS MODEL.  bd_mem's acknowledge is the RAM clock delayed by DCO LUT arcs, and the read data is
+valid the RAM's clock-to-out after the same edge (cells/sim/bd_prims_sim.v BD_RAM_TCO, 2454 ps, prjxray's max).  bdc
+emits DCO = 12, a placeholder: a route meets DCO >= clock-to-out because verify/tighten.py rule C checks it and the gate
+simulates it.  Here, at zero wire delay, 12 arcs are 1488 ps: the acknowledge announces the word ~1 ns before it
+exists, and a load that captures its word at the acknowledge (bdc_load_cap: every load on an arbitrated port) returns
+the PREVIOUS word on its port -- wrong values that are this model's, not the kernel's (research/data/suite/memorder.md).
+So by default every RAM port's DCO parameter is raised, in this testbench only, to cover the clock-to-out at this
+--route-ps (`MEMTB note: DCO ...`), as rule C requires of a route; --keep-dco keeps the emitted value.  Either way a
+monitor on every bd_mem reports read data that changes while its acknowledge is already high (`MEMTB RAM-BOUNDARY`,
+counted in the summary as a failure), and the RAM model's setup violations and the port's one-hot check are printed
+and counted, not left in run.log.
+
+--jitter SEED[:PCT] compiles cells/sim with BD_JITTER: every LUT arc of the design scattered per instance by up to
++-PCT percent (default 30), reproducibly per SEED -- an order that holds only at the nominal arcs fails under some
+seed.  Under --jitter the setup line (DSETUP) is covered too, since its chain scatters with everything else.
 """
 import argparse
 import os
@@ -175,6 +191,9 @@ def main():
     ap.add_argument("--vcd", action="store_true")
     ap.add_argument("--dut", help="use this --host-mem Verilog instead of emitting")
     ap.add_argument("--route-ps", type=int, default=0, help="BD_ROUTE_PS (cells/sim/bd_prims_sim.v: ps per arc), as simcheck")
+    ap.add_argument("--keep-dco", action="store_true",
+                    help="keep the emitted DCO (do not cover the RAM model's clock-to-out); the monitor still reports")
+    ap.add_argument("--jitter", default="", help="SEED[:PCT]: BD_JITTER, every LUT arc scattered per instance")
     a = ap.parse_args()
     k = a.kernel
     vec = os.path.abspath(a.vec)
@@ -260,7 +279,45 @@ def main():
     missing = [p for p in P if p != "rst" and not any(f".{p}(" in c for c in conn)]
     if missing:
         sys.exit(f"memtb: ports not driven: {missing}")
-    L.append(f"    {mod} dut (" + ",\n        ".join(conn) + ");")
+    # The RAM boundary (docstring): cover the model's clock-to-out with DCO unless --keep-dco, and watch every bd_mem.
+    prims = open(os.path.join(R, "cells", "sim", "bd_prims_sim.v")).read()
+    tco = int(re.search(r"`define BD_RAM_TCO\s+(\d+)", prims).group(1))
+    tsu = max(int(x) for x in re.findall(r"`define BD_RAM_TSU_\w+\s+(\d+)", prims))
+    jseed, jpct = 0, 0
+    if a.jitter:
+        jseed, _c, jp = a.jitter.partition(":")
+        jseed, jpct = int(jseed), int(jp or 30)
+    hop = 124 + a.route_ps
+    hop_lo, hop_hi = hop * (100 - jpct) / 100.0, hop * (100 + jpct) / 100.0
+    need = {"UCO": -(-(tco + 3 * hop_hi) // hop_lo)}
+    if a.jitter:
+        need["USETUP"] = -(-(tsu + 3 * hop_hi) // hop_lo)
+    hdr = re.search(r"module\s+" + re.escape(mod) + r"\s*#\((.*?)\)\s*\(", text, flags=re.S)
+    over = {}
+    for pn, pv in re.findall(r"parameter\s+(DELAY_\w+_(?:UCO|USETUP))\s*=\s*(\d+)", hdr.group(1) if hdr else ""):
+        want = int(need.get(pn.rpartition("_")[2], 0))
+        if not a.keep_dco and int(pv) < want:
+            over[pn] = want
+    if over:
+        print("MEMTB note: %d RAM delay parameter(s) raised in this testbench to cover the RAM model (clock-to-out %d ps"
+              ", setup %d ps) at %d ps per arc%s: %s" % (len(over), tco, tsu, hop, " +-%d%%" % jpct if jpct else "",
+              ", ".join(sorted(set("%s %s" % (k.rpartition("_")[2], v) for k, v in over.items())))))
+    rams = []          # every bd_mem instance path under dut
+    for pm, body in re.findall(r"module\s+(\w+)(.*?)endmodule", text, flags=re.S):
+        um = re.findall(r"\bbd_mem(?:_ff)?\s*#\s*\((?:[^()]|\([^()]*\))*\)\s*(\w+)\s*\(", body)
+        if not um:
+            continue
+        for inst in re.findall(r"\b" + re.escape(pm) + r"\s*(?:#\s*\((?:[^()]|\([^()]*\))*\))?\s*(\w+)\s*\(", text):
+            rams += [f"dut.{inst}.{u}" for u in um]
+    L.append("    integer ramviol = 0; time ackmin = 64'd1000000000;")
+    for j, rp in enumerate(rams):
+        L += [f"    time tedge{j} = 0;", f"    always @(posedge {rp}.ram_clk) tedge{j} = $time;",
+              f"    always @(posedge {rp}.ack) if ($time - tedge{j} < ackmin) ackmin = $time - tedge{j};",
+              f"    always @({rp}.rdata) if ({rp}.ack === 1'b1 && rst === 1'b0) begin ramviol = ramviol + 1;"
+              f" if (ramviol <= 3) $display(\"MEMTB RAM-BOUNDARY {rp}: read data changed %0t ps after the clock edge,"
+              f" the acknowledge already high (clock-to-out > DCO in this model)\", $time - tedge{j}); end"]
+    L.append(f"    {mod} " + ("#(" + ", ".join(f".{k}({v})" for k, v in sorted(over.items())) + ") " if over else "")
+             + "dut (" + ",\n        ".join(conn) + ");")
     nexp = ncalls * sum(d for _b, d, _w in mems)
     L += [f"    reg [31:0] vec [0:{ncalls * per - 1}];", f"    reg [31:0] exp [0:{2 * ncalls - 1}];",
           f"    reg [31:0] mexp [0:{max(nexp, 1) - 1}];",
@@ -316,6 +373,8 @@ def main():
               f'            $display("MEMTB call=%0d mem={j} ({b}) bad=%0d", c, bad);',
               "            if (bad) fails = fails + 1;", f"            mbase = mbase + {d};"]
     L += ["        end",
+          f'        $display("MEMTB RAM ports={len(rams)} ack-after-edge min %0d ps, clock-to-out {tco} ps, read data changed under the acknowledge %0d time(s)", ackmin, ramviol);',
+          "        if (ramviol) fails = fails + 1;",
           f'        $display("MEMTB SUMMARY %s calls={ncalls} runs={a.runs} fails=%0d at %0t ps", fails ? "FAIL" : "PASS", fails, $time);',
           "        $finish;", "    end",
           "    initial forever begin #1000000;",
@@ -331,15 +390,23 @@ def main():
     tb = os.path.join(out, "tb_memtb.v")
     open(tb, "w").write("\n".join(L) + "\n")
     vvp = os.path.join(out, "tb_memtb.vvp")
-    cmd = (f"iverilog -g2012 -gspecify -Wno-timescale -DBD_ROUTE_PS={a.route_ps} -o {vvp} {R}/cells/sim/bd_prims_sim.v "
+    cmd = (f"iverilog -g2012 -gspecify -Wno-timescale -DBD_ROUTE_PS={a.route_ps}{' -DBD_JITTER' if a.jitter else ''} "
+           f"-o {vvp} {R}/cells/sim/bd_prims_sim.v "
            f"{R}/cells/sim/bd_env.v {R}/cells/rtl/*.v {dut} {tb}")
     cp = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     if cp.returncode != 0:
         print(cp.stdout + cp.stderr)
         sys.exit("memtb: COMPILE FAIL")
-    cp = subprocess.run(["vvp", "-n", vvp], capture_output=True, text=True, cwd=out)
+    cp = subprocess.run(["vvp", "-n", vvp] + ([f"+JSEED={jseed}", f"+JPCT={jpct}"] if a.jitter else []),
+                        capture_output=True, text=True, cwd=out)
     open(os.path.join(out, "run.log"), "w").write(cp.stdout + cp.stderr)
     lines = [ln for ln in cp.stdout.splitlines() if ln.startswith("MEMTB") or ln.startswith("    ")]
+    # The RAM model's setup check and the port's one-hot check print; they are failures, not log noise.
+    viol = [ln.strip() for ln in cp.stdout.splitlines() if "BUNDLING" in ln or re.search(r"\bFAIL bdc_", ln)]
+    if viol:
+        lines[-1:-1] = ["MEMTB VIOLATION %s" % v for v in viol[:5]] + (["MEMTB VIOLATION ... %d in all" % len(viol)]
+                                                                       if len(viol) > 5 else [])
+        lines = [ln.replace("MEMTB SUMMARY PASS", "MEMTB SUMMARY FAIL") for ln in lines]
     print("\n".join(lines))
     return 0 if any("MEMTB SUMMARY PASS" in ln for ln in lines) else 1
 
