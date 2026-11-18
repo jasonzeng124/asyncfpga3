@@ -6887,3 +6887,23 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   (the runt model hides it). suite6 shipped 16 NOT CLEAN routes of 32 (suite4 11 of 28); the four board items 38-41 are
   CLEAN. Next: (1) a runt check in the gate (no pulse under ~1 ns on a steer output), (2) count NOT CLEAN routes apart
   in the suite table, (3) the finish phase must converge (conv1, running) or the route is not shipped.
+### progress 21:38 (memauto landed: memory kernels through the automatic path, no failure; dot2 is 28 ns, not 156)
+- **memauto** (lead 6; research/data/suite/memauto.md, 430f52be7..8e956a827): 22 / 22 draws pass on the memory
+  kernels' default automatic routes, arrays read back = C, no deadlock. **dot2's "156 ns per iteration" was the host
+  filling the arrays** (the port's request at 13 aclk): eventgraph.py now ignores rises while bridge_i.mem_busy is high
+  (only in benches with memory), and lane2_run.sh retries --stride 2 --k 6 when no single-iteration period exists:
+  dot2 s2 (farm route rebuilt byte for byte, 4d68e57e) **28.03 ns**, sumi3_mem s2 27.86, if_loop_1 s1 27.52, memsum s1
+  28.21 (route 6), gather s1 / s2 55.22 / 51.53, fill s2 37.27. Merged by hand with dynfig's eventgraph.py fix (the
+  memory-port marker skip, strides 2-4, a reason instead of a crash): both kept; on a design without mem_busy the
+  merged tool takes dynfig's path unchanged. suite_one.sh: SUITE_TAG / SUITE_SKIP_AUTO (opt-in; xorgap had the same
+  skip, merged).
+- Where a memory loop's time goes: each access's return to zero costs as much as the access (gather 16.4 + 16.4 ns);
+  dot2 / sumi3_mem: the multiply fused into the sum's ring. **BDC_MEM_FASTFALL=1** (opt-in; a new cell
+  cells/rtl/optin/bd_mem_ff.v, read by build_bench.sh only when instantiated; cells/rtl/bd_mem.v unchanged; emission
+  135 / 135 byte-identical with it unset, checked here): the port's two lines fall in one element. One route each,
+  base loop sizes: gather s1 55.22 -> 51.90 (-6.0 %) 2/2 draws; fill s2 37.27 -> 32.55 (-12.7 %) 2/2, arrays = C;
+  gather s2 unsized gave wrong answers on 6 of 9 calls (host write setup -249 ps, which the rule flags at -244 / -267)
+  and one raise-only sizing step fixed it (47.39, -8.0 %, 2/2). Not yet a flow default: no sizing loop run with it.
+- Open from memauto: the multiply inside dot2's sum ring (stop fusion at ring boundaries), rule C's address hold (2x
+  clock-to-out stated, 1x with the new cell), the bench's 83 MHz latency-statistics path (lat_final -> leading-one ->
+  adders, 12.7 ns: the path that misses the bench clock), BDC_AUTO's fast fall off for every kernel with memory.
