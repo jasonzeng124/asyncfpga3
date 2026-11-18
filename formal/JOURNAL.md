@@ -3192,7 +3192,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * twoloops timing (research's simcheck, pre-route total): neutral. sum3 not runnable in simcheck.
 * check.sh on PlainPass + PassInst closure: OK, 1674 declarations.
 
-### progress 22:06 -- research's own xorshift pre_dec vs plain_pass's output: same timing in simcheck
+### progress 21:52 -- research's own xorshift pre_dec vs plain_pass's output: same timing in simcheck
 * rules_iso: the two imports differ in one place. Research computes `n - 1` before the guard branch (comp on the
   fork of n, then cond_br); ring_dec computes it after the branch (gDec on the ring entry). So plain_pass proves its own
   file, not research's.
