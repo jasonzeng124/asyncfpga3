@@ -1,17 +1,28 @@
 **THE AUTOMATIC COLUMN (PROGRAM "General first", owner 2026-11-17) -- one switch, nothing set per kernel.** BDC_AUTO=1
 with the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model; the hand
-recipes beside it. **Preliminary: ONE route per kernel (seed 1), 2026-11-18 01:50 UTC**; the farm's 8-seed runs
-(suite1 / suite2) replace this table when they are read. The whole-suite table: research/data/suite/README.md.
+recipes beside it. **Farm suite2, flow v2 (commit 3e47c10ad: start at emit.py's estimates x 0.3, the one-band rule,
+MAXIT 4), 26 of 48 tasks, 4 draws per route, 2026-11-18 04:05 UTC.** Every judged route returned every right answer on
+every draw. Routes not judged: the checker of that commit called 2 NOT EQUIVALENT (being re-judged: farm rejudge1);
+gcd and isprime timed out routing on 2 cores (suite5 re-runs them on 8). Flow v3 / v4 (two-corner rule, finish phase,
+join credit) is running as suite4 / suite3 / suite5 and replaces this table when read.
 
-| kernel | automatic, ns per iteration (P, seed 1) | draws | hand recipe's best | Dynamatic | automatic / Dynamatic |
-|---|---:|---|---:|---:|---:|
-| xorshift | 21.08 | 4 / 4 | 16.76 (x55a10, 28 routes) | 12.73 (measured, 1 route) | 1.66 |
-| collatz | 18.06 | 4 / 4 | 21.5 (item 31) | 14.05 (measured, 1 route) | 1.29 |
-| collatz64 | 30.01 | 4 / 4 | 31.4 (item 32) | 17.84 (measured, 1 route) | 1.68 |
-| ipow | no P (event graph failed on the route) | - | 36.2 (item 29) | 50.0 (ESTIMATE) | - |
+| kernel | status | routes judged / built | draws passing | ns per iteration (P), median (range) | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns |
+|---|---|---|---|---|---|---|---|---|---|
+| collatz | PASS | 5 / 6 | 20 / 20 | 18.86 (17.99-21.44) | 5652 | 1205 | 14.05 (measured, 1 route) | 1.34 | 21.50 |
+| collatz64 | PASS | 3 / 3 | 12 / 12 | 23.20 (22.46-26.75) | 9408 | 1743 | 17.84 (measured, 1 route) | 1.30 | 31.40 |
+| gcd | PNR-TIMEOUT (it=0; raise PNR_TIMEOUT or load less) | 0 / 1 | - | - | - | - | 50.60 (ESTIMATE) | - | 87.20 |
+| ipow | PASS | 7 / 8 | 28 / 28 | 21.98 (20.39-23.48) | 780 | 1302 | 49.98 (ESTIMATE) | 0.44 | 36.20 |
+| isprime | PNR-TIMEOUT (it=0; raise PNR_TIMEOUT or load less) | 0 / 1 | - | - | - | - | 9.26 (ESTIMATE) | - | - |
+| xorshift | PASS | 8 / 8 | 32 / 32 | 18.63 (16.69-19.90) | 5148 | 1337 | 12.73 (measured, 1 route) | 1.46 | 16.76 |
 
-xorshift's gap to its hand recipe is one line: the n ring's loop-test compare UCMPI1 is 18 elements in the automatic
-sizes and 5 in the hand recipe, held by the static rule E at the steers (the joinrule work; formal B3 / B4).
+4 of 6 kernels pass; geometric mean of the ratio (ns per iteration / Dynamatic's, passing kernels with a figure, n = 4): 1.03
+
+Where the automatic column stands against the hand recipes: faster on collatz (18.86 vs 21.5), collatz64 (23.20 vs
+31.4) and ipow (21.98 vs 36.2), 1.9 ns behind on xorshift (18.63 vs 16.76; its loop-test compare UCMPI1 is held long by
+rule E at the steers -- the steerE work). Ratios to Dynamatic are against single 2026-08 routes (xorshift, collatz,
+collatz64) or estimates (ipow, gcd, isprime: research/data/suite/dynamatic/).
+Earlier (flow v1, farm suite1): one draw failure, xorshift seed 8 (the zero-trip call; the one-band rule left the entry
+compare at 5) -- the reason for the two-corner rule of v3.
 
 **2026-11-17, judged by draws (PROGRAM "The board decides"): xorshift 16.85 ns per iteration** -- item 33's sizes x0.55
 except the incrementer (fr4a_x55a), median of 32 farm routes (15.93-18.19), every one of 128 delay-model draws returning

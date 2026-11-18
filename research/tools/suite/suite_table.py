@@ -11,7 +11,9 @@ import glob, math, os, re, statistics as st, sys
 
 def lines(args):
     for a in args:
-        fs = sorted(glob.glob(os.path.join(a, "**", "result.txt"), recursive=True)) if os.path.isdir(a) else [a]
+        # a directory: $RUNS/suite (K_S/result.txt) or a farm results/NAME (TASK/result.txt); never the loop's own
+        # result.txt that farm requests copy into TASK/auto/
+        fs = sorted(glob.glob(os.path.join(a, "*", "result.txt"))) if os.path.isdir(a) else [a]
         for f in fs:
             if not os.path.exists(f):
                 print("suite_table.py: no result file %s (the run died before writing it)" % f, file=sys.stderr)
