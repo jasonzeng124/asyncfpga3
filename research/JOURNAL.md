@@ -6714,3 +6714,11 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   route (O(lines x design)); at ~60 s per worker on gcd, one rule step is ~1.5 h even with 8 workers, and the loop
   wants 5-8 steps. The automatic flow does not scale to gcd-sized kernels yet: a work item (sensitivities from the
   critical paths the walk already records, or only for lines that can move).
+### progress 10:01 (BOARD-QUEUE item 39: automatic collatz, 35 / 35 at 18.99 ns; suite3 split)
+- collatz, BDC_AUTO=1 with the loop's own sizes (flow v3, suite4 seed 6), rebuilt = the farm's route (sdf c56def07,
+  P 18.99 ns, the suite4 median), EQUIVALENT, ffmux-clean, rule-clean: 3 corners 17/17 and 32 / 32 draws. Board item 39.
+  With item 38 (ipow 22.71 ns) the automatic path now has two board items, both faster than the hand items of the same
+  kernel (collatz item 31 21.5; ipow item 29 36.2).
+- suite3 (64 tasks) waited 8 h for 128 free cores; split into suite3a / suite3b (32 tasks each; test_int16 and
+  unused_arg in, the two that do not compile out -- they are recorded as DOES-NOT-COMPILE already).
+- Still judging: collatz64 v3 s5 (13 / 13 so far), xorshift v3 s8 (6 / 6, plus 8 slow-carry draws to come).
