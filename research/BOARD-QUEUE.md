@@ -45,6 +45,30 @@ negative control fails). Run it before the speed items.
    ns; at 1% ring scatter the fit resolves y to +-0.01-0.02. The two routes must agree with each other within their
    sigmas; if they do not, that is the finding.
 
+## 2026-11-18: item 38 -- the FIRST AUTOMATIC build: ipow with BDC_AUTO=1 and the flow's own sizes (nothing set by hand)
+PROGRAM "General first": one switch, no sizes chosen per kernel. This route came out of the automatic sizing loop
+(research/tools/auto/auto_size.sh, flow v3) on the farm (suite4) and was rebuilt here byte for byte. It is faster than
+every hand ipow item (item 29: 36.2 ns median; item 30's route 35.54).
+
+38. **ipow at ~22.7 ns per iteration, automatic (BDC_AUTO=1, sizes from auto_size.sh flow v3, seed 2)** -- farm suite4:
+   8 automatic ipow routes, 64 / 64 draws, P median 24.10 ns (21.47-25.00); this one is a rule-CLEAN route near the
+   median: sdf 81bbe268, P 22.71 ns, EQUIVALENT, ffmux-clean; SLOW_MAX / FAST_MIN / worst 17/17 each and **32 / 32
+   draws** (K 30201-30232, ipow17). Sizes: research/data/suite/board/ipow_v3_s2_sizes.vh (the loop's sizes_final.vh;
+   nothing edited). nextpnr: built on the farm with 9c732bc6303458df; the rebuild with 6e5d224472232d5d is identical
+   (no missed GND pin on this route). From cells/:
+
+       BDC_AUTO=1 NEXTPNR_SEED=2 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/ipow_v3_s2_sizes.vh ./hw/build_bench.sh ipow
+       md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # 81bbe268 = the route judged here
+       python3 ../research/tools/ffmux_scan.py build/hw/ipow_bench_gen/ipow_bench_gen.fasm; echo "exit $?"   # must be 0
+       CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_auto.tsv
+       (item 19: #20's commands for lc_ipow_r.tsv, if not already run)
+       python3 ../research/tools/loop_cost_judge.py ipow build/hw/lc_ipow_auto.tsv build/hw/lc_ipow_r.tsv; echo "exit $?"
+
+   Pass: `=== PASS ... ===`, exit 0 (every point's derived oracle). Predicted ratio over item 19 ~1.75 (39.78 ns on its
+   route vs 22.71 here); the simulation runs ~8 % slow per iteration against the August board, so expect ~21 ns. A FAIL
+   with item 19 passing is the automatic flow's first silicon counterexample: send both logs -- it is the most useful
+   thing this list can return.
+
 ## 2026-11-18: item 37 -- xorshift x55a10 (item 35 with formal's entry-compare fix), the hand recipe's best; the automatic builds come next
 Under PROGRAM "General first" this is the HAND column (per-kernel sizes chosen by draws). The automatic builds (BDC_AUTO=1,
 sizes from the flow's own loop, research/data/suite/) are being judged on 8 seeds each (farm suite4 / suite5 / suite3);
@@ -100,6 +124,7 @@ condition 8 ns late) on 16 / 16 draws.
 
 | 35 (fr4a_x55a s21) | xorshift | 16.85 (32 routes, all draws passing: 128 / 128) | 32 / 32 + 6 / 6 corner gates |
 | 37 (x55a10 s21) | xorshift | 16.76 (28 EQUIVALENT routes, 200 / 200 draws incl. 96 slow-carry) | 32 / 32 + 3 / 3 corners |
+| 38 (AUTOMATIC, v3 s2) | ipow | 24.10 (8 automatic routes, 64 / 64 draws); this route 22.71 | 32 / 32 + 3 / 3 corners |
 
 Item 35 is the first chosen by the draws (sizes shortened while every draw passes; first failure at x0.40a).
 
