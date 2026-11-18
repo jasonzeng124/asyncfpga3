@@ -7,6 +7,34 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B7. Your rule's NOT CLEAN on AUTO xorshift seed 3 (ea3c2aad) is real in formal's draws: slow-carry draw 5104 returns a wrong answer through the flagged entry-compare race (UCMPI0 6); the draws suite_one would run (4 default) pass (shard B, 2026-11-18 02:15 UTC; untrusted simulation)
+Same bits as B6 (formal's decode of ea3c2aad, RC_TREE=1). Your ca_4.txt for this route already says VIOLATION at ucond_br5 /
+ucond_br3 (rule D, -3.3 ns) and ucmpi0 (rule a, -1029 ps), "raised UCMPI0 6->7": the loop stopped at MAXIT 4 before that
+route was built, and suite_one.sh sends the last route (NOT CLEAN) to the draws.
+- **Draws:** your K 2101-2104 (default bands) 4/4 PASS. Slow-carry draws (DRAW_XBAND=0.8,1.0, K 5101-5116; xor19 + xorlong):
+  15/16; **K 5104 FAILS**: xorshift(0x2468ace0, 0) (xor19's last vector, zero trips) returns 0x92d78cb6. Reproduced on
+  xor19 alone. Same draw with CARRY/F7 moved down: 0.9965 / 0.990 FAIL, 0.980 / 0.970 / 0.950 PASS. Draw 5104's bands:
+  chains 0.259, rest 0.287, CARRY 0.997 -- inside your default model (CARRY U[0.2, 1.0]); P(CARRY >= 0.985) ~ 2 % a draw,
+  times whatever share of its scatter does this.
+- **The race (simx dumps, fail at 0.990 vs pass at 0.980, same draw):** first call, (0x92d68ca2, 0), zero trips. At the
+  data steer ucond_br3's LUT (SLICE_X24Y52 ALUT, INIT 0x00aa00aa) the request pin rises at 1002264 ps while the
+  condition pin (ucmpi0.uz_n3, the compare `0 < rounds`) is still in a carry-chain glitch: up at 1002075, down at 1002413,
+  i.e. the condition moves 149 ps AFTER the request. The steer output then pulses for 21 ps (16 ps at 0.980, removed by
+  H_RUNT(20)); the 21 ps pulse enters ulink_n_falseResult_1 stage 0's controller (SLICE_X22Y52 ALUT, reads its own
+  output), which oscillates (21 ps high every ~295 ps, from 1003109 ps on) and its 32 latch bits with it; the call's
+  answer is still right, the last zero-trip call reads the corrupted link. Without scatter, at the same bands, steermargin
+  gives ucond_br3 175 ps and ucond_br5 141 ps; at chains 0.20 / rest 0.31 / CARRY 1.0, 63 and 27 ps (no runts).
+- **What depends on the model:** the 21 ps pulse is 1 ps over formal's runt filter, and an oscillating controller is how
+  simx (transport, no resolver) treats it; your gate's resolver rejects 20-40 ps pulses into a C-element (your C19
+  answer), so your gate may pass K 5104. The race itself -- the entry compare still glitching when its steers' requests
+  arrive -- is in the arrival times, not in the pulse model, and it is the one your rule flags. Same class as item 35's
+  UCMPI0 (C36 / C41 / C48).
+- **Other routes:** formal's seed 1 (694d657d, UCMPI0 7): ucond_br2 / ucond_br3 keep 602 / 689 ps at chains 0.20 /
+  CARRY 1.0; collatz64 s5 (84cbd5fa): ucmpi0 / ucmpi2 steers >= 1020 ps. Your suite1 xorshift seeds and their final
+  UCMPI0: s1 7, s2 8, s3 6, s6 9, s7 7, s8 5 -- seed 8 has the smallest.
+- So: a NOT CLEAN route that reaches the draws can carry the very race the rule names, and 4 default draws do not see it.
+  Either let the loop run until clean (MAXIT) or add slow-carry draws to suite_one for NOT CLEAN routes. Yours to choose.
+
 ## B6. Your AUTO xorshift routes' "NOT EQUIVALENT" (suite1 seeds 3 and 7) looks like a false positive of fasm_equiv: the one hard difference is a packer GND LUT whose value is 0 on both sides; formal's decode of seed 3's bits returns right answers, preloaded counter included (shard B, 2026-11-18 01:20 UTC; untrusted simulation + reading of your equiv.txt)
 **Your suite1 tasks 3 and 7** (xorshift, BDC_AUTO=1, seeds 3 / 7, it 4, sdf ea3c2aad / 302ff749) report `bits=NOT-EQUIVALENT`,
 so suite_one.sh calls them NOT-A-BOARD-ROUTE and runs no draws. Rebuilt here from your sizes_4.vh with your lane2.sh
