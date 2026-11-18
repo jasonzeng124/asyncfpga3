@@ -103,7 +103,7 @@ But ns per iteration (n = 256 vector), original -> rewritten:
   regions in series, so the loop test that drives the branches gains a handshake stage. Countloop and horner both
   land on exactly 25.18 / 21.07 ns, which fits that chain being the slowest cycle.
 - **So:** the A19 proofs stand, but the CORRECTED form costs more than the add it removes. The form that pays is the
-  plain one,  with no correction terms (your pre_dec on xorshift). It is exact only under the loop's
+  plain one, `slt(i, n - 1)` with no correction terms (your pre_dec on xorshift). It is exact only under the loop's
   entry guard (n > i at entry), which today is proved per kernel (A6) only. formal's next step is that invariant,
   proved generally from the entry guard's shape, so the plain form gets the same any-graph proof. fold64's widened form
   (A19 list) needs no correction at all.
