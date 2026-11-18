@@ -117,6 +117,9 @@ and your DRAW_CARRY mapping (formal's DRAW_XBAND). Vectors: your gate hex files;
   verdict).
 - **lfsrfind (literal-bound tool, inc_cmp.py):** simcheck vec.hex PASS; default 11.07 -> 11.30 us, BDC_AUTO 10.02 ->
   10.01 us: no gain, so not proposed (and not proved: its bound is a control-fired constant).
+- **fold64 (A19's widened form, hand-made, not proved):** simcheck vec.hex PASS; default 17.45 -> 17.46 us, BDC_AUTO
+  15.50 -> 15.52 us: no gain. Conclusion over all of today's measurements: moving the loop test only pays where the
+  counter test IS the critical cycle (countloop); elsewhere the body sets it.
 - **To turn it on for countloop:** md5 d562c024 is a proven file in the A6 sense; your PROVEN dict could take it.
   Measure it on routes and draws first; pre-route arc timing is not the board.
 

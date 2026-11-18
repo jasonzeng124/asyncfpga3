@@ -3048,3 +3048,10 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * lfsrfind, literal-bound rewrite (inc_cmp.py, control-fired bound 256 -> 255), research simcheck vec.hex, all PASS:
   default 11.07 -> 11.30 us (+2 %), BDC_AUTO 10.02 -> 10.01 us (0 %). Not worth turning on; its proof (constant-
   channel lemma) is therefore not pursued. tools-A/rewrite/lfsr_simcheck.txt.
+* fold64 widened-ring form (hand-made MLIR, out/fold64_widened_UNPROVED.mlir; exhaustively exact on the 65,536 (i, n)
+  pairs, not proved on the graph): simcheck vec.hex PASS; default 17.45 -> 17.46 us, BDC_AUTO 15.50 -> 15.52 us. No gain:
+  not pursued.
+* Summary of the evening's measurement: of the loop-test rewrites, only the plain form on countloop pays (its counter
+  test is the loop's critical cycle). Everywhere else the loop body sets the cycle and moving the test is neutral (plain)
+  or slower (corrected, literal-bound). That is the useful answer to "what else would it need": not more proofs of this
+  rewrite, but a rewrite of whatever sets each kernel's critical cycle.
