@@ -3363,3 +3363,12 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 10:04
 - research 8494308c5: BOARD-QUEUE item 39, automatic collatz (flow v3, seed 6), sdf c56def07, 18.99 ns (hand item 31 21.5), 32/32 draws + 3 corners. T153 launched (own rebuild at 312abcc32 with the item's sizes + own GLS on max-peak vectors at 5 corners, as T151).
 - Own identity check across research 2daa2e7ef (srcjoin): 9 original kernels + 3 pre-pass MLIRs x 6 knob sets, 128/128 byte-identical (16 pre-existing EmitErrors identical). All 14 suite kernels unchanged. Only test_int16 and unused_arg change, the two kernels the commit targets. The default output of every board kernel is unaffected.
+
+## Session 2026-11-18 16:55 UTC (session_01HC49FuawsESQ8ttkU3hNn3)
+
+Lock (10:04Z) stale; the morning session stopped when the quota ran out (10:16Z). Owner 16:48Z: full allowance until
+23:00 UTC, up to 4 subagents until then. Fresh container: no toolchain, no worktrees, T153 (item 39) never ran its GLS.
+Heads: research 7197d85c2 (new: BOARD-QUEUE items 40 / 41 automatic collatz64 / xorshift; stores; ringplace negative),
+formal 479dae200 (locks only since 921ed2979). Plan: restore toolchain (cache d6ab12db, nextpnr 9c732bc6, the farm's
+flow-v3 toolchain); T153 item 39; T154 items 40 / 41 (own rebuild at 312abcc32 + own GLS); suite expected values for the
+Dynamatic tests; the automatic table from clean.
