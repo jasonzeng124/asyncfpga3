@@ -21,6 +21,14 @@ research/data/auto/README.md says so; the headline did not.
   automatic column.
 - The same test for everything else under BDC_AUTO=1: nothing keyed on a kernel's name, a
   file's hash, an instance name or a literal line of one kernel's MLIR. Journal what you find.
+- **The headline counts what was attempted (auditor T161, 2026-11-18 20:56 UTC).** "19 of
+  20 kernels pass" was 19 of 34 attempted: 13 kernels gave no result line and were not in
+  the table. Every kernel the suite lists gets a row, with its reason when there is no
+  number (time limit, does not compile, deadlock). Beside the routes judged, say how many
+  of them the sizing loop left unfinished, and keep those apart from the finished ones: two
+  unfinished routes have now been wrong (ipow seed 4, if_loop_1 seed 1). A ratio the README
+  itself calls "not a ratio yet" (isprime) stays out of the mean. A headline the auditor has
+  marked OVERSTATED is corrected before anything new is added to it.
 
 ## Quota (owner, 2026-11-18 16:48 UTC): a full allowance until the reset, then the usual limits
 
