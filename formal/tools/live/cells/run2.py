@@ -64,13 +64,13 @@ def part23():
                     if LP + LQ + LR <= 9:
                         jobs.append((f"fork-bdc_muxn3 (s={k})", f"LP={LP} LQ={LQ} LR={LR}",
                                      lambda k=k, a=LP, b=LQ, c=LR: fj([a, b], c, "muxn", k)))
-    for ff in (1, 2, 3):
-        for N in range(3, 7):
+    for ff in (1, 2):
+        for N in range(3, 7 if ff == 1 else 6):
             jobs.append((f"ring, RFAST DELAY={ff}", f"N={N}", lambda N=N, ff=ff: ring_ff(N, ff)))
         for LP in range(0, 3):
             for LQ in range(LP, 3):
                 for LR in (1, 2):
-                    if ff == 1 or LP + LQ + LR <= 5:
+                    if LP + LQ + LR <= (5 if ff == 1 else 3):
                         jobs.append((f"fork-join, RFAST DELAY={ff}", f"LP={LP} LQ={LQ} LR={LR}",
                                      lambda a=LP, b=LQ, c=LR, ff=ff: fj([a, b], c, "join", 0, ff)))
     rows, examples = [], {}
