@@ -201,6 +201,41 @@ bench yet, so RTL is all they have; stencil_2d can (routed smoke below).
 | stencil_2d (memory, a three-deep nest) | **DEADLOCK** at the first call before; **PASS** with the token floor's pass-through modes. Routed smoke (seed 1, worst, nextpnr 6e5d224472232d5d): PASS 2/2 with the arrays = C (sdf b5afb083, EQUIVALENT, ANNOTATE_DONE 0); with `BDC_TOKEN_FLOOR_PASS=0` FAIL 0/2, both calls hang (sdf a9e684aa, EQUIVALENT) | PASS |
 | matrix (void, a three-deep nest with a store) | **DEADLOCK** after its first inner loop before; **PASS** with the pass-through modes (call 0, 27000 trips, outC 900 / 900 = C) | PASS (stores.md, 1 call) |
 
+## Dynamatic's tests with stores and with a load first (subagent `dyntests`, 2026-11-18)
+
+The bench now takes a void kernel (a call completes on `end` and every memEnd; the result is the arrays read back) and
+bdc lowers a controller whose first accessor is a load (research/data/suite/dyn/README.md, sections 1 and 3). 22 of
+Dynamatic's tests join the suite (research/tools/suite/kernels.txt); `matrix` emits and runs in RTL but does not fit
+the decoded-netlist gate (27000 multiply-adds and 5400 host words per call). C: research/data/suite/dynsrc/; vectors:
+research/tools/suite/dyn_vecs.sh (every written array filled with values the kernel does not write; every file passes
+oracle_mem.sh `ORACLE_UBCHECK=1`); `<name>_rtl.hex` holds calls too long for the gate. Expected values: oracle_mem.sh
+(the C). In place (an array read, then written): one run per call (`GATE_NRUNS=1`), marked (1).
+
+| kernel | shape | input range (C defined) | vectors (calls; gate file / RTL file) | RTL default / AUTO | routed (seed 1, worst) |
+|---|---|---|---|---|---|
+| simple_example_1 | memory: written; the frontend folds the 100-trip count, one store of the constant 100 into a[0] in the exit block (the ctrlEnd form of the store lowering); void | any a[] | vec/simple_example_1.hex (4) | PASS 4/4 / - | default: **PASS 4/4**, EQUIVALENT, 113.34 MHz, .bit 527e6eca |
+| while_loop_3 | a data-dependent trip count (i*i < bound), the store after the loop in the exit block; void | bound <= 46340^2 = 2147395600 (i*i in int); bound <= 0: 0 trips | vec/while_loop_3.hex (7) / while_loop_3_rtl.hex (4) | PASS 7/7 / - | not run (time) |
+| if_convert | a do-while whose step (1 or 2) depends on a[i] (if-converted), writes b[i] = 1 at the new i; void | \|a[i]\| <= 10845877 (198*a[i] in int); a[198] >= 51 wherever i can stand at 198 (else b[200] is written) | vec/if_convert.hex (3) / if_convert_rtl.hex (5) | PASS 5/5 / - | not run (time) |
+| test_memory_1 (1) | LS read-modify-write a[i] += 5, N = 4; void | n <= 4; a[i] <= INT_MAX - 5 | vec/test_memory_1.hex (6) | PASS 6/6 / PASS 6/6 | default: **PASS 6/6**, EQUIVALENT, 107.71 MHz, .bit 45868bb0 |
+| test_memory_2 (1) | LS: load a[i+1], store a[i] (+5), N = 5; void | n <= 5, n > INT_MIN; a[1..4] <= INT_MAX - 5 | vec/test_memory_2.hex (7) | PASS 7/7 / PASS 7/7 | default: **PASS 7/7**, EQUIVALENT, 108.47 MHz, .bit 8fab6141 |
+| test_bool_array | LL, no loop: a[0] \|\| a[1] over _Bool (memref i8) | a[i] in {0, 1} | vec/test_bool_array.hex (4) | PASS 4/4 / PASS 4/4 | default: **PASS 4/4**, EQUIVALENT, 101.98 MHz, .bit 5f16960b |
+| binary_search | LL across two loops (each with a break): the first even index holding search, else the first odd, else -1 | any | vec/binary_search.hex (7) | PASS 7/7 / PASS 7/7 | default: **PASS 7/7**, EQUIVALENT, 116.33 MHz, .bit d97c1cb0 |
+| mul_example (1) | LS a[i] = a[i]^3, N = 100 (two muli); void | \|a[i]\| <= 1290 | vec/mul_example.hex (3) | PASS 3/3 / PASS 3/3 | default: **PASS 3/3**, EQUIVALENT, 114.67 MHz, .bit 52993095 |
+| share_test_2 (1) | LS, four muli, an accumulator; void | none: signed overflow for EVERY input (acc*i*456784 at i = 1); expected values are -fwrapv's | vec/share_test_2.hex (3) | PASS 3/3 / - | default: **NOT-JUDGED decoder-refused:**, 84.32 MHz, .bit 2923e64f |
+| test_stdint (1) | LS on int8_t: a[i] = a[i]^3 + b, an i8 scalar argument; void | any (x^3 fits int; the int8_t narrowing is gcc's modulo) | vec/test_stdint.hex (4) | PASS 4/4 / - | not run (time) |
+| spmv | CSR sparse matrix-vector product: LL on row[], an index read from memory (vec[col[c]]), a store per row, an inner loop with 0+ trips | n <= 10, 0 <= row[i] <= 10, col[c] in [0, 9]; \|val*vec\|*10 <= INT_MAX | vec/spmv.hex (4) | FAIL 3/4 / - | auto: **PASS 4/4**, EQUIVALENT, 100.69 MHz, .bit 64dc0da7 |
+| sobel | LL on in[], two 9-tap sums clamped to [0, 255], out[x+y] written, 15x15 outer, 3x3 inner | \|in\|, \|g\| <= 15446 | vec/sobel.hex (3) | FAIL 0/3 / - | not run (time) |
+| test_flatten_array | a triple nest over [4][8][16], output = input reversed in the two inner dimensions; void | any | vec/test_flatten_array.hex (1) / test_flatten_array_rtl.hex (2) | PASS 2/2 / - | default: **PASS 1/1**, NOT EQUIVALENT, 103.16 MHz, .bit 4772e0fa |
+| image_resize (1) | LS on a 30x30 array: a = c - a; void | c - a in int | vec/image_resize.hex (2) / image_resize_rtl.hex (4) | PASS 4/4 / - | not run (time) |
+| vector_rescale (1) | LS a[i] *= c, N = 1000; void | \|a[i]*c\| <= INT_MAX | vec/vector_rescale.hex (2) / vector_rescale_rtl.hex (4) | PASS 4/4 / - | not run (time) |
+| stencil_2d | a triple nest, 3x3 filter over a 30-wide row, sol[c] written, returns the last sum | \|orig\|, \|filter\| <= 15446 | vec/stencil_2d.hex (1) / stencil_2d_rtl.hex (4) | FAIL 0/4 / - | auto: **PASS 1/1**, EQUIVALENT, 99.33 MHz, .bit 731b66ec |
+| iir | L (y[0], before the loop) then S (y[i], in it) on one array: tmp = a*tmp + b*x[i], returns tmp | a in {0, 1, -1}; \|b x[i]\|*1000 + \|y[0]\| <= INT_MAX | vec/iir.hex (1) / iir_rtl.hex (3) | PASS 3/3 / - | not run (time) |
+| share_test_1 | LL on each of two arrays across two loops (a[i] and a[999-i]), returns the sum | \|a\|, \|b\| <= 598 | vec/share_test_1.hex (1) / share_test_1_rtl.hex (3) | PASS 3/3 / - | not run (time) |
+| single_loop | do-while: c[i] = a[i]*b[i] until the product reaches 1000; three 1000-word arrays; void | some i <= 999 with a[i]*b[i] >= 1000; \|a\|, \|b\| <= 46340 | vec/single_loop.hex (1) / single_loop_rtl.hex (5) | PASS 5/5 / - | not run (time) |
+| loop_path | do-while: c[i] = a[i]+b[i] until 6(a[i]+b[i]) >= 1000 or i = 1000; void | \|a[i]+b[i]\| <= 429496729 | vec/loop_path.hex (1) / loop_path_rtl.hex (4) | PASS 4/4 / - | not run (time) |
+| nested_loop | two passes of single_loop's do-while, writing c[i] and c[i+400]; void | the exit by i = 599; \|a\|, \|b\| <= 46340 | vec/nested_loop.hex (1) / nested_loop_rtl.hex (4) | PASS 4/4 / - | not run (time) |
+| video_filter (1) | three LS ports on three 30x30 arrays: p = ((p - offset) * scale) >> 4; void | \|p - offset\| * \|scale\| <= INT_MAX | vec/video_filter.hex (1) / video_filter_rtl.hex (3) | PASS 3/3 / - | not run (time) |
+
 ## What the suite found (work for the compiler)
 
 1. **quadrec deadlocks in both flows: bdc's ring floor counts stages, not tokens.** Its ring a <- b <- c <- d <-
