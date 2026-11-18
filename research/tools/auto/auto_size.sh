@@ -93,10 +93,24 @@ near_args() {  # near_args I: AUTO_NEAR_PS (opt-in): the finish phase also pads 
   echo "--near $AUTO_NEAR_PS $l"
 }
 build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); final() runs the full stack on the kept one
-  local i=$1 Z=$2
-  LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$S" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/it_$i.log" 2>&1
-  tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
-  [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$RUNS/hw/${N}_$i/${D}_routed.json" ]
+  # A route whose BENCH side (the PS-clocked harness, not the kernel) misses build_bench.sh's 83 MHz target is refused
+  # by build_bench.sh ("TIMING FAILED"), and with NEXTPNR_SEED pinned it gets one attempt, so one such route used to
+  # end the whole loop (farm: quadrec s2 at it 5, varshift s4 at it 3, the stores subagent's fill s1 at it 2). Now
+  # that iteration is built again on seed S + 100, then S + 200 (AUTO_SEED_TRIES, default 3 attempts); only a missed
+  # bench clock is retried. The seed each iteration was built with is in seed_I.txt (a resume rebuilds with it; a
+  # board item names it). Without such a miss nothing changes: every iteration is built on S, as before.
+  local i=$1 Z=$2 a s HWI=$RUNS/hw/${N}_$1
+  local s0; s0=$(cat "$O/seed_$i.txt" 2>/dev/null || echo "$S")
+  for a in $(seq 0 $(( ${AUTO_SEED_TRIES:-3} - 1 ))); do
+    s=$s0; [ "$a" -gt 0 ] && s=$((S + 100 * a)); [ "$a" -gt 0 ] && [ "$s" = "$s0" ] && s=$((S + 100 * (a + 1)))
+    [ "$a" -gt 0 ] && rm -rf "$HWI" "$RUNS/r/${N}_$i"
+    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/it_$i.log" 2>&1
+    tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
+    if [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$HWI/${D}_routed.json" ]; then echo "$s" > "$O/seed_$i.txt"; return 0; fi
+    grep -q "TIMING FAILED" "$HWI/build.log" 2>/dev/null || return 1
+    echo "it $i: seed $s missed the bench clock ($(grep -o 'TIMING FAILED: [0-9.]* MHz' "$HWI/build.log" | head -1)); next seed" >> "$O/log.txt"
+  done
+  return 1
 }
 final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run, event-graph P) on the route the loop keeps
   local i=$1
