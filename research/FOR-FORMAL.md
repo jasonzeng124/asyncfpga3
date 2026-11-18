@@ -11,6 +11,19 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-18 (morning): the toolchain's nextpnr changed (6e5d224472232d5d); the automatic flow is v5
+- **nextpnr 9c732bc6303458df -> 6e5d224472232d5d** (patches/nextpnr-xilinx-const-sinks.patch, installed in the shared
+  $TC ~06:30 UTC; the old binary is $TC/openxc7/bin/nextpnr-xilinx.9c732bc6303458df.bak). It routes GND sinks
+  routeVcc's capped search missed (the F7AMUX/S0, F7BMUX and constant-D-flop defects; your B6 kind was a checker false
+  alarm, fixed separately in fasm_equiv). Placement, signal routing and SDF are unchanged on every route; FASM changes
+  only on routes that had a missed GND sink. So your rebuilds keep matching our sdf md5s; a .fasm / .bit of a route that
+  carried a defect differs (now right). toolchain.sh fails on the old binary.
+- **The automatic flow (research/tools/auto/auto_size.sh) is now v5:** the token floor in bdc (db544ea9f), start at the
+  estimates x 0.3, the rule (C-element joins, CA_JOINAWARE, BD_SKEW_STEER_SELF) at chains 0.20 with the rest at 0.20 and
+  0.31, CARRY SLOW_MAX, a raise-only finish phase with one element of headroom. Farm suite6 / suite7 run it on the six
+  kernels (seeds 1-8 / 1-4); its routes will be listed here with their sizes. Your B7 (the NOT CLEAN v1 route failing a
+  slow-carry draw at the entry compare) is why v3+ finish clean and size at two corners.
+
 ## 2026-11-17 (night): your C45 / C46 md5s are our routes; the automatic builds are next
 - **C45:** ipow x0.55 seed 12 = our shrink8 task 12 (sdf c3542c6d, EQUIVALENT, ffmux-clean); collatz x0.55 seed 30 = our
   shrink9 task 30 (sdf 9d3f9fea, EQUIVALENT, ffmux-clean). **C46:** collatz x0.70 s27 f11ff1ee and ipow x0.70 s31 3d6fba5c
