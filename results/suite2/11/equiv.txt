@@ -1,0 +1,37 @@
+1. CELLS  routed JSON 7256 bels, bitstream 7256 bels, common 7256
+2. CONFIG  compared {'BUFGCTRL': 1, 'CARRY4': 80, 'SLICE_FFX': 1924} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+2b. DSP48E1  0 compared: control words (OPMODE/ALUMODE/INMODE/CARRYINSEL/CARRYIN), register/input parameters, drivers of every data pin the modelled function reads
+3. CONNECTIVITY  22960 pins with the same driver on both sides
+   driver->sink pairs: json 24668, bits 34623, common 22960
+4. LUT FUNCTIONS  4963 LUTs compared, 4963 identical over every input assignment
+5. ROUTING  7899 nets with identical pip sets, 0 differ (0 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+
+DIFFERENCES (6 kinds):
+       1  BUFGCTRL I1 unconnected in JSON, connected on the board by the mux's all-zero default (deselected)
+            BUFGCTRL_X0Y0/BUFGCTRL/I1 <- ('const', 1)
+    8153  LUT pin unconnected in routed JSON, constant 1 on the board, gen.py ties 0 (harmless iff section 4 finds the function identical)
+            SLICE_X0Y22/A/A4
+            SLICE_X0Y22/A/A5
+            SLICE_X0Y24/A/A2
+            SLICE_X0Y24/A/A4
+    1708  PS7 input tied to a constant in JSON, not modelled (outside ps7_pins.py)
+            PS7_X0Y0/PS7/DMA0ACLK <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DAREADY <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRLAST <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRTYPE0 <- ('const', 0)
+     439  driver is a LUT whose output is constant given the constants on its own pins (nextpnr's $PACKER_GND_NET/VCC feed-through LUT1), compared as that constant
+            SLICE_X0Y29/F7BMUX/0 <- SLICE_X0Y29/D6LUT = 0
+            SLICE_X0Y32/F7BMUX/0 <- SLICE_X0Y32/D6LUT = 0
+            SLICE_X0Y35/F7BMUX/0 <- SLICE_X0Y35/D6LUT = 0
+            SLICE_X0Y37/F7BMUX/0 <- SLICE_X0Y37/D6LUT = 0
+    1044  pin unconnected in routed JSON, same constant (0) on the board as gen.py's tie
+            SLICE_X0Y21/D5FF/SR
+            SLICE_X0Y22/BFF/SR
+            SLICE_X0Y24/DFF/SR
+            SLICE_X0Y25/BFF/SR
+    2465  pin unconnected in routed JSON, same constant (1) on the board as gen.py's tie
+            SLICE_X0Y22/A/A6
+            SLICE_X0Y24/A/A6
+            SLICE_X0Y29/D/A6
+            SLICE_X0Y31/C/A6
+VERDICT: EQUIVALENT (only the benign kinds above)
