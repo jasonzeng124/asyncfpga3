@@ -4631,3 +4631,10 @@ round the ring: `ind_prv` / `ind_nxt`); `ring_noTrap_iff` (no trap iff some pair
 T >= 1 and S >= 2T + 1). Sanity examples: 3-ring with one token live, 2-ring with one token trapped. Axioms: propext,
 Classical.choice, Quot.sound. scan.py clean. NOT covered: that D = 2T at bdc's reset markings (stated as a hypothesis);
 rings with forks / joins (the general StageNet + certificates); everything StageNet leaves out. FOR-RESEARCH C59 updated.
+
+### progress 21:40 -- StageNetRingLive: any cycle with channels either way round (fork-join pairs); monotonicity
+`cycle_noTrap_iff` (Lean, standard axioms): an undirected cycle of stages with channel orientations `o` has no trap iff its
+token-free arcs (cw: agree and forward, or differ and backward) do not all point one way round; `hasTrap_mono` (no axioms): a
+trap of a sub-network is a trap of the whole network. Sanity by decide: fork-join with one stage on Q holding a token more
+than P is trapped; with two stages it is not (research's condition 2, L_Q >= 2K, at K = 1). Still the stage model only;
+the count form for fork-join pairs (L_Q >= 2K in general) is not stated.

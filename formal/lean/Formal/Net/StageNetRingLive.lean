@@ -19,6 +19,10 @@ ring holding `T` tokens has `D = 2T`).
 * `ring_noTrap_iff_count`: the ring has no trap iff `0 < D x < n + 1`.
 * `ring_live_tokens`: with `D x = 2T` (T tokens), no trap iff `1 ≤ T` and `2T + 1 ≤ n + 1`,
   i.e. research's `S ≥ 2T + 1` with `S = n + 1` stages, and at least one token.
+* `cycle_noTrap_iff`: the same for a cycle whose channels point either way round (a fork-join
+  pair: P forward, Q backward): no trap iff its token-free arcs do not all point one way.
+* `hasTrap_mono`: a trap of a sub-network is a trap of any network containing it, so a trapped
+  ring or fork-join pair inside a kernel kills its stages there (`trap_dead`).
 With `StageNet.deadlock_free` / `fair_all_fire`, "no trap" means: no reachable deadlock and every
 stage fires infinitely often in weakly fair runs; with `trap_dead`, a trap means some stage
 (here: every stage of the trap) is dead forever.
@@ -261,5 +265,137 @@ example : HasTrap (E (n := 1)) (fun i : Fin 2 => decide (i.val = 0)) := by
   revert hi
   revert i
   decide
+
+/-! ## Any cycle of stages, channels oriented either way (fork-join pairs included)
+
+A fork-join pair (research's condition 2) is a cycle of stages whose channels do not all point
+the same way round: from the fork along path P to the join, and back from the join along path
+Q against its channels. `o i` says how the channel between stage `i` and `nxt i` points
+(`true`: `i` feeds `nxt i`). The token-free arc of that channel points *clockwise* (from `i` to
+`nxt i`) iff the two stages agree and the channel points clockwise, or they differ and it points
+back (`cw`). A cycle is trapped iff all its token-free arcs point the same way round. -/
+
+/-- The channels of an oriented cycle. -/
+def EO (o : Fin (n + 1) → Bool) (a b : Fin (n + 1)) : Prop :=
+  (b = nxt a ∧ o a = true) ∨ (a = nxt b ∧ o b = false)
+
+/-- The token-free arc of channel `i` points from `i` to `nxt i`. -/
+def cw (o : Fin (n + 1) → Bool) (x : State (Fin (n + 1))) (i : Fin (n + 1)) : Prop :=
+  (o i = true ∧ x i = x (nxt i)) ∨ (o i = false ∧ x i ≠ x (nxt i))
+
+theorem into_o (o : Fin (n + 1) → Bool) (x : State (Fin (n + 1))) (a v : Fin (n + 1))
+    (hz : Z (EO o) x a v) :
+    (a = prv v ∧ cw o x (prv v)) ∨ (a = nxt v ∧ ¬ cw o x v) := by
+  unfold cw
+  rcases hz with ⟨⟨hv, ho⟩ | ⟨ha, ho⟩, hx⟩ | ⟨⟨ha, ho⟩ | ⟨hv, ho⟩, hx⟩
+  · left; subst hv; rw [prv_nxt]; exact ⟨rfl, Or.inl ⟨ho, hx⟩⟩
+  · right; subst ha; refine ⟨rfl, ?_⟩
+    rintro (⟨h1, _⟩ | ⟨_, h2⟩)
+    · rw [ho] at h1; exact Bool.noConfusion h1
+    · exact h2 hx.symm
+  · right; subst ha; refine ⟨rfl, ?_⟩
+    rintro (⟨_, h2⟩ | ⟨h1, _⟩)
+    · exact hx h2
+    · rw [ho] at h1; exact Bool.noConfusion h1
+  · left; subst hv; rw [prv_nxt]; refine ⟨rfl, Or.inr ⟨ho, fun h => hx h.symm⟩⟩
+
+/-- A trap of an oriented cycle forces every token-free arc to point the same way round. -/
+theorem trap_uniform_o (o : Fin (n + 1) → Bool) (x : State (Fin (n + 1)))
+    (h : HasTrap (EO o) x) : (∀ i, cw o x i) ∨ (∀ i, ¬ cw o x i) := by
+  obtain ⟨S, ⟨u, hu⟩, hS⟩ := h
+  obtain ⟨a, ha, hz⟩ := hS u hu
+  rcases into_o o x a u hz with ⟨rfl, hx⟩ | ⟨rfl, hx⟩
+  · left
+    have step : ∀ v, (S v ∧ cw o x v) → (S (prv v) ∧ cw o x (prv v)) := by
+      rintro v ⟨hv, hvx⟩
+      obtain ⟨b, hb, hzb⟩ := hS v hv
+      rcases into_o o x b v hzb with ⟨rfl, hbx⟩ | ⟨rfl, hbx⟩
+      · exact ⟨hb, hbx⟩
+      · exact absurd hvx hbx
+    exact fun i => (ind_prv (fun v => S v ∧ cw o x v) step (prv u) ⟨ha, hx⟩ i).2
+  · right
+    have step : ∀ w, (S w ∧ ¬ cw o x (prv w)) → (S (nxt w) ∧ ¬ cw o x (prv (nxt w))) := by
+      rintro w ⟨hw, hwx⟩
+      obtain ⟨b, hb, hzb⟩ := hS w hw
+      rcases into_o o x b w hzb with ⟨rfl, hbx⟩ | ⟨rfl, hbx⟩
+      · exact absurd hbx hwx
+      · exact ⟨hb, by rw [prv_nxt]; exact hbx⟩
+    have all := ind_nxt (fun w => S w ∧ ¬ cw o x (prv w)) step (nxt u) ⟨ha, by rw [prv_nxt]; exact hx⟩
+    intro i
+    have := (all (nxt i)).2
+    rwa [prv_nxt] at this
+
+/-- **An oriented cycle has no trap iff its token-free arcs do not all point the same way round.**
+For `o` constant `true` this is `ring_noTrap_iff`. -/
+theorem cycle_noTrap_iff (o : Fin (n + 1) → Bool) (x : State (Fin (n + 1))) :
+    ¬ HasTrap (EO o) x ↔ (∃ i, cw o x i) ∧ (∃ j, ¬ cw o x j) := by
+  constructor
+  · intro h
+    refine ⟨?_, ?_⟩
+    · -- every arc points back: each stage has a token-free arc in from its successor
+      apply Classical.byContradiction
+      intro hne
+      apply h
+      refine ⟨fun _ => True, ⟨⟨0, by omega⟩, trivial⟩, fun v _ => ⟨nxt v, trivial, ?_⟩⟩
+      have hv : ¬ cw o x v := fun hc => hne ⟨v, hc⟩
+      unfold cw at hv
+      cases ho : o v
+      · -- channel v points back (nxt v feeds v), stages agree: arc nxt v → v
+        left
+        refine ⟨Or.inr ⟨rfl, ho⟩, ?_⟩
+        apply Classical.byContradiction
+        intro hd
+        exact hv (Or.inr ⟨ho, fun he => hd he.symm⟩)
+      · -- channel v points forward (v feeds nxt v), stages differ: arc nxt v → v
+        right
+        refine ⟨Or.inl ⟨rfl, ho⟩, ?_⟩
+        intro he
+        exact hv (Or.inl ⟨ho, he⟩)
+    · -- every arc points forward: each stage has a token-free arc in from its predecessor
+      apply Classical.byContradiction
+      intro hne
+      apply h
+      refine ⟨fun _ => True, ⟨⟨0, by omega⟩, trivial⟩, fun v _ => ⟨prv v, trivial, ?_⟩⟩
+      have hc : cw o x (prv v) := Classical.byContradiction (fun hc => hne ⟨prv v, hc⟩)
+      unfold cw at hc
+      rcases hc with ⟨ho, hx⟩ | ⟨ho, hx⟩
+      · left
+        refine ⟨Or.inl ⟨(nxt_prv v).symm, ho⟩, ?_⟩
+        rwa [nxt_prv] at hx
+      · right
+        refine ⟨Or.inr ⟨(nxt_prv v).symm, ho⟩, ?_⟩
+        rw [nxt_prv] at hx
+        exact fun he => hx he.symm
+  · rintro ⟨⟨i, hi⟩, ⟨j, hj⟩⟩ h
+    rcases trap_uniform_o o x h with hall | hall
+    · exact hj (hall j)
+    · exact hall i hi
+
+/-- Adding channels can only add traps: a trap of a sub-network is a trap of the network. So an
+oriented cycle (a ring, a fork-join pair) whose token-free arcs all point one way, found inside
+any network, is a trap there, and by `StageNet.trap_dead` its stages never fire again. -/
+theorem hasTrap_mono {V : Type} {E E' : V → V → Prop} (hE : ∀ a b, E a b → E' a b)
+    {x : State V} (h : HasTrap E x) : HasTrap E' x := by
+  obtain ⟨S, hne, hS⟩ := h
+  refine ⟨S, hne, fun u hu => ?_⟩
+  obtain ⟨a, ha, hz⟩ := hS u hu
+  refine ⟨a, ha, ?_⟩
+  rcases hz with ⟨he, hx⟩ | ⟨he, hx⟩
+  · exact Or.inl ⟨hE _ _ he, hx⟩
+  · exact Or.inr ⟨hE _ _ he, hx⟩
+
+/-- Sanity, research's condition 2: a fork-join pair, fork 0, join 2, path P = 0 → 1 → 2, path
+Q = 0 → 3 → 2 with ONE stage (3) holding a token more than P (stage 3 differs from the rest):
+trapped (Q needs 2K = 2 stages). -/
+example : HasTrap (EO (n := 3) (fun i => decide (i.val < 2))) (fun i => decide (i.val = 3)) := by
+  apply Classical.byContradiction
+  intro h
+  obtain ⟨_, ⟨j, hj⟩⟩ := (cycle_noTrap_iff _ _).mp h
+  revert hj; revert j; unfold cw nxt; decide
+
+/-- ... and with TWO stages on Q (0 → 4 → 3 → 2), the first holding the token: no trap. -/
+example : ¬ HasTrap (EO (n := 4) (fun i => decide (i.val < 2))) (fun i => decide (i.val = 4)) := by
+  rw [cycle_noTrap_iff]
+  refine ⟨⟨⟨0, by omega⟩, ?_⟩, ⟨⟨2, by omega⟩, ?_⟩⟩ <;> unfold cw nxt <;> decide
 
 end Formal.Net.StageNet.RingLive
