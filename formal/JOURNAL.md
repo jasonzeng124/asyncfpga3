@@ -2937,3 +2937,23 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   graph theorem that replacing a unary op/fork tree by another with the same per-output functions preserves every
   complete run's result (any surrounding graph), so the constant-bound rewrite is proved for every kernel at once;
   (3) a general rewrite tool and a token-level differential check on the suite (subagent).
+### progress 19:00 -- CHECKED: moving a loop test before its increment preserves every complete run (Lean, any surrounding graph)
+* *Problem:* in 121 of the suite's 166 loop tests the frontend emits `e = extui x ; s = addi e, k ; fork s -> (s0, s1) ;
+  c = cmpi P, s1, C`: the test waits for the increment. Rewrite: `fork e -> (e0, e1) ; s0 = addi e0, k ; c = cmpi P,
+  e1, C'`. Does the graph still compute the same, whatever surrounds the pattern?
+* *Proved* (`Formal.Rewrite.IncCmp.forward` / `backward`, `formal/lean/Formal/Rewrite/IncCmpGraph.lean` + `IncCmpLib.lean`,
+  Core Lean, axioms propext / Quot.sound only, compiled with `lean` against Core-only oleans of KahnLTS / Kahn /
+  GcdHwLib): for ANY imported graph `rs` holding the four rules (`comp [x] e fX`, `comp [e] s fA`, `fork s [s0, s1]`,
+  `comp [s1] c fC`) and `rs'` equal except for the rewritten three, with fresh internal channels, nothing else touching
+  them, and the per-token identity `∀ v, fC(fA(fX v)) = fC'(fX v)`: every complete run of either graph from a store with
+  empty internal channels is matched by a complete run of the other ending in the same store outside the five internal
+  channels. Generic over fX fA fC fC'.
+* *Not covered yet:* the arithmetic instance of the identity (next file); compares whose bound is a CHANNEL (a constant
+  fired by a control token, or the ring value n) -- that is every loop test in research's automatic-path kernels
+  (lfsrfind: control-fired constant; countloop / horner / brhash / xorshift: n on a ring). The unary theorem's "flush
+  everything" argument does not apply to a two-input compare; T1 (binary compare) is being written by the lead, T2 (map a
+  loop-invariant ring through n -> n-1, compare precomposed) by a subagent. Untrusted tool + differential check of the
+  rewrite on the suite: second subagent.
+* Which kernels matter: research's automatic table (research/data/fifteen/README.md, 2026-11-18) has countloop 3.00x,
+  sqrtsub 2.53x, varshift 3.30x Dynamatic's estimate: "the simple counted loops are where the automatic flow is furthest
+  behind". countloop's test is the ring shape (i + 1 < n).
