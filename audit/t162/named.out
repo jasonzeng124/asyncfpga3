@@ -1,0 +1,27 @@
+'Formal.Rewrite.Ring.CountloopTie.tie_forward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.Ring.CountloopTie.tie_backward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.Ring.HornerTie.tie_forward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.Ring.HornerTie.tie_backward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.Ring.QuadrecTie.tie_forward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.Ring.QuadrecTie.tie_backward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.Ring.VarshiftTie.tie_forward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.Ring.VarshiftTie.tie_backward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.Ring.XorshiftTie.tie_forward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.Ring.XorshiftTie.tie_backward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.Plain.CountloopSame.same' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.RingMap.forward' depends on axioms: [propext, Quot.sound]
+'Formal.Rewrite.RingMap.backward' depends on axioms: [propext, Quot.sound]
+'Formal.Rewrite.IncCmp.split_forward' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Formal.Rewrite.IncCmp.split_backward' depends on axioms: [propext, Classical.choice, Quot.sound]
+@Formal.Rewrite.Ring.HornerTie.tie_forward : ∀ {σ0 t : Formal.Net.Kahn.Store Nat Nat} {n : Nat},
+  (∀ (ch : Nat), ch ∈ Formal.Rewrite.Ring.Horner.changed3.tail → σ0 ch = []) →
+    Formal.Net.Kahn.Run (Formal.Net.Kahn.step (Formal.Net.GcdHw.graph Formal.Rewrite.Ring.HornerHw.rules)) σ0 n t →
+      Formal.Net.Kahn.Terminal (Formal.Net.Kahn.step (Formal.Net.GcdHw.graph Formal.Rewrite.Ring.HornerHw.rules)) t →
+        ∃ t' m,
+          Formal.Net.Kahn.Run (Formal.Net.Kahn.step (Formal.Net.GcdHw.graph Formal.Rewrite.Ring.HornerRdHw.rules))
+              (Formal.Rewrite.IncCmp.renS (Formal.Rewrite.IncCmp.fp Formal.Rewrite.Ring.HornerTie.Pi) σ0) m t' ∧
+            Formal.Net.Kahn.Terminal
+                (Formal.Net.Kahn.step (Formal.Net.GcdHw.graph Formal.Rewrite.Ring.HornerRdHw.rules)) t' ∧
+              ∀ (ch : Nat),
+                ¬ch ∈ Formal.Rewrite.Ring.Horner.changed3 →
+                  t' (Formal.Rewrite.IncCmp.fp Formal.Rewrite.Ring.HornerTie.P ch) = t ch
