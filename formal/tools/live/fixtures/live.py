@@ -1198,19 +1198,21 @@ class Search:
                     return {"verdict": "LIVELOCK-DET", "states": len(seen), "fired": nfired}
             if ch is not None:
                 succ = [(ch[0], v) for v in ch[1]]
-                if len(self.samples) < self.max_samples:
-                    try:
-                        mt = mode_text(net, S, V)
-                    except ModelError:
-                        mt = None
-                    if mt is not None and mt not in self.samples:
-                        self.samples[mt] = (list(S), list(V), net.varname[ch[0]])
+
             else:
                 succ = []
                 for g in sorted(exc):
                     cs = net.gate_cell[g].choices(g, S, V)
                     for v in (cs if cs is not None else [None]):
                         succ.append((g, v))
+            cg = [g for g, v in succ if v is not None]
+            if cg and len(self.samples) < self.max_samples:
+                try:
+                    mt = mode_text(net, S, V)
+                except ModelError:
+                    mt = None
+                if mt is not None and mt not in self.samples:
+                    self.samples[mt] = (list(S), list(V), net.varname[cg[0]])
             if not succ:
                 done = all(S[v] >= net.ninv for v in net.recv_vars) if net.recv_vars else True
                 over = any(S[v] > net.ninv for v in net.recv_vars)

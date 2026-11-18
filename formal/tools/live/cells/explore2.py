@@ -177,8 +177,8 @@ def monitors(net, adj):
     chans = []
     for nm, r, a in net.channels:
         r, a = net.find(net.sig(r)), net.find(net.sig(a))
-        if r in net.const and a in net.const:
-            continue
+        if (r in net.const and a in net.const) or r == a:
+            continue             # tied off, or a bd_snk (ack is the req wire)
         chans.append((nm, r, a))
     bund = [(nm, net.find(net.sig(d)), net.find(net.sig(r)), net.find(net.sig(a)))
             for nm, d, r, a in net.bundled]

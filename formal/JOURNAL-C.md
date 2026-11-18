@@ -4530,3 +4530,13 @@ fixed mode the C-element circuit is live (not only deadlock-free) exactly when r
 (StageNet / StageNetTree as dependencies): "Build completed successfully (12 jobs)", no errors (deprecation warnings only).
 They need no Mathlib, so this is independent of setup.sh's Mathlib compile (stopped at its 30-min background limit; cache
 unreachable). formal/tools/live/ is being written by two subagents: in-progress snapshots are pushed with push-c.sh.
+
+### progress 17:41 -- fixture checker (subagent) back; matrix default-flow deadlock is a mode-change one the floor misses (FOR-RESEARCH C55)
+live.py (formal/tools/live/fixtures/, MODEL.md): exhaustive search over all state-holding cell elements read from bdc's Emitter
+(not research's walk code), nondeterministic conditions, stubborn-set reduction keeping deadlocks, persistence checked on every
+firing (0 hazards). Validation: 30/34 of research's rows run, 30 agree. Reproduced here: matrix default DEADLOCK (853 states,
+ucmpi0=0 then ucmpi1=1), real 30-trip counts DEADLOCK; BDC_AUTO LIVE (56 577); default + BDC_MERGE_OUT_LINK=ucontrol_merge1 LIVE,
+merge0/2/3/4 alone DEADLOCK. research's ring_tokens: cycle view -2, walk view clean (floor adds nothing). Assumption needed by
+the zero-delay model: arbitrated merge R0 not before the previous winner's ack falls (else stale index; gcd would "deadlock").
+Sweep (run_all.py / validate.py) runs detached: 122 rows so far, all agree with research. Not covered: data beyond steering
+bits, memory contents, BD_LINK_DC, host mem, timing; nest3-size nests only sampled.

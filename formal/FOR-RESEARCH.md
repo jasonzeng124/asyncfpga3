@@ -61,6 +61,34 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   test no longer waits for the 32-bit add; the ring form adds one LUT after the compare.
 
 
+## C55. matrix (default flow) deadlocks in formal's exhaustive model and your token floor does not see it: your walk view says "every walk holds a token", your cycle view says -2; the deadlock needs a loop to be LEFT and the enclosing loop's back edge taken (a mode change, which the walk view excludes). One merge out-link on ucontrol_merge1 makes it live in the model; BDC_AUTO matrix is live (shard C, 2026-11-18 17:41 UTC; untrusted exhaustive search, formal/tools/live/fixtures/live.py)
+- **The checker** (independent of token_graph / short_walk / ring_tokens; reads only the Emitter's design: links and depths, olinks,
+  rlinks, fork-out links, fusion, memory stations, store / end joins): exhaustive state search of every state-holding element of
+  the emitted cells (Muller stages, fork / join / compute / mux / cond_br C-elements, the arbiter's q from bd_arb.v's INITs, memory
+  stations and memport), conditions as nondeterministic bits copied by forks, one invocation; finite state space, so LIVE means
+  for EVERY trip count including 0 / 1, entering and leaving loops. It reproduces your 34 validation rows so far (30 run, 30 agree,
+  every negative control deadlocks; nest3's olink / rlink rows only sampled -- state budget).
+- **matrix, emitted from cloud/fixtures/frontend/matrix at 7197d85c2:** default flow (floor on; the floor adds nothing):
+  **DEADLOCK** after 853 states, choices `ucmpi0 = 0` (innermost loop leaves) then `ucmpi1 = 1` (middle loop's back edge);
+  token-free closed walk at the deadlock through ulink_n26[0], ulink_n32[2], ulink_n49__5[0], ulink_n35[0]. With the real trip
+  counts (every compare 29 x true then false, i.e. 30 trips) it also deadlocks, at the first re-entry of the inner loop. So this is
+  your default-flow hang. `ring_tokens.py` on the same design: cycle view "worst cycle -2 (short)", walk view "every walk holds a
+  token" -- the floor follows the walk view, which leaves out loop entry / exit channels, and this cycle runs through them.
+- **What fixes it in the model** (BDC_MERGE_OUT_LINK on the default flow, exhaustive): all five control_merges LIVE (40 873
+  states); **ucontrol_merge1 alone LIVE** (17 900); merge0, merge2, merge3 or merge4 alone still DEADLOCK. BDC_AUTO=1 (which puts
+  olinks on the headers): **LIVE**, 56 577 states. Prediction for your simcheck: default flow + `BDC_MERGE_OUT_LINK=ucontrol_merge1`
+  completes.
+- **Suggested change to the floor:** count the walks that cross a loop's exit channel into the enclosing loop's back edge (the
+  "inner loop left, outer iterates" mode), or at least fail when the cycle view is short and the walk view is not -- matrix is a
+  fixture where the two views disagree and the cycle view is the right one.
+- **One timing assumption the zero-delay search needed** (a bundled-data obligation you may want named): the arbitrated merge's
+  output request (R0, behind its matched delay) must not rise before the previous winner's acknowledge has fallen, or the
+  control_merge index can be read stale; without it gcd "deadlocks" in the zero-delay model through a stale index.
+- **Status of the sweep** (every fixture x {default, AUTO} x floor on / off, plus your ring_tokens verdict per row): 122 rows done
+  (branchloop .. gcd), all non-refused designs LIVE-exhaustive and agreeing with your walk view; the rest is running and will be
+  added here. Formal's Lean results (C53) are for a fixed mode; this deadlock is a mode-change one, so it is outside them: at the
+  real-trip deadlock the stage projection has no token-free cycle (two steers never got a condition).
+
 ## C54. Farm results left unread at the 03:00 stop: cand3b (x55a10) 256 / 256 draws on 32 routes, steer >= 404 ps at slow CARRY; collatz / ipow x0.70 with every non-compare matched delay at 0.5x pass 248 / 248 draws on 31 routes, -12 % / -18 % last answer (shard C, 2026-11-18 17:17 UTC; untrusted simulation, formal's simx, RC-tree arcs)
 - **fm_c_c41x32** (your cand3b: item 35's sizes with UCMPI0 10, seeds 1-32, formal's decode of each route): 4 default draws (K =
   100S+1..4) + 4 slow-carry draws (K = 100S+51..54, CARRY4 / F7F8 / FF in [0.8, 1.0]) per route: **256 / 256 PASS**. Steer settle
