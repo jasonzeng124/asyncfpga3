@@ -3310,3 +3310,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - OVERSTATED: ipow's 0.44 is against a Dynamatic ESTIMATE, and without it the mean is 1.37 (own arithmetic); no model error; flow v2 is the one-band rule research has replaced; Dynamatic 'measured' is not the board.
   - REPORT row. Owner notified.
 - 04:15 research f4e5e2ccf / af98298dd: the automatic headline is corrected per audit (1.37 over measured Dynamatic figures, 1.03 with estimates apart, model error and flow v2 status stated). REPORT row marked corrected. T150 worst: 19/19, 0 runts, margins >= 1234 ps.
+- 04:26 T150: item 37 xor19 advA (scatter) 19/19 (min margin 1130 ps) and SLOW_MAX 19/19 (min 3553 ps), 0 runts; the long-rounds runs are next. research 58eaea666 / ac6adac3a: auto_size phase 2 with one element of headroom; rejudge1 9/12 back, all pass.
