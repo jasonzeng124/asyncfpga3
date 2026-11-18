@@ -6539,3 +6539,18 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - Local v4 xorshift seed 8: the raise-only phase did not converge (it 5 / 6 / 7: 5, 3, 4 constraints short, -5..-278
   ps); 58eaea666 gives phase-2 raises one element of headroom (AUTO_HEADROOM=1). suite3 (still waiting) will run it;
   suite5 started at 2cfdd934b (v4 without headroom), suite4 at 312abcc32 (v3).
+### progress 04:44 (ringfloor landed: the token floor -- quadrec and the default flow's three hangs fixed in bdc)
+- ringfloor (reviewed; db544ea9f, 670bdbe09; research/data/suite/ringfloor.md): while a loop iterates the circuit is a
+  marked graph, live iff every cycle holds a token. Two conditions: a directed cycle with T back edges (T tokens) needs
+  >= 2T + 1 storage stages (the 3-stage floor is T = 1), and two paths from one fork to one join where one crosses K
+  more back edges need >= 2K stages on that path (no cycle count sees it); one check, every closed walk holds a token.
+  bdc/emit.py token_floor(), ON by default in both flows (a liveness rule, like the 3-stage floor; BDC_TOKEN_FLOOR=0 only
+  for negative controls), adds stages where a walk has none.
+- Effect: quadrec simcheck 10/10 in both flows (was a deadlock at n = 4); lfsrfind, nested, nest3 live in the default
+  flow (the same mechanism: the walk exists only when an inner loop is skipped after the outer back edge was used); the
+  model called 19 of 34 configurations short and simcheck deadlocked on exactly those 19. Negative controls: removing
+  any one added stage deadlocks again (6/6). Emitted Verilog unchanged for every other fixture (90 identical, the
+  refused ones refused alike); checked here: the six original kernels, straight and memsum identical in both flows.
+  Routed smoke, 4 seeds x 2 flows: 4/4 + 4/4 pass, EQUIVALENT; 8/8 draws on the AUTO routes. Not run: the sizing loop.
+- For the owner: CLAUDE.md's "A ring needs three storage stages per simple cycle" is the one-token case of this
+  condition; it is not edited here.
