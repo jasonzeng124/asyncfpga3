@@ -4687,3 +4687,13 @@ NECESSARY so far.
 lfsrfind def trueResult_14 (unlink: DEADLOCK 112), matrix def n26 (853), nested def falseResult_17 (431), stencil_2d def n45
 (901), quadrec def / auto trueResult_16 / 18 / 20 (53-245); every control (floor-on design) LIVE. nest3 queued on the farm
 (c_floormin_nest3). Minimal per link, not globally (a different placement could use fewer stages).
+
+### progress 22:13 -- state: liveness item complete on the fixtures; waiting on the farm
+Done this session: C59 (pass-through floor = C57's stages; sweep 87 LIVE / 3 sampled / 0 deadlock / 0 disagreement; floor
+minimal link by link 10 / 10; check.sh; residue corrected + classified), Lean StageNetRingLive (ring S >= 2T + 1 at the rest
+marking, oriented-cycle count = research's conditions 1 and 2, hasTrap_mono), LiveCertsPass (8 certificates), README for
+formal/tools/live. Considered and dropped: a gate-level WF checker for LiveCerts (StageNetTree gives each gate one owner;
+emitted joins feeding forks are shared, so real designs would fail WF -- the refinement needs generalising first); C56's
+timing obligations in ps (needs prjxray / toolchain: farm only, simx has no probe for it yet); if_loop_1 suite9 X failure
+(memory kernel; not liveness). Waiting: farm c_live_big2 (gcd AUTO, gcd def inv2, nest3 def inv2 running), c_floormin_nest3.
+Next PROGRAM re-read 23:00.
