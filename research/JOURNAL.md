@@ -7046,3 +7046,12 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   NOT-A-BOARD-ROUTE on suite9 seeds 1 / 4: a real bitstream defect -- a nextpnr patch + a fingerprint that fails on
   6e5d224472232d5d -- or a checker false alarm), **ifloop** (if_loop_1 seed 1's two failing draws on a NOT CLEAN
   route: the race, whether the rule flagged it, the fix on the same route).
+### progress 23:07 (4th subagent: steerrunt; gifast1 filed; SIM-VS-BOARD row 6)
+- **steerrunt** (report by 03:30 UTC): an opt-in runt check in the gate (pulses shorter than a stated threshold on the
+  kernel's steer / mux / C-element / latch-enable outputs, per instance), its negative control the v1 ipow s4 route
+  (40 runts per 9 us on its exit branch, hidden by the gate's runt model), then board items 38-41 and a sample of
+  suite6's shipped routes: which would fail a strict check.
+- Farm **gifast1** filed: gcd / isprime x 4 seeds with CA_FAST=1 (loopfast's loopfast_gi without suite7's per-kernel
+  AUTO_FINISH=1, auditor T161). loopfast_small not filed: suite9r2 already resumes those loops.
+- CA_FAST equivalence so far: collatz64 2 / 2 corners identical, dot2 1 / 1, iterative_sqrt 1 / 1; quadrec running.
+- SIM-VS-BOARD row 6: ipow s4's start-up x was the only symptom of a real race (hangs).
