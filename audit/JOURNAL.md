@@ -3295,3 +3295,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 02:38 research 312abcc32 / 153515619: suite2 partial (all judged routes 4/4); suite4 (4 kernels x 8 seeds) and suite5 (gcd / isprime x 4 seeds) split. No table yet.
 - 02:55 research f7fa9e7fa ... 3ef81c9d3: corner_audit CA_JOINAWARE=1 (rule A' with join credit) is on by default in auto_size.sh (flow v4); draws 12/12 xorshift, 7/7 collatz; steerE started. A static sizing tool, judged by draws (owner 501eda80d). No headline. Note: a looser static rule means smaller sizes, so the next AUTO table's pass fractions must come from flow v4 routes, with the CARRY-band caveat (T145).
 - 03:24 research 9b503a6aa: farm rejudge1 queued, covering the 11 suite1 / suite2 routes never drawn (old checker) and xorshift s8 with 8 draws. Good: the routes the old checker excluded get drawn rather than dropped.
+
+### progress 03:35
+- research b7d5d2c59: BOARD-QUEUE item 37, xorshift x55a10 s21 (item 35 with UCMPI0 6 -> 10), route sdf 42b4fb4c, 16.49 ns on this route (median 16.76 over 28 routes), 32/32 draws + 3 corners; replaces item 35.
+- T150 launched: own build, own GLS on xor19 and long rounds at FAST_MIN / SLOW_MAX / worst / advA (+-scatter) / advC (no scatter), with steer monitors.
