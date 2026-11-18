@@ -6410,3 +6410,24 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   negative controls still NOT EQUIVALENT. Farm suite2 was picked up at 3e47c10ad (with the one-sided fold), so its NOT
   EQUIVALENT routes will be re-judged from their returned sizes (rejudge.sh).
 - x55a10 seed 21 (bit 6a68b04e): SLOW_MAX / FAST_MIN / worst PASS 19/19 each; draws 2101-2105 PASS so far (32 queued).
+### progress 01:38 (suitek landed: 14 suite kernels, SUITE.md, the C oracle; the suite found two liveness bugs in bdc)
+- suitek (reviewed; 4fc96e310 .. 38c58b2c4): kernels/{straight, countloop, sqrtsub, nest3, twoloops, brhash, lfsrfind,
+  quadrec, horner, fold64, varshift, cmpchain, digitsum, digitdiv} with fixtures, vectors at the edges of each declared
+  range (trip counts <= ~256: the routed gate simulates ~0.22 us of circuit time per wall second) and expected values
+  from research/tools/suite/oracle.sh (the kernel's C, argument words from its signature; reproduces ipow17 / isp17
+  byte for byte; two negative controls fail); bdc/simcheck.py --c-oracle; kernels/SUITE.md (23 rows).
+- Seed-1 smoke (one route each, emit.py's placeholder sizes, worst corner): 9 / 12 right in each flow.
+  **quadrec deadlocks in both flows** (simcheck and the routed EQUIVALENT gate, n = 4): bdc's ring floor counts stages,
+  not tokens; the rotation a <- b <- c <- d puts 4 tokens on a 4-stage ring (research/tools/suite/ring_tokens.py: -4;
+  every other fixture +1 or acyclic). **The default flow hangs on lfsrfind, nested and nest3** (inner loops with zero
+  trips after the first instance; a search with break); each passes with rule M's merge output link, so BDC_AUTO=1 is
+  live where the default is not. digitsum stops in the frontend (arith.remui), digitdiv in bdc (no divui cell). Bits:
+  10 of 26 smoke routes NOT EQUIVALENT under the old checker (the F7 kinds), lfsrfind / nest3 AUTO FFMUX-flagged (wrong
+  values on those bits only).
+- Found by it too: bdc/auto.py silently skips the proven MLIR rewrites when research/tools/fifteen is absent (a plain
+  cells/ bdc/ copy, as research/data/alltable/run_default.sh builds); auto_size.sh / build_bench.sh in the repo are
+  not affected. To do: make auto.py fail loudly.
+- Started: subagent ringfloor (the token-aware floor for quadrec, and whether the same argument explains the default
+  flow's hangs). Farm suite3 (16 suite kernels x 4 seeds) submitted; kernels.txt now lists 22.
+- Rejudge test: the farm's xorshift seed 3 route rebuilt here from its sizes_final.vh is the same route (sdf ea3c2aad,
+  P 23178) and EQUIVALENT under today's checker; its draws are running.
