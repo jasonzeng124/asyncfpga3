@@ -3309,3 +3309,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research 2eccf05e0: the automatic-column headline (suite2, flow v2), 'geometric mean ratio to Dynamatic 1.03'.
   - OVERSTATED: ipow's 0.44 is against a Dynamatic ESTIMATE, and without it the mean is 1.37 (own arithmetic); no model error; flow v2 is the one-band rule research has replaced; Dynamatic 'measured' is not the board.
   - REPORT row. Owner notified.
+- 04:15 research f4e5e2ccf / af98298dd: the automatic headline is corrected per audit (1.37 over measured Dynamatic figures, 1.03 with estimates apart, model error and flow v2 status stated). REPORT row marked corrected. T150 worst: 19/19, 0 runts, margins >= 1234 ps.
