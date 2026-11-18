@@ -3260,3 +3260,6 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   - never run two simchecks of the same kernel at once (shared build dir);
   - `ulimit -v` breaks Lean;
   - unfolding a fuel-indexed interpreter with a literal fuel exhausts memory.
+
+### progress 23:00 -- 23:00 re-read: PROGRAM.md (cffa0d44b) and research/FOR-FORMAL.md (105e2ff9f) unchanged; lock
+* No new request for A. From 23:00 the limit is at most 2 subagents; A is running none.
