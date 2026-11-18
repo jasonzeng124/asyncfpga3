@@ -3098,3 +3098,26 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * check.sh OK on the 13-file plain-form chain (libs ... CountloopPlainGen). CountloopPlainTie (gen_plain_tie.py): the
   graph-only theorem about the import of out/countloop_plain.mlir, renumbering in Lean; compiled, standard axioms.
 * check.sh OK on the 16-file chain including Rename, CountloopPlainRdHw and CountloopPlainTie (21:15).
+
+### progress 21:24 -- CHECKED: the plain loop test proved from the graph on all five ring kernels (generated)
+* `formal/tools-A/rewrite/gen_plain_gen.py NAME RS2_EVAL` writes `Formal/Rewrite/Plain/<NAME>PlainGen.lean` from
+  CountloopPlainGen as the template. Inputs: `#eval` of `Ring.<NAME>.rs2` and patRing / patTest's parameters.
+  - TEST pair: from patTest. GUARD pair: the branch whose true output is the ring's `ne`, traced back through its
+    condition fork and its `sgt` compare to the fork of n.
+  - Classes: a backward closure from {x, k: NotMax} and {ne: NotMin}. A producer that is not a fork, mux, non-pair
+    branch, 1-bit extui, gDec or pair true side stops the script.
+  - Untrusted: everything is re-proved in Lean (PairOK, RuleSafe, decide +kernel).
+* Generated and compiled (exit code 0 each; `#print axioms` on plain_forward / plain_backward: propext,
+  Classical.choice, Quot.sound): horner, xorshift, varshift, quadrec.
+  - horner's graph equals countloop's except for one comp body, so its numbers are countloop's. Its class set is
+    smaller than the hand-picked countloop one, because the closure leaves unneeded channels at 0.
+* `gen_plain_tie.py` generalized (kernel modules as parameters); it regenerates countloop's tie byte for byte.
+  - Ties written and compiled for the four kernels: `<NAME>PlainRdHw` (dfimport of `out/<k>_plain.mlir`) and
+    `<NAME>PlainTie.tie_forward` / `tie_backward`.
+* `formal/check.sh` on the full 34-file import closure of the four ties: OK, 1556 declarations audited
+  (/tmp/claude-0/check_plaingen.log).
+* What this does NOT show:
+  - token level only;
+  - no new timing (the plain form pays only on countloop, A21);
+  - it is per-program proofs from a generator, not one theorem for every graph matching the pattern.
+* FOR-RESEARCH A22 update; FEASIBILITY row 14 updated.

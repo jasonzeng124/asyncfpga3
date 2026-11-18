@@ -213,6 +213,26 @@ and your DRAW_CARRY mapping (formal's DRAW_XBAND). Vectors: your gate hex files;
   - Tied to the file: `Formal.Rewrite.Plain.CountloopPlainGenTie.tie_forward` / `tie_backward` state the same
     result about dfimport's import of `formal/tools-A/rewrite/out/countloop_plain.mlir` (md5 d562c024). The
     renumbering is checked in Lean, so no script remains in that chain. check.sh OK on the chain.
+- *Update 21:24 UTC: the generator exists, and the plain form is proved on all five ring kernels.*
+  `formal/tools-A/rewrite/gen_plain_gen.py NAME RS2_EVAL` finds the two branch pairs and the channel classes from
+  the graph, and writes `Formal/Rewrite/Plain/<NAME>PlainGen.lean`.
+  - The classes come from a backward closure from what the plain test needs: the counter and the bound are never
+    INT_MAX, and `n` entering the ring is never INT_MIN.
+  - It refuses (exits) if a channel on that closure is produced by anything other than a fork, a mux, a non-pair
+    branch, a 1-bit extui, `n - 1`, or a pair's true side.
+  - Everything it finds is re-checked in Lean, so a wrong guess fails to compile; it cannot prove a wrong theorem.
+  - Proved (`plain_forward` / `plain_backward`, standard axioms) for horner, quadrec, varshift and xorshift, on
+    research's fixtures. No per-kernel hand edits: the files are the generator's output.
+  - Tied to the files with `<NAME>PlainTie.tie_forward` / `tie_backward`, about dfimport of
+    `formal/tools-A/rewrite/out/<k>_plain.mlir`. md5 prefixes: horner c3937812, quadrec 52440267, varshift 281e44fb,
+    xorshift ebbe1b96. The tie generator is `gen_plain_tie.py`; it regenerates countloop's tie byte for byte.
+  - So the plain pre_dec is now a pass of the kind "structural match (ring_dec.py --plain) + generated per-program
+    Lean proof (gen_plain_gen + gen_plain_tie) + Lean check". The side conditions are graph facts checked by
+    `decide`, not a C source and not autoproof.
+  - It is still not a single theorem for every matching graph. The obligations that make it per-program are
+    `PairOK` (two branch pairs) and the per-rule `RuleSafe` check. Both are decidable checks on the rule list, so
+    the remaining step to a stated pass is a theorem that the checker's `true` implies them for any rule list.
+  - Timing is unchanged: the plain form pays only on countloop (A21).
 **pre_eq2 (`n' == 1` -> `n == 2`, n' = the collatz step):**
 - The per-token identity is general: `Rewrite.Eq2.collatz_eq2`, for every width w >= 3 and every n. That would be the
   side condition: w >= 3.

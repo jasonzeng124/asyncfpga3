@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""gen_ring_tie.py KERNEL NAME RS3_EVAL.txt -- tie the per-kernel theorem to the import of ring_dec's MLIR, in Lean.
+"""gen_plain_tie.py KERNEL NAME RS2P_EVAL.txt -- tie the per-kernel theorem to the import of ring_dec's MLIR, in Lean.
 
-Writes formal/lean/Formal/Rewrite/Ring/<NAME>RdHw.lean (dfimport of formal/tools-A/rewrite/out/<KERNEL>_rd.mlir) and
-<NAME>Tie.lean: the channel / rule bijections found by rules_iso.py, checked by `decide +kernel` (fpCheck,
-renCheck), and the theorems `tie_forward` / `tie_backward` (Rename.lean + the kernel's same3_*). The bijections are
+Writes formal/lean/Formal/Rewrite/Plain/<NAME>PlainRdHw.lean (dfimport of formal/tools-A/rewrite/out/<KERNEL>_plain.mlir)
+and <NAME>PlainTie.lean: the channel / rule bijections found by rules_iso.py, checked by `decide +kernel` (fpCheck,
+renCheck), and the theorems `tie_forward` / `tie_backward` (Rename.lean + the kernel's PlainGen plain_*). The bijections are
 found by an untrusted script; Lean checks them.
 """
 import json, os, re, subprocess, sys
@@ -33,6 +33,8 @@ def main():
     R = len(ru); T = [ru[l] for l in range(R)]; Ti = [0] * R
     for a, b in ru.items(): Ti[b] = a
     ns = f'Formal.Rewrite.Plain.{name}PlainGen'
+    hw, rw = (('Formal.Rewrite.CountloopHw', 'Formal.Rewrite.CountloopRewrite') if name == 'Countloop' else
+              (f'Formal.Rewrite.Ring.{name}Hw', f'Formal.Rewrite.Ring.{name}'))
     lean = f'''import {ns}
 import Formal.Rewrite.Plain.{name}PlainRdHw
 import Formal.Rewrite.Rename
@@ -49,7 +51,7 @@ Token level.
 
 namespace {ns}Tie
 
-open Formal.Net.Kahn Formal.Net.GcdHw Formal.Rewrite.IncCmp {ns} Formal.Rewrite.CountloopRewrite
+open Formal.Net.Kahn Formal.Net.GcdHw Formal.Rewrite.IncCmp {ns} {rw}
 
 def P : List Nat := {P}
 def Pi : List Nat := {Pi}
@@ -63,10 +65,10 @@ theorem hTi : fpCheck Ti T = true := by decide +kernel
 theorem hRen : renCheck rs2p {name}PlainRdHw.rules P Ti = true := by decide +kernel
 
 theorem args_fixed : fp P 0 = 0 ∧ fp P 1 = 1 ∧ fp P 2 = 2 := by decide +kernel
-theorem out_maps : fp P Formal.Rewrite.CountloopHw.chOut = {name}PlainRdHw.chOut := by decide +kernel
+theorem out_maps : fp P {hw}.chOut = {name}PlainRdHw.chOut := by decide +kernel
 
 theorem tie_forward {{σ0 t : Store Nat Nat}} {{n : Nat}} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
-    (hr : Run (step (graph Formal.Rewrite.CountloopHw.rules)) σ0 n t) (ht : Terminal (step (graph Formal.Rewrite.CountloopHw.rules)) t) :
+    (hr : Run (step (graph {hw}.rules)) σ0 n t) (ht : Terminal (step (graph {hw}.rules)) t) :
     ∃ t' m, Run (step (graph {name}PlainRdHw.rules)) (renS (fp Pi) σ0) m t' ∧
       Terminal (step (graph {name}PlainRdHw.rules)) t' ∧ ∀ ch, ch ∉ changed → t' (fp P ch) = t ch := by
   obtain ⟨t3, m, r3, ht3, o3⟩ := plain_forward h0 hr ht
@@ -78,7 +80,7 @@ theorem tie_forward {{σ0 t : Store Nat Nat}} {{n : Nat}} (h0 : ∀ ch, ch ≠ 0
 
 theorem tie_backward {{σ0' t' : Store Nat Nat}} {{n : Nat}} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0' (fp P ch) = [])
     (hr : Run (step (graph {name}PlainRdHw.rules)) σ0' n t') (ht : Terminal (step (graph {name}PlainRdHw.rules)) t') :
-    ∃ t m, Run (step (graph Formal.Rewrite.CountloopHw.rules)) (renS (fp P) σ0') m t ∧ Terminal (step (graph Formal.Rewrite.CountloopHw.rules)) t ∧
+    ∃ t m, Run (step (graph {hw}.rules)) (renS (fp P) σ0') m t ∧ Terminal (step (graph {hw}.rules)) t ∧
       ∀ ch, ch ∉ changed → t ch = t' (fp P ch) := by
   have r3 := run_ren_back (fp P) (fp Pi) (fp_inv P Pi hP) (fp_inv Pi P hPi) (fp Ti) (renCheck_ok hRen) hr
   have ht3 := terminal_ren_back (fp P) (fp Pi) (fp_inv P Pi hP) (fp_inv Pi P hPi) (fp T) (fp Ti)
