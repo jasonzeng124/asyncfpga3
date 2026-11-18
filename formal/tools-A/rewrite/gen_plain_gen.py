@@ -27,7 +27,7 @@ def ins_outs(r):
     if k == 'cm': return [r[1]], [r[2], r[3]]
     if k == 'sink': return [r[1]], []
 
-def analyse(rs, pr, pt):
+def analyse(rs, pr, pt, na):
     """Find the two pairs, the classes and the PlainPass certificate on rs2 (tuples as rules_iso.load gives)."""
     ne, nep, rr, r0, kk, nb = pr[7], pr[8], pr[9], pr[10], pr[11], pr[12]
     tA, tF, tC, te, ts, ts0, ty, tc, tk, te0, te1 = pt
@@ -62,7 +62,7 @@ def analyse(rs, pr, pt):
             if cls[ch] != c: raise Refused(f'class conflict on {ch}')
             continue
         cls[ch] = c
-        if ch in (0, 1, 2): raise Refused(f'argument channel {ch} needs class {c}')
+        if ch < na: raise Refused(f'input channel {ch} needs class {c}')
         l = prod[ch]; r = rs[l]
         if l == lBt:
             if not (ch == test['t'] and c == 1): raise Refused(f'test branch output {ch} class {c}')
@@ -85,7 +85,7 @@ def analyse(rs, pr, pt):
     lExt = [l for l, v in special.items() if v == 'extui'][0]; lDec = [l for l, v in special.items() if v == 'dec'][0]
     extIn, extOut = rs[lExt][1][0], rs[lExt][2]
 
-    f = dict(M=pr[0], F=pr[1], B=pr[2], S=pr[3], C=pr[4], sel=pr[6], ne=ne, **{"ne'": nep}, r=rr, r0=r0, k=kk,
+    f = dict(na=na, M=pr[0], F=pr[1], B=pr[2], S=pr[3], C=pr[4], sel=pr[6], ne=ne, **{"ne'": nep}, r=rr, r0=r0, k=kk,
              nb=nb, nx=pr[13], cnd=pr[14], y=pr[15], c=pr[16], iw=pr[17], lb=tA, ld=tF, e=te, s=ts, s0=ts0,
              e0=te0, e1=te1, gF=lFg, gC=lCg, gK=lKg, gB=lBg, ge=guard['e'], gd=dg, gx=xg, gc=cg, gcb=cbg, gk=kg,
              gt=ne, gf=guard['f'], gos=guard['os'], tK=lKt, tB=lBt, tcb=test['cb'], tt=test['t'], tf=test['f'],
@@ -109,15 +109,18 @@ def main():
     # RingMap.Pat ... lM lF lB lS lC lD sel ne ne' r r0 k nb nx cnd y c w
     # Pat2 lA lF lC e s s0 y c k e0 e1
     ne, nep = pr[7], pr[8]
+    hwt = open(os.path.join(ROOT, f'formal/lean/Formal/Rewrite/Ring/{name}Hw.lean')).read()
+    na = int(re.search(r'^def chStart : Nat := (\d+)', hwt, re.M).group(1)) + 1
     tA, tF, tC, te, ts, ts0, ty, tc, tk, te0, te1 = pt
     try:
-        A = analyse(rs, pr, pt)
+        A = analyse(rs, pr, pt, na)
     except Refused as x:
         sys.exit(str(x))
     guard, test, c1, c2 = A['guard'], A['test'], A['c1'], A['c2']
     lExt, lDec, extIn, extOut, lBg, lBt = A['lExt'], A['lDec'], A['extIn'], A['extOut'], A['lBg'], A['lBt']
     if len(sys.argv) > 3 and sys.argv[3] == '--cert':
         print(cert_lean(name, A['cert']), end=''); return
+    if na != 3: sys.exit(f'{name}: {na} input channels; the PlainGen template assumes 3 (use --cert / PlainPass)')
     tpl = open(os.path.join(ROOT, 'formal/lean/Formal/Rewrite/Plain/CountloopPlainGen.lean')).read()
     s = tpl
     def sub(a, b, cnt=1):

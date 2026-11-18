@@ -30,6 +30,7 @@ namespace Formal.Rewrite.Plain.PassInst
 open Formal.Net.Kahn Formal.Net.GcdHw Formal.Rewrite.PlainPass
 
 def cCountloop : Cert where
+  na := 3
   M := 20
   F := 21
   B := 35
@@ -80,19 +81,20 @@ theorem countloop_check : check Formal.Rewrite.Ring.CountloopHw.rules cCountloop
 
 theorem countloop_rs2p : rs2p Formal.Rewrite.Ring.CountloopHw.rules cCountloop = Formal.Rewrite.Plain.CountloopPlainGen.rs2p := by decide +kernel
 
-theorem countloop_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+theorem countloop_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
     (hr : Run (step (graph Formal.Rewrite.Ring.CountloopHw.rules)) σ0 n t) (ht : Terminal (step (graph Formal.Rewrite.Ring.CountloopHw.rules)) t) :
     ∃ t' m, Run (step (graph (rs2p Formal.Rewrite.Ring.CountloopHw.rules cCountloop))) σ0 m t' ∧ Terminal (step (graph (rs2p Formal.Rewrite.Ring.CountloopHw.rules cCountloop))) t' ∧
       ∀ ch, ch ∉ changed cCountloop → t' ch = t ch :=
   plain_forward countloop_check h0 hr ht
 
-theorem countloop_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+theorem countloop_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
     (hr : Run (step (graph (rs2p Formal.Rewrite.Ring.CountloopHw.rules cCountloop))) σ0 n t') (ht : Terminal (step (graph (rs2p Formal.Rewrite.Ring.CountloopHw.rules cCountloop))) t') :
     ∃ t m, Run (step (graph Formal.Rewrite.Ring.CountloopHw.rules)) σ0 m t ∧ Terminal (step (graph Formal.Rewrite.Ring.CountloopHw.rules)) t ∧
       ∀ ch, ch ∉ changed cCountloop → t ch = t' ch :=
   plain_backward countloop_check h0 hr ht
 
 def cHorner : Cert where
+  na := 3
   M := 20
   F := 21
   B := 35
@@ -143,19 +145,20 @@ theorem horner_check : check Formal.Rewrite.Ring.HornerHw.rules cHorner = true :
 
 theorem horner_rs2p : rs2p Formal.Rewrite.Ring.HornerHw.rules cHorner = Formal.Rewrite.Plain.HornerPlainGen.rs2p := by decide +kernel
 
-theorem horner_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+theorem horner_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
     (hr : Run (step (graph Formal.Rewrite.Ring.HornerHw.rules)) σ0 n t) (ht : Terminal (step (graph Formal.Rewrite.Ring.HornerHw.rules)) t) :
     ∃ t' m, Run (step (graph (rs2p Formal.Rewrite.Ring.HornerHw.rules cHorner))) σ0 m t' ∧ Terminal (step (graph (rs2p Formal.Rewrite.Ring.HornerHw.rules cHorner))) t' ∧
       ∀ ch, ch ∉ changed cHorner → t' ch = t ch :=
   plain_forward horner_check h0 hr ht
 
-theorem horner_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+theorem horner_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
     (hr : Run (step (graph (rs2p Formal.Rewrite.Ring.HornerHw.rules cHorner))) σ0 n t') (ht : Terminal (step (graph (rs2p Formal.Rewrite.Ring.HornerHw.rules cHorner))) t') :
     ∃ t m, Run (step (graph Formal.Rewrite.Ring.HornerHw.rules)) σ0 m t ∧ Terminal (step (graph Formal.Rewrite.Ring.HornerHw.rules)) t ∧
       ∀ ch, ch ∉ changed cHorner → t ch = t' ch :=
   plain_backward horner_check h0 hr ht
 
 def cQuadrec : Cert where
+  na := 3
   M := 35
   F := 36
   B := 51
@@ -206,19 +209,20 @@ theorem quadrec_check : check Formal.Rewrite.Ring.QuadrecHw.rules cQuadrec = tru
 
 theorem quadrec_rs2p : rs2p Formal.Rewrite.Ring.QuadrecHw.rules cQuadrec = Formal.Rewrite.Plain.QuadrecPlainGen.rs2p := by decide +kernel
 
-theorem quadrec_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+theorem quadrec_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
     (hr : Run (step (graph Formal.Rewrite.Ring.QuadrecHw.rules)) σ0 n t) (ht : Terminal (step (graph Formal.Rewrite.Ring.QuadrecHw.rules)) t) :
     ∃ t' m, Run (step (graph (rs2p Formal.Rewrite.Ring.QuadrecHw.rules cQuadrec))) σ0 m t' ∧ Terminal (step (graph (rs2p Formal.Rewrite.Ring.QuadrecHw.rules cQuadrec))) t' ∧
       ∀ ch, ch ∉ changed cQuadrec → t' ch = t ch :=
   plain_forward quadrec_check h0 hr ht
 
-theorem quadrec_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+theorem quadrec_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
     (hr : Run (step (graph (rs2p Formal.Rewrite.Ring.QuadrecHw.rules cQuadrec))) σ0 n t') (ht : Terminal (step (graph (rs2p Formal.Rewrite.Ring.QuadrecHw.rules cQuadrec))) t') :
     ∃ t m, Run (step (graph Formal.Rewrite.Ring.QuadrecHw.rules)) σ0 m t ∧ Terminal (step (graph Formal.Rewrite.Ring.QuadrecHw.rules)) t ∧
       ∀ ch, ch ∉ changed cQuadrec → t ch = t' ch :=
   plain_backward quadrec_check h0 hr ht
 
 def cVarshift : Cert where
+  na := 3
   M := 24
   F := 25
   B := 46
@@ -269,19 +273,20 @@ theorem varshift_check : check Formal.Rewrite.Ring.VarshiftHw.rules cVarshift = 
 
 theorem varshift_rs2p : rs2p Formal.Rewrite.Ring.VarshiftHw.rules cVarshift = Formal.Rewrite.Plain.VarshiftPlainGen.rs2p := by decide +kernel
 
-theorem varshift_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+theorem varshift_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
     (hr : Run (step (graph Formal.Rewrite.Ring.VarshiftHw.rules)) σ0 n t) (ht : Terminal (step (graph Formal.Rewrite.Ring.VarshiftHw.rules)) t) :
     ∃ t' m, Run (step (graph (rs2p Formal.Rewrite.Ring.VarshiftHw.rules cVarshift))) σ0 m t' ∧ Terminal (step (graph (rs2p Formal.Rewrite.Ring.VarshiftHw.rules cVarshift))) t' ∧
       ∀ ch, ch ∉ changed cVarshift → t' ch = t ch :=
   plain_forward varshift_check h0 hr ht
 
-theorem varshift_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+theorem varshift_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
     (hr : Run (step (graph (rs2p Formal.Rewrite.Ring.VarshiftHw.rules cVarshift))) σ0 n t') (ht : Terminal (step (graph (rs2p Formal.Rewrite.Ring.VarshiftHw.rules cVarshift))) t') :
     ∃ t m, Run (step (graph Formal.Rewrite.Ring.VarshiftHw.rules)) σ0 m t ∧ Terminal (step (graph Formal.Rewrite.Ring.VarshiftHw.rules)) t ∧
       ∀ ch, ch ∉ changed cVarshift → t ch = t' ch :=
   plain_backward varshift_check h0 hr ht
 
 def cXorshift : Cert where
+  na := 3
   M := 15
   F := 16
   B := 29
@@ -332,13 +337,13 @@ theorem xorshift_check : check Formal.Rewrite.Ring.XorshiftHw.rules cXorshift = 
 
 theorem xorshift_rs2p : rs2p Formal.Rewrite.Ring.XorshiftHw.rules cXorshift = Formal.Rewrite.Plain.XorshiftPlainGen.rs2p := by decide +kernel
 
-theorem xorshift_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+theorem xorshift_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
     (hr : Run (step (graph Formal.Rewrite.Ring.XorshiftHw.rules)) σ0 n t) (ht : Terminal (step (graph Formal.Rewrite.Ring.XorshiftHw.rules)) t) :
     ∃ t' m, Run (step (graph (rs2p Formal.Rewrite.Ring.XorshiftHw.rules cXorshift))) σ0 m t' ∧ Terminal (step (graph (rs2p Formal.Rewrite.Ring.XorshiftHw.rules cXorshift))) t' ∧
       ∀ ch, ch ∉ changed cXorshift → t' ch = t ch :=
   plain_forward xorshift_check h0 hr ht
 
-theorem xorshift_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+theorem xorshift_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
     (hr : Run (step (graph (rs2p Formal.Rewrite.Ring.XorshiftHw.rules cXorshift))) σ0 n t') (ht : Terminal (step (graph (rs2p Formal.Rewrite.Ring.XorshiftHw.rules cXorshift))) t') :
     ∃ t m, Run (step (graph Formal.Rewrite.Ring.XorshiftHw.rules)) σ0 m t ∧ Terminal (step (graph Formal.Rewrite.Ring.XorshiftHw.rules)) t ∧
       ∀ ch, ch ∉ changed cXorshift → t ch = t' ch :=

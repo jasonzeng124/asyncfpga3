@@ -3171,3 +3171,23 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
     (`decide` proved check = false).
 * ring_dec.py: the `--plain` message and docstring corrected (it said "corrected slt" and "not covered").
 * Census over research's 108 fixtures running.
+
+### progress 21:50 -- plain_pass: input-channel count in the certificate (sum3 caught); census of 108 fixtures; check.sh OK
+* Found: PlainPass assumed tokens only on channels 0, 1, 2. sum3 has 4 inputs (start = channel 3), so its first
+  "PROVED" covered only runs WITHOUT a start token, which is meaningless. Fixed:
+  - `Cert.na` (input channels 0 .. na-1); `check` asks every input to be class 0 and every internal channel >= na;
+  - the hypothesis is `∀ ch, X.na ≤ ch → σ0 ch = []`;
+  - plain_pass.py reads na from dfimport's chStart (and refuses if IN and OUT differ);
+  - PassInst uses na = 3 (all five kernels have 3 inputs; `3 ≤ ch`);
+  - gen_plain_gen refuses the PlainGen template unless na = 3.
+* plain_pass.py made fail-safe: ring_dec writes a candidate in the temp dir, and OUT receives it only on PROVED.
+  Any exception is a refusal with OUT = IN. (The first census had left spmv's OUT rewritten and unproved after a
+  dfimport crash.)
+* Census, final version (formal/tools-A/rewrite/plain_pass_census.txt):
+  - 7 PROVED: countloop, horner, quadrec, sum3 (na = 4), twoloops, varshift, xorshift;
+  - 9 refused (memory kernels: dfimport fails), OUT = IN;
+  - 92 no match.
+* Controls redone on the final version: guard sgt -> ne refused (certificate search); corrupted certificate refused
+  by Lean.
+* twoloops timing (research's simcheck, pre-route total): neutral. sum3 not runnable in simcheck.
+* check.sh on PlainPass + PassInst closure: OK, 1674 declarations.

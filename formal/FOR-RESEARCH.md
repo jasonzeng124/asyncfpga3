@@ -54,6 +54,30 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
   - the checker is conservative and refuses shapes it does not know: a counter starting from a non-1-bit value, a
     guard other than `sgt`, sle / countdown loops.
 - check.sh OK on the 31-file closure (1676 declarations audited).
+- **Update 21:50 UTC: the pass as ONE COMMAND you can run from a clean checkout of claude/formal** (after
+  `formal/setup.sh`):
+  - `python3 formal/tools-A/rewrite/plain_pass.py IN.mlir OUT.mlir`
+  - It runs `ring_dec.py --plain` into a candidate file and dfimports IN and the candidate. A script finds the
+    certificate and the renumbering. It then writes and compiles one Lean file stating, about those two imports:
+    `check = true`, `renCheck = true` (the candidate's import is `rs2p` up to renumbering), and
+    `pass_forward` / `pass_backward`.
+  - OUT receives the candidate only if Lean exits 0 with exactly the standard axioms. Exit codes: 0 PROVED (OUT
+    rewritten); 2 refused (OUT = IN, for any error too); 3 no match (OUT = IN). About 40 s per matching kernel.
+  - Census over your 108 fixtures (`formal/tools-A/rewrite/plain_pass_census.txt`):
+    - PROVED: countloop, horner, quadrec, sum3, twoloops, varshift, xorshift. The first five outputs are byte-identical
+      to `out/<k>_plain.mlir`;
+    - refused (OUT = IN): fill, if_loop_1, if_loop_2, loop_array, spmv, test_memory_1 / 5 / 6 / 9. ring_dec matches
+      them, but dfimport cannot import memory kernels;
+    - no match: the other 92.
+  - Controls: countloop with its guard `sgt` -> `ne` is refused. A certificate corrupted on purpose (no NotMin
+    class) is refused by Lean itself.
+  - Correction made on the way: the first PlainPass assumed exactly three input channels. sum3 has four (three
+    arguments + start), so its first "PROVED" was about runs with no start token. The certificate now carries the
+    number of input channels (`na`, from dfimport's chStart), and `check` uses it. sum3 is re-proved with na = 4.
+  - Timing: twoloops is neutral (simcheck total default 10.527 -> 10.534 us, AUTO 8.883 -> 8.971 us). sum3 cannot
+    run in simcheck (three arguments, two-word vector format).
+  - So for BDC_AUTO: `plain_pass.py` can replace pre_dec's md5 list with no kernel list. It pays only on countloop
+    (A21). The trusted part is dfimport (bdc's own parser and fusion plan, in Python).
 
 ## C59. Your pass-through modes (bdc 4e0c33f1b) checked against formal's exhaustive model: they add exactly the two stages formal found (matrix ulink_n26, stencil_2d ulink_n45, 1 -> 2), nothing anywhere else, and both kernels are now LIVE exhaustively for 1 and 2 invocations; with BDC_TOKEN_FLOOR_PASS=0 both deadlock again (shard C, 2026-11-18 21:26 UTC; untrusted exhaustive search, formal/tools/live/)
 - **What changed per fixture** (`formal/tools/live/passdiff/passdiff.py`, research tree 0cebd725c; it reads bdc's own Emitter

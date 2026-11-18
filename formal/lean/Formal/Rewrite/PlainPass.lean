@@ -15,7 +15,7 @@ about the loop. Is there one statement, for ANY imported graph, with a side cond
 
 **Proved** (`plain_forward`, `plain_backward`): for every rule list `rules` and every certificate `X` (the channel
 and label numbers of the pattern, the two branch pairs, and the channel classes) with `check rules X = true`, from
-any store holding tokens only on channels 0, 1, 2: every complete run of `rules` is matched by a complete run of the
+any store holding tokens only on the input channels (those below `X.na`: the arguments and the start token): every complete run of `rules` is matched by a complete run of the
 rewritten graph `rs2p rules X` ending in the same store outside `changed X`, and vice versa.
 
 The certificate is untrusted (a script finds it: `formal/tools-A/rewrite/gen_plain_gen.py`); `check` is a Bool
@@ -38,6 +38,8 @@ open Formal.Net.Kahn Formal.Net.GcdHw Formal.Rewrite.IncCmp Formal.Rewrite.ChanI
 
 /-- Everything the pass needs to know about one program; found by an untrusted script, checked by `check`. -/
 structure Cert where
+  /-- The input channels are `0 .. na - 1` (dfimport: the arguments, then the start token). -/
+  na : Nat
   M : Nat
   F : Nat
   B : Nat
@@ -395,10 +397,10 @@ def check : Bool :=
   -- the plain test reads two NotMax channels
   cls X X.e1 == 1 && cls X X.k == 1 &&
   -- the arguments carry no constraint
-  cls X 0 == 0 && cls X 1 == 0 && cls X 2 == 0 &&
+  (List.range X.na).all (fun ch => cls X ch == 0) &&
   -- internal channels start empty
   [X.ne, X.ne', X.r, X.r0, X.k, X.nb, X.nx, X.s, X.y, X.e0, X.e1, X.gd, X.gx, X.gc, X.gcb,
-    X.s0, X.c, X.tcb].all (fun ch => notIn ch [0, 1, 2])
+    X.s0, X.c, X.tcb].all (fun ch => decide (X.na ≤ ch))
 
 /-! ## The theorem -/
 
@@ -421,38 +423,31 @@ structure Parts : Prop where
   tf : cls X X.tf = 0
   e1 : cls X X.e1 = 1
   k : cls X X.k = 1
-  a0 : cls X 0 = 0
-  a1 : cls X 1 = 0
-  a2 : cls X 2 = 0
-  emp : ∀ ch ∈ internal X, ch ≠ 0 ∧ ch ≠ 1 ∧ ch ≠ 2
+  args : ∀ ch, ch < X.na → cls X ch = 0
+  emp : ∀ ch ∈ internal X, X.na ≤ ch
 
 theorem parts (h : check rules X = true) : Parts rules X := by
   simp only [check, Bool.and_eq_true, Bool.or_eq_true, beq_iff_eq, and_assoc] at h
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15⟩ := h
-  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, ?_⟩
-  intro ch hch
-  have := of_notIn (List.all_eq_true.mp h15 ch hch)
-  simp only [List.mem_cons, List.not_mem_nil, or_false, not_or] at this
-  exact this
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13⟩ := h
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, fun ch hch => ?_, fun ch hch => ?_⟩
+  · have := List.all_eq_true.mp h12 ch (List.mem_range.mpr hch)
+    simpa using this
+  · have := List.all_eq_true.mp h13 ch hch
+    simpa using this
 
 variable {rules X}
 
-theorem emp0 (P : Parts rules X) {σ0 : Store Nat Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = []) :
-    ∀ ch ∈ internal X, σ0 ch = [] := fun ch hc =>
-  let ⟨a, b, c⟩ := P.emp ch hc; h0 ch a b c
+theorem emp0 (P : Parts rules X) {σ0 : Store Nat Nat} (h0 : ∀ ch, X.na ≤ ch → σ0 ch = []) :
+    ∀ ch ∈ internal X, σ0 ch = [] := fun ch hc => h0 ch (P.emp ch hc)
 
-theorem inv_rs2 (P : Parts rules X) {σ0 : Store Nat Nat} (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = []) :
+theorem inv_rs2 (P : Parts rules X) {σ0 : Store Nat Nat} (h0 : ∀ ch, X.na ≤ ch → σ0 ch = []) :
     ∀ m s, Run (step (graph (rs2 rules X))) σ0 m s → SInvS (Q X) s := by
   intro m s hr
   have hS : SInv (Q X) σ0 := by
     intro ch v hv
-    by_cases a : ch = 0
-    · subst a; exact Q_zero P.a0 v
-    by_cases b : ch = 1
-    · subst b; exact Q_zero P.a1 v
-    by_cases c : ch = 2
-    · subst c; exact Q_zero P.a2 v
-    rw [h0 ch a b c] at hv; cases hv
+    by_cases a : ch < X.na
+    · exact Q_zero (P.args ch a) v
+    rw [h0 ch (by omega)] at hv; cases hv
   have hsafe : ∀ l r, (rs2 rules X)[l]? = some r → (∀ p ∈ [pG X, pT X], l ≠ p.lB) → RuleSafe (Q X) r := by
     intro l r hr hl
     have := of_allL P.safe l r hr
@@ -505,7 +500,7 @@ theorem hsame2 : ∀ l, l ≠ X.C → (rs2p rules X)[l]? = (rs2 rules X)[l]? := 
 
 /-- **The pass, forward.** Every complete run of `rules` is matched by a complete run of `rs2p rules X`. -/
 theorem plain_forward (h : check rules X = true) {σ0 t : Store Nat Nat} {n : Nat}
-    (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+    (h0 : ∀ ch, X.na ≤ ch → σ0 ch = [])
     (hr : Run (step (graph rules)) σ0 n t) (ht : Terminal (step (graph rules)) t) :
     ∃ t' m, Run (step (graph (rs2p rules X))) σ0 m t' ∧ Terminal (step (graph (rs2p rules X))) t' ∧
       ∀ ch, ch ∉ changed X → t' ch = t ch := by
@@ -528,7 +523,7 @@ theorem plain_forward (h : check rules X = true) {σ0 t : Store Nat Nat} {n : Na
 
 /-- **The pass, backward.** Every complete run of `rs2p rules X` is matched by a complete run of `rules`. -/
 theorem plain_backward (h : check rules X = true) {σ0 t' : Store Nat Nat} {n : Nat}
-    (h0 : ∀ ch, ch ≠ 0 → ch ≠ 1 → ch ≠ 2 → σ0 ch = [])
+    (h0 : ∀ ch, X.na ≤ ch → σ0 ch = [])
     (hr : Run (step (graph (rs2p rules X))) σ0 n t') (ht : Terminal (step (graph (rs2p rules X))) t') :
     ∃ t m, Run (step (graph rules)) σ0 m t ∧ Terminal (step (graph rules)) t ∧
       ∀ ch, ch ∉ changed X → t ch = t' ch := by
