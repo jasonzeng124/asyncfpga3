@@ -1094,6 +1094,17 @@ def _finish(net):
     net.dang = dang
     net.gates = sorted(net.gate_cell)
     net.tokgates = sorted(g for g, c in net.gate_cell.items() if isinstance(c, (Stage, Fork, Join, Steer, Mux, Split)))
+    # the source cone: cells all of whose inputs come, transitively, only from free-running (non-environment) bd_src.
+    # Tokens left there at the end of a call are the next call's constants, made early (benign residue).
+    free = {c for c in net.cells if isinstance(c, Src) and not c.env}
+    grew = True
+    while grew:
+        grew = False
+        for c in net.cells:
+            if c not in free and c.ins and all(ch.prod in free for ch in c.ins):
+                free.add(c)
+                grew = True
+    net.free_cells = free
     net.vhold = sorted({g for g, c in net.gate_cell.items() if isinstance(c, (Stage, Join))})
 
 
@@ -1110,6 +1121,8 @@ class Search:
         self.residue = 0
         self.overflow = 0
         self.residue_example = None
+        self.residue_data = 0          # residue states with a token left OUTSIDE the source cone
+        self.residue_data_example = None
         self.zchecked = 0
         self.ztraps = 0
         self.samples = {}      # mode text -> (S, V), first branch state seen in that routing mode
@@ -1224,6 +1237,12 @@ class Search:
                         self.residue += 1
                         if self.residue_example is None:
                             self.residue_example = [net.varname[g] for g in net.tokgates if S[g] != net.init[g]][:6]
+                        bad = [net.varname[g] for g in net.tokgates
+                               if S[g] != net.init[g] and net.varcell[g] not in net.free_cells]
+                        if bad:
+                            self.residue_data += 1
+                            if self.residue_data_example is None:
+                                self.residue_data_example = bad[:8]
                 else:
                     deadlocks.append((S, V, k))
                     if len(deadlocks) >= 1:
@@ -1469,6 +1488,8 @@ def main():
     out["hazard_examples"] = [f"{k[0]} disables {k[1]}" for k in list(srch.hazards)[:3]]
     out["residue"] = srch.residue
     out["residue_example"] = srch.residue_example
+    out["residue_data"] = srch.residue_data
+    out["residue_data_example"] = srch.residue_data_example
     zs = []
     for k, (mt, (S, V, at)) in enumerate(srch.samples.items()):
         sts, edges, x, undet = stage_graph(net, S, V)
