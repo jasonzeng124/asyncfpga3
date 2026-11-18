@@ -149,4 +149,4 @@ Typical conditions: xorshift 'ucmpi0\.uz_n3' 'ucmpi1\.uz_n41'; collatz 'ucmpi0\.
 **`chainscale.py OUT --kernel K --pairs .. --bands "b,b,b;b,b,b" [--only REGEX]`** (2026-11-18): per matched-delay chain, the
 smallest factor s (1/16 grid) to which that chain's routed path (every arc along g[0]..g[n-1], pips included) can be scaled,
 alone, with every band triple still returning the right answers (uniform bands, no scatter). A CONSEQUENCE measure (as
-sideslack): runts the model absorbs count as fine. Check: item 35 route 21 (RC decode), ucmpi0.udly s_min 0.38, ucmpi1.udly 0.44.
+sideslack): runts the model absorbs count as fine. `--joint EXCLUDE_REGEX` scales every other chain together. Check: item 35 route 21 (RC decode), ucmpi0.udly s_min 0.38, ucmpi1.udly 0.44.

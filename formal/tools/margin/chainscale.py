@@ -15,6 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 ap = argparse.ArgumentParser(); ap.add_argument("out"); ap.add_argument("--kernel", required=True)
 ap.add_argument("--pairs", nargs="+", required=True); ap.add_argument("--bands", default="0.20,0.31,1.0;0.20,0.31,0.20")
 ap.add_argument("--jobs", type=int, default=3); ap.add_argument("--only", default=None)
+ap.add_argument("--joint", default=None, help="regex of chains to EXCLUDE; scale all other selected chains together")
 ap.add_argument("--maxev", default="300000000"); ap.add_argument("--tmax", default="1500000000")
 a = ap.parse_args()
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE); import kernels
@@ -86,6 +87,21 @@ def one(item):
         if ok_at(arcs, mid / 16): hi = mid
         else: lo = mid
     return pre, len(stages), hi / 16, "%.0f ps" % max(tot.values())
+if a.joint is not None:
+    arcs = []
+    for pre, st in sorted(chains.items()):
+        if a.joint and re.search(a.joint, pre): continue
+        pa = path_arcs(st)
+        if pa: arcs += pa
+    res = [s for s in (1.0, 0.0) if ok_at(arcs, s)]
+    if 1.0 not in res: sys.exit("joint: fails unscaled")
+    if 0.0 in res: print("joint (%d arcs, excluding %s): s_min 0.00 (passes at 0)" % (len(arcs), a.joint)); sys.exit(0)
+    lo, hi = 0, 16
+    while hi - lo > 1:
+        m = (lo + hi) // 2
+        if ok_at(arcs, m / 16): hi = m
+        else: lo = m
+    print("joint (%d arcs, excluding %s): s_min %.4f; fails at s = 0 (negative control)" % (len(arcs), a.joint, hi / 16)); sys.exit(0)
 print("# chainscale: bands %s; per chain: stages, smallest scale s still right at every band triple, chain path delay (max over bands)" % a.bands)
 with ThreadPoolExecutor(a.jobs) as ex:
     rows = list(ex.map(one, sorted(chains.items())))
