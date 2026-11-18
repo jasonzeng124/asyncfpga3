@@ -4,7 +4,9 @@
 # (research/data/suite/dynsrc/K/). Expected values never come from here: oracle_mem.sh computes them from the C.
 # Every written array is filled with values the kernel does not write, so a store that did not happen is visible on
 # read-back; every vector stays inside the C's defined behaviour (no signed overflow, no access past an array).
-# K_rtl.hex: the edges that are too long for the decoded-netlist gate (RTL only, research/tools/suite/rtl_bench.sh).
+# K_rtl.hex (RTL only, research/tools/suite/rtl_bench.sh): for a kernel with large arrays, every call, of which
+# K.hex keeps the few the decoded-netlist gate can afford (the `split` lines at the end); for while_loop_3, the edges
+# whose trip counts (46340) no gate can afford.
 set -euo pipefail
 cd "$(dirname "$0")/../../.."
 V=research/data/suite/vec; M="python3 research/tools/suite/memvec.py"
@@ -129,3 +131,20 @@ $M spmv --seed 145 -o $V/spmv.hex \
 # narrowing is implementation-defined, gcc: modulo 2^8 -- the bench's i8 port does the same).  In place: one run.
 $M test_stdint --seed 147 -o $V/test_stdint.hex \
   --call "5;a=rand:-128,127" --call="-128;a=list:-128,127,0,1,-1,2" --call "127;a=seq:-50,1" --call "0;a=const:-128"
+# ---- the gate's files: a kernel whose arrays hold thousands of words costs the decoded-netlist gate about 14 min of
+# wall per 1000 host accesses (each call fills every array and reads every array back: research/data/suite/dyn/
+# README.md), so its K.hex keeps only the calls listed here; every call stays in K_rtl.hex (rtl_bench.sh).
+S="python3 research/tools/suite/vecsub.py"
+split() { k=$1; shift; mv $V/$k.hex $V/${k}_rtl.hex; $S $V/${k}_rtl.hex $V/$k.hex "$@"; }
+split if_convert 0 3 4
+split loop_path 0
+split single_loop 0
+split nested_loop 0
+split matrix 0
+split stencil_2d 3
+split test_flatten_array 0
+split vector_rescale 0 2
+split image_resize 0 1
+split video_filter 0
+split share_test_1 0
+split iir 0

@@ -246,8 +246,11 @@ single_loop and a histogram with written arrays checked against the C).  Not sma
 - **Stores** (bdc refuses them: `EmitError: mem_controller ... has a store accessor`) -- see above.  So no kernel that
   writes an array can be built yet, and the read-back / final-contents check is verified only on read-only arrays
   (where the final contents must equal the initial ones).
-- **A memory with two accessors** (bdc_memport_arb): `--host-mem` refuses it (a third slot on a two-way arbiter).
-- **A kernel without out0** (void) and **an out0 wider than 32 bits** are refused by gen_bench.py; a narrower out0 is
+- ~~A memory with two accessors (bdc_memport_arb): `--host-mem` refuses it~~ -- since 2026-11-18 (dyntests) its host
+  slot stands outside bd_arbiter (`bdc_memport_arb_host_*`, bdc/mem.py; research/data/suite/dyn/README.md section 3).
+- **A kernel without out0** (void): since 2026-11-18 (dyntests) a call completes on `end` and every `<m>_end` and
+  the arrays are the result (gen_bench.py `void_completion_lines`; research/data/suite/dyn/README.md section 1).
+- **An out0 wider than 32 bits** is refused by gen_bench.py; a narrower out0 is
   zero-extended (Dynamatic's test_int16, int16_t: its oracle must mask to 16 bits, as oracle_mem.sh does;
   the suite's two-word `research/tools/suite/oracle.sh` -- uncommitted in /tmp/bot/sa/suitek/repo when read at
   18:45, line 75 `printf("%08x", (unsigned)K(...))` -- sign-extends an int16_t and would disagree with the bench on

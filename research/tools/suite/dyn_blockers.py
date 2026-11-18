@@ -17,8 +17,9 @@ applies, each one written next to the emit.py / mem.py check it mirrors:
                _resolve_mem_accessors: its completion would feed both the next accessor's token and its block's
                completion join -- a fork not built).  Until 2026-11-18 (research/data/suite/stores.md) every
                controller with a store had this tag: memEnd had no remainingStores rule at all
-  mc:load1st   a mem_controller with two accessors, the first a load (emit.py _resolve_mem_accessors: the token
-               chain takes the first accessor's z, which only a store leaves free)
+  (mc:load1st  a mem_controller with two accessors, the first a load: no longer a blocker since 2026-11-18
+               (dyntests; research/data/suite/dyn/README.md "load first"): the load's z is forked into the token,
+               every load on the arbitrated port captures its word.  The shape column still shows LS / LL.)
   mc:>2        a mem_controller with more than two accessors (emit.py _resolve_mem_accessors / mem.py emit_port:
                bd_arbiter takes two requesters; N needs a tree)
 
@@ -94,8 +95,6 @@ def analyse(mlir):
                 out.add("mc:store")
             if len(ordered) > 2:
                 out.add("mc:>2")
-            elif len(ordered) == 2 and ordered[0] == "load":
-                out.add("mc:load1st")
     return out, shapes, hist
 
 

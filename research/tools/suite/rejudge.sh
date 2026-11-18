@@ -21,7 +21,7 @@ case $K in
 esac
 fin() { echo "$K $S $*" | tee "$O/result.txt"; exit 0; }
 if head -1 "$R/$V" 2>/dev/null | grep -q '^// benchvec'; then   # a v2 file (arrays): as suite_one.sh
-  ( cd "$R" && ORACLE_MEMOUT="$O/memexp.txt" research/tools/suite/oracle_mem.sh "$K" "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" \
+  ( cd "$R" && ORACLE_RUNS=${GATE_NRUNS:-2} ORACLE_MEMOUT="$O/memexp.txt" research/tools/suite/oracle_mem.sh "$K" "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" \
     || fin "status=NO-ORACLE"
   export GATE_MEMEXP="$O/memexp.txt"
 else

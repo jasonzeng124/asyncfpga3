@@ -48,7 +48,7 @@ python3 "$R/bdc/auto.py" "$FX" "$CE/auto.mlir" > "$CE/log" 2>&1 && BDC_AUTO=1 py
   -o "$CE/kernel.v" >> "$CE/log" 2>&1 || fin "status=DOES-NOT-COMPILE (bdc: $(grep -E 'Error' "$CE/log" | tail -1 | cut -c1-140))"
 [ -f "$R/$V" ] || fin "status=NO-VECTORS ($V)"
 if [ "$MEMV" = 1 ]; then
-  ( cd "$R" && ORACLE_MEMOUT="$O/memexp.txt" research/tools/suite/oracle_mem.sh "$K" "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" \
+  ( cd "$R" && ORACLE_RUNS=${GATE_NRUNS:-2} ORACLE_MEMOUT="$O/memexp.txt" research/tools/suite/oracle_mem.sh "$K" "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" \
     || fin "status=NO-ORACLE ($(head -1 "$O/oracle.err"))"
   export GATE_MEMEXP="$O/memexp.txt"   # bench_gate.sh: every array read back after each call must equal the C's
 else

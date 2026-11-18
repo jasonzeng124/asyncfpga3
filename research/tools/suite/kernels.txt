@@ -45,3 +45,33 @@ if_loop_2
 # slow in the decoded-netlist gate (1000-element arrays filled through the host port before every call)
 sumi3_mem
 fir
+# Dynamatic's tests with stores (research/data/suite/stores.md; void ones complete on their memEnds, the arrays read
+# back are the answer) and with a load first on one controller (research/data/suite/dyn/README.md, "load first"):
+# C in research/data/suite/dynsrc/<name>/, vectors research/data/suite/vec/<name>.hex (research/tools/suite/dyn_vecs.sh).
+# In place (read then written): judge with ONE run per call (GATE_NRUNS=1, ORACLE_RUNS=1): test_memory_1,
+# test_memory_2, mul_example, share_test_2, test_stdint, image_resize, vector_rescale, video_filter.
+simple_example_1
+while_loop_3
+if_convert
+test_memory_1
+test_memory_2
+test_bool_array
+binary_search
+mul_example
+share_test_2
+test_stdint
+spmv
+sobel
+# slow in the decoded-netlist gate (each call fills and reads back every array, ~14 min of wall per 1000 words; their
+# vector files keep 1-3 calls, the rest are in <name>_rtl.hex). Not listed: matrix (27000 multiply-adds and 5400 host
+# words per call, hours per call in the gate: research/data/suite/dyn/README.md)
+test_flatten_array
+image_resize
+vector_rescale
+stencil_2d
+iir
+share_test_1
+single_loop
+loop_path
+nested_loop
+video_filter

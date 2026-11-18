@@ -240,6 +240,10 @@ two runs per call agree): out0 d86f2f64 302b3fae 02345ec0 00000004 00000000. The
 
 ## 6. Open problems
 
+- **LS is lowered since 2026-11-18 (dyntests, research/data/suite/dyn/README.md section 3)**: the load's z forked into
+  the token (within one block), the hazard below settled by a capture latch in every load on an arbitrated port
+  (tb_capture.v: the plain station returns the other station's word, the capture does not), and the bench's host
+  slot outside the arbiter. SL is still refused. The original note:
 - **Load-store on one array (LS / SL) cannot run.** LS needs `mc:load1st` (a fork on the load's z: its consumer and
   the store's token). SL needs the same fork on the store's z (the load's token and the completion join). Both put a
   2-way arbitrated port under the array, and `--host-mem` refuses a third slot on it, so the bench could not fill or
@@ -251,4 +255,5 @@ two runs per call agree): out0 d86f2f64 302b3fae 02345ec0 00000004 00000000. The
 - **A histogram** (`h[x[i]]++`, kernels/histo was tried): Dynamatic's frontend puts an LSQ on h (it cannot prove the
   iterations independent), so it needs force-mc + LS + the arbitrated host slot.
 - **More than two accessors** (`mc:>2`) and an N-way chain with stores in it: every store but the last needs the fork.
-- Void kernels on the bench (gen_bench.py refuses them; the run would complete on every store controller's memEnd).
+- ~~Void kernels on the bench~~: since 2026-11-18 (dyntests) a void call completes on `end` and every memEnd
+  (research/data/suite/dyn/README.md section 1).
