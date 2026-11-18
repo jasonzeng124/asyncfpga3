@@ -37,7 +37,8 @@ the kernel has them (B2 / B5).
 |---|---|---|
 | 39 collatz (c56def07) | uaddi1 steps +1 (12), umux2 (8), uselect0 (7), umux1 (5), umux0 (4) | ucmpi0 n == 1 (13): 0.5; ucmpi2 n == 2 (11): 0.5; uaddi0 3n+1 (6): 0.5 |
 | 41 xorshift (3497ca67) | uaddi0 i+1 (8), uxori2 (6), uaddidec0 (6), umux0-3 (4-5) | ucmpi1 loop (11): 0.75; ucmpi0 entry (10): 0.25; uxori1 (6): 0.5 |
-| 38 ipow (81bbe268), partial | uselect0 (23), umuli1 b*b (18) | ucmpi0 entry (11): 0.75 (rest running) |
+| 38 ipow (81bbe268) | uselect0 (23), umuli1 b*b (18), umux0-3 (5), ushrsi0 (1) | ucmpi0 entry (11): 0.75; ucmpi2 loop (10): 0.25 |
+| 40 collatz64 (9585dde4) | uaddi1 steps +1 (15), umux0 (10), uselect0 (8), umux1 (6), umux2 (5) | ucmpi0 n == 1 (17): 0.5; ucmpi2 n == 2 (13): 0.25; uaddi0 3n+1 (12): 0.5 |
 Reading: the operator lines whose results wait at a C-element join for the loop or exit compare anyway carry most of the
 excess; the compares (and the 3n+1 / xor lines that feed the next compare) carry little. Same direction as C54 (hand x0.70
 builds: every non-compare chain at 0.5x passes on 31 routes).
