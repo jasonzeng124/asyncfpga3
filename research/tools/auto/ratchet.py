@@ -30,7 +30,29 @@ sys.argv = [a for a in sys.argv if a != "--nopin"]
 HEADROOM = 0                               # --headroom N: a line raised gets N more elements than the rule asks
 if "--headroom" in sys.argv:
     i = sys.argv.index("--headroom"); HEADROOM = int(sys.argv[i + 1]); del sys.argv[i:i + 2]
+# --near PS LINES (with --raise-only; auto_size.sh AUTO_NEAR_PS): a line the rule keeps at least at its size with fewer
+# than PS ps left at any corner (LINES: corner_audit's lines.tsv per corner, comma-separated) gets HEADROOM more elements
+# too, not only the lines that are short.  Why: in the finish phase each re-route moves the small margins by a few
+# hundred ps, so raising only the negative lines leaves the next route its new negatives among the lines that were
+# just positive (farm suite6, flow v6: 16 of 32 loops ended NOT CLEAN after three raise-only routes, typically 2-10
+# rows of tens to hundreds of ps; collatz s1's last route: H -15 ps, with four lines at 106-326 ps left).
+NEAR, NEARLINES = None, []
+if "--near" in sys.argv:
+    i = sys.argv.index("--near"); NEAR = int(sys.argv[i + 1])
+    NEARLINES = [q for q in sys.argv[i + 2].split(",") if q]; del sys.argv[i:i + 3]
 sys.argv = [a for a in sys.argv if a != "--raise-only"]
+near = set()
+if NEAR is not None and RAISE_ONLY:
+    for q in NEARLINES:
+        if not os.path.exists(q):
+            continue
+        for ln in open(q):
+            f_ = ln.rstrip("\n").split("\t")
+            if len(f_) < 8 or f_[0] == "macro":
+                continue
+            m = re.search(r"\((-?\d+) ps left\)", f_[7])
+            if m and int(f_[2]) >= int(f_[1]) and int(m.group(1)) < NEAR:
+                near.add(f_[0])
 pf = sys.argv[5] if len(sys.argv) > 5 else os.path.join(os.path.dirname(os.path.abspath(sys.argv[4])), "pinned.txt")
 pinned = set(l.strip() for l in open(pf)) if os.path.exists(pf) else set()
 raised, lowered = [], []
@@ -42,7 +64,7 @@ with open(sys.argv[4], "w") as f:
         if p > cur[mac] and not NOPIN:
             pinned.add(mac)
         v = max(cur[mac], p) if (mac in pinned or RAISE_ONLY) else p
-        if p > cur[mac]:
+        if p > cur[mac] or (mac in near and RAISE_ONLY):
             v += HEADROOM
         if v > cur[mac]:
             raised.append("%s %d->%d" % (mac, cur[mac], v))
@@ -52,7 +74,8 @@ with open(sys.argv[4], "w") as f:
 with open(pf, "w") as f:
     f.write("".join(m + "\n" for m in sorted(pinned)))
 unf = [r for r in neg if len(r) > 3 and r[3] == "unfixable"]
-print("raised %d unfixable %d negative %d lowered %d pinned %d" % (len(raised), len(unf), len(neg), len(lowered), len(pinned)))
+print("raised %d unfixable %d negative %d lowered %d pinned %d" % (len(raised), len(unf), len(neg), len(lowered), len(pinned))
+      + ("" if NEAR is None else " near %d (< %d ps left)" % (len(near & set(order)), NEAR)))
 for r in raised:
     print("  raised " + r)
 for r in lowered:

@@ -6789,3 +6789,14 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   at eaef0dec7); it is filed when suite9's tasks reach their limit (~21:05 UTC).
 - 8th subagent graphsearch (PROGRAM General first, item 1 and idea 6b): the event-graph storage search over every site
   it can model, inside the flow if it pays; report by 22:40.
+### progress 17:54 (the loop's finish phase rarely converges; AUTO_NEAR_PS opt-in; farm conv1)
+- Farm loops, flow v3-v6 (suite4 / 6 / 3a / 3b / 8): phase 1 (MAXIT 4) almost never reaches 0 negatives; the raise-only
+  finish phase usually ends with 2-10 rows of tens to hundreds of ps (suite6: 16 of 32 loops NOT CLEAN after 7 routes;
+  collatz s1's last route: H -15 ps, with four lines at 106-326 ps left). Raising only the short lines leaves the next
+  route its new misses among lines that were just positive.
+- ratchet.py --near PS (auto_size.sh AUTO_NEAR_PS, opt-in): in the finish phase every line the rule keeps at least at
+  its size with < PS ps left at a corner gets the headroom element too. Without it ratchet.py's output (sizes, pins,
+  stdout) is byte-identical to the committed one in all three modes (checked on the resume test's it 3 rule). The rule's
+  per-corner lines.tsv is now saved per iteration (lines_I_C.txt) so a resumed finish phase can use it.
+- Farm conv1 (8 tasks, 2 cores, the 16 cores suite9 leaves free): eight of suite6's NOT CLEAN loops resumed after it 3
+  with AUTO_NEAR_PS=300; suite6's own runs are the control (it 4 rebuilt first, md5 checked). Prediction in the request.

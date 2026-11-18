@@ -35,6 +35,9 @@
 # rebuilt from its sizes with the same seed, which gives the same route (checked: the sdf md5 must match it_I.txt).
 # Unset: the loop as before (it also saves rule_I.vh and neg_I.txt, the rule's proposal and negatives, for a resume).
 #
+# AUTO_NEAR_PS=PS (opt-in; unset = as before): in the finish phase (raise-only) every line the rule keeps at its size with
+# fewer than PS ps left at a corner gets the headroom element too, not only the lines that are short (ratchet.py --near).
+#
 # Writes $RUNS/auto/NAME/{sizes_I.vh, it_I.txt, ca_I.txt, result.txt}.  result.txt: "CLEAN it=I route=NAME_I P=.."
 # or "NOT CLEAN after MAXIT".  The shipped route's files are $RUNS/hw/NAME_I, $RUNS/r/NAME_I (lane2.sh).
 set -uo pipefail
@@ -81,6 +84,12 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   python3 "$T/merge_rules.py" "$CA/rule" "${dirs[@]}" && grep -h '^proposal' "$O/ca_${i}_"*.txt > "$O/ca_$i.txt"
   [ -f "$CA/rule/sizes.vh" ] && [ -f "$CA/rule/negative_sized.tsv" ] || return 1
   cp "$CA/rule/sizes.vh" "$O/rule_$i.vh"; cp "$CA/rule/negative_sized.tsv" "$O/neg_$i.txt"   # for AUTO_RESUME
+  for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do cp "$CA/rule_$c/lines.tsv" "$O/lines_${i}_$c.txt" 2>/dev/null; done
+}
+near_args() {  # near_args I: AUTO_NEAR_PS (opt-in): the finish phase also pads every line with < AUTO_NEAR_PS ps left
+  [ -n "${AUTO_NEAR_PS:-}" ] || return 0
+  local c l=""; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do l="$l${l:+,}$O/lines_${1}_$c.txt"; done
+  echo "--near $AUTO_NEAR_PS $l"
 }
 build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); final() runs the full stack on the kept one
   local i=$1 Z=$2
@@ -178,7 +187,7 @@ if [ -n "$RES" ]; then
       else
         ph=2; IMAX=$((MAXIT + FIN))
         python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$O/rule_$i.vh" "$O/neg_$i.txt" \
-           "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" > /dev/null
+           "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") > /dev/null
         echo "phase 2 (raise-only) from it $((i + 1))" >> "$O/log.txt"
       fi
     elif [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then STOP=1; fi
@@ -191,7 +200,7 @@ while [ -z "$STOP" ]; do
   rule "$i" "$O/sizes_$i.vh" || { echo "RULE FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
   # phase 2 raises with one element of headroom: each re-route moves the small margins by a few hundred ps (local v4
   # xorshift seed 8: 5, 3, 4 constraints short at -5..-278 ps on three raise-only routes), about one element
-  ro=""; [ "$ph" = 2 ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1}"
+  ro=""; [ "$ph" = 2 ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1} $(near_args "$i")"
   # it 1 is a recalibration: the start's proposal under-delivers on the compact route it produces (xorshift seed 2,
   # flow v5: 50 constraints short at it 1), so its raises are not oscillation; pinning them kept UCMPI1 at 15 for good
   # (the loop ended at 129 links / 23.0 ns where v2 had 103 / 16.7). Pinning starts at it 2.
@@ -209,7 +218,7 @@ while [ -z "$STOP" ]; do
       ph=2; IMAX=$((MAXIT + FIN))
       # the next sizes without the lowering phase 1's last ratchet did
       python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
-         "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" > /dev/null
+         "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") > /dev/null
       echo "phase 2 (raise-only) from it $((i + 1))" >> "$O/log.txt"
     fi
   elif [ -z "$brk" ] && [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then brk=1; fi
