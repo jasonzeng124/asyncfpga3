@@ -770,7 +770,7 @@ can be checked); `--pattern CELL=BITS` replays fixed trip counts (matrix below).
 **Environment.** One 4-phase source per non-memref argument; invocation k+1 is offered only after every result of
 invocation k arrived; one 4-phase sink per result. Verdicts are for 1 invocation, and for 2 back-to-back where the
 1-invocation search was under 100000 states. Finished with tokens left anywhere (stages / forks / joins / steers /
-muxes not back at reset) is counted as `residue` (NOT none: see the correction in MODEL.md, 2026-11-18 21:45 UTC).
+muxes not back at reset) is counted as `residue` (NOT none: see the correction in MODEL.md, 2026-11-18 21:35 UTC).
 
 **Search.** BFS over states hashed with blake2b-128 (collision probability negligible but not zero), partial-order
 reduced: a transition that is not an arbiter's and does not drive an arbiter input (r1, r2, A0) is persistent and
