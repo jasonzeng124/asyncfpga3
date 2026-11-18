@@ -6468,3 +6468,14 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   route under the new rule (its sizes are in the farm results; rejudge after a re-size, next).
 - Lesson for the draw counts: 4 draws per route found this on 1 of 32 routes; the hand items were judged by 32 draws on
   one route. The automatic routes need the same depth before any of them goes to BOARD-QUEUE.
+### progress 02:27 (formal B6 / B7: suite1's "NOT EQUIVALENT" was the false alarm; a NOT CLEAN route fails a slow-carry draw; finish phase)
+- B6: suite1 xorshift seeds 3 / 7's NOT EQUIVALENT is the packer GND-LUT false positive (agrees with 601010f1b).
+- B7 (formal's simx, RC arcs): AUTO xorshift seed 3 (ea3c2aad, UCMPI0 6, the loop NOT CLEAN at MAXIT with the rule's raise
+  6 -> 7 unbuilt) passes our 4 default draws but fails slow-carry draw 5104 (chains 0.259, rest 0.287, CARRY 0.997):
+  the zero-trip call returns 0x92d78cb6; at the data steer ucond_br3 the entry compare's condition glitches 149 ps after
+  the request (a 21 ps pulse corrupts ulink_n_falseResult_1's controller). Same race class as our seed 8 failure and as
+  item 35's (C36 / C41 / C48). Formal's seed 1 route (UCMPI0 7) keeps 602 / 689 ps; final UCMPI0 per suite1 seed: s1 7,
+  s2 8, s3 6, s6 9, s7 7, s8 5.
+- So the loop must not ship a route its rule flags: 3e93738b1 adds a raise-only finish phase (up to AUTO_FINISH = 3 more
+  routes, ratchet.py --raise-only) when nothing was clean by MAXIT. With the two-corner rule (56c8dea81) this is flow
+  v3; suite3 and suite4 (both still waiting) will run it. Formal's shards have stopped until the reset (owner).
