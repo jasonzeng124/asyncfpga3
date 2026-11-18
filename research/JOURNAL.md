@@ -6634,3 +6634,20 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   Written to the top of research/data/fifteen/README.md (with v1's two failures and v2's faster, one-band numbers).
 - With the new nextpnr, the v5 seed-2 route rebuilds with the same SDF (47ac67f6) and is now EQUIVALENT, ffmux-clean
   (was FFMUX-FLAG); its 8 draws are running. Local v6 on seed 2 running (it 0 done).
+### progress 07:42 (ejoin: the automatic xorshift's loop-test margin is real; local v6 seed 2 19.72 ns)
+- ejoin (reviewed; 5acd49e6c .. 43a061197, research/data/sizerule/ejoin.md): on the hand route (x55a10 s21) all 8
+  negative rule-E rows at the loop steers are a missing credit, not a race: the walk fires ucmpi1's operand join on i
+  alone, but n's request (behind ULINK_N11__1's 3 elements) is the join's last input in 3678 / 3678 firings (+1148 ps);
+  worst-corner GLS gaps 1175-1478 ps (formal C48: 923). skew.py --e-join (BD_SKEW_E_JOIN=1, opt-in, unset identical)
+  credits it only where sound (when an acknowledge, not a request, started i's link): br6 -929 -> +119; br7-9 unchanged
+  (the request case happens too, the second corner shows it). Negative controls flagged; GLS +3 ns on the carry FAILS
+  14/19 (the harness sees this race).
+- On the AUTO routes it credits nothing: ULINK_N11__1 is 0 there, so there is no n-side delay. What holds UCMPI1 near
+  10-11 is a real thin margin: on the steerE build (UCMPI1 8) br8 keeps 404 ps at the worst corner (n trails i by
+  189 ps). E's pessimism there is 629 ps, not a missing credit. So the hand recipe's UCMPI1 = 5 rides on 3 elements of
+  n's link; the automatic structure puts that delay in the compare instead. The remaining xorshift gap is structural
+  (where the n ring's delay sits), not the rule.
+- ejoin's own v5 loop (seed 1): CLEAN at it 5, P 22.67 ns, 4/4 draws -- UCMPI1 pinned at 13 at it 1 (the pin v6
+  removes). Local v6, seed 2: NOT CLEAN by 2 after it 7, P 19.72 ns, EQUIVALENT (v5 on the same seed 23.01, v2 16.69);
+  draws running. The loop's tightness is the open problem now: each re-route moves the small margins by hundreds of ps,
+  so lowering and raising chase each other.
