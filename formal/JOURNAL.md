@@ -2983,3 +2983,10 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   my error grep then shows nothing. The `hH := fun a b => rfl` of the split instance blew memory (definitional
   unfolding of the 32-bit ops); replaced by simp. Every compile is now checked by exit code, and every claimed theorem
   by `#print axioms` from its olean.
+### progress 18:10 -- ring rewrite as a tool + per-kernel generated Lean: countloop, horner, quadrec, varshift, xorshift CHECKED
+* `ring_dec.py` (general matcher; 18 of 108 fixtures rewritten, the rest refused with reasons), `gen_ring.py` +
+  `ring_inst.lean.tmpl` (template reproduces CountloopRewrite.lean byte for byte with countloop's numbers).
+* All five: Hw and instance compile (exit 0), axioms propext / Classical.choice / Quot.sound, import of ring_dec output
+  ISOMORPHIC to rs3 (rules_iso.py, untrusted). countloop_rd.mlir is now ring_dec's output (md5 6ecca11f; the
+  hand version 0d43ba36 is superseded, also isomorphic). FOR-RESEARCH A19 table.
+* Not done: build / simulate / time any rewritten kernel; the renaming lemma (iso step in Lean).

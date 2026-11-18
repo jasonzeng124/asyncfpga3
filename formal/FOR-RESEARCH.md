@@ -55,15 +55,33 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   Token level: no gates, delays, sizes. What it does NOT cover yet: that a rewrite pass's MLIR output imports to the
   graph the theorem talks about (needs a tool plus a per-kernel structural check, in progress here); `sle` / `sgt` /
   negative steps (factorial, insertion_sort); the 45 tests of other shapes.
-- **countloop, as an MLIR file (added 17:45 UTC):** `formal/tools-A/rewrite/out/countloop_rd.mlir` (md5 0d43ba36, made
+- **countloop, as an MLIR file (added 17:45 UTC):** `formal/tools-A/rewrite/out/countloop_rd.mlir` (first version md5 0d43ba36, superseded by the tool output below; made
   from your fixture edcfff62 by hand: decrement on the ring entry, test moved before the increment, the corrected test
   as `cmpi slt` / two `cmpi eq` / two `xori`). bdc's fusion limit (4 ops) splits that 5-op test into two regions, so a
   fourth theorem was needed: `SplitComp.split_forward` / `split_backward` (a two-input region split in two, any graph).
   `CountloopRewrite.same3_forward` / `same3_backward` chain all three to `rs3`; dfimport's import of countloop_rd.mlir
   is the same graph as `rs3` up to channel numbering and rule order (`formal/tools-A/rewrite/rules_iso.py`: ISOMORPHIC,
   45 rules, 71 channels; the original fixture against it: NOT MATCHED, the negative control). That last step is a
-  script, not Lean (graph semantics under renaming is not proved). With it, md5 0d43ba36 is a file BDC_AUTO could
+  script, not Lean (graph semantics under renaming is not proved). With it, the file is one BDC_AUTO could
   accept the way it accepts A6's files. Not simulated or built here; timing unmeasured.
+- **Now a tool, and five of your automatic-path kernels (18:10 UTC):** `formal/tools-A/rewrite/ring_dec.py IN OUT`
+  does the ring rewrite on any MLIR where the exact shape matches (refusing, with the reason, everywhere else). It
+  rewrites 18 of the 108 fixtures. `gen_ring.py KERNEL NAME` writes a per-kernel Lean proof
+  (`formal/lean/Formal/Rewrite/Ring/<Name>.lean`, `same3_forward` / `same3_backward`, every hypothesis by
+  `decide +kernel`) and checks that the import of ring_dec's output is that graph (rules_iso.py, untrusted). Results:
+
+  | kernel | rewritten MLIR (formal/tools-A/rewrite/out/) | md5 | Lean (compiled, axioms) | import vs rs3 |
+  |---|---|---|---|---|
+  | countloop | countloop_rd.mlir | 6ecca11f | OK, propext / Classical.choice / Quot.sound | ISOMORPHIC (45 rules) |
+  | horner | horner_rd.mlir | 856aee38 | OK, same | ISOMORPHIC (45 rules) |
+  | quadrec | quadrec_rd.mlir | ac3dbd02 | OK, same | ISOMORPHIC (68 rules) |
+  | varshift | varshift_rd.mlir | 445f1ea1 | OK, same | ISOMORPHIC (56 rules) |
+  | xorshift | xorshift_rd.mlir | 37c81058 | OK, same | ISOMORPHIC (39 rules) |
+
+  Each one: every input, every schedule, the same output token and the same termination as your fixture. None of these
+  rewritten files has been built, simulated or timed here. Whether the extra LUT costs more than the add it removes
+  from the test is yours to measure. brhash, nested, nest3, if_loop_3 and insertion_sort are refused: their ring shape
+  differs.
 - **What you would need to turn it on in BDC_AUTO:** a pass that matches the two shapes structurally (formal is
   writing `formal/tools-A/rewrite/inc_cmp.py` for the literal case) and an md5-free acceptance rule: "the pass's
   matcher checked the pattern hypotheses of IncCmpGraph / IncCmp2 / RingMap". Timing value is yours to measure: the
