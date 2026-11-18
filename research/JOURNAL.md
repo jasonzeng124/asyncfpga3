@@ -6508,3 +6508,17 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - Farm rejudge1 (12 tasks): the 11 suite1 / suite2 routes their older checker refused, rebuilt from the sizes their
   loops kept and judged with today's checker (4 draws each), and suite1 xorshift seed 8 with 8 draws (how often that
   route fails). suite1 31 / 32 done; its per-task table is research/data/suite/farm/ (sizes) and the journal above.
+### progress 04:03 (farm suite2 = flow v2, 26 of 48: every judged route passes; the automatic column beats the hand recipes on 3 of 4)
+| kernel (suite2, flow v2, 4 draws / route) | routes judged / built | draws | P median (range), ns | hand best | Dynamatic |
+|---|---|---|---|---|---|
+| xorshift | 8 / 8 | 32 / 32 | 18.63 (16.69-19.90) | 16.76 | 12.73 measured |
+| collatz | 5 / 6 | 20 / 20 | 18.86 (17.99-21.44) | 21.5 | 14.05 measured |
+| collatz64 | 3 / 3 | 12 / 12 | 23.20 (22.46-26.75) | 31.4 | 17.84 measured |
+| ipow | 7 / 8 | 28 / 28 | 21.98 (20.39-23.48) | 36.2 | 50.0 ESTIMATE |
+| gcd, isprime | 0 / 1 each | - | PNR-TIMEOUT at it 0 (2 cores) | 87.2 / - | 50.6 / 9.3 ESTIMATE |
+- Geometric mean of the ratio to Dynamatic over the 4: 1.03 (ipow's figure is an estimate). Every loop ended NOT CLEAN
+  (v2 had no finish phase) yet every draw passed; formal B7 shows a NOT CLEAN route can still fail a slow-carry draw,
+  which is why v3 / v4 finish clean. Headline written to research/data/fifteen/README.md (marked as v2, partial).
+- Local flow v4 on xorshift seed 8 (the v1 failure's seed): it 0 (167 links) -> proposals 76 / 79 at the two corners;
+  it 1: 40 constraints short (the start still under-delivers), 8 raised; it 2: 8; it 3: 5. Running.
+- suite_table.py reads a farm results dir one level deep (it had picked up the loop's own result.txt in TASK/auto/).
