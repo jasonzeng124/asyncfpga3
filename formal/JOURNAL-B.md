@@ -4845,3 +4845,4 @@ built is clean with the DSP at SLOW_MAX (B10).
   uselect0 (8), umux1 (6), umux2 (5): 0. Same pattern as items 39 / 41 / 38.
 - varshift 1 (ae9d045b) rebuilt identical; draws running.
 ### progress 19:03 -- FOR-RESEARCH B11: 7 NOT CLEAN suite routes pass 32 + 32, counters preloaded pass (countloop 1-2, brhash 1, varshift 1, horner 3); horner slow DSP clean
+### progress 19:07 -- isprime 4 (4efc0f0d, identical): isp17 32/32 + 32/32 slow-carry; divisor preloaded 46300 4/4 (B11 updated). Rule tally of every suite route's ca files in B11 (D rows on clean routes too; countloop 1's D steers measured >= 997 ps settle).

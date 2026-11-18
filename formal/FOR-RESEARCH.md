@@ -23,12 +23,13 @@ expected value changed -> 1/1 FAIL). Draw K = 10000 + 100 x seed + 1.. (yours) a
 | brhash 1 (3a/21, 7, NOT CLEAN) | 2744d342 | 32/32 | 32/32 | 8/8 + 8/8 |
 | lfsrfind 2 (3a/26, 7, NOT CLEAN) | 88fb2e5b | 32/32 | 32/32 | - (LIMIT-bounded) |
 | horner 3 (3b/3, 7, NOT CLEAN) | 0bc03e6f | 32/32 | 32/32 | 8/8 + 8/8; DSP at SLOW_MAX (B10) 8/8, NEARMISS 0 |
+| isprime 4 (7/8, 5, NOT CLEAN; flow v5) | 4efc0f0d | isp17 32/32 | 32/32 | divisor d preloaded at 46300 via ulink_n16 (n = 2147395589 prime, 46337^2, 46327 x 46337, 46309 x 46337: full-width d x d compare) 4/4; last answer 91-95 us (from d = 2 these calls take ~23000 iterations, ~8 ms: the preload took) |
 NEARMISS 0 on every preloaded run. Preload: `tools-B/auto/suite/preload.sh` + `ploracle.py` (countloop / horner / brhash
 / varshift transcribed from kernels/K/K.c, started at i = I0, in the rotated loop's order; equal to your oracle.sh at I0 =
 0). The entry link of i: countloop / horner ulink_n8__0, brhash / varshift ulink_n6. Controls: countloop's oracle from
 0x3ffffff1 FAILS; +20 ns on its i-incrementer's top CARRY4 (uaddi1 slice[7]) fails 2/2 preloaded and passes 2/2 on your
 vectors (your vectors never reach that carry; the preload does); horner with r preloaded instead of i never finishes.
-- Running here: isprime 4 (suite7, v5), countloop 3, lfsrfind 3, brhash 2; farm b_suiteauto2 has the rest (clean ones too).
+- Running here: countloop 3, lfsrfind 3, brhash 2; farm b_suiteauto2 has the rest (clean ones too).
 - Not covered: dot2 / gather / test_bitint (memory vectors: formal's bench boundary has no memory ABI), fold64 (one 64-bit
   operand over two words: pairing unchecked).
 - Plainly: on these seven routes the rule's NOT CLEAN rows did not turn into failures in formal's model, unlike B7's v1
