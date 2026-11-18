@@ -54,7 +54,11 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   # select's own channel request, rule E from a latch launch is bounded by that request; the row that held xorshift's
   # loop test UCMPI1 at 17-19 was a lap through the steer's own select and a sibling's acknowledge (17 -> 8; a build at
   # those sizes 16.62 ns vs 21.08, 4/4 draws).
+  # BD_SKEW_E_JOIN=1 (opt-in, default OFF; research/data/sizerule/ejoin.md): rule E credits a C-element on the request
+  # path with its other inputs' arrivals, case by case on what made the launch fire (BD_SKEW_E_JOIN_DEPTH causes back,
+  # default 1).  Passed through from the environment; unset, the rule is byte-identical.
   local c; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
+    BD_SKEW_E_JOIN=${BD_SKEW_E_JOIN:-} BD_SKEW_E_JOIN_DEPTH=${BD_SKEW_E_JOIN_DEPTH:-1} \
     BD_SKEW_STEER_SELF=${BD_SKEW_STEER_SELF:-1} CA_JOINAWARE=${CA_JOINAWARE:-1} BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 \
       python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
         --band "$c" --inst-rx '\.chain\.g\[\d+\]\.u$:0.20' --out "$CA/rule_$c" > "$O/ca_${i}_$c.txt" 2>&1 &

@@ -165,6 +165,21 @@ STEER_SELF = (os.environ.get("BD_SKEW_STEER_SELF") == "1"
               or "--steer-self" in _raw)
 if "--steer-self" in _raw:
     _raw.remove("--steer-self")
+# --e-join (or BD_SKEW_E_JOIN=1): a launch at a HANDSHAKE node X (a link
+# controller, a C-tree, a mux join -- not a latch output) is checked case by
+# case on what made X fire: for each handshake node L whose transition can be
+# the last one enabling X (a request into it, or the acknowledge releasing a
+# link controller), every positive C-element J on the request side is credited
+# with its other inputs' arrivals from L (minus the longest L -> X), and the
+# request is the EARLIEST over those cases.  See (6) below and ej_cases().
+# BD_SKEW_E_JOIN_DEPTH (default 1) is how many causes back the cases go
+# through requests (an acknowledge cause always ends a case).  Opt-in until
+# reviewed; unset, every output of this file is byte-identical.
+E_JOIN = os.environ.get("BD_SKEW_E_JOIN") == "1" or "--e-join" in _raw
+if "--e-join" in _raw:
+    _raw.remove("--e-join")
+E_JOIN_DEPTH = int(os.environ.get("BD_SKEW_E_JOIN_DEPTH", "1"))
+EJ_DEBUG = os.environ.get("BD_SKEW_E_JOIN_DEBUG", "")      # diagnosis only: print every case at a request pin
 if "--select-pads" in _raw:
     _i = _raw.index("--select-pads")
     PADS = pathlib.Path(_raw[_i + 1])
@@ -259,14 +274,21 @@ GUARD_LO = 0.772          # request may run this fraction of its predicted delay
 GUARD_HI = 1.155          # select may run this multiple of its predicted delay
 
 
-def walk(walked_edges, stops, binc, feed, launch, longest, term=None):
+def walk(walked_edges, stops, binc, feed, launch, longest, term=None,
+         floor=None, fhit=None):
     """Arrival tables from `launch`, ONE PER CROSSING COUNT.  Levels are
     kept apart deliberately.  Take the extremal over all of them and a
     longest path granted six crossings simply goes round the handshake
     loop and comes back -- measured, it reported 44 ns of arrival at a pin
     two cells away.  Inside one transaction each storage cell fires once,
     so the signal's real path is the one with the FEWEST crossings and the
-    deeper levels are laps."""
+    deeper levels are laps.
+
+    `floor` ((6) --e-join only; None everywhere else): {AND node: (t, src)},
+    a lower bound on that C-element's firing relative to the launch from an
+    input this walk does not reach.  On the earliest walk its seed becomes
+    max(the reached inputs, t); the predecessor stays the reached input, and
+    where the floor is the later, fhit[(level, node)] = src."""
     better = (lambda a, b: a > b) if longest else (lambda a, b: a < b)
     # Bellman-Ford's bound.  A shortest-path relaxation over positive
     # weights settles on its own, but a LONGEST-path one does not: on a
@@ -385,6 +407,9 @@ def walk(walked_edges, stops, binc, feed, launch, longest, term=None):
                 if best_v is not None:
                     seeds[o] = best_v[0]
                     seed_pred[o] = (lvl, best_v[1])
+                    if floor and o in floor and floor[o][0] > best_v[0]:
+                        seeds[o] = floor[o][0]
+                        fhit[(lvl + 1, o)] = floor[o][1]
                 continue
             for ip, arc in binc.get(o, ()):
                 if (o, ip) in feed or ip not in tab:
@@ -708,6 +733,239 @@ def main():
     CACHE_MAX = 64
     cache, rows, orphan = OrderedDict(), [], []
     floored = {}                # (5): (parent, cell) -> the binding launch's bound
+
+    # (6) --e-join.  The request walk from a launch X seeds a positive
+    # C-element J (BD_SKEW_AND_JOIN) with the inputs X's OWN transition
+    # reaches, and nothing else: J's other inputs -- an operand join's other
+    # operand, a steer join's steered token -- carry a token X never sees, so
+    # J is credited as firing on X's input alone.  What bounds them is what
+    # made X fire.  X fires on its LAST enabling transition, from some
+    # handshake node L (ej_causes): a request into it ('fwd': L rises; a
+    # link controller's req_in, any input of a C-tree or a mux join) or the
+    # acknowledge that releases a link controller ('ack': L falls; c_next).
+    # In the case "L was last", t_X <= t_L + l(L -> X), and L's SAME
+    # transition reaches an input ip of J no earlier than t_L + s(L -> ip),
+    # along a path that carries that transition as a request (ej_credit):
+    # it crosses only C-trees, mux joins and link controllers entered by
+    # req_in (an 'ack' L: its first crossing is a link controller entered by
+    # c_next, L's fall releasing it as it released X), never a latch (data),
+    # never X, never a steer (a token past a steer is another branch or the
+    # next iteration) and never the gate being checked.  So in that case
+    #
+    #     J >= s(L -> ip) + arc(ip -> J) - l(L -> X)      relative to X,
+    #
+    # every such floor at once (with BD_SKEW_E_JOIN_DEPTH > 1, also those of
+    # L's own last request cause, l summed along the chain), and the row is
+    # the WORST over the cases: a case with no floor is the walk as without
+    # the flag, so the flag moves a row only when EVERY way X can have fired
+    # bounds the request.  Where a floor sets the request, the race is from
+    # L: request through the credited input, select through X, both legs
+    # guarded from L (divergence point -l(L -> X)).  A case's margin is never
+    # taken below the row without the flag (that walk's bound holds in every
+    # case too), so the flag can only raise a row.
+    ej_stats = [0, 0, 0]        # (6): launches analysed, raised, rows bound
+    ej_rows = {}                # (6): (parent, cell) -> the binding case's note
+    if E_JOIN:
+        RE_LINK_CN = re.compile(r"\.ctl\.u\.u/O6$")       # bd_link_ctl: C(req_in, ~c_next)
+        RE_MUX_J = re.compile(r"\.uj[01]/O6$")             # bd_mux join: C(x/y_req, ctl_req . s)
+        ej_jcells = list(json.loads(jpath.read_text())["modules"].values())[0].get("cells", {})
+        ej_and = {o for o in stops if RE_CTREE_C.search(o)}
+        ej_steers = tuple(p + "." for k, p, _, _ in sites if k == "bd_steer")
+        ej_pins_c, ej_cause_c, ej_cred_c = {}, {}, {}
+        ej_cache = OrderedDict()
+
+        def ej_fwd(launch, longest):
+            key = (launch, longest)
+            if key in ej_cache:
+                ej_cache.move_to_end(key)
+            else:
+                ej_cache[key] = fwd(launch, longest)
+                while len(ej_cache) > CACHE_MAX:
+                    ej_cache.popitem(last=False)
+            return ej_cache[key]
+
+        def ej_link_pins(node):
+            """A link controller's physical (req_in, c_next) pins (bd_c2n a, b =
+            logical I0, I1), or None."""
+            if node not in ej_pins_c:
+                inst = T.pin_split(node)[0]
+                ports = T.orig_ports(ej_jcells[inst]) if inst in ej_jcells else {}
+                ej_pins_c[node] = (tuple("%s/%s" % (inst, ports[i]) for i in ("I0", "I1"))
+                                   if RE_LINK_CN.search(node) and "I0" in ports and "I1" in ports
+                                   else None)
+            return ej_pins_c[node]
+
+        def ej_entry(node, ip, kind):
+            """May a credit path carrying a `kind` transition cross storage node
+            `node` entering by pin `ip`?"""
+            lp = ej_link_pins(node)
+            if lp is not None:
+                return ip == (lp[0] if kind == "fwd" else lp[1])
+            return kind == "fwd" and (node in ej_and or bool(RE_MUX_J.search(node)))
+
+        def ej_sources(pin):
+            """Handshake nodes driving `pin` through combinational logic only:
+            storage, not a latch (data), not a constant."""
+            seen, work, out = {pin}, [pin], set()
+            while work:
+                p = work.pop()
+                for s in srcs_of.get(p, ()):
+                    if (s, p) in feed or s in seen or T.is_const(s):
+                        continue
+                    seen.add(s)
+                    if s in stops:
+                        if not RE_LATCH_OUT.match(T.pin_split(s)[0]):
+                            out.add(s)
+                    else:
+                        work.append(s)
+            return sorted(out)
+
+        def ej_causes(node):
+            """[(L, kind, l(L -> node))]: the handshake transitions that can be
+            the last to enable `node`'s firing; [] for a node of another kind
+            (an arbiter, a merge's acknowledge C-element: no case split)."""
+            if node in ej_cause_c:
+                return ej_cause_c[node]
+            lp = ej_link_pins(node)
+            if lp is None and node not in ej_and and not RE_MUX_J.search(node):
+                ej_cause_c[node] = []
+                return []
+            out = []
+            for ip, _ in binc.get(node, ()):
+                if (node, ip) in feed:
+                    continue
+                kind = ("fwd" if lp is None else
+                        "fwd" if ip == lp[0] else "ack" if ip == lp[1] else None)
+                if kind is None:
+                    continue
+                for L in ej_sources(ip):
+                    if L == node:
+                        continue
+                    lt = ej_fwd(L, True)[0]
+                    if lt and node in lt[0]:
+                        out.append((L, kind, lt[0][node]))
+            ej_cause_c[node] = out
+            return out
+
+        def ej_credit(L, kind, X, own):
+            """{pin: earliest arrival from L} over the paths that carry L's
+            transition as a request (see (6)): Dijkstra over (pin, crossings)."""
+            key = (L, kind, X, own)
+            if key in ej_cred_c:
+                return ej_cred_c[key]
+            import heapq
+            best, dist = {(L, 0): 0}, {}
+            heap = [(0, L, 0)]
+            while heap:
+                t, p, c = heapq.heappop(heap)
+                if best.get((p, c), t) < t:
+                    continue
+                # an acknowledge's fall is a request only past its first crossing
+                if p != L and (kind == "fwd" or c > 0) and (p not in dist or t < dist[p]):
+                    dist[p] = t
+                if p == X:
+                    continue
+                for d, w in early_edges.get(p, ()):
+                    if (p, d) in feed:
+                        continue
+                    inst = T.pin_split(d)[0]
+                    if (d == L or inst.startswith(own) or inst.startswith(ej_steers)
+                            or RE_LATCH_OUT.match(inst)):
+                        continue
+                    nc = c
+                    if d in stops and d != X:     # X: recorded, never expanded
+                        if not ej_entry(d, p, kind if c == 0 else "fwd"):
+                            continue
+                        nc = c + 1
+                        if nc > K:
+                            continue
+                    nt = t + w
+                    if nt < best.get((d, nc), nt + 1):
+                        best[(d, nc)] = nt
+                        heapq.heappush(heap, (nt, d, nc))
+            ej_cred_c[key] = dist
+            return dist
+
+        def ej_floors(chain, X, own, jset):
+            """{J: (floor, (L, ip, kind, l(L -> X)))} from every node of `chain`."""
+            fl = {}
+            for L, kind, ltot in chain:
+                cr = ej_credit(L, kind, X, own)
+                for J in jset:
+                    for ip, arc in binc.get(J, ()):
+                        if (J, ip) in feed or ip not in cr:
+                            continue
+                        v = cr[ip] + arc - ltot
+                        if J not in fl or v > fl[J][0]:
+                            fl[J] = (v, (L, ip, kind, ltot))
+            return fl
+
+        def ej_cases(X):
+            """Every chain of last causes back from X: [[(L, kind, l(L -> X))]].
+            A request cause is followed back while the depth allows; an
+            acknowledge cause ends its chain (its own causes are the previous
+            phase's); a node with no cause ends the chain where it is."""
+            out = []
+
+            def rec(chain, node, ltot, depth):
+                cs = ej_causes(node) if depth > 0 else []
+                if not cs:
+                    out.append(chain)
+                    return
+                for L, kind, lL in cs:
+                    nxt = chain + [(L, kind, ltot + lL)]
+                    if kind == "ack":
+                        out.append(nxt)
+                    else:
+                        rec(nxt, L, ltot + lL, depth - 1)
+            rec([], X, 0, E_JOIN_DEPTH)
+            return out
+
+        def ej_raise(X, own, rp, l, g0, out_f):
+            """(6): the row from launch X with the join credit, or None when some
+            case of X's firing gives the request no later bound than the walk
+            without it.  -> (e, tc, guarded, request path, (L, ip, kind,
+            l(L -> X), J), the case's chain)."""
+            jset = {n for tab in out_f for n in tab if n in ej_and}
+            worst_case, unbounded = None, False
+            for chain in ej_cases(X):
+                best = None
+                for p in range(1, len(chain) + 1):
+                    fl = ej_floors(chain[:p], X, own, jset)
+                    if not fl:
+                        continue
+                    fhit = {}
+                    of, pf = walk(early_edges, stops, binc, feed, X, False,
+                                  None, fl, fhit)
+                    e = at(of, rp)
+                    if e is None:
+                        continue
+                    pr = path_to(pf, e[1], rp) or []
+                    src = None
+                    for lv, n in reversed(pr):
+                        if (lv, n) in fhit:
+                            src = fhit[(lv, n)] + (n,)
+                            break
+                    if src is None:     # no floor on the request's own path
+                        continue
+                    tc = -src[3]
+                    g = GUARD_LO * (e[0] - tc) - GUARD_HI * (l[0] - tc)
+                    if best is None or g > best[2]:
+                        best = (e, tc, g, pr, src, chain[:p])
+                if EJ_DEBUG and EJ_DEBUG in rp:
+                    print("EJDBG %s %s chain %s -> %s" % (rp, X, " < ".join(
+                        "%s(%s,%d)" % (c[0].split(".udut.")[-1], c[1], c[2]) for c in reversed(chain)),
+                        "none" if best is None else "g %d (g0 %d) e %d tc %d src %s" % (
+                            best[2], g0, best[0][0], best[1], best[4][0].split(".udut.")[-1])), file=sys.stderr)
+                if best is None or best[2] <= g0:
+                    if not (EJ_DEBUG and EJ_DEBUG in rp):
+                        return None
+                    unbounded = True        # diagnosis: print the other cases too
+                    continue
+                if worst_case is None or best[2] < worst_case[2]:
+                    worst_case = best
+            return None if unbounded else worst_case
+
     for kind, parent, cell, rp, sp in checks:
         br, bs = back(rp), back(sp)
         # The launch is where the request and the select DIVERGE, and the
@@ -820,6 +1078,7 @@ def main():
             ss_stats[0] += 1
         own = parent + "."
         worst, wnote = None, None
+        wjn = None                  # (6): the binding launch's join-credit case
         for launch in launches:
             m = RE_LATCH_OUT.match(T.pin_split(launch)[0])
             lap = STRICT_LAPS and m is not None and m.group(1) in added
@@ -891,6 +1150,7 @@ def main():
                     worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc,
                              note[5])
                     wnote = note
+                    wjn = None
                 continue
             # X, the DIVERGENCE POINT: the last node the two walks that
             # actually set req's and sel's arrival still agree on, found by
@@ -904,10 +1164,19 @@ def main():
             tc = min(divergence(out_f, pred_f, e, rp, out_t, pred_t, l, sp),
                      e[0], l[0])
             g = GUARD_LO * (e[0] - tc) - GUARD_HI * (l[0] - tc)
+            jn = None
+            if (E_JOIN and AND_JOIN and launch in stops
+                    and not RE_LATCH_OUT.match(T.pin_split(launch)[0])):
+                ej_stats[0] += 1
+                jn = ej_raise(launch, own, rp, l, g, out_f)
+                if jn is not None:
+                    ej_stats[1] += 1
+                    e, tc, g = jn[0], jn[1], jn[2]
             if worst is None or g < worst[0]:
                 worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc,
-                         path_to(pred_f, e[1], rp) or [])
+                         (jn[3] if jn is not None else path_to(pred_f, e[1], rp)) or [])
                 wnote = None
+                wjn = jn
         if worst is None:
             orphan.append((kind, parent, cell))
             continue
@@ -915,6 +1184,9 @@ def main():
         if wnote is not None:
             floored[(parent, cell)] = wnote
             ss_stats[2] += 1
+        elif E_JOIN and wjn is not None:
+            ej_rows[(parent, cell)] = wjn
+            ej_stats[2] += 1
 
     # Guarded margin, and the raw one kept alongside it so the guardband can
     # always be seen doing its work rather than being folded into the verdict.
@@ -960,6 +1232,11 @@ def main():
               f"C-element can carry the select's own channel request; "
               f"{ss_stats[1]} latch launch(es) bounded by it, binding at "
               f"{ss_stats[2]} gate(s)")
+    if E_JOIN:
+        print(f"             --e-join (depth {E_JOIN_DEPTH}): {ej_stats[0]} handshake "
+              f"launch(es) split by the cause of their firing; {ej_stats[1]} raised "
+              f"by a join credit in every case, binding at {ej_stats[2]} gate(s)"
+              + ("" if AND_JOIN else "; NOT APPLIED: needs BD_SKEW_AND_JOIN=1"))
 
     # The last stage of every bd_pipe, for req_knob() below.
     last_stage = {}
@@ -995,7 +1272,17 @@ def main():
         print(f"\n  {flag} {kind} {parent}")
         print(f"           launch {launch}")
         fn = floored.get((parent, cell))
-        if fn is None:
+        jw = ej_rows.get((parent, cell))
+        if jw is not None:
+            L, ip, jk, l_lx, J = jw[4]
+            print(f"           divergence point {t_c} ps in (the binding case's cause, "
+                  f"before the launch: both legs guarded from it)")
+            print(f"           join credit (--e-join): {J} waits for {ip}, reached from "
+                  f"{L} ({'its request' if jk == 'fwd' else 'its acknowledge falling'});")
+            print(f"                worst of {len(ej_cases(launch))} case(s) of the launch's firing, "
+                  f"this one: " + " < ".join(x[0] for x in reversed(jw[5])) + " < launch; "
+                  f"the launch follows its cause by at most {l_lx} ps")
+        elif fn is None:
             print(f"           divergence point {t_c} ps in (shared, not guarded)")
         else:
             print(f"           divergence point {t_c} ps in (the select source's "
