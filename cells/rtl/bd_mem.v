@@ -44,6 +44,29 @@
 //   pipelined element.  A second read port is a second copy of this
 //   structure; sharing one port between two requesters needs bd_arbiter.
 //
+// FASTFALL (default 0: both lines as before, and every netlist built without
+// it unchanged) makes usetup and uco bd_delay FASTFALL lines: they still RISE
+// through DSETUP and DCO elements, and fall one element after their input.
+// Why the falls carry no obligation: the RAM samples only the rising edge of
+// ram_clk, so address / data / we setup (DSETUP) and clock-to-out (DCO) are
+// rising-edge constraints and keep their full lines.  The return to zero is
+// sequencing, and its order is kept by construction, not by length: every
+// uco element is ANDed with ram_clk, so ack cannot fall before ram_clk has
+// fallen at the uco line, and the station (bdc/mem.py `hold`) releases its
+// operands -- the only way a next request can rise -- only after the port's
+// ack has fallen.  So the next rising edge still needs the whole handshake
+// plus a full DSETUP rise after ram_clk fell: ram_clk's low phase is at least
+// DSETUP's rise; its high phase at least DCO's rise (the request falls only
+// after ack rose).  Address hold: the address is released one arc after ack
+// falls, i.e. at least pulse_high >= DCO's rise after the capture edge (the
+// symmetric line gave 2 x DCO; tighten.py rule C states that bound).  What the
+// line does change: a short low glitch on req would become a full clean low
+// phase and a second rising edge (a symmetric line passes it on as a glitch).
+// req is the port's one-hot OR of station claims (p_req = joined & ~done) and
+// of the bench's host slot, neither of which pulses low while high.
+// research/data/suite/memfast.md has the measurements; bdc/mem.py sets it
+// under BDC_MEM_FASTFALL=1.
+//
 // NOTE -- the schematic labels the stage between the setup delay and the RAM
 // "pulse" without specifying its internals.  It is built here as the single
 // explicit buffer the design rules demand, so CLK is high for as long as req
@@ -58,7 +81,8 @@ module bd_mem #(parameter AW      = 10,   // word address bits (RAMB18, x16)
                 parameter DW      = 16,
                 parameter DSETUP  = 8,    // placeholder: sized post-route
                 parameter DCO     = 12,   // placeholder: sized post-route
-                parameter USE_BUFG = 0)
+                parameter USE_BUFG = 0,
+                parameter FASTFALL = 0)   // 1: both lines fall in one element
     (input  wire             req,
      output wire             ack,
      input  wire [AW-1:0]    addr,
@@ -69,7 +93,7 @@ module bd_mem #(parameter AW      = 10,   // word address bits (RAMB18, x16)
     // Address and write data are the payload; this delay is the bundling
     // guardband at the RAM boundary.
     wire strobe;
-    bd_delay #(.N(DSETUP)) usetup (.a(req), .z(strobe));
+    bd_delay #(.N(DSETUP), .FASTFALL(FASTFALL)) usetup (.a(req), .z(strobe));
 
     // Exactly one explicit driver of the clock net.  Nothing else may drive
     // it and no pass may insert anything into it.
@@ -83,7 +107,7 @@ module bd_mem #(parameter AW      = 10,   // word address bits (RAMB18, x16)
     endgenerate
 
     // The timing tap is downstream of the same buffer, on the same net.
-    bd_delay #(.N(DCO)) uco (.a(ram_clk), .z(ack));
+    bd_delay #(.N(DCO), .FASTFALL(FASTFALL)) uco (.a(ram_clk), .z(ack));
 
     wire [13:0] a14;
     assign a14 = {addr, 4'b0000};        // x18 port: word address is [13:4]

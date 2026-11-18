@@ -228,6 +228,17 @@ NEG_STORE = os.environ.get("BDC_MEM_NEG_STORE", "")
 if NEG_STORE not in ("", "addr", "data"):
     raise SystemExit(f"BDC_MEM_NEG_STORE={NEG_STORE!r}: addr, data or unset")
 
+# BDC_MEM_FASTFALL=1 (off by default; unset, the emitted text is unchanged byte
+# for byte): every bd_mem of every port gets FASTFALL(1) -- its setup and
+# clock-to-out lines still rise through DSETUP / DCO elements and fall in one
+# element (cells/rtl/bd_mem.v FASTFALL says why the falls carry no obligation).
+# Why: the port's return to zero runs back through both lines, so every access
+# paid DSETUP + DCO twice, and on a memory kernel's loop the station's release
+# (hold waits for p_ack to fall) puts that fall on the critical cycle
+# (research/data/suite/memfast.md: gather's port, 16.4 ns rise and 16.4 ns fall
+# of a 55.2 ns cycle).
+MEM_FASTFALL = os.environ.get("BDC_MEM_FASTFALL", "0") == "1"
+
 # One RAMB18E1 in x18 mode: 1024 words of 16 data bits (plus 2 parity, unused).
 RAM_WORDS = 1024
 RAM_DW = 16
@@ -501,7 +512,8 @@ def emit_port(aw, dw, slots=1, arb=False):
             rd = f"{{rd_hi{i}, p_rdata[{lo + hi - 1}:{lo}]}}"
         rams += [
             f"    bd_mem #(.AW({aw}), .DW({RAM_DW}),",
-            f"             .DSETUP(DSETUP_{i}), .DCO(DCO_{i}), .USE_BUFG(0)) umem{i} (",
+            f"             .DSETUP(DSETUP_{i}), .DCO(DCO_{i}), .USE_BUFG(0)"
+            f"{', .FASTFALL(1)' if MEM_FASTFALL else ''}) umem{i} (",
             f"        .req(m_req), .ack(ram_ack[{i}]),",
             f"        .addr(m_addr), .wdata({wd}), .we(m_we),",
             f"        .rdata({rd}));",
