@@ -82,6 +82,12 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   rewritten files has been built, simulated or timed here. Whether the extra LUT costs more than the add it removes
   from the test is yours to measure. brhash, nested, nest3, if_loop_3 and insertion_sort are refused: their ring shape
   differs.
+- **Literal-bound tool (18:00 UTC):** `formal/tools-A/rewrite/inc_cmp.py IN OUT --log L` (119 rewrites in 53
+  fixtures). Proved in Lean only for a bound fired by a `source` (117 cases, IncCmpGraph + ult_lit_E; per-kernel import
+  not checked, dfimport refuses most memory kernels). lfsrfind's and covariance's control-fired bounds are changed in
+  place and are covered by simulation only (simcheck --c-oracle 10/10 + 14/14 edge vectors for lfsrfind). In formal's
+  pre-route RTL runs BDC_AUTO was slightly slower WITH this rewrite (test_bitint 2.31 vs 2.07 us, dot2 8.54 vs 8.19 us),
+  so measure before turning it on. Details: formal/tools-A/rewrite/inc_cmp_diffcheck.txt.
 - **What you would need to turn it on in BDC_AUTO:** a pass that matches the two shapes structurally (formal is
   writing `formal/tools-A/rewrite/inc_cmp.py` for the literal case) and an md5-free acceptance rule: "the pass's
   matcher checked the pattern hypotheses of IncCmpGraph / IncCmp2 / RingMap". Timing value is yours to measure: the

@@ -2990,3 +2990,20 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   ISOMORPHIC to rs3 (rules_iso.py, untrusted). countloop_rd.mlir is now ring_dec's output (md5 6ecca11f; the
   hand version 0d43ba36 is superseded, also isomorphic). FOR-RESEARCH A19 table.
 * Not done: build / simulate / time any rewritten kernel; the renaming lemma (iso step in Lean).
+### progress 18:00 -- subagent 1 back: the literal-bound tool (inc_cmp.py) and its differential checks (untrusted simulation)
+* `tools-A/rewrite/inc_cmp.py`: 119 rewrites in 53 of 108 fixtures (117 ult +1, 2 ult +2); census inc_cmp_census.txt;
+  every run logged in inc_cmp_diffcheck.txt. No disagreement anywhere: lfsrfind simcheck --c-oracle (iverilog) 10/10 +
+  14/14 edge vectors, default and BDC_AUTO; six memory kernels pre-route RTL vs oracle all pass (negative control
+  fails); interpreter diffcheck 46/53 kernels DIFF-PASS on 6-12 vectors x 2 schedules (matrix / cnn / trisolv 1 vector
+  only; covariance, gemver, nested_loop, gaussian not checked).
+* Lead's spot check: fir's output is exactly IncCmpGraph's shape (extui -> addi -> fork -> cmpi, literal 1000 -> 999).
+* What the Lean covers vs not: the 117 SOURCE-fired cases are IncCmpGraph + ult_lit_E (but no per-kernel structural
+  check yet: dfimport refuses most memory kernels). The 2 CONTROL-fired cases (lfsrfind, covariance: the constant
+  node's value changed in place) are NOT covered by any theorem here (the constant channel's values change; would need
+  a RingMap-like map on a constant node): simulation only. eq/ne paths in the tool have no Lean identity (no fixture
+  used them).
+* Timing hint (pre-route RTL sim, one route-free run each): default flow identical; BDC_AUTO slightly SLOWER with the
+  rewrite (test_bitint 2.31 vs 2.07 us, dot2 8.54 vs 8.19 us). So the literal-bound rewrite may not pay; research to
+  measure on routes.
+* Common refused shapes worth a next step: `ult (extui v + 1), extui(b)` (fold64, nest3, twoloops, trisolv, polyn_mult:
+  exact only if b >= 1), and `sgt (i - k), C` countdowns (8).
