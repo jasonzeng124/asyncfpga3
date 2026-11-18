@@ -4632,7 +4632,7 @@ T >= 1 and S >= 2T + 1). Sanity examples: 3-ring with one token live, 2-ring wit
 Classical.choice, Quot.sound. scan.py clean. NOT covered: that D = 2T at bdc's reset markings (stated as a hypothesis);
 rings with forks / joins (the general StageNet + certificates); everything StageNet leaves out. FOR-RESEARCH C59 updated.
 
-### progress 21:40 -- StageNetRingLive: any cycle with channels either way round (fork-join pairs); monotonicity
+### progress 21:32 -- StageNetRingLive: any cycle with channels either way round (fork-join pairs); monotonicity
 `cycle_noTrap_iff` (Lean, standard axioms): an undirected cycle of stages with channel orientations `o` has no trap iff its
 token-free arcs (cw: agree and forward, or differ and backward) do not all point one way round; `hasTrap_mono` (no axioms): a
 trap of a sub-network is a trap of the whole network. Sanity by decide: fork-join with one stage on Q holding a token more
