@@ -10,6 +10,8 @@ EDITs (instances are bdc kernel instance names, e.g. ulink_n_trueResult_8):
                                                C-element, a forward rdly of SDELAY elements, an ack delay of DACK
     depth:LINK:SDELAY[:DACK]                   BDC_LINK_DEPTHS +1 on LINK (a stage on LINK's input channel)
     fastfall:INST                              every falling chain of INST falls in one element (bd_delay FASTFALL)
+    memfastfall[:INST]                         bd_mem's two lines (usetup, uco) fall in one element, on every memory
+                                               port or on INST's (a bd_mem FASTFALL; the rises are unchanged)
     nofall                                     every falling arc costs 0 (an upper bound on two-phase signalling)
 Weights of the things an edit adds come from the same graph: a chain element is the median measured element of the
 graph's chains (rise / fall separately), a C-element input is the arc it replaces.  Nothing is fitted.
@@ -19,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import maxplus  # noqa: E402
 
 CHAIN = re.compile(r"\.(udly|rdly|uack|us)\.chain\.g\[(\d+)\]")
+MEMCHAIN = re.compile(r"\.umem\d+\.(usetup|uco)\.chain\.g\[(\d+)\]")   # bd_mem's lines (bdc/mem.py's port)
 
 
 def inst_of(cell):
@@ -310,6 +313,20 @@ class G:
         if not n and strict: raise ValueError("fastfall: no chain of %s in the graph" % inst)
         return self
 
+    def memfastfall(self, inst=None):
+        """bd_mem's usetup / uco lines fall in one element: each falling element after the first follows the line's
+        input (the same model as fastfall); rises unchanged.  The memory's own chains only (MEMCHAIN), so elem() and
+        every other edit are untouched."""
+        n = 0
+        for a in self.arcs:
+            nu, nv = self.nodes[a["u"]], self.nodes[a["v"]]
+            mv, mu = MEMCHAIN.search(nv.get("cell", "")), MEMCHAIN.search(nu.get("cell", ""))
+            if mv and mu and nv["edge"] == "F" and nu["inst"] == nv["inst"] and mu.group(1) == mv.group(1) \
+                    and (inst is None or nv["inst"] == inst):
+                a["w"] = 0; n += 1
+        if not n: raise ValueError("memfastfall: no falling bd_mem line element in the graph")
+        return self
+
     def nofall(self):
         for a in self.arcs:
             if self.nodes[a["v"]]["edge"] == "F": a["w"] = 0
@@ -323,6 +340,7 @@ class G:
         if p[0] == "fastfall": return self.fastfall(p[1])
         if p[0] == "deco": return self.deco("bridge_i.udut." + p[1] if not p[1].startswith("bridge_i") else p[1])
         if p[0] == "nofall": return self.nofall()
+        if p[0] == "memfastfall": return self.memfastfall(p[1] if len(p) > 1 else None)
         raise ValueError(ed)
 
     # ---- reading a cycle -----------------------------------------------------------------------------------------
