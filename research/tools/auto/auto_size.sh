@@ -2,7 +2,8 @@
 # auto_size.sh LANE NAME KERNEL SEED VEC [MAXIT] -- BDC_AUTO=1 with its sizes chosen by the flow: nothing per kernel
 # (PROGRAM "General first", owner 2026-11-17: no sizes file, no factor, no instance name).
 #
-#   iteration 0  build with every matched delay at bdc/emit.py's estimate (est_sizes.py: the kernel's own defaults);
+#   iteration 0  build with every matched delay at bdc/emit.py's estimate (est_sizes.py: the kernel's own defaults)
+#                times AUTO_START_SCALE (0.3; see below);
 #                corner_audit.py CA_SIZERULE=1 on that route proposes every line (the one sizing rule: chain and
 #                LUT / wire at one band, CARRY4 / F7F8 / FF at SLOW_MAX, the measured-residual guards, a shortened line
 #                priced at its own mean step, selects sized by rules E / M like any line).
@@ -57,8 +58,22 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
   echo "final it $i $(cat "$O/it_$i.txt")" >> "$O/log.txt"
 }
 echo "auto_size $N kernel $K seed $S maxit $MAXIT $(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" > "$O/log.txt"
-build 0 none || { echo "BUILD FAILED it=0" | tee -a "$O/result.txt"; exit 1; }
-python3 "$T/est_sizes.py" "$RUNS/hw/${N}_0/${K}_kernel_bench.v" "$K" > "$O/sizes_0.vh" || { echo "NO ESTIMATES" >> "$O/result.txt"; exit 1; }
+# The start: bdc/emit.py's estimates ("deliberately generous", bdc/compute.py) times AUTO_START_SCALE (default 0.3, one
+# number for every kernel: it moves only where the loop starts; the rule on each route sets the sizes).  Why: on the
+# first kernels the estimates are 4-5x the sizes the loop ends at (seed 1: xorshift 511 -> 106 links, collatz 493 ->
+# ~100, collatz64 647 -> ~130); the route built at them is the most spread-out the loop sees, its long wires stand in
+# for data the compact routes must cover (collatz64's 3n + 1: proposed 4 elements there, needed 20 on the next route),
+# and on 2 cores it can take over an hour to route (farm suite1: collatz seeds 3 and 4 hit PNR_TIMEOUT 3600 at it 0).
+# AUTO_START_SCALE=1 starts at the estimates (the first version).
+SC=${AUTO_START_SCALE:-0.3}
+EM=$O/emit; mkdir -p "$EM"   # the estimates: the same two steps as cells/hw/build_bench.sh with BDC_AUTO=1
+python3 "$R/bdc/auto.py" "$R/build/frontend/$K/comp/handshake_transformed.mlir" "$EM/auto.mlir" > "$EM/auto.log" 2>&1 \
+  && BDC_AUTO=1 python3 "$R/bdc/emit.py" "$EM/auto.mlir" --no-top -o "$EM/kernel.v" >> "$EM/auto.log" 2>&1 \
+  && python3 "$T/est_sizes.py" "$EM/kernel.v" "$K" > "$O/sizes_est.vh" \
+  || { echo "BUILD FAILED it=0 (emit: $(tail -1 "$EM/auto.log"))" | tee -a "$O/result.txt"; exit 1; }
+if [ "$SC" = 1 ]; then cp "$O/sizes_est.vh" "$O/sizes_0.vh"
+else python3 "$R/research/tools/shrink_sizes.py" "$O/sizes_est.vh" "$SC" "$O/sizes_0.vh" > /dev/null; fi
+build 0 "$O/sizes_0.vh" || { echo "BUILD FAILED it=0" | tee -a "$O/result.txt"; exit 1; }
 echo "it 0 $(cat "$O/it_0.txt") lines $(grep -c '^`define' "$O/sizes_0.vh")" >> "$O/log.txt"
 rule 0 "$O/sizes_0.vh" || { echo "RULE FAILED it=0" | tee -a "$O/result.txt"; exit 1; }
 cp "$RUNS/ca/${N}_0/rule/sizes.vh" "$O/sizes_1.vh"
