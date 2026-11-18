@@ -6379,3 +6379,22 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   36 (32-40). All three came out faster than predicted; collatz and collatz64 at or below their hand recipes' medians.
 - No sizes file, no factor, no instance name: BDC_AUTO=1 + auto_size.sh's loop. Each final route ran the full stack
   (bits-decoded netlist, prjxray SDF, fid) once; the draws are the judge.
+### progress 01:14 (seed 1 local: xorshift 21.08 ns 4 / 4 draws; farm suite1 = flow v1, most routes judged by the old checker; suite2 = flow v2)
+- Local seed 1 (flow v1: start at the estimates): **xorshift P 21.08 ns, 4 / 4 draws** (xor19 19/19 each), EQUIVALENT,
+  1339 kernel LUTs; collatz 18.06, 4 / 4 (above); collatz64 30.01, draws running; ipow route it 4 (9a5c155d) NOT
+  EQUIVALENT with a kind the fixed checker does not fold (F7BMUX/0 json const 0, bits D6LUT, the reverse orientation of
+  the GND-LUT case; not yet looked into) and its event graph failed (no cycle found; IndexError in eventgraph.py), so
+  no P. Local gcd / isprime (v1) stopped: suite2 runs them on the farm.
+- Why xorshift's automatic route is 4.3 ns over the hand recipe (21.08 vs 16.76) with the same total delay (106 vs
+  105 links): UCMPI1, the n ring's loop test, is 18 elements (hand 5), held by rule E at the steers ucond_br8 / 9;
+  every other line is at or below the hand's. That is formal B4's n ring and the joinrule subagent's case.
+- Farm suite1 (flow v1, picked up at a31502b69, before the checker fix): it runs fast on the farm (a whole loop + the full
+  stack in ~28 min on 2 cores). 9 of 32 back: xorshift seeds 2 / 3 / 6 / 7 P 23.11 / 23.18 / 19.43 / 23.21 (seed 6 the
+  only loop CLEAN by it 4), collatz64 seed 5 25.59, all called NOT EQUIVALENT by the old checker and so not drawn;
+  collatz seed 7 EQUIVALENT but no P; collatz seeds 3 / 4 PNR-TIMEOUT at it 0 (the estimates route, > 3600 s on 2 cores).
+  The request also copied the loop's result.txt over the suite's (fixed in suite2: the loop's files go to OUT/auto/).
+  research/tools/suite/rejudge.sh rebuilds a route from its returned sizes_final.vh and judges it with today's checker
+  (test running on xorshift seed 3: must reproduce sdf ea3c2aad).
+- auto_size.sh flow v2 (2e5b0e013): the loop starts at emit.py's estimates x 0.3 (AUTO_START_SCALE, one number for
+  every kernel; the rule still sets every size). Farm suite2 = flow v2 on the six kernels x seeds 1-8 with the fixed
+  checker; prediction in its header.
