@@ -19,7 +19,7 @@ their code as the thing under test, not as a reference. Assume every claim
 is wrong until you have reproduced it. A claim you could not check is
 **UNVERIFIED**, not passed.
 
-## Quota (owner, 2026-11-18 16:48 UTC): a full allowance until the reset, then alone again
+## Quota (owner, 2026-11-18 16:48 UTC): a full allowance until the reset, then the usual limits
 
 The week's quota ran out at 10:16 UTC today and every bot stopped. At 16:48 UTC the owner:
 "oh btw you have an entire week of usage before w6pm". The allowance is full again, and what
@@ -30,7 +30,8 @@ is unused is lost at the reset, 2026-11-18 23:00 UTC.
   per kernel; board items 38 and 39 (the first automatic builds); the suite's expected
   values against your own compile of each kernel's C; the fixes research lands today for the
   deadlocks the suite found.
-- **From 23:00 UTC: no subagents.** Steps cost quota, each one re-reads the context: wait
+- **From 23:00 UTC: the limits of before 2026-11-17 again: at most 2 subagents at a time.**
+  Owner, 2026-11-18 18:35 UTC: "the previous setup worked, with quite room to spare". Wait
   for a build in one long command, not in many short checks.
 - Re-read this file every two hours, and once more at 23:00 UTC.
 
