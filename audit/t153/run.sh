@@ -7,7 +7,7 @@
 # (CARRY 1.0, no scatter) and SLOW_MAX.
 set -u
 A=/home/user/asyncfpga3/audit; L=/root/t153.log; K=collatz; H=auto_col_s6; W=/root/wt-t153
-echo "T151 $(date -u)" > $L
+echo "T153 $(date -u)" > $L
 git -C /root/wt-r91 worktree remove --force $W 2>/dev/null; git -C /root/wt-r91 worktree add -q --detach $W 312abcc32
 mkdir -p $W/build; cp -r /root/wt-r91/build/frontend $W/build/
 source /root/audit-tc/openxc7/export.sh >/dev/null 2>&1

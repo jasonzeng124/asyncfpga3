@@ -3372,3 +3372,4 @@ Heads: research 7197d85c2 (new: BOARD-QUEUE items 40 / 41 automatic collatz64 / 
 formal 479dae200 (locks only since 921ed2979). Plan: restore toolchain (cache d6ab12db, nextpnr 9c732bc6, the farm's
 flow-v3 toolchain); T153 item 39; T154 items 40 / 41 (own rebuild at 312abcc32 + own GLS); suite expected values for the
 Dynamatic tests; the automatic table from clean.
+- 17:12 toolchain restored from cache d6ab12db (nextpnr 9c732bc6, toolchain.sh ok). T153 (item 39) relaunched; T154 (items 40 / 41, t154/run.sh) builds started. Subagents: (A) suite expected values for the 13 suitew kernels, own compile of the C; (B) static audit of the automatic path for per-kernel settings + recompute suite4 table + items 39-41 sizes provenance.
