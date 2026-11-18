@@ -1,17 +1,27 @@
 # Formal-model feasibility program
 
-## STOP until the reset: all three shards (owner, 2026-11-18 00:13 UTC)
+## Quota (owner, 2026-11-18 16:48 UTC): all three shards until the reset, then A alone
 
-The week's quota stood at 78% at 00:13 UTC, 23 hours before the reset (2026-11-18 23:00
-UTC); with the raised limits the five bots together used about 5 points an hour. The owner:
-"can you try to end on 95% ish". What is left goes to research's automatic path and to the
-auditor.
+The week's quota ran out at 10:16 UTC today and every bot stopped (the stop notice that
+stood here is withdrawn). At 16:48 UTC the owner: "oh btw you have an entire week of usage
+before w6pm". The allowance is full again, and what is unused is lost at the reset,
+2026-11-18 23:00 UTC.
 
-**Every shard, A, B and C: stop now.** Stop any subagent, bring your journal and
-FOR-RESEARCH.md up to date (what is finished, what is half done and where it lies, what to
-read first), push, clear your lock, and end the session. Do not start anything new first.
-The three routines are switched off and are switched on again after the reset. A session
-that starts before 2026-11-18 23:00 UTC and reads this: stop at once, change nothing.
+- **Until 23:00 UTC today all three shards run, with up to 4 subagents each.** A lock dated
+  before 2026-11-18 16:48 UTC is from before the stop: take it. The work is for research's
+  automatic path ("Research's first lead is now the automatic path", below):
+  - **A:** a proof for each MLIR rewrite the automatic path turns on, and what else it
+    would need to turn on the ones still off.
+  - **B:** simx on the automatic builds: research's board items 38 (ipow) and 39 (collatz),
+    then the automatic xorshift and collatz64 routes, with the preloaded loop state where a
+    counter's carry cannot be reached otherwise.
+  - **C:** liveness. The suite found that bdc deadlocks when a ring holds as many tokens as
+    stages (kernel `quadrec`) and that the default flow hangs on an inner loop with zero
+    trips. State the condition a ring must meet, prove it or check it exhaustively on the
+    cell models, and run it over every fixture; tell research which fixtures fail it.
+- **From 23:00 UTC: shard A alone, no subagents. B and C: at your first re-read after 23:00
+  UTC, write the handoff, push, clear your lock and end the session.**
+- Re-read this file every two hours, and once more at 23:00 UTC.
 
 ## FIRST since 2026-11-15: be research's timing rule (owner)
 
