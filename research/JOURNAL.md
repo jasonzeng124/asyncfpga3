@@ -6325,3 +6325,31 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   per shift. MILP placement cannot run here (no Gurobi / CBC). The suite table now takes Dynamatic's figure from it
   where nothing was measured (ipow 50.0 replaces the hand 67; gcd 50.6 in our P's unit, main + one shift).
 - .gitignore: dynamatic/ and circt/ anchored to the root (the unanchored pattern hid research/data/suite/dynamatic/).
+### progress 00:22 (pnrfix and bandfit stopped and written up; the NOT EQUIVALENT class has one cause; collatz AUTO 18.06 ns)
+- **The NOT EQUIVALENT / FFMUX routes, cause found (pnrfix, reviewed; research/data/pnrfix/README.md):** nextpnr-xilinx's
+  Arch::routeVcc() (xilinx/arch.cc) routes GND/VCC sinks after router2 by a BFS through free wires capped at 50 000
+  wires; a sink that hits the cap is logged "left to main router", but no router runs after it, so it stays unrouted.
+  VCC always routes (every IMUX/BYP has a default ppip from VCC_WIRE); a missed GND pin reads 1 on the die. Effect by
+  pin: plain LUT input -- harmless (fixupRouting drops its X_ORIG_PORT, so the INIT reads 0 = GND); **F7/F8 select --
+  wrong** (ipow x0.55 route 19, d63bfd80: 11/17 in the bits-decoded GLS); **flop D -- wrong** (no FFMUX bit; what the
+  die latches is unknowable); DSP CLK -- harmless. The "benign F7BMUX/0" kind was a fasm_equiv false alarm (the JSON-side
+  GND LUT was not folded like the bits side): fixed (745cb181a, 6fa7bfb57) with two negative controls still flagged.
+- **A nextpnr patch exists, NOT installed:** research/data/pnrfix/nextpnr-xilinx-const-sinks.patch routes the missed
+  pins whose value matters after routeVcc, through free wires without a cap (rip-up fallback; error if still unroutable).
+  On 6 defect routes (7 pins) the defect is gone, placement / signal nets / SDF byte-identical, the FASM only gains
+  6-16 lines; route 19 11/17 -> 17/17; routes without a defect byte-identical in JSON, SDF and FASM (3 checked); the
+  unpatched rebuild reproduces the installed binary byte for byte; a toolchain.sh check that fails on the installed
+  binary (toolchain.sh.proposed). Why not installed: $TC is on NFS shared with the farm, so swapping the binary would
+  mix two nextpnrs inside running requests (mine and formal's). Plan: install when no farm request is running,
+  update toolchain.sh and patches/ in the same commit, and record the new fingerprint. Owner: objections welcome.
+- **collatz AUTO, seed 1: P 18.06 ns** (hand item 31: 21.5 median; x0.70 sweep 19.76), route it 4 (533a7474), the
+  loop NOT CLEAN by 1 constraint after 4 routes; bits EQUIVALENT once fasm_equiv is fixed (it was the false-alarm
+  kind). Its 4 draws are running now (suite_one.sh had skipped them as not a board route). One seed: a sample, not a
+  claim.
+- **bandfit (stopped; a74851fb5):** LUT + routing x = 0.222 (0.213 gcd - 0.227 ipow) over the five August bitstreams,
+  leave-one-out within 0.8 % on four, +1.6 % on gcd; ipow 60.43 / 60.33 ns at y 0.2 / 1.0 vs board 60.43. The CARRY /
+  F7 band y moves ns per iteration by 0 (a constant ~0.2 ns per call per unit y, outside the loop), so no kernel can
+  place it; only BOARD-QUEUE item 36 can; the draws stay uniform over [0.20, 1.0]. Answers stay right at y 2 and 3 on
+  collatz / collatz64 / ipow / gcd (10 of 24 vectors), and at y 6 on ipow. Correction: xorshift's trip_N logs were taken
+  at 50 MHz, so they show 49.6 ns per round, not ~25 (one build family, not two); the archived bit at x 0.222 gives
+  49.71 ns. Not done: isprime, gcd's other 14 vectors.
