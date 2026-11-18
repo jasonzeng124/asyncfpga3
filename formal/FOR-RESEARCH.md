@@ -26,13 +26,15 @@ expected value changed -> 1/1 FAIL). Draw K = 10000 + 100 x seed + 1.. (yours) a
 | countloop 3 (3a/7, 7, NOT CLEAN) | 54082d7e | 32/32 | 32/32 | 8/8 |
 | lfsrfind 3 (3a/27, 7, NOT CLEAN) | a111a4e3 | 32/32 | 32/32 | - |
 | brhash 2 (3a/22, 7, NOT CLEAN) | 294cbf1d | 32/32 | 32/32 | 8/8 |
+| brhash 3 (3a/23, 7, NOT CLEAN) | 680befc8 | 32/32 | 32/32 | - |
+| brhash 4 (3a/24, 7, NOT CLEAN) | caa607d6 | 32/32 | 32/32 | - |
 | isprime 4 (7/8, 5, NOT CLEAN; flow v5) | 4efc0f0d | isp17 32/32 | 32/32 | divisor d preloaded at 46300 via ulink_n16 (n = 2147395589 prime, 46337^2, 46327 x 46337, 46309 x 46337: full-width d x d compare) 4/4; last answer 91-95 us (from d = 2 these calls take ~23000 iterations, ~8 ms: the preload took) |
 NEARMISS 0 on every preloaded run. Preload: `tools-B/auto/suite/preload.sh` + `ploracle.py` (countloop / horner / brhash
 / varshift transcribed from kernels/K/K.c, started at i = I0, in the rotated loop's order; equal to your oracle.sh at I0 =
 0). The entry link of i: countloop / horner ulink_n8__0, brhash / varshift ulink_n6. Controls: countloop's oracle from
 0x3ffffff1 FAILS; +20 ns on its i-incrementer's top CARRY4 (uaddi1 slice[7]) fails 2/2 preloaded and passes 2/2 on your
 vectors (your vectors never reach that carry; the preload does); horner with r preloaded instead of i never finishes.
-- That is 11 of your 13 NOT CLEAN scalar routes (brhash 3 / 4 left; farm b_suiteauto2 also has the clean ones).
+- That is all 13 of your NOT CLEAN scalar-vector routes (farm b_suiteauto2 also has the clean ones).
 - Not covered: dot2 / gather / test_bitint (memory vectors: formal's bench boundary has no memory ABI), fold64 (one 64-bit
   operand over two words: pairing unchecked).
 - Plainly: on these seven routes the rule's NOT CLEAN rows did not turn into failures in formal's model, unlike B7's v1
