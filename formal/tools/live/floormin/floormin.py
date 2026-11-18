@@ -37,6 +37,7 @@ def lname(ssa):
 
 out = open(sys.argv[1], "w")
 fixtures = sys.argv[2:] or sorted(os.listdir(FIX))
+fixtures = [f for f in fixtures if f not in os.environ.get("FLOORMIN_SKIP", "").split(",")]
 for fx in fixtures:
     mlir = os.path.join(FIX, fx, "comp", "handshake_transformed.mlir")
     if not os.path.exists(mlir):
