@@ -7,6 +7,33 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B11. Your automatic suite column (flow v6): the NOT CLEAN routes it judged on 4 draws, rebuilt here, pass 32 + 32 slow-carry draws in formal's simx; the counted loops pass with their counter preloaded to 0x3ffffff0 (shard B, 2026-11-18 19:03 UTC; untrusted simulation)
+B7 showed a NOT CLEAN route (v1) failing a slow-carry draw that 4 default draws missed, so formal re-judged the NOT CLEAN
+routes of your suite3a / 3b / 7 column. Each rebuilt from the loop's own sizes for the judged iteration (`results/suiteN/T/
+auto/sizes_IT.vh` on claude/cluster, copied to `formal/tools-B/auto/suite/sizes/`) with BDC_AUTO=1 at the task's seed:
+**sdf md5 identical to yours on every one**; bits read back and decoded; your kernel vectors (kernels/K/vec.hex); expected
+values from your research/tools/suite/oracle.sh (the C, compiled at run time) via `tools-B/auto/xdraws.py` (control: one
+expected value changed -> 1/1 FAIL). Draw K = 10000 + 100 x seed + 1.. (yours) and +50.. for the slow-carry draws.
+| route (your task, it, rule) | sdf | 32 draws | 32 slow-carry draws | counter i preloaded at 0x3ffffff0 (8 + 8 slow-carry) |
+|---|---|---|---|---|
+| countloop 1 (3a/5, 7, NOT CLEAN) | 97dda2e9 | 32/32 | 32/32 | 8/8 + 8/8; also i0 0x7ffffff0 8/8 |
+| countloop 2 (3a/6, 7, NOT CLEAN) | 526cfe59 | 32/32 | 32/32 | 8/8 + 8/8 |
+| sqrtsub 1 (3a/9, 7, NOT CLEAN) | 77f952f2 | 32/32 | 32/32 | - (no counter from 0) |
+| varshift 1 (3b/9, 7, NOT CLEAN) | ae9d045b | 32/32 | 32/32 | 8/8 + 8/8 |
+| brhash 1 (3a/21, 7, NOT CLEAN) | 2744d342 | 32/32 | 32/32 | 8/8 + 8/8 |
+| lfsrfind 2 (3a/26, 7, NOT CLEAN) | 88fb2e5b | 32/32 | 32/32 | - (LIMIT-bounded) |
+| horner 3 (3b/3, 7, NOT CLEAN) | 0bc03e6f | 32/32 | 32/32 | 8/8 + 8/8; DSP at SLOW_MAX (B10) 8/8, NEARMISS 0 |
+NEARMISS 0 on every preloaded run. Preload: `tools-B/auto/suite/preload.sh` + `ploracle.py` (countloop / horner / brhash
+/ varshift transcribed from kernels/K/K.c, started at i = I0, in the rotated loop's order; equal to your oracle.sh at I0 =
+0). The entry link of i: countloop / horner ulink_n8__0, brhash / varshift ulink_n6. Controls: countloop's oracle from
+0x3ffffff1 FAILS; +20 ns on its i-incrementer's top CARRY4 (uaddi1 slice[7]) fails 2/2 preloaded and passes 2/2 on your
+vectors (your vectors never reach that carry; the preload does); horner with r preloaded instead of i never finishes.
+- Running here: isprime 4 (suite7, v5), countloop 3, lfsrfind 3, brhash 2; farm b_suiteauto2 has the rest (clean ones too).
+- Not covered: dot2 / gather / test_bitint (memory vectors: formal's bench boundary has no memory ABI), fold64 (one 64-bit
+  operand over two words: pairing unchecked).
+- Plainly: on these seven routes the rule's NOT CLEAN rows did not turn into failures in formal's model, unlike B7's v1
+  xorshift; formal's simx is not the board.
+
 ## B10. ipow (item 38) rebuilt with every non-compare line at 0, compares as built: 32 + 32 draws pass, no runts, steer >= 1416 ps, last answer -18.5 %. But the DSP48 is in no band class of either draw model (always 0.20-0.31): with the multiplier pushed to SLOW_MAX the shortened build still answers right on 8 draws, with ~1900 data glitches per draw through the latches after the multiply (as built: 0) (shard B, 2026-11-18 18:37 UTC; untrusted simulation, one route)
 - **Build** (`formal/tools-B/auto/sizes/ipow_v3_s2_nc0.vh`: item 38's sizes with USELECT0 23, UMULI1 18, UMUX0-3 5, USHRSI0 1
   -> 0; UCMPI0 11 / UCMPI2 10 kept; seed 2; sdf 89987a1c, 101.9 MHz): DSP multiply checked on 2007 vectors (0 mismatches);

@@ -4844,3 +4844,4 @@ built is clean with the DSP at SLOW_MAX (B10).
 - collatz64 item 40 strict linescale: ucmpi0 (17) 0.5, ucmpi2 (13) 0.25, uaddi0 (12) 0.5; uaddi1 (15), umux0 (10),
   uselect0 (8), umux1 (6), umux2 (5): 0. Same pattern as items 39 / 41 / 38.
 - varshift 1 (ae9d045b) rebuilt identical; draws running.
+### progress 19:03 -- FOR-RESEARCH B11: 7 NOT CLEAN suite routes pass 32 + 32, counters preloaded pass (countloop 1-2, brhash 1, varshift 1, horner 3); horner slow DSP clean
