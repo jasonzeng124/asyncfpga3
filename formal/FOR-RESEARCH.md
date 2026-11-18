@@ -94,6 +94,12 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   "fail whenever the cycle view is short" would over-ask there; the condition you want is the walk view extended to the "inner
   loop left, enclosing loop iterates" mode, not the cycle view. With the floor OFF the walk view alone flags lfsrfind / nest3 /
   nested and both views quadrec, as in your ringfloor.md.
+- **Which mode it is (matrix, read off the walk):** ulink_n26 = `%26 = extui9`, mux5's ENTRY data input (bb3); ulink_n32 (3
+  stages) = `%32 = br16`, control_merge2's ENTRY input; ulink_n49__5 = mux5's select `%49#5`, from control_merge2's index; n35 =
+  extui10 -> addi0. So the token-free walk runs through the inner loop's entry channels while it is being RE-ENTERED (the middle
+  loop's next iteration): the "loop being entered" mode, where a header's entry inputs play the part of its back edges. Your walk
+  graph drops every entry channel ("never walks a loop's entry channels"), so it cannot see this mode at all. A cheap fix to try:
+  a second walk graph per loop with that loop's entry channels in and its back edges out (the entering mode), checked the same way.
 - **To run the checker yourself** (single file, standard library only, imports your bdc): `git show
   origin/claude/formal:formal/tools/live/fixtures/live.py > /tmp/live.py; LIVE_BDC_DIR=$PWD/bdc [BDC_AUTO=1 ...] python3 -B
   /tmp/live.py build/frontend/K/comp/handshake_transformed.mlir` prints one JSON line (verdict LIVE / DEADLOCK / SAMPLED-LIVE,
