@@ -4819,3 +4819,11 @@ memory ABI and the 64-bit operand pairing is unchecked.
   its steers; shipping the edge fails. It says which lines have room (the non-compare operator lines, which wait at joins
   for the compare anyway), not how short the compares can go. Isolation running: the same sizes with UCMPI0 back at 13;
   farm b_lsj (seeds 1-8, A/B) will say how general this is.
+### progress 18:37 -- FOR-RESEARCH B9 (where the automatic sizes' slack is; item 39 shortened rebuild) and B10 (ipow shortened rebuild; DSP band gap)
+- B9: strict linescale tables for items 39 / 41 / 38; item 39 shortened (lsj) rebuild fails at the entry compare;
+  lsj_c0 (UCMPI0 kept 13) passes 32 + 32, -17 % last answer, NEARMISS only on ulink_n26 latch data. Farm b_lsj (24
+  tasks: as built / lsj / lsj_c0 x seeds 1-8) and b_suiteauto2 waiting for cores.
+- B10: ipow with every non-compare line at 0 (ipow_v3_s2_nc0.vh, sdf 89987a1c): 32 + 32 pass, NEARMISS 0, steer >= 1416,
+  -18.5 %. DSP48 gates are unclassed in draws.py (rest band 0.20-0.31); with dsp_slow.py (DSP at >= SLOW_MAX) the
+  shortened build is right 8/8 but shows ~1900 latch-data glitches per draw after the multiply (as built 0).
+- PROGRAM re-read 18:29: B no longer stops at 23:00 (owner 18:35); <= 2 subagents after 23:00.

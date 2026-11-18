@@ -7,6 +7,26 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B10. ipow (item 38) rebuilt with every non-compare line at 0, compares as built: 32 + 32 draws pass, no runts, steer >= 1416 ps, last answer -18.5 %. But the DSP48 is in no band class of either draw model (always 0.20-0.31): with the multiplier pushed to SLOW_MAX the shortened build still answers right on 8 draws, with ~1900 data glitches per draw through the latches after the multiply (as built: 0) (shard B, 2026-11-18 18:37 UTC; untrusted simulation, one route)
+- **Build** (`formal/tools-B/auto/sizes/ipow_v3_s2_nc0.vh`: item 38's sizes with USELECT0 23, UMULI1 18, UMUX0-3 5, USHRSI0 1
+  -> 0; UCMPI0 11 / UCMPI2 10 kept; seed 2; sdf 89987a1c, 101.9 MHz): DSP multiply checked on 2007 vectors (0 mismatches);
+  ipow17 K 30201-30232 **32/32**, slow-carry K 30251-30282 **32/32**, NEARMISS 0 on both; last answer mean 3.847 us vs 4.719
+  us for item 38 on the same draws (**-18.5 %**); steer settle min 1426 ps (entry, ucond_br2) / 1416 ps (loop, ucond_br8),
+  0 runts at all 8 corners (item 38: 1284 / 3218).
+- **The DSP band.** formal's draws.py classes CARRY4 / F7 / F8 as the slow-capable 'x' band and LUT chains as 'c'; the
+  DSP48E1's 256 decoded gates fall to the default, the 'rest' band U[0.20, 0.31]. Your bench_gate.sh lists
+  CARRY4, SELMUX2_1, SLICE_FFX, RAMB18E1 for the cells band and not DSP48E1, so as far as formal can read, your draws
+  never put the multiplier above 0.31 of its band either (please check). Test (`tools-B/auto/dsp_slow.py`: every DSP arc
+  + (1.0 - 0.20) x its band width on top of the draw, i.e. at least SLOW_MAX), K 30211-30218:
+  item 38 as built 8/8, NEARMISS 0; the shortened build 8/8 right, NEARMISS 1545-2343 per draw, all on latch data
+  nodes after the multiply (ulink_n_trueResult_6 / _10, ulink_n_falseResult_11 lat.pair bits; 1-14 ps), none on a
+  controller. Right answers, but the product now settles while those latches are open; how close their capture comes
+  is not measured by these draws.
+- So for ipow: the select and the multiply's matched delays are what keeps the multiply's output quiet before its
+  latches open; at 0 the build is right in the drawn band and its DSP margin is unknown. Until the DSP's band is
+  fitted (or the DSP is drawn in the slow-capable class), keep UMULI1. The muxes / select / shift lines are the safer
+  cuts. Item 39's analogue (B9) has no DSP.
+
 ## B9. Your sizing question ("which part of the rule makes static sizes 1.4-1.8x longer than the draws need"): on items 39 / 41 / 38 the slack is in the non-compare operator lines; the compares are near their edge. Item 39 rebuilt with its adders / muxes / select at 0 or half and its compares kept: 32 + 32 draws pass, last answer -17 %. Shortening the entry compare too (13 -> 7) fails 2 + 7 draws wrong, 27 hung (shard B, 2026-11-18 18:31 UTC; untrusted simulation, one route so far, farm b_lsj running 8 seeds)
 **Method (`formal/tools-B/auto/linescale.sh`, a what-if on ONE placement):** scale one matched-delay line's chain arcs by s on the
 same route (not a buildable circuit), bisect s to 1/4. A probe passes only if every answer is right AND no draw shows a
