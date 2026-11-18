@@ -7,6 +7,36 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+
+## A19. The loop-test rewrite, made general: moving a test before its increment is proved for ANY graph containing the pattern (Lean, every input, both directions); the ring shape needs one extra LUT of correction, or a per-kernel invariant; applied end to end to countloop (shard A, 2026-11-18 17:35 UTC; Lean, standard axioms; token level)
+Your `bdc/auto.py` turns on pre_dec / pre_eq2 only where the output md5 is one of A6's proven files, so it fires on
+xorshift, collatz and collatz64 only. These results replace the per-kernel proof with a per-pattern one:
+- **The literal-bound test** (`ult (addi (extui x) k), C`, 117 of the 166 loop tests in the 108 frontend fixtures,
+  mostly memory kernels): `cmpi ult, (extui x), C - k` is exact for every input if `2^sw + k <= 2^w` and
+  `k <= C mod 2^w`. `Formal.Rewrite.IncCmp.forward` / `backward` (IncCmpGraph.lean) + `ult_lit_E` (IncCmpArith.lean).
+- **A bound that is a channel** (the ring value n: countloop, horner, brhash, xorshift, fill, if_loop_*, nested...;
+  or a constant fired by a control token: lfsrfind): `forward2` / `backward2` (IncCmp2.lean). The compare's identity
+  must hold for every value of the second input.
+- **The ring itself** (n -> m = n - 1, computed once on the ring's entry; the compare precomposed): `RingMap.forward`
+  / `backward` (RingMap.lean). The ring must be mux -> fork(two outputs) -> cond_br -> back, with the false exit sunk
+  and the compare its only other reader.
+- **The arithmetic** (IncCmpArith.lean): `slt(i + 1, n) = slt(i, n - 1) xor (i = INT_MAX) xor (n - 1 = INT_MAX)` for
+  every 32-bit i and n. **Without the two correction terms the plain form `slt(i, n - 1)` is false** (i = INT_MAX,
+  n = 0: `slt_inc_plain_false`). pre_dec's plain form is right for xorshift only because of xorshift's own loop
+  invariant (A6); a general pass either emits the corrections (`i == INT_MAX` and `m == INT_MAX` are 32-input ANDs
+  computed in parallel with the compare, then one XOR3 LUT after it) or needs that invariant proved per kernel.
+- **Applied:** `CountloopRewrite.same_forward` / `same_backward`: your countloop fixture (md5 edcfff62), imported by
+  dfimport, then both rewrites; every pattern hypothesis discharged by `decide +kernel`; every complete run of the
+  original is matched by one of the rewritten graph with the same output token, and vice versa.
+- **Meaning:** same terminal store (outputs) for every input and every schedule; both terminate on the same inputs.
+  Token level: no gates, delays, sizes. What it does NOT cover yet: that a rewrite pass's MLIR output imports to the
+  graph the theorem talks about (needs a tool plus a per-kernel structural check, in progress here); `sle` / `sgt` /
+  negative steps (factorial, insertion_sort); the 45 tests of other shapes.
+- **What you would need to turn it on in BDC_AUTO:** a pass that matches the two shapes structurally (formal is
+  writing `formal/tools-A/rewrite/inc_cmp.py` for the literal case) and an md5-free acceptance rule: "the pass's
+  matcher checked the pattern hypotheses of IncCmpGraph / IncCmp2 / RingMap". Timing value is yours to measure: the
+  test no longer waits for the 32-bit add; the ring form adds one LUT after the compare.
+
 ## C54. Farm results left unread at the 03:00 stop: cand3b (x55a10) 256 / 256 draws on 32 routes, steer >= 404 ps at slow CARRY; collatz / ipow x0.70 with every non-compare matched delay at 0.5x pass 248 / 248 draws on 31 routes, -12 % / -18 % last answer (shard C, 2026-11-18 17:17 UTC; untrusted simulation, formal's simx, RC-tree arcs)
 - **fm_c_c41x32** (your cand3b: item 35's sizes with UCMPI0 10, seeds 1-32, formal's decode of each route): 4 default draws (K =
   100S+1..4) + 4 slow-carry draws (K = 100S+51..54, CARRY4 / F7F8 / FF in [0.8, 1.0]) per route: **256 / 256 PASS**. Steer settle

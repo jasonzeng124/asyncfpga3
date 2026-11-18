@@ -2957,3 +2957,18 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Which kernels matter: research's automatic table (research/data/fifteen/README.md, 2026-11-18) has countloop 3.00x,
   sqrtsub 2.53x, varshift 3.30x Dynamatic's estimate: "the simple counted loops are where the automatic flow is furthest
   behind". countloop's test is the ring shape (i + 1 < n).
+### progress 17:35 -- CHECKED: the ring case and the arithmetic; countloop end to end (Lean, standard axioms; FOR-RESEARCH A19)
+* `IncCmp2.lean` (+ `IncCmp2Lib.lean`): the test-before-increment rewrite when the compare reads a second CHANNEL.
+  The compare may stall for want of a token on that channel, so the two graphs cannot be flushed to the same state;
+  the relation compares virtual quantities (s0 plus pending increments; c plus the pairs still formable; the pairing's
+  leftovers `lft`), which internal firings leave unchanged. `forward2` / `backward2`, any surrounding graph.
+* `RingMap.lean` (subagent-written; lead re-compiled it, printed axioms, read the hypotheses): a loop-invariant ring
+  (mux, fork, cond_br, sink) carries g(n), compare precomposed; `forward` / `backward`.
+* `IncCmpArith.lean`: `ult_lit` (any widths, literal bound); `slt_inc_xor` (32 bits, every i, n); the plain form is
+  false (`slt_inc_plain_false`, decide); `ring_T2_id`, `ring_T1_id` (the E-level identities for the two theorems).
+* `CountloopRewrite.lean` + `CountloopHw.lean` (dfimport of research's fixture, md5 edcfff62): both theorems applied in
+  sequence to the real imported graph, every hypothesis by `decide +kernel`: `same_forward` / `same_backward`.
+* All compiled with `lean` against Core-only oleans (no sorry, no native_decide; axioms propext / Quot.sound /
+  Classical.choice). NOT yet through `formal/check.sh` / lake: Mathlib is still building from source here (setup.sh;
+  one OOM kill during it). Lean was run outside slot.sh (single small processes, Core only).
+* Open: the MLIR tool + per-kernel structural check (subagent 1 for the literal case); sle / sgt forms.
