@@ -27,15 +27,9 @@ def ins_outs(r):
     if k == 'cm': return [r[1]], [r[2], r[3]]
     if k == 'sink': return [r[1]], []
 
-def main():
-    name, ev = sys.argv[1:3]
-    rs = load(ev)
-    ring = open(os.path.join(ROOT, f'formal/lean/Formal/Rewrite/Ring/{name}.lean')).read()
-    pr = [int(x) for x in re.search(r'patRing : RingMap\.Pat rules rs1 ([\d ]+) fSlt', ring).group(1).split()]
-    pt = [int(x) for x in re.search(r'patTest : Pat2 rs1 rs2 ([\d ]+) fInc', ring).group(1).split()]
-    # RingMap.Pat ... lM lF lB lS lC lD sel ne ne' r r0 k nb nx cnd y c w
+def analyse(rs, pr, pt):
+    """Find the two pairs, the classes and the PlainPass certificate on rs2 (tuples as rules_iso.load gives)."""
     ne, nep, rr, r0, kk, nb = pr[7], pr[8], pr[9], pr[10], pr[11], pr[12]
-    # Pat2 lA lF lC e s s0 y c k e0 e1
     tA, tF, tC, te, ts, ts0, ty, tc, tk, te0, te1 = pt
     prod = {}
     for l, r in enumerate(rs):
@@ -65,16 +59,16 @@ def main():
     while work:
         ch, c = work.pop()
         if ch in cls:
-            if cls[ch] != c: sys.exit(f'class conflict on {ch}')
+            if cls[ch] != c: raise Refused(f'class conflict on {ch}')
             continue
         cls[ch] = c
-        if ch in (0, 1, 2): sys.exit(f'argument channel {ch} needs class {c}')
+        if ch in (0, 1, 2): raise Refused(f'argument channel {ch} needs class {c}')
         l = prod[ch]; r = rs[l]
         if l == lBt:
-            if not (ch == test['t'] and c == 1): sys.exit(f'test branch output {ch} class {c}')
+            if not (ch == test['t'] and c == 1): raise Refused(f'test branch output {ch} class {c}')
             continue
         if l == lBg:
-            if not (ch == ne and c == 2): sys.exit(f'guard branch output {ch} class {c}')
+            if not (ch == ne and c == 2): raise Refused(f'guard branch output {ch} class {c}')
             continue
         if r[0] == 'fork': work.append((r[1], c))
         elif r[0] == 'mux': work += [(d, c) for d in r[2]]
@@ -84,23 +78,46 @@ def main():
         elif r[0] == 'comp' and c == 1 and r[3] == ('bin', ('addi',), 32, ('var', 0), ('lit', 4294967295)) \
                 and r[1] == [ne]:
             special[l] = 'dec'; work.append((ne, 2))
-        else: sys.exit(f'channel {ch} class {c}: producer {l} {r} not allowed')
+        else: raise Refused(f'channel {ch} class {c}: producer {l} {r} not allowed')
     c1 = sorted(k for k, v in cls.items() if v == 1); c2 = sorted(k for k, v in cls.items() if v == 2)
     assert c2 == [ne], c2
     assert sorted(special.values()) == ['dec', 'extui'], special
     lExt = [l for l, v in special.items() if v == 'extui'][0]; lDec = [l for l, v in special.items() if v == 'dec'][0]
     extIn, extOut = rs[lExt][1][0], rs[lExt][2]
 
+    f = dict(M=pr[0], F=pr[1], B=pr[2], S=pr[3], C=pr[4], sel=pr[6], ne=ne, **{"ne'": nep}, r=rr, r0=r0, k=kk,
+             nb=nb, nx=pr[13], cnd=pr[14], y=pr[15], c=pr[16], iw=pr[17], lb=tA, ld=tF, e=te, s=ts, s0=ts0,
+             e0=te0, e1=te1, gF=lFg, gC=lCg, gK=lKg, gB=lBg, ge=guard['e'], gd=dg, gx=xg, gc=cg, gcb=cbg, gk=kg,
+             gt=ne, gf=guard['f'], gos=guard['os'], tK=lKt, tB=lBt, tcb=test['cb'], tt=test['t'], tf=test['f'],
+             tos=test['os'], c1=c1, c2=c2)
+    assert pr[15] == ty and pr[16] == tc and pr[11] == tk and pr[4] == tC
+    return dict(guard=guard, test=test, c1=c1, c2=c2, lExt=lExt, lDec=lDec, extIn=extIn, extOut=extOut, cert=f,
+                lBg=lBg, lBt=lBt)
+
+def cert_lean(name, f):
+    return f'def c{name} : Cert where\n' + ''.join(f'  {a} := {b}\n' for a, b in f.items())
+
+class Refused(Exception):
+    pass
+
+def main():
+    name, ev = sys.argv[1:3]
+    rs = load(ev)
+    ring = open(os.path.join(ROOT, f'formal/lean/Formal/Rewrite/Ring/{name}.lean')).read()
+    pr = [int(x) for x in re.search(r'patRing : RingMap\.Pat rules rs1 ([\d ]+) fSlt', ring).group(1).split()]
+    pt = [int(x) for x in re.search(r'patTest : Pat2 rs1 rs2 ([\d ]+) fInc', ring).group(1).split()]
+    # RingMap.Pat ... lM lF lB lS lC lD sel ne ne' r r0 k nb nx cnd y c w
+    # Pat2 lA lF lC e s s0 y c k e0 e1
+    ne, nep = pr[7], pr[8]
+    tA, tF, tC, te, ts, ts0, ty, tc, tk, te0, te1 = pt
+    try:
+        A = analyse(rs, pr, pt)
+    except Refused as x:
+        sys.exit(str(x))
+    guard, test, c1, c2 = A['guard'], A['test'], A['c1'], A['c2']
+    lExt, lDec, extIn, extOut, lBg, lBt = A['lExt'], A['lDec'], A['extIn'], A['extOut'], A['lBg'], A['lBt']
     if len(sys.argv) > 3 and sys.argv[3] == '--cert':
-        f = dict(M=pr[0], F=pr[1], B=pr[2], S=pr[3], C=pr[4], sel=pr[6], ne=ne, **{"ne'": nep}, r=rr, r0=r0, k=kk,
-                 nb=nb, nx=pr[13], cnd=pr[14], y=pr[15], c=pr[16], iw=pr[17], lb=tA, ld=tF, e=te, s=ts, s0=ts0,
-                 e0=te0, e1=te1, gF=lFg, gC=lCg, gK=lKg, gB=lBg, ge=guard['e'], gd=dg, gx=xg, gc=cg, gcb=cbg, gk=kg,
-                 gt=ne, gf=guard['f'], gos=guard['os'], tK=lKt, tB=lBt, tcb=test['cb'], tt=test['t'], tf=test['f'],
-                 tos=test['os'], c1=c1, c2=c2)
-        assert pr[15] == ty and pr[16] == tc and pr[11] == tk and pr[4] == tC
-        print(f'def c{name} : Cert where')
-        for a, b in f.items(): print(f'  {a} := {b}')
-        return
+        print(cert_lean(name, A['cert']), end=''); return
     tpl = open(os.path.join(ROOT, 'formal/lean/Formal/Rewrite/Plain/CountloopPlainGen.lean')).read()
     s = tpl
     def sub(a, b, cnt=1):

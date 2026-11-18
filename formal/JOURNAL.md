@@ -3152,3 +3152,22 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   no kappa_lo.
 * FEASIBILITY row 9: C's StageNetRingLive (S >= 2T + 1 exact in the stage model), cycle_noTrap_iff_count, and
   LiveCerts / LiveCertsPass. Row 14: plain pre_dec is a certificate-checked pass.
+
+### progress 22:05 -- plain_pass.py: the pass as one command, applied only when Lean proves it (CHECKED on 5 fixtures + 2 controls)
+* `formal/tools-A/rewrite/plain_pass.py IN.mlir OUT.mlir`:
+  - runs `ring_dec.py --plain`, then dfimports IN and OUT;
+  - finds the pattern, the certificate (`gen_plain_gen.analyse`, refactored out of the generator; it still prints
+    the same certificates and PlainGen files byte for byte) and the renumbering (rules_iso);
+  - writes one Lean file about the two imports: `check rulesIn cX = true`,
+    `renCheck (rs2p rulesIn cX) rulesOut P Ti = true`, and `pass_forward` / `pass_backward`;
+  - compiles it with `lake env lean` and requires exit 0 and exactly propext / Classical.choice / Quot.sound.
+  - Exit 0 = PROVED; 2 = refused (OUT reset to IN); 3 = no match.
+* Results:
+  - countloop, horner, quadrec, varshift, xorshift: PROVED, about 40 s each. OUT is byte-identical to
+    out/<k>_plain.mlir.
+  - gcd: no match.
+  - Control 1, countloop with `cmpi sgt` -> `cmpi ne`: refused by the certificate search.
+  - Control 2, countloop with a corrupted certificate (no NotMin class), injected through a wrapper: refused by LEAN
+    (`decide` proved check = false).
+* ring_dec.py: the `--plain` message and docstring corrected (it said "corrected slt" and "not covered").
+* Census over research's 108 fixtures running.

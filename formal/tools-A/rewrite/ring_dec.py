@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """ring_dec.py IN.mlir OUT.mlir [--only CMPNAME] [--plain]
 
---plain: the test is plain `slt(i, m)` with no correction (exact only under the loop's entry invariant; NOT covered
-by the any-graph theorems -- needs a per-kernel proof).
+--plain: the test is plain `slt(i, m)` with no correction (exact only under the loop's entry invariant). Covered by
+`Formal.Rewrite.PlainPass` for every graph whose certificate passes its `check`; run it through `plain_pass.py`, which
+applies it only when Lean proves it for that MLIR.
  -- the loop test `slt(i + 1, n)` with n on a ring, rewritten so that
 the test does not wait for the increment (shard A, 2026-11-18).
 
@@ -113,7 +114,7 @@ def main():
                      f'{ind}%{t}dd = addi {NE}, %{t}dc {A("addi"+t+"d", bbne)} : <i32>\n' +
                      lines[nr].replace(f'[{NE}, {nb}]', f'[%{t}dd, {nb}]', 1))
         lines[:] = [x for x in lines if x is not None]
-        print(f"rewrote {cname}: test before the increment {name_of(ns + 1) if False else ''}(ring n -> n-1, corrected slt)")
+        print(f"rewrote {cname}: test before the increment (ring n -> n-1, {'PLAIN' if plain else 'corrected'} slt)")
         done += 1
         break  # one rewrite per run: line numbers moved; run again for the next one
     open(args[1], 'w').write('\n'.join(lines))
