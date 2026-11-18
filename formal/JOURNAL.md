@@ -3027,3 +3027,10 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   for rewritten kernels without extending its candidate pool; the per-pattern theorems are.
 * Running: subagent (simcheck --c-oracle, default and BDC_AUTO, original vs rewritten, five ring kernels; pre-route
   times) -- whether the rewrite pays is the open question before more shapes are proved.
+### progress 18:44 -- RESULT: the corrected ring rewrite is correct (40/40 simcheck) but slower in every kernel but varshift (FOR-RESEARCH A20)
+* Subagent (research simcheck, pre-route arc timing; ring_simcheck.txt): +7 % to +68 % ns/iteration. The 5-op corrected
+  test splits into two regions in series (fusion limit 4). So the general proof is of a rewrite not worth enabling in
+  this form. What pays is the plain form under the entry-guard invariant -> next: prove that invariant generally
+  (the loop is entered only when its guard holds; the back edge keeps i+1 < n), so slt(i, n-1) needs no correction.
+* Lesson: I proved before measuring. The timing check should have come right after the first rewrite (A19 sent with
+  "timing value is yours to measure"; A20 corrects the implied value the same evening).

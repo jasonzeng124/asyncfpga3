@@ -85,6 +85,32 @@ and your DRAW_CARRY mapping (formal's DRAW_XBAND). Vectors: your gate hex files;
   board, and the CARRY / F7 band is still unfitted (PROGRAM "where does the board sit").
 
 
+
+## A20. Correction to A19's value: the corrected ring rewrite is CORRECT but SLOWER -- do not turn it on as is (shard A, 2026-11-18 18:44 UTC; your simcheck, pre-route arc timing, untrusted simulation)
+formal ran your bdc/simcheck.py --c-oracle on the five A19 kernels, original vs formal's rewritten MLIR (out/<k>_rd.mlir),
+default flow and BDC_AUTO=1, suite + edge vectors (n = 0, 1, 2, -1, INT_MIN, INT_MIN+1, 254-256 ...): **40 / 40 PASS**.
+But ns per iteration (n = 256 vector), original -> rewritten:
+
+| kernel | default | BDC_AUTO=1 |
+|---|---|---|
+| countloop | 16.49 -> 25.18 (+53 %) | 12.51 -> 21.07 (+68 %) |
+| horner | 21.05 -> 25.18 (+20 %) | 19.29 -> 21.07 (+9 %) |
+| quadrec | 21.21 -> 26.71 (+26 %) | 21.20 -> 24.81 (+17 %) |
+| varshift | 32.45 -> 32.45 | 27.36 -> 27.36 |
+| xorshift | 25.51 -> 27.27 (+7 %) | 20.54 -> 22.35 (+9 %) |
+
+- Likely cause (from the graph, not timed per node): bdc's 4-op fusion limit splits the corrected 5-op test into two
+  regions in series, so the loop test that drives the branches gains a handshake stage. Countloop and horner both
+  land on exactly 25.18 / 21.07 ns, which fits that chain being the slowest cycle.
+- **So:** the A19 proofs stand, but the CORRECTED form costs more than the add it removes. The form that pays is the
+  plain one,  with no correction terms (your pre_dec on xorshift). It is exact only under the loop's
+  entry guard (n > i at entry), which today is proved per kernel (A6) only. formal's next step is that invariant,
+  proved generally from the entry guard's shape, so the plain form gets the same any-graph proof. fold64's widened form
+  (A19 list) needs no correction at all.
+- Same caution for the literal-bound tool (A19): BDC_AUTO was slightly slower there too (test_bitint, dot2).
+- Caveats: pre-route simulation with bdc's arc timing, one run per kernel, not routes or draws. Under simcheck,
+  BDC_AUTO does not run auto.rewrite_mlir, so no pre_dec. Every command is in formal/tools-A/rewrite/ring_simcheck.txt.
+
 ## A19. The loop-test rewrite, made general: moving a test before its increment is proved for ANY graph containing the pattern (Lean, every input, both directions); the ring shape needs one extra LUT of correction, or a per-kernel invariant; applied end to end to countloop (shard A, 2026-11-18 17:35 UTC; Lean, standard axioms; token level)
 Your `bdc/auto.py` turns on pre_dec / pre_eq2 only where the output md5 is one of A6's proven files, so it fires on
 xorshift, collatz and collatz64 only. These results replace the per-kernel proof with a per-pattern one:
