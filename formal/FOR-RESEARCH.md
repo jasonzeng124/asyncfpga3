@@ -337,7 +337,8 @@ monitor (formal/tools/live/cells/run.sh; RESULTS.md, RESULTS2.md, muxglitch.txt)
 - **Sweep finished (18:36; formal/tools/live/fixtures/RESULTS.md, results.jsonl):** 648 rows (108 fixtures x default / AUTO / AUTO
   after auto.py's rewrites x floor on / off). Floor ON, fixtures that FAIL: **matrix (default) and stencil_2d (default)**, nothing
   else; the only disagreements with your walk view are those two (both floors). Everything else that emits is LIVE-exhaustive,
-  except gcd AUTO and nest3 (both flows) which exceeded the state budget and are only SAMPLED-LIVE; isprime's two-invocation run
+  except gcd AUTO and nest3 (both flows) which exceeded the 1.2M state budget (rerun at 6M, 18:59: gcd AUTO LIVE 2.0M states,
+  nest3 default LIVE 2.7M states, both exhaustive; nest3 AUTO still only sampled); isprime's two-invocation run
   timed out (one invocation LIVE). Floor off: quadrec (both flows), nested / nest3 / lfsrfind (default) deadlock, as your
   ringfloor.md says. 232 rows refused by bdc, 20 crash in bdc's own memory check (matvec, test_constant_array,
   test_internal_array, test_unroll, trisolv) -- your refusals, not formal's.

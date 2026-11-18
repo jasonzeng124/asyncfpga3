@@ -4581,3 +4581,7 @@ theorems never read -- correctly unaffected). Not covered: select changes (C53/C
 
 ### progress 18:57 -- gcd AUTO (floor on) LIVE-exhaustive with a 6M budget: 2 015 153 states, overflow 0, 0 hazards, 1238 s
 (was SAMPLED-LIVE at 1.2M). nest3 default still running.
+
+### progress 18:59 -- nest3 default (floor on) LIVE-exhaustive: 2 718 974 states, overflow 0, 0 hazards (1336 s). With gcd AUTO,
+every emitting fixture with the floor on now has an exhaustive verdict except nest3 AUTO (sampled); only matrix and stencil_2d
+(default) deadlock. Result lines: formal/tools/live/fixtures/{nest3_def_on,gcd_auto_on}_6M.json.
