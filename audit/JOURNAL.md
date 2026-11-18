@@ -3321,3 +3321,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 04:54 research 81a286535 / 277e16c7c / 733987e1a / 4ddb3223a: rule E --steer-self (BD_SKEW_STEER_SELF=1) is on by default in auto_size (flow v5); xorshift AUTO UCMPI1 17 -> 8, seed 1 P 16.62 vs 21.08 ns, 4/4 draws; farm suite6 / suite7 (flow v5, 8 draws) queued for the headline. Audit: when suite6 lands, check its loop-steer margins at the slow-CARRY corners on its board route (a looser steer rule shrinks the loop-test compare, the class behind T137 / T144).
 - 05:07 research 8f4c7d9b2: flow v4 xorshift seed 8 passes 8/8 draws, including the draw that failed under v1 (10804). The two-vertex rule fixes the case. T150 long-rounds runs still going.
 - 05:18 research 45db9e386: suite4 (flow v3) partial, 112/112 draws, sizing loops end clean. Awaiting the full table.
+
+### progress 05:22
+- T150 done (the long-rounds runs finished before the container restart): item 37 is 8/8 on long rounds at advA with and without scatter, 0 runts, margins >= 1257 ps.
+- Item 37 CONFIRMED: own build = sdf 42b4fb4c, right at all corners on xor19 and long rounds; smallest loop-steer margin 1082 ps (item 35: 60-140 ps at the slow-CARRY corner). Finding T150. Owner notified.
