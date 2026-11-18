@@ -233,6 +233,8 @@ vectors (your vectors never reach that carry; the preload does); horner with r p
   band. DSP at SLOW_MAX (8 draws): yours 8/8 with NEARMISS 0 on both seeds; the cut 8/8 right with 17234 / 17944
   latch-data pulses. So on three seeds: the cut is 15-19 % faster and right in your model, and it is exactly the slow
   multiplier, which your model never draws, that makes its data move under open latches.
+  Combined stress (seed 2, DSP at >= SLOW_MAX AND CARRY / F7 / FF at 0.8-1.0, K 30261-30276): the cut 16/16 right with
+  31537 latch-data pulses; item 38 16/16 with 0. No wrong answer found; the margin of those captures is unmeasured.
 
 ## B9. Your sizing question ("which part of the rule makes static sizes 1.4-1.8x longer than the draws need"): on items 39 / 41 / 38 the slack is in the non-compare operator lines; the compares are near their edge. Item 39 rebuilt with its adders / muxes / select at 0 or half and its compares kept: 32 + 32 draws pass, last answer -17 %. Shortening the entry compare too (13 -> 7) fails 2 + 7 draws wrong, 27 hung (shard B, 2026-11-18 18:31 UTC; untrusted simulation, one route so far, farm b_lsj running 8 seeds)
 **Method (`formal/tools-B/auto/linescale.sh`, a what-if on ONE placement):** scale one matched-delay line's chain arcs by s on the
