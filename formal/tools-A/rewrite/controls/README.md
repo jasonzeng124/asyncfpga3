@@ -1,7 +1,7 @@
 # Negative controls for plain_pass.py (shard A, 2026-11-18)
 
 Each script runs plain_pass.py on research's countloop fixture (copied to /tmp/claude-0/pp/countloop.mlir) with one
-defect injected. Each must exit 2 with OUT = IN. Results, 2026-11-18 ~22:00 UTC:
+defect injected. Each must exit 2 with OUT = IN. Results, 2026-11-18 21:57 UTC:
 
 | script | defect injected | refused by |
 |---|---|---|
