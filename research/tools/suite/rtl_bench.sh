@@ -58,7 +58,7 @@ print("module top; wire r, g; %s u (.led_red(r), .led_green(g)); endmodule" % (s
 PY
 sed -i "s/BENCHTOP/${K}_bench_gen/" ps7_rtl.v
 # DCO >= the RAM model's clock-to-out + 3 arcs at this RTL_ROUTE_PS (the header's RAM BOUNDARY), unless RTL_KEEP_DCO=1
-DCO_DEFS=$(python3 - "$R/cells/sim/bd_prims_sim.v" "build/gen/${K}_kernel_bench.v" "${RTL_ROUTE_PS:-0}" "${RTL_KEEP_DCO:-0}" <<'PY'
+DCO_DEFS=$(python3 - "$R/cells/sim/bd_prims_sim.v" "build/gen/${K}_kernel_bench.v" "${RTL_ROUTE_PS:-0}" "${RTL_KEEP_DCO:-0}" 2>> emit.log <<'PY'
 import math, re, sys
 tco = int(re.search(r"`define BD_RAM_TCO\s+(\d+)", open(sys.argv[1]).read()).group(1))
 hop = 124 + int(sys.argv[3]); need = math.ceil((tco + 3 * hop) / hop)
@@ -70,7 +70,7 @@ if low and sys.argv[4] != "1":
 elif low:
     sys.stderr.write("rtl_bench: RTL_KEEP_DCO=1: %d DCO parameter(s) shorter than the RAM model's clock-to-out kept\n" % len(low))
 PY
-) 2>> emit.log
+)
 iverilog -g2012 -gspecify -Wno-timescale -DBD_ROUTE_PS=${RTL_ROUTE_PS:-0} $DCO_DEFS -o rtl.vvp "$R/cells/sim/bd_prims_sim.v" \
     "$R"/cells/rtl/*.v "build/gen/${K}_kernel_bench.v" "build/gen/${K}_bench_gen.v" ps7_rtl.v \
     "$R/cells/gls/ps/ps7_bench.v" "$R/cells/gls/ps/tb_ps.v" > compile.log 2>&1 \
