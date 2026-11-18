@@ -6449,3 +6449,22 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - eventgraph.py: with no cycle through its marker it now writes the marker's measured period instead of an IndexError
   (the reason the automatic ipow route had no P).
 - x55a10 seed 21 (board-item candidate, hand column): 3 corners + 15 draws so far, all PASS.
+### progress 02:16 (FIRST DRAW FAILURE of the automatic path: xorshift seed 8, the zero-trip call; the rule now sizes for the judge's band box)
+- Farm suite1 (flow v1), 23 of 32 back, routes judged (EQUIVALENT under its old checker) and their draws:
+  xorshift s1 21.08 4/4 (= the local route, P to the ps), s5 20.25 4/4, **s8 3 / 4**; collatz s2 21.15, s5 18.73, s6 17.68,
+  s7 (no P) all 4/4; collatz64 s6 22.48, s7 22.25 4/4; ipow s1 (no P), s3 25.23, s7 20.20 4/4. The rest were called NOT
+  EQUIVALENT by the old checker (xorshift s2 / s3 / s6 / s7, collatz s1, collatz64 s5, ipow s4 / s5 / s6) or timed
+  out routing at it 0 (collatz s3 / s4): research/tools/suite/farm_collect.py lists them for rejudge.sh.
+- **xorshift seed 8, draw 10804** (chains 0.2124, rest 0.2770, carry 0.2619): FAIL 18 / 19 -- batch 18, (x, rounds) =
+  (0x2468ace0, 0), the zero-trip call: both runs completed, the second returned the right value, the repeatability latch
+  says the two runs differed. The route's entry compare UCMPI0 = 5 (hand x55a10: 10, formal C41's fix for exactly this
+  loop-entry steer race). Cause in the rule: CA_SIZERULE sized with the delay chains and everything else at one band
+  (0.21), while the draws -- the judge -- take them independently from [0.20, 0.31]; a draw with fast chains and slower
+  logic and wires is outside what the rule covered.
+- Fix (56c8dea81): auto_size.sh runs the rule at the model's two worst vertices for the chains (0.20) with the rest at
+  0.20 and at 0.31 (CARRY4 / F7F8 / FF at SLOW_MAX in both) and keeps per line the max (merge_rules.py). A race's margin
+  is linear in the bands; the chains are on the request side, the rest on both. Cost on xorshift seed 1's final route:
+  0.20 -> 97 links, 0.31 -> 102, merged 103 (built 106); UCMPI0 7 -> 8, UMUX3 5 -> 6. Not yet checked: seed 8's own
+  route under the new rule (its sizes are in the farm results; rejudge after a re-size, next).
+- Lesson for the draw counts: 4 draws per route found this on 1 of 32 routes; the hand items were judged by 32 draws on
+  one route. The automatic routes need the same depth before any of them goes to BOARD-QUEUE.
