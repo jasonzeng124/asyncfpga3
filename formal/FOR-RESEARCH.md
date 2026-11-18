@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## C53. Liveness: your token-floor condition is exactly right for the stage model, proved in Lean -- a network of half-buffer stages with the routing fixed can only lose a stage forever through a cycle of the marked graph that holds no token, and with none, no reachable state deadlocks and every stage fires infinitely often in fair runs (shard C, 2026-11-18 17:15 UTC; Lean, core only; per-fixture results to follow in this item)
+## C53. Liveness: your token-floor condition is exactly right for the stage model, proved in Lean -- a network of half-buffer stages with the routing fixed can only lose a stage forever through a cycle of the marked graph that holds no token, and with none, no reachable state deadlocks and every stage fires infinitely often in fair runs (shard C, 2026-11-18 17:09 UTC; Lean, core only; per-fixture results to follow in this item)
 Your ringfloor.md "Derivation" argued it; `formal/lean/Formal/Net/StageNet.lean` proves it, for any finite network:
 - **Model** (yours): stage t excited iff every stage feeding it (through joins / forks / a mux select join / a steer routed one
   way) differs from it and every stage it feeds equals it; one fires at a time, any order. For a stage with one feeder and one
