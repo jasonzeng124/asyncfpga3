@@ -122,6 +122,18 @@ builds: every non-compare chain at 0.5x passes on 31 routes).
   | 41 xorshift s8 | xorshift_v3_s8_nc0.vh (UADDI0, UXORI2, UADDIDEC0, UMUX0-3 -> 0) | 8e1a90d4 | 32/32 + 32/32 | preload 8/8, +20 ns control fails only preloaded | 38.49 -> 36.46 us (-5.3 %) | 3 in one draw, latch data |
   One seed each (the board seed); xorshift gains little because its period is set by the x datapath ring and its
   compares (B4).
+- **Which part of your rule (read in your code and docs, 21:0x; not traced on every route):** the lines formal cut are the
+  ones your rule A'j sizes against their OWN request because it gives no join credit there. Your
+  research/data/sizerule/joinaware.md (lines 18-23, 200-213) says it: collatz's uaddi1 / ucmpi2 join at ucond_br5 is not
+  credited (the siblings meet only through the loop's control merge, more than one crossing back, and the structure
+  check rejects acknowledge laps), so UADDI1 is padded to 3 with the flag and 11 without; item 39 ships 12. Then
+  ratchet.py (lines 40-50) pins every raise, adds +1 headroom in the raise-only phase, and merge_rules takes the max of
+  the two corners, so a raise made on one route is never undone on the next. Rows whose knob is not a sized line are
+  padded on the line with the steepest measured slope (corner_audit pad_target), which can be an adder / mux / select
+  line on the request leg of a compare race. Formal's data say the uncredited joins are safe to credit on these four
+  kernels: UADDI1 at 0 passes everywhere on three collatz seeds and the collatz64 / ipow / xorshift analogues at their
+  board seeds. A credit carried through the loop's control merge (the forward-firing argument over more than one
+  crossing) is the rule change this points at; the compares themselves have no such slack.
 Plainly: in formal's model, item 39's adders, muxes and select lines can go to 0 and its 3n+1 line to half on a rebuilt
 route, for about a sixth off the last answer; its entry compare cannot be halved. Which part of your rule sizes those
 non-compare lines is yours to find; candidates: sizing each operator to its own datapath without crediting the join

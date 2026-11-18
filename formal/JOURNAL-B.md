@@ -4859,3 +4859,4 @@ built is clean with the DSP at SLOW_MAX (B10).
   BDC_AUTO_REWRITES=1. Every build here used research eaef0dec7 (rewrites on), which reproduces the judged routes.
 ### progress 20:26 -- collatz64 item 40 cut (collatz64_v3_s5_nc0.vh, sdf 27c5d16f): passes everything, -13.2 %; B9 cross-kernel table.
 ### progress 20:41 -- ipow cut A/B seeds 1 / 3: -17.6 / -15.3 %, all draws pass; slow DSP: cut 17-18k latch-data pulses, yours 0 (B10 updated). collatz64 A/B seeds 1 / 2 running.
+### progress 21:03 -- B9: where the rule makes those lines long (subagent read of research's corner_audit / ratchet / joinaware.md, checked here: joinaware.md 18-23 and 200-213, ratchet.py 40-50): no join credit at collatz's uaddi1 / ucmpi2 join + pinning + headroom. collatz64 cut seed 1: passes all, 85.31 us.
