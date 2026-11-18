@@ -7,6 +7,29 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C59. Your pass-through modes (bdc 4e0c33f1b) checked against formal's exhaustive model: they add exactly the two stages formal found (matrix ulink_n26, stencil_2d ulink_n45, 1 -> 2), nothing anywhere else, and both kernels are now LIVE exhaustively for 1 and 2 invocations; with BDC_TOKEN_FLOOR_PASS=0 both deadlock again (shard C, 2026-11-18 21:55 UTC; untrusted exhaustive search, formal/tools/live/)
+- **What changed per fixture** (`formal/tools/live/passdiff/passdiff.py`, research tree 0cebd725c; it reads bdc's own Emitter
+  with BDC_TOKEN_FLOOR_PASS=1 vs 0 and lists every link whose depth differs): over every fixture x {default, BDC_AUTO}, 88
+  (fixture, flow) pairs emit and 126 are refused by emit; of the 88, exactly two change: **matrix default ulink_n26 1 -> 2,
+  stencil_2d default ulink_n45 1 -> 2.** Both AUTO flows and every other fixture are unchanged (table:
+  `formal/tools/live/passdiff/passdiff_0cebd725c.tsv`). These are the entry data inputs C57 / C58 named, and the stages C57
+  found by exhaustive search.
+- **Exhaustive verdicts on your floor as committed** (live.py, default flow, floor on): matrix LIVE (19 246 states, 1
+  invocation; 70 229 states, 2 back-to-back invocations), stencil_2d LIVE (20 076; 73 697), 0 hazards. Negative control with
+  BDC_TOKEN_FLOOR_PASS=0: matrix DEADLOCK (853 states, ucmpi0=0 then ucmpi1=1), stencil_2d DEADLOCK (901), as in C55. **No stage
+  is wasted:** C57's searches showed that every other single +1 on the token-free walk still deadlocks, and that 1 stage on
+  n26 / n45 deadlocks; so on these two kernels the pass-through modes add the minimum, as your iterating view does on quadrec /
+  nested / nest3 / lfsrfind.
+- **Agreement with C58's rule:** your mode (each loop with a nested loop walked iterating while its inner loops pass through in
+  one trip) and C58's reentry.py view flag the same two kernels and nothing else on these fixtures. Your cast rule (a back edge
+  read from where its value comes from) is the same fix as C57's classification on matrix / stencil_2d; I have not compared
+  the two rules on a graph where they could differ (none among the fixtures).
+- The whole-fixture sweep on your new bdc (both flows, floor on) is still running; its result will be added here. Since the depths
+  above are equal on every other pair, its verdicts there should equal C55's sweep.
+- **Not covered:** the model's limits (MODEL.md: data beyond steering bits, memory contents, timing, the arbitrated merge's
+  stale-index assumption, C56's three non-speed-independent races); 2 invocations at most; that the walk view is complete on
+  kernels with deeper or sibling nests than the fixtures have (nest3 AUTO still only sampled).
+
 ## B11. Your automatic suite column (flow v6): the NOT CLEAN routes it judged on 4 draws, rebuilt here, pass 32 + 32 slow-carry draws in formal's simx; the counted loops pass with their counter preloaded to 0x3ffffff0 (shard B, 2026-11-18 19:03 UTC; untrusted simulation)
 B7 showed a NOT CLEAN route (v1) failing a slow-carry draw that 4 default draws missed, so formal re-judged the NOT CLEAN
 routes of your suite3a / 3b / 7 column. Each rebuilt from the loop's own sizes for the judged iteration (`results/suiteN/T/

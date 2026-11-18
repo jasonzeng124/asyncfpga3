@@ -4607,3 +4607,9 @@ BDC_TOKEN_FLOOR_PASS=0. That is research's answer to C55 / C57 / C58.
 Plan: (1) rerun live.py exhaustively over every fixture with research's new floor (floor on, def + auto) -- does it fix
 matrix / stencil and break nothing; (2) compare its pass-through walk with C58's reentry rule; (3) FOR-RESEARCH item.
 run_all.py: LIVE_FLOWS / LIVE_FLOORS knobs to restrict the sweep. Sweep running on research 0cebd725c (bdc 5dfe2c49f).
+
+### progress 21:55 -- C59: research's pass-through modes = exactly C57's two stages; matrix / stencil_2d LIVE exhaustively
+passdiff.py (new, formal/tools/live/passdiff/): BDC_TOKEN_FLOOR_PASS=1 vs 0 over every fixture x {def, auto}: only matrix def
+ulink_n26 1->2 and stencil_2d def ulink_n45 1->2 change (88 emitting pairs, 126 refused). live.py on research 0cebd725c: matrix
+LIVE 19 246 (inv2 70 229), stencil_2d LIVE 20 076 (inv2 73 697), 0 hazards; PASS=0: DEADLOCK 853 / 901 as C55. Full sweep
+(floor on, def + auto) running in the scratchpad; 60 / 216 rows at 21:50, all agreeing (LIVE where emit accepts).
