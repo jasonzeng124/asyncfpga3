@@ -3245,3 +3245,18 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 00:17 research cbad99cc3 / aa8f4bc8a / 3b8381e0d: the suite table's Dynamatic column = cycles simulated on Dynamatic's on-merges circuit (answers checked against C) x a period ESTIMATED from Dynamatic's timing model (no Dynamatic place-and-route). Audit watch: any 'x times Dynamatic' headline must say Dynamatic's side is an estimate (no route, no board) while ours is GLS at a band. Otherwise OVERSTATED by the owner's rule.
 - 00:24 research a74851fb5 bandfit: x 0.213-0.227 over five kernels, y not placed (0 ps/iter). Consistent with own T138 / T140 / T145; xorshift caveat stated by research. T145 updated. research 745cb181a / 6fa7bfb57 (fasm_equiv folding rules) and 259c79a5d (pnrfix patch for the constant-sink defect, not installed): tooling, no claims.
 - 00:35 research 45b44f74b: suiteb paused. Bench ABI to 10 words and a memory host slot; 'memsum 4 seeds PASS' with the new host slot (patches pending a regression check, not applied). Audit: memsum is no longer the always-0 case once the port lands; check its expected values when claimed.
+
+### progress 00:53
+- research 365a5f295: first BDC_AUTO=1 routes, seed 1 only.
+
+  | Kernel | P | Draws | Hand-tuned best |
+  |---|---|---|---|
+  | collatz | 18.06 ns | 4/4 | item 31, 21.5 |
+  | collatz64 | 30.01 ns | running | item 32, 31.4 |
+  | xorshift | 21.08 ns | running | x55a10, 16.76 |
+
+  - Research itself calls it "a sample, not a result"; the farm suite1 (seeds 1-8) is queued.
+  - Audit points for when it is claimed:
+    - (a) The AUTO sizing loop did not converge: collatz "1 constraint short", collatz64 "NOT CLEAN" after 4 routes. The draws judge instead, so pass fractions need the CARRY-band caveat (T145).
+    - (b) The Dynamatic "measured" figures (xorshift 12.73, collatz 14.05, collatz64 17.84) are Dynamatic's routed static-timing period x simulated cycles, not board measurements (research/data/suite/dynamatic/README.md says "routed periods"). Headlines must not call them board-measured.
+    - (c) The final AUTO sizes are not committed, so no own rebuild is possible yet. Own reproduction (build, GLS with own oracle incl. n = 60975, steer monitors at advA / advC) when a route and its sizes are committed.
