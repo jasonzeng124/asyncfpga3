@@ -4578,3 +4578,6 @@ Running: live.py with a 6M-state budget on nest3 (default) and gcd (AUTO), the t
 uj1 (EA80) / uj0 (AE08), rst 0: selected -> C(req, ctl_req); unselected -> C(req, 0) (can only fall); rst 1 -> 0; by decide on the
 INIT bits. Mutants (a used bit flipped in either INIT) fail to compile (checked; a first mutant flipped an I5=1 bit, which these
 theorems never read -- correctly unaffected). Not covered: select changes (C53/C56 race), timing, glitches, X.
+
+### progress 18:57 -- gcd AUTO (floor on) LIVE-exhaustive with a 6M budget: 2 015 153 states, overflow 0, 0 hazards, 1238 s
+(was SAMPLED-LIVE at 1.2M). nest3 default still running.
