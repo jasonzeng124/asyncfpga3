@@ -7055,3 +7055,9 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   AUTO_FINISH=1, auditor T161). loopfast_small not filed: suite9r2 already resumes those loops.
 - CA_FAST equivalence so far: collatz64 2 / 2 corners identical, dot2 1 / 1, iterative_sqrt 1 / 1; quadrec running.
 - SIM-VS-BOARD row 6: ipow s4's start-up x was the only symptom of a real race (hangs).
+### progress 23:35 (CA_FAST on by default in the sizing loop)
+- Old rule vs CA_FAST=1 (ca_fast_e2e.sh, every output file compared, PYTHONHASHSEED pinned on both sides): collatz64
+  both corners IDENTICAL (781 -> 110 s per corner), dot2, iterative_sqrt and quadrec IDENTICAL on their first corner
+  (second corners still running); with loopfast's six kernels that is ten. auto_size.sh's rule step now runs with
+  CA_FAST=1 by default (CA_FAST=0: the old path). Requests already submitted are pinned to their commits; waiting ones
+  (suite9r2, gifast1) get it when the runner picks them up -- the same proposals, faster.

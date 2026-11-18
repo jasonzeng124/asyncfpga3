@@ -64,6 +64,11 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   # race's margin is linear in the two bands, the chains sit on the request side (worst at 0.20), the rest on both
   # sides (worst at either end).  One band for both (CA_SIZERULE's own default, 0.21) sized xorshift seed 8's entry
   # compare UCMPI0 at 5, and the draw with chains 0.212 / rest 0.277 got the zero-trip call wrong (farm suite1).
+  # CA_FAST=1 (default here since 2026-11-18 23:35 UTC; CA_FAST=0 the old path): corner_audit runs its audits once and
+  # forks every per-line sensitivity run from the base (research/tools/ca_fast.py, subagent loopfast): the rule step
+  # 8-10x faster (gcd ~34x), every output file byte-identical to the old path on xorshift, collatz, ipow, gather,
+  # collatz64, dot2, iterative_sqrt, quadrec routes (research/tools/auto/ca_fast_e2e.sh) and the gcd / isprime it-0
+  # proposals equal to the farm's old-rule ones (research/data/loopfast/).
   # PYTHONHASHSEED pinned (default 1): the rule iterates Python sets of pin names (find_chains), so the greedy shrink's
   # order among lines of equal length, and with it a proposal, could depend on the hash seed (loopfast, 2026-11-18).
   # CA_JOINAWARE=1 (default here; research/data/sizerule/joinaware.md): rule A' checks an operator's data where it is
@@ -78,7 +83,7 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   # default 1).  Passed through from the environment; unset, the rule is byte-identical.
   local c; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
     BD_SKEW_E_JOIN=${BD_SKEW_E_JOIN:-} BD_SKEW_E_JOIN_DEPTH=${BD_SKEW_E_JOIN_DEPTH:-1} \
-    PYTHONHASHSEED=${PYTHONHASHSEED:-1} \
+    PYTHONHASHSEED=${PYTHONHASHSEED:-1} CA_FAST=${CA_FAST:-1} \
     BD_SKEW_STEER_SELF=${BD_SKEW_STEER_SELF:-1} CA_JOINAWARE=${CA_JOINAWARE:-1} BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 \
       python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
         --band "$c" --inst-rx '\.chain\.g\[\d+\]\.u$:0.20' --out "$CA/rule_$c" > "$O/ca_${i}_$c.txt" 2>&1 &
