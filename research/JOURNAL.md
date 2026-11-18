@@ -6531,3 +6531,11 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - Two-hour re-read: PROGRAM unchanged since 081281596 (2 subagents until the reset).
 - Local v4 xorshift seed 8: phase 1 ended with 2 short (it 4); phase 2 (raise-only) it 5 still 5 short (-5..-278 ps:
   each re-placement moves margins by a few hundred ps); entry compare UCMPI0 now 9 (v1's route: 5), UCMPI1 13 (v1: 19).
+### progress 04:24 (rejudge1, 9 of 12: every route the old checkers refused is EQUIVALENT and passes 4 / 4; headroom in phase 2)
+- Rebuilt from their kept sizes on the farm, same sdf md5s as the original routes (determinism again): suite1 collatz s1
+  (533a7474 = the local seed-1 route) 18.06, xorshift s2 23.11, s3 23.18, s6 19.43, s7 23.21, ipow s5 21.78, s6 23.53;
+  suite2 collatz s5 19.32, ipow s2 21.53 -- all EQUIVALENT under today's checker, all 4 / 4 draws. Pending: collatz64
+  s5, ipow s4, and suite1 xorshift s8 with 8 draws.
+- Local v4 xorshift seed 8: the raise-only phase did not converge (it 5 / 6 / 7: 5, 3, 4 constraints short, -5..-278
+  ps); 58eaea666 gives phase-2 raises one element of headroom (AUTO_HEADROOM=1). suite3 (still waiting) will run it;
+  suite5 started at 2cfdd934b (v4 without headroom), suite4 at 312abcc32 (v3).
