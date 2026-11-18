@@ -2184,6 +2184,13 @@ def call_join_plan(func, end_node):
 
 STORE_DONE_SFX = "_stdone"
 
+# BDC_STORE_NOJOIN=1 -- THE ORDERING NEGATIVE CONTROL (research/data/suite/stores.md): the plan is made and checked,
+# the count tokens are sunk and the end join is built, but no completion join is inserted and every store's z is tied
+# off as before: memEnd = join(memStart held, ctrlEnd) with nothing ordering ctrlEnd after the stores.  Exists so the
+# ordering check (tb_store1.v's store count at out0) can be seen to fail.  Never set it for anything that will be
+# believed.
+STORE_NOJOIN = os.environ.get("BDC_STORE_NOJOIN", "0") == "1"
+
 
 def _rebuild_index(func):
     """func.producer / func.consumers after func.nodes changed: the parser's
@@ -2275,6 +2282,10 @@ def store_completion_rewrite(func):
     if not per_mc:
         func._bdc_store_plan = []
         return []
+    if STORE_NOJOIN:
+        plan = [(-1, None, "nojoin", [nodes[s].attrs.get("handshake.name") for _, ss in per_mc for s in ss])]
+        func._bdc_store_plan = plan
+        return plan
 
     taken = set(producer) | {a.ssa_name for a in func.args}
     hnames = {n.attrs.get("handshake.name") for n in nodes}

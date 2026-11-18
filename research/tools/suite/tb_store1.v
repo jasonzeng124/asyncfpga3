@@ -30,7 +30,10 @@ module tb_store1;
     reg [31:0] a_host_wdata = 0;
     wire a_host_ack;
     wire [31:0] a_host_rdata;
-    `K dut (.rst(rst),
+`ifndef KPARAMS
+ `define KPARAMS
+`endif
+    `K `KPARAMS dut (.rst(rst),
         .n_req(n_req), .n_ack(n_ack), .n_data(n_data),
         .x_req(x_req), .x_ack(x_ack), .x_data(x_data),
         .a_start_req(a_start_req), .a_start_ack(a_start_ack),
@@ -41,6 +44,17 @@ module tb_store1;
         .a_host_req(a_host_req), .a_host_ack(a_host_ack), .a_host_addr(a_host_addr),
         .a_host_wdata(a_host_wdata), .a_host_we(a_host_we), .a_host_rdata(a_host_rdata));
 
+    // THE ORDERING CHECK (-DSTORE_Z=<hierarchical z_req of the store station>, -DNSTORE=<stores per run as a function
+    // of the call's first operand word>): when out0 rises, every store of this run must have completed (its station's
+    // z has risen once per store).  A call whose out0 leaves first prints EARLY and fails.
+    integer zcount = 0, early = 0;
+`ifndef NSTORE
+    // fill's count, from its C: one store per trip of `for (i = 0; i < n; i++)`, so n stores for n > 0, else none
+ `define NSTORE(n) (($signed(n) > 0) ? (n) : 32'd0)
+`endif
+`ifdef STORE_Z
+    always @(posedge `STORE_Z) zcount = zcount + 1;
+`endif
     reg [31:0] vec [0:W*16-1];
     reg [31:0] exp [0:15];
     reg [31:0] mexp [0:D*16-1];
@@ -66,12 +80,18 @@ module tb_store1;
     // one call: the four input channels and the three output channels, each its own four-phase handshake
     task run_call(input [31:0] nn, input [31:0] xx, output [31:0] res);
         begin
+            zcount = 0;
             fork
                 begin n_data = nn; #200 n_req = 1; wait (n_ack === 1'b1); n_req = 0; wait (n_ack === 1'b0); end
                 begin x_data = xx; #200 x_req = 1; wait (x_ack === 1'b1); x_req = 0; wait (x_ack === 1'b0); end
                 begin #200 a_start_req = 1; wait (a_start_ack === 1'b1); a_start_req = 0; wait (a_start_ack === 1'b0); end
                 begin #200 start_req = 1; wait (start_ack === 1'b1); start_req = 0; wait (start_ack === 1'b0); end
-                begin wait (out0_req === 1'b1); res = out0_data; #300 out0_ack = 1; wait (out0_req === 1'b0); #300 out0_ack = 0; end
+                begin wait (out0_req === 1'b1); res = out0_data;
+`ifdef STORE_Z
+                      if (zcount !== `NSTORE(nn)) begin early = early + 1;
+                          $display("TBSTOREORD out0 with %0d of %0d stores completed: EARLY", zcount, `NSTORE(nn)); end
+`endif
+                      #300 out0_ack = 1; wait (out0_req === 1'b0); #300 out0_ack = 0; end
                 begin wait (a_end_req === 1'b1); #300 a_end_ack = 1; wait (a_end_req === 1'b0); #300 a_end_ack = 0; end
                 begin wait (p_end_req === 1'b1); #300 p_end_ack = 1; wait (p_end_req === 1'b0); #300 p_end_ack = 0; end
             join
@@ -106,7 +126,8 @@ module tb_store1;
             $display("TBSTOREMEM call=%0d bad=%0d", c, mbad);
             if (mbad) fails = fails + 1;
         end
-        $display("TBSTORE SUMMARY %s (%0d failure(s), %0d calls x %0d runs) at %0t ps", fails ? "FAIL" : "pass", fails, ncalls, nruns, $time);
+        if (early) fails = fails + early;
+        $display("TBSTORE SUMMARY %s (%0d failure(s), %0d early out0, %0d calls x %0d runs) at %0t ps", fails ? "FAIL" : "pass", fails, early, ncalls, nruns, $time);
         $finish;
     end
     initial begin #2000000000; $display("TBSTORE SUMMARY FAIL (timeout at %0t ps: a handshake never completed)", $time); $finish; end
