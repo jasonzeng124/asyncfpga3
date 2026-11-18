@@ -6775,3 +6775,17 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   straight seed 3 cut after it 2 and resumed here must rebuild it 3 / it 4 as b185f449 / 4896c89d and end CLEAN it=4.
 - Farm suite9 submitted: the 23 kernels with fewer than 4 judged routes x seeds 1-4 (92 tasks, 2 cores), flow v6, the
   state copied back every 5 min for a resume request (suite9r2) at the same commit.
+### progress 17:50 (AUTO_RESUME checked on both paths against a farm loop; suite9 running 92 tasks at once; 8th subagent)
+- Test 1 (continue a loop): farm suite3a's straight seed 3 state cut after it 2 (pins reconstructed from ratchet_2.txt),
+  resumed here (RUNS=/tmp/bot/runs_rt, nextpnr 6e5d224472232d5d): it 3 / it 4 rebuilt as b185f449 / 4896c89d with the
+  farm's ratchet lines (raised 7 negative 12 lowered 1 pinned 8; raised 0 negative 0), CLEAN it=4, EQUIVALENT, 1324
+  LUTs, latency 72 ns per call, 1 / 1 draw -- the farm's result line field for field (it had 4 / 4 draws).
+- Test 2 (resume after the loop finished, the shipped route not here): the farm's full state; the replay stopped at it 4
+  (clean, nothing lowered), rebuilt su_straight_3_4 = 4896c89d (the earlier run's md5), full stack and 1 / 1 draw as
+  above. Not exercised yet: the phase-2 switch inside a replay (only for state from the old script, which lacks
+  rule_I.vh: the resume then stops and ships what it has, logged).
+- Farm suite9 (92 tasks, 2 cores, flow v6 at eaef0dec7) runs all 92 at once since 17:03. The resume request is drafted
+  (suite9r2: the state of each timed-out task committed under research/data/suite/resume/suite9/, run in a worktree
+  at eaef0dec7); it is filed when suite9's tasks reach their limit (~21:05 UTC).
+- 8th subagent graphsearch (PROGRAM General first, item 1 and idea 6b): the event-graph storage search over every site
+  it can model, inside the flow if it pays; report by 22:40.
