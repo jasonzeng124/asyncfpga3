@@ -3034,3 +3034,9 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   (the loop is entered only when its guard holds; the back edge keeps i+1 < n), so slt(i, n-1) needs no correction.
 * Lesson: I proved before measuring. The timing check should have come right after the first rewrite (A19 sent with
   "timing value is yours to measure"; A20 corrects the implied value the same evening).
+### progress 18:53 -- plain form: countloop PROVED (autoproof_x, Lean) and faster in research's simcheck; others neutral (FOR-RESEARCH A21)
+* autoproof_x.py (copy of C's autoproof + v+/-1 pool + Houdini signed-inequality invariants; copies excluded from
+  atoms; hI0 tries auto_ops before rfl). Countloop orig + plain + Same compile, standard axioms.
+* horner / quadrec / varshift / xorshift: the generated Lean fails on the ORIGINAL kernels as well (omega on bit ops;
+  recursion limit in hI0), so moved to Wip/PlainRewrite (not claimed). Their timing gain is ~0 anyway.
+* simcheck plain vs orig (40 runs, all PASS): countloop -19 % (default) / -8 % (AUTO) total time; others within 0.3 %.

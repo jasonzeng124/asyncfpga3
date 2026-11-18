@@ -265,7 +265,8 @@ class Corr:
                         if i not in const and j not in const and all(o[1][i] == o[1][j] for o in self.obs[k]):
                             I.append((("var", i), ("var", j)))
                             break
-                terms = [("var", i) for i in range(nv) if i not in const] + [("lit", 0), ("lit", 1)]
+                copies = {a[1] for a, b in I if a[0] == "var" and b[0] == "var"}
+                terms = [("var", i) for i in range(nv) if i not in const and i not in copies] + [("lit", 0), ("lit", 1)]
                 for a in terms:
                     for b in terms:
                         if a == b or (a[0] == "lit" and b[0] == "lit"):
@@ -821,7 +822,7 @@ def emit(C, opt, P, cpath):
     w(f"theorem hin ({args} : Nat) : (ρ.getD 0 []).map (E.eval (P.entry.map (E.eval {argl}))) = {argl} := by")
     w("  first | rfl | (simp only [ρ, P, List.getD, List.map, List.cons.injEq, and_true]; auto_ops)\n")
     w(f"theorem hI0 ({args} : Nat) : InvH (Is.getD 0 []) (P.entry.map (E.eval {argl})) := by")
-    w("  first | rfl | (simp only [InvH, Is, P, List.getD, List.map, List.cons.injEq, and_true]; auto_ops)\n")
+    w("  first | (simp only [InvH, Is, P, List.getD, List.map, List.cons.injEq, and_true]; auto_ops) | rfl\n")
     w("/-! ## The whole function, on every schedule -/\n")
     w(f"theorem reach_kC {{fuel {args} r : Nat}} (h : kC fuel {args} = some r) :")
     w(f"    Reach (St T0 {argl}) (St T{ga.fin} [r]) :=")
