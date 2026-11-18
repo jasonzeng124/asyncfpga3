@@ -34,8 +34,12 @@ With `StageNet.deadlock_free` / `fair_all_fire`, "no trap" means: no reachable d
 stage fires infinitely often in weakly fair runs; with `trap_dead`, a trap means some stage
 (here: every stage of the trap) is dead forever.
 
-**Not covered:** everything `StageNet` leaves out (H_RENDEZVOUS, mode changes, timing, data);
-rings with side branches (forks / joins): those are the general `StageNet` / certificates.
+**Scope.** The iff statements are about a network that IS the cycle. For a ring or fork-join pair
+inside a kernel the conditions are necessary (`hasTrap_mono`); that they are also sufficient
+needs them on every cycle of the kernel's stage graph (`StageNet.cycle_of_trap`: a trap contains
+a token-free closed walk), which is what research's walk view and formal's certificates check.
+
+**Not covered:** everything `StageNet` leaves out (H_RENDEZVOUS, mode changes, timing, data).
 -/
 
 namespace Formal.Net.StageNet.RingLive
