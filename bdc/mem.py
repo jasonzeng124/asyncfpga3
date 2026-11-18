@@ -229,9 +229,10 @@ if NEG_STORE not in ("", "addr", "data"):
     raise SystemExit(f"BDC_MEM_NEG_STORE={NEG_STORE!r}: addr, data or unset")
 
 # BDC_MEM_FASTFALL=1 (off by default; unset, the emitted text is unchanged byte
-# for byte): every bd_mem of every port gets FASTFALL(1) -- its setup and
-# clock-to-out lines still rise through DSETUP / DCO elements and fall in one
-# element (cells/rtl/bd_mem.v FASTFALL says why the falls carry no obligation).
+# for byte): every port's RAMs are bd_mem_ff instead of bd_mem -- the same cell
+# whose setup and clock-to-out lines still rise through DSETUP / DCO elements
+# and fall in one element (cells/rtl/bd_mem_ff.v says why the falls carry no
+# obligation, and why it is a second module rather than a bd_mem parameter).
 # Why: the port's return to zero runs back through both lines, so every access
 # paid DSETUP + DCO twice, and on a memory kernel's loop the station's release
 # (hold waits for p_ack to fall) puts that fall on the critical cycle
@@ -511,9 +512,8 @@ def emit_port(aw, dw, slots=1, arb=False):
             rams.append(f"    wire [{RAM_DW - hi - 1}:0] rd_hi{i};")
             rd = f"{{rd_hi{i}, p_rdata[{lo + hi - 1}:{lo}]}}"
         rams += [
-            f"    bd_mem #(.AW({aw}), .DW({RAM_DW}),",
-            f"             .DSETUP(DSETUP_{i}), .DCO(DCO_{i}), .USE_BUFG(0)"
-            f"{', .FASTFALL(1)' if MEM_FASTFALL else ''}) umem{i} (",
+            f"    {'bd_mem_ff' if MEM_FASTFALL else 'bd_mem'} #(.AW({aw}), .DW({RAM_DW}),",
+            f"             .DSETUP(DSETUP_{i}), .DCO(DCO_{i}), .USE_BUFG(0)) umem{i} (",
             f"        .req(m_req), .ack(ram_ack[{i}]),",
             f"        .addr(m_addr), .wdata({wd}), .we(m_we),",
             f"        .rdata({rd}));",
