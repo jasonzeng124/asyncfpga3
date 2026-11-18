@@ -7061,3 +7061,21 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   (second corners still running); with loopfast's six kernels that is ten. auto_size.sh's rule step now runs with
   CA_FAST=1 by default (CA_FAST=0: the old path). Requests already submitted are pinned to their commits; waiting ones
   (suite9r2, gifast1) get it when the runner picks them up -- the same proposals, faster.
+### progress 23:56 (bitsdefect: cmpchain's and test_flatten_array's "NOT EQUIVALENT" was the checker; fasm_equiv fixed)
+- **bitsdefect** (e060d7980; evidence research/data/suite/bitsdefect/): the flagged F7 / F8 cells are DEAD logic -- LUT8
+  trees (yosys lut_map: one F8 over two F7s over four LUT6s) whose output nothing reads, from bdc's keep_hierarchy fused
+  modules with outputs partly unconnected (test_flatten_array: fused shifts computing 64 bits of which 9 are used;
+  cmpchain: ucontrol_merge4's z_data unconnected). nextpnr writes an output-mux setting only for a site pip a net uses,
+  so the bits correctly carry none for a dead output; fasm2net correctly decodes no such cell; fasm_equiv looked one level
+  deep for loads and flagged the always-on (no-bit) routing tails into the dead selects. Fix: a cell is dead when every
+  load is dead (transitively; pads, PS7, BUFG, DSP, BRAM never); a dead JSON-only cell is a benign kind; a no-bit pip is
+  excused only when every site pin it reaches is read only by dead, unconfigured cells. Controls still flagged: pnrfix's
+  F7-select defect (ipow x0.55 s19, unpatched binary), its three flop-D routes, its two constructed controls, and a new
+  control (three live features deleted from test_flatten_array's FASM: NOT EQUIVALENT, the dead cells still benign).
+  Regression over 65 decoded routes on this node: 64 verdicts and count lines identical, test_flatten_array -> EQUIVALENT.
+- cmpchain s1 / s4 rebuilt at eaef0dec7 = the farm's routes (sdf a796dad1 / e509aaee): EQUIVALENT under the fixed
+  checker, **4 / 4 draws PASS 17/17 on each** (bits-decoded GLS, expected values from the C). Farm survey: the only
+  routes of this kind are these two; the 120 flop "HAS LOADS" cells elsewhere are the real const-sinks defect on routes
+  built before the patch.
+- Open (bdc, efficiency): 14 % of test_flatten_array's LUT bels compute outputs nothing reads, and their selects add
+  routed fanout to live nets.
