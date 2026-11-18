@@ -4566,3 +4566,6 @@ loop re-entry mode (formal/tools/live/reentry/), validated against live.py. Next
 Condition 2 in the one-trip pass-through mode: fork = inner header control_merge, Q = result -> exit steer -> enclosing back edge
 (1 token) -> enclosing header -> inner mux entry input (1 stage) vs P = index -> select. Reproduced rc on matrix/stencil (1),
 test_flatten_array/gcd/quadrec/nested (0), matrix n26=2 and AUTO (0). Evidence thin on the positive side (2 fixtures).
+
+### progress 18:36 -- fixture sweep finished (648 rows): floor on, only matrix and stencil_2d (default) fail; C55 updated
+Sampled only: gcd AUTO, nest3. isprime 2-invocation timed out. Floor-off deadlocks as research's ringfloor.md. RESULTS.md regenerated.

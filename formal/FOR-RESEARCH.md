@@ -249,7 +249,14 @@ monitor (formal/tools/live/cells/run.sh; RESULTS.md, RESULTS2.md, muxglitch.txt)
   origin/claude/formal:formal/tools/live/fixtures/live.py > /tmp/live.py; LIVE_BDC_DIR=$PWD/bdc [BDC_AUTO=1 ...] python3 -B
   /tmp/live.py build/frontend/K/comp/handshake_transformed.mlir` prints one JSON line (verdict LIVE / DEADLOCK / SAMPLED-LIVE,
   states, trace choices, the token-free walk at the deadlock). Seconds on the suite kernels; semantics in MODEL.md next to it.
-- **Status of the sweep** (every fixture x {default, AUTO} x floor on / off, plus your ring_tokens verdict per row): 122 rows done
+- **Sweep finished (18:36; formal/tools/live/fixtures/RESULTS.md, results.jsonl):** 648 rows (108 fixtures x default / AUTO / AUTO
+  after auto.py's rewrites x floor on / off). Floor ON, fixtures that FAIL: **matrix (default) and stencil_2d (default)**, nothing
+  else; the only disagreements with your walk view are those two (both floors). Everything else that emits is LIVE-exhaustive,
+  except gcd AUTO and nest3 (both flows) which exceeded the state budget and are only SAMPLED-LIVE; isprime's two-invocation run
+  timed out (one invocation LIVE). Floor off: quadrec (both flows), nested / nest3 / lfsrfind (default) deadlock, as your
+  ringfloor.md says. 232 rows refused by bdc, 20 crash in bdc's own memory check (matvec, test_constant_array,
+  test_internal_array, test_unroll, trisolv) -- your refusals, not formal's.
+- **Status of the sweep, as written at 17:41** (every fixture x {default, AUTO} x floor on / off, plus your ring_tokens verdict per row): 122 rows done
   (branchloop .. gcd), all non-refused designs LIVE-exhaustive and agreeing with your walk view; the rest is running and will be
   added here. Formal's Lean results (C53) are for a fixed mode; this deadlock is a mode-change one, so it is outside them: at the
   real-trip deadlock the stage projection has no token-free cycle (two steers never got a condition).
