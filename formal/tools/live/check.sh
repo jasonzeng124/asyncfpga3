@@ -1,8 +1,8 @@
 #!/bin/sh
 # check.sh MLIR [MAX_STATES] -- formal's exhaustive liveness check of the circuit bdc emits for one handshake MLIR.
 # Runs formal/tools/live/fixtures/live.py (model: fixtures/MODEL.md) under the BDC_* environment you run it with
-# (BDC_AUTO, BDC_TOKEN_FLOOR, BDC_LINK_DEPTHS, ...), on research's bdc at LIVE_BDC_DIR (default: ../bdc of the
-# checkout this script is in if it has one, else /home/user/rs/bdc). Prints one line and the result JSON (last line).
+# (BDC_AUTO, BDC_TOKEN_FLOOR, BDC_LINK_DEPTHS, ...), on research's bdc at LIVE_BDC_DIR (default /home/user/rs/bdc, a
+# checkout of claude/research; NOT this branch's bdc/, which is stale). Prints one line and the result JSON (last line).
 # Exit: 0 LIVE (every reachable state of the model searched, 1 invocation; LIVE_INV=2 for two back-to-back),
 #       1 DEADLOCK (prints the condition choices that reach it and the token-free walk, in instance names),
 #       2 not decided (state budget, crash, refused by emit).
@@ -11,9 +11,8 @@ set -u
 M=${1:?usage: check.sh MLIR [MAX_STATES]}
 MAX=${2:-3000000}
 HERE=$(cd "$(dirname "$0")" && pwd)
-if [ -z "${LIVE_BDC_DIR:-}" ]; then
-  if [ -f "$HERE/../../../bdc/emit.py" ]; then LIVE_BDC_DIR=$(cd "$HERE/../../../bdc" && pwd); else LIVE_BDC_DIR=/home/user/rs/bdc; fi
-fi
+LIVE_BDC_DIR=${LIVE_BDC_DIR:-/home/user/rs/bdc}
+[ -f "$LIVE_BDC_DIR/emit.py" ] || { echo "live: no bdc at LIVE_BDC_DIR=$LIVE_BDC_DIR (set it to research's bdc/)"; exit 2; }
 export LIVE_BDC_DIR PYTHONDONTWRITEBYTECODE=1
 J=$(python3 "$HERE/fixtures/live.py" "$M" --inv "${LIVE_INV:-1}" --max-states "$MAX" 2>/dev/null | grep '^{' | tail -1)
 [ -n "$J" ] || { echo "live: CRASH (no result; run fixtures/live.py by hand for the error)"; exit 2; }
