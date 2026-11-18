@@ -1230,6 +1230,9 @@ def main():
                    "shortened lines priced at own mean step%s; selects sized by E/M; floor file %s"
                    % (a.band, (", capped by lowest chain mean c_mlo %s ps" % (int(c_mlo) if c_mlo else "-")) if SIZERULE_MLO
                       else "", SIZERULE_FLOOR or "none"))
+    if os.environ.get("BD_SKEW_STEER_SELF") == "1":   # rule E's --steer-self (cells/verify/skew.py (5)); unset: no line
+        rep.append("  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the "
+                   "select's own channel request is bounded by that request (research/data/sizerule/steerE.md)")
     if JOINAWARE:
         nj = sum(1 for k, c in cons.items() if k.startswith("A'j ") and c["rule"] == "A")
         rep.append("  join-aware: CA_JOINAWARE=1: %d operator(s) sized at their data's captures (A'j: latch data vs its "

@@ -124,6 +124,71 @@ def test_and_join_waits_for_its_last_reached_input():
         skew.AND_NODES.clear()
 
 
+
+def test_steer_self_floor_counts_the_channel_request_not_a_lap():
+    # (5) --steer-self.  Link A (C node C, latch X) feeds a compare P: X ->
+    # P's data -> the steer's select pin; C -> P's operand join -> P.uor ->
+    # P's delay -> one input (A2) of the steer's request join J.  J's other
+    # input (A1) is a sibling link's request, which C's walk reaches only by a
+    # lap: through X, the steer's own LUT and acknowledge, and the sibling's
+    # controller.  The bound must come from A2 only.
+    edges = defaultdict(list)
+    c_out = storage(edges, "K.ulink_a.ctl.u.u", ["A1", "A2"])
+    x_out = storage(edges, "K.ulink_a.lat.pair[0].u$LUT5", ["A1", "A2"])
+    jn = storage(edges, "K.ucmp.ujoin.u.g2.u.u", ["A1", "A2"])
+    sib = storage(edges, "K.usib.ctl.u.u", ["A1", "A2"])
+    j_out = storage(edges, "K.ust_j.u.g2.u.u", ["A1", "A2"])
+    edges[c_out] += [("K.ulink_a.lat.pair[0].u$LUT5/A1", 100), ("K.ucmp.ujoin.u.g2.u.u/A1", 50)]
+    edges[jn].append(("K.ucmp.uor/A1", 20))
+    edges["K.ucmp.uor/A1"].append(("K.ucmp.uor/O6", 10))
+    edges["K.ucmp.uor/O6"].append(("K.ucmp.udly.chain.g[0].u/A1", 30))
+    edges["K.ucmp.udly.chain.g[0].u/A1"].append(("K.ucmp.udly.chain.g[0].u/O6", 100))
+    tail = "K.ucmp.udly.chain.g[0].u/O6"
+    edges[tail].append(("K.ust_j.u.g2.u.u/A2", 40))
+    edges[x_out].append(("K.ucmp.uz/A1", 15))
+    edges["K.ucmp.uz/A1"].append(("K.ucmp.uz/O6", 10))
+    edges["K.ucmp.uz/O6"].append(("K.ust.u$LUT5/A4", 25))           # the select pin
+    edges["K.ust.u$LUT5/A4"].append(("K.ust.u$LUT5/O5", 10))         # through the gate itself
+    edges["K.ust.u$LUT5/O5"].append(("K.ust.uack/A1", 5))
+    edges["K.ust.uack/A1"].append(("K.ust.uack/O6", 10))
+    edges["K.ust.uack/O6"].append(("K.usib.ctl.u.u/A2", 5))          # the sibling's acknowledge
+    edges[sib].append(("K.ust_j.u.g2.u.u/A1", 5))
+    edges[j_out].append(("K.ust.u$LUT5/A1", 20))                      # the request pin
+    stops, binc, feed = graph(edges)
+    skew.AND_NODES.clear()
+    skew.AND_NODES.update({jn, j_out})
+    try:
+        ce = skew.walk(edges, stops, binc, feed, c_out, longest=False)
+        cl = skew.walk(edges, stops, binc, feed, c_out, longest=True)
+        inside = ("K.ulink_a.", "K.ucmp.")
+        fl = skew.self_request_floor(ce[0], ce[1], cl[0], j_out, x_out, binc, feed, stops,
+                                     inside, {jn}, tail)
+        # s(C -> J/A2) = 50 + 10 (join) + 20 + 10 + 30 + 100 + 40 = 260, + J's arc 10;
+        # l(C -> X) = 100 + 10.  Bound relative to X: 270 - 110.
+        assert fl is not None
+        floor, l_cx, ip, lvl, chain = fl
+        assert (floor, l_cx, ip, lvl) == (160, 110, "K.ust_j.u.g2.u.u/A2", 1)
+        assert chain[0] == (0, c_out) and chain[-1] == (1, "K.ust_j.u.g2.u.u/A2")
+        # X's own request walk reaches J only through the lap, earlier than the bound:
+        xe, _ = skew.walk(edges, stops, binc, feed, x_out, longest=False)
+        assert xe[2]["K.ust.u$LUT5/A1"] == 15 + 10 + 25 + 10 + 5 + 10 + 5 + 10 + 5 + 10 + 20
+        assert xe[2]["K.ust.u$LUT5/A1"] < floor + 20
+        # The same request leaving the producer through anything outside it (a
+        # merge's OR, here an instance not in `inside`) gives no bound.
+        assert skew.self_request_floor(ce[0], ce[1], cl[0], j_out, x_out, binc, feed, stops,
+                                       ("K.ulink_a.",), {jn}, tail) is None
+        # ... nor does a chain that misses the producer's request output.
+        assert skew.self_request_floor(ce[0], ce[1], cl[0], j_out, x_out, binc, feed, stops,
+                                       inside, {jn}, "K.ucmp.uz/O6") is None
+        # ... nor one whose join is not the producer's own.
+        assert skew.self_request_floor(ce[0], ce[1], cl[0], j_out, x_out, binc, feed, stops,
+                                       inside, set(), tail) is None
+        # A launch C does not open (not reached at level 0 of C's latest walk): no bound.
+        assert skew.self_request_floor(ce[0], ce[1], cl[0], j_out, sib, binc, feed, stops,
+                                       inside, {jn}, tail) is None
+    finally:
+        skew.AND_NODES.clear()
+
 if __name__ == "__main__":
     for n, f in list(globals().items()):
         if n.startswith("test_") and callable(f):

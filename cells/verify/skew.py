@@ -155,6 +155,16 @@ if "--slack" in _raw:
 STRICT_LAPS = "--own-gate-laps-off-strict" in _raw
 if STRICT_LAPS:
     _raw.remove("--own-gate-laps-off-strict")
+# --steer-self (or BD_SKEW_STEER_SELF=1): at a select gate whose request is a
+# positive C-element (a bd_join's bd_ctree) with the select's OWN channel
+# request among its inputs, a launch at a latch output of the select's source
+# link is checked against that request -- the join cannot fire before it.
+# See (5) below and self_request_floor().  Opt-in until reviewed; unset, every
+# output of this file is byte-identical.
+STEER_SELF = (os.environ.get("BD_SKEW_STEER_SELF") == "1"
+              or "--steer-self" in _raw)
+if "--steer-self" in _raw:
+    _raw.remove("--steer-self")
 if "--select-pads" in _raw:
     _i = _raw.index("--select-pads")
     PADS = pathlib.Path(_raw[_i + 1])
@@ -388,6 +398,75 @@ def walk(walked_edges, stops, binc, feed, launch, longest, term=None):
     return out, pred_out
 
 
+def self_request_floor(c_early, c_early_pred, c_late, J, X, binc, feed, stops,
+                       inside, joins_ok, via=None):
+    """(5) --steer-self: a lower bound, relative to the launch X, on when the
+    request C-element J of a select gate can fire, from the request of the
+    select's OWN channel.
+
+    X is a latch output of link L, and C is L's C node.  The latch is
+    transparent while C is high and its sender holds d until the latch has
+    closed (rule H), so X moves only when C opens it: X <= C + l(C -> X), the
+    latest arrival of X on C's own walk at level 0 (the enable net and the
+    EN -> Q arc).  The select's channel request is launched by the same C (its
+    request side, the producer's operand join, the producer's matched delay):
+    an input ip of J that C's EARLIEST walk reaches along that path rises no
+    earlier than C + s(C -> ip).  J is a positive C-element, so it fires after
+    every input:
+
+        J >= s(C -> ip) + arc(ip -> J) - l(C -> X)      relative to X.
+
+    Only a chain that IS the channel's request counts, checked on the chain
+    C's earliest walk actually recorded (path_to): every pin on it is inside
+    `inside` (L's and the producer's own instances; a fork's request fan-out
+    is wiring), every storage node it crosses is a positive C-element in
+    `joins_ok` (the producer's operand join), and it passes `via` (the
+    producer's request output) when given.  A chain through anything else --
+    another link's controller, a merge's OR, a steer, the gate itself -- is a
+    lap or a different token's request and gives no bound; the gate is then
+    checked exactly as without the flag.
+
+    -> (floor, l_cx, ip, level of ip on C's walk, chain to ip) or None."""
+    lx = None
+    for k, tab in enumerate(c_late):
+        if X in tab:
+            lx = (tab[X], k)
+            break
+    if lx is None or lx[1] != 0:
+        return None
+    best = None
+    for ip, arc in binc.get(J, ()):
+        if (J, ip) in feed:
+            continue
+        r = None
+        for k, tab in enumerate(c_early):
+            if ip in tab:
+                r = (tab[ip], k)
+                break
+        if r is None:
+            continue
+        chain = path_to(c_early_pred, r[1], ip)
+        if not chain or len(chain) < 2:
+            continue
+        nodes = [n for _, n in chain]
+        if via is not None and via not in nodes:
+            continue
+        ok = True
+        for n in nodes[1:-1]:
+            inst = n.rsplit("/", 1)[0]
+            if not any(inst.startswith(p) for p in inside):
+                ok = False
+                break
+            if n in stops and not (n in joins_ok and n != J):
+                ok = False
+                break
+        if ok and (best is None or r[0] + arc > best[0]):
+            best = (r[0] + arc, ip, r[1], chain)
+    if best is None:
+        return None
+    return best[0] - lx[0], lx[0], best[1], best[2], best[3]
+
+
 def path_to(pred_out, level, node):
     """The exact walk from `launch` to `node` at `level`, as a list of
     (level, node) pairs, launch first.  Reconstructed from `fwd`'s own
@@ -503,6 +582,51 @@ def main():
         return walk(edges if longest else early_edges, stops, binc, feed,
                     launch, longest, term)
 
+    # (5) --steer-self: the cells that can PRODUCE a select with a request of
+    # their own -- tighten's request sites (a `.uor` anchor) whose `.uor` has
+    # exactly ONE input, the operand join's output.  bd_merge's `.uor` ORs two
+    # requests and either one raises it, so a merge's request bounds nothing.
+    # -> {producer instance: its request output (chain tail, or the OR)}.
+    ops, ctree_nodes = {}, set()
+    if STEER_SELF:
+        ctree_nodes = {o for o in stops if RE_CTREE_C.search(o)}
+        outs_of = defaultdict(list)
+        for q in binc:
+            if T.is_output(q):
+                outs_of[T.pin_split(q)[0]].append(q)
+        for p, _head, tail, _links in T.request_sites(edges, srcs_of,
+                                                      T.find_chains(edges)):
+            ins = {ip for q in outs_of.get(p + ".uor", ())
+                   for ip, _ in binc[q] if (q, ip) not in feed}
+            if len(ins) == 1:
+                ops[p] = tail
+
+    def steer_self_site(rp, sp):
+        """(5): (J, arc J -> rp, producer, its request output) when the gate's
+        request pin is driven by a positive C-element J and its select comes
+        from a producer with a request (or straight from a link's latch:
+        producer None); else None -- the gate is checked as without the flag."""
+        drv = srcs_of.get(rp, set())
+        if len(drv) != 1:
+            return None
+        J = next(iter(drv))
+        if J not in ctree_nodes:
+            return None
+        wj = [w for d, w in early_edges.get(J, ()) if d == rp]
+        sd = srcs_of.get(sp, set())
+        if not wj or len(sd) != 1:
+            return None
+        dinst = T.pin_split(next(iter(sd)))[0]
+        P = max((p for p in ops if dinst.startswith(p + ".")), key=len,
+                default=None)
+        if P is not None:
+            return J, min(wj), P, ops[P]
+        if RE_LATCH_OUT.match(dinst):
+            return J, min(wj), None, None
+        return None
+
+    ss_stats = [0, 0, 0]        # (5): gates it applies to, launches floored, binding
+
     def divergence(out_f, pred_f, e, rp, out_t, pred_t, l, sp):
         """X, the last (level, node) the two MEASURED walks -- the shortest
         one that actually set the req arrival, the longest one that actually
@@ -583,6 +707,7 @@ def main():
     # footprint.  Evict oldest-first.
     CACHE_MAX = 64
     cache, rows, orphan = OrderedDict(), [], []
+    floored = {}                # (5): (parent, cell) -> the binding launch's bound
     for kind, parent, cell, rp, sp in checks:
         br, bs = back(rp), back(sp)
         # The launch is where the request and the select DIVERGE, and the
@@ -672,8 +797,29 @@ def main():
         # launch was such a latch output and its request walk ran through its
         # own gate.  A latch launch whose request then has no path is simply
         # not evaluated; the verdict is the MIN over what is.
+        # (5) --steer-self.  A launch at a LATCH OUTPUT X of link L reaches the
+        # select through the latch, but a positive C-element join on the
+        # request side is seeded only from the inputs X's own walk reaches at a
+        # level, and X does not reach the select's own channel request at all:
+        # that request starts at L's C node, which X cannot reach.  What X's
+        # walk does reach is a lap -- measured at xorshift's loop steers
+        # (research/data/sizerule/steerE.md): the select through this gate's
+        # own LUT to its acknowledge, a SIBLING input link's controller entered
+        # on its acknowledge, that link's next request into the join, and the
+        # join credited as firing on it alone.  When the join has the select's
+        # own channel request among its inputs, the request from X is the later
+        # of what the walk found and self_request_floor()'s bound; where the
+        # bound is the later, the row is the race from L's C node (request
+        # through the channel's request, select through X), and the divergence
+        # point is that C node, l(C -> X) BEFORE the launch, so both legs are
+        # guarded from it.  Every other launch, and every gate whose request is
+        # not such a join, is untouched; the bound only ever moves a request
+        # later, and C's own launch, evaluated by (3), keeps its row as it was.
+        ss = steer_self_site(rp, sp) if STEER_SELF else None
+        if ss is not None:
+            ss_stats[0] += 1
         own = parent + "."
-        worst = None
+        worst, wnote = None, None
         for launch in launches:
             m = RE_LATCH_OUT.match(T.pin_split(launch)[0])
             lap = STRICT_LAPS and m is not None and m.group(1) in added
@@ -709,6 +855,43 @@ def main():
             l = at(out_t, sp)
             if e is None or l is None:
                 continue
+            note = None
+            if ss is not None:
+                mx = RE_LATCH_OUT.match(T.pin_split(launch)[0])
+                cn = mx and mx.group(1) + ".ctl.u.u/O6"
+                if cn and cn in stops:
+                    J, wj, P, via = ss
+                    inside = (mx.group(1) + ".",) + ((P + ".",) if P else ())
+                    joins = {n for n in ctree_nodes
+                             if P and T.pin_split(n)[0].startswith(P + ".ujoin.")}
+                    try:
+                        for lng in (False, True):
+                            if (cn, lng, None) in cache:
+                                cache.move_to_end((cn, lng, None))
+                            else:
+                                cache[(cn, lng, None)] = fwd(cn, lng)
+                                while len(cache) > CACHE_MAX:
+                                    cache.popitem(last=False)
+                        ce, cl = cache[(cn, False, None)], cache[(cn, True, None)]
+                        fl = self_request_floor(ce[0], ce[1], cl[0], J, launch,
+                                                binc, feed, stops, inside,
+                                                joins, via)
+                    except CombinationalCycle:
+                        fl = None
+                    if fl is not None and fl[0] + wj > e[0]:
+                        ss_stats[1] += 1
+                        floor, l_cx, ip, lvl, chain = fl
+                        e = (floor + wj, lvl + 1)
+                        note = (J, ip, cn, floor + l_cx, l_cx,
+                                chain + [(lvl + 1, J), (lvl + 1, rp)])
+            if note is not None:
+                tc = -note[4]
+                g = GUARD_LO * (e[0] - tc) - GUARD_HI * (l[0] - tc)
+                if worst is None or g < worst[0]:
+                    worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc,
+                             note[5])
+                    wnote = note
+                continue
             # X, the DIVERGENCE POINT: the last node the two walks that
             # actually set req's and sel's arrival still agree on, found by
             # replaying fwd()'s own predecessor pointers back from each pin to
@@ -724,10 +907,14 @@ def main():
             if worst is None or g < worst[0]:
                 worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc,
                          path_to(pred_f, e[1], rp) or [])
+                wnote = None
         if worst is None:
             orphan.append((kind, parent, cell))
             continue
         rows.append((worst[1], kind, parent, cell, rp, sp) + worst[2:])
+        if wnote is not None:
+            floored[(parent, cell)] = wnote
+            ss_stats[2] += 1
 
     # Guarded margin, and the raw one kept alongside it so the guardband can
     # always be seen doing its work rather than being folded into the verdict.
@@ -768,6 +955,11 @@ def main():
     if orphan:
         print(f"             {len(orphan)} gate(s) share no launch with their "
               f"own select within {K} crossings -- not checked")
+    if STEER_SELF:
+        print(f"             --steer-self: {ss_stats[0]} gate(s) whose request "
+              f"C-element can carry the select's own channel request; "
+              f"{ss_stats[1]} latch launch(es) bounded by it, binding at "
+              f"{ss_stats[2]} gate(s)")
 
     # The last stage of every bd_pipe, for req_knob() below.
     last_stage = {}
@@ -802,7 +994,16 @@ def main():
         flag = "VIOLATED" if gm <= 0 else ("SLACK   " if gm <= SLACK else "ok      ")
         print(f"\n  {flag} {kind} {parent}")
         print(f"           launch {launch}")
-        print(f"           divergence point {t_c} ps in (shared, not guarded)")
+        fn = floored.get((parent, cell))
+        if fn is None:
+            print(f"           divergence point {t_c} ps in (shared, not guarded)")
+        else:
+            print(f"           divergence point {t_c} ps in (the select source's "
+                  f"C node, before the launch: both legs guarded from it)")
+            print(f"           request bound (--steer-self): {fn[0]} waits for the "
+                  f"select's own channel request {fn[1]},")
+            print(f"                {fn[3]} ps after {fn[2]}; the launch "
+                  f"follows that C node by at most {fn[4]} ps")
         print(f"           req  {rp}")
         print(f"                earliest {t_req} ps, {k_req} storage crossing(s)")
         print(f"           sel  {sp}")
