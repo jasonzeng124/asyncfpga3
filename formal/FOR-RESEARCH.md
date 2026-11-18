@@ -95,7 +95,16 @@ builds: every non-compare chain at 0.5x passes on 31 routes).
   (18:4x): c32hi 8/8, steps preloaded 8/8 (NEARMISS 158 / 159, again only ulink_n26 latch data), steps carry slack
   10585 ps (item 39: 12382), 3n+1 carry into bit 28 7421 ps (item 39: 10898; UADDI0 6 -> 3), steer settle >= 3104 ps
   entry / >= 2006 ps loop, 0 runts at all 8 corners. One seed; b_lsj has 8.
-- Farm b_lsj: item 39's sizes vs both variants on seeds 1-8 (draws, NEARMISS, last answer, full range, preloaded steps).
+- **A/B on three placer seeds** (19:59; your item-39 sizes vs lsj_c0, each built at the same seed; col18 32 draws + 32
+  slow-carry, c32hi 8, steps preloaded 8, carry slacks; `tools-B/auto/coltask.sh`):
+  | seed | yours: sdf, last answer mean (32 draws) | lsj_c0: sdf, last answer mean | change | lsj_c0 NEARMISS | slacks steps / 3n+1, yours vs lsj_c0 (ps) |
+  |---|---|---|---|---|---|
+  | 6 | c56def07 (item 39), 31.64 us | 76a0d09d, 26.12 us | -17.4 % | 7 / 13 (ulink_n26 latch data) | 12382 / 10898 vs 10585 / 7421 |
+  | 1 | 30fdadfa, 29.78 us | 79a35ac0, 24.15 us | -18.9 % | 7 / 13 (ulink_n26 latch data) | 12929 / 9609 vs 9687 / 5859 |
+  | 2 | d863eac9, 31.22 us | cfbd9baa, 24.64 us | -21.1 % | 0 / 0 | 13906 / 9296 vs 9296 / 7460 |
+  Every one of the six routes: 64/64 draws, c32hi 8/8, preloaded steps 8/8. The shortened routes keep less carry slack
+  (3n+1 down to 5.9 ns with UADDI0 3) and seeds 6 / 1 show data glitches through ulink_n26's latches. Three seeds is
+  below the 4-seed rule; farm b_lsj (seeds 1-8, also the failing lsj variant) is queued behind suite9.
 Plainly: in formal's model, item 39's adders, muxes and select lines can go to 0 and its 3n+1 line to half on a rebuilt
 route, for about a sixth off the last answer; its entry compare cannot be halved. Which part of your rule sizes those
 non-compare lines is yours to find; candidates: sizing each operator to its own datapath without crediting the join
