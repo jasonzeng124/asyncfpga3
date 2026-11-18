@@ -835,7 +835,12 @@ def main():
         ej_jcells = list(json.loads(jpath.read_text())["modules"].values())[0].get("cells", {})
         ej_and = {o for o in stops if RE_CTREE_C.search(o)}
         ej_steers = tuple(p + "." for k, p, _, _ in sites if k == "bd_steer")
-        ej_pins_c, ej_cause_c, ej_cred_c = {}, {}, {}
+        # a bd_merge's request OR (`uor` beside `uxa`, no mux joins): either input
+        # raises it, so a credit path through it bounds nothing
+        _insts = {T.pin_split(q)[0] for q in srcs_of} | {T.pin_split(q)[0] for q in edges}
+        ej_merge_or = {i for i in _insts if i.endswith(".uor") and i[:-4] + ".uxa" in _insts
+                       and i[:-4] + ".uj0" not in _insts and i[:-4] + ".uj1" not in _insts}
+        ej_pins_c, ej_ctl_c, ej_cause_c, ej_cred_c = {}, {}, {}, {}
         ej_cache = OrderedDict()
 
         def ej_fwd(launch, longest):
@@ -859,13 +864,29 @@ def main():
                                    else None)
             return ej_pins_c[node]
 
+        def ej_muxctl(node):
+            """A bd_mux join's ctl_req pin (uj0 / uj1 logical I1), or None."""
+            if node not in ej_ctl_c:
+                inst = T.pin_split(node)[0]
+                ports = T.orig_ports(ej_jcells[inst]) if inst in ej_jcells else {}
+                ej_ctl_c[node] = "%s/%s" % (inst, ports["I1"]) if "I1" in ports else None
+            return ej_ctl_c[node]
+
         def ej_entry(node, ip, kind):
             """May a credit path carrying a `kind` transition cross storage node
-            `node` entering by pin `ip`?"""
+            `node` entering by pin `ip`?  Only where the node's own firing NEEDS
+            that input for this token: a link controller by req_in (or, for an
+            acknowledge's fall, by c_next), a C-tree by any input, a mux join by
+            ctl_req -- both joins need it, and the mux's output needs one of
+            them; by x_req / y_req the other join can fire the output without it."""
             lp = ej_link_pins(node)
             if lp is not None:
                 return ip == (lp[0] if kind == "fwd" else lp[1])
-            return kind == "fwd" and (node in ej_and or bool(RE_MUX_J.search(node)))
+            if kind != "fwd":
+                return False
+            if node in ej_and:
+                return True
+            return bool(RE_MUX_J.search(node)) and ip == ej_muxctl(node)
 
         def ej_sources(pin):
             """Handshake nodes driving `pin` through combinational logic only:
@@ -917,7 +938,7 @@ def main():
                 ej_cred_c[key] = e_join_credit(
                     L, kind, X, early_edges, stops, feed, ej_entry,
                     lambda inst: (inst.startswith(own) or inst.startswith(ej_steers)
-                                  or bool(RE_LATCH_OUT.match(inst))))
+                                  or bool(RE_LATCH_OUT.match(inst)) or inst in ej_merge_or))
             return ej_cred_c[key]
 
         def ej_floors(chain, X, own, jset):
