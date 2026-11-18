@@ -4,6 +4,11 @@ Experiments that have passed every check possible without the board, most
 valuable first. Each one: branch/commit, exact commands, pass criterion
 (self-reporting, never "read the scope"), and what a failure would mean.
 
+**2026-11-18: the toolchain's nextpnr is now 6e5d224472232d5d (patches/nextpnr-xilinx-const-sinks.patch).** It routes the
+GND pins the old binary left unrouted (the F7-select and constant-D-flop defects below). Every item's route rebuilds
+with the same sdf md5; on routes that had no such pin the .fasm is byte-identical too, so nothing below changes. Check
+`cells/verify/toolchain.sh` (sha256 6e5d224472232d5d) before building.
+
 **Before programming any build here: check its sdf md5 against the one the item names.** Two nextpnr defects (JOURNAL
 2026-11-08) leave a constant site pin unrouted so the die reads its default instead: a 5FF D (collatz64 bench seed 4)
 and an F7 select (ipow bench seed 7, wrong answers). Both are a deterministic function of the route, and every route
