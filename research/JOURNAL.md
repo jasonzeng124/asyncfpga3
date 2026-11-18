@@ -6599,3 +6599,21 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   without and with +META_INIT=0 / 1. If both META_INIT values pass, the hang depends on an initial value the circuit
   does not define -- a real start-up hazard on silicon only if some power-up value breaks it, which META_INIT 0 / 1
   partly tests.
+### progress 06:28 (TOOLCHAIN CHANGE: nextpnr 9c732bc6303458df -> 6e5d224472232d5d, the const-sinks patch; ipow s4's failure is start-up x)
+- Installed in $TC (shared with the farm) at ~06:28 UTC: patches/nextpnr-xilinx-const-sinks.patch (pnrfix's), the binary it
+  built (sha256 6e5d224472232d5d); the old one kept as $TC/openxc7/bin/nextpnr-xilinx.9c732bc6303458df.bak;
+  toolchain.sh's new fingerprint check passes on it and FAILS on the old binary (MISSING const-sinks, exit 1);
+  $TC/openxc7/.patches.sha = the new patch-set hash. Verified first, here: on two clean AUTO routes (b6f090b6,
+  932bae2e) routed JSON / SDF / FASM byte-identical to the old binary's; on su_xorshift_2_7 (the v5 preview's final
+  route, FFMUX-FLAG) the SDF identical and the FASM only gains the CFF's FFMUX bit and its GND pips: ffmux FLAG -> clean.
+  From now on every route is built with 6e5d224472232d5d. Farm suite4 / suite5 were running across the swap: a task may
+  have used either binary, which matters only on routes with a missed GND pin (old: NOT EQUIVALENT / FLAG; new: right).
+  suite3 / suite6 / suite7 (waiting) will use the new one throughout. Why now and not at a quiet farm: it changes no
+  route, only the bits of defective ones, and every automatic route the suite throws away for a defect is lost work.
+- ipow s4 (v1 route, sdf 1ac15af5 rebuilt = the farm's): draws 10401 / 10404 hang without +META_INIT (as on the farm) and
+  PASS 17/17 with +META_INIT=0; =1 running. So the failure is the start-up class: an unreset latch's power-up value the
+  simulation leaves x. Under the owner's rule the gate keeps x start-up, so it stays a FAIL in the record; whether a
+  power-up value can break it on silicon is what META_INIT=1 (and formal's simulator) can bound.
+- Local v5 preview, xorshift seed 2: the loop ended CLEAN at it 7 (raise-only + headroom), on a route with the flop-D
+  defect -- the reason for installing the fix now. Its draws are running (on the old bits; the result says
+  NOT-A-BOARD-ROUTE).
