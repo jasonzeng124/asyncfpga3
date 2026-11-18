@@ -3353,3 +3353,9 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 09:27 T152: own rebuild of item 38 at 312abcc32 = sdf 81bbe268 exactly; ff clean (1956 flops). GLS running. research 2daa2e7ef: bdc joins source-token results with the call's bounded control results (srcjoin); may change default emit for some kernels (test_int16, unused_arg). Identity check on the original kernels queued after T152.
 - 09:37 T152 item 38: FAST_MIN 17/17 (min steer 988 ps ucond_br4), advA no-scatter 17/17 (584 ps ucond_br4), 0 runts. research dfe71d787: the sizing loop does not yet scale to gcd / isprime (suite7).
 - 09:54 T152 item 38: advC no-scatter 17/17 (900 ps), worst 17/17 (483 ps, ucond_br4), 0 runts. SLOW_MAX running.
+
+### progress 09:56
+- T152 done: item 38 (the first automatic board item, ipow BDC_AUTO=1 s2).
+  - Own rebuild = sdf 81bbe268; 17/17 at FAST_MIN / advA / advC / worst / SLOW_MAX on the full exponent range, 0 runts.
+  - Binding steer ucond_br4 483 ps (worst) / 584 ps (advA).
+  - CONFIRMED. Finding T152. Owner notified.
