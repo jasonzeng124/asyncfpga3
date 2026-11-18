@@ -4802,3 +4802,20 @@ memory ABI and the 64-bit operand pairing is unchecked.
   may show a NEARMISS pulse); queue restarted strict on items 39, 41, 38, 40 (operator lines, resolution 1/4).
 - (Latch data nodes pass D glitches legitimately, so STRICT is conservative there; the joint probe's pulses also hit
   C-element controllers, which is not legitimate.)
+### progress 18:3x -- strict linescale results; the shortened rebuild of item 39 FAILS (negative result for formal's own what-if)
+- STRICT linescale (right answers AND no storage pulse < 200 ps; resolution 1/4; one placement each):
+  item 39 collatz: ucmpi0 (13) 0.5, ucmpi2 (11) 0.5, uaddi0 (6) 0.5; uaddi1 (12), umux2 (8), uselect0 (7), umux1 (5), umux0 (4): 0.
+  item 41 xorshift: ucmpi1 (11) 0.75, ucmpi0 (10) 0.25, uxori1 (6) 0.5; uaddi0 (8), uxori2 (6), uaddidec0 (6), umux0-3: 0.
+  item 38 ipow (partial): uselect0 (23) 0, umuli1 (18) 0, ucmpi0 (11) 0.75.
+  Joint on item 39 (others at their values, uaddi1 / muxes / select at 0): ucmpi2 needs 0.75; passes with NEARMISS 0,
+  last answer 25.5 us vs 31.7 us as built (same 8 draws, -20 %).
+- **Rebuilt (re-placed) with those sizes** (tools-B/auto/sizes/collatz_v3_s6_lsj.vh: UCMPI0 7, UCMPI2 9, UADDI0 3, UADDI1 /
+  UMUX0-2 / USELECT0 0; seed 6; sdf 0bed5c3c, ffmux 0, 105 MHz): col18 K 30601-30632: 15 PASS, 2 WRONG, 15 UNDECIDED (event
+  cap: oscillation, storage pulses of 1 ps); slow-carry K 30651-30682: 13 / 7 / 12. Wrong answers sit at the zero-trip call
+  (n = 1) and the call after it (an answer missing, or an extra 3 / 0 inserted). c32hi 8/8 and preloaded steps 8/8 pass
+  (no n = 1 in those sets). Steer settle at the entry compare (ucmpi0, n == 1): 318 ps with 12 runts (chains .20 / rest
+  .31 / CARRY 1.0), 41 ps with 4 runts (.31 / .31 / .20), against 3444 ps minimum as built at 13.
+- Reading: linescale's number is the edge on ONE placement (zero headroom there), and a rebuild re-places the compare and
+  its steers; shipping the edge fails. It says which lines have room (the non-compare operator lines, which wait at joins
+  for the compare anyway), not how short the compares can go. Isolation running: the same sizes with UCMPI0 back at 13;
+  farm b_lsj (seeds 1-8, A/B) will say how general this is.
