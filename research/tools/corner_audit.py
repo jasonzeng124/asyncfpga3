@@ -110,8 +110,8 @@ SIZERULE_MLO = os.environ.get("CA_SIZERULE_MLO", "") == "1"
 #     sources K (the C nodes driving S's c_next) of s(K -> sibling) - l(K -> S) [S released by its acknowledge, which
 #     is J's, which the sibling's acknowledge also waits for]; the min of the two is a lower bound in every interleaving
 #     (research/data/sizerule/joinaware.md).  J's firing is then max(own input, credited sibling) on the capture walk.
-#   * guard: max(a_frac * (data + capture [+ 2 l(A -> S) when the credit binds]), a_min) -- both legs, as rule E's
-#     0.97 / 1.03, since the capture leg is long and may run through another cell's request (A' guards the data only).
+#   * guard: A''s, max(a_frac * data, a_min), unless the credit binds; then max(a_frac * (data + capture + 2 l(A -> S)),
+#     a_min) -- both legs, as rule E's 0.97 / 1.03, since the capture leg then runs through another cell's request.
 #   * a line that no measured constraint depends on, and whose cell has an A'j row, may go to --floor (it is measured
 #     free, not unmeasured); every other line on no constraint is kept, as before.
 JOINAWARE = os.environ.get("CA_JOINAWARE", "") == "1"
@@ -628,12 +628,13 @@ def rule_a_joined(T, skew, sdf, aprime):
                 if res is None:
                     odd.add(p)
                     continue
-                # both legs guarded (as rule E's 0.97 / 1.03): the capture leg is long, and with the credit it runs
-                # through another cell's request; a binding credit also carries its l(L0 -> S) leg twice (s fast, l slow)
+                # guard: without a binding credit this is A' moved to the capture, with A''s guard (the data leg); when
+                # the credit binds the capture leg runs through another cell's request, so both legs are guarded (as
+                # rule E's 0.97 / 1.03), and the credit's l(L0 -> S) leg twice (s fast, l slow)
                 (t_e, k_e, e), pe = res["cred"]
                 t_o = res["own"][0][0]
-                g = T.req_guard(None, t_d + a_d + t_e + (2 * l_cred if t_e > t_o else 0))
-                g_o = T.req_guard(None, t_d + a_d + t_o)
+                g_o = T.req_guard(None, t_d + a_d)
+                g = T.req_guard(None, t_d + a_d + t_e + 2 * l_cred) if t_e > t_o else g_o
                 m = t_e - (t_d + a_d) - g
                 m_own = t_o - (t_d + a_d) - g_o
                 if worst is None or m < worst[0]:
