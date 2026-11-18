@@ -4861,3 +4861,4 @@ built is clean with the DSP at SLOW_MAX (B10).
 ### progress 20:41 -- ipow cut A/B seeds 1 / 3: -17.6 / -15.3 %, all draws pass; slow DSP: cut 17-18k latch-data pulses, yours 0 (B10 updated). collatz64 A/B seeds 1 / 2 running.
 ### progress 21:03 -- B9: where the rule makes those lines long (subagent read of research's corner_audit / ratchet / joinaware.md, checked here: joinaware.md 18-23 and 200-213, ratchet.py 40-50): no join credit at collatz's uaddi1 / ucmpi2 join + pinning + headroom. collatz64 cut seed 1: passes all, 85.31 us.
 ### progress 21:34 -- collatz64 cut A/B seeds 1 / 2: -15.8 / -13.4 %, all checks pass both arms (B9).
+### progress 21:56 -- collatz A/B seed 4: 32.18 -> 23.51 us (-26.9 %), both arms pass everything. Four collatz seeds: -17 / -19 / -21 / -27 %.
