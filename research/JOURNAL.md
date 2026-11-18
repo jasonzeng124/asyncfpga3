@@ -6827,3 +6827,12 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   four original kernels x 8 seeds, resumed from suite6's states (the shipped route rebuilt, md5 checked), so each task
   is an A/B against suite6's route of the same seed; prediction in the request (xorshift ~17-18 ns vs 21.07; the other
   three unchanged).
+### progress 18:46 (the loop no longer dies on a route whose bench side misses 83 MHz)
+- suite9's first finished task: varshift s4 BUILD-FAILED at it 3, "TIMING FAILED: 82.08 MHz < 83 MHz" -- the bench's
+  PS-clocked harness, not the kernel; with NEXTPNR_SEED pinned build_bench.sh gets one attempt, so the loop ended
+  (also quadrec s2 in suite3a, fill s1 under the stores subagent: roughly one loop in four or five over ~7 routes).
+- auto_size.sh build() (28afd2149): only on that failure, the same iteration is rebuilt on seed S+100, then S+200
+  (AUTO_SEED_TRIES, 3 attempts); the seed used is written to seed_I.txt (a resume rebuilds with it). Checked by forcing
+  the miss (TARGET_MHZ=250, straight s1): seeds 1 / 101 / 201 each logged with their MHz (103.18, 105.12, 99.63), then
+  BUILD FAILED it=0 and no seed file. Without such a miss every iteration is built on S as before.
+- suite9r2 (drafted) will run at the branch head so the loops that died this way continue too.
