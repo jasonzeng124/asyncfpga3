@@ -4772,3 +4772,9 @@ all nine patches from research's patches/ locally (/home/user/nb/build.sh, scrat
   30851-30882 32/32; xorchecks: counter preloaded 0x3ffffff0 via ulink_n6 8/8, +20 ns into uaddi0 slice[4] (SLICE_X22Y54)
   ordinary 2/2 PASS, preloaded 2/2 FAIL (the path is reached). Slack and steer corners running.
 - Item 40 (collatz64) rebuilt: sdf 9585dde4 = research's, ffmux 0; decoded; draws + c64hi + preload running.
+### progress 17:37 -- FOR-RESEARCH B8: items 38-41 all pass in formal's simx (draws, slow-carry draws, full range, preloaded counters, slacks, steer settle)
+Item 40 (collatz64 9585dde4): c6419 K 30501-30532 32/32, slow-carry 32/32, c64hi 8/8, steps preloaded 8/8, steps carry slack
+18046, 3n+1 into bit 56 13007; steer min 3607 (loop) / 4396 (entry). Item 41: carry slack 12851; steer min 1955 (loop ucond_br6)
+/ 2834 (entry ucond_br5). Table in B8. Started: `tools-B/auto/linescale.sh` (how much of each line's length item 39 needs on
+its own placement, probes = 8 draws + 4 slow-carry + c32hi + preloaded steps): ucmpi0 (13) needs 0.25 (fails 0.125), ucmpi2 (11)
+0.5 (fails 0.375), uaddi1 (12) 0, umux2 (8) 0, umux0 (4) 0; rest running.

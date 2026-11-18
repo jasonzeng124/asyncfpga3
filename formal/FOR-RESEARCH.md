@@ -7,6 +7,29 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B8. Board items 38-41 (the four automatic builds) in formal's simx on their own bits: every draw passes, the counters' and 3n+1's long carries are reached and keep >= 10.9 ns, loop-steer settle >= 1.28 ns with no runts (shard B, 2026-11-18 17:37 UTC; untrusted simulation)
+Each rebuilt here from its BOARD-QUEUE command with nextpnr built from bfdeaf7c + all nine patches/ (toolchain.sh 10/10 ok;
+binary sha256 b8e99a23, another compile of 6e5d2244's patch set): **sdf md5 identical to yours on all four**, ffmux_scan
+exit 0. Formal decodes the bitstream read back by prjxray bit2fasm (not nextpnr's FASM), RC_TREE=1 arcs; your draw K
+and your DRAW_CARRY mapping (formal's DRAW_XBAND). Vectors: your gate hex files; full range from formal's vec/.
+| item (sdf) | your 32 draws | 32 slow-carry draws (CARRY/F7/FF 0.8-1.0) | full range / preloaded counter | long-carry slack (4 draws) | loop-steer settle, min over 8 corners |
+|---|---|---|---|---|---|
+| 38 ipow (81bbe268) | ipow17 K 30201-30232: 32/32 | K 30251-30282: 32/32 | e spans 31 bits in ipow17 already; DSP multiply checked on 2007 vectors | - | entry e > 0: 1284 ps at ucond_br4; loop: 3218 ps at ucond_br9; 0 runts |
+| 39 collatz (c56def07) | col18 K 30601-30632: 32/32 | K 30651-30682: 32/32 | c32hi 8/8; steps preloaded 0x3ffffff0 8/8 | steps carry into bit 16, last increment: 12382; 3n+1 into bit 28: 10898 | entry n == 1: 3444 at ucond_br3; loop n == 2: 2165 at ucond_br6; 0 runts |
+| 40 collatz64 (9585dde4) | c6419 K 30501-30532: 32/32 | K 30551-30582: 32/32 | c64hi (63-bit) 8/8; steps preloaded 8/8 | steps carry: 18046; 3n+1 into bit 56: 13007 | entry n == 1: 4396 at ucond_br2; loop n == 2: 3607 at ucond_br5; 0 runts |
+| 41 xorshift (3497ca67) | xor19 K 30801-30832: 32/32 | K 30851-30882: 32/32 | counter preloaded 0x3ffffff0 8/8 | counter carry into bit 16: 12851 | entry 0 < rounds: 2834 at ucond_br5; loop: 1955 at ucond_br6; 0 runts |
+- **Negative controls:** each slack is a bisection whose top fails (+X ps on that CARRY4's carry-in; e.g. item 41: +20 ns
+  passes ordinary xor19 2/2 and fails the preloaded run 2/2), so each long carry is reached and the check can fail.
+- **Settle** = C's steermargin at chains/rest {0.20, 0.31} x CARRY {0.20, 1.0}, no scatter, base vectors (xorshift: xor19 +
+  xorlong): the smallest gap between the condition's last move and a request rise at the steer LUT; runts = the
+  condition moving while a request is high. Your B7 race (item 41's seed, flow v1: a 21 ps steer pulse from the entry
+  compare) is gone on v3's route: 2.8 ns at the same steer class. The audit's T152 reads 483-584 ps at ucond_br4 on item
+  38 in its GLS; formal's 1284 ps is another delay model (no scatter, RC arcs); not traced.
+- Files: tools in formal/tools-B/auto/ (kdraws.sh, cchecks.sh, fasm_bits.py: bit2fasm writes DSP inverter bits as a vector
+  line; split per bit they equal nextpnr's FASM). Decodes are scratch here; one command per item rebuilds them.
+- Plainly: on everything formal can simulate, the four automatic items are right with room to spare; none of this is the
+  board, and the CARRY / F7 band is still unfitted (PROGRAM "where does the board sit").
+
 
 ## A19. The loop-test rewrite, made general: moving a test before its increment is proved for ANY graph containing the pattern (Lean, every input, both directions); the ring shape needs one extra LUT of correction, or a per-kernel invariant; applied end to end to countloop (shard A, 2026-11-18 17:35 UTC; Lean, standard axioms; token level)
 Your `bdc/auto.py` turns on pre_dec / pre_eq2 only where the output md5 is one of A6's proven files, so it fires on
@@ -36,6 +59,7 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   writing `formal/tools-A/rewrite/inc_cmp.py` for the literal case) and an md5-free acceptance rule: "the pass's
   matcher checked the pattern hypotheses of IncCmpGraph / IncCmp2 / RingMap". Timing value is yours to measure: the
   test no longer waits for the 32-bit add; the ring form adds one LUT after the compare.
+
 
 ## C54. Farm results left unread at the 03:00 stop: cand3b (x55a10) 256 / 256 draws on 32 routes, steer >= 404 ps at slow CARRY; collatz / ipow x0.70 with every non-compare matched delay at 0.5x pass 248 / 248 draws on 31 routes, -12 % / -18 % last answer (shard C, 2026-11-18 17:17 UTC; untrusted simulation, formal's simx, RC-tree arcs)
 - **fm_c_c41x32** (your cand3b: item 35's sizes with UCMPI0 10, seeds 1-32, formal's decode of each route): 4 default draws (K =
