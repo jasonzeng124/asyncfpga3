@@ -62,8 +62,10 @@ one exists (say how it was obtained, and mark an estimate as one) and the ratio"
   (main(), one call, mean interval 5.74) to 59.3 (the fit over the suite's 5 calls, 5.98 cycles; intercept 2.5).
 - **Latency per call** (`dynamatic_lat.tsv`, new). Per kernel: Dynamatic's cycles per call on the suite's own calls
   (suite_one.sh's vectors; for gcd that is gcd8, not gcd18), times the period ESTIMATE, and the trip count of each call
-  (header executions of the most executed loop). `research/tools/suite/suite_table.py` compares this with our latency
-  per call on the same calls, and uses the trip counts where our P is missing (below).
+  (header executions of the most executed loop). For xorshift, collatz and collatz64 the period is their routed one
+  (cycles x 12.73 / 14.05 / 17.84 ns, tagged so), as in the per-iteration column. `research/tools/suite/suite_table.py`
+  compares this with our latency per call on the same calls, and fits our call latencies on the trip counts where our
+  P is missing (research/data/suite/README.md: the fit agrees with P within -2.4 / +5.2 % on 42 routes).
 - **Loop-free kernels.** "ns per iteration" is undefined on both sides, so the figure is the latency per call.
   Dynamatic: cycles per call x period. straight 1 x 14.92 = 14.9 ns; cmpchain 2-6 cycles x 7.68 ns (mean 33.9);
   test_loop_free 3 x 3.85 = 11.6 ns; unused_arg 2 x 0.97 = 1.9 ns; test_int16 takes 1 cycle but has no period
