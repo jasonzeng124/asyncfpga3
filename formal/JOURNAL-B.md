@@ -4857,3 +4857,4 @@ built is clean with the DSP at SLOW_MAX (B10).
   period is set by the x datapath / compares (B4), not by the cut lines.
 - Research meanwhile (14:49 EST): BDC_AUTO's MLIR rewrites off by default (owner, audit T156); board items 39-41 now carry
   BDC_AUTO_REWRITES=1. Every build here used research eaef0dec7 (rewrites on), which reproduces the judged routes.
+### progress 20:26 -- collatz64 item 40 cut (collatz64_v3_s5_nc0.vh, sdf 27c5d16f): passes everything, -13.2 %; B9 cross-kernel table.

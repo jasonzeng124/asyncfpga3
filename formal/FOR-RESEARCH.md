@@ -107,6 +107,16 @@ builds: every non-compare chain at 0.5x passes on 31 routes).
   Every one of the six routes: 64/64 draws, c32hi 8/8, preloaded steps 8/8. The shortened routes keep less carry slack
   (3n+1 down to 5.9 ns with UADDI0 3) and seeds 6 / 1 show data glitches through ulink_n26's latches. Three seeds is
   below the 4-seed rule; farm b_lsj (seeds 1-8, also the failing lsj variant) is queued behind suite9.
+- **The same cut on the other automatic board items** (each at its board seed; the lines linescale found unneeded set to 0,
+  the compares and the lines it said need length kept as built; same checks as B8):
+  | item | sizes file (formal/tools-B/auto/sizes/) | sdf | draws + slow-carry | long paths | last answer, as built -> cut | NEARMISS |
+  |---|---|---|---|---|---|---|
+  | 38 ipow s2 | ipow_v3_s2_nc0.vh (USELECT0 23, UMULI1 18, UMUX0-3, USHRSI0 -> 0) | 89987a1c | 32/32 + 32/32 | (B10: slow DSP glitches) | 4.72 -> 3.85 us (-18.5 %) | 0 |
+  | 39 collatz s6 | collatz_v3_s6_lsj_c0.vh (above) | 76a0d09d | 32/32 + 32/32 | c32hi, preload, slacks >= 7.4 ns | 31.64 -> 26.12 us (-17.4 %) | latch data only |
+  | 40 collatz64 s5 | collatz64_v3_s5_nc0.vh (UADDI1 15, UMUX0-2, USELECT0 -> 0) | 27c5d16f | 32/32 + 32/32 | c64hi, preload, slacks >= 9.8 ns | 100.20 -> 86.94 us (-13.2 %) | 440 in one draw, ulink_n_falseResult_9 latch data |
+  | 41 xorshift s8 | xorshift_v3_s8_nc0.vh (UADDI0, UXORI2, UADDIDEC0, UMUX0-3 -> 0) | 8e1a90d4 | 32/32 + 32/32 | preload 8/8, +20 ns control fails only preloaded | 38.49 -> 36.46 us (-5.3 %) | 3 in one draw, latch data |
+  One seed each (the board seed); xorshift gains little because its period is set by the x datapath ring and its
+  compares (B4).
 Plainly: in formal's model, item 39's adders, muxes and select lines can go to 0 and its 3n+1 line to half on a rebuilt
 route, for about a sixth off the last answer; its entry compare cannot be halved. Which part of your rule sizes those
 non-compare lines is yours to find; candidates: sizing each operator to its own datapath without crediting the join
