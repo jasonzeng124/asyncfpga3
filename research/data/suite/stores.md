@@ -136,6 +136,8 @@ each fill), `GATE_ANNOTATE=1`, `PS_MON_GEN=cells/gls/ps/gen_memport_mon.py` (the
 |---|---|---|---|---|---|---|---|
 | fill | 1 | 107.16 | 056e2452 | **PASS 5/5**, arrays = C after every call, fill read-back 0 bad | EQUIVALENT | ANNOTATE_DONE, 0 SDF warn/err | 448 host / 160 kernel reqs, 0 overlaps |
 | fill | 2 | 119.73 | e70c93c7 | **PASS 5/5**, same | EQUIVALENT | ANNOTATE_DONE, 0 | 448 / 160, 0 overlaps |
+| fill | 3 | 108.32 | 1484a66c | **PASS 5/5**, same | EQUIVALENT | ANNOTATE_DONE, 0 | 448 / 160, 0 overlaps |
+| fill | 4 | 98.09 | 8b43821a | **PASS 5/5**, same | EQUIVALENT | ANNOTATE_DONE, 0 | 448 / 160, 0 overlaps |
 | fill, `BDC_MEM_NEG_STORE=addr` | 1 | 102.03 | feeb2e89 | **FAIL 1/5**: arrays wrong after calls 0-3 (32, 32, 13, 2 of 32 elements differ from the C); out0 right on all 5; the n = 0 call (no store) passes | EQUIVALENT | ANNOTATE_DONE, 0 | 448 / 160, 0 overlaps |
 
 The negative control is the same kernel with every store's address bit 0 flipped in the generator (seed 1, same
@@ -144,8 +146,9 @@ does, on exactly the calls that store -- the same damage counts as the RTL negat
 the C's stores, (32 + 40 + 7 + 1 + 0) x 2 runs. The answers are the oracle's (out0 d86f2f64
 302b3fae 02345ec0 00000004 00000000). Latency per call (BENCHRES latmin, host cycles of 12 ns), n = 32, 40, 7, 1, 0:
 seed 1 208 / 259 / 50 / 12 / 7, seed 2 227 / 283 / 54 / 13 / 8: about 6.4-7.0 cycles (77-84 ns) per loop trip, the
-store's round trip included. n = 2 routes: this is a smoke-level sample, not a distribution (CLAUDE.md asks 4 seeds for
-a routed claim; two were asked for here).
+store's round trip included. Seeds 3 and 4 finished after the subagent stopped (the session hit the week's usage limit; read
+by the main session 2026-11-18 16:52 UTC from the subagent's run directory): four routes, every one PASS 5/5 at the
+worst corner; one corner only, no draws.
 
 Static screen (`cells/verify/tighten.py` on each route's SDF; the gate is the judgement): rule B, the RAM's setup
 (the store's address and data before the manufactured clock): seed 1 3457 / 3792 ps, seed 2 2605 / 2860 ps, ok;
@@ -153,6 +156,21 @@ rule C (clock-to-out): 1901 / 2057 and 2057 / 2450 ps, ok -- at bd_mem's placeho
 (a steer's select stable before its request) reports 11 VIOLATIONs on each route: every steer of the kernel,
 including the 5 of the entry block that the store lowering does not touch; the default flow does not size selects
 (BD_NO_TIGHTEN=1: emit.py's SELECT_PAD = 4 estimate, PAD by 10-15 asked). Not investigated; the gate passed on both.
+
+### The automatic path (BDC_AUTO=1, sizes from the rule)
+
+`research/tools/suite/suite_one.sh fill 1 2 3` (PNR_TIMEOUT=3600, CA_JOBS=2; RUNS under the subagent's directory):
+**status=BUILD-FAILED (it=2: TIMING FAILED: 78.75 MHz < 83 MHz target)** -- the bench's clocked side (its critical
+path is in the PS-domain logic, `$auto$ff` -> abc LUTs -> a mux8, not the kernel) missed 83 MHz on the third route of
+the sizing loop, so the loop stopped and no draw ran. Iterations 0 and 1 routed (rule: 7 and 24 negative rows, NOT
+CLEAN; kernel links 201 -> 118/123 after the first proposal). Not part of suite_one, the route of iteration 1
+(su_fill_1_1, .bit 9c2b6b55, BDC_AUTO's emission with the rule's sizes, NOT CLEAN by the rule) through the same
+worst-corner gate as above: **PASS 5/5**, arrays = C after every call, EQUIVALENT, ANNOTATE_DONE 0, 448 / 160, 0
+overlaps; latency 89 / 110 / 23 / 7 / 6 host cycles (about 2.6 cycles, 32 ns, per trip: 2.4-2.7x faster than the
+default flow's estimates). Seed 2 (`suite_one.sh fill 2 2 4`): the loop ran to it 6 (raise-only finish, NOT CLEAN by 4
+rows), route su_fill_2_6 (sdf d269ddfe), EQUIVALENT, ffmux-clean, P 37.27 ns per trip, **2 / 2 draws PASS 5/5** (K
+10201: chains 0.30 / rest 0.21 / carry 0.95; 10202: 0.24 / 0.28 / 0.98), arrays = C after every call; latency per call
+median 324 ns. One automatic route with draws: a sample, not a distribution.
 
 ### The ordering itself (RTL, cells/sim delays)
 
@@ -167,8 +185,8 @@ and without the join. RTL only: it shows the structure orders the completion, no
 
 ### What it does NOT show
 
-- **Two seeds of one kernel at one corner.** CLAUDE.md asks four seeds for a routed claim; fill has two (both
-  PASS), plus the automatic path's route and draws (below). No max / min corner run, no board.
+- **Four seeds of one kernel at one corner** (default flow, all PASS), plus two automatic routes (one with 2 draws).
+  No max / min corner run, no draws on the default-flow routes, no board.
 - **One shape on the bench.** fill: one store, the controller's only accessor, in a loop body with a control
   terminator. The exit-block form (store joined into ctrlEnd) ran only in RTL (`simple_example_1`), the 9 Dynamatic
   tests were not routed, and none of them can go on the bench (void: gen_bench.py and oracle_mem.sh refuse them).
@@ -188,6 +206,14 @@ and without the join. RTL only: it shows the structure orders the completion, no
   default flow). With `BDC_AUTO=1` (the automatic path's emission) matrix completes in RTL: one call, 27000 inner
   trips, outC read back 900 / 900 = the C (inA, inB uniform in [-50, 50], outC preset 0x5a5a5a5a). So the store
   lowering works in the middle block of a triple nest under AUTO; the default flow's deadlock is not this work's.
+
+**Merged with srcjoin (2026-11-18, main session).** srcjoin (`free_running()`, the call join in `_op_end`) landed on
+the branch after this work's base. `_op_end` now runs the call join for a result no call bounds and this completion
+join for a function with a store; a function with both is refused (EmitError: not combined yet; no fixture has both).
+Checked after the merge, every fixture in build/frontend (108) x {default, BDC_AUTO=1, BDC_HOST_MEM=1}, `--no-top`:
+the 105 outputs that emitted before the merge are byte-identical to the branch before it (79fec0d88); the 30 new
+outputs (fill and the 9 Dynamatic tests, 3 modes) are byte-identical to this work's own tree; the only outputs that
+differ from this work's tree are test_int16 and unused_arg (srcjoin's two kernels, 6 outputs), as expected.
 
 ## 4. Files
 
