@@ -50,7 +50,7 @@ class G:
         return g
 
     def period(self):
-        lam, cyc = maxplus.mcr(len(self.nodes), self.arcs)
+        lam, cyc = maxplus.mcr(len(self.nodes), self.arcs, lenient=True)
         return lam, cyc
 
     # ---- measured element weights ------------------------------------------------------------------------------
@@ -205,6 +205,14 @@ class G:
             # the producer side may itself have been replaced by an inserted stage (its instance is S[...])
             B = [i for i, a in enumerate(self.arcs) if a["u"] in cn.values()
                  and self.nodes[a["v"]]["inst"] == self.nodes[rn["R"]]["inst"]]
+        if not B and t == "bd_link" and ports.get("req_in") and ports.get("ack_in"):
+            # a single-stage link with an acknowledge delay (DACK > 0): its C-element acknowledges through its own uack
+            # chain, so no arc leaves the C node for the producer.  bd_pipe's new stage 0 sits on the input channel
+            # (req_in, ack_in) with its own DACK: the same edit as a stage there.  Without this every such link was a
+            # ValueError, which search.py skips silently: on the automatic xorshift routes (every link has DACK >= 1)
+            # the search never saw ulink_n_trueResult_8 (the hand recipe's p8).
+            self.deepened = getattr(self, "deepened", set()) | {link}
+            return self.stage(ports["req_in"][0], ports["ack_in"][0], sdelay, dack)
         if not B: raise ValueError("depth %s: no acknowledge users" % link)
         self.deepened = getattr(self, "deepened", set()) | {link}
         return self._insert(rn, cn, F, B, sdelay, dack, False, "S[%s]" % link)

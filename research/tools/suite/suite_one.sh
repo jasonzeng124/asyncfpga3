@@ -53,7 +53,10 @@ else
   [ "$(grep -c . "$O/exp.txt")" = "$(grep -c . "$R/$V")" ] || fin "status=NO-ORACLE (line count)"
 fi
 N=su_${K}_$S
-"$R/research/tools/auto/auto_size.sh" "sl_${K}_$S" "$N" "$K" "$S" "$R/$PV" "$MAXIT" > "$O/auto.log" 2>&1
+# SUITE_SKIP_AUTO=1: judge the route an earlier auto_size.sh run left in $RUNS/auto/$N (e.g. one resumed with
+# AUTO_SEARCH_RESUME=1 from a farm result); unset, the loop runs as always
+[ "${SUITE_SKIP_AUTO:-0}" = 1 ] || \
+  "$R/research/tools/auto/auto_size.sh" "sl_${K}_$S" "$N" "$K" "$S" "$R/$PV" "$MAXIT" > "$O/auto.log" 2>&1
 AR=$(tail -1 "$RUNS/auto/$N/result.txt" 2>/dev/null)
 case $AR in
   CLEAN*) IT=$(echo "$AR" | grep -o 'it=[0-9]*' | cut -d= -f2); RULE=clean;;

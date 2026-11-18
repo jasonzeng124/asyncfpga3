@@ -46,6 +46,7 @@ R=$(cd "$(dirname "$0")/../../.." && pwd); RUNS=${RUNS:-/home/user/runs}; export
 LANE=$R/research/tools/fifteen/lane2.sh; T=$R/research/tools/auto
 O=$RUNS/auto/$N; mkdir -p "$O"
 RES=""
+XENV=""   # the structure AUTO_SEARCH=1 chose (BDC_LINK_DEPTHS=...); empty unless its phase picked an edit
 if [ -n "${AUTO_RESUME:-}" ] && [ -f "$AUTO_RESUME/sizes_1.vh" ]; then
   RES=$(cd "$AUTO_RESUME" && pwd)
   [ "$RES" = "$(cd "$O" && pwd)" ] || cp "$RES"/*.txt "$RES"/*.vh "$O/" 2>/dev/null
@@ -93,7 +94,7 @@ near_args() {  # near_args I: AUTO_NEAR_PS (opt-in): the finish phase also pads 
 }
 build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); final() runs the full stack on the kept one
   local i=$1 Z=$2
-  LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$S" "$VEC" BDC_AUTO=1 > "$O/it_$i.log" 2>&1
+  LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$S" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/it_$i.log" 2>&1
   tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
   [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$RUNS/hw/${N}_$i/${D}_routed.json" ]
 }
@@ -106,7 +107,7 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
     local got; got=$(awk '{print $2}' "$O/it_$i.txt")
     echo "resume: route ${N}_$i rebuilt, sdf $got (earlier run: ${want:-?})$([ -n "$want" ] && [ "$want" != "$got" ] && echo ' -- DIFFERENT ROUTE')" >> "$O/log.txt"
   fi
-  "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 > "$O/final_$i.log" 2>&1
+  "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_$i.log" 2>&1
   tail -1 "$O/final_$i.log" > "$O/it_$i.txt"
   echo "final it $i $(cat "$O/it_$i.txt")" >> "$O/log.txt"
 }
@@ -227,13 +228,78 @@ while [ -z "$STOP" ]; do
   echo "$st" > "$O/ratchet_$i.txt"
   [ -n "$brk" ] && break
 done
+# Phase 3 (AUTO_SEARCH=1, opt-in; unset, nothing below runs and the loop ships as before): the event graph's storage
+# search inside the flow (PROGRAM "General first" 1: "where the latches go and how deep the links are (the event graph's
+# search, run inside the flow)"; research/data/auto/README.md: "Not done: the search inside the flow").  final() has
+# built the timed event graph of the route the loop ships (its P); research/tools/eventgraph/search.py --depth-only
+# takes, greedily, each BDC_LINK_DEPTHS +1 that graph predicts to gain >= 300 ps.  Nothing is named by hand: the search
+# names links from the measured graph of this kernel's own route.  Why: the one structural difference between the hand
+# xorshift recipe (board item 37, 16.76 ns) and the automatic one is ulink_n_trueResult_8 at 2 stages (x's back edge),
+# left out of bdc/auto.py because a static rule for it would also hit collatz (+675 ps there); the search picks exactly
+# it on every automatic xorshift route it was run on (research/data/auto/xorgap.md).  If it picks an edit, the loop goes
+# on with that structure from the shipped sizes (a new line -- a deepened link's SDELAY -- starts as every line did, at
+# emit.py's estimate x AUTO_START_SCALE; pinned.txt carries over) for AUTO_SEARCH_MAXIT routes (default 4, the last two
+# raise-only with headroom, as phase 2), and its last clean route gets the full stack.  The flow ships that route if it
+# is clean and its measured P is below the first route's (or the first was not clean); else the first, as without the
+# search.  log.txt has both.
+search_phase() {
+  local G=$R/research/data/eventgraph/graphs/${N}_$X EM3=$O/emit3 k=0 j LC3="" ro st nr3 neg3 nl3 P0 P3
+  local M3=${AUTO_SEARCH_MAXIT:-4} SC3=${AUTO_START_SCALE:-0.3} ONLY3=${AUTO_START_ONLY:-'^(?!.*_UMEM[0-9]+_(USETUP|UCO)$)'}
+  if ! grep -q "period P = [0-9]" "$G/check.txt" 2>/dev/null; then
+    echo "search: no event graph for route ${N}_$X: skipped" >> "$O/log.txt"; return 0; fi
+  python3 "$R/research/tools/eventgraph/search.py" "$G" "$O/sizes_$X.vh" --depth-only > "$O/search.txt" 2>&1
+  XENV=$(sed -n 's/^ENV //p' "$O/search.txt")
+  echo "search on ${N}_$X: $(grep -E '^(base|chosen)' "$O/search.txt" | tr '\n' ' ')" >> "$O/log.txt"
+  [ -n "$XENV" ] || return 0
+  mkdir -p "$EM3"
+  python3 "$R/bdc/auto.py" "$R/build/frontend/$K/comp/handshake_transformed.mlir" "$EM3/auto.mlir" > "$EM3/log" 2>&1 \
+    && env $XENV BDC_AUTO=1 python3 "$R/bdc/emit.py" "$EM3/auto.mlir" --no-top -o "$EM3/kernel.v" >> "$EM3/log" 2>&1 \
+    && python3 "$T/est_sizes.py" "$EM3/kernel.v" "$K" > "$EM3/est.vh" \
+    && python3 "$R/research/tools/shrink_sizes.py" "$EM3/est.vh" "$SC3" "$EM3/start.vh" --only "$ONLY3" > /dev/null \
+    || { echo "search: emit with $XENV failed ($(tail -1 "$EM3/log")): skipped" >> "$O/log.txt"; XENV=""; return 0; }
+  j=$((i + 1)); [ -f "$O/sizes_$j.vh" ] && mv "$O/sizes_$j.vh" "$O/sizes_${j}_unbuilt.vh"
+  { cat "$O/sizes_$X.vh"
+    grep '^`define' "$EM3/start.vh" | while read -r _ m v _; do
+      grep -q "^\`define $m " "$O/sizes_$X.vh" || echo "\`define $m $v   // new line ($XENV, estimate x $SC3)"; done
+  } > "$O/sizes_$j.vh"
+  echo "search: $XENV from it $j ($(grep -c 'new line' "$O/sizes_$j.vh") new line(s))" >> "$O/log.txt"
+  while [ "$k" -lt "$M3" ]; do
+    k=$((k + 1))
+    build "$j" "$O/sizes_$j.vh" || { echo "search: BUILD FAILED it=$j" >> "$O/log.txt"; break; }
+    rule "$j" "$O/sizes_$j.vh" || { echo "search: RULE FAILED it=$j" >> "$O/log.txt"; break; }
+    ro=""; [ "$k" -gt $((M3 - 2)) ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1}"
+    st=$(python3 "$T/ratchet.py" "$O/sizes_$j.vh" "$RUNS/ca/${N}_$j/rule/sizes.vh" "$RUNS/ca/${N}_$j/rule/negative_sized.tsv" \
+         "$O/sizes_$((j + 1)).vh" "$O/pinned.txt" $ro)
+    echo "search it $j $(cat "$O/it_$j.txt") | $(echo "$st" | head -1)${ro:+ ($ro)}" >> "$O/log.txt"
+    echo "$st" > "$O/search_ratchet_$j.txt"
+    read -r _ nr3 _ _ _ neg3 _ nl3 _ _ <<< "$(echo "$st" | head -1)"
+    if [ "$neg3" = 0 ]; then LC3=$j; { [ "$nl3" = 0 ] || [ -n "$ro" ]; } && break; fi
+    if [ "$neg3" != 0 ] && [ "$nr3" = 0 ]; then break; fi
+    j=$((j + 1))
+  done
+  if [ -z "$LC3" ]; then
+    echo "search: no clean route with $XENV (last it $j): ships ${N}_$X" >> "$O/log.txt"; XENV=""; return 0; fi
+  final "$LC3"
+  P0=$(grep -o 'P=[0-9]*' "$O/it_$X.txt" | head -1 | cut -d= -f2); P3=$(grep -o 'P=[0-9]*' "$O/it_$LC3.txt" | head -1 | cut -d= -f2)
+  echo "search: ${N}_$LC3 ($XENV) P=${P3:-NA} vs ${N}_$X P=${P0:-NA}" >> "$O/log.txt"
+  if [ -n "$P3" ] && { [ "$RC" != 0 ] || [ -z "$P0" ] || [ "$P3" -lt "$P0" ]; }; then
+    cp "$O/sizes_$LC3.vh" "$O/sizes_final.vh"; echo "$XENV" > "$O/structure.env"
+    RES3="CLEAN it=$LC3 route=${N}_$LC3 (last it $j; search $XENV) $(cat "$O/it_$LC3.txt")"; RC=0
+  else
+    echo "search: ships ${N}_$X (P not lower)" >> "$O/log.txt"; XENV=""
+  fi
+}
 if [ -n "$LC" ]; then
-  final "$LC"; cp "$O/sizes_$LC.vh" "$O/sizes_final.vh"
-  echo "CLEAN it=$LC route=${N}_$LC (last it $i) $(cat "$O/it_$LC.txt")" | tee -a "$O/result.txt"; exit 0
+  final "$LC"; cp "$O/sizes_$LC.vh" "$O/sizes_final.vh"; X=$LC; RC=0
+  RES3="CLEAN it=$LC route=${N}_$LC (last it $i) $(cat "$O/it_$LC.txt")"
+else
+  final "$i"; cp "$O/sizes_$i.vh" "$O/sizes_final.vh"; X=$i
+  if [ "$nr" = 0 ]; then RC=3
+    RES3="NOT CLEAN it=$i: $neg negative, none fixable by a line (route ${N}_$i) $(cat "$O/it_$i.txt")"
+  else RC=2
+    RES3="NOT CLEAN after $i (last route ${N}_$i; next sizes sizes_$((i + 1)).vh) $(cat "$O/it_$i.txt")"
+  fi
 fi
-final "$i"; cp "$O/sizes_$i.vh" "$O/sizes_final.vh"
-if [ "$nr" = 0 ]; then
-  echo "NOT CLEAN it=$i: $neg negative, none fixable by a line (route ${N}_$i) $(cat "$O/it_$i.txt")" | tee -a "$O/result.txt"; exit 3
-fi
-echo "NOT CLEAN after $i (last route ${N}_$i; next sizes sizes_$((i + 1)).vh) $(cat "$O/it_$i.txt")" | tee -a "$O/result.txt"
-exit 2
+[ "${AUTO_SEARCH:-0}" = 1 ] && search_phase
+echo "$RES3" | tee -a "$O/result.txt"
+exit "$RC"

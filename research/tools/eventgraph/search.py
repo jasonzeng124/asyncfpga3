@@ -9,6 +9,10 @@ Candidates are only edits bdc can already build, each with the parameters the bu
   fastfall:BDC           BDC_LINK_FASTFALL=1 (single-stage links' rdly and 2-input muxes' udly fall in one element)
 Each step takes the candidate with the lowest predicted period; it stops when no candidate gains 300 ps (a third of
 the ~1 ns seed scatter) or after --steps.  Prints each step's period, cycle and polarity changes, and the floor.
+--depth-only: only the depth candidates (BDC_LINK_DEPTHS), for a graph of a BDC_AUTO=1 route (research/tools/auto/
+auto_size.sh AUTO_SEARCH=1): the automatic structure already has fast fall and rule M's merge links, and an env knob
+naming a merge would REPLACE rule M's set (bdc/emit.py _auto_apply reads the env first); fast fall is refused on
+memory kernels by rule, which a fastfall candidate would override.
 """
 import sys, os, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +20,7 @@ from whatif import G, polarity_floor  # noqa: E402
 
 
 NEW = "--new-knobs" in sys.argv
+DEPTH_ONLY = "--depth-only" in sys.argv
 
 
 def candidates(g, sizes):
@@ -34,6 +39,9 @@ def candidates(g, sizes):
             # BDC_FORK_OUT_LINK / BDC_MERGE_RES_LINK (research/data/fifteen): a latch on one fork output
             for rq, ak in zip(ports.get("req_out", []), ports.get("ack_in", [])):
                 out.append("stage:%s:%s:3:6:fastrise" % (rq, ak))
+    if DEPTH_ONLY:
+        # a rule-F fork-output link (ulink_<v>_folink) is not a channel link: BDC_LINK_DEPTHS cannot name it
+        return [c for c in out if c.startswith("depth:") and not c.split(":")[1].endswith("_folink")]
     out.append("fastfall:BDC")
     return out
 

@@ -94,8 +94,12 @@ def critical(T, uvwo, start, back=400):
     return None
 
 
-def mcr(n, arcs, watch=None, K=600):
-    """(ratio, cycle arc ids) of the worst cycle upstream of node `watch` (None: the worst cycle of the graph)."""
+def mcr(n, arcs, watch=None, K=600, lenient=False):
+    """(ratio, cycle arc ids) of the worst cycle upstream of node `watch` (None: the worst cycle of the graph).
+    lenient (whatif.py's predictions): when the cycle read back is not the growth rate even after a longer run, return
+    the growth rate (the period) with that cycle, instead of an error.  The back-walk closes the first repeated node,
+    which can be a lower-ratio loop sharing a node with a critical cycle of 2 tokens (v6x_xorshift_1 with
+    ulink_n_trueResult_8 deepened: walk 17297.0 ps, growth 17356.5 ps at K = 600 and 2400)."""
     arcs = normalize(n, arcs)
     T, uvwo = simulate(n, arcs, K)
     if watch is None:
@@ -109,5 +113,10 @@ def mcr(n, arcs, watch=None, K=600):
     M = 120
     growth = (T[K - 1, watch] - T[K - 1 - M, watch]) / M
     if abs(growth - ws / os_) > 0.5:
+        if K < 2400:
+            # not settled yet (a long transient): a longer run, once
+            return mcr(n, arcs, watch=None, K=K * 4, lenient=lenient)
+        if lenient:
+            return growth, cyc
         raise ValueError("cycle read back (%.1f ps) is not the growth rate (%.1f ps)" % (ws / os_, growth))
     return ws / os_, cyc
