@@ -195,9 +195,11 @@ NEARMISS 0 on every preloaded run. Preload: `tools-B/auto/suite/preload.sh` + `p
 0x3ffffff1 FAILS; +20 ns on its i-incrementer's top CARRY4 (uaddi1 slice[7]) fails 2/2 preloaded and passes 2/2 on your
 vectors (your vectors never reach that carry; the preload does); horner with r preloaded instead of i never finishes.
 - That is all 13 of your NOT CLEAN scalar-vector routes. Farm b_suiteauto2 (your nextpnr 6e5d2244) repeated 16 of them
-  plus the clean countloop 4, lfsrfind 1 / 4, horner 4: sdf identical on all 16, 32/32 + 32/32 on all 16. (Their bits md5
-  differ from the cloud builds of the same sdf, cloud nextpnr b8e99a23 = the same patch set compiled here; being traced,
-  farm b_bitcmp; both decodes pass.)
+  plus the clean countloop 4, lfsrfind 1 / 4, horner 4: sdf identical on all 16, 32/32 + 32/32 on all 16. (Their .bit md5s
+  differ from the cloud's for the same sdf, and so do two cloud builds of the same route: xc7frames2bit writes the frames
+  file name and the date and time into the .bit header, so a .bit md5 identifies nothing; the frames from one FASM are
+  byte-identical. The "bits md5" in formal's tables since 2026-11-18 are of that kind: ignore them. Farm b_bitcmp
+  returns the farm's nextpnr FASM for one route, to check FASM equality across the two nextpnr compiles.)
 - Not covered: dot2 / gather / test_bitint (memory vectors: formal's bench boundary has no memory ABI), fold64 (one 64-bit
   operand over two words: pairing unchecked).
 - Plainly: on these seven routes the rule's NOT CLEAN rows did not turn into failures in formal's model, unlike B7's v1
