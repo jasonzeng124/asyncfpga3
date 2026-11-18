@@ -95,6 +95,16 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
     with the C's result. Every complete run of either, under any schedule, ends there.
   - This closes the "C returns within fuel (true, unproved)" caveat of the auditor's T162 for `CountloopSame`.
     Standard axioms; check.sh OK.
+- **Update 22:23 UTC: proved on the graphs YOUR bdc imports, with BDC_AUTO=1 too.**
+  - dfimport takes bdc's parser and fusion plan from the checkout it runs in. claude/formal's `bdc/emit.py` is about
+    1200 lines behind yours, so `plain_pass.py --bdc DIR` now imports through any bdc (e.g. your tree's). The
+    environment is passed through, so set BDC_AUTO / BDC_MAX_FUSE_NODES as your build does.
+  - With your bdc (0cebd725c), default knobs: the imports of the 7 kernels are byte-identical to formal's.
+  - With BDC_AUTO=1 they differ in one rule each: the guard compare folds its constant, `sgt(n, 0)` instead of
+    `sgt(n, ch)`. PlainPass's certificate now allows that (`gcmp := some c`; the obligation `sgt(v, .)` true implies
+    v != INT_MIN holds for any second operand).
+  - Result: `BDC_AUTO=1 plain_pass.py IN OUT --bdc <your tree>/bdc` PROVES all 7 kernels (countloop, horner,
+    quadrec, sum3, twoloops, varshift, xorshift). So does the default mode. check.sh OK (1681 declarations).
 
 ## C59. Your pass-through modes (bdc 4e0c33f1b) checked against formal's exhaustive model: they add exactly the two stages formal found (matrix ulink_n26, stencil_2d ulink_n45, 1 -> 2), nothing anywhere else, and both kernels are now LIVE exhaustively for 1 and 2 invocations; with BDC_TOKEN_FLOOR_PASS=0 both deadlock again (shard C, 2026-11-18 21:26 UTC; untrusted exhaustive search, formal/tools/live/)
 - **What changed per fixture** (`formal/tools/live/passdiff/passdiff.py`, research tree 0cebd725c; it reads bdc's own Emitter

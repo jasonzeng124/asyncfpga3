@@ -3226,3 +3226,15 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   - an equation with the literal fuel 2^31 + 1 made Lean unfold `run`; fixed by proving `kC_run` for a variable fuel
     first.
   - `ulimit -v` breaks Lean (mmapped oleans): do not use it.
+
+### progress 22:23 -- plain_pass proved on research's own bdc import, default and BDC_AUTO=1 (gcmp in the certificate)
+* claude/formal's bdc/emit.py is ~1200 lines behind research's. dfimport through research's bdc (worktree at
+  0cebd725c), default knobs: rules byte-identical to formal's for all 7 PROVED kernels.
+* BDC_AUTO=1 folds the guard's constant: `sgt(var 0, lit 0)` (twoloops also folds an unrelated ugt).
+  - PlainPass: `Cert.gcmp : Option Nat := none`; pG.F is `sgt(var0, var1)` or `sgt(var0, lit c)`; the okG
+    obligation goes through `∃ u, cmpi sgt v u`.
+  - gen_plain_gen accepts both forms; the old certificates are unchanged byte for byte.
+* plain_pass.py `--bdc DIR`: a copy of mlir2lean beside a symlink to DIR's bdc (the shared tool is not edited). The
+  environment is passed through.
+* 14 runs (7 kernels x {default, BDC_AUTO=1}) with research's bdc: all PROVED; under AUTO every certificate has
+  gcmp := some 0. check.sh OK on the PlainPass + PassInst closure, 1681 declarations.

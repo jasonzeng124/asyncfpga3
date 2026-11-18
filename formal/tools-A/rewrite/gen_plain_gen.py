@@ -48,7 +48,10 @@ def analyse(rs, pr, pt, na):
     lKg = [l for l, r in enumerate(rs) if r[0] == 'fork' and cbg in r[2]]; assert len(lKg) == 1; lKg = lKg[0]
     cg = rs[lKg][1]; lCg = prod[cg]; rc = rs[lCg]
     assert rc[0] == 'comp' and len(rc[1]) == 2, rc
-    assert rc[3] == ('bin', ('cmpi', ('sgt',)), 32, ('var', 0), ('var', 1)), rc
+    gcmp = None
+    if rc[3] != ('bin', ('cmpi', ('sgt',)), 32, ('var', 0), ('var', 1)):
+        assert rc[3][:4] == ('bin', ('cmpi', ('sgt',)), 32, ('var', 0)) and rc[3][4][0] == 'lit', rc
+        gcmp = rc[3][4][1]
     xg, kg = rc[1]
     lFg = [l for l, r in enumerate(rs) if r[0] == 'fork' and r[2] == [dg, xg]]; assert len(lFg) == 1; lFg = lFg[0]
     guard = dict(lF=lFg, lA=0, lC=lCg, lK=lKg, lB=lBg, e=rs[lFg][1], d0=dg, d=dg, x=xg, c=cg, cb=cbg, k=kg,
@@ -90,6 +93,7 @@ def analyse(rs, pr, pt, na):
              e0=te0, e1=te1, gF=lFg, gC=lCg, gK=lKg, gB=lBg, ge=guard['e'], gd=dg, gx=xg, gc=cg, gcb=cbg, gk=kg,
              gt=ne, gf=guard['f'], gos=guard['os'], tK=lKt, tB=lBt, tcb=test['cb'], tt=test['t'], tf=test['f'],
              tos=test['os'], c1=c1, c2=c2)
+    if gcmp is not None: f['gcmp'] = f'some {gcmp}'
     assert pr[15] == ty and pr[16] == tc and pr[11] == tk and pr[4] == tC
     return dict(guard=guard, test=test, c1=c1, c2=c2, lExt=lExt, lDec=lDec, extIn=extIn, extOut=extOut, cert=f,
                 lBg=lBg, lBt=lBt)
@@ -120,6 +124,7 @@ def main():
     lExt, lDec, extIn, extOut, lBg, lBt = A['lExt'], A['lDec'], A['extIn'], A['extOut'], A['lBg'], A['lBt']
     if len(sys.argv) > 3 and sys.argv[3] == '--cert':
         print(cert_lean(name, A['cert']), end=''); return
+    if 'gcmp' in A['cert']: sys.exit(f'{name}: guard compares with a literal; the PlainGen template does not (use --cert / PlainPass)')
     if na != 3: sys.exit(f'{name}: {na} input channels; the PlainGen template assumes 3 (use --cert / PlainPass)')
     tpl = open(os.path.join(ROOT, 'formal/lean/Formal/Rewrite/Plain/CountloopPlainGen.lean')).read()
     s = tpl

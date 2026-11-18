@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""plain_pass.py IN.mlir OUT.mlir [--keep DIR] -- the plain loop-test rewrite (pre_dec), applied only when Lean proves it.
+"""plain_pass.py IN.mlir OUT.mlir [--keep DIR] [--bdc BDCDIR] -- the plain loop-test rewrite (pre_dec), applied only when Lean proves it.
 
 One command, from a clean checkout of claude/formal (after formal/setup.sh):
   1. `ring_dec.py --plain IN OUT`: the rewrite (the ring carries n - 1, the loop test `slt(i + 1, n)` becomes
@@ -16,6 +16,9 @@ One command, from a clean checkout of claude/formal (after formal/setup.sh):
      compiled with `lake env lean`; `#print axioms` must show only propext, Classical.choice, Quot.sound.
 Exit 0: OUT is written AND proved equal to IN (token level, Kahn semantics of dfimport's graph). Exit 2: refused
 (certificate not found or Lean rejected it): OUT is reset to a copy of IN. Exit 3: nothing matched (OUT = IN).
+--bdc BDCDIR: dfimport reads bdc's parser and fusion plan from BDCDIR (e.g. research's tree) instead of this
+checkout's bdc/. The environment (BDC_AUTO, BDC_MAX_FUSE_NODES, ...) is passed through, so run it with the knobs your
+build uses: the import, hence the proof, follows bdc's fusion plan under them.
 NOT covered: dfimport itself (MLIR -> rules) is trusted Python; nothing below the token level.
 """
 import json, os, re, shutil, subprocess, sys, tempfile
@@ -40,8 +43,21 @@ def ser(x):
 def ser_rules(rs):
     return '[\n' + ',\n'.join('  ' + ser(r)[1:-1] if ser(r).startswith('(') else '  ' + ser(r) for r in rs) + '\n]'
 
+BDCDIR = None
+
+def importer(tmp):
+    """mlir2lean.py, reading bdc from BDCDIR when set (a copy of the tool beside a symlink; the tool is not edited)."""
+    if BDCDIR is None: return os.path.join(ROOT, 'formal/tools/dfimport/mlir2lean.py')
+    d = os.path.join(tmp, 'imp', 'formal', 'tools', 'dfimport'); os.makedirs(d, exist_ok=True)
+    for f in os.listdir(os.path.join(ROOT, 'formal/tools/dfimport')):
+        if f.endswith('.py'): shutil.copy(os.path.join(ROOT, 'formal/tools/dfimport', f), d)
+    link = os.path.join(tmp, 'imp', 'bdc')
+    if os.path.islink(link): os.remove(link)
+    os.symlink(os.path.abspath(BDCDIR), link)
+    return os.path.join(d, 'mlir2lean.py')
+
 def dfimport(mlir, out, ns):
-    subprocess.check_call([sys.executable, os.path.join(ROOT, 'formal/tools/dfimport/mlir2lean.py'), mlir, '-o', out,
+    subprocess.check_call([sys.executable, importer(os.path.dirname(out)), mlir, '-o', out,
                            '--ns', ns, '--graph-module', ns, '--label', 'plain_pass', '--short', 'plain_pass'],
                           stdout=subprocess.DEVNULL)
     txt = open(out).read()
@@ -87,8 +103,11 @@ def refuse(why):
 
 def main():
     args = sys.argv[1:]; keep = None
+    global BDCDIR
     if '--keep' in args:
         i = args.index('--keep'); keep = args[i + 1]; del args[i:i + 2]
+    if '--bdc' in args:
+        i = args.index('--bdc'); BDCDIR = args[i + 1]; del args[i:i + 2]
     inp, out = args
     tmp = keep or tempfile.mkdtemp(prefix='plain_pass_'); os.makedirs(tmp, exist_ok=True)
     cand = os.path.join(tmp, 'candidate.mlir')

@@ -22,7 +22,8 @@ The certificate is untrusted (a script finds it: `formal/tools-A/rewrite/gen_pla
 function evaluated on the program, and this theorem says that its `true` is enough. In words, `check` asks:
 - the ring pattern (RingMap.Pat) and the moved-test pattern (IncCmp2.Pat2) are where the certificate says, and no
   other rule touches their internal channels;
-- the loop guard: `n` enters the ring only through a cond_br on `sgt(n, .)` of a fork of the same token, and the
+- the loop guard: `n` enters the ring only through a cond_br on `sgt(n, x)` (x a channel, or a literal as BDC_AUTO
+  folds it) of a fork of the same token, and the
   loop test's back edge only carries `i + 1` whose test was true (ChanInv.PairOK, as data);
 - every other rule copies a channel's class or leaves its output unconstrained; a 1-bit extui may start a NotMax
   channel; `n - 1` of a NotMin channel is NotMax (ChanInv.RuleSafe, checked rule by rule);
@@ -85,6 +86,8 @@ structure Cert where
   tos : List Nat
   c1 : List Nat
   c2 : List Nat
+  /-- The loop guard compares `n` with a channel (`none`) or with a folded literal (`some c`, as BDC_AUTO emits). -/
+  gcmp : Option Nat := none
 
 variable (rules : List Rule) (X : Cert)
 
@@ -148,7 +151,9 @@ def pG : Pair where
   os := X.gos
   hasA := false
   fA := E.var 0
-  F := E.bin (BOp.cmpi Pred.sgt) 32 (E.var 0) (E.var 1)
+  F := match X.gcmp with
+    | none => E.bin (BOp.cmpi Pred.sgt) 32 (E.var 0) (E.var 1)
+    | some c => E.bin (BOp.cmpi Pred.sgt) 32 (E.var 0) (E.lit c)
 
 def pT : Pair where
   lF := X.lb
@@ -457,12 +462,19 @@ theorem inv_rs2 (P : Parts rules X) {σ0 : Store Nat Nat} (h0 : ∀ ch, X.na ≤
     exact safeR_ok X r this
   have okG : PairOK (rs2 rules X) (Q X) (pG X) := by
     refine pairOK_of P.pg (fun v w h => ?_) (fun v => Q_zero P.gf v)
-    change E.eval [v, w] (E.bin (BOp.cmpi Pred.sgt) 32 (E.var 0) (E.var 1)) % 2 = 1 at h
     change Q X X.gt v
-    simp only [E.eval, BOp.ev, List.getD_cons_zero, List.getD_cons_succ] at h
+    have hs : ∃ u, Ops.cmpi .sgt 32 v u % 2 = 1 := by
+      cases hc : X.gcmp with
+      | none =>
+        refine ⟨w, ?_⟩
+        simp only [pG, hc, E.eval, BOp.ev, List.getD_cons_zero, List.getD_cons_succ] at h; exact h
+      | some c =>
+        refine ⟨c, ?_⟩
+        simp only [pG, hc, E.eval, BOp.ev, List.getD_cons_zero] at h; exact h
+    obtain ⟨u, hu⟩ := hs
     rcases P.gt with g0 | g2
     · exact Q_zero g0 v
-    · exact (Q_two g2 v).mpr (sgt_true v w h)
+    · exact (Q_two g2 v).mpr (sgt_true v u hu)
   have okT : PairOK (rs2 rules X) (Q X) (pT X) := by
     refine pairOK_of P.pt (fun v w h => ?_) (fun v => Q_zero P.tf v)
     change fSltXor.eval [v, w] % 2 = 1 at h
