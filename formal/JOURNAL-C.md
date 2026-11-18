@@ -4467,3 +4467,9 @@ mode changes (entering / leaving a loop), the arbiter, data and timing. Checked 
   bd_c2n / bd_c2n_set LUT in run mode (via Ring.c2n_run, shard B's verbatim INITs).
 - All three files checked with `lean` against oleans built by hand (core-only chain Core.Kleene .. Net.Ring); the lake build
   is waiting for setup.sh's Mathlib compile (cache unreachable).
+
+### progress 17:20 -- StageNet: trap <=> token-free cycle (finite network); gencert.py
+`trap_of_cycle`, `cycle_of_trap` (pigeonhole `repeat_of_mem` over the node list): a trap exists iff some closed walk of the
+marked graph holds no token, so the proved condition is literally "every cycle holds a token". formal/tools/live/gencert.py:
+stage-graph JSON -> Lean `Cert.check ... = true := by decide +kernel` (rank = longest path in the token-free DAG); smoke test
+ring5 (1 token) certified and checked by lean, ring4 (2 tokens) reported as a trap.

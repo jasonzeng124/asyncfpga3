@@ -23,8 +23,8 @@ one way (a loop iterating, say), as in research's derivation.
 **The zero graph.** For a state `x`, `Z x a b` is the arc `a → b` of the marked graph that
 holds no token: `a` feeds `b` and they agree, or `b` feeds `a` and they differ. A *trap* is
 a nonempty set of stages each of which has a `Z`-predecessor inside the set (in a finite
-network this is the same as a cycle of token-free arcs: follow predecessors until one repeats;
-not formalised here). In research's terms a
+network this is the same as a closed walk of token-free arcs: `trap_of_cycle`,
+`cycle_of_trap`). In research's terms a
 trap is a closed walk, forward along some channels and backward along others, holding no token.
 
 **Proved (no hypotheses beyond the model):**
@@ -34,6 +34,8 @@ trap is a closed walk, forward along some channels and backward along others, ho
 * `deadlock_trap`: a state with no excited stage (and some stage) is a trap (the whole set).
 * `deadlock_free`: **from a trap-free state no reachable state is a deadlock.** With
   `trap_dead`, a trap is exactly what makes some stage dead forever.
+* `trap_of_cycle` / `cycle_of_trap` (finite network): a trap exists iff some cycle of the
+  marked graph holds no token. So the condition is research's "every closed walk holds a token".
 * `fair_all_fire`: in any infinite weakly fair run from a trap-free state, EVERY stage fires
   infinitely often (stronger than deadlock freedom: no part of the network starves).
 
@@ -304,5 +306,90 @@ theorem fair_all_fire [DecidableEq V] (E : V → V → Prop) (nodes : List V)
     rw [show h a + 1 + (T - (h a + 1)) = T by omega] at hk
     exact hk ha
   exact hn ((trap_reach_iff E (run_reach hr T)).2 ⟨S, htrap⟩)
+
+/-! ## Traps are token-free cycles -/
+
+/-- A walk of `k` token-free arcs from `a` to `b`. -/
+inductive ZWalk (E : V → V → Prop) (x : State V) : V → V → Nat → Prop
+  | nil (a : V) : ZWalk E x a a 0
+  | cons {a b c : V} {k : Nat} : Z E x a b → ZWalk E x b c k → ZWalk E x a c (k + 1)
+
+theorem ZWalk.snoc {E : V → V → Prop} {x : State V} {a b c : V} {k : Nat} :
+    ZWalk E x a b k → Z E x b c → ZWalk E x a c (k + 1)
+  | .nil _, h => .cons h (.nil _)
+  | .cons h w, h' => .cons h (w.snoc h')
+
+/-- The last arc of a nonempty walk. -/
+theorem ZWalk.last {E : V → V → Prop} {x : State V} :
+    ∀ {a c : V} {k : Nat}, ZWalk E x a c (k + 1) → ∃ b, ZWalk E x a b k ∧ Z E x b c
+  | _, _, 0, .cons h (.nil _) => ⟨_, .nil _, h⟩
+  | _, _, _ + 1, .cons h w => by
+    obtain ⟨d, hw, hd⟩ := ZWalk.last w
+    exact ⟨d, .cons h hw, hd⟩
+
+/-- A closed walk of token-free arcs (a cycle of the marked graph holding no token) is a trap. -/
+theorem trap_of_cycle (E : V → V → Prop) (x : State V) {a : V} {k : Nat}
+    (hc : ZWalk E x a a (k + 1)) : HasTrap E x := by
+  refine ⟨fun v => (∃ i, ZWalk E x a v i) ∧ ∃ j, ZWalk E x v a j, ⟨a, ⟨0, .nil a⟩, ⟨0, .nil a⟩⟩, ?_⟩
+  rintro u ⟨⟨i, hw⟩, ⟨j, hb⟩⟩
+  cases i with
+  | zero =>
+    cases hw
+    obtain ⟨w, hw', hz⟩ := hc.last
+    exact ⟨w, ⟨⟨k, hw'⟩, ⟨j + 1, .cons hz hb⟩⟩, hz⟩
+  | succ i =>
+    obtain ⟨w, hw', hz⟩ := hw.last
+    exact ⟨w, ⟨⟨i, hw'⟩, ⟨j + 1, .cons hz hb⟩⟩, hz⟩
+
+/-- Pigeonhole: an infinite sequence in a finite list repeats. -/
+theorem repeat_of_mem [DecidableEq V] : ∀ (l : List V) (g : Nat → V), (∀ k, g k ∈ l) →
+    ∃ i j, i < j ∧ g i = g j
+  | [], g, h => absurd (h 0) (List.not_mem_nil)
+  | a :: l, g, h => by
+    by_cases h0 : ∃ k, g k = a
+    · obtain ⟨k0, hk0⟩ := h0
+      by_cases h1 : ∃ k, k0 < k ∧ g k = a
+      · obtain ⟨k1, hlt, hk1⟩ := h1
+        exact ⟨k0, k1, hlt, hk0.trans hk1.symm⟩
+      · have hm : ∀ k, g (k0 + 1 + k) ∈ l := by
+          intro k
+          rcases List.mem_cons.mp (h (k0 + 1 + k)) with he | he
+          · exact absurd ⟨k0 + 1 + k, by omega, he⟩ h1
+          · exact he
+        obtain ⟨i, j, hij, he⟩ := repeat_of_mem l (fun k => g (k0 + 1 + k)) hm
+        exact ⟨k0 + 1 + i, k0 + 1 + j, by omega, he⟩
+    · have hm : ∀ k, g k ∈ l := by
+        intro k
+        rcases List.mem_cons.mp (h k) with he | he
+        · exact absurd ⟨k, he⟩ h0
+        · exact he
+      exact repeat_of_mem l g hm
+
+/-- In a finite network a trap contains a token-free cycle. -/
+theorem cycle_of_trap [DecidableEq V] (E : V → V → Prop) (x : State V) (nodes : List V)
+    (hnodes : ∀ v, v ∈ nodes) (h : HasTrap E x) : ∃ a k, ZWalk E x a a (k + 1) := by
+  obtain ⟨S, ⟨v0, hv0⟩, hS⟩ := h
+  -- walk backwards inside S: seq (k+1) → seq k is a token-free arc
+  have hp : ∀ u : {u // S u}, ∃ w : {w // S w}, Z E x w.1 u.1 :=
+    fun u => let ⟨w, hw, hz⟩ := hS u.1 u.2; ⟨⟨w, hw⟩, hz⟩
+  let pr : {u // S u} → {u // S u} := fun u => Classical.choose (hp u)
+  have hpr : ∀ u, Z E x (pr u).1 u.1 := fun u => Classical.choose_spec (hp u)
+  let seq : Nat → {u // S u} := fun k => Nat.rec ⟨v0, hv0⟩ (fun _ u => pr u) k
+  have hseq : ∀ k, seq (k + 1) = pr (seq k) := fun _ => rfl
+  -- from seq (i + m) back up to seq i
+  have walk : ∀ i m, ZWalk E x (seq (i + m)).1 (seq i).1 m := by
+    intro i m
+    induction m with
+    | zero => exact .nil _
+    | succ m ih =>
+      have := hpr (seq (i + m))
+      rw [← hseq] at this
+      exact .cons this ih
+  obtain ⟨i, j, hij, he⟩ := repeat_of_mem nodes (fun k => (seq k).1) (fun k => hnodes _)
+  have hw := walk i (j - i)
+  rw [show i + (j - i) = j by omega, ← he] at hw
+  obtain ⟨m, hm⟩ : ∃ m, j - i = m + 1 := ⟨j - i - 1, by omega⟩
+  rw [hm] at hw
+  exact ⟨_, m, hw⟩
 
 end Formal.Net.StageNet
