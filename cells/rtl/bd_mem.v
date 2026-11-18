@@ -64,7 +64,7 @@
 // phase and a second rising edge (a symmetric line passes it on as a glitch).
 // req is the port's one-hot OR of station claims (p_req = joined & ~done) and
 // of the bench's host slot, neither of which pulses low while high.
-// research/data/suite/memfast.md has the measurements; bdc/mem.py sets it
+// research/data/suite/memauto.md has the measurements; bdc/mem.py sets it
 // under BDC_MEM_FASTFALL=1.
 //
 // NOTE -- the schematic labels the stage between the setup delay and the RAM

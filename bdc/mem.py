@@ -235,7 +235,7 @@ if NEG_STORE not in ("", "addr", "data"):
 # Why: the port's return to zero runs back through both lines, so every access
 # paid DSETUP + DCO twice, and on a memory kernel's loop the station's release
 # (hold waits for p_ack to fall) puts that fall on the critical cycle
-# (research/data/suite/memfast.md: gather's port, 16.4 ns rise and 16.4 ns fall
+# (research/data/suite/memauto.md: gather's port, 16.4 ns rise and 16.4 ns fall
 # of a 55.2 ns cycle).
 MEM_FASTFALL = os.environ.get("BDC_MEM_FASTFALL", "0") == "1"
 

@@ -15,7 +15,10 @@ set -uo pipefail
 K=$1; S=$2; ND=${3:-4}; MAXIT=${4:-4}
 export PNR_TIMEOUT=${PNR_TIMEOUT:-3600}   # build_bench.sh's per-seed limit (default 420 s): a loaded machine passed it
 R=$(cd "$(dirname "$0")/../../.." && pwd); RUNS=${RUNS:-/home/user/runs}; export RUNS
-O=$RUNS/suite/${K}_$S; mkdir -p "$O"; : > "$O/draws.txt"
+# SUITE_TAG=T (opt-in; unset, the names below are the ones they were): the loop's routes are T_K_S_<it> instead of
+# su_K_S_<it> and the results go to $RUNS/suite/K_S_T, so a variant of the flow (e.g. BDC_MEM_FASTFALL=1 in the
+# environment, which every bdc call here and in the builds reads) is judged beside the default on the same draws.
+O=$RUNS/suite/${K}_$S${SUITE_TAG:+_$SUITE_TAG}; mkdir -p "$O"; : > "$O/draws.txt"
 D=${K}_bench_gen
 # verification data: the six original kernels use their gate vectors and oracles (with the bench's input masks);
 # every other kernel reads kernels/K/vec.hex (Dynamatic's tests, which have no kernels/ directory -- one would shadow
@@ -52,11 +55,14 @@ else
   ( cd "$R" && $OR < "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" || fin "status=NO-ORACLE ($(head -1 "$O/oracle.err"))"
   [ "$(grep -c . "$O/exp.txt")" = "$(grep -c . "$R/$V")" ] || fin "status=NO-ORACLE (line count)"
 fi
-N=su_${K}_$S
-# SUITE_SKIP_AUTO=1: judge the route an earlier auto_size.sh run left in $RUNS/auto/$N (e.g. one resumed with
-# AUTO_SEARCH_RESUME=1 from a farm result); unset, the loop runs as always
+N=${SUITE_TAG:-su}_${K}_$S
+# SUITE_SKIP_AUTO=1 (opt-in): the sizing loop already ran elsewhere -- a farm task's auto/ files copied to $RUNS/auto/N
+# (result.txt names the route it kept) and that route rebuilt here from its own sizes with lane2.sh under the same
+# name (N_<it>, the same seed: nextpnr reproduces it byte for byte), its lane2 line in $RUNS/auto/N/it_<it>.txt.
+# Everything below (the bits, the draws, the metrics) then runs as after a loop of its own.  For a farm task that ran
+# out of time after its loop (farm suite8: gather s2, if_loop_2 s2, sumi3_mem, fir), or one resumed elsewhere.
 [ "${SUITE_SKIP_AUTO:-0}" = 1 ] || \
-  "$R/research/tools/auto/auto_size.sh" "sl_${K}_$S" "$N" "$K" "$S" "$R/$PV" "$MAXIT" > "$O/auto.log" 2>&1
+"$R/research/tools/auto/auto_size.sh" "sl_${K}_$S" "$N" "$K" "$S" "$R/$PV" "$MAXIT" > "$O/auto.log" 2>&1
 AR=$(tail -1 "$RUNS/auto/$N/result.txt" 2>/dev/null)
 case $AR in
   CLEAN*) IT=$(echo "$AR" | grep -o 'it=[0-9]*' | cut -d= -f2); RULE=clean;;
