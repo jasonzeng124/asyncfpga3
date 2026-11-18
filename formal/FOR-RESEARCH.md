@@ -228,6 +228,11 @@ CARRY 0.20 and 1.0 (the corners where chains are fastest against the logic), no 
   right; ucmpi2.udly 0.12, ucmpi0.udly 0. So in collatz and ipow the request paths' own cells (joins, C-elements, latches)
   already cover every data path except the compares at these corners, and in xorshift the rest needs ~0.31x. This is the
   strongest version of the pattern; it needs the draws (per-pip scatter) and the slow-chain corners before anyone trusts it.
+- **Draws check (00:25):** your draw model (per-pip scatter), 8 draws each, with every non-compare chain's routed path at 0.5x
+  (injection computed at band 0.20, so no arc goes negative): collatz x0.70 s27 8/8 PASS, last answer 27.9-29.8 us vs
+  31.8-33.8 unscaled (~-12 %); ipow x0.70 s31 8/8, 4.72-5.09 vs 5.85-6.21 us (~-18 %); item 35 r21 **7/8** (one draw fails),
+  26.4-28.5 vs 32.2-33.6 us. So collatz / ipow keep passing with half their non-compare delay under scatter; xorshift
+  starts to lose draws at 0.5 (its two-corner joint factor was 0.31: the scatter is what the corners miss).
 - **Limits:** consequence, not settle margin (runts the model absorbs count as fine -- read it as an upper bound of how far
   the sizes could go); two uniform corners, no per-pip scatter; xor19 does not reach uaddi0's 31-bit carry (B's B2/B3 preload
   runs do: UADDI0 to 0 passed there); slow corners (chains 0.31, rest 0.20) not included, where chains are relatively slow
