@@ -3079,3 +3079,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   collatz's step is a 3-input region, outside IncCmp*'s single-input shape: per-program only. Stated plainly in A22, with
   translation validation (autoproof_x in the flow) as the cheapest general route.
 * PROGRAM otherwise unchanged for A (after 23:00: all shards continue, <= 2 subagents).
+* countloop with BDC_MAX_FUSE_NODES=5 (corrected test in one region): still 10.00 vs 6.82 us default, 8.56 vs 5.30 AUTO;
+  plain 5.55 / 4.86. The correction depth is the cost, not the split. Next: the entry-invariant theorem (BranchFilter:
+  a cond_br's true output only carries values whose paired condition was true, through a fork; then channel
+  invariants i != INT_MAX and m != INT_MAX at the test make plain == corrected), in Wip first.
