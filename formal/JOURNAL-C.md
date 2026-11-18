@@ -4540,3 +4540,8 @@ merge0/2/3/4 alone DEADLOCK. research's ring_tokens: cycle view -2, walk view cl
 the zero-delay model: arbitrated merge R0 not before the previous winner's ack falls (else stale index; gcd would "deadlock").
 Sweep (run_all.py / validate.py) runs detached: 122 rows so far, all agree with research. Not covered: data beyond steering
 bits, memory contents, BD_LINK_DC, host mem, timing; nest3-size nests only sampled.
+
+### progress 17:45 -- research's two views on all fixtures (views.py / views.tsv); stencil_2d default is a second missed deadlock (C55 updated)
+Floor on, only matrix (def), stencil_2d (def), test_flatten_array (def, auto) are flagged, all by the cycle view only.
+Exhaustive: stencil_2d def DEADLOCK (901 states, ucmpi0=0 then ucmpi1=1), AUTO LIVE, def + olink on ucontrol_merge1 LIVE, every
+other single control_merge DEADLOCK; test_flatten_array LIVE both flows (cycle view over-asks there).

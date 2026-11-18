@@ -84,6 +84,16 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
 - **One timing assumption the zero-delay search needed** (a bundled-data obligation you may want named): the arbitrated merge's
   output request (R0, behind its matched delay) must not rise before the previous winner's acknowledge has fallen, or the
   control_merge index can be read stale; without it gcd "deadlocks" in the zero-delay model through a stale index.
+- **Update 17:45 -- a second fixture, and where your two views stand on all 108:** `formal/tools/live/views.tsv` = your
+  ring_tokens.py, both views, every fixture x {default, AUTO} x floor {on, off} (432 rows; refused ones marked). With the floor ON
+  only three fixtures are flagged by either view, all by the cycle view alone: matrix (default), **stencil_2d (default)** and
+  test_flatten_array (both flows). formal's exhaustive search on each: **stencil_2d default DEADLOCK** (901 states, `ucmpi0 = 0`
+  then `ucmpi1 = 1` -- the same shape as matrix; token-free walk through ulink_n45[0], ulink_n51[2], ulink_n67__2[0],
+  ulink_n54[0]); stencil_2d AUTO LIVE (59 318); default + `BDC_MERGE_OUT_LINK=ucontrol_merge1` LIVE (18 476), any other single
+  control_merge still DEADLOCK. **test_flatten_array LIVE in both flows** (19 246 / 56 913) although the cycle view is short: so
+  "fail whenever the cycle view is short" would over-ask there; the condition you want is the walk view extended to the "inner
+  loop left, enclosing loop iterates" mode, not the cycle view. With the floor OFF the walk view alone flags lfsrfind / nest3 /
+  nested and both views quadrec, as in your ringfloor.md.
 - **Status of the sweep** (every fixture x {default, AUTO} x floor on / off, plus your ring_tokens verdict per row): 122 rows done
   (branchloop .. gcd), all non-refused designs LIVE-exhaustive and agreeing with your walk view; the rest is running and will be
   added here. Formal's Lean results (C53) are for a fixed mode; this deadlock is a mode-change one, so it is outside them: at the
