@@ -6486,3 +6486,18 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   than v1 on xorshift (v1 seeds: 20.3-23.2).
 - suite4 now 4 kernels x 8 seeds (cores 3); suite5 = gcd and isprime x 4 seeds on 8 cores with PNR_TIMEOUT 7200. Both
   waiting; they will run flow v3 (two-corner rule, finish phase).
+### progress 02:53 (joinrule landed: CA_JOINAWARE; on by default in the automatic loop = flow v4; steerE started)
+- joinrule (reviewed; f7fa9e7fa .. ae3cb9668, research/data/sizerule/joinaware.md): rule A' checks each sized operator's
+  data at its captures (the next latch's enable, a steer / mux select against the request on the same LUT), C-elements
+  waiting for their last input, and credits a sibling's request at a join when it shares the operator's launch one
+  crossing back (minimum over forward ancestors and acknowledge sources, valid under back-pressure); the latch's open,
+  not its close, is the capture (downstream rules assume the input settled when it opened). Statically reproduces formal
+  B3 on 4 x55a10 routes (UADDI0's chain removed: A' -1.5..-2.1 ns, A'j +275..+1734 ps, from ucmpi1's credited request).
+  Negative controls flagged. Draws: xorshift UADDI0 1, 12/12 on 4 routes + preloaded counter 12/12; collatz UADDI1 1,
+  7/7. Not credited: collatz's uaddi1 / ucmpi2 meet several crossings back (its proposal UADDI1 3, not 1).
+- Unset, corner_audit is unchanged after the merge (checked on xorshift seed 1's final route). On, both corners merged,
+  that route: 103 -> 89 links. Now the automatic loop's default (62d288da2): flow v4 = scaled start, two-corner rule,
+  join credit, finish phase. suite3 / suite4 / suite5 (all still waiting) will run v4.
+- Started steerE (subagent): why rule E at the loop steers holds xorshift's UCMPI1 at 17-19 (hand 5, 200 / 200 draws);
+  hypothesis: the steer's C-element waits for the condition's own request, which skew.py's same-level AND seeding does
+  not see.
