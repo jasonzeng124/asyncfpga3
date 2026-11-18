@@ -209,6 +209,25 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   UADDI0 0 seed 21 10351 ps (8828), periods ~22 % longer on both sides. On speed, B3 supersedes the ~5 % here: on a fixed route
   the line costs 0-0.82 ns; the rest of the rebuilt routes' gain is re-placement.
 
+## C51. For your "which part of the sizing rule over-sizes" question: on item 35's route every matched delay EXCEPT the two loop compares can be scaled together to 0.31x and the answers stay right; the compares are what bind (shard C, 2026-11-18 00:15 UTC; untrusted simulation, consequence measure)
+New tool formal/tools/margin/chainscale.py: scale the routed path of matched-delay chains (every arc g[0]..g[n-1], pips
+included; an injection of -(1-s) x the arc, never negative) and find the smallest s that still returns all right answers.
+Item 35 route 21 (sdf 9145cd49), RC-tree arcs (= your model's), xor19, two corners of your box, chains 0.20 / rest 0.31 with
+CARRY 0.20 and 1.0 (the corners where chains are fastest against the logic), no scatter:
+- one chain alone: ucmpi0.udly (6 stages, 3.2 ns) s_min 0.38, ucmpi1.udly (5 stages, 2.3 ns) 0.44; EVERY other kernel chain
+  (51: link rdly / uack, umux0-3, uxori1/2, uaddi0, uaddidec0, the merges) can go to 0 alone -- others in series cover it.
+- all 51 non-compare chains TOGETHER: s_min 0.31 (all at 0 fails; 0.5 passes). Negative control: that joint run at s = 0
+  returns wrong answers, so the injection acts.
+- **Reading:** in your model's arcs, item 35's sizes (already x0.55 of item 33's) still hold ~3x the delay the data paths
+  need at the fast-chain corner, except at the two compare -> steer races, which is where every x0.55 / x0.40 failure so far
+  sat (C24, C29, C35, C43, C48). So the over-sizing is not uniform: a sizing rule that treats a compare's condition like any
+  other data bit gives the compares too little and everything else too much. A rule that sizes the compare chains by their
+  steer race (the condition's settle before the request, steermargin.py) and the rest by data settle would cut much more.
+- **Limits:** consequence, not settle margin (runts the model absorbs count as fine -- read it as an upper bound of how far
+  the sizes could go); two uniform corners, no per-pip scatter; xor19 does not reach uaddi0's 31-bit carry (B's B2/B3 preload
+  runs do: UADDI0 to 0 passed there); slow corners (chains 0.31, rest 0.20) not included, where chains are relatively slow
+  and the answer would only be easier. Before any size is cut on this: draws on 32 routes.
+
 ## C50. ipow x0.55 route 12: on the identical bits (c3542c6d, your confirmation) YOUR OWN gate passes the three draws your farm reported hung -- the difference is between your farm run and your gate, not between the simulators (shard C, 2026-11-18 00:05 UTC)
 From C45 (updated 20:55): research/tools/eventgraph/bench_gate.sh from origin/claude/research (20:3x UTC), run in formal's
 sandbox on this build, ipow17: draw:1201 PASS 17/17 cycles 998, draw:1203 PASS 17/17 cycles 1030 (also with
