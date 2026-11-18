@@ -45,6 +45,47 @@ negative control fails). Run it before the speed items.
    ns; at 1% ring scatter the fit resolves y to +-0.01-0.02. The two routes must agree with each other within their
    sigmas; if they do not, that is the finding.
 
+## 2026-11-18: items 40 and 41 -- automatic collatz64 and xorshift (BDC_AUTO=1, the loop's own sizes)
+
+40. **collatz64 at ~23.7 ns per iteration, automatic (BDC_AUTO=1, sizes from auto_size.sh flow v3, seed 5)** -- farm
+   suite4: 5 automatic collatz64 routes, 40 / 40 draws, P median 23.71 ns (21.50-27.86); this rule-CLEAN route (loop
+   clean at it 7) is the median: sdf 9585dde4, P 23.71 ns, EQUIVALENT, ffmux-clean; SLOW_MAX / FAST_MIN / worst 18/18
+   each and **32 / 32 draws** (K 30501-30532, c6419). bdc/auto.py applies the proven n == 2 exit test (pre_eq2, formal
+   A6) by itself. Sizes: research/data/suite/board/collatz64_v3_s5_sizes.vh (the loop's sizes_final.vh, nothing
+   edited). Hand: item 32, 31.4 ns; item 26 (full range), 36.2. Built on the farm with nextpnr 9c732bc6303458df; rebuilt
+   on the cluster with 6e5d224472232d5d, the same sdf. From cells/:
+
+       BDC_AUTO=1 NEXTPNR_SEED=5 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/collatz64_v3_s5_sizes.vh ./hw/build_bench.sh collatz64
+       md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # 9585dde4 = the route judged here
+       python3 ../research/tools/ffmux_scan.py build/hw/collatz64_bench_gen/collatz64_bench_gen.fasm; echo "exit $?"   # must be 0
+       CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_c64_auto.tsv
+       (item 26: #27's commands for lc_c64_eq.tsv, if not already run)
+       python3 ../research/tools/loop_cost_judge.py collatz64 build/hw/lc_c64_auto.tsv build/hw/lc_c64_eq.tsv; echo "exit $?"
+
+   Pass: `=== PASS ... ===`, exit 0 (every point's derived oracle). Predicted ratio over item 26 ~1.53 (36.27 ns on its
+   board route vs 23.71 here); the simulation runs ~8 % slow per iteration against the August board, so expect ~21.8 ns.
+   A FAIL with item 26 passing is the automatic flow's silicon counterexample: send both logs.
+
+41. **xorshift at ~20.1 ns per iteration, automatic (BDC_AUTO=1, sizes from auto_size.sh flow v3, seed 8)** -- farm
+   suite4: 7 automatic xorshift routes, 56 / 56 draws, P median 20.11 ns (18.87-20.49); this rule-CLEAN route (loop clean
+   at it 6) is the median, on the seed where flow v1 failed a draw (the zero-trip call; v3's entry compare is longer):
+   sdf 3497ca67, P 20.11 ns, EQUIVALENT, ffmux-clean; SLOW_MAX / FAST_MIN / worst 19/19 each, **32 / 32 draws** (K
+   30801-30832, xor19) and **8 / 8 slow-carry draws** (K 30851-30858, CARRY4 / F7F8 / FF at 0.8-1.0 of the band).
+   bdc/auto.py applies the proven loop-test rewrite (pre_dec, formal A6) by itself. Sizes:
+   research/data/suite/board/xorshift_v3_s8_sizes.vh (nothing edited). The hand recipe is faster on xorshift (item 37,
+   16.49 ns): this item is here as the automatic flow's own xorshift, not as the fastest one. nextpnr as item 40. From cells/:
+
+       BDC_AUTO=1 NEXTPNR_SEED=8 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/xorshift_v3_s8_sizes.vh ./hw/build_bench.sh xorshift
+       md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # 3497ca67 = the route judged here
+       python3 ../research/tools/ffmux_scan.py build/hw/xorshift_bench_gen/xorshift_bench_gen.fasm; echo "exit $?"   # must be 0
+       CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_auto.tsv
+       (item 33: #34's commands for lc_xor_a.tsv, if not already run)
+       python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_auto.tsv build/hw/lc_xor_a.tsv; echo "exit $?"
+
+   Pass: `=== PASS ... ===`, exit 0. Predicted ratio over item 33 ~0.93 (18.71 ns on its board route vs 20.11 here: the
+   automatic xorshift is slower than the hand recipe); expect ~18.5 ns on the board. A FAIL with item 33 passing is the
+   automatic flow's silicon counterexample: send both logs.
+
 ## 2026-11-18: item 39 -- automatic collatz (BDC_AUTO=1, the loop's own sizes): 18.99 ns, faster than every hand collatz item
 
 39. **collatz at ~19.0 ns per iteration, automatic (BDC_AUTO=1, sizes from auto_size.sh flow v3, seed 6)** -- farm suite4:

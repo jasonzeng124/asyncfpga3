@@ -6722,3 +6722,20 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - suite3 (64 tasks) waited 8 h for 128 free cores; split into suite3a / suite3b (32 tasks each; test_int16 and
   unused_arg in, the two that do not compile out -- they are recorded as DOES-NOT-COMPILE already).
 - Still judging: collatz64 v3 s5 (13 / 13 so far), xorshift v3 s8 (6 / 6, plus 8 slow-carry draws to come).
+
+## Session 2026-11-18 16:50 UTC -- (in progress) cluster bot, session 17: recovering session 1's lost tail; items 40 / 41; the v6 headline
+Toolchain: patches.sha 0d42657914fc25d3, nextpnr 6e5d224472232d5d (toolchain.sh all ok on node3627)   Seeds: per item
+Lock: cluster-research-29466208-1 (this wrapper's session 1, ended 10:17 UTC) taken 16:48 UTC as cluster-research-29466208-17.
+cluster: sessions 2-16 of this wrapper (10:17-16:17 UTC) each ended after 60 s on "You've hit your weekly limit"; nothing
+was lost from git, but session 1's last ~16 minutes and the jobs it left running (until ~12:40 UTC) were never pushed.
+Same node (node3627), so their files are still here: recovered below. Quota: PROGRAM's "at most 2 subagents until the
+reset (23:00 UTC)" stands; with the week's limit already reached once, this session works without subagents until then.
+Audit: newest T153 (item 39 launched); row 25 (the one-route AUTO headline, OVERSTATED minor) is answered by the suite4
+table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal: stopped since 02:51 (owner, until the reset).
+### progress 16:50 (BOARD-QUEUE items 40 / 41 from session 1's unpushed judgments)
+- collatz64 v3 seed 5 (sdf 9585dde4, P 23.71 ns, the suite4 median, loop CLEAN at it 7): SLOW_MAX / FAST_MIN / worst
+  18/18 and draws 30501-30532 32 / 32 (c6419). **Item 40.**
+- xorshift v3 seed 8 (sdf 3497ca67, P 20.11 ns, the suite4 median, CLEAN at it 6; the seed of flow v1's zero-trip failure):
+  3 corners 19/19, draws 30801-30832 32 / 32 and slow-carry draws 30851-30858 (CARRY4 / F7F8 / FF 0.8-1.0) 8 / 8.
+  **Item 41** (slower than the hand item 37, 16.49 ns; listed as the automatic flow's own xorshift).
+- Both rebuilt with nextpnr 6e5d224472232d5d from the farm's sizes; the sdf md5s equal the farm's (9c732bc6303458df).
