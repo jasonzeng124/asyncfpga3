@@ -146,3 +146,7 @@ e.g. OOM-killed). Used for FOR-RESEARCH C36-C42. Check: c55_3 ucmpi0 at 0.20,0.3
 Typical conditions: xorshift 'ucmpi0\.uz_n3' 'ucmpi1\.uz_n41'; collatz 'ucmpi0\.uz_n4' 'ucmpi2\.uz_n36'; ipow 'ucmpi0\.uz_n4'
 'ucmpi2\.uz_n39' (names from the kernel's bdc_fused_ucmpi* modules: the `uz_n*` LUT1).
 **Arcs (2026-11-17 22:30):** run.sh now decodes with build_net RC_TREE=1 by default (A18; matches research's arcs ~1 ps per net; the older default arcs were ~20 % fast, C48). RC_TREE=0 restores them.
+**`chainscale.py OUT --kernel K --pairs .. --bands "b,b,b;b,b,b" [--only REGEX]`** (2026-11-18): per matched-delay chain, the
+smallest factor s (1/16 grid) to which that chain's routed path (every arc along g[0]..g[n-1], pips included) can be scaled,
+alone, with every band triple still returning the right answers (uniform bands, no scatter). A CONSEQUENCE measure (as
+sideslack): runts the model absorbs count as fine. Check: item 35 route 21 (RC decode), ucmpi0.udly s_min 0.38, ucmpi1.udly 0.44.

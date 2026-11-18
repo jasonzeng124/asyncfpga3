@@ -4407,3 +4407,5 @@ Check for others: every number reported today comes from a run that printed its 
 
 ### progress 23:00 -- RC reruns of C37/C40/C43/C46 + collatz64 x0.70 (FOR-RESEARCH C49): all pass with larger margins except collatz x0.55 r8 (wrong answers at slow CARRY, 1 livelocked draw); r4 205 ps; UCMPI0 8 clears both.
 - 00:00 x55a10 RC, seeds 1-13: 52/52 slow-carry draws, ucmpi1 worst 896 ps (route 3). C49 updated.
+
+### progress 00:20 -- chainscale.py (new): per-chain shrink factor that still gives right answers at given corners; first: item 35 r21 RC, ucmpi0 0.38 / ucmpi1 0.44 at (0.20,0.31,1.0)+(0.20,0.31,0.20). Full scan of item 35's kernel chains running (towards the owner's sizing question).
