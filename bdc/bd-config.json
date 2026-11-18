@@ -328,7 +328,11 @@
 
     {
       "op": "load",           "kind": "cells", "seen": 4, "why": [
-        "bdc/mem.py's bdc_load_<AW>_<DW>[_seq] station, emit.py's _op_load.",
+        "bdc/mem.py's bdc_load[_cap]_<AW>_<DW>[_seq] station, emit.py's _op_load.",
+        "_cap (every load on an arbitrated port): the word latched at done, so",
+        "the other station's RAM edge cannot change it under its consumer; a",
+        "load first on its port forks its z into the second accessor's token",
+        "when both are in one block (research/data/suite/dyn/README.md).",
         "addressResult is absorbed into the owning mem_controller (the",
         "station's own p_addr/p_rdata round trip) and gets no net -- this",
         "table entry is coarse and cannot see that, so it says buildable for",
@@ -357,8 +361,10 @@
         "emit.py's _op_mem_controller. 1 accessor -> plain port; 2 ->",
         "arbitrated port + bd_arbiter + program-order token chain (only the",
         "SECOND accessor is the :seq station -- see bdc/mem.py's own note that",
-        "a store's z IS the next access's c, no new cell); >2 raises by name,",
-        "no N-way arbiter tree exists.",
+        "a store's z IS the next access's c, no new cell; a LOAD first forks",
+        "its z, and the chain is built only within one block); >2 raises by",
+        "name, no N-way arbiter tree exists. --host-mem on an arbitrated port:",
+        "the host slot outside bd_arbiter (bdc_memport_arb_host_*).",
         "",
         "The guard is what separates this from the store-having entry below,",
         "and it is not arbitrary. A controller owning only loads has one",
