@@ -306,6 +306,8 @@ builds: every non-compare chain at 0.5x passes on 31 routes).
     some seeds, every one examined on latch data nodes (ulink_n28__0_folink / ulink_n28__1 / ulink_n26 lat.pair), none
     on a controller.
   So without the rewrite too, the non-compare lines carry the slack and the entry compare does not.
+- **To reproduce any row here:** `RS=<your checkout> KERNEL=<k> bash formal/tools-B/auto/coltask.sh SIZES.vh SEED OUT/` from
+  a clean checkout of claude/formal (formal/tools-B/auto/README.md: what it runs, what it needs, 20-45 min on 4 cores).
 - **The same cut on the other automatic board items** (each at its board seed; the lines linescale found unneeded set to 0,
   the compares and the lines it said need length kept as built; same checks as B8):
   | item | sizes file (formal/tools-B/auto/sizes/) | sdf | draws + slow-carry | long paths | last answer, as built -> cut | NEARMISS |
