@@ -7012,3 +7012,17 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   tree except sobel / spmv in the default and host-mem modes, where hangs' token-floor fix (not in dyntests' tree) adds
   stages (spmv: ulink_n_falseResult_36 / _40 become 2-stage) -- the two kernels dyntests saw deadlock in the default
   flow; their RTL runs with the merged tree are running here.
+### progress 22:52 (FOUND: bdc's default flow computes WRONG VALUES on spmv and sobel in RTL -- a functional bug, not timing)
+- memtb (zero-wire-delay RTL, cells/sim arcs) on the merged tree, default flow (no BDC_AUTO), --host-mem: **spmv FAIL
+  3 of 4 calls** (out[] elements 0 where the C writes nonzero, e.g. call 1 out[9] = 0 want ffee14cb; call 3 out[0], out[2]),
+  **sobel FAIL 2 of 3** (call 1: 6 out[] elements wrong). The SAME failure with dyntests' own emission (its tree, before
+  the merge; spmv FAIL 3/4, the same addresses), so the merge did not cause it; dyntests had recorded these two as
+  "deadlocks in the default flow". Not deadlocks: wrong answers. spmv is out[row[i]] += val[i] * vec[col[i]] -- a
+  read-modify-write of out[] across iterations through a load-first controller (dyntests' mc:load1st) -- so the
+  suspect is the order of iteration k+1's load of out[r] against iteration k's store to out[r] (the ordering argument
+  of stores.md section 2, "test_memory_5's question"). BDC_AUTO=1's emission of both passed RTL (dyntests) and spmv
+  AUTO passed its routed smoke (4/4) -- which an ordering bug that the timing merely hides makes weak evidence.
+  Open, goal 1: trace it (next subagent).
+- CA_FAST equivalence on more kernels (ca_fast_e2e.sh, old rule vs CA_FAST=1, every output file compared):
+  collatz64 both corners IDENTICAL (781 -> 110 s per corner), dot2 0.20 IDENTICAL (1525 s old); quadrec and
+  iterative_sqrt still running.
