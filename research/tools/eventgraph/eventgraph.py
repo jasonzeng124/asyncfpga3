@@ -241,6 +241,15 @@ def main():
     mnode = next(i for i, nd in enumerate(G.nodes) if nd["net"] == mk and nd["edge"] == "R")
     lam, cyc = maxplus.mcr(len(G.nodes), G.arcs, mnode)
     neg = sum(1 for e in G.arcs if e["slack"] < 0)
+    if not cyc:
+        # no cycle of the graph through the marker (seen on an automatic ipow route, 2026-11-18): write the measured
+        # period of the marker and say so, instead of dying -- the trace's P stands, the graph's check does not
+        open(OUT + "/check.txt", "w").write(
+            "work %s marker %s (%s) period P = %d ps; window t0 = %d\n"
+            "NO CYCLE through the marker in the graph (%d nodes, %d arcs): P is the marker's measured period; "
+            "no critical cycle, no CHECK\n" % (W, MK, mk, P, t0, len(G.nodes), len(G.arcs)))
+        print("eventgraph: no cycle through the marker; check.txt has the measured period only", file=sys.stderr)
+        return
     # trace.py's walk, from an edge of the graph's critical cycle back to that net's previous same edge
     cn = G.nodes[G.arcs[cyc[0]]["v"]]
     ce = "1" if cn["edge"] == "R" else "0"
