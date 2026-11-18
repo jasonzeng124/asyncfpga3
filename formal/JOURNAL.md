@@ -2921,7 +2921,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 - FF CE / SR / D sinks are still short (FF-side site muxes are not modelled).
 
 ## Session 2026-11-18 (A, from 16:55 UTC; PROGRAM 2dddfedca: all shards until 23:00, then A alone)
-### progress 17:35 -- start; A's item: proofs for the automatic path's MLIR rewrites
+### progress 17:02 -- start; A's item: proofs for the automatic path's MLIR rewrites
 * Lock taken (LOCK dated 2026-11-17 21:18, before the 16:48 restart: PROGRAM says take it). setup.sh running (Mathlib
   cache unreachable, building from source). Audit: no open REFUTED / OVERSTATED row against A's files (T145 on the
   band question is answered by A18's RC_TREE result).
@@ -2937,7 +2937,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   graph theorem that replacing a unary op/fork tree by another with the same per-output functions preserves every
   complete run's result (any surrounding graph), so the constant-bound rewrite is proved for every kernel at once;
   (3) a general rewrite tool and a token-level differential check on the suite (subagent).
-### progress 19:00 -- CHECKED: moving a loop test before its increment preserves every complete run (Lean, any surrounding graph)
+### progress 17:16 -- CHECKED: moving a loop test before its increment preserves every complete run (Lean, any surrounding graph)
 * *Problem:* in 121 of the suite's 166 loop tests the frontend emits `e = extui x ; s = addi e, k ; fork s -> (s0, s1) ;
   c = cmpi P, s1, C`: the test waits for the increment. Rewrite: `fork e -> (e0, e1) ; s0 = addi e0, k ; c = cmpi P,
   e1, C'`. Does the graph still compute the same, whatever surrounds the pattern?
