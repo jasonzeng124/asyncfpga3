@@ -6690,3 +6690,17 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   nothing edited), rebuilt here = the farm's route (sdf 81bbe268, P 22.71 ns), EQUIVALENT, ffmux-clean: SLOW_MAX /
   FAST_MIN / worst 17/17 and 32 / 32 draws (K 30201-30232). Hand ipow items: 36.2 ns median (item 29). Board item 38.
 - collatz s6 (21 / 21 so far) and collatz64 s5 (8 / 8) still being judged.
+### progress 09:25 (srcjoin landed: a result fed only by a source now waits for the call; test_int16 / unused_arg pass)
+- srcjoin (reviewed; 2daa2e7ef, f7f4a0a20; research/data/suite/srcjoin.md): bdc/emit.py free_running() finds results
+  whose tokens no call bounds (by token counts; plain reachability is useless: a source reaches a result in 103 of 104
+  fixtures) and _op_end joins each with the call's produced control results (end + each memory's end), as Dynamatic's
+  testbench takes all outputs through one join. BDC_CALL_JOIN=0 = the old wiring. Emitted Verilog: 420 / 428 identical
+  (107 fixtures x default / BDC_AUTO / auto.py+AUTO / --host-mem); the 8 that differ are test_int16 and unused_arg; with
+  the flag off 428 / 428. Spot-checked here: xorshift, collatz, ipow, gcd, memsum identical. gaussian has the same bug
+  but stops earlier at lsq.
+- Checks: simcheck test_int16 6/6 over six calls (flag off: the old timeout, 94162 out0 tokens); 50 / 50 other suite
+  runs unchanged to the picosecond. Routed seed 1 (nextpnr 6e5d224472232d5d): test_int16 CLEAN at it 0 (no delay lines:
+  est_sizes / auto_size now build once and judge), 2/2 draws, 3 LUTs; unused_arg CLEAN at it 1, 2/2, 89 LUTs. Negative
+  control (flag off, same seed): both RULE FAILED, "combinational cycle with no storage".
+- Board candidates: collatz s6 24 / 24, collatz64 s5 9 / 9 so far; xorshift v3 s8 (rebuilt = 3497ca67, 20.11 ns) started
+  (3 corners, 32 draws, 8 slow-carry draws).
