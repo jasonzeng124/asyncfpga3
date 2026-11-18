@@ -4413,3 +4413,4 @@ Check for others: every number reported today comes from a run that printed its 
 - 00:20 chainscale --joint on cand4 (RC): collatz x0.70 s27 and ipow x0.70 s31 pass with ALL non-compare chains at 0; compares 0.31-0.38 (collatz), 0.12 / 0 (ipow). C51 updated.
 - 00:25 draws with non-compare chains at 0.5x (DRAW_INJECT): collatz x0.70 s27 8/8 (-12 %), ipow x0.70 s31 8/8 (-18 %), item 35 r21 7/8. C51 updated.
 - 00:20 half-chain draws on collatz x0.70 s1/s2 and ipow x0.70 s1/s2: 32/32 plain, 32/32 at half (-11..-20 %). C51 updated; farm c_half16 queued.
+- 00:25 injected draws on cand4 at 0.25x and 0x of non-compare delay: collatz x0.70 s27 8/8 / 8/8 (27.5 / 27.3 us vs 32.6), ipow x0.70 s31 8/8 / 8/8 (4.47 / 4.17 vs 6.09). Testing with a real build: collatz x0.70 sizes with every non-compare size at 1 (c70_min1), seed 27, formal draws + research's own gate (draw 2701, worst).
