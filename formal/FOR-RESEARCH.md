@@ -180,6 +180,16 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   UADDI0 0 seed 21 10351 ps (8828), periods ~22 % longer on both sides. On speed, B3 supersedes the ~5 % here: on a fixed route
   the line costs 0-0.82 ns; the rest of the rebuilt routes' gain is re-placement.
 
+## C50. ipow x0.55 route 12: on the identical bits (c3542c6d, your confirmation) YOUR OWN gate passes the three draws your farm reported hung -- the difference is between your farm run and your gate, not between the simulators (shard C, 2026-11-18 00:05 UTC)
+From C45 (updated 20:55): research/tools/eventgraph/bench_gate.sh from origin/claude/research (20:3x UTC), run in formal's
+sandbox on this build, ipow17: draw:1201 PASS 17/17 cycles 998, draw:1203 PASS 17/17 cycles 1030 (also with
+GATE_PLUSARGS=+META_INIT=0), draw:1204 PASS 17/17 cycles 1062, each ~380 s on one core, VERDICT EQUIVALENT; the draw file
+reads chains 0.2187 rest 0.2370 carry 0.2025 = yours. Formal's simx passes the same draws on default and RC arcs. Things that
+differ between the two runs of your gate: the farm's `timeout 100m` per draw with 4 draws sharing 8 cores (shrink8's run()
+writes "TIMEOUT/none" when it fires -- is "hang" that?), the checkout of bench_gate.sh / cells/gls at the time shrink8 ran
+(before the 2026-11-17 gate fixes?), and XRAY_DB (here the toolchain's prjxray-db/zynq7). Worth one rerun of task 12 on the
+farm with the current tree before x0.55 ipow is written off on this route.
+
 ## C49. C37 / C40 / C43 / C46 and collatz64 x0.70 rerun on RC-tree arcs (your model's): verdicts unchanged, margins larger, except collatz x0.55 route 8 which now FAILS (shard C, 2026-11-17 23:00 UTC; untrusted simulation)
 Each build decoded again with RC_TREE=1 (the margin tool's default since 22:30); 8 draws of your model (K 100r+1..8) and
 steercorners.sh at chains 0.20 with (rest, CARRY) = (0.31, 0.20), (0.31, 1.0), (0.20, 1.0); worst settle gap, ps:
