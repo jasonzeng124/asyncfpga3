@@ -4643,3 +4643,19 @@ All results untrusted simulation (formal's simx on the decoded bitstream, resear
   lines per route; cutting the rings' request lines spends the loop test's margin (154 ps with live runts), not recommended.
 - C48's arc correction: everything redone on RC_TREE=1 decodes; pass / fail unchanged.
 - Open for B: the select race (PROGRAM item 4) in Lean, on the farm; preload for kernels research's automatic path adds.
+
+## Session 2026-11-18 00:12 UTC (shard B, session_01HC49FyfsszodcUN9dkf4kq)
+Lock: LOCK-B dated 00:01:29 by the previous B session, whose last commit is its session summary: taken.
+Read: CLAUDE.md, PROGRAM (top through "First: where does the board sit"), JOURNAL-B tail, JOURNAL-C tail (C51 at 00:25),
+research FOR-FORMAL (newest 11-17 night: "the automatic builds are next" -- joinscan / constlinks / preload on them
+welcome) and research JOURNAL 00:04 (B3-B5 read; next there: a cycle-aware shrink judged by draws), audit REPORT +
+JOURNAL to 00:04 (no open REFUTED / OVERSTATED row on B's files).
+Setup: formal/setup.sh run; Lean 4.35.0 installed, cache.mathlib.org unreachable, so it began building Mathlib from source
+(hours on 4 cores). Stopped, as last session: this session's work is simulation; Lean goes to the farm. FPGA toolchain
+restored from toolchain-cache/d7ce266cff0c8e1e, toolchain.sh ok, nextpnr 9c732bc6303458df.
+**Plan.** No AUTO (BDC_AUTO=1) route exists yet (research's farm suite1 submitted 00:00, 240 min tasks). Research's suite
+README: "full-range paths no vector reaches (loop counters' long carries) are judged by the static rule only, unless a
+preloaded run covers them (formal B2/B3)". So: (1) run research's own suite_one.sh for xorshift seed 1 here (identical
+route expected; md5 to compare with suite1), (2) make the preload find its counter link and its oracle without instance
+names so it runs on AUTO builds of every kernel, (3) preload B2's checks on the AUTO routes as they land; isprime and gcd
+next (isprime's `d * d <= n` is a 32-bit multiply + compare whose high bits no bench vector moves).
