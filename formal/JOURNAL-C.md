@@ -4673,3 +4673,12 @@ countP_nxt (counting round the ring is rotation invariant: finRange_succ_last vs
 bookkeeping), D_rest (no two adjacent resting => D = 2 countP x), ring_live_rest. Axioms: propext, Classical.choice, Quot.sound.
 floormin.py (is every floor stage necessary? control = floor off + all additions pinned must be LIVE; then each minus one)
 running over every fixture; quadrec 3 / 3 and matrix 1 / 1 NECESSARY so far (the control caught a link-name bug first).
+
+### progress 21:58 -- setup.sh stopped (OOM); floormin rerun with live.py's LIVE_DEPTH_OVERRIDE
+setup.sh (started 21:21) found the Mathlib cache unreachable and went on to a full lake build of the project; at ~21:58 it
+ran the CertLatchPS2 modules (2-4 GB each) in parallel and the kernel OOM-killed processes. Stopped it (and its lean
+workers): this session's Lean is core-only (StageNet*, LiveCertsPass, StageNetRingLive), built with slot.sh lake build per
+module; full check.sh is the farm's. floormin: BDC_LINK_DEPTHS cannot link an unlinked channel (lfsrfind's floor links
+trueResult_14), so the control failed there; live.py now takes LIVE_DEPTH_OVERRIDE (validated: matrix 26=1 = PASS=0's
+DEADLOCK 853 states and walk; lfsrfind trueResult_14=0 = floor off's DEADLOCK 112). Running: lfsrfind 1 / 1, matrix 1 / 1
+NECESSARY so far.
