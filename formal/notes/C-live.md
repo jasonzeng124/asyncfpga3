@@ -43,3 +43,23 @@ is a way of counting the tokens on such a walk at an iteration boundary.
 - **Timing, glitches, X.** The gates are binary and speed independent: a deadlock here is a
   deadlock for every delay, but "no deadlock" assumes every excited gate eventually fires
   cleanly. Runts and metastability are the timing shards' business (C36-C52, B).
+
+## Tools (untrusted; each checked against the others and against research's simcheck rows)
+
+| tool | what it does | run |
+|---|---|---|
+| `formal/tools/live/cells/` | gate-level speed-independent BFS on the verbatim cell INITs (links, C-element joins / forks / trees, bd_mux, bdc_muxn, cond_br, bdc_amerge2 with its arbiter, FASTFALL lines), protocol and index monitors; compares with the stage model | `run.sh` (RESULTS.md, RESULTS2.md, muxglitch.txt) |
+| `formal/tools/live/fixtures/live.py` | exhaustive state search of a whole emitted design (every state-holding cell element, conditions nondeterministic, one or two invocations): LIVE for every trip count, or DEADLOCK with the choices and the token-free walk | `LIVE_BDC_DIR=<bdc> python3 -B live.py X.mlir`; `run.sh OUT` for the sweep (results.jsonl, RESULTS.md, MODEL.md) |
+| `formal/tools/live/views.py` | research's ring_tokens.py, both views, on every fixture x flow x floor | `python3 views.py OUT.tsv` |
+| `formal/tools/live/reentry/reentry.py` | research's walk view plus one "pass-through" view per loop (the one-trip re-entry mode); 183 / 183 with live.py | `python3 -B reentry.py X.mlir` (exit 1 = flagged) |
+| `formal/tools/live/gencert.py` | stage graph JSON -> Lean `Cert.check ... = true` certificates | `python3 gencert.py OUT.lean G.json...` |
+
+## Findings (FOR-RESEARCH C53-C58)
+
+- Fixed mode: research's condition is exact (Lean, C53); the real cells agree with the stage model (C53, C56).
+- Mode changes matter: matrix and stencil_2d (default flow) deadlock when an inner loop is re-entered after the enclosing loop
+  iterates; the token floor's walk view does not see it (C55). Cause: condition 2 on a fork-join pair (inner header control_merge
+  -> exit -> enclosing back edge -> inner mux entry input vs. its index -> select) in the one-trip mode (C58); research's back-edge
+  rule also misclassifies such entry inputs (C57). One stage on the entry input, or a header olink, fixes both.
+- Not speed independent (timing obligations, C55 / C56): the arbitrated merge's next output request vs. the previous winner's
+  acknowledge falling (stale index); FASTFALL head buffer drain; bd_mux x_ack at a select change (a runt there loses a token).
