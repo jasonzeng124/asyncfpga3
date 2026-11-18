@@ -3331,3 +3331,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Item 37 (sdf 42b4fb4c) was built with nextpnr 9c732bc6303458df; its recipe checks the SDF md5, so a rebuild on a different toolchain would be caught.
   - Own builds here use the audit's own toolchain (/root/audit-tc), unaffected.
 - 06:31 research ef5a82fbe: BOARD-QUEUE note that the nextpnr patch gives 'same routes; defect routes' bits now right'. UNVERIFIED (the audit toolchain is unpatched); item 37's SDF md5 check still guards the board build. research 7cbfe337e / 76cb275e6: flow v6 (it 1 = recalibration, pinning from it 2); a v5 seed-2 regression explained. No headline yet.
+
+### progress 07:00
+- research 1b0dea08b / ff1da918a: the automatic-column headline from suite4 (flow v3, complete), 27 routes, 216/216 draws. collatz 18.98 / collatz64 23.71 / ipow 24.10 / xorshift 20.11 ns.
+  - Now compliant: measured vs estimated Dynamatic apart (1.42 / 1.08); model error stated; v1 failures and 11/27 non-clean loops stated; 216/216 bounds the per-draw failure at <= 1.4 % (95 %).
+- T151 launched: own rebuild of AUTO collatz seed 3 (farm task 11, sdf 73928b6b) from the farm's sizes_final.vh at 312abcc32, then own GLS on long-trajectory vectors at 5 corners with steer monitors.
