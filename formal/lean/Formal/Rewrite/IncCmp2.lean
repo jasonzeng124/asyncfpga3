@@ -277,6 +277,242 @@ theorem fwd_step2 (P : Pat2 rs rs' b d f e s s0 s1 c k e0 e1 fA fC fC') :
     have := rel_appk P (fr.2 k) hL1 hL2
     rw [this.2, lft_app_right, lft_app_right, hidem]
 
+theorem term_comp2 {rs : List Rule} {l i j o : Nat} {g : E} (hr : rs[l]? = some (.comp [i, j] o g))
+    (hij : i ≠ j) (hio : i ≠ o) (hjo : j ≠ o) {σ : Store Nat Nat} (ht : Terminal (step (graph rs)) σ) :
+    σ i = [] ∨ σ j = [] := by
+  cases hi : σ i with
+  | nil => exact Or.inl rfl
+  | cons a as =>
+    cases hj : σ j with
+    | nil => exact Or.inr rfl
+    | cons w ws => have := step_comp2 hr hij hio hjo hi hj; rw [ht l] at this; cases this
+
+theorem fwd_term2 (P : Pat2 rs rs' b d f e s s0 s1 c k e0 e1 fA fC fC') :
+    ∀ t σ', Rel2 e s s0 s1 c k e0 e1 fA fC fC' t σ' → Terminal (step (graph rs)) t →
+      ∃ τ n, Run (step (graph rs')) σ' n τ ∧ Terminal (step (graph rs')) τ ∧
+        ∀ ch, ch ≠ s → ch ≠ s1 → ch ≠ e0 → ch ≠ e1 → τ ch = t ch := by
+  have N := ne8 P.hnd
+  intro t σ' ⟨hR, h0, h1, h2, h3, hS0, hC, hL1, hL2⟩ ht
+  have te := term_comp1 P.hb N.es ht
+  have ts := term_fork2 P.hd N.ss0 N.ss1 N.s0s1 ht
+  have tf := term_comp2 P.hf (Ne.symm N.xs1) N.s1c N.xc ht
+  obtain ⟨τ, n, hrun, t0, tS0, tE1, tK, tC, tR⟩ := flushB2 P σ'
+  rw [ts, List.append_nil, lft_of_empty tf] at hL1 hL2
+  rw [ts, List.append_nil, zw_of_empty _ tf, List.append_nil] at hC
+  rw [ts, List.append_nil] at hS0
+  have agree : ∀ ch, ch ≠ s → ch ≠ s1 → ch ≠ e0 → ch ≠ e1 → τ ch = t ch := by
+    intro ch k1 k2 k3 k4
+    by_cases k5 : ch = s0
+    · subst k5; rw [tS0, ← hS0]
+    · by_cases k6 : ch = c
+      · subst k6; rw [tC, ← hC]
+      · by_cases k7 : ch = k
+        · subst k7; rw [tK, ← hL2]
+        · rw [tR ch k3 k5 k4 k7 k6, hR ch k1 k2 k3 k4 k5 k6 k7]
+  refine ⟨τ, n, hrun, ?_, agree⟩
+  intro l
+  by_cases lb : l = b
+  · subst lb; exact step_fork2_none P.hb' (by rw [agree e N.es N.es1 N.ee0 N.ee1, te])
+  by_cases ld : l = d
+  · subst ld; exact step_comp1_none P.hd' t0
+  by_cases lf : l = f
+  · subst lf
+    refine step_comp2_none P.hf' ?_
+    rcases tf with h | h
+    · left; rw [tE1]; rw [h] at hL1; exact (List.map_eq_nil_iff.mp hL1.symm)
+    · right; rw [tK, ← hL2, h]
+  refine other_none (P.hsame l lb ld lf) (ht l) ?_
+  intro r hr ch hch
+  obtain ⟨k1, k2, k3, k4, k5, k6⟩ := P.hins l r lb ld lf hr ch hch
+  exact agree ch k2 k3 k4 k5
+
+theorem bwd_step2 (P : Pat2 rs rs' b d f e s s0 s1 c k e0 e1 fA fC fC') :
+    ∀ σ' σ l σ1', Rel2 e s s0 s1 c k e0 e1 fA fC fC' σ σ' → step (graph rs') σ' l = some σ1' →
+      ∃ σ1 n, Run (step (graph rs)) σ n σ1 ∧ Rel2 e s s0 s1 c k e0 e1 fA fC fC' σ1 σ1' := by
+  have N := ne8 P.hnd
+  intro σ' σ l σ1' ⟨hR, h0, h1, h2, h3, hS0, hC, hL1, hL2⟩ hst
+  by_cases lb : l = b
+  · subst lb
+    cases he' : σ' e with
+    | nil => rw [step_fork2_none P.hb' he'] at hst; cases hst
+    | cons v vs =>
+      rw [step_fork2 P.hb' N.ee0 N.ee1 N.e0e1 he'] at hst; cases hst
+      have he : σ e = v :: vs := by rw [← hR e N.es N.es1 N.ee0 N.ee1 N.es0 N.ec N.xe.symm, he']
+      have L := rel_app1 P v hL1 hL2
+      refine ⟨_, 1, run_one (step_comp1 P.hb N.es he), ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · intro ch k1 k2 k3 k4 k5 k6 k7
+        by_cases ke : ch = e
+        · subst ke; simp [upd, N.ee0, N.ee1, N.es]
+        · simp [upd, ke, k1, k3, k4, hR ch k1 k2 k3 k4 k5 k6 k7]
+      · nso; exact h0
+      · nso; exact h1
+      · nso; exact h2
+      · nso; exact h3
+      · nso; rw [List.map_append, ← List.append_assoc, ← List.append_assoc, ← hS0]; simp
+      · nso
+        rw [← List.append_assoc, zw_app_left _ (σ s1 ++ σ s) [fA.eval [v]] (σ k),
+          zw_app_left _ (σ' e1) [v] (σ' k), ← List.append_assoc, ← List.append_assoc, hC, hL2, zw_one P]
+      · nso; rw [← List.append_assoc]; exact L.1
+      · nso; rw [← List.append_assoc]; exact L.2
+  by_cases ld : l = d
+  · subst ld
+    cases he0 : σ' e0 with
+    | nil => rw [step_comp1_none P.hd' he0] at hst; cases hst
+    | cons u us =>
+      rw [step_comp1 P.hd' (Ne.symm N.s0e0) he0] at hst; cases hst
+      refine ⟨σ, 0, Run.refl _, ?_, h0, h1, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      · intro ch k1 k2 k3 k4 k5 k6 k7; simp [upd, k3, k5, hR ch k1 k2 k3 k4 k5 k6 k7]
+      · nso; exact h2
+      · nso; exact h3
+      · nso; rw [hS0, he0]; simp
+      · nso; exact hC
+      · nso; exact hL1
+      · nso; exact hL2
+  by_cases lf : l = f
+  · subst lf
+    cases he1 : σ' e1 with
+    | nil => rw [step_comp2_none P.hf' (Or.inl he1)] at hst; cases hst
+    | cons a as =>
+      cases hk : σ' k with
+      | nil => rw [step_comp2_none P.hf' (Or.inr hk)] at hst; cases hst
+      | cons w ws =>
+        rw [step_comp2 P.hf' (Ne.symm N.xe1) (Ne.symm N.ce1) N.xc he1 hk] at hst; cases hst
+        refine ⟨σ, 0, Run.refl _, ?_, h0, h1, ?_, ?_, ?_, ?_, ?_, ?_⟩
+        · intro ch k1 k2 k3 k4 k5 k6 k7; simp [upd, k4, k6, k7, hR ch k1 k2 k3 k4 k5 k6 k7]
+        · nso; exact h2
+        · nso; exact h3
+        · nso; exact hS0
+        · nso; rw [hC, he1, hk]; simp
+        · nso; rw [hL1, he1, hk]; rfl
+        · nso; rw [hL2, he1, hk]; rfl
+  -- an outside rule: flush the original graph, then fire it there
+  obtain ⟨r, fr, hr', hf, rfl⟩ := step_some_rule hst
+  have hr : rs[l]? = some r := by rw [← P.hsame l lb ld lf]; exact hr'
+  have hin := P.hins l r lb ld lf hr
+  have hout := P.houts l r lb ld lf hr
+  obtain ⟨τ, n, hrun, tS, tS0, tS1, tK, tC, tR⟩ := flushA2 P σ
+  have hfτ : r.fire natVI τ = some fr := by
+    refine fire_mono hf ?_
+    intro ch hch
+    obtain ⟨k1, k2, k3, k4, k5, k6⟩ := hin ch hch
+    by_cases k7 : ch = s0
+    · subst k7; exact ⟨_, by rw [tS0, hS0]⟩
+    · by_cases k8 : ch = c
+      · subst k8; exact ⟨_, by rw [tC, hC]⟩
+      · exact ⟨[], by rw [List.append_nil, tR ch k2 k7 k3 k6 k8, hR ch k2 k3 k4 k5 k7 k8 k6]⟩
+  have hst' : step (graph rs) τ l = some (applyF τ fr) := by
+    rw [step_graph hr, hfτ]; rfl
+  have nin : ∀ ch, (ch = e ∨ ch = s ∨ ch = s1 ∨ ch = e0 ∨ ch = e1 ∨ ch = k) → ch ∉ r.insL := by
+    intro ch hc hm; obtain ⟨k1, k2, k3, k4, k5, k6⟩ := hin ch hm
+    rcases hc with rfl | rfl | rfl | rfl | rfl | rfl <;> simp_all
+  have nout : ∀ ch, (ch = s ∨ ch = s1 ∨ ch = e0 ∨ ch = e1 ∨ ch = s0 ∨ ch = c) → ch ∉ r.outsL := by
+    intro ch hc hm; obtain ⟨k1, k2, k3, k4, k5, k6⟩ := hout ch hm
+    rcases hc with rfl | rfl | rfl | rfl | rfl | rfl <;> simp_all
+  have kpop : ∀ {ρ : Store Nat Nat}, r.fire natVI ρ = some fr → applyF ρ fr k = ρ k ++ fr.2 k := by
+    intro ρ hρ
+    have := (r.node natVI).pop_ins ρ fr k hρ (nin k (by simp))
+    simp [applyF, this]
+  have ke1 : applyF σ' fr e1 = σ' e1 := applyF_keep hf (nin e1 (by simp)) (nout e1 (by simp))
+  have ke0 : applyF σ' fr e0 = σ' e0 := applyF_keep hf (nin e0 (by simp)) (nout e0 (by simp))
+  have hkτ := kpop hfτ
+  have hkσ := kpop hf
+  rw [tK] at hkτ
+  have hτs : applyF τ fr s = [] := by rw [applyF_keep hfτ (nin s (by simp)) (nout s (by simp)), tS]
+  have hτ1 : applyF τ fr s1 = (lft (σ s1 ++ σ s) (σ k)).1 := by
+    rw [applyF_keep hfτ (nin s1 (by simp)) (nout s1 (by simp)), tS1]
+  have hidem := lft_idem (σ s1 ++ σ s) (σ k)
+  refine ⟨_, n + 1, run_trans hrun (run_one hst'), ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro ch k1 k2 k3 k4 k5 k6 k7
+    simp only [applyF]; rw [tR ch k1 k5 k2 k7 k6, hR ch k1 k2 k3 k4 k5 k6 k7]
+  · rw [applyF_keep hfτ (nin e0 (by simp)) (nout e0 (by simp)),
+      tR e0 N.se0.symm N.s0e0.symm N.s1e0.symm N.xe0.symm N.ce0.symm, h0]
+  · rw [applyF_keep hfτ (nin e1 (by simp)) (nout e1 (by simp)),
+      tR e1 N.se1.symm N.s0e1.symm N.s1e1.symm N.xe1.symm N.ce1.symm, h1]
+  · rw [applyF_keep hf (nin s (by simp)) (nout s (by simp)), h2]
+  · rw [applyF_keep hf (nin s1 (by simp)) (nout s1 (by simp)), h3]
+  · rw [applyF_noout hfτ (nout s0 (by simp)), applyF_noout hf (nout s0 (by simp)), hτs, ke0, tS0, hS0]
+    have kk := fire_le hf s0
+    simp [List.drop_append_of_le_length kk]
+  · have A : List.zipWith (fun a w => fC.eval [a, w]) (lft (σ s1 ++ σ s) (σ k)).1
+        ((lft (σ s1 ++ σ s) (σ k)).2 ++ fr.2 k) =
+        List.zipWith (fun a w => fC'.eval [a, w]) (lft (σ' e1) (σ' k)).1 (fr.2 k) := by
+      rw [zw_app_right, hidem, zw_lft, List.nil_append, hL1, zw_hH P]
+    have kk := fire_le hf c
+    rw [applyF_noout hfτ (nout c (by simp)), applyF_noout hf (nout c (by simp)), hτs, hτ1, hkτ, hkσ, ke1, tC,
+      hC, List.append_nil, A, zw_app_right, List.drop_append_of_le_length kk, List.append_assoc]
+  · rw [hτs, hτ1, hkτ, hkσ, ke1, List.append_nil]
+    have := rel_appk P (fr.2 k) hL1 hL2
+    rw [lft_app_right (lft (σ s1 ++ σ s) (σ k)).1, hidem, ← this.1, lft_app_right]
+  · rw [hτs, hτ1, hkτ, hkσ, ke1, List.append_nil]
+    have := rel_appk P (fr.2 k) hL1 hL2
+    rw [lft_app_right (lft (σ s1 ++ σ s) (σ k)).1, hidem, ← this.2, lft_app_right]
+
+theorem bwd_term2 (P : Pat2 rs rs' b d f e s s0 s1 c k e0 e1 fA fC fC') :
+    ∀ t' σ, Rel2 e s s0 s1 c k e0 e1 fA fC fC' σ t' → Terminal (step (graph rs')) t' →
+      ∃ τ n, Run (step (graph rs)) σ n τ ∧ Terminal (step (graph rs)) τ ∧
+        ∀ ch, ch ≠ s → ch ≠ s1 → ch ≠ e0 → ch ≠ e1 → τ ch = t' ch := by
+  have N := ne8 P.hnd
+  intro t' σ ⟨hR, h0, h1, h2, h3, hS0, hC, hL1, hL2⟩ ht
+  have te := term_fork2 P.hb' N.ee0 N.ee1 N.e0e1 ht
+  have te0 := term_comp1 P.hd' (Ne.symm N.s0e0) ht
+  have tf := term_comp2 P.hf' (Ne.symm N.xe1) (Ne.symm N.ce1) N.xc ht
+  obtain ⟨τ, n, hrun, tS, tS0, tS1, tK, tC, tR⟩ := flushA2 P σ
+  rw [lft_of_empty tf] at hL1 hL2
+  rw [zw_of_empty _ tf, List.append_nil] at hC
+  rw [te0, List.map_nil, List.append_nil] at hS0
+  have agree : ∀ ch, ch ≠ s → ch ≠ s1 → ch ≠ e0 → ch ≠ e1 → τ ch = t' ch := by
+    intro ch k1 k2 k3 k4
+    by_cases k5 : ch = s0
+    · subst k5; rw [tS0, hS0]
+    · by_cases k6 : ch = c
+      · subst k6; rw [tC, hC]
+      · by_cases k7 : ch = k
+        · subst k7; rw [tK, hL2]
+        · rw [tR ch k1 k5 k2 k7 k6, hR ch k1 k2 k3 k4 k5 k6 k7]
+  refine ⟨τ, n, hrun, ?_, agree⟩
+  intro l
+  by_cases lb : l = b
+  · subst lb; exact step_comp1_none P.hb (by rw [agree e N.es N.es1 N.ee0 N.ee1, te])
+  by_cases ld : l = d
+  · subst ld; exact step_fork2_none P.hd tS
+  by_cases lf : l = f
+  · subst lf
+    refine step_comp2_none P.hf ?_
+    rcases tf with h | h
+    · left; rw [tS1, hL1, h]; rfl
+    · right; rw [tK, hL2, h]
+  refine other_none (P.hsame l lb ld lf).symm (ht l) ?_
+  intro r hr ch hch
+  have hr0 : rs[l]? = some r := by rw [← P.hsame l lb ld lf]; exact hr
+  obtain ⟨k1, k2, k3, k4, k5, k6⟩ := P.hins l r lb ld lf hr0 ch hch
+  exact agree ch k2 k3 k4 k5
+
+/-! ## The theorems -/
+
+theorem forward2 (P : Pat2 rs rs' b d f e s s0 s1 c k e0 e1 fA fC fC') {σ0 t : Store Nat Nat} {n : Nat}
+    (h0 : σ0 s = [] ∧ σ0 s1 = [] ∧ σ0 e0 = [] ∧ σ0 e1 = [])
+    (hr : Run (step (graph rs)) σ0 n t) (ht : Terminal (step (graph rs)) t) :
+    ∃ t' m, Run (step (graph rs')) σ0 m t' ∧ Terminal (step (graph rs')) t' ∧
+      ∀ ch, ch ≠ s → ch ≠ s1 → ch ≠ e0 → ch ≠ e1 → t' ch = t ch := by
+  obtain ⟨hs, hs1, he0, he1⟩ := h0
+  exact sim_complete (Rel2 e s s0 s1 c k e0 e1 fA fC fC')
+    (fun t t' => ∀ ch, ch ≠ s → ch ≠ s1 → ch ≠ e0 → ch ≠ e1 → t' ch = t ch)
+    (fwd_step2 P) (fwd_term2 P) hr ht σ0
+    ⟨fun _ _ _ _ _ _ _ _ => rfl, he0, he1, hs, hs1, by simp [hs, he0], by simp [hs, hs1, he1],
+      by simp [hs, hs1, he1], by simp [hs, hs1, he1]⟩
+
+theorem backward2 (P : Pat2 rs rs' b d f e s s0 s1 c k e0 e1 fA fC fC') {σ0 t' : Store Nat Nat} {n : Nat}
+    (h0 : σ0 s = [] ∧ σ0 s1 = [] ∧ σ0 e0 = [] ∧ σ0 e1 = [])
+    (hr : Run (step (graph rs')) σ0 n t') (ht : Terminal (step (graph rs')) t') :
+    ∃ t m, Run (step (graph rs)) σ0 m t ∧ Terminal (step (graph rs)) t ∧
+      ∀ ch, ch ≠ s → ch ≠ s1 → ch ≠ e0 → ch ≠ e1 → t ch = t' ch := by
+  obtain ⟨hs, hs1, he0, he1⟩ := h0
+  exact sim_complete (fun σ' σ => Rel2 e s s0 s1 c k e0 e1 fA fC fC' σ σ')
+    (fun t' t => ∀ ch, ch ≠ s → ch ≠ s1 → ch ≠ e0 → ch ≠ e1 → t ch = t' ch)
+    (bwd_step2 P) (bwd_term2 P) hr ht σ0
+    ⟨fun _ _ _ _ _ _ _ _ => rfl, he0, he1, hs, hs1, by simp [hs, he0], by simp [hs, hs1, he1],
+      by simp [hs, hs1, he1], by simp [hs, hs1, he1]⟩
+
 end Pattern2
 
 end Formal.Rewrite.IncCmp
