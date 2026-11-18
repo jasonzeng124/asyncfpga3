@@ -3241,3 +3241,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Acceptable as stated. Audit watch item: any headline pass fraction must carry its undecided count.
   - Unaffected: own T137 hangs were genuine (batch 12 never returned while the monitors ran for 250+ µs), not wrapper timeouts.
 - research 6182827b9: AUTO loop convergence notes. No claim.
+- 00:15 owner 081281596 (research/PROGRAM.md only): quota pacing for research. Audit unaffected.
