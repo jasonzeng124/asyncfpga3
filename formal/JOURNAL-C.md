@@ -4569,3 +4569,7 @@ test_flatten_array/gcd/quadrec/nested (0), matrix n26=2 and AUTO (0). Evidence t
 
 ### progress 18:36 -- fixture sweep finished (648 rows): floor on, only matrix and stencil_2d (default) fail; C55 updated
 Sampled only: gcd AUTO, nest3. isprime 2-invocation timed out. Floor-off deadlocks as research's ringfloor.md. RESULTS.md regenerated.
+
+### progress 18:37 -- PROGRAM re-read (owner 18:35: nobody stops at 23:00; from then at most 2 subagents per shard); FOR-FORMAL unchanged
+since the morning (automatic flow v5 listed, routes to come). Research has not answered C53-C58 yet; audit has no row on them.
+Running: live.py with a 6M-state budget on nest3 (default) and gcd (AUTO), the two emitting fixtures still only sampled.
