@@ -3299,3 +3299,13 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 03:35
 - research b7d5d2c59: BOARD-QUEUE item 37, xorshift x55a10 s21 (item 35 with UCMPI0 6 -> 10), route sdf 42b4fb4c, 16.49 ns on this route (median 16.76 over 28 routes), 32/32 draws + 3 corners; replaces item 35.
 - T150 launched: own build, own GLS on xor19 and long rounds at FAST_MIN / SLOW_MAX / worst / advA (+-scatter) / advC (no scatter), with steer monitors.
+
+### progress 04:04
+- T150 (item 37, x55a10 s21):
+  - Own build = sdf 42b4fb4c; ff clean.
+  - xor19 at FAST_MIN / advA no-scatter / advC no-scatter: 19/19, 0 runts, all loop-steer margins >= 1.08 ns.
+  - ucond_br2 at advA no-scatter is 1272 ps, against item 35's 60 ps (T144). The entry-compare fix is confirmed.
+  - Remaining corners running.
+- research 2eccf05e0: the automatic-column headline (suite2, flow v2), 'geometric mean ratio to Dynamatic 1.03'.
+  - OVERSTATED: ipow's 0.44 is against a Dynamatic ESTIMATE, and without it the mean is 1.37 (own arithmetic); no model error; flow v2 is the one-band rule research has replaced; Dynamatic 'measured' is not the board.
+  - REPORT row. Owner notified.
