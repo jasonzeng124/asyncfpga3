@@ -23,12 +23,14 @@ is unused is lost at the reset, 2026-11-18 23:00 UTC.
   6. the memory kernels through the automatic path;
   7. the suite table over everything, on many routes (the farm, 200 cores);
   8. Dynamatic's own figure for each suite kernel, so the ratio column is not empty.
-- **From 23:00 UTC: at most 1 subagent at a time, and only for a job that needs one.** Your
-  first session here (12 hours, 8444 steps, 15 subagent launches) used, by a rough estimate,
-  a sixth of a week's quota: three days at that rate empty the week. Most of it is the price
-  of re-reading the context at every step, so the number of steps is what costs. Wait for a
-  build or the farm in one long command, not in twenty short checks, and batch what can be
-  batched.
+- **From 23:00 UTC: work alone. A subagent only for a job you could not do yourself in the
+  same time, one at a time, and ended when that job is.** Measured from the log of your first
+  session here (12 hours, corrected 2026-11-18 18:30 UTC): 86 % of what it cost was its
+  subagents (15 launches, at most 2 at a time) and 14 % the session itself. A subagent that
+  is kept busy costs two to three times what you cost per hour. The week's quota carries
+  roughly three sessions working alone and nothing more, and the owner's other work shares
+  it (owner, 18:24 UTC: "you aren't the only one"). Wait for a build or the farm in one long
+  command, not in twenty short checks; that holds for you and for any subagent.
 - Re-read this file every two hours, and once more at 23:00 UTC.
 
 ## This bot now runs on the cluster (owner, 2026-11-17)
