@@ -6578,3 +6578,9 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   them 10804 (chains 0.2124 / rest 0.2770 / carry 0.2619), the draw v1's route failed on the zero-trip call. The entry
   compare is 9 here (v1: 5). Latency per call, median over xor19 under the draws: 228 ns.
 - rejudge1: 9 of 12 (all pass, above); the last three (collatz64 s5, ipow s4, xorshift s8 x 8 draws) still running.
+### progress 05:17 (suite4 = flow v3, 18 of 32: 112 / 112 draws on 14 routes; 12 of 14 loops end CLEAN)
+- v3 (two-corner rule, raise-only finish phase, 8 draws per route): collatz 6 routes 48 / 48, P median 18.75
+  (17.71-20.60); xorshift 6 of 7 judged 48 / 48, 20.16 (18.87-20.49; v2's 18.63 had the one-band rule); ipow 2 routes
+  16 / 16, 24.57. The finish phase makes the loops end clean (12 of 14; v1 / v2: almost none). The cost of the second
+  corner on xorshift is ~1.5 ns of median; steer-self (v5) should take back more than that (UCMPI1 17 -> ~10).
+- Local v5 preview, xorshift seed 2: it 0 proposals 167 -> 69 / 71 links at the two corners. Running.
