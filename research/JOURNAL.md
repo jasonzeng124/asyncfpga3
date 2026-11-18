@@ -6800,3 +6800,12 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   per-corner lines.tsv is now saved per iteration (lines_I_C.txt) so a resumed finish phase can use it.
 - Farm conv1 (8 tasks, 2 cores, the 16 cores suite9 leaves free): eight of suite6's NOT CLEAN loops resumed after it 3
   with AUTO_NEAR_PS=300; suite6's own runs are the control (it 4 rebuilt first, md5 checked). Prediction in the request.
+### progress 18:16 (xorgap: the event-graph search picks the hand recipe's p8 on every v6 xorshift graph; coordination)
+- xorgap (interim, by message): with whatif.py able to deepen a single-stage link that has an acknowledge delay (every
+  link on the automatic xorshift routes; before, search.py skipped them as ValueErrors), search.py --depth-only picks
+  BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 -- the hand recipe's "p8", the one structural difference left -- on every v6
+  xorshift graph (predicted -0.65..-4.55 ns), and nothing on collatz / collatz64 / ipow. It runs as auto_size.sh
+  AUTO_SEARCH=1 (a phase after the loop; nothing named by hand; ships the new route only if clean and faster). Its farm
+  request is being reworked to resume from suite6's states (committed: research/data/suite/resume/suite6/, f415db410).
+- graphsearch told to aim at new site kinds and at why the other kernels gain nothing from depth edits; loopfast told
+  the loop's own logic (ratchet, phases) is the bot's. xorgap was over its CPU budget (7 busy processes): now <= 3.
