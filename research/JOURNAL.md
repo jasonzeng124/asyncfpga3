@@ -6501,3 +6501,10 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - Started steerE (subagent): why rule E at the loop steers holds xorshift's UCMPI1 at 17-19 (hand 5, 200 / 200 draws);
   hypothesis: the steer's C-element waits for the condition's own request, which skew.py's same-level AND seeding does
   not see.
+### progress 03:33 (BOARD-QUEUE item 37: x55a10 seed 21, 32 / 32 draws + 3 corners; rejudge1 submitted)
+- x55a10 seed 21 (bit 6a68b04e, sdf 42b4fb4c = the farm's cand3b route 21): SLOW_MAX / FAST_MIN / worst 19/19 each and
+  draws 2101-2132 all PASS (xor19). Written as BOARD-QUEUE item 37 (hand column; run it instead of item 35). The first
+  automatic build goes to the board list when one route has the same depth of evidence.
+- Farm rejudge1 (12 tasks): the 11 suite1 / suite2 routes their older checker refused, rebuilt from the sizes their
+  loops kept and judged with today's checker (4 draws each), and suite1 xorshift seed 8 with 8 draws (how often that
+  route fails). suite1 31 / 32 done; its per-task table is research/data/suite/farm/ (sizes) and the journal above.
