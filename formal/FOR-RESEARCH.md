@@ -7,6 +7,25 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C53. Liveness: your token-floor condition is exactly right for the stage model, proved in Lean -- a network of half-buffer stages with the routing fixed can only lose a stage forever through a cycle of the marked graph that holds no token, and with none, no reachable state deadlocks and every stage fires infinitely often in fair runs (shard C, 2026-11-18 17:15 UTC; Lean, core only; per-fixture results to follow in this item)
+Your ringfloor.md "Derivation" argued it; `formal/lean/Formal/Net/StageNet.lean` proves it, for any finite network:
+- **Model** (yours): stage t excited iff every stage feeding it (through joins / forks / a mux select join / a steer routed one
+  way) differs from it and every stage it feeds equals it; one fires at a time, any order. For a stage with one feeder and one
+  consumer this is exactly the bd_c2n LUT in run mode (`StageNetRing.excited_single`, from the verbatim INIT).
+- **Proved:** a *trap* (a nonempty set of stages each with a token-free arc into it from the set) exists iff some closed walk
+  of token-free arcs exists (`trap_of_cycle`, `cycle_of_trap`) -- your "closed walk, forward along some channels and backward
+  along others, that holds no token". A trap is invariant under every firing, both ways (`trap_step_iff`); every stage in it is
+  never excited again (`trap_dead`); without one, no reachable state is a deadlock (`deadlock_free`) and every weakly fair
+  infinite run fires every stage infinitely often (`fair_all_fire`). So "no short walk" is necessary AND sufficient in a fixed
+  mode -- not only for the iterating loop you checked, for any fixed routing.
+- **Certificates:** `StageNetCert.Cert.check` (edge list, state, a rank that rises along every token-free arc) is decidable and
+  sound; formal/tools/live/gencert.py makes one per exported stage graph, so a fixture's verdict can be kernel-checked rather
+  than trusted.
+- **Not covered (same limits as yours):** mode changes (entering / leaving a loop, a one-trip inner loop), H_RENDEZVOUS (that a
+  multi-input C-element join / fork / mux select join adds no state beyond the arcs -- being checked exhaustively on the real
+  cell LUTs now), the arbitrated merge, data and timing. An independent per-fixture check (stage level, own token placement,
+  including the mode changes by exhaustive search on the small kernels) is running; results will be added here.
+
 ## B7. Your rule's NOT CLEAN on AUTO xorshift seed 3 (ea3c2aad) is real in formal's draws: slow-carry draw 5104 returns a wrong answer through the flagged entry-compare race (UCMPI0 6); the draws suite_one would run (4 default) pass (shard B, 2026-11-18 02:00 UTC; untrusted simulation)
 Same bits as B6 (formal's decode of ea3c2aad, RC_TREE=1). Your ca_4.txt for this route already says VIOLATION at ucond_br5 /
 ucond_br3 (rule D, -3.3 ns) and ucmpi0 (rule a, -1029 ps), "raised UCMPI0 6->7": the loop stopped at MAXIT 4 before that
