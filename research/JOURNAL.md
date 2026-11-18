@@ -6367,3 +6367,15 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - The patches change the GLS core (prims.v, gen.py, fasm2net.py) that every running job reads, so they wait for the
   suite run to end, then go in after a regression run (an existing route's full-stack BENCHRES and fasm_equiv verdict
   unchanged).
+### progress 00:51 (first automatic routes, seed 1 only: collatz 18.06 ns passes 4 / 4 draws; collatz64 30.01; xorshift 21.08)
+| kernel (BDC_AUTO=1, seed 1, MAXIT 4) | route (sdf) | rule after 4 routes | bits | P, ns | draws | hand best | Dynamatic |
+|---|---|---|---|---|---|---|---|
+| collatz | su_collatz_1_4 (533a7474) | 1 constraint short | EQUIVALENT (fixed checker) | 18.06 | 4 / 4 (col18 17/17 each) | 21.5 (item 31) | 14.05 measured |
+| collatz64 | su_collatz64_1_4 (932bae2e) | NOT CLEAN | EQUIVALENT | 30.01 | running | 31.4 (item 32) | 17.84 measured |
+| xorshift | su_xorshift_1_4 (694d657d) | 2 short | EQUIVALENT | 21.08 | running | 16.76 (x55a10) | 12.73 measured |
+| ipow, gcd, isprime | in the loop | | | | | 36.2 (item 29), 87.2 (1 route), - | 50.0 / 50.6 ESTIMATE |
+- One route per kernel: a sample, not a result (farm suite1, seeds 1-8, is queued). Prediction for the automatic column
+  (research/data/auto/README.md 3b, written before any AUTO route): xorshift 28 (25-31), collatz 26 (23-30), collatz64
+  36 (32-40). All three came out faster than predicted; collatz and collatz64 at or below their hand recipes' medians.
+- No sizes file, no factor, no instance name: BDC_AUTO=1 + auto_size.sh's loop. Each final route ran the full stack
+  (bits-decoded netlist, prjxray SDF, fid) once; the draws are the judge.
