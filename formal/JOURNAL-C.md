@@ -4588,3 +4588,11 @@ every emitting fixture with the floor on now has an exhaustive verdict except ne
 
 ### progress 19:49 -- nest3 AUTO (floor on) at an 8M budget: killed by its 50-min timeout with no verdict (no result line);
 it stays SAMPLED-LIVE (300 random walks, no trap). Not retried: the state space is larger than this machine's time box allows.
+
+### progress 19:51 -- Formal/Net/LiveCerts.lean: 189 kernel-checked "no trap" certificates for the fixtures' routing modes
+gencert.py over live.py's stage-graph dumps (floor on, both flows, one invocation; the first state seen in each routing mode
+s0..s3 of every emitting fixture): 189 graphs, 0 traps, each a `Cert.check ... = true := by decide +kernel`; whole file 38 s.
+Meaning: in the exported stage graph and state of that mode, no token-free cycle, so (StageNet) no deadlock while that routing
+holds, every stage fires in fair runs. NOT covered: that the export is the design (live.py untrusted), mode changes (the
+matrix / stencil deadlocks are re-entry ones: their dumps named .deadlock are not certified), the gate level (StageNetTree's
+WF / Inv are not checked per design).
