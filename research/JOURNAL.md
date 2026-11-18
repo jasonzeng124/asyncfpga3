@@ -6297,3 +6297,18 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   47 / 55 (+ 5 undecided). The suite's own runner has no wrapper timeout (the gate's HANG cutoff is its only one).
 - Local re-run of route 12's draws without a wrapper (niced) to close it here too. ipow x0.55 is a hand-recipe point
   (a per-kernel factor); under "General first" it goes to the hand column, not the headline.
+### progress 00:04 (two-hour re-read: PROGRAM unchanged since 411a48df5; formal B3-B5, C49, C50 read)
+- B4 (formal, untrusted sim, RC arcs): on each candidate route only 3-5 of ~55 delay lines set the period, and they are
+  the loop RINGS (xorshift: the counter ring umux0 -> uaddi0 -> ucond_br6 -> ulink_n_trueResult_6 and the n ring umux2 ->
+  ucmpi1 -> ucond_br8 -> ulink_n_trueResult_10, within 0.03-0.47 ns of each other; collatz / collatz64: 3n + 1 and the
+  select), never the xorshift datapath. Which lines, moves with the route (seed 21 vs 4). Cutting the rings' request
+  lines on x55a10 gave -5 % / -9.5 % but left the loop test 154 ps of settle with 4 live runts: formal does not
+  recommend it; UADDI0 0 alone kept 1.5-1.8 ns.
+- B3 update (farm b_u0xor, 12 seeds a side): UADDI0 0 safe in every draw, -3.3 % mean, the loop test's worst settle
+  1020 -> 344 ps. B5: every current board candidate passes formal's full-range runs (preloaded counters, 63-bit collatz
+  values); incrementers / step counters keep >= 8.6 ns of carry slack. C49: x55a10 on RC arcs, 13 routes, 52 / 52
+  slow-carry draws, loop-test margin >= 896 ps. C50: handled above (ipow route 12).
+- For the automatic path this says where the speed is: the sizing loop sizes ~55-70 lines, but the period is set by the
+  few on the rings, and the full-range rule oversizes counters by >= 8 ns of slack. The joinrule subagent takes the
+  "capture that does not happen" term; a cycle-aware step (shrink only the event graph's on-cycle lines, judged by
+  draws) is the next candidate after it.
