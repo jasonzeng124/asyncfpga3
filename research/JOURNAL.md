@@ -6584,3 +6584,18 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   16 / 16, 24.57. The finish phase makes the loops end clean (12 of 14; v1 / v2: almost none). The cost of the second
   corner on xorshift is ~1.5 ns of median; steer-self (v5) should take back more than that (UCMPI1 17 -> ~10).
 - Local v5 preview, xorshift seed 2: it 0 proposals 167 -> 69 / 71 links at the two corners. Running.
+### progress 05:54 (rejudge1 done: two flow-v1 routes fail draws -- xorshift s8 1/8 (10804), ipow s4 2/4 (start-up X at the first call))
+| rejudged v1 / v2 route (today's checker) | P, ns | draws |
+|---|---|---|
+| suite1 collatz s1 / suite2 collatz s5 | 18.06 / 19.32 | 4/4, 4/4 |
+| suite1 ipow s2 (suite2) / s5 / s6 | 21.53 / 21.78 / 23.53 | 4/4 each |
+| **suite1 ipow s4** | 21.61 | **2 / 4**: draws 10401, 10404 hang at batch 0 ((3, 1), one iteration): completed=0, odata=x, the bench FSM itself x (fsm=00000fX6) |
+| suite1 xorshift s2 / s3 / s6 / s7 | 23.11 / 23.18 / 19.43 / 23.21 | 4/4 each |
+| **suite1 xorshift s8** (8 draws) | 24.04 | **7 / 8**: only 10804, the zero-trip call, as before |
+- Flow v1 therefore failed draws on 2 of its ~26 judged routes. v3 / v4 / v5 runs have shown none so far (suite4: 112 /
+  112; local v4 seed 8: 8 / 8 on the seed of the xorshift failure).
+- ipow s4's failure is the start-up class (SIM-VS-BOARD row 6: unreset latches start x; the owner keeps that start-up in
+  the gate, +META_INIT only to diagnose). Being diagnosed here: the route rebuilt from its sizes, draws 10401 / 10404
+  without and with +META_INIT=0 / 1. If both META_INIT values pass, the hang depends on an initial value the circuit
+  does not define -- a real start-up hazard on silicon only if some power-up value breaks it, which META_INIT 0 / 1
+  partly tests.
