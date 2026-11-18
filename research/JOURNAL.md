@@ -6971,3 +6971,22 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   phase needs another idea -- e.g. raise every line on the critical rows' launch-capture paths by the observed
   re-placement scatter, or keep re-routing raise-only until clean (resume makes the time affordable), or ship nothing
   NOT CLEAN. Under consideration; the suite table already counts a NOT CLEAN route that fails a draw as FAIL.
+### progress 22:12 (loopfast landed: CA_FAST=1, the rule step 8-10x faster with byte-identical proposals)
+- **loopfast** (lead 2; research/data/loopfast/, research/tools/ca_fast.py; 2d4b7d943): corner_audit CA_FAST=1 (opt-in)
+  runs the base audit once in-process and every sensitivity / verify run as a fork of it; topology-only functions are
+  memoized by content; weight-reading ones record the pins they read and reuse a base result only while none of those
+  changed; rule H for sensitivity runs (scale <= 1) from the base run's shortest distances (CA_FAST_SELFCHECK=1 runs the
+  original beside it). No audit arithmetic re-implemented (two helpers moved out of main() unchanged). **Equivalence:
+  whole rule, both corners, every output file byte-identical** on xorshift / collatz / ipow / gather routes; gcd and
+  isprime: every constraint of the base run, 4-line and verify-like runs identical, and the merged it-0 proposals equal
+  the farm's suite7 old rule on 4 routes (gcd s1 / s2, isprime s1 / s2). **CPU per corner, old -> new: xorshift 784 ->
+  80 s, collatz 637 -> 68, ipow 1652 -> 167, gather 2027 -> 264; gcd it 0 ~12 h (estimated from 12 sampled runs) ->
+  1268 s**; gcd's step ~22 min wall with both corners side by side. isprime seed 1's whole loop ran here in 123 min
+  (MAXIT 4, finish 1; builds 3-6 min, rule steps 13-17 min): NOT CLEAN after 5, EQUIVALENT, ffmux-clean.
+- Found by it: **gcd and isprime can never be CLEAN under today's rule** -- an A' row at a mux no line can pad, every
+  iteration (isprime umux13 -5125 / -5612 ps, gcd umux21 -3422 / -3680): a rule question (a real race, or a row with
+  no line on its path) to settle before their loops can ship anything clean. And the old rule's greedy shrink order
+  among equal-length lines followed Python's hash seed: auto_size.sh now pins PYTHONHASHSEED (default 1).
+- Not yet the default: CA_FAST's exactness rests on its argument and 6 kernels; an old-vs-new check on collatz64,
+  quadrec, dot2 and iterative_sqrt is running here. If identical, auto_size.sh turns it on, and the farm gets
+  loopfast_gi (gcd, isprime x 4) and the 14 small kernels that timed out.
