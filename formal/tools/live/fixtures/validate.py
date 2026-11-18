@@ -77,7 +77,18 @@ def main():
     out = os.path.abspath(sys.argv[1])
     os.makedirs(os.path.join(out, "graphs"), exist_ok=True)
     rows = []
+    done = {}
+    vp = os.path.join(out, "validation.jsonl")
+    if os.path.exists(vp):
+        for l in open(vp):
+            d_ = json.loads(l)
+            if d_.get("verdict") in ("LIVE", "DEADLOCK", "SAMPLED-LIVE"):
+                done[d_["config"]] = d_
+    open(vp, "w").write("".join(json.dumps(v) + "\n" for v in done.values()))
+    rows = list(done.values())
     for name, k, env, want in CONFIGS:
+        if name in done:
+            continue
         mlir = os.path.join(FIX, k, "comp", "handshake_transformed.mlir")
         env = dict(env)
         if KNOBS in env:
@@ -87,7 +98,14 @@ def main():
                         "ruleF": {"BDC_FORK_OUT_LINK": fo}}[kind])
         tag = "validate." + name.replace(" ", "_").replace("(", "").replace(")", "").replace(",", "_").replace("=", "")
         r = run_live(mlir, base_env(env), tag, out)
-        got = {"DEADLOCK": "deadlock", "LIVE": "live"}.get(r.get("verdict"), r.get("verdict"))
+        if r.get("verdict") in ("BLOWUP", "BLOWUP-MEM", "TIMEOUT"):
+            rr = run_live(mlir, base_env(env), tag + ".rand", out, extra=["--random", "300", "--steps", "100000"])
+            r["exhaustive"] = r.get("verdict")
+            r["verdict"] = rr.get("verdict")
+            r["walks"] = rr.get("walks")
+            r["z_checked"], r["z_traps"] = rr.get("z_checked"), rr.get("z_traps")
+            r["trace_choices"] = rr.get("trace_choices")
+        got = {"DEADLOCK": "deadlock", "LIVE": "live", "SAMPLED-LIVE": "live"}.get(r.get("verdict"), r.get("verdict"))
         r.update(config=name, env={k_: v for k_, v in env.items()}, simcheck=want, agree=(got == want))
         rows.append(r)
         print(f"{name}: live.py {got} ({r.get('states')} states) simcheck {want} {'OK' if got == want else 'MISMATCH'}"

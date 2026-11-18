@@ -1110,6 +1110,8 @@ class Search:
         self.residue = 0
         self.overflow = 0
         self.residue_example = None
+        self.zchecked = 0
+        self.ztraps = 0
         self.samples = {}      # mode text -> (S, V), first branch state seen in that routing mode
         self.max_samples = 4
 
@@ -1245,6 +1247,57 @@ class Search:
             res["verdict"] = "LIVE"
         return res
 
+    def random_walks(self, walks, steps, seed=1):
+        """(b) fallback: random walks from reset (uniform choice among the reduced successors); a deadlock found is
+        real (it is reachable), no deadlock found is only a sample."""
+        import random
+        rnd = random.Random(seed)
+        net = self.net
+        for w in range(walks):
+            S, V = list(net.init), [None] * net.nvar
+            exc = {g for g in net.gates if self.excited(S, V, g)}
+            tr = []
+            for _ in range(steps):
+                det = None
+                ch = None
+                for g in sorted(exc):
+                    if g in net.dang:
+                        continue
+                    cs = net.gate_cell[g].choices(g, S, V)
+                    if cs is None:
+                        det = g
+                        break
+                    if ch is None:
+                        ch = (g, cs)
+                if det is not None:
+                    self.fire(S, V, det, None, exc)
+                    continue
+                if ch is not None:
+                    succ = [(ch[0], v) for v in ch[1]]
+                else:
+                    succ = []
+                    for g in sorted(exc):
+                        cs = net.gate_cell[g].choices(g, S, V)
+                        for v in (cs if cs is not None else [None]):
+                            succ.append((g, v))
+                if not succ:
+                    done = all(S[v] >= net.ninv for v in net.recv_vars) if net.recv_vars else True
+                    if not done:
+                        return {"verdict": "DEADLOCK", "S": S, "V": V, "trace": tr, "walks": w + 1}
+                    break
+                g, v = rnd.choice(succ)
+                if v is not None:
+                    self.zchecked += 1
+                    try:
+                        sts, edges, x, undet = stage_graph(net, S, V)
+                        if z_cycle(len(sts), edges, x) is not None:
+                            self.ztraps += 1
+                    except ModelError:
+                        pass
+                tr.append((net.varname[g], v))
+                self.fire(S, V, g, v, exc)
+        return {"verdict": "SAMPLED-LIVE", "walks": walks}
+
     def trace(self, seen, k):
         steps = []
         while seen.get(k) is not None:
@@ -1365,6 +1418,8 @@ def main():
     ap.add_argument("--pattern", action="append", default=[],
                     help="CELL=BITS: that compute cell's nondeterministic bit follows BITS cyclically (e.g. a fixed trip "
                          "count), instead of branching")
+    ap.add_argument("--random", type=int, default=0, help="K random walks instead of the exhaustive search")
+    ap.add_argument("--steps", type=int, default=200000)
     ap.add_argument("--out", help="write the result as one JSON line here")
     a = ap.parse_args()
     import resource
@@ -1391,7 +1446,15 @@ def main():
     out["token_floor"] = [(f"ulink_{emit.vname(v)}", n) for v, n in net.e.token_floor]
     srch = Search(net, a.max_states)
     try:
-        res = srch.run()
+        if a.random:
+            res = srch.random_walks(a.random, a.steps)
+            res.setdefault("states", None)
+            res.setdefault("fired", None)
+            out["walks"] = res.get("walks")
+            out["z_checked"] = srch.zchecked
+            out["z_traps"] = srch.ztraps
+        else:
+            res = srch.run()
     except MemoryError:
         res = {"verdict": "BLOWUP-MEM", "states": -1, "fired": -1}
     except ModelError as ex:

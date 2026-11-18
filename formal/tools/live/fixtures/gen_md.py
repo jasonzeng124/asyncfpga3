@@ -26,6 +26,9 @@ def mine(r):
         elif r.get("inv2"):
             s += f"; 2 inv: {r['inv2']}"
         return s + ")"
+    if v == "SAMPLED-LIVE":
+        return (f"SAMPLED-LIVE (exhaustive: {r.get('exhaustive')}; {r.get('walks')} random walks, no deadlock; "
+                f"Z-traps in {r.get('z_traps')} of {r.get('z_checked')} sampled states)")
     if v == "DEADLOCK":
         return "**DEADLOCK** " + " ".join(r.get("trace_choices") or [])
     if v == "SAME-AS-AUTO":
@@ -39,7 +42,7 @@ def mine(r):
 
 def agree(r):
     v, rs = r.get("verdict"), r.get("research", "")
-    if v == "LIVE":
+    if v in ("LIVE", "SAMPLED-LIVE"):
         return rs == "live"
     if v == "DEADLOCK":
         return rs.startswith("short")

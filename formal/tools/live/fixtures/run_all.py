@@ -32,9 +32,9 @@ def base_env(extra):
     return env
 
 
-def run_live(mlir, env, tag, out, inv=1):
+def run_live(mlir, env, tag, out, inv=1, extra=()):
     cmd = [sys.executable, os.path.join(HERE, "live.py"), mlir, "--inv", str(inv), "--max-states", MAXSTATES,
-           "--json-dir", os.path.join(out, "graphs"), "--tag", tag]
+           "--json-dir", os.path.join(out, "graphs"), "--tag", tag] + list(extra)
     try:
         p = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=TIMEOUT)
         lines = [l for l in p.stdout.splitlines() if l.startswith("{")]
@@ -82,6 +82,15 @@ def one(job):
     env = base_env({**FLOWS[flow], **FLOORS[floor]})
     tag = f"{fix}.{flow}.{floor}"
     r = run_live(mlir, env, tag, out)
+    if r.get("verdict") in ("BLOWUP", "BLOWUP-MEM", "TIMEOUT"):
+        rr = run_live(mlir, env, tag + ".rand", out, extra=["--random", "300", "--steps", "100000"])
+        r["exhaustive"] = r.get("verdict")
+        r["verdict"] = rr.get("verdict")
+        r["walks"] = rr.get("walks")
+        r["z_checked"], r["z_traps"] = rr.get("z_checked"), rr.get("z_traps")
+        for k in ("trace_choices", "trap"):
+            if k in rr:
+                r[k] = rr[k]
     if r.get("verdict") == "LIVE" and r.get("states", 1 << 30) < INV2_MAX:
         r2 = run_live(mlir, env, tag + ".inv2", out, inv=2)
         r["inv2"] = r2.get("verdict")
@@ -104,7 +113,12 @@ def main():
     only = os.environ.get("LIVE_ONLY")
     if only:
         fixtures = [f for f in fixtures if f in only.split(",")]
-    jobs = [(f, fl, fo, out) for f in fixtures for fl in FLOWS for fo in FLOORS]
+    done = set()
+    if os.path.exists(os.path.join(out, "results.jsonl")):
+        for l in open(os.path.join(out, "results.jsonl")):
+            d_ = json.loads(l)
+            done.add((d_["fixture"], d_["flow"], d_["floor"]))
+    jobs = [(f, fl, fo, out) for f in fixtures for fl in FLOWS for fo in FLOORS if (f, fl, fo) not in done]
     res = []
     with ThreadPoolExecutor(JOBS) as ex:
         for r in ex.map(one, jobs):

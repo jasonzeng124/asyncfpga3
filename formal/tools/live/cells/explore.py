@@ -364,8 +364,9 @@ def trace_back_to_links(net, sig, skip=(), assume=None):
             continue
         if gi in skip:
             continue
+        nt = net.gates[gi].get("notrace", ())
         for j, i in enumerate(net.gates[gi]["ins"]):
-            if i != s and sensitive(net, gi, j, assume):
+            if i != s and j not in nt and sensitive(net, gi, j, assume):
                 stack.append(i)
     return out
 
@@ -440,7 +441,8 @@ def make_completion(net):
                     roles[gi] = ("none", [])
                     continue
                 if len(kinds) != 1:
-                    raise ValueError(f"ambiguous role for {g['name']}: {pins}")
+                    roles[gi] = ("ambiguous", sorted(t for _, t in pins))
+                    continue
                 roles[gi] = (kinds.pop(), sorted(t for _, t in pins))
         cache[key] = roles
         return roles
@@ -461,6 +463,8 @@ def make_completion(net):
             if k == "none":
                 guess[gi] = 0
                 continue
+            if k == "ambiguous":
+                return None
             vals = {(x >> t) & 1 for t in ts}
             if len(vals) != 1:
                 return None          # the side that has not moved is ambiguous
