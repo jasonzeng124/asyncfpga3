@@ -4516,3 +4516,11 @@ disabling x_ack's fall (it falls one handshake late). The header mux switching f
 is not speed independent there (one LUT vs. a round trip through the loop). (3) free-mode mux: 24/308 starts differ from the
 subagent's own stage rule for an unselected input (a model gap, not the cells).
 Not covered: timing, FASTRISE/FASTFALL LUTs, X, arbiter / bd_merge / control_merge, muxn N > 2, bd_ctree N > 4, data, nested loops.
+
+### progress 17:24 -- StageNetTreeFair.lean: fair gate runs fire every stage infinitely often
+StageNet's IsRun now allows stutter steps (a gate firing moves no stage bit). `proj_fair`: the stage bits of a weakly fair
+gate run (every excited stage controller and tree gate eventually fires) form a fair stage run -- if stage t stayed excited and
+never fired, its neighbours could not fire (`excited_persist` + the stage rule), so every gate of its trees settles (`gate_settles`,
+by rank), and then `descend'` makes t's own controller excited, which fairness fires. `tree_fair_all_fire`: WF + Inv at start
++ no trap in the start's stage bits + finite stage / gate lists + weak fairness => every stage fires infinitely often. So in a
+fixed mode the C-element circuit is live (not only deadlock-free) exactly when research's condition holds. Checked with lean.
