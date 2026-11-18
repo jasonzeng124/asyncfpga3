@@ -6617,3 +6617,9 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - Local v5 preview, xorshift seed 2: the loop ended CLEAN at it 7 (raise-only + headroom), on a route with the flop-D
   defect -- the reason for installing the fix now. Its draws are running (on the old bits; the result says
   NOT-A-BOARD-ROUTE).
+### progress 06:30 (flow v6: it 1 recalibrates; the v5 preview on seed 2 was 23.0 ns, slower than v2's 16.7)
+- Local v5 xorshift seed 2: loop CLEAN at it 7 but P 23.01 ns with 129 links (v2 on the same seed: 16.69 ns, 103 links,
+  4/4 draws). Lines raised at it 1 -- where the start's proposal under-delivered on the compact route, 50 constraints
+  short -- were pinned for good: UCMPI1 6 -> 15 (v2: 9), UMUX1 7 (2), UXORI1 8 (5). Fix (7cbfe337e): it 1 follows the
+  rule's proposal and pins nothing; pinning from it 2. suite3 / suite6 (waiting) get v6 and nextpnr 6e5d224472232d5d;
+  suite7 started at 45db9e386 (v5); suite5 at 2cfdd934b (v4). Local v6 on seed 2 running for the comparison.
