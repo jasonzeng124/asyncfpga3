@@ -6665,3 +6665,14 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   fix here (corner_audit.knob_of_base: drop the _uport segment): being checked on gather's last route.
 - The three automatic board candidates (suite4 medians, rebuilt here byte for byte): collatz s6 7 / 35, ipow s2 12 /
   35, collatz64 s5 2 / 35 judgments so far, all PASS.
+### progress 08:35 (v6 seed 2: 8 / 8 at 19.72 ns; the formerly flagged route passes 8 / 8 on the new nextpnr; memory lines sized)
+- Local flow v6, xorshift seed 2: route 55a25d4e, P 19.72 ns, EQUIVALENT, NOT CLEAN by 2 after it 7, **8 / 8 draws**
+  (latency per call, median over xor19: 216 ns). Same seed: v2 16.69 (4/4, one-band rule), v5 23.01.
+- The v5 route that the old nextpnr left FFMUX-FLAG (47ac67f6), rebuilt with 6e5d224472232d5d: EQUIVALENT,
+  ffmux-clean, **8 / 8 draws**: a route the flow used to throw away is now a board route.
+- corner_audit sizes a memory's lines (ae57dc574): on gather's last route the rule pads bd_mem's clock-to-out 4 ->
+  12..17 and setup 3 -> 25..27 where rules C / B were short by up to 4.5 ns. Farm suite8 (the 12 runnable kernels added
+  today x 2 seeds) submitted with it.
+- Subagents: srcjoin (bdc: a source reaching a result, test_int16 / unused_arg) and stores (bdc: memory stores,
+  write / read-modify-write kernels; 33 Dynamatic tests blocked by it).
+- Automatic board candidates so far (35 judgments each): collatz s6 12 / 12, ipow s2 20 / 20, collatz64 s5 4 / 4 PASS.
