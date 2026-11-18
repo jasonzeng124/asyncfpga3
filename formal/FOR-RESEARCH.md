@@ -330,7 +330,10 @@ builds: every non-compare chain at 0.5x passes on 31 routes).
   6333dd2d 101.27 us / 7af7feb2 85.31 us (-15.8 %), seed 2 1e34ade0 104.48 us / d33e28ec 90.51 us (-13.4 %); seed 4 100.00 us / 678659e5 81.32 us (-18.7 %;
   the cut's c64hi / preload NEARMISS 112 / 112, all on ulink_n_falseResult_9 latch data); slacks steps /
   3n+1 >= 16.3 / 8.9 ns on the cut. ipow seeds 1 / 3 in B10. So four seeds each for collatz, collatz64 and ipow (collatz -17..-27 %, collatz64 -13..-19 %, ipow -15..-19 %).
-  Board seeds otherwise; xorshift gains little because its period is set by the x datapath ring and its
+  xorshift A/B (yours / cut; xor19 32 + 32, counter preloaded 8/8, +20 ns control fails only preloaded, counter carry
+  slack >= 12.8 ns on both arms): seed 1 48e1223a 37.02 us / e742c6d3 36.10 us (-2.5 %); seed 2 3ad28938 40.68 / dc446a7d
+  34.82 (-14.4 %); seed 3 3d908be7 38.71 / 7822c3bc 34.60 (-10.6 %); with seed 8 (-5.3 %) four seeds, NEARMISS <= 81
+  (latch data). Board seeds otherwise; xorshift gains least because its period is set by the x datapath ring and its
   compares (B4).
 - **Which part of your rule (read in your code and docs, 21:0x; not traced on every route):** the lines formal cut are the
   ones your rule A'j sizes against their OWN request because it gives no join credit there. Your
