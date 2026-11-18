@@ -40,6 +40,35 @@ negative control fails). Run it before the speed items.
    ns; at 1% ring scatter the fit resolves y to +-0.01-0.02. The two routes must agree with each other within their
    sigmas; if they do not, that is the finding.
 
+## 2026-11-18: item 37 -- xorshift x55a10 (item 35 with formal's entry-compare fix), the hand recipe's best; the automatic builds come next
+Under PROGRAM "General first" this is the HAND column (per-kernel sizes chosen by draws). The automatic builds (BDC_AUTO=1,
+sizes from the flow's own loop, research/data/suite/) are being judged on 8 seeds each (farm suite4 / suite5 / suite3);
+the first of them goes here when its route has the same depth of evidence as this one (32 draws + 3 corners).
+
+37. **xorshift x55a10 at ~16.5 ns per iteration: item 35's sizes with the entry compare UCMPI0 6 -> 10** (formal C41: at
+   the slow end of the CARRY / F7 band item 35's loop-entry steer keeps ~0.2 ns; UCMPI0 10 keeps >= 0.9 ns, C48 / C49).
+   research/data/xorshift_sizes_T3s50_fr4a_x55a10_bench.vh; flags as item 35; NEXTPNR_SEED=21; nextpnr 9c732bc6303458df.
+   Farm cand3b: 28 EQUIVALENT routes, 200 / 200 draws (incl. 96 with CARRY / F7 / FF at 0.8-1.0), P median 16.76 ns
+   (15.73-18.55). This route (rebuilt on the cluster = the farm's route 21 byte for byte): sdf 42b4fb4c, P 16.49 ns,
+   EQUIVALENT, ffmux-clean; SLOW_MAX / FAST_MIN / worst 19/19 each and **32 / 32 draws** (K 2101-2132, xor19). Formal on
+   this route (RC arcs): entry / loop-test settle >= 1425 / 923 ps at chains 0.20, rest 0.31, CARRY 1.0, no runts (C48);
+   full-range runs with the counter preloaded pass (B5). From cells/:
+
+       cp ../build/frontend/xorshift/comp/handshake_transformed.mlir /tmp/xor_hs_orig.mlir
+       cp ../research/data/fifteen/xorshift_predec.mlir ../build/frontend/xorshift/comp/handshake_transformed.mlir
+       BDC_LINK_DEPTHS=ulink_n_trueResult_8=2 BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0 BDC_RING_COUNT_OLINKS=1 BDC_FORK_OUT_LINK=n11__0 BDC_MERGE_OUT_LINK=ucontrol_merge0 NEXTPNR_SEED=21 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/xorshift_sizes_T3s50_fr4a_x55a10_bench.vh ./hw/build_bench.sh xorshift
+       cp /tmp/xor_hs_orig.mlir ../build/frontend/xorshift/comp/handshake_transformed.mlir
+       md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # 42b4fb4c = the route judged here (the .bit md5 varies by build time)
+       python3 ../research/tools/ffmux_scan.py build/hw/xorshift_bench_gen/xorshift_bench_gen.fasm; echo "exit $?"   # must be 0
+       CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_x55a10.tsv
+       (item 33: #34's commands for lc_xor_a.tsv, if not already run)
+       python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_x55a10.tsv build/hw/lc_xor_a.tsv; echo "exit $?"
+
+   Pass: `=== PASS ... ===`, exit 0 (every point's derived oracle). Predicted ratio over item 33 ~1.13 (18.71 -> 16.49 on
+   their board routes); the simulation runs ~8 % slow per iteration against the August board (SIM-VS-BOARD.md), so the
+   board should show ~15.2 ns. Run it INSTEAD of item 35 (same structure, the entry compare made safe). A FAIL with
+   item 33 passing means the draws' model is too generous on this die: send both logs.
+
 ## 2026-11-17: (withdrawn) hold on items 28, 31, 30, 32
 A hold placed at 05:2x UTC is WITHDRAWN: the "wrong step counts" came from vectors above the bench's input mask
 (collatz n is masked to 16 bits by gen_bench.py; the kernel returned collatz(n & 0xFFFF), which is right). Item 31's route
@@ -65,6 +94,7 @@ condition 8 ns late) on 16 / 16 draws.
 | 32 (fc64sel3p s22) | collatz64 | 31.4 | 32 / 32 |
 
 | 35 (fr4a_x55a s21) | xorshift | 16.85 (32 routes, all draws passing: 128 / 128) | 32 / 32 + 6 / 6 corner gates |
+| 37 (x55a10 s21) | xorshift | 16.76 (28 EQUIVALENT routes, 200 / 200 draws incl. 96 slow-carry) | 32 / 32 + 3 / 3 corners |
 
 Item 35 is the first chosen by the draws (sizes shortened while every draw passes; first failure at x0.40a).
 
