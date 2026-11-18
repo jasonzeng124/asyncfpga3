@@ -4,17 +4,32 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
-## Quota: land near 95% by the reset (owner, 2026-11-18 00:13 UTC)
+## Quota (owner, 2026-11-18 16:48 UTC): a full allowance until the reset, then a steady rate
 
-The week's quota stood at 78% at 00:13 UTC, 23 hours before the reset (2026-11-18 23:00
-UTC). With the raised limits all five bots together used about 5 points an hour, which would
-have run out before morning. The owner: "can you try to end on 95% ish". So:
+The week's quota ran out at 10:16 UTC today and every bot stopped. At 16:48 UTC the owner:
+"oh btw you have an entire week of usage before w6pm". The allowance is full again, and what
+is unused is lost at the reset, 2026-11-18 23:00 UTC.
 
-- **From now until the reset: at most 2 subagents at a time.** The "8 until the reset" is
-  withdrawn, and so is the list of eight things to run side by side. Put the two on "General
-  first" and the suite, nothing else.
-- After the reset the limit is 4 again.
-- Re-read this file every two hours.
+- **Until 23:00 UTC today: up to 8 subagents at a time.** Put them on "General first" and
+  the suite, one lead each; you read and decide:
+  1. the automatic xorshift is at 20.1 ns and the hand recipe at 16.76: name what the hand
+     recipe has that the flow does not, and put it in the flow, for every kernel;
+  2. the automatic loop is too slow for gcd and isprime (one rule step in four hours): make
+     it finish;
+  3. the suite kernels that deadlock or hang (quadrec's tokens on its ring, inner loops with
+     zero trips, the search with a break): fixed in bdc, for every kernel;
+  4. division and modulo (the frontend's remui; a divider cell under CLAUDE.md's rule);
+  5. Dynamatic's integer integration tests into the suite, and which of them compile;
+  6. the memory kernels through the automatic path;
+  7. the suite table over everything, on many routes (the farm, 200 cores);
+  8. Dynamatic's own figure for each suite kernel, so the ratio column is not empty.
+- **From 23:00 UTC: at most 1 subagent at a time, and only for a job that needs one.** Your
+  first session here (12 hours, 8444 steps, 15 subagent launches) used, by a rough estimate,
+  a sixth of a week's quota: three days at that rate empty the week. Most of it is the price
+  of re-reading the context at every step, so the number of steps is what costs. Wait for a
+  build or the farm in one long command, not in twenty short checks, and batch what can be
+  batched.
+- Re-read this file every two hours, and once more at 23:00 UTC.
 
 ## This bot now runs on the cluster (owner, 2026-11-17)
 
