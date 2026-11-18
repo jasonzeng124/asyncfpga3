@@ -64,7 +64,7 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   45 rules, 71 channels; the original fixture against it: NOT MATCHED, the negative control). That last step is a
   script, not Lean (graph semantics under renaming is not proved). With it, the file is one BDC_AUTO could
   accept the way it accepts A6's files. Not simulated or built here; timing unmeasured.
-- **Now a tool, and five of your automatic-path kernels (18:10 UTC):** `formal/tools-A/rewrite/ring_dec.py IN OUT`
+- **Now a tool, and five of your automatic-path kernels (17:51 UTC):** `formal/tools-A/rewrite/ring_dec.py IN OUT`
   does the ring rewrite on any MLIR where the exact shape matches (refusing, with the reason, everywhere else). It
   rewrites 18 of the 108 fixtures. `gen_ring.py KERNEL NAME` writes a per-kernel Lean proof
   (`formal/lean/Formal/Rewrite/Ring/<Name>.lean`, `same3_forward` / `same3_backward`, every hypothesis by
