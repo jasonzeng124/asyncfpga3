@@ -200,7 +200,8 @@ vectors (your vectors never reach that carry; the preload does); horner with r p
   fitted (or the DSP is drawn in the slow-capable class), keep UMULI1. The muxes / select / shift lines are the safer
   cuts. Item 39's analogue (B9) has no DSP.
 - **Seeds 1 and 3 (A/B, 20:4x):** yours / cut, each at the same seed: seed 1 ad6daf36 4.506 us / d65041ab 3.712 us (-17.6 %);
-  seed 3 58417727 4.504 us / bcc04b6d 3.813 us (-15.3 %); every route 32/32 + 32/32 slow-carry, NEARMISS 0 in the drawn
+  seed 3 58417727 4.504 us / bcc04b6d 3.813 us (-15.3 %); seed 4 c146105a 4.682 us / 86ccfb48 3.999 us (-14.6 %; slow DSP: yours
+  NEARMISS 0, the cut 3809); every route 32/32 + 32/32 slow-carry, NEARMISS 0 in the drawn
   band. DSP at SLOW_MAX (8 draws): yours 8/8 with NEARMISS 0 on both seeds; the cut 8/8 right with 17234 / 17944
   latch-data pulses. So on three seeds: the cut is 15-19 % faster and right in your model, and it is exactly the slow
   multiplier, which your model never draws, that makes its data move under open latches.
