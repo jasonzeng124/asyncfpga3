@@ -6,6 +6,12 @@ DecodedPS.boundary DecodedPS.arbs p T R su Δo` (owner decision 4: sequential en
 Updated 2026-11-06 (shard A) from the 2026-11-02 journals of all three shards. Everything below is Lean-checked with
 standard axioms unless marked; "C" / "B" name the shard whose file it is.
 
+## 2026-11-18 (A): no change to the gcd theorem today
+Checked against all three journals at 22:25 UTC: no new result on THE target's statement, its refutations or its
+positive route (S4 / S6). Today's work was the first priority: B on the automatic builds and the select race
+(PROGRAM item 4, still open), C on liveness of research's token floor, A on the rewrites (FOR-RESEARCH A19-A23).
+Per-build margins: MARGINS.md.
+
 ## 2026-11-17 (A): where the board sits in the band (FOR-RESEARCH A13 / A14; simulation, untrusted)
 The measured August bitstreams, decoded and run in formal's simulator, give these band positions in formal's arcs:
 - collatz, collatz64 and gcd per-iteration times sit at b = 0.38-0.40.
