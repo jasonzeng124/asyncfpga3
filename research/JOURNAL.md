@@ -7026,3 +7026,16 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - CA_FAST equivalence on more kernels (ca_fast_e2e.sh, old rule vs CA_FAST=1, every output file compared):
   collatz64 both corners IDENTICAL (781 -> 110 s per corner), dot2 0.20 IDENTICAL (1525 s old); quadrec and
   iterative_sqrt still running.
+### progress 22:55 (headline corrected first, as the owner asked: auditor T161 OVERSTATED; owner T156 / T161 rules)
+- Owner (PROGRAM, 20:56 UTC, auditor T161): the headline counts every kernel attempted, keeps the sizing loop's
+  unfinished (NOT CLEAN) routes apart, leaves isprime's non-ratio out of the mean, and an OVERSTATED headline is
+  corrected before anything new is added. Done (research/data/fifteen/README.md top):
+  research/tools/suite/suite_table.py --kernels / --reasons / --no-ratio; every listed kernel gets a row (62; a kernel
+  with no result line says why, research/data/suite/headline_reasons.tsv); routes, draws and P split into rule-clean +
+  NOT CLEAN (P and the ratio from clean routes only; the NOT CLEAN P, or fit, in brackets); one route per (kernel,
+  seed), the later request counted. The automatic column no longer includes the rewritten xorshift / collatz /
+  collatz64 numbers (they are under the table as the BDC_AUTO_REWRITES=1 variant; norw1 runs the column without a list).
+- Result now: **18 of 62 kernels pass** (the others: 40 with no result line yet -- time limits, added today, or the
+  no-list column pending -- plus quadrec BUILD-FAILED, cmpchain NOT-A-BOARD-ROUTE, if_loop_1 WRONG ANSWER under draws);
+  including ESTIMATED figures (n = 8): 1.04..
+- kernels.txt: divmodu, divmods, test_divui listed (divmod's kernels).

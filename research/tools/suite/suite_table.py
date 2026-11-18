@@ -110,20 +110,51 @@ def slope(x, y):
 def fmt_range(v):
     return "%.2f (%.2f-%.2f)" % (st.median(v), min(v), max(v))
 
+# --kernels FILE (kernels.txt's format): every kernel listed gets a row, also one with no result line (owner, auditor
+# T161: "the headline counts what was attempted"); --reasons FILE (TSV kernel<TAB>reason) says why a kernel has none.
+# --no-ratio K1,K2: kernels whose P is not comparable with Dynamatic's per-iteration figure (isprime: our P is the outer
+# trial's period, Dynamatic's the inner shift's cycle): the ratio is shown, marked, and kept out of every mean.
+def _opt(name):
+    if name in sys.argv:
+        i = sys.argv.index(name); v = sys.argv[i + 1]; del sys.argv[i:i + 2]; return v
+    return None
+KLIST, REASONS, NORATIO = _opt("--kernels"), _opt("--reasons"), set((_opt("--no-ratio") or "").split(",")) - {""}
+listed = []
+if KLIST:
+    for ln in open(KLIST):
+        ln = ln.split("#")[0].split()
+        listed += [k for k in ln if k not in listed]
+reasons = {}
+if REASONS:
+    for ln in open(REASONS):
+        if ln.strip() and not ln.startswith("#") and "\t" in ln:
+            k, w = ln.rstrip("\n").split("\t", 1); reasons[k] = w
 rows = {}
 for l, d0 in lines(sys.argv[1:]):
     t = l.split()
     if len(t) < 3:
         continue
     d = dict(re.findall(r"(\w+)=(\S+)", l))
-    rows.setdefault(t[0], []).append(dict(seed=t[1], _l=l, _dir=d0, **d))
+    # one route per (kernel, seed): a later argument (a later request) supersedes an earlier one for the same seed
+    rows.setdefault(t[0], [])
+    rows[t[0]] = [r for r in rows[t[0]] if r["seed"] != t[1]]
+    rows[t[0]].append(dict(seed=t[1], _l=l, _dir=d0, **d))
 DY = dyn_ref(); HD = hand_ref(); DL = dyn_lat()
-print("| kernel | status | routes judged / built | draws passing | ns per iteration (P), median (range) | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |")
+print("| kernel | status | routes judged (rule-clean + NOT CLEAN) / built | draws passing (clean; not clean) | ns per iteration (P) on clean routes, median (range) [on NOT CLEAN routes] | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |")
 print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 npass, ratios, lratios, nfit, hostP, notes_k = 0, [], [], 0, [], {}
-for k in sorted(rows):
-    rs = rows[k]
+nlist = 0
+for k in sorted(set(rows) | set(listed)):
+    rs = rows.get(k, [])
+    nlist += 1
+    if not rs:
+        print("| %s | NO RESULT (%s) | 0 / 0 | - | - | - | - | %s | - | - | - | - | - |" % (
+            k, reasons.get(k, "no result line: every task hit its time limit, or none ran"),
+            ("%.2f (%s)" % DY[k][:2]) if k in DY else "-"))
+        continue
     judged = [r for r in rs if r.get("status") in ("PASS", "FAIL")]
+    clean = [r for r in judged if r.get("rule") == "clean"]
+    nclean = [r for r in judged if r.get("rule") != "clean"]
     stats = sorted({r.get("status", "?") for r in rs})
     dp = sum(int(r["draws"].split("/")[0]) for r in judged if "draws" in r)
     dn = sum(int(r["draws"].split("/")[1]) for r in judged if "draws" in r)
@@ -138,7 +169,7 @@ for k in sorted(rows):
     npass += ok
     dl = DL.get(k)
     # per route: P (refused when it is a multiple of the host clock), our call latencies, the fit where P is missing
-    Ps, Fs, Ls = [], [], []
+    Ps, Fs, Ls, Pnc, Fnc = [], [], [], [], []
     for r in judged:
         v, fclk = route_lat(r)
         P = int(r["P"]) if r.get("P", "NA").isdigit() else None
@@ -146,7 +177,7 @@ for k in sorted(rows):
             hostP.append("%s seed %s P=%d = %d x %d ps" % (k, r["seed"], P, P // (fclk or 12000), fclk or 12000))
             P = None
         if P is not None:
-            Ps.append(P / 1000)
+            (Ps if r.get("rule") == "clean" else Pnc).append(P / 1000)
         if v:
             Ls.append(sum(v) / len(v))
         elif r.get("lat_call_sum_ns", "NA").isdigit() and r.get("nvec", "0").isdigit() and int(r["nvec"]):
@@ -154,13 +185,13 @@ for k in sorted(rows):
         if P is None and v and dl and dl["execs"] and dl["nloops"] == 1 and len(dl["execs"]) == len(v):
             b = slope(dl["execs"], v)
             if b is not None:
-                Fs.append(b)
+                (Fs if r.get("rule") == "clean" else Fnc).append(b)
     fit = not Ps and bool(Fs)
-    Pv = Ps or Fs
+    Pv = Ps or (Fs if fit else [])
     Pm = st.median(Pv) if Pv else None
     dy = DY.get(k)
     ratio = (Pm / dy[0]) if (Pm and dy) else None
-    if ratio and ok:
+    if ratio and ok and k not in NORATIO:
         ratios.append((ratio, "ESTIMATE" not in dy[1], fit))
         nfit += fit
     # latency per call: the same calls on both sides (the vector counts must agree)
@@ -175,16 +206,27 @@ for k in sorted(rows):
         if Ls and nv and all(n == dl["n"] for n in nv):
             lr = st.median(Ls) / dl["mean"]
             lrcell = "%.2f%s" % (lr, " (extrapolated period)" if dl["extrap"] else "")
-            if ok and not dl["extrap"]:
+            if ok and not dl["extrap"] and k not in NORATIO:
                 lratios.append((lr, k))
         elif Ls:
             lrcell = "- (vectors differ: %s calls here, %d in Dynamatic's)" % (sorted(set(nv)), dl["n"])
     hd = HD.get(k)
-    print("| %s | %s | %d / %d | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
-        k, status, len(judged), len(rs), ("%d / %d" % (dp, dn)) if dn else "-",
-        (("fit %s (slope of call latency on trip count; no event-graph P)" if fit else "%s") % fmt_range(Pv)) if Pv else "-",
+    def _dr(rr):
+        a = sum(int(r["draws"].split("/")[0]) for r in rr if "draws" in r)
+        b = sum(int(r["draws"].split("/")[1]) for r in rr if "draws" in r)
+        return ("%d / %d" % (a, b)) if b else "-"
+    pcell = ((("fit %s (slope of call latency on trip count; no event-graph P)" if fit else "%s") % fmt_range(Pv))
+             if Pv else "-")
+    if Pnc:
+        pcell += " [%s]" % fmt_range(Pnc)
+    elif Fnc:
+        pcell += " [fit %s]" % fmt_range(Fnc)
+    print("| %s | %s | %d + %d / %d | %s; %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
+        k, status, len(clean), len(nclean), len(rs), _dr(clean), _dr(nclean), pcell,
         ("%d" % max(lat)) if lat else "-", ("%d" % st.median(luts)) if luts else "-",
-        ("%.2f (%s)" % dy[:2]) if dy else "-", ("%.2f%s" % (ratio, " (fit)" if fit else "")) if ratio else "-",
+        ("%.2f (%s)" % dy[:2]) if dy else "-",
+        ("%.2f%s%s" % (ratio, " (fit)" if fit else "", " (not comparable: out of the mean)" if k in NORATIO else ""))
+        if ratio else "-",
         ("%.2f" % hd[0]) if hd else "-", lcell, dcell, lrcell))
 notes = sorted({(k, v[2]) for k, v in DY.items() if k in rows})
 hnotes = sorted({(k, v[1]) for k, v in HD.items() if k in rows})
@@ -209,12 +251,12 @@ def gmean(v):
 gm_m = gmean([r for r, m, _ in ratios if m]); gm_a = gmean([r for r, _, _ in ratios])
 gm_l = gmean([r for r, _ in lratios])
 print()
-print("%d of %d kernels pass; geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a "
+print("%d of %d kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a "
       "MEASURED Dynamatic figure (n = %d): %s; including ESTIMATED figures (n = %d%s): %s. Our ns are the simulation's "
       "(about 8 %% slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); "
       "Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / "
       "Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes "
       "the bench): geometric mean over passing kernels (n = %d): %s."
-      % (npass, len(rows), sum(1 for _, m, _ in ratios if m), ("%.2f" % gm_m) if gm_m else "-",
+      % (npass, nlist, sum(1 for _, m, _ in ratios if m), ("%.2f" % gm_m) if gm_m else "-",
          len(ratios), ("; %d with our figure from the latency fit" % nfit) if nfit else "", ("%.2f" % gm_a) if gm_a else "-",
          len(lratios), ("%.2f" % gm_l) if gm_l else "-"))

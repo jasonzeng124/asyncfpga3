@@ -1,48 +1,96 @@
-**THE AUTOMATIC COLUMN over every kernel judged so far (PROGRAM "General first" / "A benchmark suite for the compiler") --
-one switch, nothing set per kernel: BDC_AUTO=1 with the flow's own sizing loop (research/tools/auto/auto_size.sh, flow
-v6: start at emit.py's estimates x 0.3, the rule with C-element joins at the draw model's two worst vertices, join
-credit, the steer self-bound, the token floor, a raise-only finish phase), judged by draws of the delay model. Farm
-suite6 (the four original fast kernels, 8 seeds, 8 draws, nextpnr 6e5d224472232d5d) + suite3a / suite3b / suite8 (suite
-kernels, seeds 1-4 / 1-2, 4 draws, same nextpnr) + suite7 (isprime, flow v5); 2026-11-18.** Every judged route returns
-every right answer under every draw. Many suite kernels have fewer than 4 judged routes because their sizing loop hit
-the farm's 240-minute task limit (60-80 min per iteration at 2 cores); suite9 (23 kernels x 4 seeds, resumable)
-fills them in, and gcd / isprime wait for a faster rule step (subagent loopfast).
+**THE AUTOMATIC COLUMN, every kernel the suite lists (corrected 2026-11-18 22:55 UTC for auditor T161 and the owner's
+T156 / T161 rules; it replaces the headline of eaef0dec7, which the audit marked OVERSTATED).** One switch, BDC_AUTO=1,
+with no list of kernels (the md5-keyed MLIR rewrites are off since f7573b807), the flow's own sizing loop (flow v6),
+judged by draws of the delay model; farm suite3a / 3b / 8 / 9 (suite kernels, seeds 1-4 / 1-2, 4 draws), suite6 (ipow,
+8 seeds, 8 draws; the rewrites never touched ipow), suite7 (isprime); nextpnr 6e5d224472232d5d (suite3a / 3b and part of
+suite6's predecessors used 9c732bc6303458df: identical routes where no GND pin was missed). A seed is one route: where
+two requests ran the same seed, the later one is counted. **What the audit found, and what changed:** (1) the earlier
+headline's xorshift / collatz / collatz64 numbers used the three md5-keyed rewrites -- they are now under the table under
+their own name, and the column without a list runs on the farm (norw1); (2) it counted 20 kernels; the suite lists 62,
+every one has a row below, with its reason where there is no number; (3) 34 of its 65 judged routes ended NOT CLEAN by
+the sizing rule, unstated -- now kept apart: routes, draws and P are given for rule-clean and NOT CLEAN routes
+separately, and ns per iteration and the ratio use rule-CLEAN routes only (two NOT CLEAN routes have been wrong: ipow
+seed 4 in flow v1, if_loop_1 seed 1 below); (4) isprime's ratio (an outer-trial period against Dynamatic's inner-shift
+cycle) is out of every mean; (5) dot2's "156 ns" was the host's array fill: refused (an exact multiple of the host
+clock). Dynamatic's figures are ESTIMATES except for xorshift / collatz / collatz64 (single nextpnr routes, Fmax x
+cycles); our ns are the simulation's (~8 % slower per iteration than the August board, research/SIM-VS-BOARD.md).
+Command: `research/tools/suite/suite_table.py --kernels research/tools/suite/kernels.txt --reasons
+research/data/suite/headline_reasons.tsv --no-ratio isprime <the farm result dirs>`.
 
-| kernel | status | routes judged / built | draws passing | ns per iteration (P), median (range) | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns |
-|---|---|---|---|---|---|---|---|---|---|
-| brhash | PASS | 4 / 4 | 16 / 16 | - | 8664 | 2110 | 36.40 (ESTIMATE) | - | - |
-| collatz | PASS | 8 / 8 | 64 / 64 | 17.04 (14.96-19.46) | 5136 | 1214 | 14.05 (measured, 1 route) | 1.21 | 21.50 |
-| collatz64 | PASS | 7 / 8 | 56 / 56 | 23.27 (22.03-26.12) | 9192 | 1767 | 17.84 (measured, 1 route) | 1.30 | 31.40 |
-| countloop | PASS | 4 / 4 | 16 / 16 | 25.05 (22.15-26.60) | 6864 | 1772 | 8.36 (ESTIMATE) | 3.00 | - |
-| dot2 | PASS | 1 / 1 | 4 / 4 | 156.00 (156.00-156.00) | 960 | 1434 | - | - | - |
-| fold64 | PASS | 1 / 1 | 4 / 4 | - | 5868 | 2773 | 11.93 (ESTIMATE) | - | - |
-| gather | PASS | 1 / 1 | 4 / 4 | 55.22 (55.22-55.22) | 1824 | 1523 | - | - | - |
-| horner | PASS | 2 / 2 | 8 / 8 | 29.13 (28.03-30.22) | 7788 | 1737 | 41.81 (ESTIMATE) | 0.70 | - |
-| ipow | PASS | 7 / 7 | 56 / 56 | 21.58 (19.84-23.36) | 780 | 1331 | 49.98 (ESTIMATE) | 0.43 | 36.20 |
-| isprime | PASS | 1 / 2 | 4 / 4 | 363.19 (363.19-363.19) | 16116 | 3918 | 9.26 (ESTIMATE) | 39.22 | - |
-| lfsrfind | PASS | 4 / 4 | 16 / 16 | 26.90 (23.18-29.27) | 7536 | 890 | 19.52 (ESTIMATE) | 1.38 | - |
-| quadrec | BUILD-FAILED (it=5: TIMING FAILED: 81.74 MHz < 83 MHz target.) | 0 / 1 | - | - | - | - | 9.09 (ESTIMATE) | - | - |
-| sqrtsub | PASS | 1 / 1 | 4 / 4 | 21.17 (21.17-21.17) | 5484 | 1394 | 8.36 (ESTIMATE) | 2.53 | - |
-| straight | PASS | 4 / 4 | 16 / 16 | - | 72 | 1327 | - | - | - |
-| test_bitint | PASS | 2 / 2 | 8 / 8 | - | 300 | 633 | 44.32 (ESTIMATE) | - | - |
-| test_int16 | PASS | 4 / 4 | 16 / 16 | - | 60 | 3 | - | - | - |
-| test_loop_free | PASS | 2 / 2 | 8 / 8 | - | 72 | 1005 | - | - | - |
-| unused_arg | PASS | 4 / 4 | 16 / 16 | - | 72 | 86 | - | - | - |
-| varshift | PASS | 1 / 2 | 4 / 4 | 39.06 (39.06-39.06) | 10056 | 2542 | 11.84 (ESTIMATE) | 3.30 | - |
-| xorshift | PASS | 7 / 7 | 56 / 56 | 22.28 (19.43-23.46) | 6060 | 1365 | 12.73 (measured, 1 route) | 1.75 | 16.76 |
+| kernel | status | routes judged (rule-clean + NOT CLEAN) / built | draws passing (clean; not clean) | ns per iteration (P) on clean routes, median (range) [on NOT CLEAN routes] | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| binary_search | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 24.18 (ESTIMATE) | - | - | - | - | - |
+| branchloop | NO RESULT (no finished seed yet: the sizing loop hit the farm's 240-min limit (suite3a / 3b / 8 / 9); resumed in suite9r2, running) | 0 / 0 | - | - | - | - | 36.77 (ESTIMATE) | - | - | - | - | - |
+| brhash | PASS | 0 + 4 / 4 | -; 16 / 16 | - [fit 32.08 (30.73-34.34)] | 8664 | 2110 | 36.40 (ESTIMATE) | - | - | 1314.30 (1261.20-1402.80) | 1443.81 (ESTIMATE) | 0.91 |
+| cmpchain | NOT-A-BOARD-ROUTE | 0 + 0 / 2 | -; - | - | - | - | - | - | - | - | 33.90 (ESTIMATE) | - |
+| collatz | NO RESULT (the column with no kernel list (BDC_AUTO=1, rewrites off) is running on the farm (norw1, 8 seeds); flow v6 WITH the three md5-keyed rewrites is under the table) | 0 / 0 | - | - | - | - | 14.05 (measured, 1 route) | - | - | - | - | - |
+| collatz64 | NO RESULT (the column with no kernel list (BDC_AUTO=1, rewrites off) is running on the farm (norw1, 8 seeds); flow v6 WITH the three md5-keyed rewrites is under the table) | 0 / 0 | - | - | - | - | 17.84 (measured, 1 route) | - | - | - | - | - |
+| countloop | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 24.30 (24.30-24.30) [25.80 (22.15-26.60)] | 6864 | 1772 | 8.36 (ESTIMATE) | 2.91 | - | 1029.30 (923.40-1087.80) | 341.14 (ESTIMATE) | 3.02 |
+| digitdiv | NO RESULT (compiles since 2026-11-18 (research/data/suite/divmod.md: routed smokes at default sizes pass on 4 / 4 seeds for digitdiv, divmodu, divmods); not yet through the automatic path) | 0 / 0 | - | - | - | - | 303.77 (ESTIMATE) | - | - | - | - | - |
+| digitsum | NO RESULT (compiles since 2026-11-18 (research/data/suite/divmod.md: routed smokes at default sizes pass on 4 / 4 seeds for digitdiv, divmodu, divmods); not yet through the automatic path) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| divmods | NO RESULT (compiles since 2026-11-18 (research/data/suite/divmod.md: routed smokes at default sizes pass on 4 / 4 seeds for digitdiv, divmodu, divmods); not yet through the automatic path) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| divmodu | NO RESULT (compiles since 2026-11-18 (research/data/suite/divmod.md: routed smokes at default sizes pass on 4 / 4 seeds for digitdiv, divmodu, divmods); not yet through the automatic path) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| dot2 | PASS | 1 + 2 / 3 | 4 / 4; 8 / 8 | 30.97 (30.97-30.97) [33.39 (33.39-33.39)] | 1128 | 1436 | 59.28 (ESTIMATE) | 0.52 | - | 708.75 (640.50-726.75) | 1212.19 (ESTIMATE) | 0.58 |
+| factorial | NO RESULT (no finished seed yet: the sizing loop hit the farm's 240-min limit (suite3a / 3b / 8 / 9); resumed in suite9r2, running) | 0 / 0 | - | - | - | - | 129.79 (ESTIMATE) | - | - | - | - | - |
+| fill | NO RESULT (no finished seed yet: the sizing loop hit the farm's 240-min limit (suite3a / 3b / 8 / 9); resumed in suite9r2, running) | 0 / 0 | - | - | - | - | 10.95 (ESTIMATE) | - | - | - | - | - |
+| fir | NO RESULT (no finished seed yet: the sizing loop hit the farm's 240-min limit (suite3a / 3b / 8 / 9); resumed in suite9r2, running) | 0 / 0 | - | - | - | - | 48.68 (ESTIMATE) | - | - | - | - | - |
+| fold64 | PASS | 0 + 1 / 1 | -; 4 / 4 | - [fit 23.31 (23.31-23.31)] | 5868 | 2773 | 11.93 (ESTIMATE) | - | - | 901.80 (901.80-901.80) | 448.74 (ESTIMATE) | 2.01 |
+| gather | PASS | 0 + 3 / 3 | -; 12 / 12 | - [51.53 (48.15-55.22)] | 1824 | 1494 | 69.20 (ESTIMATE) | - | - | 1200.00 (1124.00-1244.67) | 1510.48 (ESTIMATE) | 0.79 |
+| gcd | NO RESULT (its sizing loop never finished at the farm's 240-min limit (one rule step took over 1.5 h before CA_FAST); an A' row at umux21 that no line can pad also keeps every route NOT CLEAN) | 0 / 0 | - | - | - | - | 50.60 (ESTIMATE) | - | - | - | - | - |
+| horner | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 28.03 (28.03-28.03) [30.22 (29.25-31.28)] | 8064 | 1735 | 41.81 (ESTIMATE) | 0.67 | - | 1193.45 (1147.09-1233.27) | 1601.58 (ESTIMATE) | 0.75 |
+| if_convert | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 65.70 (ESTIMATE) | - | - | - | - | - |
+| if_loop_1 | WRONG ANSWER under draws | 0 + 1 / 1 | -; 2 / 4 | - [27.52 (27.52-27.52)] | 2808 | 1851 | 19.90 (ESTIMATE) | - | - | 1615.50 (1615.50-1615.50) | 1145.83 (ESTIMATE) | 1.41 |
+| if_loop_2 | PASS | 1 + 0 / 1 | 4 / 4; - | 29.77 (29.77-29.77) | 3036 | 1543 | 16.67 (ESTIMATE) | 1.79 | - | 1929.00 (1929.00-1929.00) | 1063.98 (ESTIMATE) | 1.81 |
+| iir | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 48.68 (ESTIMATE) | - | - | - | - | - |
+| image_resize | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 18.95 (ESTIMATE) | - | - | - | - | - |
+| ipow | PASS | 2 + 5 / 7 | 16 / 16; 40 / 40 | 21.39 (21.20-21.58) [21.73 (19.84-23.36)] | 780 | 1331 | 49.98 (ESTIMATE) | 0.43 | 36.20 | 276.35 (261.53-296.47) | 513.90 (ESTIMATE) | 0.54 |
+| isprime | PASS | 0 + 1 / 2 | -; 4 / 4 | - [363.19 (363.19-363.19)] | 16116 | 3918 | 9.26 (ESTIMATE) | - | - | 4542.67 (4542.67-4542.67) | 2501.23 (ESTIMATE) | 1.82 |
+| iterative_division | NO RESULT (no finished seed yet: the sizing loop hit the farm's 240-min limit (suite3a / 3b / 8 / 9); resumed in suite9r2, running) | 0 / 0 | - | - | - | - | 10.23 (ESTIMATE) | - | - | - | - | - |
+| iterative_sqrt | NO RESULT (no finished seed yet: the sizing loop hit the farm's 240-min limit (suite3a / 3b / 8 / 9); resumed in suite9r2, running) | 0 / 0 | - | - | - | - | 110.84 (ESTIMATE) | - | - | - | - | - |
+| lfsrfind | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 25.33 (23.18-27.48) [27.79 (26.32-29.27)] | 7536 | 890 | 19.52 (ESTIMATE) | 1.30 | - | 1260.60 (1077.00-1395.00) | 901.06 (ESTIMATE) | 1.40 |
+| loop_path | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 32.27 (ESTIMATE) | - | - | - | - | - |
+| memsum | PASS | 1 + 1 / 2 | 4 / 4; 4 / 4 | 27.48 (27.48-27.48) [28.15 (28.15-28.15)] | 960 | 1387 | 59.33 (ESTIMATE) | 0.46 | - | 556.20 (552.00-560.40) | 1033.21 (ESTIMATE) | 0.54 |
+| mul_example | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 79.88 (ESTIMATE) | - | - | - | - | - |
+| nest3 | NO RESULT (no finished seed yet: the sizing loop hit the farm's 240-min limit (suite3a / 3b / 8 / 9); resumed in suite9r2, running) | 0 / 0 | - | - | - | - | 11.06 (ESTIMATE) | - | - | - | - | - |
+| nested | NO RESULT (no finished seed yet: the sizing loop hit the farm's 240-min limit (suite3a / 3b / 8 / 9); resumed in suite9r2, running) | 0 / 0 | - | - | - | - | 9.98 (ESTIMATE) | - | - | - | - | - |
+| nested_loop | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 44.56 (ESTIMATE) | - | - | - | - | - |
+| quadrec | BUILD-FAILED (it=5: TIMING FAILED: 81.74 MHz < 83 MHz target.) | 0 + 0 / 1 | -; - | - | - | - | 9.09 (ESTIMATE) | - | - | - | 352.76 (ESTIMATE) | - |
+| share_test_1 | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 58.41 (ESTIMATE) | - | - | - | - | - |
+| share_test_2 | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 91.89 (ESTIMATE) | - | - | - | - | - |
+| simple_example_1 | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| single_loop | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 40.32 (ESTIMATE) | - | - | - | - | - |
+| sobel | NO RESULT (added 2026-11-18; not yet through the automatic path; bdc's DEFAULT flow computes wrong values on it in RTL (journal 2026-11-18 22:52; BDC_AUTO=1 passes RTL)) | 0 / 0 | - | - | - | - | 43.37 (ESTIMATE) | - | - | - | - | - |
+| spmv | NO RESULT (added 2026-11-18; not yet through the automatic path; bdc's DEFAULT flow computes wrong values on it in RTL (journal 2026-11-18 22:52; BDC_AUTO=1 passes RTL)) | 0 / 0 | - | - | - | - | 43.09 (ESTIMATE) | - | - | - | - | - |
+| sqrtsub | PASS | 1 + 2 / 3 | 4 / 4; 8 / 8 | 23.91 (23.91-23.91) [21.49 (21.17-21.81)] | 6180 | 1395 | 8.36 (ESTIMATE) | 2.86 | - | 784.62 (759.23-881.08) | 292.00 (ESTIMATE) | 2.69 |
+| stencil_2d | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 40.43 (ESTIMATE) | - | - | - | - | - |
+| straight | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | - | 72 | 1327 | - | - | - | 72.00 (72.00-72.00) | 14.92 (ESTIMATE) | 4.83 |
+| sumi3_mem | NO RESULT (no finished seed yet: the sizing loop hit the farm's 240-min limit (suite3a / 3b / 8 / 9); resumed in suite9r2, running) | 0 / 0 | - | - | - | - | 88.44 (ESTIMATE) | - | - | - | - | - |
+| test_bitint | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | - | 300 | 635 | 44.32 (ESTIMATE) | - | - | 288.00 (276.00-294.00) | 504.74 (ESTIMATE) | 0.57 |
+| test_bool_array | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| test_divui | NO RESULT (compiles since 2026-11-18 (research/data/suite/divmod.md: routed smokes at default sizes pass on 4 / 4 seeds for digitdiv, divmodu, divmods); not yet through the automatic path) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| test_flatten_array | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 15.74 (ESTIMATE) | - | - | - | - | - |
+| test_int16 | PASS | 4 + 0 / 4 | 16 / 16; - | - | 60 | 3 | - | - | - | 60.00 (60.00-60.00) | - | - |
+| test_loop_free | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 1007 | - | - | - | 72.00 (72.00-72.00) | 11.55 (ESTIMATE; period extrapolated, model path 4.86 ns) | 6.23 (extrapolated period) |
+| test_memory_1 | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 13.94 (ESTIMATE) | - | - | - | - | - |
+| test_memory_2 | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 13.94 (ESTIMATE) | - | - | - | - | - |
+| test_stdint | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 80.67 (ESTIMATE) | - | - | - | - | - |
+| twoloops | NO RESULT (no finished seed yet: the sizing loop hit the farm's 240-min limit (suite3a / 3b / 8 / 9); resumed in suite9r2, running) | 0 / 0 | - | - | - | - | 9.09 (ESTIMATE) | - | - | - | - | - |
+| unused_arg | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 86 | - | - | - | 72.00 (72.00-72.00) | 1.95 (ESTIMATE; period extrapolated, model path 1.23 ns) | 36.92 (extrapolated period) |
+| varshift | PASS | 0 + 2 / 4 | -; 8 / 8 | - [35.04 (31.02-39.06)] | 10056 | 2529 | 11.84 (ESTIMATE) | - | - | 1452.60 (1299.60-1605.60) | 493.64 (ESTIMATE) | 2.94 |
+| vector_rescale | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 48.68 (ESTIMATE) | - | - | - | - | - |
+| video_filter | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 57.14 (ESTIMATE) | - | - | - | - | - |
+| while_loop_3 | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md: RTL and, for 13 of them, a routed smoke at default sizes); not yet through the automatic path) | 0 / 0 | - | - | - | - | 34.00 (ESTIMATE) | - | - | - | - | - |
+| xorshift | NO RESULT (the column with no kernel list (BDC_AUTO=1, rewrites off) is running on the farm (norw1, 8 seeds); flow v6 WITH the three md5-keyed rewrites is under the table) | 0 / 0 | - | - | - | - | 12.73 (measured, 1 route) | - | - | - | - | - |
 
-19 of 20 kernels pass (quadrec: the bench's PS-side clock missed 83 MHz on its one finished route, a build failure, not a
-wrong answer); geometric mean of the ratio over the three MEASURED Dynamatic figures: 1.40; with the ESTIMATES (n = 10):
-2.02 (countloop 3.00, sqrtsub 2.53, varshift 3.30: the simple counted loops are where the automatic flow is furthest
-behind Dynamatic's estimate; isprime's 39 compares an outer-trial period with Dynamatic's inner-shift cycle: not a
-ratio yet). Our ns are the simulation's (~8 % slower per iteration than the August board, research/SIM-VS-BOARD.md);
-Dynamatic's measured figures are single nextpnr routes (Fmax x cycles), not board runs. Hand recipes: xorshift 16.76
-(x55a10, 28 routes), collatz 21.5, collatz64 31.4, ipow 36.2. Flow v6 against v3 (suite4) on the same four kernels:
-collatz 18.98 -> 17.04, collatz64 23.71 -> 23.27, ipow 24.10 -> 21.58, xorshift 20.11 -> 22.28 (subagent xorgap).
-Board items from the automatic path: 38 (ipow), 39 (collatz), 40 (collatz64), 41 (xorshift), all flow v3.
+18 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 0): -; including ESTIMATED figures (n = 8): 1.04. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 14): 1.28.
 
-Previous headline (flow v3, suite4, 27 routes, 216 / 216 draws): collatz 18.98, collatz64 23.71, ipow 24.10, xorshift
-20.11 ns per iteration.
+**The same flow WITH the three md5-keyed rewrites (BDC_AUTO_REWRITES=1; farm suite6, 8 seeds, 8 draws; not the automatic
+column):** collatz PASS, 6 + 2 routes (clean + NOT CLEAN), 48 / 48 + 16 / 16 draws, P on clean routes 17.24 (16.20-19.46)
+ns; collatz64 PASS, 2 + 5, 16 / 16 + 40 / 40, 23.01 (22.13-23.89); xorshift PASS, 4 + 3, 32 / 32 + 24 / 24, 22.71
+(19.43-23.46). Board items 39-41 are from this variant (flow v3).
+
+Earlier headlines (flow v3, suite4, all with the rewrites on the three kernels): collatz 18.98, collatz64 23.71, ipow
+24.10, xorshift 20.11 ns per iteration (27 routes, 216 / 216 draws).
 
 **2026-11-17, judged by draws (PROGRAM "The board decides"): xorshift 16.85 ns per iteration** -- item 33's sizes x0.55
 except the incrementer (fr4a_x55a), median of 32 farm routes (15.93-18.19), every one of 128 delay-model draws returning
