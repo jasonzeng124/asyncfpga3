@@ -831,6 +831,19 @@ def op_fn(op, width):
 def build(path, ninv):
     func = [f for f in parse.parse_module(open(path).read(), filename=path) if not f.is_declaration][0]
     e = emit.Emitter(func)
+    # LIVE_DEPTH_OVERRIDE="ssa=K,..." (ssa as in e.depth's keys, e.g. 26 or trueResult_14): set a link's stage count after
+    # bdc chose it; K = 0 unlinks the channel.  For minimality checks of bdc's floors (formal/tools/live/floormin/).
+    for item in filter(None, os.environ.get("LIVE_DEPTH_OVERRIDE", "").split(",")):
+        k, _, v = item.partition("=")
+        k, v = k.strip(), int(v)
+        if k not in e.ch:
+            raise ModelError(f"LIVE_DEPTH_OVERRIDE: no channel {k}")
+        if v <= 0:
+            e.linked.discard(k)
+            e.depth.pop(k, None)
+        else:
+            e.linked.add(k)
+            e.depth[k] = v
     nodes = func.nodes
     net = Net()
     net.ninv = ninv

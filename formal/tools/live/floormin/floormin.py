@@ -2,9 +2,8 @@
 """floormin.py OUT.tsv [FIXTURE...] -- is every stage research's token floor adds necessary?
 
 For each fixture x {def, auto}: the links whose depth differs between BDC_TOKEN_FLOOR=1 and =0 (bdc's own Emitter,
-../passdiff/depths.py). Then with the floor OFF and BDC_LINK_DEPTHS pinning every one of those links at its floor-on depth
-(control: must be LIVE, as the floor-on design), and once per added stage with that one link one stage shorter: live.py
-exhaustively. NECESSARY = that minus-one deadlocks; SPARE = still LIVE (the floor over-asked there, in the model).
+../passdiff/depths.py). Then the floor-on design (control: must be LIVE), and once per added stage with that one link one
+stage shorter (live.py's LIVE_DEPTH_OVERRIDE, applied to bdc's choice; 0 = unlinked): live.py exhaustively. NECESSARY = that minus-one deadlocks; SPARE = still LIVE (the floor over-asked there, in the model).
 Untrusted (live.py's model, MODEL.md); LIVE_RS (default /home/user/rs) is research's tree."""
 import json, os, subprocess, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -51,15 +50,12 @@ for fx in fixtures:
         if not add:
             continue
         pin = lambda d: ",".join(f"{lname(k)}={v}" for k, v in sorted(d.items()))
-        base = {**fenv, "BDC_TOKEN_FLOOR": "0", "BDC_LINK_DEPTHS": pin(add)}
-        ctl = live(mlir, base)
+        ctl = live(mlir, {**fenv})
         row = [fx, fl, "control", pin(add), ctl.get("verdict"), str(ctl.get("states"))]
         print("\t".join(row), file=out, flush=True); print("\t".join(row), flush=True)
         for k in sorted(add):
-            d = dict(add); d[k] = add[k] - 1
-            if d[k] < 1:
-                d[k] = 0
-            r = live(mlir, {**fenv, "BDC_TOKEN_FLOOR": "0", "BDC_LINK_DEPTHS": pin(d)})
+            d = {k: add[k] - 1}
+            r = live(mlir, {**fenv, "LIVE_DEPTH_OVERRIDE": f"{k}={d[k]}"})
             v = r.get("verdict")
             tag = "NECESSARY" if v == "DEADLOCK" else ("SPARE" if v == "LIVE" else "UNDECIDED")
             if ctl.get("verdict") != "LIVE":
