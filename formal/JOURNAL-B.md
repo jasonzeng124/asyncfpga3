@@ -4789,3 +4789,16 @@ countloop seed 1 (suite3a/5, it 7, NOT CLEAN): sdf 97dda2e9 = research's, ffmux 
 16 scalar-vector routes in routes.txt (countloop 2-4, sqrtsub 1, brhash 1-4, lfsrfind 1-4, horner 3-4, varshift 1, isprime 4).
 Memory kernels (dot2, gather, test_bitint) and fold64 (one 64-bit operand) not covered: formal's bench boundary has no
 memory ABI and the 64-bit operand pairing is unchecked.
+### progress 17:52 -- linescale (item 39, answers only) and why it is not enough: narrow storage pulses; rerun strict
+- Answers-only linescale on item 39 (probes: col18 8 draws + 4 slow-carry + c32hi 4 + preloaded steps 4; same placement):
+  ucmpi0 (13 LUTs) needs 0.25, ucmpi2 (11) 0.5; uaddi1 (12), umux2 (8), uselect0 (7), uaddi0 (6), umux1 (5), umux0 (4) and
+  the multi-LUT link lines pass at 0 one at a time. Jointly (all those at 0, ucmpi0 at 0.25): ucmpi2 needs 0.625, last
+  answer 22.5-25.1 us vs 30.2-33.3 us as built on the same 8 draws (-25 %).
+- BUT: simx's NEARMISS (storage-LUT output pulses < 200 ps after reset) is 0 on every as-built draw (narrowest 4-5 ns) and
+  is not 0 on many of those "passing" probes: joint 26-198 per draw (1-42 ps, on link controllers, ufork4's C-element,
+  umux1's join, latch nodes); ucmpi0 at 0.25: up to 56266 per draw; ucmpi2 at 0.5: 198; uaddi0 at 0: 6 (1 ps). B7's
+  wrong answer came from exactly such a pulse (21 ps, one ps over the runt filter). So answers-only is the wrong pass
+  criterion for shortening: those probes are right by the model's luck. linescale.sh now defaults to STRICT=1 (no draw
+  may show a NEARMISS pulse); queue restarted strict on items 39, 41, 38, 40 (operator lines, resolution 1/4).
+- (Latch data nodes pass D glitches legitimately, so STRICT is conservative there; the joint probe's pulses also hit
+  C-element controllers, which is not legitimate.)
