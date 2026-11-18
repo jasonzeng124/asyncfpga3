@@ -4631,3 +4631,15 @@ Worker restart at ~23:5x killed item 27's tail; rerun. 33: slack 13398, settle 3
 16953; 30 steps 18828; preload B 16/16 on 33 and 27. All RC arcs. B5 tabulates every candidate.
 ### progress 00:01 (11-18) -- farm b_u0xor back (21/24): UADDI0 0 -3.3 % mean on 9 paired clean seeds, loop-test min 344 ps; added to B3
 Seed 3 UADDI0 0 (FFMUX-FLAG) loop test 9 ps. Tasks 17-19 (seed 9, seed 10's 12-arm) missing at read time.
+### progress 00:01 (11-18) -- session summary (B, 2026-11-17 19:53 -> now)
+All results untrusted simulation (formal's simx on the decoded bitstream, research's draw model); no Lean this session
+(Mathlib cache unreachable here; Lean work goes to the farm).
+- **Tools** (formal/tools-B/preload/, README): preload a loop counter's entry latches + C oracle from the same state
+  (prun.sh), carry-injection negative control and slack bisection, per-iteration period, linesens (which delay lines set the
+  period), zeroline (what a line costs on a fixed placement), joinscan, constlinks; full-range collatz vectors (vec/).
+- **FOR-RESEARCH B2-B5:** the incrementer's 30-bit carry and the step counters' carries are reached and pass on every board
+  candidate (B5); the preload's control fails as it must. UADDI0 can be 0 (12 routes: every draw passes, ~3 % faster on
+  average, loop-test worst settle ~1.0 -> ~0.35 ns); UADDI1 0 is safe and buys nothing. B4: the period is set by 3-5 ring
+  lines per route; cutting the rings' request lines spends the loop test's margin (154 ps with live runts), not recommended.
+- C48's arc correction: everything redone on RC_TREE=1 decodes; pass / fail unchanged.
+- Open for B: the select race (PROGRAM item 4) in Lean, on the farm; preload for kernels research's automatic path adds.
