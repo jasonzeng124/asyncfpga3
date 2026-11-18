@@ -3121,3 +3121,25 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   - no new timing (the plain form pays only on countloop, A21);
   - it is per-program proofs from a generator, not one theorem for every graph matching the pattern.
 * FOR-RESEARCH A22 update; FEASIBILITY row 14 updated.
+
+### progress 21:34 -- CHECKED: the plain pre_dec as a PASS (one theorem, certificate checked by a Bool function)
+* `Formal/Rewrite/PlainPass.lean`: `Cert` holds every number of the pattern, the two pairs and the class lists.
+  - `rs1` / `rs2` / `rs2p rules X` are the rewrite as functions of the rule list.
+  - `check rules X : Bool` covers the Pat / Pat2 / PairOK structure, a rule-by-rule safety check (`safeR`), class
+    facts, and that the internal channels are not arguments.
+  - `plain_forward` / `plain_backward`: `check = true` gives equivalence of complete runs, for ANY rules.
+  - Proof: RingMap.forward + forward2 + ChanInv.chan_inv + Swap, all generic.
+  - One timeout on the way: omega facing 11 disequalities; fixed by naming the hypotheses.
+* `Formal/Rewrite/Plain/PassInst.lean`: certificates from `gen_plain_gen.py --cert`.
+  - `check = true` by decide +kernel on all five fixtures.
+  - `K_rs2p`: equal to `<K>PlainGen.rs2p`, which the ties connect to `out/<k>_plain.mlir`.
+  - Negative controls `= false`: guard `sgt` -> `ne` (`control_guard_ne`; the arithmetic that makes that mutation
+    really wrong at n = INT_MIN is proved too) and a missing NotMin class.
+* `#print axioms`: propext, Classical.choice, Quot.sound. check.sh OK on the 31-file closure, 1556 -> 1676
+  declarations (/tmp/claude-0/check_pass.log).
+* Does NOT show:
+  - token level only;
+  - dfimport (MLIR -> rules) is outside Lean;
+  - no new timing;
+  - pre_eq2 still per-program.
+* FOR-RESEARCH A23 (supersedes A22's plain-form paragraph); FEASIBILITY row 14.

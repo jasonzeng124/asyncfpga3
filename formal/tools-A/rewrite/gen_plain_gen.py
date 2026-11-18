@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""gen_plain_gen.py NAME RS2_EVAL.txt -- the graph-only plain-test proof (CountloopPlainGen) for another ring kernel.
+"""gen_plain_gen.py NAME RS2_EVAL.txt [--cert] -- the graph-only plain-test proof (CountloopPlainGen) for another ring kernel.
 
 NAME: the Ring module name (Horner, Quadrec, Varshift, Xorshift). RS2_EVAL.txt: Lean `#eval Formal.Rewrite.Ring.NAME.rs2`.
-Writes formal/lean/Formal/Rewrite/Plain/<NAME>PlainGen.lean.
+Writes formal/lean/Formal/Rewrite/Plain/<NAME>PlainGen.lean; with --cert, prints the PlainPass.Cert instead.
 
 What the script finds (untrusted; every fact it relies on is re-checked in Lean by `decide +kernel` or by the
 PairOK / RuleSafe obligations, so a wrong guess makes the Lean fail, not a wrong theorem):
@@ -91,6 +91,16 @@ def main():
     lExt = [l for l, v in special.items() if v == 'extui'][0]; lDec = [l for l, v in special.items() if v == 'dec'][0]
     extIn, extOut = rs[lExt][1][0], rs[lExt][2]
 
+    if len(sys.argv) > 3 and sys.argv[3] == '--cert':
+        f = dict(M=pr[0], F=pr[1], B=pr[2], S=pr[3], C=pr[4], sel=pr[6], ne=ne, **{"ne'": nep}, r=rr, r0=r0, k=kk,
+                 nb=nb, nx=pr[13], cnd=pr[14], y=pr[15], c=pr[16], iw=pr[17], lb=tA, ld=tF, e=te, s=ts, s0=ts0,
+                 e0=te0, e1=te1, gF=lFg, gC=lCg, gK=lKg, gB=lBg, ge=guard['e'], gd=dg, gx=xg, gc=cg, gcb=cbg, gk=kg,
+                 gt=ne, gf=guard['f'], gos=guard['os'], tK=lKt, tB=lBt, tcb=test['cb'], tt=test['t'], tf=test['f'],
+                 tos=test['os'], c1=c1, c2=c2)
+        assert pr[15] == ty and pr[16] == tc and pr[11] == tk and pr[4] == tC
+        print(f'def c{name} : Cert where')
+        for a, b in f.items(): print(f'  {a} := {b}')
+        return
     tpl = open(os.path.join(ROOT, 'formal/lean/Formal/Rewrite/Plain/CountloopPlainGen.lean')).read()
     s = tpl
     def sub(a, b, cnt=1):

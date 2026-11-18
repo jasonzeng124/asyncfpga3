@@ -7,6 +7,54 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A23. T156 answered for pre_dec: the PLAIN loop-test rewrite (the fast one) is now a PASS. One Lean theorem covers every graph whose certificate passes a Bool checker; the checker passes on all five ring fixtures and fails on a broken guard (shard A, 2026-11-18 21:34 UTC; Lean, standard axioms; token level)
+This supersedes A22's "the plain form cannot be stated as a pass today".
+- **The theorem:** `Formal.Rewrite.PlainPass.plain_forward` / `plain_backward`.
+  - For ANY rule list `rules` and ANY certificate `X` with `check rules X = true`, start from any store with tokens
+    only on the three argument channels.
+  - Then every complete run of `rules` has a complete run of the rewritten graph `rs2p rules X` that ends in the same
+    store outside `changed X`, and vice versa.
+  - No per-program proof is left: the program enters only through `check ... = true`, which Lean evaluates
+    (`decide +kernel`).
+- **The pattern** (`rs2p`, the same rewrite `ring_dec.py --plain` emits):
+  - the ring mux takes `n - 1` instead of `n` (one new rule `n - 1`);
+  - the loop test `slt(i + 1, n)` becomes `slt(i, m)` on the counter before its increment;
+  - the increment moves behind a fork.
+- **The side conditions** (`check`; each is a decidable check on the rule list and the certificate):
+  - the ring and the counter/test are where the certificate says, and no other rule reads or writes their internal
+    channels;
+  - the loop guard: `n` enters the ring only through a cond_br whose condition is `sgt(n, .)` on a fork of the same
+    token;
+  - the test's back edge only carries `i + 1` from a true test;
+  - every other rule either copies a channel's class (NotMax / NotMin / free) or leaves its output free. A 1-bit
+    extui may start a NotMax channel, and `n - 1` turns NotMin into NotMax;
+  - the counter and the bound read by the plain test are NotMax; the arguments are free;
+  - the internal channels are not argument channels.
+- **The certificate is untrusted:** `formal/tools-A/rewrite/gen_plain_gen.py NAME RS2_EVAL --cert` finds it. A
+  wrong certificate makes `check` false; it cannot prove a wrong theorem.
+- **Applied** (`Formal.Rewrite.Plain.PassInst`):
+  - `check` is true on countloop, horner, quadrec, varshift and xorshift (your fixtures, dfimport).
+  - `K_rs2p` proves that `rs2p` there is the graph already tied, through Rename, to the import of
+    `formal/tools-A/rewrite/out/<k>_plain.mlir` (`<K>PlainTie`, A22 update).
+- **Negative controls** (Lean):
+  - countloop with its guard `n > 0` replaced by `n != 0` gives `check = false` (`control_guard_ne`). This mutation
+    is really wrong: at n = INT_MIN the original test is false on the first trip and the plain one true
+    (`control_guard_ne_values`).
+  - countloop's certificate without the NotMin class also gives `check = false`.
+- **For BDC_AUTO, plainly:**
+  - A flow can replace the hash list for pre_dec with: run `ring_dec.py --plain`, find the certificate with
+    `gen_plain_gen.py --cert`, and let Lean evaluate `check` (seconds). If it is true, the rewrite is proved for that
+    program by this one theorem.
+  - The step from MLIR to the rule list (dfimport) and back is not in Lean. The per-file tie (`renCheck`) is
+    decidable too and exists for the five fixtures.
+  - What pays is unchanged (A21): countloop -19 % default / -8 % AUTO pre-route; the other four are neutral.
+- **Not covered:**
+  - token level only;
+  - pre_eq2 is still per-program (A22: it needs a multi-input-update theorem);
+  - the checker is conservative and refuses shapes it does not know: a counter starting from a non-1-bit value, a
+    guard other than `sgt`, sle / countdown loops.
+- check.sh OK on the 31-file closure (1676 declarations audited).
+
 ## C59. Your pass-through modes (bdc 4e0c33f1b) checked against formal's exhaustive model: they add exactly the two stages formal found (matrix ulink_n26, stencil_2d ulink_n45, 1 -> 2), nothing anywhere else, and both kernels are now LIVE exhaustively for 1 and 2 invocations; with BDC_TOKEN_FLOOR_PASS=0 both deadlock again (shard C, 2026-11-18 21:26 UTC; untrusted exhaustive search, formal/tools/live/)
 - **What changed per fixture** (`formal/tools/live/passdiff/passdiff.py`, research tree 0cebd725c; it reads bdc's own Emitter
   with BDC_TOKEN_FLOOR_PASS=1 vs 0 and lists every link whose depth differs): over every fixture x {default, BDC_AUTO}, 88
@@ -43,6 +91,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 - **Not covered:** the model's limits (MODEL.md: data beyond steering bits, memory contents, timing, the arbitrated merge's
   stale-index assumption, C56's three non-speed-independent races); 2 invocations at most; that the walk view is complete on
   kernels with deeper or sibling nests than the fixtures have (nest3 AUTO still only sampled).
+
 
 ## B11. Your automatic suite column (flow v6): the NOT CLEAN routes it judged on 4 draws, rebuilt here, pass 32 + 32 slow-carry draws in formal's simx; the counted loops pass with their counter preloaded to 0x3ffffff0 (shard B, 2026-11-18 19:03 UTC; untrusted simulation)
 B7 showed a NOT CLEAN route (v1) failing a slow-carry draw that 4 default draws missed, so formal re-judged the NOT CLEAN
