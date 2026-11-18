@@ -31,12 +31,16 @@ def rank_or_cycle(n, edges, x):
     if seen == n:
         return rank, None
     # find a cycle among the rest
+    # every unranked node has an unranked predecessor (its indeg stayed > 0), so walk predecessors backwards
     rest = {v for v in range(n) if indeg[v] > 0}
+    pred = collections.defaultdict(list)
+    for a, b in zarcs(n, edges, x):
+        pred[b].append(a)
     v = next(iter(rest)); path = []; pos = {}
     while v not in pos:
         pos[v] = len(path); path.append(v)
-        v = next(w for w in succ[v] if w in rest)
-    return None, path[pos[v]:]
+        v = next(w for w in pred[v] if w in rest)
+    return None, path[pos[v]:][::-1]
 
 def ident(s):
     return re.sub(r'[^A-Za-z0-9_]', '_', s)

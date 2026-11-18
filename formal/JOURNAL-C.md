@@ -4613,3 +4613,11 @@ passdiff.py (new, formal/tools/live/passdiff/): BDC_TOKEN_FLOOR_PASS=1 vs 0 over
 ulink_n26 1->2 and stencil_2d def ulink_n45 1->2 change (88 emitting pairs, 126 refused). live.py on research 0cebd725c: matrix
 LIVE 19 246 (inv2 70 229), stencil_2d LIVE 20 076 (inv2 73 697), 0 hazards; PASS=0: DEADLOCK 853 / 901 as C55. Full sweep
 (floor on, def + auto) running in the scratchpad; 60 / 216 rows at 21:50, all agreeing (LIVE where emit accepts).
+
+### progress 22:05 -- Formal/Net/LiveCertsPass.lean: 8 kernel-checked no-trap certificates for matrix / stencil_2d on the new floor
+gencert.py over live.py's dumps of matrix / stencil_2d default with research's pass-through floor (s0..s3 routing modes each):
+8 / 8 certified (`Cert.check ... = true := by decide +kernel`; axioms [propext] only), lake build OK. The PASS=0 deadlock dumps
+have the token-free cycle listed as a comment (untrusted): matrix ulink_n49__5 -> n35 -> n26 -> n32, stencil n67__2 -> n54 ->
+n45 -> n51 -- the walk C58 described. As LiveCerts: fixed routing modes only, so the re-entry mode change itself is covered by
+live.py (untrusted), not by Lean. gencert.py fix: its cycle finder walked successors and could leave the trap (StopIteration);
+it now walks predecessors (every unranked node has an unranked one). Graph JSONs under formal/tools/live/passdiff/graphs/.
