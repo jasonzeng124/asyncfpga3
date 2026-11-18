@@ -6274,3 +6274,14 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - So suite1 (still waiting) now asks 4 kernels x 8 seeds (32 tasks); for gcd and isprime the suite uses one long vector
   for P (gcd (7fffffff, 1), isprime 2003) and gcd8 for gcd's draws (gcd18's edges and its longest pair), expected values
   still compiled from the C at run time.
+### progress 00:02 (the AUTO loop converges slowly: each lowering re-places the route and opens new small misses)
+- Seed 1, negatives per iteration (it 1 / it 2): xorshift 3 / 8 (it 2: E umux2 -298, A' uaddi0 -188, A' uxori2 -51,
+  A ucontrol_merge1 -41, E steers -24 / -8); collatz 16 / 8 (it 2: H ulink_n7 -304, A' umux2 -257, E ucond_br3 -256,
+  A'm umux1 -255, A' uaddi0 -150, E ucond_br5 -90); collatz64 14 / 3 (it 2 route FFMUX-FLAG: a bitstream defect on an
+  intermediate route). Pinned lines grow (xorshift 3 -> 7, collatz 6 -> 10, collatz64 8 -> 11) while the unpinned ones
+  keep shrinking (xorshift UCMPI1 26 -> 22 -> 19).
+- Why the first proposal under-delivers, measured: collatz64's 64-bit 3n + 1 (UADDI0) was 160 elements (63.4 ns) on the
+  estimates route, the rule proposed 4 (1.26 ns, "205 ps left"), and on the route built from it A' was -2809 ps (padded
+  to 20). On the spread-out route the request's own wires covered most of the data path; on the compact route they do
+  not. The loop is what makes the rule safe; a better first point would save routes (to do: start from a tighter
+  estimate than emit.py's deliberately generous one).
