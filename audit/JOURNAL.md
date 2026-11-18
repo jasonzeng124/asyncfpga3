@@ -3271,3 +3271,12 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - The suite oracle refuses bench-masked kernels, so the col17 lesson is built in.
   - The table marks deadlocks and refusals and quotes no ns.
   - CONFIRMED (expected values).
+
+### progress 01:50
+- research 220e62a6a / e31ad2c38: fifteen/README now leads with the automatic column (seed 1 only, 'preliminary'): xorshift 21.08, collatz 18.06, collatz64 30.01 ns, 4/4 draws each, with an automatic / Dynamatic ratio.
+  - REPORT row: OVERSTATED (minor).
+    - no model error beside the speeds;
+    - Dynamatic's 'measured' is routed STA x cycles, not board, so the ratio mixes GLS-at-band with STA;
+    - 4/4 bounds failure only at <= 53 %;
+    - the sizing loop had not converged.
+- research 3de7167c3 / 2770e3f2d / 8283f7ef6 and others: the bench ABI landed (operand words, host memory port, v2 vectors, oracle_mem.sh, GATE_MEMEXP), memsum joins the suite, plus RAMB18 clock-to-out handling and a memport monitor with its own negative control. Tooling; to audit with memory-kernel results.
