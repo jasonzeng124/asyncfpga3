@@ -3044,3 +3044,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   committed). Incident: an unquoted heredoc made bash try to execute backticked names in the FOR-RESEARCH text (all
   failed: permission denied / not found; nothing modified); text repaired. From now on all prose goes through quoted
   heredocs ('EOF').
+### progress 18:54 -- check.sh OK on AutoLib + CountloopOrig/Plain/Same (the first run failed only for the missing AutoLib in the file list)
