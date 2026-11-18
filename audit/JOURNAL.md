@@ -3280,3 +3280,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
     - 4/4 bounds failure only at <= 53 %;
     - the sizing loop had not converged.
 - research 3de7167c3 / 2770e3f2d / 8283f7ef6 and others: the bench ABI landed (operand words, host memory port, v2 vectors, oracle_mem.sh, GATE_MEMEXP), memsum joins the suite, plus RAMB18 clock-to-out handling and a memport monitor with its own negative control. Tooling; to audit with memory-kernel results.
+- 02:10 research 15b64efe3: rejudge validated (suite1 xorshift s3 4/4), collatz64 AUTO s1 4/4, memsum, eventgraph fallback. Still per-route samples; awaiting suite1 / suite2 tables. Own reproduction of an AUTO route once its kept sizes are committed.
