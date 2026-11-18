@@ -4501,3 +4501,18 @@ the arbiter, timing (H_SI), glitches, X. Checked with lean (core-only chain).
 fm_c_c41x32: 256/256 draws (32 routes x 4 default + 4 slow-carry), steer worst 404 ps (route 18), no runts. fm_c_half16: 31
 routes 8/8 plain + 8/8 at 0.5x non-compare delay; last answer -12.2 % (collatz) / -18.5 % (ipow); ipow seed 14 no result.
 Setup's Mathlib compile reniced to 15 (subagents and lean checks first).
+
+### progress 17:20 -- cell-model exhaustive check (subagent; formal/tools/live/cells/, rerun here: run.sh rc 0, ~40 s)
+Gate-level SI explorer from the verbatim LUT INITs of cells/rtl (bd_c2n links, bd_c2/bd_c3 joins and fork acks, bd_mux uj0/uj1/
+uor/uxa/uya, cond_br = bd_join + bd_steer as emit builds it, bd_src/bd_snk), BFS over every reachable state, every stage vector
+as a start (S <= 11). Stage model derived from the same netlist. **Fixed mode, consistent starts ("comp"): 0 disagreements** on
+rings (510 starts), fork-join (9114), fork-mux (13454), fork-cond_br (13454), 3-way fork-join (8370), with buffers (798):
+deadlock sets and reachable stage sets equal, 0 hazards, every link firing a stage step; Z-cycle test and research's arithmetic
+(S >= 2T+1, L_Q >= 2K) exact on every rest marking. This is the empirical side of StageNetGate / StageNetTree.
+Outside the claim: (1) "reset" starts (tokens placed by _set links next to joins / forks whose C-elements come up 0) disagree --
+they violate `Inv`; emit never places tokens that way. (2) **A real hazard in bd_mux when its select changes** (free mode):
+x_ack = C(j0, z_ack) due to fall after z_ack falls; the select may change then and the next y handshake can raise z_ack first,
+disabling x_ack's fall (it falls one handshake late). The header mux switching from loop entry to first iteration: the circuit
+is not speed independent there (one LUT vs. a round trip through the loop). (3) free-mode mux: 24/308 starts differ from the
+subagent's own stage rule for an unselected input (a model gap, not the cells).
+Not covered: timing, FASTRISE/FASTFALL LUTs, X, arbiter / bd_merge / control_merge, muxn N > 2, bd_ctree N > 4, data, nested loops.
