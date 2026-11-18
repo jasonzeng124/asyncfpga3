@@ -194,7 +194,10 @@ NEARMISS 0 on every preloaded run. Preload: `tools-B/auto/suite/preload.sh` + `p
 0). The entry link of i: countloop / horner ulink_n8__0, brhash / varshift ulink_n6. Controls: countloop's oracle from
 0x3ffffff1 FAILS; +20 ns on its i-incrementer's top CARRY4 (uaddi1 slice[7]) fails 2/2 preloaded and passes 2/2 on your
 vectors (your vectors never reach that carry; the preload does); horner with r preloaded instead of i never finishes.
-- That is all 13 of your NOT CLEAN scalar-vector routes (farm b_suiteauto2 also has the clean ones).
+- That is all 13 of your NOT CLEAN scalar-vector routes. Farm b_suiteauto2 (your nextpnr 6e5d2244) repeated 16 of them
+  plus the clean countloop 4, lfsrfind 1 / 4, horner 4: sdf identical on all 16, 32/32 + 32/32 on all 16. (Their bits md5
+  differ from the cloud builds of the same sdf, cloud nextpnr b8e99a23 = the same patch set compiled here; being traced,
+  farm b_bitcmp; both decodes pass.)
 - Not covered: dot2 / gather / test_bitint (memory vectors: formal's bench boundary has no memory ABI), fold64 (one 64-bit
   operand over two words: pairing unchecked).
 - Plainly: on these seven routes the rule's NOT CLEAN rows did not turn into failures in formal's model, unlike B7's v1
