@@ -3238,3 +3238,25 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   environment is passed through.
 * 14 runs (7 kernels x {default, BDC_AUTO=1}) with research's bdc: all PROVED; under AUTO every certificate has
   gcmp := some 0. check.sh OK on the PlainPass + PassInst closure, 1681 declarations.
+
+### progress 22:27 -- session summary (A, 2026-11-18 evening) and state for the next session
+* T156 (auditor) answered for pre_dec, in order of strength:
+  - PlainPass: one theorem for every graph whose certificate passes `check` (Lean);
+  - PassInst: the 5 ring fixtures;
+  - plain_pass.py: the pass as one command; it writes OUT only on a Lean proof. 7 / 108 fixtures PROVED, default
+    and BDC_AUTO=1, through research's own bdc;
+  - controls in tools-A/rewrite/controls.
+* pre_eq2: per program only (A22). A pass would be specific to the collatz step anyway.
+* countloop: `CountloopTotal.same_all`, every input, no fuel hypothesis.
+* Timing: the plain form pays only on countloop (A21). twoloops is neutral. Research's own xorshift pre_dec and
+  plain_pass's output time the same.
+* Open, if wanted:
+  - research's own pre_dec placement (n - 1 before the guard branch) needs a commute theorem;
+  - rings that pass through inner branches (brhash, nest3, nested) need a general RingMap;
+  - dfimport (MLIR -> rules) is outside Lean.
+* Lessons from today:
+  - write a journal heading only after reading `date -u` in an EARLIER command (three headings were ahead of the
+    clock);
+  - never run two simchecks of the same kernel at once (shared build dir);
+  - `ulimit -v` breaks Lean;
+  - unfolding a fuel-indexed interpreter with a literal fuel exhausts memory.
