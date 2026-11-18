@@ -6862,3 +6862,28 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   waiting (it measured the search on the rewritten flow). **Farm norw1 filed first**: xorshift / collatz / collatz64 x
   8 seeds with the rewrites off, flow v6, 8 draws: the headline's automatic column; suite6 is the "with the three
   rewrites" column beside it. The search lever (xorgap) will run on norw1's states next.
+### progress 20:49 (hangs landed: a second token-floor gap fixed; ipow s4's start-up hang was a real race on a NOT CLEAN route)
+- **hangs** (lead 3; research/data/suite/hangs.md, 4e0c33f1b..e71e03996): every kernel that emits, both flows, in RTL:
+  26 scalar kernels 52 / 52 PASS (SUITE.md's "deadlock" cells for nest3, quadrec, nested, lfsrfind were stale: the token
+  floor had fixed them); 19 memory kernels through a new testbench (research/tools/suite/memtb.py: fill, 2 runs per call,
+  every array read back against the C, void and N-D kernels; its negative controls fail): 17 pass in both flows,
+  **stencil_2d and matrix deadlocked in the default flow** -- a loop's next initial value waiting in a one-stage link
+  whose return to zero the inner control_merge needs (walk count 0), a path the token floor never walked (it cuts
+  loop entry / exit channels). **Fix in bdc (on in both flows):** each loop with a loop nested in it is also walked
+  with its inner loops passing through in one trip; BDC_TOKEN_FLOOR_PASS=0 is the negative control. Checked here:
+  135 outputs x {default, BDC_AUTO=1, --host-mem}, 131 byte-identical, the 4 that differ are matrix / stencil_2d
+  (default, host) by one stage each. Routed smoke (stencil_2d default, seed 1, worst corner): PASS 2/2 arrays = C with
+  the fix, FAIL 0/2 (both calls hang) with BDC_TOKEN_FLOOR_PASS=0.
+- **ipow seed 4 (flow v1, sdf 1ac15af5): the start-up hang is a real select race the rule had flagged** (its last rule
+  audit: A -719 ps on ucmpi2, E -734..-1070 ps at cond_br6-9; it proposed UCMPI2 5 -> 12; v1 shipped it NOT CLEAN). The
+  link data latches (bd_latch, no reset) get their first value 0.19-1.73 ns after the request; the exit steer's request
+  arrives 566 ps before its select. With +META_INIT=0 the race still fires on every call: 40 runts (17-474 ps) on the
+  exit branch, 28 on the continue branch, 18 on the e >> 1 back edge in 9 us, all rejected by the gate's runt model, so
+  the answers stay right in simulation; only at start-up (an x select) does it hang. +1500 ps on the four arcs from
+  ucmpi2's chain to the steers: draws 10401 / 10404 PASS 17/17. The ipow board item 38 (v3 s2, UCMPI2 10) shows no runt
+  in the same scenario. BDC_LINK_RST=1 (opt-in, every link's data latch reset; unset byte-identical) would let this race
+  pass every gate: left off.
+- **Consequence for the headline:** a route the rule calls NOT CLEAN can pass every draw while racing on every call
+  (the runt model hides it). suite6 shipped 16 NOT CLEAN routes of 32 (suite4 11 of 28); the four board items 38-41 are
+  CLEAN. Next: (1) a runt check in the gate (no pulse under ~1 ns on a steer output), (2) count NOT CLEAN routes apart
+  in the suite table, (3) the finish phase must converge (conv1, running) or the route is not shipped.
