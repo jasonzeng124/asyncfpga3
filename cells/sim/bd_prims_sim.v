@@ -125,8 +125,10 @@
 // each LUT output gets ONE delay drawn per instance, (arc + BD_ROUTE_PS) times
 // (1 + u), u uniform in [-JPCT, +JPCT] percent (plusarg +JPCT=<n>, default 30),
 // the draw a hash of the instance path and +JSEED=<n> (default 1), so a seed is
-// a reproducible delay assignment.  arc = 124 (O6) / 150 (O5).  The assignment
-// is inertial, as the specify paths it replaces (left out under BD_JITTER).
+// a reproducible delay assignment.  arc = 124 (O6) / 150 (O5), one draw per
+// instance for both outputs (O5 and O6 are one site: bd_arbiter's grants rely on
+// their delta staying small).  The assignment is inertial, as the specify paths
+// it replaces (left out under BD_JITTER).
 // What it is for: a protocol whose order holds only because some paths happen
 // to be faster than others at the nominal arcs fails under some seed; one whose
 // order holds by construction passes every seed.  What it is NOT: the matched
@@ -145,9 +147,9 @@
         jh = (jh ^ ((jseed * 32'h9e3779b1) & 32'h7fffffff)) & 32'h7fffffff; \
         jh = (jh * 1103515245 + 12345) & 32'h7fffffff; \
         jh = (jh * 1103515245 + 12345) & 32'h7fffffff; \
-        jd6 = ((124 + `BD_ROUTE_PS) * (1000 + (jh % (20 * jpct + 1)) - 10 * jpct)) / 1000; \
-        jh = (jh * 1103515245 + 12345) & 32'h7fffffff; \
-        jd5 = ((150 + `BD_ROUTE_PS) * (1000 + (jh % (20 * jpct + 1)) - 10 * jpct)) / 1000; \
+        jh = 1000 + (jh % (20 * jpct + 1)) - 10 * jpct; \
+        jd6 = ((124 + `BD_ROUTE_PS) * jh) / 1000; \
+        jd5 = ((150 + `BD_ROUTE_PS) * jh) / 1000; \
     end
 `endif
 
