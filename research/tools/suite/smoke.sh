@@ -29,14 +29,17 @@ cp "$B/${K}_bench_gen".{bit,sdf,fasm} "$B/${K}_bench_gen_routed.json" "$B/toolch
 fmax=$(grep -oP "(?<=Max frequency for clock 'fclk0_bufg': )[0-9.]+" "$B/pnr.log" | tail -1 || echo NA)
 luts=$(grep -c "LUT\.INIT" "$HW/${K}_bench_gen.fasm" || true)
 md5=$(md5sum "$HW/${K}_bench_gen.sdf" | cut -c1-8)
-# A hung batch runs to bench_gate.sh's TBATCH (default 1.2 ms of circuit time, ~1.5 h of wall at ~0.22 us/s). The
-# suite's longest legitimate batch is 2 runs x <= 256 trips (+ ~3 us of bench), so 200 us bounds a hang at ~15 min.
-export GATE_TBATCH=${GATE_TBATCH:-200000}
 # $RUNS/gatevec/K_FLOW.{hex,exp}, when present, replaces VEC / EXP: a deliberately short prefix of the kernel's vectors
 # for a design bdc/simcheck.py already shows deadlocking (it ends at the first vector simcheck hangs on). Said in the
 # result line.
+# A hung batch runs to bench_gate.sh's TBATCH (default 1.2 ms of circuit time, ~1.5 h of wall at ~0.22 us/s). The
+# suite's longest legitimate batch is 2 runs x <= 256 trips, measured <= ~31 us (countloop / sqrtsub, 256 trips, default
+# flow): 200 us bounds a hang at ~15 min of wall; a prefix (its longest batch <= ~50 us) gets 80 us (~6 min).
 SUB=""
-if [ -f "$RUNS/gatevec/${K}_$F.hex" ]; then VEC=$RUNS/gatevec/${K}_$F.hex; EXP=$RUNS/gatevec/${K}_$F.exp; SUB=" (vectors: $VEC)"; fi
+if [ -f "$RUNS/gatevec/${K}_$F.hex" ]; then
+  VEC=$RUNS/gatevec/${K}_$F.hex; EXP=$RUNS/gatevec/${K}_$F.exp; SUB=" (vectors: $VEC)"; GATE_TBATCH=${GATE_TBATCH:-80000}
+fi
+export GATE_TBATCH=${GATE_TBATCH:-200000}
 # The vectors may be written while the route builds: wait for them (at most 30 min) rather than gate on nothing.
 for _ in $(seq 180); do [ -s "$VEC" ] && [ -s "$EXP" ] && break; sleep 10; done
 [ -s "$VEC" ] && [ -s "$EXP" ] || { echo "$K $F $S $md5 fmax=$fmax luts=$luts NO VECTORS ($VEC, $EXP)"; exit 1; }
