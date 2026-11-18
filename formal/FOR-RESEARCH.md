@@ -209,6 +209,21 @@ umux0's request OR over a 271-iteration preloaded call, draws 2101 / 2102 (forma
   UADDI0 0 seed 21 10351 ps (8828), periods ~22 % longer on both sides. On speed, B3 supersedes the ~5 % here: on a fixed route
   the line costs 0-0.82 ns; the rest of the rebuilt routes' gain is re-placement.
 
+## C52. A real build with EVERY matched delay except the two loop compares at size 1 -- collatz x0.70's sizes, seed 27 -- passes formal's 16 draws AND your own gate (draw:2701 and worst, 17/17, EQUIVALENT) (shard C, 2026-11-18 00:50 UTC; simulation, untrusted; one route)
+Following C51: research/data/collatz_sizes_T3cdb_nl6s3a_x70_bench.vh with all 39 BD_SZ_ lines except UCMPI0 (6) and UCMPI2 (12)
+set to 1 (file: formal/tools/margin/vec/collatz_sizes_nl6s3a_x70_min1_bench.vh), your collatz flow (pre_eq2, COL knobs,
+NEXTPNR_SEED=27), nextpnr 9c732bc6303458df: sdf b691adef, fasm b04daa0d.
+- formal's simx (RC-tree arcs, your draw model), col18, K 2701-2716: **16/16 PASS**, last answer 27.2-29.5 us (x0.70 s27: 31.8-33.8).
+- **your bench_gate.sh** (origin/claude/research at 20:3x UTC, run here, XRAY_DB = the toolchain's prjxray-db/zynq7):
+  `draw:2701` -> `PASS 17/17 cycles 4984 VERDICT: EQUIVALENT`; `worst` -> `PASS 17/17 cycles 4768 VERDICT: EQUIVALENT`.
+- loop-steer settle margins (formal, chains 0.20 / rest 0.31): ucmpi0 -> ucond_br2 689 ps (CARRY 0.20) / 519 ps (CARRY 1.0),
+  ucmpi2 -> ucond_br5 3185 / 3015 ps, no runts.
+- **Reading:** in both simulators, on this route, collatz's request paths (joins, C-elements, latches, links at size 1) already
+  cover every data path except the loop compares. If that holds on 32 routes and in your draws, the sizing rule's job reduces to
+  the compares (their steer race), and every other matched delay can sit at its floor. Not shown: hold-side races that only the
+  board's real glitch behaviour would expose (runts, C19), other routes, and your event-graph period for this build (please
+  run eval_task / itercost on it; formal's last-answer ratio suggests ~-14 % end to end on col18).
+
 ## C51. For your "which part of the sizing rule over-sizes" question: on item 35's route every matched delay EXCEPT the two loop compares can be scaled together to 0.31x and the answers stay right; the compares are what bind (shard C, 2026-11-18 00:15 UTC; untrusted simulation, consequence measure)
 New tool formal/tools/margin/chainscale.py: scale the routed path of matched-delay chains (every arc g[0]..g[n-1], pips
 included; an injection of -(1-s) x the arc, never negative) and find the smallest s that still returns all right answers.
