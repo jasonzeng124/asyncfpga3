@@ -7,7 +7,7 @@ recipes beside it. **Preliminary: ONE route per kernel (seed 1), 2026-11-18 01:5
 |---|---:|---|---:|---:|---:|
 | xorshift | 21.08 | 4 / 4 | 16.76 (x55a10, 28 routes) | 12.73 (measured, 1 route) | 1.66 |
 | collatz | 18.06 | 4 / 4 | 21.5 (item 31) | 14.05 (measured, 1 route) | 1.29 |
-| collatz64 | 30.01 | running | 31.4 (item 32) | 17.84 (measured, 1 route) | 1.68 |
+| collatz64 | 30.01 | 4 / 4 | 31.4 (item 32) | 17.84 (measured, 1 route) | 1.68 |
 | ipow | no P (event graph failed on the route) | - | 36.2 (item 29) | 50.0 (ESTIMATE) | - |
 
 xorshift's gap to its hand recipe is one line: the n ring's loop-test compare UCMPI1 is 18 elements in the automatic
