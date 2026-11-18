@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # T152: BOARD-QUEUE item 38 (research 1ea82d75e): the first automatic build -- ipow BDC_AUTO=1, sizes
 # research/data/suite/board/ipow_v3_s2_sizes.vh (the flow's sizes_final.vh), seed 2, route sdf 81bbe268, 22.71 ns.
-# Own rebuild in a clean worktree of 1ea82d75e with the item's own command (own toolchain), check sdf; own FF scan; own GLS
+# Own rebuild in a clean worktree of 312abcc32 (flow v3, where the farm built it with the same nextpnr 9c732bc6303458df as
+# the audit toolchain; 1ea82d75e refuses an unpatched nextpnr) with the item's own command and sizes (copied here), check
+# sdf; AUTO emit of ipow is byte-identical between 312abcc32 and 1ea82d75e apart from the header path (checked); own FF scan; own GLS
 # with own oracle on own ipow vectors (t65/ipow_17.hex) and own latch / steer monitors at FAST_MIN, advA / advC (CARRY 1.0,
 # no scatter), worst and SLOW_MAX.
 set -u
-A=/home/user/asyncfpga3/audit; L=/root/t152.log; K=ipow; H=auto_ipow_s2; W=/root/wt-t152
+A=/home/user/asyncfpga3/audit; L=/root/t152.log; K=ipow; H=auto_ipow_s2; W=/root/wt-t152b
 echo "T152 $(date -u)" > $L
-git -C /root/wt-r91 worktree remove --force $W 2>/dev/null; git -C /root/wt-r91 worktree add -q --detach $W 1ea82d75e
+git -C /root/wt-r91 worktree remove --force $W 2>/dev/null; git -C /root/wt-r91 worktree add -q --detach $W 312abcc32
 mkdir -p $W/build; cp -r /root/wt-r91/build/frontend $W/build/
 source /root/audit-tc/openxc7/export.sh >/dev/null 2>&1
-( cd $W/cells && BDC_AUTO=1 NEXTPNR_SEED=2 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/ipow_v3_s2_sizes.vh ./hw/build_bench.sh $K ) > /root/t152_build.log 2>&1
+( cd $W/cells && BDC_AUTO=1 NEXTPNR_SEED=2 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=$A/t152/ipow_v3_s2_sizes.vh ./hw/build_bench.sh $K ) > /root/t152_build.log 2>&1
 rc=$?; D=$W/cells/build/hw/${K}_bench_gen
 echo "build rc=$rc; sdf $(md5sum $D/${K}_bench_gen.sdf | cut -c1-8) (item 38: 81bbe268)" >> $L
 rm -rf /root/t65/$H; mkdir -p /root/t65/$H; cp $D/${K}_bench_gen.{bit,sdf} $D/${K}_bench_gen_routed.json /root/t65/$H/; cp $D/*.fasm /root/t65/$H/ 2>/dev/null; cp $W/cells/build/gen/${K}_kernel_bench.v /root/t65/$H/ 2>/dev/null
