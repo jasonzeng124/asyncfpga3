@@ -3379,3 +3379,4 @@ Dynamatic tests; the automatic table from clean.
 - 17:14 T158 (subagent C): token-floor fixes CONFIRMED in pre-route sim with own oracle, own stress vectors and a negative control. GLS T153 (item 39) and T154 item 41 running.
 - 17:21 T153 item 39: FAST_MIN 9/9 (min steer 1644 ps ucond_br6), advA no-scatter 9/9 (1683 ps), 0 runts, 0 latch violations. advC / worst / SLOW_MAX running.
 - 17:32 T154 item 41: own rebuild = sdf 3497ca67 exactly, ff clean (1916 flops); xor19 FAST_MIN 19/19 (min steer 1536 ps), advA no-scatter (the slow-carry corner of formal B7's entry-compare race) 19/19, min steer 1687 ps over all steers, 0 runts. Remaining corners running. Subagent D started: automatic flow without the whitelisted rewrites (collatz s6, xorshift s8).
+- 18:01 T153 done: item 39 CONFIRMED (9/9 at 5 corners, min steer 1644 ps, 0 runts). T154 item 41: advC 19/19 (1917 ps), worst 19/19 (1891 ps); SLOW_MAX running; item 40 GLS started.
