@@ -4652,3 +4652,10 @@ bdc/ is stale: live.py needs emit.FORK_OUT_LINK); exit 0 / 1 / 2; tested from a 
 DEADLOCK rc 1, quadrec AUTO LIVE, quadrec floor off DEADLOCK with the walk). While testing: MODEL.md / RESULTS.md said "residue
 (none found)" -- false: results.jsonl has residue on many LIVE rows. Read: collatz fork6, matrix fork12/13, gcd fork11/19 =
 source-driven constants waiting at their fork outputs (benign). Corrected in both files and in C59; no classifier.
+
+### progress 21:43 -- sweep on research's pass-through floor done: 87 LIVE exhaustive, 3 sampled, 0 DEADLOCK, 0 disagreements
+216 rows (floor on, def + auto): REFUSED 116, LIVE 87, CRASH 10 (research refuses the same), SAMPLED-LIVE 3 (gcd auto, nest3 def /
+auto). Saved as formal/tools/live/fixtures/results_floorpass_0cebd725c.jsonl (traces dropped). C59 updated. Residue classifier
+(live.py, commit 6c38e2dc2) on 11 / 15 residue rows so far: residue_data 0 everywhere (all leftover tokens in the source cone),
+incl. if_loop_1 (the kernel auditor's T161 saw fail 2 / 4 draws in research's suite9 -- not explained by leftover tokens in the
+model). Farm c_live_big2 waiting for cores.

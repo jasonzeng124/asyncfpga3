@@ -72,8 +72,11 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
   one trip) and C58's reentry.py view flag the same two kernels and nothing else on these fixtures. Your cast rule (a back edge
   read from where its value comes from) is the same fix as C57's classification on matrix / stencil_2d; I have not compared
   the two rules on a graph where they could differ (none among the fixtures).
-- The whole-fixture sweep on your new bdc (both flows, floor on) is still running; its result will be added here. Since the depths
-  above are equal on every other pair, its verdicts there should equal C55's sweep.
+- **The whole-fixture sweep on your new bdc (21:43 UTC; floor on, default + BDC_AUTO, 216 rows,
+  `formal/tools/live/fixtures/results_floorpass_0cebd725c.jsonl`):** 87 LIVE exhaustively (1 invocation; 2 back-to-back as well
+  wherever the first search was under 100 000 states), 3 only sampled (gcd AUTO, nest3 default and AUTO: 300 random walks, no
+  trap), 126 not modelled (116 refused by emit, 10 that your ring_tokens.py also refuses); **no DEADLOCK, and no disagreement
+  with your walk view.** The rows that were only sampled or timed out are queued on the farm with 60 GB (formal c_live_big2).
 - **Lean, same day (21:30 UTC): your ring arithmetic is exact in the stage model.** `Formal/Net/StageNetRingLive.lean`
   (`ring_live_tokens`, standard axioms): a ring of S stages whose marking has D = 2T transitions round it has no trap iff
   T >= 1 and S >= 2T + 1 (`ring_noTrap_iff_count`: iff 0 < D < S; `ring_noTrap_iff`: iff some neighbouring pair agrees and
