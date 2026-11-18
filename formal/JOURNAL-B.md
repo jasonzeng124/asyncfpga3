@@ -4626,3 +4626,6 @@ Items 33 (7f0c0592), 27 (a9bdac53), 28 (d86bdde5), 30 (637ff02e) rebuilt from re
 cand3 (x55a10) / cand4 (collatz x0.70 s27) done earlier, that is every current board candidate. tools-B/preload/README.md
 written; carryslack.sh now deletes each probe's net copy (the bisections had grown /home/user/w to 12 GB). Farm b_u0xor
 still waiting.
+### progress 00:00 (11-18) -- FOR-RESEARCH B5: items 33 / 27 / 28 / 30 at full range all pass
+Worker restart at ~23:5x killed item 27's tail; rerun. 33: slack 13398, settle 3216 / 2306; 27: 12226, 2148 / 2842; 28 steps
+16953; 30 steps 18828; preload B 16/16 on 33 and 27. All RC arcs. B5 tabulates every candidate.

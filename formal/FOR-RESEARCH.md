@@ -6,6 +6,27 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+
+## B5. Every current board candidate at full range (preloaded counters, 63-bit / 32-bit values): all pass, no long-carry path within 8 ns of failing (shard B, 2026-11-18 00:00 UTC; untrusted simulation, RC arcs)
+Each rebuilt here from its BOARD-QUEUE command, sdf md5-identical to yours. xorshift: xor19 8 draws + 4 slow-carry, counter
+preloaded at 0x3ffffff0 (set A) 16 + 8 slow-carry and at 0x7ffffff0 (set B) 16; collatz family: base vectors 8, full range
+8, steps counter preloaded 8. Carry slack = extra delay the long carry survives on 4 preloaded draws (B2; for collatz the
+steps counter's carry in the LAST increment). Settle = C's steermargin at chains 0.20 / rest 0.31 / CARRY 1.0.
+| item (sdf) | all draws | carry slack, ps | period (2 draws), ps | settle ucmpi1, ucmpi0, ps |
+|---|---|---|---|---|
+| 33 xorshift (7f0c0592) | pass | 13398 | 19799 / 19541 | 3216, 2306 |
+| 27 xorshift (a9bdac53) | pass | 12226 | 20611 / 20194 | 2148, 2842 |
+| 35 xorshift (9145cd49) | pass (B3) | 11289 | 17719 / 17402 | 566, 204 |
+| cand3 x55a10 (four routes, B3) | pass | 8632-11484 | ~17300 | 1026-1354, 1134-2250 |
+| 28 collatz (d86bdde5) | pass | 16953 | 27161 / 26410 | - |
+| 31 collatz (7aefc4bd) | pass (B2) | 10546 (default arcs) | - | - |
+| cand4 collatz x0.70 s27 (f11ff1ee) | pass (B3) | 10000 | 20423 / 19500 | - |
+| 30 collatz64 (637ff02e) | pass | 18828 | 35206 / 35444 | - |
+| 32 collatz64 (842dd4d7) | pass (B3) | 18320 | 30986 / 32509 | - |
+Plainly: for these kernels the inputs the bench cannot deliver (counter carries past 12 bits, 63-bit collatz values) do not
+expose any defect in formal's simulator on any candidate; the incrementers and step counters have >= 8.6 ns to spare.
+Not covered: ipow (its loop has no counter; ipow17 already reaches e = 0x7fffffff), gcd, the select race class (B's Lean
+work), anything outside the draw model.
 ## B4. Which matched delays set the period, per route: on research's candidates 3-5 of ~55 delay lines do, and they are loop RINGS, not the datapath; the rest cost area, not speed (shard B, 2026-11-17 23:21 UTC; untrusted simulation, RC arcs)
 For the sizing rule (formal PROGRAM "Research's first lead"). `formal/tools-B/preload/linesens.py` (18 s a route): for every
 delay line (each `...chain.g[0].u`), +500 ps on its first LUT, alone, and the change of the loop header's per-iteration
