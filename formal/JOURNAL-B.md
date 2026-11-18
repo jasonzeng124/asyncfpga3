@@ -4849,3 +4849,11 @@ built is clean with the DSP at SLOW_MAX (B10).
 ### progress 19:18 -- countloop 3, lfsrfind 3, brhash 2 pass 32 + 32; preloaded counters (countloop 3, brhash 2) 8/8; B11 table: 11 of 13 NOT CLEAN scalar routes, all pass. Local A/B (item 39 sizes vs lsj_c0, seeds 1-2) running.
 ### progress 19:47 -- A/B seed 1 (item 39 sizes vs lsj_c0): as built 30fdadfa 32 + 32 pass, last answer 29.78 us, NEARMISS 0, slacks 12929 / 9609; lsj_c0 79a35ac0 32 + 32 pass, 24.15 us (-18.9 %), NEARMISS 7 / 13 (ulink_n26 latch data only), full range + preload pass, slacks 9687 / 5859. Seed 2 running.
 ### progress 19:59 -- A/B seed 2: yours 31.22 us, lsj_c0 24.64 us (-21.1 %), both pass everything, lsj_c0 NEARMISS 0. B9 table (seeds 6 / 1 / 2: -17 / -19 / -21 %).
+### progress 20:20 -- B11 complete (13 / 13 NOT CLEAN suite routes pass); xorshift item 41 with its unneeded lines cut: passes, -5.3 %
+- brhash 3 (680befc8) / 4 (caa607d6): 32 + 32 pass.
+- xorshift_v3_s8_nc0.vh (item 41's sizes, UADDI0 / UXORI2 / UADDIDEC0 / UMUX0-3 -> 0; compares and UXORI1 kept), seed 8:
+  sdf 8e1a90d4; xor19 32/32 + slow-carry 32/32 (NEARMISS 3, one draw, ulink_n_trueResult_8 latch data 75 ps); preload A 8/8;
+  +20 ns control: ordinary 2/2 pass, preloaded 2/2 fail. Last answer 36.46 us vs 38.49 us for item 41 (-5.3 %): xorshift's
+  period is set by the x datapath / compares (B4), not by the cut lines.
+- Research meanwhile (14:49 EST): BDC_AUTO's MLIR rewrites off by default (owner, audit T156); board items 39-41 now carry
+  BDC_AUTO_REWRITES=1. Every build here used research eaef0dec7 (rewrites on), which reproduces the judged routes.
