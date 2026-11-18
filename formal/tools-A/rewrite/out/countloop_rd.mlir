@@ -20,10 +20,10 @@ module {
     %11 = mux %16#1 [%8#1, %trueResult_8] {handshake.bb = 1 : ui32, handshake.name = "mux1"} : <i1>, [<i32>, <i32>] to <i32>
     %12 = mux %16#2 [%trueResult_0, %trueResult_10] {handshake.bb = 1 : ui32, handshake.name = "mux2"} : <i1>, [<i32>, <i32>] to <i32>
     %13:2 = fork [2] %12 {handshake.bb = 1 : ui32, handshake.name = "fork5"} : <i32>
-    %rd0s = source {handshake.bb = 0 : ui32, handshake.name = "sourcerd0"} : <>
-    %rd0c = constant %rd0s {handshake.bb = 0 : ui32, handshake.name = "constantrd0", value = -1 : i32} : <>, <i32>
-    %rd0d = addi %trueResult_2, %rd0c {handshake.bb = 0 : ui32, handshake.name = "addird0"} : <i32>
-    %14 = mux %16#3 [%rd0d, %trueResult_12] {handshake.bb = 1 : ui32, handshake.name = "mux3"} : <i1>, [<i32>, <i32>] to <i32>
+    %rd0ds = source {handshake.bb = 1 : ui32, handshake.name = "sourcerd0d"} : <>
+    %rd0dc = constant %rd0ds {handshake.bb = 1 : ui32, handshake.name = "constantrd0d", value = -1 : i32} : <>, <i32>
+    %rd0dd = addi %trueResult_2, %rd0dc {handshake.bb = 1 : ui32, handshake.name = "addird0d"} : <i32>
+    %14 = mux %16#3 [%rd0dd, %trueResult_12] {handshake.bb = 1 : ui32, handshake.name = "mux3"} : <i1>, [<i32>, <i32>] to <i32>
     %15:2 = fork [2] %14 {handshake.bb = 1 : ui32, handshake.name = "fork6"} : <i32>
     %result, %index = control_merge [%trueResult_4, %trueResult_14]  {handshake.bb = 1 : ui32, handshake.name = "control_merge0"} : [<>, <>] to <>, <i1>
     %16:4 = fork [4] %index {handshake.bb = 1 : ui32, handshake.name = "fork7"} : <i1>
@@ -31,19 +31,19 @@ module {
     %18 = constant %17 {handshake.bb = 1 : ui32, handshake.name = "constant2", value = 1 : i32} : <>, <i32>
     %19 = addi %11, %10#1 {handshake.bb = 1 : ui32, handshake.name = "addi0"} : <i32>
     %20 = xori %19, %13#1 {handshake.bb = 1 : ui32, handshake.name = "xori0"} : <i32>
-    %rd0f:2 = fork [2] %10#0 {handshake.bb = 1 : ui32, handshake.name = "forkrd0"} : <i32>
+    %rd0f:2 = fork [2] %10#0 {handshake.bb = 1 : ui32, handshake.name = "forkrd0f"} : <i32>
     %21 = addi %rd0f#0, %18 {handshake.bb = 1 : ui32, handshake.name = "addi1"} : <i32>
-    %rd0i:2 = fork [2] %rd0f#1 {handshake.bb = 1 : ui32, handshake.name = "forkrd1"} : <i32>
-    %rd0m:2 = fork [2] %15#1 {handshake.bb = 1 : ui32, handshake.name = "forkrd2"} : <i32>
+    %rd0i:2 = fork [2] %rd0f#1 {handshake.bb = 1 : ui32, handshake.name = "forkrd0i"} : <i32>
+    %rd0m:2 = fork [2] %15#1 {handshake.bb = 1 : ui32, handshake.name = "forkrd0m"} : <i32>
     %rd0lt = cmpi slt, %rd0i#0, %rd0m#0 {handshake.bb = 1 : ui32, handshake.name = "cmpi1"} : <i32>
-    %rd0s1 = source {handshake.bb = 1 : ui32, handshake.name = "sourcerd1"} : <>
-    %rd0k1 = constant %rd0s1 {handshake.bb = 1 : ui32, handshake.name = "constantrd1", value = 2147483647 : i32} : <>, <i32>
-    %rd0s2 = source {handshake.bb = 1 : ui32, handshake.name = "sourcerd2"} : <>
-    %rd0k2 = constant %rd0s2 {handshake.bb = 1 : ui32, handshake.name = "constantrd2", value = 2147483647 : i32} : <>, <i32>
-    %rd0ei = cmpi eq, %rd0i#1, %rd0k1 {handshake.bb = 1 : ui32, handshake.name = "cmpird1"} : <i32>
-    %rd0em = cmpi eq, %rd0m#1, %rd0k2 {handshake.bb = 1 : ui32, handshake.name = "cmpird2"} : <i32>
-    %rd0x = xori %rd0lt, %rd0ei {handshake.bb = 1 : ui32, handshake.name = "xorird0"} : <i1>
-    %23 = xori %rd0x, %rd0em {handshake.bb = 1 : ui32, handshake.name = "xorird1"} : <i1>
+    %rd0s1 = source {handshake.bb = 1 : ui32, handshake.name = "sourcerd0a"} : <>
+    %rd0k1 = constant %rd0s1 {handshake.bb = 1 : ui32, handshake.name = "constantrd0a", value = 2147483647 : i32} : <>, <i32>
+    %rd0s2 = source {handshake.bb = 1 : ui32, handshake.name = "sourcerd0b"} : <>
+    %rd0k2 = constant %rd0s2 {handshake.bb = 1 : ui32, handshake.name = "constantrd0b", value = 2147483647 : i32} : <>, <i32>
+    %rd0ei = cmpi eq, %rd0i#1, %rd0k1 {handshake.bb = 1 : ui32, handshake.name = "cmpird0i"} : <i32>
+    %rd0em = cmpi eq, %rd0m#1, %rd0k2 {handshake.bb = 1 : ui32, handshake.name = "cmpird0m"} : <i32>
+    %rd0x = xori %rd0lt, %rd0ei {handshake.bb = 1 : ui32, handshake.name = "xorird0a"} : <i1>
+    %23 = xori %rd0x, %rd0em {handshake.bb = 1 : ui32, handshake.name = "xorird0b"} : <i1>
     %24:5 = fork [5] %23 {handshake.bb = 1 : ui32, handshake.name = "fork9"} : <i1>
     %trueResult_6, %falseResult_7 = cond_br %24#4, %21 {handshake.bb = 1 : ui32, handshake.name = "cond_br6"} : <i1>, <i32>
     sink %falseResult_7 {handshake.name = "sink2"} : <i32>
