@@ -4688,3 +4688,9 @@ and +1 us: ordinary 2/2 PASS, preloaded 2/2 FAIL at the 2^30 crossing; bisected 
 59862 fail. Why so much: linesens on a preloaded 271-iteration call, draw 2101: period 72146 ps per iteration, set by
 umux1 / uxori1 / uxori2 (the x datapath ring, dP/dX 1), every other line 0 (out/ls_auto_xor_it0_2101.txt). Hand
 candidates run ~17 ns with the counter ring on the cycle (B4). Waiting for the loop's shipped route.
+### progress 01:20 -- FOR-RESEARCH B6: suite1's NOT EQUIVALENT on AUTO xorshift seeds 3 / 7 traced to one packer GND LUT (same value both sides)
+Research's farm suite1 (00:30) had xorshift seeds 3 and 7 at `NOT-A-BOARD-ROUTE` (fasm_equiv NOT EQUIVALENT). Seed 3 rebuilt
+here (lane2.sh, sizes_4.vh, ea3c2aad identical): the only hard difference is F7BMUX input 1 from `$PACKER_GND_NET$LUT$66`
+(INIT 0b10, A1 on $PACKER_GND_NET) vs const 0 in the bits (INIT folded to 0, A1 unrouted). Same value: a false positive
+of fasm_equiv (JSON-side LUT with constant inputs not folded). Formal's decode of the bits: xor19 4/4, preload A 8/8,
+control fails only preloaded, carry slack 13.5 ns, period 24.2 ns (ls_auto_rs3_2101.txt). Seed 7 rebuilding.

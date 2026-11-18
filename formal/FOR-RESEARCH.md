@@ -7,6 +7,33 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B6. Your AUTO xorshift routes' "NOT EQUIVALENT" (suite1 seeds 3 and 7) looks like a false positive of fasm_equiv: the one hard difference is a packer GND LUT whose value is 0 on both sides; formal's decode of seed 3's bits returns right answers, preloaded counter included (shard B, 2026-11-18 01:20 UTC; untrusted simulation + reading of your equiv.txt)
+**Your suite1 tasks 3 and 7** (xorshift, BDC_AUTO=1, seeds 3 / 7, it 4, sdf ea3c2aad / 302ff749) report `bits=NOT-EQUIVALENT`,
+so suite_one.sh calls them NOT-A-BOARD-ROUTE and runs no draws. Rebuilt here from your sizes_4.vh with your lane2.sh
+(seed 3: sdf ea3c2aad, byte-identical; same verdict). `r/rs_xorshift_3_4/fid/equiv.txt`, the one hard difference:
+
+    DRIVER DIFFERS  SLICE_X17Y65/F7BMUX/1  json ('bel', 'SLICE_X17Y65/C6LUT', 'O6')  bits ('const', 0)
+    HARMLESS        SLICE_X17Y65/C/A1 json 0 bits 1 (the bits' LUT function does not read that pin)
+
+In the routed JSON that C6LUT is `$PACKER_GND_NET$LUT$66`, INIT 0b10 (O6 = A1), and A1 is on `$PACKER_GND_NET` (driver
+PSEUDO_GND): nextpnr's own value is 0. The bits: the same LUT with INIT 0 (formal's decoder agrees: SLICE_X17Y65.CLUT.O6
+init 0 into F7B), i.e. constant 0. Same value. nextpnr left that A1 unrouted (the IMUX then reads VCC) and wrote the LUT's
+INIT already folded to the constant, which is the safe way round. fasm_equiv folds a constant LUT on the BITS side
+("compared as that constant") but not a LUT whose only read pin is tied to a constant on the JSON side, so it sees
+"bel vs const". Every AUTO route here has 160-211 such packer GND LUTs into F7 muxes (hand routes have them too); only
+ones whose A1 nextpnr leaves unrouted should show up like this.
+**Formal's simx on seed 3's bits** (formal's own decode of the FASM, RC_TREE=1 arcs, your draw K): xor19 4/4 draws
+(K 2101-2104) PASS; loop counter preloaded at 0x3ffffff0 (B2's set A) 8/8 PASS; control +100 ns on the incrementer's
+bits 16-19 carry-in: ordinary 2/2 PASS, preloaded 2/2 FAIL (as it must); the counter's carry keeps 13.5 ns (bisected,
+4 draws); period 24.2 ns per iteration at K 2101 (your P = 23.18), set by ucmpi1, ucontrol_merge0 + its olink rdly,
+ulink_n12__1 (both stages' rdly), ulink_n8 / ulink_n_trueResult_8 uack, umux1 (linesens dP/dX 1; every other line 0;
+`formal/tools-B/preload/out/ls_auto_rs3_2101.txt`).
+**Suggestion (yours to decide):** in fasm_equiv, fold a JSON LUT whose read pins are all tied to constants (here A1 on
+$PACKER_GND_NET) into its constant before comparing drivers, as the bits side already is. Until then the suite reads
+every such AUTO route as not a board route. Seed 7 (302ff749): being rebuilt here to check it is the same single
+difference (will add). Not checked: whether the C6LUT's unrouted A1 is benign in silicon beyond the INIT (with INIT 0
+the LUT ignores A1, so the pin's value cannot matter).
+
 ## B5. Every current board candidate at full range (preloaded counters, 63-bit / 32-bit values): all pass, no long-carry path within 8 ns of failing (shard B, 2026-11-18 00:00 UTC; untrusted simulation, RC arcs)
 Each rebuilt here from its BOARD-QUEUE command, sdf md5-identical to yours. xorshift: xor19 8 draws + 4 slow-carry, counter
 preloaded at 0x3ffffff0 (set A) 16 + 8 slow-carry and at 0x7ffffff0 (set B) 16; collatz family: base vectors 8, full range
