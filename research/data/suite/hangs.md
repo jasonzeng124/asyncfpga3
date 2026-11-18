@@ -120,6 +120,15 @@ test now reads a cast's operand's block. That alone changes no output.
   **PASS** on call 0 (one run of 27000 inner trips, 1013 us of circuit time: outC read back 900 / 900 = C, every store
   checked against C as it was issued, inA / inB unchanged; the whole two-call file was not run: ~20 min of wall per
   run).
+- Routed smoke, stencil_2d (one seed: a smoke, not a result; `research/tools/suite/smoke.sh stencil_2d 1 default`:
+  build_bench.sh BD_NO_TIGHTEN=1 BD_SIZES=none BD_DSP=1, seed 1, --freq 83, nextpnr 6e5d224472232d5d; then bench_gate.sh
+  at worst with GATE_MEMEXP = oracle_mem.sh's final arrays (2 runs per call) and GATE_ANNOTATE=1):
+  - with the fix (ulink_n45 a 2-stage pipe): route sdf b5afb083, 93.74 MHz, EQUIVALENT, ANNOTATE_DONE 0 SDF warnings;
+    **PASS 2 / 2**: both calls complete, both runs of each agreeing, out0 000030db / 0007a840 = the C, and all three
+    arrays read back after each call = the C's final contents.
+  - the negative control, the same flow with `BDC_TOKEN_FLOOR_PASS=0` (ulink_n45 one stage, nothing else different):
+    route sdf a9e684aa, 91.87 MHz, EQUIVALENT, ANNOTATE_DONE 0; **FAIL 0 / 2: both calls hang** (completed = 0 after
+    16594 bench cycles; the arrays wrong after both).
 - `research/tools/suite/ring_tokens.py` (now every mode, and its cycle view with the same cast rule): over the 45
   fixtures x {default, BDC_AUTO}, 90 / 90 exit 0 (no short cycle, no short walk); with `BDC_TOKEN_FLOOR_PASS=0` exactly
   matrix and stencil_2d default report a 0-token walk, in the middle loop's pass-through mode. Before the cast rule the
@@ -130,8 +139,8 @@ test now reads a cast's operand's block. That alone changes no output.
 **What this does not show.** Not a proof of liveness (the same model as ringfloor.md, one more family of modes;
 memory ops still walked through, never turned at). The pass-through mode is the one-trip steady state; the deadlock
 it caught happens at the transition after a 30-trip (matrix) or 3-trip (stencil_2d) inner loop, and that the one
-predicts the other is shown on these two kernels, not derived for every shape. Nothing routed: matrix is void (the
-bench cannot run it) and stencil_2d was not built.
+predicts the other is shown on these two kernels, not derived for every shape. Routed: stencil_2d on one seed each
+way (above); matrix not at all (void: the bench cannot run it).
 
 ## 3. The automatic ipow seed-4 start-up hang
 

@@ -185,15 +185,15 @@ others are refused by bdc, unchanged), default and `BDC_AUTO=1`: scalar kernels 
 (gcd, collatz, collatz64, xorshift through its REFS), memory kernels through `research/tools/suite/memtb.py` (RTL:
 every array filled through its host slot, 2 runs per call, out0 and every array read back against the C).
 Dynamatic's nine store tests have vectors now (research/data/suite/vec/: if_convert, loop_path, matrix, nested_loop,
-simple_example_1, single_loop, stencil_2d, test_flatten_array, while_loop_3); none of them can go on the bench yet (void,
-or more than the bench's memories), so RTL is all they have.
+simple_example_1, single_loop, stencil_2d, test_flatten_array, while_loop_3); the eight void ones cannot go on the
+bench yet, so RTL is all they have; stencil_2d can (routed smoke below).
 
 | kernels | default | BDC_AUTO |
 |---|---|---|
 | the 26 scalar kernels (the 14 above, the 6 originals, factorial, iterative_division, iterative_sqrt, test_loop_free, test_int16, sum3) | PASS, every vector | PASS, every vector |
 | memsum, dot2, gather, fill, test_bitint, unused_arg, if_loop_1, if_loop_2, sumi3_mem, fir | PASS (arrays = C) | PASS |
 | simple_example_1, while_loop_3, if_convert, test_flatten_array, loop_path, single_loop, nested_loop | PASS (arrays = C) | PASS |
-| stencil_2d (memory, a three-deep nest) | **DEADLOCK** at the first call before; **PASS** with the token floor's pass-through modes | PASS |
+| stencil_2d (memory, a three-deep nest) | **DEADLOCK** at the first call before; **PASS** with the token floor's pass-through modes. Routed smoke (seed 1, worst, nextpnr 6e5d224472232d5d): PASS 2/2 with the arrays = C (sdf b5afb083, EQUIVALENT, ANNOTATE_DONE 0); with `BDC_TOKEN_FLOOR_PASS=0` FAIL 0/2, both calls hang (sdf a9e684aa, EQUIVALENT) | PASS |
 | matrix (void, a three-deep nest with a store) | **DEADLOCK** after its first inner loop before; **PASS** with the pass-through modes (call 0, 27000 trips, outC 900 / 900 = C) | PASS (stores.md, 1 call) |
 
 ## What the suite found (work for the compiler)
