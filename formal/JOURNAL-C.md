@@ -4412,3 +4412,4 @@ Check for others: every number reported today comes from a run that printed its 
 - 00:15 chainscale on item 35 r21 RC: all 51 non-compare chains jointly to 0.31x still right at (0.20,0.31,0.2/1.0); compares alone 0.38 / 0.44 (FOR-RESEARCH C51). Negative control at s=0 fails.
 - 00:20 chainscale --joint on cand4 (RC): collatz x0.70 s27 and ipow x0.70 s31 pass with ALL non-compare chains at 0; compares 0.31-0.38 (collatz), 0.12 / 0 (ipow). C51 updated.
 - 00:25 draws with non-compare chains at 0.5x (DRAW_INJECT): collatz x0.70 s27 8/8 (-12 %), ipow x0.70 s31 8/8 (-18 %), item 35 r21 7/8. C51 updated.
+- 00:20 half-chain draws on collatz x0.70 s1/s2 and ipow x0.70 s1/s2: 32/32 plain, 32/32 at half (-11..-20 %). C51 updated; farm c_half16 queued.

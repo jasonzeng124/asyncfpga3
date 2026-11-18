@@ -233,6 +233,10 @@ CARRY 0.20 and 1.0 (the corners where chains are fastest against the logic), no 
   31.8-33.8 unscaled (~-12 %); ipow x0.70 s31 8/8, 4.72-5.09 vs 5.85-6.21 us (~-18 %); item 35 r21 **7/8** (one draw fails),
   26.4-28.5 vs 32.2-33.6 us. So collatz / ipow keep passing with half their non-compare delay under scatter; xorshift
   starts to lose draws at 0.5 (its two-corner joint factor was 0.31: the scatter is what the corners miss).
+- **Two more routes each (00:20)**, same check (8 draws plain, then the same 8 with non-compare chains at 0.5x): collatz x0.70
+  seeds 1 / 2 (sdf 0cdf4a34 / 0063fe05) 8/8 -> 8/8, mean last answer 32.9 -> 28.9 / 32.8 -> 29.2 us; ipow x0.70 seeds 1 / 2
+  (f6e10793 / 92e06139) 8/8 -> 8/8, 6.12 -> 4.91 / 6.03 -> 4.93 us. So 3 routes per kernel, 48/48 draws at half. Farm
+  c_half16 (16 routes each) is queued.
 - **Limits:** consequence, not settle margin (runts the model absorbs count as fine -- read it as an upper bound of how far
   the sizes could go); two uniform corners, no per-pip scatter; xor19 does not reach uaddi0's 31-bit carry (B's B2/B3 preload
   runs do: UADDI0 to 0 passed there); slow corners (chains 0.31, rest 0.20) not included, where chains are relatively slow
