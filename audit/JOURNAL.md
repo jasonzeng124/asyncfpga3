@@ -3291,3 +3291,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Honest report; the fix is not yet re-checked on seed 8 (research says so).
   - suite1 so far: 12 routes judged, 11 at 4/4 and s8 at 3/4; 9 routes were 'NOT EQUIVALENT' under the old checker and await rejudge.
   - Pass fractions will need the undecided / rejudged split stated.
+- 02:27 research 3e93738b1 / 62187e62d: auto_size.sh gets a raise-only finish phase (up to 3 more routes when none is clean by MAXIT), which addresses the 'not converged' point. Farm suite4 is queued: gcd / isprime 4 draws, the others 8. No claims.
