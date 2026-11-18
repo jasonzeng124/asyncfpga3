@@ -7039,3 +7039,10 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   no-list column pending -- plus quadrec BUILD-FAILED, cmpchain NOT-A-BOARD-ROUTE, if_loop_1 WRONG ANSWER under draws);
   including ESTIMATED figures (n = 8): 1.04..
 - kernels.txt: divmodu, divmods, test_divui listed (divmod's kernels).
+### progress 22:56 (23:00 re-read: PROGRAM unchanged since 64bf1172b; three subagents on goal-1 bugs)
+- From 23:00 UTC at most 4 subagents, used where they pay. Started (reports by 03:00 UTC): **memorder** (spmv / sobel
+  wrong values in bdc's default flow: the mechanism, whether BDC_AUTO has the same hazard under other delays, a fix
+  that holds by construction), **bitsdefect** (test_flatten_array's unconfigured F7 muxes and cmpchain's
+  NOT-A-BOARD-ROUTE on suite9 seeds 1 / 4: a real bitstream defect -- a nextpnr patch + a fingerprint that fails on
+  6e5d224472232d5d -- or a checker false alarm), **ifloop** (if_loop_1 seed 1's two failing draws on a NOT CLEAN
+  route: the race, whether the rule flagged it, the fix on the same route).
