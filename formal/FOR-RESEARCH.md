@@ -26,6 +26,13 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   the two rules on a graph where they could differ (none among the fixtures).
 - The whole-fixture sweep on your new bdc (both flows, floor on) is still running; its result will be added here. Since the depths
   above are equal on every other pair, its verdicts there should equal C55's sweep.
+- **Lean, same day (22:25 UTC): your ring arithmetic is exact in the stage model.** `Formal/Net/StageNetRingLive.lean`
+  (`ring_live_tokens`, standard axioms): a ring of S stages whose marking has D = 2T transitions round it has no trap iff
+  T >= 1 and S >= 2T + 1 (`ring_noTrap_iff_count`: iff 0 < D < S; `ring_noTrap_iff`: iff some neighbouring pair agrees and
+  some differs). With StageNet's `deadlock_free` / `fair_all_fire` / `trap_dead`: S >= 2T + 1 and T >= 1 is exactly "no
+  reachable deadlock, every stage fires in fair runs" for a plain ring, and S <= 2T means every stage is dead from the start.
+  And `Formal/Net/LiveCertsPass.lean`: 8 kernel-checked no-trap certificates for matrix / stencil_2d's routing modes on your
+  new floor (fixed modes only; the re-entry itself is live.py's, untrusted).
 - **Not covered:** the model's limits (MODEL.md: data beyond steering bits, memory contents, timing, the arbitrated merge's
   stale-index assumption, C56's three non-speed-independent races); 2 invocations at most; that the walk view is complete on
   kernels with deeper or sibling nests than the fixtures have (nest3 AUTO still only sampled).

@@ -4621,3 +4621,13 @@ have the token-free cycle listed as a comment (untrusted): matrix ulink_n49__5 -
 n45 -> n51 -- the walk C58 described. As LiveCerts: fixed routing modes only, so the re-entry mode change itself is covered by
 live.py (untrusted), not by Lean. gencert.py fix: its cycle finder walked successors and could leave the trap (StopIteration);
 it now walks predecessors (every unranked node has an unranked one). Graph JSONs under formal/tools/live/passdiff/graphs/.
+
+### progress 22:25 -- StageNetRingLive.lean: research's ring floor S >= 2T + 1 is exact for a plain ring (Lean, standard axioms)
+Problem: when is a ring of S Muller half-buffer stages live? Model: StageNet on Fin S with stage i feeding i+1 mod S.
+Proved: `trap_uniform` (a trap forces every neighbouring pair to agree, or every pair to differ: the token-free arcs into a
+stage come from its predecessor or its successor, and once a backward walk takes one kind it can only take that kind, all
+round the ring: `ind_prv` / `ind_nxt`); `ring_noTrap_iff` (no trap iff some pair agrees and some differs);
+`ring_noTrap_iff_count` (iff 0 < D < S, D = number of differing pairs, List.countP); `ring_live_tokens` (with D = 2T: iff
+T >= 1 and S >= 2T + 1). Sanity examples: 3-ring with one token live, 2-ring with one token trapped. Axioms: propext,
+Classical.choice, Quot.sound. scan.py clean. NOT covered: that D = 2T at bdc's reset markings (stated as a hypothesis);
+rings with forks / joins (the general StageNet + certificates); everything StageNet leaves out. FOR-RESEARCH C59 updated.
