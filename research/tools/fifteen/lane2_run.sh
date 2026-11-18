@@ -14,6 +14,17 @@ ff=$(python3 "$R/research/tools/ffmux_scan.py" "$HW/${K}_bench_gen.fasm" > "$HW/
 "$R/research/tools/eventgraph/fullstack_dump.sh" "$HW" ${K}_bench_gen "$RD" "$VEC" > "$RD/../$N.run.log" 2>&1 || true
 python3 "$R/research/tools/eventgraph/eventgraph.py" "$RD" auto --rj "$HW/${K}_bench_gen_routed.json" \
     --kv "$HW/${K}_kernel_bench.v" > "$RD/eventgraph.log" 2>&1 || true
+# A route whose iterations alternate has no run of equal single intervals (dot2, farm suite8 seed 2: 27849 / 28203 ps,
+# "steady state too short", P=NA): the graph of two iterations (--stride 2, eval_task.sh's tse_graph does the same),
+# with a window of 6 periods so that a loop of 32 trips (15 stride-2 intervals per call) fits.  P is then printed per
+# iteration (the 2-iteration period / 2) with stride=2 on the line; check.txt keeps the graph's own 2-iteration period.
+ST=1
+if ! grep -q 'period P = [0-9]' "$RD/eventgraph/check.txt" 2>/dev/null; then
+  rm -rf "$RD/eventgraph"
+  python3 "$R/research/tools/eventgraph/eventgraph.py" "$RD" auto --rj "$HW/${K}_bench_gen_routed.json" \
+      --kv "$HW/${K}_kernel_bench.v" --stride 2 --k 6 > "$RD/eventgraph_s2.log" 2>&1 || true
+  grep -q 'period P = [0-9]' "$RD/eventgraph/check.txt" 2>/dev/null && ST=2
+fi
 rm -f "$RD/dump.vcd" "$RD/netlist_baked.v"
 mkdir -p "$G"
 cp "$RD"/eventgraph/{nodes.tsv,arcs.tsv,check.txt} "$G/" 2>/dev/null || true
@@ -21,6 +32,7 @@ cp "$HW/${K}_kernel_bench.v" "$G/kernel.v"; cp "$RD/provenance.txt" "$G/" 2>/dev
 grep BENCHRES "$RD/run.log" | sed 's/sig=[0-9a-f]* //' > "$G/benchres.txt" || true
 echo "$N $md5 $*" > "$G/build.txt"
 P=$(grep -o 'period P = [0-9]*' "$G/check.txt" 2>/dev/null | grep -o '[0-9]*$' || echo NA)
+SW=""; if [ "$ST" = 2 ] && [ "$P" != NA ]; then P=$((P / 2)); SW=" stride=2"; fi
 od=$(grep -o 'odata=[0-9a-f]*' "$G/benchres.txt" | sort -u | tr '\n' ' ')
 v=$(grep -o 'VERDICT: [A-Z ]*' "$RD/fid/equiv.txt" 2>/dev/null | head -1 || echo "VERDICT ?")
-echo "$N $md5 P=$P $od $v $ff"
+echo "$N $md5 P=$P $od $v $ff$SW"

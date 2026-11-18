@@ -64,12 +64,43 @@ class Graph:
 
 STRIDE = int(sys.argv[sys.argv.index("--stride") + 1]) if "--stride" in sys.argv else 1
 STRIDE_USED = STRIDE   # the stride build() ran with (--stride, or the one it found on its own)
+# --k K: the window's length in periods (default 10).  The steady state must hold K + 6 equal (strided) intervals, so
+# a loop of at most 32 trips (the memory kernels' N) has 15 stride-2 intervals per call: --stride 2 --k 6 fits it.
+KWIN = int(sys.argv[sys.argv.index("--k") + 1]) if "--k" in sys.argv else 10
 
 
-def build(work, marker, K=10):
+def build(work, marker, K=KWIN):
     N = Net(work, PRIMS)
     ev = load_vcd(work + "/dump.vcd")
     T = Trace(N, ev)
+    # Only the kernel's own rises mark iterations.  A kernel with memories has the bench's host slot on every memory
+    # port (research/data/suite/bench/README.md): between calls the host fills (and reads back) the arrays through the
+    # port, one access per 13 aclk (156 ns), so the port's merged request m_req rises at that clocked cadence.  On dot2
+    # and sumi3_mem (farm suite8) that net had the longest run of equal intervals and P came out as the host's fill
+    # period, 156000 ps ("NO CYCLE through the marker").  A rise while the host's memory sequencer is busy
+    # (bridge_i.mem_busy: generated only for a kernel with memories) is the host's, not an iteration: it is not
+    # counted, for the auto marker's choice and for the marker's period.  A design without that net is unchanged.
+    busy = []                     # (t_start, t_end): bridge_i.mem_busy not 0
+    mb = N.inv.get("bridge_i.mem_busy")
+    if mb in ev:
+        t1 = 0
+        for t, c in ev[mb]:
+            if c != "0" and t1 is None: t1 = t
+            elif c == "0" and t1 is not None: busy.append((t1, t)); t1 = None
+        if t1 is not None: busy.append((t1, float("inf")))
+        print("host memory accesses: %d windows of bridge_i.mem_busy; marker rises inside them are not counted"
+              % len(busy))
+    bstart = [b[0] for b in busy]
+
+    def kernel_rises(e):
+        r = [t for t, c in e if c == "1"]
+        if not busy: return r
+        out = []
+        for t in r:
+            i = bisect.bisect_right(bstart, t) - 1
+            if i < 0 or t >= busy[i][1]: out.append(t)
+        return out
+
     if marker == "auto":          # the kernel request net with the longest run of identical rise intervals
         # Not a net of a memory port (bdc/mem.py's bdc_memport instance `uport`, under umem_controllerN): its merged
         # request m_req also carries the HOST's array fill, one word per 13 host cycles, and was picked on dot2 (P =
@@ -79,7 +110,7 @@ def build(work, marker, K=10):
             nm = N.name.get(n, n)
             if not (nm.startswith("bridge_i.udut.") and nm.endswith("_req")): continue
             if "_uport." in nm or ".uport." in nm: continue
-            r = [t for t, c in e if c == "1"]
+            r = kernel_rises(e)
             if len(r) < 20: continue
             d = [b - a for a, b in zip(r, r[1:])]
             run = cur = 1
@@ -89,7 +120,7 @@ def build(work, marker, K=10):
             if best is None or key > best[0]: best = (key, nm)
         if best is None:
             # a kernel without a loop (straight, test_int16, unused_arg): no request net rises 20 times in the run
-            raise NoPeriod("NO MARKER: no kernel request net (outside the memory ports) rises 20 times in this run; a "
+            raise NoPeriod("NO MARKER: no kernel request net (outside the memory ports) rises 20 times in this run (host memory accesses not counted); a "
                            "kernel without a loop has no period, its figure is the latency per call")
         marker = best[1]
         print("auto marker: %s (run of %d equal intervals)" % (marker, best[0][0]))
@@ -98,7 +129,7 @@ def build(work, marker, K=10):
         mk = next((k for k, v in N.name.items() if v.endswith("." + marker) or v == marker), None)
     if mk not in ev:
         sys.exit("marker %s not found" % marker)
-    rises_all = [t for t, c in ev[mk] if c == "1"]
+    rises_all = kernel_rises(ev[mk])
 
     def steady(rises):
         """(intervals, the mode P, the longest run of intervals == P, where it starts)"""
@@ -243,6 +274,7 @@ def trace_cycle(T, mk, t_rise):
 def main():
     av = sys.argv[1:]
     if "--stride" in av: i = av.index("--stride"); del av[i:i + 2]
+    if "--k" in av: i = av.index("--k"); del av[i:i + 2]
     a = [x for x in av if not x.startswith("--")]
     W, MK = a[:2]
     OUT = sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv else W + "/eventgraph"
@@ -301,7 +333,7 @@ def main():
     # trace.py's walk, from an edge of the graph's critical cycle back to that net's previous same edge
     cn = G.nodes[G.arcs[cyc[0]]["v"]]
     ce = "1" if cn["edge"] == "R" else "0"
-    tr = t0 + (10 // 2) * P + cn["phase"]
+    tr = t0 + (KWIN // 2) * P + cn["phase"]
     hops, end = T.chain(cn["net"], tr, lambda n, t: n == cn["net"] and t < tr and T.val_at(n, t) == ce)
     tcyc = [(h["out"], h["edge"]) for h in hops]
     gcyc = [(G.nodes[G.arcs[i]["v"]]["net"], "1" if G.nodes[G.arcs[i]["v"]]["edge"] == "R" else "0") for i in cyc]
