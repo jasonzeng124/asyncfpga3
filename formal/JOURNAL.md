@@ -3090,7 +3090,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   true; entry 0) and the ring never carries INT_MAX (n entered only if n > 0, so n - 1 != INT_MAX). Invariant framework
   with "branch pairs" (ChanInv.lean): subagent. Swap.lean, PlainArith.lean: compiled (exit 0).
 * Checked: import of out/countloop_plain.mlir is isomorphic to rs2.set 28 (comp [69,45] 53 fSlt) (rules_iso, 43 rules).
-### progress 21:20 -- CHECKED: plain countloop test proved from the graph alone (CountloopPlainGen, Lean, standard axioms)
+### progress 21:10 -- CHECKED: plain countloop test proved from the graph alone (CountloopPlainGen, Lean, standard axioms)
 * ChanInv.lean (subagent; lead re-compiled, axioms printed, read the PairOK fields), Swap.lean, PlainArith.lean, and
   the instance: class map (NotMax on the counter / ring channels, NotMin on the ring entry), two branch pairs (guard
   cond_br4 with sgt; test cond_br6 with the corrected test), safeB decidable rule check, priv by decide. FOR-RESEARCH
