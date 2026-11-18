@@ -16,6 +16,7 @@ ap = argparse.ArgumentParser(); ap.add_argument("out"); ap.add_argument("--kerne
 ap.add_argument("--pairs", nargs="+", required=True); ap.add_argument("--bands", default="0.20,0.31,1.0;0.20,0.31,0.20")
 ap.add_argument("--jobs", type=int, default=3); ap.add_argument("--only", default=None)
 ap.add_argument("--joint", default=None, help="regex of chains to EXCLUDE; scale all other selected chains together")
+ap.add_argument("--emit-inject", nargs=2, metavar=("S", "FILE"), default=None, help="with --joint: write a simx classes file scaling the chains to S at band 0.20 (for draws.py --inject / run.sh DRAW_INJECT) and exit")
 ap.add_argument("--maxev", default="300000000"); ap.add_argument("--tmax", default="1500000000")
 a = ap.parse_args()
 HERE = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, HERE); import kernels
@@ -93,6 +94,10 @@ if a.joint is not None:
         if a.joint and re.search(a.joint, pre): continue
         pa = path_arcs(st)
         if pa: arcs += pa
+    if a.emit_inject:
+        sc, fn = float(a.emit_inject[0]), a.emit_inject[1]; b = (0.20, 0.20, 0.20)
+        json.dump({"I": [[names[G[gi]["out"]], p, -int((1 - sc) * arcd(gi, p, b))] for gi, p in arcs]}, open(fn, "w"))
+        print("wrote %d arcs scaled to %.2f (at band 0.20) -> %s" % (len(arcs), sc, fn)); sys.exit(0)
     res = [s for s in (1.0, 0.0) if ok_at(arcs, s)]
     if 1.0 not in res: sys.exit("joint: fails unscaled")
     if 0.0 in res: print("joint (%d arcs, excluding %s): s_min 0.00 (passes at 0)" % (len(arcs), a.joint)); sys.exit(0)
