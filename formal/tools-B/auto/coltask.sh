@@ -19,7 +19,7 @@ if [ -s "$W/raw.fasm" ]; then python3 "$H/fasm_bits.py" "$W/raw.fasm" "$W/$T.fas
 rm -f "$W/raw.fasm"; cp "$B/$T.json" "$B/${T}_routed.json" "$RS/cells/build/gen/$T.v" "$RS/cells/build/gen/${K}_kernel_bench.v" "$W/"
 bash "$H/decode.sh" "$W" $K > "$O/decode.out" 2>&1; [ -f "$W/m/bnd.json" ] || { say "DECODE FAILED"; exit 0; }
 G=$RS/research/data/eventgraph/gate
-case $K in collatz) VH=col18; KB=30601;; collatz64) VH=c6419; KB=30501;; xorshift) VH=xor19; KB=30801;; esac
+case $K in collatz) VH=col18; KB=30601;; collatz64) VH=c6419; KB=30501;; xorshift) VH=xor19; KB=30801;; ipow) VH=ipow17; KB=30201;; esac
 for x in "" 0.8,1.0; do k0=$KB; [ -n "$x" ] && k0=$((KB + 50))
   DRAW_XBAND=$x RS=$RS bash "$H/kdraws.sh" "$W" $K "$G/$VH.hex" $k0 32 ${JOBS:-4} > /dev/null 2>&1
   d=$W/d_${k0}${x:+_x}
@@ -28,6 +28,9 @@ for x in "" 0.8,1.0; do k0=$KB; [ -n "$x" ] && k0=$((KB + 50))
 case $K in
   collatz) RS=$RS bash "$H/cchecks.sh" "$W" $KB 'uaddi1\..*slice\[4\]\.genblk1\.carry4$' 'uaddi0\..*slice\[7\]\.genblk1\.carry4$' > /dev/null 2>&1;;
   collatz64) K=collatz64 RS=$RS bash "$H/cchecks.sh" "$W" $KB 'uaddi1\..*slice\[4\]\.genblk1\.carry4$' 'uaddi0\..*slice\[14\]\.genblk1\.carry4$' > /dev/null 2>&1;;
+  ipow) python3 "$H/dsp_slow.py" "$W/m/net.json" "$W/dspslow.json" 2>/dev/null
+    DRAWS_EXTRA="--inject $W/dspslow.json" bash "$H/kdraws.sh" "$W" ipow "$G/$VH.hex" $((KB + 10)) 8 ${JOBS:-4} > /dev/null 2>&1
+    echo "DSP at SLOW_MAX: $(grep '^draws [0-9]' "$W/d_$((KB + 10))/log.txt" | cut -c1-40) | nearmiss sum $(grep -o 'nearmiss [0-9]*' "$W/d_$((KB + 10))/draws.txt" | awk '{s+=$2} END{print s+0}')" >> "$SM";;
   xorshift) CS=$(python3 -c "import json,re; c=json.load(open('$W/m/routed.json'))['modules']['top']['cells']; print([v['attributes']['NEXTPNR_BEL'].split('/')[0] for n,v in c.items() if re.search(r'udut\.uaddi0\..*slice\[4\]\.genblk1\.carry4$',n)][0])")
     RS=$RS bash "$H/xorchecks.sh" "$W" "$CS" 4 > /dev/null 2>&1; grep -v "gate classes" "$W/xorchecks.txt" | sed 's/^/xorchecks: /' >> "$SM"
     bash "$H/../preload/carryslack.sh" "$W/m" "$W/cs" xorshift 0x3ffffff0 ulink_n6 "0x92d68ca2,0x40000001 0x13579bdf,0x40000001" 'uaddi0\..*slice\[4\]\.genblk1\.carry4$' 2101 4 30000 2>/dev/null | tail -1 | sed 's/^/counter carry: /' >> "$SM";;
