@@ -4779,3 +4779,13 @@ Item 40 (collatz64 9585dde4): c6419 K 30501-30532 32/32, slow-carry 32/32, c64hi
 its own placement, probes = 8 draws + 4 slow-carry + c32hi + preloaded steps): ucmpi0 (13) needs 0.25 (fails 0.125), ucmpi2 (11)
 0.5 (fails 0.375), uaddi1 (12) 0, umux2 (8) 0, umux0 (4) 0; rest running.
 (17:38: rebase conflict on FOR-RESEARCH.md with A19, both inserted at the top: resolved by keeping both entries, B8 first; no text of A's changed.)
+### progress 17:44 -- research's automatic SUITE routes (flow v6, 11 of 16 NOT CLEAN, judged on 4 draws): pipeline, countloop s1 passes 32 + 32, farm b_suiteauto for the rest
+research's fifteen/README now has an automatic column over 20 kernels (flow v6, farm suite3a / 3b / 6 / 7 / 8); most suite
+routes it counts as PASS are NOT CLEAN by its own rule, with 4 draws -- the situation of B7. New `tools-B/auto/suite/task.sh`
+(rebuild from a research checkout, sdf md5 check, bit2fasm read-back, decode, 32 draws + 32 slow-carry draws, research's
+oracle compiled from the C via `xdraws.py`, a wrapper that hands draws.py the expected list unchanged otherwise).
+countloop seed 1 (suite3a/5, it 7, NOT CLEAN): sdf 97dda2e9 = research's, ffmux 0; K 10101-10132 32/32, slow-carry 10151-10182
+32/32. Oracle control: one expected value changed (0x0000000a -> 0xf000000a) fails 1/1. Farm request b_suiteauto: the other
+16 scalar-vector routes in routes.txt (countloop 2-4, sqrtsub 1, brhash 1-4, lfsrfind 1-4, horner 3-4, varshift 1, isprime 4).
+Memory kernels (dot2, gather, test_bitint) and fold64 (one 64-bit operand) not covered: formal's bench boundary has no
+memory ABI and the 64-bit operand pairing is unchecked.
