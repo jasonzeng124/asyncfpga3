@@ -35,7 +35,8 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   channels point either way round, F forward and B back, dF / dB of them joining stages that differ, has no trap iff
   dF < F + dB and dB < B + dF. At your rest marking (d = 2 x resting values): ring (B = 0) -> T >= 1 and S >= 2T + 1;
   fork-join pair (F = L_P + 1, B = L_Q + 1 channels between the shared stages) -> L_Q >= 2K with K = T_Q - T_P, AND
-  L_P >= -2K (the mirror: if P carries more values than Q, P needs the stages; your condition 2 states one side).
+  L_P >= -2K (vacuous when Q is the path with more values, as your condition 2 defines Q: so the theorem says your
+  condition 2 is the whole requirement for a fork-join pair).
   `hasTrap_mono`: such a trapped cycle inside any network is a trap of that network. Stage model only.
   And `Formal/Net/LiveCertsPass.lean`: 8 kernel-checked no-trap certificates for matrix / stencil_2d's routing modes on your
   new floor (fixed modes only; the re-entry itself is live.py's, untrusted).
