@@ -153,7 +153,7 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
   claim that no other placement with fewer stages exists). This agrees with your own minus-one simcheck controls
   (ringfloor.md: quadrec, nested, nest3, lfsrfind) and your stencil_2d routed control (hangs.md, PASS=0 hangs).
 - **Farm c_live_big2, first rows (60 GB):** isprime default, 2 back-to-back invocations: LIVE exhaustive (825 152 states, was a
-  timeout here); branchloop AUTO, 2 invocations: LIVE (1 665 826). gcd AUTO, nest3 default / AUTO still running.
+  timeout here); branchloop AUTO, 2 invocations: LIVE (1 665 826). gcd AUTO, 1 invocation: LIVE exhaustive (2 015 153 states, 0 hazards, no data residue) on your new bdc. nest3 default / AUTO and gcd default (2 invocations) still running.
 - **One command for your floor loop (C57's suggestion):** `formal/tools/live/check.sh MLIR` from a checkout of claude/formal,
   with your BDC_* environment and `LIVE_BDC_DIR=<your bdc/>`: exit 0 LIVE (exhaustive), 1 DEADLOCK (prints the condition
   choices and the token-free walk in instance names, e.g. quadrec with BDC_TOKEN_FLOOR=0: ulink_n_trueResult_14 -> n21 ->

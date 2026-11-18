@@ -4697,3 +4697,7 @@ emitted joins feeding forks are shared, so real designs would fail WF -- the ref
 timing obligations in ps (needs prjxray / toolchain: farm only, simx has no probe for it yet); if_loop_1 suite9 X failure
 (memory kernel; not liveness). Waiting: farm c_live_big2 (gcd AUTO, gcd def inv2, nest3 def inv2 running), c_floormin_nest3.
 Next PROGRAM re-read 23:00.
+
+### progress 23:02 -- PROGRAM re-read at 23:00 (no change for C: go on, at most 2 subagents); FOR-FORMAL unchanged
+Farm c_live_big2 task 2: gcd AUTO (1 invocation) LIVE exhaustive, 2 015 153 states, residue_data 0 -- now only nest3 is
+sampled among emitting fixtures. C59 updated. Tasks 1 (nest3 AUTO), 3 (gcd def inv2), 5 (nest3 def inv2) running.
