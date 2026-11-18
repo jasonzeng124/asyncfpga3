@@ -4473,3 +4473,13 @@ mode changes (entering / leaving a loop), the arbiter, data and timing. Checked 
 marked graph holds no token, so the proved condition is literally "every cycle holds a token". formal/tools/live/gencert.py:
 stage-graph JSON -> Lean `Cert.check ... = true := by decide +kernel` (rank = longest path in the token-free DAG); smoke test
 ring5 (1 token) certified and checked by lean, ring4 (2 tokens) reported as a trap.
+
+### progress 17:12 -- StageNetGate.lean: H_RENDEZVOUS discharged for one level of C-elements per join / fork
+Problem: research's derivation (and StageNet) treat joins / forks as pure arcs; in the circuit they are C-elements with state.
+Gate model: stage t = C(J_t, not K_t), J_t = C-element over the requests c_p of its feeders, K_t = C-element over the c_q of
+the stages it feeds; one gate fires at a time (H_SI). Invariant `Inv` (all-zero reset satisfies it, `inv_zero`; preserved,
+`inv_step`): J_t = c_t or every feeder equals J_t; K_t = c_t implies every consumer equals c_t. Proved: `proj_step` (under
+Inv a gate step is a StageNet step or leaves the stage bits alone), `gate_dead_stage_dead` (no excited gate => no excited
+stage), `gate_deadlock_free` (Inv + no trap in the stage bits => no reachable gate deadlock). NOT covered: C-element trees
+(bd_ctree, > 4 inputs) and buffer chains / matched delay lines between a stage and its join (more than one gate in between),
+mode changes, steer / mux-select AND gates (constant in a fixed mode), timing, glitches, X. Checked with lean (core only).
