@@ -6918,7 +6918,7 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   the port (memauto saw the same signature on gather s2 with the opt-in fast fall: a host write missing the RAM's
   setup, which the rule flagged). Not yet traced. With the hangs finding (ipow s4) this is the second NOT CLEAN route
   that is actually wrong: the suite table marks it FAIL, as it should; the flow must not ship such a route.
-- suite9r2 filed: the 52 loops that came back unfinished (time limit) or died on a missed bench clock, resumed from
+- suite9r2 filed: the 43 loops that came back unfinished (time limit) or died on a missed bench clock, resumed from
   their returned state (research/data/suite/resume/suite9/) at this commit (the rule and loop of suite9 + the seed
   fallback). No state came back for nest3 s1-4, nested s1, iterative_sqrt s2 (their it 0 alone outlasted 240 min:
   loopfast's lead). The 13 suite9 tasks still running go into a later round.
