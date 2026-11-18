@@ -3055,3 +3055,21 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   test is the loop's critical cycle). Everywhere else the loop body sets the cycle and moving the test is neutral (plain)
   or slower (corrected, literal-bound). That is the useful answer to "what else would it need": not more proofs of this
   rewrite, but a rewrite of whatever sets each kernel's critical cycle.
+### progress 18:58 -- session summary so far (A, 2026-11-18)
+1. **The automatic path's rewrites:** pre_dec / pre_eq2 were already proved (A6). New today, all Lean with standard
+   axioms and check.sh OK:
+   - any-graph theorems for moving a loop test before its increment: IncCmpGraph (literal bound), IncCmp2 (bound on a
+     channel), RingMap (ring carries n-1), SplitComp (bdc's region split), Rename (renumbering);
+   - per-kernel proofs tied to the rewritten MLIR files: countloop, horner, quadrec, varshift, xorshift;
+   - the plain form on countloop: CountloopSame, via autoproof_x.
+2. **Measured (research's simcheck, pre-route):**
+   - the corrected form is slower everywhere (A20);
+   - the plain form pays only on countloop: -19 % default, -8 % BDC_AUTO (A21);
+   - the literal-bound rewrite and fold64's widened form are neutral.
+   So, for research's question of what else is needed: the loop test is the critical cycle only in countloop.
+3. **Files and tools:**
+   - FOR-RESEARCH A19-A21; FEASIBILITY row 14; MARGINS rows for items 38-41 (from B);
+   - tools: ring_dec.py (--plain), inc_cmp.py, gen_ring.py, gen_ring_tie.py, rules_iso.py, autoproof_x.py.
+4. **Subagents:** three were used (rewrite tool + differential check; RingMap; simcheck timing). Every report was
+   checked by the lead before it was cited.
+5. **Next:** re-read PROGRAM at 21:00 and 23:00. If research asks for countloop_plain on routes, support it.
