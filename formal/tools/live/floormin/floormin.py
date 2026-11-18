@@ -12,6 +12,8 @@ FIX = os.path.join(RS, "cloud/fixtures/frontend")
 LIVE = os.path.join(HERE, "..", "fixtures", "live.py")
 DEPTHS = os.path.join(HERE, "..", "passdiff", "depths.py")
 FLOWS = {"def": {}, "auto": {"BDC_AUTO": "1"}}
+if os.environ.get("FLOORMIN_FLOWS"):
+    FLOWS = {k: v for k, v in FLOWS.items() if k in os.environ["FLOORMIN_FLOWS"].split(",")}
 
 def env_of(extra):
     env = {k: v for k, v in os.environ.items() if not k.startswith("BDC_")}
@@ -22,7 +24,8 @@ def depths(mlir, extra):
     p = subprocess.run([sys.executable, DEPTHS, mlir], env=env_of(extra), capture_output=True, text=True)
     return json.loads(p.stdout.strip().splitlines()[-1]) if p.returncode == 0 else None
 
-def live(mlir, extra, maxs=3000000, timeout=1800):
+def live(mlir, extra, maxs=int(os.environ.get("FLOORMIN_MAXS", "3000000")),
+         timeout=int(os.environ.get("FLOORMIN_TIMEOUT", "1800"))):
     try:
         p = subprocess.run([sys.executable, LIVE, mlir, "--max-states", str(maxs)], env=env_of(extra),
                            capture_output=True, text=True, timeout=timeout)
