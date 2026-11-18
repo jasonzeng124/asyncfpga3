@@ -282,8 +282,9 @@ builds: every non-compare chain at 0.5x passes on 31 routes).
   | 40 collatz64 s5 | collatz64_v3_s5_nc0.vh (UADDI1 15, UMUX0-2, USELECT0 -> 0) | 27c5d16f | 32/32 + 32/32 | c64hi, preload, slacks >= 9.8 ns | 100.20 -> 86.94 us (-13.2 %) | 440 in one draw, ulink_n_falseResult_9 latch data |
   | 41 xorshift s8 | xorshift_v3_s8_nc0.vh (UADDI0, UXORI2, UADDIDEC0, UMUX0-3 -> 0) | 8e1a90d4 | 32/32 + 32/32 | preload 8/8, +20 ns control fails only preloaded | 38.49 -> 36.46 us (-5.3 %) | 3 in one draw, latch data |
   More seeds (A/B, yours vs the cut, same seed; all checks as above, NEARMISS 0 on all four routes): collatz64 seed 1
-  6333dd2d 101.27 us / 7af7feb2 85.31 us (-15.8 %), seed 2 1e34ade0 104.48 us / d33e28ec 90.51 us (-13.4 %); slacks steps /
-  3n+1 >= 16.3 / 8.9 ns on the cut. ipow seeds 1 / 3 in B10. So three seeds each for collatz, collatz64 and ipow.
+  6333dd2d 101.27 us / 7af7feb2 85.31 us (-15.8 %), seed 2 1e34ade0 104.48 us / d33e28ec 90.51 us (-13.4 %); seed 4 100.00 us / 678659e5 81.32 us (-18.7 %;
+  the cut's c64hi / preload NEARMISS 112 / 112, all on ulink_n_falseResult_9 latch data); slacks steps /
+  3n+1 >= 16.3 / 8.9 ns on the cut. ipow seeds 1 / 3 in B10. So four seeds each for collatz, collatz64 and ipow (collatz -17..-27 %, collatz64 -13..-19 %, ipow -15..-19 %).
   Board seeds otherwise; xorshift gains little because its period is set by the x datapath ring and its
   compares (B4).
 - **Which part of your rule (read in your code and docs, 21:0x; not traced on every route):** the lines formal cut are the

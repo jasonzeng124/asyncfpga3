@@ -4863,3 +4863,4 @@ built is clean with the DSP at SLOW_MAX (B10).
 ### progress 21:34 -- collatz64 cut A/B seeds 1 / 2: -15.8 / -13.4 %, all checks pass both arms (B9).
 ### progress 21:56 -- collatz A/B seed 4: 32.18 -> 23.51 us (-26.9 %), both arms pass everything. Four collatz seeds: -17 / -19 / -21 / -27 %.
 ### progress 22:03 -- ipow A/B seed 4: -14.6 %, slow DSP pulses only on the cut (B10). Four ipow seeds.
+### progress 22:24 -- collatz64 A/B seed 4: 100.00 -> 81.32 us (-18.7 %). Four seeds per kernel for the cut (B9 / B10).
