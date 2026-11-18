@@ -1,0 +1,45 @@
+20:08:25 decode
+20:08:25 decode: DSP48E1 sites present (margin/dsp/decode_dsp.py)
+fasm2lean3: {'lut6_2': 4818, 'fdce': 868, 'fdpe': 42, 'fdre': 1044, 'ldce': 2, 'muxf7': 388, 'muxf8': 66, 'carry4': 69, 'buf': 4}; 0 outputs; 0 reads of all-zero LUTs; 97679 active pips, 8331 untraced
+decode_dsp: DSP48_X1Y16 DSP_L_X22Y40.DSP_0 OPMODE 0000101 ALUMODE 0000 INMODE 00000 CARRYINSEL 000 CARRYIN 0 A A B B ports A/B/CARRYIN; reads 17 P, 48 PCOUT, 30 ACOUT, 0 BCOUT
+decode_dsp: DSP48_X1Y17 DSP_L_X22Y40.DSP_1 OPMODE 1010101 ALUMODE 0000 INMODE 00000 CARRYINSEL 000 CARRYIN 0 A ACIN B B ports A/B/CARRYIN/PCIN; reads 0 P, 48 PCOUT, 0 ACOUT, 0 BCOUT
+decode_dsp: DSP48_X1Y18 DSP_L_X22Y45.DSP_0 OPMODE 0010101 ALUMODE 0000 INMODE 00000 CARRYINSEL 000 CARRYIN 0 A A B B ports A/B/CARRYIN/PCIN; reads 15 P, 0 PCOUT, 0 ACOUT, 0 BCOUT
+decode_dsp: DSP48_X0Y14 DSP_R_X7Y35.DSP_0 OPMODE 0000101 ALUMODE 0000 INMODE 00000 CARRYINSEL 000 CARRYIN 0 A A B B ports A/B/CARRYIN; reads 17 P, 48 PCOUT, 30 ACOUT, 0 BCOUT
+decode_dsp: DSP48_X0Y15 DSP_R_X7Y35.DSP_1 OPMODE 1010101 ALUMODE 0000 INMODE 00000 CARRYINSEL 000 CARRYIN 0 A ACIN B B ports A/B/CARRYIN/PCIN; reads 0 P, 48 PCOUT, 0 ACOUT, 0 BCOUT
+decode_dsp: DSP48_X0Y16 DSP_R_X7Y40.DSP_0 OPMODE 0010101 ALUMODE 0000 INMODE 00000 CARRYINSEL 000 CARRYIN 0 A A B B ports A/B/CARRYIN/PCIN; reads 15 P, 0 PCOUT, 0 ACOUT, 0 BCOUT
+decode_dsp: 6 DSP sites agree with routed.json (controls, registers, inverters, 444 data nets one-to-one)
+build_net: 143841 nodes, 141340 gates {'pip': 122819, 'hop': 6656, 'const': 1223, 'lut6': 4818, 'lut5': 4818, 'muxf': 454, 'carry': 552}, 1966 opaque
+  fidelity: CARRY4 output as one gate over its inputs (IOPATH per pin; DI: envelope of variants): 552
+  fidelity: RC_TREE: buffered pip with R 0 (no Elmore term of its own): 6456
+  fidelity: RC_TREE: pip = intrinsic + Elmore (pip R * Cup(dst) + dst wire), all corners: 208525
+  fidelity: RC_TREE: route with no recorded source pin (no OUTMUX arc): 77
+  fidelity: RC_TREE: site output hop = output pin delay + Elmore (drive R, wire): 6656
+  fidelity: RC_TREE: slice OUTMUX routing-BEL arc on the site output hop: 2849
+  fidelity: active pip on no walked route (added): 7239
+  fidelity: no gate (output free): buf: 4
+  fidelity: no gate (output free): dsp48e1: 6
+  fidelity: no gate (output free): fdce: 868
+  fidelity: no gate (output free): fdpe: 42
+  fidelity: no gate (output free): fdre: 1044
+  fidelity: no gate (output free): ldce: 2
+  fidelity: pip delay record not ordered in prjxray-db: widened to [min, max] at both corners: 1957
+  fidelity: pip with no delay data (prjxray: none), arc 0: 59983
+dsp_gates: 6 DSP sites -> {'dspcasc': 60, 'dsp': 256} gates; 143841 nodes, 141656 gates
+dsp_gates --check: operands ['bridge_i.udut.n10__0_data', 'bridge_i.udut.n10__1_data', 'bridge_i.udut.n10__2_data', 'bridge_i.udut.n15_data']; products ['bridge_i.udut.n29_data', 'bridge_i.udut.uselect0.w_n34']
+dsp_gates --check: bridge_i.udut.n29_data = bridge_i.udut.n10__0_data * bridge_i.udut.n10__1_data mod 2^32: 2007 vectors, 0 mismatches
+dsp_gates --check: bridge_i.udut.uselect0.w_n34 = bridge_i.udut.n10__2_data * bridge_i.udut.n15_data mod 2^32: 2007 vectors, 0 mismatches
+p_end_ack  input  SLICE_X21Y30.D6
+operands b e env nodes 68
+arbs: 2 arbiters
+2060530b9a8e4888c7ee559036474047  fromBit.fasm
+a4e452bbe5cfa5b2f16f4d669620144f  net.json
+3beb1db0649c5ebbec662a82fe27786d  bnd.json
+63d54f10bbcccf56d8e736bde431f943  arbs.json
+20:09:33 draws 8
+simx_conv: 143841 nodes, 141590 gates simulated (--full), kernel cone 28185 gates (28185 nodes) -> /tmp/task/runs/m/net.simx.330
+draws: gate classes {'r': 9401, 'x': 1006, 'c': 235, 'p': 129005, 'q': 470}
+draws 8: PASS 8 FAIL 0 UNDECIDED 0; pass fraction 1.000 of decided (95% Wilson 0.676-1.000)
+last answer (PASS draws): min 5884718 mean 6278086 max 6594209 ps after t=0 (reset 400 ns included)
+model: RESEARCH draw K (bands per K; --band unused), band 0.380 sreg 0.020 regsize 10 sarc 0.126 lognormal w 20 host 12000; seeds 601-608
+nearmiss (PASS draws, narrowest storage-output pulse; informational): seed 606 3198 ps bridge_i.udut.ulink_n13.many.stage[0].u.ctl.u.u, seed 605 3274 ps bridge_i.udut.ulink_n13.many.stage[0].u.ctl.u.u, seed 603 3329 ps bridge_i.udut.ulink_n13.many.stage[0].u.ctl.u.u, seed 607 3356 ps bridge_i.udut.ulink_n13.many.stage[0].u.ctl.u.u, seed 604 3410 ps bridge_i.udut.ulink_n13.many.stage[0].u.ctl.u.u
+20:09:48 done: /tmp/task/runs/m/draws_summary.txt /tmp/task/runs/m/draws.txt
