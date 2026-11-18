@@ -1,6 +1,6 @@
 # ejoin: rule E's missing join credit at xorshift's loop steers (`BD_SKEW_E_JOIN=1`)
 
-Subagent `ejoin` of research, 2026-11-17 23:55 - 2026-11-18 03:5x EST. nextpnr 9c732bc6303458df (`cells/verify/toolchain.sh`
+Subagent `ejoin` of research, 2026-11-17 23:55 - 2026-11-18 02:55 EST. nextpnr 9c732bc6303458df (`cells/verify/toolchain.sh`
 OK, rc 0, at 00:21 EST before the loop's builds). Changed: `cells/verify/skew.py` (additions behind the flag),
 `cells/verify/test_skew_walk.py` (one test), `research/tools/auto/auto_size.sh` (the flag passed through, default off).
 Added: this file. cells/rtl, bdc, dynamatic, circt untouched.
@@ -13,13 +13,16 @@ rest 0.31, CARRY4 / F7F8 / FF 1.0, no scatter; xor19 19/19 PASS, EQUIVALENT) **n
 are started together by the compare's own acknowledge (3646 of 3678 rises) and n's link carries the recipe's
 `ULINK_N11__1 = 3`. Settle gaps at the select pins **+1175 (br9) .. +1478 (br7) ps, 0 runts** (formal C48: 923) where rule
 E says -382 .. -1189 (guarded; raw -98 .. -905). At the opposite corner (chains 0.31, rest 0.20, CARRY 0.20) n is again
-last in 3678 of 3678 (+1116 ps; gaps 1827-2110), although there i's link is started by its own request in 3648 rises. The worst event is a 700-ps glitch of the loop test in an ordinary
-iteration, not the exit. The hand recipe's UCMPI1 = 5 is in effect 5 + 3 elements on the compare's request.
+last in 3678 of 3678 (+1116 ps; gaps 1827-2110), although there i's link is started by its own request in 3648 rises.
+The worst event is a 700-ps glitch of the loop test in an ordinary iteration, not the exit. The hand recipe's
+UCMPI1 = 5 is in effect 5 + 3 elements on the compare's request.
 (2) `BD_SKEW_E_JOIN=1` (rule E (6); opt-in, unset byte-identical): a positive C-element on the request path is credited
 with its other inputs, case by case on what made the launch fire (a request into it, or the acknowledge that released
-it), with joinaware's path rules (no latch, no steer, entry pins by polarity). Sound in every interleaving -- and
-therefore it credits only the acknowledge case: when i's link is started by its REQUEST after the release, nothing
-within one crossing (or three: `BD_SKEW_E_JOIN_DEPTH=3`, through the control token) bounds n, so br7-9 keep their rows.
+it), with joinaware's path rules (no latch, no steer, entry pins by polarity and by need). Sound in every
+interleaving -- and therefore it moves a row only where EVERY case bounds the request: the acknowledge case bounds n
+(and reproduces the GLS's arrival to the picosecond), but when i's link is started by its REQUEST after the release
+(which the second corner shows happening), nothing within one crossing (or three: `BD_SKEW_E_JOIN_DEPTH=3`, through
+the control token) bounds n, so br7-9 keep their rows.
 On the hand route it raises br6 only (0.20 -929 -> +119, 0.31 -1189 -> -182); every negative control stays flagged
 (UCMPI1 at 1, +3 / +8 ns on the compare's carry or its select wires, the mux select controls); in the GLS, +3 ns on the
 carry fails the gate (14/19, runts at the very race above).
@@ -29,7 +32,11 @@ row on su_xorshift_1_4 or se_xorshift_ss_5, and the row that pins UCMPI1 near 10
 glitch of the loop test reaches br8's select 404 ps before its request), against 1070-1895 at the other steers. Rule E's
 pessimism there is 189 (n) + 440 (static longest select) ps. Raising UCMPI1 by 2-3 elements buys what the hand recipe's
 3 elements on n's link buy on its route (~1.1 ns).
-(4) The automatic loop with the flag (suite_one.sh xorshift 1 4 4): section 6.
+(4) The automatic loop with the flag (suite_one.sh xorshift 1 4 4): the flag credits nothing in any iteration (A/B on
+iterations 0-1: identical proposals), so it is the v5 loop: CLEAN at iteration 5 (phase 2), **P = 22672 ps**, UCMPI1 13
+(pinned since iteration 1), EQUIVALENT, ffmux-clean; 4 / 4 xor19 draws PASS (suite_one status=PASS). Not the 15 ns of the PROGRAM, and not because of
+rule E's credit: the ratchet pinned the loop compare at 13 on a route that needed it, and the final route's own proposal
+(123 -> 75 / 80 links, UCMPI1 8) is never built because phase 2 stops at the first clean route (section 6).
 
 ## 1. The races (hand route bq_x55a10_21, rule E as the auto flow runs it)
 
@@ -172,8 +179,9 @@ br8 split into 8 chains: through the control token (`ucontrol_merge0_olink` -> `
 credited +1442 ps (n's control link `ulink_n12__2` and its request link are slower); through the counter's own data token
 (`ulink_n_trueResult_6`'s pipe -> umux0's join), the entry path (`ulink_n6`), or the control link started by its
 acknowledge (`uforkdec0`'s C-tree), nothing bounds n -- those chains go back into the previous iteration through the loop
-steers, which a credit path may not cross. In the trace those cases do not occur in the steady state (the acknowledge
-starts both links), and at the entries n is later by 2.3-2.5 ns; but nothing static here shows that they cannot.
+steers, which a credit path may not cross. At the first GLS corner those cases occur only at the calls' entries (n later
+by 2.3-2.5 ns there); at the second corner the request case IS the steady state (3648 of 3678 rises of i's link) and n is
+still later by 1116 ps -- but nothing static here shows that it must be.
 
 ## 4. Checks
 
@@ -224,7 +232,10 @@ SDFs): no negative E row, every row identical with and without the flag. se_xors
 ULINK_N11__1 = 0: n's request is not later than i's by a line, so even the acknowledge case credits little, and the
 request cases credit nothing at br8. skew.py's own count on these routes and on steerE's collatz / collatz64 AUTO routes
 (su_*_1_4, both corners): "0 raised by a join credit in every case" everywhere (40 / 24 handshake launches split); the
-hand route: 2 raised (br6's two LUTs) at 0.20.
+hand route: 2 raised (br6's two LUTs) at 0.20. Also run (no crash, "0 raised") on the suite's gcd and isprime it-0 routes
+(su_gcd_1_0: 118 select gates, 6 violated, 200 launches split; su_isprime_1_0: 86 gates, 158 launches; corner 0.20).
+Cost: one skew.py run 18.6 -> 34.3 s on gcd, 16.0 -> 25.8 s on isprime, 1.8 -> 2.7 s on xorshift (corner_audit runs
+it once per sensitivity worker).
 
 ## 5. The AUTO route at the same corner (se_xorshift_ss_5, UCMPI1 8, ULINK_N11__1 0)
 
@@ -285,7 +296,17 @@ negative rows and the rule raised it 8 -> 13). On that final route rule E at the
 phase 2 stops at the first clean route. For comparison: the v4 loop's route (su_xorshift_1_4, UCMPI1 18) 21084 ps; steerE's
 one ratchet step with the steer self-bound (UCMPI1 8) 16620; the hand recipe ~16.5-16.8 ns. The flag had no part in
 any of it. Draws (suite_one.sh, bench_gate.sh draw:K, K = 10101-10104, xor19, expected values from the C at run time):
-PENDING_DRAWS
+
+| draw | chains / rest / CARRY-F7-FF | verdict |
+|---|---|---|
+| 10101 | 0.2299 / 0.2874 / 0.5261 | PASS 19/19, 7293 cycles, EQUIVALENT |
+| 10102 | 0.2466 / 0.2342 / 0.3752 | PASS 19/19, 7333 cycles, EQUIVALENT |
+| 10103 | 0.2079 / 0.2226 / 0.7103 | PASS 19/19, 7112 cycles, EQUIVALENT |
+| 10104 | 0.2061 / 0.2688 / 0.4837 | PASS 19/19, 7234 cycles, EQUIVALENT |
+
+suite_one.sh's line: `xorshift 1 status=PASS draws=4/4 P=22672 lat_max_cyc=489 luts=1361 sdf=2304c4e0 rule=clean it=5
+bits=EQUIVALENT ffmux-clean lat_call_med_ns=240 lat_call_sum_ns=42438 nvec=19` (00:23 -> 02:40 EST, 3 cores of a node at
+load 35-60).
 
 ## 7. What this does NOT show
 
@@ -311,7 +332,11 @@ PENDING_DRAWS
   ctl_req; the request ORs -- bd_merge, bdc_amerge -- are excluded or sit behind arbiter storage, which is never
   crossed), and on the 4-phase behaviour of the cells, which rule E does not check (rule H, the cells' own verification
   do). The walks are polarity-free apart from the fast-fall side taps (dropped on the earliest walk, as rule E always
-  did). Exercised on xorshift only (two routes, eight loop iterations); no other kernel was run with the flag.
+  did). Exercised with numbers on xorshift (the hand route, two AUTO routes, the six routes of the loop), and run without
+  a credit on collatz, collatz64, gcd and isprime routes; no route where the flag credits anything has been simulated
+  besides the hand route.
+- **One loop, one seed** (seed 1): P 22672 ps is one route's number; the flag had no effect on it, so it says nothing about
+  the flag and only something about flow v5 (which the farm's suite6 measures on 8 seeds).
 - No board run; GLS is not silicon.
 
 ## Commands
