@@ -2,6 +2,7 @@ import Formal.Rewrite.CountloopHw
 import Formal.Rewrite.RingMap
 import Formal.Rewrite.IncCmp2
 import Formal.Rewrite.IncCmpArith
+import Formal.Rewrite.SplitComp
 
 /-!
 # Formal.Rewrite.CountloopRewrite — the general loop-test rewrite, applied to countloop's imported graph (shard A, 2026-11-18)
@@ -171,5 +172,81 @@ theorem same_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch ∈ change
 
 /-- The output channel is not among the changed ones. -/
 theorem out_kept : chOut ∉ changed := by decide
+
+/-! ## The split bdc emits (fusion limit 4): `rs3` -/
+
+/-- First half of the corrected test: `slt(i, m) xor (i = INT_MAX)`. -/
+def fH1 : E := .bin .xori 1 (.bin (.cmpi .slt) 32 (.var 0) (.var 1)) (.bin (.cmpi .eq) 32 (.var 0) (.lit 2147483647))
+/-- Second half: `(first half) xor (m = INT_MAX)`, reading `[m, first half]`. -/
+def fH2 : E := .bin .xori 1 (.var 1) (.bin (.cmpi .eq) 32 (.var 0) (.lit 2147483647))
+
+def rs3 : List Rule := rs2.set 28 (.fork 45 [70, 71]) ++ [.comp [69, 70] 72 fH1, .comp [71, 72] 53 fH2]
+
+theorem len_rs3 : rs3.length = 45 := by decide +kernel
+
+theorem patSplit : PatS rs2 rs3 28 43 44 69 45 70 71 72 53 fSltXor fH1 fH2 where
+  hp := by decide +kernel
+  hp' := by decide +kernel
+  hq := by decide +kernel
+  hq' := by decide +kernel
+  hr := by decide +kernel
+  hr' := by decide +kernel
+  hsame := by
+    intro l h1 h2 h3
+    refine same_of_check 45 (by rw [len_rs2]; omega) (by rw [len_rs3]; exact Nat.le_refl _)
+      (fun l => l == 28 || l == 43 || l == 44) (by decide +kernel) l ?_
+    simp [h1, h2, h3]
+  hins := by
+    intro l ru h1 hr ch hch
+    have := of_check (rs := rs2)
+      (fun l r => l == 28 || r.insL.all (fun ch => !decide (ch ∈ [69, 45, 70, 71, 72])))
+      (by decide +kernel) l ru hr
+    simp only [Bool.or_eq_true, beq_iff_eq, h1, false_or, List.all_eq_true] at this
+    have := this ch hch
+    simp only [Bool.not_eq_true', decide_eq_false_iff_not, List.mem_cons, List.not_mem_nil, or_false,
+      not_or] at this
+    omega
+  houts := by
+    intro l ru h1 hr ch hch
+    have := of_check (rs := rs2)
+      (fun l r => l == 28 || r.outsL.all (fun ch => !decide (ch ∈ [70, 71, 72, 53])))
+      (by decide +kernel) l ru hr
+    simp only [Bool.or_eq_true, beq_iff_eq, h1, false_or, List.all_eq_true] at this
+    have := this ch hch
+    simp only [Bool.not_eq_true', decide_eq_false_iff_not, List.mem_cons, List.not_mem_nil, or_false,
+      not_or] at this
+    omega
+  hnd := by decide +kernel
+  hH := fun a b => by simp only [fH1, fH2, fSltXor, E.eval, BOp.ev, List.getD_cons_zero, List.getD_cons_succ]
+
+/-- The channels the three rewrites may leave different. -/
+def changed3 : List Nat := [24, 67, 43, 44, 45, 42, 62, 50, 52, 68, 69, 70, 71, 72]
+
+/-- countloop's graph -> the graph with the ring rewrite, the moved test and bdc's split of the corrected test. -/
+theorem same3_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch ∈ changed3.tail, σ0 ch = [])
+    (hr : Run (step (graph rules)) σ0 n t) (ht : Terminal (step (graph rules)) t) :
+    ∃ t' m, Run (step (graph rs3)) σ0 m t' ∧ Terminal (step (graph rs3)) t' ∧
+      ∀ ch, ch ∉ changed3 → t' ch = t ch := by
+  obtain ⟨t2, m2, r2, ht2, o2⟩ := same_forward (fun ch hc => h0 ch (by simp [changed, changed3] at hc ⊢; omega))
+    hr ht
+  obtain ⟨t3, m3, r3, ht3, o3⟩ := split_forward patSplit
+    ⟨h0 70 (by simp [changed3]), h0 71 (by simp [changed3]), h0 72 (by simp [changed3])⟩ r2 ht2
+  refine ⟨t3, m3, r3, ht3, fun ch hc => ?_⟩
+  simp only [changed3, List.mem_cons, List.not_mem_nil, or_false, not_or] at hc
+  rw [o3 ch (by omega) (by omega) (by omega) (by omega) (by omega), o2 ch (by simp [changed]; omega)]
+
+theorem same3_backward {σ0 t' : Store Nat Nat} {n : Nat} (h0 : ∀ ch ∈ changed3.tail, σ0 ch = [])
+    (hr : Run (step (graph rs3)) σ0 n t') (ht : Terminal (step (graph rs3)) t') :
+    ∃ t m, Run (step (graph rules)) σ0 m t ∧ Terminal (step (graph rules)) t ∧
+      ∀ ch, ch ∉ changed3 → t ch = t' ch := by
+  obtain ⟨t2, m2, r2, ht2, o2⟩ := split_backward patSplit
+    ⟨h0 70 (by simp [changed3]), h0 71 (by simp [changed3]), h0 72 (by simp [changed3])⟩ hr ht
+  obtain ⟨t1, m1, r1, ht1, o1⟩ := same_backward (fun ch hc => h0 ch (by simp [changed, changed3] at hc ⊢; omega))
+    r2 ht2
+  refine ⟨t1, m1, r1, ht1, fun ch hc => ?_⟩
+  simp only [changed3, List.mem_cons, List.not_mem_nil, or_false, not_or] at hc
+  rw [o1 ch (by simp [changed]; omega), o2 ch (by omega) (by omega) (by omega) (by omega) (by omega)]
+
+theorem out_kept3 : chOut ∉ changed3 := by decide
 
 end Formal.Rewrite.CountloopRewrite
