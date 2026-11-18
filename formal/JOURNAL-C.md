@@ -4457,3 +4457,13 @@ stage of a trap is never excited again); `deadlock_free` (no trap => no reachabl
 fair infinite run => every stage fires infinitely often). So "no trap" is exactly "no stage ever becomes dead".
 NOT covered: H_RENDEZVOUS (multi-input joins / forks / mux select joins as pure arcs; the subagent checks it on the cells),
 mode changes (entering / leaving a loop), the arbiter, data and timing. Checked with `lean` (core only, 0.5 s).
+
+### progress 17:55 -- StageNetCert.lean (rank certificate, decidable checker) and StageNetRing.lean (stage rule = bd_c2n LUT)
+- `no_trap_of_rank`: a rank strictly increasing along every token-free arc rules out a trap. `Cert.check` (edge list on
+  Fin n, state, rank) + `Cert.check_sound`: check = true => no trap => (StageNet) no reachable deadlock, every stage fires
+  infinitely often under fairness. Sanity by decide: 2-ring with one token has no certificate; 3-ring has one. This is the
+  form in which a fixture's per-mode stage graph can be Lean-checked (exporter untrusted).
+- `excited_single` / `excited_single_set`: for a stage with one feeder and one consumer the stage rule is exactly the real
+  bd_c2n / bd_c2n_set LUT in run mode (via Ring.c2n_run, shard B's verbatim INITs).
+- All three files checked with `lean` against oleans built by hand (core-only chain Core.Kleene .. Net.Ring); the lake build
+  is waiting for setup.sh's Mathlib compile (cache unreachable).
