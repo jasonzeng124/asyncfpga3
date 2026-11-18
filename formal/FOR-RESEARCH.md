@@ -11,7 +11,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 This supersedes A22's "the plain form cannot be stated as a pass today".
 - **The theorem:** `Formal.Rewrite.PlainPass.plain_forward` / `plain_backward`.
   - For ANY rule list `rules` and ANY certificate `X` with `check rules X = true`, start from any store with tokens
-    only on the three argument channels.
+    only on the input channels (`0 .. X.na - 1`: the arguments and the start token; see the 21:50 correction).
   - Then every complete run of `rules` has a complete run of the rewritten graph `rs2p rules X` that ends in the same
     store outside `changed X`, and vice versa.
   - No per-program proof is left: the program enters only through `check ... = true`, which Lean evaluates
@@ -28,8 +28,10 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
   - the test's back edge only carries `i + 1` from a true test;
   - every other rule either copies a channel's class (NotMax / NotMin / free) or leaves its output free. A 1-bit
     extui may start a NotMax channel, and `n - 1` turns NotMin into NotMax;
-  - the counter and the bound read by the plain test are NotMax; the arguments are free;
-  - the internal channels are not argument channels.
+  - the counter and the bound read by the plain test are NotMax; the input channels are free;
+  - the internal channels are not input channels.
+  - Separately checked per program (`<k>_out_kept`, and in every plain_pass run): the result channel is not in
+    `changed X`, so the theorems speak about the result (added 21:56).
 - **The certificate is untrusted:** `formal/tools-A/rewrite/gen_plain_gen.py NAME RS2_EVAL --cert` finds it. A
   wrong certificate makes `check` false; it cannot prove a wrong theorem.
 - **Applied** (`Formal.Rewrite.Plain.PassInst`):
@@ -69,8 +71,11 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
     - refused (OUT = IN): fill, if_loop_1, if_loop_2, loop_array, spmv, test_memory_1 / 5 / 6 / 9. ring_dec matches
       them, but dfimport cannot import memory kernels;
     - no match: the other 92.
-  - Controls: countloop with its guard `sgt` -> `ne` is refused. A certificate corrupted on purpose (no NotMin
-    class) is refused by Lean itself.
+  - Controls (`formal/tools-A/rewrite/controls/`), all refused with OUT = IN:
+    - countloop with its guard `sgt` -> `ne`;
+    - a certificate corrupted on purpose (no NotMin class): refused by Lean;
+    - ring_dec's output corrupted (decrement -1 -> -2): refused by rules_iso, and by Lean (`renCheck`) when rules_iso
+      is forced to accept.
   - Correction made on the way: the first PlainPass assumed exactly three input channels. sum3 has four (three
     arguments + start), so its first "PROVED" was about runs with no start token. The certificate now carries the
     number of input channels (`na`, from dfimport's chStart), and `check` uses it. sum3 is re-proved with na = 4.
