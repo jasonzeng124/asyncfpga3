@@ -4743,7 +4743,7 @@ right at 5 corners in the audit's GLS).
 Setup: formal/setup.sh started building Mathlib from source again (cache unreachable): stopped, no Lean this session.
 Toolchain: cache d7ce266cff0c8e1e (nextpnr 9c732bc6, fails toolchain.sh: const-sinks MISSING); building nextpnr bfdeaf7c +
 all nine patches from research's patches/ locally (/home/user/nb/build.sh, scratch) before any route here counts.
-### progress 17:5x -- items 38 (ipow) and 39 (collatz) rebuilt sdf-identical with patched nextpnr; research's 32 draws + 32 slow-carry draws pass on both
+### progress 17:06 -- items 38 (ipow) and 39 (collatz) rebuilt sdf-identical with patched nextpnr; research's 32 draws + 32 slow-carry draws pass on both
 - nextpnr built here from bfdeaf7c + all nine patches/ of claude/research (const-sinks included): toolchain.sh 10/10 ok,
   binary sha256 b8e99a23e9993095 (research's install is 6e5d224472232d5d: same patches, another compile). The flow's
   fasm2frames step failed on a missing python module (textx); bitstream made by hand with the same two commands
