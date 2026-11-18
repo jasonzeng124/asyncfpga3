@@ -6809,3 +6809,21 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   request is being reworked to resume from suite6's states (committed: research/data/suite/resume/suite6/, f415db410).
 - graphsearch told to aim at new site kinds and at why the other kernels gain nothing from depth edits; loopfast told
   the loop's own logic (ratchet, phases) is the bot's. xorgap was over its CPU budget (7 busy processes): now <= 3.
+### progress 18:25 (dynfig landed; xorgap's AUTO_SEARCH landed as opt-in; farm xsearch1 filed)
+- **dynfig** (lead 8; research/data/suite/dynamatic/DYNFIG_REPORT.md, c70e415cd..c39f2c107): Dynamatic's estimator now
+  runs the memory kernels on the suite's v2 vectors (66 kernels, 409 / 409 calls = the C, arrays included); its memory
+  units equal Dynamatic's own Verilog in every cycle (8 seeds x 3000 cycles; 3 injected defects caught 8 / 8). New
+  figures: dot2 59.3, gather 69.2, memsum 59.3, fill 11.0 ns per iteration (on-merges buffering: a solver placement
+  could be up to ~6x faster on the memory kernels). suite_table.py: latency per call on both sides (same calls) and its
+  ratio; a P that is a multiple of the host clock refused -- **suite8's dot2 "156 ns per iteration" was the host's array
+  fill (13 x 12 ns)**; where P is missing, the slope of call latency on trip count ("fit"; within 0.976-1.052 of P on 42
+  routes). eventgraph.py: no marker in the memory port, strides 2-4 (fold64 alternates 21529 / 23924 ps), a reason
+  instead of a crash. Over suite3a / 3b / 6 / 8: per-iteration ratio on 13 kernels, geometric mean 1.25 with estimates
+  (1.40 measured only); latency-per-call ratio on 15 kernels, 1.35. MILP placement impossible here (dynamatic-opt built
+  without CBC).
+- **xorgap's AUTO_SEARCH** (a975807f1, 847153641; opt-in, unset = the loop's result lines and exit codes as before):
+  after the loop, search.py --depth-only on the shipped route's event graph; if it picks a BDC_LINK_DEPTHS edit the loop
+  goes on with that structure (pins reset), ships the new route only if clean and faster. Farm **xsearch1** filed: the
+  four original kernels x 8 seeds, resumed from suite6's states (the shipped route rebuilt, md5 checked), so each task
+  is an A/B against suite6's route of the same seed; prediction in the request (xorshift ~17-18 ns vs 21.07; the other
+  three unchanged).
