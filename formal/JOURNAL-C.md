@@ -4596,3 +4596,14 @@ Meaning: in the exported stage graph and state of that mode, no token-free cycle
 holds, every stage fires in fair runs. NOT covered: that the export is the design (live.py untrusted), mode changes (the
 matrix / stencil deadlocks are re-entry ones: their dumps named .deadlock are not certified), the gate level (StageNetTree's
 WF / Inv are not checked per design).
+
+## Session 2026-11-18 21:20 UTC (session_01HC49Fz5dt9ybq3eEEc3En3; previous C session idle / disconnected since 19:52)
+Lock taken (LOCK-C 19:39 from session ...FuXhPok, idle and disconnected per its session record). PROGRAM top unchanged
+(C = liveness until 23:00; from 23:00 all shards go on with at most 2 subagents). FOR-FORMAL unchanged since the morning.
+Audit: no new row on C53-C58. New on research since C58: bdc 5dfe2c49f "token floor: pass-through modes" (each loop with a
+nested loop also walked iterating while its inner loops pass through; back edge read from a cast's origin block), and
+hangs.md: matrix / stencil_2d default deadlocks fixed by it, stencil_2d routed smoke PASS with it, FAIL with
+BDC_TOKEN_FLOOR_PASS=0. That is research's answer to C55 / C57 / C58.
+Plan: (1) rerun live.py exhaustively over every fixture with research's new floor (floor on, def + auto) -- does it fix
+matrix / stencil and break nothing; (2) compare its pass-through walk with C58's reentry rule; (3) FOR-RESEARCH item.
+run_all.py: LIVE_FLOWS / LIVE_FLOORS knobs to restrict the sweep. Sweep running on research 0cebd725c (bdc 5dfe2c49f).

@@ -22,6 +22,11 @@ RING = os.path.join(RS, "research/tools/suite/ring_tokens.py")
 
 FLOWS = {"def": {}, "auto": {"BDC_AUTO": "1"}, "autorw": {"BDC_AUTO": "1"}}
 FLOORS = {"on": {}, "off": {"BDC_TOKEN_FLOOR": "0"}}
+# LIVE_FLOWS / LIVE_FLOORS (comma lists) restrict the sweep, e.g. LIVE_FLOORS=on after a token-floor change in bdc.
+if os.environ.get("LIVE_FLOWS"):
+    FLOWS = {k: v for k, v in FLOWS.items() if k in os.environ["LIVE_FLOWS"].split(",")}
+if os.environ.get("LIVE_FLOORS"):
+    FLOORS = {k: v for k, v in FLOORS.items() if k in os.environ["LIVE_FLOORS"].split(",")}
 
 
 def base_env(extra):
