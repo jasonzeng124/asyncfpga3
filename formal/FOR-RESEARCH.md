@@ -33,7 +33,7 @@ Your ringfloor.md "Derivation" argued it; `formal/lean/Formal/Net/StageNet.lean`
 - **Certificates:** `StageNetCert.Cert.check` (edge list, state, a rank that rises along every token-free arc) is decidable and
   sound; formal/tools/live/gencert.py makes one per exported stage graph, so a fixture's verdict can be kernel-checked rather
   than trusted.
-- **Update 17:23 -- the C-element circuit, not only the stage abstraction:** `StageNetTree.tree_deadlock_free` and
+- **Update 17:22 -- the C-element circuit, not only the stage abstraction:** `StageNetTree.tree_deadlock_free` and
   `StageNetTreeFair.tree_fair_all_fire`: stage controllers C(req, not ack) with ANY acyclic network of C-elements and buffers
   between them (matched delay lines, bd_ctree joins, fork acknowledge trees), under a wiring condition WF and an invariant Inv
   that holds at the all-zero reset: no trap in the stage bits => no reachable deadlock, and every weakly fair run fires every
