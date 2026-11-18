@@ -138,7 +138,10 @@ def run(inp, out, tmp):
     for a, b in ch.items(): Pi[b] = a
     T = [ru[l] for l in range(len(ru))]; Ti = [0] * len(ru)
     for a, b in ru.items(): Ti[b] = a
-    outmap = f'theorem out_maps : fp P {oi} = {oo} := by decide +kernel\n' if oi is not None and oo is not None else ''
+    if oi is None or oo is None: return refuse('no data output channel (chOut) in the import')
+    outmap = (f'theorem out_maps : fp P {oi} = {oo} := by decide +kernel\n'
+              f'/-- The result channel is outside the changed channels, so the theorems speak about the result. -/\n'
+              f'theorem out_kept : {oi} ∉ changed cX := by decide +kernel\n')
     lean = f'''import Formal.Rewrite.PlainPass
 import Formal.Rewrite.Rename
 

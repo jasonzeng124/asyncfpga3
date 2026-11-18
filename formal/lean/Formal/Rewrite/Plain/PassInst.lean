@@ -79,6 +79,9 @@ def cCountloop : Cert where
 
 theorem countloop_check : check Formal.Rewrite.Ring.CountloopHw.rules cCountloop = true := by decide +kernel
 
+/-- The result channel is not among the changed ones. -/
+theorem countloop_out_kept : Formal.Rewrite.Ring.CountloopHw.chOut ∉ changed cCountloop := by decide +kernel
+
 theorem countloop_rs2p : rs2p Formal.Rewrite.Ring.CountloopHw.rules cCountloop = Formal.Rewrite.Plain.CountloopPlainGen.rs2p := by decide +kernel
 
 theorem countloop_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
@@ -142,6 +145,9 @@ def cHorner : Cert where
   c2 := [24]
 
 theorem horner_check : check Formal.Rewrite.Ring.HornerHw.rules cHorner = true := by decide +kernel
+
+/-- The result channel is not among the changed ones. -/
+theorem horner_out_kept : Formal.Rewrite.Ring.HornerHw.chOut ∉ changed cHorner := by decide +kernel
 
 theorem horner_rs2p : rs2p Formal.Rewrite.Ring.HornerHw.rules cHorner = Formal.Rewrite.Plain.HornerPlainGen.rs2p := by decide +kernel
 
@@ -207,6 +213,9 @@ def cQuadrec : Cert where
 
 theorem quadrec_check : check Formal.Rewrite.Ring.QuadrecHw.rules cQuadrec = true := by decide +kernel
 
+/-- The result channel is not among the changed ones. -/
+theorem quadrec_out_kept : Formal.Rewrite.Ring.QuadrecHw.chOut ∉ changed cQuadrec := by decide +kernel
+
 theorem quadrec_rs2p : rs2p Formal.Rewrite.Ring.QuadrecHw.rules cQuadrec = Formal.Rewrite.Plain.QuadrecPlainGen.rs2p := by decide +kernel
 
 theorem quadrec_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
@@ -271,6 +280,9 @@ def cVarshift : Cert where
 
 theorem varshift_check : check Formal.Rewrite.Ring.VarshiftHw.rules cVarshift = true := by decide +kernel
 
+/-- The result channel is not among the changed ones. -/
+theorem varshift_out_kept : Formal.Rewrite.Ring.VarshiftHw.chOut ∉ changed cVarshift := by decide +kernel
+
 theorem varshift_rs2p : rs2p Formal.Rewrite.Ring.VarshiftHw.rules cVarshift = Formal.Rewrite.Plain.VarshiftPlainGen.rs2p := by decide +kernel
 
 theorem varshift_forward {σ0 t : Store Nat Nat} {n : Nat} (h0 : ∀ ch, 3 ≤ ch → σ0 ch = [])
@@ -334,6 +346,9 @@ def cXorshift : Cert where
   c2 := [21]
 
 theorem xorshift_check : check Formal.Rewrite.Ring.XorshiftHw.rules cXorshift = true := by decide +kernel
+
+/-- The result channel is not among the changed ones. -/
+theorem xorshift_out_kept : Formal.Rewrite.Ring.XorshiftHw.chOut ∉ changed cXorshift := by decide +kernel
 
 theorem xorshift_rs2p : rs2p Formal.Rewrite.Ring.XorshiftHw.rules cXorshift = Formal.Rewrite.Plain.XorshiftPlainGen.rs2p := by decide +kernel
 

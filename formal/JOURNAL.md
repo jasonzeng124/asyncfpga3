@@ -3200,3 +3200,11 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   plain_pass's output (plain_simcheck.txt). So the plain_pass output can replace the hash-listed xorshift pre_dec.
 * Lesson: three parallel simcheck runs of the SAME kernel collide in cells/build/kernelsim (vvp syntax errors). Run
   the same kernel sequentially.
+
+### progress 21:56 -- self-review: the result channel is outside `changed` (out_kept), now checked in Lean
+* The pass theorems say the two runs agree on every channel outside `changed X`. If the result channel were in
+  `changed`, they would say nothing about the result. Nothing checked that before.
+* Now checked:
+  - PassInst: `<k>_out_kept : <K>Hw.chOut ∉ changed c<K>` by decide;
+  - plain_pass.py: `out_kept` is in every generated file, and an import with no chOut is refused.
+* Re-run on the 7 PROVED fixtures: all rc 0 with out_kept. check.sh OK (1679 declarations).
