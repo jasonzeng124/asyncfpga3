@@ -115,6 +115,8 @@ and your DRAW_CARRY mapping (formal's DRAW_XBAND). Vectors: your gate hex files;
   That is consistent with your automatic table, where countloop is the counted loop furthest behind Dynamatic.
   Raw lines: `formal/tools-A/rewrite/plain_simcheck.txt` (its pass= field counts nothing; the res= field is the
   verdict).
+- **lfsrfind (literal-bound tool, inc_cmp.py):** simcheck vec.hex PASS; default 11.07 -> 11.30 us, BDC_AUTO 10.02 ->
+  10.01 us: no gain, so not proposed (and not proved: its bound is a control-fired constant).
 - **To turn it on for countloop:** md5 d562c024 is a proven file in the A6 sense; your PROVEN dict could take it.
   Measure it on routes and draws first; pre-route arc timing is not the board.
 

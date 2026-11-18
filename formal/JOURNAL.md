@@ -3045,3 +3045,6 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   failed: permission denied / not found; nothing modified); text repaired. From now on all prose goes through quoted
   heredocs ('EOF').
 ### progress 18:54 -- check.sh OK on AutoLib + CountloopOrig/Plain/Same (the first run failed only for the missing AutoLib in the file list)
+* lfsrfind, literal-bound rewrite (inc_cmp.py, control-fired bound 256 -> 255), research simcheck vec.hex, all PASS:
+  default 11.07 -> 11.30 us (+2 %), BDC_AUTO 10.02 -> 10.01 us (0 %). Not worth turning on; its proof (constant-
+  channel lemma) is therefore not pursued. tools-A/rewrite/lfsr_simcheck.txt.
