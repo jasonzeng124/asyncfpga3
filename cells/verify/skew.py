@@ -556,6 +556,36 @@ def e_join_chains(X, causes, depth):
     return out
 
 
+def back_reach(pin, srcs_of, feed, binc, stops):
+    """Pins that reach `pin`, and how many storage crossings away.  (main()'s
+    back(); a function of the graph's topology alone, so
+    research/tools/ca_fast.py can reuse it.)"""
+    seen, cur = {pin: 0}, {pin}
+    for k in range(K + 1):
+        frontier, lvl = list(cur), set(cur)
+        while frontier:
+            nxt = []
+            for pn in frontier:
+                for s in srcs_of.get(pn, ()):
+                    if (s, pn) in feed or s in seen:
+                        continue
+                    seen[s] = k
+                    lvl.add(s)
+                    if s not in stops:
+                        nxt.append(s)
+            frontier = nxt
+        cur = set()
+        for o in [x for x in lvl if x in stops]:
+            for ip, _ in binc.get(o, ()):
+                if (o, ip) in feed or ip in seen:
+                    continue
+                seen[ip] = k + 1
+                cur.add(ip)
+        if not cur:
+            break
+    return seen
+
+
 def path_to(pred_out, level, node):
     """The exact walk from `launch` to `node` at `level`, as a list of
     (level, node) pairs, launch first.  Reconstructed from `fwd`'s own
@@ -740,31 +770,7 @@ def main():
         return out_f[xlvl][xnode]
 
     def back(pin):
-        """Pins that reach `pin`, and how many storage crossings away."""
-        seen, cur = {pin: 0}, {pin}
-        for k in range(K + 1):
-            frontier, lvl = list(cur), set(cur)
-            while frontier:
-                nxt = []
-                for pn in frontier:
-                    for s in srcs_of.get(pn, ()):
-                        if (s, pn) in feed or s in seen:
-                            continue
-                        seen[s] = k
-                        lvl.add(s)
-                        if s not in stops:
-                            nxt.append(s)
-                frontier = nxt
-            cur = set()
-            for o in [x for x in lvl if x in stops]:
-                for ip, _ in binc.get(o, ()):
-                    if (o, ip) in feed or ip in seen:
-                        continue
-                    seen[ip] = k + 1
-                    cur.add(ip)
-            if not cur:
-                break
-        return seen
+        return back_reach(pin, srcs_of, feed, binc, stops)
 
     def at(levels, pin):
         for k, tab in enumerate(levels):

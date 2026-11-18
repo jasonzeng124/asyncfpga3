@@ -118,6 +118,15 @@ SIZERULE_MLO = os.environ.get("CA_SIZERULE_MLO", "") == "1"
 #     free, not unmeasured); every other line on no constraint is kept, as before.
 JOINAWARE = os.environ.get("CA_JOINAWARE", "") == "1"
 RE_LINK_C = re.compile(r"\.ctl\.u\.u/O6$")     # a bd_link (Muller) controller's C node
+# CA_FAST=1 (opt-in, 2026-11-18; research/tools/ca_fast.py): the same audits, the base run made in this process and
+# every later run (each line's sensitivity, each verify) in a fork of it, with the functions they call memoized exactly
+# (topology by content; walks, rows A' / A'j and the other weight-reading functions by content and by the pins whose
+# arcs they read, so a run that changes a line's arcs recomputes only what read them).  The outputs are the same files,
+# byte for byte (research/tools/auto/ca_fast_e2e.sh).  Unset, nothing changes.  Ignored with --cut / --drop-inst /
+# --osc (those runs change the graph itself).
+FAST = os.environ.get("CA_FAST", "") == "1"
+_ORIG = {}                     # the functions worker() wraps, as first imported (CA_FAST: as ca_fast wrapped them)
+BASE_ARB = []                  # CA_FAST: the base run's (arb_rc, arb_log); rule J reads no scaled arc
 NOMINAL = {"E": None}          # rule E: the request leg is guarded at GUARD_LO; set from args
 SIZED_RULES = set("AEFHIKLBC")  # D is a screen; J has no delay line
 
@@ -132,13 +141,23 @@ def worker(sdf, spec):
     import skew                       # imports tighten with argv = [prog, sdf] (+ --osc for rigs with oscillators)
     import tighten as T
     import arb_fork
+    if FAST:
+        import ca_fast
+        ca_fast.install(T, skew, sys.modules[__name__])
+        if ca_fast.M.gen:             # a forked run: the pins whose outgoing arcs this run's scale changes
+            ca_fast.M.changed = ca_fast.changed_pins(spec.get("scale") or {}, RE_LINK, T.pin_split)
+            ca_fast.M.decrease_only = all(f <= 1 for f in (spec.get("scale") or {}).values())
+            ca_fast.M._stale = None
+            ca_fast.stale_keys()      # before this run replaces any base entry
+    for name in ("parse_sdf", "line_links", "cell_boundary", "audit_fastfall"):
+        _ORIG.setdefault(name, getattr(T, name))
     a_frac, a_min = spec["a_frac"], spec["a_min"]
     T.req_guard = lambda p, t: max(int(a_frac * t), a_min) + T.SLACK
     skew.GUARD_LO, skew.GUARD_HI = spec["glo"], spec["ghi"]
     arb_fork.GUARD_LO, arb_fork.GUARD_HI = spec["glo"], spec["ghi"]
     skew.VERBOSE = True
     scale = spec.get("scale") or {}
-    orig_parse = T.parse_sdf
+    orig_parse = _ORIG["parse_sdf"]
 
     def parse(path):
         edges, celltype, n_io, n_ic = orig_parse(path)
@@ -182,7 +201,7 @@ def worker(sdf, spec):
         return edges, celltype, n_io, n_ic
     T.parse_sdf = parse
     # A zeroed line prices its own links at 0 ps: tighten's RECOMMENDATION (not its margin) divides by that.
-    orig_ll = T.line_links
+    orig_ll = _ORIG["line_links"]
 
     def ll(n, *a, **k):
         try:
@@ -193,11 +212,12 @@ def worker(sdf, spec):
     # Rule A's cell_boundary() lets the packer's constant drivers start a data path (tighten.py's own CONST_DRV
     # comment: a net that never transitions cannot start one; starts_reaching() and skew.py already drop them).
     # On xorshift_s50 seed 1 the GND tie-off into ucmpi0's carry chain was the "latest data" by 3.4 ns.
+    ocb = _ORIG["cell_boundary"]
+    T.cell_boundary = ocb
     if spec.get("drop_const", True):
-        ocb = T.cell_boundary
         T.cell_boundary = lambda *a, **k: {s for s in ocb(*a, **k) if not T.is_const(s)}
     f_rows = []
-    orig_ff = T.audit_fastfall
+    orig_ff = _ORIG["audit_fastfall"]
 
     def ff(*a, **k):
         r = orig_ff(*a, **k)
@@ -221,14 +241,18 @@ def worker(sdf, spec):
             out["skew_rc"] = e.code
     out["skew_log"] = buf.getvalue()
     buf = io.StringIO()
-    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
-        try:
-            out["arb_rc"] = arb_fork.main([str(sdf)])
-        except SystemExit as e:
-            out["arb_rc"] = e.code
-        except Exception as e:                          # no arbiter JSON etc.: a gap, reported
-            print("arb_fork raised %s: %s" % (type(e).__name__, e))
-            out["arb_rc"] = 2
+    if FAST and ca_fast.M.gen and BASE_ARB:           # rule J reads the corner SDF itself, never a scaled arc
+        out["arb_rc"] = BASE_ARB[0]
+        buf.write(BASE_ARB[1])
+    else:
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            try:
+                out["arb_rc"] = arb_fork.main([str(sdf)])
+            except SystemExit as e:
+                out["arb_rc"] = e.code
+            except Exception as e:                          # no arbiter JSON etc.: a gap, reported
+                print("arb_fork raised %s: %s" % (type(e).__name__, e))
+                out["arb_rc"] = 2
     out["arb_log"] = buf.getvalue()
     out["constraints"] = parse_logs(out, f_rows, T)
     if spec.get("rule_a_link", True):
@@ -274,25 +298,35 @@ def rule_a_from_link(T, skew, sdf):
     edges, back, stops = T.routed_graph(pathlib.Path(sdf))
     if getattr(skew, "AND_JOIN", False):        # BD_SKEW_AND_JOIN=1: the same C-element seeding as skew.main()
         skew.AND_NODES.clear(); skew.AND_NODES.update(o for o in stops if skew.RE_CTREE_C.search(o))
-    timing = T.Timing(edges, stops)
+    X = {}
+
+    def build():                                # the timing graph; CA_FAST: only once a site is recomputed
+        X["timing"] = T.Timing(edges, stops)
+        X["binc"], X["srcs_of"], X["feed"] = _incoming(edges, stops)
+        X["side"] = T.fastfall_side_arcs(edges)
+        X["early_edges"] = _side_pruned(edges, X["side"])
+    if not FAST:
+        build()
     chains = T.find_chains(edges)
-    binc, srcs_of = collections.defaultdict(list), collections.defaultdict(set)
-    for s, lst in edges.items():
-        for d, w in lst:
-            binc[d].append((s, w))
-            srcs_of[d].add(s)
-    feed = {(o, ip) for o in stops for ip, _ in binc.get(o, ()) if o in srcs_of[ip]}
-    side = T.fastfall_side_arcs(edges)
-    early_edges = {s: [(d, w) for d, w in lst if (s, d) not in side] for s, lst in edges.items()}
     walks = {}
+
+    def walk(c, lng):                           # skew.walk's tables from c (CA_FAST: the memo, which notes the read)
+        if FAST:
+            return skew.walk(edges if lng else X["early_edges"], stops, X["binc"], X["feed"], c, lng)[0]
+        if (c, lng) not in walks:
+            walks[(c, lng)] = skew.walk(edges if lng else X["early_edges"], stops, X["binc"], X["feed"], c, lng)[0]
+        return walks[(c, lng)]
 
     def at(levels, pin):
         for k, tab in enumerate(levels):
             if pin in tab:
                 return tab[pin], k
         return None
-    out = {}
-    for parent, head, tail, links in T.request_sites(edges, back, chains):
+
+    def site(parent, head, tail, links):        # one request site's A' row, or None
+        if not X:
+            build()
+        timing = X["timing"]
         downstream = T.reaches(edges, tail, stops)
         upstream = {p for p in edges if T.is_output(p) and head in T.reaches(edges, p, stops)}
         own = set(links)
@@ -305,7 +339,7 @@ def rule_a_from_link(T, skew, sdf):
                         and T.pin_split(p)[0] not in own and p not in downstream and p not in upstream
                         and (os.environ.get("CA_JOIN_PEERS") == "1" or not T.pin_split(p)[0].startswith(join_pfx))})
         if not peers:
-            continue
+            return None
         bnd = T.cell_boundary(edges, back, stops, parent)
         ups = T.upstream_bd_links(bnd)
         # a 1-bit link's latch is one whole LUT, '<link>.lat.odd.u' (no $LUT5/6 half), which tighten's
@@ -333,7 +367,7 @@ def rule_a_from_link(T, skew, sdf):
                 if os.environ.get("CA_DEBUG_FOREIGN"):
                     with open(os.environ["CA_DEBUG_FOREIGN"], "a") as dbg:
                         print("A' not tried at %s: %s" % (parent, "no upstream link" if not ups else "common source"), file=dbg)
-                continue                               # common-source pairing: tighten's A is already exact
+                return None                            # common-source pairing: tighten's A is already exact
             peers, partial = unc, True
         inside = lambda p: any(T.pin_split(p)[0] == r or T.pin_split(p)[0].startswith(r + ".") for r in region)
         # a source outside the region that reaches a peer WITHOUT crossing one of the links' latches would launch
@@ -350,19 +384,17 @@ def rule_a_from_link(T, skew, sdf):
                     for s in sorted(s for s in srcs if foreign(s)):
                         print("A' refused at %s: foreign %s (stop %s; outside starts %s)" % (parent, s, s in stops,
                               sorted(x for x in T.starts_reaching(back, s, stops) if not inside(x))[:6]), file=dbg)
-            continue
+            return None
         worst = None
         for link in ups:
             for c in (link + ".ctl.u.u/O6", link + ".ctl.ub/O6"):
                 if c not in stops:
                     continue
-                for lng in (False, True):
-                    if (c, lng) not in walks:
-                        walks[(c, lng)] = skew.walk(edges if lng else early_edges, stops, binc, feed, c, lng)[0]
-                r = at(walks[(c, False)], tail)
+                wf, wt = walk(c, False), walk(c, True)
+                r = at(wf, tail)
                 # the data may cross one storage node more than the request (the link's latch, when the request
                 # leaves the C node directly); a peer first reached deeper than that is a lap, not this token
-                ds = [(at(walks[(c, True)][:r[1] + 2], p), p) for p in peers] if r else []
+                ds = [(at(wt[:r[1] + 2], p), p) for p in peers] if r else []
                 ds = [(v, p) for v, p in ds if v is not None]
                 if r is None or not ds:
                     continue
@@ -376,13 +408,60 @@ def rule_a_from_link(T, skew, sdf):
                 if worst is None or m < worst[0]:
                     worst = (m, g, r[0], r[1], t_d, k_d, peer, c)
         if worst is None:
-            continue
+            return None
         m, g, t_r, k_r, t_d, k_d, peer, c = worst
-        out[parent] = {"rule": "A", "margin": int(m), "knob": parent, "partial": partial,
-                       "text": "%s%s %d links  from %s: req %d (%dx)  data %d (%dx, %s)  guard %d  margin %d"
-                               % (parent, " [peers no common source reaches: %d]" % len(peers) if partial else "",
-                                  len(links), c, t_r, k_r, t_d, k_d, T.pin_split(peer)[0], g, m)}
+        return {"rule": "A", "margin": int(m), "knob": parent, "partial": partial,
+                "text": "%s%s %d links  from %s: req %d (%dx)  data %d (%dx, %s)  guard %d  margin %d"
+                        % (parent, " [peers no common source reaches: %d]" % len(peers) if partial else "",
+                           len(links), c, t_r, k_r, t_d, k_d, T.pin_split(peer)[0], g, m)}
+    out = {}
+    for parent, head, tail, links in T.request_sites(edges, back, chains):
+        r = _per_site("A'", (edges, stops, back, skew), site, parent, head, tail, links)
+        if r is not None:
+            out[parent] = r
     return out
+
+
+def _incoming(edges, stops):
+    """(binc, srcs_of, feed): every pin's incoming arcs and sources, and the storage nodes' own feedback arcs -- as
+    skew.main builds them.  CA_FAST: built once in the base run; a forked run copies binc with its changed pins'
+    arcs re-read, and shares srcs_of and feed (no weight in them)."""
+    if FAST:
+        import ca_fast
+        return ca_fast.incoming(edges, stops)
+    binc, srcs_of = collections.defaultdict(list), collections.defaultdict(set)
+    for s, lst in edges.items():
+        for d, w in lst:
+            binc[d].append((s, w))
+            srcs_of[d].add(s)
+    feed = {(o, ip) for o in stops for ip, _ in binc.get(o, ()) if o in srcs_of[ip]}
+    return binc, srcs_of, feed
+
+
+def _side_pruned(edges, side):
+    """edges without the arcs in `side` (the fast-fall taps): the request walks' graph.  CA_FAST: a forked run copies
+    the base run's and rebuilds its changed pins only."""
+    if FAST:
+        import ca_fast
+        return ca_fast.side_pruned(edges, side)
+    return {s: [(d, w) for d, w in lst if (s, d) not in side] for s, lst in edges.items()}
+
+
+def _per_site(rule, graph, fn, parent, head, tail, links, *extra):
+    """fn(parent, head, tail, links) -> a row (a fresh dict: the caller pops keys) or None.  CA_FAST: memoized per
+    site, keyed by the graph's topology, the C-elements the walks wait on, the environment switches the rules read and
+    `extra` (inputs from other rows), and reused while nothing it read changed."""
+    if not FAST or os.environ.get("CA_DEBUG_FOREIGN"):
+        r = fn(parent, head, tail, links)
+    else:
+        import ca_fast
+        edges, stops, back, skew = graph
+        key = ("site", rule, ca_fast.fp_graph(edges), ca_fast.fp_set(stops), ca_fast.fp_back(back),
+               ca_fast.fp_small(skew.AND_NODES), skew.K,
+               tuple(os.environ.get(v) for v in ("CA_JOIN_PEERS", "CA_ODD_LINKS", "CA_MUX_PEERS", "CA_DEBUG_FOREIGN")),
+               parent, head, tail, tuple(links)) + extra
+        r = ca_fast.call(key, fn, parent, head, tail, links)
+    return dict(r) if r is not None else None
 
 
 def walk_floor(skew, walked_edges, stops, binc, feed, launch, longest, and_nodes, floor=None, req_only=None):
@@ -459,17 +538,12 @@ def rule_a_joined(T, skew, sdf, aprime):
     edges, back, stops = T.routed_graph(sdf)
     celltype = T.parse_sdf(sdf)[1]                    # instance -> SDF CELLTYPE
     and_nodes = {o for o in stops if skew.RE_CTREE_C.search(o)}     # always AND here: the rule's premise
-    binc, srcs_of = collections.defaultdict(list), collections.defaultdict(set)
-    for s, lst in edges.items():
-        for d, w in lst:
-            binc[d].append((s, w))
-            srcs_of[d].add(s)
-    feed = {(o, ip) for o in stops for ip, _ in binc.get(o, ()) if o in srcs_of[ip]}
+    binc, srcs_of, feed = _incoming(edges, stops)
     side = T.fastfall_side_arcs(edges)
-    early_edges = {s: [(d, w) for d, w in lst if (s, d) not in side] for s, lst in edges.items()}
+    early_edges = _side_pruned(edges, side)
     chains = T.find_chains(edges)
     jpath = sdf.with_name(sdf.stem + "_routed.json")
-    jcells = list(json.load(open(jpath))["modules"].values())[0]["cells"]
+    jcells = _routed_cells(jpath)
     en_of = collections.defaultdict(set)              # bd_latch instance -> its enable pins
     for c in stops:
         if not T.RE_BD_LATCH.search(T.pin_split(c)[0]):
@@ -484,6 +558,9 @@ def rule_a_joined(T, skew, sdf, aprime):
     cache = {}
 
     def wk(launch, lng, floor=None, ro=True):
+        if FAST:                                      # the memo (walk_floor's), which notes the read for the site
+            return walk_floor(skew, edges if lng else early_edges, stops, binc, feed, launch, lng, and_nodes,
+                              floor, req_pin if ro else None)
         key = (launch, lng, tuple(sorted((floor or {}).items())), ro)
         if key not in cache:
             cache[key] = walk_floor(skew, edges if lng else early_edges, stops, binc, feed, launch, lng, and_nodes,
@@ -521,10 +598,7 @@ def rule_a_joined(T, skew, sdf, aprime):
         ws = [w for d, w in edges.get(pin, ()) if T.is_output(d) and T.pin_split(d)[0] == T.pin_split(pin)[0]]
         return (max(ws) if worst else min(ws)) if ws else 0
 
-    out = {}
-    for parent, head, tail, links in T.request_sites(edges, back, chains):
-        if parent not in aprime:
-            continue
+    def site(parent, head, tail, links):              # one operator's A'j row (or its "j" row)
         own = set(links)
         inside = [p for p in edges if T.is_output(p) and T.pin_split(p)[0].startswith(parent + ".")]
         downstream = T.reaches(edges, tail, stops)
@@ -647,19 +721,38 @@ def rule_a_joined(T, skew, sdf, aprime):
                    % (len(odd), ", ".join(sorted(short(q) + "/" + q.rsplit("/", 1)[1] for q in odd)[:3]))
                    if odd else "no capture of its data from its upstream links (%d capture pin(s) in its cone, "
                    "none reached from %s within 2 crossings)" % (len(caps), ", ".join(short(x) for x in srcs) or "-"))
-            out[parent] = {"rule": "j", "margin": aprime[parent], "knob": None, "sized": False,
-                           "text": "%s joined: not applied, keeps A': %s" % (parent, why)}
-            continue
+            return {"rule": "j", "margin": aprime[parent], "knob": None, "sized": False,
+                    "text": "%s joined: not applied, keeps A': %s" % (parent, why)}
         m, g, S, p, t_d, k_d, e, t_e, k_e, kind, label, dpath, cpath, ctext, m_own = worst
-        out[parent] = {"rule": "A", "margin": int(m), "sized": True,
-                       "knob": parent if (not ctext or m_own == m) else None,
-                       "text": "%s %d links joined: %d capture(s); worst %s %s  launch %s: data %d (%dx: %s) at %s  "
-                               "capture %d (%dx: %s) at %s%s  guard %d  margin %d  (own-request bound %d)"
-                               % (parent, len(links), len(caps), kind, short(label), short(S), t_d, k_d, dpath,
-                                  short(p) + "/" + p.rsplit("/", 1)[1], t_e, k_e, cpath,
-                                  short(e) + "/" + e.rsplit("/", 1)[1], ("  [" + ctext + "]") if ctext else "",
-                                  g, m, m_own)}
+        return {"rule": "A", "margin": int(m), "sized": True,
+                "knob": parent if (not ctext or m_own == m) else None,
+                "text": "%s %d links joined: %d capture(s); worst %s %s  launch %s: data %d (%dx: %s) at %s  "
+                        "capture %d (%dx: %s) at %s%s  guard %d  margin %d  (own-request bound %d)"
+                        % (parent, len(links), len(caps), kind, short(label), short(S), t_d, k_d, dpath,
+                           short(p) + "/" + p.rsplit("/", 1)[1], t_e, k_e, cpath,
+                           short(e) + "/" + e.rsplit("/", 1)[1], ("  [" + ctext + "]") if ctext else "",
+                           g, m, m_own)}
+    out = {}
+    for parent, head, tail, links in T.request_sites(edges, back, chains):
+        if parent not in aprime:
+            continue
+        r = _per_site("A'j", (edges, stops, back, skew), site, parent, head, tail, links, aprime[parent])
+        if r is not None:
+            out[parent] = r
     return out
+
+
+_JCELLS = {}
+
+
+def _routed_cells(jpath):
+    """The routed JSON's cells (read-only here).  CA_FAST: read once per process."""
+    if FAST and str(jpath) in _JCELLS:
+        return _JCELLS[str(jpath)]
+    cells = list(json.load(open(jpath))["modules"].values())[0]["cells"]
+    if FAST:
+        _JCELLS[str(jpath)] = cells
+    return cells
 
 
 def parse_logs(out, f_rows, T):
@@ -790,12 +883,24 @@ def chain_geometry(T, sdf):
 
 # ============================================================== driver
 
+POOL = []       # CA_FAST: [ca_fast.Pool], once the base run has been made in this process
+
+
 def run_worker(sdf, spec, log=None):
-    r = subprocess.run([sys.executable, __file__, "--_worker", str(sdf), json.dumps(spec)],
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if r.returncode != 0:
-        sys.exit("corner_audit: worker failed:\n" + r.stderr[-3000:])
-    out = json.loads(r.stdout)
+    if POOL:
+        out = POOL[0].run(lambda s: worker(sdf, s), [spec])[0]
+    elif FAST and spec.get("chains") and not (spec.get("cut") or spec.get("drop") or spec.get("osc")):
+        # CA_FAST: the base run, in this process: every later run is a fork of it (ca_fast.Pool)
+        import ca_fast
+        out = json.loads(json.dumps(worker(sdf, spec)))
+        BASE_ARB[:] = [out["arb_rc"], out["arb_log"]]
+        POOL.append(ca_fast.Pool())
+    else:
+        r = subprocess.run([sys.executable, __file__, "--_worker", str(sdf), json.dumps(spec)],
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if r.returncode != 0:
+            sys.exit("corner_audit: worker failed:\n" + r.stderr[-3000:])
+        out = json.loads(r.stdout)
     if log:
         for k, name in (("tighten_log", "tighten.log"), ("skew_log", "skew.log"), ("arb_log", "arb_fork.log")):
             if k in out:
@@ -1015,7 +1120,11 @@ def main():
     # CA_JOBS=N runs the per-line sensitivity workers N at a time (each is a deterministic subprocess, so the results are
     # the same as one at a time; unset = 1, the old sequential order).  The cluster node sets it for the sizing loop.
     ca_jobs = max(1, int(os.environ.get("CA_JOBS", "1") or 1))
-    if ca_jobs > 1 and len(sens_macs) > 1:
+    if POOL:                    # CA_FAST: forks of the base run, ca_jobs at a time
+        sens_runs = dict(zip(sens_macs, POOL[0].run(
+            lambda sp: worker(sdf, sp), [{**spec, "scale": {b: 0.0 for b in lines[mac]}} for mac in sens_macs],
+            jobs=ca_jobs)))
+    elif ca_jobs > 1 and len(sens_macs) > 1:
         from concurrent.futures import ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=ca_jobs) as ex:
             sens_runs = dict(zip(sens_macs, ex.map(

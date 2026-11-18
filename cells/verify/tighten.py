@@ -671,6 +671,26 @@ def reaches(edges, start, stops):
     return seen
 
 
+def site_peers(edges, stops, parent, head, tail, links):
+    """Rule A's peers at one request site: every other output the parent
+    cell produces -- minus the ones that are not peers at all: anything
+    upstream of the chain (the OR that feeds it is not a datapath the chain
+    must cover) and anything downstream of it (a second line hanging off this
+    one is not a race against it either).  -> sorted list.  (A function of
+    the graph's topology alone, so research/tools/ca_fast.py can reuse it.)"""
+    downstream = reaches(edges, tail, stops)
+    upstream   = {p for p in edges
+                  if is_output(p) and head in reaches(edges, p, stops)}
+    # The line's own links are not peers of their own output.
+    own = set(links)
+    return sorted({p for p in edges
+                   if is_output(p)
+                   and pin_split(p)[0].startswith(parent + ".")
+                   and pin_split(p)[0] not in own
+                   and p not in downstream
+                   and p not in upstream})
+
+
 def cell_boundary(edges, back, stops, parent):
     """The start points for a cell's OWN datapath: the nets that enter it from
     outside, plus any state node it contains.
@@ -1660,22 +1680,7 @@ def main():
         n = len(links)
         label = parent
 
-        # Every other output the parent cell produces -- minus the ones that
-        # are not peers at all: anything upstream of the chain (the OR that
-        # feeds it is not a datapath the chain must cover) and anything
-        # downstream of it (a second line hanging off this one is not a race
-        # against it either).
-        downstream = reaches(edges, tail, stops)
-        upstream   = {p for p in edges
-                      if is_output(p) and head in reaches(edges, p, stops)}
-        # The line's own links are not peers of their own output.
-        own = set(links)
-        peers = sorted({p for p in edges
-                        if is_output(p)
-                        and pin_split(p)[0].startswith(parent + ".")
-                        and pin_split(p)[0] not in own
-                        and p not in downstream
-                        and p not in upstream})
+        peers = site_peers(edges, stops, parent, head, tail, links)
         if not peers:
             print(f"  {label:<22} {n:>2} links   nothing inside {parent} for "
                   f"this request to wait for")
