@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""rules_iso.py A B -- are two imported rule lists the same graph up to channel renaming and rule order?
+"""rules_iso.py A B [MAPS.json] -- are two imported rule lists the same graph up to channel renaming and rule order?
 
 A, B: either a dfimport .lean file (`def rules : List Rule := [...]`) or the output of Lean `#eval` of a List Rule.
 Channels 0..2 (function arguments) are anchored to themselves; the rest is matched by propagation: a rule of A is
@@ -84,7 +84,12 @@ def main():
                     if ca not in m: m[ca] = cb; used.add(cb)
                 ma[ia] = ib; mb.add(ib); changed = True
     if len(ma) == len(A) == len(B) and len(set(m.values())) == len(m):
-        print("ISOMORPHIC (%d rules, %d channels)" % (len(A), len(m))); return 0
+        print("ISOMORPHIC (%d rules, %d channels)" % (len(A), len(m)))
+        if len(sys.argv) > 3:
+            import json
+            json.dump({'chan': {str(a): b for a, b in m.items()}, 'rule': {str(a): b for a, b in ma.items()}},
+                      open(sys.argv[3], 'w'))
+        return 0
     print("NOT MATCHED: A rules", [i for i in range(len(A)) if i not in ma], "B rules", [i for i in range(len(B)) if i not in mb])
     return 1
 
