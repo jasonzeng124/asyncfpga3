@@ -4416,3 +4416,5 @@ Check for others: every number reported today comes from a run that printed its 
 - 00:25 injected draws on cand4 at 0.25x and 0x of non-compare delay: collatz x0.70 s27 8/8 / 8/8 (27.5 / 27.3 us vs 32.6), ipow x0.70 s31 8/8 / 8/8 (4.47 / 4.17 vs 6.09). Testing with a real build: collatz x0.70 sizes with every non-compare size at 1 (c70_min1), seed 27, formal draws + research's own gate (draw 2701, worst).
 
 ### progress 00:50 -- C52: real build collatz x0.70 s27 with every non-compare size at 1 (b691adef): formal 16/16 draws; research's bench_gate draw:2701 and worst PASS 17/17 EQUIVALENT; steer 519-3185 ps.
+
+### progress 02:55 -- (container restart at ~00:5x lost the running min2 job after most of it had finished) min1 on more routes: collatz s1/s2/s3 8/8 each (entry steer 183 w/ 2 runts / 299 / 337 ps); ipow s31/s1 8/8 (515 / 1139+); ipow s2 is the F7-select defect (research's fasm_equiv NOT EQUIVALENT), not timing. research gate worst: collatz plain s27 5516 cycles vs min1 4768. C52 updated.

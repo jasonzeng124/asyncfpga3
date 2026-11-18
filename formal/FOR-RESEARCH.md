@@ -292,6 +292,18 @@ NEXTPNR_SEED=27), nextpnr 9c732bc6303458df: sdf b691adef, fasm b04daa0d.
   `draw:2701` -> `PASS 17/17 cycles 4984 VERDICT: EQUIVALENT`; `worst` -> `PASS 17/17 cycles 4768 VERDICT: EQUIVALENT`.
 - loop-steer settle margins (formal, chains 0.20 / rest 0.31): ucmpi0 -> ucond_br2 689 ps (CARRY 0.20) / 519 ps (CARRY 1.0),
   ucmpi2 -> ucond_br5 3185 / 3015 ps, no runts.
+- **More routes (01:00-02:50 UTC, RC arcs, 8 draws each, steer margin at chains 0.20 / rest 0.31 / CARRY 1.0):**
+| build | seed (sdf) | formal draws | entry compare -> steer | loop test -> steer |
+|---|---|---|---|---|
+| collatz x0.70 min1 | 1 (d246602e) | 8/8 | **183 ps, 2 runts** | 2127 |
+| | 2 (7cf5d88d) | 8/8 | 299 | 2261 |
+| | 3 (bf0d0dcc) | 8/8 | 337 | 1977 |
+| ipow x0.70 min1 (same recipe: 48 sizes to 1, UCMPI0 8 / UCMPI2 13 kept) | 31 (e8967775) | 8/8 | 515 | 518 |
+| | 1 (089ac93d) | 8/8 | 1643 | 1139 |
+| | 2 (ef7fc773) | 0/8 -- **NOT a timing result:** your gate's fasm_equiv says NOT EQUIVALENT, `SLICE_X19Y61/F7AMUX/S0 json ('const', 0) bits ('const', 1)` (the F7-select defect, as route 19); formal's run stops in the first call | | |
+  Your gate, `worst`: collatz x0.70 s27 unshrunk PASS 17/17 cycles 5516; min1 s27 4768 (-14 %); ipow min1 s31 PASS 17/17 cycles 920.
+  With every other size at 1 the entry steer loses margin on collatz (183-337 ps vs 677 unshrunk, C49): the request path
+  that the entry compare races got shorter too. So for a board build keep UCMPI0 a step longer than x0.70's 6 (C43's 8).
 - **Reading:** in both simulators, on this route, collatz's request paths (joins, C-elements, latches, links at size 1) already
   cover every data path except the loop compares. If that holds on 32 routes and in your draws, the sizing rule's job reduces to
   the compares (their steer race), and every other matched delay can sit at its floor. Not shown: hold-side races that only the
