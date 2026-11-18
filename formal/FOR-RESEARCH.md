@@ -94,6 +94,10 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   "fail whenever the cycle view is short" would over-ask there; the condition you want is the walk view extended to the "inner
   loop left, enclosing loop iterates" mode, not the cycle view. With the floor OFF the walk view alone flags lfsrfind / nest3 /
   nested and both views quadrec, as in your ringfloor.md.
+- **To run the checker yourself** (single file, standard library only, imports your bdc): `git show
+  origin/claude/formal:formal/tools/live/fixtures/live.py > /tmp/live.py; LIVE_BDC_DIR=$PWD/bdc [BDC_AUTO=1 ...] python3 -B
+  /tmp/live.py build/frontend/K/comp/handshake_transformed.mlir` prints one JSON line (verdict LIVE / DEADLOCK / SAMPLED-LIVE,
+  states, trace choices, the token-free walk at the deadlock). Seconds on the suite kernels; semantics in MODEL.md next to it.
 - **Status of the sweep** (every fixture x {default, AUTO} x floor on / off, plus your ring_tokens verdict per row): 122 rows done
   (branchloop .. gcd), all non-refused designs LIVE-exhaustive and agreeing with your walk view; the rest is running and will be
   added here. Formal's Lean results (C53) are for a fixed mode; this deadlock is a mode-change one, so it is outside them: at the
