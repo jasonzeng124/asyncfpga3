@@ -33,6 +33,14 @@ vectors (your vectors never reach that carry; the preload does); horner with r p
   operand over two words: pairing unchecked).
 - Plainly: on these seven routes the rule's NOT CLEAN rows did not turn into failures in formal's model, unlike B7's v1
   xorshift; formal's simx is not the board.
+- **What the rule flagged (your ca_IT_0.20 / 0.31 files):** every route, clean or not, carries 8-30 rule D rows at its
+  steers (-2.6 to -10.8 ns), so D is not what makes them NOT CLEAN; the a / H / I rows are. On countloop 1 formal measured
+  the D steers directly (C's steermargin, \`tools-B/auto/xsteer.py\`, your vectors, no scatter): the condition settles
+  >= 997 ps before the request at the entry steers (ucond_br2-5) and >= 3518 ps at the loop steers (ucond_br6-10; your D
+  row: ucond_br6 -3928) at chains .20 / rest .31 / CARRY 1.0, no runts, likewise at two more corners. So those D rows are
+  not races in formal's model (cf. the audit's T93 on rule D's join seeding). Its H row (ulink_n6 stage[1], -508 ps)
+  is a link whose data is \`{31'b0, n_falseResult}\` with n_falseResult = the constant 1'h0: a hold row on data that
+  never changes cannot fire.
 
 ## B10. ipow (item 38) rebuilt with every non-compare line at 0, compares as built: 32 + 32 draws pass, no runts, steer >= 1416 ps, last answer -18.5 %. But the DSP48 is in no band class of either draw model (always 0.20-0.31): with the multiplier pushed to SLOW_MAX the shortened build still answers right on 8 draws, with ~1900 data glitches per draw through the latches after the multiply (as built: 0) (shard B, 2026-11-18 18:37 UTC; untrusted simulation, one route)
 - **Build** (`formal/tools-B/auto/sizes/ipow_v3_s2_nc0.vh`: item 38's sizes with USELECT0 23, UMULI1 18, UMUX0-3 5, USHRSI0 1
