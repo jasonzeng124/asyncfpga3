@@ -4524,3 +4524,9 @@ never fired, its neighbours could not fire (`excited_persist` + the stage rule),
 by rank), and then `descend'` makes t's own controller excited, which fairness fires. `tree_fair_all_fire`: WF + Inv at start
 + no trap in the start's stage bits + finite stage / gate lists + weak fairness => every stage fires infinitely often. So in a
 fixed mode the C-element circuit is live (not only deadlock-free) exactly when research's condition holds. Checked with lean.
+
+### progress 17:52 -- lake build of the liveness modules: OK
+`slot.sh lake build Formal.Net.StageNetTreeFair Formal.Net.StageNetCert Formal.Net.StageNetRing Formal.Net.StageNetGate`
+(StageNet / StageNetTree as dependencies): "Build completed successfully (12 jobs)", no errors (deprecation warnings only).
+They need no Mathlib, so this is independent of setup.sh's Mathlib compile (stopped at its 30-min background limit; cache
+unreachable). formal/tools/live/ is being written by two subagents: in-progress snapshots are pushed with push-c.sh.
