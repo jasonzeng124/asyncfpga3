@@ -4573,3 +4573,8 @@ Sampled only: gcd AUTO, nest3. isprime 2-invocation timed out. Floor-off deadloc
 ### progress 18:37 -- PROGRAM re-read (owner 18:35: nobody stops at 23:00; from then at most 2 subagents per shard); FOR-FORMAL unchanged
 since the morning (automatic flow v5 listed, routes to come). Research has not answered C53-C58 yet; audit has no row on them.
 Running: live.py with a 6M-state budget on nest3 (default) and gcd (AUTO), the two emitting fixtures still only sampled.
+
+### progress 18:38 -- StageNetMux.lean: bd_mux's join LUTs from their INITs are C-elements in a fixed mode
+uj1 (EA80) / uj0 (AE08), rst 0: selected -> C(req, ctl_req); unselected -> C(req, 0) (can only fall); rst 1 -> 0; by decide on the
+INIT bits. Mutants (a used bit flipped in either INIT) fail to compile (checked; a first mutant flipped an I5=1 bit, which these
+theorems never read -- correctly unaffected). Not covered: select changes (C53/C56 race), timing, glitches, X.
