@@ -4833,3 +4833,14 @@ time (/home/user/b/suiteq.sh, scratch; tools-B/auto/suite/task.sh). countloop 2 
 identical to research's, decoded from the bits, 32/32 + 32/32 slow-carry. lsj_c0 (B9): c32hi 8/8, preloaded steps 8/8,
 slacks 10585 / 7421, steer >= 3104 / 2006, 0 runts (B9 updated). DSP: only ipow has DSP48s among items 38-41; item 38 as
 built is clean with the DSP at SLOW_MAX (B10).
+### progress 18:51 -- counted-loop suite kernels: counter preloaded (tools-B/auto/suite/ploracle.py, preload.sh); countloop s1 passes; collatz64 strict linescale
+- ploracle.py: countloop / horner / brhash / varshift transcribed from kernels/K/K.c, started at i = I0, in the rotated
+  loop's order; equal to research's oracle.sh (C, gcc) at I0 = 0 on 3 vectors each. preload.sh: preload_net on the
+  entry link + xdraws.
+- countloop seed 1 (97dda2e9): i's entry is ulink_n8__0 (fork3 -> umux0; s takes ulink_n8__1). i0 = 0x3ffffff0, 5 calls
+  with n up to 0x40000010: 8/8, slow-carry 8/8; i0 = 0x7ffffff0 (n 0x7fffffff, 0x7ffffffa): 8/8; NEARMISS 0 throughout.
+  Controls: oracle from 0x3ffffff1 fails 1/1; +20 ns / +100 ns on uaddi1 slice[7] (SLICE_X22Y66) carry-in fails 2/2
+  preloaded and passes 2/2 on the ordinary vectors (so the preload reaches the counter's top carry; its slack < 20 ns).
+- collatz64 item 40 strict linescale: ucmpi0 (17) 0.5, ucmpi2 (13) 0.25, uaddi0 (12) 0.5; uaddi1 (15), umux0 (10),
+  uselect0 (8), umux1 (6), umux2 (5): 0. Same pattern as items 39 / 41 / 38.
+- varshift 1 (ae9d045b) rebuilt identical; draws running.
