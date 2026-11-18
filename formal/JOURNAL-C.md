@@ -4483,3 +4483,16 @@ Inv a gate step is a StageNet step or leaves the stage bits alone), `gate_dead_s
 stage), `gate_deadlock_free` (Inv + no trap in the stage bits => no reachable gate deadlock). NOT covered: C-element trees
 (bd_ctree, > 4 inputs) and buffer chains / matched delay lines between a stage and its join (more than one gate in between),
 mode changes, steer / mux-select AND gates (constant in a fixed mode), timing, glitches, X. Checked with lean (core only).
+
+### progress 17:15 -- StageNetTree.lean: the refinement for any acyclic C-element trees and buffer chains
+Generalises StageNetGate to what bdc emits between stages: matched delay lines (buffer chains = one-input C-elements),
+bd_ctree join trees, fork acknowledge trees. Wiring: gates with nonempty inputs, owner stage, kind (request / acknowledge
+tree), rank (acyclic); `WF`: gate inputs that are gates share owner and kind with smaller rank, roots belong to their stage,
+every gate lies under its owner's root, the stage leaves of t's request tree are exactly E's feeders of t and those of its
+acknowledge tree exactly E's consumers. Invariant `Inv` (all-zero reset: `inv_zero`; `inv_step`): request-tree gate = owner
+or all its inputs equal it; acknowledge-tree gate = owner implies all its inputs equal the owner. Closure lemmas `jclose` /
+`fclose` (whole subtrees), `tproj_step`, `dead_stage_dead` (by descending a tree to an excited gate, `descend`), and
+`tree_deadlock_free`: Inv + no trap in the stage bits => no reachable deadlock of the gate network. So research's condition
+(no token-free closed walk) is sufficient for the C-element circuit in a fixed mode, not only for its stage abstraction.
+NOT covered: the steer / mux-select AND gates and FASTFALL's AND (a wire / constant only with the routing fixed), mode changes,
+the arbiter, timing (H_SI), glitches, X. Checked with lean (core-only chain).
