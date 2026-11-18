@@ -4827,3 +4827,9 @@ memory ABI and the 64-bit operand pairing is unchecked.
   -18.5 %. DSP48 gates are unclassed in draws.py (rest band 0.20-0.31); with dsp_slow.py (DSP at >= SLOW_MAX) the
   shortened build is right 8/8 but shows ~1900 latch-data glitches per draw after the multiply (as built 0).
 - PROGRAM re-read 18:29: B no longer stops at 23:00 (owner 18:35); <= 2 subagents after 23:00.
+### progress 18:48 -- suite routes locally (farm held by research's suite9): countloop 2, sqrtsub 1 pass 32 + 32; lsj_c0 fully checked
+Farm b_suiteauto2 / b_lsj wait behind research's suite9 (92 tasks); the NOT CLEAN suite routes now run locally one at a
+time (/home/user/b/suiteq.sh, scratch; tools-B/auto/suite/task.sh). countloop 2 (526cfe59) and sqrtsub 1 (77f952f2): sdf
+identical to research's, decoded from the bits, 32/32 + 32/32 slow-carry. lsj_c0 (B9): c32hi 8/8, preloaded steps 8/8,
+slacks 10585 / 7421, steer >= 3104 / 2006, 0 runts (B9 updated). DSP: only ipow has DSP48s among items 38-41; item 38 as
+built is clean with the DSP at SLOW_MAX (B10).
