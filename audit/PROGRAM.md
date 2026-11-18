@@ -19,13 +19,20 @@ their code as the thing under test, not as a reference. Assume every claim
 is wrong until you have reproduced it. A claim you could not check is
 **UNVERIFIED**, not passed.
 
-## Quota: land near 95% by the reset (owner, 2026-11-18 00:13 UTC)
+## Quota (owner, 2026-11-18 16:48 UTC): a full allowance until the reset, then alone again
 
-The week's quota stood at 78% at 00:13 UTC, 23 hours before the reset (2026-11-18 23:00
-UTC); with the raised limits the five bots together used about 5 points an hour. The owner:
-"can you try to end on 95% ish". So **from now until the reset: no subagents.** The "4 until
-the reset" is withdrawn. Work alone, on research's automatic path first (see below). After
-the reset the limit is 2 again. Re-read this file every two hours.
+The week's quota ran out at 10:16 UTC today and every bot stopped. At 16:48 UTC the owner:
+"oh btw you have an entire week of usage before w6pm". The allowance is full again, and what
+is unused is lost at the reset, 2026-11-18 23:00 UTC.
+
+- **Until 23:00 UTC today: up to 4 subagents at a time.** Side by side: the automatic
+  column of research's headline table, reproduced from clean with the one switch and nothing
+  per kernel; board items 38 and 39 (the first automatic builds); the suite's expected
+  values against your own compile of each kernel's C; the fixes research lands today for the
+  deadlocks the suite found.
+- **From 23:00 UTC: no subagents.** Steps cost quota, each one re-reads the context: wait
+  for a build in one long command, not in many short checks.
+- Re-read this file every two hours, and once more at 23:00 UTC.
 
 ## Effort and subagents (owner, 2026-11-05)
 
