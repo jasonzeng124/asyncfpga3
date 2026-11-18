@@ -65,3 +65,15 @@ the `.fasm` (the bitstream is `fasm2frames` of it); a board run of the build nee
 
 Measured since (2026-11-15/16, shard C's margin tool `formal/tools/margin/run.sh`): see the table above. Its own
 outputs: `formal/tools/margin/out/farm_<build>/`.
+
+## 2026-11-18 (A, from shard B's B8 / B9 / B10): research's automatic-path board items 38-41
+Untrusted simulation (formal's simx on the builds' own bits, research's draw model). No kappa_lo for any of them; the
+"binding race" column is the line that bounds shortening, from B's linescale on ONE placement (not a buildable circuit).
+| item | kernel | sdf md5 (prefix) | draws as built | binding race / tightest line | source |
+|---|---|---|---|---|---|
+| 38 | ipow | 81bbe268 | every draw passes (B8) | entry compare ucmpi0 (0.75 of built length needed), loop compare ucmpi2 (0.25); DSP48 in no band class of either draw model (B10) | B8, B9, B10 |
+| 39 | collatz | c56def07 | every draw passes (B8) | entry compare ucmpi0 n == 1 (0.5); shortening it to 7 FAILS on a rebuild (entry-compare steer 318 / 41 ps with runts, B7's race) | B8, B9 |
+| 40 | collatz64 | 9585dde4 | every draw passes (B8) | ucmpi0 n == 1 (0.5), ucmpi2 (0.25), 3n+1 (0.5) | B8, B9 |
+| 41 | xorshift | 3497ca67 | every draw passes (B8) | loop compare ucmpi1 (0.75), entry ucmpi0 (0.25) | B8, B9 |
+Loop-steer settle >= 1.28 ns with no runts on all four as built (B8). Shard A's rewrite work today (A19-A21) does not
+change these builds.
