@@ -111,6 +111,10 @@ while :; do
   # phase 2 raises with one element of headroom: each re-route moves the small margins by a few hundred ps (local v4
   # xorshift seed 8: 5, 3, 4 constraints short at -5..-278 ps on three raise-only routes), about one element
   ro=""; [ "$ph" = 2 ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1}"
+  # it 1 is a recalibration: the start's proposal under-delivers on the compact route it produces (xorshift seed 2,
+  # flow v5: 50 constraints short at it 1), so its raises are not oscillation; pinning them kept UCMPI1 at 15 for good
+  # (the loop ended at 129 links / 23.0 ns where v2 had 103 / 16.7). Pinning starts at it 2.
+  [ "$i" = 1 ] && [ "$ph" = 1 ] && ro="--nopin"
   st=$(python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
        "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" $ro)
   echo "it $i $(cat "$O/it_$i.txt") | $(echo "$st" | head -1)${ro:+ (raise-only)}" >> "$O/log.txt"

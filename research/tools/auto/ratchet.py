@@ -25,6 +25,8 @@ cur, order = rd(sys.argv[1])
 prop, _ = rd(sys.argv[2])
 neg = [l.rstrip("\n").split("\t") for l in open(sys.argv[3]) if l.strip() and not l.startswith("rule\t")]
 RAISE_ONLY = "--raise-only" in sys.argv   # the finish phase (auto_size.sh): every line max(CUR, PROP), none lowered
+NOPIN = "--nopin" in sys.argv             # it 1 (auto_size.sh): follow the proposal, pin nothing (a recalibration)
+sys.argv = [a for a in sys.argv if a != "--nopin"]
 HEADROOM = 0                               # --headroom N: a line raised gets N more elements than the rule asks
 if "--headroom" in sys.argv:
     i = sys.argv.index("--headroom"); HEADROOM = int(sys.argv[i + 1]); del sys.argv[i:i + 2]
@@ -37,7 +39,7 @@ with open(sys.argv[4], "w") as f:
             % (sys.argv[1], sys.argv[2]))
     for mac in order:
         p = prop.get(mac, cur[mac])
-        if p > cur[mac]:
+        if p > cur[mac] and not NOPIN:
             pinned.add(mac)
         v = max(cur[mac], p) if (mac in pinned or RAISE_ONLY) else p
         if p > cur[mac]:
