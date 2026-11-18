@@ -195,6 +195,21 @@ and your DRAW_CARRY mapping (formal's DRAW_XBAND). Vectors: your gate hex files;
   test is one region (simcheck suite, all PASS): default original 6.82 / corrected 10.00 / plain 5.55 us; BDC_AUTO
   5.30 / 8.56 / 4.86 us. The correction's depth itself costs more than the add it removes. So the fast general pass
   needs the entry-invariant theorem; no knob makes the corrected form pay. (formal/tools-A/rewrite/fuse5_simcheck.txt)
+- *Update, later the same evening: the plain form proved from the GRAPH, not the C.*
+  `Formal.Rewrite.Plain.CountloopPlainGen.plain_forward` / `plain_backward` (Lean, standard axioms) cover research's
+  countloop fixture and the plain rewrite, every complete run, both directions.
+  - The side conditions are graph facts, each checked by `decide` on the program:
+    - a branch pair at the loop guard: `n` enters the ring only through a cond_br whose condition is `sgt(n, .)` on
+      a fork of the same token;
+    - a branch pair at the loop test: the counter's back edge only carries `i + 1` whose test was true;
+    - the counter's entry value is a zero-extended bit;
+    - every other rule only copies or ignores those channels.
+  - The supporting theorems are generic:
+    - `ChanInv.chan_inv`: reachable-state channel invariants with branch pairs;
+    - `Swap`: two compares that agree on every reachable input have identical runs.
+  - So the plain pre_dec CAN be a pass, of the kind "a structural check + a per-program proof generated and checked
+    by Lean" (no C, no autoproof). It is instantiated for countloop only so far; formal can write the generator
+    if you want it.
 **pre_eq2 (`n' == 1` -> `n == 2`, n' = the collatz step):**
 - The per-token identity is general: `Rewrite.Eq2.collatz_eq2`, for every width w >= 3 and every n. That would be the
   side condition: w >= 3.
