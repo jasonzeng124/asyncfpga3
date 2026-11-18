@@ -6312,3 +6312,16 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   few on the rings, and the full-range rule oversizes counters by >= 8 ns of slack. The joinrule subagent takes the
   "capture that does not happen" term; a cycle-aware step (shrink only the event graph's on-cycle lines, judged by
   draws) is the next candidate after it.
+### progress 00:16 (owner 081281596: at most 2 subagents until the reset; Dynamatic estimator landed)
+- PROGRAM "Quota: land near 95 % by the reset" (owner, 00:13 UTC; 78 % used): at most 2 subagents at a time, both on
+  "General first" and the suite. Kept: suitek (the suite's scalar kernels, oracle, SUITE.md) and joinrule (the sizing
+  rule's "capture that does not happen" term). Asked to stop now and write up what they have: bandfit, pnrfix, suiteb
+  (bench ABI; resumes later from its notes). dynref and suited had finished.
+- dynref (reviewed, cbad99cc3): research/tools/suite/dynamatic_est.py simulates Dynamatic's own on-merges circuit
+  (dynamatic-opt here; units transcribed from dynamatic/data/verilog) cycle by cycle, every call checked against the C
+  (310 calls on 62 kernels right); the period is Dynamatic's timing model's longest path x 0.793, fitted on the three
+  routed kernels (rms 7.3 %, worst leave-one-out 16 %): an ESTIMATE. Cycle counts confirm the hand derivations:
+  xorshift / collatz / collatz64 1 per iteration, ipow 5 (no placement below 4), gcd 3.03 per main iteration + 1.00
+  per shift. MILP placement cannot run here (no Gurobi / CBC). The suite table now takes Dynamatic's figure from it
+  where nothing was measured (ipow 50.0 replaces the hand 67; gcd 50.6 in our P's unit, main + one shift).
+- .gitignore: dynamatic/ and circt/ anchored to the root (the unanchored pattern hid research/data/suite/dynamatic/).
