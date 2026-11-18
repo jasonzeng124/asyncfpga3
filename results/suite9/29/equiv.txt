@@ -1,0 +1,41 @@
+1. CELLS  routed JSON 9645 bels, bitstream 9642 bels, common 9642
+2. CONFIG  compared {'BUFGCTRL': 1, 'CARRY4': 84, 'SLICE_FFX': 1956} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+2b. DSP48E1  0 compared: control words (OPMODE/ALUMODE/INMODE/CARRYINSEL/CARRYIN), register/input parameters, drivers of every data pin the modelled function reads
+2c. RAMB18E1  0 compared: configuration (mode, widths, output register, write mode, INIT_A/SRVAL_A, INIT content), effective CLK/EN/RST and port B enable, drivers of every ADDR/DI/DIP/WE pin
+3. CONNECTIVITY  29884 pins with the same driver on both sides
+   driver->sink pairs: json 31592, bits 44911, common 29884
+4. LUT FUNCTIONS  6997 LUTs compared, 6997 identical over every input assignment
+5. ROUTING  10268 nets with identical pip sets, 0 differ (2 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+
+DIFFERENCES (8 kinds):
+       1  BUFGCTRL I1 unconnected in JSON, connected on the board by the mux's all-zero default (deselected)
+            BUFGCTRL_X0Y0/BUFGCTRL/I1 <- ('const', 1)
+   10632  LUT pin unconnected in routed JSON, constant 1 on the board, gen.py ties 0 (harmless iff section 4 finds the function identical)
+            SLICE_X0Y31/A/A1
+            SLICE_X0Y31/A/A2
+            SLICE_X0Y31/A/A4
+            SLICE_X0Y32/A/A1
+    1708  PS7 input tied to a constant in JSON, not modelled (outside ps7_pins.py)
+            PS7_X0Y0/PS7/DMA0ACLK <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DAREADY <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRLAST <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRTYPE0 <- ('const', 0)
+       2  cell in routed JSON, not configured by the bits (HAS LOADS)
+            SLICE_X27Y39/F7AMUX SELMUX2_1 bridge_i.udut.ucontrol_merge4.$abc$22981$auto$blifparse.cc:557:parse_blif$22987.
+            SLICE_X27Y39/F7BMUX SELMUX2_1 bridge_i.udut.ucontrol_merge4.$abc$22981$auto$blifparse.cc:557:parse_blif$22987.
+       1  cell in routed JSON, not configured by the bits (it has NO loads)
+            SLICE_X27Y39/F8MUX SELMUX2_1 bridge_i.udut.ucontrol_merge4.$abc$22981$auto$blifparse.cc:557:parse_blif$22987.
+       2  json pips that ARE in the bits but reach no live sink (routing to a dead bel)
+            ('SLICE_X28Y34/D6LUT', 'O6'): 5 pips, e.g. [('INT_L_X20Y37/NL1BEG_N3', 'INT_L_X20Y37/NW2BEG3'), ('INT_L_X20Y37/NW2BEG3', 'INT_R_X19Y38/NL1BEG2')]
+            ('SLICE_X28Y37/C6LUT', 'O6'): 10 pips, e.g. [('INT_R_X19Y39/FAN_BOUNCE7', 'INT_R_X19Y39/BYP_ALT0'), ('INT_R_X19Y39/BYP_ALT2', 'INT_R_X19Y39/BYP2')]
+    1044  pin unconnected in routed JSON, same constant (0) on the board as gen.py's tie
+            SLICE_X0Y33/D5FF/SR
+            SLICE_X0Y34/BFF/SR
+            SLICE_X0Y35/CFF/SR
+            SLICE_X0Y37/BFF/SR
+    3350  pin unconnected in routed JSON, same constant (1) on the board as gen.py's tie
+            SLICE_X0Y31/A/A6
+            SLICE_X0Y32/A/A6
+            SLICE_X0Y36/A/A6
+            SLICE_X0Y44/D/A6
+VERDICT: NOT EQUIVALENT: cell in routed JSON, not configured by the bits (HAS LOADS)
