@@ -13,7 +13,10 @@ applies, each one written next to the emit.py / mem.py check it mirrors:
   lsq          an `lsq` op: Dynamatic placed a load-store queue (bd-config.json: todo; no width rule)
   ram          an internal or constant array (generic-syntax "handshake.ram"): bdc/hs/parse.py does not parse it
   mem>1024     a memref deeper than one bd_mem (mem.py check(): RAM_WORDS = 1024)
-  mc:store     a mem_controller with a store accessor (emit.py _op_mem_controller: no remainingStores counter)
+  mc:store     a store that is not the LAST accessor of its controller's program-order chain (emit.py
+               _resolve_mem_accessors: its completion would feed both the next accessor's token and its block's
+               completion join -- a fork not built).  Until 2026-11-18 (research/data/suite/stores.md) every
+               controller with a store had this tag: memEnd had no remainingStores rule at all
   mc:load1st   a mem_controller with two accessors, the first a load (emit.py _resolve_mem_accessors: the token
                chain takes the first accessor's z, which only a store leaves free)
   mc:>2        a mem_controller with more than two accessors (emit.py _resolve_mem_accessors / mem.py emit_port:
@@ -86,7 +89,7 @@ def analyse(mlir):
                     ordered.append(pop)
             shape = "".join("L" if o == "load" else "S" for o in ordered)
             shapes.append(shape)
-            if "S" in shape:
+            if "S" in shape[:-1]:
                 out.add("mc:store")
             if len(ordered) > 2:
                 out.add("mc:>2")
