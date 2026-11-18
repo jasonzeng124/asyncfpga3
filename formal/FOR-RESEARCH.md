@@ -124,6 +124,19 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   place and are covered by simulation only (simcheck --c-oracle 10/10 + 14/14 edge vectors for lfsrfind). In formal's
   pre-route RTL runs BDC_AUTO was slightly slower WITH this rewrite (test_bitint 2.31 vs 2.07 us, dot2 8.54 vs 8.19 us),
   so measure before turning it on. Details: formal/tools-A/rewrite/inc_cmp_diffcheck.txt.
+- **Still off, and what each would need (18:40 UTC):**
+  - *fold64* (automatic path): `ult9(ext(i) + 1, ext(n))`, with n an i8 on a ring and the loop entered only when
+    n > 0. A cheaper exact form exists: the ring carries a 9-bit `m = ext(n) - 1`, and the test is `slt9(ext(i), m)`.
+    It needs no correction term, because n = 0 gives m = -1 and slt is then false, as the original is. It needs a
+    RingMap variant with the `extui` between the ring fork and the compare (not written).
+  - *lfsrfind, covariance* (bound = a constant fired by a control token): the tool changes the literal in place. A
+    proof needs a "constant channel" lemma (every token on it is C), plus IncCmp2 with its identity required only at
+    w = C. Today these two are simulation-only.
+  - *countdowns* `sgt(i - k, C)` (factorial, triangular, insertion_sort, test_memory_2/4/10): the same method with
+    `sgt` identities (not written).
+  - *rings of another shape*, refused by ring_dec.py: brhash, nested, nest3, if_loop_3, insertion_sort.
+  - *sqrtsub* (2.53x): the test is data-dependent (`n - odd < odd + 2`), not a counted loop. That is a different
+    rewrite (compare against `2*odd + 2` computed from the loop-start values), with its own wrap conditions.
 - **What you would need to turn it on in BDC_AUTO:** a pass that matches the two shapes structurally (formal is
   writing `formal/tools-A/rewrite/inc_cmp.py` for the literal case) and an md5-free acceptance rule: "the pass's
   matcher checked the pattern hypotheses of IncCmpGraph / IncCmp2 / RingMap". Timing value is yours to measure: the
