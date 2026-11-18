@@ -29,7 +29,8 @@ simulates it.  Here, at zero wire delay, 12 arcs are 1488 ps: the acknowledge an
 exists, and a load that captures its word at the acknowledge (bdc_load_cap: every load on an arbitrated port) returns
 the PREVIOUS word on its port -- wrong values that are this model's, not the kernel's (research/data/suite/memorder.md).
 So by default every RAM port's DCO parameter is raised, in this testbench only, to cover the clock-to-out at this
---route-ps (`MEMTB note: DCO ...`), as rule C requires of a route; --keep-dco keeps the emitted value.  Either way a
+--route-ps (+ 3 arcs; 12 -> 23 at 0 ps, nothing at 350; a `MEMTB note:` line says so), as rule C requires of a route;
+--keep-dco keeps every emitted RAM delay (the negative control: spmv / sobel fail with it).  Either way a
 monitor on every bd_mem reports read data that changes while its acknowledge is already high (`MEMTB RAM-BOUNDARY`,
 counted in the summary as a failure), and the RAM model's setup violations and the port's one-hot check are printed
 and counted, not left in run.log.
