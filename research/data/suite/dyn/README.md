@@ -21,14 +21,14 @@ more that a load-first controller unlocks (lowered here) are in the suite, and e
 | factorial | **passes RTL** |  | ok / ok | yes | PASS 12/12 / - | - |  |
 | fir | **passes RTL** |  | ok / ok | yes | PASS 2/2 / - | - |  |
 | gaussian | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
-| gcd | in the suite |  | ok / ok | yes | - / - | - | one of the six original kernels: routed and drawn many times (research/data/suite/README.md); not rerun here |
+| gcd | **passes routed smoke** |  | ok / ok | yes | - / - | the six original kernels: PASS on many routes and on the board (research/data/aug_gcd/) | one of the six original kernels; not rerun here |
 | gemver | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
-| if_convert | **passes RTL** |  | ok / ok | yes | PASS 5/5 / - | - |  |
+| if_convert | **passes routed smoke** |  | ok / ok | yes | PASS 5/5 / PASS 3/3 | default seed 1: PASS 3/3, EQUIVALENT |  |
 | if_loop_1 | **passes RTL** |  | ok / ok | yes | PASS 8/8 / - | - |  |
 | if_loop_2 | **passes RTL** |  | ok / ok | yes | PASS 8/8 / - | - |  |
 | if_loop_3 | does not compile (bdc) | op:divsi | no / no | - | - / - | - |  |
-| iir | **passes RTL** |  | ok / ok | yes | PASS 3/3 / - | - |  |
-| image_resize | **passes RTL** |  | ok / ok | yes | PASS 4/4 / - | - |  |
+| iir | **passes RTL** |  | ok / ok | yes | PASS 3/3 / PASS 1/1 | - |  |
+| image_resize | **passes RTL** |  | ok / ok | yes | PASS 4/4 / PASS 2/2 | - |  |
 | insertion_sort | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | iterative_division | **passes RTL** |  | ok / ok | yes | PASS 15/15 / - | - |  |
 | iterative_sqrt | **passes RTL** |  | ok / ok | yes | PASS 12/12 / - | auto path seed 1: not finished (kernels/SUITE.md) |  |
@@ -37,41 +37,41 @@ more that a load-first controller unlocks (lowered here) are in the suite, and e
 | kernel_3mm | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | kmp | does not compile (bdc) | lsq, mc:>2 | no / no | - | - / - | - |  |
 | loop_array | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
-| loop_path | **passes RTL** |  | ok / ok | yes | PASS 4/4 / - | - |  |
+| loop_path | **passes RTL** |  | ok / ok | yes | PASS 4/4 / PASS 1/1 | - |  |
 | matrix | emits |  | ok / ok | - | - / - | - | NOT in the suite: does not fit the gate (27000 multiply-adds + 5400 host words per call: hours of wall per call); default flow deadlocks in RTL, BDC_AUTO=1 passes (research/data/suite/stores.md) |
 | matrix_power | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | matvec | does not compile (bdc) | mem>1024 | no / no | - | - / - | - |  |
 | mul_example | **passes routed smoke** |  | ok / ok | yes | PASS 3/3 / PASS 3/3 | default seed 1: PASS 3/3, EQUIVALENT |  |
 | nested_conditionals_1 | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | nested_conditionals_2 | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
-| nested_loop | **passes RTL** |  | ok / ok | yes | PASS 4/4 / - | - |  |
+| nested_loop | **passes RTL** |  | ok / ok | yes | PASS 4/4 / PASS 1/1 | - |  |
 | path_profiling | does not compile (bdc) | lsq, op:remsi | no / no | - | - / - | - |  |
 | pivot | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | polyn_mult | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
-| simple_example_1 | **passes routed smoke** |  | ok / ok | yes | PASS 4/4 / - | default seed 1: PASS 4/4, EQUIVALENT |  |
-| single_loop | **passes RTL** |  | ok / ok | yes | PASS 5/5 / - | - |  |
-| sobel | in the suite |  | ok / ok | yes | FAIL 0/3 / - | - | deadlocks in RTL in both flows (with or without the load chain or the capture latch): not explained |
-| spmv | **passes routed smoke** |  | ok / ok | yes | FAIL 3/4 / - | auto seed 1: PASS 4/4, EQUIVALENT | default flow deadlocks on 1 of 4 vectors (RTL); BDC_AUTO=1 passes 4/4: the routed smoke is BDC_AUTO's emission |
-| stencil_2d | **passes routed smoke** |  | ok / ok | yes | FAIL 0/4 / - | auto seed 1: PASS 1/1, EQUIVALENT | default flow deadlocks (RTL, every call); BDC_AUTO=1 passes: the routed smoke is BDC_AUTO's emission |
+| simple_example_1 | **passes routed smoke** |  | ok / ok | yes | PASS 4/4 / PASS 4/4 | default seed 1: PASS 4/4, EQUIVALENT |  |
+| single_loop | **passes routed smoke** |  | ok / ok | yes | PASS 5/5 / PASS 1/1 | default seed 1: PASS 1/1, EQUIVALENT |  |
+| sobel | **passes RTL** |  | ok / ok | yes | FAIL 0/3 / PASS 3/3 | - | default flow deadlocks (RTL, every call, the same with the loads chained or not and without the capture latch); BDC_AUTO=1 passes 3/3 (about 200 us per run in RTL); no routed smoke (time) |
+| spmv | **passes routed smoke** |  | ok / ok | yes | FAIL 3/4 / PASS 4/4 | auto seed 1: PASS 4/4, EQUIVALENT | default flow deadlocks on 1 of 4 vectors (RTL); BDC_AUTO=1 passes 4/4: the routed smoke is BDC_AUTO's emission |
+| stencil_2d | **passes routed smoke** |  | ok / ok | yes | FAIL 0/4 / PASS 1/1 | auto seed 1: PASS 1/1, EQUIVALENT | default flow deadlocks (RTL, every call); BDC_AUTO=1 passes: the routed smoke is BDC_AUTO's emission |
 | sumi3_mem | **passes RTL** |  | ok / ok | yes | PASS 3/3 / - | - |  |
 | test_bitint | **passes routed smoke** |  | ok / ok | yes | PASS 6/6 / - | auto path seed 1: PASS 2/2 draws (kernels/SUITE.md, nextpnr 9c732bc6303458df) |  |
 | test_bool_array | **passes routed smoke** |  | ok / ok | yes | PASS 4/4 / PASS 4/4 | default seed 1: PASS 4/4, EQUIVALENT | LL in one block: with the two loads unchained (they tie at bd_arbiter) the routed smoke FAILED 1/4 (seed 1, build 447257a8); chained since |
 | test_divui | does not compile (bdc) | op:divui | no / no | - | - / - | - |  |
 | test_int16 | **passes routed smoke** |  | ok / ok | yes | PASS 1/1 / - | auto path seed 1: PASS 2/2 draws (research/data/suite/srcjoin.md) |  |
 | test_loop_free | **passes routed smoke** |  | ok / ok | yes | PASS 10/10 / - | auto path seed 1: PASS 2/2 draws (kernels/SUITE.md, nextpnr 9c732bc6303458df) |  |
-| test_stdint | **passes RTL** |  | ok / ok | yes | PASS 4/4 / - | - | an int8_t scalar: the bench now takes a narrow argument (one word's low bits) |
+| test_stdint | **passes routed smoke** |  | ok / ok | yes | PASS 4/4 / PASS 4/4 | default seed 1: PASS 4/4, EQUIVALENT | an int8_t scalar: the bench now takes a narrow argument (one word's low bits) |
 | threshold | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | triangular | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | trisolv | does not compile (bdc) | lsq, mem>1024, op:divsi | no / no | - | - / - | - |  |
 | unused_arg | **passes routed smoke** |  | ok / ok | yes | PASS 6/6 / - | auto path seed 1: PASS 2/2 draws (research/data/suite/srcjoin.md) |  |
-| vector_rescale | **passes RTL** |  | ok / ok | yes | PASS 4/4 / - | - |  |
-| video_filter | **passes RTL** |  | ok / ok | yes | PASS 3/3 / - | - |  |
+| vector_rescale | **passes RTL** |  | ok / ok | yes | PASS 4/4 / PASS 2/2 | - |  |
+| video_filter | **passes RTL** |  | ok / ok | yes | PASS 3/3 / PASS 1/1 | - |  |
 | while_loop_1 | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | while_loop_2 | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
-| while_loop_3 | **passes RTL** |  | ok / ok | yes | PASS 7/7 / - | - | RTL also on 4 edges with 46340 trips (while_loop_3_rtl.hex): not run (hours in RTL) |
+| while_loop_3 | **passes routed smoke** |  | ok / ok | yes | PASS 7/7 / PASS 7/7 | default seed 1: PASS 7/7, EQUIVALENT | RTL also on 4 edges with 46340 trips (while_loop_3_rtl.hex): not run (hours in RTL) |
 | wrap_if | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | memory/test_constant_array | does not compile (bdc) | ram | no / no | - | - / - | - |  |
-| memory/test_flatten_array | **passes RTL** |  | ok / ok | yes | PASS 2/2 / - | default seed 1: PASS 1/1, NOT EQUIVALENT | the route's bits are NOT EQUIVALENT to nextpnr's netlist (16 F7 muxes in the kernel's shifter not configured): reported, not judged |
+| memory/test_flatten_array | **passes RTL** |  | ok / ok | yes | PASS 2/2 / PASS 1/1 | default seed 1: PASS 1/1, NOT EQUIVALENT | the route's bits are NOT EQUIVALENT to nextpnr's netlist (16 F7 muxes in the kernel's shifter not configured): reported, not judged |
 | memory/test_internal_array | does not compile (bdc) | ram | no / no | - | - / - | - |  |
 | memory/test_memory_1 | **passes routed smoke** |  | ok / ok | yes | PASS 6/6 / PASS 6/6 | default seed 1: PASS 6/6, EQUIVALENT |  |
 | memory/test_memory_10 | does not compile (bdc) | mc:>2 | no / no | - | - / - | - |  |
@@ -93,8 +93,8 @@ more that a load-first controller unlocks (lowered here) are in the suite, and e
 | memory/test_memory_9 | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | memory/test_smallbound | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | memory/test_unroll | does not compile (bdc) | ram | no / no | - | - / - | - |  |
-| sharing/share_test_1 | **passes RTL** |  | ok / ok | yes | PASS 3/3 / - | - |  |
-| sharing/share_test_2 | **passes RTL** |  | ok / ok | yes | PASS 3/3 / - | default seed 1: NOT-JUDGED decoder-refused: | no defined input in C (signed overflow in its own constants): expected values are -fwrapv's |
+| sharing/share_test_1 | **passes RTL** |  | ok / ok | yes | PASS 3/3 / PASS 1/1 | - |  |
+| sharing/share_test_2 | **passes RTL** |  | ok / ok | yes | PASS 3/3 / PASS 3/3 | default seed 1: NOT-JUDGED decoder-refused: | no defined input in C (signed overflow in its own constants): expected values are -fwrapv's |
 
 How to read it. *does not compile*: the frontend fails, or bdc refuses (every refusal is listed: `lsq` a load-store
 queue, `mc:store` a store that is not its controller's last accessor, `mc:>2` more than two accessors on one
@@ -109,7 +109,7 @@ prjxray SDF, chains 0.21, CARRY4/F7F8/FF/RAMB18E1 1, rest 0.288, + M scatter) wi
 call against the C, `GATE_ANNOTATE=1` and the ports' one-hot monitor. nextpnr 6e5d224472232d5d for every route here
 (cells/verify/toolchain.sh all ok). One route at one corner is a smoke test, not a result (CLAUDE.md: 4 seeds).
 
-**85 integer tests: does not compile (bdc) 48, passes RTL 20, passes routed smoke 12, does not compile (frontend) 2, in the suite 2, emits 1**
+**85 integer tests: does not compile (bdc) 48, passes routed smoke 17, passes RTL 17, does not compile (frontend) 2, emits 1**
 
 ## 1. A void kernel on the bench
 
@@ -235,9 +235,7 @@ leaves free. stores.md section 6 named what LS needs and one hazard to settle fi
   vector_rescale, video_filter, iir and the LL ones test_bool_array (4/4), binary_search (7/7), share_test_1 pass.
   **spmv deadlocks in the default flow on its first vector** (n = 10, every row 0-2 entries; the three others pass)
   **and passes all 4 with `BDC_AUTO=1`**; the same with the chain, without it, and without the capture: a storage
-  deadlock of the default flow (the hangs lead), not this lowering. **sobel deadlocks in both flows** (every call; the
-  same with the loads chained or not and with or without the capture latch): not explained here (a 4-deep nest with a
-  branch around the inner two loops); it stays in the suite, marked.
+  deadlock of the default flow (the hangs lead), not this lowering. **sobel deadlocks in the default flow** (every call; the same with the loads chained or not and without the capture latch) **and passes 3/3 with `BDC_AUTO=1`** (about 200 us per run in RTL: a first probe at a 300 us batch limit timed out and was misread as a deadlock in both flows; the 2 ms runs settle it)
 - **At zero wire delay the RTL failed** on test_memory_1 (3/6), test_memory_2 (3/7), mul_example (0/3): cells/sim's
   DCO (12 x 124 ps) is shorter than its RAM model's clock-to-out (2.454 ns), so the capture latch froze the previous
   word -- the condition rule C exists for. Every route here has DCO well above clock-to-out (the gates pass); in RTL it
@@ -261,21 +259,29 @@ ORACLE_MEMOUT: every array read back after every call), `GATE_ANNOTATE=1`, `PS_M
 | kernel | flow | seed | Fmax (MHz) | .bit md5 | LUTs (bench) | gate, worst corner | wall (s) |
 |---|---|---|---|---|---|---|---|
 | binary_search | default | 1 | 116.33 | d97c1cb0 | 5553 | PASS 7/7 cycles 7532 VERDICT: EQUIVALENT  \| annotate DONE sdf-warn/err 0 \| memport one-hot: 7 batch line(s), host reqs 1313, kernel reqs 1088, overlaps 0 | 2196 |
+| if_convert | default | 1 | 94.18 | aaca3a50 | 4398 | PASS 3/3 cycles 9482 VERDICT: EQUIVALENT  \| void: arrays only \| annotate DONE sdf-warn/err 0 \| memport one-hot: 6 batch line(s), host reqs 2000, kernel reqs 1692, overlaps 0 | 2384 |
 | mul_example | default | 1 | 114.67 | 52993095 | 4036 | PASS 3/3 cycles 2820 VERDICT: EQUIVALENT  \| void: arrays only \| annotate DONE sdf-warn/err 0 \| memport one-hot: 3 batch line(s), host reqs 500, kernel reqs 600, overlaps 0 | 1347 |
 | share_test_2 | default | 1 | 84.32 | 2923e64f | 7750 | NOT-JUDGED decoder-refused: fasm2net (the gate's bitstream decoder) refuses a DSP48E1 configuration it does not model (B_INPUT=CASCADE, USE_DPORT=TRUE, INMODE=00100: yosys's pre-adder / cascade use for share_test_2's multiplies); no gate ran | 0 |
 | simple_example_1 | default | 1 | 113.34 | 527e6eca | 3591 | PASS 4/4 cycles 88 VERDICT: EQUIVALENT  \| void: arrays only \| annotate DONE sdf-warn/err 0 \| memport one-hot: 4 batch line(s), host reqs 1100, kernel reqs 8, overlaps 0 | 1251 |
+| single_loop | default | 1 | 96.24 | 3909d514 | 4261 | PASS 1/1 cycles 7550 VERDICT: EQUIVALENT  \| void: arrays only \| annotate DONE sdf-warn/err 0 \| memport one-hot: 3 batch line(s), host reqs 3000, kernel reqs 3006, overlaps 0 | 4483 |
 | spmv | auto | 1 | 100.69 | 64dc0da7 | 7436 | PASS 4/4 cycles 864 VERDICT: EQUIVALENT  \| annotate DONE sdf-warn/err 0 \| memport one-hot: 20 batch line(s), host reqs 357, kernel reqs 300, overlaps 0 | 1312 |
 | stencil_2d | auto | 1 | 99.33 | 731b66ec | 6363 | PASS 1/1 cycles 4420 VERDICT: EQUIVALENT  \| annotate DONE sdf-warn/err 0 \| memport one-hot: 3 batch line(s), host reqs 1810, kernel reqs 1064, overlaps 0 | 4110 |
 | test_bool_array | default | 1 | 101.98 | 5f16960b | 3674 | PASS 4/4 cycles 104 VERDICT: EQUIVALENT  \| annotate DONE sdf-warn/err 0 \| memport one-hot: 4 batch line(s), host reqs 14, kernel reqs 16, overlaps 0 | 387 |
 | test_flatten_array | default | 1 | 103.16 | 4772e0fa | 7053 | PASS 1/1 cycles 9394 VERDICT: NOT EQUIVALENT \| void: arrays only \| annotate DONE sdf-warn/err 0 \| memport one-hot: 2 batch line(s), host reqs 1024, kernel reqs 2048, overlaps 0 | 3159 |
 | test_memory_1 | default | 1 | 107.71 | 45868bb0 | 4486 | PASS 6/6 cycles 136 VERDICT: EQUIVALENT  \| void: arrays only \| annotate DONE sdf-warn/err 0 \| memport one-hot: 6 batch line(s), host reqs 44, kernel reqs 24, overlaps 0 | 430 |
 | test_memory_2 | default | 1 | 108.47 | 8fab6141 | 4554 | PASS 7/7 cycles 179 VERDICT: EQUIVALENT  \| void: arrays only \| annotate DONE sdf-warn/err 0 \| memport one-hot: 7 batch line(s), host reqs 65, kernel reqs 26, overlaps 0 | 683 |
+| test_stdint | default | 1 | 111.77 | e3340403 | 3958 | PASS 4/4 cycles 2680 VERDICT: EQUIVALENT  \| void: arrays only \| annotate DONE sdf-warn/err 0 \| memport one-hot: 4 batch line(s), host reqs 700, kernel reqs 800, overlaps 0 | 814 |
+| while_loop_3 | default | 1 | 96.07 | 4ff29dab | 4219 | PASS 7/7 cycles 876 VERDICT: EQUIVALENT  \| void: arrays only \| annotate DONE sdf-warn/err 0 \| memport one-hot: 7 batch line(s), host reqs 1300, kernel reqs 14, overlaps 0 | 1551 |
 
 `EQUIVALENT`: the netlist decoded from the .bit matches nextpnr's (fasm_equiv). **test_flatten_array's route is NOT
 EQUIVALENT** -- 16 F7AMUX/F7BMUX cells with loads in nextpnr's JSON that the bits do not configure, all in the
 kernel's shifter `ushli3`, and 5 nets whose pips differ (BYP inputs); the gate passed on the decoded netlist (what the
 board would run), but by the suite's rule such a route is reported, not judged. Not investigated
 (out/evidence/test_flatten_array_s1_equiv.txt); the const-sinks patch's class (F7/F8 selects) is the first suspect.
+**share_test_2 has no routed judgement**: fasm2net (the gate's bitstream decoder) refuses its route -- a DSP48E1 in a
+mode it does not model (`B_INPUT=CASCADE`, `USE_DPORT=TRUE`, `INMODE=00100`: yosys's use of the cascade / pre-adder
+for its multiplies), so no gate ran (out/evidence/share_test_2_s1_fasm2net_report.txt). A gap in the decoder, not a
+verdict on the kernel.
 `host reqs` / `kernel reqs`: the one-hot monitor's counts of slot requests on the routed netlist; `overlaps 0`: the
 host slot never requested while a kernel slot did (on an arbitrated port: against either kernel slot).
 
@@ -288,28 +294,41 @@ arc, ps7_bench.v, the gate's verdict; the full vector sets, `<name>_rtl.hex` whe
 | binary_search | default | 2 | binary_search.hex | PASS 7/7 cycles 7686 | 3 |
 | factorial | default | 2 | factorial.hex | PASS 12/12 cycles 742 | 3 |
 | fir | default | 2 | fir.hex | PASS 2/2 cycles 29904 | 42 |
+| if_convert | auto | 2 | if_convert.hex | PASS 3/3 cycles 8608 \| void: arrays only | 25 |
 | if_convert | default | 2 | if_convert_rtl.hex | PASS 5/5 cycles 17708 \| void: arrays only | 29 |
 | if_loop_1 | default | 2 | if_loop_1.hex | PASS 8/8 cycles 7602 | 12 |
 | if_loop_2 | default | 2 | if_loop_2.hex | PASS 8/8 cycles 6098 | 7 |
+| iir | auto | 2 | iir.hex | PASS 1/1 cycles 20858 | 63 |
 | iir | default | 2 | iir_rtl.hex | PASS 3/3 cycles 67332 | 180 |
+| image_resize | auto | 1 | image_resize.hex | PASS 2/2 cycles 18508 \| void: arrays only | 53 |
 | image_resize | default | 1 | image_resize_rtl.hex | PASS 4/4 cycles 43172 \| void: arrays only | 125 |
 | iterative_division | default | 2 | iterative_division.hex | PASS 15/15 cycles 11700 | 9 |
 | iterative_sqrt | default | 2 | iterative_sqrt.hex | PASS 12/12 cycles 2956 | 8 |
+| loop_path | auto | 2 | loop_path.hex | PASS 1/1 cycles 3646 \| void: arrays only | 7 |
 | loop_path | default | 2 | loop_path_rtl.hex | PASS 4/4 cycles 27134 \| void: arrays only | 78 |
 | mul_example | auto | 1 | mul_example.hex | PASS 3/3 cycles 2943 \| void: arrays only | 6 |
 | mul_example | default | 1 | mul_example.hex | PASS 3/3 cycles 3132 \| void: arrays only | 8 |
+| nested_loop | auto | 2 | nested_loop.hex | PASS 1/1 cycles 5248 \| void: arrays only | 8 |
 | nested_loop | default | 2 | nested_loop_rtl.hex | PASS 4/4 cycles 25582 \| void: arrays only | 45 |
+| share_test_1 | auto | 2 | share_test_1.hex | PASS 1/1 cycles 24036 | 75 |
 | share_test_1 | default | 2 | share_test_1_rtl.hex | PASS 3/3 cycles 104130 | 227 |
+| share_test_2 | auto | 1 | share_test_2.hex | PASS 3/3 cycles 7161 \| void: arrays only | 36 |
 | share_test_2 | default | 1 | share_test_2.hex | PASS 3/3 cycles 7350 \| void: arrays only | 40 |
+| simple_example_1 | auto | 2 | simple_example_1.hex | PASS 4/4 cycles 88 \| void: arrays only | 2 |
 | simple_example_1 | default | 2 | simple_example_1.hex | PASS 4/4 cycles 88 \| void: arrays only | 2 |
+| single_loop | auto | 2 | single_loop.hex | PASS 1/1 cycles 7142 \| void: arrays only | 6 |
 | single_loop | default | 2 | single_loop_rtl.hex | PASS 5/5 cycles 24020 \| void: arrays only | 20 |
+| sobel | auto | 2 | sobel.hex | PASS 3/3 cycles 103517 | 308 |
 | sobel | default | 2 | sobel.hex | FAIL 0/3 cycles 0 \| MEMORY wrong in batch(es) 0,1,2 | 14 |
+| spmv | auto | 2 | spmv.hex | PASS 4/4 cycles 878 | 4 |
 | spmv | default | 2 | spmv.hex | FAIL 3/4 cycles 644 \| MEMORY wrong in batch(es) 0 | 8 |
+| stencil_2d | auto | 2 | stencil_2d.hex | PASS 1/1 cycles 4944 | 12 |
 | stencil_2d | default | 2 | stencil_2d_rtl.hex | FAIL 0/4 cycles 0 \| MEMORY wrong in batch(es) 0,1,2,3 | 13 |
 | sumi3_mem | default | 2 | sumi3_mem.hex | PASS 3/3 cycles 54810 | 187 |
 | test_bitint | default | 2 | test_bitint.hex | PASS 6/6 cycles 816 | 2 |
 | test_bool_array | auto | 2 | test_bool_array.hex | PASS 4/4 cycles 112 | 1 |
 | test_bool_array | default | 2 | test_bool_array.hex | PASS 4/4 cycles 112 | 0 |
+| test_flatten_array | auto | 2 | test_flatten_array.hex | PASS 1/1 cycles 7926 \| void: arrays only | 14 |
 | test_flatten_array | default | 2 | test_flatten_array_rtl.hex | PASS 2/2 cycles 19000 \| void: arrays only | 46 |
 | test_int16 | default | 2 | test_int16.hex | PASS 1/1 cycles 20 | 1 |
 | test_loop_free | default | 2 | test_loop_free.hex | PASS 10/10 cycles 270 | 1 |
@@ -317,10 +336,14 @@ arc, ps7_bench.v, the gate's verdict; the full vector sets, `<name>_rtl.hex` whe
 | test_memory_1 | default | 1 | test_memory_1.hex | PASS 6/6 cycles 140 \| void: arrays only | 1 |
 | test_memory_2 | auto | 1 | test_memory_2.hex | PASS 7/7 cycles 168 \| void: arrays only | 1 |
 | test_memory_2 | default | 1 | test_memory_2.hex | PASS 7/7 cycles 179 \| void: arrays only | 1 |
+| test_stdint | auto | 1 | test_stdint.hex | PASS 4/4 cycles 2660 \| void: arrays only | 5 |
 | test_stdint | default | 1 | test_stdint.hex | PASS 4/4 cycles 2912 \| void: arrays only | 3 |
 | unused_arg | default | 2 | unused_arg.hex | PASS 6/6 cycles 120 | 1 |
+| vector_rescale | auto | 1 | vector_rescale.hex | PASS 2/2 cycles 14562 \| void: arrays only | 16 |
 | vector_rescale | default | 1 | vector_rescale_rtl.hex | PASS 4/4 cycles 31668 \| void: arrays only | 22 |
+| video_filter | auto | 1 | video_filter.hex | PASS 1/1 cycles 12668 \| void: arrays only | 126 |
 | video_filter | default | 1 | video_filter_rtl.hex | PASS 3/3 cycles 42621 \| void: arrays only | 422 |
+| while_loop_3 | auto | 2 | while_loop_3.hex | PASS 7/7 cycles 834 \| void: arrays only | 4 |
 | while_loop_3 | default | 2 | while_loop_3.hex | PASS 7/7 cycles 983 \| void: arrays only | 3 |
 
 ## What this does not show
@@ -345,8 +368,9 @@ arc, ps7_bench.v, the gate's verdict; the full vector sets, `<name>_rtl.hex` whe
   exhaustive; `share_test_2` has no defined input at all (signed overflow in its constants): its expected values are
   `-fwrapv`'s. In-place kernels are judged with one run per call; suite_one.sh runs two and now gives the oracle the
   same count (wrapping arithmetic on the second run).
-- **Not investigated:** sobel's deadlock (both flows), spmv's and stencil_2d's in the default flow (the hangs lead),
-  test_flatten_array's NOT EQUIVALENT bits.
+- **Not investigated:** the default flow's deadlocks of stencil_2d, spmv (one vector) and sobel (the hangs lead; all
+  three pass with `BDC_AUTO=1`), test_flatten_array's NOT EQUIVALENT bits, share_test_2's DSP48E1 mode that the
+  gate's decoder refuses (no routed judgement for it), and why the unchained test_bool_array route failed.
 - **Dynamatic's own figures** for these tests: none obtained.
 
 ## Reproduce
