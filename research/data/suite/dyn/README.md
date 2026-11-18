@@ -50,8 +50,8 @@ more that a load-first controller unlocks (lowered here) are in the suite, and e
 | polyn_mult | does not compile (bdc) | lsq | no / no | - | - / - | - |  |
 | simple_example_1 | **passes routed smoke** |  | ok / ok | yes | PASS 4/4 / PASS 4/4 | default seed 1: PASS 4/4, EQUIVALENT |  |
 | single_loop | **passes routed smoke** |  | ok / ok | yes | PASS 5/5 / PASS 1/1 | default seed 1: PASS 1/1, EQUIVALENT |  |
-| sobel | **passes RTL** |  | ok / ok | yes | FAIL 0/3 / PASS 3/3 | - | default flow deadlocks (RTL, every call, the same with the loads chained or not and without the capture latch); BDC_AUTO=1 passes 3/3 (about 200 us per run in RTL); no routed smoke (time) |
-| spmv | **passes routed smoke** |  | ok / ok | yes | FAIL 3/4 / PASS 4/4 | auto seed 1: PASS 4/4, EQUIVALENT | default flow deadlocks on 1 of 4 vectors (RTL); BDC_AUTO=1 passes 4/4: the routed smoke is BDC_AUTO's emission |
+| sobel | **passes RTL** |  | ok / ok | yes | PASS 3/3 / PASS 3/3 | - | 2026-11-18 (memorder): both flows pass (memtb, 0 ps with the RAM boundary met, and 350 ps); the default-flow deadlock below was this tree's, gone with hangs' token floor; the wrong values seen at 0 ps were the RTL model's RAM boundary (research/data/suite/memorder.md). Before: default flow deadlocks (RTL, every call, the same with the loads chained or not and without the capture latch); BDC_AUTO=1 passes 3/3 (about 200 us per run in RTL); no routed smoke (time) |
+| spmv | **passes routed smoke** |  | ok / ok | yes | PASS 4/4 / PASS 4/4 | auto seed 1: PASS 4/4, EQUIVALENT | 2026-11-18 (memorder): both flows pass (memtb, 0 ps with the RAM boundary met, and 350 ps); the default-flow deadlock was this tree's, gone with hangs' token floor; the wrong values seen at 0 ps were the RTL model's RAM boundary (research/data/suite/memorder.md). Before: default flow deadlocks on 1 of 4 vectors (RTL); BDC_AUTO=1 passes 4/4: the routed smoke is BDC_AUTO's emission |
 | stencil_2d | **passes routed smoke** |  | ok / ok | yes | FAIL 0/4 / PASS 1/1 | auto seed 1: PASS 1/1, EQUIVALENT | default flow deadlocks (RTL, every call); BDC_AUTO=1 passes: the routed smoke is BDC_AUTO's emission |
 | sumi3_mem | **passes RTL** |  | ok / ok | yes | PASS 3/3 / - | - |  |
 | test_bitint | **passes routed smoke** |  | ok / ok | yes | PASS 6/6 / - | auto path seed 1: PASS 2/2 draws (kernels/SUITE.md, nextpnr 9c732bc6303458df) |  |
@@ -236,6 +236,10 @@ leaves free. stores.md section 6 named what LS needs and one hazard to settle fi
   **spmv deadlocks in the default flow on its first vector** (n = 10, every row 0-2 entries; the three others pass)
   **and passes all 4 with `BDC_AUTO=1`**; the same with the chain, without it, and without the capture: a storage
   deadlock of the default flow (the hangs lead), not this lowering. **sobel deadlocks in the default flow** (every call; the same with the loads chained or not and without the capture latch) **and passes 3/3 with `BDC_AUTO=1`** (about 200 us per run in RTL: a first probe at a 300 us batch limit timed out and was misread as a deadlock in both flows; the 2 ms runs settle it)
+- *(2026-11-18, memorder: both deadlocks above were real in this tree -- this tree's spmv / sobel emissions time out
+  in memtb at 0 ps with the RAM boundary met and at 350 ps -- and are gone on the branch since hangs' token floor
+  (spmv: two links 2-stage, the only difference in its emission); both flows pass there.
+  research/data/suite/memorder.md.)*
 - **At zero wire delay the RTL failed** on test_memory_1 (3/6), test_memory_2 (3/7), mul_example (0/3): cells/sim's
   DCO (12 x 124 ps) is shorter than its RAM model's clock-to-out (2.454 ns), so the capture latch froze the previous
   word -- the condition rule C exists for. Every route here has DCO well above clock-to-out (the gates pass); in RTL it

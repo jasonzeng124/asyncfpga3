@@ -198,6 +198,11 @@ def main():
     ap.add_argument("--keep-dco", action="store_true",
                     help="keep the emitted DCO (do not cover the RAM model's clock-to-out); the monitor still reports")
     ap.add_argument("--jitter", default="", help="SEED[:PCT]: BD_JITTER, every LUT arc scattered per instance")
+    ap.add_argument("--ram-slow", type=int, default=0,
+                    help="N: every RAM's DSETUP and DCO at least N arcs (a stress: every access slow, the order must hold)")
+    ap.add_argument("--order-all", action="store_true",
+                    help="apply the program-order check to every arbitrated port, chained or not (a control: an "
+                         "unchained port's accesses need not alternate)")
     a = ap.parse_args()
     k = a.kernel
     vec = os.path.abspath(a.vec)
@@ -296,6 +301,8 @@ def main():
     need = {"UCO": -(-(tco + 3 * hop_hi) // hop_lo)}
     if a.jitter:
         need["USETUP"] = -(-(tsu + 3 * hop_hi) // hop_lo)
+    if a.ram_slow:
+        need = {w: max(need.get(w, 0), a.ram_slow) for w in ("UCO", "USETUP")}
     hdr = re.search(r"module\s+" + re.escape(mod) + r"\s*#\((.*?)\)\s*\(", text, flags=re.S)
     over = {}
     for pn, pv in re.findall(r"parameter\s+(DELAY_\w+_(?:UCO|USETUP))\s*=\s*(\d+)", hdr.group(1) if hdr else ""):
@@ -320,6 +327,20 @@ def main():
               f"    always @({rp}.rdata) if ({rp}.ack === 1'b1 && rst === 1'b0) begin ramviol = ramviol + 1;"
               f" if (ramviol <= 3) $display(\"MEMTB RAM-BOUNDARY {rp}: read data changed %0t ps after the clock edge,"
               f" the acknowledge already high (clock-to-out > DCO in this model)\", $time - tedge{j}); end"]
+    # PROGRAM ORDER on a chained port (bdc/emit.py: the first accessor's z forked into the second's token, both in one
+    # block): its RAM edges must alternate first (g1), second (g2), first, ... -- the order the token chain builds.  The
+    # arbiter's grant at each edge says which slot it is; host accesses (outside the arbiter) are not counted.
+    arbs = re.findall(r"\b(bdc_memport_arb\w*)\s*#\s*\((?:[^()]|\([^()]*\))*\)\s*(\w+)\s*\(", text)
+    toks = set(re.findall(r"wire\s+(\w+)_tok_req\s*,", text))
+    ordp = [(inst, inst[:-len("_uport")] in toks) for _m, inst in arbs if inst.endswith("_uport")]
+    ordp = [(inst, ch) for inst, ch in ordp if ch or a.order_all]
+    for j, (inst, ch) in enumerate(ordp):
+        P0 = f"dut.{inst}"
+        L += [f"    integer ordn{j} = 0, ordbad{j} = 0, ordlast{j} = 0;",
+              f"    always @(posedge {P0}.umem0.ram_clk) if (rst === 1'b0) begin",
+              f"        if ({P0}.g1 === 1'b1) begin if (ordlast{j} == 1) ordbad{j} = ordbad{j} + 1; ordlast{j} = 1; ordn{j} = ordn{j} + 1; end",
+              f"        else if ({P0}.g2 === 1'b1) begin if (ordlast{j} != 1) ordbad{j} = ordbad{j} + 1; ordlast{j} = 2; ordn{j} = ordn{j} + 1; end",
+              "    end"]
     L.append(f"    {mod} " + ("#(" + ", ".join(f".{k}({v})" for k, v in sorted(over.items())) + ") " if over else "")
              + "dut (" + ",\n        ".join(conn) + ");")
     nexp = ncalls * sum(d for _b, d, _w in mems)
@@ -379,6 +400,8 @@ def main():
     L += ["        end",
           f'        $display("MEMTB RAM bd_mem={len(rams)} ack-after-edge min %0d ps, clock-to-out {tco} ps, read data changed under the acknowledge %0d time(s)", ackmin, ramviol);',
           "        if (ramviol) fails = fails + 1;",
+          *[f'        $display("MEMTB ORDER {inst}{"" if ch else " (unchained: not judged)"}: %0d kernel access(es), %0d out of program order", ordn{j}, ordbad{j});'
+            + (f" if (ordbad{j}) fails = fails + 1;" if ch else "") for j, (inst, ch) in enumerate(ordp)],
           f'        $display("MEMTB SUMMARY %s calls={ncalls} runs={a.runs} fails=%0d at %0t ps", fails ? "FAIL" : "PASS", fails, $time);',
           "        $finish;", "    end",
           "    initial forever begin #1000000;",
