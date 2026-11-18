@@ -92,6 +92,111 @@ class G:
     def listing(self, net):
         return {i for i, (t, p, ports) in self.verilog().items() if any(net in v for v in ports.values())}
 
+    def aliases(self):
+        """{net: its wire class}: every handshake name the same physical wire carries in the kernel module.  Wires are
+        the single-net assigns (`assign n2_req = n0__3_req;`: a constant's or an extui's pass-through, the ports), a
+        fused cell's acknowledge (every e*_ack is its z_ack: its bd_join's ack_out), a bd_join's ack_out entries (its
+        ack), a bd_fork's request (every req_out is its req).  Only the last module of kernel.v (the kernel)."""
+        if hasattr(self, "_al"): return self._al
+        par = {}
+        def f(x):
+            while par.get(x, x) != x: x = par[x]
+            return x
+        def u(a, b):
+            ra, rb = f(a), f(b)
+            if ra != rb: par[ra] = rb
+        for a, b in self._assigns(): u(a, b)
+        for i, (t, p, ports) in self.verilog().items():
+            if t.startswith("bdc_fused_"):
+                for k, v in ports.items():
+                    if re.match(r"e\d+_ack$", k) and v and ports.get("z_ack"): u(v[0], ports["z_ack"][0])
+            if t == "bd_join":
+                for x in ports.get("ack_out", []): u(x, ports["ack"][0])
+            if t == "bd_fork":
+                for x in ports.get("req_out", []): u(x, ports["req"][0])
+            if t == "bd_mux" and ports.get("ctl_ack") and ports.get("z_ack"):
+                u(ports["ctl_ack"][0], ports["z_ack"][0])          # rtl/bd_mux.v: assign ctl_ack = z_ack
+        cls = collections.defaultdict(set)
+        for x in set(par) | set(par.values()):
+            cls[f(x)].add(x)
+        self._al = {x: c for c in cls.values() for x in c}
+        return self._al
+
+    def _assigns(self):
+        src = open(self.dir + "/kernel.v").read()
+        src = src[src.rfind("\nmodule "):]
+        return [(a, b) for a, b in re.findall(r"^\s*assign\s+(\w+)\s*=\s*(\w+)\s*;", src, re.M)
+                if a.endswith(("_req", "_ack")) and b.endswith(("_req", "_ack"))]
+
+    def up_ack(self, ack):
+        """the acknowledge net `ack` and every name it reaches toward its PRODUCER through wires: a fused cell's z_ack
+        is its inputs' e*_ack, a single-net assign either way.  Not through a bd_join's ack_out (that is the consumer's
+        side: a sibling input of the same join gets the same wire, but a stage on this channel does not touch it)."""
+        out, todo = set(), [ack]
+        al = collections.defaultdict(set)
+        for a, b in self._assigns(): al[a].add(b); al[b].add(a)
+        while todo:
+            n = todo.pop()
+            if n in out: continue
+            out.add(n); todo += list(al[n])
+            for i, (t, p, ports) in self.verilog().items():
+                if t.startswith("bdc_fused_") and n in ports.get("z_ack", []):
+                    todo += [v[0] for k, v in ports.items() if re.match(r"e\d+_ack$", k) and v]
+                if t == "bd_mux" and n in ports.get("z_ack", []) and ports.get("ctl_ack"):
+                    todo.append(ports["ctl_ack"][0])                # the select's acknowledge is the output's
+        return out
+
+    def channels(self):
+        """Every bare handshake channel of the kernel module that a new storage stage could go on, as
+        [(base, req, ack, site, knob)]: base is the Verilog base name (net base_req / base_ack), site what produces it
+        (fork output, merge output, merge result branch, other), knob the bdc knob that builds a link there or None.
+        Channels already behind a link (base_u_req: the link's input; base_req of a link's output; _freq / _lreq /
+        _rreq: the knob links' inputs) are not listed: a stage there is BDC_LINK_DEPTHS (depth:) or already storage."""
+        vl = self.verilog()
+        src = open(self.dir + "/kernel.v").read()
+        src = src[src.rfind("\nmodule "):]
+        nets = set(re.findall(r"\b(\w+)_req\b", src)) & set(re.findall(r"\b(\w+)_ack\b", src))
+        link_out, link_in = set(), set()
+        for i, (t, par, ports) in vl.items():
+            if t in ("bd_link", "bd_pipe"):
+                link_out |= set(ports.get("req_out", [])); link_in |= set(ports.get("req_in", []))
+        OUTP = {"bd_fork": ("req_out",), "bd_join": ("req",), "bd_steer": ("req0", "req1"), "bd_link": ("req_out",),
+                "bd_pipe": ("req_out",), "bd_snk": ()}
+        al = collections.defaultdict(set)           # single-net assigns only (not the fork / join wires)
+        for a, b2 in self._assigns(): al[a].add(b2); al[b2].add(a)
+        def cls(x):
+            o, todo = set(), [x]
+            while todo:
+                n = todo.pop()
+                if n not in o: o.add(n); todo += list(al[n])
+            return o
+        out = []
+        for b in sorted(nets):
+            req, ack = b + "_req", b + "_ack"
+            if req in link_out or req in link_in or b.endswith(("_u", "_f", "_l", "_r")):
+                continue
+            names = cls(req)
+            if names & (link_out | link_in):
+                continue          # an alias of a link's input or output: BDC_LINK_DEPTHS covers it
+            drv = [i for i, (t, par, ports) in vl.items()
+                   if any(n in ports.get(pp, []) for pp in OUTP.get(t, ("z_req",)) for n in names)]
+            rd = [i for i, (t, par, ports) in vl.items() if i not in drv and any(n in v for v in ports.values()
+                                                                               for n in names)]
+            if len(drv) != 1 or not rd or vl[drv[0]][0] == "bd_join":
+                continue          # no producer, no reader, or a cond_br's own input join -> its steer
+            p = drv[0]; t = vl[p][0]
+            if t == "bd_fork" and p.endswith("_f") and vl[p][2]["req_out"][-1:] == [req]:
+                site, knob = "merge-result", "BDC_MERGE_RES_LINK=" + p[:-2]
+            elif t == "bd_fork":
+                fo = [n for n in vl[p][2]["req_out"] if n in names]      # the fork's own name for this output
+                site, knob = "fork-output", "BDC_FORK_OUT_LINK=" + re.sub(r"_req$", "", fo[0])
+            elif t.startswith("bdc_amerge"):
+                site, knob = "merge-output", "BDC_MERGE_OUT_LINK=" + p
+            else:
+                site, knob = "%s-output(%s)" % (t, p), None
+            out.append((b, req, ack, site, knob))
+        return out
+
     def downstream(self, net):
         """net plus every fork output it fans out to (a bd_fork passes its request through as a wire)."""
         out, todo = set(), [net]
@@ -102,6 +207,18 @@ class G:
             for i, (t, p, ports) in self.verilog().items():
                 if t == "bd_fork" and n in ports.get("req", []):
                     todo += ports.get("req_out", [])
+        return out
+
+    def down_req(self, req):
+        """the request net and every name it reaches toward its CONSUMERS through wires: a bd_fork's outputs, a
+        single-net assign (an extui's / a constant's request pass-through)."""
+        al = collections.defaultdict(set)
+        for a, b in self._assigns(): al[b].add(a)
+        out, todo = set(), [req]
+        while todo:
+            n = todo.pop()
+            if n in out: continue
+            out.add(n); todo += list(al[n]) + list(self.downstream(n) - {n})
         return out
 
     def node_of(self, net, exclude=()):
@@ -118,6 +235,13 @@ class G:
         got = {}
         for n in self.nodes:
             if n["name"] in names: got.setdefault(n["edge"], set()).add(n["id"])
+        if not got and getattr(self, "use_aliases", False):
+            # single-net assigns (a constant's or an extui's request / acknowledge pass through): any name of the class
+            al = self.aliases()
+            for x in set(names):
+                names |= {"bridge_i.udut." + a for a in al.get(x[len("bridge_i.udut."):], ())}
+            for n in self.nodes:
+                if n["name"] in names: got.setdefault(n["edge"], set()).add(n["id"])
         if not got:
             # a link whose DACK (DELAY) is 0 has no net of its own for ack_in (req_out): it is the C-element's output,
             # which the netlist names after the other alias
@@ -142,10 +266,19 @@ class G:
         delay; every user of the acknowledge now sees S's acknowledge after S's ack delay."""
         rn, an = self.node_of(req), self.node_of(ack)
         cons = set()
-        for n in self.downstream(req): cons |= self.listing(n)
+        for n in (self.down_req(req) if getattr(self, "use_aliases", False) else self.downstream(req)):
+            cons |= self.listing(n)
         prod = self.nodes[rn["R"]]["inst"]; adrv = self.nodes[an["R"]]["inst"]
         cons -= {prod}; cons = {c for c in cons if self.verilog()[c][0] != "bd_fork"}
-        users = self.listing(ack) - {adrv}
+        if getattr(self, "use_aliases", False):
+            # every reader of the acknowledge on the producer's side of the channel, through wires (a fused producer
+            # passes it to its own inputs' links); never the consumer (it drives it) nor a sibling input of its join
+            users = set()
+            for n in self.up_ack(ack): users |= self.listing(n)
+            users -= {adrv} | cons
+            users = {x for x in users if self.verilog()[x][0] != "bd_join"}
+        else:
+            users = self.listing(ack) - {adrv}
         F = [i for i, a in enumerate(self.arcs) if a["u"] in rn.values() and self.nodes[a["v"]]["inst"] in cons]
         B = [i for i, a in enumerate(self.arcs) if a["u"] in an.values() and self.nodes[a["v"]]["inst"] in users]
         if not F or not B:
