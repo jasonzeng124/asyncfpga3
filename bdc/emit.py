@@ -2815,6 +2815,12 @@ class Emitter:
             # chain across them deadlocks on the first token the second never takes.  There, as in Dynamatic's own
             # mem_controller (an arbiter, no order), the dataflow orders them and nothing else: both stations are
             # plain, each load captures its word.
+            # Two LOADS of one block are chained too, though nothing they read changes: unchained, both request the
+            # port in the same instant on every execution, and every one of those ties is a runt at bd_arbiter's
+            # decision node (bd_arb.v: metastability is NOT excluded there, at an unmeasured rate).  Measured:
+            # test_bool_array unchained, routed seed 1, worst corner: FAIL 1/4 (a wrong result, runs disagreeing,
+            # the host's later accesses disturbed) where RTL passed 4/4.  The chain makes the two requests
+            # sequential by construction, as for LS.  (sobel's default-flow deadlock is the same with or without it.)
             chained = arb and (not load_first or _bb(nodes[ordered[0]]) == _bb(nodes[ordered[1]]))
 
             if arb and nodes[ordered[0]].op == "store" and len(nodes[ordered[0]].results) == 3:
