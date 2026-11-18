@@ -4667,3 +4667,9 @@ iterative_division, matrix auto, stencil_2d auto, test_flatten_array; def and au
 batch and memory wrong, 10102 / 10103 pass. That is a data / X-start-up question (cf. research hangs.md section 3), not
 liveness (the model is LIVE with no data residue); formal's simx has no memory-kernel bench and this sandbox has no FPGA
 toolchain, so not taken here. Lock refreshed.
+
+### progress 21:47 -- ring_live_rest: S >= 2T + 1 with T = values resting in non-adjacent stages, no D = 2T hypothesis left (Lean)
+countP_nxt (counting round the ring is rotation invariant: finRange_succ_last vs finRange_succ), countP_sum (per-element
+bookkeeping), D_rest (no two adjacent resting => D = 2 countP x), ring_live_rest. Axioms: propext, Classical.choice, Quot.sound.
+floormin.py (is every floor stage necessary? control = floor off + all additions pinned must be LIVE; then each minus one)
+running over every fixture; quadrec 3 / 3 and matrix 1 / 1 NECESSARY so far (the control caught a link-name bug first).

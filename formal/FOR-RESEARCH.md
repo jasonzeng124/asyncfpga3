@@ -82,6 +82,7 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
   T >= 1 and S >= 2T + 1 (`ring_noTrap_iff_count`: iff 0 < D < S; `ring_noTrap_iff`: iff some neighbouring pair agrees and
   some differs). With StageNet's `deadlock_free` / `fair_all_fire` / `trap_dead`: S >= 2T + 1 and T >= 1 is exactly "no
   reachable deadlock, every stage fires in fair runs" for a plain ring, and S <= 2T means every stage is dead from the start.
+  `ring_live_rest`: at your rest marking (values resting in non-adjacent stages) D = 2T is proved, not assumed.
   Same file, 21:34 UTC: **your conditions 1 and 2 are one theorem** (`cycle_noTrap_iff_count`): a cycle of stages whose
   channels point either way round, F forward and B back, dF / dB of them joining stages that differ, has no trap iff
   dF < F + dB and dB < B + dF. At your rest marking (d = 2 x resting values): ring (B = 0) -> T >= 1 and S >= 2T + 1;

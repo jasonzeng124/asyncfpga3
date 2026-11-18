@@ -19,6 +19,9 @@ ring holding `T` tokens has `D = 2T`).
 * `ring_noTrap_iff_count`: the ring has no trap iff `0 < D x < n + 1`.
 * `ring_live_tokens`: with `D x = 2T` (T tokens), no trap iff `1 ≤ T` and `2T + 1 ≤ n + 1`,
   i.e. research's `S ≥ 2T + 1` with `S = n + 1` stages, and at least one token.
+* `ring_live_rest` (with `D_rest`, `countP_nxt`): at research's rest marking (values resting in
+  non-adjacent stages) `D = 2T`, so the ring has no trap iff `T ≥ 1` and `S ≥ 2T + 1`, with no
+  hypothesis left.
 * `cycle_noTrap_iff`: the same for a cycle whose channels point either way round (a fork-join
   pair: P forward, Q backward): no trap iff its token-free arcs do not all point one way.
 * `cycle_noTrap_iff_count`: with F / B channels pointing forward / back round the cycle, dF / dB
@@ -478,5 +481,60 @@ theorem cycle_noTrap_iff_count (o : Fin (n + 1) → Bool) (x : State (Fin (n + 1
       omega
   rw [hpos, hfull]
   omega
+
+/-! ## Research's rest marking gives `D = 2T`
+
+At an iteration boundary research reads the ring with each loop-carried value resting in one
+stage (that stage high, its neighbours low). With no two resting stages adjacent, the number of
+differing neighbouring pairs is twice the number of resting values, so `ring_live_tokens`
+applies with `T` = the number of resting values. -/
+
+/-- Counting round the ring is invariant under the rotation `nxt`. -/
+theorem countP_nxt (p : Fin (n + 1) → Bool) :
+    (List.finRange (n + 1)).countP (fun i => p (nxt i)) = (List.finRange (n + 1)).countP p := by
+  conv => lhs; rw [List.finRange_succ_last]
+  conv => rhs; rw [List.finRange_succ]
+  simp only [List.countP_append, List.countP_map, List.countP_cons, List.countP_nil]
+  have h1 : (List.finRange n).countP ((fun i => p (nxt i)) ∘ Fin.castSucc) =
+      (List.finRange n).countP (p ∘ Fin.succ) := by
+    congr 1; funext i
+    have : nxt (Fin.castSucc i) = Fin.succ i := by
+      have hne : ¬ ((Fin.castSucc i).val + 1 = n + 1) := by
+        have := i.isLt; simp only [Fin.val_castSucc]; omega
+      apply Fin.ext; unfold nxt; rw [dif_neg hne]; simp
+    simp [this]
+  have h2 : nxt (Fin.last n) = (0 : Fin (n + 1)) := by
+    apply Fin.ext; unfold nxt; simp
+  rw [h1, h2]
+  cases p 0 <;> simp <;> omega
+
+/-- Sum a per-element identity `[q i] = [a i] + [b i]` over a list. -/
+theorem countP_sum (l : List (Fin (n + 1))) (q a b : Fin (n + 1) → Bool)
+    (h : ∀ i, (if q i then 1 else 0) = (if a i then 1 else 0) + (if b i then 1 else 0)) :
+    l.countP q = l.countP a + l.countP b := by
+  induction l with
+  | nil => simp
+  | cons i l ih =>
+    simp only [List.countP_cons]
+    have := h i
+    cases hq : q i <;> cases ha : a i <;> cases hb : b i <;> simp only [hq, ha, hb] at this ⊢ <;>
+      simp at this ⊢ <;> omega
+
+/-- At a rest marking (no two adjacent stages both hold a value), `D = 2T`. -/
+theorem D_rest (x : State (Fin (n + 1))) (hR : ∀ i, x i = true → x (nxt i) = false) :
+    D x = 2 * (List.finRange (n + 1)).countP x := by
+  unfold D
+  rw [countP_sum (List.finRange (n + 1)) (fun i => x i != x (nxt i)) x (fun i => x (nxt i)), countP_nxt]
+  · omega
+  · intro i
+    have := hR i
+    cases hx : x i <;> cases hy : x (nxt i) <;> simp_all
+
+/-- **Research's floor for a ring at its rest marking:** a ring of `S = n + 1` stages with `T`
+values resting in non-adjacent stages has no trap iff `T ≥ 1` and `S ≥ 2T + 1`. -/
+theorem ring_live_rest (x : State (Fin (n + 1))) (hR : ∀ i, x i = true → x (nxt i) = false) :
+    ¬ HasTrap E x ↔ 1 ≤ (List.finRange (n + 1)).countP x ∧
+      2 * (List.finRange (n + 1)).countP x + 1 ≤ n + 1 :=
+  ring_live_tokens x _ (D_rest x hR)
 
 end Formal.Net.StageNet.RingLive
