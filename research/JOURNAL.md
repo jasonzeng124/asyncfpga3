@@ -6907,3 +6907,18 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - Open from memauto: the multiply inside dot2's sum ring (stop fusion at ring boundaries), rule C's address hold (2x
   clock-to-out stated, 1x with the new cell), the bench's 83 MHz latency-statistics path (lat_final -> leading-one ->
   adders, 12.7 ns: the path that misses the bench clock), BDC_AUTO's fast fall off for every kernel with memory.
+### progress 21:39 (suite9: 79 of 92 back; first FAIL of the automatic path on a NOT CLEAN memory route; suite9r2 filed)
+- suite9 (flow v6, 2 cores, 240 min): PASS so far on dot2 s1 / s2 / s4, fold64 s4, gather s1-3, horner s1-4, if_loop_2
+  s1, memsum s2 / s4, sqrtsub s3 / s4, test_bitint s1-4, test_loop_free s1-4, varshift s1 / s3; cmpchain s1 / s4
+  NOT-A-BOARD-ROUTE (bits; to look at); varshift s2 / s4 died on a missed bench clock (now fixed in the loop).
+- **if_loop_1 s1: FAIL, 2 of 4 draws** (sdf b2ad5a7b, P 27.52 ns, bits EQUIVALENT): "MEMORY wrong in batches 0-7",
+  cycles 0, on draws 10101 (chains 0.230 / rest 0.287) and 10104 (0.206 / 0.269); the two passing draws have the chains
+  about as slow as the rest. The route was NOT CLEAN after the finish phase (9 sized rows short at it 7; raised, never
+  rebuilt). if_loop_1 only reads its array, so wrong read-back from the first batch points at the host's fill through
+  the port (memauto saw the same signature on gather s2 with the opt-in fast fall: a host write missing the RAM's
+  setup, which the rule flagged). Not yet traced. With the hangs finding (ipow s4) this is the second NOT CLEAN route
+  that is actually wrong: the suite table marks it FAIL, as it should; the flow must not ship such a route.
+- suite9r2 filed: the 52 loops that came back unfinished (time limit) or died on a missed bench clock, resumed from
+  their returned state (research/data/suite/resume/suite9/) at this commit (the rule and loop of suite9 + the seed
+  fallback). No state came back for nest3 s1-4, nested s1, iterative_sqrt s2 (their it 0 alone outlasted 240 min:
+  loopfast's lead). The 13 suite9 tasks still running go into a later round.
