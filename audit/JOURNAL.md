@@ -3381,3 +3381,4 @@ Dynamatic tests; the automatic table from clean.
 - 17:32 T154 item 41: own rebuild = sdf 3497ca67 exactly, ff clean (1916 flops); xor19 FAST_MIN 19/19 (min steer 1536 ps), advA no-scatter (the slow-carry corner of formal B7's entry-compare race) 19/19, min steer 1687 ps over all steers, 0 runts. Remaining corners running. Subagent D started: automatic flow without the whitelisted rewrites (collatz s6, xorshift s8).
 - 18:01 T153 done: item 39 CONFIRMED (9/9 at 5 corners, min steer 1644 ps, 0 runts). T154 item 41: advC 19/19 (1917 ps), worst 19/19 (1891 ps); SLOW_MAX running; item 40 GLS started.
 - 18:15 T154 item 41 done: 19/19 at 5 corners, min steer 1536 ps, 0 runts. CONFIRMED (draws UNVERIFIED). Item 40 GLS running.
+- 18:49 T154 item 40 done: 14/14 at 5 corners, min steer 1587 ps, 0 runts. CONFIRMED (draws UNVERIFIED). All three new board items (39-41) reproduce and pass own GLS.
