@@ -4645,3 +4645,10 @@ dB < B + dF (count_split / count_total: per-element bookkeeping by induction on 
 marking (d = 2 x resting values) is in the docstring, not a Lean theorem (the rest marking is research's definition): ring
 -> S >= 2T + 1, T >= 1; fork-join -> L_Q >= 2K (the mirror L_P >= -2K is vacuous with Q the path with more values). Farm c_live_big1 submitted (60G live.py on the
 sampled / timed-out rows: nest3 AUTO, gcd AUTO, inv2 of gcd def / isprime def / nest3 def / branchloop AUTO).
+
+### progress 21:46 -- check.sh (one-command liveness check for research); MODEL.md residue claim corrected
+formal/tools/live/check.sh MLIR: live.py under the caller's BDC_* env, LIVE_BDC_DIR default /home/user/rs/bdc (this branch's
+bdc/ is stale: live.py needs emit.FORK_OUT_LINK); exit 0 / 1 / 2; tested from a clean worktree (matrix PASS=1 LIVE rc 0, PASS=0
+DEADLOCK rc 1, quadrec AUTO LIVE, quadrec floor off DEADLOCK with the walk). While testing: MODEL.md / RESULTS.md said "residue
+(none found)" -- false: results.jsonl has residue on many LIVE rows. Read: collatz fork6, matrix fork12/13, gcd fork11/19 =
+source-driven constants waiting at their fork outputs (benign). Corrected in both files and in C59; no classifier.

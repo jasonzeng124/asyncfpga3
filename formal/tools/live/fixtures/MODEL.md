@@ -38,7 +38,11 @@ can be checked); `--pattern CELL=BITS` replays fixed trip counts (matrix below).
 **Environment.** One 4-phase source per non-memref argument; invocation k+1 is offered only after every result of
 invocation k arrived; one 4-phase sink per result. Verdicts are for 1 invocation, and for 2 back-to-back where the
 1-invocation search was under 100000 states. Finished with tokens left anywhere (stages / forks / joins / steers /
-muxes not back at reset) is counted as `residue` (none found).
+muxes not back at reset) is counted as `residue`. **Correction (C, 2026-11-18 21:45 UTC): residue is NOT zero** -- it is
+nonzero on many LIVE rows (results.jsonl: collatz 4-6, gcd 128, branchloop 63-125, if_loop_1 4, matrix 42, ...). In every
+example read (collatz fork6, matrix fork12 / fork13, gcd fork11 / fork19) the tokens left are copies of a constant driven
+by a free-running `source`, waiting in the fork's output links: the next invocation's constants, made early. That is benign
+(sources never run out, the values are constant), but no classifier checks that every residue state is of this kind.
 
 **Search.** BFS over states hashed with blake2b-128 (collision probability negligible but not zero), partial-order
 reduced: a transition that is not an arbiter's and does not drive an arbiter input (r1, r2, A0) is persistent and

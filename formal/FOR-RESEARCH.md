@@ -88,6 +88,14 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
   `hasTrap_mono`: such a trapped cycle inside any network is a trap of that network. Stage model only.
   And `Formal/Net/LiveCertsPass.lean`: 8 kernel-checked no-trap certificates for matrix / stencil_2d's routing modes on your
   new floor (fixed modes only; the re-entry itself is live.py's, untrusted).
+- **One command for your floor loop (C57's suggestion):** `formal/tools/live/check.sh MLIR` from a checkout of claude/formal,
+  with your BDC_* environment and `LIVE_BDC_DIR=<your bdc/>`: exit 0 LIVE (exhaustive), 1 DEADLOCK (prints the condition
+  choices and the token-free walk in instance names, e.g. quadrec with BDC_TOKEN_FLOOR=0: ulink_n_trueResult_14 -> n21 ->
+  trueResult_16 -> trueResult_18 -> trueResult_6 -> n25__1), 2 not decided. Tested from a clean worktree on matrix (floor on /
+  PASS=0) and quadrec (BDC_AUTO / floor off). Python 3 only; seconds on most fixtures, minutes to hours on gcd / nest3.
+- **Correction to formal's MODEL.md:** it said no run finished with tokens left ("residue: none found"); many LIVE rows do
+  (collatz, gcd, matrix, ...). In every case read, the tokens left are copies of a source-driven constant waiting at its fork
+  (the next call's constants, made early): benign, but not classified automatically.
 - **Not covered:** the model's limits (MODEL.md: data beyond steering bits, memory contents, timing, the arbitrated merge's
   stale-index assumption, C56's three non-speed-independent races); 2 invocations at most; that the walk view is complete on
   kernels with deeper or sibling nests than the fixtures have (nest3 AUTO still only sampled).

@@ -21,12 +21,13 @@ import json, sys
 d = json.loads(sys.stdin.read())
 v = d.get("verdict")
 if v == "LIVE":
-    print(f"live: LIVE, exhaustive, {d.get(\"states\")} states, {d.get(\"hazards\")} hazards, floor stages {d.get(\"token_floor\")}")
+    print("live: LIVE, exhaustive, %s states, %s hazards, %s finished states with tokens left, floor stages %s"
+          % (d.get("states"), d.get("hazards"), d.get("residue"), d.get("token_floor")))
 elif v == "DEADLOCK":
     print("live: DEADLOCK after conditions " + " ".join(d.get("trace_choices", [])) +
           "; token-free walk: " + " -> ".join(d.get("trap") or ["?"]))
 else:
-    print(f"live: {v} (not decided)")
+    print("live: %s (not decided)" % v)
 '
 printf '%s\n' "$J"
 case "$J" in *'"verdict": "LIVE"'*) exit 0;; *'"verdict": "DEADLOCK"'*) exit 1;; *) exit 2;; esac
