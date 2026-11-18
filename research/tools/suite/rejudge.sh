@@ -15,10 +15,18 @@ case $K in
   ipow) V=research/data/eventgraph/gate/ipow17.hex; PV=research/data/fifteen/vec_ipow.hex; OR="research/tools/fifteen/kernel_oracle.sh ipow";;
   isprime) V=research/data/alltable/isp17.hex; PV=research/data/suite/vec/isprime_period.hex; OR="research/tools/fifteen/kernel_oracle.sh isprime";;
   gcd) V=research/data/suite/vec/gcd8.hex; PV=research/data/suite/vec/gcd_period.hex; OR="research/data/gcd_draws/gcd_oracle.sh";;
-  *) V=kernels/$K/vec.hex; PV=kernels/$K/period.hex; [ -f "$R/$PV" ] || PV=$V; OR="research/tools/suite/oracle.sh $K";;
+  *) V=kernels/$K/vec.hex; [ -f "$R/$V" ] || V=research/data/suite/vec/$K.hex   # as suite_one.sh
+     PV=kernels/$K/period.hex; [ -f "$R/$PV" ] || PV=research/data/suite/vec/${K}_period.hex; [ -f "$R/$PV" ] || PV=$V
+     OR="research/tools/suite/oracle.sh $K";;
 esac
 fin() { echo "$K $S $*" | tee "$O/result.txt"; exit 0; }
-( cd "$R" && $OR < "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" || fin "status=NO-ORACLE"
+if head -1 "$R/$V" 2>/dev/null | grep -q '^// benchvec'; then   # a v2 file (arrays): as suite_one.sh
+  ( cd "$R" && ORACLE_MEMOUT="$O/memexp.txt" research/tools/suite/oracle_mem.sh "$K" "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" \
+    || fin "status=NO-ORACLE"
+  export GATE_MEMEXP="$O/memexp.txt"
+else
+  ( cd "$R" && $OR < "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" || fin "status=NO-ORACLE"
+fi
 RT=rj_${K}_$S; HW=$RUNS/hw/$RT; RD=$RUNS/r/$RT
 LINE=$("$R/research/tools/fifteen/lane2.sh" "rj_${K}_$S" "$RT" "$K" "$Z" "$S" "$R/$PV" BDC_AUTO=1 2>&1 | tail -1)
 echo "$LINE" > "$O/rejudge_build.txt"

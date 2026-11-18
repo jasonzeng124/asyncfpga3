@@ -48,7 +48,9 @@ transcription and no entry in REFS / VECTORS.  The words map onto the handshake.
 maps them (cells/hw/gen_bench.py): in order, one word per i32, two (low, high) per i64, at most two in all.  The
 oracle reads the same words off the C signature; if the two ever disagree the answers are wrong and the run FAILS,
 loudly.  --timeout-us raises the testbench's wedge timeout (default: the same 40 us as the REFS path) for vector
-files with long trip counts.
+files with long trip counts.  A v2 vector file with no arrays (`// benchvec words=W mems=0`, research/data/suite/
+bench/README.md: a kernel with more than two operand words) maps W words per call the same way, and its answers come
+from research/tools/suite/oracle_mem.sh; a v2 file with arrays is refused (memory kernels: the bench path only).
 
 THE --dut OVERRIDE
 
@@ -63,6 +65,7 @@ miscompile would.
 
 import argparse
 import os
+import re
 import subprocess
 import sys
 
@@ -507,28 +510,40 @@ def run_iverilog(dut_path, tb_path, tb_name, route_ps=0, vcd=False):
 def c_oracle_vectors(func, vecfile):
     """(vectors, expected) for --c-oracle: the bench-format words of `vecfile` mapped onto func's data arguments as
     cells/hw/gen_bench.py maps them, and the answers of research/tools/suite/oracle.sh (the kernel's C) for them."""
-    words = [int(w, 16) for w in open(vecfile).read().split()]
-    if not words or len(words) % 2:
-        raise SystemExit(f"simcheck: {vecfile}: expected two hex words per vector, got {len(words)} words")
+    text = open(vecfile).read()
+    v2 = re.match(r"// benchvec words=(\d+) mems=(\d+)", text)
+    per = 2
+    if v2:
+        if int(v2.group(2)):
+            raise SystemExit(f"simcheck: {vecfile} holds arrays: memory kernels are checked on the bench path only")
+        per = int(v2.group(1))
+        text = re.sub(r"//[^\n]*", " ", text)
+    words = [int(w, 16) for w in text.split()]
+    if not words or len(words) % per:
+        raise SystemExit(f"simcheck: {vecfile}: expected {per} hex words per vector, got {len(words)} words")
     data = [a for a in func.args if not a.is_control and not a.raw.startswith("memref")]
     if any(a.raw.startswith("memref") for a in func.args):
         raise SystemExit(f"simcheck: {func.name} has a memory argument: the C oracle drives scalar arguments only")
-    if any(a.width not in (32, 64) for a in data) or sum(a.width // 32 for a in data) > 2:
+    if any(a.width not in (32, 64) for a in data) or sum(a.width // 32 for a in data) > per:
         raise SystemExit(f"simcheck: {func.name}'s arguments " + ", ".join(f"{a.name}:i{a.width}" for a in data)
-                         + " do not fit the bench's two 32-bit words")
+                         + f" do not fit {per} 32-bit words" + ("" if v2 else " (the two-word format)"))
     outs = [r for r in func.results if not r.is_control]
     if len(outs) != 1 or outs[0].width > 32:
         raise SystemExit(f"simcheck: {func.name}: the C oracle answers one result of at most 32 bits")
     vectors = []
-    for j in range(0, len(words), 2):
-        pair, k, v = words[j:j + 2], 0, {}
+    for j in range(0, len(words), per):
+        pair, k, v = words[j:j + per], 0, {}
         for a in data:
             v[a.name] = pair[k] if a.width == 32 else pair[k] | (pair[k + 1] << 32)
             k += a.width // 32
         vectors.append(v)
-    oracle = os.path.join(REPO, "research", "tools", "suite", "oracle.sh")
-    feed = "".join("%08x %08x\n" % tuple(words[j:j + 2]) for j in range(0, len(words), 2))
-    cp = subprocess.run([oracle, func.name], input=feed, capture_output=True, text=True)
+    if v2:
+        oracle = os.path.join(REPO, "research", "tools", "suite", "oracle_mem.sh")
+        cp = subprocess.run([oracle, func.name, os.path.abspath(vecfile)], capture_output=True, text=True)
+    else:
+        oracle = os.path.join(REPO, "research", "tools", "suite", "oracle.sh")
+        feed = "".join("%08x %08x\n" % tuple(words[j:j + 2]) for j in range(0, len(words), 2))
+        cp = subprocess.run([oracle, func.name], input=feed, capture_output=True, text=True)
     got = cp.stdout.split()
     if cp.returncode != 0 or len(got) != len(vectors):
         raise SystemExit(f"simcheck: {oracle} {func.name} failed (exit {cp.returncode}, {len(got)} answers for "
