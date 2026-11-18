@@ -189,6 +189,76 @@ def test_steer_self_floor_counts_the_channel_request_not_a_lap():
     finally:
         skew.AND_NODES.clear()
 
+def test_e_join_credit_and_cases():
+    # (6) --e-join.  Launch X (a link controller C(req_in A1, ~c_next A2)) is
+    # fed by a mux join M (its request cause) and released by an acknowledge
+    # C-tree A (its c_next cause).  X's request reaches the operand join J on
+    # A1; J's other input A2 is a sibling link S's request.  From M, S is
+    # reached through S's req_in (A1): a request, credited.  From A, S is
+    # reached through S's c_next (A2): A's fall releases S as it releases X.
+    edges = defaultdict(list)
+    x = storage(edges, "K.ulink_x.ctl.u.u", ["A1", "A2"])
+    m = storage(edges, "K.umux.uj1", ["A1", "A2"])
+    a = storage(edges, "K.ufork.u.g2.u.u", ["A1", "A2"])
+    sib = storage(edges, "K.ulink_s.ctl.u.u", ["A1", "A2"])
+    j = storage(edges, "K.ucmp.ujoin.u.g2.u.u", ["A1", "A2"])
+    lat = storage(edges, "K.ulink_s.lat.pair[0].u$LUT5", ["A1", "A2"])
+    edges[m] += [("K.ulink_x.ctl.u.u/A1", 100), ("K.ulink_s.ctl.u.u/A1", 120)]
+    edges[a] += [("K.ulink_x.ctl.u.u/A2", 30), ("K.ulink_s.ctl.u.u/A2", 40)]
+    edges[x].append(("K.ucmp.ujoin.u.g2.u.u/A1", 50))
+    edges[sib] += [("K.ucmp.ujoin.u.g2.u.u/A2", 200), ("K.ulink_s.lat.pair[0].u$LUT5/A1", 5)]
+    edges[lat].append(("K.ucmp.ujoin.u.g2.u.u/A2", 1))             # data into the join: never a credit path
+    stops, binc, feed = graph(edges)
+    pins = {x: ("K.ulink_x.ctl.u.u/A1", "K.ulink_x.ctl.u.u/A2"),
+            sib: ("K.ulink_s.ctl.u.u/A1", "K.ulink_s.ctl.u.u/A2")}
+
+    def entry(node, ip, kind):
+        if node in pins:
+            return ip == pins[node][0 if kind == "fwd" else 1]
+        return kind == "fwd" and node in (j, m, a)
+
+    blocked = lambda inst: ".lat." in inst
+    # from M (a request): S by req_in (120 + 10), then its request (200): 330 at J/A2
+    cm = skew.e_join_credit(m, "fwd", x, edges, stops, feed, entry, blocked)
+    assert cm["K.ucmp.ujoin.u.g2.u.u/A2"] == 120 + 10 + 200
+    # from A (an acknowledge): S by c_next (40 + 10), then 200
+    ca = skew.e_join_credit(a, "ack", x, edges, stops, feed, entry, blocked)
+    assert ca["K.ucmp.ujoin.u.g2.u.u/A2"] == 40 + 10 + 200
+    # ... a request cause may not enter S by c_next, nor an acknowledge by req_in
+    assert "K.ucmp.ujoin.u.g2.u.u/A2" not in skew.e_join_credit(a, "fwd", x, edges, stops, feed, entry, blocked)
+    assert "K.ucmp.ujoin.u.g2.u.u/A2" not in skew.e_join_credit(m, "ack", x, edges, stops, feed, entry, blocked)
+    # ... nothing past X, and never through a latch (unblocked, the data arc would win: 1 ps)
+    assert "K.ucmp.ujoin.u.g2.u.u/A1" not in cm
+    loose = lambda node, ip, kind: entry(node, ip, kind) or node == lat
+    assert skew.e_join_credit(m, "fwd", x, edges, stops, feed, loose, blocked)[
+        "K.ucmp.ujoin.u.g2.u.u/A2"] == 120 + 10 + 200
+    assert skew.e_join_credit(m, "fwd", x, edges, stops, feed, loose, lambda i: False)[
+        "K.ucmp.ujoin.u.g2.u.u/A2"] == 120 + 10 + 5 + 10 + 1
+    # the cases: X's causes are M (request) and A (acknowledge); an acknowledge ends its chain
+    causes = {x: [(m, "fwd", 110), (a, "ack", 40)], m: [("K.up/O6", "fwd", 70)]}
+    ch = skew.e_join_chains(x, lambda n: causes.get(n, []), 1)
+    assert ch == [[(m, "fwd", 110)], [(a, "ack", 40)]]
+    ch = skew.e_join_chains(x, lambda n: causes.get(n, []), 2)
+    assert ch == [[(m, "fwd", 110), ("K.up/O6", "fwd", 180)], [(a, "ack", 40)]]
+    assert skew.e_join_chains("K.none/O6", lambda n: [], 3) == [[]]
+    # the floors enter the walk at J only: case M floors J at 330 + 10 - 110 = 230, above X's own 50 + 10
+    skew.AND_NODES.clear()
+    skew.AND_NODES.add(j)
+    try:
+        base, _ = skew.walk(edges, stops, binc, feed, x, longest=False)
+        assert base[1][j] == 60
+        fhit = {}
+        out, pred = skew.walk(edges, stops, binc, feed, x, False, None, {j: (230, ("M",))}, fhit)
+        assert out[1][j] == 230 and fhit == {(1, j): ("M",)}
+        assert pred[1][j] == (0, "K.ucmp.ujoin.u.g2.u.u/A1")       # the predecessor stays the reached input
+        # a floor below the reached input changes nothing
+        fhit = {}
+        out, _ = skew.walk(edges, stops, binc, feed, x, False, None, {j: (20, ("M",))}, fhit)
+        assert out[1][j] == 60 and not fhit
+    finally:
+        skew.AND_NODES.clear()
+
+
 if __name__ == "__main__":
     for n, f in list(globals().items()):
         if n.startswith("test_") and callable(f):

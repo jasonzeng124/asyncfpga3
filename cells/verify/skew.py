@@ -492,6 +492,70 @@ def self_request_floor(c_early, c_early_pred, c_late, J, X, binc, feed, stops,
     return best[0] - lx[0], lx[0], best[1], best[2], best[3]
 
 
+def e_join_credit(L, kind, X, early_edges, stops, feed, entry, blocked):
+    """(6) --e-join: {pin: earliest arrival from L} over the paths that carry
+    L's transition as a REQUEST -- Dijkstra over (pin, storage crossings).
+    kind 'fwd': L rises (a request); every storage node crossed must accept
+    it as one (entry(node, pin, 'fwd'): a link controller by req_in, a C-tree,
+    a mux join).  kind 'ack': L falls (an acknowledge); its first crossing
+    must be a link controller entered by c_next (entry(..., 'ack')), which
+    that fall releases, and only pins past it count.  blocked(instance): a
+    latch (data, not a handshake), the gate being checked, a steer (a token
+    past a steer is another branch or the next iteration).  X is recorded,
+    never expanded (what lies past X is X's own walk).  At most K crossings."""
+    import heapq
+    best, dist = {(L, 0): 0}, {}
+    heap = [(0, L, 0)]
+    while heap:
+        t, p, c = heapq.heappop(heap)
+        if best.get((p, c), t) < t:
+            continue
+        # an acknowledge's fall is a request only past its first crossing
+        if p != L and (kind == "fwd" or c > 0) and (p not in dist or t < dist[p]):
+            dist[p] = t
+        if p == X:
+            continue
+        for d, w in early_edges.get(p, ()):
+            if (p, d) in feed or d == L or blocked(d.rsplit("/", 1)[0]):
+                continue
+            nc = c
+            if d in stops and d != X:
+                if not entry(d, p, kind if c == 0 else "fwd"):
+                    continue
+                nc = c + 1
+                if nc > K:
+                    continue
+            nt = t + w
+            if nt < best.get((d, nc), nt + 1):
+                best[(d, nc)] = nt
+                heapq.heappush(heap, (nt, d, nc))
+    return dist
+
+
+def e_join_chains(X, causes, depth):
+    """(6) --e-join: every chain of LAST causes back from X, as lists of
+    (L, kind, l(L -> X)) nearest first.  causes(node) -> [(L, kind, l(L ->
+    node))].  A request cause ('fwd') is followed back while `depth` allows;
+    an acknowledge cause ('ack') ends its chain (its own causes belong to the
+    previous phase); a node with no cause ends the chain where it is (X with
+    none: [[]], no case gives a bound)."""
+    out = []
+
+    def rec(chain, node, ltot, d):
+        cs = causes(node) if d > 0 else []
+        if not cs:
+            out.append(chain)
+            return
+        for L, kind, lL in cs:
+            nxt = chain + [(L, kind, ltot + lL)]
+            if kind == "ack":
+                out.append(nxt)
+            else:
+                rec(nxt, L, ltot + lL, d - 1)
+    rec([], X, 0, depth)
+    return out
+
+
 def path_to(pred_out, level, node):
     """The exact walk from `launch` to `node` at `level`, as a list of
     (level, node) pairs, launch first.  Reconstructed from `fwd`'s own
@@ -848,43 +912,13 @@ def main():
             return out
 
         def ej_credit(L, kind, X, own):
-            """{pin: earliest arrival from L} over the paths that carry L's
-            transition as a request (see (6)): Dijkstra over (pin, crossings)."""
             key = (L, kind, X, own)
-            if key in ej_cred_c:
-                return ej_cred_c[key]
-            import heapq
-            best, dist = {(L, 0): 0}, {}
-            heap = [(0, L, 0)]
-            while heap:
-                t, p, c = heapq.heappop(heap)
-                if best.get((p, c), t) < t:
-                    continue
-                # an acknowledge's fall is a request only past its first crossing
-                if p != L and (kind == "fwd" or c > 0) and (p not in dist or t < dist[p]):
-                    dist[p] = t
-                if p == X:
-                    continue
-                for d, w in early_edges.get(p, ()):
-                    if (p, d) in feed:
-                        continue
-                    inst = T.pin_split(d)[0]
-                    if (d == L or inst.startswith(own) or inst.startswith(ej_steers)
-                            or RE_LATCH_OUT.match(inst)):
-                        continue
-                    nc = c
-                    if d in stops and d != X:     # X: recorded, never expanded
-                        if not ej_entry(d, p, kind if c == 0 else "fwd"):
-                            continue
-                        nc = c + 1
-                        if nc > K:
-                            continue
-                    nt = t + w
-                    if nt < best.get((d, nc), nt + 1):
-                        best[(d, nc)] = nt
-                        heapq.heappush(heap, (nt, d, nc))
-            ej_cred_c[key] = dist
-            return dist
+            if key not in ej_cred_c:
+                ej_cred_c[key] = e_join_credit(
+                    L, kind, X, early_edges, stops, feed, ej_entry,
+                    lambda inst: (inst.startswith(own) or inst.startswith(ej_steers)
+                                  or bool(RE_LATCH_OUT.match(inst))))
+            return ej_cred_c[key]
 
         def ej_floors(chain, X, own, jset):
             """{J: (floor, (L, ip, kind, l(L -> X)))} from every node of `chain`."""
@@ -901,25 +935,7 @@ def main():
             return fl
 
         def ej_cases(X):
-            """Every chain of last causes back from X: [[(L, kind, l(L -> X))]].
-            A request cause is followed back while the depth allows; an
-            acknowledge cause ends its chain (its own causes are the previous
-            phase's); a node with no cause ends the chain where it is."""
-            out = []
-
-            def rec(chain, node, ltot, depth):
-                cs = ej_causes(node) if depth > 0 else []
-                if not cs:
-                    out.append(chain)
-                    return
-                for L, kind, lL in cs:
-                    nxt = chain + [(L, kind, ltot + lL)]
-                    if kind == "ack":
-                        out.append(nxt)
-                    else:
-                        rec(nxt, L, ltot + lL, depth - 1)
-            rec([], X, 0, E_JOIN_DEPTH)
-            return out
+            return e_join_chains(X, ej_causes, E_JOIN_DEPTH)
 
         def ej_raise(X, own, rp, l, g0, out_f):
             """(6): the row from launch X with the join credit, or None when some
