@@ -3095,3 +3095,5 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   the instance: class map (NotMax on the counter / ring channels, NotMin on the ring entry), two branch pairs (guard
   cond_br4 with sgt; test cond_br6 with the corrected test), safeB decidable rule check, priv by decide. FOR-RESEARCH
   A22 updated: plain pre_dec can be a pass of the "structural check + generated per-program proof" kind.
+* check.sh OK on the 13-file plain-form chain (libs ... CountloopPlainGen). CountloopPlainTie (gen_plain_tie.py): the
+  graph-only theorem about the import of out/countloop_plain.mlir, renumbering in Lean; compiled, standard axioms.

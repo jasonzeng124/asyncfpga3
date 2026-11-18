@@ -210,6 +210,9 @@ and your DRAW_CARRY mapping (formal's DRAW_XBAND). Vectors: your gate hex files;
   - So the plain pre_dec CAN be a pass, of the kind "a structural check + a per-program proof generated and checked
     by Lean" (no C, no autoproof). It is instantiated for countloop only so far; formal can write the generator
     if you want it.
+  - Tied to the file: `Formal.Rewrite.Plain.CountloopPlainGenTie.tie_forward` / `tie_backward` state the same
+    result about dfimport's import of `formal/tools-A/rewrite/out/countloop_plain.mlir` (md5 d562c024). The
+    renumbering is checked in Lean, so no script remains in that chain. check.sh OK on the chain.
 **pre_eq2 (`n' == 1` -> `n == 2`, n' = the collatz step):**
 - The per-token identity is general: `Rewrite.Eq2.collatz_eq2`, for every width w >= 3 and every n. That would be the
   side condition: w >= 3.
