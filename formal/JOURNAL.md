@@ -3097,3 +3097,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   A22 updated: plain pre_dec can be a pass of the "structural check + generated per-program proof" kind.
 * check.sh OK on the 13-file plain-form chain (libs ... CountloopPlainGen). CountloopPlainTie (gen_plain_tie.py): the
   graph-only theorem about the import of out/countloop_plain.mlir, renumbering in Lean; compiled, standard axioms.
+* check.sh OK on the 16-file chain including Rename, CountloopPlainRdHw and CountloopPlainTie (21:15).
