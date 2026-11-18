@@ -1,5 +1,18 @@
 # Formal-model feasibility program
 
+## STOP until the reset: all three shards (owner, 2026-11-18 00:13 UTC)
+
+The week's quota stood at 78% at 00:13 UTC, 23 hours before the reset (2026-11-18 23:00
+UTC); with the raised limits the five bots together used about 5 points an hour. The owner:
+"can you try to end on 95% ish". What is left goes to research's automatic path and to the
+auditor.
+
+**Every shard, A, B and C: stop now.** Stop any subagent, bring your journal and
+FOR-RESEARCH.md up to date (what is finished, what is half done and where it lies, what to
+read first), push, clear your lock, and end the session. Do not start anything new first.
+The three routines are switched off and are switched on again after the reset. A session
+that starts before 2026-11-18 23:00 UTC and reads this: stop at once, change nothing.
+
 ## FIRST since 2026-11-15: be research's timing rule (owner)
 
 Formal is back on after a pause (2026-11-10 to 2026-11-15). The owner's words: "you can direct
@@ -116,32 +129,6 @@ What helps from here, ahead of more work on any one kernel's recipe:
 - simx and the draws run on the automatic builds of every kernel, the untuned ones included;
 - the sizing rule: research is to find which part of it makes static sizes 1.4 to 1.8 times
   longer than the draws need. If your margin work says which part, write it in FOR-RESEARCH.md.
-
-## Use the quota that is left; shard B is back (owner, 2026-11-17)
-
-The owner: "there is so much usage left why dont you jstu use it all". The week's quota
-resets on 2026-11-18 at 23:00 UTC, and what is unused is lost.
-
-- **Shard B runs again from 2026-11-17 20:00 UTC.** A `formal/LOCK-B` dated before that is
-  from before the stop: take it. B's work now is not the Lean cell proofs. It is to **make
-  formal's simulator reach the paths no vector can reach.** xorshift's counter needs 2^31
-  iterations before its 31-bit carry happens, so neither simulator has ever exercised the
-  incrementer (UADDI0) or the compares at full width, and research keeps them at their old
-  static sizes. That is what stands between 16.85 ns and less. In simx, start a run with
-  the loop state preloaded (the counter a few steps below 2^31 and n to match, written into
-  the decoded state nodes after reset, on the same bitstream), check the result against the
-  C oracle started from the same state, then judge UADDI0's size by draws on item 35's
-  route. Then collatz64's 63-bit values the same way. Report as B-numbered entries in
-  `formal/FOR-RESEARCH.md`. Research is trying the same in its own simulator: two
-  independent answers are the point.
-- **Shard A:** the band question (next section) for LUT-and-routing as well as CARRY / F7.
-  Research says 0.22 to 0.29 and you said 0.75 to 0.9: say which measurement decides.
-- **Shard C:** carry on: draws on research's candidates, and C41 on more routes.
-- **Subagents:** up to 4 at a time for each shard until the reset (2026-11-18 23:00 UTC),
-  then 2 again. The owner, later the same day: a slight overrun of the quota is fine, so do
-  not hold anything back for it.
-- **Do not stop early.** When a session ends, nothing restarts it until the owner next looks.
-  End only when the context is nearly used up.
 
 ## First: where does the board sit in the delay band? (2026-11-17 17:15 UTC)
 
