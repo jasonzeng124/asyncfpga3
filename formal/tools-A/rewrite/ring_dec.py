@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""ring_dec.py IN.mlir OUT.mlir [--only CMPNAME] -- the loop test `slt(i + 1, n)` with n on a ring, rewritten so that
+"""ring_dec.py IN.mlir OUT.mlir [--only CMPNAME] [--plain]
+
+--plain: the test is plain `slt(i, m)` with no correction (exact only under the loop's entry invariant; NOT covered
+by the any-graph theorems -- needs a per-kernel proof).
+ -- the loop test `slt(i + 1, n)` with n on a ring, rewritten so that
 the test does not wait for the increment (shard A, 2026-11-18).
 
 Pattern (every match is checked, anything else is refused):
@@ -19,6 +23,8 @@ import re, sys
 def main():
     args = sys.argv[1:]
     only = None
+    plain = '--plain' in args
+    if plain: args.remove('--plain')
     if '--only' in args:
         i = args.index('--only'); only = args[i + 1]; del args[i:i + 2]
     src = open(args[0]).read()
@@ -82,7 +88,10 @@ def main():
         A = lambda nm, b_=bb: '{handshake.bb = %s : ui32, handshake.name = "%s"}' % (b_, nm)
         sf_other = sf + '#' + ('0' if a.endswith('#1') else '1')
         # edits, from the bottom up so line numbers stay valid
-        lines[n0] = (f'{ind}%{t}i:2 = fork [2] %{t}f#1 {A("fork"+t+"i")} : <i32>\n'
+        if plain:
+            lines[n0] = f'{ind}{c} = cmpi slt, %{t}f#1, {b} {{{attrs}}} : <i32>'
+        else:
+          lines[n0] = (f'{ind}%{t}i:2 = fork [2] %{t}f#1 {A("fork"+t+"i")} : <i32>\n'
                      f'{ind}%{t}m:2 = fork [2] {b} {A("fork"+t+"m")} : <i32>\n'
                      f'{ind}%{t}lt = cmpi slt, %{t}i#0, %{t}m#0 {{{attrs}}} : <i32>\n'
                      f'{ind}%{t}s1 = source {A("source"+t+"a")} : <>\n'
