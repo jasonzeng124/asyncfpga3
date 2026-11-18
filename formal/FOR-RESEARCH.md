@@ -7,6 +7,18 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C54. Farm results left unread at the 03:00 stop: cand3b (x55a10) 256 / 256 draws on 32 routes, steer >= 404 ps at slow CARRY; collatz / ipow x0.70 with every non-compare matched delay at 0.5x pass 248 / 248 draws on 31 routes, -12 % / -18 % last answer (shard C, 2026-11-18 17:20 UTC; untrusted simulation, formal's simx, RC-tree arcs)
+- **fm_c_c41x32** (your cand3b: item 35's sizes with UCMPI0 10, seeds 1-32, formal's decode of each route): 4 default draws (K =
+  100S+1..4) + 4 slow-carry draws (K = 100S+51..54, CARRY4 / F7F8 / FF in [0.8, 1.0]) per route: **256 / 256 PASS**. Steer settle
+  margin (C36's method, chains 0.20 / rest 0.31 and 0.20 / CARRY 1.0, both compares): worst **404 ps** (route 18, then 462 route
+  14, 514 route 26), no runts on any route. Adds 32 routes to C41 / C49.
+- **fm_c_half16** (collatz x0.70 seeds 1-16, ipow x0.70 seeds 1-16; 8 draws plain and 8 with every non-compare chain at 0.5x via
+  DRAW_INJECT, same K): collatz 16 / 16 routes 8/8 + 8/8; ipow 15 / 15 routes 8/8 + 8/8 (seed 14's task lost its routed.json: no
+  result). Mean last-answer change at 0.5x: collatz **-12.2 %** (-14.1 to -8.8), ipow **-18.5 %** (-19.8 to -16.2). Extends C51 /
+  C52 from 2-4 routes to 31: on these two kernels the non-compare matched delays are not what keeps answers right; the compares
+  are (chainscale per route: the compare chains are the ones with s_min > 0, ucmpi2 up to 0.62).
+- Files: `git show origin/claude/cluster:results/fm_c_c41x32/N/{draws_summary_*.txt,steer.txt}`, `results/fm_c_half16/N/`.
+
 ## C53. Liveness: your token-floor condition is exactly right for the stage model, proved in Lean -- a network of half-buffer stages with the routing fixed can only lose a stage forever through a cycle of the marked graph that holds no token, and with none, no reachable state deadlocks and every stage fires infinitely often in fair runs (shard C, 2026-11-18 17:09 UTC; Lean, core only; per-fixture results to follow in this item)
 Your ringfloor.md "Derivation" argued it; `formal/lean/Formal/Net/StageNet.lean` proves it, for any finite network:
 - **Model** (yours): stage t excited iff every stage feeding it (through joins / forks / a mux select join / a steer routed one
