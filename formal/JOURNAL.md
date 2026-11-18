@@ -2919,3 +2919,21 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 - With it, collatz needs b = 0.216 (research 0.222) and the August rings 0.286 (0.288), so the models coincide.
 - One fix by the lead: routes with no recorded source pin (77 on collatz) get no OUTMUX arc and a fidelity line.
 - FF CE / SR / D sinks are still short (FF-side site muxes are not modelled).
+
+## Session 2026-11-18 (A, from 16:55 UTC; PROGRAM 2dddfedca: all shards until 23:00, then A alone)
+### progress 17:35 -- start; A's item: proofs for the automatic path's MLIR rewrites
+* Lock taken (LOCK dated 2026-11-17 21:18, before the 16:48 restart: PROGRAM says take it). setup.sh running (Mathlib
+  cache unreachable, building from source). Audit: no open REFUTED / OVERSTATED row against A's files (T145 on the
+  band question is answered by A18's RC_TREE result).
+* What the automatic path turns on today (research bdc/auto.py, data/auto/README.md): pre_dec (xorshift) and pre_eq2
+  (collatz, collatz64), each accepted only when the output's md5 is one of A6's proven files. Both are proved (A6,
+  audit T115). So the open part is "what else it would need": both matchers fit one kernel each.
+* Census (untrusted scan, `tools-A/rewrite/scan_inc.py`, research's 108 frontend fixtures): 166 loop tests of the form
+  `cmpi P, (addi i, c), b` in 84 kernels. 117 are `ult (addi (extui i) 1), CONST` (counter narrowed by Dynamatic,
+  constant bound); 30 are xorshift's shape `slt (addi i 1), n` with n on a ring; the rest are small (`sgt (addi i -k)
+  K`, `ult ... extui`, step 2).
+* Plan: (1) Lean: the per-token identities (ult with a zero-extended counter and a nonzero constant bound is exact
+  with no invariant; slt with a ring needs either the loop invariant or a two-flag correction); (2) Lean: a generic
+  graph theorem that replacing a unary op/fork tree by another with the same per-output functions preserves every
+  complete run's result (any surrounding graph), so the constant-bound rewrite is proved for every kernel at once;
+  (3) a general rewrite tool and a token-level differential check on the suite (subagent).
