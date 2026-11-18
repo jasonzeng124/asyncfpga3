@@ -61,10 +61,17 @@ def main():
     INF = float("inf")
     d = [[INF] * n for _ in range(n)]
     ntok = 0
+    producer = {r: i for i, n in enumerate(func.nodes) for r in n.results}
+
+    def obb(n):          # a cast's block is its operand's (bdc/emit.py's token test, research/data/suite/hangs.md)
+        while n.op in ("extui", "extsi", "trunci") and n.operands and n.operands[0] in producer:
+            n = func.nodes[producer[n.operands[0]]]
+        return bb(n)
+
     for x in edges:
         c, p = func.nodes[x.consumer], func.nodes[x.producer]
         k = c.operands.index(x.value) if x.value in c.operands else -1
-        tok = int(((c.op == "mux" and k >= 1) or c.op in ("merge", "control_merge")) and 0 <= bb(c) <= bb(p))
+        tok = int(((c.op == "mux" and k >= 1) or c.op in ("merge", "control_merge")) and 0 <= bb(c) <= obb(p))
         ntok += tok
         w = stages.get(x.value, 0) - 2 * tok
         if w < d[x.producer][x.consumer]:
