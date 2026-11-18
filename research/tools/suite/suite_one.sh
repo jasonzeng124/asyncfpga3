@@ -18,7 +18,8 @@ R=$(cd "$(dirname "$0")/../../.." && pwd); RUNS=${RUNS:-/home/user/runs}; export
 O=$RUNS/suite/${K}_$S; mkdir -p "$O"; : > "$O/draws.txt"
 D=${K}_bench_gen
 # verification data: the six original kernels use their gate vectors and oracles (with the bench's input masks);
-# every other kernel reads kernels/K/vec.hex and the generic oracle research/tools/suite/oracle.sh
+# every other kernel reads kernels/K/vec.hex (Dynamatic's tests, which have no kernels/ directory -- one would shadow
+# the test in bdc/frontend.sh: research/data/suite/vec/K.hex) and the generic oracle research/tools/suite/oracle.sh
 case $K in
   xorshift) V=research/data/eventgraph/gate/xor19.hex; PV=research/data/fifteen/vec_xorshift.hex; OR="research/tools/fifteen/kernel_oracle.sh xorshift";;
   collatz) V=research/data/eventgraph/gate/col18.hex; PV=research/data/fifteen/vec_collatz.hex; OR="research/tools/fifteen/kernel_oracle.sh collatz";;
@@ -28,7 +29,9 @@ case $K in
   # draws on gcd8 (gcd18's edges and its longest pair; farm gcddraw1 timed out on 42 of 64 tasks with gcd18)
   isprime) V=research/data/alltable/isp17.hex; PV=research/data/suite/vec/isprime_period.hex; OR="research/tools/fifteen/kernel_oracle.sh isprime";;
   gcd) V=research/data/suite/vec/gcd8.hex; PV=research/data/suite/vec/gcd_period.hex; OR="research/data/gcd_draws/gcd_oracle.sh";;
-  *) V=kernels/$K/vec.hex; PV=kernels/$K/period.hex; [ -f "$R/$PV" ] || PV=$V; OR="research/tools/suite/oracle.sh $K";;
+  *) V=kernels/$K/vec.hex; [ -f "$R/$V" ] || V=research/data/suite/vec/$K.hex
+     PV=kernels/$K/period.hex; [ -f "$R/$PV" ] || PV=research/data/suite/vec/${K}_period.hex; [ -f "$R/$PV" ] || PV=$V
+     OR="research/tools/suite/oracle.sh $K";;
 esac
 # a v2 vector file (arrays; research/data/suite/bench/README.md) takes the memory oracle and the arrays' read-back
 MEMV=0; head -1 "$R/$V" 2>/dev/null | grep -q '^// benchvec' && MEMV=1
