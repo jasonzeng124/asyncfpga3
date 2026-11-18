@@ -103,7 +103,8 @@ nvoid = sum(1 for e in exp if e == "void")
 if nvoid:
     sys.argv[5] = (" | void: arrays only" if memexp else " | void kernel WITHOUT GATE_MEMEXP: nothing checked, no pass") \
         + sys.argv[5]
-print("%s %d/%d cycles %d %s%s%s" % ("PASS" if ok == len(exp) else "FAIL", ok, len(exp), cyc, sys.argv[3],
+# an EXPFILE with no line (an oracle that failed, a truncated file) is a run with nothing to compare: never a pass
+print("%s %d/%d cycles %d %s%s%s" % ("PASS" if exp and ok == len(exp) else "FAIL", ok, len(exp), cyc, sys.argv[3],
       (" | MISMATCH in batch(es) %s" % ",".join(map(str, sorted(mm)))) if mm else "",
       (" | MEMORY wrong in batch(es) %s" % ",".join(map(str, sorted(membad)))) if membad else "") + sys.argv[5]
       + ((" | memport one-hot: %d batch line(s), host reqs %d, kernel reqs %d, overlaps %d%s" % (

@@ -11,7 +11,8 @@ Reads, all under research/data/suite/dyn/ unless said otherwise:
   emit.tsv: emit.py --no-top per mode (default, BDC_AUTO=1, BDC_HOST_MEM=1): ok or the first error;
   research/tools/suite/kernels.txt: which are in the suite;
   rtl.tsv: research/tools/suite/rtl_bench.sh verdicts (the bench's own Verilog in RTL), default and BDC_AUTO=1;
-  smoke.tsv: routed smoke verdicts (seed, flow, worst corner, the gate's line).
+  smoke.tsv: routed smoke verdicts (seed, flow, worst corner, the gate's line);
+  notes.tsv: routed results recorded elsewhere (prior_smoke) and a note per test.
 Status is the furthest stage reached: does not compile (frontend | bdc: blockers) < emits < in the suite < passes RTL
 < passes routed smoke.  A row whose RTL or smoke FAILED says so: "wrong answer" and "deadlock" are results.
 """
@@ -49,14 +50,15 @@ def main():
     sm = {}
     for r in tsv("smoke.tsv"):
         sm.setdefault(r["name"], []).append(r)
+    notes = {r["name"]: r for r in tsv("notes.tsv")}
     suite = set(l.split()[0] for l in open(os.path.join(R, "research", "tools", "suite", "kernels.txt"))
                 if l.strip() and not l.startswith("#"))
     out = csv.writer(open(sys.argv[1], "w"), delimiter="\t", lineterminator="\n")
     out.writerow(["test", "status", "blockers", "emit_default", "emit_auto", "suite", "rtl_default", "rtl_auto",
-                  "smoke"])
+                  "smoke", "note"])
     print("| test | status today | what blocks it | emits (default / AUTO) | in the suite | RTL default / AUTO "
-          "| routed smoke (seed 1, worst corner) |")
-    print("|---|---|---|---|---|---|---|")
+          "| routed smoke (seed 1, worst corner) | note |")
+    print("|---|---|---|---|---|---|---|---|")
     counts = {}
     for full, name in tests:
         f = fe.get(name, "?")
@@ -67,7 +69,13 @@ def main():
         rd = rtl.get(name, {}).get("default", {}).get("verdict", "")
         ra = rtl.get(name, {}).get("auto", {}).get("verdict", "")
         smk = sm.get(name, [])
-        smv = "; ".join("%s %s: %s" % (s["flow"], s["seed"], s["verdict"]) for s in smk)
+        def short_smoke(s):
+            v = s["verdict"].split()
+            eq = "NOT EQUIVALENT" if "NOT EQUIVALENT" in s["verdict"] else "EQUIVALENT" if "EQUIVALENT" in s["verdict"] else ""
+            return "%s seed %s: %s %s%s" % (s["flow"], s["seed"], v[0], v[1], (", " + eq) if eq else "")
+        smv = "; ".join(short_smoke(s) for s in smk)
+        prior = notes.get(name, {}).get("prior_smoke", "")
+        note = notes.get(name, {}).get("note", "")
         if f != "ok":
             st = "does not compile (frontend)"
         elif b not in ("-", ""):
@@ -76,18 +84,20 @@ def main():
             st = "does not compile (bdc: %s)" % ed
         elif not ins:
             st = "emits"
-        elif any(s["verdict"].startswith("PASS") for s in smk):
+        elif any(s["verdict"].startswith("PASS") and "NOT EQUIVALENT" not in s["verdict"] for s in smk) \
+                or prior.split(": ")[-1].startswith("PASS"):
             st = "passes routed smoke"
         elif rd.startswith("PASS") or ra.startswith("PASS"):
             st = "passes RTL"
         else:
             st = "in the suite"
         counts[st] = counts.get(st, 0) + 1
-        short = lambda v: (v.split(" RTL")[0] if v else "-")
-        out.writerow([full, st, b, ed, ea, "yes" if ins else "no", rd, ra, smv])
-        print("| %s | %s | %s | %s / %s | %s | %s / %s | %s |" % (
+        short = lambda v: (" ".join(v.split()[:2]) if v else "-")
+        yn = lambda e: "-" if e == "-" else "ok" if e == "ok" else "no"
+        out.writerow([full, st, b, ed, ea, "yes" if ins else "no", rd, ra, smv or prior, note])
+        print("| %s | %s | %s | %s / %s | %s | %s / %s | %s | %s |" % (
             full, ("**%s**" % st) if "passes" in st else st, "" if b == "-" else b.replace(",", ", "),
-            ed, ea, "yes" if ins else "-", short(rd), short(ra), smv or "-"))
+            yn(ed), yn(ea), "yes" if ins else "-", short(rd), short(ra), smv or prior or "-", note))
     print()
     print("%d integer tests: " % len(tests) + ", ".join("%s %d" % kv for kv in sorted(counts.items(), key=lambda x: -x[1])))
 
