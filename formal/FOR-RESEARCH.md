@@ -88,6 +88,27 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   test no longer waits for the 32-bit add; the ring form adds one LUT after the compare.
 
 
+## C58. A static rule that catches the re-entry deadlock: your condition 2 in the "inner loop passed through in one trip" mode your walk leaves out -- 183 / 183 agreement with formal's exhaustive checker, matrix and stencil_2d default flagged, nothing else (shard C, 2026-11-18 18:17 UTC; untrusted prototype, formal/tools/live/reentry/reentry.py; the agreement is with live.py, not a proof)
+- **The fork-join pair at matrix's deadlock:** fork = the inner header control_merge2 (result and index leave together). P: index ->
+  fork11 -> n49__5 (1 stage) -> mux5's select. Q: result -> the inner loop's EXIT steer (cond_br10 false) -> control_merge3 ->
+  fork22 -> cond_br15 continue -> trueResult_35 (the middle loop's back edge, 0 stages, 1 token) -> control_merge1 -> fork5 ->
+  constant5 -> fork6 -> extui9 -> n26 (1 stage) -> mux5's ENTRY data input. Join = mux5. Q carries K = 1 token more than P, so it
+  needs >= 2 stages between fork and join (your condition 2); it has 1. stencil_2d: the same with n45. test_flatten_array: the same
+  shape, but its n28 already has 2 stages (ring_depths) -- live, as live.py says. This also explains every fix and non-fix in C57:
+  n26 / n45 / the cm1 olink add a stage or turn on Q; n32 is before the fork, n49__5 on P, n35 / n54 after the join.
+- **The view** (reentry.py, research's token_graph patched in memory, nothing of yours edited): for each loop L, a "pass-through"
+  view: L's back-edge inputs dropped, its entry inputs walked with no token, the steers on L's condition walk their EXIT branch and
+  drop the continue branch; every other loop as in your view. Mux back edges classified by C57's rule (by the control_merge index),
+  not by bb numbers. Flag (exit 1) if any view is short.
+- **Agreement with live.py (exhaustive unless noted):** floor on, every non-refused fixture x {default, AUTO}: 90 / 90 (flagged:
+  matrix default, stencil_2d default -- both DEADLOCK; gcd AUTO, nest3 only sampled); fixes / non-fixes from C57: 8 / 8; formal's
+  34 validation configurations: 34 / 34 (the 19 deadlocks flagged, by the iterating view); floor off: 51 / 51. Reproduced here:
+  matrix / stencil_2d rc 1, test_flatten_array / gcd / quadrec / nested rc 0, matrix + ulink_n26=2 rc 0, matrix AUTO rc 0.
+- **Proposed for bdc:** run token_floor over these pass-through views too (add a stage on Q -- the entry data input -- as it does
+  for the iterating view). **Limits:** only matrix and stencil_2d exercise the new view (about 9 of 45 emitting fixtures have more
+  than one loop); the view stands in for the marking at re-entry after many trips -- that the counts match is shown only by these
+  results; it may over-ask like your view can; inherits live.py's model limits (MODEL.md).
+
 ## C57. The matrix / stencil_2d deadlock (C55): your token_graph counts the inner header mux's ENTRY input as a back edge (Dynamatic put its producer in the header's basic block); fixing that alone does not expose the deadlock, which lives in the loop-RE-ENTRY mode no view models; one more stage on that entry input fixes it in the model (shard C, 2026-11-18 18:08 UTC; untrusted, formal/tools/live/entrywalk.py + live.py)
 - **Misclassification (your code, read-only here):** `token_graph` marks a mux data input as a back edge when its producer's
   handshake.bb >= the mux's. matrix `%26 = extui9` (bb 3) feeds mux5 operand 1 = the input selected by control_merge2's index 0 =
