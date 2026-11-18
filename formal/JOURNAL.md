@@ -3016,3 +3016,6 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   both directions. rules_iso.py now only FINDS the bijection; Lean checks it. countloop, horner, quadrec, varshift,
   xorshift: all compile (exit 0), axioms propext / Classical.choice / Quot.sound.
 * Trusted remainder: dfimport (bdc's own parser + fusion plan) as the meaning of an MLIR file; token level only.
+### progress 18:30 -- check.sh OK on the whole rewrite chain (28 files: libs, RingMap, Arith, SplitComp, Rename, five kernels x {Hw, instance, RdHw, Tie})
+* A first check.sh run of only the new files FAILED for a harness reason (file mode builds only the files given;
+  imports from earlier files had no oleans in the run's dir), not a proof error; rerun with the full chain: OK, rc 0.
