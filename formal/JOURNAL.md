@@ -3073,3 +3073,9 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 4. **Subagents:** three were used (rewrite tool + differential check; RingMap; simcheck timing). Every report was
    checked by the lead before it was cited.
 5. **Next:** re-read PROGRAM at 21:00 and 23:00. If research asks for countloop_plain on routes, support it.
+### progress 20:53 -- PROGRAM cffa0d44b read (auditor T156: the automatic path's rewrites must be a PASS, not a hash list); FOR-RESEARCH A22
+* pre_dec: a general pass exists only in the corrected form (A19 theorems), which is slower (A20). The plain form needs the
+  loop's entry invariant: per-program only (A6 xorshift, autoproof_x countloop). pre_eq2: identity general (w >= 3) but
+  collatz's step is a 3-input region, outside IncCmp*'s single-input shape: per-program only. Stated plainly in A22, with
+  translation validation (autoproof_x in the flow) as the cheapest general route.
+* PROGRAM otherwise unchanged for A (after 23:00: all shards continue, <= 2 subagents).
