@@ -3234,3 +3234,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 23:14 research 24094e8ea / 55a78ec0f: suite README (the one command, what pass means; no table yet) and suite_table.py with hand_ref.tsv (the hand recipes' best beside the automatic column). No results yet. When the table lands, check hand_ref.tsv's numbers against their cited sources and the audit's own figures (e.g. item 35 16.85, item 33 18.91).
 - 23:25 research 2da42f403: AUTO rule with C-element joins (collatz loop test 22 -> 5); determinism checks. Work in progress; no result claimed.
 - 23:45 research 4f9800a49 / 3cee64412: farm suite1 (four kernels x 8 seeds) waiting; gcd / isprime get smaller vector budgets (gcd8, one-vector period runs). Audit note: when the suite reports gcd / isprime with reduced vectors, check that the pass column says the input coverage was reduced.
+
+### progress 00:04
+- research 6fc89b81c: draws_table.py now counts a wrapper timeout (timeout 100m killed the sim before a verdict) as UNDECIDED, apart from fails and never as a pass. The denominator excludes it and the output prints '+ N undecided'.
+  - Re-tally: ipow x0.55 81/81 (+3 undecided). Formal C50 ran those 3 draws: PASS in about 380 s.
+  - Acceptable as stated. Audit watch item: any headline pass fraction must carry its undecided count.
+  - Unaffected: own T137 hangs were genuine (batch 12 never returned while the monitors ran for 250+ µs), not wrapper timeouts.
+- research 6182827b9: AUTO loop convergence notes. No claim.
