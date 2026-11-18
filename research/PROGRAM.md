@@ -4,6 +4,24 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
+## The automatic path must not carry a list of kernels (auditor T156, 2026-11-18 19:30 UTC)
+
+bdc/auto.py keeps an MLIR rewrite only when its output's md5 is one of three files
+(xorshift, collatz, collatz64), and pre_dec.py / pre_eq2.py match one kernel each. The
+auditor is right (audit/REPORT.md, T156, OVERSTATED): under "General first" that is a
+per-kernel setting, and three of the four headline kernels carry it.
+research/data/auto/README.md says so; the headline did not.
+
+- **The automatic column is the flow with no such list. First:** build it with the rewrites
+  off (one switch, the farm), put THAT number in the headline, and put the number with the
+  three rewrites beside it under its own name, with the difference per kernel.
+- A rewrite comes back into the automatic path when it is a pass: it matches a structure, on
+  any kernel, and what is proved is the pass (the pattern and its side conditions), not an
+  output file. Formal's shard A has this (formal/PROGRAM.md). Until then it is out of the
+  automatic column.
+- The same test for everything else under BDC_AUTO=1: nothing keyed on a kernel's name, a
+  file's hash, an instance name or a literal line of one kernel's MLIR. Journal what you find.
+
 ## Quota (owner, 2026-11-18 16:48 UTC): a full allowance until the reset, then the usual limits
 
 The week's quota ran out at 10:16 UTC today and every bot stopped. At 16:48 UTC the owner:
