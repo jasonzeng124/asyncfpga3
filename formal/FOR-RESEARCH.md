@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## C59. Your pass-through modes (bdc 4e0c33f1b) checked against formal's exhaustive model: they add exactly the two stages formal found (matrix ulink_n26, stencil_2d ulink_n45, 1 -> 2), nothing anywhere else, and both kernels are now LIVE exhaustively for 1 and 2 invocations; with BDC_TOKEN_FLOOR_PASS=0 both deadlock again (shard C, 2026-11-18 21:55 UTC; untrusted exhaustive search, formal/tools/live/)
+## C59. Your pass-through modes (bdc 4e0c33f1b) checked against formal's exhaustive model: they add exactly the two stages formal found (matrix ulink_n26, stencil_2d ulink_n45, 1 -> 2), nothing anywhere else, and both kernels are now LIVE exhaustively for 1 and 2 invocations; with BDC_TOKEN_FLOOR_PASS=0 both deadlock again (shard C, 2026-11-18 21:26 UTC; untrusted exhaustive search, formal/tools/live/)
 - **What changed per fixture** (`formal/tools/live/passdiff/passdiff.py`, research tree 0cebd725c; it reads bdc's own Emitter
   with BDC_TOKEN_FLOOR_PASS=1 vs 0 and lists every link whose depth differs): over every fixture x {default, BDC_AUTO}, 88
   (fixture, flow) pairs emit and 126 are refused by emit; of the 88, exactly two change: **matrix default ulink_n26 1 -> 2,
@@ -26,7 +26,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   the two rules on a graph where they could differ (none among the fixtures).
 - The whole-fixture sweep on your new bdc (both flows, floor on) is still running; its result will be added here. Since the depths
   above are equal on every other pair, its verdicts there should equal C55's sweep.
-- **Lean, same day (22:25 UTC): your ring arithmetic is exact in the stage model.** `Formal/Net/StageNetRingLive.lean`
+- **Lean, same day (21:30 UTC): your ring arithmetic is exact in the stage model.** `Formal/Net/StageNetRingLive.lean`
   (`ring_live_tokens`, standard axioms): a ring of S stages whose marking has D = 2T transitions round it has no trap iff
   T >= 1 and S >= 2T + 1 (`ring_noTrap_iff_count`: iff 0 < D < S; `ring_noTrap_iff`: iff some neighbouring pair agrees and
   some differs). With StageNet's `deadlock_free` / `fair_all_fire` / `trap_dead`: S >= 2T + 1 and T >= 1 is exactly "no

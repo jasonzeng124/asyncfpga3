@@ -4608,13 +4608,13 @@ Plan: (1) rerun live.py exhaustively over every fixture with research's new floo
 matrix / stencil and break nothing; (2) compare its pass-through walk with C58's reentry rule; (3) FOR-RESEARCH item.
 run_all.py: LIVE_FLOWS / LIVE_FLOORS knobs to restrict the sweep. Sweep running on research 0cebd725c (bdc 5dfe2c49f).
 
-### progress 21:55 -- C59: research's pass-through modes = exactly C57's two stages; matrix / stencil_2d LIVE exhaustively
+### progress 21:26 -- C59: research's pass-through modes = exactly C57's two stages; matrix / stencil_2d LIVE exhaustively
 passdiff.py (new, formal/tools/live/passdiff/): BDC_TOKEN_FLOOR_PASS=1 vs 0 over every fixture x {def, auto}: only matrix def
 ulink_n26 1->2 and stencil_2d def ulink_n45 1->2 change (88 emitting pairs, 126 refused). live.py on research 0cebd725c: matrix
 LIVE 19 246 (inv2 70 229), stencil_2d LIVE 20 076 (inv2 73 697), 0 hazards; PASS=0: DEADLOCK 853 / 901 as C55. Full sweep
-(floor on, def + auto) running in the scratchpad; 60 / 216 rows at 21:50, all agreeing (LIVE where emit accepts).
+(floor on, def + auto) running in the scratchpad; 60 / 216 rows at 21:26, all agreeing (LIVE where emit accepts).
 
-### progress 22:05 -- Formal/Net/LiveCertsPass.lean: 8 kernel-checked no-trap certificates for matrix / stencil_2d on the new floor
+### progress 21:27 -- Formal/Net/LiveCertsPass.lean: 8 kernel-checked no-trap certificates for matrix / stencil_2d on the new floor
 gencert.py over live.py's dumps of matrix / stencil_2d default with research's pass-through floor (s0..s3 routing modes each):
 8 / 8 certified (`Cert.check ... = true := by decide +kernel`; axioms [propext] only), lake build OK. The PASS=0 deadlock dumps
 have the token-free cycle listed as a comment (untrusted): matrix ulink_n49__5 -> n35 -> n26 -> n32, stencil n67__2 -> n54 ->
@@ -4622,7 +4622,7 @@ n45 -> n51 -- the walk C58 described. As LiveCerts: fixed routing modes only, so
 live.py (untrusted), not by Lean. gencert.py fix: its cycle finder walked successors and could leave the trap (StopIteration);
 it now walks predecessors (every unranked node has an unranked one). Graph JSONs under formal/tools/live/passdiff/graphs/.
 
-### progress 22:25 -- StageNetRingLive.lean: research's ring floor S >= 2T + 1 is exact for a plain ring (Lean, standard axioms)
+### progress 21:30 -- StageNetRingLive.lean: research's ring floor S >= 2T + 1 is exact for a plain ring (Lean, standard axioms)
 Problem: when is a ring of S Muller half-buffer stages live? Model: StageNet on Fin S with stage i feeding i+1 mod S.
 Proved: `trap_uniform` (a trap forces every neighbouring pair to agree, or every pair to differ: the token-free arcs into a
 stage come from its predecessor or its successor, and once a backward walk takes one kind it can only take that kind, all
