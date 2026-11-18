@@ -2990,7 +2990,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   ISOMORPHIC to rs3 (rules_iso.py, untrusted). countloop_rd.mlir is now ring_dec's output (md5 6ecca11f; the
   hand version 0d43ba36 is superseded, also isomorphic). FOR-RESEARCH A19 table.
 * Not done: build / simulate / time any rewritten kernel; the renaming lemma (iso step in Lean).
-### progress 18:00 -- subagent 1 back: the literal-bound tool (inc_cmp.py) and its differential checks (untrusted simulation)
+### progress 18:23 -- subagent 1 back: the literal-bound tool (inc_cmp.py) and its differential checks (untrusted simulation)
 * `tools-A/rewrite/inc_cmp.py`: 119 rewrites in 53 of 108 fixtures (117 ult +1, 2 ult +2); census inc_cmp_census.txt;
   every run logged in inc_cmp_diffcheck.txt. No disagreement anywhere: lfsrfind simcheck --c-oracle (iverilog) 10/10 +
   14/14 edge vectors, default and BDC_AUTO; six memory kernels pre-route RTL vs oracle all pass (negative control
