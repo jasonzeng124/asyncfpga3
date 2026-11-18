@@ -189,6 +189,13 @@ whose arrays differ after it; `GATE_NRUNS` (default 2); `GATE_ANNOTATE=1` also r
 
 ### What bdc needs for stores
 
+**Superseded (2026-11-18): research/data/suite/stores.md.** Stores are lowered without a counter -- each block's
+outgoing control token joins its stores' completions, so ctrlEnd itself comes after every store -- and `_op_end`
+joins out0 with the store controllers' memEnds (the bench's out0 is then the call's completion; `<m>_end` stays sunk).
+Item 2 below still describes what is not built (a store and a load on one array; the arbitrated host slot); item 3
+is resolved differently (the count tokens are checked against the graph at compile time and sunk with bd_snk).
+The design sketched here is kept for the record.
+
 The refusal is `bdc/emit.py Emitter._op_mem_controller` (`has_store` -> EmitError), and two things upstream of it:
 
 1. **The completion obligation (memEnd).**  Dynamatic's store-side controller (`mem_controller_loadless.v`, with
