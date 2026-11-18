@@ -3359,3 +3359,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - Own rebuild = sdf 81bbe268; 17/17 at FAST_MIN / advA / advC / worst / SLOW_MAX on the full exponent range, 0 runts.
   - Binding steer ucond_br4 483 ps (worst) / 584 ps (advA).
   - CONFIRMED. Finding T152. Owner notified.
+
+### progress 10:04
+- research 8494308c5: BOARD-QUEUE item 39, automatic collatz (flow v3, seed 6), sdf c56def07, 18.99 ns (hand item 31 21.5), 32/32 draws + 3 corners. T153 launched (own rebuild at 312abcc32 with the item's sizes + own GLS on max-peak vectors at 5 corners, as T151).
+- Own identity check across research 2daa2e7ef (srcjoin): 9 original kernels + 3 pre-pass MLIRs x 6 knob sets, 128/128 byte-identical (16 pre-existing EmitErrors identical). All 14 suite kernels unchanged. Only test_int16 and unused_arg change, the two kernels the commit targets. The default output of every board kernel is unaffected.
