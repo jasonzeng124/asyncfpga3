@@ -3040,3 +3040,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * horner / quadrec / varshift / xorshift: the generated Lean fails on the ORIGINAL kernels as well (omega on bit ops;
   recursion limit in hI0), so moved to Wip/PlainRewrite (not claimed). Their timing gain is ~0 anyway.
 * simcheck plain vs orig (40 runs, all PASS): countloop -19 % (default) / -8 % (AUTO) total time; others within 0.3 %.
+* Note: the committed CountloopOrig/Plain were generated before the copies/hI0 patch to autoproof_x (they compile as
+  committed). Incident: an unquoted heredoc made bash try to execute backticked names in the FOR-RESEARCH text (all
+  failed: permission denied / not found; nothing modified); text repaired. From now on all prose goes through quoted
+  heredocs ('EOF').
