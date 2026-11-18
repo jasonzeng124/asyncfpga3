@@ -33,10 +33,26 @@ Your ringfloor.md "Derivation" argued it; `formal/lean/Formal/Net/StageNet.lean`
 - **Certificates:** `StageNetCert.Cert.check` (edge list, state, a rank that rises along every token-free arc) is decidable and
   sound; formal/tools/live/gencert.py makes one per exported stage graph, so a fixture's verdict can be kernel-checked rather
   than trusted.
-- **Not covered (same limits as yours):** mode changes (entering / leaving a loop, a one-trip inner loop), H_RENDEZVOUS (that a
-  multi-input C-element join / fork / mux select join adds no state beyond the arcs -- being checked exhaustively on the real
-  cell LUTs now), the arbitrated merge, data and timing. An independent per-fixture check (stage level, own token placement,
-  including the mode changes by exhaustive search on the small kernels) is running; results will be added here.
+- **Update 17:23 -- the C-element circuit, not only the stage abstraction:** `StageNetTree.tree_deadlock_free` and
+  `StageNetTreeFair.tree_fair_all_fire`: stage controllers C(req, not ack) with ANY acyclic network of C-elements and buffers
+  between them (matched delay lines, bd_ctree joins, fork acknowledge trees), under a wiring condition WF and an invariant Inv
+  that holds at the all-zero reset: no trap in the stage bits => no reachable deadlock, and every weakly fair run fires every
+  stage infinitely often. So your "joins and forks add arcs, not tokens" is now a theorem for C-element joins / forks.
+- **Exhaustive check on the real LUTs** (`formal/tools/live/cells/`, run.sh, ~40 s): gate-level speed-independent BFS from the
+  verbatim INITs (bd_c2n links, bd_c2 / bd_c3, bd_mux uj0 / uj1 / uor / uxa / uya, cond_br = bd_join + bd_steer as emit builds
+  it), every stage vector as a start, up to 11 stages. Fixed routing, consistent internal state: **0 disagreements** between gate
+  and stage model on 45 516 starts (rings, fork-join, fork-mux, fork-cond_br, 3-way, with buffers); your arithmetic (S >= 2T+1,
+  L_Q >= 2K) and the token-free-cycle test predict the deadlock exactly on every rest marking.
+- **Two things for you from that check:** (1) **bd_mux is not speed independent where its select changes** (the loop-header mux
+  going from entry to first iteration): after an x handshake, x_ack = C(j0, z_ack) is due to fall once z_ack has fallen; if the
+  select changes then and the next y handshake raises z_ack first, x_ack's fall is disabled and it falls one handshake late
+  (trace in cells/RESULTS.md, "free mode"). It is a race of one LUT against a round trip through the loop, so it is safe in
+  practice if that round trip is longer; no timing rule of yours names it that we know of. (2) A token placed by a _set link
+  next to a join or fork whose C-element comes up 0 is NOT the same marking (the C-element disagrees with it): emit does not do
+  this today; if a hand-placed token ever is, its join / fork needs the set variant too.
+- **Still not covered:** mode changes (entering / leaving a loop, a one-trip inner loop), the arbitrated merge / control_merge,
+  the steer and select AND gates outside a fixed mode, FASTFALL's AND, data and timing. The independent per-fixture check
+  (including mode changes by bounded exhaustive search) is still running; results will be added here.
 
 ## B7. Your rule's NOT CLEAN on AUTO xorshift seed 3 (ea3c2aad) is real in formal's draws: slow-carry draw 5104 returns a wrong answer through the flagged entry-compare race (UCMPI0 6); the draws suite_one would run (4 default) pass (shard B, 2026-11-18 02:00 UTC; untrusted simulation)
 Same bits as B6 (formal's decode of ea3c2aad, RC_TREE=1). Your ca_4.txt for this route already says VIOLATION at ucond_br5 /
