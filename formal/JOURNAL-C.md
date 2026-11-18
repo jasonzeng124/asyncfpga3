@@ -4447,7 +4447,7 @@ Plan: (1) Lean: the stage-level condition, exact; (2) subagent: the collapse "jo
 exhaustively at gate level on the real cell LUTs (formal/tools/live/cells/); (3) subagent: an independent checker over every
 fixture, both flows, floor on / off, including the mode changes research's model excludes (formal/tools/live/fixtures/).
 
-### progress 17:35 -- Formal/Net/StageNet.lean: no trap <=> no stage ever dead; fair runs fire every stage (core Lean, checks)
+### progress 17:03 -- Formal/Net/StageNet.lean: no trap <=> no stage ever dead; fair runs fire every stage (core Lean, checks)
 Problem: when can a network of Muller stages (half buffers joined by C-element rendezvous, routing fixed) deadlock?
 Model: stage t excited iff every stage feeding it differs and every stage it feeds equals it; one fires at a time. Z(x) =
 token-free arcs of the marked graph (p->t when p feeds t and they agree; t->p when they differ). Trap = nonempty set where
@@ -4458,7 +4458,7 @@ fair infinite run => every stage fires infinitely often). So "no trap" is exactl
 NOT covered: H_RENDEZVOUS (multi-input joins / forks / mux select joins as pure arcs; the subagent checks it on the cells),
 mode changes (entering / leaving a loop), the arbiter, data and timing. Checked with `lean` (core only, 0.5 s).
 
-### progress 17:55 -- StageNetCert.lean (rank certificate, decidable checker) and StageNetRing.lean (stage rule = bd_c2n LUT)
+### progress 17:07 -- StageNetCert.lean (rank certificate, decidable checker) and StageNetRing.lean (stage rule = bd_c2n LUT)
 - `no_trap_of_rank`: a rank strictly increasing along every token-free arc rules out a trap. `Cert.check` (edge list on
   Fin n, state, rank) + `Cert.check_sound`: check = true => no trap => (StageNet) no reachable deadlock, every stage fires
   infinitely often under fairness. Sanity by decide: 2-ring with one token has no certificate; 3-ring has one. This is the
