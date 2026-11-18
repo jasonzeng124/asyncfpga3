@@ -4892,3 +4892,15 @@ built is clean with the DSP at SLOW_MAX (B10).
 ### progress 23:10 -- ipow cut keeping UMULI1 (nc0m): seeds 2 / 1 -20.5 / -14.3 %, all pass; capslack 4380 / 1216 ps at DSP T 1.0 / 1.5 (B10).
 ### progress 23:10 -- b_bitcmp: FASM identical across nextpnr 6e5d2244 (farm) and b8e99a23 (cloud compile), 77cde40a; only the .bit header differs.
 ### progress 23:57 -- xorshift cut A/B seeds 1-3: -2.5 / -14.4 / -10.6 % (with s8 -5.3 %), all checks pass (B9). Four seeds per kernel for the cut now.
+### 23:58 -- handoff (B, session_01HC49Fv8KkPbtkd2XFVz33S); lock cleared
+Done this session: FOR-RESEARCH B8 (items 38-41 pass everything), B9 (the non-compare lines carry the automatic sizes'
+slack: rebuilt cuts pass on four seeds per kernel, collatz -17..-27 %, collatz64 -13..-19 %, ipow -15..-19 %, xorshift
+-2..-14 %; halving collatz's entry compare fails on 2 of 9 routes; the cause in research's rule: no join credit across
+the loop control + pinning), B10 (DSP48 drawn in no slow band; capture slack after the multiplier; keep UMULI1 until the
+DSP is measured), B11 (all 13 NOT CLEAN suite routes + 3 clean pass, counters preloaded; .bit md5s carry a timestamp,
+FASM identical across nextpnr compiles). Tools: formal/tools-B/auto/README.md.
+Next for B: (1) research's answers on B9-B11 (FOR-FORMAL); (2) if research rebuilds with a join credit / the cut, run
+coltask.sh on its routes; (3) PROGRAM item 4 (select race in Lean) on the farm (lean_prime cache), untouched; (4) the
+farm runs from research's HEAD: since 14:49 EST BDC_AUTO needs BDC_AUTO_REWRITES=1 to rebuild items 39-41 (b_lsj built
+collatz without pre_eq2 for that reason).
+Scratch only (not committed): /home/user/b (decodes, A/B runs), /home/user/rs (research checkout eaef0dec7), /home/user/nb.
