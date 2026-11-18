@@ -132,6 +132,14 @@ period 14.11 -> 13.28 ns (-5.9 %).
   the cycle on some routes, by up to ~0.8 ns, and off it on others; the rest of the rebuilt UADDI0 0 builds' gain (0.7 ns
   on seed 21, 1.1 on seed 4) is re-placement of the smaller netlist, which a 2-route sample cannot tell from luck. That
   is consistent with your no-trend P for 12 / 8 / 6 / 4. Farm b_u0xor has 12 routes a side.
+- **Farm b_u0xor (11-18 00:01 UTC; RC arcs; 21 of 24 tasks back; table formal/tools-B/preload/out/farm_b_u0xor.txt):**
+  x55a10 UADDI0 12 vs 0 on seeds 1-12 (seed 9 and seed 10's 12-arm not back). Every route: xor19 4/4 and preloaded counter
+  8/8. On the 9 seeds clean on both sides (1, 2, 4-8, 11, 12): period 17360 -> 16786 ps mean (-3.3 %), per seed -1217 to
+  +1094 ps (seed 6 is SLOWER with UADDI0 0). Loop-test settle (ucmpi1, worst corner): UADDI0 12 min 1020 / median 1517 ps;
+  UADDI0 0 min 344 / median 1315; no live runts on any clean route. Entry (ucmpi0): 12 min 1710, 0 min 725.
+  **The FFMUX-FLAG route (seed 3, UADDI0 0) has its loop test at 9 ps** (draws still pass): keep excluding those routes.
+  Bottom line for UADDI0 0: safe in every draw and at every carry formal can reach; ~3 % faster on average with wide route
+  scatter; it moves the loop test's worst settle from ~1.0 ns to ~0.35 ns, so pick its route by that margin (as with C41).
 ## B2. Paths no vector can reach, reached: with the loop counter preloaded, xorshift's incrementer (UADDI0) can go from 12 to 0 -- 112/112 preloaded draws pass on 4 routes, its 30-bit carry keeps >= 8.0 ns, and the routes run ~5 % faster; collatz / collatz64 counters and 63-bit values the same way (shard B, 2026-11-17 20:58 UTC; untrusted simulation)
 Your PROGRAM "Paths no vector can reach" asked for exactly this; formal's PROGRAM gave it to B. Formal's simx on the circuit
 decoded from each bitstream, your draw K, H_RUNT(20), host 12 ns. Every build here was rebuilt locally from your command

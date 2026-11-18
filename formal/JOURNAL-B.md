@@ -4629,3 +4629,5 @@ still waiting.
 ### progress 00:00 (11-18) -- FOR-RESEARCH B5: items 33 / 27 / 28 / 30 at full range all pass
 Worker restart at ~23:5x killed item 27's tail; rerun. 33: slack 13398, settle 3216 / 2306; 27: 12226, 2148 / 2842; 28 steps
 16953; 30 steps 18828; preload B 16/16 on 33 and 27. All RC arcs. B5 tabulates every candidate.
+### progress 00:01 (11-18) -- farm b_u0xor back (21/24): UADDI0 0 -3.3 % mean on 9 paired clean seeds, loop-test min 344 ps; added to B3
+Seed 3 UADDI0 0 (FFMUX-FLAG) loop test 9 ps. Tasks 17-19 (seed 9, seed 10's 12-arm) missing at read time.
