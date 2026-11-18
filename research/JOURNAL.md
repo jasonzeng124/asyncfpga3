@@ -6836,3 +6836,12 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   the miss (TARGET_MHZ=250, straight s1): seeds 1 / 101 / 201 each logged with their MHz (103.18, 105.12, 99.63), then
   BUILD FAILED it=0 and no seed file. Without such a miss every iteration is built on S as before.
 - suite9r2 (drafted) will run at the branch head so the loops that died this way continue too.
+### progress 19:45 (xsearch1 withdrawn while waiting; xsearch2 filed with xorgap's raise-only search phase)
+- xorgap: the search phase's re-sizing (pins reset, a no-pin recalibration, then the ratchet) did not settle locally
+  (xorshift s1: 1, 9, 23 rows short on its first three p8 routes; s4: 3, 9, 47). The first p8 route at v6's own shipped
+  sizes (same seed, re-placed, EQUIVALENT) measured **P s1 17.02 / s2 18.23 / s3 18.87 / s4 15.84 ns vs v6's 19.80 /
+  19.72 / 22.47 / 19.43** (nextpnr 6e5d224472232d5d), 1-3 rule rows short. So the phase now goes raise-only with one
+  element of headroom from the shipped sizes (AUTO_SEARCH_MAXIT default 4); the re-sizing variant is opt-in
+  (AUTO_SEARCH_RESIZE=1). Cherry-picked (f09d45c6f); xsearch1 (waiting, not yet submitted) withdrawn, **xsearch2** filed:
+  the same 32 resumed A/B tasks, AUTO_SEARCH_MAXIT=4. Draws on xorgap's local p8 routes: s3 draw 10301 PASS 19/19, rest
+  running (its report is due 22:40).
