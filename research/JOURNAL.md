@@ -6651,3 +6651,17 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   removes). Local v6, seed 2: NOT CLEAN by 2 after it 7, P 19.72 ns, EQUIVALENT (v5 on the same seed 23.01, v2 16.69);
   draws running. The loop's tightness is the open problem now: each re-route moves the small margins by hundreds of ps,
   so lowering and raising chase each other.
+### progress 08:21 (suitew landed: 13 more kernels; memory lines were invisible to the rule; automatic board candidates judging)
+- suitew (reviewed; e3005e03a .. 697f34043): kernels/dot2 (two arrays) and kernels/gather (a[b[i]]), and Dynamatic's 11
+  integer tests that emit (factorial, fir, if_loop_1, if_loop_2, iterative_division, iterative_sqrt, sumi3_mem,
+  test_bitint, test_int16, test_loop_free, unused_arg; their C copied unchanged to research/data/suite/dynsrc/ so farm
+  oracles work without dynamatic/), vectors under research/data/suite/vec/, oracles that mask narrow results, clang
+  for _BitInt. kernels.txt: 36 kernels. Seed-1 smoke (one route, 2 draws): dot2 PASS, test_bitint PASS,
+  test_loop_free PASS; **gather FAIL** (x on every call that reads a[j], j != 0); test_int16 / unused_arg FLOW-FAILED
+  (bdc: a `source` reaching a function result runs free; the bench ring on unused_arg's dropped memref has no storage).
+- gather's cause: the automatic start shrank bd_mem's setup / clock-to-out lines (8 -> 3, 12 -> 4) and the rule never
+  sized them back, because corner_audit named them after the port module (..._UPORT_UMEM0_UCO) while emit.py names the
+  parameters after the controller (..._UMEM0_UCO). suitew's stopgap (c6fde65c8): the start does not shrink them. The
+  fix here (corner_audit.knob_of_base: drop the _uport segment): being checked on gather's last route.
+- The three automatic board candidates (suite4 medians, rebuilt here byte for byte): collatz s6 7 / 35, ipow s2 12 /
+  35, collatz64 s5 2 / 35 judgments so far, all PASS.
