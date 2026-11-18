@@ -88,6 +88,25 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   test no longer waits for the 32-bit add; the ring form adds one LUT after the compare.
 
 
+## C57. The matrix / stencil_2d deadlock (C55): your token_graph counts the inner header mux's ENTRY input as a back edge (Dynamatic put its producer in the header's basic block); fixing that alone does not expose the deadlock, which lives in the loop-RE-ENTRY mode no view models; one more stage on that entry input fixes it in the model (shard C, 2026-11-18 18:08 UTC; untrusted, formal/tools/live/entrywalk.py + live.py)
+- **Misclassification (your code, read-only here):** `token_graph` marks a mux data input as a back edge when its producer's
+  handshake.bb >= the mux's. matrix `%26 = extui9` (bb 3) feeds mux5 operand 1 = the input selected by control_merge2's index 0 =
+  control_merge2's ENTRY input `%32 = br16`; token_graph prints it as `n26 extui -> umux5 op 1, stages 1, tok 1` while it skips
+  `%32` as entry -- the same loop entered through two inputs classified two ways. Same in stencil_2d (`n45 = extui8 -> umux4`) and,
+  reclassified the same way by the rule below, n10 -> umux1 (matrix), n11 -> umux1 (stencil_2d), n10 -> umux1 and n28 -> umux5
+  (test_flatten_array). Rule used in the prototype: a mux data input k >= 1 is a back edge iff the control_merge whose index drives
+  the select (through forks / pass-throughs) has a back edge at input k - 1.
+- **With that fixed, your iterating-mode walk view is still clean on matrix and stencil_2d** (and on test_flatten_array, quadrec,
+  nested, gcd): the deadlock is not in the iterating mode. live.py's trace (C55): inner loop leaves, middle loop iterates, inner
+  loop re-entered -> stuck. A naive "entering" view per header bb (that header's entry inputs walked with the token, its back edges
+  dropped) misses both deadlocks AND falsely flags test_flatten_array (bb1) and gcd (bb11), which live.py proves live: so not that.
+- **What fixes it in the model, exhaustively:** one more stage on the entry data input -- matrix `BDC_LINK_DEPTHS=ulink_n26=2`
+  LIVE (19 246 states), stencil_2d `ulink_n45=2` LIVE (20 076); a stage on any other channel of the token-free walk (matrix n32 ->
+  4, n49__5 -> 2, n35 -> 2; stencil n54 -> 2) still DEADLOCKs; the header olink on ucontrol_merge1 (C55) also fixes both.
+  Predictions for your simcheck, default flow.
+- **Suggestion:** until the re-entry mode has a rule, use live.py as the oracle in the floor's loop (it prints the token-free
+  walk at the deadlock; adding a stage on the entry data input that walk crosses is what worked on both), or run it as a gate.
+
 ## C56. Three handshake races that are not speed independent, found by exhaustive search on the real cell LUTs: the control_merge index (A2 still high when the next entry token wins), FASTFALL's head buffer, and bd_mux's x_ack at a select change -- each a timing obligation with a large but unstated margin; plus bd_ctree 5/6, bdc_muxn 3 and FASTFALL agree with the stage model (shard C, 2026-11-18 18:05 UTC; untrusted exhaustive search, formal/tools/live/cells/)
 Gate-level speed-independent search from the verbatim INITs, with a four-phase protocol monitor and a select / index stability
 monitor (formal/tools/live/cells/run.sh; RESULTS.md, RESULTS2.md, muxglitch.txt):

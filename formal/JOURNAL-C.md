@@ -4551,3 +4551,9 @@ explore2.py / run2.py / muxglitch.py with a four-phase protocol monitor; explore
 disagreements). Findings: control_merge index race with 2 entry tokens (A2 still high when in0 wins: index reads back edge, moves
 mid-handshake) = timing obligation on DELAY_cm; FASTFALL head-buffer drain hazard (DELAY >= 2, rule F); bd_mux x_ack select-change
 hazard is only a late fall in SI, a lost token if it becomes a runt. ctree 5/6, muxn 3, FASTFALL 1/2 agree with the stage model.
+
+### progress 18:08 -- C57: research's back-edge rule misclassifies inner header mux entry inputs; not the cause by itself
+entrywalk.py (prototype; patches a copy of research's token_graph): FIXMUX=1 reclassifies mux inputs by the control_merge index
+(matrix n10/n26, stencil n11/n45, test_flatten_array n10/n28 tok 1 -> 0); iterating view still clean. Naive per-bb entering view:
+misses matrix / stencil, false alarms test_flatten_array bb1 and gcd bb11 (negative result). Exhaustive fixes: ulink_n26=2 (matrix)
+and ulink_n45=2 (stencil) LIVE; other trap channels +1 still DEADLOCK.
