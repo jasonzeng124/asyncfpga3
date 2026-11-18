@@ -90,17 +90,22 @@ def main():
         rc = 1
     else:
         print(f"{func.name}: every cycle has more than 2 stages per token")
-    chans, out = emit.token_graph(func, e.linked, e.depth, e.mem_absorbed)
-    walk = emit.short_walk(chans, out)
     floor = ", ".join(f"ulink_{emit.vname(v)}={n}" for v, n in e.token_floor) or "nothing"
-    if walk is None:
-        print(f"{func.name}: walks: every walk holds a token ({len(chans)} channels walked; token floor added "
-              f"{floor})")
-    else:
-        cnt, cyc = walk
-        nodes = sorted({emit.instname(func.nodes[chans[s // 2][2]], chans[s // 2][2]) for s in cyc})
-        print(f"{func.name}: walks: a walk holds {cnt} token(s), through " + " ".join(nodes))
-        rc = 1
+    # every mode the floor walks: every loop iterating, and (research/data/suite/hangs.md) each loop with loops nested
+    # in it iterating while they pass through in one trip; with BDC_TOKEN_FLOOR_PASS=0 the floor skips the latter, this
+    # view does not (it reports the design bdc emits against the whole condition)
+    for mode in [None] + emit.tf_pass_modes(func, e.mem_absorbed):
+        chans, out = emit.token_graph(func, e.linked, e.depth, e.mem_absorbed, mode=mode)
+        walk = emit.short_walk(chans, out)
+        tag = "walks" if mode is None else f"walks, loops in bb{mode}'s passed through"
+        if walk is None:
+            print(f"{func.name}: {tag}: every walk holds a token ({len(chans)} channels walked; token floor added "
+                  f"{floor})")
+        else:
+            cnt, cyc = walk
+            nodes = sorted({emit.instname(func.nodes[chans[s // 2][2]], chans[s // 2][2]) for s in cyc})
+            print(f"{func.name}: {tag}: a walk holds {cnt} token(s), through " + " ".join(nodes))
+            rc = 1
     return rc
 
 

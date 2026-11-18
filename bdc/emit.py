@@ -1594,7 +1594,16 @@ def ring_depths(func, linked, exclude=frozenset()):
 # walks have), then the link with the fewest stages, then by name -- and repeat.  It runs after ring_depths() and
 # only ever adds, so a function where every walk already holds a token emits exactly what it did before.
 TOKEN_FLOOR = os.environ.get("BDC_TOKEN_FLOOR", "1") != "0"
+# THE PASS-THROUGH MODES (research/data/suite/hangs.md).  The walks above see each loop iterating; an inner loop is never
+# walked through its entry and exit, so the circuit between an inner loop's last trip and its next entry -- the outer
+# loop's own ring -- was never checked.  For every loop P with a loop nested in it, the floor also walks the graph with
+# P iterating and every loop nested in P passed through in one trip (token_graph's `mode`).  A back edge is read from
+# where its value comes from, through casts (Dynamatic puts the extui of a loop's initial value in the loop's own header
+# block, which made matrix's entry channels look like back edges).  BDC_TOKEN_FLOOR_PASS=0 drops the modes (negative
+# controls only).
+TOKEN_FLOOR_PASS = os.environ.get("BDC_TOKEN_FLOOR_PASS", "1") != "0"
 _TF_PASS_ONLY = ("load", "store", "mem_controller", "lsq")
+_TF_CAST = ("extui", "extsi", "trunci")
 
 
 def _bb(node):
@@ -1605,12 +1614,14 @@ def _bb(node):
         return -1
 
 
-def token_graph(func, linked, depth, exclude=frozenset()):
-    """The walk graph of the token floor (see the block above).
+def _tf_structure(func, exclude=frozenset()):
+    """The loop structure the token floor's walks read: (every, base_skip, loops).
 
-    Returns (chans, out): chans[i] = (value, producer, consumer, operand, stages, tokens) for every channel walked
-    (all but memory-absorbed ones and the loops' entry and exit channels); out[s] = [(s2, weight)] for states
-    s = 2 * i (channel i walked forward) and 2 * i + 1 (backward)."""
+    every = [(value, producer, consumer, operand, tokens)] for every channel not in `exclude`; base_skip = the entry and
+    exit channels of every loop, as (value, consumer, operand) -- the original walk graph walks everything else;
+    loops = {header block: {"back", "entry", "exit": sets of (value, consumer, operand), "latch": block}}, one per loop
+    (Dynamatic gives each loop one header block and numbers a loop's blocks contiguously, so loop L is nested in loop P
+    when P's header block < L's and L's latch block <= P's)."""
     try:
         from . import slack
     except ImportError:
@@ -1626,8 +1637,6 @@ def token_graph(func, linked, depth, exclude=frozenset()):
         if slack._is_cycle(scc, adj):
             for v in scc:
                 comp[v] = k
-    two_in = {i for i, n in enumerate(nodes) if n.op == "control_merge" and len(n.operands) >= 2}
-    olink = {i: 1 for i in two_in if instname(nodes[i], i) in MERGE_OUT_LINK}
     producer = {r: i for i, n in enumerate(nodes) for r in n.results}
     passthru = ("extui", "extsi", "trunci", "br")
 
@@ -1637,6 +1646,11 @@ def token_graph(func, linked, depth, exclude=frozenset()):
             v = nodes[producer[v]].operands[0]
         return v
 
+    def obb(n):                                   # the block a value comes from: a cast's is its operand's
+        while n.op in _TF_CAST and n.operands and n.operands[0] in producer:
+            n = nodes[producer[n.operands[0]]]
+        return _bb(n)
+
     every = []                                    # (value, producer, consumer, operand, tokens)
     for i, node in enumerate(nodes):
         for r in node.results:
@@ -1645,22 +1659,35 @@ def token_graph(func, linked, depth, exclude=frozenset()):
             for (c, k) in func.consumers.get(r, []):
                 cn = nodes[c]
                 tok = int(((cn.op == "mux" and k >= 1) or cn.op in ("merge", "control_merge"))
-                          and 0 <= _bb(cn) <= _bb(node) and i in comp and comp.get(c) == comp[i])
+                          and 0 <= _bb(cn) <= obb(node) and i in comp and comp.get(c) == comp[i])
                 every.append((r, i, c, k, tok))
     headers = {c for (_r, _i, c, _k, t) in every if t}
     skip = set()                                  # the loops' entry and exit channels, as (value, consumer, operand)
     cont = collections.defaultdict(set)           # loop condition (root) -> the steer result index that continues
+    loops = {}
+    cond_loop = {}                                # loop condition (root) -> the loop's header block
     for (r, i, c, k, t) in every:
         cn = nodes[c]
         if not t and c in headers and ((cn.op == "mux" and k >= 1) or cn.op in ("merge", "control_merge")):
             skip.add((r, c, k))                   # entry
         if t:                                     # the steer this back edge leaves, through pass-throughs
+            lp = loops.setdefault(_bb(cn), {"back": set(), "entry": set(), "exit": set(), "hdr": set(), "latch": -1})
+            lp["back"].add((r, c, k))
+            lp["hdr"].add(c)
             v, p = r, i
             while nodes[p].op in passthru and nodes[p].operands and nodes[p].operands[0] in producer:
                 v = nodes[p].operands[0]
                 p = producer[v]
+            lp["latch"] = max(lp["latch"], _bb(nodes[p]))
             if nodes[p].op == "cond_br":
                 cont[root(nodes[p].operands[0])].add(nodes[p].results.index(v))
+                cond_loop.setdefault(root(nodes[p].operands[0]), _bb(cn))
+    for (r, i, c, k, t) in every:
+        cn = nodes[c]
+        if not t and ((cn.op == "mux" and k >= 1) or cn.op in ("merge", "control_merge")):
+            for lp in loops.values():
+                if c in lp["hdr"]:
+                    lp["entry"].add((r, c, k))
     for i, node in enumerate(nodes):              # exit: every steer on a loop's condition, its other branch
         if node.op != "cond_br":
             continue
@@ -1670,6 +1697,50 @@ def token_graph(func, linked, depth, exclude=frozenset()):
         other = node.results[1 - next(iter(d))]
         for (c2, k2) in func.consumers.get(other, []):
             skip.add((other, c2, k2))
+            hb = cond_loop.get(root(node.operands[0]))
+            if hb in loops:
+                loops[hb]["exit"].add((other, c2, k2))
+    return every, skip, loops
+
+
+def _tf_nested(loops, p):
+    """The header blocks of the loops nested (at any depth) in loop p."""
+    return {h for h, lp in loops.items()
+            if h != p and h > p and lp["latch"] >= 0 and lp["latch"] <= loops[p]["latch"]}
+
+
+def tf_pass_modes(func, exclude=frozenset()):
+    """The token floor's pass-through modes: the header block of every loop that has a loop nested in it."""
+    _every, _skip, loops = _tf_structure(func, exclude)
+    return sorted(h for h in loops if _tf_nested(loops, h))
+
+
+def token_graph(func, linked, depth, exclude=frozenset(), mode=None):
+    """The walk graph of the token floor (see the block above).
+
+    Returns (chans, out): chans[i] = (value, producer, consumer, operand, stages, tokens) for every channel walked
+    (all but memory-absorbed ones and the loops' entry and exit channels); out[s] = [(s2, weight)] for states
+    s = 2 * i (channel i walked forward) and 2 * i + 1 (backward).
+
+    mode = None: every loop iterating (the walks above).  mode = the header block of a loop P: P iterates and every
+    loop nested in P passes through in one trip -- its entry and exit channels are walked (no tokens: no value rests
+    on them at P's iteration boundary) and its back edges are not -- while every other loop is walked as in mode None.
+    That is the circuit between an inner loop's last trip and its next entry, which mode None never walks: matrix's
+    inner loop exits, the middle loop's back edge returns to its header, and the inner loop's next entry (its initial
+    values, through the header muxes, whose selects come from the inner header's control_merge) has to wait for the
+    inner header's previous output to return to zero (research/data/suite/hangs.md)."""
+    nodes = func.nodes
+    every, skip, loops = _tf_structure(func, exclude)
+    if mode is not None:
+        inner = _tf_nested(loops, mode)
+        skip = set()
+        for h, lp in loops.items():
+            if h in inner:
+                skip |= lp["back"]
+            else:
+                skip |= lp["entry"] | lp["exit"]
+    two_in = {i for i, n in enumerate(nodes) if n.op == "control_merge" and len(n.operands) >= 2}
+    olink = {i: 1 for i in two_in if instname(nodes[i], i) in MERGE_OUT_LINK}
     chans, ins, outs = [], collections.defaultdict(list), collections.defaultdict(list)
     for (r, i, c, k, tok) in every:
         if (r, c, k) in skip:
@@ -1761,9 +1832,13 @@ def token_floor(func, linked, depth, exclude=frozenset(), forbid=frozenset()):
     Returns [(value, new depth)] in the order the stages were added; changes `linked` and `depth` in place.  Nothing
     to add, nothing changes."""
     added = []
+    modes = [None] + (tf_pass_modes(func, exclude) if TOKEN_FLOOR_PASS else [])
     for _ in range(4 * len(func.nodes) + 16):
-        chans, out = token_graph(func, linked, depth, exclude)
-        found = short_walk(chans, out)
+        for mode in modes:
+            chans, out = token_graph(func, linked, depth, exclude, mode=mode)
+            found = short_walk(chans, out)
+            if found is not None:
+                break
         if found is None:
             return added
         count, cyc = found
