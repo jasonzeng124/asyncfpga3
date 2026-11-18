@@ -3330,3 +3330,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - routes built after this may differ for the same seed; claims must state the toolchain.
   - Item 37 (sdf 42b4fb4c) was built with nextpnr 9c732bc6303458df; its recipe checks the SDF md5, so a rebuild on a different toolchain would be caught.
   - Own builds here use the audit's own toolchain (/root/audit-tc), unaffected.
+- 06:31 research ef5a82fbe: BOARD-QUEUE note that the nextpnr patch gives 'same routes; defect routes' bits now right'. UNVERIFIED (the audit toolchain is unpatched); item 37's SDF md5 check still guards the board build. research 7cbfe337e / 76cb275e6: flow v6 (it 1 = recalibration, pinning from it 2); a v5 seed-2 regression explained. No headline yet.
