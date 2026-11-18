@@ -4866,3 +4866,4 @@ built is clean with the DSP at SLOW_MAX (B10).
 ### progress 22:24 -- collatz64 A/B seed 4: 100.00 -> 81.32 us (-18.7 %). Four seeds per kernel for the cut (B9 / B10).
 ### progress 22:57 -- capslack.py (latch capture slack from a dump): ipow cut vs item 38 at DSP band / SLOW_MAX / 1.5x: 6727 / 3383 / 219 ps vs 7112 / 7112 / 6117 (B10). PROGRAM re-read 22:36: no change for B.
 ### progress 22:57 -- collatz cut ulink_n26 capture slack >= 6627 ps (item 39 >= 7572): the latch-data glitches are harmless (B9).
+### progress 22:59 -- farm b_lsj and b_suiteauto2 done. b_lsj built collatz WITHOUT pre_eq2 (PEER = research head, rewrites off by default): lsj fails seed 8 (entry race), lsj_c0 7/7 seeds pass, -20..-32 % (B9). b_suiteauto2: 16 / 16 suite routes 32 + 32 pass, sdf identical; but bits md5 differ from the cloud builds for the same sdf (farm nextpnr 6e5d2244 vs cloud b8e99a23): farm b_bitcmp fetches the FASM to diff.

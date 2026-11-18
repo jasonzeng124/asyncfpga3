@@ -287,7 +287,20 @@ builds: every non-compare chain at 0.5x passes on 31 routes).
   | 4 | c206161f, 32.18 us | 80e2f4b1, 23.51 us | -26.9 % | 0 / 0 (2 / 2 on c32hi / preload) | 12968 / 10976 vs 9179 / 5898 |
   Every one of the six routes: 64/64 draws, c32hi 8/8, preloaded steps 8/8. The shortened routes keep less carry slack
   (3n+1 down to 5.9 ns with UADDI0 3) and seeds 6 / 1 show data glitches through ulink_n26's latches. Those ulink_n26 glitches are harmless in the model: its latches close >= 6627 ps after their data's last flip on
-  lsj_c0 seed 6 (K 30601 and slow-carry K 30655; item 39: >= 7572 ps; capslack.py, B10). Four seeds now (mean -21 %); farm b_lsj (seeds 1-8, also the failing lsj variant) is queued behind suite9.
+  lsj_c0 seed 6 (K 30601 and slow-carry K 30655; item 39: >= 7572 ps; capslack.py, B10). Four seeds now (mean -21 %); farm b_lsj ran (22:45 UTC), see the next item.
+- **Farm b_lsj -- a DIFFERENT circuit, read with care:** the farm's research checkout was your head after 14:49 EST, where
+  BDC_AUTO no longer applies the n == 2 exit rewrite by default, so all 24 builds are automatic collatz WITHOUT pre_eq2
+  (seed 6 with item 39's sizes gives sdf a52bb46a, ~42 us, not c56def07). Same three size sets, seeds 1-8, col18 32 +
+  32 slow-carry draws, c32hi, preloaded steps (`results/fm_b_lsj/N/summary.txt` on claude/cluster):
+  - your item-39 sizes: 8/8 seeds pass everything, NEARMISS 0;
+  - lsj (UCMPI0 halved to 7): seeds 1-7 pass (latch-data pulses), **seed 8 fails: 18 wrong + 3 hung of 32, slow-carry 23
+    wrong + 5 hung**, controller pulses (ulink_n14__1, ulink_n7 ctl, 1-2 ps) around the third call -- the same entry
+    race as the cloud's seed 6 (rewrite on). Two of nine routes across both circuits fail with the entry compare halved;
+  - lsj_c0 (UCMPI0 kept): 7 seeds pass everything (seed 3 did not build: bench clock), last answer vs yours on the same
+    seed: -19.8 / -21.5 / -25.6 / -24.0 / -31.7 / -26.1 / -23.1 % (seeds 1, 2, 4-8). NEARMISS 102-31900 per 32 draws on
+    some seeds, every one examined on latch data nodes (ulink_n28__0_folink / ulink_n28__1 / ulink_n26 lat.pair), none
+    on a controller.
+  So without the rewrite too, the non-compare lines carry the slack and the entry compare does not.
 - **The same cut on the other automatic board items** (each at its board seed; the lines linescale found unneeded set to 0,
   the compares and the lines it said need length kept as built; same checks as B8):
   | item | sizes file (formal/tools-B/auto/sizes/) | sdf | draws + slow-carry | long paths | last answer, as built -> cut | NEARMISS |
