@@ -51,8 +51,10 @@ builds: every non-compare chain at 0.5x passes on 31 routes).
   B7, made by the shortening.
 - `collatz_v3_s6_lsj_c0.vh` (the same with UCMPI0 back at 13; sdf 76a0d09d): **32 / 32 and 32 / 32 slow-carry**, last answer
   mean 26.12 us vs 31.64 us for item 39 on the same 32 draws (**-17 %**). NEARMISS 7 / 13 pulses in all, every one on
-  ulink_n26's latch DATA bits 8 and 12 (1-83 ps; a transparent latch passing a data glitch), none on a controller. Not
-  yet: c32hi / preload / slacks / steer corners on this route, other seeds.
+  ulink_n26's latch DATA bits 8 and 12 (1-83 ps; a transparent latch passing a data glitch), none on a controller. Also
+  (18:4x): c32hi 8/8, steps preloaded 8/8 (NEARMISS 158 / 159, again only ulink_n26 latch data), steps carry slack
+  10585 ps (item 39: 12382), 3n+1 carry into bit 28 7421 ps (item 39: 10898; UADDI0 6 -> 3), steer settle >= 3104 ps
+  entry / >= 2006 ps loop, 0 runts at all 8 corners. One seed; b_lsj has 8.
 - Farm b_lsj: item 39's sizes vs both variants on seeds 1-8 (draws, NEARMISS, last answer, full range, preloaded steps).
 Plainly: in formal's model, item 39's adders, muxes and select lines can go to 0 and its 3n+1 line to half on a rebuilt
 route, for about a sixth off the last answer; its entry compare cannot be halved. Which part of your rule sizes those
