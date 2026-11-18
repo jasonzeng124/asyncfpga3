@@ -218,6 +218,16 @@ import os
 # records what it produces.  Never set it for anything that will be built.
 NAIVE_ACK = os.environ.get("BDC_MEM_NAIVE_ACK") == "1"
 
+# BDC_MEM_NEG_STORE=addr|data -- THE STORE NEGATIVE CONTROL (research/data/suite/
+# stores.md).  Every store station flips bit 0 of the address (addr: each word
+# lands in its neighbour) or of the data it writes (data).  A switch, not a
+# hand edit, for the same reason as NAIVE_ACK: a read-back check that has never
+# been seen to fail is not evidence.  Never set it for anything that will be
+# believed.
+NEG_STORE = os.environ.get("BDC_MEM_NEG_STORE", "")
+if NEG_STORE not in ("", "addr", "data"):
+    raise SystemExit(f"BDC_MEM_NEG_STORE={NEG_STORE!r}: addr, data or unset")
+
 # One RAMB18E1 in x18 mode: 1024 words of 16 data bits (plus 2 parity, unused).
 RAM_WORDS = 1024
 RAM_DW = 16
@@ -408,8 +418,8 @@ module {name}
         .O(done));
     (* keep *) LUT2 #(.INIT(4'h2)) upr (.I0(joined), .I1(done), .O(p_req));
 
-    assign p_addr  = a_data;
-    assign p_wdata = {"d_data" if store else f"{dw}'b0"};
+{"    // BDC_MEM_NEG_STORE=" + NEG_STORE + ": THE NEGATIVE CONTROL, WRONG ON PURPOSE." + chr(10) if store and NEG_STORE else ""}    assign p_addr  = {"a_data ^ " + str(aw) + "'d1" if store and NEG_STORE == "addr" else "a_data"};
+    assign p_wdata = {("d_data ^ " + str(dw) + "'d1" if NEG_STORE == "data" else "d_data") if store else f"{dw}'b0"};
     assign p_we    = 1'b{1 if store else 0};
 
     // The port's acknowledge IS this cell's outgoing request.  That is the

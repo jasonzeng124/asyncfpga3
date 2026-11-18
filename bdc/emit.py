@@ -368,6 +368,10 @@ def result_channels(node, operand_ch):
             raise EmitError(f"{op} type clause {node.type_sig!r} has "
                             f"{len(atoms)} atom(s), expected 4 (addr-in, "
                             f"data-in, addr-out, data-out)")
+        if (op == "store" and len(node.results) == 3
+                and node.results[2].endswith(STORE_DONE_SFX)):
+            # store_completion_rewrite's third result: the access completing.
+            return atoms[2:4] + [CONTROL]
         if len(node.results) != 2:
             raise EmitError(f"{op} at line {node.src_line} has "
                             f"{len(node.results)} result(s), expected 2 "
@@ -2119,6 +2123,238 @@ def call_join_plan(func, end_node):
     return tied, joined
 
 
+# Stores: the completion obligation (research/data/suite/stores.md)
+#
+# WHAT DYNAMATIC PROMISES.  A controller that owns a store (dynamatic's
+# mem_controller_loadless.v + mc_control in data/verilog/support/mc_support.v)
+# raises memEnd only when (1) ctrlEnd has arrived -- no more accesses will
+# come, (2) remainingStores == 0 and (3) no count token is being presented
+# this cycle.  remainingStores is a clocked up/down counter: every basic block
+# that holds stores sends the controller one COUNT token per execution,
+# carrying how many stores that execution will make (the `constant` operands
+# in the accessor list), and every store the controller performs subtracts
+# one.  The function's `end` then waits for every memEnd.  So: the call
+# returns only after every store it made has reached the RAM.
+#
+# WHY NOT A COUNTER HERE.  There is no clock to run one on.  An asynchronous
+# up/down counter needs an arbitrated merge of the +k and -1 streams (they
+# arrive concurrently), an accumulator ring and a steer -- and it would still
+# be wrong: the count token of a block's LAST execution and ctrlEnd leave the
+# same control fork on different paths, so nothing makes the count arrive
+# first, and a count still in flight when ctrlEnd finds the counter at 0 lets
+# memEnd fire early.  Dynamatic carries that race in clocked form (ctrl_ready
+# is tied to 1; nothing orders count tokens against ctrlEnd).
+#
+# WHAT IS BUILT INSTEAD: THE STORE'S COMPLETION JOINS THE CONTROL FLOW.  A
+# basic block executes every op in it exactly once per execution, so each
+# execution of block B makes exactly one completion (the station's z: the RAM
+# answered) per store in B.  Join those completions into B's OUTGOING control
+# token -- the control-typed operand of B's terminator (br / cond_br) -- and
+# the successor block cannot start until B's stores have landed.  Control is
+# a single token passing from block to block, so every block execution lies
+# on the causal chain that ends at the exit block, whose control is ctrlEnd:
+# ctrlEnd is therefore after every store of the call, by construction and not
+# by a race, and memEnd = join(memStart held, ctrlEnd) -- the load-only
+# lowering, unchanged -- is correct.  The exit block has no terminator; a
+# store there is joined into its own controller's ctrlEnd instead.
+#
+# The count tokens carry nothing this does not already know: checked here,
+# each is a compile-time constant equal to its block's number of stores on
+# that controller (one count per block, none for a block without stores), and
+# then sunk at the controller (bd_snk), so their producers are not stalled.
+#
+# The rewrite is done on the graph (a `join` node, a third result on each
+# store), BEFORE every analysis, so link_sites / ring_depths / token_floor see
+# the new edges and the new cycles through the stores.
+#
+# Its cost: a block's successor waits for the block's stores, so control can
+# no longer run ahead of them.  Its by-product: every access of the next block
+# execution whose operands depend on that execution's control token (its
+# control_merge / merge firing) is after this execution's stores.  Neither is
+# Dynamatic's behaviour (Dynamatic lets control run ahead and needs an LSQ
+# where accesses may alias across iterations); stores.md says what is shown.
+#
+# And the function's results: bdc's `end` drives each result port straight
+# from its operand, so a kernel's out0 could leave before its memEnd.  For a
+# function with a store, _op_end joins every operand first (Dynamatic's end:
+# the call returns when all of them have arrived).
+#
+# Nothing here runs for a function without a store: its graph and its Verilog
+# are what they were.
+
+STORE_DONE_SFX = "_stdone"
+
+
+def _rebuild_index(func):
+    """func.producer / func.consumers after func.nodes changed: the parser's
+    own two passes (hs/parse.py _Parser._resolve), so a rewritten function
+    looks exactly like one that was parsed that way."""
+    producer = {k: v for k, v in func.producer.items()
+                if isinstance(v, parse.ArgSource)}
+    for ni, n in enumerate(func.nodes):
+        for ri, name in enumerate(n.results):
+            producer[name] = parse.ResultSource(ni, ri)
+    for name in list(producer.keys()):
+        if "#" not in name:
+            producer.setdefault(f"{name}#0", producer[name])
+    consumers = {}
+    for ni, n in enumerate(func.nodes):
+        for oi, ref in enumerate(n.operands):
+            if ref not in producer:
+                raise EmitError(f"{func.name}: operand %{ref} of {n.op!r} "
+                                f"(line {n.src_line}) has no producer after "
+                                f"the store-completion rewrite")
+            consumers.setdefault(ref, []).append((ni, oi))
+    func.producer, func.consumers = producer, consumers
+
+
+def _replace_operand(node, old, new):
+    hits = 0
+    for item in node.arg_items:
+        if isinstance(item, parse.OperandSegment):
+            for sub in item.items:
+                if isinstance(sub, parse.OperandItem) and sub.value == old:
+                    sub.value = new
+                    hits += 1
+    if hits != 1:
+        raise EmitError(f"{node.op} at line {node.src_line}: operand %{old} "
+                        f"appears {hits} times, expected once")
+
+
+def _const_value(node):
+    v = node.attrs.get("value")
+    return getattr(v, "value", v)
+
+
+def store_completion_rewrite(func):
+    """Join every store's completion into its block's outgoing control token
+    (see the block comment above).  Returns the plan, a list of
+    (bb, join SSA, host node op, [store names]); [] for a function without a
+    store, whose graph is left untouched.  Idempotent per Func object."""
+    plan = getattr(func, "_bdc_store_plan", None)
+    if plan is not None:
+        return plan
+    nodes = func.nodes
+    producer = {}
+    for i, n in enumerate(nodes):
+        for r in n.results:
+            producer[r] = i
+
+    per_mc = []
+    for mi, mc in enumerate(nodes):
+        if mc.op != "mem_controller" or len(mc.operands) < 3:
+            continue
+        stores, counts = [], collections.defaultdict(list)
+        for v in mc.operands[2:-1]:
+            p = producer.get(v)
+            if p is None:
+                continue                  # _resolve_mem_accessors names it
+            if nodes[p].op == "store" and p not in stores:
+                stores.append(p)
+            elif nodes[p].op == "constant":
+                counts[_bb(nodes[p])].append(nodes[p])
+        if not stores:
+            continue
+        want = collections.Counter(_bb(nodes[s]) for s in stores)
+        got = {}
+        for bb, cs in counts.items():
+            if len(cs) != 1:
+                raise EmitError(
+                    f"mem_controller at line {mc.src_line}: {len(cs)} store-"
+                    f"count constants for block {bb}, expected one")
+            got[bb] = _const_value(cs[0])
+        if got != dict(want):
+            raise EmitError(
+                f"mem_controller at line {mc.src_line}: its store-count "
+                f"tokens {dict(sorted(got.items()))} (block: value) are not "
+                f"one per block equal to that block's stores on it "
+                f"{dict(sorted(want.items()))}. The completion join counts "
+                f"one store per store op per block execution; a count that "
+                f"says otherwise is a shape it does not know")
+        per_mc.append((mi, stores))
+    if not per_mc:
+        func._bdc_store_plan = []
+        return []
+
+    taken = set(producer) | {a.ssa_name for a in func.args}
+    hnames = {n.attrs.get("handshake.name") for n in nodes}
+    done_of = {}
+    by_bb = collections.defaultdict(list)          # bb -> [(mc, store)]
+    for mi, stores in per_mc:
+        for s in stores:
+            st = nodes[s]
+            if len(st.results) != 2:
+                raise EmitError(f"store at line {st.src_line} has "
+                                f"{len(st.results)} result(s), expected 2 "
+                                f"(addressResult, dataResult)")
+            d = st.results[0] + STORE_DONE_SFX
+            if d in taken:
+                raise EmitError(f"store at line {st.src_line}: completion "
+                                f"name %{d} is already taken")
+            st.results.append(d)
+            taken.add(d)
+            done_of[s] = d
+            bb = _bb(st)
+            if bb < 0:
+                raise EmitError(f"store at line {st.src_line} has no "
+                                f"handshake.bb: its block is unknown")
+            by_bb[bb].append((mi, s))
+
+    new_nodes, plan = [], []
+    for bb in sorted(by_bb):
+        terms = [i for i, n in enumerate(nodes)
+                 if n.op in ("br", "cond_br") and _bb(n) == bb
+                 and _atoms(n.type_sig)[-1] == CONTROL]
+        sites = []
+        if len(terms) == 1:
+            t = nodes[terms[0]]
+            sites.append((t, t.operands[-1], sorted(s for _, s in by_bb[bb]),
+                          f"stdone_join_bb{bb}"))
+        elif not terms:
+            # The exit block: nothing follows it but `end`.  Its stores join
+            # their own controller's ctrlEnd, which must come from this block.
+            for mi in sorted({m for m, _ in by_bb[bb]}):
+                mc = nodes[mi]
+                old = mc.operands[-1]
+                p = producer.get(old)
+                if p is None or _bb(nodes[p]) != bb:
+                    raise EmitError(
+                        f"mem_controller at line {mc.src_line}: block {bb} "
+                        f"holds a store and has no control terminator, but "
+                        f"the controller's ctrlEnd %{old} does not come from "
+                        f"block {bb} -- no edge to order the store before")
+                mname = re.sub(r"[^A-Za-z0-9_]", "_",
+                               str(mc.attrs.get("handshake.name") or f"mc{mi}"))
+                sites.append((mc, old, sorted(s for m, s in by_bb[bb] if m == mi),
+                              f"stdone_join_{mname}"))
+        else:
+            raise EmitError(
+                f"block {bb} holds a store and has {len(terms)} control "
+                f"terminators ({[nodes[i].attrs.get('handshake.name') for i in terms]}); "
+                f"the completion join needs exactly one outgoing control token")
+        for host, old, ss, hname in sites:
+            if hname in taken or hname in hnames:
+                raise EmitError(f"{func.name}: name {hname!r} is already taken")
+            ops = [old] + [done_of[s] for s in ss]
+            items = [parse.OperandSegment(wrap="", items=[parse.OperandItem(value=v)],
+                                          trailing_comma=k < len(ops) - 1)
+                     for k, v in enumerate(ops)]
+            new_nodes.append(parse.Node(
+                op="join", arg_items=items, results=[hname],
+                attrs={"handshake.bb": nodes[ss[0]].attrs.get("handshake.bb"),
+                       "handshake.name": hname},
+                src_line=nodes[ss[0]].src_line,
+                type_sig=", ".join(["<>"] * len(ops))))
+            _replace_operand(host, old, hname)
+            taken.add(hname)
+            plan.append((bb, hname, host.op,
+                         [nodes[s].attrs.get("handshake.name") for s in ss]))
+    func.nodes.extend(new_nodes)
+    _rebuild_index(func)
+    func._bdc_store_plan = plan
+    return plan
+
+
 # ---------------------------------------------------------------------------
 # The emitter
 
@@ -2133,6 +2369,11 @@ class Emitter:
         self.lines = []
         self.delays = []    # (instance, default) in emission order
         self.units = {}     # module name -> source text, for generated cells
+        # Stores: each block's outgoing control waits for its stores (see
+        # store_completion_rewrite).  First, so that every analysis below --
+        # AUTO's rules included -- sees the graph that is built.  [] and no
+        # change at all for a function without a store.
+        self.store_plan = store_completion_rewrite(func)
         if _auto.AUTO:
             _auto_apply(func)
         self._resolve_widths()
@@ -2331,7 +2572,7 @@ class Emitter:
             # per-basic-block store-count constant (mem_controller_loadless's
             # `remainingStores` increment in dynamatic's mc_support.v); skip
             # those, they name no accessor.
-            ordered, seen = [], set()
+            ordered, seen, counts = [], set(), []
             for v in ops[2:-1]:
                 p = producer.get(v)
                 if p is None:
@@ -2340,6 +2581,9 @@ class Emitter:
                         f"{v!r} has no producer in this function")
                 pop = nodes[p].op
                 if pop == "constant":
+                    # A block's store count: sunk at the controller (see
+                    # store_completion_rewrite, which checked its value).
+                    counts.append(v)
                     continue
                 if pop not in ("load", "store"):
                     raise EmitError(
@@ -2375,6 +2619,14 @@ class Emitter:
                     f"consumer; a load's z already feeds a real downstream "
                     f"channel, and chaining it too needs a fork this design "
                     f"does not build")
+
+            if arb and nodes[ordered[0]].op == "store" and len(nodes[ordered[0]].results) == 3:
+                raise EmitError(
+                    f"mem_controller at line {node.src_line}: a store chained "
+                    f"before a load on an arbitrated port. Its completion "
+                    f"would have to reach both the load's program-order token "
+                    f"and its block's completion join (store_completion_"
+                    f"rewrite): a fork that is not built or verified")
 
             mc_inst = instname(node, mc_idx)
             memend = node.results[-1]
@@ -2447,7 +2699,11 @@ class Emitter:
                 self.accessor_info[addr_res] = info
                 self.mem_absorbed.add(acc.results[0])
                 if acc.op == "store":
-                    if len(acc.results) != 2:
+                    # A third result is store_completion_rewrite's completion
+                    # channel: a real channel, not absorbed.
+                    if not (len(acc.results) == 2 or (
+                            len(acc.results) == 3
+                            and acc.results[2].endswith(STORE_DONE_SFX))):
                         raise EmitError(
                             f"store at line {acc.src_line} has "
                             f"{len(acc.results)} result(s), expected 2 "
@@ -2459,7 +2715,7 @@ class Emitter:
                 "aw": aw, "dw": dw, "slots": n, "arb": arb,
                 "inst": mc_inst, "accessors": accessors_desc,
                 "memstart": memstart, "ctrlend": ctrlend,
-                "memref": memref_ssa,
+                "memref": memref_ssa, "counts": counts,
             }
 
     def width(self, ssa):
@@ -2927,6 +3183,9 @@ class Emitter:
                 f"end at line {node.src_line} has {len(node.operands)} "
                 f"operand(s) for {len(self.func.results)} function result(s)")
         plan = call_join_plan(self.func, node) if CALL_JOIN else None
+        if plan is not None and self.store_plan:
+            raise EmitError(f"@{self.func.name}: a function with a store and a result no call bounds -- the stores' "
+                            f"completion join and the call join are not combined yet (research/data/suite/stores.md)")
         tied, joined = plan if plan is not None else ([], [])
         base = [portname(r.name) for r in self.func.results]
         if plan is not None:
@@ -2956,8 +3215,46 @@ class Emitter:
                 self.emit(f"        .req({base[i]}_req), .ack({base[i]}_ack));")
                 if not self.is_control(src):
                     self.emit(f"    assign {base[i]}_data = {self.data(src)};")
+        skip = set(joined) | set(tied)
+        if self.store_plan:
+            # A function with a store returns its data results only together
+            # with the memEnd of every controller that has a store (Dynamatic's
+            # end waits for all of them): out0 and memEnd otherwise travel
+            # independent paths, and a caller (the bench) that takes out0 as
+            # the call's completion would read the array, or start the next
+            # call, with a store still in flight.  One join over those
+            # operands, one fork to their ports; the data is bundled by the
+            # join's request, which rises after the data's own.
+            #
+            # Only those.  The other control results stay direct, because one
+            # of them is typically the start token passed straight through
+            # (single_loop: `end ... %0#1`), and holding it would hold the
+            # start fork's acknowledge -- and with it the loop header's
+            # return to zero -- until the call ends: a deadlock (measured,
+            # cells/sim RTL of fill, before this was narrowed).
+            stends = {m for m, i in self.mc_info.items()
+                      if any(k == "store" for k, _ in i["accessors"])}
+            sel = [i for i, s_ in enumerate(node.operands)
+                   if not self.is_control(s_) or s_ in stends]
+            if len(sel) >= 2:
+                n = len(sel)
+                reqs = ", ".join(self.req(node.operands[i]) for i in reversed(sel))
+                acks = ", ".join(self.ack(node.operands[i]) for i in reversed(sel))
+                preqs = ", ".join(f"{base[i]}_req" for i in reversed(sel))
+                packs = ", ".join(f"{base[i]}_ack" for i in reversed(sel))
+                self.emit(f"    wire {inst}_all_req, {inst}_all_ack;")
+                self.emit(f"    bd_join #(.N({n})) {inst}_ujoin (")
+                self.emit(f"        .rst(rst), .req_in({{{reqs}}}), .ack_out({{{acks}}}),")
+                self.emit(f"        .req({inst}_all_req), .ack({inst}_all_ack));")
+                self.emit(f"    bd_fork #(.N({n})) {inst}_ufork (")
+                self.emit(f"        .rst(rst), .req({inst}_all_req), .ack({inst}_all_ack),")
+                self.emit(f"        .req_out({{{preqs}}}), .ack_in({{{packs}}}));")
+                for i in sel:
+                    if not self.is_control(node.operands[i]):
+                        self.emit(f"    assign {base[i]}_data = {self.data(node.operands[i])};")
+                skip.update(sel)
         for i, (res, src) in enumerate(zip(self.func.results, node.operands)):
-            if i in joined or i in tied:
+            if i in skip:
                 continue
             self.emit(f"    assign {base[i]}_req = {self.req(src)};")
             self.emit(f"    assign {self.ack(src)} = {base[i]}_ack;")
@@ -3024,15 +3321,25 @@ class Emitter:
                 f"store at line {node.src_line} has {len(node.operands)} "
                 f"operand(s), expected 2 (address, value)")
         addr, val = node.operands
-        addr_res, _data_res = node.results
+        addr_res = node.results[0]
+        # store_completion_rewrite's third result: z IS the completion
+        # channel, into the block's completion join (see that function).
+        done = node.results[2] if len(node.results) == 3 else None
         info = self.accessor_info[addr_res]
         aw, dw, seq = info["aw"], info["dw"], info["seq"]
         name = mem.unit_name("store", aw, dw, seq=seq)
         self.units.setdefault(name, mem.emit_unit("store", aw, dw, seq=seq))
         chained = "z_req_net" in info
-        z_req_net = info["z_req_net"] if chained else f"{inst}_z_req"
-        z_ack_net = info["z_ack_net"] if chained else f"{inst}_z_ack"
-        if not chained:
+        if chained and done is not None:
+            raise EmitError(f"store at line {node.src_line}: chained and "
+                            f"joined at once (_resolve_mem_accessors refuses "
+                            f"this shape)")
+        if done is not None:
+            z_req_net, z_ack_net = self.oreq(done), self.oack(done)
+        else:
+            z_req_net = info["z_req_net"] if chained else f"{inst}_z_req"
+            z_ack_net = info["z_ack_net"] if chained else f"{inst}_z_ack"
+        if not chained and done is None:
             self.emit(f"    wire {z_req_net}, {z_ack_net};")
         self.emit(f"    {name} {inst} (")
         self.emit(f"        .rst(rst),")
@@ -3048,7 +3355,7 @@ class Emitter:
                   f".p_addr({info['p_addr']}),")
         self.emit(f"        .p_wdata({info['p_wdata']}), .p_we({info['p_we']}), "
                   f".p_rdata({info['p_rdata']}));")
-        if not chained:
+        if not chained and done is None:
             self.emit(f"    assign {z_ack_net} = {z_req_net};")
 
     def _op_mem_controller(self, node, inst):
@@ -3170,23 +3477,19 @@ class Emitter:
         # IDLE-reset behaviour the real FSM has, and functionally identical
         # to mem_controller_storeless's own accepted limitation.
         #
-        # For a store-having controller this same shortcut would be
-        # genuinely, silently WRONG -- it omits remainingStores == 0, so
-        # memEnd could fire while a promised-but-not-yet-completed store is
-        # still in flight.  An async up/down counter correct under that
-        # race is out of scope here: STOP rather than invent an unreviewed
-        # mechanism under a completion signal.
-        has_store = any(kind == "store" for kind, _ in accessors)
-        if has_store:
-            raise EmitError(
-                f"mem_controller at line {node.src_line} has a store "
-                f"accessor. Its real memEnd (dynamatic's "
-                f"mem_controller_loadless.v) requires remainingStores == 0, "
-                f"an asynchronous up/down completion counter this backend "
-                f"does not build; wiring memEnd without it would silently "
-                f"let it fire while a store is still in flight. Not "
-                f"implemented -- see _op_mem_controller's memStart/ctrlEnd/"
-                f"memEnd comment in bdc/emit.py.")
+        # For a store-having controller this same shortcut is correct only
+        # because store_completion_rewrite has made ctrlEnd itself arrive
+        # after every store of the call: each block's outgoing control token
+        # (or, in the exit block, this controller's ctrlEnd) is joined with
+        # the completions of that block's stores.  remainingStores == 0 is
+        # then implied by ctrlEnd, by construction rather than by a counter
+        # racing it.  The per-block store-count tokens carry nothing more
+        # (their values were checked there) and are sunk here, so their
+        # producers are not stalled.
+        for k, c in enumerate(info.get("counts", ())):
+            self.emit(f"    bd_snk #(.W({max(self.width(c), 1)})) {inst}_ucount{k} (")
+            self.emit(f"        .req({self.req(c)}), .ack({self.ack(c)}), "
+                      f".data({self.data(c)}));")
 
         memstart, ctrlend = info["memstart"], info["ctrlend"]
         hold = f"{inst}_started"
