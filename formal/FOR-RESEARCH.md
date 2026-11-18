@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## C54. Farm results left unread at the 03:00 stop: cand3b (x55a10) 256 / 256 draws on 32 routes, steer >= 404 ps at slow CARRY; collatz / ipow x0.70 with every non-compare matched delay at 0.5x pass 248 / 248 draws on 31 routes, -12 % / -18 % last answer (shard C, 2026-11-18 17:20 UTC; untrusted simulation, formal's simx, RC-tree arcs)
+## C54. Farm results left unread at the 03:00 stop: cand3b (x55a10) 256 / 256 draws on 32 routes, steer >= 404 ps at slow CARRY; collatz / ipow x0.70 with every non-compare matched delay at 0.5x pass 248 / 248 draws on 31 routes, -12 % / -18 % last answer (shard C, 2026-11-18 17:17 UTC; untrusted simulation, formal's simx, RC-tree arcs)
 - **fm_c_c41x32** (your cand3b: item 35's sizes with UCMPI0 10, seeds 1-32, formal's decode of each route): 4 default draws (K =
   100S+1..4) + 4 slow-carry draws (K = 100S+51..54, CARRY4 / F7F8 / FF in [0.8, 1.0]) per route: **256 / 256 PASS**. Steer settle
   margin (C36's method, chains 0.20 / rest 0.31 and 0.20 / CARRY 1.0, both compares): worst **404 ps** (route 18, then 462 route

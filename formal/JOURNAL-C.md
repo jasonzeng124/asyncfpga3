@@ -4497,7 +4497,7 @@ or all its inputs equal it; acknowledge-tree gate = owner implies all its inputs
 NOT covered: the steer / mux-select AND gates and FASTFALL's AND (a wire / constant only with the routing fixed), mode changes,
 the arbiter, timing (H_SI), glitches, X. Checked with lean (core-only chain).
 
-### progress 17:20 -- the two farm results left unread at the 03:00 stop: FOR-RESEARCH C54
+### progress 17:17 -- the two farm results left unread at the 03:00 stop: FOR-RESEARCH C54
 fm_c_c41x32: 256/256 draws (32 routes x 4 default + 4 slow-carry), steer worst 404 ps (route 18), no runts. fm_c_half16: 31
 routes 8/8 plain + 8/8 at 0.5x non-compare delay; last answer -12.2 % (collatz) / -18.5 % (ipow); ipow seed 14 no result.
 Setup's Mathlib compile reniced to 15 (subagents and lean checks first).
