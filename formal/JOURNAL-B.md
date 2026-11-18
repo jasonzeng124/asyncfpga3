@@ -4865,3 +4865,4 @@ built is clean with the DSP at SLOW_MAX (B10).
 ### progress 22:03 -- ipow A/B seed 4: -14.6 %, slow DSP pulses only on the cut (B10). Four ipow seeds.
 ### progress 22:24 -- collatz64 A/B seed 4: 100.00 -> 81.32 us (-18.7 %). Four seeds per kernel for the cut (B9 / B10).
 ### progress 22:57 -- capslack.py (latch capture slack from a dump): ipow cut vs item 38 at DSP band / SLOW_MAX / 1.5x: 6727 / 3383 / 219 ps vs 7112 / 7112 / 6117 (B10). PROGRAM re-read 22:36: no change for B.
+### progress 22:57 -- collatz cut ulink_n26 capture slack >= 6627 ps (item 39 >= 7572): the latch-data glitches are harmless (B9).

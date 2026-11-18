@@ -286,7 +286,8 @@ builds: every non-compare chain at 0.5x passes on 31 routes).
   | 2 | d863eac9, 31.22 us | cfbd9baa, 24.64 us | -21.1 % | 0 / 0 | 13906 / 9296 vs 9296 / 7460 |
   | 4 | c206161f, 32.18 us | 80e2f4b1, 23.51 us | -26.9 % | 0 / 0 (2 / 2 on c32hi / preload) | 12968 / 10976 vs 9179 / 5898 |
   Every one of the six routes: 64/64 draws, c32hi 8/8, preloaded steps 8/8. The shortened routes keep less carry slack
-  (3n+1 down to 5.9 ns with UADDI0 3) and seeds 6 / 1 show data glitches through ulink_n26's latches. Four seeds now (mean -21 %); farm b_lsj (seeds 1-8, also the failing lsj variant) is queued behind suite9.
+  (3n+1 down to 5.9 ns with UADDI0 3) and seeds 6 / 1 show data glitches through ulink_n26's latches. Those ulink_n26 glitches are harmless in the model: its latches close >= 6627 ps after their data's last flip on
+  lsj_c0 seed 6 (K 30601 and slow-carry K 30655; item 39: >= 7572 ps; capslack.py, B10). Four seeds now (mean -21 %); farm b_lsj (seeds 1-8, also the failing lsj variant) is queued behind suite9.
 - **The same cut on the other automatic board items** (each at its board seed; the lines linescale found unneeded set to 0,
   the compares and the lines it said need length kept as built; same checks as B8):
   | item | sizes file (formal/tools-B/auto/sizes/) | sdf | draws + slow-carry | long paths | last answer, as built -> cut | NEARMISS |
