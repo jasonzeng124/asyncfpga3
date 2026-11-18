@@ -6,7 +6,8 @@ and expected values computed from the C, never recorded from a run. Nothing in t
 name. A kernel the compiler refuses, deadlocks on or gets wrong stays here, marked so: that is work for the compiler.
 
 This file: the first scalar kernels, one per shape (suite agent `suitek`, 2026-11-17), plus the kernels that were
-already here. Dynamatic's integration tests and the memory kernels are other agents' parts (see the end).
+already here; then Dynamatic's integer tests and two more memory shapes (suite agent `suitew`, 2026-11-18, its own
+section below the first table).
 
 ## How each kernel is checked
 
@@ -64,6 +65,91 @@ gate at worst: default 9 / 12 right (3 of them on NOT EQUIVALENT bitstreams), an
 lfsrfind and nest3 return wrong values on the two routes with the FFMUX bitstream defect. NOT EQUIVALENT bitstreams: 10
 of 26 gated routes, all the known F7 / FF classes, none attributable to bdc. Open bdc work:
 quadrec (both flows), lfsrfind / nest3 / nested (default flow), division and modulo.
+
+## Dynamatic's integer tests and two more memory shapes (suite agent `suitew`, 2026-11-18)
+
+The 11 integer tests of Dynamatic's that emit through bdc besides gcd (research/data/suite/dyn/README.md), and two
+read-only memory shapes the owner listed that were missing: two arrays (`dot2`) and an index read from memory
+(`gather`). Dynamatic's C is in `research/data/suite/dynsrc/<name>/` (copied unchanged, with sha256s; a `kernels/`
+directory would shadow the test in `bdc/frontend.sh`), its vectors in `research/data/suite/vec/<name>.hex`
+(`suite_one.sh` and `rejudge.sh` look there after `kernels/<name>/`); the frontend output of all 13 is in
+`cloud/fixtures/frontend/<name>/comp/`. Expected values are compiled from the C at run time by `oracle.sh` (two-word
+files) or `oracle_mem.sh` (v2 files: more than two words, or arrays), never recorded.
+
+Columns: **bdc** = `bdc/emit.py --no-top`, default / `BDC_AUTO=1` (auto.py first) / `--host-mem` (what the bench
+builds); **simcheck** = `bdc/simcheck.py --c-oracle --timeout-us 400`, default / `BDC_AUTO=1` (pre-route, arc timing;
+memory kernels are checked on the bench path only); **smoke** = ONE routed run of the automatic path,
+`research/tools/suite/suite_one.sh K 1 2 3` (seed 1, 2 draws K = 10101 and 10102, MAXIT 3: up to 4 routes, then up to
+3 raise-only routes when none was clean; CA_JOBS=2, PNR_TIMEOUT=3600), nextpnr 9c732bc6303458df (toolchain.sh all
+ok). dot2, gather, test_bitint, iterative_sqrt ran the flow as committed before this section; test_loop_free,
+unused_arg, test_int16 ran it with the bd_mem start-scale change (item 1), which touches only unused_arg's lines.
+One seed is a smoke test, not a result.
+
+| kernel | shape | input range (C defined, trips bounded) | vectors | expected values | bdc | simcheck default / AUTO | smoke (seed 1, 2 draws) |
+|---|---|---|---|---|---|---|---|
+| dot2 | memory: two arrays | n any (clamped to N = 32; n <= 0: 0 trips); a[i], b[i] in [-8191, 8191] | kernels/dot2/vec.hex (v2, 8 calls): n = 32, 1, 0, 31, INT_MAX, INT_MIN; a = b = 8191 (2146959392), a = -b (-2146959392), ramps, random | oracle_mem.sh (kernels/dot2) | ok / ok / ok | - (bench only) | **PASS 2/2 draws** (8/8 each), EQUIVALENT, ffmux clean; rule NOT CLEAN at it 6 (raise-only phase ran out: bd_mem C -1.5 .. -2.3 ns on 4 RAMs, unfixable); route 16751b81, 1410 LUTs, 840 ns per call (median); P printed 156000 ps (not checked) |
+| gather | memory: an index read from memory, a[b[i]] | n any (clamped to 32); b[i] in [0, 31]; a[j] in [-2^21, 2^21] | kernels/gather/vec.hex (v2, 9 calls): b all 0, all 31, identity, reversed, random; a = +-2^21 everywhere (+-1107296256); n = 32, 33, 1, 0, INT_MIN, INT_MAX | oracle_mem.sh (kernels/gather) | ok / ok / ok | - (bench only) | **FAIL 0/2 draws** (3/9 each: xxxxxxxx on the 6 calls that read a[j] with j != 0; right on n = 0, n = INT_MIN and b all 0), EQUIVALENT, ffmux clean; rule NOT CLEAN at it 5 (bd_mem B -2.4 .. -4.6 ns on the dependent load's RAM address, C -1.2 .. -2.6 ns; unfixable); route 9afa161e, 1429 LUTs. Diagnostic, not the flow: the same seed and sizes with bd_mem's lines at USETUP 20 / UCO 16 (route 6da7a61c): the full-stack run returns 9/9 right and draws 10101 / 10102 PASS 9/9 each, EQUIVALENT (item 1) |
+| factorial | two loops in sequence, the first unrolled x3: 4 muli | n <= 12 (13! overflows int); n <= 0: both loops 0 trips, 1 | vec/factorial.hex (12): 12, 11, 10, 7, 5, 4, 3, 2, 1, 0, -1, INT_MIN | oracle.sh (dynsrc) | ok / ok / ok | PASS 12/12 / PASS 12/12 | not run (time) |
+| iterative_division | repeated subtraction, signs around the loop, an early return on divisor 0 | dividend, divisor != INT_MIN (ABS overflows); quotient \|dividend\| / \|divisor\| <= 256 (trips) | vec/iterative_division.hex (15): divisor 0; 0, 1, 255, 256 trips; every sign pair; INT_MAX / INT_MAX, INT_MAX / (INT_MAX - 1), -INT_MAX / INT_MAX (-1), INT_MAX / 2^23 | oracle.sh (dynsrc) | ok / ok / ok | PASS 15/15 / PASS 15/15 | not run (time) |
+| iterative_sqrt | binary search, an early exit on an exact square, mid * mid twice | n <= 92681 (mid * mid overflows above); n < 0: 0 trips, returns n | vec/iterative_sqrt.hex (12): 92681, 92680, 92416 (304^2), 65536, 99, 4, 3, 2, 1, 0, -1, INT_MIN | oracle.sh (dynsrc) | ok / ok / ok | PASS 12/12 / PASS 12/12 | not finished: stopped during it 2's audit to free the slot (time box; it 1: 22 negative, 10 raised, 2 unfixable) |
+| test_loop_free | loop-free, three branches, 4 operand words | a > 0: b + c + d in range; a <= 0, b < 0: a + d in range | vec/test_loop_free.hex (v2 words=4 mems=0, 10 calls): every branch; a in {INT_MIN, -1, 0, 1, 5, INT_MAX}; b in {INT_MIN, -2^30, -1, 0, 2^30, INT_MAX}; sums at INT_MAX, INT_MIN, INT_MIN + 1 | oracle_mem.sh (dynsrc) | ok / ok / ok | PASS 10/10 / PASS 10/10 | **PASS 2/2 draws** (10/10 each), EQUIVALENT, ffmux clean; rule NOT CLEAN after 6 routes (the raise-only phase kept finding 2-5 small misses: umux0 / uselect0 / uaddi1 / one H, -8 .. -642 ps; steers' D -2.9 .. -3.4 ns, reported only); route 0a543d6b, 988 LUTs, 72 ns per call (median) |
+| test_int16 | no argument; a 16-bit result (-1) | - (no input) | vec/test_int16.hex (1; the words are ignored) | oracle.sh (dynsrc): 0000ffff (masked: the bench zero-extends) | ok / ok / ok | **FAIL** (timeout) / **FAIL** (timeout): out0 fired 94162 times for one start | **FLOW-FAILED**, reported as `status=DOES-NOT-COMPILE ()`: auto_size.sh stops at the estimates, `est_sizes.py: no module bdc_test_int16 with parameters` (a kernel with no matched delay; bdc itself emits it) |
+| test_bitint | memory: two narrow arrays (u16, u5), _BitInt, muli i21 | every element value (unsigned; 10 x 65535 x 31 < 2^32) | vec/test_bitint.hex (v2, 6 calls): all 65535 x all 31 (20315850), Dynamatic's main (1..10 x 10..1: 220), alternating pairs, random | oracle_mem.sh (dynsrc, clang: gcc 13 has no _BitInt) | ok / ok / ok | - (bench only) | **PASS 2/2 draws** (6/6 each), EQUIVALENT, ffmux clean; rule NOT CLEAN at it 2 (bd_mem's C -1.2 .. -1.9 ns, B -5 / -44 ps, unfixable: see the note below); route b226e535, 610 LUTs, 252 ns per call (median); P not computed |
+| unused_arg | memory: one load at a constant address, no loop; the frontend drops the unused array `a` (keeps a_start / a_end) | any | vec/unused_arg.hex (v2, 6 calls): used[0] = INT_MAX, INT_MIN, 1, -1, 0x13579bdf, 0; b varied (unused) | oracle_mem.sh (dynsrc; `a` absent from the file: filled two ways, must not matter) | ok / ok / ok | - (bench only) | **FLOW-FAILED** (`RULE FAILED it=0`): tighten.py, `combinational cycle with no storage` -- the cycle is the kernel's `usource0` and the bench's a_end sink: the frontend drives the dropped memref's memEnd (a_end) from a `source`, bdc wires it to the port, and a source acknowledged by a delay is a ring oscillator (built with the bd_mem start-scale change, which does not touch this) |
+| if_loop_1 | memory: load, multiply by 5, a branch (tmp > 10) in a loop to n | n <= 100 (the C does not clamp: n > 100 reads past a); a[i] in [-4294967, 4294967] | vec/if_loop_1.hex (v2, 8 calls): n = 100, 99, 50, 1, 0, INT_MIN; a = 4294967 everywhere (2147483500), 2 / 3 alternating (the compare's edge: 750), random | oracle_mem.sh (dynsrc) | ok / ok / ok | - (bench only) | not run (time) |
+| if_loop_2 | memory: if_loop_1 without the multiply | n <= 100; a[i] <= 21474836 (any negative) | vec/if_loop_2.hex (v2, 8 calls): a = 21474836 everywhere (2147483600), 10 / 11 alternating (550), INT_MIN / 21474836 alternating, random; n as if_loop_1 | oracle_mem.sh (dynsrc) | ok / ok / ok | - (bench only) | not run (time) |
+| sumi3_mem | memory: x * x * x summed over N = 1000 | a[i] in [-129, 129] (1000 x 129^3 = 2146689000) | vec/sumi3_mem.hex (v2, 3 calls): all 129, all -129, the ramp -129..129 repeated | oracle_mem.sh (dynsrc) | ok / ok / ok | - (bench only) | not run (time; estimated 0.2 ms of circuit time per call in the gate, the host fill alone ~0.16 ms) |
+| fir | memory: two arrays, one read backwards (di[999 - i]), N = 1000 | elements in [-1465, 1465] (1000 x 1465^2 = 2146225000) | vec/fir.hex (v2, 2 calls): all 1465 (2146225000); di = idx = 0, 1, ..., 999 (166167000; read forwards it would be 332833500) | oracle_mem.sh (dynsrc) | ok / ok / ok | - (bench only) | not run (time; estimated 0.4 ms of circuit time per call in the gate, the host fill alone ~0.31 ms) |
+
+
+**Summary (2026-11-18, seed 1).** 13 kernels: all 13 pass Dynamatic's frontend and bdc in both flows (and
+`--host-mem`). simcheck (the 5 scalar ones): 4 / 5 pass in both flows; test_int16 hangs (free-running out0, item 2).
+Routed smoke, automatic path, seed 1, 2 draws: **PASS** dot2, test_bitint, test_loop_free (2 / 2 each); **FAIL**
+gather (0 / 2, bd_mem's address setup, item 1); **FLOW-FAILED** unused_arg (the rule refuses a source-sink ring,
+item 2) and test_int16 (no delay line, item 6); iterative_sqrt stopped unfinished; 6 not run (time). No route ended
+CLEAN under the rule; every bitstream EQUIVALENT and ffmux clean.
+
+**What this found (seed 1; one route per kernel is a smoke test, not a result).**
+
+1. **The automatic path ships every memory kernel with bd_mem's two lines shrunk, and its rule cannot size them;
+   gather fails on it.** auto_size.sh starts from emit.py's estimates x AUTO_START_SCALE 0.3, bd_mem's address setup
+   (DSETUP 8 -> 3) and clock-to-out / address hold (DCO 12 -> 4; bdc/mem.py: "DCO IS THE ADDRESS HOLD GUARD")
+   included. corner_audit's rule names those chains `<port>_uport.umem<k>.{usetup,uco}` (BD_SZ_..._UPORT_UMEM0_UCO),
+   emit.py's macros are BD_SZ_..._UMEM0_UCO: the rule prints "sizes.vh does not set (kept, measured)", lists the
+   RAMs' B / C constraints as STILL SHORT with no line to pad, and every route keeps 3 / 4 (checked in the routed
+   netlists: 3 / 4 cells). On every route built here (corners 0.20 / 0.31): test_bitint C -1181 .. -1893 ps, B -5 /
+   -44 ps; dot2 C -1525 .. -2270 ps; gather C -1207 .. -2625 ps and B -2443 .. -4590 ps (the dependent load's
+   address, ADDRARDADDR6, reaches the RAM 5.9 - 6.9 ns after the request, the manufactured clock edge 2.6 - 3.6 ns).
+   test_bitint and dot2 pass their draws anyway; **gather does not** (both draws 3/9, the RAM returns X for every
+   a[j] with j != 0). Diagnostic, not the flow: gather's final sizes with only bd_mem's lines raised (USETUP 20,
+   UCO 16; seed 1, route 6da7a61c, EQUIVALENT): the full-stack run 9/9, and draws 10101 and 10102 (the draws that gave 3/9) PASS 9/9 each.
+   A loop that can never be clean also runs its raise-only phase to the end (dot2 6 routes, gather 5).
+   Proposed (commit "auto_size.sh: do not shrink bd_mem's USETUP / UCO at the start"): keep the two lines at the
+   estimates, where suiteb measured positive B / C on memsum and fir (24 RAMs). Not enough for gather (its B is
+   still about 0.6 - 2.7 ns short at DSETUP 8 by the same arithmetic): the line needs one name in emit.py and
+   corner_audit.py so the rule can size it. Work for the flow.
+2. **A `source` that reaches a function result is free-running (test_int16, unused_arg).** bdc lowers `source` to
+   `bd_src` and `end` to wires (emit.py `_op_end`: each result is assigned to its port, no join with the call), so a
+   result that depends on a `source` and on nothing else produces tokens without a call. test_int16 (`return -1`:
+   out0 = `constant(source)`): simcheck FAIL (timeout) in both flows, out0 seen 94162 times for one start in 400 us.
+   unused_arg: the frontend drops the unread memref `a` and drives its memEnd (`a_end`) from a `source`; the bench
+   acknowledges `a_end` with a bd_delay, so source and sink form a ring oscillator, and the rule refuses the route
+   (tighten.py `combinational cycle with no storage`: usource0 and ua_end_snk). Dynamatic's `end` is wires too (no
+   end.v in its handshake library); in its clocked semantics such an output is simply valid every cycle. bdc needs a
+   result tied to the call (joined with start; for a dropped memref, memEnd = its memStart). Work for the compiler.
+3. **The oracles.** All 13 kernels' answers come from their C in a tree without `dynamatic/` (checked: identical to
+   the answers with it). Four of Dynamatic's tests have no header (types in the .c: compiled into the driver), use
+   `int main()` (renamed too), and test_bitint needs clang (`_BitInt`; gcc 13 has none): a machine without clang gives
+   NO-ORACLE for it. unused_arg: the frontend drops the unused memref `a` but keeps `a_start` / `a_end`, so the bench
+   has one memory and the C two; oracle_mem.sh reads the memrefs the frontend kept and fills a dropped array twice,
+   refusing a call whose answer changes (negative control: dot2 with `b` dropped refuses n = 32, answers n <= 0).
+4. **veclint.py reads only the two-word format.** The v2 files' answers were checked by hand against its rules (no two
+   consecutive answers equal, at most a quarter 0): all pass. test_int16 has one vector (every answer is 0000ffff).
+5. **lane2.sh on a fresh RUNS** failed at its lock (`RUNS/wt` missing) and suite_one.sh reported
+   `status=DOES-NOT-COMPILE ()` for three kernels that compile; lane2.sh now creates the directory.
+6. **A kernel with no delay line cannot enter the automatic path.** test_int16 emits (bdc: 0 matched delays), but
+   auto_size.sh's estimates step stops (`est_sizes.py: no module bdc_test_int16 with parameters`) and suite_one.sh
+   reports it as `status=DOES-NOT-COMPILE ()`. Not changed here (the kernel is wrong anyway, item 2).
 
 ## What the suite found (work for the compiler)
 
