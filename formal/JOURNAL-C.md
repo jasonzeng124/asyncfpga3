@@ -4659,3 +4659,11 @@ auto). Saved as formal/tools/live/fixtures/results_floorpass_0cebd725c.jsonl (tr
 (live.py, commit 6c38e2dc2) on 11 / 15 residue rows so far: residue_data 0 everywhere (all leftover tokens in the source cone),
 incl. if_loop_1 (the kernel auditor's T161 saw fail 2 / 4 draws in research's suite9 -- not explained by leftover tokens in the
 model). Farm c_live_big2 waiting for cores.
+
+### progress 21:44 -- residue classifier on all 15 residue rows: residue_data 0 everywhere; if_loop_1 suite9 failure noted, not taken
+Every leftover token at a finished state lies in the source cone (branchloop, collatz, collatz64, gcd def, if_loop_1,
+iterative_division, matrix auto, stencil_2d auto, test_flatten_array; def and auto as they had residue). Research's suite9 task 77
+(if_loop_1 BDC_AUTO seed 1, sdf b2ad5a7b, rule NOT CLEAN, EQUIVALENT): draws 10101 / 10104 FAIL with odata / sig = X in every
+batch and memory wrong, 10102 / 10103 pass. That is a data / X-start-up question (cf. research hangs.md section 3), not
+liveness (the model is LIVE with no data residue); formal's simx has no memory-kernel bench and this sandbox has no FPGA
+toolchain, so not taken here. Lock refreshed.
