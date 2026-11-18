@@ -6353,3 +6353,17 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   collatz / collatz64 / ipow / gcd (10 of 24 vectors), and at y 6 on ipow. Correction: xorshift's trip_N logs were taken
   at 50 MHz, so they show 49.6 ns per round, not ~25 (one build family, not two); the archived bit at x 0.222 gives
   49.71 ns. Not done: isprime, gcd's other 14 vectors.
+### progress 00:33 (suiteb paused with 13 patches; to be applied after this suite run, with a GLS regression check)
+- Done and verified by suiteb (its notes: research/data/suite/bench/README.md in /tmp/bot/sa/suiteb/out/0013): MAX_WORDS
+  2 -> 10 (OP2..OP9 only for kernels that need them; kernels/sum3, 3 args, seed 1 worst PASS 6/6, EQUIVALENT,
+  ANNOTATE_DONE clean); a host slot on each memory port (bdc/emit.py --host-mem, opt-in) driven by a four-phase handshake
+  from the PS clock with 2-flop synchronizers on the acknowledges; vector format v2 (header line; old files read as
+  before); oracle_mem.sh from the C; **memsum seeds 1-4 PASS 5/5 at worst** with the arrays read back after each fill and
+  each call equal to the C's and a one-hot monitor seeing 448 host / 170 kernel requests, 0 overlaps (170 = the C's
+  loads); negative control (different array contents) FAILS. RAMB18E1 in the bits-decoded GLS (fasm2net, gen.py,
+  prims.v, xray_delay.py, fasm_equiv.py). gen_bench.py byte-identical for the six kernels (18 files, cmp).
+- Not done: fir's gates (4 routes built), max / min corners, three negative controls, stores (design note only: bdc needs
+  an arbitrated, token-driven store counter for memEnd). memsum seed 4 bits NOT EQUIVALENT (not looked at).
+- The patches change the GLS core (prims.v, gen.py, fasm2net.py) that every running job reads, so they wait for the
+  suite run to end, then go in after a regression run (an existing route's full-stack BENCHRES and fasm_equiv verdict
+  unchanged).
