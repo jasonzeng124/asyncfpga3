@@ -4679,3 +4679,12 @@ isprime 89ceef34.
   (46327*46337 -> 1). So the preload reaches the multiplier's high bits; the multiply has us of slack on this route.
 - Kernel note (C level, not the circuit): with wrapping arithmetic (research's oracle compiles with -fwrapv, the circuit
   wraps), isprime(2^31 - 1) = 0 after ~2^31 iterations (`d * d <= n` is always true for n = INT_MAX); checked with the C.
+### progress 00:55 -- AUTO xorshift iteration-0 route (e9a7370c): B2's checks run; the preload's counter carry has 59.8 ns
+`tools-B/auto/xorchecks.sh DIR CARRYSLICE` (new): xor19 draws, preload A (i0 0x3ffffff0 via ulink_n6, which AUTO keeps:
+32-bit 2-stage pipe of the constant 0 into umux0), the carry-in injection control. On iteration 0 (the estimates route,
+not what the loop ships): xor19 4/4 PASS (a first try with C's 40 us cap returned 12 of 19 answers: this route is slower,
+not wrong), preload A 8/8 PASS. Control at uaddi0 slice[4] (SLICE_X20Y46, bits 16-19): +20 ns passes both ways; +100 ns
+and +1 us: ordinary 2/2 PASS, preloaded 2/2 FAIL at the 2^30 crossing; bisected (carryslack.sh, 4 draws): 59813 ps pass,
+59862 fail. Why so much: linesens on a preloaded 271-iteration call, draw 2101: period 72146 ps per iteration, set by
+umux1 / uxori1 / uxori2 (the x datapath ring, dP/dX 1), every other line 0 (out/ls_auto_xor_it0_2101.txt). Hand
+candidates run ~17 ns with the counter ring on the cycle (B4). Waiting for the loop's shipped route.
