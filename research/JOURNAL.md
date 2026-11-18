@@ -6753,3 +6753,25 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   +0.27 ns, mean +0.68, faster on 4 / 8; weight 3: 2 / 4. Prediction (no consistent sign) held. Not landed in bdc (kept
   as research/data/suite/ringplace/ringplace_knob.patch); cycle_wire.py landed. Wire is 85-87 % of the critical cycle
   on every route of both arms.
+### progress 17:02 (owner 296c3bf13: 8 subagents until 23:00, then 1; seven started; farm suite9; auto_size.sh can resume)
+- PROGRAM (owner, 16:48 UTC): the allowance is full again until the reset (23:00 UTC); up to 8 subagents until then, one
+  lead each from the owner's list; from 23:00 at most 1 and fewer steps. Started 16:58 (reports due 22:40): xorgap (1:
+  what the hand xorshift has that the flow lacks), loopfast (2: the sizing loop finishes on gcd / isprime), hangs (3:
+  deadlocks / hangs, incl. matrix's default-flow deadlock and ipow s4's start-up x), divmod (4: remui in the frontend,
+  a divider in bdc), dyntests (5: void kernels on the bench, the 9 store tests into the suite, mc:load1st), memauto (6:
+  memory kernels through the automatic path; dot2 at 156 ns per iteration), dynfig (8: Dynamatic's figure per kernel).
+  Lead 7 (the suite table on the farm) is mine.
+- Farm, read: **suite6 (flow v6, nextpnr 6e5d224472232d5d, 8 seeds, 8 draws): collatz 17.04 ns (14.96-19.46) 64 / 64,
+  collatz64 23.27 (22.03-26.12) 56 / 56, ipow 21.58 (19.84-23.36) 56 / 56, xorshift 22.28 (19.43-23.46) 56 / 56**
+  (v3: 18.98 / 23.71 / 24.10 / 20.11: v6 helps three kernels and costs xorshift 2.2 ns -- xorgap has it). suite3a / 3b /
+  8 / 5 / 7: every judged route passes its draws, but 14 + 19 + 18 tasks and nearly all of gcd / isprime hit the
+  240-min limit inside the sizing loop (60-80 min per iteration at 2 cores, 5-8 iterations; and the loop converges
+  poorly on the suite kernels: e.g. nested it 2 had 81 negative rows; 9 of 16 finished loops ended NOT CLEAN after 7).
+- research/tools/auto/auto_size.sh AUTO_RESUME=DIR: continues a loop from the state a stopped farm task sent back
+  (the last iteration whose ratchet_I.txt exists, its pins pinned_I.txt, the phase from the log, that iteration's stop /
+  phase decision replayed; a route needed again is rebuilt from its sizes and seed, the sdf md5 checked against it_I.txt).
+  ratchet_I.txt is now written last in each iteration, so its presence means the iteration is complete. Unset, the loop
+  is the same (the decision block restructured, equivalent; two more files saved per iteration). Test running: suite3a's
+  straight seed 3 cut after it 2 and resumed here must rebuild it 3 / it 4 as b185f449 / 4896c89d and end CLEAN it=4.
+- Farm suite9 submitted: the 23 kernels with fewer than 4 judged routes x seeds 1-4 (92 tasks, 2 cores), flow v6, the
+  state copied back every 5 min for a resume request (suite9r2) at the same commit.

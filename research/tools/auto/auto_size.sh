@@ -28,13 +28,26 @@
 # the full stack (bits-decoded netlist, equivalence, fid run, event-graph period P) runs once, on the route kept
 # (lane2_run.sh).  CA_JOBS=N (environment) runs corner_audit's per-line sensitivity workers N at a time.
 #
+# AUTO_RESUME=DIR (environment) continues a loop another run left unfinished (a farm task stopped at its time limit):
+# DIR holds that run's $RUNS/auto/NAME files as the farm returns them (*.txt, *.vh: log.txt, sizes_I.vh, pinned.txt,
+# ratchet_I.txt, rule_I.vh, neg_I.txt). The loop goes on from the last iteration whose ratchet step was written, in the
+# phase the log names, replaying that iteration's stop / phase decision; a route it needs again (the one it ships) is
+# rebuilt from its sizes with the same seed, which gives the same route (checked: the sdf md5 must match it_I.txt).
+# Unset: the loop as before (it also saves rule_I.vh and neg_I.txt, the rule's proposal and negatives, for a resume).
+#
 # Writes $RUNS/auto/NAME/{sizes_I.vh, it_I.txt, ca_I.txt, result.txt}.  result.txt: "CLEAN it=I route=NAME_I P=.."
 # or "NOT CLEAN after MAXIT".  The shipped route's files are $RUNS/hw/NAME_I, $RUNS/r/NAME_I (lane2.sh).
 set -uo pipefail
 L=$1; N=$2; K=$3; S=$4; VEC=$5; MAXIT=${6:-4}
 R=$(cd "$(dirname "$0")/../../.." && pwd); RUNS=${RUNS:-/home/user/runs}; export RUNS
 LANE=$R/research/tools/fifteen/lane2.sh; T=$R/research/tools/auto
-O=$RUNS/auto/$N; mkdir -p "$O"; : > "$O/result.txt"
+O=$RUNS/auto/$N; mkdir -p "$O"
+RES=""
+if [ -n "${AUTO_RESUME:-}" ] && [ -f "$AUTO_RESUME/sizes_1.vh" ]; then
+  RES=$(cd "$AUTO_RESUME" && pwd)
+  [ "$RES" = "$(cd "$O" && pwd)" ] || cp "$RES"/*.txt "$RES"/*.vh "$O/" 2>/dev/null
+fi
+: > "$O/result.txt"
 D=${K}_bench_gen
 rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built with SIZES
   local i=$1 Z=$2 NI=${N}_$1; local HW=$RUNS/hw/$NI RD=$RUNS/r/$NI CA=$RUNS/ca/$NI
@@ -66,7 +79,8 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   local dirs=(); for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
     [ -f "$CA/rule_$c/sizes.vh" ] && [ -f "$CA/rule_$c/negative_sized.tsv" ] || return 1; dirs+=("$CA/rule_$c"); done
   python3 "$T/merge_rules.py" "$CA/rule" "${dirs[@]}" && grep -h '^proposal' "$O/ca_${i}_"*.txt > "$O/ca_$i.txt"
-  [ -f "$CA/rule/sizes.vh" ] && [ -f "$CA/rule/negative_sized.tsv" ]
+  [ -f "$CA/rule/sizes.vh" ] && [ -f "$CA/rule/negative_sized.tsv" ] || return 1
+  cp "$CA/rule/sizes.vh" "$O/rule_$i.vh"; cp "$CA/rule/negative_sized.tsv" "$O/neg_$i.txt"   # for AUTO_RESUME
 }
 build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); final() runs the full stack on the kept one
   local i=$1 Z=$2
@@ -76,11 +90,22 @@ build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); f
 }
 final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run, event-graph P) on the route the loop keeps
   local i=$1
+  if [ ! -f "$RUNS/r/${N}_$i/xray.sdf" ]; then   # AUTO_RESUME: the route was built by an earlier run; rebuild it
+    local want; want=$(awk '{print $2}' "$O/it_$i.txt" 2>/dev/null)
+    cp "$O/it_$i.txt" "$O/it_${i}_before_resume.txt" 2>/dev/null
+    build "$i" "$O/sizes_$i.vh" || { echo "BUILD FAILED it=$i (rebuild for the final stack)" | tee -a "$O/result.txt"; exit 1; }
+    local got; got=$(awk '{print $2}' "$O/it_$i.txt")
+    echo "resume: route ${N}_$i rebuilt, sdf $got (earlier run: ${want:-?})$([ -n "$want" ] && [ "$want" != "$got" ] && echo ' -- DIFFERENT ROUTE')" >> "$O/log.txt"
+  fi
   "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 > "$O/final_$i.log" 2>&1
   tail -1 "$O/final_$i.log" > "$O/it_$i.txt"
   echo "final it $i $(cat "$O/it_$i.txt")" >> "$O/log.txt"
 }
-echo "auto_size $N kernel $K seed $S maxit $MAXIT $(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" > "$O/log.txt"
+if [ -n "$RES" ]; then
+  echo "auto_size $N RESUMED from $RES $(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" >> "$O/log.txt"
+else
+  echo "auto_size $N kernel $K seed $S maxit $MAXIT $(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" > "$O/log.txt"
+fi
 # The start: bdc/emit.py's estimates ("deliberately generous", bdc/compute.py) times AUTO_START_SCALE (default 0.3, one
 # number for every kernel: it moves only where the loop starts; the rule on each route sets the sizes).  Why: on the
 # first kernels the estimates are 4-5x the sizes the loop ends at (seed 1: xorshift 511 -> 106 links, collatz 493 ->
@@ -94,6 +119,7 @@ echo "auto_size $N kernel $K seed $S maxit $MAXIT $(date -u +%FT%TZ) head $(git 
 # set (kept, measured)") -- so a scaled value was never raised again: every memory kernel shipped DSETUP 3 / DCO 4
 # (estimates 8 / 12), and on test_bitint seed 1 the rule's C check read -1.2 .. -1.9 ns on both RAMs, "STILL SHORT",
 # on every route of the loop (suitew, 2026-11-18).
+if [ -z "$RES" ]; then
 SC=${AUTO_START_SCALE:-0.3}; ONLY=${AUTO_START_ONLY:-'^(?!.*_UMEM[0-9]+_(USETUP|UCO)$)'}
 EM=$O/emit; mkdir -p "$EM"   # the estimates: the same two steps as cells/hw/build_bench.sh with BDC_AUTO=1
 python3 "$R/bdc/auto.py" "$R/build/frontend/$K/comp/handshake_transformed.mlir" "$EM/auto.mlir" > "$EM/auto.log" 2>&1 \
@@ -120,14 +146,46 @@ if ! grep -q '^`define' "$O/sizes_est.vh"; then
 fi
 cp "$RUNS/ca/${N}_0/rule/sizes.vh" "$O/sizes_1.vh"
 echo "it 0 rule: $(grep -c . "$RUNS/ca/${N}_0/rule/negative_sized.tsv") negative rows (incl. header); $(grep '^proposal' "$O/ca_0.txt")" >> "$O/log.txt"
-rm -f "$O/pinned.txt"; LC=""; FIN=${AUTO_FINISH:-3}
+fi
+[ -n "$RES" ] || rm -f "$O/pinned.txt"
+LC=""; FIN=${AUTO_FINISH:-3}
 # Phase 1 (i = 1..MAXIT): the pinning ratchet; go on while a clean route still shortens a line.
 # Phase 2, only when no route was clean by MAXIT (i = MAXIT+1..MAXIT+FIN): raise-only (every line max(S, proposal)), so
 # no lowering opens new misses, until a route is clean.  Why: the loop used to ship its last route NOT CLEAN, and
 # formal B7 found a wrong answer on such a route exactly at the race the rule flagged (suite1 xorshift seed 3: entry
 # compare UCMPI0 6, the rule's raise to 7 never built; slow-carry draw 5104 returns 0x92d78cb6 on the zero-trip call).
-i=0; ph=1
-while :; do
+i=0; ph=1; STOP=""
+if [ -n "$RES" ]; then
+  # the last iteration whose ratchet step was written; the phase the log names; then that iteration's decision again
+  for f in "$O"/ratchet_*.txt; do [ -f "$f" ] || continue; k=${f##*/ratchet_}; k=${k%.txt}
+    case $k in *[!0-9]*) continue;; esac; [ "$k" -gt "$i" ] && i=$k; done
+  grep -q '^phase 2 (raise-only) from it' "$O/log.txt" && { ph=2; IMAX=$((MAXIT + FIN)); }
+  for k in $(seq 1 "$i"); do
+    [ -f "$O/ratchet_$k.txt" ] || continue
+    read -r _ _ _ _ _ ng _ _ _ _ <<< "$(head -1 "$O/ratchet_$k.txt")"; [ "$ng" = 0 ] && LC=$k
+  done
+  if [ "$i" -ge 1 ] && [ -f "$O/pinned_$i.txt" ]; then cp "$O/pinned_$i.txt" "$O/pinned.txt"
+  elif [ "$i" -ge 1 ]; then echo "resume: no pinned_$i.txt (an older run): pinned.txt as copied, possibly later than it $i" >> "$O/log.txt"
+  else : > "$O/pinned.txt"; fi
+  echo "resume: last ratchet it $i, phase $ph, last clean ${LC:-none}" >> "$O/log.txt"
+  if [ "$i" -ge 1 ]; then
+    read -r _ nr _ _ _ neg _ nl _ _ <<< "$(head -1 "$O/ratchet_$i.txt")"
+    if [ "$neg" = 0 ] && { [ "$nl" = 0 ] || [ "$ph" = 2 ]; }; then STOP=1
+    elif [ "$neg" != 0 ] && [ "$nr" = 0 ]; then STOP=1
+    elif [ "$ph" = 1 ] && [ "$i" -ge "$MAXIT" ]; then
+      if [ -n "$LC" ] || [ "$FIN" -le 0 ]; then STOP=1
+      elif [ ! -f "$O/rule_$i.vh" ]; then STOP=1; echo "resume: phase 2 due but no rule_$i.vh to switch with" >> "$O/log.txt"
+      else
+        ph=2; IMAX=$((MAXIT + FIN))
+        python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$O/rule_$i.vh" "$O/neg_$i.txt" \
+           "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" > /dev/null
+        echo "phase 2 (raise-only) from it $((i + 1))" >> "$O/log.txt"
+      fi
+    elif [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then STOP=1; fi
+  fi
+  [ -f "$O/sizes_$((i + 1)).vh" ] || STOP=1
+fi
+while [ -z "$STOP" ]; do
   i=$((i + 1))
   build "$i" "$O/sizes_$i.vh" || { echo "BUILD FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
   rule "$i" "$O/sizes_$i.vh" || { echo "RULE FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
@@ -141,19 +199,24 @@ while :; do
   st=$(python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
        "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" $ro)
   echo "it $i $(cat "$O/it_$i.txt") | $(echo "$st" | head -1)${ro:+ ($ro)}" >> "$O/log.txt"
-  echo "$st" > "$O/ratchet_$i.txt"
   read -r _ nr _ _ _ neg _ nl _ _ <<< "$(echo "$st" | head -1)"
-  if [ "$neg" = 0 ]; then LC=$i; [ "$nl" = 0 ] || [ "$ph" = 2 ] && break; fi   # clean: done, or go on while it shortens
-  if [ "$neg" != 0 ] && [ "$nr" = 0 ]; then break; fi        # negative and nothing the rule can lengthen
-  if [ "$ph" = 1 ] && [ "$i" -ge "$MAXIT" ]; then
-    [ -n "$LC" ] && break
-    [ "$FIN" -gt 0 ] || break
-    ph=2; IMAX=$((MAXIT + FIN))
-    # the next sizes without the lowering phase 1's last ratchet did
-    python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
-       "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" > /dev/null
-    echo "phase 2 (raise-only) from it $((i + 1))" >> "$O/log.txt"
-  elif [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then break; fi
+  brk=""
+  if [ "$neg" = 0 ]; then LC=$i; { [ "$nl" = 0 ] || [ "$ph" = 2 ]; } && brk=1; fi   # clean: done, or go on while it shortens
+  if [ -z "$brk" ] && [ "$neg" != 0 ] && [ "$nr" = 0 ]; then brk=1; fi        # negative and nothing the rule can lengthen
+  if [ -z "$brk" ] && [ "$ph" = 1 ] && [ "$i" -ge "$MAXIT" ]; then
+    if [ -n "$LC" ] || [ "$FIN" -le 0 ]; then brk=1
+    else
+      ph=2; IMAX=$((MAXIT + FIN))
+      # the next sizes without the lowering phase 1's last ratchet did
+      python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
+         "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" > /dev/null
+      echo "phase 2 (raise-only) from it $((i + 1))" >> "$O/log.txt"
+    fi
+  elif [ -z "$brk" ] && [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then brk=1; fi
+  # ratchet_I.txt LAST: its presence says iteration I is complete (sizes_I+1, the pins, a phase switch) for AUTO_RESUME
+  cp "$O/pinned.txt" "$O/pinned_$i.txt" 2>/dev/null || : > "$O/pinned_$i.txt"
+  echo "$st" > "$O/ratchet_$i.txt"
+  [ -n "$brk" ] && break
 done
 if [ -n "$LC" ]; then
   final "$LC"; cp "$O/sizes_$LC.vh" "$O/sizes_final.vh"
