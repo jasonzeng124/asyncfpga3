@@ -6922,3 +6922,40 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   their returned state (research/data/suite/resume/suite9/) at this commit (the rule and loop of suite9 + the seed
   fallback). No state came back for nest3 s1-4, nested s1, iterative_sqrt s2 (their it 0 alone outlasted 240 min:
   loopfast's lead). The 13 suite9 tasks still running go into a later round.
+### progress 21:51 (xorgap, graphsearch, divmod landed)
+- **xorgap** (lead 1; research/data/auto/xorgap.md): the hand xorshift recipe has ONE structural difference from the
+  flow, a second stage on x's back edge (ulink_n_trueResult_8, "p8"); bdc/auto.py reproduces the other five hand knobs
+  exactly. The event graph's search never saw it because whatif.py's depth edit failed on every link with an
+  acknowledge delay (all automatic links) and search.py skipped the error silently: fixed. p8 alone at v6's sizes, same
+  seeds (the rewrites-on variant): 17.02 / 18.23 / 18.87 / 15.84 vs 19.80 / 19.72 / 22.47 / 19.43 ns (median 17.63 vs
+  19.76); after raise-only steps s1 / s3 / s4 17.62 / 18.28 / 17.55, 12 / 12 draws (s3 rule-clean, s1 / s4 1-2 rows
+  short). On a no-rewrite route (graph only) the search picks p8 too (20.70 -> 18.35 predicted). What is left after
+  p8 is sizing: the loop test UCMPI1 ends at 10-14 elements where the hand has 5 (+3 on n's link). Why v6 is slower
+  than v3 on xorshift: the no-pin first step lets lines drop, the next compact route is 34-40 rows short, and the
+  raises get pinned at that route's demand (seed 3: UCMPI1 9 -> 14; v3's sizes on v6's seed-3 route predict -2.12 of the
+  +2.61). AUTO_SEARCH=1 landed (raise-only from the shipped sizes; AUTO_SEARCH_RESIZE=1 the re-sizing variant, which
+  did not settle).
+- **graphsearch** (PROGRAM General-first item 1 / idea 6b; research/data/eventgraph/search_all.md): search.py
+  --all-sites (a latch on every bare channel, +1 depth on every link incl. bd_pipe, through the netlist's wires) on 22
+  automatic routes; A/B builds on the farm's own v6 routes (their sizes, the new link at 1 / 1 element, 1-2 draws each):
+  **xorshift latch n32__2** (the loop test's fork into the x steer's condition; 1 bit) 21.14 -> 16.94 ns mean over s2 s3
+  s4 s8 (-19.9 %, every seed faster, 6 / 6 draws; p8 on the same seeds 18.23 / 18.87 / 15.84 vs n32__2 17.90 / 16.32 /
+  15.47); **countloop n24__3** (the same shape) 24.71 -> 20.83 (-15.7 %, 4 / 4 draws; depth edits find nothing there).
+  Why collatz / ipow / collatz64 gain nothing from depth: on 8 of 12 routes the cycle runs through one source forked to
+  several literals, whose fork couples readers across the body; **BDC_SPLIT_SOURCES=1** (opt-in bdc rewrite, unset
+  byte-identical, a wrong variant fails simcheck): collatz 17.64 -> 16.30 (-7.6 %, 3 of 4 seeds faster), ipow 22.21 ->
+  20.36 (-8.4 %, 4 / 4), collatz64 24.27 -> 22.74 (-6.3 %, 2 of 3), every draw passing (13 / 13). The rising floor is
+  83-86 % wire (matched delays 38-59 %, hops 18-39 %); countloop's matched delays alone (8.5-10 ns) equal Dynamatic's
+  whole estimated cycle. AUTO_SEARCH_ARGS="--all-sites --buildable-only --wire 1000" lets the flow's search phase pick
+  these (applied by hand on the raise-only phase). Not yet: any of it through the sizing loop on 8 seeds.
+- **divmod** (lead 4; research/data/suite/divmod.md): divui / divsi / remsi / remui in bdc as a restoring array with
+  one matched delay and an enable chain per stage (no new cell; the ungated array's glitches could not be simulated),
+  C's semantics; frontend step 4c rewrites C's unsigned % (Dynamatic's dialect has no remui) -- **now on by default**
+  (BDC_FE_UREM=0 off): it changes only kernels with a urem and every committed fixture is reproduced with it on (the
+  subagent's check, 111 / 111), and a fixture built with an opt-in knob would be a per-kernel setting. Unit tests
+  exhaustive at 8 / 10 bits, simcheck vs the C on digitdiv / digitsum / divmodu / divmods / test_divui in both flows,
+  negative controls fail; **routed at worst corner, seeds 1-4: digitdiv 18/18, divmods 24/24, divmodu 20/20 on every
+  seed, all EQUIVALENT** (placeholder sizes). 32-bit divui: 151 CARRY4, ~1900 LUTs, 122 ns at the worst corner. Found:
+  **Dynamatic's own remsi.v is wrong for negative operands** (an unsigned remainder: remsi(-7, 2) = 1, C gives -1).
+  Emission checked here: the 135 earlier outputs byte-identical after graphsearch + divmod; 18 new (digitdiv, digitsum,
+  divmods, divmodu, if_loop_3, test_divui x 3 modes).
