@@ -47,8 +47,11 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   # race's margin is linear in the two bands, the chains sit on the request side (worst at 0.20), the rest on both
   # sides (worst at either end).  One band for both (CA_SIZERULE's own default, 0.21) sized xorshift seed 8's entry
   # compare UCMPI0 at 5, and the draw with chains 0.212 / rest 0.277 got the zero-trip call wrong (farm suite1).
+  # CA_JOINAWARE=1 (default here; research/data/sizerule/joinaware.md): rule A' checks an operator's data where it is
+  # captured, with a sibling's request credited at a shared join (formal B2 / B3: the incrementer paid for a capture
+  # that does not happen). xorshift seed 1's final route, both corners: 103 -> 89 links (UADDI0 7 -> 1).
   local c; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
-    BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
+    CA_JOINAWARE=${CA_JOINAWARE:-1} BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
         --band "$c" --inst-rx '\.chain\.g\[\d+\]\.u$:0.20' --out "$CA/rule_$c" > "$O/ca_${i}_$c.txt" 2>&1 &
   done; wait
   local dirs=(); for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
