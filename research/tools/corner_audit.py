@@ -804,6 +804,13 @@ def run_worker(sdf, spec, log=None):
 
 
 def knob_of_base(base, last_stage):
+    # a memory's lines sit inside its port module (<inst>_uport.umemK.usetup / .uco, <inst>_uport.uhold) but emit.py names
+    # their parameters after the mem_controller (DELAY_<INST>_UMEMK_USETUP ...): without this the rule never sized them
+    # ("WARNING chain(s) ... map to ..._UPORT_UMEM0_UCO, which sizes.vh does not set"), and gather's bd_mem lines stayed
+    # at the automatic start's 3 / 4 elements and returned x (suitew, 2026-11-18)
+    m = re.match(r"^(.*)_uport\.(.*)$", base)
+    if m:
+        base = m.group(1) + "." + m.group(2)
     m = re.match(r"^(.*)\.udly_s$", base)          # BDC_SPEC_INC's short line: sizes key <INST>_SHORT
     if m:
         return m.group(1) + "_short"
