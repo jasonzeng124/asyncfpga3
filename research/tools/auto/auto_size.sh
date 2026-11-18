@@ -238,13 +238,16 @@ done
 # left out of bdc/auto.py because a static rule for it would also hit collatz (+675 ps there); the search picks exactly
 # it on every automatic xorshift route it was run on (research/data/auto/xorgap.md).  If it picks an edit, the loop goes
 # on with that structure from the shipped sizes (a new line -- a deepened link's SDELAY -- starts as every line did, at
-# emit.py's estimate x AUTO_START_SCALE; pinned.txt carries over) for AUTO_SEARCH_MAXIT routes (default 4, the last two
-# raise-only with headroom, as phase 2), and its last clean route gets the full stack.  The flow ships that route if it
+# emit.py's estimate x AUTO_START_SCALE) for at most AUTO_SEARCH_MAXIT routes (default 6), with the loop's own steps:
+# the first a recalibration that pins nothing (as it 1), then the pinning ratchet, the last two raise-only with
+# headroom (as phase 2); its last clean route gets the full stack.  The pins start EMPTY: they record the worst demand
+# of the old structure's routes, and kept, they held every line there (xorshift seed 3, first route with p8: the rule
+# proposed 121 -> 78 links, UCMPI1 14 -> 8, and the ratchet could lower one line).  The flow ships the new route if it
 # is clean and its measured P is below the first route's (or the first was not clean); else the first, as without the
 # search.  log.txt has both.
 search_phase() {
   local G=$R/research/data/eventgraph/graphs/${N}_$X EM3=$O/emit3 k=0 j LC3="" ro st nr3 neg3 nl3 P0 P3
-  local M3=${AUTO_SEARCH_MAXIT:-4} SC3=${AUTO_START_SCALE:-0.3} ONLY3=${AUTO_START_ONLY:-'^(?!.*_UMEM[0-9]+_(USETUP|UCO)$)'}
+  local M3=${AUTO_SEARCH_MAXIT:-6} SC3=${AUTO_START_SCALE:-0.3} ONLY3=${AUTO_START_ONLY:-'^(?!.*_UMEM[0-9]+_(USETUP|UCO)$)'}
   if ! grep -q "period P = [0-9]" "$G/check.txt" 2>/dev/null; then
     echo "search: no event graph for route ${N}_$X: skipped" >> "$O/log.txt"; return 0; fi
   python3 "$R/research/tools/eventgraph/search.py" "$G" "$O/sizes_$X.vh" --depth-only > "$O/search.txt" 2>&1
@@ -262,18 +265,19 @@ search_phase() {
     grep '^`define' "$EM3/start.vh" | while read -r _ m v _; do
       grep -q "^\`define $m " "$O/sizes_$X.vh" || echo "\`define $m $v   // new line ($XENV, estimate x $SC3)"; done
   } > "$O/sizes_$j.vh"
-  echo "search: $XENV from it $j ($(grep -c 'new line' "$O/sizes_$j.vh") new line(s))" >> "$O/log.txt"
+  echo "search: $XENV from it $j ($(grep -c 'new line' "$O/sizes_$j.vh") new line(s)); pins reset" >> "$O/log.txt"
+  cp "$O/pinned.txt" "$O/pinned_before_search.txt" 2>/dev/null; : > "$O/pinned.txt"
   while [ "$k" -lt "$M3" ]; do
     k=$((k + 1))
     build "$j" "$O/sizes_$j.vh" || { echo "search: BUILD FAILED it=$j" >> "$O/log.txt"; break; }
     rule "$j" "$O/sizes_$j.vh" || { echo "search: RULE FAILED it=$j" >> "$O/log.txt"; break; }
-    ro=""; [ "$k" -gt $((M3 - 2)) ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1}"
+    ro=""; [ "$k" = 1 ] && ro="--nopin"; [ "$k" -gt $((M3 - 2)) ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1}"
     st=$(python3 "$T/ratchet.py" "$O/sizes_$j.vh" "$RUNS/ca/${N}_$j/rule/sizes.vh" "$RUNS/ca/${N}_$j/rule/negative_sized.tsv" \
          "$O/sizes_$((j + 1)).vh" "$O/pinned.txt" $ro)
     echo "search it $j $(cat "$O/it_$j.txt") | $(echo "$st" | head -1)${ro:+ ($ro)}" >> "$O/log.txt"
     echo "$st" > "$O/search_ratchet_$j.txt"
     read -r _ nr3 _ _ _ neg3 _ nl3 _ _ <<< "$(echo "$st" | head -1)"
-    if [ "$neg3" = 0 ]; then LC3=$j; { [ "$nl3" = 0 ] || [ -n "$ro" ]; } && break; fi
+    if [ "$neg3" = 0 ]; then LC3=$j; { [ "$nl3" = 0 ] || [ "${ro#--raise}" != "$ro" ]; } && break; fi
     if [ "$neg3" != 0 ] && [ "$nr3" = 0 ]; then break; fi
     j=$((j + 1))
   done
