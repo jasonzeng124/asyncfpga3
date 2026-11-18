@@ -6623,3 +6623,14 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   short -- were pinned for good: UCMPI1 6 -> 15 (v2: 9), UMUX1 7 (2), UXORI1 8 (5). Fix (7cbfe337e): it 1 follows the
   rule's proposal and pins nothing; pinning from it 2. suite3 / suite6 (waiting) get v6 and nextpnr 6e5d224472232d5d;
   suite7 started at 45db9e386 (v5); suite5 at 2cfdd934b (v4). Local v6 on seed 2 running for the comparison.
+### progress 06:57 (suite4 = flow v3 complete: 216 / 216 draws on 27 routes; the headline now)
+| kernel (suite4, flow v3, nextpnr 9c732bc6303458df, 8 draws / route) | routes judged / built | draws | P median (range), ns | hand | Dynamatic |
+|---|---|---|---|---|---|
+| collatz | 7 / 7 | 56 / 56 | 18.98 (17.71-20.60) | 21.5 | 14.05 measured |
+| collatz64 | 5 / 5 | 40 / 40 | 23.71 (21.50-27.86) | 31.4 | 17.84 measured |
+| ipow | 8 / 8 | 64 / 64 | 24.10 (21.47-25.00) | 36.2 | 50.0 ESTIMATE |
+| xorshift | 7 / 8 (1 PNR-TIMEOUT) | 56 / 56 | 20.11 (18.87-20.49) | 16.76 | 12.73 measured |
+- Geometric mean over the three measured Dynamatic figures 1.42 (with ipow's estimate 1.08). 16 of 27 loops clean.
+  Written to the top of research/data/fifteen/README.md (with v1's two failures and v2's faster, one-band numbers).
+- With the new nextpnr, the v5 seed-2 route rebuilds with the same SDF (47ac67f6) and is now EQUIVALENT, ffmux-clean
+  (was FFMUX-FLAG); its 8 draws are running. Local v6 on seed 2 running (it 0 done).
