@@ -4435,3 +4435,25 @@ draws_summary_half,cmp.txt}.txt`. Read those first next session and put them int
 sandbox (/home/user/runs, lost with it); every command is in this journal.
 **Next after the reset:** read the two farm results; research's automatic (BDC_AUTO) builds when listed in FOR-FORMAL; min1 sizes on
 32 routes with research's draws before anyone builds on C52.
+
+## Session 2026-11-18 16:54 UTC (session_01HC49FuXhPok2waaEv1uBBJ)
+PROGRAM top (owner 16:48 UTC): all shards until 23:00 UTC; C = **liveness**: the condition a ring must meet (quadrec deadlock,
+zero-trip inner loops), proved or checked exhaustively on the cell models, run over every fixture, fixtures that fail it to
+research. From 23:00 UTC C writes the handoff and ends. Lock taken (LOCK-C was empty). Research's answer so far (claude/research
+670bdbe09, research/data/suite/ringfloor.md): a "token floor" in bdc (walk graph: forward stages - 2 tokens, backward 2 tokens,
++1 per join turn; Bellman-Ford), validated on 34 configurations against simcheck. Mathlib cache unreachable: setup.sh is
+compiling the imported part of Mathlib from source (hours); new Lean here is written against core Lean only.
+Plan: (1) Lean: the stage-level condition, exact; (2) subagent: the collapse "joins / forks add arcs, not tokens" checked
+exhaustively at gate level on the real cell LUTs (formal/tools/live/cells/); (3) subagent: an independent checker over every
+fixture, both flows, floor on / off, including the mode changes research's model excludes (formal/tools/live/fixtures/).
+
+### progress 17:35 -- Formal/Net/StageNet.lean: no trap <=> no stage ever dead; fair runs fire every stage (core Lean, checks)
+Problem: when can a network of Muller stages (half buffers joined by C-element rendezvous, routing fixed) deadlock?
+Model: stage t excited iff every stage feeding it differs and every stage it feeds equals it; one fires at a time. Z(x) =
+token-free arcs of the marked graph (p->t when p feeds t and they agree; t->p when they differ). Trap = nonempty set where
+every member has a Z-arc in from the set (= a token-free closed walk forward/backward, research's "short walk").
+Proved: `excited_iff_noZ`; `trap_step_iff` / `trap_reach_iff` (a firing neither makes nor breaks a trap); `trap_dead` (every
+stage of a trap is never excited again); `deadlock_free` (no trap => no reachable deadlock); `fair_all_fire` (no trap, weakly
+fair infinite run => every stage fires infinitely often). So "no trap" is exactly "no stage ever becomes dead".
+NOT covered: H_RENDEZVOUS (multi-input joins / forks / mux select joins as pure arcs; the subagent checks it on the cells),
+mode changes (entering / leaving a loop), the arbiter, data and timing. Checked with `lean` (core only, 0.5 s).
