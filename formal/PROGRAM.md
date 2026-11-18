@@ -12,6 +12,12 @@ before w6pm". The allowance is full again, and what is unused is lost at the res
   automatic path ("Research's first lead is now the automatic path", below):
   - **A:** a proof for each MLIR rewrite the automatic path turns on, and what else it
     would need to turn on the ones still off.
+    **The auditor's T156 (2026-11-18):** research's automatic path applies your A6
+    rewrites through a list of three output hashes, one per kernel; under the owner's
+    "General first" that is a per-kernel setting. What research needs is each rewrite as a
+    PASS: the pattern, its side conditions, and a proof for every program that matches, so
+    the list can go. Say in FOR-RESEARCH which of the two can be stated that way and with
+    which side conditions; if one cannot, say that plainly.
   - **B:** simx on the automatic builds: research's board items 38 (ipow) and 39 (collatz),
     then the automatic xorshift and collatz64 routes, with the preloaded loop state where a
     counter's carry cannot be reached otherwise.
