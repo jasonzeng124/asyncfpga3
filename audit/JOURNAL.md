@@ -3326,3 +3326,7 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - T150 done (the long-rounds runs finished before the container restart): item 37 is 8/8 on long rounds at advA with and without scatter, 0 runts, margins >= 1257 ps.
 - Item 37 CONFIRMED: own build = sdf 42b4fb4c, right at all corners on xor19 and long rounds; smallest loop-steer margin 1082 ps (item 35: 60-140 ps at the slow-CARRY corner). Finding T150. Owner notified.
 - 05:55 research 876a23f88: rejudge1 done. Flow v1 fails draws on 2 of ~26 routes: xorshift s8 7/8 (zero-trip, as before) and ipow s4 2/4 (hang at the first call, odata x, bench FSM x: the start-up X class, cf. own T131). Diagnosis with META_INIT 0 / 1 in progress. v3-v5: 0 failures so far. Honest report. Audit: the headline table must count v1's 2 failing routes if v1 routes are included.
+- 06:29 research 1b10f5dec: the nextpnr const-sinks patch is INSTALLED on the cluster toolchain (fingerprint 6e5d224472232d5d); GND sinks that routeVcc missed are now routed. Audit notes:
+  - routes built after this may differ for the same seed; claims must state the toolchain.
+  - Item 37 (sdf 42b4fb4c) was built with nextpnr 9c732bc6303458df; its recipe checks the SDF md5, so a rebuild on a different toolchain would be caught.
+  - Own builds here use the audit's own toolchain (/root/audit-tc), unaffected.
