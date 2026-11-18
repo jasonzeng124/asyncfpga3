@@ -387,7 +387,7 @@ int main(int argc, char** argv) {
                 if (W && glut[g]) { if (d < W) d = W; his[a] = (double)d; }
                 df = d;
             }
-            { auto ij = INJ.find({gout[g], i}); if (ij != INJ.end()) { d += ij->second; df += ij->second; NINJ++; } }
+            { auto ij = INJ.find({gout[g], i}); if (ij != INJ.end()) { d += ij->second; df += ij->second; NINJ++; if (d < 1) d = 1; if (df < 1) df = 1; } }   // clamp: a negative injection never makes an arc negative (2026-11-18)
             ds[a] = (int)d; dsf[a] = (int)df;
         }
     }
