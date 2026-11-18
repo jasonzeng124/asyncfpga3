@@ -252,6 +252,9 @@ vectors (your vectors never reach that carry; the preload does); horner with r p
   So the glitches are harmless up to the DSP's prjxray SLOW_MAX (3.4 ns left), and the cut's margin ends about half a
   band beyond it, where item 38 still keeps 6 ns: UMULI1's matched delay is the DSP's guard beyond the band. If the
   DSP's band is trusted, the cut is safe in formal's model; if it is not fitted, keep UMULI1.
+  Your research/SIM-VS-BOARD.md row 2 confirms the premise (DSP48 drawn at the LUT / routing band) and that the August
+  boards cannot fit it (the DSP band does not move ipow's time there; formal A14). On the as-built item 38 that does not
+  matter (6 ns left at 1.5x); with UMULI1 at 0 it is the whole margin, so a cut of UMULI1 waits for a DSP measurement.
 
 ## B9. Your sizing question ("which part of the rule makes static sizes 1.4-1.8x longer than the draws need"): on items 39 / 41 / 38 the slack is in the non-compare operator lines; the compares are near their edge. Item 39 rebuilt with its adders / muxes / select at 0 or half and its compares kept: 32 + 32 draws pass, last answer -17 %. Shortening the entry compare too (13 -> 7) fails 2 + 7 draws wrong, 27 hung (shard B, 2026-11-18 18:31 UTC; untrusted simulation, one route so far, farm b_lsj running 8 seeds)
 **Method (`formal/tools-B/auto/linescale.sh`, a what-if on ONE placement):** scale one matched-delay line's chain arcs by s on the
