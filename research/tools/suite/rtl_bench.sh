@@ -10,6 +10,12 @@
 # Prints one line: KERNEL rtl <verdict>   (or KERNEL rtl EMIT FAILED / COMPILE FAILED ...)
 # Env: RTL_ROUTE_PS (default 0: bd_prims_sim's BD_ROUTE_PS, a uniform wire delay on every arc), GATE_NRUNS (2),
 # RTL_TBATCH (ns per batch before HANG, default 400000), RTL_PLUSARGS (extra plusargs, e.g. +MEMCHECK=1).
+# THE RAM BOUNDARY: bdc emits bd_mem's DCO as a 12-arc placeholder, which at cells/sim's 124 ps and zero wire delay is
+# 1488 ps -- shorter than the RAM model's clock-to-out (2454 ps), so the acknowledge announces a word that does not exist
+# yet and a load that captures its word (bdc_load_cap: every load on an arbitrated port) returns the previous one
+# (research/data/suite/memorder.md).  A route must meet DCO >= clock-to-out (verify/tighten.py rule C), so here every
+# DCO shorter than that at RTL_ROUTE_PS is raised for this run only, through gen_bench.py's BD_SZ_ macros (emit.log
+# says which); RTL_KEEP_DCO=1 keeps the emitted value.
 set -euo pipefail
 K=$1; VEC=$(readlink -f "$2"); EXP=$(readlink -f "$3"); mkdir -p "$4"; W=$(cd "$4" && pwd); MEMEXP=${5:-}
 [ -n "$MEMEXP" ] && MEMEXP=$(readlink -f "$MEMEXP")
@@ -51,7 +57,21 @@ print("endmodule")
 print("module top; wire r, g; %s u (.led_red(r), .led_green(g)); endmodule" % (sys.argv[2] if len(sys.argv) > 2 else "BENCHTOP"))
 PY
 sed -i "s/BENCHTOP/${K}_bench_gen/" ps7_rtl.v
-iverilog -g2012 -gspecify -Wno-timescale -DBD_ROUTE_PS=${RTL_ROUTE_PS:-0} -o rtl.vvp "$R/cells/sim/bd_prims_sim.v" \
+# DCO >= the RAM model's clock-to-out + 3 arcs at this RTL_ROUTE_PS (the header's RAM BOUNDARY), unless RTL_KEEP_DCO=1
+DCO_DEFS=$(python3 - "$R/cells/sim/bd_prims_sim.v" "build/gen/${K}_kernel_bench.v" "${RTL_ROUTE_PS:-0}" "${RTL_KEEP_DCO:-0}" <<'PY'
+import math, re, sys
+tco = int(re.search(r"`define BD_RAM_TCO\s+(\d+)", open(sys.argv[1]).read()).group(1))
+hop = 124 + int(sys.argv[3]); need = math.ceil((tco + 3 * hop) / hop)
+low = [(n, int(v)) for n, v in re.findall(r"parameter\s+DELAY_(\w+_UCO)\s*=\s*(\d+)", open(sys.argv[2]).read()) if int(v) < need]
+if low and sys.argv[4] != "1":
+    sys.stderr.write("rtl_bench: %d DCO parameter(s) raised to %d for the RAM model's clock-to-out (%d ps at %d ps per arc)\n"
+                     % (len(low), need, tco, hop))
+    print(" ".join("-DBD_SZ_BRIDGE_I_UDUT_%s=%d" % (n.upper(), need) for n, _ in low))
+elif low:
+    sys.stderr.write("rtl_bench: RTL_KEEP_DCO=1: %d DCO parameter(s) shorter than the RAM model's clock-to-out kept\n" % len(low))
+PY
+) 2>> emit.log
+iverilog -g2012 -gspecify -Wno-timescale -DBD_ROUTE_PS=${RTL_ROUTE_PS:-0} $DCO_DEFS -o rtl.vvp "$R/cells/sim/bd_prims_sim.v" \
     "$R"/cells/rtl/*.v "build/gen/${K}_kernel_bench.v" "build/gen/${K}_bench_gen.v" ps7_rtl.v \
     "$R/cells/gls/ps/ps7_bench.v" "$R/cells/gls/ps/tb_ps.v" > compile.log 2>&1 \
   || { echo "$K rtl COMPILE FAILED: $(grep -m1 -i error compile.log)"; exit 1; }

@@ -163,7 +163,10 @@ def oracle(k, vec, runs, held, tmp):
         cp = subprocess.run([os.path.join(d, "drv"), clean, str(runs), memout], capture_output=True, text=True)
         if cp.returncode != 0:
             sys.exit(f"memtb: the C driver failed: {cp.stderr}")
-    ans = [int(x, 16) for x in cp.stdout.split()]
+    toks = cp.stdout.split()
+    if toks and all(t == "void" for t in toks):   # oracle_mem.sh takes void kernels now: `void` per call, arrays only
+        void = True
+    ans = [] if void else [int(x, 16) for x in toks]
     mem = {}
     for line in open(memout):
         mm = re.match(r"call=(\d+) mem=(\d+) data=(.*)", line.strip())
