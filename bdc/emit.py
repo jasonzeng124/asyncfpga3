@@ -342,6 +342,11 @@ def result_channels(node, operand_ch):
     if op in ("addi", "subi", "muli", "andi", "ori", "xori",
               "shli", "shrsi", "shrui"):
         return [operand_ch[0]]
+    if op in compute.DIV:
+        # divui / divsi / remsi (and remui, which Dynamatic's dialect lacks): the dividend's width, as for the
+        # other binary ops (HandshakeArithOps.td fixes all three at i32; bdc/compute.py div_datapath is
+        # width-generic).
+        return [operand_ch[0]]
     if op == "select":
         return [operand_ch[1]]
     if op == "cond_br":
@@ -721,7 +726,7 @@ endmodule
 DELAY_BEARING = {
     "addi", "subi", "muli", "cmpi", "andi", "ori", "xori",
     "shli", "shrsi", "shrui", "select", "mux",
-}
+} | set(compute.DIV)
 
 
 # ---------------------------------------------------------------------------
@@ -791,7 +796,10 @@ BDC_OP_FUSION = _fusion_env == "1"
 
 # Ops safe to fuse across: DELAY_BEARING minus "mux" -- see the block comment
 # above for why "mux" is excluded.
-FUSABLE_OPS = DELAY_BEARING - {"mux"}
+FUSABLE_OPS = DELAY_BEARING - {"mux"} - set(compute.DIV)
+# The dividers (compute.DIV) are not fused either: a fused region writes each op as one expression
+# (_fused_node_expr), a divider is ~W*W/2 primitives of its own (compute.div_datapath), and its own matched delay
+# dwarfs whatever a region would save.  So a divider stays one unit, with its own link in front (DELAY_BEARING).
 
 # Channel-position map for each fusable op.  Exactly _bind_compute's mapping,
 # duplicated here (rather than imported from it) because fusion analysis has
@@ -3898,7 +3906,7 @@ def _bind_compute(op):
 
 
 for _op in ("addi", "subi", "muli", "cmpi", "andi", "ori", "xori",
-            "shli", "shrsi", "shrui", "select"):
+            "shli", "shrsi", "shrui", "select") + tuple(sorted(compute.DIV)):
     setattr(Emitter, f"_op_{_op}", _bind_compute(_op))
 
 

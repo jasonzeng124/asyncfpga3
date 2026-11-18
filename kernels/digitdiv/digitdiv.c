@@ -4,7 +4,7 @@
 // SHAPE: division -- kernels/digitsum with the remainder written as v - q * b, so the only divider is v / b.
 // WHY A SECOND KERNEL FOR THIS SHAPE: digitsum's `%` stops in Dynamatic's own frontend (lower-cf-to-handshake cannot
 // legalize arith.remui), before bdc sees anything; this one gets a divui (and a muli) through the frontend, so it
-// tells whether bdc can lower a divider. Expected NOT to compile through bdc today (no cell for divui).
+// tells whether bdc can lower a divider: it does since 2026-11-18 (research/data/suite/divmod.md).
 // INPUT RANGE: x any int32 (read as unsigned), base any int32 (read as unsigned; b < 2 means base 10). Trip count
 // <= 32 (base 2). Unsigned arithmetic: no UB.
 //

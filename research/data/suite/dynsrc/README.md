@@ -30,4 +30,5 @@ f712d58a98799ae4e2777b2475a87531bb85d43f241d9892dcb2275b640a15c3  sumi3_mem/sumi
 1351736b34fe8e08b2d1d4ed1f6844e5b01a770bd9cffab64592d52a02d16d33  test_int16/test_int16.c
 979044cd41773a523cae8d143fdb329fc7642508c48fa82c8070394fd651e6ca  test_loop_free/test_loop_free.c
 51cc0885523a83fa73ca98bb744165e684b71a75d630a7b63166e2b9fe04c3ef  unused_arg/unused_arg.c
+043848d88e4de1819138d6ea591de5fae71ce6c6a51edf3cc42c8d56d9388623  test_divui/test_divui.c   (added 2026-11-18, subagent divmod)
 ```

@@ -32,18 +32,20 @@ cannot answer at all. It returns 247.
 
 **You cannot avoid a divider by writing the division yourself.** `isprime`
 originally did `r = n mod d` as `while (r >= d) r = r - d;`. LLVM's loop-idiom
-pass recognises that and folds it back into a `divui`, which has no cell here
+pass recognises that and folds it back into a `divui`, which had no cell here
 -- the kernel written specifically to avoid needing a divider ended up
 demanding one. Shift-and-subtract long division is non-affine, so the idiom
-matcher leaves it alone. If a future kernel fails with `no width rule for
-handshake op 'divui'`, this is why.
+matcher leaves it alone. (Since 2026-11-18 bdc builds divui / divsi / remsi /
+remui: a restoring array, bdc/compute.py div_datapath, research/data/suite/divmod.md.)
 
 ## The suite
 
 `kernels/SUITE.md` lists every kernel here as a compiler benchmark: its shape, its input range, its vectors, where its
 expected values come from, and how far it gets (frontend, bdc, simcheck, a routed gate). Two more traps found writing
-it: `%` stops in Dynamatic's own frontend (`lower-cf-to-handshake` cannot legalize `arith.remui`; `/` lowers to
-`divui`, which bdc has no cell for). Not a trap but a cost: LLVM folds a rotate `(x << 1) | (x >> 31)` into
+it: `%` on unsigned operands stops in Dynamatic's own frontend (`lower-cf-to-handshake` cannot legalize
+`arith.remui`: Dynamatic's handshake dialect has divsi, remsi and divui but no remui); `BDC_FE_UREM=1 ./bdc/frontend.sh`
+rewrites it as `x - (x / y) * y` (opt-in, research/data/suite/divmod.md). `/` lowers to `divui` / `divsi` and signed
+`%` to `remsi`, which bdc builds since 2026-11-18. Not a trap but a cost: LLVM folds a rotate `(x << 1) | (x >> 31)` into
 `llvm.fshl.i32`, which `translate-llvm-to-std` expands into shifts on an i64 concatenation (checked 2026-11-17: it
 compiles and passes simcheck, on a datapath twice as wide), so the suite's shift kernels avoid that shape.
 

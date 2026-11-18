@@ -40,7 +40,8 @@ from hs import parse  # noqa: E402
 # emit.py result_channels(): the ops it has a width rule for.
 SUPPORTED = {"fork", "lazy_fork", "source", "constant", "cmpi", "addi", "subi", "muli", "andi", "ori", "xori",
              "shli", "shrsi", "shrui", "select", "cond_br", "br", "buffer", "merge", "trunci", "extui", "extsi",
-             "mux", "control_merge", "sink", "end", "join", "load", "store", "mem_controller"}
+             "mux", "control_merge", "sink", "end", "join", "load", "store", "mem_controller",
+             "divui", "divsi", "remsi", "remui"}   # the dividers: bdc/compute.py div_datapath (2026-11-18)
 RAM_WORDS = 1024  # bdc/mem.py
 
 

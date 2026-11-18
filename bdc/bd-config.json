@@ -298,6 +298,14 @@
     {
       "op": "shrui",  "kind": "compute", "seen": 0,  "why": "Stage 3, logical right shift. Absent from the kernels." },
     {
+      "op": "divui",  "kind": "compute", "seen": 0,  "why": "A restoring division array (compute.py div_datapath): W stages of subtract and select, one matched delay. digitdiv, test_divui." },
+    {
+      "op": "divsi",  "kind": "compute", "seen": 0,  "why": "divui's array on the magnitudes, the quotient negated when the signs differ (C: truncation toward zero)." },
+    {
+      "op": "remsi",  "kind": "compute", "seen": 0,  "why": "divsi's array, the remainder output, negated when the dividend is negative (C: the dividend's sign)." },
+    {
+      "op": "remui",  "kind": "compute", "seen": 0,  "why": "Not in Dynamatic's handshake dialect (its frontend stops at C's unsigned %, see bdc/frontend.sh BDC_FE_UREM); built anyway: divui's array, the remainder output." },
+    {
       "op": "select", "kind": "compute", "seen": 3,  "why": [
         "Stage 3, NOT bd_mux. handshake.select is a DATA operation: all three",
         "operands arrive, one result leaves, and the unchosen input is still",

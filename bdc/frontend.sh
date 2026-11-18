@@ -208,6 +208,41 @@ if [ "${BDC_FE_EXITCOND:-0}" = 1 ]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Step 4c (opt-in, BDC_FE_UREM=1; owner 2026-11-18, research/PROGRAM.md lead 4):
+# unsigned remainder as x - (x / y) * y. Dynamatic's handshake dialect has
+# divsi, remsi and divui but no remui (HandshakeArithOps.td), so
+# lower-cf-to-handshake stops at every C `%` on unsigned operands ("failed to
+# legalize operation 'arith.remui'"). Each `%r = urem iN %x, %y` becomes
+#     %bdc.urem.q.r = udiv iN %x, %y
+#     %bdc.urem.m.r = mul iN %bdc.urem.q.r, %y
+#     %r            = sub iN %x, %bdc.urem.m.r
+# (exact in arithmetic mod 2^N for y != 0; y = 0 is UB for urem and udiv alike),
+# then early-cse merges the new udiv with an existing `x / y` (digitsum's
+# `v % b` and `v / b` become ONE divider). LLVM's own div-rem-pairs pass does
+# the pair case but inserts `freeze`, which translate-llvm-to-std crashes on;
+# and this runs after step 4 because instcombine there would fold the
+# expansion back into urem. A urem line of any other shape (metadata, vector
+# types) is left alone and the step fails loudly. The step runs only when the
+# KERNEL's own function has a urem: early-cse works on the whole module, and on
+# polyn_mult (whose only urems are in main, which step 7 drops) it changed the
+# kernel's own loads (checked 2026-11-18: with this test, all 108 other
+# fixtures come out byte-identical with the knob on). In a kernel that has a
+# urem, early-cse may merge other repeated expressions too. Unset: this step
+# does not run and every file is what it was.
+# ---------------------------------------------------------------------------
+if [ "${BDC_FE_UREM:-0}" = 1 ] && awk -v k="@$KERNEL(" 'index($0, "define") == 1 && index($0, k) { f = 1 }
+     f && / = urem / { found = 1 } f && /^}/ { f = 0 } END { exit !found }' "$COMP/clang.opt.ll"; then
+  echo "== $KERNEL: 4c/8 urem -> udiv, mul, sub + early-cse (BDC_FE_UREM=1) =="
+  sed -E 's/^([[:space:]]*)%([-a-zA-Z$._0-9]+) = urem (i[0-9]+) ([^,]+), ([^,]+)$/\1%bdc.urem.q.\2 = udiv \3 \4, \5\n\1%bdc.urem.m.\2 = mul \3 %bdc.urem.q.\2, \5\n\1%\2 = sub \3 \4, %bdc.urem.m.\2/' \
+    "$COMP/clang.opt.ll" > "$COMP/clang.opt.urem.ll" || fail "urem rewrite"
+  ! grep -q ' = urem ' "$COMP/clang.opt.urem.ll" || fail "urem rewrite (a urem of an unexpected shape is left)"
+  "$OPT" -S -passes=early-cse "$COMP/clang.opt.urem.ll" > "$COMP/clang.opt.cse.ll" || fail "early-cse after urem rewrite"
+  require_nonempty "$COMP/clang.opt.cse.ll" "early-cse after urem rewrite"
+  mv "$COMP/clang.opt.cse.ll" "$COMP/clang.opt.ll"
+  rm -f "$COMP/clang.opt.urem.ll"
+fi
+
+# ---------------------------------------------------------------------------
 # Step 5 -- memory dependence analysis. Attaches !dest.ops metadata to
 # load/store pairs so the handshake lowering knows which memory accesses
 # must be ordered against each other. A no-op for kernels with no array
