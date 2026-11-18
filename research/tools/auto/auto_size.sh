@@ -88,14 +88,20 @@ echo "auto_size $N kernel $K seed $S maxit $MAXIT $(date -u +%FT%TZ) head $(git 
 # for data the compact routes must cover (collatz64's 3n + 1: proposed 4 elements there, needed 20 on the next route),
 # and on 2 cores it can take over an hour to route (farm suite1: collatz seeds 3 and 4 hit PNR_TIMEOUT 3600 at it 0).
 # AUTO_START_SCALE=1 starts at the estimates (the first version).
-SC=${AUTO_START_SCALE:-0.3}
+# bd_mem's two lines (USETUP, UCO: the RAM's address setup and clock-to-out / address hold, bdc/mem.py) are NOT scaled
+# (AUTO_START_ONLY, a shrink_sizes.py --only regex): the rule cannot size them -- corner_audit names the chain
+# <port>_uport.umem<k>.uco (BD_SZ_..._UPORT_UMEM0_UCO), emit.py's macro is BD_SZ_..._UMEM0_UCO ("sizes.vh does not
+# set (kept, measured)") -- so a scaled value was never raised again: every memory kernel shipped DSETUP 3 / DCO 4
+# (estimates 8 / 12), and on test_bitint seed 1 the rule's C check read -1.2 .. -1.9 ns on both RAMs, "STILL SHORT",
+# on every route of the loop (suitew, 2026-11-18).
+SC=${AUTO_START_SCALE:-0.3}; ONLY=${AUTO_START_ONLY:-'^(?!.*_UMEM[0-9]+_(USETUP|UCO)$)'}
 EM=$O/emit; mkdir -p "$EM"   # the estimates: the same two steps as cells/hw/build_bench.sh with BDC_AUTO=1
 python3 "$R/bdc/auto.py" "$R/build/frontend/$K/comp/handshake_transformed.mlir" "$EM/auto.mlir" > "$EM/auto.log" 2>&1 \
   && BDC_AUTO=1 python3 "$R/bdc/emit.py" "$EM/auto.mlir" --no-top -o "$EM/kernel.v" >> "$EM/auto.log" 2>&1 \
   && python3 "$T/est_sizes.py" "$EM/kernel.v" "$K" > "$O/sizes_est.vh" \
   || { echo "BUILD FAILED it=0 (emit: $(tail -1 "$EM/auto.log"))" | tee -a "$O/result.txt"; exit 1; }
 if [ "$SC" = 1 ]; then cp "$O/sizes_est.vh" "$O/sizes_0.vh"
-else python3 "$R/research/tools/shrink_sizes.py" "$O/sizes_est.vh" "$SC" "$O/sizes_0.vh" > /dev/null; fi
+else python3 "$R/research/tools/shrink_sizes.py" "$O/sizes_est.vh" "$SC" "$O/sizes_0.vh" --only "$ONLY" > /dev/null; fi
 build 0 "$O/sizes_0.vh" || { echo "BUILD FAILED it=0" | tee -a "$O/result.txt"; exit 1; }
 echo "it 0 $(cat "$O/it_0.txt") lines $(grep -c '^`define' "$O/sizes_0.vh")" >> "$O/log.txt"
 rule 0 "$O/sizes_0.vh" || { echo "RULE FAILED it=0" | tee -a "$O/result.txt"; exit 1; }
