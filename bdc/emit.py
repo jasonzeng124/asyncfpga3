@@ -1528,6 +1528,216 @@ def ring_depths(func, linked, exclude=frozenset()):
     raise EmitError(f"{func.name}: ring depth did not converge")
 
 
+# ---------------------------------------------------------------------------
+# The token floor: RING_MIN_STAGES for a cycle that carries more than one token, and for two paths that carry
+# different numbers of tokens between one fork and one join.  A correctness rule, on by default (BDC_TOKEN_FLOOR=0
+# turns it off, for negative controls only).  research/data/suite/ringfloor.md has the measurements.
+#
+# THE MODEL.  A storage stage (bd_link, each stage of a bd_pipe, a merge's olink / rlink, a fork output link) is a
+# Muller half buffer, c = C(req_in, ~c_next).  Everything else on a ring is a rendezvous with no storage: a join
+# (bd_join, a mux's select with its data, a cond_br's condition with its data, a compute cell's operands) is a
+# C-element on the requests; a fork is a C-element on the acknowledges; a steer is two AND gates.  So stage t rises
+# when every stage feeding it has risen and every stage it feeds has fallen, and falls in the dual case.  While a loop
+# iterates (each mux taking its back edge, each loop steer continuing) that is a marked graph on the stage
+# transitions: per stage edge s -> t, the arcs s+ -> t+ and s- -> t- (data forward) and t+ -> s-, t- -> s+ (the
+# acknowledge back).  A marked graph is live iff every one of its cycles holds a token, and a cycle's token count never
+# changes, so it can be read off one state.
+#
+# TOKENS.  Take the state at an iteration boundary: one loop-carried value resting on each back edge (a data input of a
+# mux / merge / control_merge fed from the same or a later basic block), every other stage empty.  Give each stage edge
+# the number d of back edges it crosses (0 or 1).  Then a marked-graph cycle is a closed walk over stage edges, each
+# taken forward or backward, and its token count is
+#     sum over edges walked forward of (1 - 2d)  +  sum over edges walked backward of 2d,
+# which has to be >= 1.  A forward edge with no token is a free slot (1); a forward edge that crosses a back edge
+# carries one token, which is two transitions (request up, return to zero) and so takes two slots (1 - 2); a backward
+# edge counts the transitions in flight the other way (2d).
+#
+# WHAT THAT SAYS.  (1) A directed cycle with S stages that threads T back edges (T tokens) needs S >= 2T + 1: two
+# stages per token, plus one to move into.  T = 1 is RING_MIN_STAGES = 3.  kernels/quadrec's a <- b <- c <- d <-
+# t(a, b, c, d) ring threads four back edges and had 6 stages; it needs 9.  (2) Two paths from one fork to one join,
+# Q crossing K more back edges than P, need 2K stages on Q between the fork and the join (the stage after the join is
+# shared by both and is the slot the tokens move into; that is the +1 at a join turnaround below).  This one no cycle
+# count sees.  quadrec's loop-condition fork feeds every loop steer, so d -> c (cond_br13 -> a link -> mux4 -> fork5 ->
+# cond_br12) and the condition's direct wire to cond_br12 are such a pair with K = 1: with ONE stage on that back
+# edge the condition fork cannot return to zero until the next condition token has arrived, and it deadlocks with
+# every cycle at 2T + 1 (measured: ring_tokens.py reads +1 and simcheck still hangs).  The fix is two stages on each
+# rotation back edge, which is also enough for the ring (4 x 2 + 1 = 9 with the link in front of the adder).
+#
+# THE WALK, on the node graph (the stage-level walk turns at the stage after a join and the stage before a fork; the
+# shared piece in between cancels, except the stage after a join, which counts once: +1).  A state is (channel,
+# direction).  Forward along a channel costs stages - 2 x tokens; backward costs 2 x tokens.  Through a node: forward
+# from an input to an output, backward from an output to an input; a JOIN turnaround (forward in on one input, back out
+# on another) only between inputs that are joined -- not two data inputs of a mux, not two inputs of a merge or
+# control_merge (one of them fires); a FORK turnaround (back in on one output, forward out on another) only between
+# outputs that leave together -- a fork's, a control_merge's result and index -- not a cond_br's two branches.
+# Memory ops are passed through and never turned at (not modelled).  Only channels inside one strongly connected
+# component of the node graph are walked: a loop's entry and exit channels belong to other modes of the circuit than
+# its iterating one, and a walk that mixes modes is no cycle of any one marked graph.
+#
+# THE FLOOR.  Find a walk with token count <= 0 (Bellman-Ford on weights scaled so that "<= 0" is "< 0"), add one
+# stage to a link it walks forward -- a back edge first (the token's own channel, and the only link some of these
+# walks have), then the link with the fewest stages, then by name -- and repeat.  It runs after ring_depths() and
+# only ever adds, so a function where every walk already holds a token emits exactly what it did before.
+TOKEN_FLOOR = os.environ.get("BDC_TOKEN_FLOOR", "1") != "0"
+_TF_PASS_ONLY = ("load", "store", "mem_controller", "lsq")
+
+
+def _bb(node):
+    v = node.attrs.get("handshake.bb")
+    try:
+        return int(v.value) if v is not None else -1
+    except (AttributeError, ValueError):
+        return -1
+
+
+def token_graph(func, linked, depth, exclude=frozenset()):
+    """The walk graph of the token floor (see the block above).
+
+    Returns (chans, out): chans[i] = (value, producer, consumer, operand, stages, tokens) for every channel inside a
+    cyclic SCC; out[s] = [(s2, weight)] for states s = 2 * i (channel i walked forward) and 2 * i + 1 (backward)."""
+    try:
+        from . import slack
+    except ImportError:
+        import slack
+    edges, _adj = slack.build_node_graph(func)
+    adj = collections.defaultdict(set)
+    for e in edges:
+        if e.value not in exclude:
+            adj[e.producer].add(e.consumer)
+    comp = {}
+    ids = list(range(len(func.nodes)))
+    for k, scc in enumerate(slack.tarjan_scc(ids, adj)):
+        if slack._is_cycle(scc, adj):
+            for v in scc:
+                comp[v] = k
+    two_in = {i for i, n in enumerate(func.nodes) if n.op == "control_merge" and len(n.operands) >= 2}
+    olink = {i: 1 for i in two_in if instname(func.nodes[i], i) in MERGE_OUT_LINK}
+    chans, ins, outs = [], collections.defaultdict(list), collections.defaultdict(list)
+    for i, node in enumerate(func.nodes):
+        if i not in comp:
+            continue
+        for r in node.results:
+            if r in exclude:
+                continue
+            for (c, k) in func.consumers.get(r, []):
+                if comp.get(c) != comp[i]:
+                    continue
+                st = depth.get(r, 1) if r in linked else 0
+                if node.op in ("fork", "lazy_fork") and vname(r) in FORK_OUT_LINK:
+                    st += 1
+                if i in two_in and r == node.results[0] and instname(node, i) in MERGE_RES_LINK:
+                    st += MERGE_RES_DEPTH
+                cn = func.nodes[c]
+                tok = int(((cn.op == "mux" and k >= 1) or cn.op in ("merge", "control_merge"))
+                          and 0 <= _bb(cn) <= _bb(node))
+                j = len(chans)
+                chans.append((r, i, c, k, st, tok))
+                outs[i].append(j)
+                ins[c].append(j)
+
+    def joined(node, k1, k2):
+        if node.op in _TF_PASS_ONLY or node.op in ("merge", "control_merge"):
+            return False
+        if node.op == "mux":
+            return (k1 == 0) != (k2 == 0)
+        return True
+
+    def together(node):
+        return node.op in ("fork", "lazy_fork", "control_merge")
+
+    out = [[] for _ in range(2 * len(chans))]
+    for j, (r, p, c, k, st, tok) in enumerate(chans):
+        cn, pn = func.nodes[c], func.nodes[p]
+        # forward on j, arriving at c through operand k
+        for j2 in outs[c]:
+            out[2 * j].append((2 * j2, chans[j2][4] - 2 * chans[j2][5] + olink.get(c, 0)))
+        for j2 in ins[c]:
+            if j2 != j and joined(cn, k, chans[j2][3]):
+                out[2 * j].append((2 * j2 + 1, 1 + 2 * chans[j2][5]))
+        # backward on j, arriving at p through its result r
+        for j2 in ins[p]:
+            out[2 * j + 1].append((2 * j2 + 1, 2 * chans[j2][5]))
+        if together(pn) and pn.op not in _TF_PASS_ONLY:
+            for j2 in outs[p]:
+                if j2 != j:
+                    out[2 * j + 1].append((2 * j2, chans[j2][4] - 2 * chans[j2][5]))
+    return chans, out
+
+
+def short_walk(chans, out):
+    """A closed walk whose token count is <= 0, as (count, [states]), or None.  Bellman-Ford (queue form) on
+    weight * M - 1, M = states + 1: a simple cycle of n <= states steps is negative there iff its count is <= 0."""
+    n = len(out)
+    if n == 0:
+        return None
+    m = n + 1
+    dist, pred, steps = [0] * n, [-1] * n, [0] * n
+    queue, inq = collections.deque(range(n)), [True] * n
+    hit = None
+    while queue and hit is None:
+        u = queue.popleft()
+        inq[u] = False
+        du = dist[u]
+        for v, w in out[u]:
+            nd = du + w * m - 1
+            if nd < dist[v]:
+                dist[v], pred[v], steps[v] = nd, u, steps[u] + 1
+                if steps[v] >= n:
+                    hit = v
+                    break
+                if not inq[v]:
+                    inq[v] = True
+                    queue.append(v)
+    if hit is None:
+        return None
+    for _ in range(n):            # walk back onto the cycle itself
+        hit = pred[hit]
+    cyc, at = [hit], pred[hit]
+    while at != hit:
+        cyc.append(at)
+        at = pred[at]
+    cyc.reverse()
+    total = 0
+    for i, u in enumerate(cyc):
+        v = cyc[(i + 1) % len(cyc)]
+        total += min(w for v2, w in out[u] if v2 == v)
+    return total, cyc
+
+
+def token_floor(func, linked, depth, exclude=frozenset(), forbid=frozenset()):
+    """Deepen links until every walk holds a token (the block above).  A short walk that walks no linked channel
+    forward gets a new link (one stage) on one of its forward channels, chosen the same way (a back edge first, then by
+    name), never on a channel in `forbid` (no net there: fused away, absorbed into a memory station, BDC_NO_LINK).
+    Returns [(value, new depth)] in the order the stages were added; changes `linked` and `depth` in place.  Nothing
+    to add, nothing changes."""
+    added = []
+    for _ in range(4 * len(func.nodes) + 16):
+        chans, out = token_graph(func, linked, depth, exclude)
+        found = short_walk(chans, out)
+        if found is None:
+            return added
+        count, cyc = found
+        fwd = {chans[s // 2][0] for s in cyc if s % 2 == 0}
+        tok = {}
+        for (r, _p, _c, _k, _s, t) in chans:
+            tok[r] = max(tok.get(r, 0), t)
+        cand = sorted((v for v in fwd if v in linked), key=lambda v: (-tok[v], depth.get(v, 1), str(v)))
+        if not cand:
+            new = sorted((v for v in fwd if v not in forbid and v not in exclude), key=lambda v: (-tok[v], str(v)))
+            if not new:
+                raise EmitError(
+                    f"{func.name}: a walk through "
+                    f"{sorted({instname(func.nodes[chans[s // 2][2]], chans[s // 2][2]) for s in cyc})} holds "
+                    f"{count} token(s) and has no channel walked forward that can take storage")
+            linked.add(new[0])
+            depth[new[0]] = 1
+            added.append((new[0], 1))
+            continue
+        depth[cand[0]] = depth.get(cand[0], 1) + 1
+        added.append((cand[0], depth[cand[0]]))
+    raise EmitError(f"{func.name}: the token floor did not converge")
+
+
 def select_channels(func):
     """Channels whose data is read as a SELECT, not as ordinary data.
 
@@ -1834,6 +2044,17 @@ class Emitter:
         # ...and how many stages each of those links is, which is 1 everywhere
         # except on the short cycles that would otherwise sit under the floor.
         self.depth = ring_depths(func, self.linked, exclude=self.mem_absorbed)
+        # ...and deeper where a cycle carries more than one token, or two paths between one fork and one join carry
+        # different numbers (token_floor()).  Adds nothing where every walk already holds a token.
+        self.token_floor = []
+        if TOKEN_FLOOR:
+            forbid = set(self.mem_absorbed) | {v for v in self.ch if f"ulink_{vname(v)}" in NO_LINK}
+            if self.fusion is not None:
+                forbid |= set(self.fusion.dead_values)
+            self.linked = set(self.linked)
+            self.token_floor = token_floor(func, self.linked, self.depth, exclude=self.mem_absorbed, forbid=forbid)
+            for v, n in self.token_floor:
+                print(f"emit: token floor: {func.name}: ulink_{vname(v)} -> {n} stage(s)", file=sys.stderr)
         floor = dict(self.depth)
         _apply_ring_pad(func, self.linked, self.depth)
         # ...plus one empty stage on every feed-forward link, for throughput.
