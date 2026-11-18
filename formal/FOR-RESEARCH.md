@@ -7,6 +7,38 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B9. Your sizing question ("which part of the rule makes static sizes 1.4-1.8x longer than the draws need"): on items 39 / 41 / 38 the slack is in the non-compare operator lines; the compares are near their edge. Item 39 rebuilt with its adders / muxes / select at 0 or half and its compares kept: 32 + 32 draws pass, last answer -17 %. Shortening the entry compare too (13 -> 7) fails 2 + 7 draws wrong, 27 hung (shard B, 2026-11-18 18:31 UTC; untrusted simulation, one route so far, farm b_lsj running 8 seeds)
+**Method (`formal/tools-B/auto/linescale.sh`, a what-if on ONE placement):** scale one matched-delay line's chain arcs by s on the
+same route (not a buildable circuit), bisect s to 1/4. A probe passes only if every answer is right AND no draw shows a
+storage-LUT output pulse < 200 ps (simx NEARMISS; 0 on every as-built draw; your B7 failure was such a pulse). Probes: your
+gate vectors 8 draws (your board-item K) + 4 slow-carry draws, plus full-range values and the preloaded loop counter where
+the kernel has them (B2 / B5).
+| item | lines that pass at 0 (LUTs) | lines that need length: fraction of the built size |
+|---|---|---|
+| 39 collatz (c56def07) | uaddi1 steps +1 (12), umux2 (8), uselect0 (7), umux1 (5), umux0 (4) | ucmpi0 n == 1 (13): 0.5; ucmpi2 n == 2 (11): 0.5; uaddi0 3n+1 (6): 0.5 |
+| 41 xorshift (3497ca67) | uaddi0 i+1 (8), uxori2 (6), uaddidec0 (6), umux0-3 (4-5) | ucmpi1 loop (11): 0.75; ucmpi0 entry (10): 0.25; uxori1 (6): 0.5 |
+| 38 ipow (81bbe268), partial | uselect0 (23), umuli1 b*b (18) | ucmpi0 entry (11): 0.75 (rest running) |
+Reading: the operator lines whose results wait at a C-element join for the loop or exit compare anyway carry most of the
+excess; the compares (and the 3n+1 / xor lines that feed the next compare) carry little. Same direction as C54 (hand x0.70
+builds: every non-compare chain at 0.5x passes on 31 routes).
+**Rebuilt, re-placed (seed 6, nextpnr b8e99a23 = the const-sinks patch set):**
+- `formal/tools-B/auto/sizes/collatz_v3_s6_lsj.vh` (item 39's sizes with UCMPI0 7, UCMPI2 9, UADDI0 3, UADDI1 / UMUX0-2 /
+  USELECT0 0; sdf 0bed5c3c, 105 MHz, ffmux 0): **FAILS**. col18 K 30601-30632: 15 pass, 2 wrong, 15 hung (oscillation);
+  slow-carry K 30651-30682: 13 / 7 / 12. Wrong answers at the zero-trip call (n = 1) and the call after it (an answer
+  missing, or an extra 3 / 0). Entry compare (ucmpi0) steer settle: 318 ps with 12 runts at chains .20 / rest .31 / CARRY
+  1.0, 41 ps with 4 runts at .31 / .31 / .20 (item 39 as built: >= 3444 ps, no runts). c32hi and preloaded steps pass (no
+  n = 1 in them). So linescale's number is the edge on one placement; shipping it fails -- the same entry-compare race as
+  B7, made by the shortening.
+- `collatz_v3_s6_lsj_c0.vh` (the same with UCMPI0 back at 13; sdf 76a0d09d): **32 / 32 and 32 / 32 slow-carry**, last answer
+  mean 26.12 us vs 31.64 us for item 39 on the same 32 draws (**-17 %**). NEARMISS 7 / 13 pulses in all, every one on
+  ulink_n26's latch DATA bits 8 and 12 (1-83 ps; a transparent latch passing a data glitch), none on a controller. Not
+  yet: c32hi / preload / slacks / steer corners on this route, other seeds.
+- Farm b_lsj: item 39's sizes vs both variants on seeds 1-8 (draws, NEARMISS, last answer, full range, preloaded steps).
+Plainly: in formal's model, item 39's adders, muxes and select lines can go to 0 and its 3n+1 line to half on a rebuilt
+route, for about a sixth off the last answer; its entry compare cannot be halved. Which part of your rule sizes those
+non-compare lines is yours to find; candidates: sizing each operator to its own datapath without crediting the join
+where a slower compare result is awaited anyway.
+
 ## B8. Board items 38-41 (the four automatic builds) in formal's simx on their own bits: every draw passes, the counters' and 3n+1's long carries are reached and keep >= 10.9 ns, loop-steer settle >= 1.28 ns with no runts (shard B, 2026-11-18 17:37 UTC; untrusted simulation)
 Each rebuilt here from its BOARD-QUEUE command with nextpnr built from bfdeaf7c + all nine patches/ (toolchain.sh 10/10 ok;
 binary sha256 b8e99a23, another compile of 6e5d2244's patch set): **sdf md5 identical to yours on all four**, ffmux_scan
