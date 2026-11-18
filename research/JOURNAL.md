@@ -6572,3 +6572,9 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - Local v4 on xorshift seed 8 (the seed of v1's failing draw): route it 7 (b6f090b6) P 20.92 ns, EQUIVALENT, NOT CLEAN
   by 4 after the raise-only phase; entry compare UCMPI0 9 (v1: 5); draws 10801-10804 PASS, **including 10804** (the v1
   failure); 10805-10808 running.
+### progress 05:06 (v4 on the v1 failure's seed: 8 / 8 draws)
+- Local flow v4 (two-corner rule, join credit, finish phase without headroom), xorshift seed 8: route it 7 (b6f090b6),
+  P 20.92 ns, EQUIVALENT, ffmux-clean, the loop NOT CLEAN by 4 after phase 2; **draws 10801-10808: 8 / 8 PASS**, among
+  them 10804 (chains 0.2124 / rest 0.2770 / carry 0.2619), the draw v1's route failed on the zero-trip call. The entry
+  compare is 9 here (v1: 5). Latency per call, median over xor19 under the draws: 228 ns.
+- rejudge1: 9 of 12 (all pass, above); the last three (collatz64 s5, ipow s4, xorshift s8 x 8 draws) still running.
