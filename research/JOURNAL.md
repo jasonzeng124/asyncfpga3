@@ -6479,3 +6479,10 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - So the loop must not ship a route its rule flags: 3e93738b1 adds a raise-only finish phase (up to AUTO_FINISH = 3 more
   routes, ratchet.py --raise-only) when nothing was clean by MAXIT. With the two-corner rule (56c8dea81) this is flow
   v3; suite3 and suite4 (both still waiting) will run it. Formal's shards have stopped until the reset (owner).
+### progress 02:37 (suite2 = flow v2, 12 of 48: every judged route 4 / 4; xorshift 18.1-19.9 ns; gcd / isprime time out routing)
+- suite2 (start x 0.3, one-band rule, the one-sided-fold checker): xorshift s4 18.11, s5 19.90, s6 18.21; collatz s3
+  18.49 (clean), s4 18.86, s6 18.92, s7 21.44; ipow s1 22.22: all 4 / 4 draws, EQUIVALENT. collatz s5 / ipow s2 NOT
+  EQUIVALENT (to rejudge). gcd s8 and isprime s1: PNR-TIMEOUT at it 0 (3600 s on 2 cores). The scaled start is faster
+  than v1 on xorshift (v1 seeds: 20.3-23.2).
+- suite4 now 4 kernels x 8 seeds (cores 3); suite5 = gcd and isprime x 4 seeds on 8 cores with PNR_TIMEOUT 7200. Both
+  waiting; they will run flow v3 (two-corner rule, finish phase).
