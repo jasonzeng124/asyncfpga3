@@ -89,17 +89,34 @@ echo "it 0 $(cat "$O/it_0.txt") lines $(grep -c '^`define' "$O/sizes_0.vh")" >> 
 rule 0 "$O/sizes_0.vh" || { echo "RULE FAILED it=0" | tee -a "$O/result.txt"; exit 1; }
 cp "$RUNS/ca/${N}_0/rule/sizes.vh" "$O/sizes_1.vh"
 echo "it 0 rule: $(grep -c . "$RUNS/ca/${N}_0/rule/negative_sized.tsv") negative rows (incl. header); $(grep '^proposal' "$O/ca_0.txt")" >> "$O/log.txt"
-rm -f "$O/pinned.txt"; LC=""
-for i in $(seq 1 "$MAXIT"); do
+rm -f "$O/pinned.txt"; LC=""; FIN=${AUTO_FINISH:-3}
+# Phase 1 (i = 1..MAXIT): the pinning ratchet; go on while a clean route still shortens a line.
+# Phase 2, only when no route was clean by MAXIT (i = MAXIT+1..MAXIT+FIN): raise-only (every line max(S, proposal)), so
+# no lowering opens new misses, until a route is clean.  Why: the loop used to ship its last route NOT CLEAN, and
+# formal B7 found a wrong answer on such a route exactly at the race the rule flagged (suite1 xorshift seed 3: entry
+# compare UCMPI0 6, the rule's raise to 7 never built; slow-carry draw 5104 returns 0x92d78cb6 on the zero-trip call).
+i=0; ph=1
+while :; do
+  i=$((i + 1))
   build "$i" "$O/sizes_$i.vh" || { echo "BUILD FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
   rule "$i" "$O/sizes_$i.vh" || { echo "RULE FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
+  ro=""; [ "$ph" = 2 ] && ro=--raise-only
   st=$(python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
-       "$O/sizes_$((i + 1)).vh" "$O/pinned.txt")
-  echo "it $i $(cat "$O/it_$i.txt") | $(echo "$st" | head -1)" >> "$O/log.txt"
+       "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" $ro)
+  echo "it $i $(cat "$O/it_$i.txt") | $(echo "$st" | head -1)${ro:+ (raise-only)}" >> "$O/log.txt"
   echo "$st" > "$O/ratchet_$i.txt"
   read -r _ nr _ _ _ neg _ nl _ _ <<< "$(echo "$st" | head -1)"
-  if [ "$neg" = 0 ]; then LC=$i; [ "$nl" = 0 ] && break; fi   # clean; go on only while the proposal still shortens
+  if [ "$neg" = 0 ]; then LC=$i; [ "$nl" = 0 ] || [ "$ph" = 2 ] && break; fi   # clean: done, or go on while it shortens
   if [ "$neg" != 0 ] && [ "$nr" = 0 ]; then break; fi        # negative and nothing the rule can lengthen
+  if [ "$ph" = 1 ] && [ "$i" -ge "$MAXIT" ]; then
+    [ -n "$LC" ] && break
+    [ "$FIN" -gt 0 ] || break
+    ph=2; IMAX=$((MAXIT + FIN))
+    # the next sizes without the lowering phase 1's last ratchet did
+    python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
+       "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only > /dev/null
+    echo "phase 2 (raise-only) from it $((i + 1))" >> "$O/log.txt"
+  elif [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then break; fi
 done
 if [ -n "$LC" ]; then
   final "$LC"; cp "$O/sizes_$LC.vh" "$O/sizes_final.vh"
