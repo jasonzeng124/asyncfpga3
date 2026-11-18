@@ -3208,3 +3208,9 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   - PassInst: `<k>_out_kept : <K>Hw.chOut ∉ changed c<K>` by decide;
   - plain_pass.py: `out_kept` is in every generated file, and an import with no chOut is refused.
 * Re-run on the 7 PROVED fixtures: all rc 0 with out_kept. check.sh OK (1679 declarations).
+
+### progress 22:01 -- plain_pass controls: a corrupted ring_dec output is refused, by Lean when rules_iso is forced to accept
+* ring_dec's candidate with the decrement constant -1 -> -2: refused by rules_iso (rc 2, OUT = IN).
+* The same, with rules_iso forced to "accept" using countloop's correct maps: refused by LEAN (`decide` proves
+  renCheck = false, line 161 of the generated file).
+* All four controls are in `formal/tools-A/rewrite/controls/` (README with the table).
