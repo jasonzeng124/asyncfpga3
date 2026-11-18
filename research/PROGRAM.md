@@ -4,7 +4,7 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
-## Quota (owner, 2026-11-18 16:48 UTC): a full allowance until the reset, then a steady rate
+## Quota (owner, 2026-11-18 16:48 UTC): a full allowance until the reset, then the usual limits
 
 The week's quota ran out at 10:16 UTC today and every bot stopped. At 16:48 UTC the owner:
 "oh btw you have an entire week of usage before w6pm". The allowance is full again, and what
@@ -23,14 +23,12 @@ is unused is lost at the reset, 2026-11-18 23:00 UTC.
   6. the memory kernels through the automatic path;
   7. the suite table over everything, on many routes (the farm, 200 cores);
   8. Dynamatic's own figure for each suite kernel, so the ratio column is not empty.
-- **From 23:00 UTC: work alone. A subagent only for a job you could not do yourself in the
-  same time, one at a time, and ended when that job is.** Measured from the log of your first
-  session here (12 hours, corrected 2026-11-18 18:30 UTC): 86 % of what it cost was its
-  subagents (15 launches, at most 2 at a time) and 14 % the session itself. A subagent that
-  is kept busy costs two to three times what you cost per hour. The week's quota carries
-  roughly three sessions working alone and nothing more, and the owner's other work shares
-  it (owner, 18:24 UTC: "you aren't the only one"). Wait for a build or the farm in one long
-  command, not in twenty short checks; that holds for you and for any subagent.
+- **From 23:00 UTC: the limits of before 2026-11-17 again: at most 4 subagents at a time.**
+  Owner, 2026-11-18 18:35 UTC: "the previous setup worked, with quite room to spare" (that
+  week stood at 52 % with a day and a quarter to go). For your judgement, not a limit:
+  measured from the log of your first session here, 86 % of what it cost was its subagents;
+  one that is kept busy costs two to three times what you cost per hour. Use them where
+  they pay. Wait for a build or the farm in one long command, not in twenty short checks.
 - Re-read this file every two hours, and once more at 23:00 UTC.
 
 ## This bot now runs on the cluster (owner, 2026-11-17)
