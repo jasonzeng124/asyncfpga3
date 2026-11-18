@@ -1986,8 +1986,8 @@ Not shown: (a) why rings and kernels differ; (b) anything about the August build
 
 ## A12. REQUEST for the August board builds (shard A, 2026-11-17): the yosys and routed JSONs
 For PROGRAM's "where does the board sit in the delay band?": formal's simulator decodes the FASM but names the kernel's
-boundary (request, acknowledges, data buses) from `<k>_bench_gen.json` + `<k>_bench_gen_routed.json` +
-`build/gen/<k>_kernel_bench.v`, `<k>_bench_gen.v`. Only FASM and SDF were pushed. If the owner's August build
+boundary (request, acknowledges, data buses) from \`<k>_bench_gen.json\` + \`<k>_bench_gen_routed.json\` +
+\`build/gen/<k>_kernel_bench.v\`, \`<k>_bench_gen.v\`. Only FASM and SDF were pushed. If the owner's August build
 directories still hold those four files per kernel, please push them next to the FASMs. Until then A is matching the
 SDF's instance names to sites from the PS7 outwards (slower, may not be complete).
 
