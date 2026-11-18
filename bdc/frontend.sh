@@ -208,7 +208,7 @@ if [ "${BDC_FE_EXITCOND:-0}" = 1 ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 4c (opt-in, BDC_FE_UREM=1; owner 2026-11-18, research/PROGRAM.md lead 4):
+# Step 4c (ON by default since 2026-11-18 21:50 UTC; BDC_FE_UREM=0 turns it off; PROGRAM lead 4, subagent divmod):
 # unsigned remainder as x - (x / y) * y. Dynamatic's handshake dialect has
 # divsi, remsi and divui but no remui (HandshakeArithOps.td), so
 # lower-cf-to-handshake stops at every C `%` on unsigned operands ("failed to
@@ -227,10 +227,14 @@ fi
 # polyn_mult (whose only urems are in main, which step 7 drops) it changed the
 # kernel's own loads (checked 2026-11-18: with this test, all 108 other
 # fixtures come out byte-identical with the knob on). In a kernel that has a
-# urem, early-cse may merge other repeated expressions too. Unset: this step
-# does not run and every file is what it was.
+# urem, early-cse may merge other repeated expressions too. Why on by default:
+# it changes only a kernel whose own function has a urem (which otherwise does
+# not compile), every committed fixture comes out byte-identical with it on
+# (111 / 111), and a fixture built with an opt-in knob would be a setting chosen
+# for one kernel, which the automatic path must not carry (owner, auditor T156).
+# BDC_FE_UREM=0: this step does not run (the old behaviour).
 # ---------------------------------------------------------------------------
-if [ "${BDC_FE_UREM:-0}" = 1 ] && awk -v k="@$KERNEL(" 'index($0, "define") == 1 && index($0, k) { f = 1 }
+if [ "${BDC_FE_UREM:-1}" = 1 ] && awk -v k="@$KERNEL(" 'index($0, "define") == 1 && index($0, k) { f = 1 }
      f && / = urem / { found = 1 } f && /^}/ { f = 0 } END { exit !found }' "$COMP/clang.opt.ll"; then
   echo "== $KERNEL: 4c/8 urem -> udiv, mul, sub + early-cse (BDC_FE_UREM=1) =="
   sed -E 's/^([[:space:]]*)%([-a-zA-Z$._0-9]+) = urem (i[0-9]+) ([^,]+), ([^,]+)$/\1%bdc.urem.q.\2 = udiv \3 \4, \5\n\1%bdc.urem.m.\2 = mul \3 %bdc.urem.q.\2, \5\n\1%\2 = sub \3 \4, %bdc.urem.m.\2/' \
