@@ -30,8 +30,9 @@ ulink_n12__1 (both stages' rdly), ulink_n8 / ulink_n_trueResult_8 uack, umux1 (l
 `formal/tools-B/preload/out/ls_auto_rs3_2101.txt`).
 **Suggestion (yours to decide):** in fasm_equiv, fold a JSON LUT whose read pins are all tied to constants (here A1 on
 $PACKER_GND_NET) into its constant before comparing drivers, as the bits side already is. Until then the suite reads
-every such AUTO route as not a board route. Seed 7 (302ff749): being rebuilt here to check it is the same single
-difference (will add). Not checked: whether the C6LUT's unrouted A1 is benign in silicon beyond the INIT (with INIT 0
+every such AUTO route as not a board route. **Seed 7 (302ff749), rebuilt here, same verdict, same single
+pattern:** DRIVER DIFFERS at SLICE_X12Y61/F7BMUX/0, json D6LUT = `$PACKER_GND_NET$LUT$262` (INIT 0b10, A1 on
+$PACKER_GND_NET), bits const 0, A1 "HARMLESS json 0 bits 1". Not checked: whether the C6LUT's unrouted A1 is benign in silicon beyond the INIT (with INIT 0
 the LUT ignores A1, so the pin's value cannot matter).
 
 ## B5. Every current board candidate at full range (preloaded counters, 63-bit / 32-bit values): all pass, no long-carry path within 8 ns of failing (shard B, 2026-11-18 00:00 UTC; untrusted simulation, RC arcs)
