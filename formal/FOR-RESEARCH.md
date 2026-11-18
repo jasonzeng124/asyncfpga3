@@ -82,6 +82,10 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   rewritten files has been built, simulated or timed here. Whether the extra LUT costs more than the add it removes
   from the test is yours to measure. brhash, nested, nest3, if_loop_3 and insertion_sort are refused: their ring shape
   differs.
+- **No script left in the chain (later the same evening):** `Ring/<K>Tie.lean` (`tie_forward` / `tie_backward`) state the
+  result directly about dfimport's import of each `out/<k>_rd.mlir` above, the renumbering checked in Lean
+  (`Rename.lean`). Five kernels compiled, standard axioms. What is trusted: that dfimport (bdc's own parser and fusion
+  plan) is what the MLIR means, and the token-level model.
 - **Literal-bound tool (18:23 UTC):** `formal/tools-A/rewrite/inc_cmp.py IN OUT --log L` (119 rewrites in 53
   fixtures). Proved in Lean only for a bound fired by a `source` (117 cases, IncCmpGraph + ult_lit_E; per-kernel import
   not checked, dfimport refuses most memory kernels). lfsrfind's and covariance's control-fired bounds are changed in

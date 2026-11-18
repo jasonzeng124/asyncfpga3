@@ -3007,3 +3007,12 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   measure on routes.
 * Common refused shapes worth a next step: `ult (extui v + 1), extui(b)` (fold64, nest3, twoloops, trisolv, polyn_mult:
   exact only if b >= 1), and `sgt (i - k), C` countdowns (8).
+### progress 18:27 -- the untrusted iso step is gone: per-kernel theorems now state the result about the import of the rewritten MLIR (Lean)
+* check.sh (official: lake env lean + textual scan + axiom audit) OK on the 19 Rewrite files committed by 17:51.
+* `Rename.lean`: fire / step / Run / Terminal invariant under a channel bijection and rule reordering; bijections given
+  as lists, checked by `decide +kernel` (fpCheck, renCheck).
+* `gen_ring_tie.py` -> Ring/<K>RdHw.lean (dfimport of out/<k>_rd.mlir) + Ring/<K>Tie.lean (`tie_forward` /
+  `tie_backward`): research's fixture graph vs the rewritten MLIR's graph, same tokens outside the changed channels,
+  both directions. rules_iso.py now only FINDS the bijection; Lean checks it. countloop, horner, quadrec, varshift,
+  xorshift: all compile (exit 0), axioms propext / Classical.choice / Quot.sound.
+* Trusted remainder: dfimport (bdc's own parser + fusion plan) as the meaning of an MLIR file; token level only.
