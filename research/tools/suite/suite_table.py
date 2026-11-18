@@ -169,7 +169,9 @@ for k in sorted(rows):
         lcell = fmt_range(Ls)
     if dl:
         dcell = "%.2f (%s%s)" % (dl["mean"], dl["tag"], "; period extrapolated, model path %.2f ns" % dl["cp"] if dl["extrap"] else "")
-        nv = [len(route_lat(r)[0] or []) or int(r.get("nvec", "0") if r.get("nvec", "0").isdigit() else 0) for r in judged]
+        # the calls each route's latency is over (routes without any latency data, older result lines, are left out)
+        nv = [n for n in (len(route_lat(r)[0] or []) or int(r.get("nvec", "0") if r.get("nvec", "0").isdigit() else 0)
+                          for r in judged) if n]
         if Ls and nv and all(n == dl["n"] for n in nv):
             lr = st.median(Ls) / dl["mean"]
             lrcell = "%.2f%s" % (lr, " (extrapolated period)" if dl["extrap"] else "")
