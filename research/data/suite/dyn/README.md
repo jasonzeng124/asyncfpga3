@@ -362,8 +362,11 @@ arc, ps7_bench.v, the gate's verdict; the full vector sets, `<name>_rtl.hex` whe
   store of iteration k because the block's control token waits for the store); no kernel here has a load that reads
   what the previous iteration's store on the same controller wrote (Dynamatic puts an LSQ there).
 - **The bench's host slot outside the arbiter** rests on the bench never accessing memory during a batch; the
-  monitor checked it on every routed run here (0 overlaps), its own negative control (`+MEMPORTMON_FORCE`) was not run
-  on an arbitrated port.
+  monitor checked it on every routed run here (0 overlaps). Its own negative control on an arbitrated port
+  (mul_example_s1, `+MEMPORTMON_FORCE`: memory 0's host request forced high for 200 ns, 2 us into the first batch)
+  fired -- `MEMPORT ONEHOT FAIL t=18935063 mem=0 s_req=101` (the host slot and kernel slot 0 together) -- and the
+  forced request then wedged the batch: the run was stopped at its 40 min limit with no verdict line
+  (out/evidence/mul_example_s1_FORCE_run.log).
 - **Vectors** are written from each C's domain (edges, Dynamatic's own main where it is defined, seeded random), not
   exhaustive; `share_test_2` has no defined input at all (signed overflow in its constants): its expected values are
   `-fwrapv`'s. In-place kernels are judged with one run per call; suite_one.sh runs two and now gives the oracle the
