@@ -2235,6 +2235,17 @@ def write_table(rows, cal, path_md, path_tsv, path_lat=None):
                        % (k, npi, r["cpi"], bnd, r["period_est_ns"], cal["factor"], 100 * cal["max_loo_err"]))
         la = r.get("lat")
         if la and la.get("vectors") not in (None, "main()"):
+            if k in MEASURED:
+                # the routed period where one exists (as the per-iteration column uses it): cycles x measured period
+                pm = MEASURED[k]
+                lat.append("%s\t%d\t%.2f\tcycles simulated, period measured (1 route)\t%s\t%s\t%s\t%.3f\t%.3f\t%d\t%s\t"
+                           "Dynamatic on-merges, simulated cycles per call on the suite's calls (answers = C) x the "
+                           "routed period %.2f ns (one nextpnr route, 2026-08; research/data/dynamatic_ref/README.md); "
+                           "research/tools/suite/dynamatic_est.py"
+                           % (k, la["n"], la["mean_ns"] / la["period_ns"] * pm, la["vectors"], la["vectors_md5"],
+                              ",".join(str(c) for c in la["cycles"]), pm, r["cp_model_ns"], la["n_loops"],
+                              ",".join(str(e) for e in la["execs"]) if la.get("execs") else "-", pm))
+                continue
             lat.append("%s\t%d\t%.2f\tESTIMATE\t%s\t%s\t%s\t%.3f\t%.3f\t%d\t%s\tDynamatic on-merges, simulated cycles per "
                        "call on the suite's calls (answers = C) x period %.2f ns ESTIMATED from Dynamatic's timing model "
                        "(x%.3f fitted on 3 routed kernels, worst leave-one-out %.0f %%); "

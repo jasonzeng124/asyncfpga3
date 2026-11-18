@@ -81,7 +81,7 @@ def dyn_lat():
             k, n, mean, tag, vec, md5, cyc, per, cp, nl, ex, how = (f + [""] * 12)[:12]
             out[k] = dict(n=int(n), mean=float(mean), tag=tag, vectors=vec, period=float(per), cp=float(cp),
                           nloops=int(nl or 0), execs=[int(x) for x in ex.split(",")] if ex not in ("", "-") else None,
-                          how=how, extrap=float(cp) < CAL_MIN_PATH_NS / 2)
+                          how=how, extrap="ESTIMATE" in tag and float(cp) < CAL_MIN_PATH_NS / 2)
     return out
 
 def route_lat(r):
@@ -168,7 +168,7 @@ for k in sorted(rows):
     if Ls:
         lcell = fmt_range(Ls)
     if dl:
-        dcell = "%.2f (ESTIMATE%s)" % (dl["mean"], "; period extrapolated, model path %.2f ns" % dl["cp"] if dl["extrap"] else "")
+        dcell = "%.2f (%s%s)" % (dl["mean"], dl["tag"], "; period extrapolated, model path %.2f ns" % dl["cp"] if dl["extrap"] else "")
         nv = [len(route_lat(r)[0] or []) or int(r.get("nvec", "0") if r.get("nvec", "0").isdigit() else 0) for r in judged]
         if Ls and nv and all(n == dl["n"] for n in nv):
             lr = st.median(Ls) / dl["mean"]
@@ -211,7 +211,8 @@ print("%d of %d kernels pass; geometric mean of the ratio (ns per iteration / Dy
       "MEASURED Dynamatic figure (n = %d): %s; including ESTIMATED figures (n = %d%s): %s. Our ns are the simulation's "
       "(about 8 %% slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); "
       "Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / "
-      "Dynamatic's ESTIMATE, same calls; ours includes the bench): geometric mean over passing kernels (n = %d): %s."
+      "Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes "
+      "the bench): geometric mean over passing kernels (n = %d): %s."
       % (npass, len(rows), sum(1 for _, m, _ in ratios if m), ("%.2f" % gm_m) if gm_m else "-",
          len(ratios), ("; %d with our figure from the latency fit" % nfit) if nfit else "", ("%.2f" % gm_a) if gm_a else "-",
          len(lratios), ("%.2f" % gm_l) if gm_l else "-"))
