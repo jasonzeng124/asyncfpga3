@@ -4694,3 +4694,9 @@ here (lane2.sh, sizes_4.vh, ea3c2aad identical): the only hard difference is F7B
 (INIT 0b10, A1 on $PACKER_GND_NET) vs const 0 in the bits (INIT folded to 0, A1 unrouted). Same value: a false positive
 of fasm_equiv (JSON-side LUT with constant inputs not folded). Formal's decode of the bits: xor19 4/4, preload A 8/8,
 control fails only preloaded, carry slack 13.5 ns, period 24.2 ns (ls_auto_rs3_2101.txt). Seed 7 rebuilding.
+### progress 01:45 -- B6 extended: every NOT EQUIVALENT route of suite1 checked (xorshift s3 / s7, ipow s4, collatz64 s5) is the packer GND LUT pattern; formal's draws pass on them
+suite1 at 01:17: 10 tasks done, 7 NOT-A-BOARD-ROUTE (bits NOT EQUIVALENT), 2 PNR-TIMEOUT (collatz s3 / s4), 1 PASS (collatz s7).
+Rebuilt ipow s4 (1ac15af5) and collatz64 s5 (84cbd5fa): 5 and 1 hard differences, all packer GND LUTs (INIT 0b10 on
+$PACKER_GND_NET, folded to 0 in the bits). Formal's decode + simx with research's suite draw K: ipow17 4/4, c6419 4/4,
+c64hi 4/4, collatz64 steps counter preloaded 4/4. Local AUTO xorshift seed 1 (loop NOT CLEAN after 4, 694d657d,
+EQUIVALENT): xor19 4/4, preload 8/8, control fails only preloaded. isprime AUTO loop still on iteration 0's rule.

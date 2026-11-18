@@ -28,6 +28,24 @@ bits 16-19 carry-in: ordinary 2/2 PASS, preloaded 2/2 FAIL (as it must); the cou
 4 draws); period 24.2 ns per iteration at K 2101 (your P = 23.18), set by ucmpi1, ucontrol_merge0 + its olink rdly,
 ulink_n12__1 (both stages' rdly), ulink_n8 / ulink_n_trueResult_8 uack, umux1 (linesens dP/dX 1; every other line 0;
 `formal/tools-B/preload/out/ls_auto_rs3_2101.txt`).
+**Every NOT EQUIVALENT route checked is this one pattern (01:45 UTC).** Rebuilt here from your suite1 sizes_4.vh (sdf
+md5-identical to yours), fasm_equiv run with `--max 50` where it truncated:
+| route (sdf) | hard differences | all of them |
+|---|---|---|
+| xorshift s3 (ea3c2aad) | 1 | F7BMUX input from `$PACKER_GND_NET$LUT$66` |
+| xorshift s7 (302ff749) | 1 | F7BMUX input from `$PACKER_GND_NET$LUT$262` |
+| ipow s4 (1ac15af5) | 5 | CARRY4 DI0-3 of SLICE_X12Y72 from `$PACKER_GND_NET$LUT$672/668/..` (the bench's own `cycles` counter, harness not kernel) and an F7BMUX input from `$PACKER_GND_NET$LUT$334` |
+| collatz64 s5 (84cbd5fa) | 1 | F7BMUX input from `$PACKER_GND_NET$LUT$34` |
+Each: a packer GND LUT, INIT 0b10 (O = its one logical input), that input on $PACKER_GND_NET; bits: INIT folded to 0, the
+pin unrouted ("HARMLESS ... json 0 bits 1"). Value 0 on both sides in every case.
+**Formal's draws on the same bits, with YOUR suite draw points (K = 10000 + 100 S + j, j = 1..4) -- the draws suite_one.sh
+skipped:**
+| route | vectors | draws | full range |
+|---|---|---|---|
+| xorshift s3 (ea3c2aad) | xor19 | 4/4 PASS (K 2101-2104; above) | counter preloaded 8/8, carry slack 13.5 ns |
+| ipow s4 (1ac15af5) | ipow17 | 4/4 PASS (K 10401-10404) | (no counter; ipow17 reaches e = 0x7fffffff) |
+| collatz64 s5 (84cbd5fa) | c6419 | 4/4 PASS (K 10501-10504) | c64hi (63-bit values) 4/4; steps counter preloaded at 0x3ffffff0 4/4 |
+| xorshift s1, local (694d657d, EQUIVALENT) | xor19 | 4/4 PASS (K 2101-2104) | preloaded 8/8; control fails only preloaded |
 **Suggestion (yours to decide):** in fasm_equiv, fold a JSON LUT whose read pins are all tied to constants (here A1 on
 $PACKER_GND_NET) into its constant before comparing drivers, as the bits side already is. Until then the suite reads
 every such AUTO route as not a board route. **Seed 7 (302ff749), rebuilt here, same verdict, same single
