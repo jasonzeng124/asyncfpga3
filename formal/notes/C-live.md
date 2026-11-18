@@ -28,6 +28,8 @@ is a way of counting the tokens on such a walk at an iteration boundary.
 | `Formal/Net/StageNetRing.lean` | for a stage with one feeder and one consumer the stage rule is exactly the `bd_c2n` / `bd_c2n_set` LUT in run mode | shard B's verbatim INITs |
 | `Formal/Net/StageNetGate.lean` | stage controllers plus ONE C-element per join and per fork: the gate network projects onto the stage network (`proj_step`) and its deadlocks are stage deadlocks; `gate_deadlock_free` | invariant `Inv` at the start (true at the all-zero reset) |
 | `Formal/Net/StageNetTree.lean` | the same for any acyclic network of C-elements and buffers between stages: matched delay lines, `bd_ctree` joins, fork acknowledge trees; `tree_deadlock_free` | wiring well-formedness `WF` (a property of the netlist), `Inv` at the start |
+| `Formal/Net/StageNetTreeFair.lean` | weakly fair runs of that gate network fire every stage infinitely often (`tree_fair_all_fire`) | as StageNetTree, plus weak fairness of every gate |
+| `Formal/Net/StageNetMux.lean` | from the verbatim INITs: bd_mux's join LUTs are C-elements with the select fixed (unselected: can only fall); bd_steer's routed branch is a wire, the other 0, its ack OR passes the routed ack | fixed mode; mutants fail |
 | `Formal/Net/StageNetCert.lean` | a decidable certificate: a rank that rises along every token-free arc proves "no trap"; `Cert.check_sound`. `formal/tools/live/gencert.py` writes one per exported stage graph | the exporter is untrusted; the kernel checks the certificate |
 
 ## What is NOT proved
