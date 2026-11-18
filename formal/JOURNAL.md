@@ -3083,3 +3083,10 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   plain 5.55 / 4.86. The correction depth is the cost, not the split. Next: the entry-invariant theorem (BranchFilter:
   a cond_br's true output only carries values whose paired condition was true, through a fork; then channel
   invariants i != INT_MAX and m != INT_MAX at the test make plain == corrected), in Wip first.
+### progress 21:03 -- toward a general proof of the PLAIN loop test (the form that pays)
+* Plan: fixture -> rs2 (corrected; RingMap + IncCmp2, any graph) -> rs2 with the plain test (Swap.lean: identical runs
+  when the two compare functions agree on every reachable input) -> the plain MLIR's import (Rename). The reachable-input
+  fact is a channel invariant: the counter is never INT_MAX at the test (the back edge only carries i+1 whose test was
+  true; entry 0) and the ring never carries INT_MAX (n entered only if n > 0, so n - 1 != INT_MAX). Invariant framework
+  with "branch pairs" (ChanInv.lean): subagent. Swap.lean, PlainArith.lean: compiled (exit 0).
+* Checked: import of out/countloop_plain.mlir is isomorphic to rs2.set 28 (comp [69,45] 53 fSlt) (rules_iso, 43 rules).
