@@ -3342,3 +3342,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 ### progress 07:43
 - T151 done: AUTO collatz s3 (suite4, flow v3) rebuilt from the farm's sizes = sdf 73928b6b exactly; 9/9 at FAST_MIN / advA / advC / worst / SLOW_MAX on own max-peak vectors, 0 runts, min steer margin 1641 ps. CONFIRMED for this route. Finding T151; REPORT note.
 - 08:22 research e3005e03a ... c7808ea6d: the suite grows to 36 kernels (Dynamatic's 11 integer tests with vectors, dot2, gather); 3 pass a seed-1 smoke; gather fails on bd_mem's setup (reported). Dynamatic's C copied byte for byte with sha256 (research/data/suite/dynsrc). Expected values are computed from the C at run time, with no committed .exp to check statically; spot-check own oracle when a suite table quotes them.
+- 08:35 research d6e567a8c: flow v6 seed 2 8/8; a flagged route is fixed by the patched nextpnr; memory lines sized. No headline.
