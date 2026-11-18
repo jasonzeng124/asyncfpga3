@@ -33,8 +33,13 @@ For every kernel (default: research/tools/suite/kernels.txt) and every seed (def
 4. records the timed event graph's period P on the kernel's period vector, the worst latency per call, the kernel's
    LUTs.
 `suite_table.py` writes one row per kernel (status, routes judged / built, draws passing, P median and range, latency,
-LUTs, Dynamatic's figure with how it was obtained, the ratio) and a last line: how many of N pass, and the geometric mean
-of the ratio.
+LUTs, Dynamatic's figure with how it was obtained, the ratio; since 2026-11-18 also the latency per call on both sides,
+over the same calls, and its ratio) and a last line: how many of N pass, and the geometric mean of the ratio (and of the
+latency ratio). Where a judged route has no usable P (no steady state: brhash's data-dependent arms, fold64; a P that is
+a multiple of the host clock, i.e. the memory's host fill: dot2), the per-iteration figure is the slope of our call
+latencies on the calls' trip counts, marked "fit" (it agrees with P within -2.4 / +5.2 %, median +0.6 %, on the 42 routes
+of 10 kernels that have both). A kernel without a loop has no "ns per iteration" on either side: its figure is the
+latency per call (research/data/suite/dynamatic/README.md, update 2026-11-18).
 
 ## What "pass" means
 Every draw on every judged route returned every right answer, and at least one route was judged. A kernel that does not
@@ -44,7 +49,9 @@ compile, gives a wrong answer, or never produces a board route stays in the tabl
 - Kernels beyond the six (the suite subagents are writing about twelve scalar kernels, one per shape; Dynamatic's
   integer tests: 12 emit, 4 fit today's bench -- research/data/suite/dyn/); memory kernels wait for the bench's array
   ABI (cells/hw/gen_bench.py writes invalid Verilog for array arguments today).
-- Dynamatic's figure: measured for three kernels only (single 2026-08 routes); an estimator from Dynamatic's own
-  buffer placement and timing model is being written (research/data/suite/dynamatic/).
+- Dynamatic's figure: measured for three kernels only (single 2026-08 routes); every other figure is the estimator's
+  (research/data/suite/dynamatic/: Dynamatic's own on-merges buffers, simulated cycles with every call checked against
+  the C, an ESTIMATED period), now on the suite's own calls, memory kernels included, and per call as well as per
+  iteration.
 - Full-range paths no vector reaches (loop counters' long carries) are judged by the static rule only, unless a
   preloaded run covers them (research/data/preload/; formal B2/B3).

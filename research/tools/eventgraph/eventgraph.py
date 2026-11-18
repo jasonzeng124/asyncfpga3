@@ -53,6 +53,10 @@ def evaluate(typ, pd, port, v):
     return None
 
 
+class NoPeriod(Exception):
+    """The run has no period to measure (no loop, or no steady state): check.txt says why, and has no P."""
+
+
 class Graph:
     def __init__(self):
         self.nodes, self.arcs = [], []        # nodes: dict(net, name, phase, edge, t); arcs: dict(u, v, w, o, ...)
@@ -66,10 +70,14 @@ def build(work, marker, K=10):
     ev = load_vcd(work + "/dump.vcd")
     T = Trace(N, ev)
     if marker == "auto":          # the kernel request net with the longest run of identical rise intervals
+        # Not a net of a memory port (bdc/mem.py's bdc_memport instance `uport`, under umem_controllerN): its merged
+        # request m_req also carries the HOST's array fill, one word per 13 host cycles, and was picked on dot2 (P =
+        # 156000 ps = 13 x 12 ns, the fill, reported as the kernel's period) and on test_bitint (dynfig, 2026-11-18).
         best = None
         for n, e in ev.items():
             nm = N.name.get(n, n)
             if not (nm.startswith("bridge_i.udut.") and nm.endswith("_req")): continue
+            if "_uport." in nm or ".uport." in nm: continue
             r = [t for t, c in e if c == "1"]
             if len(r) < 20: continue
             d = [b - a for a, b in zip(r, r[1:])]
@@ -78,6 +86,10 @@ def build(work, marker, K=10):
                 cur = cur + 1 if x == y else 1; run = max(run, cur)
             key = (run, -collections.Counter(d).most_common(1)[0][0])
             if best is None or key > best[0]: best = (key, nm)
+        if best is None:
+            # a kernel without a loop (straight, test_int16, unused_arg): no request net rises 20 times in the run
+            raise NoPeriod("NO MARKER: no kernel request net (outside the memory ports) rises 20 times in this run; a "
+                           "kernel without a loop has no period, its figure is the latency per call")
         marker = best[1]
         print("auto marker: %s (run of %d equal intervals)" % (marker, best[0][0]))
     mk = marker if marker in ev else N.inv.get(marker)
@@ -104,7 +116,13 @@ def build(work, marker, K=10):
             cur = 0
     run, s0 = best
     if run < K + 6:
-        sys.exit("steady state too short: %d intervals of %d ps" % (run, P))
+        # no K + 6 equal intervals in a row: a loop whose iteration time depends on the data (brhash's two arms), one
+        # too short for a steady state (test_bitint: 10 trips per call), or a marker that rises once per call (a kernel
+        # without a loop: test_loop_free).  No period is measured; the statistics say which.
+        srt = sorted(iv)
+        raise NoPeriod("NO STEADY STATE: marker %s (%s), %d rises; longest run of equal intervals %d < %d (mode %d ps); "
+                       "intervals min %d / median %d / max %d ps" % (marker, mk, len(rises), run, K + 6, P, srt[0],
+                                                                   srt[len(srt) // 2], srt[-1]))
     i0 = s0 + run // 2 - K // 2
     t0 = rises[i0]
     lo, hi = t0 - 2 * P, t0 + K * P
@@ -207,7 +225,13 @@ def main():
     W, MK = a[:2]
     OUT = sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv else W + "/eventgraph"
     os.makedirs(OUT, exist_ok=True)
-    G, P, t0, mk, N, T, stats, datadep, aper = build(W, MK)
+    try:
+        G, P, t0, mk, N, T, stats, datadep, aper = build(W, MK)
+    except NoPeriod as e:
+        # check.txt without "period P =": lane2_run.sh reports P=NA, and the reason is in the graph's directory
+        open(OUT + "/check.txt", "w").write("work %s marker %s: %s\n" % (W, MK, e))
+        print("eventgraph: %s" % e, file=sys.stderr)
+        return
     # ---- write the graph -------------------------------------------------------------------------------------------
     RJ = sys.argv[sys.argv.index("--rj") + 1] if "--rj" in sys.argv else W + "/routed.json"
     bels = bel_names(RJ); cn = load_names(W)

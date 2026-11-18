@@ -6,8 +6,26 @@ kernel over its seeds: status, routes judged (board routes: EQUIVALENT and ffmux
 (the timed event graph's period P: median and range over the routes judged), worst latency per call, kernel LUTs,
 Dynamatic's figure where one exists (research/tools/suite/dynamatic_ref.tsv; each figure says how it was obtained)
 and the ratio.  A kernel passes when every draw on every judged route returned every right answer and at least one
-route was judged.  Last line: how many of N pass, and the geometric mean of the ratio over kernels with a figure."""
+route was judged.  Last line: how many of N pass, and the geometric mean of the ratio over kernels with a figure.
+
+Three additions (dynfig, 2026-11-18):
+- Latency per call, both sides, on the SAME calls: ours = per vector the median over a route's draws of the bench's
+  latmin (BENCHRES, host cycles x fclk_ps; the BENCHRES files beside result.txt, else lat_call_sum_ns / nvec), the
+  mean over the vectors, the median over the routes judged; Dynamatic's = research/data/suite/dynamatic/
+  dynamatic_lat.tsv (simulated cycles per call on the suite's own vectors x the ESTIMATED period), and their ratio.
+  This is the figure for a kernel with no loop, where "ns per iteration" is undefined on both sides.  Ours includes
+  the bench's issue, synchroniser and capture (a constant kernel, test_int16, takes 5 host cycles = 60 ns), and is
+  quantised to the host clock; Dynamatic's is the kernel alone.
+- A route's P is refused when it is an exact multiple of the bench's host clock period: such a marker is clocked by
+  the host (the memory's host port during the array fill: dot2's 156000 ps = 13 x 12 ns), not the kernel's loop.
+- Where a judged route has no usable P and the kernel has one loop whose trip count varies over the vectors (trip
+  counts per call: dynamatic_lat.tsv, the C's loop executed by Dynamatic's simulated circuit, answers = C), the
+  per-iteration figure is the least-squares slope of our call latencies on the trip counts ("fit"; the column says
+  so).  Dynamatic's per-iteration figure is the same kind of slope (cycles per header execution x period)."""
 import glob, math, os, re, statistics as st, sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+
 
 def lines(args):
     for a in args:
@@ -20,10 +38,10 @@ def lines(args):
                 continue
             for l in open(f):
                 if l.strip():
-                    yield l.strip()
+                    yield l.strip(), os.path.dirname(os.path.abspath(f))
 
 def hand_ref():
-    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hand_ref.tsv")
+    p = os.path.join(HERE, "hand_ref.tsv")
     out = {}
     if os.path.exists(p):
         for l in open(p):
@@ -36,9 +54,8 @@ def hand_ref():
 def dyn_ref():
     """Dynamatic's figure per kernel: dynamatic_ref.tsv (measured routes) first, then the estimator's table
     (research/data/suite/dynamatic/dynamatic_est.tsv: simulated on-merges cycles x an ESTIMATED period)."""
-    here = os.path.dirname(os.path.abspath(__file__))
     out = {}
-    for p in (os.path.join(here, "../../data/suite/dynamatic/dynamatic_est.tsv"), os.path.join(here, "dynamatic_ref.tsv")):
+    for p in (os.path.join(HERE, "../../data/suite/dynamatic/dynamatic_est.tsv"), os.path.join(HERE, "dynamatic_ref.tsv")):
         if os.path.exists(p):
             for l in open(p):
                 if l.startswith("#") or not l.strip():
@@ -47,24 +64,69 @@ def dyn_ref():
                 out[k] = (float(ns), tag, how)   # the later file (measured) overrides the estimate
     return out
 
+# Dynamatic's per-call figure is flagged (and kept out of the latency mean) when its period is extrapolated far below
+# the calibration: model path under half the shortest calibrated one (xorshift's 15.03 ns; the fit's points are
+# 15.0-21.6 ns), e.g. unused_arg's 1.23 ns path -> 0.97 ns, which no FPGA clocks.
+CAL_MIN_PATH_NS = 15.03
+
+def dyn_lat():
+    """Dynamatic's latency per call on the suite's calls: research/data/suite/dynamatic/dynamatic_lat.tsv."""
+    p = os.path.join(HERE, "../../data/suite/dynamatic/dynamatic_lat.tsv")
+    out = {}
+    if os.path.exists(p):
+        for l in open(p):
+            if l.startswith("#") or not l.strip():
+                continue
+            f = l.rstrip("\n").split("\t")
+            k, n, mean, tag, vec, md5, cyc, per, cp, nl, ex, how = (f + [""] * 12)[:12]
+            out[k] = dict(n=int(n), mean=float(mean), tag=tag, vectors=vec, period=float(per), cp=float(cp),
+                          nloops=int(nl or 0), execs=[int(x) for x in ex.split(",")] if ex not in ("", "-") else None,
+                          how=how, extrap=float(cp) < CAL_MIN_PATH_NS / 2)
+    return out
+
+def route_lat(r):
+    """Our latency per call on one route, ns: per vector (BENCHRES batch) the median over the route's draws of latmin x
+    fclk_ps (suite_one.sh's own computation), in vector order; and the host clock period.  None without BENCHRES."""
+    per, fclk = {}, None
+    for f in glob.glob(os.path.join(r["_dir"], "benchres_*.txt")):
+        for l in open(f):
+            d = dict(re.findall(r"(\w+)=(\S+)", l))
+            if "batch" in d and "latmin" in d:
+                fclk = int(d.get("fclk_ps", 12000))
+                per.setdefault(int(d["batch"]), []).append(int(d["latmin"]) * fclk / 1000.0)
+    if not per:
+        return None, None
+    return [st.median(x) for _, x in sorted(per.items())], fclk
+
+def slope(x, y):
+    """Least-squares slope of y on x, or None when x does not vary."""
+    n = len(x)
+    mx, my = sum(x) / n, sum(y) / n
+    sxx = sum((a - mx) ** 2 for a in x)
+    if sxx == 0:
+        return None
+    return sum((a - mx) * (b - my) for a, b in zip(x, y)) / sxx
+
+def fmt_range(v):
+    return "%.2f (%.2f-%.2f)" % (st.median(v), min(v), max(v))
+
 rows = {}
-for l in lines(sys.argv[1:]):
+for l, d0 in lines(sys.argv[1:]):
     t = l.split()
     if len(t) < 3:
         continue
     d = dict(re.findall(r"(\w+)=(\S+)", l))
-    rows.setdefault(t[0], []).append(dict(seed=t[1], _l=l, **d))
-DY = dyn_ref(); HD = hand_ref()
-print("| kernel | status | routes judged / built | draws passing | ns per iteration (P), median (range) | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns |")
-print("|---|---|---|---|---|---|---|---|---|---|")
-npass, ratios = 0, []
+    rows.setdefault(t[0], []).append(dict(seed=t[1], _l=l, _dir=d0, **d))
+DY = dyn_ref(); HD = hand_ref(); DL = dyn_lat()
+print("| kernel | status | routes judged / built | draws passing | ns per iteration (P), median (range) | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |")
+print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+npass, ratios, lratios, nfit, hostP, notes_k = 0, [], [], 0, [], {}
 for k in sorted(rows):
     rs = rows[k]
     judged = [r for r in rs if r.get("status") in ("PASS", "FAIL")]
     stats = sorted({r.get("status", "?") for r in rs})
     dp = sum(int(r["draws"].split("/")[0]) for r in judged if "draws" in r)
     dn = sum(int(r["draws"].split("/")[1]) for r in judged if "draws" in r)
-    Ps = [int(r["P"]) / 1000 for r in judged if r.get("P", "NA").isdigit()]
     lat = [int(r["lat_max_cyc"]) * 12 for r in judged if r.get("lat_max_cyc", "NA").isdigit()]
     luts = [int(r["luts"]) for r in judged if r.get("luts", "").isdigit()]
     ok = bool(judged) and dp == dn and all(r.get("status") == "PASS" for r in judged)
@@ -74,18 +136,54 @@ for k in sorted(rows):
     else:
         status = "PASS" if ok else "WRONG ANSWER under draws"
     npass += ok
-    Pm = st.median(Ps) if Ps else None
+    dl = DL.get(k)
+    # per route: P (refused when it is a multiple of the host clock), our call latencies, the fit where P is missing
+    Ps, Fs, Ls = [], [], []
+    for r in judged:
+        v, fclk = route_lat(r)
+        P = int(r["P"]) if r.get("P", "NA").isdigit() else None
+        if P is not None and P % (fclk or 12000) == 0:
+            hostP.append("%s seed %s P=%d = %d x %d ps" % (k, r["seed"], P, P // (fclk or 12000), fclk or 12000))
+            P = None
+        if P is not None:
+            Ps.append(P / 1000)
+        if v:
+            Ls.append(sum(v) / len(v))
+        elif r.get("lat_call_sum_ns", "NA").isdigit() and r.get("nvec", "0").isdigit() and int(r["nvec"]):
+            Ls.append(int(r["lat_call_sum_ns"]) / int(r["nvec"]))
+        if P is None and v and dl and dl["execs"] and dl["nloops"] == 1 and len(dl["execs"]) == len(v):
+            b = slope(dl["execs"], v)
+            if b is not None:
+                Fs.append(b)
+    fit = not Ps and bool(Fs)
+    Pv = Ps or Fs
+    Pm = st.median(Pv) if Pv else None
     dy = DY.get(k)
     ratio = (Pm / dy[0]) if (Pm and dy) else None
     if ratio and ok:
-        ratios.append((ratio, "ESTIMATE" not in dy[1]))
+        ratios.append((ratio, "ESTIMATE" not in dy[1], fit))
+        nfit += fit
+    # latency per call: the same calls on both sides (the vector counts must agree)
+    lcell, dcell, lrcell = "-", "-", "-"
+    if Ls:
+        lcell = fmt_range(Ls)
+    if dl:
+        dcell = "%.2f (ESTIMATE%s)" % (dl["mean"], "; period extrapolated, model path %.2f ns" % dl["cp"] if dl["extrap"] else "")
+        nv = [len(route_lat(r)[0] or []) or int(r.get("nvec", "0") if r.get("nvec", "0").isdigit() else 0) for r in judged]
+        if Ls and nv and all(n == dl["n"] for n in nv):
+            lr = st.median(Ls) / dl["mean"]
+            lrcell = "%.2f%s" % (lr, " (extrapolated period)" if dl["extrap"] else "")
+            if ok and not dl["extrap"]:
+                lratios.append((lr, k))
+        elif Ls:
+            lrcell = "- (vectors differ: %s calls here, %d in Dynamatic's)" % (sorted(set(nv)), dl["n"])
     hd = HD.get(k)
-    print("| %s | %s | %d / %d | %s | %s | %s | %s | %s | %s | %s |" % (
+    print("| %s | %s | %d / %d | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
         k, status, len(judged), len(rs), ("%d / %d" % (dp, dn)) if dn else "-",
-        ("%.2f (%.2f-%.2f)" % (Pm, min(Ps), max(Ps))) if Ps else "-",
+        (("fit %s (slope of call latency on trip count; no event-graph P)" if fit else "%s") % fmt_range(Pv)) if Pv else "-",
         ("%d" % max(lat)) if lat else "-", ("%d" % st.median(luts)) if luts else "-",
-        ("%.2f (%s)" % dy[:2]) if dy else "-", ("%.2f" % ratio) if ratio else "-",
-        ("%.2f" % hd[0]) if hd else "-"))
+        ("%.2f (%s)" % dy[:2]) if dy else "-", ("%.2f%s" % (ratio, " (fit)" if fit else "")) if ratio else "-",
+        ("%.2f" % hd[0]) if hd else "-", lcell, dcell, lrcell))
 notes = sorted({(k, v[2]) for k, v in DY.items() if k in rows})
 hnotes = sorted({(k, v[1]) for k, v in HD.items() if k in rows})
 if hnotes:
@@ -94,13 +192,26 @@ if hnotes:
 if notes:
     print()
     print("Dynamatic's figures: " + "; ".join("%s: %s" % kv for kv in notes) + ".")
+if any(k in DL for k in rows):
+    print()
+    print("Latency per call: ours includes the bench's issue, synchroniser and capture and is quantised to its clock (12 ns; "
+          "a kernel that is a constant, test_int16, takes 5 host cycles = 60 ns), Dynamatic's is the kernel alone: "
+          "simulated cycles per call on the same calls x the ESTIMATED period (research/data/suite/dynamatic/README.md); "
+          "a period extrapolated below half the calibrated range is marked and left out of the mean.")
+if hostP:
+    print()
+    print("P refused (an exact multiple of the bench's host clock period: a host-clocked marker, not the kernel's loop): "
+          + "; ".join(hostP) + ".")
 def gmean(v):
     return math.exp(sum(map(math.log, v)) / len(v)) if v else None
-gm_m = gmean([r for r, m in ratios if m]); gm_a = gmean([r for r, _ in ratios])
+gm_m = gmean([r for r, m, _ in ratios if m]); gm_a = gmean([r for r, _, _ in ratios])
+gm_l = gmean([r for r, _ in lratios])
 print()
 print("%d of %d kernels pass; geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a "
-      "MEASURED Dynamatic figure (n = %d): %s; including ESTIMATED figures (n = %d): %s. Our ns are the simulation's "
+      "MEASURED Dynamatic figure (n = %d): %s; including ESTIMATED figures (n = %d%s): %s. Our ns are the simulation's "
       "(about 8 %% slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); "
-      "Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs."
-      % (npass, len(rows), sum(1 for _, m in ratios if m), ("%.2f" % gm_m) if gm_m else "-",
-         len(ratios), ("%.2f" % gm_a) if gm_a else "-"))
+      "Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / "
+      "Dynamatic's ESTIMATE, same calls; ours includes the bench): geometric mean over passing kernels (n = %d): %s."
+      % (npass, len(rows), sum(1 for _, m, _ in ratios if m), ("%.2f" % gm_m) if gm_m else "-",
+         len(ratios), ("; %d with our figure from the latency fit" % nfit) if nfit else "", ("%.2f" % gm_a) if gm_a else "-",
+         len(lratios), ("%.2f" % gm_l) if gm_l else "-"))
