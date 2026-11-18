@@ -4,6 +4,18 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
+## Quota: land near 95% by the reset (owner, 2026-11-18 00:13 UTC)
+
+The week's quota stood at 78% at 00:13 UTC, 23 hours before the reset (2026-11-18 23:00
+UTC). With the raised limits all five bots together used about 5 points an hour, which would
+have run out before morning. The owner: "can you try to end on 95% ish". So:
+
+- **From now until the reset: at most 2 subagents at a time.** The "8 until the reset" is
+  withdrawn, and so is the list of eight things to run side by side. Put the two on "General
+  first" and the suite, nothing else.
+- After the reset the limit is 4 again.
+- Re-read this file every two hours.
+
 ## This bot now runs on the cluster (owner, 2026-11-17)
 
 The owner: "you could also just run them on cluster". A wrapper on the farm's cluster now runs
@@ -128,37 +140,6 @@ automatic path is judged on.
   tasks and the cloud bots have them. No `ASK` is needed for a new kernel any more.
 - **Order.** About ten kernels across the shapes first, and the one command working end to
   end on them; then widen. The farm's 200 cores are for this.
-
-## Use the quota that is left (owner, 2026-11-17)
-
-The owner: "there is so much usage left why dont you jstu use it all". The week's quota
-resets on 2026-11-18 at 23:00 UTC, and what is unused is lost.
-
-- **Until the reset (2026-11-18 23:00 UTC) you may run up to 8 subagents at a time.** After
-  that it is 4 again. The owner, later the same day: a slight overrun of the quota is fine,
-  so do not hold anything back for it. If the quota runs out, sessions stop until the reset
-  and the schedule starts them again.
-- **Do not hand off and stop early.** When you end a session, nothing restarts you until the
-  owner next looks, and that has cost many hours this week. End only when the context is
-  nearly used up, and say so in the handoff.
-- **Re-read this file every two hours.**
-- **Run these side by side, one subagent each; you read the results and decide.** (Later the
-  same day: "General first" above comes before this list. Items 2 to 4 now mean reading the
-  requests that are already running, nothing new.)
-  1. xorshift below 16.85: formal's C41 fix (UCMPI0 back to 10) on item 35, judged again by
-     draws; then the incrementer through a preloaded loop state ("Paths no vector can reach").
-  2. collatz: read `shrink9`, choose the candidate, write the board item.
-  3. ipow: read `shrink8`, choose the candidate, write the board item (formal's C40 already
-     agrees on routes 3, 5 and 8).
-  4. collatz64 by draws on `c6419`.
-  5. Where the board sits in the delay band (next section), on the August bitstreams.
-  6. Dynamatic's own number for ipow and for gcd. The comparison table has none, so nobody
-     can say how those two kernels stand.
-  7. gcd judged by draws, like the other four.
-  8. `research/SIM-VS-BOARD.md`: take the gap with the largest effect on a candidate and
-     measure it or bound it.
-- The farm is up again. It was down 2026-11-17 10:04 to 17:07 UTC for the cluster's monthly
-  maintenance; the next one is 2026-12-15.
 
 ## First: where does the board sit in the delay band? (2026-11-17 17:15 UTC)
 
