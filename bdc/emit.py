@@ -192,6 +192,9 @@ PROBE = [p for p in os.environ.get("BDC_PROBE", "").split(",") if p]
 # while a batch is running or the kernel is held in reset).  The port's
 # simulation check still fires if anyone breaks that.
 HOST_MEM = os.environ.get("BDC_HOST_MEM", "0") == "1"
+# BDC_MEM_NOCAP=1: a load on an arbitrated port WITHOUT its capture latch (bdc/mem.py CAPTURE) -- the negative
+# control of the load-first lowering (_resolve_mem_accessors), never for a build anyone believes.
+MEM_NOCAP = os.environ.get("BDC_MEM_NOCAP", "0") == "1"
 
 
 # Verilog keywords that a Dynamatic argName/resName can collide with.  `end`
@@ -2797,18 +2800,22 @@ class Emitter:
                     f"bd_arbiter arbitrates exactly two requesters) is "
                     f"implemented")
             arb = n == 2
-            if arb and nodes[ordered[0]].op != "store":
-                raise EmitError(
-                    f"mem_controller at line {node.src_line}: the first "
-                    f"accessor in program order is "
-                    f"{nodes[ordered[0]].op!r}, not 'store'. The program-"
-                    f"order token chain reuses the FIRST accessor's own "
-                    f"z_req/z_ack as the second accessor's c token (bdc/"
-                    f"mem.py: \"a store's completion channel IS the next "
-                    f"access's token\") because a store's z has no other "
-                    f"consumer; a load's z already feeds a real downstream "
-                    f"channel, and chaining it too needs a fork this design "
-                    f"does not build")
+            # LOAD FIRST (LS, LL; mc:load1st, research/data/suite/dyn/README.md).  The program-order token is the
+            # first accessor's z, as for a store first -- but a load's z already feeds its consumer, so it is FORKED:
+            # the consumer and the second accessor's c both get the request, and the load's z_ack is their
+            # C-element (bd_fork), so the load's operands are not released before the second accessor has taken
+            # its token.  And every load on this port CAPTURES its word (bdc/mem.py CAPTURE): the second accessor
+            # may clock the RAM -- a store writes, WRITE_FIRST rewrites DOADO -- while the load's consumers still
+            # read the data, which z_data = p_rdata alone would not survive.  BDC_MEM_NOCAP=1 (a negative control,
+            # never for a build anyone believes) leaves the latch out.
+            load_first = arb and nodes[ordered[0]].op == "load"
+            # The token is one per execution of the first accessor, consumed by one execution of the second: that
+            # is program order only when both run once per execution of ONE block.  Accessors in different blocks
+            # (binary_search's two loops, iir's load before its loop) execute different numbers of times -- a
+            # chain across them deadlocks on the first token the second never takes.  There, as in Dynamatic's own
+            # mem_controller (an arbiter, no order), the dataflow orders them and nothing else: both stations are
+            # plain, each load captures its word.
+            chained = arb and (not load_first or _bb(nodes[ordered[0]]) == _bb(nodes[ordered[1]]))
 
             if arb and nodes[ordered[0]].op == "store" and len(nodes[ordered[0]].results) == 3:
                 raise EmitError(
@@ -2868,7 +2875,7 @@ class Emitter:
             accessors_desc = []
             for k, acc_idx in enumerate(ordered):
                 acc = nodes[acc_idx]
-                seq = arb and k > 0
+                seq = chained and k > 0
                 addr_res = acc.results[0]
                 info = {
                     "aw": aw, "dw": dw, "seq": seq, "slot": k,
@@ -2880,9 +2887,13 @@ class Emitter:
                     "p_we": f"{mc_inst}_s{k}_we",
                     "p_rdata": f"{mc_inst}_rdata",
                 }
-                if arb and k == 0:
+                if chained and k == 0 and load_first:
+                    info["z_fork"] = (tok_req, tok_ack)   # _op_load: z -> {its consumer, the token}
+                elif arb and k == 0 and not load_first:
                     info["z_req_net"] = tok_req
                     info["z_ack_net"] = tok_ack
+                if arb and acc.op == "load":
+                    info["cap"] = not MEM_NOCAP
                 if seq:
                     info["c_req"] = tok_req
                     info["c_ack"] = tok_ack
@@ -2902,7 +2913,7 @@ class Emitter:
                 accessors_desc.append((acc.op, addr_res))
 
             self.mc_info[memend] = {
-                "aw": aw, "dw": dw, "slots": n, "arb": arb,
+                "aw": aw, "dw": dw, "slots": n, "arb": arb, "chained": chained,
                 "inst": mc_inst, "accessors": accessors_desc,
                 "memstart": memstart, "ctrlend": ctrlend,
                 "memref": memref_ssa, "counts": counts,
@@ -3474,8 +3485,19 @@ class Emitter:
         addr_res, z = node.results
         info = self.accessor_info[addr_res]
         aw, dw, seq = info["aw"], info["dw"], info["seq"]
-        name = mem.unit_name("load", aw, dw, seq=seq)
-        self.units.setdefault(name, mem.emit_unit("load", aw, dw, seq=seq))
+        cap = info.get("cap", False)
+        name = mem.unit_name("load", aw, dw, seq=seq, cap=cap)
+        self.units.setdefault(name, mem.emit_unit("load", aw, dw, seq=seq, cap=cap))
+        zr, za = self.oreq(z), self.oack(z)
+        if "z_fork" in info:
+            # The first accessor of a load-first port: its z is also the second accessor's program-order token
+            # (see _resolve_mem_accessors).  The data is broadcast; the request is forked; the load sees the
+            # C-element of both acknowledges.
+            tok_req, tok_ack = info["z_fork"]
+            zr, za = f"{inst}_zf_req", f"{inst}_zf_ack"
+            self.emit(f"    wire {zr}, {za};")
+            self.emit(f"    bd_fork #(.N(2)) {inst}_uztok (.rst(rst), .req({zr}), .ack({za}),")
+            self.emit(f"        .req_out({{{tok_req}, {self.oreq(z)}}}), .ack_in({{{tok_ack}, {self.oack(z)}}}));")
         self.emit(f"    {name} {inst} (")
         self.emit(f"        .rst(rst),")
         if seq:
@@ -3483,7 +3505,7 @@ class Emitter:
                       f".c_ack({info['c_ack']}),")
         self.emit(f"        .a_req({self.req(addr)}), .a_ack({self.ack(addr)}), "
                   f".a_data({self.data(addr)}),")
-        self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
+        self.emit(f"        .z_req({zr}), .z_ack({za}), "
                   f".z_data({self.odata_out(z)}),")
         self.emit(f"        .p_req({info['p_req']}), .p_ack({info['p_ack']}), "
                   f".p_addr({info['p_addr']}),")
@@ -3579,18 +3601,18 @@ class Emitter:
         # and its BD_SZ keys are exactly what they were.
         host = None
         if HOST_MEM:
-            if arb:
-                raise EmitError(
-                    f"mem_controller at line {node.src_line}: --host-mem on an "
-                    f"arbitrated port (2 accessors) would need a third slot, "
-                    f"and bdc_memport_arb arbitrates exactly two (an arbiter "
-                    f"tree is not built). Not implemented.")
+            # On an arbitrated port (2 accessors) the host slot stands outside bd_arbiter (bdc/mem.py HOST ARB:
+            # never live while a kernel slot is -- the bench's obligation, as on the plain port).
             host = host_base(self.func, info["memref"])
             self.host_wired.add(info["memref"])
         nport = n + (1 if host else 0)
 
-        pname = f"bdc_memport{'_arb' if arb else ''}_{aw}_{dw}_{nport}"
-        self.units.setdefault(pname, mem.emit_port(aw, dw, slots=nport, arb=arb))
+        if arb and host:
+            pname = f"bdc_memport_arb_host_{aw}_{dw}_{nport}"
+            self.units.setdefault(pname, mem.emit_port(aw, dw, slots=nport, arb=True, host=True))
+        else:
+            pname = f"bdc_memport{'_arb' if arb else ''}_{aw}_{dw}_{nport}"
+            self.units.setdefault(pname, mem.emit_port(aw, dw, slots=nport, arb=arb))
 
         # ONE PAIR OF DELAYS PER RAM -- mem.py's own header: each bd_mem in
         # a gang is placed and routed separately, so rule B and rule C
@@ -3612,7 +3634,7 @@ class Emitter:
             self.emit(f"    wire [{aw1 - 1}:0] {inst}_s{k}_addr;")
             self.emit(f"    wire [{dw1 - 1}:0] {inst}_s{k}_wdata;")
         self.emit(f"    wire [{dw1 - 1}:0] {inst}_rdata;")
-        if arb:
+        if arb and info.get("chained", True):
             # The token wire a chained store's z becomes -- see _op_store.
             # Declared here, not there: Verilog wires are order-free and
             # this is the one place that always runs for an arbitrated
@@ -3633,7 +3655,10 @@ class Emitter:
                   f".s_wdata({cat('wdata')}),")
         self.emit(f"        .s_we({cat('we')}), {ack_port}, "
                   f".p_rdata({inst}_rdata));")
-        if host:
+        if host and arb:
+            # The arbitrated port hands the host slot its own acknowledge (s_ack[2], in cat('ack') above).
+            self.emit(f"    assign {host}_rdata = {inst}_rdata;")
+        elif host:
             # The plain port's acknowledge and read data are shared by every
             # slot; the kernel's stations gate them with their own `joined`,
             # so an idle station ignores a host access (bdc/mem.py: done).

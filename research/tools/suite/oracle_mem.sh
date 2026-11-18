@@ -96,7 +96,7 @@ bufs += "\n" + "\n".join("static %s s%d[sizeof(b%d) / sizeof(f%d[0])];" % (t, i,
 nel = "\n".join("  nel[%d] = (int)(sizeof(b%d) / sizeof(f%d[0])); esz[%d] = (int)sizeof(f%d[0]);" % (i, i, i, i, i)
                 for i in range(len(arrs)))
 decl = "\n".join("    %s a%d = (%s)take(w, &k, (int)sizeof(%s));" % (t, i, t, t) for i, t in enumerate(scal))
-words = " + ".join("(int)sizeof(%s) / 4" % t for t in scal) or "0"
+words = " + ".join("((int)sizeof(%s) + 3) / 4" % t for t in scal) or "0"   # a narrow scalar takes one word
 fill = "\n".join("    for (i = 0; i < nel[%d]; i++) f%d[i] = (%s)w[k++];" % (i, i, arrs[i][0]) for i in pres)
 fill += "\n" + "\n".join("    for (i = 0; i < nel[%d]; i++) f%d[i] = (%s)(pass ? 0xa5a5a5a5u : 0u);" % (i, i, arrs[i][0])
                          for i in absn)

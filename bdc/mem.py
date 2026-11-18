@@ -255,10 +255,12 @@ class MemError(Exception):
     pass
 
 
-def unit_name(kind, aw, dw, seq=False):
+def unit_name(kind, aw, dw, seq=False, cap=False):
     if kind not in ("load", "store"):
         raise MemError(f"no memory unit for {kind!r} -- load or store")
-    return f"bdc_{kind}{'_seq' if seq else ''}_{aw}_{dw}"
+    if cap and kind != "load":
+        raise MemError("a capture latch is a load's (its read data); a store has none")
+    return f"bdc_{kind}{'_cap' if cap else ''}{'_seq' if seq else ''}_{aw}_{dw}"
 
 
 def ram_count(dw):
@@ -289,7 +291,27 @@ def check(aw, dw):
         raise MemError(f"data width {dw} is not a width")
 
 
-def emit_unit(kind, aw, dw, seq=False):
+# A LOAD ON A PORT ANOTHER STATION ALSO CLOCKS CAPTURES ITS WORD (`cap`, bdc/emit.py: every load on an arbitrated
+# port).  z_data = p_rdata is the RAM's DOADO itself, and bdc's sender rule is that data holds from the request's
+# rise to the acknowledge's FALL (rtl/bd_link.v: a consumer's latch is transparent until then).  A lone station
+# keeps that by construction: its next access waits for its operands, which `hold` releases only once z_ack has
+# fallen.  A second station on the same port does not wait for this one's consumer at all -- the arbiter grants it
+# as soon as this station's claim drops at `done` -- and its RAM edge rewrites DOADO (a store: WRITE_FIRST hands
+# back the word it wrote) while this load's consumers may still be reading.  So the word is latched here:
+#     open = ~done & ~z_ack     closes when the RAM answered, reopens once the consumer's handshake is over
+# One LUT2 and the word's bd_latch (W/2 LUT6_2).  Timing it rests on, both in the safe direction by construction:
+# the latch closes two arcs after p_ack, which rule C already places after DOADO is valid (DCO >= clock-to-out);
+# and the next RAM edge on this port needs this claim to fall, the arbiter to hand over, the other station's DSETUP
+# and the RAM's own clock-to-out before DOADO moves.  The data path gains one latch arc after DOADO against z_req's
+# one arc after p_ack: rule C's margin must cover that arc (measured margins: 665-3194 ps, bench/README.md).
+CAPTURE = """    // THE WORD IS CAPTURED: another station on this port may clock the RAM
+    // while this load's consumer still reads (bdc/mem.py CAPTURE).
+    wire cap_open;
+    (* keep *) LUT2 #(.INIT(4'h1)) ucapen (.I0(done), .I1(z_ack), .O(cap_open));
+    bd_latch #(.W({dw})) ucap (.d(p_rdata), .en(cap_open), .q(z_data));"""
+
+
+def emit_unit(kind, aw, dw, seq=False, cap=False):
     """One memory access STATION as a self-contained Verilog module.
 
     `seq` adds a control channel `c` carrying a PROGRAM-ORDER TOKEN.  It costs
@@ -304,7 +326,7 @@ def emit_unit(kind, aw, dw, seq=False):
     cell's outgoing request.
     """
     check(aw, dw)
-    name = unit_name(kind, aw, dw, seq)
+    name = unit_name(kind, aw, dw, seq, cap)
     store = kind == "store"
 
     # Input channels.  A load consumes the address; a store consumes the
@@ -445,13 +467,13 @@ module {name}
     // z_req therefore rises when the RAM answered and falls when the operands
     // are withdrawn, which is after its own acknowledge.
     assign z_req = done;
-{"" if store else "    assign z_data  = p_rdata;"}
+{"" if store else (CAPTURE.format(dw=dw) if cap else "    assign z_data  = p_rdata;")}
 endmodule
 `default_nettype wire
 """
 
 
-def emit_port(aw, dw, slots=1, arb=False):
+def emit_port(aw, dw, slots=1, arb=False, host=False):
     """The RAM gang and its slot mux, as a self-contained Verilog module.
 
     `arb` puts a bd_arbiter in front of the RAM instead of trusting the caller
@@ -459,9 +481,21 @@ def emit_port(aw, dw, slots=1, arb=False):
     gets its OWN acknowledge (`s_ack`), because that is what an arbiter hands
     back, and the payload mux selects on the arbiter's GRANTS, which are
     exclusive by construction rather than by obligation.
+
+    `host` (arbitrated only; bdc/emit.py --host-mem) adds a third slot, the
+    last, OUTSIDE the arbiter: a test harness's port that is never live while
+    a kernel slot is (the plain port's one-hot obligation, on that slot alone;
+    the bench keeps it -- host accesses only between calls).  See HOST_ARB.
     """
     check(aw, dw)
     n = ram_count(dw)
+    if host and not arb:
+        raise MemError("emit_port(host=True) is the arbitrated port's host slot; a plain port's host slot is "
+                       "simply one more one-hot slot")
+    if host:
+        if slots != 3:
+            raise MemError(f"arbitrated port with a host slot asked for {slots} slots; it is 2 + 1")
+        return _emit_port_arb_host(aw, dw)
     if arb and slots != 2:
         raise MemError(
             f"arbitrated port asked for {slots} slots; only 2 is implemented. "
@@ -632,6 +666,101 @@ module {name} #({parlist})
 {joinacks}
 
 {excl_check}
+endmodule
+`default_nettype wire
+"""
+
+
+# THE HOST SLOT OF AN ARBITRATED PORT (`emit_port(..., host=True)`).  The bench fills and reads a memory between
+# calls through one more slot (research/data/suite/bench/README.md: the host and the kernel are never concurrent, one
+# clocked controller issues calls and host accesses in strictly alternating phases).  On the plain port that slot is
+# one more one-hot request.  Here the two kernel slots go through bd_arbiter, which takes exactly two requesters, so
+# the host slot stands OUTSIDE it, ORed into the RAM's request after the arbiter -- not a second arbiter (no tree, and
+# no metastability exposure added to a kernel access: CLAUDE.md "trust the arbiter" covers the arbiter there is).
+# The arbiter must not see the RAM answer a request it did not make, so the RAM's acknowledge is split by a phase
+# bit that is the station's own `hold` C-element (0x00EA):
+#     hphase = ~rst & (h_req | (hphase & m_ack))     rises with the host request, falls once the RAM has reset
+#     A0 = m_ack & ~hphase        h_ack = m_ack & hphase
+# The obligation (never a host request while the arbiter's request is live, nor the reverse) is the plain port's,
+# on one slot: the simulation check below reports a violation, gen_memport_mon.py checks it on a routed netlist.
+def _emit_port_arb_host(aw, dw):
+    n = ram_count(dw)
+    name = f"bdc_memport_arb_host_{aw}_{dw}_3"
+    dpad = " " * max(0, 7 - len(str(dw - 1)))
+    parlist = ",\n                ".join(
+        f"parameter DSETUP_{k} = {DEFAULT_DSETUP}, parameter DCO_{k} = {DEFAULT_DCO}" for k in range(n))
+    sel = ["g1", "g2", "s_req[2]"]
+    mux = []
+    for sig, w in (("addr", aw), ("wdata", dw)):
+        terms = " |\n                    ".join(f"({{{w}{{{sel[k]}}}}} & s_{sig}[{w}*{k} +: {w}])" for k in range(3))
+        mux.append(f"    wire [{w - 1}:0] m_{sig} = {terms};")
+    mux.append("    wire m_we = " + " | ".join(f"({sel[k]} & s_we[{k}])" for k in range(3)) + ";")
+    rams = []
+    for i in range(n):
+        lo = i * RAM_DW
+        hi = min(dw, lo + RAM_DW) - lo
+        wd = (f"m_wdata[{lo + hi - 1}:{lo}]" if hi == RAM_DW
+              else f"{{{RAM_DW - hi}'b0, m_wdata[{lo + hi - 1}:{lo}]}}")
+        if hi == RAM_DW:
+            rd = f"p_rdata[{lo + hi - 1}:{lo}]"
+        else:
+            rams.append(f"    wire [{RAM_DW - hi - 1}:0] rd_hi{i};")
+            rd = f"{{rd_hi{i}, p_rdata[{lo + hi - 1}:{lo}]}}"
+        rams += [
+            f"    bd_mem #(.AW({aw}), .DW({RAM_DW}),",
+            f"             .DSETUP(DSETUP_{i}), .DCO(DCO_{i}), .USE_BUFG(0)) umem{i} (",
+            f"        .req(m_req), .ack(ram_ack[{i}]),",
+            f"        .addr(m_addr), .wdata({wd}), .we(m_we),",
+            f"        .rdata({rd}));",
+        ]
+    joinacks = ("    assign m_ack = ram_ack[0];" if n == 1 else
+                f"    bd_ctree #(.N({n})) uackj (.a(ram_ack), .rst(rst), .q(m_ack));")
+    return f"""
+// memory port, {aw}-bit address, {dw}-bit word, 2 arbitrated kernel slots + 1 host slot outside the arbiter.
+// Generated by bdc/mem.py (HOST ARB) -- do not edit.  DSETUP / DCO: as every bdc_memport.
+//
+// Slots 0 and 1 go through bd_arbiter (exclusive grants g1/g2).  Slot 2 is a test harness's host slot, ORed into
+// the RAM request AFTER the arbiter: it must never be live while the arbiter's request is (the caller's obligation,
+// as on the plain port), and hphase keeps the RAM's acknowledge of a host access away from the arbiter.
+`default_nettype none
+(* keep_hierarchy *)
+module {name} #({parlist})
+    (input  wire             rst,
+     input  wire [2:0]       s_req,
+     input  wire [{aw * 3 - 1}:0]{" " * max(0, 7 - len(str(aw * 3 - 1)))}s_addr,
+     input  wire [{dw * 3 - 1}:0]{" " * max(0, 7 - len(str(dw * 3 - 1)))}s_wdata,
+     input  wire [2:0]       s_we,
+     output wire [2:0]       s_ack,
+     output wire [{dw - 1}:0]{dpad}p_rdata);
+
+    wire k_req, k_ack, g1, g2, m_ack;
+    bd_arbiter uarb (
+        .rst(rst),
+        .r1(s_req[0]), .A1(s_ack[0]),
+        .r2(s_req[1]), .A2(s_ack[1]),
+        .R0(k_req), .A0(k_ack), .g1(g1), .g2(g2));
+    wire hphase;
+    (* keep *) LUT6 #(.INIT(64'h00EA_00EA_00EA_00EA)) uhphase (
+        .I0(s_req[2]), .I1(m_ack), .I2(hphase), .I3(rst), .I4(1'b0), .I5(1'b0),
+        .O(hphase));
+    wire m_req = k_req | s_req[2];
+    assign k_ack = m_ack & ~hphase;
+    assign s_ack[2] = m_ack & hphase;
+{chr(10).join(mux)}
+
+    wire [{n - 1}:0] ram_ack;
+{chr(10).join(rams)}
+
+{joinacks}
+
+`ifndef SYNTHESIS
+    always @(g1 or g2)
+        if (g1 === 1'b1 && g2 === 1'b1)
+            $display("  FAIL {name}: both arbiter grants high at %0t -- the mux selects are not exclusive", $time);
+    always @(k_req or s_req[2])
+        if (k_req === 1'b1 && s_req[2] === 1'b1)
+            $display("  FAIL {name}: the host slot and the arbiter request live at once at %0t -- the host slot is outside the arbiter", $time);
+`endif
 endmodule
 `default_nettype wire
 """

@@ -312,6 +312,10 @@ def void_completion_lines(ctl_out):
 
 
 def words_for(width):
+    # A scalar narrower than 32 bits (Dynamatic's test_stdint: an int8_t) takes one word's low bits, as an array
+    # element narrower than 32 bits does (research/data/suite/bench/README.md); the oracle casts the word to the C type.
+    if 0 < width < 32:
+        return 1
     assert width % 32 == 0, f"arg width {width} is not a multiple of 32 -- unsupported"
     return width // 32
 
@@ -480,7 +484,8 @@ def emit(kernel, is_null, top_name):
         fold_terms = []
         for a in data_args:
             for w in range(words_for(a.width)):
-                fold_terms.append(f"{a.name}_data[{w * 32 + 31}:{w * 32}]")
+                fold_terms.append(f"{a.name}_data[{w * 32 + 31}:{w * 32}]" if a.width >= 32
+                                  else f"{{{32 - a.width}'b0, {a.name}_data}}")
         P(f"    assign out0_data = {' ^ '.join(fold_terms)};")
         P(f"    wire fork_req;")
         P(f"    bd_delay #(.N(10)) ubundle (.a(joined_req), .z(fork_req));")
@@ -1451,7 +1456,9 @@ def emit(kernel, is_null, top_name):
     for a in data_args:
         nw = words_for(a.width)
         lo, hi = word_idx, word_idx + nw - 1
-        if nw == 1:
+        if nw == 1 and a.width < 32:
+            expr = f"op{lo}_to_core[{a.width - 1}:0]"   # a narrow scalar: the word's low bits (words_for)
+        elif nw == 1:
             expr = f"op{lo}_to_core"
         else:
             expr = "{" + ", ".join(f"op{w}_to_core" for w in range(hi, lo - 1, -1)) + "}"

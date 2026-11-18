@@ -13,6 +13,7 @@
 set -euo pipefail
 K=$1; VEC=$(readlink -f "$2"); EXP=$(readlink -f "$3"); mkdir -p "$4"; W=$(cd "$4" && pwd); MEMEXP=${5:-}
 [ -n "$MEMEXP" ] && MEMEXP=$(readlink -f "$MEMEXP")
+[ -s "$EXP" ] || { echo "$1 rtl REFUSED: no expected values in $EXP (a run with nothing to compare is not a pass)"; exit 2; }
 R=$(cd "$(dirname "$0")/../../.." && pwd)
 MLIR=$R/build/frontend/$K/comp/handshake_transformed.mlir
 [ -f "$MLIR" ] || { echo "$K rtl NO FIXTURE ($MLIR)"; exit 1; }

@@ -35,7 +35,7 @@ def signature(k):
             m = re.fullmatch(r"memref<(\d+)x[iu](\d+)>", a.raw)
             mems.append((a.name, int(m.group(1)), int(m.group(2))))
         elif not a.is_control:
-            words += a.width // 32
+            words += max(1, (a.width + 31) // 32)   # a scalar narrower than 32 bits takes one word (gen_bench.py)
     return words, mems
 
 

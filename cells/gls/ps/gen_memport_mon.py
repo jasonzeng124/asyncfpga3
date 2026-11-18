@@ -16,6 +16,9 @@ at the end of every batch (bench_busy falling), counting since the previous line
 for the first 20 instants two of one memory's slot requests are high together.  A slot request that cannot be found
 is an error, not a silent omission.  The slots come from the kernel's own Verilog (`<k>_kernel_bench.v` beside the
 routed JSON): each `bdc_memport_* ... <mc>_uport (` instance's `.s_req({...})`, the last entry the host slot.
+An arbitrated port with a host slot (`bdc_memport_arb_host_*`, bdc/mem.py: two kernel slots through bd_arbiter, the
+host slot outside it) may have both kernel slots requesting at once -- the arbiter's job -- so there the check is the
+host slot against either kernel slot.
 """
 import glob, json, os, re, sys
 
@@ -28,7 +31,8 @@ def main():
     ktext = open(kv[0]).read()
     # memories in signature order = the kernel's <m>_host_req ports in declaration order (bdc/emit.py HOST_MEM)
     hosts = re.findall(r"input\s+wire\s+(\w+)_host_req", ktext)
-    ports = re.findall(r"(bdc_memport_\d+_\d+_\d+)\s*#\(.*?\)\s*(\w+)_uport\s*\(.*?\.s_req\(\{?([^)}]*)\}?\)", ktext, re.S)
+    ports = re.findall(r"(bdc_memport(?:_arb_host)?_\d+_\d+_\d+)\s*#\(.*?\)\s*(\w+)_uport\s*\(.*?\.s_req\(\{?([^)}]*)\}?\)",
+                       ktext, re.S)
     if not hosts or not ports:
         sys.exit("gen_memport_mon: %s has no host port / no bdc_memport (built without --host-mem?)" % kv[0])
     m = list(json.load(open(rj))["modules"].values())[0]
@@ -85,7 +89,11 @@ def main():
             mi, mc, mod, hw[1], ", ".join("%s %s" % (n, p) for n, (_, p) in zip(kn, slots[::-1]))))
         L.append("    wire [%d:0] sreq%d = {%s};" % (len(kn), k, ", ".join([hw[0]] + [w for w, _ in reversed(slots)])))
         L.append("    integer nh%d = 0, nk%d = 0, no%d = 0;" % (k, k, k))
-        L.append("    always @(sreq%d) if (^sreq%d !== 1'bx && (sreq%d & (sreq%d - 1'b1)) != 0) begin" % (k, k, k, k))
+        if "_arb_host_" in mod:   # the kernel slots may contend (bd_arbiter); the host slot may not overlap either
+            L.append("    always @(sreq%d) if (^sreq%d !== 1'bx && sreq%d[%d] && |sreq%d[%d:0]) begin"
+                     % (k, k, k, len(kn), k, len(kn) - 1))
+        else:
+            L.append("    always @(sreq%d) if (^sreq%d !== 1'bx && (sreq%d & (sreq%d - 1'b1)) != 0) begin" % (k, k, k, k))
         L.append("        no%d = no%d + 1;" % (k, k))
         L.append('        if (no%d <= 20) $display("MEMPORT ONEHOT FAIL t=%%0t mem=%d s_req=%%b", $time, sreq%d);' % (k, mi, k))
         L.append("    end")
