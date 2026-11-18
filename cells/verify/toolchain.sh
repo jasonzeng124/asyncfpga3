@@ -38,6 +38,7 @@ CHECKS=(
   "carry PLACE_WEIGHT|nextpnr-xilinx-place-weight.patch|PLACE_WEIGHT net weighting in both placers"
   "REG_INIT_FF|nextpnr-xilinx-ff-timing.patch|slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders"
   "permuted LUT input pins as routed sink wires|nextpnr-xilinx-lut-perm-sink.patch|SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route"
+  "Constant sinks routeVcc left unrouted|nextpnr-xilinx-const-sinks.patch|GND sinks routeVcc's 50k-wire BFS missed stayed unrouted (F7/F8 select read 1, constant-D flop had no FFMUX)"
 )
 
 miss=0

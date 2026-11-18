@@ -315,3 +315,25 @@ re-measured numbers.
 Fingerprint, 0x in every binary without this patch (the string is new):
 
     "permuted LUT input pins as routed sink wires|nextpnr-xilinx-lut-perm-sink.patch|SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route"
+
+## nextpnr-xilinx-const-sinks.patch
+
+Base: `nextpnr-xilinx` at `bfdeaf7c` + the patches above (applied last, as setup-toolchain.sh's "unlisted" step).
+Applies to `xilinx/arch.cc`. Installed on the cluster toolchain 2026-11-18 (binary sha256 6e5d224472232d5d; the
+previous binary, 9c732bc6303458df, is kept beside it as `nextpnr-xilinx.9c732bc6303458df.bak`).
+
+**A constant GND site pin that `Arch::routeVcc()` failed to reach stayed unrouted, so the die read its default (1).**
+`routeVcc()` routes GND/VCC sinks after router2 by an uphill BFS through free wires capped at 50 000 wires; a sink that
+hits the cap is logged "left to main router", but no router runs after it. VCC always routes (every IMUX / BYP has a
+default ppip from VCC_WIRE); a missed GND pin reads 1. On a plain LUT input this is harmless (fixupRouting drops the
+pin's X_ORIG_PORT, the INIT reads 0); on an **F7/F8 select** the mux passes its other input (ipow x0.55 route 19:
+11/17 wrong in the bits-decoded simulation), and on a **flop D** the FFMUX gets no bit at all (ffmux_scan's FLAG; what
+the die latches is unknowable). About 10-15 % of routes carried one of these (farm cand3b, shrink10b, suite1 / suite2).
+
+The patch adds a pass after routeVcc() that routes the missed sinks whose value matters through free wires without a
+cap (rip-up of signal nets in the way as a fallback; an unroutable pin is now an error, not a wrong bitstream). Checked
+(research/data/pnrfix/README.md, JOURNAL 2026-11-18): placement, every signal net and the SDF byte-identical; on routes
+with no missed sink the routed JSON, SDF and FASM are byte-identical (5 routes: au_collatz_1_0, ipow seeds 1 / 2,
+su_xorshift_8_7, su_collatz64_1_4); on defect routes only the FASM gains the missing bits and their GND pips (7 pins
+on 6 routes + su_xorshift_2_7's CFF: ffmux FLAG -> clean, the same SDF); route 19 11/17 -> 17/17. Fingerprint:
+"Constant sinks routeVcc left unrouted" (cells/verify/toolchain.sh fails on the old binary, checked).
