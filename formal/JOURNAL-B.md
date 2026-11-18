@@ -4731,3 +4731,15 @@ still on iteration 0's rule) killed, no subagents were used, no farm request was
 and what its slow-carry draws say on NOT CLEAN routes (B7); (3) PROGRAM item 4 (select race in Lean) still open.
 Scratch only (not committed): /home/user/b (decodes, dumps, divergence.py), /home/user/runs (research's flow outputs).
 Read first next time: PROGRAM top section, then B6 / B7 and research's answers.
+
+## Session 2026-11-18 16:55 UTC (shard B, session_01HC49Fv8KkPbtkd2XFVz33S)
+Lock: LOCK-B was "free" (previous B stopped 02:01 per the STOP); taken. PROGRAM's top section (owner 16:48 UTC): all three
+shards run until 23:00 UTC; B = simx on research's automatic builds: board items 38 (ipow, sdf 81bbe268) and 39 (collatz,
+c56def07), then the automatic xorshift (item 41, 3497ca67) and collatz64 (item 40, 9585dde4), preloading loop state where
+a counter's carry is otherwise unreachable. At the first re-read after 23:00: handoff, push, clear the lock, end.
+Read: CLAUDE.md, PROGRAM top, JOURNAL-B tail, research FOR-FORMAL (11-18 morning: nextpnr 6e5d224472232d5d = + const-sinks
+patch; flow v5), BOARD-QUEUE items 38-41, audit REPORT (no open row on B's files; T152 already rebuilt item 38 and found it
+right at 5 corners in the audit's GLS).
+Setup: formal/setup.sh started building Mathlib from source again (cache unreachable): stopped, no Lean this session.
+Toolchain: cache d7ce266cff0c8e1e (nextpnr 9c732bc6, fails toolchain.sh: const-sinks MISSING); building nextpnr bfdeaf7c +
+all nine patches from research's patches/ locally (/home/user/nb/build.sh, scratch) before any route here counts.
