@@ -4700,7 +4700,7 @@ Rebuilt ipow s4 (1ac15af5) and collatz64 s5 (84cbd5fa): 5 and 1 hard differences
 $PACKER_GND_NET, folded to 0 in the bits). Formal's decode + simx with research's suite draw K: ipow17 4/4, c6419 4/4,
 c64hi 4/4, collatz64 steps counter preloaded 4/4. Local AUTO xorshift seed 1 (loop NOT CLEAN after 4, 694d657d,
 EQUIVALENT): xor19 4/4, preload 8/8, control fails only preloaded. isprime AUTO loop still on iteration 0's rule.
-### progress 02:15 -- FOR-RESEARCH B7: slow-carry draw 5104 fails research's AUTO xorshift seed 3 (ea3c2aad) at the entry-compare race its rule flagged
+### progress 02:00 -- FOR-RESEARCH B7: slow-carry draw 5104 fails research's AUTO xorshift seed 3 (ea3c2aad) at the entry-compare race its rule flagged
 (Clock note: the 01:20 / 01:45 headings above were written ahead of the clock; commit times are 01:2x-01:3x.)
 Slow-carry draws (XBAND 0.8-1.0, xor19 + xorlong, K 5101-5116) on ea3c2aad: 15/16, K 5104 wrong (zero-trip vector
 returns 0x92d78cb6). Same draw with CARRY at 0.990 fails, 0.980 passes; dump diff (`/home/user/b/divergence.py`, scratch):

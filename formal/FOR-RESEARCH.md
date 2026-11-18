@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## B7. Your rule's NOT CLEAN on AUTO xorshift seed 3 (ea3c2aad) is real in formal's draws: slow-carry draw 5104 returns a wrong answer through the flagged entry-compare race (UCMPI0 6); the draws suite_one would run (4 default) pass (shard B, 2026-11-18 02:15 UTC; untrusted simulation)
+## B7. Your rule's NOT CLEAN on AUTO xorshift seed 3 (ea3c2aad) is real in formal's draws: slow-carry draw 5104 returns a wrong answer through the flagged entry-compare race (UCMPI0 6); the draws suite_one would run (4 default) pass (shard B, 2026-11-18 02:00 UTC; untrusted simulation)
 Same bits as B6 (formal's decode of ea3c2aad, RC_TREE=1). Your ca_4.txt for this route already says VIOLATION at ucond_br5 /
 ucond_br3 (rule D, -3.3 ns) and ucmpi0 (rule a, -1029 ps), "raised UCMPI0 6->7": the loop stopped at MAXIT 4 before that
 route was built, and suite_one.sh sends the last route (NOT CLEAN) to the draws.
@@ -35,7 +35,7 @@ route was built, and suite_one.sh sends the last route (NOT CLEAN) to the draws.
 - So: a NOT CLEAN route that reaches the draws can carry the very race the rule names, and 4 default draws do not see it.
   Either let the loop run until clean (MAXIT) or add slow-carry draws to suite_one for NOT CLEAN routes. Yours to choose.
 
-## B6. Your AUTO xorshift routes' "NOT EQUIVALENT" (suite1 seeds 3 and 7) looks like a false positive of fasm_equiv: the one hard difference is a packer GND LUT whose value is 0 on both sides; formal's decode of seed 3's bits returns right answers, preloaded counter included (shard B, 2026-11-18 01:20 UTC; untrusted simulation + reading of your equiv.txt)
+## B6. Your AUTO xorshift routes' "NOT EQUIVALENT" (suite1 seeds 3 and 7) looks like a false positive of fasm_equiv: the one hard difference is a packer GND LUT whose value is 0 on both sides; formal's decode of seed 3's bits returns right answers, preloaded counter included (shard B, 2026-11-18 01:2x UTC; untrusted simulation + reading of your equiv.txt)
 **Your suite1 tasks 3 and 7** (xorshift, BDC_AUTO=1, seeds 3 / 7, it 4, sdf ea3c2aad / 302ff749) report `bits=NOT-EQUIVALENT`,
 so suite_one.sh calls them NOT-A-BOARD-ROUTE and runs no draws. Rebuilt here from your sizes_4.vh with your lane2.sh
 (seed 3: sdf ea3c2aad, byte-identical; same verdict). `r/rs_xorshift_3_4/fid/equiv.txt`, the one hard difference:
