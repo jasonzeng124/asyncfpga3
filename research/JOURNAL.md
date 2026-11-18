@@ -6990,3 +6990,25 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - Not yet the default: CA_FAST's exactness rests on its argument and 6 kernels; an old-vs-new check on collatz64,
   quadrec, dot2 and iterative_sqrt is running here. If identical, auto_size.sh turns it on, and the farm gets
   loopfast_gi (gcd, isprime x 4) and the 14 small kernels that timed out.
+### progress 22:24 (dyntests landed: 22 more Dynamatic tests in the suite; void kernels; a load before a store / a second load)
+- **dyntests** (lead 5; research/data/suite/dyn/README.md: every integer test's status): void kernels on the bench (a
+  call completes on end + every memory's end, the arrays read back are the answer; oracle_mem.sh: void, N-D arrays,
+  ORACLE_UBCHECK=1 rebuilds the C under UBSan / ASan and fails on out-of-range vectors); bench_gate.sh: an empty
+  expected-values file is no longer PASS 0/0; 130 bench files of the old fixtures byte-identical. The 9 store tests in
+  the suite (8 listed; matrix not: hours per call in the gate). **mc:load1st lowered in bdc**: a load before a store on
+  one controller, and two loads (14 more tests emit): the first access's completion is forked into the second's order
+  token (one basic block only; across blocks binary_search deadlocked); every load on an arbitrated port captures its
+  word (bdc_load_cap: the stores.md section 6 hazard; tb_capture.v negative control returns the other station's word);
+  the host slot sits outside bd_arbiter with a phase C-element; two loads of one block chained too (unchained,
+  test_bool_array FAILED 1/4 on its route though RTL passed: a tie at the arbiter on every execution is the suspect).
+  Routed smokes (seed 1, worst corner): simple_example_1, while_loop_3, if_convert, single_loop, stencil_2d (AUTO),
+  test_memory_1, test_memory_2, test_bool_array, binary_search, mul_example, test_stdint, spmv (AUTO) PASS;
+  test_flatten_array passes on NOT EQUIVALENT bits (16 F7 muxes in its shifter unconfigured: to look at);
+  share_test_2 unjudged (fasm2net refuses its DSP48E1 mode). Of 85 integer tests: 2 stop in the frontend, 48 in bdc
+  (lsq needed by 39, the only blocker of 35), 1 emits only, 17 pass RTL, 17 pass a routed smoke.
+- Merged here by hand: hangs' RTL vectors of the same nine names moved to research/data/suite/hangs/vec/ (the suite's
+  vectors are dyntests', UB-checked); dyntests' patch pair 0004 / 0006 (unchain, re-chain) skipped as a pair with
+  0006's comment restored. Emission checked: the 153 earlier outputs byte-identical; 42 new; all equal dyntests' own
+  tree except sobel / spmv in the default and host-mem modes, where hangs' token-floor fix (not in dyntests' tree) adds
+  stages (spmv: ulink_n_falseResult_36 / _40 become 2-stage) -- the two kernels dyntests saw deadlock in the default
+  flow; their RTL runs with the merged tree are running here.
