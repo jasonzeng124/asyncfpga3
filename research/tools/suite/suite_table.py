@@ -78,7 +78,7 @@ for k in sorted(rows):
     dy = DY.get(k)
     ratio = (Pm / dy[0]) if (Pm and dy) else None
     if ratio and ok:
-        ratios.append(ratio)
+        ratios.append((ratio, "ESTIMATE" not in dy[1]))
     hd = HD.get(k)
     print("| %s | %s | %d / %d | %s | %s | %s | %s | %s | %s | %s |" % (
         k, status, len(judged), len(rs), ("%d / %d" % (dp, dn)) if dn else "-",
@@ -94,7 +94,13 @@ if hnotes:
 if notes:
     print()
     print("Dynamatic's figures: " + "; ".join("%s: %s" % kv for kv in notes) + ".")
-gm = math.exp(sum(map(math.log, ratios)) / len(ratios)) if ratios else None
+def gmean(v):
+    return math.exp(sum(map(math.log, v)) / len(v)) if v else None
+gm_m = gmean([r for r, m in ratios if m]); gm_a = gmean([r for r, _ in ratios])
 print()
-print("%d of %d kernels pass; geometric mean of the ratio (ns per iteration / Dynamatic's, passing kernels with a figure, n = %d): %s"
-      % (npass, len(rows), len(ratios), ("%.2f" % gm) if gm else "-"))
+print("%d of %d kernels pass; geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a "
+      "MEASURED Dynamatic figure (n = %d): %s; including ESTIMATED figures (n = %d): %s. Our ns are the simulation's "
+      "(about 8 %% slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); "
+      "Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs."
+      % (npass, len(rows), sum(1 for _, m in ratios if m), ("%.2f" % gm_m) if gm_m else "-",
+         len(ratios), ("%.2f" % gm_a) if gm_a else "-"))

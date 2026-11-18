@@ -1,7 +1,8 @@
 **THE AUTOMATIC COLUMN (PROGRAM "General first", owner 2026-11-17) -- one switch, nothing set per kernel.** BDC_AUTO=1
 with the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model; the hand
 recipes beside it. **Farm suite2, flow v2 (commit 3e47c10ad: start at emit.py's estimates x 0.3, the one-band rule,
-MAXIT 4), 26 of 48 tasks, 4 draws per route, 2026-11-18 04:05 UTC.** Every judged route returned every right answer on
+MAXIT 4), 26 of 48 tasks, 4 draws per route, 2026-11-18 04:05 UTC. Flow v2 is superseded: its one-band rule is the one
+that let v1's xorshift seed 8 fail a draw; the v3 / v4 runs (suite3 / 4 / 5) are the ones to quote when read.** Every judged route returned every right answer on
 every draw. Routes not judged: the checker of that commit called 2 NOT EQUIVALENT (being re-judged: farm rejudge1);
 gcd and isprime timed out routing on 2 cores (suite5 re-runs them on 8). Flow v3 / v4 (two-corner rule, finish phase,
 join credit) is running as suite4 / suite3 / suite5 and replaces this table when read.
@@ -15,7 +16,8 @@ join credit) is running as suite4 / suite3 / suite5 and replaces this table when
 | isprime | PNR-TIMEOUT (it=0; raise PNR_TIMEOUT or load less) | 0 / 1 | - | - | - | - | 9.26 (ESTIMATE) | - | - |
 | xorshift | PASS | 8 / 8 | 32 / 32 | 18.63 (16.69-19.90) | 5148 | 1337 | 12.73 (measured, 1 route) | 1.46 | 16.76 |
 
-4 of 6 kernels pass; geometric mean of the ratio (ns per iteration / Dynamatic's, passing kernels with a figure, n = 4): 1.03
+4 of 6 kernels pass; geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.37; including ESTIMATED figures (n = 4): 1.03. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs.
+(Audit, 2026-11-18: the first version of this line gave only 1.03, which counts ipow against an ESTIMATE; corrected.)
 
 Where the automatic column stands against the hand recipes: faster on collatz (18.86 vs 21.5), collatz64 (23.20 vs
 31.4) and ipow (21.98 vs 36.2), 1.9 ns behind on xorshift (18.63 vs 16.76; its loop-test compare UCMPI1 is held long by
