@@ -12,6 +12,7 @@ case $I in
  41) K=xorshift; S=8; SZ=$A/t154/xorshift_v3_s8_sizes.vh; H=auto_xor_s8; EXP=3497ca67; V=$A/t144/xor19.hex; OR=oracle_xorshift.py;;
 esac
 L=/root/t154_$I.log; W=/root/wt-t154_$I
+if [ "${SKIP_BUILD:-0}" != 1 ]; then
 echo "T154 item $I $(date -u)" > $L
 git -C /root/wt-r91 worktree remove --force $W 2>/dev/null; git -C /root/wt-r91 worktree add -q --detach $W 312abcc32
 mkdir -p $W/build; cp -r $W/cloud/fixtures/frontend $W/build/
@@ -22,6 +23,7 @@ D=$W/cells/build/hw/${K}_bench_gen
 echo "sdf $(md5sum $D/${K}_bench_gen.sdf | cut -c1-8) (item $I $EXP)" >> $L
 rm -rf /root/t65/$H; mkdir -p /root/t65/$H; cp $D/${K}_bench_gen.{bit,sdf} $D/${K}_bench_gen_routed.json /root/t65/$H/; cp $D/*.fasm /root/t65/$H/ 2>/dev/null
 python3 $A/t67/scan_ff_own.py /root/t65/$H/*.fasm > /root/t90/ff_$H.txt 2>&1; echo "ff: $(tail -1 /root/t90/ff_$H.txt | sed 's/.*flops/flops/')" >> $L
+fi
 [ "${BUILD_ONLY:-0}" = 1 ] && exit 0
 sed 's/GLS_SCATTER=0.126/GLS_SCATTER=${SCAT:-0.126}/' $A/t142/gate.sh > /root/t154_gate.sh
 cd $A/t90; export PS_MON_GEN=$A/t104/mon_both1.py
