@@ -6704,3 +6704,13 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   control (flag off, same seed): both RULE FAILED, "combinational cycle with no storage".
 - Board candidates: collatz s6 24 / 24, collatz64 s5 9 / 9 so far; xorshift v3 s8 (rebuilt = 3497ca67, 20.11 ns) started
   (3 corners, 32 draws, 8 slow-carry draws).
+### progress 09:35 (suite7: the automatic loop is too slow for the large kernels -- gcd 1 rule step in 4 h; isprime 1 of 4 judged)
+- suite7 (gcd / isprime x 4 seeds, 8 cores, flow v5): 6 of 8 tasks hit the 240-min limit. gcd (358 sized lines):
+  only it 0 (build + rule) finished in 4 h. isprime (213 lines): seed 4 PASS 4/4 (P 363.19 ns on the period vector
+  n = 2003 -- the OUTER trial's period, not comparable to Dynamatic's 1 cycle per inner shift; the table's isprime ratio
+  is meaningless until the unit is fixed), seed 3 PNR-TIMEOUT, seeds 1 / 2 still iterating at the limit (seed 1:
+  negatives 26 / 78 / 45 / 39 over it 1-4: the large kernels converge worse too).
+- Cause: corner_audit runs one sensitivity worker per sized line, each re-running the whole static analysis on the
+  route (O(lines x design)); at ~60 s per worker on gcd, one rule step is ~1.5 h even with 8 workers, and the loop
+  wants 5-8 steps. The automatic flow does not scale to gcd-sized kernels yet: a work item (sensitivities from the
+  critical paths the walk already records, or only for lines that can move).
