@@ -30,6 +30,8 @@ case $K in
   gcd) V=research/data/suite/vec/gcd8.hex; PV=research/data/suite/vec/gcd_period.hex; OR="research/data/gcd_draws/gcd_oracle.sh";;
   *) V=kernels/$K/vec.hex; PV=kernels/$K/period.hex; [ -f "$R/$PV" ] || PV=$V; OR="research/tools/suite/oracle.sh $K";;
 esac
+# a v2 vector file (arrays; research/data/suite/bench/README.md) takes the memory oracle and the arrays' read-back
+MEMV=0; head -1 "$R/$V" 2>/dev/null | grep -q '^// benchvec' && MEMV=1
 fin() { echo "$K $S $*" | tee "$O/result.txt"; exit 0; }
 # compiles at all? (the frontend fixture, then bdc with BDC_AUTO=1, as cells/hw/build_bench.sh runs them; a kernel the
 # compiler refuses stays in the suite with the reason)
@@ -39,8 +41,14 @@ CE=$O/compile; mkdir -p "$CE"
 python3 "$R/bdc/auto.py" "$FX" "$CE/auto.mlir" > "$CE/log" 2>&1 && BDC_AUTO=1 python3 "$R/bdc/emit.py" "$CE/auto.mlir" --no-top \
   -o "$CE/kernel.v" >> "$CE/log" 2>&1 || fin "status=DOES-NOT-COMPILE (bdc: $(grep -E 'Error' "$CE/log" | tail -1 | cut -c1-140))"
 [ -f "$R/$V" ] || fin "status=NO-VECTORS ($V)"
-( cd "$R" && $OR < "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" || fin "status=NO-ORACLE ($(head -1 "$O/oracle.err"))"
-[ "$(grep -c . "$O/exp.txt")" = "$(grep -c . "$R/$V")" ] || fin "status=NO-ORACLE (line count)"
+if [ "$MEMV" = 1 ]; then
+  ( cd "$R" && ORACLE_MEMOUT="$O/memexp.txt" research/tools/suite/oracle_mem.sh "$K" "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" \
+    || fin "status=NO-ORACLE ($(head -1 "$O/oracle.err"))"
+  export GATE_MEMEXP="$O/memexp.txt"   # bench_gate.sh: every array read back after each call must equal the C's
+else
+  ( cd "$R" && $OR < "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" || fin "status=NO-ORACLE ($(head -1 "$O/oracle.err"))"
+  [ "$(grep -c . "$O/exp.txt")" = "$(grep -c . "$R/$V")" ] || fin "status=NO-ORACLE (line count)"
+fi
 N=su_${K}_$S
 "$R/research/tools/auto/auto_size.sh" "sl_${K}_$S" "$N" "$K" "$S" "$R/$PV" "$MAXIT" > "$O/auto.log" 2>&1
 AR=$(tail -1 "$RUNS/auto/$N/result.txt" 2>/dev/null)
