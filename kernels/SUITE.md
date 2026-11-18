@@ -79,6 +79,11 @@ quadrec (both flows), lfsrfind / nest3 / nested (default flow), division and mod
    quadrec in both flows, +1 with the deeper links, and +1 or no cycle on every other fixture that emits (21 kernels,
    both flows). Proposed rule, NOT applied: a cycle that threads k back edges needs 2k + 1 stages (the existing
    one-token rule, generalised; checked on this one kernel). Work for goal 1: the automatic path has to place it.
+   **Fixed in bdc (2026-11-18, research/data/suite/ringfloor.md): the token floor, on in both flows.** 2k + 1 per
+   cycle is necessary, not sufficient (trueResult_14 at 7 stages meets it on every cycle and still deadlocks); the
+   rule also needs 2K stages on a path that carries K more tokens than another path from the same fork to the same join
+   (quadrec's loop-condition fork feeds every steer, so each rotation back edge needs 2). bdc now adds 2 stages on
+   trueResult_16/18/20: simcheck PASS 10/10 both flows; each added stage removed alone deadlocks again.
 2. **The default flow (no BDC_AUTO) deadlocks on three loop shapes; in simcheck BDC_AUTO's rule M removes it.**
 simcheck, each
    vector alone. lfsrfind hangs on any search of one step or more ((1, 0xb400)); seed == key (0 steps) passes, also
@@ -94,6 +99,12 @@ simcheck, each
    two. gcd's inner ctz loop also has 0 trips after earlier instances (at
    diff == 0) and gcd passes, so the loop's shape matters. Rule M was adopted for speed; on these shapes the default
    flow is not live without it.
+   **Explained and fixed (2026-11-18, research/data/suite/ringfloor.md): the same token / stage argument.** Each of the
+   three has a fork-join pair where one path crosses a back edge (one more token) with fewer than 2 stages, through the
+   loop-header control_merge (nested / nest3: only when an inner loop is skipped after the outer back edge was used,
+   which is the hang condition above). Rule M's olink is a stage on every such path. The token floor adds the storage in
+   the default flow (lfsrfind: a link on trueResult_14; nested: falseResult_17 -> 2; nest3: falseResult_17, _33 -> 2):
+   simcheck PASS 10/10, 11/11, 12/12; BDC_AUTO output unchanged.
 3. **Division and modulo do not compile.** `v % b` stops in Dynamatic's frontend (`lower-cf-to-handshake`: failed to
    legalize `arith.remui`), before bdc; `v / b` reaches bdc, which has no cell (`no width rule for handshake op
    'divui'`). LLVM did not fold digitdiv's `v - (v / b) * b` back into a remainder.

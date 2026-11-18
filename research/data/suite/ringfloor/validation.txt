@@ -1,0 +1,37 @@
+# The full condition (ring_tokens.py's walk view = bdc/emit.py token_graph/short_walk) against simcheck, every configuration tested.
+# Knobs on bdc as of this change with BDC_TOKEN_FLOOR=0 unless the row says floor; tR = ulink_n_trueResult; v = the vector simcheck hangs at.
+# config | directed cycles view, walk view | simcheck (this work unless marked suite = kernels/SUITE.md / simcheck_raw.txt)
+quadrec base | cycles=-4 walks=short(-2) | deadlock v2 (suite; q_base)
+quadrec A tR14=7 | cycles=1 walks=short(-1) | deadlock v2
+quadrec B tR20=3,18=2,16=2 | cycles=1 walks=live | PASS 10/10
+quadrec C tR14=3,16=2,18=2 | cycles=1 walks=short(0) | deadlock v2
+quadrec Cm tR16=2,18=2 | cycles=0 walks=short(0) | deadlock v2
+quadrec D tR14=4,16=2 | cycles=1 walks=short(-1) | deadlock v2
+quadrec suite fix all four=3 | cycles=1 walks=live | PASS 10/10 (suite)
+quadrec floor default | cycles=1 walks=live | PASS 10/10
+quadrec floor AUTO | cycles=1 walks=live | PASS 10/10
+quadrec floor-1 (tR16) default | cycles=0 walks=short(0) | deadlock v2
+quadrec floor-1 (tR16) AUTO | cycles=0 walks=short(0) | deadlock v2
+quadrec floor-1 (tR18) default | cycles=0 walks=short(0) | deadlock v2
+quadrec floor-1 (tR18) AUTO | cycles=0 walks=short(0) | deadlock v2
+quadrec floor-1 (tR20) default | cycles=0 walks=short(0) | deadlock v2
+quadrec floor-1 (tR20) AUTO | cycles=0 walks=short(0) | deadlock v2
+lfsrfind base | cycles=1 walks=short(0) | deadlock v1
+lfsrfind olink | cycles=1 walks=live | PASS (suite)
+lfsrfind rlink | cycles=1 walks=short(0) | deadlock (suite; lfsr_rlink v1)
+lfsrfind ruleF | cycles=1 walks=short(0) | deadlock (suite)
+lfsrfind floor | cycles=1 walks=live | PASS 10/10
+lfsrfind AUTO | cycles=1 walks=live | PASS 10/10
+nested base | cycles=1 walks=short(0) | deadlock v3
+nested olink | cycles=1 walks=live | PASS (suite)
+nested rlink | cycles=1 walks=live | PASS 11/11
+nested floor | cycles=1 walks=live | PASS 11/11
+nested AUTO | cycles=1 walks=live | PASS 11/11
+nest3 base | cycles=1 walks=short(0) | deadlock v1 (nest3_off; = suite)
+nest3 olink | cycles=1 walks=live | PASS (suite)
+nest3 rlink | cycles=1 walks=live | PASS 12/12
+nest3 ruleF | cycles=1 walks=short(0) | deadlock (suite)
+nest3 floor | cycles=1 walks=live | PASS 12/12
+nest3 floor-1 (no falseResult_17 stage) | cycles=1 walks=short(0) | deadlock v6
+nest3 floor-1 (no falseResult_33 stage) | cycles=1 walks=short(0) | deadlock v1
+nest3 AUTO | cycles=1 walks=live | PASS 12/12

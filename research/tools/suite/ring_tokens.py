@@ -14,9 +14,15 @@ links counted as ring_depths counts them, fork output links). The environment is
 `BDC_AUTO=1 ring_tokens.py X` checks the AUTO design.
 
 Edge weight = stages - 2 * tokens; a cycle is short when its weight is <= 0 (stages <= 2 * tokens). Floyd-Warshall,
-then every node on a short cycle is listed. Exit 1 when one exists. It does not prove a design live: 2k + 1 is the
-one-token rule generalised, checked here on one kernel (quadrec: deepening its four rotation back edges to 3 stages
-made simcheck pass 10/10), and it says nothing about the deadlocks that rule M fixes (lfsrfind, nest3, nested).
+then every node on a short cycle is listed.
+
+The second view (bdc/emit.py token_graph / short_walk, research/data/suite/ringfloor.md) is the whole condition: every
+closed walk that goes forward along some channels and backward along others, turning at joins and forks, holds a token.
+That adds the two-paths case (one fork, one join, one path crossing K more back edges needs 2K stages on it), which is
+what quadrec's d -> c hop against its loop-condition fork and the default-flow deadlocks of lfsrfind / nested / nest3
+violate with every directed cycle above 2 x tokens. bdc applies it (the token floor, on by default), so this reports the
+design bdc emits; BDC_TOKEN_FLOOR=0 shows the design without it. Exit 1 when either view finds a short cycle or walk.
+Neither view proves a design live (they model the iterating loop; mode changes and memory ops are not modelled).
 """
 import os
 import sys
@@ -77,12 +83,25 @@ def main():
     worst = min((d[i][i] for i in range(n)), default=INF)
     print(f"{func.name}: {len(e.linked)} linked channels, {ntok} back edges; worst cycle stages - 2 * tokens = {worst} "
           f"(short when <= 0)")
+    rc = 0
     if bad:
         print(f"{func.name}: {len(bad)} nodes on cycles with stages <= 2 * tokens: "
               + " ".join(emit.instname(func.nodes[i], i) for i in bad))
-        return 1
-    print(f"{func.name}: every cycle has more than 2 stages per token")
-    return 0
+        rc = 1
+    else:
+        print(f"{func.name}: every cycle has more than 2 stages per token")
+    chans, out = emit.token_graph(func, e.linked, e.depth, e.mem_absorbed)
+    walk = emit.short_walk(chans, out)
+    floor = ", ".join(f"ulink_{emit.vname(v)}={n}" for v, n in e.token_floor) or "nothing"
+    if walk is None:
+        print(f"{func.name}: walks: every walk holds a token ({len(chans)} channels walked; token floor added "
+              f"{floor})")
+    else:
+        cnt, cyc = walk
+        nodes = sorted({emit.instname(func.nodes[chans[s // 2][2]], chans[s // 2][2]) for s in cyc})
+        print(f"{func.name}: walks: a walk holds {cnt} token(s), through " + " ".join(nodes))
+        rc = 1
+    return rc
 
 
 if __name__ == "__main__":

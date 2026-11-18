@@ -1412,6 +1412,10 @@ def cycle_sites(func, already, exclude=frozenset()):
 # pass a token through but cannot hold one, so it adds no stages.  Measured
 # directly on the mux -> steer -> storage -> mux ring: one and two stages dead,
 # three and up live, with the mux and steer contributing nothing.
+#
+# That is the ONE-token case.  A cycle that threads T back edges carries T tokens and needs 2T + 1, and two paths
+# between one fork and one join that carry different numbers of tokens need storage too: token_floor() below, which
+# runs after ring_depths() and adds only where this floor of three is not enough.
 RING_MIN_STAGES = 3
 
 _INF = float("inf")
@@ -1544,13 +1548,14 @@ def ring_depths(func, linked, exclude=frozenset()):
 # changes, so it can be read off one state.
 #
 # TOKENS.  Take the state at an iteration boundary: one loop-carried value resting on each back edge (a data input of a
-# mux / merge / control_merge fed from the same or a later basic block), every other stage empty.  Give each stage edge
-# the number d of back edges it crosses (0 or 1).  Then a marked-graph cycle is a closed walk over stage edges, each
-# taken forward or backward, and its token count is
-#     sum over edges walked forward of (1 - 2d)  +  sum over edges walked backward of 2d,
-# which has to be >= 1.  A forward edge with no token is a free slot (1); a forward edge that crosses a back edge
-# carries one token, which is two transitions (request up, return to zero) and so takes two slots (1 - 2); a backward
-# edge counts the transitions in flight the other way (2d).
+# mux / merge / control_merge fed from the same or a later basic block), that stage high and its neighbours low, every
+# other stage low.  Per stage edge s -> t exactly one arc holds a token: an acknowledge arc when c_s == c_t, a data arc
+# when they differ, and a resting value makes exactly the two stage edges around it differ.  A marked-graph cycle is a
+# closed walk over stage edges, each taken with the data (it uses the acknowledge arcs: one token per stage, minus two
+# per value resting there) or against it (the data arcs: two per resting value).  With d = the back edges a stage edge
+# crosses (0 or 1), its token count is
+#     sum over edges walked with the data of (1 - 2d)  +  sum over edges walked against it of 2d,
+# which has to be >= 1.
 #
 # WHAT THAT SAYS.  (1) A directed cycle with S stages that threads T back edges (T tokens) needs S >= 2T + 1: two
 # stages per token, plus one to move into.  T = 1 is RING_MIN_STAGES = 3.  kernels/quadrec's a <- b <- c <- d <-
@@ -1570,9 +1575,15 @@ def ring_depths(func, linked, exclude=frozenset()):
 # on another) only between inputs that are joined -- not two data inputs of a mux, not two inputs of a merge or
 # control_merge (one of them fires); a FORK turnaround (back in on one output, forward out on another) only between
 # outputs that leave together -- a fork's, a control_merge's result and index -- not a cond_br's two branches.
-# Memory ops are passed through and never turned at (not modelled).  Only channels inside one strongly connected
-# component of the node graph are walked: a loop's entry and exit channels belong to other modes of the circuit than
-# its iterating one, and a walk that mixes modes is no cycle of any one marked graph.
+# Memory ops are passed through and never turned at (not modelled).  A back edge counts only on a cycle (a mux fed from
+# its own basic block in loop-free code is not one).  A loop's ENTRY channels (the inputs of its header muxes / merges /
+# control_merges that are not back edges) and EXIT channels (the other branch of every steer on the loop's condition --
+# the condition whose steer feeds a back edge, traced back through forks) are not walked, for every loop at once: they
+# belong to other modes of the circuit than the iterating one, and a walk that mixes modes is no cycle of any one
+# marked graph.  Everything else is walked, across strongly connected components: a loop's body is often several
+# (quadrec's rotation is one, its loop-control ring another; the condition fork that feeds every steer joins them in
+# one direction only), and the walk that deadlocked quadrec runs through both.  So an inner loop is seen iterating, or
+# skipped (its guard's other branch), never passed through in one trip.
 #
 # THE FLOOR.  Find a walk with token count <= 0 (Bellman-Ford on weights scaled so that "<= 0" is "< 0"), add one
 # stage to a link it walks forward -- a back edge first (the token's own channel, and the only link some of these
@@ -1593,47 +1604,82 @@ def _bb(node):
 def token_graph(func, linked, depth, exclude=frozenset()):
     """The walk graph of the token floor (see the block above).
 
-    Returns (chans, out): chans[i] = (value, producer, consumer, operand, stages, tokens) for every channel inside a
-    cyclic SCC; out[s] = [(s2, weight)] for states s = 2 * i (channel i walked forward) and 2 * i + 1 (backward)."""
+    Returns (chans, out): chans[i] = (value, producer, consumer, operand, stages, tokens) for every channel walked
+    (all but memory-absorbed ones and the loops' entry and exit channels); out[s] = [(s2, weight)] for states
+    s = 2 * i (channel i walked forward) and 2 * i + 1 (backward)."""
     try:
         from . import slack
     except ImportError:
         import slack
+    nodes = func.nodes
     edges, _adj = slack.build_node_graph(func)
     adj = collections.defaultdict(set)
     for e in edges:
         if e.value not in exclude:
             adj[e.producer].add(e.consumer)
     comp = {}
-    ids = list(range(len(func.nodes)))
-    for k, scc in enumerate(slack.tarjan_scc(ids, adj)):
+    for k, scc in enumerate(slack.tarjan_scc(list(range(len(nodes))), adj)):
         if slack._is_cycle(scc, adj):
             for v in scc:
                 comp[v] = k
-    two_in = {i for i, n in enumerate(func.nodes) if n.op == "control_merge" and len(n.operands) >= 2}
-    olink = {i: 1 for i in two_in if instname(func.nodes[i], i) in MERGE_OUT_LINK}
-    chans, ins, outs = [], collections.defaultdict(list), collections.defaultdict(list)
-    for i, node in enumerate(func.nodes):
-        if i not in comp:
-            continue
+    two_in = {i for i, n in enumerate(nodes) if n.op == "control_merge" and len(n.operands) >= 2}
+    olink = {i: 1 for i in two_in if instname(nodes[i], i) in MERGE_OUT_LINK}
+    producer = {r: i for i, n in enumerate(nodes) for r in n.results}
+    passthru = ("extui", "extsi", "trunci", "br")
+
+    def root(v):                                  # a steer's condition, back through forks and pass-throughs
+        while v in producer and nodes[producer[v]].op in ("fork", "lazy_fork") + passthru \
+                and nodes[producer[v]].operands:
+            v = nodes[producer[v]].operands[0]
+        return v
+
+    every = []                                    # (value, producer, consumer, operand, tokens)
+    for i, node in enumerate(nodes):
         for r in node.results:
             if r in exclude:
                 continue
             for (c, k) in func.consumers.get(r, []):
-                if comp.get(c) != comp[i]:
-                    continue
-                st = depth.get(r, 1) if r in linked else 0
-                if node.op in ("fork", "lazy_fork") and vname(r) in FORK_OUT_LINK:
-                    st += 1
-                if i in two_in and r == node.results[0] and instname(node, i) in MERGE_RES_LINK:
-                    st += MERGE_RES_DEPTH
-                cn = func.nodes[c]
+                cn = nodes[c]
                 tok = int(((cn.op == "mux" and k >= 1) or cn.op in ("merge", "control_merge"))
-                          and 0 <= _bb(cn) <= _bb(node))
-                j = len(chans)
-                chans.append((r, i, c, k, st, tok))
-                outs[i].append(j)
-                ins[c].append(j)
+                          and 0 <= _bb(cn) <= _bb(node) and i in comp and comp.get(c) == comp[i])
+                every.append((r, i, c, k, tok))
+    headers = {c for (_r, _i, c, _k, t) in every if t}
+    skip = set()                                  # the loops' entry and exit channels, as (value, consumer, operand)
+    cont = collections.defaultdict(set)           # loop condition (root) -> the steer result index that continues
+    for (r, i, c, k, t) in every:
+        cn = nodes[c]
+        if not t and c in headers and ((cn.op == "mux" and k >= 1) or cn.op in ("merge", "control_merge")):
+            skip.add((r, c, k))                   # entry
+        if t:                                     # the steer this back edge leaves, through pass-throughs
+            v, p = r, i
+            while nodes[p].op in passthru and nodes[p].operands and nodes[p].operands[0] in producer:
+                v = nodes[p].operands[0]
+                p = producer[v]
+            if nodes[p].op == "cond_br":
+                cont[root(nodes[p].operands[0])].add(nodes[p].results.index(v))
+    for i, node in enumerate(nodes):              # exit: every steer on a loop's condition, its other branch
+        if node.op != "cond_br":
+            continue
+        d = cont.get(root(node.operands[0]))
+        if d is None or len(d) != 1:
+            continue
+        other = node.results[1 - next(iter(d))]
+        for (c2, k2) in func.consumers.get(other, []):
+            skip.add((other, c2, k2))
+    chans, ins, outs = [], collections.defaultdict(list), collections.defaultdict(list)
+    for (r, i, c, k, tok) in every:
+        if (r, c, k) in skip:
+            continue
+        node = nodes[i]
+        st = depth.get(r, 1) if r in linked else 0
+        if node.op in ("fork", "lazy_fork") and vname(r) in FORK_OUT_LINK:
+            st += 1
+        if i in two_in and r == node.results[0] and instname(node, i) in MERGE_RES_LINK:
+            st += MERGE_RES_DEPTH
+        j = len(chans)
+        chans.append((r, i, c, k, st, tok))
+        outs[i].append(j)
+        ins[c].append(j)
 
     def joined(node, k1, k2):
         if node.op in _TF_PASS_ONLY or node.op in ("merge", "control_merge"):
