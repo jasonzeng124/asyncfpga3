@@ -6554,3 +6554,21 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   Routed smoke, 4 seeds x 2 flows: 4/4 + 4/4 pass, EQUIVALENT; 8/8 draws on the AUTO routes. Not run: the sizing loop.
 - For the owner: CLAUDE.md's "A ring needs three storage stages per simple cycle" is the one-token case of this
   condition; it is not edited here.
+### progress 04:54 (steerE landed: xorshift's loop test was held by a lap; flow v5; the v1 failure's seed passes under v4)
+- steerE (reviewed; 81a286535, 277e16c7c; research/data/sizerule/steerE.md): the row holding UCMPI1 at 17-19 is a LAP,
+  not a select-vs-request race: from n's latch through the compare, ucond_br8's own select and output, its
+  acknowledge, the sibling link ulink_n11__0_folink's C node on c_next, its rdly, into the join -- and skew.py's AND
+  seeding fires the steer's C-element on that input alone, because the other input (the compare's own request, from the
+  link's C node) is not reached from a latch launch. skew.py --steer-self (BD_SKEW_STEER_SELF=1): a latch launch at a
+  steer whose join carries the select's own channel request is bounded by that request (valid under the four-phase
+  handshake and rule H at the source link). Unset: identical output. Negative controls (UCMPI1 at 1, +8 ns on the
+  compare, steerneg / selneg-style injections) still flagged. On the AUTO route: UCMPI1 17 -> 8; built at those sizes,
+  seed 1: **P 16.62 ns** (was 21.08), EQUIVALENT, 4/4 draws. Not converged (the rule's proposal on that route pins
+  UCMPI1 near 11); and rule E still disagrees with formal on the hand route (x55a10 s21: E -211..-1189 ps at the loop
+  steers from i's C node; formal +923..+1465 ps, every draw passes): no join credit for inputs a launch does not reach.
+- Flow v5 (733987e1a) = v4 + the token floor + phase-2 headroom + BD_SKEW_STEER_SELF=1. suite3 (suite kernels, waiting)
+  runs it; suite6 (the four fast original kernels x 8 seeds, 8 draws) and suite7 (gcd, isprime x 4, 8 cores) queued
+  as the headline run. Frozen at v5 for the headline unless a correctness problem appears.
+- Local v4 on xorshift seed 8 (the seed of v1's failing draw): route it 7 (b6f090b6) P 20.92 ns, EQUIVALENT, NOT CLEAN
+  by 4 after the raise-only phase; entry compare UCMPI0 9 (v1: 5); draws 10801-10804 PASS, **including 10804** (the v1
+  failure); 10805-10808 running.
