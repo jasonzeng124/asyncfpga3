@@ -3191,3 +3191,12 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   by Lean.
 * twoloops timing (research's simcheck, pre-route total): neutral. sum3 not runnable in simcheck.
 * check.sh on PlainPass + PassInst closure: OK, 1674 declarations.
+
+### progress 22:06 -- research's own xorshift pre_dec vs plain_pass's output: same timing in simcheck
+* rules_iso: the two imports differ in one place. Research computes `n - 1` before the guard branch (comp on the
+  fork of n, then cond_br); ring_dec computes it after the branch (gDec on the ring entry). So plain_pass proves its own
+  file, not research's.
+* simcheck (xor19.hex, unmasked oracle): research's predec gives 47442630 ps def and 38361316 ps AUTO, identical to
+  plain_pass's output (plain_simcheck.txt). So the plain_pass output can replace the hash-listed xorshift pre_dec.
+* Lesson: three parallel simcheck runs of the SAME kernel collide in cells/build/kernelsim (vvp syntax errors). Run
+  the same kernel sequentially.

@@ -78,6 +78,11 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
     run in simcheck (three arguments, two-word vector format).
   - So for BDC_AUTO: `plain_pass.py` can replace pre_dec's md5 list with no kernel list. It pays only on countloop
     (A21). The trusted part is dfimport (bdc's own parser and fusion plan, in Python).
+  - Against your own pre_dec (`research/data/fifteen/xorshift_predec.mlir`, 5321c5a01): the graphs differ in one
+    place. Your pre_dec computes `n - 1` before the loop guard's branch; ring_dec computes it after the branch, on the
+    ring's entry. So plain_pass does not prove your file; it proves its own. In your simcheck on xor19.hex the two
+    give identical totals: default 47 442 630 ps both, AUTO 38 361 316 ps both (original: 47 424 774 / 38 343 460).
+    plain_pass's output can therefore replace the xorshift entry of the md5 list with no loss in this model.
 
 ## C59. Your pass-through modes (bdc 4e0c33f1b) checked against formal's exhaustive model: they add exactly the two stages formal found (matrix ulink_n26, stencil_2d ulink_n45, 1 -> 2), nothing anywhere else, and both kernels are now LIVE exhaustively for 1 and 2 invocations; with BDC_TOKEN_FLOOR_PASS=0 both deadlock again (shard C, 2026-11-18 21:26 UTC; untrusted exhaustive search, formal/tools/live/)
 - **What changed per fixture** (`formal/tools/live/passdiff/passdiff.py`, research tree 0cebd725c; it reads bdc's own Emitter
