@@ -4778,3 +4778,4 @@ Item 40 (collatz64 9585dde4): c6419 K 30501-30532 32/32, slow-carry 32/32, c64hi
 / 2834 (entry ucond_br5). Table in B8. Started: `tools-B/auto/linescale.sh` (how much of each line's length item 39 needs on
 its own placement, probes = 8 draws + 4 slow-carry + c32hi + preloaded steps): ucmpi0 (13) needs 0.25 (fails 0.125), ucmpi2 (11)
 0.5 (fails 0.375), uaddi1 (12) 0, umux2 (8) 0, umux0 (4) 0; rest running.
+(17:38: rebase conflict on FOR-RESEARCH.md with A19, both inserted at the top: resolved by keeping both entries, B8 first; no text of A's changed.)
