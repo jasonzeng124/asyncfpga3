@@ -4868,3 +4868,24 @@ built is clean with the DSP at SLOW_MAX (B10).
 ### progress 22:57 -- collatz cut ulink_n26 capture slack >= 6627 ps (item 39 >= 7572): the latch-data glitches are harmless (B9).
 ### progress 22:59 -- farm b_lsj and b_suiteauto2 done. b_lsj built collatz WITHOUT pre_eq2 (PEER = research head, rewrites off by default): lsj fails seed 8 (entry race), lsj_c0 7/7 seeds pass, -20..-32 % (B9). b_suiteauto2: 16 / 16 suite routes 32 + 32 pass, sdf identical; but bits md5 differ from the cloud builds for the same sdf (farm nextpnr 6e5d2244 vs cloud b8e99a23): farm b_bitcmp fetches the FASM to diff.
 ### progress 23:01 -- .bit md5 mystery explained: xc7frames2bit puts the frames filename and date/time in the .bit header (strings: 'f1.frames;Generator=xc7frames2bit ... 2026/11/18 23:01:10'); frames from one FASM byte-identical. Every 'bits md5' in this session's tables is meaningless; FASM / frames md5 is the identity. B11 corrected.
+### session summary so far (B, 2026-11-18 16:55 -> 23:1x UTC; all untrusted simulation: formal's simx on decoded bits, RC_TREE=1, research's draw K)
+- **B8:** board items 38-41 (the automatic builds) rebuilt sdf-identical with a local compile of research's nine nextpnr
+  patches; every check passes (32 + 32 slow-carry draws, full range, preloaded counters, carry slacks >= 10.9 ns, steer
+  settle >= 1.28 ns, no runts).
+- **B9 / B10 (research's sizing question):** strict linescale (right answers and no storage pulse < 200 ps) on one
+  placement: the non-compare operator lines (adders, muxes, select, the DSP multiply) can go to 0; the compares cannot be
+  halved. Rebuilt and re-placed: compares kept + those lines cut passes everything on 4 seeds of collatz (-17..-27 %),
+  collatz64 (-13..-19 %), ipow (-15..-19 %), xorshift 1 seed (-5 %), and on 7 farm seeds of no-rewrite collatz (-20..-32 %);
+  halving collatz's entry compare fails on 2 of 9 routes (wrong answers, hangs; B7's race). The rule's cause (read in
+  research's code): no join credit across the loop control (joinaware.md), pinning + headroom in ratchet.py. The DSP48 is
+  in no slow-capable band of either draw model; the ipow cut keeps 3.4 ns capture slack at the DSP's SLOW_MAX and 0.2 ns
+  half a band beyond (capslack.py); item 38 keeps 6 ns.
+- **B11:** all 13 NOT CLEAN routes of research's automatic suite column (+3 clean, farm) pass 32 + 32 draws; counted-loop
+  kernels pass with the counter preloaded at 0x3ffffff0 (controls fail as they must); isprime with the divisor preloaded.
+  Rule D rows exist on clean routes too; countloop 1's D steers measured >= 1 ns settled.
+- **Tools** (formal/tools-B/auto/): kdraws, cchecks, linescale (STRICT, PRE), coltask (collatz / collatz64 / xorshift /
+  ipow A/B), fasm_bits, xdraws / xsteer (any kernel with an expected-value file), dsp_slow, capslack, suite/task.sh,
+  suite/preload.sh + ploracle.py; sizes files in auto/sizes/.
+- **Open:** b_bitcmp (FASM equality across nextpnr compiles); PROGRAM item 4 (select race in Lean) untouched (no Mathlib
+  here); a DSP band fit; research's reply on B9 / B10.
+- Lesson: a .bit md5 includes a timestamp; compare FASM or frames.
