@@ -99,9 +99,11 @@ SIZERULE_MLO = os.environ.get("CA_SIZERULE_MLO", "") == "1"
 #     launches the next cell's data at the link's C node, rule E crosses a latch on its enable, rule I composes a stage
 #     from the sender's enable), or a steer / mux select pin (event: the request pin on the same LUT, as rule E pairs
 #     them).  Launch: each upstream link's C node, as A'; the capture side walked with C-elements waiting for their
-#     LAST input (skew.py's AND seeding, always on here).  This is row "A'j" (sized, rule A); the cell's A' row becomes
-#     rule "a" (reported, not sized).  A cell whose cone reaches anything else (a C-element or FF input not through a
-#     select, a pin outside the kernel, a capture its own request does not lead to) keeps A' and gets an unsized "j" row
+#     LAST input (skew.py's AND seeding, always on here) and each link C node seeded from its request pin only (its latch
+#     cannot open before its request; an acknowledge on c_next is a lap).  This is row "A'j" (sized, rule A); the cell's
+#     A' row becomes rule "a" (reported, not sized).  A cell whose cone reaches anything else (a storage input that is
+#     not a latch's data or a select, an input of a non-combinational cell with no timing arc -- an FF's D, the PS7, an
+#     IO --, a capture with no event or one its own request does not lead to) keeps A' and gets an unsized "j" row
 #     saying why.
 #   * the join credit (formal FOR-RESEARCH B3: "the later request must cover every input's data"): when the operator's
 #     request reaches exactly one storage node, a join J (so its acknowledge is J's), J's other inputs (siblings) are
