@@ -429,7 +429,7 @@ Your ringfloor.md "Derivation" argued it; `formal/lean/Formal/Net/StageNet.lean`
   practice if that round trip is longer; no timing rule of yours names it that we know of. (2) A token placed by a _set link
   next to a join or fork whose C-element comes up 0 is NOT the same marking (the C-element disagrees with it): emit does not do
   this today; if a hand-placed token ever is, its join / fork needs the set variant too.
-- **Kernel-checked per fixture (19:5x):** `Formal/Net/LiveCerts.lean`, 189 certificates, one per routing mode reached by
+- **Kernel-checked per fixture (19:50):** `Formal/Net/LiveCerts.lean`, 189 certificates, one per routing mode reached by
   live.py on every emitting fixture (floor on, both flows): no token-free cycle in each. The export itself is untrusted.
 - **Still not covered:** mode changes (entering / leaving a loop, a one-trip inner loop), the arbitrated merge / control_merge,
   the steer and select AND gates outside a fixed mode, FASTFALL's AND, data and timing. The independent per-fixture check
