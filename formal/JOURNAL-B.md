@@ -4659,3 +4659,23 @@ preloaded run covers them (formal B2/B3)". So: (1) run research's own suite_one.
 route expected; md5 to compare with suite1), (2) make the preload find its counter link and its oracle without instance
 names so it runs on AUTO builds of every kernel, (3) preload B2's checks on the AUTO routes as they land; isprime and gcd
 next (isprime's `d * d <= n` is a 32-bit multiply + compare whose high bits no bench vector moves).
+### progress 00:35 -- isprime reached at full width with a preloaded divisor (AUTO iteration-0 route; tools only so far)
+Research's own suite_one.sh runs here (export of claude/research 0aa569bab as a local git repo; build/frontend from
+cloud/fixtures; needed: textx, simplejson, intervaltree, ~/dev2/lib/xray/prjxray-db -> the toolchain's db): xorshift and
+isprime seed 1, MAXIT 4, sizing loops running. Iteration-0 routes (estimates, not what the loop ships): xorshift e9a7370c,
+isprime 89ceef34.
+- New, `tools-B/auto/`: `decode.sh DIR K` (C's run.sh decode + boundary + A's mk_bnd_sim / arbs); `boundary_bench.py` = C's
+  copy + one case: an output bit that is constant INSIDE the kernel (isprime out0_data[31:1] = 0) -> const0;
+  `bnd_const.py` maps const0 to an undriven GND_WIRE node for simx.
+- `preload/oracle.c`: isprime from a preloaded divisor d0, in the compiled loop's order (cf_transformed: n < 2, n < 4 first,
+  then the body with d = d0 before the first `d * d > n` test; wrapping multiply). Checked = math for n < 3000 at d0 = 2.
+  `preload_net.py --orig 2 --settle PS`: isprime's entry pipe ulink_n16 holds the constant 2 (bit 1 rises once at 436 ns,
+  its first capture); the check is now "holds its bit of ORIG from PS on".
+- isprime it-0 route: isp17 (n <= 60000, so d <= 245 and d * d < 2^16) 1/1 draw PASS (18 s). Preload d0 = 46300 with n =
+  2147395589 (prime: exits at d = 46340, d * d = 2147395600 vs n, a full-width compare), 46337^2, 46327*46337,
+  46309*46337: 2/2 draws PASS. Negative control (+X ps on all arcs into DSP48_X1Y22.P3 = product bit 20): X = 20 ns and
+  2 us change nothing in either (not even the end time: the next d's d * d is computed at the start of an outer iteration,
+  ~4.8 us before its compare is consumed); X = 10 us: ordinary 2/2 PASS (bit 20 never moves), preloaded 2/2 FAIL
+  (46327*46337 -> 1). So the preload reaches the multiplier's high bits; the multiply has us of slack on this route.
+- Kernel note (C level, not the circuit): with wrapping arithmetic (research's oracle compiles with -fwrapv, the circuit
+  wraps), isprime(2^31 - 1) = 0 after ~2^31 iterations (`d * d <= n` is always true for n = INT_MAX); checked with the C.

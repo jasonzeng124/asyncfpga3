@@ -21,6 +21,10 @@ ap.add_argument("net"); ap.add_argument("routed"); ap.add_argument("out")
 ap.add_argument("--link", required=True); ap.add_argument("--value", required=True)
 ap.add_argument("--width", type=int, default=32); ap.add_argument("--dump", default=None)
 ap.add_argument("--inst", default="bridge_i.udut.")
+ap.add_argument("--orig", default="0", help="the entry constant in the original (isprime's d = 2): with --dump, each edited "
+                "node must hold its bit of ORIG from --settle ps on and never move after it")
+ap.add_argument("--settle", type=int, default=0, help="ps: with --orig != 0 the latches take the constant once, as their "
+                "first transparent phase after reset (isprime ulink_n16 bit 1 at ~436 ns, before any call); default 0")
 a = ap.parse_args()
 V = int(a.value, 0)
 N = json.load(open(a.net)); G = N["gates"]
@@ -51,8 +55,14 @@ if a.dump:
     D = json.load(open(a.dump))["nodes"]
     for gi, (cn, st, bit) in edits.items():
         h = D.get(str(G[gi]["out"]))
-        if h and (h[0] or h[1]): sys.exit("preload: %s (%s) is not constant 0 in the reference run: %s" % (G[gi]["name"], cn, str(h)[:120]))
-    print("preload: all %d edited nodes are constant 0 in %s" % (len(edits), a.dump), file=sys.stderr)
+        ob = (int(a.orig, 0) >> bit) & 1
+        if h is None: h = [False, []]
+        v0, ts = bool(h[0]), list(h[1])
+        late = [t for t in ts if t > a.settle]
+        final = v0 ^ (len(ts) % 2 == 1)
+        if late or final != bool(ob):
+            sys.exit("preload: %s (%s) does not hold %d from %d ps in the reference run: %s" % (G[gi]["name"], cn, ob, a.settle, str(h)[:120]))
+    print("preload: all %d edited nodes hold their bit of %s from %d ps on in %s" % (len(edits), a.orig, a.settle, a.dump), file=sys.stderr)
 for gi, (cn, st, bit) in sorted(edits.items()):
     k = G[gi]["k"]; v = (V >> bit) & 1
     G[gi]["init"] = ((1 << (1 << k)) - 1) if v else 0
