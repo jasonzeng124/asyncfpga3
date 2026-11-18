@@ -6,8 +6,13 @@
 #   a 32-bit argument one word, a 64-bit argument two (low word first, then high).  A 1-argument i32 kernel ignores
 #   the second word.  No input masks.  One result per vector, printed as 8 hex digits (the bench's 32-bit out0).
 # VEC.hex is the bench's format: two 8-digit hex words per line (cells/gls/ps/ps7_bench.v reads it with $readmemh,
-# word 2j = op0 and 2j+1 = op1 of vector j).  Source: kernels/K/K.c, else dynamatic/integration-test/K/K.c (the
-# same lookup as bdc/frontend.sh).
+# word 2j = op0 and 2j+1 = op1 of vector j).  Source: kernels/K/K.c, else research/data/suite/dynsrc/K/K.c (the
+# repository's copy of Dynamatic's test, so a tree without dynamatic/ has an oracle), else
+# dynamatic/integration-test/K/K.c (bdc/frontend.sh's lookup).  A source without K.h (some of Dynamatic's tests keep
+# their types in the .c) is compiled into the driver itself.  `int main()` is renamed as `int main(void)` is.
+# The result is masked to its width (an int16_t's -1 prints 0000ffff): the bench zero-extends a narrower out0
+# (cells/hw/gen_bench.py), and oracle_mem.sh does the same.
+# A source that uses _BitInt is compiled with clang (gcc 13 has no _BitInt) unless ORACLE_CC is set.
 # Refuses (exit 2), rather than print an answer that is not the bench's:
 #   - a kernel cells/hw/gen_bench.py masks (DOMAIN_RESTRICTIONS): the bench changes its inputs; use
 #     research/tools/fifteen/kernel_oracle.sh, which applies the same masks;
@@ -18,7 +23,7 @@
 set -euo pipefail
 K=${1:?usage: oracle.sh KERNEL < VEC.hex > VEC.exp}
 R=$(cd "$(dirname "$0")/../../.." && pwd)
-SRC=$R/kernels/$K; [ -d "$SRC" ] || SRC=$R/dynamatic/integration-test/$K
+SRC=$R/kernels/$K; [ -d "$SRC" ] || SRC=$R/research/data/suite/dynsrc/$K; [ -d "$SRC" ] || SRC=$R/dynamatic/integration-test/$K
 [ -f "$SRC/$K.c" ] || { echo "oracle.sh: no source $SRC/$K.c" >&2; exit 2; }
 MASK=$(python3 -c "import sys; sys.path.insert(0, sys.argv[1]); import gen_bench; print(sys.argv[2] in gen_bench.DOMAIN_RESTRICTIONS)" \
        "$R/cells/hw" "$K") || { echo "oracle.sh: cannot read cells/hw/gen_bench.py DOMAIN_RESTRICTIONS" >&2; exit 2; }
@@ -28,10 +33,13 @@ if [ "$MASK" != False ]; then
 fi
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 mkdir -p "$T/dynamatic"; echo '#define CALL_KERNEL(f, ...) f(__VA_ARGS__)' > "$T/dynamatic/Integration.h"
-sed 's/^int main(void)/int main_unused(void)/' "$SRC/$K.c" > "$T/k.c"
+sed -E 's/^int main[[:space:]]*\([[:space:]]*(void)?[[:space:]]*\)/int main_unused(void)/' "$SRC/$K.c" > "$T/k.c"
+# no K.h: the driver includes the kernel's C itself (its typedefs / macros live there), and k.c is not linked again
+HDR=1; [ -f "$SRC/$K.h" ] || HDR=0
+CC=${ORACLE_CC:-gcc}; if [ -z "${ORACLE_CC:-}" ] && grep -q '_BitInt' "$SRC/$K.c"; then CC=clang; fi
 # The signature: the definition `RET K(T0 a0, T1 a1) {` in the C (comments stripped).  Types are kept as written
 # (typedefs included) and sized by the compiler, so in_int_t = long long takes two words without this script knowing.
-python3 - "$SRC/$K.c" "$K" > "$T/d.c" <<'PY'
+python3 - "$SRC/$K.c" "$K" "$HDR" > "$T/d.c" <<'PY'
 import re, sys
 def die(msg):
     print(msg, file=sys.stderr); sys.exit(2)
@@ -56,7 +64,8 @@ decl = "\n".join("  %s a%d = (%s)take(w, &k, (int)sizeof(%s));" % (t, i, t, t) f
 words = " + ".join("(int)sizeof(%s) / 4" % t for t in types) or "0"
 print('''#include <stdio.h>
 #include <stdlib.h>
-#include "%(k)s.h"
+#include "%(inc)s"
+static unsigned msk(int bytes) { return bytes >= 4 ? 0xffffffffu : (1u << (8 * bytes)) - 1u; }
 static unsigned long long take(const unsigned *w, int *k, int bytes) {
   unsigned long long v;
   if (bytes == 4) { v = w[*k]; *k += 1; }
@@ -72,10 +81,12 @@ int main(void) {
     int k = 0;
 %(decl)s
     (void)k;
-    printf("%%08x\\n", (unsigned)%(k)s(%(args)s));
+    printf("%%08x\\n", (unsigned)%(k)s(%(args)s) & msk((int)sizeof(%(ret)s)));   /* the bench zero-extends */
   }
   return 0;
-}''' % dict(k=k, ret=ret, words=words, decl=decl, args=", ".join("a%d" % i for i in range(len(types)))))
+}''' % dict(k=k, ret=ret, words=words, decl=decl, args=", ".join("a%d" % i for i in range(len(types))),
+            inc=(k + ".h") if sys.argv[3] == "1" else "k.c"))
 PY
-${ORACLE_CC:-gcc} -O1 -fwrapv -I"$T" -I"$SRC" "$T/d.c" "$T/k.c" -o "$T/o"
+if [ "$HDR" = 1 ]; then $CC -O1 -fwrapv -I"$T" -I"$SRC" "$T/d.c" "$T/k.c" -o "$T/o"
+else $CC -O1 -fwrapv -I"$T" -I"$SRC" "$T/d.c" -o "$T/o"; fi
 "$T/o"

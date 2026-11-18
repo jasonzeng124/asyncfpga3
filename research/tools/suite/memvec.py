@@ -8,6 +8,9 @@ same one cells/hw/gen_bench.py builds the bench from: per call, the operand word
 i64 as low word then high word), then every element of each memref argument in signature order.
 
 --call gives one call's operand words (hex or decimal, as many as the signature needs); one --call per call.
+A --call may also set one call's arrays, after the words: "W0 W1;a=SPEC;b=SPEC" (an array it does not name takes
+the file-wide default below).  SPEC: const:V (every element V), rand:LO,HI (seeded uniform), seq:A,D (element i is
+A + D * i), list:V0,V1,... (repeated to the depth).  The spec is written into the call's comment line.
 Array contents are drawn per call from a seeded uniform range (--range=LO,HI with the "=" when LO is negative;
 default -1000,1000, two's complement in
 32 bits), so consecutive calls see different arrays.  --fill const:V fills every element with V instead (for
@@ -47,7 +50,12 @@ def main():
     ap.add_argument("-o", "--out", required=True)
     a = ap.parse_args()
     words, mems = signature(a.kernel)
-    calls = [c.split() for c in a.call] or [[] for _ in range(a.calls)]
+    calls = [c.split(";")[0].split() for c in a.call] or [[] for _ in range(a.calls)]
+    specs = [dict(x.strip().split("=", 1) for x in c.split(";")[1:] if x.strip()) for c in a.call] or [{} for _ in calls]
+    for j, sp in enumerate(specs):
+        for n in sp:
+            if n not in [m[0] for m in mems]:
+                sys.exit("memvec.py: call %d sets array %r, %s has %s" % (j, n, a.kernel, [m[0] for m in mems]))
     lo, hi = (int(x) for x in a.range.split(","))
     rng = random.Random(a.seed)
     out = ["// benchvec words=%d mems=%d" % (words, len(mems)),
@@ -57,10 +65,24 @@ def main():
     for j, c in enumerate(calls):
         if len(c) != words:
             sys.exit("memvec.py: call %d has %d operand words, %s needs %d" % (j, len(c), a.kernel, words))
-        out.append("// call %d" % j)
+        out.append("// call %d%s" % (j, "".join(" %s=%s" % kv for kv in sorted(specs[j].items()))))
         out.append(" ".join("%08x" % (int(w, 0) & 0xFFFFFFFF) for w in c) if c else "")
         for name, depth, w in mems:
-            if a.fill.startswith("const:"):
+            sp = specs[j].get(name, "")
+            if sp.startswith("const:"):
+                vals = [int(sp[6:], 0)] * depth
+            elif sp.startswith("rand:"):
+                slo, shi = (int(x, 0) for x in sp[5:].split(","))
+                vals = [rng.randint(slo, shi) for _ in range(depth)]
+            elif sp.startswith("seq:"):
+                b0, d0 = (int(x, 0) for x in sp[4:].split(","))
+                vals = [b0 + d0 * i for i in range(depth)]
+            elif sp.startswith("list:"):
+                lv = [int(x, 0) for x in sp[5:].split(",")]
+                vals = [lv[i % len(lv)] for i in range(depth)]
+            elif sp:
+                sys.exit("memvec.py: call %d: unknown array spec %r" % (j, sp))
+            elif a.fill.startswith("const:"):
                 vals = [int(a.fill[6:], 0)] * depth
             else:
                 vals = [rng.randint(lo, hi) for _ in range(depth)]
