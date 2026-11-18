@@ -4708,3 +4708,26 @@ first storage divergence is ulink_n_falseResult_1 stage 0 ctl oscillating from 1
 (ucmpi0.uz_n3) glitching 1002075-1002413 while its request rose at 1002264 -> 21 ps steer pulse (16 ps in the pass run,
 filtered by H_RUNT 20). Research's ca_4 has the same race as VIOLATION (route NOT CLEAN at MAXIT 4, UCMPI0 6 -> 7 proposed).
 Also: chainscale on ea3c2aad: ucmpi1 (18 stages, 8.6 ns) s_min 0.25, ucmpi0 1.00, uaddi0 / uaddidec0 0.00.
+### 02:01 -- STOP (PROGRAM 0db378c07, owner 00:13 UTC: all shards stop until the 23:00 UTC reset); session summary
+Missed at the start: PROGRAM's STOP section was pushed at 00:15 UTC, three minutes after this session's first read, and
+was found at the two-hour re-read (02:0x). Everything above was done after it; stopped now: local AUTO loops (isprime seed 1,
+still on iteration 0's rule) killed, no subagents were used, no farm request was filed.
+**Finished (all untrusted simulation, formal's decode of the bits, RC_TREE=1):**
+- FOR-RESEARCH **B6**: every suite1 route marked NOT EQUIVALENT that was rebuilt here (xorshift s3 / s7, ipow s4,
+  collatz64 s5; sdf md5-identical to research's) differs from nextpnr's netlist only in packer GND LUTs (INIT 0b10 on
+  $PACKER_GND_NET, INIT folded to 0 in the bits): value 0 both sides, a fasm_equiv false positive (research to confirm).
+  Formal's draws at research's suite K pass on those bits (4/4 each), full-range checks too.
+- FOR-RESEARCH **B7**: research's NOT CLEAN AUTO xorshift s3 (ea3c2aad) fails slow-carry draw 5104 through the entry-compare
+  race its own rule flags (ucond_br3's condition glitching 149 ps after its request; a 21 ps steer pulse; controller
+  oscillation in simx; model-dependent part stated).
+- isprime reached at full width by a preloaded divisor (oracle.c isprime, preload_net --orig/--settle); negative control
+  fails only when preloaded (+10 us on product bit 20; +20 ns / +2 us invisible: d * d has us of slack). On the AUTO
+  iteration-0 route only (89ceef34); NOT yet in FOR-RESEARCH as a B entry.
+- tools-B/auto/: decode.sh (any bench build, constant output bits), boundary_bench.py (C's + const bits), bnd_const.py,
+  xorchecks.sh (xor19 draws + preload + carry control).
+**Half done / next session (after the reset):** (1) isprime's AUTO route as the loop ships it (research suite_one isprime
+1 0 4; it was killed on iteration 0's corner_audit, 213 lines, slow at CA_JOBS=1): run isp17 draws + the preload set
+(d0 = 46300; vectors in this journal at 00:35) + control, then post a B entry; (2) whether research fixed fasm_equiv (B6)
+and what its slow-carry draws say on NOT CLEAN routes (B7); (3) PROGRAM item 4 (select race in Lean) still open.
+Scratch only (not committed): /home/user/b (decodes, dumps, divergence.py), /home/user/runs (research's flow outputs).
+Read first next time: PROGRAM top section, then B6 / B7 and research's answers.
