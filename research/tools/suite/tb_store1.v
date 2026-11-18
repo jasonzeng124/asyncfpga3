@@ -6,6 +6,14 @@
 // Files (+plusargs): VEC= v2 vector file (memvec.py), EXP= oracle_mem.sh output, MEMEXP= the C's final contents,
 // flattened to one hex word per line (stores.md says how), NCALLS=, NRUNS= (default 2).
 // Prints TBSTORE call=J run=R out0=... exp=... ok|BAD, TBSTOREMEM call=J bad=K, and TBSTORE SUMMARY pass|FAIL.
+// Run (research/data/suite/stores.md):
+//   BDC_HOST_MEM=1 python3 bdc/emit.py build/frontend/fill/comp/handshake_transformed.mlir --no-top -o k.v
+//   ORACLE_MEMOUT=m.txt research/tools/suite/oracle_mem.sh fill kernels/fill/vec.hex > e.txt
+//   sed -E 's/.*data=//' m.txt | tr ',' '\n' > m.flat
+//   iverilog -g2012 -gspecify -Wno-timescale -DBD_ROUTE_PS=0 [-DSTORE_Z=tb_store1.dut.ustore0.z_req] -o t.vvp \
+//       cells/sim/bd_prims_sim.v cells/sim/bd_env.v cells/rtl/*.v k.v research/tools/suite/tb_store1.v
+//   vvp -n t.vvp +VEC=kernels/fill/vec.hex +EXP=e.txt +MEMEXP=m.flat +NCALLS=5 +NRUNS=2
+// -DSTORE_Z adds the ordering check (below); -DKPARAMS='#(...)' overrides the kernel's delay parameters.
 `timescale 1ps/1ps
 `ifndef K
  `define K bdc_fill

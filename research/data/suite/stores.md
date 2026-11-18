@@ -121,7 +121,46 @@ refilling, check out0 against the oracle, read every element back against the C'
 
 ### Routed (fill)
 
-RESULTS-ROUTED
+Builds: `cells/hw/build_bench.sh fill` with `BD_NO_TIGHTEN=1 BD_SIZES=none BD_DSP=1 NEXTPNR_SEED=s` (`--freq 83`,
+`--host-mem`; research/data/alltable/run_default.sh's flags), each in a private copy of this tree
+(/tmp/bot/sa/stores/tools/build_seed.sh). Gate: `research/tools/eventgraph/bench_gate.sh ... worst` (netlist decoded
+from the .bit, fasm_equiv verdict, prjxray SDF, chains 0.21, CARRY4/F7F8/FF and RAMB18E1 1, rest 0.288, + M scatter,
+FIXED mode, 2 runs per call at 83.3 MHz) with `GATE_MEMEXP` = oracle_mem.sh's ORACLE_MEMOUT (every array read back
+after each call and compared with the C's final contents), `GATE_PLUSARGS=+MEMCHECK=1` (every word read back after
+each fill), `GATE_ANNOTATE=1`, `PS_MON_GEN=cells/gls/ps/gen_memport_mon.py` (the port's one-hot check on the netlist).
+
+| route | seed | Fmax (MHz) | .bit md5 | gate worst | fasm_equiv | gate.vvp | one-hot monitor (netlist) |
+|---|---|---|---|---|---|---|---|
+| fill | 1 | 107.16 | 056e2452 | **PASS 5/5**, arrays = C after every call, fill read-back 0 bad | EQUIVALENT | ANNOTATE_DONE, 0 SDF warn/err | 448 host / 160 kernel reqs, 0 overlaps |
+| fill | 2 | 119.73 | e70c93c7 | **PASS 5/5**, same | EQUIVALENT | ANNOTATE_DONE, 0 | 448 / 160, 0 overlaps |
+| fill, `BDC_MEM_NEG_STORE=addr` | 1 | 102.03 | feeb2e89 | **FAIL 1/5**: arrays wrong after calls 0-3 (32, 32, 13, 2 of 32 elements differ from the C); out0 right on all 5; the n = 0 call (no store) passes | EQUIVALENT | ANNOTATE_DONE, 0 | 448 / 160, 0 overlaps |
+
+The negative control is the same kernel with every store's address bit 0 flipped in the generator (seed 1, same
+flags): its answers are all right and its stores all happen (160), so only the arrays' read-back can catch it, and it
+does, on exactly the calls that store -- the same damage counts as the RTL negative control. 160 kernel requests =
+the C's stores, (32 + 40 + 7 + 1 + 0) x 2 runs. The answers are the oracle's (out0 d86f2f64
+302b3fae 02345ec0 00000004 00000000). Latency per call (BENCHRES latmin, host cycles of 12 ns), n = 32, 40, 7, 1, 0:
+seed 1 208 / 259 / 50 / 12 / 7, seed 2 227 / 283 / 54 / 13 / 8: about 6.4-7.0 cycles (77-84 ns) per loop trip, the
+store's round trip included. n = 2 routes: this is a smoke-level sample, not a distribution (CLAUDE.md asks 4 seeds for
+a routed claim; two were asked for here).
+
+Static screen (`cells/verify/tighten.py` on each route's SDF; the gate is the judgement): rule B, the RAM's setup
+(the store's address and data before the manufactured clock): seed 1 3457 / 3792 ps, seed 2 2605 / 2860 ps, ok;
+rule C (clock-to-out): 1901 / 2057 and 2057 / 2450 ps, ok -- at bd_mem's placeholder DSETUP 8 / DCO 12. Rule D
+(a steer's select stable before its request) reports 11 VIOLATIONs on each route: every steer of the kernel,
+including the 5 of the entry block that the store lowering does not touch; the default flow does not size selects
+(BD_NO_TIGHTEN=1: emit.py's SELECT_PAD = 4 estimate, PAD by 10-15 asked). Not investigated; the gate passed on both.
+
+### The ordering itself (RTL, cells/sim delays)
+
+Removing the completion join (`BDC_STORE_NOJOIN=1`, a test-only switch: the store's z tied off as before, memEnd =
+memStart held + ctrlEnd, nothing ordering ctrlEnd after the stores) is invisible at nominal delays: fill's RTL run
+passes (0 of 10 out0 early, arrays right), because the last store happens to beat the exit path. That is why the
+read-back cannot be the ordering's negative control. `tb_store1.v` counts the store station's completions and
+checks, when out0 rises, that every store of the run (n, from the C) has completed. With the stores made slow
+(bd_mem's USETUP 400 instead of 8, about 50 ns per store in this model -- the defect made larger than the race):
+**with the join, 0 of 10 out0 early, arrays right; without it, 8 of 10 out0 early** (31 of 32, 39 of 40, 6 of 7 and 0 of 1 stores completed when out0 rose, both runs of each call; the n = 0 call stores nothing), with the arrays still right when read back afterwards. The same check passes at USETUP 8 with
+and without the join. RTL only: it shows the structure orders the completion, not routed timing.
 
 ### What it does NOT show
 
