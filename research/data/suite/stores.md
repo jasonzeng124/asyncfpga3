@@ -24,7 +24,8 @@ a read arbiter) and `mc_control` in `data/verilog/support/mc_support.v`:
 
 So the promise is: **a call returns only after every store it made has reached the RAM.** Dynamatic keeps it with a
 counter that is not ordered against ctrlEnd either: a count token still in a buffer when ctrlEnd is latched with the
-counter at 0 would let memEnd fire early; in the clocked circuit that does not happen because the count path is short.
+counter at 0 would let memEnd fire early. Presumably the clocked circuit's short count path (a constant, accepted
+every cycle) keeps that from happening; not checked here.
 
 ## 2. The lowering (`bdc/emit.py` `store_completion_rewrite`, `_op_store`, `_op_mem_controller`, `_op_end`)
 
@@ -55,7 +56,7 @@ makes the count arrive first. What is built instead uses no counter and no new c
 
 The rewrite is on the graph (a `join` node appended, a result added, one operand replaced), before every analysis
 (`link_sites`, `ring_depths`, `token_floor`, BDC_AUTO's rules), so the new cycles through the stores get their storage
-like any other. It runs only for a function with a store; nothing else changes (section 4).
+like any other. It runs only for a function with a store; nothing else changes (section 3, byte-identity).
 
 **Why ctrlEnd is after every store.** (a) A basic block executes each of its ops once per execution, so each execution
 of B yields exactly one completion per store in B (Dynamatic's own count constants say the same, and step 4 checks
@@ -113,7 +114,9 @@ refilling, check out0 against the oracle, read every element back against the C'
   addr: arrays wrong in 4 of 5 calls (32, 32, 13, 2 elements; the n = 0 call writes nothing); data: 4 of 5 (32, 32,
   7, 1). out0 stays right in both (it does not read the array): the read-back is what catches a bad store.
 - Dynamatic's `single_loop` (void; three 1000-word memories), its own completion (`c_end`): 2 calls (501 and 51
-  iterations), **c read back 1000/1000 = C both times**. The C ran through a driver of the oracle_mem recipe
+  iterations), **c read back 1000/1000 = C both times**. `simple_example_1` (the store in the exit block, joined
+  into ctrlEnd): 2 calls, a read back 100/100 = C. `matrix` (the store in the middle block of a triple nest): default
+  flow deadlocks with and without the join (see below); `BDC_AUTO=1`: 1 call, outC 900/900 = C. The C ran through a driver of the oracle_mem recipe
   (oracle_mem.sh refuses void kernels).
 - The RTL testbench samples the host's read data 3 ns after the acknowledge: in this model bd_mem's placeholder DCO
   (12 LUT arcs, about 1.5 ns) is shorter than the RAM model's clock-to-out (2.454 ns), and sampling at +0.5 ns read
@@ -123,7 +126,7 @@ refilling, check out0 against the oracle, read every element back against the C'
 
 Builds: `cells/hw/build_bench.sh fill` with `BD_NO_TIGHTEN=1 BD_SIZES=none BD_DSP=1 NEXTPNR_SEED=s` (`--freq 83`,
 `--host-mem`; research/data/alltable/run_default.sh's flags), each in a private copy of this tree
-(/tmp/bot/sa/stores/tools/build_seed.sh). Gate: `research/tools/eventgraph/bench_gate.sh ... worst` (netlist decoded
+(the subagent's build_seed.sh; its scripts and the RTL testbenches of the Dynamatic tests are in its out/extra/). Gate: `research/tools/eventgraph/bench_gate.sh ... worst` (netlist decoded
 from the .bit, fasm_equiv verdict, prjxray SDF, chains 0.21, CARRY4/F7F8/FF and RAMB18E1 1, rest 0.288, + M scatter,
 FIXED mode, 2 runs per call at 83.3 MHz) with `GATE_MEMEXP` = oracle_mem.sh's ORACLE_MEMOUT (every array read back
 after each call and compared with the C's final contents), `GATE_PLUSARGS=+MEMCHECK=1` (every word read back after
@@ -164,7 +167,27 @@ and without the join. RTL only: it shows the structure orders the completion, no
 
 ### What it does NOT show
 
-RESULTS-NOT
+- **Two seeds of one kernel at one corner.** CLAUDE.md asks four seeds for a routed claim; fill has two (both
+  PASS), plus the automatic path's route and draws (below). No max / min corner run, no board.
+- **One shape on the bench.** fill: one store, the controller's only accessor, in a loop body with a control
+  terminator. The exit-block form (store joined into ctrlEnd) ran only in RTL (`simple_example_1`), the 9 Dynamatic
+  tests were not routed, and none of them can go on the bench (void: gen_bench.py and oracle_mem.sh refuse them).
+- **The ordering in a routed design is not instrumented.** The routed gate checks values and arrays and that the host
+  never touched the port while a kernel slot held it (0 overlaps); the store-count-at-out0 check ran in RTL only, and
+  its negative control needed a store slowed far beyond any route to fail (at nominal delays the race is won anyway).
+- **Nothing about a load after a store on the same array**, in the same iteration or the next (section 2): no such
+  kernel can be built here yet.
+- **Not the cost.** The serialisation (a block's successor waits for its stores) was not compared with anything;
+  77-84 ns per trip is fill's number, not a comparison.
+- **Dynamatic's count values are not used at run time.** They are checked against the graph at compile time; a
+  kernel whose count disagrees is refused; no fixture in build/frontend (106) is: neither that check nor the one-terminator check fired on any of them.
+- **bd_mem's delays are the placeholders** (DSETUP 8, DCO 12) in the default-flow routes: rules B and C pass on both,
+  but nothing here sizes them.
+- **Matrix-shaped kernels (triple loop nest) deadlock in RTL in the default flow, with or without the completion
+  join** (`BDC_STORE_NOJOIN=1` too): the same class as the suite's nest3 (kernels/SUITE.md, "simcheck deadlocks",
+  default flow). With `BDC_AUTO=1` (the automatic path's emission) matrix completes in RTL: one call, 27000 inner
+  trips, outC read back 900 / 900 = the C (inA, inB uniform in [-50, 50], outC preset 0x5a5a5a5a). So the store
+  lowering works in the middle block of a triple nest under AUTO; the default flow's deadlock is not this work's.
 
 ## 4. Files
 

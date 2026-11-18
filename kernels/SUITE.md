@@ -164,6 +164,17 @@ CLEAN under the rule; every bitstream EQUIVALENT and ffmux clean.
    delay, and auto_size.sh builds such a kernel once and judges that route (`CLEAN it=0 ... (nothing to size)` or
    `NOT CLEAN it=0`); test_int16 (still 0 delays after item 2's fix) goes through.
 
+## A kernel that writes memory (subagent `stores`, 2026-11-18)
+
+bdc now lowers a memory controller with a store (research/data/suite/stores.md): each block's outgoing control token
+joins its stores' completions, so ctrlEnd, memEnd and the call's result come after every store has landed. `fill`
+is the owner's "memory: write" shape. The read-modify-write shapes (a histogram, `a[i] = f(a[i])`) need a load and a
+store on one array, which bdc does not build yet (stores.md, open problems).
+
+| kernel | shape | input range (C defined, trips bounded) | vectors | expected values | bdc | simcheck | routed |
+|---|---|---|---|---|---|---|---|
+| fill | memory: written; one store in a loop, the index loop-carried (3, 10, 17, ... step 7 mod 32), n > 32 overwrites | n any (n <= 0: 0 trips; the index wraps, so any n stays in bounds); x any (wraps, -fwrapv) | kernels/fill/vec.hex (v2, 5 calls): (n, x) = (32, 0x12345678), (40, 0xdeadbeef), (7, -5), (1, 1), (0, 0x02468ace); a[] uniform in [-1000, 1000] | oracle_mem.sh (kernels/fill), final arrays with ORACLE_MEMOUT | ok / ok / ok | - (bench only; RTL research/tools/suite/tb_store1.v: 10/10 runs, arrays = C) | default flow (run_default.sh's flags), worst: SEEDS-ROW; automatic path: AUTO-ROW |
+
 ## What the suite found (work for the compiler)
 
 1. **quadrec deadlocks in both flows: bdc's ring floor counts stages, not tokens.** Its ring a <- b <- c <- d <-
