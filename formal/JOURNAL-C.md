@@ -4638,3 +4638,10 @@ token-free arcs (cw: agree and forward, or differ and backward) do not all point
 trap of a sub-network is a trap of the whole network. Sanity by decide: fork-join with one stage on Q holding a token more
 than P is trapped; with two stages it is not (research's condition 2, L_Q >= 2K, at K = 1). Still the stage model only;
 the count form for fork-join pairs (L_Q >= 2K in general) is not stated.
+
+### progress 21:34 -- cycle_noTrap_iff_count: research's conditions 1 and 2 as one counting theorem (Lean, standard axioms)
+Oriented cycle, F forward / B backward channels, dF / dB of them with differing stages: no trap iff dF < F + dB and
+dB < B + dF (count_split / count_total: per-element bookkeeping by induction on the list). Mapping to research's rest
+marking (d = 2 x resting values) is in the docstring, not a Lean theorem (the rest marking is research's definition): ring
+-> S >= 2T + 1, T >= 1; fork-join -> L_Q >= 2K and the mirror L_P >= -2K. Farm c_live_big1 submitted (60G live.py on the
+sampled / timed-out rows: nest3 AUTO, gcd AUTO, inv2 of gcd def / isprime def / nest3 def / branchloop AUTO).

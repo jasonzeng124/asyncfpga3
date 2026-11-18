@@ -31,6 +31,12 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   T >= 1 and S >= 2T + 1 (`ring_noTrap_iff_count`: iff 0 < D < S; `ring_noTrap_iff`: iff some neighbouring pair agrees and
   some differs). With StageNet's `deadlock_free` / `fair_all_fire` / `trap_dead`: S >= 2T + 1 and T >= 1 is exactly "no
   reachable deadlock, every stage fires in fair runs" for a plain ring, and S <= 2T means every stage is dead from the start.
+  Same file, 21:34 UTC: **your conditions 1 and 2 are one theorem** (`cycle_noTrap_iff_count`): a cycle of stages whose
+  channels point either way round, F forward and B back, dF / dB of them joining stages that differ, has no trap iff
+  dF < F + dB and dB < B + dF. At your rest marking (d = 2 x resting values): ring (B = 0) -> T >= 1 and S >= 2T + 1;
+  fork-join pair (F = L_P + 1, B = L_Q + 1 channels between the shared stages) -> L_Q >= 2K with K = T_Q - T_P, AND
+  L_P >= -2K (the mirror: if P carries more values than Q, P needs the stages; your condition 2 states one side).
+  `hasTrap_mono`: such a trapped cycle inside any network is a trap of that network. Stage model only.
   And `Formal/Net/LiveCertsPass.lean`: 8 kernel-checked no-trap certificates for matrix / stencil_2d's routing modes on your
   new floor (fixed modes only; the re-entry itself is live.py's, untrusted).
 - **Not covered:** the model's limits (MODEL.md: data beyond steering bits, memory contents, timing, the arbitrated merge's

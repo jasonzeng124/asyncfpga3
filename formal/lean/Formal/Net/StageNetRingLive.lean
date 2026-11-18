@@ -21,6 +21,10 @@ ring holding `T` tokens has `D = 2T`).
   i.e. research's `S ≥ 2T + 1` with `S = n + 1` stages, and at least one token.
 * `cycle_noTrap_iff`: the same for a cycle whose channels point either way round (a fork-join
   pair: P forward, Q backward): no trap iff its token-free arcs do not all point one way.
+* `cycle_noTrap_iff_count`: with F / B channels pointing forward / back round the cycle, dF / dB
+  of them joining stages that differ: no trap iff `dF < F + dB` and `dB < B + dF`; at a rest
+  marking (d = 2 x tokens) this is research's condition 1 for rings and condition 2
+  (`L_Q ≥ 2K`, and the same with P and Q exchanged) for fork-join pairs.
 * `hasTrap_mono`: a trap of a sub-network is a trap of any network containing it, so a trapped
   ring or fork-join pair inside a kernel kills its stages there (`trap_dead`).
 With `StageNet.deadlock_free` / `fair_all_fire`, "no trap" means: no reachable deadlock and every
@@ -397,5 +401,82 @@ example : HasTrap (EO (n := 3) (fun i => decide (i.val < 2))) (fun i => decide (
 example : ¬ HasTrap (EO (n := 4) (fun i => decide (i.val < 2))) (fun i => decide (i.val = 4)) := by
   rw [cycle_noTrap_iff]
   refine ⟨⟨⟨0, by omega⟩, ?_⟩, ⟨⟨2, by omega⟩, ?_⟩⟩ <;> unfold cw nxt <;> decide
+
+/-! ## Counting form for an oriented cycle: research's conditions 1 and 2 in one statement
+
+With `F` channels pointing forward round the cycle (`o i = true`) and `B` pointing back, of which
+`dF` and `dB` join two stages that differ, the cycle has no trap iff `dF < F + dB` and
+`dB < B + dF`. At research's rest marking a value resting in a stage makes the two channels
+around it differ, so `dF = 2 T_fwd`, `dB = 2 T_back`:
+* a ring (`B = 0`, `F = S`): `0 < 2T < S`, i.e. `T ≥ 1` and `S ≥ 2T + 1` (condition 1);
+* a fork-join pair, P forward (`F = L_P + 1` channels from the shared stage before the fork to
+  the one after the join), Q backward (`B = L_Q + 1`): `2 T_Q < L_Q + 1 + 2 T_P`, i.e.
+  `L_Q ≥ 2K` with `K = T_Q - T_P` (condition 2), and the same with P and Q exchanged. -/
+
+/-- One element's bookkeeping, summed over a list. -/
+theorem count_split (l : List (Fin (n + 1))) (a e : Fin (n + 1) → Bool) :
+    l.countP (fun i => (a i && e i) || (!a i && !e i)) + l.countP (fun i => a i && !e i) =
+      l.countP a + l.countP (fun i => !a i && !e i) := by
+  induction l with
+  | nil => simp
+  | cons i l ih =>
+    simp only [List.countP_cons]
+    cases a i <;> cases e i <;> simp <;> omega
+
+theorem count_total (l : List (Fin (n + 1))) (a : Fin (n + 1) → Bool) :
+    l.countP a + l.countP (fun i => !a i) = l.length := by
+  induction l with
+  | nil => simp
+  | cons i l ih =>
+    simp only [List.countP_cons, List.length_cons]
+    cases a i <;> simp <;> omega
+
+/-- **An oriented cycle has no trap iff `dF < F + dB` and `dB < B + dF`.** -/
+theorem cycle_noTrap_iff_count (o : Fin (n + 1) → Bool) (x : State (Fin (n + 1))) :
+    let L := List.finRange (n + 1)
+    let F := L.countP o
+    let B := L.countP (fun i => !o i)
+    let dF := L.countP (fun i => o i && !(x i == x (nxt i)))
+    let dB := L.countP (fun i => !o i && !(x i == x (nxt i)))
+    ¬ HasTrap (EO o) x ↔ dF < F + dB ∧ dB < B + dF := by
+  intro L F B dF dB
+  rw [cycle_noTrap_iff]
+  have hcw : ∀ i, cw o x i ↔ ((o i && (x i == x (nxt i))) || (!o i && !(x i == x (nxt i)))) = true := by
+    intro i; unfold cw; cases o i <;> cases x i <;> cases x (nxt i) <;> simp
+  let C := L.countP (fun i => (o i && (x i == x (nxt i))) || (!o i && !(x i == x (nxt i))))
+  have hsplit : C + dF = F + dB := count_split L o (fun i => x i == x (nxt i))
+  have htot : F + B = n + 1 := by
+    have := count_total L o; rw [List.length_finRange] at this; exact this
+  have hle : C ≤ n + 1 := by
+    have := List.countP_le_length (l := L)
+      (p := fun i => (o i && (x i == x (nxt i))) || (!o i && !(x i == x (nxt i))))
+    rwa [List.length_finRange] at this
+  have hpos : (∃ i, cw o x i) ↔ 0 < C := by
+    constructor
+    · rintro ⟨i, hi⟩
+      exact List.countP_pos_iff.mpr ⟨i, List.mem_finRange i, (hcw i).mp hi⟩
+    · intro h
+      obtain ⟨i, _, hi⟩ := List.countP_pos_iff.mp h
+      exact ⟨i, (hcw i).mpr hi⟩
+  have hfull : (∃ j, ¬ cw o x j) ↔ C < n + 1 := by
+    constructor
+    · rintro ⟨j, hj⟩
+      apply Nat.lt_of_le_of_ne hle
+      intro heq
+      have hall := (List.countP_eq_length (l := L)
+        (p := fun i => (o i && (x i == x (nxt i))) || (!o i && !(x i == x (nxt i))))).mp
+        (by show C = L.length; rw [heq, List.length_finRange])
+      exact hj ((hcw j).mpr (hall j (List.mem_finRange j)))
+    · intro h
+      apply Classical.byContradiction
+      intro hne
+      have hall : C = L.length := by
+        apply List.countP_eq_length.mpr
+        intro i _
+        exact (hcw i).mp (Classical.byContradiction (fun hc => hne ⟨i, hc⟩))
+      rw [List.length_finRange] at hall
+      omega
+  rw [hpos, hfull]
+  omega
 
 end Formal.Net.StageNet.RingLive
