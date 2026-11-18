@@ -90,8 +90,9 @@ rebuilt and re-placed (not a what-if).
 | collatz, entry compare also cut (UCMPI0 7) | 6 | - | (lsj) | FAILS: 2 wrong, 15 hung of 32 | entry-compare steer 318 / 41 ps with runts (B7's race) | B9 |
 | collatz64 (item 40) | 5 / 1 / 2 | 9585dde4 100.20 / 6333dd2d 101.27 / 1e34ade0 104.48 us | 27c5d16f 86.94 / 7af7feb2 85.31 / d33e28ec 90.51 us | -13.2 / -15.8 / -13.4 % | pass; NEARMISS 440 in one draw on seed 5 (latch data), else 0 | B9 |
 | ipow (item 38) | 2 | 81bbe268, 4.72 us | 89987a1c, 3.85 us | -18.5 % | pass; NEARMISS 0; DSP48 in no band class (B10) | B9, B10 (seeds 1 / 3 there) |
+| ipow | 3 / 4 | 58417727 4.504 / c146105a 4.682 us | bcc04b6d 3.813 / 86ccfb48 3.999 us | -15.3 / -14.6 % | pass (B10; slow-DSP pattern repeats) | B10 |
 | xorshift (item 41) | 8 | 3497ca67, 38.49 us | 8e1a90d4, 36.46 us | -5.3 % | pass; NEARMISS 3 in one draw (latch data) | B9 |
-Three seeds for collatz, collatz64 and ipow is below the 4-seed rule; B's farm b_lsj (seeds 1-8) is queued.
+Three seeds for collatz and collatz64 is below the 4-seed rule (ipow now has seeds 1-4, B10); B's farm b_lsj (seeds 1-8) is queued.
 B11 (research's flow-v6 suite column, the 13 routes its rule called NOT CLEAN; sdf identical to research's on every one):
 every route 32/32 draws + 32/32 slow-carry, and 8/8 + 8/8 with the loop counter preloaded near the carry where the
 kernel has one. sdf prefixes: countloop 97dda2e9 / 526cfe59 / 54082d7e, sqrtsub 77f952f2, varshift ae9d045b, brhash
