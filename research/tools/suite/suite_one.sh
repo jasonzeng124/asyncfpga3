@@ -59,8 +59,8 @@ case $AR in
   "BUILD FAILED it="*) BI=$(echo "$AR" | grep -o 'it=[0-9]*' | cut -d= -f2); BL=$RUNS/hw/${N}_$BI/build.log
     # a place-and-route that ran out of time is the machine, not the compiler (PNR_TIMEOUT, build_bench.sh)
     if grep -q "per-seed timeout" "$BL" 2>/dev/null; then fin "status=PNR-TIMEOUT (it=$BI; raise PNR_TIMEOUT or load less)"; fi
-    [ "$BI" = 0 ] && fin "status=DOES-NOT-COMPILE ($(grep -m1 -iE 'error|failed' "$BL" | cut -c1-160))"
-    fin "status=FLOW-FAILED (build it=$BI: $(grep -m1 -iE 'error|failed' "$BL" | cut -c1-140))";;
+    # bdc already compiled it (the check at the top), so a failed build is synthesis / place and route / the harness
+    fin "status=BUILD-FAILED (it=$BI: $( { grep -m1 -iE 'error|failed' "$BL" 2>/dev/null || tail -1 "$RUNS/auto/$N/it_$BI.log" 2>/dev/null; } | cut -c1-140))";;
   *) fin "status=FLOW-FAILED ($AR)";;
 esac
 RT=${N}_$IT; HW=$RUNS/hw/$RT; RD=$RUNS/r/$RT

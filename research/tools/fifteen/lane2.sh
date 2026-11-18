@@ -13,7 +13,7 @@ L=$1; N=$2; K=$3; Z=$4; S=$5; VEC=$(readlink -f "$6"); shift 6
 R=$(cd "$(dirname "$0")/../../.." && pwd); RUNS=${RUNS:-/home/user/runs}
 WT=$RUNS/wt/$L; HW=$RUNS/hw/$N; RD=$RUNS/r/$N; G=$R/research/data/eventgraph/graphs/$N
 HEAD=$(git -C "$R" rev-parse HEAD)
-exec 9> "$RUNS/wt/.$L.lock"; flock 9
+mkdir -p "$RUNS/wt"; exec 9> "$RUNS/wt/.$L.lock"; flock 9
 if [ -d "$WT" ]; then git -C "$WT" checkout -q --detach "$HEAD"; else git -C "$R" worktree add -q --detach "$WT" "$HEAD"; fi
 rm -rf "$WT/build/frontend"; mkdir -p "$WT/build"; cp -r "$R/build/frontend" "$WT/build/"
 [ -n "${MLIR_OVERRIDE:-}" ] && cp "$R/$MLIR_OVERRIDE" "$WT/build/frontend/$K/comp/handshake_transformed.mlir"
