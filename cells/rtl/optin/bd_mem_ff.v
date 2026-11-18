@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// bd_mem_ff.v -- bd_mem (rtl/bd_mem.v) with both of its lines FASTFALL.
+// rtl/optin/bd_mem_ff.v -- bd_mem (rtl/bd_mem.v) with both of its lines FASTFALL.
 //
 // The same cell, port for port, parameter for parameter and instance name for
 // instance name (usetup, gplain.ubuf / gbufg.ubuf, uco, uram), so the sizing
@@ -15,8 +15,13 @@
 // 0aeee7a1 with bd_mem.v as it was, 73576845 with the parameter added; gather
 // seed 2 happened to come out identical) -- yosys names a derived module after
 // the parameters given, so an explicit .FASTFALL(0) is a different module.
-// bd_mem.v is left byte for byte as it was; every netlist built without
-// BDC_MEM_FASTFALL=1 is unchanged by construction.
+// bd_mem.v is left byte for byte as it was, and this file is NOT under rtl/*.v:
+// a module merely present there (unused) changed the same route again
+// (0aeee7a1 -> d63c74bf) -- every module read moves yosys's global auto-name
+// counter, the names move, and nextpnr's placement with them.  So
+// hw/build_bench.sh reads rtl/optin/bd_mem_ff.v only for a kernel that
+// instantiates bd_mem_ff; every other build reads exactly the files it read
+// before, and every netlist built without BDC_MEM_FASTFALL=1 is unchanged.
 //
 // Why the falls carry no obligation.  The RAM samples only the RISING edge of
 // ram_clk: address / data / we setup (DSETUP) and clock-to-out (DCO) are

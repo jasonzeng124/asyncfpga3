@@ -211,6 +211,13 @@ if [ -n "${BD_SIZES:-}" ] && [ "${BD_SIZES}" != "none" ] \
     SIZES="${BD_SIZES}"
 fi
 SRCS="rtl/*.v build/gen/${KERNEL}_kernel_bench.v build/gen/${TOP}.v"
+# rtl/optin/: cells read only by a kernel that instantiates them (bdc/mem.py BDC_MEM_FASTFALL=1 -> bd_mem_ff).  Not
+# under rtl/*.v on purpose: a module merely read moves yosys's auto-name counter and so every other build's route
+# (rtl/optin/bd_mem_ff.v's header has the measurement).
+for _o in rtl/optin/*.v; do
+    _m=$(basename "$_o" .v)
+    grep -q "^ *${_m} " "build/gen/${KERNEL}_kernel_bench.v" 2>/dev/null && SRCS="$_o $SRCS"
+done
 if [ "${BD_SIZES:-auto}" != "none" ] && [ -e "$SIZES" ]; then
     # A sizes file is keyed by instance path.  One measured on another top (fusion_bench's
     # soak harness names the kernel uut., giving BD_SZ_UUT_*; this bench names it
