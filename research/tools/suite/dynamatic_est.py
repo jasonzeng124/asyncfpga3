@@ -1317,6 +1317,11 @@ def find_source(k, fixture):
         p = os.path.join(r, "kernels", k, k + ".c")
         if os.path.isfile(p):
             return p
+    # the suite's copy of Dynamatic's test (oracle_mem.sh / oracle.sh read it before dynamatic/integration-test)
+    for r in roots:
+        p = os.path.join(r, "research", "data", "suite", "dynsrc", k, k + ".c")
+        if os.path.isfile(p):
+            return p
     for p in [os.path.join(DYN, "integration-test", k, k + ".c")] + sorted(
             glob.glob(os.path.join(DYN, "integration-test", "*", k, k + ".c"))):
         if os.path.isfile(p):
@@ -1396,6 +1401,74 @@ def read_vectors(path):
         if line:
             vs.append([int(x, 16) for x in line.split()])
     return vs
+
+
+def is_v2(path):
+    """A v2 bench vector file (research/data/suite/bench/README.md): first line `// benchvec words=W mems=M`."""
+    with open(path) as f:
+        return f.readline().startswith("// benchvec")
+
+
+def read_v2(path, cir):
+    """The bench's v2 layout (memvec.py, oracle_mem.sh, cells/hw/gen_bench.py): per call the operand words (scalar
+    arguments in signature order, an i64 as its low word then its high word), then every element of each memref
+    argument of the handshake function in signature order, one 32-bit word per element (an element narrower than 32
+    bits takes the word's low bits, as the bench's host port writes it).  Returns [(operand words, {memref name:
+    elements})], one per call.  Refuses a file whose header or length does not fit this kernel's signature."""
+    lines = open(path).read().splitlines()
+    m = re.match(r"// benchvec words=(\d+) mems=(\d+)", lines[0] if lines else "")
+    if not m:
+        raise Unsupported("%s: no v2 header" % path)
+    nw, nm = int(m.group(1)), int(m.group(2))
+    mems = [(name, w) for name, kind, c, w in cir.args if kind == "memref"]
+    scal = [w for name, kind, c, w in cir.args if kind == "scalar"]
+    if any(w % 32 for w in scal):
+        # memvec.py gives an argument width // 32 words: a narrower scalar has no word of its own in the file
+        raise Unsupported("v2 file and a scalar argument narrower than 32 bits (%s)" % scal)
+    if nw != sum(w // 32 for w in scal) or nm != len(mems):
+        raise Unsupported("%s says words=%d mems=%d, the handshake function has %d words and %d memrefs"
+                          % (path, nw, nm, sum(w // 32 for w in scal), len(mems)))
+    words = [int(x, 16) for l in lines[1:] for x in l.split("//")[0].split()]
+    per = nw + sum(size for _, (size, ew) in mems)
+    if per == 0 or len(words) % per:
+        raise Unsupported("%s: %d words is not a whole number of %d-word calls" % (path, len(words), per))
+    calls = []
+    for j in range(0, len(words), per):
+        k = j + nw
+        mm = {}
+        for name, (size, ew) in mems:
+            mm[name] = [x & mask(ew) for x in words[k:k + size]]
+            k += size
+        calls.append((words[j:j + nw], mm))
+    return calls
+
+
+def oracle_mem(k, path, cir):
+    """The suite's own memory oracle (research/tools/suite/oracle_mem.sh: the kernel's C, gcc -O1 -fwrapv, on the v2
+    file's calls, arrays refilled from the file before every call).  Returns [(result or None, {memref name: final
+    contents})], one per call, the result masked to 32 bits as the bench's out0 is, the arrays to their element width.
+    The oracle holds the handshake function's memrefs in signature order (it refuses otherwise)."""
+    mems = [(name, w) for name, kind, c, w in cir.args if kind == "memref"]
+    fd, mo = tempfile.mkstemp(prefix="dynref_memout_")
+    os.close(fd)
+    try:
+        p = subprocess.run([os.path.join(REPO, "research", "tools", "suite", "oracle_mem.sh"), k, path],
+                           capture_output=True, text=True, timeout=600, env=dict(os.environ, ORACLE_MEMOUT=mo),
+                           cwd=REPO)
+        if p.returncode != 0:
+            raise RuntimeError("oracle_mem.sh: " + (p.stderr.strip().splitlines() or ["exit %d" % p.returncode])[0])
+        rets = [int(x, 16) for x in p.stdout.split()]
+        out = [(r, {}) for r in rets]
+        for line in open(mo):
+            mm = re.match(r"call=(\d+) mem=(\d+) data=(\S*)", line.strip())
+            if not mm:
+                continue
+            j, mi = int(mm.group(1)), int(mm.group(2))
+            name, (size, ew) = mems[mi]
+            out[j][1][name] = [int(x, 16) & mask(ew) for x in mm.group(3).split(",") if x]
+        return out
+    finally:
+        os.unlink(mo)
 
 
 CTYPE = {8: "unsigned char", 16: "unsigned short", 32: "unsigned int", 64: "unsigned long long"}
@@ -1801,16 +1874,29 @@ def analyse(k, vecfile=None, dirs=(), work=None, max_cycles=2000000, comp=None, 
         return r
     r["source"] = src
     orc = Oracle(src, cir)
+    call_mems = None    # v2 vectors: each call's own arrays
     try:
         scalars = [(name, w) for name, kind, c, w in cir.args if kind == "scalar"]
         has_mem = any(kind == "memref" for name, kind, c, w in cir.args)
-        if vecfile:
+        if vecfile and is_v2(vecfile):
+            # the bench's v2 file: operand words and every array, per call; expected values from the suite's own
+            # oracle_mem.sh (the C), the result and every array after the call
+            v2 = read_v2(vecfile, cir)
+            calls = [words_to_args(k, scalars, ws) for ws, _ in v2]
+            call_mems = [mm for _, mm in v2]
+            mems = {}
+            expect = oracle_mem(k, vecfile, cir)
+            if len(expect) != len(calls):
+                raise RuntimeError("oracle_mem.sh answered %d of %d calls" % (len(expect), len(calls)))
+            r["oracle"] = "research/tools/suite/oracle_mem.sh (v2 vectors: result and every array after each call)"
+        elif vecfile:
             mems = orc.main_call()[1] if has_mem else {}
             calls = [words_to_args(k, scalars, v) for v in read_vectors(vecfile)]
+            expect = orc.calls(calls, mems)
         else:
             sc, mems, _, _ = orc.main_call()
             calls = [sc]
-        expect = orc.calls(calls, mems)
+            expect = orc.calls(calls, mems)
     except (RuntimeError, Unsupported, subprocess.TimeoutExpired) as e:
         r["status"] = "no oracle (%s)" % e
         return r
@@ -1821,8 +1907,8 @@ def analyse(k, vecfile=None, dirs=(), work=None, max_cycles=2000000, comp=None, 
     sys.setrecursionlimit(max(10000, 4 * len(sim.units)))
     r["ii_bound"] = recurrence_bound(sim, loops)
     rows = []
-    for call, (eret, emem) in zip(calls, expect):
-        res = sim.run(call, mems, max_cycles)
+    for j, (call, (eret, emem)) in enumerate(zip(calls, expect)):
+        res = sim.run(call, call_mems[j] if call_mems is not None else mems, max_cycles)
         row = dict(args=call)
         if not res["done"]:
             row.update(status="no result within %d cycles" % max_cycles, cycles=None)
@@ -1830,6 +1916,8 @@ def analyse(k, vecfile=None, dirs=(), work=None, max_cycles=2000000, comp=None, 
             continue
         vals = [v for (n, v), c in zip(res["results"].items(), cir.end_ins) if cir.width[c] > 0]
         got = vals[0] if vals else None
+        if call_mems is not None and got is not None:
+            got &= 0xFFFFFFFF          # oracle_mem.sh prints the bench's 32-bit out0
         ok = (got == eret) if eret is not None else True
         bad_mem = [m for m, cont in emem.items() if res["memories"].get(m, [])[:len(cont)] != cont]
         ok = ok and not bad_mem
@@ -1948,6 +2036,10 @@ def report(r, cal):
                   % (p, cal["factor"], cp, 100 * cal["rms_err"], 100 * cal["max_loo_err"]))
             if "cpi" in r and r["status"] == "ok":
                 print("ns per iteration ESTIMATE: %.2f" % (p * r["cpi"]))
+            la = call_latency(dict(r, period_est_ns=p))
+            if la:
+                print("latency per call ESTIMATE (cycles x period, %d calls): mean %.1f ns, median %.1f, range %.1f-%.1f"
+                      % (la["n"], la["mean_ns"], la["med_ns"], la["min_ns"], la["max_ns"]))
             if r["kernel"] in MEASURED:
                 print("measured (routed 2026-08, 1 seed): %.2f ns period" % MEASURED[r["kernel"]])
 
@@ -1970,15 +2062,48 @@ def pick_vectors(k, fixture, dirs=()):
         v = os.path.join(r, "kernels", k, "vec.hex")
         if os.path.isfile(v):
             return v
+    # Dynamatic's tests in the suite keep their vectors here (suite_one.sh: no kernels/ directory, it would shadow
+    # the test in bdc/frontend.sh)
+    for r in roots:
+        v = os.path.join(r, "research", "data", "suite", "vec", k + ".hex")
+        if os.path.isfile(v):
+            return v
     return None
+
+
+# The calls the suite's routes are judged and timed on (research/tools/suite/suite_one.sh's V), where they differ from
+# the vectors above: gcd's draws run gcd8 (gcd18 stays the vector set of the cycles-per-iteration fit, which is
+# VERIFIED on it).  The per-call figure (cycles x period, for the latency-per-call ratio) is taken on these calls.
+SUITE_VECTORS = {"gcd": "research/data/suite/vec/gcd8.hex"}
+
+
+def suite_vectors(k, fixture, dirs=()):
+    if k in SUITE_VECTORS and os.path.isfile(os.path.join(REPO, SUITE_VECTORS[k])):
+        return os.path.join(REPO, SUITE_VECTORS[k])
+    return pick_vectors(k, fixture, dirs)
+
+
+def call_latency(r):
+    """Dynamatic's latency per call, ESTIMATE: cycles per call (simulated, answers = C) x the period estimate, over
+    every call of the run.  None unless every call was right and the period has an estimate."""
+    p = r.get("period_est_ns")
+    cs = [x.get("cycles") for x in r.get("rows", [])]
+    if not p or not cs or r.get("status") != "ok" or any(c is None for c in cs):
+        return None
+    ns = [c * p for c in cs]
+    # the trip counts of the same calls (header executions of the most executed loop; JSON keys are strings), for a
+    # fit of another circuit's call latencies on them (suite_table.py)
+    hot, loops = r.get("iter_block"), r.get("loops") or {}
+    execs = None
+    if hot is not None:
+        execs = [(x.get("bbfire") or {}).get(str(hot), (x.get("bbfire") or {}).get(hot, 0)) for x in r["rows"]]
+    return dict(n=len(cs), cycles=cs, period_ns=p, mean_ns=sum(ns) / len(ns), med_ns=statistics.median(ns),
+                min_ns=min(ns), max_ns=max(ns), sum_ns=sum(ns), execs=execs, n_loops=len(loops), hot=hot)
 
 
 def table(kernels, dirs, work, max_cycles, timeout, out_dir):
     """Every kernel in its own process (a wall-clock limit per kernel), then the markdown table and a TSV."""
-    rows = []
-    for k in kernels:
-        f = find_fixture(k, dirs)
-        v = pick_vectors(k, f, dirs)
+    def one(k, v):
         cmd = [sys.executable, os.path.abspath(__file__), k] + ([v] if v else []) + [
             "--json", "--work", work, "--max-cycles", str(max_cycles)]
         for d in dirs[2:]:
@@ -1986,15 +2111,38 @@ def table(kernels, dirs, work, max_cycles, timeout, out_dir):
         try:
             p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
             j = p.stdout[p.stdout.index("{"):] if "{" in p.stdout else ""
-            r = json.loads(j) if j else dict(kernel=k, status="tool error: " + (p.stderr.strip().splitlines()
-                                                                                 or ["?"])[-1][:100])
+            return json.loads(j) if j else dict(kernel=k, status="tool error: " + (p.stderr.strip().splitlines()
+                                                                                    or ["?"])[-1][:100])
         except subprocess.TimeoutExpired:
-            r = dict(kernel=k, status="not finished in %d s" % timeout)
-        r["vectors"] = re.sub(r"^.*/(kernels/)", r"\1", os.path.relpath(v, REPO)) if v else "main()"
+            return dict(kernel=k, status="not finished in %d s" % timeout)
+
+    def rel(v):
+        return re.sub(r"^.*/(kernels/)", r"\1", os.path.relpath(v, REPO)) if v else "main()"
+
+    rows = []
+    for k in kernels:
+        f = find_fixture(k, dirs)
+        v = pick_vectors(k, f, dirs)
+        r = one(k, v)
+        r["vectors"] = rel(v)
         r["vectors_path"] = v
+        # the per-call figure on the suite's own calls (suite_one.sh's V), a second run where they differ
+        sv = suite_vectors(k, f, dirs)
+        rs = r if sv == v else one(k, sv)
+        r["lat"] = call_latency(rs)
+        if r["lat"]:
+            r["lat"]["vectors"] = rel(sv)
+            r["lat"]["vectors_md5"] = md5(sv) if sv else None
+        elif sv != v:
+            r["lat_status"] = rs.get("status")
         rows.append(r)
         print("%-24s %s" % (k, r.get("status")), file=sys.stderr, flush=True)
     return rows
+
+
+def md5(path):
+    import hashlib
+    return hashlib.md5(open(path, "rb").read()).hexdigest()[:8]
 
 
 def add_estimate(r, cal):
@@ -2038,31 +2186,46 @@ def cell_cpi(r):
     return s
 
 
-def write_table(rows, cal, path_md, path_tsv):
+def cell_lat(r):
+    """Latency per call, ns (ESTIMATE): mean over the suite's calls (min-max), and on which calls."""
+    la = r.get("lat")
+    if not la:
+        return "-" + (" (%s)" % r["lat_status"] if r.get("lat_status") else "")
+    s = "%.1f (%.1f-%.1f; %d calls" % (la["mean_ns"], la["min_ns"], la["max_ns"], la["n"])
+    if la.get("vectors") and la["vectors"] != r.get("vectors"):
+        s += ", %s" % la["vectors"]
+    return s + ")"
+
+
+def write_table(rows, cal, path_md, path_tsv, path_lat=None):
     L = []
     L.append("| kernel | vectors | Dynamatic cycles per call (simulated; answers = C) | cycles per iteration "
              "(simulated, on-merges) | lower bound, any placement | period, ns (ESTIMATE) | ns per iteration "
-             "(ESTIMATE) | measured period, ns (routed, 1 seed, 2026-08) |")
-    L.append("|---|---|---|---|---|---|---|---|")
+             "(ESTIMATE) | latency per call, ns (ESTIMATE): mean (range) | measured period, ns (routed, 1 seed, "
+             "2026-08) |")
+    L.append("|---|---|---|---|---|---|---|---|---|")
     tsv = ["# kernel\tns per iteration\ttag\thow it was obtained (research/data/suite/dynamatic/README.md)"]
+    lat = ["# kernel\tcalls\tmean ns per call\ttag\tvectors\tvectors md5\tcycles per call\tperiod ns (ESTIMATE)\t"
+           "model path ns\tloops\theader executions per call (most executed loop)\thow it was obtained "
+           "(research/data/suite/dynamatic/README.md)"]
     for r in rows:
         st = r.get("status", "?")
         k = r["kernel"]
         if st != "ok":
             what = st if "rows" not in r else st
-            L.append("| %s | %s | %s | - | - | %s | - | %s |" % (
+            L.append("| %s | %s | %s | - | - | %s | - | - | %s |" % (
                 k, r.get("vectors", "-"), what, "-",
                 ("%.2f" % r["measured_period_ns"]) if r.get("measured_period_ns") else "-"))
             continue
         npi = r.get("ns_per_iter_est")
         hot = r.get("iter_block")
         bnd = (r.get("ii_bound") or {}).get(str(hot), (r.get("ii_bound") or {}).get(hot))
-        L.append("| %s | %s | %s | %s | %s | %s | %s | %s |" % (
+        L.append("| %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
             k, r.get("vectors", "-"), cell_cycles(r), cell_cpi(r),
             ("%d" % bnd + (" (ABOVE the simulated value: analysis error)" if bnd > 1.05 * r["cpi"] else ""))
             if bnd and "cpi" in r else "-",
             ("%.2f" % r["period_est_ns"]) if r.get("period_est_ns") else "- (no arc in the model)",
-            ("%.1f" % npi) if npi else "- (no loop)",
+            ("%.1f" % npi) if npi else "- (no loop)", cell_lat(r),
             ("%.2f (cycles x period = %.2f)" % (r["measured_period_ns"], r["measured_period_ns"] * r["cpi"]))
             if r.get("measured_period_ns") and "cpi" in r else "-"))
         if npi:
@@ -2070,8 +2233,20 @@ def write_table(rows, cal, path_md, path_tsv):
                        "any placement >= %s) x period %.2f ns ESTIMATED from Dynamatic's timing model (x%.3f fitted "
                        "on 3 routed kernels, worst leave-one-out %.0f %%); research/tools/suite/dynamatic_est.py"
                        % (k, npi, r["cpi"], bnd, r["period_est_ns"], cal["factor"], 100 * cal["max_loo_err"]))
+        la = r.get("lat")
+        if la and la.get("vectors") not in (None, "main()"):
+            lat.append("%s\t%d\t%.2f\tESTIMATE\t%s\t%s\t%s\t%.3f\t%.3f\t%d\t%s\tDynamatic on-merges, simulated cycles per "
+                       "call on the suite's calls (answers = C) x period %.2f ns ESTIMATED from Dynamatic's timing model "
+                       "(x%.3f fitted on 3 routed kernels, worst leave-one-out %.0f %%); "
+                       "research/tools/suite/dynamatic_est.py"
+                       % (k, la["n"], la["mean_ns"], la["vectors"], la["vectors_md5"],
+                          ",".join(str(c) for c in la["cycles"]), la["period_ns"], r["cp_model_ns"], la["n_loops"],
+                          ",".join(str(e) for e in la["execs"]) if la.get("execs") else "-", la["period_ns"],
+                          cal["factor"], 100 * cal["max_loo_err"]))
     open(path_md, "w").write("\n".join(L) + "\n")
     open(path_tsv, "w").write("\n".join(tsv) + "\n")
+    if path_lat:
+        open(path_lat, "w").write("\n".join(lat) + "\n")
 
 
 def main():
@@ -2100,7 +2275,8 @@ def main():
         os.makedirs(a.out, exist_ok=True)
         json.dump(dict(calibration=cal, rows=rows), open(os.path.join(a.out, "dynamatic_est.json"), "w"),
                   default=str, indent=1)
-        write_table(rows, cal, os.path.join(a.out, "table.md"), os.path.join(a.out, "dynamatic_est.tsv"))
+        write_table(rows, cal, os.path.join(a.out, "table.md"), os.path.join(a.out, "dynamatic_est.tsv"),
+                    os.path.join(a.out, "dynamatic_lat.tsv"))
         print(open(os.path.join(a.out, "table.md")).read())
         return
     if a.calibrate or not a.kernel:

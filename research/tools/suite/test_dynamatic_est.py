@@ -135,5 +135,79 @@ check(cycles_per_iter(r) == 4, "control d: ipow now %s cycles per iteration, so 
       % cycles_per_iter(r))
 de.PIPE_LAT["muli"] = 4
 
+# 4. Memory kernels on the suite's v2 vectors (research/data/suite/bench/README.md; dynfig 2026-11-18): every call's
+#    result AND every array after the call equal research/tools/suite/oracle_mem.sh's (the C), each call with its own
+#    arrays from the file.  fill writes its array; the others read only (their arrays are still compared).
+MEMKS = ["memsum", "dot2", "gather", "fill", "test_bitint", "if_loop_1", "if_loop_2", "sumi3_mem", "fir"]
+
+
+def run_mem(k):
+    f = de.find_fixture(k, DIRS)
+    return de.analyse(k, de.pick_vectors(k, f, DIRS), DIRS, WORK, max_cycles=40000)   # longest call: 10002
+
+
+mem = {}
+for k in MEMKS:
+    r = mem[k] = run_mem(k)
+    check(r["status"] == "ok" and r["n_ok"] == r["n"] > 1 and r.get("oracle", "").startswith("research/tools/suite/oracle_mem.sh"),
+          "%s (v2): %d of %d calls equal oracle_mem.sh, result and arrays" % (k, r.get("n_ok", 0), r.get("n", 0)))
+# fill: one store per iteration, nothing waits on it (write arbiter always ready, no load): exactly 1 cycle per trip
+r = mem["fill"]
+check(r.get("fit") and abs(r["fit"]["per_loop"][r["iter_block"]] - 1.0) < 1e-9 and r["fit"]["worst"] < 1e-9,
+      "fill: cycles = %.2f + %.3f x trips exactly (one store per cycle)" % (r["fit"]["a"], r["fit"]["per_loop"][r["iter_block"]])
+      if r.get("fit") else "fill: no fit")
+
+# 3f: the store writes data + 1: the answers of fill do not use the array, only the array check can see it
+orig_mc_tick = de.MemController.tick
+
+
+def bad_store_tick(self):
+    for d in self.st_data:
+        self.D[d] = (self.D[d] + 1) & de.mask(self.ewidth)
+    try:
+        orig_mc_tick(self)
+    finally:
+        for d in self.st_data:
+            self.D[d] = (self.D[d] - 1) & de.mask(self.ewidth)
+
+
+de.MemController.tick = bad_store_tick
+r = run_mem("fill")
+check(r["status"].startswith("WRONG") and all(x.get("bad_mem") for x in r["rows"] if x["args"].get("n", 0) > 0),
+      "control f (store writes data + 1): fill %s, every call with a store has its array flagged" % r["status"])
+de.MemController.tick = orig_mc_tick
+
+# 3g: the BRAM returns the word after the one addressed
+orig_mc_tick = de.MemController.tick
+
+
+def bad_read_tick(self):
+    mem0 = self.mem
+    self.mem = mem0[1:] + mem0[:1]
+    try:
+        orig_mc_tick(self)
+    finally:
+        self.mem = mem0
+
+
+de.MemController.tick = bad_read_tick
+caught = [k for k in ("memsum", "dot2", "gather") if run_mem(k)["status"] != "ok"]
+check(len(caught) == 3, "control g (read address + 1): caught on %s" % (caught or "no kernel"))
+de.MemController.tick = orig_mc_tick
+
+# 3h: every call gets the PREVIOUS call's arrays (the per-call fill of the v2 file matters)
+orig_read_v2 = de.read_v2
+
+
+def bad_read_v2(path, cir):
+    c = orig_read_v2(path, cir)
+    return [(w, c[j - 1][1]) for j, (w, _) in enumerate(c)]
+
+
+de.read_v2 = bad_read_v2
+caught = [k for k in ("memsum", "dot2", "gather", "test_bitint") if run_mem(k)["status"] != "ok"]
+check(len(caught) == 4, "control h (each call reads the previous call's arrays): caught on %s" % (caught or "no kernel"))
+de.read_v2 = orig_read_v2
+
 print("%d check(s) failed" % len(fails) if fails else "all checks passed")
 sys.exit(1 if fails else 0)
