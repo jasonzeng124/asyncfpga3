@@ -140,9 +140,13 @@ def lut_fold(cells, drv, d):
     return outs.pop()
 
 
-def pin_drivers(cells, drv, gen_ties):
+def pin_drivers(cells, drv, gen_ties, fold=None):
     """-> {(bel or lut position, pin): driver} where driver is
-    ('bel', bel, pin) | ('const', v) | ('tie', v) (unconnected: gen.py's TIE)."""
+    ('bel', bel, pin) | ('const', v) | ('tie', v) (unconnected: gen.py's TIE).
+    fold (a dict, filled): for a pin driven by a LUT that lut_fold() finds constant, that constant.  The pin itself is
+    still reported as ('bel', ...): the fold is used only where the other side has a constant (main's comparison), so
+    two sides that name the same LUT still compare as the same bel (folding one side only turned those into
+    differences: ipow routes c3542c6d / 9a5c155d, F7BMUX/0 and CARRY4/DI json const vs bits LUT, 2026-11-18)."""
     out = {}
     belof = {cn: bel(c, cn) for cn, c in cells.items()}
     for cn, c in cells.items():
@@ -165,13 +169,14 @@ def pin_drivers(cells, drv, gen_ties):
                 elif lut_const(cells[d[0]]) is not None:
                     v = ("const", lut_const(cells[d[0]]))
                     FOLDED.append("%s/%s <- %s" % (b, p, belof[d[0]]))
-                elif lut_fold(cells, drv, d) is not None:
-                    v = ("const", lut_fold(cells, drv, d))
-                    FOLDED_IN.append("%s/%s <- %s = %d" % (b, p, belof[d[0]], v[1]))
                 elif cells[d[0]]["type"] == "PAD":
                     v = ("undriven",)       # fasm2net names the pad as the driver of its own net
                 else:
                     v = ("bel", belof[d[0]], d[1])
+                    if fold is not None:
+                        fv = lut_fold(cells, drv, d)
+                        if fv is not None:
+                            fold[(key, p)] = fv
             else:
                 continue
             k = (key, p)
@@ -426,8 +431,9 @@ def main():
         "register/input parameters, drivers of every data pin the modelled function reads" % n_dsp)
 
     # ---- 3. connectivity
-    jp = pin_drivers(jc, jd, gen.TIE)
-    fp = pin_drivers(fc, fd, gen.TIE)
+    jfold, ffold = {}, {}
+    jp = pin_drivers(jc, jd, gen.TIE, jfold)
+    fp = pin_drivers(fc, fd, gen.TIE, ffold)
     common_pos = {lutpos(b) or b for b in set(jb) & set(fb)}
     n_same = 0
     for k in sorted(set(jp) | set(fp), key=str):
@@ -436,6 +442,14 @@ def main():
         a_, b_ = jp.get(k), fp.get(k)
         if a_ == b_:
             n_same += 1
+            continue
+        # one side a LUT that is constant given its own constant pins, the other side that constant (nextpnr's GND
+        # feed-through LUT1 whose pin routeVcc missed: the FASM writes INIT 0, the JSON keeps a buffer of GND)
+        if a_ and b_ and a_[0] == "bel" and b_[0] == "const" and jfold.get(k) == b_[1]:
+            FOLDED_IN.append("%s/%s json %s.%s = %d" % (k[0], k[1], a_[1], a_[2], b_[1])); n_same += 1
+            continue
+        if a_ and b_ and b_[0] == "bel" and a_[0] == "const" and ffold.get(k) == a_[1]:
+            FOLDED_IN.append("%s/%s bits %s.%s = %d" % (k[0], k[1], b_[1], b_[2], a_[1])); n_same += 1
             continue
         if a_ is None and k[0].endswith("/BUFGCTRL") and k[1] == "I1":
             # the I1 input mux's all-zero encoding IS a connection; fasm2net's
