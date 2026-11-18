@@ -40,6 +40,13 @@ a multiple of the host clock, i.e. the memory's host fill: dot2), the per-iterat
 latencies on the calls' trip counts, marked "fit" (it agrees with P within -2.4 / +5.2 %, median +0.6 %, on the 42 routes
 of 10 kernels that have both). A kernel without a loop has no "ns per iteration" on either side: its figure is the
 latency per call (research/data/suite/dynamatic/README.md, update 2026-11-18).
+Why P was missing (2026-11-18, eventgraph.py): a kernel without a loop has no marker (straight, test_int16, unused_arg:
+no request net rises 20 times; test_loop_free: a net that rises once per call); test_bitint's auto marker was the memory
+port's merged request (the host's fill plus the kernel's loads) and its calls have 10 trips, too few for a steady state;
+brhash's iteration time depends on the data; fold64's iterations alternate exactly (21529 / 23924 ps on its seed-4 route,
+every pair 45453 ps) and dot2's too (22817 / 26192, pairs 49009); dot2's P of 156000 ps was the memory port during the
+host's fill. eventgraph.py now skips the memory port's nets, tries strides 2-4 when the single interval has no steady
+state (fold64: P 22726 ps per iteration, both CHECKs PASS), and writes the reason into check.txt where there is no P.
 
 ## What "pass" means
 Every draw on every judged route returned every right answer, and at least one route was judged. A kernel that does not

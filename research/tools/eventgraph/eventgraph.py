@@ -63,6 +63,7 @@ class Graph:
 
 
 STRIDE = int(sys.argv[sys.argv.index("--stride") + 1]) if "--stride" in sys.argv else 1
+STRIDE_USED = STRIDE   # the stride build() ran with (--stride, or the one it found on its own)
 
 
 def build(work, marker, K=10):
@@ -97,24 +98,45 @@ def build(work, marker, K=10):
         mk = next((k for k, v in N.name.items() if v.endswith("." + marker) or v == marker), None)
     if mk not in ev:
         sys.exit("marker %s not found" % marker)
-    rises = [t for t, c in ev[mk] if c == "1"]
+    rises_all = [t for t, c in ev[mk] if c == "1"]
+
+    def steady(rises):
+        """(intervals, the mode P, the longest run of intervals == P, where it starts)"""
+        iv = [b - a for a, b in zip(rises, rises[1:])]
+        P = collections.Counter(iv).most_common(1)[0][0]
+        best, cur, start = (0, 0), 0, 0
+        for i, d in enumerate(iv):
+            if d == P:
+                if cur == 0: start = i
+                cur += 1
+                if cur > best[0]: best = (cur, start)
+            else:
+                cur = 0
+        return (iv, P) + best
+
     # --stride S: a period of S marker rises (a design whose iterations alternate, e.g. 18924 / 19382 ps on lever 8,
     # has no run of equal single intervals).  The graph is then the S-iteration unrolled one: every net has S events
     # of each edge per period, at distinct phases, so nodes stay distinct; the period it reports is S iterations.
-    if STRIDE > 1:
-        rises = rises[::STRIDE]
-    iv = [b - a for a, b in zip(rises, rises[1:])]
-    P = collections.Counter(iv).most_common(1)[0][0]
-    # longest run of intervals == P
-    best, cur, start = (0, 0), 0, 0
-    for i, d in enumerate(iv):
-        if d == P:
-            if cur == 0: start = i
-            cur += 1
-            if cur > best[0]: best = (cur, start)
-        else:
-            cur = 0
-    run, s0 = best
+    global STRIDE_USED
+    STRIDE_USED = STRIDE
+    rises = rises_all[::STRIDE] if STRIDE > 1 else rises_all
+    iv, P, run, s0 = steady(rises)
+    if run < K + 6 and STRIDE == 1:
+        # Without --stride, try 2, 3, 4 before giving up (dynfig, 2026-11-18): fold64's iterations alternate exactly,
+        # 21529 / 23924 ps, every pair 45453 ps -- a steady state of 2 iterations that the single-interval search
+        # cannot see (lane2_run.sh passes no --stride).  Only a run that would otherwise have no P takes this path.
+        # A strided run may be shorter than K + 6: dot2's calls have 32 trips (N = 32), 15 pairs of 49009 ps each.
+        # Down to 12 periods the window shrinks to K = run - 6 (>= 6 periods, every net still compared period by
+        # period); the two CHECKs below still have to pass.
+        for S2 in (2, 3, 4):
+            r2 = rises_all[::S2]
+            st2 = steady(r2) if len(r2) > 13 else None
+            if st2 and st2[2] >= 12:
+                rises, (iv, P, run, s0), STRIDE_USED = r2, st2, S2
+                K = min(K, run - 6)
+                print("auto stride %d: %d equal intervals of %d ps (%d iterations each); window %d periods"
+                      % (S2, run, P, S2, K))
+                break
     if run < K + 6:
         # no K + 6 equal intervals in a row: a loop whose iteration time depends on the data (brhash's two arms), one
         # too short for a steady state (test_bitint: 10 trips per call), or a marker that rises once per call (a kernel
@@ -268,10 +290,12 @@ def main():
     if not cyc:
         # no cycle of the graph through the marker (seen on an automatic ipow route, 2026-11-18): write the measured
         # period of the marker and say so, instead of dying -- the trace's P stands, the graph's check does not
+        Pi = round(P / STRIDE_USED) if STRIDE_USED != STRIDE else P     # per iteration when the stride was found
         open(OUT + "/check.txt", "w").write(
-            "work %s marker %s (%s) period P = %d ps; window t0 = %d\n"
+            "work %s marker %s (%s) period P = %d ps%s; window t0 = %d\n"
             "NO CYCLE through the marker in the graph (%d nodes, %d arcs): P is the marker's measured period; "
-            "no critical cycle, no CHECK\n" % (W, MK, mk, P, t0, len(G.nodes), len(G.arcs)))
+            "no critical cycle, no CHECK\n" % (W, MK, mk, Pi, (" per iteration (auto stride %d: %d ps)" % (STRIDE_USED, P))
+                                              if STRIDE_USED != STRIDE else "", t0, len(G.nodes), len(G.arcs)))
         print("eventgraph: no cycle through the marker; check.txt has the measured period only", file=sys.stderr)
         return
     # trace.py's walk, from an edge of the graph's critical cycle back to that net's previous same edge
@@ -289,8 +313,14 @@ def main():
         gn = sorted((N.name.get(n, n), e) for n, e in gcyc)
         ref = (rc == gn, len(rc))
     wsum = sum(G.arcs[i]["w"] for i in cyc); osum = sum(G.arcs[i]["o"] for i in cyc)
+    first = "work %s marker %s (%s) period P = %d ps; window t0 = %d" % (W, MK, mk, P, t0)
+    if STRIDE_USED != STRIDE:
+        # found by build(), not asked for: P per iteration first (lane2_run.sh reads the number after "period P ="),
+        # the graph's own period (STRIDE_USED iterations) after it; the CHECK below compares the graph with the latter
+        first = ("work %s marker %s (%s) period P = %d ps per iteration (auto stride %d: %d iterations = %d ps, the "
+                 "graph's period); window t0 = %d" % (W, MK, mk, round(P / STRIDE_USED), STRIDE_USED, STRIDE_USED, P, t0))
     lines = [
-        "work %s marker %s (%s) period P = %d ps; window t0 = %d" % (W, MK, mk, P, t0),
+        first,
         "nodes %d (periodic net edges), aperiodic nets %d, arcs %d (negative slack: %d)" % (len(G.nodes), len(aper),
                                                                                        len(G.arcs), neg),
         "edge kinds: %s" % dict(stats),
