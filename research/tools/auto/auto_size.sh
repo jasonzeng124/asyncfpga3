@@ -50,8 +50,13 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   # CA_JOINAWARE=1 (default here; research/data/sizerule/joinaware.md): rule A' checks an operator's data where it is
   # captured, with a sibling's request credited at a shared join (formal B2 / B3: the incrementer paid for a capture
   # that does not happen). xorshift seed 1's final route, both corners: 103 -> 89 links (UADDI0 7 -> 1).
+  # BD_SKEW_STEER_SELF=1 (default here; research/data/sizerule/steerE.md): at a steer whose C-element join carries the
+  # select's own channel request, rule E from a latch launch is bounded by that request; the row that held xorshift's
+  # loop test UCMPI1 at 17-19 was a lap through the steer's own select and a sibling's acknowledge (17 -> 8; a build at
+  # those sizes 16.62 ns vs 21.08, 4/4 draws).
   local c; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
-    CA_JOINAWARE=${CA_JOINAWARE:-1} BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
+    BD_SKEW_STEER_SELF=${BD_SKEW_STEER_SELF:-1} CA_JOINAWARE=${CA_JOINAWARE:-1} BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 \
+      python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
         --band "$c" --inst-rx '\.chain\.g\[\d+\]\.u$:0.20' --out "$CA/rule_$c" > "$O/ca_${i}_$c.txt" 2>&1 &
   done; wait
   local dirs=(); for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
