@@ -3344,3 +3344,8 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - 08:22 research e3005e03a ... c7808ea6d: the suite grows to 36 kernels (Dynamatic's 11 integer tests with vectors, dot2, gather); 3 pass a seed-1 smoke; gather fails on bd_mem's setup (reported). Dynamatic's C copied byte for byte with sha256 (research/data/suite/dynsrc). Expected values are computed from the C at run time, with no committed .exp to check statically; spot-check own oracle when a suite table quotes them.
 - 08:35 research d6e567a8c: flow v6 seed 2 8/8; a flagged route is fixed by the patched nextpnr; memory lines sized. No headline.
 - 08:58 research 4f4f83856: cites T151; the isprime s2 nextpnr error predates the patch; suite6 (flow v5 / v6 headline) started. No claim.
+
+### progress 09:17
+- research 1ea82d75e: BOARD-QUEUE item 38, the first AUTOMATIC board item. ipow BDC_AUTO=1, flow v3 sizes (research/data/suite/board/ipow_v3_s2_sizes.vh), seed 2, sdf 81bbe268, 22.71 ns, 32/32 draws + 3 corners (hand items ~36 ns).
+- T152 launched: own rebuild at the item's commit with its own command (this also tests that the default-on token floor leaves ipow byte-identical), own GLS on own ipow vectors at 5 corners with steer monitors.
+- research 94f105487: xorshift suite4 s8 sizes kept as a board candidate.
