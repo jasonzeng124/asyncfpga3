@@ -6676,3 +6676,12 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
 - Subagents: srcjoin (bdc: a source reaching a result, test_int16 / unused_arg) and stores (bdc: memory stores,
   write / read-modify-write kernels; 33 Dynamatic tests blocked by it).
 - Automatic board candidates so far (35 judgments each): collatz s6 12 / 12, ipow s2 20 / 20, collatz64 s5 4 / 4 PASS.
+### progress 08:57 (isprime seed 2's FLOW-FAILED is a pre-existing nextpnr error, not the const-sinks patch; audit T151 confirms an AUTO route)
+- suite5 (gcd / isprime, v4): isprime seed 2 failed at it 2: "ERROR: No wire found for port A1 on destination cell
+  $abc$23599...$23606" (rebuilt here from its sizes_2.vh: same error). The old binary (9c732bc6303458df, kept as .bak)
+  and the new one fail identically on that netlist, so it is not the const-sinks patch; a nextpnr placement-time error
+  on this netlist / seed (to look at: the flow could re-seed such a build).
+- Audit T151 (07:43): AUTO collatz seed 3 (suite4, v3) rebuilt from the farm's sizes = sdf 73928b6b exactly; 9 / 9 at
+  FAST_MIN / advA / advC / worst / SLOW_MAX on the auditor's own max-peak vectors, 0 runts, min steer margin 1641 ps:
+  CONFIRMED. Re-read: PROGRAM unchanged; formal stopped until the reset (owner).
+- suite6 (the headline run: 4 kernels x 8 seeds, v6, nextpnr 6e5d224472232d5d) picked up at 55988c8d5.
