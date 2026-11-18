@@ -4858,3 +4858,4 @@ built is clean with the DSP at SLOW_MAX (B10).
 - Research meanwhile (14:49 EST): BDC_AUTO's MLIR rewrites off by default (owner, audit T156); board items 39-41 now carry
   BDC_AUTO_REWRITES=1. Every build here used research eaef0dec7 (rewrites on), which reproduces the judged routes.
 ### progress 20:26 -- collatz64 item 40 cut (collatz64_v3_s5_nc0.vh, sdf 27c5d16f): passes everything, -13.2 %; B9 cross-kernel table.
+### progress 20:41 -- ipow cut A/B seeds 1 / 3: -17.6 / -15.3 %, all draws pass; slow DSP: cut 17-18k latch-data pulses, yours 0 (B10 updated). collatz64 A/B seeds 1 / 2 running.

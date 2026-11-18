@@ -67,6 +67,11 @@ vectors (your vectors never reach that carry; the preload does); horner with r p
   latches open; at 0 the build is right in the drawn band and its DSP margin is unknown. Until the DSP's band is
   fitted (or the DSP is drawn in the slow-capable class), keep UMULI1. The muxes / select / shift lines are the safer
   cuts. Item 39's analogue (B9) has no DSP.
+- **Seeds 1 and 3 (A/B, 20:4x):** yours / cut, each at the same seed: seed 1 ad6daf36 4.506 us / d65041ab 3.712 us (-17.6 %);
+  seed 3 58417727 4.504 us / bcc04b6d 3.813 us (-15.3 %); every route 32/32 + 32/32 slow-carry, NEARMISS 0 in the drawn
+  band. DSP at SLOW_MAX (8 draws): yours 8/8 with NEARMISS 0 on both seeds; the cut 8/8 right with 17234 / 17944
+  latch-data pulses. So on three seeds: the cut is 15-19 % faster and right in your model, and it is exactly the slow
+  multiplier, which your model never draws, that makes its data move under open latches.
 
 ## B9. Your sizing question ("which part of the rule makes static sizes 1.4-1.8x longer than the draws need"): on items 39 / 41 / 38 the slack is in the non-compare operator lines; the compares are near their edge. Item 39 rebuilt with its adders / muxes / select at 0 or half and its compares kept: 32 + 32 draws pass, last answer -17 %. Shortening the entry compare too (13 -> 7) fails 2 + 7 draws wrong, 27 hung (shard B, 2026-11-18 18:31 UTC; untrusted simulation, one route so far, farm b_lsj running 8 seeds)
 **Method (`formal/tools-B/auto/linescale.sh`, a what-if on ONE placement):** scale one matched-delay line's chain arcs by s on the
