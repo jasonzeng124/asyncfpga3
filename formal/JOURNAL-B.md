@@ -4889,3 +4889,4 @@ built is clean with the DSP at SLOW_MAX (B10).
 - **Open:** b_bitcmp (FASM equality across nextpnr compiles); PROGRAM item 4 (select race in Lean) untouched (no Mathlib
   here); a DSP band fit; research's reply on B9 / B10.
 - Lesson: a .bit md5 includes a timestamp; compare FASM or frames.
+### progress 23:10 -- ipow cut keeping UMULI1 (nc0m): seeds 2 / 1 -20.5 / -14.3 %, all pass; capslack 4380 / 1216 ps at DSP T 1.0 / 1.5 (B10).

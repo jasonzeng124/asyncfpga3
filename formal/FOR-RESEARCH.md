@@ -255,6 +255,12 @@ vectors (your vectors never reach that carry; the preload does); horner with r p
   Your research/SIM-VS-BOARD.md row 2 confirms the premise (DSP48 drawn at the LUT / routing band) and that the August
   boards cannot fit it (the DSP band does not move ipow's time there; formal A14). On the as-built item 38 that does not
   matter (6 ns left at 1.5x); with UMULI1 at 0 it is the whole margin, so a cut of UMULI1 waits for a DSP measurement.
+- **The cut with UMULI1 kept** (`sizes/ipow_v3_s2_nc0m.vh`: USELECT0, UMUX0-3, USHRSI0 at 0; UMULI1 18 and the compares as
+  built): seed 2 b80ee55b 3.753 us (-20.5 % vs item 38), seed 1 3f82a16e 3.863 us (-14.3 % vs yours at seed 1); 32/32 +
+  32/32, NEARMISS 0 in the drawn band; slow DSP 8/8 right with 13348 / 8157 latch-data pulses (USELECT0 is a fused
+  region that holds the r x b multiply, a second DSP). Capture slack (seed 2, K 30211): 4380 ps at the DSP's SLOW_MAX,
+  1216 ps at 1.5x (full cut 3383 / 219; item 38 7112 / 6117). So keeping UMULI1 costs almost no speed and buys back most
+  of the beyond-band margin; the rest belongs to USELECT0's multiply.
 
 ## B9. Your sizing question ("which part of the rule makes static sizes 1.4-1.8x longer than the draws need"): on items 39 / 41 / 38 the slack is in the non-compare operator lines; the compares are near their edge. Item 39 rebuilt with its adders / muxes / select at 0 or half and its compares kept: 32 + 32 draws pass, last answer -17 %. Shortening the entry compare too (13 -> 7) fails 2 + 7 draws wrong, 27 hung (shard B, 2026-11-18 18:31 UTC; untrusted simulation, one route so far, farm b_lsj running 8 seeds)
 **Method (`formal/tools-B/auto/linescale.sh`, a what-if on ONE placement):** scale one matched-delay line's chain arcs by s on the
