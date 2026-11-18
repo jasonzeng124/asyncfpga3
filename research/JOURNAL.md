@@ -6959,3 +6959,15 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   **Dynamatic's own remsi.v is wrong for negative operands** (an unsigned remainder: remsi(-7, 2) = 1, C gives -1).
   Emission checked here: the 135 earlier outputs byte-identical after graphsearch + divmod; 18 new (digitdiv, digitsum,
   divmods, divmodu, if_loop_3, test_divui x 3 modes).
+### progress 22:01 (conv1 negative: padding near-limit lines in the finish phase does not make it converge)
+- Farm conv1 (8 of suite6's NOT CLEAN loops resumed after it 3 with AUTO_NEAR_PS=300; suite6 itself is the control):
+  the rebuilt it 4 had suite6's sdf md5 on every task that reported it (6 / 6: the resume is exact). **Prediction (>= 5
+  of 8 end CLEAN) failed: 0 of the 6 that finished ended CLEAN** (all NOT CLEAN at it 7, as in suite6); collatz s1 and
+  collatz64 s7 gave no result line. The near set was 0-2 lines per finish step: the rows that open on the next route
+  are mostly on lines that had more than 300 ps, or on constraints no line's "ps left" reports. P against suite6's
+  same-seed route: collatz s2 16.91 / 14.97, collatz64 s5 20.73 / 22.99, ipow s1 21.31 / 21.73, ipow s4 22.74 / 22.57,
+  xorshift s2 20.33 / 19.72, s7 22.28 / 22.28 ns; draws 48 / 48. AUTO_NEAR_PS stays opt-in and unused.
+- What this leaves (with hangs' ipow s4 and suite9's if_loop_1 s1: NOT CLEAN routes can be wrong): the loop's finish
+  phase needs another idea -- e.g. raise every line on the critical rows' launch-capture paths by the observed
+  re-placement scatter, or keep re-routing raise-only until clean (resume makes the time affordable), or ship nothing
+  NOT CLEAN. Under consideration; the suite table already counts a NOT CLEAN route that fails a draw as FAIL.
