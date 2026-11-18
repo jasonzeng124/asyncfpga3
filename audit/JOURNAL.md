@@ -3336,3 +3336,4 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
 - research 1b0dea08b / ff1da918a: the automatic-column headline from suite4 (flow v3, complete), 27 routes, 216/216 draws. collatz 18.98 / collatz64 23.71 / ipow 24.10 / xorshift 20.11 ns.
   - Now compliant: measured vs estimated Dynamatic apart (1.42 / 1.08); model error stated; v1 failures and 11/27 non-clean loops stated; 216/216 bounds the per-draw failure at <= 1.4 % (95 %).
 - T151 launched: own rebuild of AUTO collatz seed 3 (farm task 11, sdf 73928b6b) from the farm's sizes_final.vh at 312abcc32, then own GLS on long-trajectory vectors at 5 corners with steer monitors.
+- 07:07 T151: own rebuild of AUTO collatz seed 3 from the farm's sizes_final.vh at 312abcc32 gives sdf 73928b6b, the farm's route exactly; ff clean (1924 flops, 0 missing mux). The AUTO flow + committed sizes is reproducible. GLS running. research 9be73c411: ratchet-mode logging.
