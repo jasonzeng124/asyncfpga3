@@ -6739,3 +6739,17 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   3 corners 19/19, draws 30801-30832 32 / 32 and slow-carry draws 30851-30858 (CARRY4 / F7F8 / FF 0.8-1.0) 8 / 8.
   **Item 41** (slower than the hand item 37, 16.49 ns; listed as the automatic flow's own xorshift).
 - Both rebuilt with nextpnr 6e5d224472232d5d from the farm's sizes; the sdf md5s equal the farm's (9c732bc6303458df).
+### progress 16:53 (session 1's two subagents recovered from disk: stores landed, ringplace negative)
+- **stores** (bdc lowers a store: each block's outgoing control joins its stores' completions, so ctrlEnd / memEnd /
+  out0 come after every store by construction; research/data/suite/stores.md): 7 commits applied. Conflict with srcjoin
+  in _op_end resolved by hand: both joins kept, a function with a store AND a source-fed result refused (no fixture has
+  both). Checked here after the merge, 108 fixtures x {default, BDC_AUTO=1, BDC_HOST_MEM=1} --no-top: the 105 outputs
+  that emitted before are byte-identical to 79fec0d88; the 30 new ones (fill + 9 Dynamatic tests) equal the subagent's;
+  top-level emission of the six kernels, memsum, test_int16 unchanged. kernels/fill routed: seeds 1-4 PASS 5/5 at the
+  worst corner (s3 / s4 finished after the cutoff), arrays = C after every call, EQUIVALENT; the address negative
+  control FAILS 1/5; automatic seed 2 (it 6, NOT CLEAN by 4) 2 / 2 draws at 37.27 ns per trip. 9 of Dynamatic's tests
+  now emit (RTL-checked: single_loop, simple_example_1, matrix under AUTO); none routed.
+- **ringplace** (a PLACE_WEIGHT on every loop ring's handshake nets, emitted under BDC_AUTO): 8 routes A/B, dP median
+  +0.27 ns, mean +0.68, faster on 4 / 8; weight 3: 2 / 4. Prediction (no consistent sign) held. Not landed in bdc (kept
+  as research/data/suite/ringplace/ringplace_knob.patch); cycle_wire.py landed. Wire is 85-87 % of the critical cycle
+  on every route of both arms.
