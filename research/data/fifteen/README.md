@@ -1,3 +1,18 @@
+**THE AUTOMATIC COLUMN (PROGRAM "General first", owner 2026-11-17) -- one switch, nothing set per kernel.** BDC_AUTO=1
+with the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model; the hand
+recipes beside it. **Preliminary: ONE route per kernel (seed 1), 2026-11-18 01:50 UTC**; the farm's 8-seed runs
+(suite1 / suite2) replace this table when they are read. The whole-suite table: research/data/suite/README.md.
+
+| kernel | automatic, ns per iteration (P, seed 1) | draws | hand recipe's best | Dynamatic | automatic / Dynamatic |
+|---|---:|---|---:|---:|---:|
+| xorshift | 21.08 | 4 / 4 | 16.76 (x55a10, 28 routes) | 12.73 (measured, 1 route) | 1.66 |
+| collatz | 18.06 | 4 / 4 | 21.5 (item 31) | 14.05 (measured, 1 route) | 1.29 |
+| collatz64 | 30.01 | running | 31.4 (item 32) | 17.84 (measured, 1 route) | 1.68 |
+| ipow | no P (event graph failed on the route) | - | 36.2 (item 29) | 50.0 (ESTIMATE) | - |
+
+xorshift's gap to its hand recipe is one line: the n ring's loop-test compare UCMPI1 is 18 elements in the automatic
+sizes and 5 in the hand recipe, held by the static rule E at the steers (the joinrule work; formal B3 / B4).
+
 **2026-11-17, judged by draws (PROGRAM "The board decides"): xorshift 16.85 ns per iteration** -- item 33's sizes x0.55
 except the incrementer (fr4a_x55a), median of 32 farm routes (15.93-18.19), every one of 128 delay-model draws returning
 every right answer (bench_gate.sh draw:K; the model fails a known-bad build 16 / 16). Gap to 15 ns: 1.85 ns. The
