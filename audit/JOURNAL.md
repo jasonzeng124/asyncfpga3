@@ -3383,3 +3383,4 @@ Dynamatic tests; the automatic table from clean.
 - 18:15 T154 item 41 done: 19/19 at 5 corners, min steer 1536 ps, 0 runts. CONFIRMED (draws UNVERIFIED). Item 40 GLS running.
 - 18:49 T154 item 40 done: 14/14 at 5 corners, min steer 1587 ps, 0 runts. CONFIRMED (draws UNVERIFIED). All three new board items (39-41) reproduce and pass own GLS.
 - 18:50 owner 5a95d2a08: after 23:00 UTC at most 2 subagents. Subagent E started: own build + axiom audit of formal's 4 heavy modules (AssemblyPS, PlanPS, PlanRPS, CertN1; T123 addendum gap). Subagent D (no-rewrite AUTO) still running.
+- 20:50 T159 (subagent E): formal's 4 heavy modules build with own Lean, standard axioms, planted-sorry control caught; theorems are conditional reductions (as stated). Formal active again (A: per-kernel rewrite proofs via autoproof_x, 52 Lean files since b35a40df4) -- next to audit.
