@@ -3311,3 +3311,10 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
   - REPORT row. Owner notified.
 - 04:15 research f4e5e2ccf / af98298dd: the automatic headline is corrected per audit (1.37 over measured Dynamatic figures, 1.03 with estimates apart, model error and flow v2 status stated). REPORT row marked corrected. T150 worst: 19/19, 0 runts, margins >= 1234 ps.
 - 04:26 T150: item 37 xor19 advA (scatter) 19/19 (min margin 1130 ps) and SLOW_MAX 19/19 (min 3553 ps), 0 runts; the long-rounds runs are next. research 58eaea666 / ac6adac3a: auto_size phase 2 with one element of headroom; rejudge1 9/12 back, all pass.
+
+### progress 04:48
+- research db544ea9f: bdc/emit.py 'token floor' (every marked-graph cycle of an iterating loop holds a token), on by default. Own identity check (t147/ident2.sh) across the commit:
+  - 9 original kernels + 3 pre-pass MLIRs x 6 knob sets: 128/128 outputs byte-identical (16 pre-existing EmitErrors identical). No board item or original kernel changes.
+  - Suite kernels: default output CHANGED on nest3, quadrec, nested (the ones that deadlocked, T149) and lfsrfind; the other 10 identical.
+  - A default-on compiler fix, not part of BDC_AUTO, so the AUTO-off identity rule is unaffected. Whether the changed kernels now pass is for research to show (simcheck / routed).
+- T150 long-rounds runs still going.
