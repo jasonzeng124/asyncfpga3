@@ -4561,3 +4561,8 @@ and ulink_n45=2 (stencil) LIVE; other trap channels +1 still DEADLOCK.
 ### progress 18:09 -- running: the fixture sweep (detached run_all.py, ~280 / 648 rows; isprime 2-invocation TIMEOUT, gcd AUTO
 SAMPLED-LIVE; matrix default DEADLOCK is the only floor-on disagreement so far); a subagent deriving a static rule for the
 loop re-entry mode (formal/tools/live/reentry/), validated against live.py. Next PROGRAM re-read ~18:54.
+
+### progress 18:17 -- subagent: static re-entry rule (reentry.py), 183/183 with live.py (FOR-RESEARCH C58)
+Condition 2 in the one-trip pass-through mode: fork = inner header control_merge, Q = result -> exit steer -> enclosing back edge
+(1 token) -> enclosing header -> inner mux entry input (1 stage) vs P = index -> select. Reproduced rc on matrix/stencil (1),
+test_flatten_array/gcd/quadrec/nested (0), matrix n26=2 and AUTO (0). Evidence thin on the positive side (2 fixtures).
