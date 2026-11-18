@@ -33,8 +33,9 @@ md5=$(md5sum "$HW/${K}_bench_gen.sdf" | cut -c1-8)
 # for a design bdc/simcheck.py already shows deadlocking (it ends at the first vector simcheck hangs on). Said in the
 # result line.
 # A hung batch runs to bench_gate.sh's TBATCH (default 1.2 ms of circuit time, ~1.5 h of wall at ~0.22 us/s). The
-# suite's longest legitimate batch is 2 runs x <= 256 trips, measured <= ~31 us (countloop / sqrtsub, 256 trips, default
-# flow): 200 us bounds a hang at ~15 min of wall; a prefix (its longest batch <= ~50 us) gets 80 us (~6 min).
+# suite's longest legitimate batch is 2 runs x <= 256 trips: measured 79 us for fold64's 255-trip 64-bit vector, ~30 us
+# for countloop / sqrtsub's 256 trips (default flow, seed 1). 200 us bounds a hang at ~15 min of wall; a prefix (its
+# longest batch <= ~50 us: nested (16, 16), nest3 (8, 8) at countloop's cost per trip) gets 80 us (~6 min).
 SUB=""
 if [ -f "$RUNS/gatevec/${K}_$F.hex" ]; then
   VEC=$RUNS/gatevec/${K}_$F.hex; EXP=$RUNS/gatevec/${K}_$F.exp; SUB=" (vectors: $VEC)"; GATE_TBATCH=${GATE_TBATCH:-80000}
