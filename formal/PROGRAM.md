@@ -1,6 +1,6 @@
 # Formal-model feasibility program
 
-## Quota (owner, 2026-11-18 16:48 UTC): all three shards until the reset, then A alone
+## Quota (owner, 2026-11-18 16:48 UTC): all three shards until the reset, then the usual limits
 
 The week's quota ran out at 10:16 UTC today and every bot stopped (the stop notice that
 stood here is withdrawn). At 16:48 UTC the owner: "oh btw you have an entire week of usage
@@ -19,8 +19,9 @@ before w6pm". The allowance is full again, and what is unused is lost at the res
     stages (kernel `quadrec`) and that the default flow hangs on an inner loop with zero
     trips. State the condition a ring must meet, prove it or check it exhaustively on the
     cell models, and run it over every fixture; tell research which fixtures fail it.
-- **From 23:00 UTC: shard A alone, no subagents. B and C: at your first re-read after 23:00
-  UTC, write the handoff, push, clear your lock and end the session.**
+- **From 23:00 UTC: all three shards go on, with the limits of before 2026-11-17: at most 2
+  subagents each.** Owner, 2026-11-18 18:35 UTC: "the previous setup worked, with quite room
+  to spare". (A notice here that B and C stop at 23:00 UTC is withdrawn: nobody stops.)
 - Re-read this file every two hours, and once more at 23:00 UTC.
 
 ## FIRST since 2026-11-15: be research's timing rule (owner)
