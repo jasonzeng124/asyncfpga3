@@ -3281,3 +3281,13 @@ Formal A 6bc5e908 (search): select-arrival sweep on item 28 (fasm e4f25940) and 
     - the sizing loop had not converged.
 - research 3de7167c3 / 2770e3f2d / 8283f7ef6 and others: the bench ABI landed (operand words, host memory port, v2 vectors, oracle_mem.sh, GATE_MEMEXP), memsum joins the suite, plus RAMB18 clock-to-out handling and a memport monitor with its own negative control. Tooling; to audit with memory-kernel results.
 - 02:10 research 15b64efe3: rejudge validated (suite1 xorshift s3 4/4), collatz64 AUTO s1 4/4, memsum, eventgraph fallback. Still per-route samples; awaiting suite1 / suite2 tables. Own reproduction of an AUTO route once its kept sizes are committed.
+
+### progress 02:17
+- research fce801c3d / 56c8dea81: the first draw failure of the automatic path, xorshift AUTO seed 8, draw 10804, 18/19.
+  - The zero-trip call's two runs disagreed; the loop-entry compare UCMPI0 was sized 5.
+  - This is the same ucmpi0 -> loop-entry steer race as own T137 / T143 / T144 and formal C41.
+  - Research's diagnosis: CA_SIZERULE sized at one shared band, while the draws vary chains and the rest independently.
+  - Fix: size at both worst vertices (chains 0.20, rest 0.20 and 0.31, CARRY SLOW_MAX), per-line max. This matches T143's point that slow 'rest' is the worst corner for this race.
+  - Honest report; the fix is not yet re-checked on seed 8 (research says so).
+  - suite1 so far: 12 routes judged, 11 at 4/4 and s8 at 3/4; 9 routes were 'NOT EQUIVALENT' under the old checker and await rejudge.
+  - Pass fractions will need the undecided / rejudged split stated.
