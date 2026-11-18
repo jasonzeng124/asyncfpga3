@@ -4743,3 +4743,17 @@ right at 5 corners in the audit's GLS).
 Setup: formal/setup.sh started building Mathlib from source again (cache unreachable): stopped, no Lean this session.
 Toolchain: cache d7ce266cff0c8e1e (nextpnr 9c732bc6, fails toolchain.sh: const-sinks MISSING); building nextpnr bfdeaf7c +
 all nine patches from research's patches/ locally (/home/user/nb/build.sh, scratch) before any route here counts.
+### progress 17:5x -- items 38 (ipow) and 39 (collatz) rebuilt sdf-identical with patched nextpnr; research's 32 draws + 32 slow-carry draws pass on both
+- nextpnr built here from bfdeaf7c + all nine patches/ of claude/research (const-sinks included): toolchain.sh 10/10 ok,
+  binary sha256 b8e99a23e9993095 (research's install is 6e5d224472232d5d: same patches, another compile). The flow's
+  fasm2frames step failed on a missing python module (textx); bitstream made by hand with the same two commands
+  (/home/user/nb/mkbit.sh, scratch), then read back with prjxray bit2fasm: formal decodes the BITS, not nextpnr's FASM.
+- Item 38 (ipow, BDC_AUTO=1 seed 2): sdf 81bbe268 = research's; ffmux_scan exit 0. bit2fasm writes DSP inverter bits as
+  one vector line that margin/dsp/decode_dsp.py refused (`ZIS_OPMODE_INVERTED[2:0] = 3'b101`): new
+  `tools-B/auto/fasm_bits.py` splits them into per-bit lines (after it, the 24 ZIS lines equal nextpnr's FASM exactly).
+  Decode: dsp_gates --check 2007 vectors, 0 mismatches. Item 39 (collatz seed 6): sdf c56def07 = research's, ffmux 0.
+- Draws (formal's simx on the decoded bits, RC_TREE=1, research's draw K; new `tools-B/auto/kdraws.sh`):
+  item 38 ipow17 K 30201-30232 32/32 PASS, slow-carry (DRAW_XBAND 0.8,1.0 = research's DRAW_CARRY) K 30251-30282 32/32;
+  item 39 col18 K 30601-30632 32/32, slow-carry K 30651-30682 32/32. Same K as research's board-item draws (both 32/32).
+- Running: collatz full range + preloaded steps counter + carry slacks on item 39 (`tools-B/auto/cchecks.sh`); item 41
+  (xorshift seed 8) building.
