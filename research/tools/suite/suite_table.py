@@ -32,14 +32,17 @@ def hand_ref():
     return out
 
 def dyn_ref():
-    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dynamatic_ref.tsv")
+    """Dynamatic's figure per kernel: dynamatic_ref.tsv (measured routes) first, then the estimator's table
+    (research/data/suite/dynamatic/dynamatic_est.tsv: simulated on-merges cycles x an ESTIMATED period)."""
+    here = os.path.dirname(os.path.abspath(__file__))
     out = {}
-    if os.path.exists(p):
-        for l in open(p):
-            if l.startswith("#") or not l.strip():
-                continue
-            k, ns, tag, how = (l.rstrip("\n").split("\t") + ["", "", ""])[:4]
-            out[k] = (float(ns), tag, how)
+    for p in (os.path.join(here, "../../data/suite/dynamatic/dynamatic_est.tsv"), os.path.join(here, "dynamatic_ref.tsv")):
+        if os.path.exists(p):
+            for l in open(p):
+                if l.startswith("#") or not l.strip():
+                    continue
+                k, ns, tag, how = (l.rstrip("\n").split("\t") + ["", "", ""])[:4]
+                out[k] = (float(ns), tag, how)   # the later file (measured) overrides the estimate
     return out
 
 rows = {}
