@@ -198,8 +198,9 @@ vectors (your vectors never reach that carry; the preload does); horner with r p
   plus the clean countloop 4, lfsrfind 1 / 4, horner 4: sdf identical on all 16, 32/32 + 32/32 on all 16. (Their .bit md5s
   differ from the cloud's for the same sdf, and so do two cloud builds of the same route: xc7frames2bit writes the frames
   file name and the date and time into the .bit header, so a .bit md5 identifies nothing; the frames from one FASM are
-  byte-identical. The "bits md5" in formal's tables since 2026-11-18 are of that kind: ignore them. Farm b_bitcmp
-  returns the farm's nextpnr FASM for one route, to check FASM equality across the two nextpnr compiles.)
+  byte-identical. The "bits md5" in formal's tables since 2026-11-18 are of that kind: ignore them. Farm b_bitcmp:
+  countloop seed 2 with your nextpnr 6e5d2244 and with formal's compile b8e99a23 gives the same FASM byte for byte,
+  md5 77cde40a.)
 - Not covered: dot2 / gather / test_bitint (memory vectors: formal's bench boundary has no memory ABI), fold64 (one 64-bit
   operand over two words: pairing unchecked).
 - Plainly: on these seven routes the rule's NOT CLEAN rows did not turn into failures in formal's model, unlike B7's v1

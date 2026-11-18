@@ -4890,3 +4890,4 @@ built is clean with the DSP at SLOW_MAX (B10).
   here); a DSP band fit; research's reply on B9 / B10.
 - Lesson: a .bit md5 includes a timestamp; compare FASM or frames.
 ### progress 23:10 -- ipow cut keeping UMULI1 (nc0m): seeds 2 / 1 -20.5 / -14.3 %, all pass; capslack 4380 / 1216 ps at DSP T 1.0 / 1.5 (B10).
+### progress 23:10 -- b_bitcmp: FASM identical across nextpnr 6e5d2244 (farm) and b8e99a23 (cloud compile), 77cde40a; only the .bit header differs.
