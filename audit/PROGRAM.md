@@ -19,6 +19,14 @@ their code as the thing under test, not as a reference. Assume every claim
 is wrong until you have reproduced it. A claim you could not check is
 **UNVERIFIED**, not passed.
 
+## Quota: land near 95% by the reset (owner, 2026-11-18 00:13 UTC)
+
+The week's quota stood at 78% at 00:13 UTC, 23 hours before the reset (2026-11-18 23:00
+UTC); with the raised limits the five bots together used about 5 points an hour. The owner:
+"can you try to end on 95% ish". So **from now until the reset: no subagents.** The "4 until
+the reset" is withdrawn. Work alone, on research's automatic path first (see below). After
+the reset the limit is 2 again. Re-read this file every two hours.
+
 ## Effort and subagents (owner, 2026-11-05)
 
 The owner raised the budget to about twice the single-thread, high-effort level.
@@ -109,18 +117,6 @@ which the compiler chooses latch sites, rewrites and sizes by itself, and a tabl
 kernels as the headline. When that table appears, reproduce it from clean with the one switch
 and check that nothing is set per kernel: no instance name, no sizes file, no factor. A number
 that needs a per-kernel setting belongs in the hand column, not the automatic one.
-
-## Use the quota that is left (owner, 2026-11-17)
-
-The owner: "there is so much usage left why dont you jstu use it all". The week's quota
-resets on 2026-11-18 at 23:00 UTC, and what is unused is lost.
-
-- Until the reset (2026-11-18 23:00 UTC) you may run up to 4 subagents at a time; after that
-  2 again. The owner, later the same day: a slight overrun of the quota is fine.
-- Do not end the session early: nothing restarts it until the owner next looks.
-- Side by side: the draw model's parameters against the ring data; item 35 with formal's
-  C36 and C41; the ipow and collatz candidates as they appear; formal B's preloaded runs
-  once it reports; the disagreement about where the board sits in the delay band.
 
 ## The board decides; every check is a proxy (owner, 2026-11-16)
 
