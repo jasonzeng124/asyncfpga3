@@ -4682,3 +4682,8 @@ module; full check.sh is the farm's. floormin: BDC_LINK_DEPTHS cannot link an un
 trueResult_14), so the control failed there; live.py now takes LIVE_DEPTH_OVERRIDE (validated: matrix 26=1 = PASS=0's
 DEADLOCK 853 states and walk; lfsrfind trueResult_14=0 = floor off's DEADLOCK 112). Running: lfsrfind 1 / 1, matrix 1 / 1
 NECESSARY so far.
+
+### progress 22:10 -- floormin: every floor stage necessary on every fixture but nest3 (10 / 10), C59 updated
+lfsrfind def trueResult_14 (unlink: DEADLOCK 112), matrix def n26 (853), nested def falseResult_17 (431), stencil_2d def n45
+(901), quadrec def / auto trueResult_16 / 18 / 20 (53-245); every control (floor-on design) LIVE. nest3 queued on the farm
+(c_floormin_nest3). Minimal per link, not globally (a different placement could use fewer stages).

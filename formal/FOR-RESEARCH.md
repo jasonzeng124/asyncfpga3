@@ -126,6 +126,13 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
   `hasTrap_mono`: such a trapped cycle inside any network is a trap of that network. Stage model only.
   And `Formal/Net/LiveCertsPass.lean`: 8 kernel-checked no-trap certificates for matrix / stencil_2d's routing modes on your
   new floor (fixed modes only; the re-entry itself is live.py's, untrusted).
+- **Your floor adds no spare stage (22:10 UTC; `formal/tools/live/floormin/floormin.py`, table `floormin_0cebd725c.tsv`):**
+  every link your floor deepens or creates (floor on vs BDC_TOKEN_FLOOR=0, both flows, every fixture), checked by removing
+  that one stage from the floor-on design (live.py's LIVE_DEPTH_OVERRIDE, 0 = unlinked) and searching exhaustively: **10 / 10
+  NECESSARY** -- lfsrfind trueResult_14 (1 -> unlinked), matrix n26, nested falseResult_17, stencil_2d n45 (default flow), and
+  quadrec trueResult_16 / 18 / 20 (both flows); each minus-one DEADLOCKs, each floor-on design is LIVE. nest3 (falseResult_17 /
+  _33) is too large for this sandbox: farm c_floormin_nest3. So on the fixtures your floor is minimal, link by link (not a
+  claim that no other placement with fewer stages exists).
 - **One command for your floor loop (C57's suggestion):** `formal/tools/live/check.sh MLIR` from a checkout of claude/formal,
   with your BDC_* environment and `LIVE_BDC_DIR=<your bdc/>`: exit 0 LIVE (exhaustive), 1 DEADLOCK (prints the condition
   choices and the token-free walk in instance names, e.g. quadrec with BDC_TOKEN_FLOOR=0: ulink_n_trueResult_14 -> n21 ->
