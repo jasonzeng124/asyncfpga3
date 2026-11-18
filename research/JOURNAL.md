@@ -6685,3 +6685,8 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   FAST_MIN / advA / advC / worst / SLOW_MAX on the auditor's own max-peak vectors, 0 runts, min steer margin 1641 ps:
   CONFIRMED. Re-read: PROGRAM unchanged; formal stopped until the reset (owner).
 - suite6 (the headline run: 4 kernels x 8 seeds, v6, nextpnr 6e5d224472232d5d) picked up at 55988c8d5.
+### progress 09:15 (BOARD-QUEUE item 38: the first automatic build on the board list -- ipow, 35 / 35 judgments, 22.71 ns)
+- ipow, BDC_AUTO=1, the loop's own sizes (flow v3, farm suite4 seed 2; research/data/suite/board/ipow_v3_s2_sizes.vh,
+  nothing edited), rebuilt here = the farm's route (sdf 81bbe268, P 22.71 ns), EQUIVALENT, ffmux-clean: SLOW_MAX /
+  FAST_MIN / worst 17/17 and 32 / 32 draws (K 30201-30232). Hand ipow items: 36.2 ns median (item 29). Board item 38.
+- collatz s6 (21 / 21 so far) and collatz64 s5 (8 / 8) still being judged.
