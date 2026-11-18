@@ -296,8 +296,15 @@ def build_loop(k=1, merge="amerge", mode="fixed", LC=0, LB=1, LD=1, LK=1, LB2=1)
         g1, g2 = n.arbiter("CM.uarb1", "enc_r", "enc_a", "bc_r", "bc_a", r0, "cm_a")
         n.gate("CM.won1", "index", [g2, "bc_a"], INIT["lut2_or"], [0, 1])
         n.gate("CM.uor", "CM.either", [r0], INIT["lut1_buf"], [0])
-        matched_delay(n, "CM.udly", "CM.either", "cm_r", "index", [g2, "bc_a"],
-                      lambda a, b: a | b)
+        # settled = won1 equals g2 | A2 with g2 itself recomputed from the
+        # arbiter's (r1, r2, q): the whole index cone has settled
+        gtab = lut_table(ARB_GRANT, [0, 1, 2], consts={5: 1})
+        # (the grant LUT's g2 output must itself be stable: if it is not,
+        # report 'unsettled' by making fn disagree with any won1 value)
+        matched_delay(n, "CM.udly", "CM.either", "cm_r", "index",
+                      ["enc_r", "bc_r", "CM.uarb1.q", "CM.uarb1.g2", "bc_a"],
+                      lambda r1, r2, q, g2, a2: (g2 | a2)
+                      if g2 == ((gtab >> (r1 | (r2 << 1) | (q << 2))) & 1) else 2)
         for c in (("CM.in0", "enc_r", "enc_a"), ("CM.in1", "bc_r", "bc_a"),
                   ("CM.z", "cm_r", "cm_a")):
             n.chan(*c)

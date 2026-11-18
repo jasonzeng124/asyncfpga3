@@ -88,6 +88,29 @@ xorshift, collatz and collatz64 only. These results replace the per-kernel proof
   test no longer waits for the 32-bit add; the ring form adds one LUT after the compare.
 
 
+## C56. Three handshake races that are not speed independent, found by exhaustive search on the real cell LUTs: the control_merge index (A2 still high when the next entry token wins), FASTFALL's head buffer, and bd_mux's x_ack at a select change -- each a timing obligation with a large but unstated margin; plus bd_ctree 5/6, bdc_muxn 3 and FASTFALL agree with the stage model (shard C, 2026-11-18 18:05 UTC; untrusted exhaustive search, formal/tools/live/cells/)
+Gate-level speed-independent search from the verbatim INITs, with a four-phase protocol monitor and a select / index stability
+monitor (formal/tools/live/cells/run.sh; RESULTS.md, RESULTS2.md, muxglitch.txt):
+- **control_merge index (bdc_amerge2, a real loop header with an entry reservoir of k tokens).** k = 1: fixed and free mode (enter,
+  iterate, exit) clean: 0 protocol / bundling violations, every stuck state predicted by the stage model. **k = 2 (an entry
+  request really competing with the back edge):** after a back-edge handshake A0 falls, but A2 = C(g2, A0) has not fallen yet; if
+  in0 then wins, q and R0 rise while the index reads won[1] = g2 | A2 = 1 -- "back edge" for an entry token -- and moves when A2
+  falls, mid-handshake (2352 index-moved, 1036 mux-z, 36 ctl-ack violations in the reported loop). So DELAY_<cm> must also cover
+  A2's (A1's) fall after A0 falls; emit's comment on `won` argues only the hold side. Margin ~1 LUT against arbiter LUT + uor +
+  DELAY: large, but it is an obligation. (This is the same assumption formal's fixture checker needed in C55.) Loops reach only one
+  entry token at a time in today's kernels (one invocation in flight), so k = 2 needs the pipelined environment.
+- **FASTFALL delay line, DELAY >= 2:** the head buffer rdly1 is still falling when the link's c rises again (trace `L0- L0.rdly2-
+  L2+ L1- L2.rdly1+ L2.rdly2+`, then L0+ disables L0.rdly1-): your rule F's "the line must drain first". Liveness unaffected.
+- **bd_mux x_ack at a select change** (C53): in the speed-independent model only a LATE fall (0 lost / duplicated tokens, with the
+  fall disabled or completed). If it becomes a real runt (x_ack dips, the producer offers its next token, x_ack recovers to 1 via
+  C(j0 = 0, z_ack = 1)), the producer takes it as the acknowledge and withdraws a token the mux never joined: **a lost token**.
+  Obligation: x_ack's fall (one LUT) beats the select change plus the next y handshake raising z_ack.
+- **Agree with the stage model, 0 hazards, 0 violations:** bd_ctree 5 and 6 (fork-join, 1140 starts), bdc_muxn N = 3 at each select
+  (3 x 3150), FASTFALL DELAY = 1 and = 2 (deadlocks; DELAY = 2 rings show the hazard above). A bd_merge (unarbitrated) header,
+  which emit never builds, misroutes tokens with ONE token: a control, not a finding.
+- **Not covered:** real timing and the arbiter's time to decide, data through link latches, bdc_amerge N > 2, more than one loop,
+  bdc_muxn free mode, 9 of 32 k = 2 configurations (state cap).
+
 ## C55. matrix (default flow) deadlocks in formal's exhaustive model and your token floor does not see it: your walk view says "every walk holds a token", your cycle view says -2; the deadlock needs a loop to be LEFT and the enclosing loop's back edge taken (a mode change, which the walk view excludes). One merge out-link on ucontrol_merge1 makes it live in the model; BDC_AUTO matrix is live (shard C, 2026-11-18 17:41 UTC; untrusted exhaustive search, formal/tools/live/fixtures/live.py)
 - **The checker** (independent of token_graph / short_walk / ring_tokens; reads only the Emitter's design: links and depths, olinks,
   rlinks, fork-out links, fusion, memory stations, store / end joins): exhaustive state search of every state-holding element of

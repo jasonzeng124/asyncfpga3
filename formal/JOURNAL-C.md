@@ -4545,3 +4545,9 @@ bits, memory contents, BD_LINK_DC, host mem, timing; nest3-size nests only sampl
 Floor on, only matrix (def), stencil_2d (def), test_flatten_array (def, auto) are flagged, all by the cycle view only.
 Exhaustive: stencil_2d def DEADLOCK (901 states, ucmpi0=0 then ucmpi1=1), AUTO LIVE, def + olink on ucontrol_merge1 LIVE, every
 other single control_merge DEADLOCK; test_flatten_array LIVE both flows (cycle view over-asks there).
+
+### progress 18:05 -- cell follow-up (subagent): arbitrated header, ctree 5/6, muxn 3, FASTFALL, bd_mux hazard (FOR-RESEARCH C56)
+explore2.py / run2.py / muxglitch.py with a four-phase protocol monitor; explore.py regression unchanged (570 runs, 0 fixed-mode
+disagreements). Findings: control_merge index race with 2 entry tokens (A2 still high when in0 wins: index reads back edge, moves
+mid-handshake) = timing obligation on DELAY_cm; FASTFALL head-buffer drain hazard (DELAY >= 2, rule F); bd_mux x_ack select-change
+hazard is only a late fall in SI, a lost token if it becomes a runt. ctree 5/6, muxn 3, FASTFALL 1/2 agree with the stage model.

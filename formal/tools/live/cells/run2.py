@@ -111,17 +111,15 @@ def part23():
 def part1():
     rows, examples = [], []
     grid = []
+    rng = (1, 2) if QUICK else (1, 2, 3)
     for merge in ("amerge", "merge"):
         for mode in ("fixed", "free"):
-            for k in (1, 2):
-                for LC in (0, 1, 2):
-                    for LB in (0, 1, 2):
-                        for LD in (1, 2):
-                            for LB2 in (0, 1, 2):
-                                LK = 1
-                                if QUICK and (LC == 2 or LB2 == 2):
-                                    continue
-                                grid.append((merge, mode, k, LC, LB, LD, LK, LB2))
+            for k in ((1, 2) if merge == "amerge" else (1,)):
+                for LC in rng:
+                    for LB in rng:
+                        for LD in rng:
+                            for LB2 in rng:
+                                grid.append((merge, mode, k, LC, LB, LD, 1, LB2))
     for gi_, (merge, mode, k, LC, LB, LD, LK, LB2) in enumerate(grid):
         if os.environ.get("VERBOSE"):
             print("part1", gi_, len(grid), merge, mode, k, LC, LB, LD, LK, LB2, flush=True)
@@ -200,7 +198,8 @@ def part1():
                        agree_reach=agree_reach, zbad=zbad)
         else:
             row.update(steady=len(steady_states), agree_dead=None, agree_reach=None, zbad=None)
-            # free mode: does every stuck terminal state have a token-free
+        if True:
+            # both modes: does every stuck terminal state have a token-free
             # cycle in the iterating loop's stage graph (Z(x)), i.e. would the
             # fixed-mode stage model have predicted it?
             pred = sum(1 for d in bad if mg_tokenfree_cycle(L, F, lproj(d)))
@@ -272,7 +271,7 @@ def main():
             if mode == "fixed":
                 line += (f"; steady states {s('steady')}, dead agree {s('agree_dead')}, reach agree "
                          f"{s('agree_reach')}, Z wrong {s('zbad')}")
-            else:
+            if True:
                 line += f"; stuck states predicted by Z(x) of the iterating loop {s('bad_pred')}/{s('bad')}"
             L.append(line)
     L.append("\n### Worked examples (part 1)\n")
