@@ -330,11 +330,13 @@
     {
       "op": "store",          "kind": "cells", "seen": 1, "why": [
         "bdc/mem.py's bdc_store_<AW>_<DW>[_seq] station, emit.py's _op_store.",
-        "addressResult/dataResult are absorbed the same way load's is. A lone",
-        "store's completion (z) is tied off like bd_snk; the first store of a",
-        "2-way arbitrated chain instead becomes the second accessor's",
-        "program-order token. See mem_controller's caveat: this table cannot",
-        "see whether a store's OWN controller is one this backend will",
+        "addressResult/dataResult are absorbed the same way load's is. Its",
+        "completion (z: the RAM answered) is a third result that",
+        "emit.py's store_completion_rewrite adds and joins into its block's",
+        "outgoing control token (research/data/suite/stores.md). A store",
+        "chained before a load on a 2-way arbitrated port is refused (its z",
+        "would need a fork to both). See mem_controller's caveat: this table",
+        "cannot see whether a store's OWN controller is one this backend will",
         "actually emit."
       ]
     },
@@ -378,26 +380,25 @@
       ]
     },
     {
-      "op": "mem_controller", "kind": "todo", "seen": 1, "why": [
-        "A controller that owns a STORE, and this backend does not build it.",
+      "op": "mem_controller", "kind": "cells", "seen": 1,
+      "cells": ["bd_mem", "bd_join", "bd_snk"],
+      "why": [
+        "A controller that owns a STORE (research/data/suite/stores.md).",
         "dynamatic's mem_controller_loadless.v gates memEnd on remainingStores",
         "== 0 -- an up/down counter incremented by each block's store-count",
-        "token and decremented per completed store. That counter is real",
-        "state, it is not a handshake, and there is no clock here to run it",
-        "on.",
+        "token and decremented per completed store. There is no clock to run",
+        "a counter on, and an asynchronous one would race ctrlEnd. emit.py's",
+        "store_completion_rewrite instead joins each store's completion into",
+        "its block's outgoing control token (the exit block: into its",
+        "controller's ctrlEnd), so ctrlEnd arrives after every store of the",
+        "call by construction and memEnd is the load-only join, unchanged.",
+        "The count tokens are checked (one per block, equal to its stores on",
+        "this controller) and sunk with bd_snk. _op_end joins the data",
+        "results with every such memEnd, so a caller never sees out0 before",
+        "the stores have landed.",
         "",
-        "emit.py's _op_mem_controller RAISES by name on this rather than",
-        "wiring memEnd without it. Firing memEnd while a store is still in",
-        "flight would be a completion signal that reports done early, which",
-        "is the same defect class as a null control that fakes its ack --",
-        "already paid for once in this project, and it hid real deadlocks",
-        "until it was removed.",
-        "",
-        "This entry exists so map.py's verdict matches what emit.py will",
-        "actually do. It previously said 'cells' for every controller, which",
-        "made --report call single_loop buildable while the emitter refused",
-        "it; a status line that reads buildable is believed, and no one reads",
-        "the caveat underneath it."
+        "The same caveat as the load-only entry: bd_link (the memStart hold)",
+        "stays out of the cells list, for the reason given there."
       ]
     },
     {
