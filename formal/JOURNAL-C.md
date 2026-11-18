@@ -4558,6 +4558,6 @@ entrywalk.py (prototype; patches a copy of research's token_graph): FIXMUX=1 rec
 misses matrix / stencil, false alarms test_flatten_array bb1 and gcd bb11 (negative result). Exhaustive fixes: ulink_n26=2 (matrix)
 and ulink_n45=2 (stencil) LIVE; other trap channels +1 still DEADLOCK.
 
-### progress 18:11 -- running: the fixture sweep (detached run_all.py, ~280 / 648 rows; isprime 2-invocation TIMEOUT, gcd AUTO
+### progress 18:09 -- running: the fixture sweep (detached run_all.py, ~280 / 648 rows; isprime 2-invocation TIMEOUT, gcd AUTO
 SAMPLED-LIVE; matrix default DEADLOCK is the only floor-on disagreement so far); a subagent deriving a static rule for the
 loop re-entry mode (formal/tools/live/reentry/), validated against live.py. Next PROGRAM re-read ~18:54.
