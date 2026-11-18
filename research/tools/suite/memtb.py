@@ -303,7 +303,7 @@ def main():
               ", setup %d ps) at %d ps per arc%s: %s" % (len(over), tco, tsu, hop, " +-%d%%" % jpct if jpct else "",
               ", ".join(sorted(set("%s %s" % (k.rpartition("_")[2], v) for k, v in over.items())))))
     rams = []          # every bd_mem instance path under dut
-    for pm, body in re.findall(r"module\s+(\w+)(.*?)endmodule", text, flags=re.S):
+    for pm, body in re.findall(r"^module\s+(\w+)(.*?)^endmodule", text, flags=re.S | re.M):
         um = re.findall(r"\bbd_mem(?:_ff)?\s*#\s*\((?:[^()]|\([^()]*\))*\)\s*(\w+)\s*\(", body)
         if not um:
             continue
@@ -373,7 +373,7 @@ def main():
               f'            $display("MEMTB call=%0d mem={j} ({b}) bad=%0d", c, bad);',
               "            if (bad) fails = fails + 1;", f"            mbase = mbase + {d};"]
     L += ["        end",
-          f'        $display("MEMTB RAM ports={len(rams)} ack-after-edge min %0d ps, clock-to-out {tco} ps, read data changed under the acknowledge %0d time(s)", ackmin, ramviol);',
+          f'        $display("MEMTB RAM bd_mem={len(rams)} ack-after-edge min %0d ps, clock-to-out {tco} ps, read data changed under the acknowledge %0d time(s)", ackmin, ramviol);',
           "        if (ramviol) fails = fails + 1;",
           f'        $display("MEMTB SUMMARY %s calls={ncalls} runs={a.runs} fails=%0d at %0t ps", fails ? "FAIL" : "PASS", fails, $time);',
           "        $finish;", "    end",
