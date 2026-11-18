@@ -194,8 +194,10 @@ theorem deadlock_free [DecidableEq V] (E : V → V → Prop) (hne : Nonempty V) 
 
 /-! ## Fair runs: every stage fires infinitely often -/
 
-/-- An infinite execution: every step fires an excited stage. -/
-def IsRun [DecidableEq V] (E : V → V → Prop) (r : Nat → State V) : Prop := ∀ n, Step E (r n) (r (n + 1))
+/-- An infinite execution: every step fires an excited stage or leaves every stage as it is
+(a stutter: in the gate network, a step of a join / fork C-element or a buffer). -/
+def IsRun [DecidableEq V] (E : V → V → Prop) (r : Nat → State V) : Prop :=
+  ∀ n, r (n + 1) = r n ∨ Step E (r n) (r (n + 1))
 
 /-- Stage `v` fires at step `m`. -/
 def Fires (r : Nat → State V) (v : V) (m : Nat) : Prop := r (m + 1) v ≠ r m v
@@ -207,7 +209,10 @@ def Fair (E : V → V → Prop) (r : Nat → State V) : Prop :=
 theorem run_reach [DecidableEq V] {E : V → V → Prop} {r : Nat → State V} (hr : IsRun E r) :
     ∀ n, Reach E (r 0) (r n)
   | 0 => Reach.refl _
-  | n + 1 => Reach.tail (run_reach hr n) (hr n)
+  | n + 1 => by
+    rcases hr n with h | h
+    · rw [h]; exact run_reach hr n
+    · exact Reach.tail (run_reach hr n) h
 
 theorem step_fire [DecidableEq V] {E : V → V → Prop} {x y : State V} (h : Step E x y) :
     ∃ c, Excited E x c ∧ y = fire x c := by
@@ -221,7 +226,9 @@ theorem arc_marked_until [DecidableEq V] {E : V → V → Prop} {r : Nat → Sta
   induction k with
   | zero =>
     intro _
-    obtain ⟨c, hc, hy⟩ := step_fire (hr m)
+    rcases hr m with hst | hst
+    · exact absurd (by rw [hst]) hm
+    obtain ⟨c, hc, hy⟩ := step_fire hst
     have hca : c = a := by
       refine Classical.byContradiction fun hca => ?_
       apply hm
@@ -231,7 +238,9 @@ theorem arc_marked_until [DecidableEq V] {E : V → V → Prop} {r : Nat → Sta
   | succ k ih =>
     intro hnv
     have ih' := ih (fun j h1 h2 => hnv j h1 (by omega))
-    obtain ⟨c, hc, hy⟩ := step_fire (hr (m + 1 + k))
+    rcases hr (m + 1 + k) with hst | hst
+    · rw [show m + 1 + (k + 1) = m + 1 + k + 1 by omega, hst]; exact ih'
+    obtain ⟨c, hc, hy⟩ := step_fire hst
     have hy' : r (m + 1 + (k + 1)) = fire (r (m + 1 + k)) c := by
       rw [show m + 1 + (k + 1) = m + 1 + k + 1 by omega]; exact hy
     rw [hy']
