@@ -4410,3 +4410,4 @@ Check for others: every number reported today comes from a run that printed its 
 
 ### progress 00:20 -- chainscale.py (new): per-chain shrink factor that still gives right answers at given corners; first: item 35 r21 RC, ucmpi0 0.38 / ucmpi1 0.44 at (0.20,0.31,1.0)+(0.20,0.31,0.20). Full scan of item 35's kernel chains running (towards the owner's sizing question).
 - 00:15 chainscale on item 35 r21 RC: all 51 non-compare chains jointly to 0.31x still right at (0.20,0.31,0.2/1.0); compares alone 0.38 / 0.44 (FOR-RESEARCH C51). Negative control at s=0 fails.
+- 00:20 chainscale --joint on cand4 (RC): collatz x0.70 s27 and ipow x0.70 s31 pass with ALL non-compare chains at 0; compares 0.31-0.38 (collatz), 0.12 / 0 (ipow). C51 updated.

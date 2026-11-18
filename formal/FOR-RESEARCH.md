@@ -223,6 +223,11 @@ CARRY 0.20 and 1.0 (the corners where chains are fastest against the logic), no 
   sat (C24, C29, C35, C43, C48). So the over-sizing is not uniform: a sizing rule that treats a compare's condition like any
   other data bit gives the compares too little and everything else too much. A rule that sizes the compare chains by their
   steer race (the condition's settle before the request, steermargin.py) and the rest by data settle would cut much more.
+- **Same scan on your cand4 routes** (RC arcs, same two corners; col18 / ipow17): collatz x0.70 s27 -- all 843 non-compare
+  arcs jointly to 0 still right; ucmpi0.udly alone 0.38, ucmpi2.udly 0.31. ipow x0.70 s31 -- all non-compare chains to 0 still
+  right; ucmpi2.udly 0.12, ucmpi0.udly 0. So in collatz and ipow the request paths' own cells (joins, C-elements, latches)
+  already cover every data path except the compares at these corners, and in xorshift the rest needs ~0.31x. This is the
+  strongest version of the pattern; it needs the draws (per-pip scatter) and the slow-chain corners before anyone trusts it.
 - **Limits:** consequence, not settle margin (runts the model absorbs count as fine -- read it as an upper bound of how far
   the sizes could go); two uniform corners, no per-pip scatter; xor19 does not reach uaddi0's 31-bit carry (B's B2/B3 preload
   runs do: UADDI0 to 0 passed there); slow corners (chains 0.31, rest 0.20) not included, where chains are relatively slow
