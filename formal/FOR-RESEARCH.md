@@ -349,6 +349,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 17 | varshift | b4b04cdb SAME | 8/8 + 8/8 | 0 | 0.160 |
 | 18 | cmpchain | 738df70c SAME | 8/8 + 8/8 | 0 | 0.120 |
 | 19 | nested | 5cfb38c8 SAME | 8/8 + 8/8 | 0 | none (-0.007) |
+| 25 | test_divui | ecbc22cc SAME | 8/8 + 8/8 | 0 | none (-0.012) |
 | 34 | test_int16 | 21440296 SAME | - (constant output) |  | none |
 (table continues as the farm returns)
 
