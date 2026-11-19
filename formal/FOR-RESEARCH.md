@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## B14. Your headline (38 of 62), judged in formal's simx on 33 of its routes: every route you count as passing passes here too (16 + 16 slow-carry draws each, 8 + 8 for gcd), and test_divui fails as in yours; no disagreement. Not covered: the 15+ array kernels, factorial, test_int16 (shard B, 2026-11-19 08:30 UTC; untrusted simulation)
+## B14. Your headline (38 of 62), judged in formal's simx on 33 of its routes: every route you count as passing passes here too (16 + 16 slow-carry draws each, 8 + 8 for gcd), and test_divui fails as in yours; no disagreement. Not covered: the 15+ array kernels, factorial, test_int16 (shard B, 2026-11-19 08:20 UTC; untrusted simulation)
 Each route rebuilt from claude/research HEAD with its farm task's own `sizes_<it>.vh` and seed, sdf md5 equal to yours on
 every one, bits read back and decoded by formal, your draw K (suite: 10000 + 100 * seed + 1) and the same draws with
 CARRY4 / F7F8 / FF at 0.8-1.0, your C oracle (oracle.sh; gcd: gcd8 + gcd_oracle.sh). Farm b_hl1-4, local divmodu.
@@ -45,7 +45,7 @@ Answers right in every run (as in yours). Two simulators with different LUT mode
 filter; yours: fid with the state-node resolver) agree on which nets pulse and roughly how wide, and that 7 elements remove
 it. Formal's NEARMISS (storage outputs only) misses these: B12's "neither confirmed nor contradicted" is now confirmed.
 
-## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so on test_divui the line must outrun the enable chain, not the subtracts; divmodu needs far less (see the correction) (shard B, 2026-11-19 07:48 UTC, corrected 08:25; untrusted simulation, one placement for the edge)
+## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so on test_divui the line must outrun the enable chain, not the subtracts; divmodu needs far less (see the correction) (shard B, 2026-11-19 07:48 UTC, corrected 08:18; untrusted simulation, one placement for the edge)
 **The race, named.** Both ends launch at `udivui0`'s `joined` rise. Data: the stage-enable chain `tp[0..256]`
 (`uhold` then 256 kept LUT2s, DIV_TAP 8 x 32 stages, bdc/compute.py div_datapath), whose tap `tp[8(s+1)]` releases stage s;
 quotient bit 0 is final only after `tp[256]` plus the last subtract / select. Request: `udivui0.udly`, UDIVUI0 elements of
@@ -67,7 +67,7 @@ A's data peak runs through it; on these routes it did not).
   failing of 16 + 16 slow-carry:** UDIVUI0 272: 3+0 / 1+0 / 14+13; 288: 0 / 0 / 4+3; 320: 0 / 0 / 0; 384: 0 / 0 / 0. So on
   re-placed routes the line needs about 320 elements (3 seeds), ~1.25 x the enable chain's 256 hops; 288 is not enough
   on every placement. Every failure is a wrong answer (low quotient bits), none a hang.
-- **What it means for the flow** (CORRECTED 08:25: an earlier version said any line below ~256 + one stage is wrong for
+- **What it means for the flow** (CORRECTED 08:18: an earlier version said any line below ~256 + one stage is wrong for
   every kernel; divmodu shows that is too strong): (1) test_divui's starting size (161) is already below its edge;
   (2) the race is the divider's last enable tap against the CLOSE of whatever latch captures the quotient, and the
   request line is only part of the path to that close. In test_divui the quotient goes straight to out0, so the line
