@@ -89,10 +89,9 @@ for k, c in enumerate(calls):
                     wm = w & ((1 << dw[a]) - 1)          # the element's bits the port holds (an i8 array: 8)
                     lines.append("%s %d %d %d %04x" % (tag, k, rid[(ctrl[a], j)], adr, (wm >> (16 * j)) & 0xffff))
 open(os.path.join(out, "mem.txt"), "w").write("\n".join(lines) + "\n")
-ops = [[0, 0] if nw == 0 else c["ops"] + c["ops"][:1] if nw == 1 else c["ops"][:2] for c in calls]
-if nw > 2:
-    sys.exit("memvec: %d operand words (formal's bench drives at most two)" % nw)
-open(os.path.join(out, "pairs.txt"), "w").write(" ".join("0x%x,0x%x" % (o[0], o[1]) for o in ops) + "\n")
+# a,b (one word: n,n; none: 0,0); more than two words: a,m1,..,b (simx drives the middle ones on the xdata channels)
+ops = [[0, 0] if nw == 0 else c["ops"] + c["ops"][:1] if nw == 1 else c["ops"] for c in calls]
+open(os.path.join(out, "pairs.txt"), "w").write(" ".join(",".join("0x%x" % v for v in o) for o in ops) + "\n")
 open(os.path.join(out, "exp_num.txt"), "w").write("".join(("00000000" if e == "void" else e) + "\n" for e in exp))
 open(os.path.join(out, "want.txt"), "w").write(",".join("0x0" if e == "void" else "0x" + e for e in exp) + "\n")   # void: ODATA 0
 print("memvec: %d calls, %d operand words, arrays %s -> %s (data widths %s), RAMs %s; %d mem lines" % (len(calls), nw, arrays,

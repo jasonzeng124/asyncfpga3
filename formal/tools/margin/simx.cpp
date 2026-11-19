@@ -74,6 +74,8 @@ static vector<double> his;                                  // flattened H_RUNT 
 static map<string, int> BN;
 static vector<int> Bdata[3];                                // a_data, b_data, out0_data
 static vector<int> XACKS;                                   // other input channels' acks (memory kernels), all waited for
+struct XData { int ack; vector<int> nodes; };
+static vector<XData> XDATA;                                 // operand channels between a and b (kernels with > 2 words)
 struct HostP { string name; int req, we, ack; vector<int> addr, wdata; };
 static vector<HostP> HOSTS;                                 // memory kernels: the host's port of each array (--hostport)
 
@@ -179,6 +181,11 @@ static void load_net(const char* fn) {
         for (int i = 0; i < n; i++) { XACKS.push_back(strtol(p, &e, 10)); p = e; }
     }
     while (*p == '\n' || *p == ' ') p++;
+    while (!strncmp(p, "xdata ", 6)) {   // xdata ack n node..  (margin/bram/mk_bnd_mem.py: a middle operand channel)
+        p += 6; XData x; x.ack = strtol(p, &e, 10); p = e; int n = strtol(p, &e, 10); p = e;
+        for (int i = 0; i < n; i++) { x.nodes.push_back(strtol(p, &e, 10)); p = e; }
+        XDATA.push_back(x); while (*p == '\n' || *p == ' ') p++;
+    }
     while (!strncmp(p, "host ", 5)) {   // host NAME req we ack na addr.. nw wdata..
         p += 5; const char* q = strchr(p, ' '); HostP h; h.name.assign(p, q - p); p = q;
         h.req = strtol(p, &e, 10); p = e; h.we = strtol(p, &e, 10); p = e; h.ack = strtol(p, &e, 10); p = e;
@@ -366,7 +373,7 @@ int main(int argc, char** argv) {
     }
     if (argc < 2) die("usage: simx NET.simx --pairs a,b ... [simadv options]");
     const char* netf = argv[1];
-    vector<pair<ull, ull>> pairs; vector<string> pairstr; vector<ull> wantv; bool has_want = false; string kernel = "gcd";
+    vector<pair<ull, ull>> pairs; vector<vector<ull>> pairsx; vector<string> pairstr; vector<ull> wantv; bool has_want = false; string kernel = "gcd";
     double corner = 0.5, kappa = NAN; const char* classes = nullptr; char cdefault = 'M';
     bool data0 = false, full = false, pipelined = false; ll R = 20000, su = 0, dout = 3000, dfall = -1, tmax = 5000000, reqgap = 0, maxev = -1, hostd = 1;
     string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr; bool periodic = false; const char* memf = nullptr; bool hostport = false;
@@ -376,7 +383,11 @@ int main(int argc, char** argv) {
         if (o == "--pairs") { while (i + 1 < argc && strncmp(argv[i + 1], "--", 2)) { string s = argv[++i]; size_t c = s.find(',');
                 if (c == string::npos) die("bad pair %s", s.c_str());
                 pairstr.push_back(s);
-                pairs.push_back({strtoull(s.substr(0, c).c_str(), nullptr, 0), strtoull(s.substr(c + 1).c_str(), nullptr, 0)}); } }
+                size_t c2 = s.rfind(',');   // a,m1,..,b: the middle values go to the xdata channels in order
+                vector<ull> mid; size_t q0 = c + 1;
+                while (q0 < c2) { size_t q1 = s.find(',', q0); mid.push_back(strtoull(s.substr(q0, q1 - q0).c_str(), nullptr, 0)); q0 = q1 + 1; }
+                pairsx.push_back(mid);
+                pairs.push_back({strtoull(s.substr(0, c).c_str(), nullptr, 0), strtoull(s.substr(c2 + 1).c_str(), nullptr, 0)}); } }
         else if (o == "--kernel") kernel = nxt();
         else if (o == "--want") { has_want = true; string s = nxt(); size_t q = 0;   // expected out0 list (replaces gcd)
             while (q < s.size()) { size_t c = s.find(',', q); if (c == string::npos) c = s.size(); if (c > q) wantv.push_back(strtoull(s.substr(q, c - q).c_str(), nullptr, 0)); q = c + 1; } }
@@ -562,7 +573,14 @@ int main(int argc, char** argv) {
     ll k = 0, done_in = 0; bool out_pending = false, next_ok = true, seq_wait = false;
     bool has_sample = false; ll sample_at = 0; ll broad_k[2] = {-1, -1}; ll rtz_done = -1;
     ll np = pairs.size();
-    if (np) { ll t0d = data0 ? 0 : (su ? R - su - 1 : R); drive_data(t0d, pairs[0].first, 0); drive_data(t0d, pairs[0].second, 1); }
+    auto drive_x = [&](ll tt, ll kk, int only) {   // the middle operand channels (XDATA) of pair kk; only = one channel or -1
+        if (pairsx[kk].size() != XDATA.size()) { fprintf(stderr, "pair %lld has %zu middle values, the boundary %zu middle channels\n", kk, pairsx[kk].size(), XDATA.size()); exit(1); }
+        for (size_t c = 0; c < XDATA.size(); c++) { if (only >= 0 && (int)c != only) continue;
+            for (size_t i = 0; i < XDATA[c].nodes.size(); i++) { int n = XDATA[c].nodes[i]; if (n < 0) continue;
+                env_set(tt, n, i < 64 ? (pairsx[kk][c] >> i) & 1 : 0); } }
+    };
+    vector<ll> broad_x(XDATA.size(), -1);
+    if (np) { ll t0d = data0 ? 0 : (su ? R - su - 1 : R); drive_data(t0d, pairs[0].first, 0); drive_data(t0d, pairs[0].second, 1); drive_x(t0d, 0, -1); }
     ll t = 0, nev = 0; vector<pair<ll, ull>> outvals;
     int hst = 0; ll hk = -1, hq = 0, hnext = 0, hgap = 0, nhost = 0;
     const ll HCLK = getenv("HOSTCLK") ? atoll(getenv("HOSTCLK")) : 12000, HGAP = getenv("HOSTGAP") ? atoll(getenv("HOSTGAP")) : 8;
@@ -677,11 +695,13 @@ int main(int argc, char** argv) {
                 drive_data(t + hostd, j ? pairs[k].second : pairs[k].first, j);
                 data_at = max(data_at, t + hostd);
             }
+            for (size_t c = 0; c < XDATA.size(); c++) if (!val(XDATA[c].ack, t) && broad_x[c] != k) {
+                broad_x[c] = k; drive_x(t + hostd, k, (int)c); data_at = max(data_at, t + hostd); }
         }
         if (datachange == "rtz" && !req_state && !anyA && 0 < k && k < np && rtz_done != k) {
             rtz_done = k;
             printf("env: data -> pair %lld at %lld ps (all acks low, before out0)\n", k, t + 1);
-            drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1);
+            drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1); drive_x(t + hostd, k, -1);
         }
         // --hostport: before call k the bench's sequencer (gen_bench.py) writes call k's arrays through the host ports, one
         // element at a time, on aclk (HOSTCLK ps) edges: payload (addr, data, we) at a start edge, the request at the next edge
@@ -713,7 +733,7 @@ int main(int argc, char** argv) {
             if (memf && !hostport) { if (k > 0) mem_check(k - 1, t); mem_fill(k, t); }   // the host reads back call k-1, fills call k
             if (hostport) hst = 0;
             if (datachange == "next" && k > 0) {
-                drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1);
+                drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1); drive_x(t + hostd, k, -1);
                 env_set(t + hostd + max(su, 1LL), req, true);
             } else {
                 // a host never raises a request before its data (bundled data at the boundary): with --datachange broad
@@ -728,7 +748,7 @@ int main(int argc, char** argv) {
         } else if (req_state && allA && val(req, t)) {
             env_set(t + 1, req, false);
             req_state = false; k++; done_in++;
-            if (k < np && datachange == "handshake") { drive_data(t + 2, pairs[k].first, 0); drive_data(t + 2, pairs[k].second, 1); }
+            if (k < np && datachange == "handshake") { drive_data(t + 2, pairs[k].first, 0); drive_data(t + 2, pairs[k].second, 1); drive_x(t + 2, k, -1); }
             if (!pipelined) next_ok = false;
         }
         bool r0 = val(oR, t);

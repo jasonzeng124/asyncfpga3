@@ -107,7 +107,7 @@ def bands(K):   # research's draw K: (b_c, b_r, b_cells) = Random(7919*K+17).uni
 want = []
 if a.kernel != "gcd":
     sys.path.insert(0, HERE); import kernels
-    want = ["--want", ",".join(str(v) for v in kernels.want(a.kernel, ["%d,%d" % tuple(int(t, 0) for t in p.split(",")) for p in a.pairs]))]
+    want = ["--want", ",".join(str(v) for v in kernels.want(a.kernel, [",".join("%d" % int(t, 0) for t in p.split(",")) for p in a.pairs]))]
 
 def run(seed):
     cmd = [SIMX, NETX, "--periodic", "--maxev", a.maxev] + want + ["--hostdelay", str(a.hostdelay),
