@@ -4863,7 +4863,7 @@ FOR-RESEARCH C61: the liveness sweep on research 3c9e6de49 and how to run it wit
 test_loop_free x3 with the 4-word harness), all 16 + 16 pass; test_bitint s3 / s4 nextpnr failed on the farm (PNR
 FAILED, not formal). Verdicts count only after c_mem7 (fixed arc), still waiting for farm cores.
 
-### progress 11:27 -- research's ringfuse landed (BDC_RING_FUSE=1 / 2): live.py models it; sweeps running
+### progress 11:25 -- research's ringfuse landed (BDC_RING_FUSE=1 / 2): live.py models it; sweeps running
 bdc (research ea42472f6) fuses a loop's update and test into one cell with several results (_lower_fused_multi: one
 z channel carrying every result side by side, a bd_fork <inst>_fo, a bd_link ulink_<v>_folink on a result in
 BDC_FORK_OUT_LINK or, with =2, on one with no link of its own). live.py now builds exactly that (and lets the cell's
