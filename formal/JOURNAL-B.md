@@ -5109,3 +5109,4 @@ udivui0.uhold, dropping 2393 of the divider's 2510 outputs. Their new lines sit 
 ### progress 14:49 -- PROGRAM / FOR-FORMAL re-read: unchanged; research session active again (ringfuse1 notes)
 ### progress 15:02 -- ringfuse xorshift s6, collatz s8: SAME, 8 + 8, 0 pulses (24 routes); ipow s1 DIFFERENT sdf (skipped)
 ### progress 15:07 -- ringfuse countloop s1 / ipow s1 reproduced with their search ENV (SAME), 8 + 8 PASS; 26 routes
+### progress 15:20 -- ringfuse xorshift s2 SAME, 8 + 8, 0 pulses (27 routes); divres1 task 2 (digitdiv s2) TIMEOUT on the farm
