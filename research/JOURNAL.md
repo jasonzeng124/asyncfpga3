@@ -7382,3 +7382,8 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   one element and against route-to-route movement), what more routes / headroom 2 / movement-proportional headroom
   would have fixed, the best change as an opt-in knob (resume intact), tested by resuming NOT CLEAN loops from the
   start of their finish phase on >= 4 loops, a farm request if it works.
+### progress 12:48 (divsize1: test_divui 8 / 8 seeds pass with the rule fix; headline 53 of 62 kerne)
+- Farm divsize1 (test_divui seeds 1-8, rule A's peers confined to the cell): **8 / 8 routes PASS, 32 / 32 draws**, 7
+  rule-clean (s7 NOT CLEAN on an unfixable row at it 1); seeds 1-4 = divsize's local routes byte for byte (ecbc22cc,
+  96c7d776, 14c880c4, a43e6557); the divider's line ends at 324-516 links (s4: 1111, rule F's padding of very short
+  lines -- open). suite10b's failing routes of seeds 1 / 2 (the old rule) are superseded in the table.

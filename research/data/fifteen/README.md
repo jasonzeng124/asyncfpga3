@@ -1,4 +1,4 @@
-**THE AUTOMATIC COLUMN, every kernel the suite lists (2026-11-19 12:09 UTC; corrected for auditor T161 / T167 and the owner's
+**THE AUTOMATIC COLUMN, every kernel the suite lists (2026-11-19 12:48 UTC; corrected for auditor T161 / T167 and the owner's
 T156 / T161 rules).** One switch, BDC_AUTO=1, with no list of kernels (the md5-keyed MLIR rewrites are off since
 f7573b807), the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model;
 nextpnr 6e5d224472232d5d (suite3a / 3b and suite6's own predecessors partly 9c732bc6303458df: identical routes where no GND
@@ -73,7 +73,7 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | sumi3_mem | PASS | 4 + 0 / 4 | 8 / 8; - | 25.99 (23.22-27.86) | 27912 | 610 | 88.44 (ESTIMATE) | 0.29 | - | 26451.00 (23040.00-29226.00) | 88540.06 (ESTIMATE) | 0.30 |
 | test_bitint | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | - | 300 | 635 | 44.32 (ESTIMATE) | - | - | 288.00 (276.00-294.00) | 504.74 (ESTIMATE) | 0.57 |
 | test_bool_array | PASS | 0 + 2 / 2 | -; 8 / 8 | - | 96 | 113 | - | - | - | 96.00 (96.00-96.00) | - | - |
-| test_divui | WRONG ANSWER under draws | 3 + 1 / 4 | 8 / 12; 4 / 4 | - | 252 | 2272 | - | - | - | 186.00 (60.00-252.00) | - | - |
+| test_divui | PASS | 7 + 1 / 8 | 28 / 28; 4 / 4 | - | 480 | 2286 | - | - | - | 195.00 (180.00-516.00) | - | - |
 | test_flatten_array | PASS | 0 + 2 / 2 | -; 8 / 8 | - [57.48 (57.48-57.48)] | 29580 | 1548 | 15.74 (ESTIMATE) | - | - | 28935.00 (28230.00-29640.00) | - | - |
 | test_int16 | PASS | 4 + 0 / 4 | 16 / 16; - | - | 60 | 3 | - | - | - | 60.00 (60.00-60.00) | - | - |
 | test_loop_free | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 1007 | - | - | - | 72.00 (72.00-72.00) | 11.55 (ESTIMATE; period extrapolated, model path 4.86 ns) | 6.23 (extrapolated period) |
@@ -88,7 +88,7 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | while_loop_3 | PASS | 1 + 1 / 2 | 4 / 4; 4 / 4 | 25.75 (25.75-25.75) [27.57 (27.57-27.57)] | 996 | 801 | 34.00 (ESTIMATE) | 0.76 | - | 303.43 (299.14-307.71) | - | - |
 | xorshift | PASS | 6 + 2 / 8 | 48 / 48; 16 / 16 | 22.16 (20.42-23.57) [20.89 (20.55-21.23)] | 6096 | 1316 | 12.73 (measured, 1 route) | 1.74 | 16.76 | 2214.79 (2061.16-2427.16) | 1257.59 (cycles simulated, period measured (1 route)) | 1.76 |
 
-52 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 19): 1.03. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 29): 1.36.
+53 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 19): 1.03. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 29): 1.36.
 
 **The same flow WITH the three md5-keyed rewrites (BDC_AUTO_REWRITES=1; farm suite6, 8 seeds, 8 draws; not the automatic
 column):** collatz PASS, 6 + 2 routes (clean + NOT CLEAN), 48 / 48 + 16 / 16 draws, P on clean routes 17.24 (16.20-19.46)
