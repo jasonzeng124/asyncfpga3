@@ -100,7 +100,7 @@ class FPlan(Q.Plan):
             rs.append(('comp', [x0, n0], y0, G)); rs.append(('comp', [x1, n1], y1, G))
             self.pre += [y, x0, x1, n0, n1]; self.chg += [x, n, y, x0, x1, n0, n1]; self.steps.append(st)
         elif k == 'unpack':
-            _, l = st; r = rs[l]; F2 = unslice_deep(r[3]); assert F2 != r[3], st
+            _, l = st; r = rs[l]; F2 = unslice_n(8, r[3]); assert F2 != r[3], st
             rs[l] = ('comp', r[1], r[2], F2); self.steps.append(st)
         elif k == 'unjoin':
             _, lx, ln, lc, lk, lb, lu = st; rn, ru_ = rs[ln], rs[lu]
@@ -108,6 +108,14 @@ class FPlan(Q.Plan):
             assert rn[0] == 'fork' and rn[2][0] == n2 and not uses_var(ru_[3], 1), st
             rs[ln] = ('fork', rn[1], rn[2][1:]); rs[lu] = ('comp', [x2], u, ru_[3])
             self.pre += [x1, x2, n1, n2, c, cc, u]; self.chg += [x2, n2, u]; self.steps.append(st)
+        elif k == 'permute':
+            _, T, Ti = st; old = list(rs); rs[:] = [old[Ti[l]] for l in range(len(old))]
+            self.sinks = [T[x] for x in self.sinks]; self.steps.append(st)
+        elif k == 'forkmerge':
+            _, lf = st; last = rs.pop(); rf = rs[lf]
+            assert last[0] == 'fork' and rf[0] == 'fork' and rf[2][0] == last[1], st
+            rs[lf] = ('fork', rf[1], list(last[2]) + list(rf[2][1:])); self.pre += [last[1]]; self.chg += [last[1]]
+            self.steps.append(st)
         elif k == 'constdata':
             _, lc, i, v, C = st; rc = rs[lc]; n = len(rc[1])
             F2 = Q.subst(rc[3], [('lit', v) if j == i else ('var', j) for j in range(n)])
@@ -166,19 +174,32 @@ def bw(e):
         return None if a is None or b is None else max(a, b)
     return None
 
+def bwp(e):
+    """Lean: Formal.Rewrite.Steps.bwp (bw, plus packed pairs)."""
+    if (e[0] == 'bin' and e[1] == ('addi',) and e[4][0] == 'bin' and e[4][1] == ('shli',) and e[4][4][0] == 'lit'):
+        W = e[2]; A = e[3]; W2 = e[4][2]; B = e[4][3]; w0 = e[4][4][1]
+        a, b = bwp(A), bwp(B)
+        if a is None or b is None: return W
+        return w0 + b if (W2 == W and a <= w0 and w0 + b <= W) else W
+    return bw(e)
+
 def unslice(F):
-    """Lean: Formal.Rewrite.Steps.unslice (the part a slice of a two-part packed word reads)."""
-    try:
-        assert F[0] == 'un' and F[1] == ('trunci',); w = F[2]; sh = F[3]
-        assert sh[0] == 'bin' and sh[1] == ('shrui',) and sh[4][0] == 'lit'; W = sh[2]; lo = sh[4][1]; pk = sh[3]
-        assert pk[0] == 'bin' and pk[1] == ('addi',) and pk[2] == W; e0 = pk[3]; t = pk[4]
-        assert t[0] == 'bin' and t[1] == ('shli',) and t[2] == W and t[4][0] == 'lit'; e1 = t[3]; w0 = t[4][1]
-    except (AssertionError, IndexError, TypeError):
+    """Lean: Formal.Rewrite.Steps.unslice (one narrowing of a slice of a packed pair, or a slice-at-0 identity)."""
+    if not (F[0] == 'un' and F[1] == ('trunci',) and F[3][0] == 'bin' and F[3][1] == ('shrui',)
+            and F[3][4][0] == 'lit'):
         return None
-    b0, b1 = bw(e0), bw(e1)
-    if b0 is None or b1 is None or not (b0 <= w0 and w0 + b1 <= W): return None
-    if lo == 0 and w == w0: return e0
-    if lo == w0 and b1 <= w: return e1
+    w = F[2]; W = F[3][2]; p = F[3][3]; lo = F[3][4][1]
+    if p[0] == 'bin' and p[1] == ('addi',) and p[4][0] == 'bin' and p[4][1] == ('shli',) and p[4][4][0] == 'lit':
+        W1 = p[2]; A = p[3]; W2 = p[4][2]; B = p[4][3]; w0 = p[4][4][1]
+        a, b = bwp(A), bwp(B)
+        if a is None or b is None: return None
+        if not (W1 == W and W2 == W and a <= w0 and w0 + b <= W): return None
+        if lo + w <= w0: return ('un', ('trunci',), w, ('bin', ('shrui',), W, A, ('lit', lo)))
+        if w0 <= lo: return ('un', ('trunci',), w, ('bin', ('shrui',), W, B, ('lit', lo - w0)))
+        return None
+    if lo == 0:
+        b = bwp(p)
+        if b is not None and b <= w and b <= W: return p
     return None
 
 def unslice_deep(e):
@@ -190,51 +211,105 @@ def unslice_deep(e):
     if e[0] == 'sel': return ('sel', unslice_deep(e[1]), unslice_deep(e[2]), unslice_deep(e[3]))
     return e
 
+def unslice_n(n, e):
+    for _ in range(n): e = unslice_deep(e)
+    return e
+
 def fresh(R):
     return 1 + max([c for r in R for c in (Q.ins_of(r) + Q.outs_of(r))] + [0])
 
+def rf_merge(p, inner, outer, labs):
+    """Move the fork at `inner` to the end (permute) and merge it into the fork at `outer` (forkmerge).
+    `labs` (dict name -> label) is updated for the relabelling."""
+    R = p.rs; n = len(R)
+    Ti = [l for l in range(n) if l != inner] + [inner]
+    T = [0] * n
+    for new_l, old in enumerate(Ti): T[old] = new_l
+    p.do(('permute', T, Ti))
+    for k, v in labs.items():
+        if isinstance(v, list): labs[k] = [T[x] for x in v]
+        else: labs[k] = T[v]
+    outer = T[outer]
+    p.do(('forkmerge', outer))
+    return outer
+
 def rf_unpack(p):
-    """Fused side (BDC_RING_FUSE): a two-input packed cell, its fork and its two slices become the update and the
-    test as separate comps; the update stops waiting for the bound (unjoin). Returns the number of cells done."""
+    """Fused side (BDC_RING_FUSE): a one- or two-input packed cell, its fork and its two or three slices become the
+    test and the updates as separate comps; an update stops waiting for the input it does not read (unjoin).
+    Returns the number of cells done."""
     R = p.rs; done = 0
+    def branch_data(ch):
+        rd = Q.readers(R, ch); return rd[0] if len(rd) == 1 and R[rd[0]][0] == 'branch' and R[rd[0]][2] == ch else None
     while True:
         hit = None
         for lc, r in enumerate(R):
             if r[0] != 'comp' or len(r[1]) not in (1, 2): continue
             Wf = Q.readers(R, r[2])
-            if len(Wf) != 1 or R[Wf[0]][0] != 'fork' or len(R[Wf[0]][2]) != 2: continue
+            if len(Wf) != 1 or R[Wf[0]][0] != 'fork' or len(R[Wf[0]][2]) not in (2, 3): continue
             lf = Wf[0]; sl = [Q.readers(R, z) for z in R[lf][2]]
             if not all(len(a) == 1 and R[a[0]][0] == 'comp' and len(R[a[0]][1]) == 1 for a in sl): continue
-            if not all(unslice_deep(Q.subst(R[a[0]][3], [r[3]])) != Q.subst(R[a[0]][3], [r[3]]) for a in sl): continue
+            if not all(unslice_n(8, Q.subst(R[a[0]][3], [r[3]])) != Q.subst(R[a[0]][3], [r[3]]) for a in sl): continue
             hit = (lc, lf, [a[0] for a in sl]); break
         if hit is None: return done
-        lc, lf, sls = hit; e = fresh(R); x0, x1, n0, n1 = e, e + 1, e + 2, e + 3
-        L = len(R); one = len(R[lc][1]) == 1
-        if one:   # a one-input cell (the test reads a literal): ForkComm, no join to retract
-            p.do(('forkcomm', lc, lf, x0, x1)); src = [lf, L]
+        lc, lf, sls = hit; one = len(R[lc][1]) == 1; k3 = len(sls) == 3
+        L0 = len(R); e = fresh(R); f = lambda i: e + 1 + i
+        labs = {'lc': lc, 'lf': lf, 'sls': list(sls)}
+        if not k3:
+            if one: p.do(('forkcomm', lc, lf, f(0), f(1))); src = [lf, L0]
+            else: p.do(('forkcomm2', lc, lf, f(0), f(1), f(2), f(3))); src = [L0, L0 + 1]
+            lx, ln = lc, (None if one else lf)
         else:
-            p.do(('forkcomm2', lc, lf, x0, x1, n0, n1)); src = [L, L + 1]
+            p.do(('forksplit', lf, 2, e))
+            if one:
+                p.do(('forkcomm', lc, lf, f(0), f(1)))           # lc: fork a [x0, x1]; lf: comp [x0] e; L0+1: comp [x1] z2
+                p.do(('forkcomm', lf, L0, f(2), f(3)))           # lf: fork x0 [x00, x01]; L0: comp [x00] z0; L0+2: z1
+                src = [L0, L0 + 2, L0 + 1]
+            else:
+                p.do(('forkcomm2', lc, lf, f(0), f(1), f(2), f(3)))           # L0+1: comp [x0,n0] e; L0+2: z2
+                p.do(('forkcomm2', L0 + 1, L0, f(4), f(5), f(6), f(7)))       # L0+3: z0; L0+4: z1
+                src = [L0 + 3, L0 + 4, L0 + 2]
         for k, ls in enumerate(sls):
             p.do(('absorb', src[k], ls)); p.do(('unpack', ls))
-        # which slice is the test (its output forked to branch conditions) and which the update (branch data)
+        if k3:   # flatten the input fork trees: the inner fork merges into the outer one
+            if one:
+                labs['lx'] = lc; rf_merge(p, lf, lc, labs); lx, ln = labs['lx'], None
+            else:
+                labs['lx'], labs['ln'], labs['inn'] = lc, lf, L0
+                labs['lx'] = rf_merge(p, L0 + 1, lc, labs)
+                labs['ln'] = rf_merge(p, labs['inn'], labs['ln'], labs)
+                lx, ln = labs['lx'], labs['ln']
+        sls = labs['sls']
         outs = [R[ls][2] for ls in sls]
-        def branch_data(ch):
-            rd = Q.readers(R, ch); return rd[0] if len(rd) == 1 and R[rd[0]][0] == 'branch' and R[rd[0]][2] == ch else None
-        iu = next((k for k in (0, 1) if branch_data(outs[k]) is not None), None)
-        if iu is None: return done
-        lu, lt = sls[iu], sls[1 - iu]; lb = branch_data(outs[iu]); cc = R[lb][1]
-        rk = Q.readers(R, outs[1 - iu])
-        if len(rk) != 1 or R[rk[0]][0] != 'fork' or cc not in R[rk[0]][2]: return done
+        ups = [k for k in range(len(sls)) if branch_data(outs[k]) is not None]
+        tests = [k for k in range(len(sls)) if k not in ups]
+        if len(tests) != 1 or not ups: return done
+        lt = sls[tests[0]]; rk = Q.readers(R, outs[tests[0]])
+        if len(rk) != 1 or R[rk[0]][0] != 'fork': return done
         lk = rk[0]
-        if one:
-            done += 1
-            if iu != 0: p.do(('forder', lc, [x1, x0]))
-            continue
-        if uses_var(R[lu][3], 1): return done
-        n2 = R[lu][1][1]; os_ = list(R[lf][2])
-        if os_[0] != n2: p.do(('forder', lf, [n2] + [c for c in os_ if c != n2]))
-        p.do(('unjoin', lc, lf, lt, lk, lb, lu)); done += 1
-        if iu != 0: p.do(('forder', lc, [x1, x0]))   # the update's copy first, as on the unfused side
+        if any(R[branch_data(outs[k])][1] not in R[lk][2] for k in ups): return done
+        if not one:
+            for k in ups:
+                lu = sls[k]; lb = branch_data(outs[k]); F = R[lu][3]
+                r0, r1 = uses_var(F, 0), uses_var(F, 1)
+                if r0 and r1: continue
+                if not r0 and not r1: return done
+                if r0: ax, an = lx, ln
+                else:     # the update reads the second input: swap roles, the first input's copy is the extra wait
+                    ax, an = ln, lx
+                    ins = R[lu][1]; p.do(('reorder', lu, [ins[1], ins[0]]))
+                    it = R[lt][1]
+                    if Q.writers(R, it[0]) == [lx]: p.do(('reorder', lt, [it[1], it[0]]))
+                it = R[lt][1]
+                if not (Q.writers(R, it[0]) == [ax] and Q.writers(R, it[1]) == [an]): return done
+                n2 = R[lu][1][1]; os_ = list(R[an][2])
+                if os_[0] != n2: p.do(('forder', an, [n2] + [c for c in os_ if c != n2]))
+                p.do(('unjoin', ax, an, lt, lk, lb, lu))
+        # canonical fork order: the updates' copies (in slice order) first, then the test's
+        upd_ins = [c for k in ups for c in R[sls[k]][1]]
+        for lfk in [l for l in (lx, ln) if l is not None]:
+            os_ = list(R[lfk][2]); want = [c for c in upd_ins if c in os_] + [c for c in os_ if c not in upd_ins]
+            if want != os_: p.do(('forder', lfk, want))
+        done += 1
 
 def rf_split(p):
     """Unfused side: an update `comp [x] s F` whose fork feeds one branch (data) and one two-input test comp moves
@@ -309,6 +384,9 @@ def normal_form(rs, rf=None):
     if rf == 'unpack': p.rf = rf_unpack(p)
     elif rf == 'split': p.rf = rf_split(p)
     if p.rf: fuse_loop()
+    if rf == 'unpack':   # slices left inside a fused expression (no fork between the cell and its readers)
+        for l, r in enumerate(R):
+            if r[0] == 'comp' and unslice_n(8, r[3]) != r[3]: p.do(('unpack', l)); p.rf += 1
     # canonical input order: first read in the expression
     for l, r in enumerate(R):
         if r[0] != 'comp' or len(r[1]) < 2: continue
@@ -319,7 +397,7 @@ def normal_form(rs, rf=None):
     p.drops()
     return p
 
-RF_STEPS = ('forkcomm2', 'unpack', 'unjoin')
+RF_STEPS = ('forkcomm2', 'unpack', 'unjoin', 'permute', 'forkmerge')
 CTL = None
 
 def mutate(R, ctl):

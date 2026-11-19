@@ -1,12 +1,12 @@
 fuse_check.py census, ring fusion: A = BDC_AUTO=1,BDC_RING_FUSE=0 vs B = BDC_AUTO=1 (flow v8 default, ring fusion on).
-Research origin/claude/research 7827dac5d: its bdc and its 111 cloud/fixtures/frontend; 2026-11-19 ~20:55 UTC, shard A.
-Tool: fuse_check.py with the ScriptRF steps (forkcomm2 / unpack (slices anywhere in an expression) / unjoin).
-Summary: 26 import (85 dfimport cannot read). 16 PROVED, 4 same rules (no ring fused), 6 REFUSED (normal forms differ):
-gcd, sqrtsub: three-part packed words; iterative_division, iterative_sqrt: cells with more than two inputs;
-nest3: one of four cells not unpacked; straight: no loop (the packed cell's slices feed comps). Not supported yet.
+Research origin/claude/research 7827dac5d: its bdc and its 111 cloud/fixtures/frontend; 2026-11-19 ~21:05 UTC, shard A.
+Tool: fuse_check.py with the ScriptRF steps (forkcomm2 / unpack / unjoin / permute / forkmerge).
+Summary: 26 import (85 dfimport cannot read). 18 PROVED, 4 same rules (no ring fused), 4 REFUSED (normal forms differ):
+iterative_division, iterative_sqrt: cells with more than two inputs; nest3: one of four cells not unpacked;
+sqrtsub: the unfused side's test reads a two-input update's result (needs a two-input split and dedupe across forks).
 PROVED = Lean pass_forward/pass_backward, axioms propext/Classical.choice/Quot.sound; dfimport (trusted Python) and
 the multi-result model of bdc's packed cell (fuse_check MR_NEW) are not covered.
-Controls: xorshift slice_low, xorshift upd_plus2, lfsrfind slice_low: REFUSED rc 2.
+Controls: xorshift slice_low / upd_plus2, gcd slice_low (2 slices mutated): REFUSED rc 2.
 atax                         dfimport failed
 bicg                         dfimport failed
 binary_search                dfimport failed
@@ -30,7 +30,7 @@ fir                          dfimport failed
 fold64                       fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/fold64//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claud
 gather                       dfimport failed
 gaussian                     dfimport failed
-gcd                          fuse_check: REFUSED -- normal forms differ: rules: 150 vs 150
+gcd                          fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/gcd//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claude-0
 gemver                       dfimport failed
 horner                       fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/horner//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claud
 if_convert                   dfimport failed
@@ -73,7 +73,7 @@ sobel                        dfimport failed
 spmv                         dfimport failed
 sqrtsub                      fuse_check: REFUSED -- normal forms differ: rules: 39 vs 38
 stencil_2d                   dfimport failed
-straight                     fuse_check: REFUSED -- normal forms differ: rules: 1 vs 1
+straight                     fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/straight//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cla
 sum3                         fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/sum3//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claude-
 sumi3_mem                    dfimport failed
 test_bitint                  dfimport failed

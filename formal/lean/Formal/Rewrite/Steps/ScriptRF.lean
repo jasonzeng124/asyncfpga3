@@ -1,6 +1,7 @@
 import Formal.Rewrite.Steps.ScriptSound
 import Formal.Rewrite.Steps.JoinExtSim
 import Formal.Rewrite.Steps.ForkComm2
+import Formal.Rewrite.Rename
 
 /-!
 # Formal.Rewrite.Steps.ScriptRF — checked rewrite scripts with the ring-fusion steps (shard A, 2026-11-19)
@@ -13,13 +14,17 @@ without the C source?
 **Proved** (`runScriptRF_sound`): for ANY rule list and ANY script over `Step` (the steps of `Script`) and three more
 steps, if `runScriptRF rs ss = some (rs', pre, chg)` then `Sound rs rs' pre chg`. The new steps:
 * `forkcomm2 lc lf x0 x1 n0 n1`: a fork after a two-input comp moves before two copies of it (`ForkComm2`);
-* `unpack l`: in a comp's expression, every slice of a two-part packed word, `trunci w (shrui W (addi W e0 (shli W e1
-  w0)) lo)`, is replaced by the part (`e0` when `lo = 0, w = w0`; `e1` when `lo = w0`), given that `e0` fits in
+* `unpack l`: in a comp's expression, a slice `trunci w (shrui W (addi W e0 (shli W e1 w0)) lo)` of a packed pair
+  narrows to the half its window lies in, and a slice at offset 0 of a value that fits is the value (8 rounds, so
+  packed words of several parts unpack) (`e0` when `lo = 0, w = w0`; `e1` when `lo = w0`), given that `e0` fits in
   `w0` bits and `e1` in `W - w0` and in `w` bits, from the widths of their top operators (`unslice_eval`);
+* `permute T Ti`: the rules in another order (`Rename`, channels unchanged);
+* `forkmerge lf`: the fork at `lf` whose first output feeds the last rule, a fork, takes over its outputs (`ForkSplit`
+  read backward; checked by running `ForkSplit` on the result);
 * `unjoin lx ln lc lk lb lu`: the update `comp [x2, n2] u F` that also waits for its own copy `n2` of the loop bound,
   with `F` not reading `n2`, waits for `x2` only, and `n2` leaves the bound's fork (`JoinExtSim`, read backward).
 
-**Not covered:** token level only; packed words of more than two parts; more than two inputs to a fused cell.
+**Not covered:** token level only; more than two inputs to a fused cell; a packed cell forked to more than two slices (the planner refuses it).
 -/
 
 namespace Formal.Rewrite.Steps
@@ -155,45 +160,135 @@ theorem pack_hi {a b w0 b1 W w : Nat} (ha : a < 2 ^ w0) (hb : b < 2 ^ b1) (hW : 
     Nat.div_eq_of_lt ha, Nat.zero_add]
   exact Nat.mod_eq_of_lt (Nat.lt_of_lt_of_le hb (Nat.pow_le_pow_right (by decide) hw))
 
-/-- The part a slice of a two-part packed word reads, when the widths allow it. -/
+/-- Width bound that also knows packed pairs: `addi W A (shli W B w0)` with `A < 2^w0`, `B < 2^b`, `w0 + b ≤ W` is
+`< 2^(w0 + b)` (`pack_val`); everything else as `bw`. -/
+def bwp : E → Option Nat
+  | .bin .addi W A (.bin .shli W2 B (.lit w0)) =>
+    match bwp A, bwp B with
+    | some a, some b => if W2 = W ∧ a ≤ w0 ∧ w0 + b ≤ W then some (w0 + b) else some W
+    | _, _ => some W
+  | e => bw e
+termination_by structural e => e
+
+theorem bwp_lt_aux : ∀ (n : Nat) (e : E) (b : Nat), sizeOf e < n → bwp e = some b → ∀ env, e.eval env < 2 ^ b
+  | 0, _, _, hs, _, _ => absurd hs (Nat.not_lt_zero _)
+  | n + 1, e, b, hs, h, env => by
+    unfold bwp at h
+    split at h
+    next W A W2 B w0 =>
+      have hW : (E.bin .addi W A (.bin .shli W2 B (.lit w0))).eval env < 2 ^ W :=
+        Nat.mod_lt _ (Nat.two_pow_pos W)
+      simp only [E.bin.sizeOf_spec, E.lit.sizeOf_spec] at hs
+      split at h
+      next a bb ha hb =>
+        split at h
+        next hk =>
+          obtain ⟨rfl, h1, h2⟩ := hk
+          obtain rfl := (Option.some.inj h).symm
+          have hA : A.eval env < 2 ^ w0 :=
+            Nat.lt_of_lt_of_le (bwp_lt_aux n A a (by omega) ha env) (Nat.pow_le_pow_right (by decide) h1)
+          have hB : B.eval env < 2 ^ bb := bwp_lt_aux n B bb (by omega) hb env
+          simp only [E.eval, BOp.ev]
+          rw [pack_val hA hB h2]
+          have h1' : A.eval env + B.eval env * 2 ^ w0 < (B.eval env + 1) * 2 ^ w0 := by
+            rw [Nat.succ_mul]; omega
+          have h2' : (B.eval env + 1) * 2 ^ w0 ≤ 2 ^ bb * 2 ^ w0 := Nat.mul_le_mul_right _ hB
+          rw [Nat.pow_add, Nat.mul_comm (2 ^ w0)]; omega
+        next => obtain rfl := (Option.some.inj h).symm; exact hW
+      next => obtain rfl := (Option.some.inj h).symm; exact hW
+    next => exact bw_lt _ b h env
+
+theorem bwp_lt (e : E) (b : Nat) (h : bwp e = some b) (env : List Nat) : e.eval env < 2 ^ b :=
+  bwp_lt_aux (sizeOf e + 1) e b (Nat.lt_succ_self _) h env
+
+theorem slice_lo {A B w0 b W lo w : Nat} (hA : A < 2 ^ w0) (hB : B < 2 ^ b) (hW : w0 + b ≤ W) (hl : lo + w ≤ w0) :
+    Ops.trunci w (Ops.shrui W (Ops.addi W A (Ops.shli W B w0)) lo) = Ops.trunci w (Ops.shrui W A lo) := by
+  have hAW : A < 2 ^ W := Nat.lt_of_lt_of_le hA (Nat.pow_le_pow_right (by decide) (by omega))
+  have hbig : A + B * 2 ^ w0 < 2 ^ W := by
+    have h1 : A + B * 2 ^ w0 < (B + 1) * 2 ^ w0 := by rw [Nat.succ_mul]; omega
+    have h2 : (B + 1) * 2 ^ w0 ≤ 2 ^ b * 2 ^ w0 := Nat.mul_le_mul_right _ hB
+    have h3 : 2 ^ b * 2 ^ w0 ≤ 2 ^ W := by
+      rw [← Nat.pow_add]; exact Nat.pow_le_pow_right (by decide) (by omega)
+    omega
+  rw [pack_val hA hB hW]
+  simp only [Ops.trunci, Ops.shrui, Nat.shiftRight_eq_div_pow, Nat.mod_eq_of_lt hbig, Nat.mod_eq_of_lt hAW]
+  have e1 : B * 2 ^ w0 = (B * 2 ^ (w0 - lo - w) * 2 ^ w) * 2 ^ lo := by
+    rw [Nat.mul_assoc, Nat.mul_assoc, ← Nat.pow_add, ← Nat.pow_add]; congr 2; omega
+  rw [e1, Nat.add_mul_div_right _ _ (Nat.two_pow_pos lo), Nat.add_mul_mod_self_right]
+
+theorem slice_hi {A B w0 b W lo w : Nat} (hA : A < 2 ^ w0) (hB : B < 2 ^ b) (hW : w0 + b ≤ W) (hl : w0 ≤ lo) :
+    Ops.trunci w (Ops.shrui W (Ops.addi W A (Ops.shli W B w0)) lo) = Ops.trunci w (Ops.shrui W B (lo - w0)) := by
+  have hBW : B < 2 ^ W := Nat.lt_of_lt_of_le hB (Nat.pow_le_pow_right (by decide) (by omega))
+  have hbig : A + B * 2 ^ w0 < 2 ^ W := by
+    have h1 : A + B * 2 ^ w0 < (B + 1) * 2 ^ w0 := by rw [Nat.succ_mul]; omega
+    have h2 : (B + 1) * 2 ^ w0 ≤ 2 ^ b * 2 ^ w0 := Nat.mul_le_mul_right _ hB
+    have h3 : 2 ^ b * 2 ^ w0 ≤ 2 ^ W := by
+      rw [← Nat.pow_add]; exact Nat.pow_le_pow_right (by decide) (by omega)
+    omega
+  rw [pack_val hA hB hW]
+  simp only [Ops.trunci, Ops.shrui, Nat.shiftRight_eq_div_pow, Nat.mod_eq_of_lt hbig, Nat.mod_eq_of_lt hBW]
+  have e1 : 2 ^ lo = 2 ^ w0 * 2 ^ (lo - w0) := by rw [← Nat.pow_add]; congr 1; omega
+  rw [e1, ← Nat.div_div_eq_div_mul, Nat.add_mul_div_right _ _ (Nat.two_pow_pos w0), Nat.div_eq_of_lt hA,
+    Nat.zero_add]
+
+theorem slice_id {B b W w : Nat} (hB : B < 2 ^ b) (h1 : b ≤ w) (h2 : b ≤ W) :
+    Ops.trunci w (Ops.shrui W B 0) = B := by
+  have hBW : B < 2 ^ W := Nat.lt_of_lt_of_le hB (Nat.pow_le_pow_right (by decide) h2)
+  have hBw : B < 2 ^ w := Nat.lt_of_lt_of_le hB (Nat.pow_le_pow_right (by decide) h1)
+  simp only [Ops.trunci, Ops.shrui, Nat.shiftRight_zero, Nat.mod_eq_of_lt hBW, Nat.mod_eq_of_lt hBw]
+
+/-- One rewrite at a node: a slice of a packed pair narrows to the half its window lies in; a slice at offset 0 of a
+value that fits is the value. -/
 def unslice : E → Option E
-  | .un .trunci w (.bin .shrui W (.bin .addi W1 e0 (.bin .shli W2 e1 (.lit w0))) (.lit lo)) =>
-    match bw e0, bw e1 with
-    | some b0, some b1 =>
-      if W1 = W ∧ W2 = W ∧ b0 ≤ w0 ∧ w0 + b1 ≤ W then
-        if lo = 0 ∧ w = w0 then some e0
-        else if lo = w0 ∧ b1 ≤ w then some e1
+  | .un .trunci w (.bin .shrui W (.bin .addi W1 A (.bin .shli W2 B (.lit w0))) (.lit lo)) =>
+    match bwp A, bwp B with
+    | some a, some b =>
+      if W1 = W ∧ W2 = W ∧ a ≤ w0 ∧ w0 + b ≤ W then
+        if lo + w ≤ w0 then some (.un .trunci w (.bin .shrui W A (.lit lo)))
+        else if w0 ≤ lo then some (.un .trunci w (.bin .shrui W B (.lit (lo - w0))))
         else none
       else none
     | _, _ => none
+  | .un .trunci w (.bin .shrui W B (.lit 0)) =>
+    match bwp B with
+    | some b => if b ≤ w ∧ b ≤ W then some B else none
+    | none => none
   | _ => none
 
 theorem unslice_eval {F F' : E} (h : unslice F = some F') (env : List Nat) : F'.eval env = F.eval env := by
   unfold unslice at h
   split at h
-  next w W W1 e0 W2 e1 w0 lo =>
+  next w W W1 A W2 B w0 lo =>
     split at h
-    next b0 b1 hb0 hb1 =>
+    next a b ha hb =>
       split at h
       next hk =>
         obtain ⟨rfl, rfl, h0, h1⟩ := hk
-        have ha : e0.eval env < 2 ^ w0 :=
-          Nat.lt_of_lt_of_le (bw_lt e0 b0 hb0 env) (Nat.pow_le_pow_right (by decide) h0)
-        have hb : e1.eval env < 2 ^ b1 := bw_lt e1 b1 hb1 env
+        have hA : A.eval env < 2 ^ w0 :=
+          Nat.lt_of_lt_of_le (bwp_lt A a ha env) (Nat.pow_le_pow_right (by decide) h0)
+        have hB : B.eval env < 2 ^ b := bwp_lt B b hb env
         split at h
         next hl =>
-          obtain ⟨rfl, rfl⟩ := hl
           obtain rfl := (Option.some.inj h).symm
           simp only [E.eval, UOp.ev, BOp.ev]
-          exact (pack_lo ha hb h1).symm
+          exact (slice_lo hA hB h1 hl).symm
         next =>
           split at h
           next hl =>
-            obtain ⟨rfl, hw⟩ := hl
             obtain rfl := (Option.some.inj h).symm
             simp only [E.eval, UOp.ev, BOp.ev]
-            exact (pack_hi ha hb h1 hw).symm
+            exact (slice_hi hA hB h1 hl).symm
           next => cases h
+      next => cases h
+    next => cases h
+  next w W B hne =>
+    split at h
+    next b hb =>
+      split at h
+      next hk =>
+        obtain rfl := (Option.some.inj h).symm
+        simp only [E.eval, UOp.ev, BOp.ev]
+        exact (slice_id (bwp_lt _ b hb env) hk.1 hk.2).symm
       next => cases h
     next => cases h
   next => cases h
@@ -228,6 +323,15 @@ theorem unsliceDeep_eval (env : List Nat) : ∀ e : E, (unsliceDeep e).eval env 
     · rename_i h; exact unslice_eval h env
     · simp only [E.eval, ihs, iha, ihb]
 
+/-- `unsliceDeep`, `n` times (a three-part word needs two narrowings and the final identity). -/
+def unsliceN : Nat → E → E
+  | 0, e => e
+  | n + 1, e => unsliceN n (unsliceDeep e)
+
+theorem unsliceN_eval (env : List Nat) : ∀ (n : Nat) (e : E), (unsliceN n e).eval env = e.eval env
+  | 0, _ => rfl
+  | n + 1, e => by simp only [unsliceN, unsliceN_eval env n, unsliceDeep_eval]
+
 /-! ## The three steps -/
 
 def applyFC2 (rs : List Rule) (lc lf x0 x1 n0 n1 : Nat) : Option Res :=
@@ -243,7 +347,7 @@ def applyFC2 (rs : List Rule) (lc lf x0 x1 n0 n1 : Nat) : Option Res :=
 
 def applyUP (rs : List Rule) (l : Nat) : Option Res :=
   match rs[l]? with
-  | some (.comp ins o F) => some (rs.set l (.comp ins o (unsliceDeep F)), [], [])
+  | some (.comp ins o F) => some (rs.set l (.comp ins o (unsliceN 8 F)), [], [])
   | _ => none
 
 /-- The seven internal channels of the join-extension pattern. -/
@@ -317,7 +421,7 @@ theorem applyUP_sound {rs : List Rule} {l : Nat} {res : Res} (h : applyUP rs l =
   next ins o F hl =>
     obtain rfl := (Option.some.inj h).symm
     exact Sound.of_steps (same_steps hl (set_self hl) (fun k hk => set_ne (Ne.symm hk))
-      (ident_fire (fun vs _ => unsliceDeep_eval vs F)))
+      (ident_fire (fun vs _ => unsliceN_eval vs 8 F)))
   next => cases h
 
 theorem or6 {l a b c d e g : Nat} {X : Bool}
@@ -383,6 +487,60 @@ theorem applyUJ_sound {rs : List Rule} {lx ln lc lk lb lu : Nat} {res : Res}
     · cases h
   next => cases h
 
+/-! ## Moving rules, merging forks -/
+
+/-- The rule list reordered by the permutation `Ti` (checked with its inverse `T`). -/
+def applyPM (rs : List Rule) (T Ti : List Nat) : Option Res :=
+  if fpCheck T Ti = true ∧ fpCheck Ti T = true ∧
+      renCheck rs ((List.range rs.length).filterMap (fun l => rs[fp Ti l]?)) [] Ti = true then
+    some ((List.range rs.length).filterMap (fun l => rs[fp Ti l]?), [], [])
+  else none
+
+theorem renS_id (σ : Store Nat Nat) : renS (fp []) σ = σ := by funext c; simp [renS, fp]
+
+theorem applyPM_sound {rs : List Rule} {T Ti : List Nat} {res : Res} (h : applyPM rs T Ti = some res) :
+    Sound rs res.1 res.2.1 res.2.2 := by
+  unfold applyPM at h
+  split at h
+  next hk =>
+    obtain ⟨hT, hTi, hR⟩ := hk
+    obtain rfl := (Option.some.inj h).symm
+    have hrs := renCheck_ok hR
+    have i1 : ∀ c, fp [] (fp [] c) = c := fun c => by simp [fp]
+    constructor
+    · intro σ0 t n _ hr ht
+      have r2 := run_ren (fp []) (fp []) i1 i1 (fp T) (fp Ti) (fp_inv T Ti hT) hrs hr
+      have t2 := terminal_ren (fp []) (fp []) i1 i1 (fp T) (fp Ti) (fp_inv Ti T hTi) hrs ht
+      rw [renS_id, renS_id] at r2; rw [renS_id] at t2
+      exact ⟨t, n, r2, t2, fun _ _ => rfl⟩
+    · intro σ0 t' n _ hr ht
+      have r2 := run_ren_back (fp []) (fp []) i1 i1 (fp Ti) hrs hr
+      have t2 := terminal_ren_back (fp []) (fp []) i1 i1 (fp T) (fp Ti) (fp_inv T Ti hT) hrs ht
+      rw [renS_id, renS_id] at r2; rw [renS_id] at t2
+      exact ⟨t', n, r2, t2, fun _ _ => rfl⟩
+  next => cases h
+
+/-- A fork feeding the last rule, itself a fork, absorbs it: `ForkSplit` read backward (checked by re-running it). -/
+def applyFM (rs : List Rule) (lf : Nat) : Option Res :=
+  match rs.getLast?, rs[lf]? with
+  | some (.fork e es), some (.fork x (e' :: rest)) =>
+    if e' = e ∧ applyFS (rs.dropLast.set lf (.fork x (es ++ rest))) lf es.length e = some (rs, [e], [e]) then
+      some (rs.dropLast.set lf (.fork x (es ++ rest)), [e], [e])
+    else none
+  | _, _ => none
+
+theorem applyFM_sound {rs : List Rule} {lf : Nat} {res : Res} (h : applyFM rs lf = some res) :
+    Sound rs res.1 res.2.1 res.2.2 := by
+  unfold applyFM at h
+  split at h
+  next =>
+    split at h
+    next hk =>
+      obtain rfl := (Option.some.inj h).symm
+      exact (applyFS_sound hk.2).symm
+    next => cases h
+  next => cases h
+
 /-! ## Scripts with the ring-fusion steps -/
 
 inductive StepRF
@@ -390,6 +548,8 @@ inductive StepRF
   | forkcomm2 (lc lf x0 x1 n0 n1 : Nat)
   | unpack (l : Nat)
   | unjoin (lx ln lc lk lb lu : Nat)
+  | permute (T Ti : List Nat)
+  | forkmerge (lf : Nat)
   deriving Repr
 
 def applyStepRF (rs : List Rule) : StepRF → Option Res
@@ -397,6 +557,8 @@ def applyStepRF (rs : List Rule) : StepRF → Option Res
   | .forkcomm2 lc lf x0 x1 n0 n1 => applyFC2 rs lc lf x0 x1 n0 n1
   | .unpack l => applyUP rs l
   | .unjoin lx ln lc lk lb lu => applyUJ rs lx ln lc lk lb lu
+  | .permute T Ti => applyPM rs T Ti
+  | .forkmerge lf => applyFM rs lf
 
 def runScriptRF : List Rule → List StepRF → Option Res
   | rs, [] => some (rs, [], [])
@@ -415,6 +577,8 @@ theorem applyStepRF_sound {rs : List Rule} {s : StepRF} {res : Res} (h : applySt
   | forkcomm2 lc lf x0 x1 n0 n1 => exact applyFC2_sound h
   | unpack l => exact applyUP_sound h
   | unjoin lx ln lc lk lb lu => exact applyUJ_sound h
+  | permute T Ti => exact applyPM_sound h
+  | forkmerge lf => exact applyFM_sound h
 
 /-- **The pass theorem with the ring-fusion steps.** A script `runScriptRF` accepts is sound. -/
 theorem runScriptRF_sound : ∀ {rs : List Rule} {ss : List StepRF} {rs' : List Rule} {pre chg : List Nat},

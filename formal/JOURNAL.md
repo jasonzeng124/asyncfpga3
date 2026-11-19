@@ -3408,3 +3408,15 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   the same caveat A27 states. No new REFUTED / OVERSTATED row on A's files.
 * Next (A): gcd's ring-fused cell packs three parts (test, a>>1, b>>1); needs k-part slice rules, a fork-merge step,
   and the planner. Started.
+### progress 21:06 -- ring fusion 18 / 26 PROVED: gcd and straight added (FOR-RESEARCH A27 updated)
+* ScriptRF (check.sh OK, 1573 decls): `unslice` generalised (a slice of a packed pair narrows to the half its window
+  lies in; slice-at-0 identity; `bwp` bounds packed pairs; `unpack` runs 8 rounds) -- k-part words; new steps
+  `permute T Ti` (Rename with the identity channel map) and `forkmerge lf` (ForkSplit read backward, checked by
+  re-running applyFS).
+* Planner: three-slice cells = forksplit + forkcomm(2) x2, absorb/unpack the slices, permute+forkmerge to flatten the
+  input forks, unjoin each update that reads one input (roles swapped by reorder when it reads the second); leftover
+  slices inside fused expressions unpacked (straight).
+* gcd's script: forksplit, forkcomm2 x2, unpack x3, permute+forkmerge x2, unjoin x2; Lean std axioms.
+* Still refused: iterative_division, iterative_sqrt (>2-input cells), nest3 (one cell), sqrtsub (unfused test reads a
+  two-input update). Controls (xorshift slice_low / upd_plus2, gcd slice_low): REFUSED rc 2.
+* Poll on research: no change 20:05-21:00 (LOCK only).
