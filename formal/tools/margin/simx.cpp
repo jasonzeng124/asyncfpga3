@@ -265,21 +265,23 @@ static inline void changed(int n, ll t) {
     for (int r = rd0[n]; r < rd0[n + 1]; r++) sched(max(t + rdf[r], TCUT + rdd[r]), rdg[r]);
 }
 
+static vector<int> DSFG;   // the --tcut fast delays (a copy of main's dsf), for the RAM's sampling arcs
+static inline ll pdg(int a, ll tt) { return (TCUT < 0 || tt < TCUT + ds[a] || DSFG.empty()) ? ds[a] : DSFG[a]; }
 // RAM: step every rising edge h of the clock node with h + d1 <= T (d1 = the master's sampling arc, role 1)
 static void ram_step(int id, ll T) {
     RamS& st = RAMS[id]; int m = st.master; const RamG& r = RAMG[gram[m]]; int b0 = gins0[m], k = gk[m];
     int clk = -1, d1 = -1;
-    for (int i = 0; i < k; i++) { if (r.roles[i] == 0) clk = ins[b0 + i]; if (r.roles[i] == 1) d1 = ds[b0 + i]; }
+    for (int i = 0; i < k; i++) { if (r.roles[i] == 0) clk = ins[b0 + i]; if (r.roles[i] == 1) d1 = b0 + i; }
     const vector<int>& h = H[clk];
     while (st.ep < h.size()) {
         ll e = h[st.ep];
-        if (e + d1 >= T) break;                     // strictly before T: every sampled value is final
+        if (e + pdg(d1, e) >= T) break;                     // strictly before T: every sampled value is final
         bool after = V0[clk] ^ ((st.ep + 1) & 1);
         st.ep++;
         if (!after) continue;                       // a falling edge: nothing
-        ll sp = e + d1; ull v = r.base;
+        ll sp = e + pdg(d1, e); ull v = r.base;
         for (int i = 0; i < k; i++) { int ro = r.roles[i]; if (ro < 2) continue;
-            if (val(ins[b0 + i], sp - ds[b0 + i])) v |= 1ULL << ro; }
+            if (val(ins[b0 + i], sp - pdg(b0 + i, sp))) v |= 1ULL << ro; }
         bool w0 = (v >> 2) & 1, w1 = (v >> 3) & 1; int ad = (v >> 16) & 1023; unsigned di = (v >> 32) & 0xffff;
         unsigned& wd = st.mem[ad];
         if (w0) wd = (wd & 0xff00) | (di & 0xff);
@@ -300,7 +302,7 @@ static void ram_checks() {   // setup / hold: no sampled pin changes within [sp 
             for (int i = 0; i < k; i++) { int ro = r.roles[i]; if (ro < 2) continue;
                 int cls = ro < 16 ? 1 : ro < 32 ? 0 : 2;   // 0 ADDR, 1 WE, 2 DI
                 if (cls == 2 && !wrote) continue;
-                ll sp = s - ds[b0 + i]; const vector<int>& h = H[ins[b0 + i]];
+                ll sp = s - pdg(b0 + i, s); const vector<int>& h = H[ins[b0 + i]];
                 {   // margins: last change at or before sp (setup), first change after sp (hold)
                     auto u = upper_bound(h.begin(), h.end(), (int)sp);
                     if (u != h.begin()) { ll m_ = sp - *(u - 1) - r.su[cls];
@@ -523,6 +525,7 @@ int main(int argc, char** argv) {
             ds[a] = (int)d; dsf[a] = (int)df;
         }
     }
+    DSFG = dsf;
     if (NINJ) fprintf(stderr, "simx: %lld injected arcs (outside the prjxray band: NOT a Spec behaviour)\n", NINJ);
     // readers CSR (simadv: readers[n].append in cone order, pin order)
     rd0.assign(NN + 1, 0);
