@@ -445,7 +445,8 @@ int main(int argc, char** argv) {
                 int hi = -1; for (size_t j = 0; j < HOSTS.size(); j++) if (HOSTS[j].name == nm) hi = j;
                 if (hi < 0) { if (hostport) die("--mem: no host port %s", nm); continue; }
                 HFILL[kk].push_back({hi, ad, w}); continue; }
-            if (sscanf(line, " %c %lld %d %d %x", &c, &kk, &id, &ad, &w) != 5) continue;
+            if (line[0] == '\n' || line[0] == 0) continue;
+            if (sscanf(line, " %c %lld %d %d %x", &c, &kk, &id, &ad, &w) != 5 || (c != 'F' && c != 'X') || w > 0xffff) die("--mem: bad line");
             if (id < 0 || id >= (int)RAMS.size() || RAMS[id].master < 0 || ad < 0 || ad >= 1024) die("--mem: bad ram id / address");
             (c == 'F' ? MFILL : MEXP)[kk].push_back({id, ad, w}); }
         fclose(f); fprintf(stderr, "simx: --mem %zu fill calls, %zu checked calls, %zu RAMs, %zu host ports%s\n", MFILL.size(), MEXP.size(),
@@ -720,8 +721,11 @@ int main(int argc, char** argv) {
                 const HostP& h = HOSTS[get<0>(W_[hq])]; bool hs = val(h.ack, e - 2 * HCLK);
                 if (hst == 1) { if (hgap > 0) { hgap--; continue; }
                     unsigned ad = get<1>(W_[hq]), w = get<2>(W_[hq]);
-                    for (size_t i = 0; i < h.addr.size(); i++) if (h.addr[i] >= 0) env_set(e + 1, h.addr[i], (ad >> i) & 1);
-                    for (size_t i = 0; i < h.wdata.size() && i < 32; i++) if (h.wdata[i] >= 0) env_set(e + 1, h.wdata[i], (w >> i) & 1);
+                    auto hb = [&](int n, bool v, const char* what) {   // a constant bit must already carry the value (review, 2026-11-19)
+                        if (n >= 0) env_set(e + 1, n, v);
+                        else if (v != (n == -2)) { fprintf(stderr, "host %s: %s bit tied to %d cannot carry %d\n", h.name.c_str(), what, n == -2, (int)v); exit(1); } };
+                    for (size_t i = 0; i < h.addr.size(); i++) hb(h.addr[i], (ad >> i) & 1, "addr");
+                    for (size_t i = 0; i < h.wdata.size() && i < 32; i++) hb(h.wdata[i], (w >> i) & 1, "wdata");
                     if (h.we >= 0) env_set(e + 1, h.we, true); hst = 2; }
                 else if (hst == 2) { if (!hs) { env_set(e + 1, h.req, true); hst = 3; } }
                 else if (hst == 3) { if (hs) { env_set(e + 1, h.req, false); hst = 4; } }
