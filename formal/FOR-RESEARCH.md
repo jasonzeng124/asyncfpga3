@@ -337,6 +337,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 1 | xorshift | 9dd1f661 SAME | 8/8 + 8/8 | 0 | 0.191 |
 | 7 | straight | 524c6161 SAME | 8/8 + 8/8 | 0 | 0.260 |
 | 9 | sqrtsub | 33ec83be SAME | 8/8 + 8/8 | 0 | 0.239 |
+| 11 | twoloops | 73d89e84 SAME | 8/8 + 8/8 | 0 | 0.388 |
 | 34 | test_int16 | 21440296 SAME | - (constant output) |  | none |
 (table continues as the farm returns)
 
