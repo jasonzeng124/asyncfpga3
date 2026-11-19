@@ -4770,3 +4770,13 @@ two races research found its rule missing (bdc_muxnN decode select, the divider'
 - c_live_sobel: spmv floor on LIVE (93 562 states), floor off DEADLOCK (walk ulink_n7 -> n10 -> n19__0 -> n24 ->
   falseResult_20); sobel floor off DEADLOCK (after ucmpi0=0, ucmpi1=0, ucmpi3=0, ucmpi4=1; walk ulink_n88 -> n99[2] ->
   n120__2 -> n101__2); sobel floor on (ulink_n88 -> 2) still running.
+
+### progress 08:56 -- C60 posted: 11 headline memory routes pass in formal's simx, NOCAP control fails; capture slack
+- Farm c_mem1 failed on a relative sizes path (every build); c_mem2 (rerun): 8 routes decided, all pass 16 + 16 draws,
+  test_bool_array NOCAP 0 / 32; 3 boundary failures (binary_search: out0 bits [31:8] are a sign extension of bit 7 --
+  boundary_bench now follows a twin bit; fill / unused_arg) and 5 void kernels skipped -> fixed locally (void bench:
+  the completion join stands in for out0, p_end acked by bench logic; dsp_gates --check for chained products x*x*x;
+  decode_dsp accepts a DSP P routed into another DSP's fabric operand). Locally: binary_search s2, fill s2,
+  mul_example s2 8 + 8 pass. c_mem3 runs the rest. ramslack.py: test_bool_array 2.71 ns at SLOW_MAX (research's static
+  2490 ps), gather 12.9 ns. Owner notified (first independent judge of memory kernels).
+- live sweep on research 3c9e6de49 (floor on, def + auto) running locally; c_live_sobel task 1 (sobel floor on) running.
