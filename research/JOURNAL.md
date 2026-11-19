@@ -7818,3 +7818,17 @@ goal-1 list of the 19:53 state of play), plus rule B's guard form (above).
 Toolchain: not run (no build this session; nothing routed here)   Seeds: none
 Did: took the lock; read origin/claude/cluster (finseeds1 task 14) and origin/claude/audit (new rows since session 20).
 Next: as at session 20's Next.
+### progress 22:03 (read only: finseeds1 still 39 / 40, suite12 still 34 / 62 with spmv running; no new audit or formal row for research; LOCK cleared)
+- origin/claude/cluster, last results commit 84809d725 (22:01:52 UTC): **finseeds1** task 14 (quadrec s1, arm DA)
+  RUNNING at 01:55:22, task 18 (iterative_division s3, DA) TIMEOUT at 04:00:14; so DA's two unfinished loops are still
+  exactly arm A's two NOT CLEAN loops it did not clean (session 20's correction stands). **suite12** (flow v8, seed 1,
+  submitted 19:52 UTC, 240 min per task): 34 COMPLETED, 28 RUNNING. spmv is task 51 (KS index in
+  research/cluster/requests/suite12.sh), **RUNNING at 01:41:31**, no result files yet: the spmv check session 20 asked
+  for (does v8's finish leave spmv's row-RAM guard rows NOT CLEAN, as on suite11 s4) has to wait for the next job.
+- Audit: newest rows are still T171 (formal's mr_verilog_check, not research's files; noted by session 19) and the
+  T169 answer (21:39 UTC). Formal: newest is 573b3d3fd (21:59 UTC), formal A's MARGINS row for spmv s4, which records
+  research's C64 answer (route unfinished, rule B -373 ps). Nothing new for research to answer.
+- Does NOT show: anything about the spmv or quadrec s1 results themselves; no build ran in this session.
+- Session end: branch pushed, journal current, BOARD-QUEUE unchanged (no candidate judged), nothing running locally,
+  LOCK cleared with this commit. Next, for the next job's first session: read finseeds1 task 14 and suite12 task 51
+  (spmv) on origin/claude/cluster first, then session 20's Next.
