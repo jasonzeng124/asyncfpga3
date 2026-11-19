@@ -7241,3 +7241,10 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   PROGRAM General-first item 1 ("the event graph's search, run inside the flow"). It ships a new route only if it is
   rule-CLEAN and measured faster, so no kernel's result gets slower; it costs up to 4 more routes where it picks an
   edit. suite10 (waiting) will run v7.
+### progress 05:29 (board items 38-41 pass the strictest gate; headline 31 of 62)
+- Items 38-41 re-judged here (their routes on disk with the listed sdf md5s) under today's gate with GATE_RUNTS=fail:
+  worst corner + 3 fresh draws each, **16 / 16 PASS**, 0 pulses under 1 ns on 155-192 kernel handshake nets, no x in
+  any run's result, no RAMB18 event (no RAM in these kernels); narrowest pulse 2.1-4.1 ns
+  (research/data/suite/board/rejudge_2026-11-19_gate_strict.txt). BOARD-QUEUE says so.
+- Headline regenerated with nsearch1 (countloop's v7 routes: 4 clean, median 21.14 ns, was 25.05) and the resume
+  rounds so far: 31 of 62 kernels pass.
