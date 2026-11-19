@@ -7465,3 +7465,10 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   in the final stack / draws again; with divres1's digitdiv s2 they are resumed in **suite10d** (v7 circuit:
   BDC_RING_FUSE=0, 2 draws, 3 cores). In flight for the next session: suite11 (seeds 3-4 of the 27 newer kernels),
   finseeds1 (the finish-phase levers), suite12 (the whole suite on v8, seed 1), suite10d.
+### progress 18:46 (finseeds1, 13 of 40: the finish-phase levers on loops that had ended NOT CLEAN)
+- Arm DA (6 finish routes + 3 extra seeds per not-clean step, AUTO_FINISH_SEEDS=3; ship the least-short route): **5 / 5
+  clean** so far (collatz s2 / s4, ipow s2 / s5 (split-sources loops), sqrtsub s1). Arm A (6 finish routes + least-short,
+  today's default): **4 of 8 clean** (collatz s2 / s3, ipow s2 / s5); xorshift s8, sqrtsub s1, branchloop s2, twoloops s1
+  NOT CLEAN (twoloops shipped its least-short route, it 4). Every draw passing (104 / 104). All of these loops had
+  ended NOT CLEAN under the old budget of 3. If the rest holds, AUTO_FINISH_SEEDS belongs in the defaults too (converge
+  found it weak on 5 local loops; the farm sample is larger) -- for the next session to decide on the full 40.
