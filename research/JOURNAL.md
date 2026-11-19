@@ -7079,3 +7079,8 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   built before the patch.
 - Open (bdc, efficiency): 14 % of test_flatten_array's LUT bels compute outputs nothing reads, and their selects add
   routed fanout to live nets.
+### progress 00:25 (4th subagent: gcdclean)
+- **gcdclean** (report by 04:00 UTC): isprime's and gcd's "unfixable" rule-A' rows (umux13 -5125 ps, umux21 -3422 ps:
+  the data reaches six inputs, among them  flip-flop D pins) -- a real race, or the bench's clocked result
+  capture (sampled a synchronizer's delay after the request) seen as an asynchronous one; if false, rule A' checks such
+  a capture against the bench's sampling edge (opt-in, with a negative control), so their loops can end CLEAN.
