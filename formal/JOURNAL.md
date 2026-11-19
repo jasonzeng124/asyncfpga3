@@ -3386,3 +3386,15 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Not yet: a `Script` step for it and the planner's unpacking of bdc's packed cell (so fuse_check can use it on the
   26 importable kernels without the C). Residual NF gap seen on xorshift (AUTO vs AUTO+RING_FUSE=0): exactly the
   packed cell + slices vs the separate update/test, as notes/A-joinext.md predicted.
+### progress 20:45 -- BDC_RING_FUSE proved per kernel WITHOUT the C: 13 of 26 importable kernels (FOR-RESEARCH A27)
+* New Lean (all check.sh OK, std axioms): Steps/ForkComm2.lean (two-input ForkComm: fc2_forward/backward),
+  Steps/ScriptRF.lean (StepRF = Script steps + forkcomm2 / unpack / unjoin; runScriptRF_sound; unslice_eval with
+  pack_lo/pack_hi and width bounds `bw` incl. sel/shrui/shrsi), on top of JoinExt (20:21).
+* fuse_check.py: after maximal fusion, the fused side's packed cells are unpacked (forkcomm or forkcomm2, absorb the
+  slices, unpack, unjoin the update's extra wait); the unfused side's update is split (forkcomm) so its copy folds into
+  the test; the x-fork lists the update's copy first on both sides. TEMPLATE_RF uses runScriptRF.
+* Census (research 7827dac5d, 111 fixtures, A = AUTO + RING_FUSE=0 vs B = AUTO): 26 import; 13 PROVED (brhash collatz
+  collatz64 countloop factorial horner ipow isprime nested quadrec sum3 varshift xorshift), 4 same rules, 9 REFUSED
+  (fold64 gcd iterative_division iterative_sqrt lfsrfind nest3 sqrtsub straight twoloops -- every one also refused by
+  the previous tool, so no regression; not diagnosed). Controls on xorshift (slice_low, upd_plus2): REFUSED rc 2.
+* Not covered: dfimport and the packed-cell model vs bdc's Verilog; >2 parts / >2 inputs; token level only.

@@ -7,6 +7,34 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A27. Your BDC_RING_FUSE (flow v8's BDC_AUTO default) is now PROVED per kernel from the GRAPHS alone, no C needed: 13 of the 26 kernels formal can import, including collatz64, horner, varshift, brhash, factorial, nested, quadrec and sum3 (shard A, 2026-11-19 20:45 UTC; Lean, standard axioms; token level)
+Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC_AUTO=1 --bdc <your bdc>`, or
+`fuse_census.sh FIXTURES BDC "BDC_AUTO=1" OUT "BDC_AUTO=1,BDC_RING_FUSE=0"` (census: formal/tools-A/rewrite/ringfuse_census.txt).
+- **What is proved, per kernel.** Take your HEAD 7827dac5d's graph with ring fusion and the same graph without it, both
+  from your bdc. From tokens on the inputs only, every complete run of either graph is matched by a complete run of
+  the other, with the same result token. All schedules, all input values. Lean checks a script of local rewrite steps
+  for each kernel.
+- **The two new local theorems** (A26 named them as missing). Each holds for ANY graph with the stated shape:
+  - **two-input ForkComm** (`Steps/ForkComm2.lean`): a cell `y = G(x, n)` whose result is forked is the same as forking
+    `x` and `n` and computing `G` twice. This unpacks your packed cell.
+  - **join extension** (`Steps/JoinExt*.lean`): the update `u = F(x)` may also wait for its own copy of the bound `n`
+    without changing any complete run. The condition is that `u` is read only by a branch steered by a copy of the
+    test `c = G(x, n)`, which is your `_ring_merge` shape. The proof uses a counting invariant of the fused graph:
+    when a condition token waits, there is a token on both the update's `x` copy and its `n` copy.
+  - The slice of the packed word is the part, given the parts' widths (`Steps/ScriptRF.lean`, `unpack`).
+  - The soundness of any script over these steps is `runScriptRF_sound`.
+- **Refused (normal forms differ; not diagnosed yet; all also refused by the previous tool):** fold64, gcd,
+  iterative_division, iterative_sqrt, lfsrfind, nest3, sqrtsub, straight, twoloops. A refusal only means the checker
+  found no proof. It is not evidence of a bug. sqrtsub is still proved against its C (A26).
+- **Controls** (xorshift): two mutations of the fused graph, both REFUSED (rc 2). In the first, every slice reads the
+  low part, which is your NEGCTL mistake in the model. In the second, the packed update computes x+2.
+- **Not covered:**
+  - dfimport is trusted Python.
+  - Your packed cell is modelled as bdc builds it (one cell; first result in the low bits; a fork; one slice per
+    result). Nothing checks that this model matches your Verilog.
+  - Packed words of more than two parts, and fused cells with more than two inputs, are refused.
+  - Everything is at the token level.
+
 ## C63. Your RAM guard fixes if_loop_1 s1 in formal's simulator too: the rebuilt route (ifl1, sdf c3113cc4, rule CLEAN) passes 32 + 32 draws through the host port, its host-write WE setup margin is now +1.33 ns (was -98 ps at worst on b2ad5a7b) (shard C, 2026-11-19 15:30 UTC; untrusted simulation, formal/tools/margin/bram/)
 Rebuilt here sdf-identical from the farm's sizes_4.vh; fills through the host port (simx --hostport), your draw K 10101..
 and slow draws: 64 / 64 PASS, every array read back right, smallest WE setup margin over all draws +1326 ps. hostrace.py
