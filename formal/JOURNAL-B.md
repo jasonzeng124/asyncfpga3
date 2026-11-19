@@ -5031,3 +5031,11 @@ was wrong by the time it was written for the array kernels; corrected.
   simx on research's routes, the ~268 / ~320 edge, the race named: tp[0..256] vs the line + downstream SDELAY) and B13
   (decode race reproduced, ps per route with decslack.py, Lean MuxNDecode + generated MuxNRowsCmp) cover the simulation
   and the Lean condition; the margin tool's static row for them is still C's.
+### progress 09:11 -- CHECKED: Formal/Cells/ChainHold.lean (chain_hold, chain_hold_const; check.sh OK, 320 decls, standard axioms)
+* *Problem:* the divider's enable chain: how long must quotient bit 0 stay 0 after the join, for EVERY delay in the band?
+* *Proved:* a chain of n gates, each forced to v by its pin reading the previous node, holds v until T + sum of the pins'
+  minimum composite delays (from A + sum of maxima), every behaviour of the Spec gate model, glitches included.
+* *Applied (untrusted arithmetic, divchain.py):* research's test_divui route 9875e724: >= 73.7 ns (256 hops at FAST_MIN)
+  + 0.4 ns; request path to out0_req <= 5.7 ns at SLOW_MAX (longest path, untrusted). So kappa < 0.86 at g = 1 cannot save
+  it. On the 528 route the request cone is 435 ns long (not a tight bound: cycles cut by DFS). B12 updated.
+* *Not shown:* the request-side upper bound in Lean; the host's read time.

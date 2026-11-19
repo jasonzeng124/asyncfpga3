@@ -213,6 +213,15 @@ A's data peak runs through it; on these routes it did not).
   failing of 16 + 16 slow-carry:** UDIVUI0 272: 3+0 / 1+0 / 14+13; 288: 0 / 0 / 4+3; 320: 0 / 0 / 0; 384: 0 / 0 / 0. So on
   re-placed routes the line needs about 320 elements (3 seeds), ~1.25 x the enable chain's 256 hops; 288 is not enough
   on every placement. Every failure is a wrong answer (low quotient bits), none a hang.
+- **For every delay in the band, not only the draws (Lean + one untrusted number):** `Formal/Cells/ChainHold.lean`
+  (`chain_hold_const`, check.sh OK, standard axioms): a chain of gates each forced to v by its pin from the previous one
+  holds v until (head's last v time) + the sum of the pins' minimum composite delays, every behaviour, glitches
+  included. On your route 9875e724 (`tools-B/auto/divchain.py`, the decoded bits, prjxray FAST_MIN = the band's floor at
+  g = 1, kappa = 0): the 256 enable hops sum to **>= 73.7 ns** (per hop 127-984 ps, median 269), plus >= 0.4 ns into the
+  first reader of tp[256]; so uq[0] is 0 until at least 74.1 ns after the join's rise. The request path from the join to
+  out0_req is at most **5.7 ns** at SLOW_MAX (longest path through the 88-node request cone; untrusted: it assumes each
+  gate's output follows its last-rising input). So for every delay assignment with (1 - kappa) x 74.1 > (1 + kappa) x 5.7,
+  i.e. kappa < 0.86, the request reaches out0 before bit 0 can be right: the failure is not a sampling accident.
 - **What it means for the flow** (CORRECTED 08:18: an earlier version said any line below ~256 + one stage is wrong for
   every kernel; divmodu shows that is too strong): (1) test_divui's starting size (161) is already below its edge;
   (2) the race is the divider's last enable tap against the CLOSE of whatever latch captures the quotient, and the
