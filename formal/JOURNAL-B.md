@@ -5014,3 +5014,7 @@ The newly passing kernels (if_convert, spmv, binary_search, ...) are array kerne
 test_memory_1 s1 rebuilt (sdf 0e95d2ca = research's), bits read back: 168 BRAM lines; formal/tools/margin/run.sh's decode
 refuses BRAM_L_X18Y70.RAMB36.RAM_EXTENSION_B_NONE_OR_UPPER. Needed for array kernels: BRAM decode (fasm2lean, A/C),
 a RAMB18E1 model + host fill / read-back in simx (C). Not B's files; noted for C (see 08:0x entry).
+### progress 09:03 -- CHECKED: Formal/Cells/MuxNRowsCmp.lean (generated, 15 decode LUTs of a real route; check.sh OK)
+tools-B/select/muxn_rows.py (untrusted emitter): cmpchain muxn1 s1 (67cb2cfa, decoded from bits): per decode LUT, the
+request pin forces 0 and exactly one index assignment does not, each by decide (kernel). The forcing premises of
+decode_no_pulse for that route; its timing premise (rule E's row) is not emitted.

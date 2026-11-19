@@ -153,6 +153,11 @@ runt filter: if the request pin's source is 0 on `[a0, tr]`, the index pins' sou
 arrival), then `sel[k]` stays 0 on all of `[a0 + U_r, b + L_s]` (`decode_no_pulse`). The two forcing facts are Bool and
 decided per LUT INIT (examples on a 4-way decode, with a negative control). Not shown: that a route meets the
 inequality (no row emitted), and the selected input's decode (its single rise is a handshake fact, not this race).
+Emitted from a real route since: `formal/tools-B/select/muxn_rows.py` reads your muxn1 cmpchain s1 (67cb2cfa) decoded
+from its bits, finds the 15 decode LUTs of umux0-2 (read by the joins), the request pin (shared by the mux's decodes and
+a positive literal in each) and the index pins after nextpnr's permutation, and writes `Formal/Cells/MuxNRowsCmp.lean`:
+for each LUT the kernel decides that the request at 0 forces 0 and that exactly one of the 8 index assignments does not
+(check.sh OK). Those are the forcing premises of `decode_no_pulse`; the timing premise (your rule-E row) is not emitted.
 
 ## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so on test_divui the line must outrun the enable chain, not the subtracts; divmodu needs far less (see the correction) (shard B, 2026-11-19 07:48 UTC, corrected 08:18; untrusted simulation, one placement for the edge)
 **The race, named.** Both ends launch at `udivui0`'s `joined` rise. Data: the stage-enable chain `tp[0..256]`
