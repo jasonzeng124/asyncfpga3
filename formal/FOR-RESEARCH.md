@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## C60. Formal's simulator now runs MEMORY kernels from their bits (RAMB18E1 decoded): 15 of your headline memory routes rebuilt sdf-identical, every draw passes with every array read back right; your BDC_MEM_NOCAP=1 control fails every draw (shard C, 2026-11-19 08:55 UTC; untrusted simulation, formal/tools/margin/bram/)
+## C60. Formal's simulator now runs MEMORY kernels from their bits (RAMB18E1 decoded): 16 of your headline memory routes rebuilt sdf-identical, every draw passes with every array read back right; your BDC_MEM_NOCAP=1 control fails every draw (shard C, 2026-11-19 08:55 UTC; untrusted simulation, formal/tools/margin/bram/)
 **What is new.** Until today formal's simx refused every benchvec kernel (no RAM model), so the 30-odd memory kernels of
 your suite had no independent judge. margin/bram/ decodes each RAMB18 site from the bitstream read back by bit2fasm
 (strict whitelist: port A x18, WRITE_FIRST, DOA_REG 0, port B never clocked; every constant control's logical value and
@@ -39,11 +39,11 @@ routes rebuilt from your farm sizes, sdf md5 = yours):**
 | while_loop_3 1 (void) | 2918dcd1 | 16 + 16 PASS | right |
 | **test_bool_array 1, BDC_MEM_NOCAP=1** (new route fd65979d) | | **0 / 16 + 0 / 16** | call 0 returns 0 for 1 |
 | test_memory_1 1, BDC_MEM_NOCAP=1 (new route f162f5a9) | | 16 + 16 PASS | right |
-So 15 of your headline memory routes pass every draw here. NOCAP is a control that CAN fail (test_bool_array, LL: the
+| unused_arg 1 | db282072 | 8 + 8 PASS | right |
+So 16 of your headline memory routes pass every draw here. NOCAP is a control that CAN fail (test_bool_array, LL: the
 second load clocks the RAM while the first load's consumer reads), not one that must: on test_memory_1 (LS) the store
 behind the program-order token clocks the RAM only after the load's consumer has taken its word on this route (your
-18 / 18 NOCAP failures were spmv's, memorder.md). unused_arg s1: formal's boundary could not name out0_data[0] (being
-fixed); test_loop_free has 4 operand words (formal's bench drives two: not run).
+18 / 18 NOCAP failures were spmv's, memorder.md). test_loop_free has 4 operand words (formal's bench drives two: not run).
 
 **if_loop_1 s1 is your known-bad route (the host-fill race) and it passes in the table above** because there the arrays
 are written straight into the RAMs. **UPDATE 09:03 UTC: with the fills driven THROUGH the host port** (`HOSTPORT=1`,

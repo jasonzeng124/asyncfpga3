@@ -114,6 +114,16 @@ def phys(ybit, what):
                         tb = c["connections"][q][qd["bits"].index(ib)]
                         if tb != ybit:
                             return phys(tb, what + " (= %s)" % q)
+    # shard C, 2026-11-19: no name survived (unused_arg: out0_data is a kernel-internal latch output whose nets nextpnr
+    # renamed): a top-level READER of the bit that nextpnr kept (the bench's result flop) names the routed net
+    for cn, c in Y["cells"].items():
+        if cn not in R["cells"]: continue
+        for p, bs in c["connections"].items():
+            if ybit in bs and c["port_directions"].get(p) == "input":
+                rb = R["cells"][cn]["connections"].get(p)
+                if rb and len(rb) == len(bs) and rb[bs.index(ybit)] in drv:
+                    cn2, ct, p2, bel = drv[rb[bs.index(ybit)]]
+                    return node_of(bel, ct, p2, what + " (via reader %s.%s)" % (cn, p))
     sys.exit("%s: no routed alias with a driver among %s" % (what, alias.get(ybit)))
 
 
