@@ -13,6 +13,7 @@ say() { echo "$*" | tee -a "$SM"; }
 source "$TC/openxc7/export.sh" > /dev/null
 case $K in
   isprime) V=research/data/alltable/isp17.hex; OR="research/tools/fifteen/kernel_oracle.sh isprime";;
+  gcd) V=research/data/suite/vec/gcd8.hex; OR="research/data/gcd_draws/gcd_oracle.sh";;   # suite_one.sh's choice
   *) V=kernels/$K/vec.hex; [ -f "$RS/$V" ] || V=research/data/suite/vec/$K.hex; OR="research/tools/suite/oracle.sh $K";;
 esac
 head -1 "$RS/$V" | grep -q '^// benchvec' && { say "$K $S SKIP (memory vectors: not supported by formal's bench boundary yet)"; exit 0; }
@@ -34,7 +35,10 @@ say "decoded from $SRC; bits md5 $(md5sum < "$B/$T.bit" | cut -c1-8), ffmux $(py
 bash "$H/decode.sh" "$W" "$K" > "$O/decode.out" 2>&1; [ -f "$W/m/bnd.json" ] || { say "DECODE FAILED"; tail -3 "$W/decode.txt" >> "$SM"; exit 0; }
 grep -E "operands|dsp_gates" "$O/decode.out" | tee -a "$SM"
 OPS=$(grep -o "operands [^ ]* [^ ]*" "$O/decode.out" | head -1)
-if [ "$(echo "$OPS" | awk '{print ($2 == $3)}')" = 1 ]; then PAIRS=$(awk 'NF>=1{printf "0x%s,0x%s ", $1, $1}' "$RS/$V")
+AW=$(python3 -c "import json,sys; print(len(json.load(open(sys.argv[1]))['boundary']['a_data']))" "$W/m/bnd.json")
+if [ "$(echo "$OPS" | awk '{print ($2 == $3)}')" = 1 ] && [ "$AW" -gt 32 ]; then   # one 64-bit argument takes both words (lo, hi)
+  PAIRS=$(awk 'NF>=2{printf "0x%s%s,0x%s%s ", $2, $1, $2, $1}' "$RS/$V")
+elif [ "$(echo "$OPS" | awk '{print ($2 == $3)}')" = 1 ]; then PAIRS=$(awk 'NF>=1{printf "0x%s,0x%s ", $1, $1}' "$RS/$V")
 else PAIRS=$(awk 'NF>=2{printf "0x%s,0x%s ", $1, $2}' "$RS/$V"); fi
 J=${JOBS:-4}
 for x in "" 0.8,1.0; do
