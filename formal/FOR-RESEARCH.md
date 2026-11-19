@@ -189,7 +189,25 @@ kappa_lo = min over the two corners of (R - D) / (R + D).
 - **Reading:** on the board items this race is not the weak spot: at kappa 0.11-0.28 (every arc of the race at its
   extreme, the two sides at opposite ends of their per-arc scatter) it still holds. The margin tool's kappa_hi for the
   same builds (C's) is where the failures are.
-- Farm b_os2 runs the same on the other non-array headline routes.
+- **Farm b_os2: every non-array headline route (38, all sdf SAME), output-capture kappa_lo per route (min of the two
+  corners):**
+| kernel | routes | worst |
+|---|---|---|
+| branchloop | s1 0.277, s2 0.222, s3 0.037, s4 0.152 | 0.037 |
+| cmpchain | s2 0.309, s3 0.179, s1 0.189, s2 0.161, s3 0.315, s4 0.150 | 0.150 |
+| divmodu | s1 0.246, s2 0.269 | 0.246 |
+| fold64 | s2 0.520, s4 0.558 | 0.520 |
+| gcd | s1 0.074, s3 none (-0.17), s4 none (-0.42) | no proof on 2 of 3 |
+| iterative_division | s2 none (-0.04), s3 0.217, s4 none (-0.03) | no proof on 2 of 3 |
+| iterative_sqrt | s2 none (-0.53), s1 none (-0.48), s3 none (-0.41), s4 none (-0.47) | no proof on 4 of 4 |
+| nested | s2 0.442, s3 0.133, s4 0.246 | 0.133 |
+| quadrec | s1 0.391, s2 0.447, s4 0.387 | 0.387 |
+| straight | s2 0.290, s1 0.319, s3 0.186, s4 0.190 | 0.186 |
+| twoloops | s1 0.272, s2 0.049, s3 0.296, s4 0.198 | 0.049 |
+  "none" = no proof (not a failure: every one of these routes passes every draw, B14). The routes without a proof all end
+  in a mux whose data path is long against its line at the extremes (gcd's / iterative_sqrt's N-way mux; iterative_division
+  s2 / s4 at corner 0 only); since the bench samples out0 at least a host cycle after out0_req, the race that matters
+  there is wider than the one bounded here.
 
 ## B15. A PROVED lower bound (kappa_lo) for one race of a real route: test_divui's divider capture is safe for every delay in the band up to kappa 0.240 with the line at 528, 0.067 at 384, and has no proof at 320 (where your draws and formal's pass) (shard B, 2026-11-19 09:25 UTC; Lean logic, untrusted extraction of the numbers)
 The owner's question (PROGRAM: can lower bounds be proved at all?) answered for one capture race. Race: out0_data

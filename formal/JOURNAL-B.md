@@ -5080,3 +5080,4 @@ uor (OR of its joins) walked with the other joins at 0 as listed premises; kappa
 gcd s3 -0.16, iterative_sqrt s1 -0.33: no proof (their out0 comes through an N-way mux whose data path is longer than
 its line at the extremes; the bench samples out0 one host cycle or more after out0_req, which the bound does not use).
 task.sh: the four board kernels use research's gate vectors + kernel_oracle.sh.
+### progress 10:26 -- b_os2: output-capture kappa_lo on 38 headline routes (B16 table); no proof on gcd / iterative_sqrt / 2 iterative_division routes
