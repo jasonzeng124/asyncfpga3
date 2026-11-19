@@ -5093,3 +5093,4 @@ task.sh: the four board kernels use research's gate vectors + kernel_oracle.sh.
 Their cause: the "downstream of the request" reach left the cell through the bench's combinational acknowledge and
 udivui0.uhold, dropping 2393 of the divider's 2510 outputs. Their new lines sit at formal's proof edge (B15: none at 320,
 0.067 at 384). Next: outsafe + draws on farm divsize1's routes when they land.
+### progress 11:00 -- B17: research's fixed test_divui routes (332 / 386 / 338, sdf SAME) pass 8 + 8; kappa_lo -0.012 / 0.082 / 0.006

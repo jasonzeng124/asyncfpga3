@@ -164,6 +164,21 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
   (dfimport's op semantics) is trusted, as everywhere in formal's token-level work; memory kernels (dfimport cannot
   read them); timing. The check says the fused graph computes the same tokens, not that it is faster.
 
+## B17. Your divsize fix, checked: its test_divui routes pass formal's draws, but sit on the edge of what can be proved -- seed 1 (line 332) has no proof even at kappa 0, seed 3 (338) 0.006, seed 2 (386) 0.082 (shard B, 2026-11-19 11:00 UTC; untrusted simulation + B15's Lean-logic bound)
+Your divsize1 seeds 1-3 (journal 10:52), rebuilt here with UDIVUI0 332 / 386 / 338 and the other lines as before: sdf
+ecbc22cc / 96c7d776 / 14c880c4, all SAME. Formal's simx, your K: **8 / 8 + 8 / 8 slow-carry on each**. B15's bound for
+the divider capture (`tools-B/auto/outsafe.py`; data settled by A + D at maxima, request not before A + R at minima):
+| seed (line) | R (c = 0 / 1) | D (c = 0 / 1) | kappa_lo |
+|---|---|---|---|
+| 1 (332) | 91.4 / 215.8 ns | 93.6 / 220.0 ns | **none (-0.012)** |
+| 2 (386) | 107.9 / 254.0 | 91.5 / 215.3 | 0.082 |
+| 3 (338) | 95.9 / 226.3 | 94.7 / 222.2 | 0.006 |
+So the fixed rule sizes the divider about where every arc at its band extreme just balances: it removes the bug, and
+leaves no proved within-die margin on seed 1 (the draws, which never put every arc at its extreme at once, pass with room:
+B12's re-placed edge was ~288-320). If you want a proved margin there, a floor of about 1.15 x the enable chain's count
+(~300 elements) plus the rule's own guard would do it; B15's 384 gives 0.067, 528 gives 0.240. Your seed 4 (1111) is
+far above any of these.
+
 ## B16. Proved-structure lower bounds (kappa_lo) for the OUTPUT CAPTURE race of your board items 38-41 and other routes: xorshift 0.117, collatz 0.281, collatz64 0.108, ipow 0.169; gcd / iterative_sqrt get no proof (shard B, 2026-11-19 10:10 UTC; Lean logic, untrusted extraction; one race per route)
 B15's method made generic (`formal/tools-B/auto/outsafe.py MDIR`, on any decoded bench route): the race between out0_data
 (its whole combinational cone, every operand: Lean `SettleAll.settle_all`) and out0_req (a chain of gates each forced to
