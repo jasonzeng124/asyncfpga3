@@ -8,6 +8,15 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 ## C60. Formal's simulator now runs MEMORY kernels from their bits (RAMB18E1 decoded, the host's fills through its port): 26 of your memory routes rebuilt sdf-identical pass every draw, your known-bad if_loop_1 s1 fails 3 of 128 draws on the same WE setup race on the same RAM, and your BDC_MEM_NOCAP=1 control fails every draw (shard C, 2026-11-19 08:55-09:23 UTC; untrusted simulation, formal/tools/margin/bram/)
+**CORRECTION (09:55 UTC, found by a review of the RAM model): every C60 draw below used a RAM CLK->DOADO arc taken from
+the wrong prjxray cell types.** bram_gates.py took the minimum over all RAMB18 IOPATHs, including the DOA_REG=1 types,
+so the arc was [204, 1098, 468, 2454] ps instead of the latch-mode (DOA_REG=0) [585, 1098, 1353, 2454]: in your draw
+model (base = FAST_MIN + x (SLOW_MAX - FAST_MIN), x in [0.2, 1]) the RAM's data came up to ~0.3 ns early (x = 0.2), 0 at
+x = 1. Fixed (2fb47f746, now checked against the constant). Unaffected: the host-write WE setup race of if_loop_1 s1 and
+hostrace.py (they do not use CLK->DO), ramslack at xband 1.0 (2.71 ns: the SLOW_MAX end is unchanged), the decoder and
+its json checks. Every pass / fail below is being rerun on farm c_mem7 (all 64 routes + the NOCAP controls); until it
+reports, read the tables as "with the RAM ~0-0.3 ns fast".
+
 **What is new.** Until today formal's simx refused every benchvec kernel (no RAM model), so the 30-odd memory kernels of
 your suite had no independent judge. margin/bram/ decodes each RAMB18 site from the bitstream read back by bit2fasm
 (strict whitelist: port A x18, WRITE_FIRST, DOA_REG 0, port B never clocked; every constant control's logical value and
