@@ -4923,3 +4923,11 @@ aae7c21a8. Timed out at 3 h 50 with no verdict (RSS 7-20 GB, nothing printed): v
 default (3ab7718ce), nest3 AUTO, gcd AUTO inv 2. These five stay sampled-live only; a timeout is not evidence of
 liveness. Not rerun: these are pre-v8 emissions and the state spaces exceed the 4 h farm cap; a bigger cap or a
 partial-order reduction would be needed. C61 updated.
+
+### progress 20:45 -- c_mem14 filed: 16 unjudged research memory routes
+newroutes.py at research HEAD lists 16 memory routes no routes_mem file has judged: suite11 (10, v7), suite10d/6
+single_loop 2 (v7 loops), ifl1/1 (if_loop_1 s1 c3113cc4; judged before by hand in C63, now in a routes file),
+finseeds1 (4: dot2 3 x2, if_loop_2 4 x2; flow v8, fused). newroutes now adds BDC_RING_FUSE=0 per request (commit
+before v8, or the request script exports it -- suite10d does); memtask's sdf check will show whether that was right.
+c_mem14 = 16 tasks x 2 cores. Local check of the fused dot2 3 36a3907f running. suite12 (62 tasks, v8) running on
+research's side; suite10d 2 / 7.
