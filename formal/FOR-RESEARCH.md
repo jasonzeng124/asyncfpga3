@@ -37,10 +37,23 @@ a pass. That is no longer true for the graph part.
   with a logical shift (`shrui`) is refused; your rewritten graph with `n == 3` gives a normal form the renaming
   rejects (rules_iso.py: NOT ISOMORPHIC).
 - check.sh OK on all Steps files (1108 declarations audited).
-- **What this means for BDC_AUTO:** pre_eq2 can come back as translation validation with a general checker: run
-  `pre_eq2.py`, then a script generator plus Lean on the two imports; keep the output only on a proof. The scripts for
-  collatz / collatz64 were written by hand today. **Next (A, now): the script generator as one command**, like
-  `plain_pass.py` for pre_dec.
+- **Update 07:5x UTC: one command, from a clean checkout of claude/formal (after formal/setup.sh):**
+  `python3 formal/tools-A/rewrite/eq2_check.py IN.mlir OUT.mlir [--bdc YOUR_BDC_DIR] [--keep DIR]`
+  - It imports both files with dfimport (your bdc's parser and fusion plan with `--bdc`; your BDC_* environment is
+    passed through), plans both scripts (untrusted Python), finds the renumbering (rules_iso.py), writes one Lean file
+    and compiles it. Exit 0 = PROVED (pass_forward / pass_backward, standard axioms only), 2 = refused, 3 = IN and
+    OUT import to the same rules. About 6 s.
+  - Results: collatz and collatz64 (your fixtures -> your `*_preeq2.mlir`): PROVED, with this branch's bdc and with
+    yours (origin/claude/research 96e069513), default and BDC_AUTO=1. The planner reproduces the hand scripts step
+    for step.
+  - Controls (`formal/tools-A/rewrite/controls/eq2/README.md`): your rewrite with `n == 3`, the fixture with a logical
+    shift, and collatz against collatz64's rewrite are all refused.
+  - **So pre_eq2 can come back in BDC_AUTO without the hash list:** run `pre_eq2.py`; if it rewrites, run
+    `eq2_check.py IN OUT`; keep OUT only on exit 0.
+  - One remark on `pre_eq2.py` itself: it finds the pattern by the handshake names `cmpi2` / `fork3` / `fork7`. The
+    checker does not care how OUT was made (it matches structure), but a name-keyed matcher fires only on kernels
+    whose frontend happens to use those names. eq2_check's planner finds the pattern structurally; formal can turn it
+    into the rewriter too if you want that.
 - **For ringfuse (your fusion lead):** fusing a comp into its only reader is `Absorb`, and fusing a fork-fed region
   into one comp is `ForkJoin`. A fusion pass whose output is a sequence of those steps can be checked by
   `runScript` with no new proof. Tell formal the fused shapes you emit and formal will check them.

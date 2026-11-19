@@ -82,6 +82,16 @@ theorem reorder_fire {ins ins' : List Nat} {o : Nat} {F : E} (h : ∀ c, c ∈ i
   · obtain ⟨c, hc, he⟩ := exists_empty hall
     rw [fire_comp_none hc he, fire_comp_none ((h c).mp hc) he]
 
+/-! ## Reordering a fork's outputs -/
+
+theorem forder_fire {i : Nat} {os os' : List Nat} (h : ∀ c, c ∈ os ↔ c ∈ os') (σ : Store Nat Nat) :
+    (Rule.fork i os').fire natVI σ = (Rule.fork i os).fire natVI σ := by
+  cases hσ : σ i with
+  | nil => rw [fire_fork_none hσ, fire_fork_none hσ]
+  | cons v vs =>
+    rw [fire_fork hσ, fire_fork hσ]
+    congr 2; funext c; simp only [h c]
+
 /-! ## Replacing an expression by an equal one -/
 
 theorem ident_fire {ins : List Nat} {o : Nat} {F F' : E}

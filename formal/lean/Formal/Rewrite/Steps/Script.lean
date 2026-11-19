@@ -21,6 +21,7 @@ Lean evaluates: it checks each step's side conditions (Bool) and applies it. The
 * `forksplit lf k e`: split a fork's outputs after the k-th through a new fork on the fresh channel `e` (`ForkSplit`);
 * `forkcomm lc lf x0 x1`: a fork after a single-input comp moves before two copies of it (`ForkComm`);
 * `reorder l ins'`: a comp reads its inputs in another order (`Cong`);
+* `forder l os'`: a fork lists its outputs in another order (`Cong`);
 * `ident l w`: a comp's expression is replaced by an equal one from the identity library (`Cong`; today one
   identity, the collatz loop test, `colIdent`, any width `w ≥ 3`);
 * `drop l`: delete a `sink c` that nothing writes (`Cong`).
@@ -168,6 +169,7 @@ inductive Step
   | forksplit (lf k e : Nat)
   | forkcomm (lc lf x0 x1 : Nat)
   | reorder (l : Nat) (ins' : List Nat)
+  | forder (l : Nat) (os' : List Nat)
   | ident (l w : Nat)
   | drop (l : Nat)
   deriving Repr
@@ -225,6 +227,14 @@ def applyRO (rs : List Rule) (l : Nat) (ins' : List Nat) : Option Res :=
     else none
   | _ => none
 
+def applyFO (rs : List Rule) (l : Nat) (os' : List Nat) : Option Res :=
+  match rs[l]? with
+  | some (.fork i os) =>
+    if os.all (fun c => decide (c ∈ os')) = true ∧ os'.all (fun c => decide (c ∈ os)) = true then
+      some (rs.set l (.fork i os'), [], [])
+    else none
+  | _ => none
+
 def applyID (rs : List Rule) (l w : Nat) : Option Res :=
   match rs[l]? with
   | some (.comp ins o F) =>
@@ -243,6 +253,7 @@ def applyStep (rs : List Rule) : Step → Option Res
   | .forksplit lf k e => applyFS rs lf k e
   | .forkcomm lc lf x0 x1 => applyFC rs lc lf x0 x1
   | .reorder l ins' => applyRO rs l ins'
+  | .forder l os' => applyFO rs l os'
   | .ident l w => applyID rs l w
   | .drop l => applyDR rs l
 

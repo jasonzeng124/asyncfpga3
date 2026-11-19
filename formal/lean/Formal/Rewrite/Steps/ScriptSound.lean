@@ -153,6 +153,21 @@ theorem applyRO_sound {rs : List Rule} {l : Nat} {ins' : List Nat} {res : Res} (
     next => cases h
   next => cases h
 
+theorem applyFO_sound {rs : List Rule} {l : Nat} {os' : List Nat} {res : Res} (h : applyFO rs l os' = some res) :
+    Sound rs res.1 res.2.1 res.2.2 := by
+  unfold applyFO at h
+  split at h
+  next i os hl =>
+    split at h
+    next hk =>
+      obtain ⟨h1, h2⟩ := hk
+      obtain rfl := (Option.some.inj h).symm
+      have hmem : ∀ c, c ∈ os ↔ c ∈ os' := fun c =>
+        ⟨fun hc => by simpa using List.all_eq_true.mp h1 c hc, fun hc => by simpa using List.all_eq_true.mp h2 c hc⟩
+      exact Sound.of_steps (same_steps hl (set_self hl) (fun k hk => set_ne (Ne.symm hk)) (forder_fire hmem))
+    next => cases h
+  next => cases h
+
 theorem applyID_sound {rs : List Rule} {l w : Nat} {res : Res} (h : applyID rs l w = some res) :
     Sound rs res.1 res.2.1 res.2.2 := by
   unfold applyID at h
@@ -194,6 +209,7 @@ theorem applyStep_sound {rs : List Rule} {s : Step} {res : Res} (h : applyStep r
   | forksplit lf k e => exact applyFS_sound h
   | forkcomm lc lf x0 x1 => exact applyFC_sound h
   | reorder l ins' => exact applyRO_sound h
+  | forder l os' => exact applyFO_sound h
   | ident l w => exact applyID_sound h
   | drop l => exact applyDR_sound h
 
