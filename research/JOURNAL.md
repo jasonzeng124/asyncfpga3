@@ -7666,3 +7666,18 @@ regenerate.
 - Does NOT show: that 15 % is the right margin on a kernel whose single loop has a branch (brhash's arms differ by design;
   its routes are within 6 % today); the slope includes the bench's per-trip overhead (none is known: P and slope agree to
   2 % on the single-loop kernels, so it is small).
+### progress 21:52 (session end: the job ends at 22:13 UTC)
+- State: branch pushed (64b0d95e9 + this note); BOARD-QUEUE.md unchanged (no new candidate judged); no draft-PR update (no
+  `gh` on this node); nothing running locally; LOCK cleared with this commit. Scratch work under /tmp/bot/scratch_bl is
+  lost with the job; everything it showed is committed (research/tools/suite/p_vs_slope.py, research/data/suite/pslope/).
+Next, in order:
+1. Regenerate the headline over the newest farm results (copy origin/claude/cluster results/ for every request in the
+   provenance list plus suite12, suite11's last tasks, suite10d, finseeds1), now with the P-against-slope rule; v8 as its
+   own column (session 18's 21:35 Next, item 1).
+2. AUTO_FINISH_SEEDS=3 as the default, with a local smoke run (session 18's item 2).
+3. The 7 kernels with a ratio but no slope (trip count fixed over the vectors: digitdiv, if_convert, loop_path,
+   single_loop, sumi3_mem, while_loop_3, fir): their P is unchecked against the bench; add vectors with other trip counts
+   (computed from the C) or check P against the bench's per-call latency divided by the C's trip count.
+4. gcd's P sits on another loop than Dynamatic's most executed (2.16x the slope): name the loop from the event graph,
+   for the record; the table uses the slope now.
+5. The open goal-1 list of the 19:53 state of play (session 17) stands.
