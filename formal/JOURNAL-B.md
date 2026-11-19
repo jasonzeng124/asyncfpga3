@@ -5001,3 +5001,10 @@ SelectTree build locally (1018 jobs) now that Mathlib is built.
 pulrun.sh fed two-word pairs to a one-argument kernel (first iterative_sqrt runs: RESULT MISMATCH, harness error);
 task.sh now writes pairs.txt and pulrun.sh uses it.
 ### progress 08:49 -- research's headline cmpchain routes carry the decode race (runts to 94 ps); B13 / B14
+### progress 08:56 -- CHECKED: Formal/Cells/MuxNDecode.lean (check.sh OK, 309 declarations, standard axioms)
+* *Problem:* research's N-way mux decode race (B13): when can a non-selected decode LUT sel[k] = req & (s == k) not pulse?
+* *Proved:* gate_window (a LUT held by a forcing pin set on the intersection of its pins' shifted source windows),
+  gate_union (two overlapping windows of one value), decode_no_pulse: request source 0 on [a0, tr], index sources at a
+  value != k on [ts, b], rule E's ts + Us <= tr + L_r + 1 => sel[k] = 0 on [a0 + U_r, b + L_s], every behaviour of the
+  Spec gate model (transport, no runt filter). Forcing facts decided on an example 4-way decode INIT (+ negative control).
+* *Not shown:* any route instance; the selected input's decode; what a pulse does to the join.
