@@ -4882,3 +4882,9 @@ memory routes formal has not judged (fir x4, sumi3_mem x4, memsum s1, image_resi
 Both sweeps at research ea42472f6 (floor on, default + AUTO): 222 rows each, 121 LIVE exhaustive, 9 sampled, 82 refused,
 10 crash (emit refuses too). Results committed under formal/tools/live/fixtures/results_ringfuse{1,2}_ea42472f6.jsonl.
 c_mem7 / c_mem8 still waiting for farm cores (12:55).
+
+### progress 14:04 -- c_mem9 (fixed CLK->DO): the 16 headline memory rows unchanged, NOCAP control still fails
+c_mem7 (68 x 4 cores) waited from 09:52 for 200 free cores; c_mem9 (19 x 2 cores) ran at once: 16 headline routes 32 / 32
+each (all SAME), WE setup min if_loop_1 s1 +25 ps (no failing draw in these 32), test_bool_array NOCAP 0 / 32,
+test_memory_1 NOCAP 32 / 32. C60 updated: the correction changed no verdict. c_mem7 left queued (no cancel mechanism;
+it would only repeat these rows plus the c_mem6 ones).

@@ -80,7 +80,14 @@ reports, read the tables as "with the RAM ~0-0.3 ns fast".
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
-every array read back right**; smallest WE setup margin 820 ps (fir 4). The 68 older rows are rerunning (c_mem7).
+every array read back right**; smallest WE setup margin 820 ps (fir 4).
+**The 16 headline rows and the controls with the FIXED arc (farm c_mem9, 14:03 UTC, 16 + 16 draws, host port):** every
+headline route passes 32 / 32 again, all sdf-identical; smallest WE setup margins: if_loop_1 s1 +25 ps (the race: no
+failing draw among these 32; with the earlier 128 it fails in about 1 draw in 40), test_stdint 795, mul_example 741,
+test_bitint 830, fill 975, the rest >= 1 ns. BDC_MEM_NOCAP=1: test_bool_array 0 / 32 (fails, as before), test_memory_1
+32 / 32 (as before). **So the correction changed no verdict.** (The other 52 rows of the C60 tables still carry the old
+arc until c_mem7 runs; the fix moves the RAM data later by at most ~0.3 ns, and the 11 fixed-arc rows above and these 16
+show no route within that of failing except if_loop_1 s1, whose race does not involve CLK->DO.)
 
 **What is new.** Until today formal's simx refused every benchvec kernel (no RAM model), so the 30-odd memory kernels of
 your suite had no independent judge. margin/bram/ decodes each RAMB18 site from the bitstream read back by bit2fasm
