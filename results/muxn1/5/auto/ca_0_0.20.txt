@@ -1,0 +1,111 @@
+corner_audit /tmp/task/runs/ca/su_iterative_sqrt_1_0/seed1
+  corner: corner_sdf: /tmp/task/runs/ca/su_iterative_sqrt_1_0/seed1/pnr/soak_xray.sdf -> /tmp/task/runs/ca/su_iterative_sqrt_1_0/rule_0.20/soak.sdf
+            band 0.2, cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, 279 instance(s) listed (0.2), all in the SDF
+            INTERCONNECT default (0.2)                        34321 arcs
+            INTERCONNECT into listed instance (0.2)             465 arcs
+            IOPATH CARRY4 (1)                                  2276 arcs
+            IOPATH SELMUX2_1 (1)                                855 arcs
+            IOPATH SLICE_FFX (1)                               1956 arcs
+            IOPATH default (0.2)                              97668 arcs
+            IOPATH listed instance (0.2)                        465 arcs
+            SETUPHOLD (FAST_MIN, as gen.py)                    9346 arcs
+  nextpnr: UNSTAMPED
+  guards: rule E/J 0.970*req vs 1.030*sel; rule A/F/H/I/K/L guard max(0.030*t_data, 50 ps); slack 0
+  rule A data launches from constant drivers: DROPPED (a constant never transitions)
+  audits exit: tighten 1, skew 1, arb_fork 0
+  per-link cost at this corner: c_lo 179 ps (cheapest link-to-link step on the route), lut_lo 61 ps; chain mean steps 179-627 ps
+  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band 0.2, CARRY4/F7F8/FF at --cell; shortened lines priced at own mean step; selects sized by E/M; floor file none
+  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the select's own channel request is bounded by that request (research/data/sizerule/steerE.md)
+  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); research/data/muxsel/)
+  join-aware: CA_JOINAWARE=1: 7 operator(s) sized at their data's captures (A'j: latch data vs its enable, select vs its gate's request; C-elements wait for their last input; join credit), their A' rows reported as 'a'; 1 kept on A' (rows 'j' say why)
+  WARNING chain(s) ['bridge_i.upsnk'] map to BD_SZ_BRIDGE_I_UPSNK, which sizes.vh does not set (kept, measured)
+negative at this corner: 23
+  D   -9784  bridge_i.udut.ucond_br8 (bd_steer) req   239  sel  9732  guard  291  margin  -9784   PAD by 28 bd_delay element(s) (362 ps ea) -- VIOLATION
+  D   -9738  bridge_i.udut.ucond_br7 (bd_steer) req   309  sel  9755  guard  292  margin  -9738   PAD by 27 bd_delay element(s) (362 ps ea) -- VIOLATION
+  D   -9634  bridge_i.udut.ucond_br10 (bd_steer) req   336  sel  9680  guard  290  margin  -9634   PAD by 27 bd_delay element(s) (362 ps ea) -- VIOLATION
+  D   -9534  bridge_i.udut.ucond_br9 (bd_steer) req   387  sel  9633  guard  288  margin  -9534   PAD by 27 bd_delay element(s) (362 ps ea) -- VIOLATION
+  D   -8941  bridge_i.udut.ucond_br6 (bd_steer) req   628  sel  9291  guard  278  margin  -8941   PAD by 25 bd_delay element(s) (362 ps ea) -- VIOLATION
+  A   -5262  bridge_i.udut.umux3 4 links  from bridge_i.udut.ulink_n_trueResult_16.many.stage[1].u.ctl.u.u/O6: req 3332 (1x)  data 8344 (2x, bridge_i.udut.umux3.$a
+  j   -5262  bridge_i.udut.umux3 joined: not applied, keeps A': its data reaches 67 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10162/D
+  D   -4224  bridge_i.udut.ucond_br4 (bd_steer) req   308  sel  4400  guard  132  margin  -4224   PAD by 12 bd_delay element(s) (362 ps ea) -- VIOLATION
+  D   -4173  bridge_i.udut.ucond_br5 (bd_steer) req   336  sel  4378  guard  131  margin  -4173   PAD by 12 bd_delay element(s) (362 ps ea) -- VIOLATION
+  D   -3226  bridge_i.udut.ucond_br3 (bd_steer) req   805  sel  3914  guard  117  margin  -3226   PAD by 9 bd_delay element(s) (362 ps ea) -- VIOLATION
+  D   -3215  bridge_i.udut.ucond_br12 (bd_steer) req   318  sel  3431  guard  102  margin  -3215   PAD by 9 bd_delay element(s) (362 ps ea) -- VIOLATION
+  D   -3162  bridge_i.udut.ucond_br14 (bd_steer) req   296  sel  3358  guard  100  margin  -3162   PAD by 9 bd_delay element(s) (362 ps ea) -- VIOLATION
+  D   -3132  bridge_i.udut.ucond_br13 (bd_steer) req   310  sel  3342  guard  100  margin  -3132   PAD by 9 bd_delay element(s) (362 ps ea) -- VIOLATION
+  D   -2481  bridge_i.udut.ucond_br11 (bd_steer) req   633  sel  3024  guard   90  margin  -2481   PAD by 7 bd_delay element(s) (362 ps ea) -- VIOLATION
+  a   -2315  bridge_i.udut.umux3     4 links   1234 ps   req  2249  peak  4488  guard   76  margin  -2315   PAD to 10 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UMUX3
+  a    -597  bridge_i.udut.ucmpi0    9 links   3213 ps   req  4029  peak  4530  guard   96  margin   -597   PAD to 11 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  I    -167  bridge_i.udut.ulink_n_falseResult_23.many.stage[2].u.ctl.u.u  1 links   close  2375  data  2468  guard   74  margin   -167   PAD to 2 -- VIOLATION  [f
+            depends on: BRIDGE_I_UDUT_ULINK_N_FALSERESULT_23_SDELAY, BRIDGE_I_UDUT_ULINK_N_FALSERESULT_23_UACK
+  E    -109  bd_steer bridge_i.udut.ucond_br4 req bridge_i.udut.ucond_br4.u$LUT5/A3 5690 ps (2 x) sel bridge_i.udut.ucond_br4.u$LUT5/A1 5465 ps (1 x) launch bridge
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  E    -109  bd_steer bridge_i.udut.ucond_br4 req bridge_i.udut.ucond_br4.u$LUT6/A3 5690 ps (2 x) sel bridge_i.udut.ucond_br4.u$LUT6/A1 5465 ps (1 x) launch bridge
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  E     -56  bd_steer bridge_i.udut.ucond_br5 req bridge_i.udut.ucond_br5.u$LUT5/A3 5721 ps (2 x) sel bridge_i.udut.ucond_br5.u$LUT5/A2 5443 ps (1 x) launch bridge
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  E     -56  bd_steer bridge_i.udut.ucond_br5 req bridge_i.udut.ucond_br5.u$LUT6/A3 5721 ps (2 x) sel bridge_i.udut.ucond_br5.u$LUT6/A2 5443 ps (1 x) launch bridge
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  A     -54  bridge_i.udut.umux2 [peers no common source reaches: 32] 4 links  from bridge_i.udut.ulink_n_falseResult_23.many.stage[2].u.ctl.u.u/O6: req 2189 (1x) 
+            depends on: BRIDGE_I_UDUT_UMUX2
+  H     -37  bridge_i.udut.ulink_n_trueResult.many.stage[1].u.ctl.u.u  2 links   enable  1933  data  1953 (sender)  guard   57  margin    -37   PAD to 3 -- VIOLATI
+            depends on: BRIDGE_I_UDUT_ULINK_N_TRUERESULT_UACK
+proposal: 54 line(s) changed, kernel links 254 -> 164; verify: 1 sized constraint(s) below slack
+  BD_SZ_BRIDGE_I_UDUT_UCMPI0                 9 ->  10   PAD 9->10 for E bridge_i.udut.ucond_br4.u$LUT5/A3 (-109 ps)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N9__0_FOLINK_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UMUX1                  4 ->   2   bound by A'm bridge_i.udut.umux1 (19 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N11__0_FOLINK_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UMUX2                  4 ->   5   PAD 4->5 for A'm bridge_i.udut.umux2 (-54 ps)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N13__0_FOLINK_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0        4 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0_OLINK_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_USHRSI0               17 ->   7   bound by A'j bridge_i.udut.ushrsi0 (250 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N19__0_FOLINK_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UCMPI1                29 ->  25   bound by E bridge_i.udut.ucond_br7.u$LUT5/A5 (191 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N24__0_FOLINK_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UCMPI2                29 ->  23   bound by A'j bridge_i.udut.ucmpi2 (30 ps left)
+  BD_SZ_BRIDGE_I_UDUT_USELECT0              12 ->   4   bound by A'j bridge_i.udut.uselect0 (77 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N39__0_FOLINK_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_USELECT1              12 ->   3   bound by A'j bridge_i.udut.uselect1 (322 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N41__0_FOLINK_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UCMPI3                 9 ->   8   bound by E bridge_i.udut.ucond_br12.u$LUT5/A2 (69 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMUX3                  4 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE2        8 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N1__1_UACK       2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N11__1_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N13__1_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N14__0           2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N14__0_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N14__1           2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N14__1_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N14__2           2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N14__2_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N19__1_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N19__2_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N24__1_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N25_UACK         2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N26_UACK         2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N28__0_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N28__1_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N28__2_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N28__3_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N35__0_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N35__1_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N39__1_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N41__1_UACK      2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N5__0_UACK       2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N5__1_UACK       2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N7_UACK          2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N9__1_UACK       2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_17_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_21_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_23_SDELAY   1 ->   2   PAD 1->2 for I bridge_i.udut.ulink_n_falseResult_23.many.stage[2].u.ctl.u.u (-167 ps)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_INDEX_25       3 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_INDEX_25_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_TRUERESULT_UACK   2 ->   3   PAD 2->3 for H bridge_i.udut.ulink_n_trueResult.many.stage[1].u.ctl.u.u (-37 ps)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_TRUERESULT_16_UACK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_TRUERESULT_4_UACK   2 ->   1   floor 1
+  STILL SHORT  -4254 A' bridge_i.udut.umux3
+wrote /tmp/task/runs/ca/su_iterative_sqrt_1_0/rule_0.20/{report.txt, lines.tsv, sizes.vh, verify.txt, soak.sdf}
