@@ -60,7 +60,38 @@ U[.20, .31] band, cells 0.6, no scatter): umem0 (RAMB18_X0Y22): host request flo
 322 ps; routing 2640 ps), setup 532 -> **slack +193 ps**; your GLS table at draw 10101: 3566 vs 2949-3051, -17 ps. umem1
 (5 usetup elements): +801 ps. So the path lists agree element for element with your ifloop.md section 2, and the
 binding term is the m_we route to the RAM (2.6 ns of wire for one LUT), as you found.
-Farm c_mem4 runs every headline memory route this way (32 + 32 draws). Without HOSTPORT the host port is not exercised;
+**Every memory route through the host port (farm c_mem4 / c_mem5, 09:22 UTC; draws of your model + slow cell / RAM draws;
+"WE" = the smallest WE setup margin beyond 532 ps over all draws and all RAM writes, host or kernel):**
+| route (sdf, all = yours) | draws passing | WE margin min |
+|---|---|---|
+| binary_search 2 d1f73792 | 64 / 64 | 2627 ps |
+| dot2 1 cd975c99 | 64 / 64 | 1835 |
+| fill 2 87090c0b | 64 / 64 | 957 |
+| gather 1 33b77519 | 64 / 64 | 1707 |
+| **if_loop_1 1 b2ad5a7b** | **63 / 64** (one slow draw: WE setup violations, umem0) | **-98** |
+| if_loop_1 2 25d24290 | 64 / 64 | 2047 |
+| if_loop_2 4 7cb58e52 | 64 / 64 | 2592 |
+| memsum 3 b6a797f9 | 64 / 64 | 3884 |
+| mul_example 2 eaafdc60 | 64 / 64 | 680 |
+| simple_example_1 1 5b20a707 | 64 / 64 | 1069 |
+| test_bitint 1 cf69bd3e | 64 / 64 | 810 |
+| test_bool_array 1 8759dc8d | 64 / 64 | 3699 |
+| test_memory_1 1 0e95d2ca | 64 / 64 | 2901 |
+| test_stdint 1 bca02df4 | 64 / 64 | 795 |
+| unused_arg 1 db282072 | 64 / 64 | 2669 |
+| while_loop_3 1 2918dcd1 | 64 / 64 | 1559 |
+| if_convert 1 a99380fc / 2 c990d905 (suite10b, + BDC_FORK_OUT_LINK=n8__1,n8__2) | 32 / 32, 32 / 32 | 1216, 1556 |
+| test_memory_2 1 36c3a48b / 2 6b132f6f | 32 / 32, 32 / 32 | 1169, 1393 |
+| spmv 1 6caf1111 / 2 fe1740d4 | 32 / 32, 32 / 32 | 1389, 1339 |
+| test_flatten_array 1 ce6c6a19 / 2 96248d2a | 32 / 32, 32 / 32 | 2940, 1154 |
+| iir 1 091c7f6d | 32 / 32 | 1605 |
+| nested_loop 1 089fc849 | 32 / 32 | 1861 |
+So: 26 of your memory routes, every one you report PASS, pass here too; the one you report WRONG (if_loop_1 s1) is the
+only one with a negative margin, and it fails in formal only on 3 of 128 draws (2 / 64 locally, 1 / 64 on the farm):
+formal sees the race and places it ~0.2 ns kinder than your GLS. The next-closest routes (mul_example 680 ps,
+test_stdint 795, test_bitint 810) are 0.7-0.8 ns clear. Your ifloop rule fix should show as if_loop_1 s1's successor
+route moving up this column; give formal its sdf and it will be run the same way.
+Without HOSTPORT the host port is not exercised;
 with it, the read-back is still taken from the RAM's contents, not through the port.
 
 **The capture race in picoseconds (margin/bram/ramslack.py:** every RAM's CLK->DO arc +X until a result goes wrong, one
