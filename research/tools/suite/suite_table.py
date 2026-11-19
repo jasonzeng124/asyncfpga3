@@ -143,6 +143,12 @@ DY = dyn_ref(); HD = hand_ref(); DL = dyn_lat()
 print("| kernel | status | routes judged (rule-clean + NOT CLEAN) / built | draws passing (clean; not clean) | ns per iteration (P) on clean routes, median (range) [on NOT CLEAN routes] | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |")
 print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 npass, ratios, lratios, nfit, hostP, notes_k = 0, [], [], 0, [], {}
+# P against the bench (2026-11-19, research/data/suite/pslope/p_vs_slope.txt): on all 19 single-loop kernels with a varying
+# trip count, P / slope is 0.94-1.04 on every route; on a kernel with several loops the auto marker may sit on another loop
+# than the most executed one (branchloop 0.45, gcd 2.16, isprime 7.07), and Dynamatic's figure is that loop's slope.  A P
+# off its route's slope by more than this is refused, and the slope (the same convention as Dynamatic's figure) is used.
+PSLOPE_TOL = 0.15
+offP = []
 nlist = 0
 for k in sorted(set(rows) | set(listed)):
     rs = rows.get(k, [])
@@ -168,7 +174,9 @@ for k in sorted(set(rows) | set(listed)):
         status = "PASS" if ok else "WRONG ANSWER under draws"
     npass += ok
     dl = DL.get(k)
-    # per route: P (refused when it is a multiple of the host clock), our call latencies, the fit where P is missing
+    # per route: P (refused when it is a multiple of the host clock, or when it departs from the route's own slope of call
+    # latency on the most executed loop's trip counts by more than PSLOPE_TOL), our call latencies, the fit where P is
+    # missing or refused
     Ps, Fs, Ls, Pnc, Fnc = [], [], [], [], []
     for r in judged:
         v, fclk = route_lat(r)
@@ -176,16 +184,18 @@ for k in sorted(set(rows) | set(listed)):
         if P is not None and P % (fclk or 12000) == 0:
             hostP.append("%s seed %s P=%d = %d x %d ps" % (k, r["seed"], P, P // (fclk or 12000), fclk or 12000))
             P = None
+        b = slope(dl["execs"], v) if (v and dl and dl["execs"] and len(dl["execs"]) == len(v)) else None
+        if P is not None and b and b > 0 and abs(P / 1000.0 / b - 1) > PSLOPE_TOL:
+            offP.append("%s seed %s P=%.2f ns against a slope of %.2f ns (%.2fx)" % (k, r["seed"], P / 1000.0, b, P / 1000.0 / b))
+            P = None
         if P is not None:
             (Ps if r.get("rule") == "clean" else Pnc).append(P / 1000)
         if v:
             Ls.append(sum(v) / len(v))
         elif r.get("lat_call_sum_ns", "NA").isdigit() and r.get("nvec", "0").isdigit() and int(r["nvec"]):
             Ls.append(int(r["lat_call_sum_ns"]) / int(r["nvec"]))
-        if P is None and v and dl and dl["execs"] and dl["nloops"] == 1 and len(dl["execs"]) == len(v):
-            b = slope(dl["execs"], v)
-            if b is not None:
-                (Fs if r.get("rule") == "clean" else Fnc).append(b)
+        if P is None and b is not None and b > 0:
+            (Fs if r.get("rule") == "clean" else Fnc).append(b)
     fit = not Ps and bool(Fs)
     Pv = Ps or (Fs if fit else [])
     Pm = st.median(Pv) if Pv else None
@@ -242,6 +252,10 @@ if any(k in DL for k in rows):
           "a kernel that is a constant, test_int16, takes 5 host cycles = 60 ns), Dynamatic's is the kernel alone: "
           "simulated cycles per call on the same calls x the ESTIMATED period (research/data/suite/dynamatic/README.md); "
           "a period extrapolated below half the calibrated range is marked and left out of the mean.")
+if offP:
+    print()
+    print("P refused (off its route's own slope of call latency on the most executed loop's trip counts by more than %d %%: "
+          "the event graph's marker was on another loop; the slope is used): " % round(PSLOPE_TOL * 100) + "; ".join(offP) + ".")
 if hostP:
     print()
     print("P refused (an exact multiple of the bench's host clock period: a host-clocked marker, not the kernel's loop): "

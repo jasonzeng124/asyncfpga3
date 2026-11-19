@@ -11,18 +11,19 @@ cause: rule A's peers escaped the cell; superseded by divsize1's routes after th
 flow v1 (NOT CLEAN); ipow seed 7 with ring fusion (ringfuse1/31, v8, NOT CLEAN at it 7, FAIL 7 / 8 draws, one draw 16 of
 17 vectors, with runts; the least-short finish route came after it). None of these rows shows them now, because a later
 request superseded each (kernel, seed). isprime's ratio (an outer-trial
-period against Dynamatic's inner-shift cycle) is out of every mean, and so is **branchloop's (2026-11-19 21:50 UTC: our P
-there is the INNER loop's trip, Dynamatic's 36.77 ns is the OUTER loop's iteration; the 0.40 compared two loops; like for
-like it is about 0.97, see "What ns per iteration is" below)**. Dynamatic's figures are ESTIMATES except xorshift /
+period against Dynamatic's inner-shift cycle) is out of every mean. **branchloop's ratio is now 0.85 from the fit, not 0.40
+(2026-11-19 21:52 UTC): its P measured the INNER loop, Dynamatic's 36.77 ns is the OUTER loop's slope; suite_table.py now
+refuses a P more than 15 % off its route's own slope of call latency on the trip counts and uses that slope, Dynamatic's
+own convention; see "What ns per iteration is" below.** Dynamatic's figures are ESTIMATES except xorshift /
 collatz / collatz64 (single nextpnr routes, Fmax x cycles), and on the memory kernels the estimate assumes
 Dynamatic's on-merges buffering, which its solver placement could beat by up to ~6x (research/data/suite/dynamatic/
 DYNFIG_REPORT.md): those ratios flatter us, so read the mean with estimates as an upper bound on our standing; our ns are the simulation's (~8 % slower per iteration than
 the August board, research/SIM-VS-BOARD.md). **How much (auditor T169, recomputed on this table):** 11 of the 22 ratios
 are memory kernels (the fixture's handshake has a memref: dot2, fill, fir, if_convert, if_loop_1, if_loop_2, loop_path,
-memsum, single_loop, sumi3_mem, while_loop_3); without them the mean with estimates is 1.28 (n = 10), against 1.06 (n = 21) with
-them (branchloop out since 21:50 UTC; it was 1.16 and 1.01 with branchloop's 0.40 in). All 9 ratios below 1 are against
-ESTIMATED figures, none against a measured one, and 3 of the 9 are not memory kernels (digitdiv, horner, ipow), so the
-estimate itself, not only the memory buffering, is in question there.
+memsum, single_loop, sumi3_mem, while_loop_3); without them the mean with estimates is 1.24 (n = 11), against 1.05 (n = 22) with
+them (branchloop at 0.85 from the fit since 21:52 UTC; with its old 0.40 they were 1.16 and 1.01). All 10 ratios below 1
+are against ESTIMATED figures, none against a measured one, and 4 of the 10 are not memory kernels (branchloop, digitdiv,
+horner, ipow), so the estimate itself, not only the memory buffering, is in question there.
 **What "ns per iteration" is (checked 2026-11-19 21:35 UTC):** P is the event graph's period of the routed design
 (auto_size.sh final()), not a time the bench measured. Over every PASS route on origin/claude/cluster (30 kernels with
 >= 4 routes on the same vectors), P tracks the bench's latency per call (correlation >= +0.9 on 24; on iterative_sqrt,
@@ -36,10 +37,13 @@ branchloop has two loops. From the bench's own per-call latencies (finseeds1 tas
 the 0-trip call): on BOTH routes an inner trip is 14.1 / 14.5 ns (n = 0x7fffffff, 30 trips) and an outer iteration
 35.8 / 36.4 ns (n = 0x40000001, 61 alternating odd / even iterations; 30.0 / 29.6 on n = 0x40000000, even only). So P
 measured the inner loop on five routes and the outer loop on one; the routes do not differ. **Consequence: branchloop's
-ns in the table below (14.79) is its inner loop's trip, while Dynamatic's figure (3.44 cycles, bb1, "the most executed of
-2 loops": 160 outer iterations against 68 inner trips over the 14 calls) is the outer loop's; the ratio 0.40 is withdrawn
-and out of every mean.** Like for like, outer against outer, it is about 35.8 / 36.77 = 0.97, in line with the
-latency-per-call ratio of 1.01 on the same calls. Of the 22 kernels with a ratio, branchloop is the only one that
+former figure (14.79 ns, P on the clean route) was its inner loop's trip, while Dynamatic's figure (3.44 cycles, bb1, "the most executed of
+2 loops": 160 outer iterations against 68 inner trips over the 14 calls) is the outer loop's; the ratio 0.40 is withdrawn.**
+Dynamatic's 3.44 cycles is itself a slope (its cycles per call on bb1's executions; 3.43 recomputed from
+dynamatic_lat.tsv), so the like-for-like figure is our slope on the same trip counts: 31.35 ns on the clean route, ratio
+**0.85 (fit)**, in the table now (latency-per-call ratio 1.01). Over every farm route, P against that slope is 0.94-1.04
+on all 19 single-loop kernels with a varying trip count (research/data/suite/pslope/p_vs_slope.txt), so the rule changes
+nothing there. Of the 22 kernels with a ratio, branchloop is the only one that
 Dynamatic's table (research/data/suite/dynamatic/table.md, "of N loops") lists with more than one loop; on the other 17
 it lists so (gcd, nested, nest3, twoloops, binary_search, the memory nests; isprime already out) the same question must
 be answered before a ratio is filled.
@@ -58,8 +62,9 @@ Dynamatic 12.73 (one nextpnr route).
 
 **Provenance (auditor T167).** The exact command, inputs in this order, a later request superseding an earlier one for the
 same (kernel, seed): `research/tools/suite/suite_table.py --kernels research/tools/suite/kernels.txt --reasons
-research/data/suite/headline_reasons.tsv --no-ratio isprime` (from 2026-11-19 21:50 UTC `--no-ratio isprime,branchloop`:
-the branchloop row and the means were corrected by hand to what that option gives, not regenerated) over the farm's results/{suite3a, suite3b, suite8, suite7,
+research/data/suite/headline_reasons.tsv --no-ratio isprime` (since 2026-11-19 21:52 UTC with suite_table.py's P-against-slope refusal;
+regenerated locally from the farm results copied at 20:03 UTC: every row identical to the 20:03 table except branchloop,
+now from the fit, and bracketed NOT CLEAN fits on factorial, gcd, isprime, nest3 and nested) over the farm's results/{suite3a, suite3b, suite8, suite7,
 suite6 (tasks 25-32 only: ipow, the one suite6 kernel no rewrite touched), suite9, suite9r3, norw1, norw1r2, gifast1,
 nsearch1, suite10b, muxn1, suite9r4, divsize1, divres1, suite10c, ifl1, ringfuse1 tasks 33-44 only (its v7 baselines; the
 BDC_RING_FUSE arm is a variant, not the column), suite11 (e2c8e6c52: v7 with the mux rule and the cell-confined peers)}. The flow differs by request, by the defaults at each request's commit: suite3a e18df972b,
@@ -71,14 +76,14 @@ divres1: + rule A's peers confined to the cell (1daa7efd4: test_divui's suite10b
 earlier build failures, which the table no longer shows: quadrec s2 and varshift s2 / s4 (the bench missed 83 MHz on
 one iteration; resumed with the seed fallback), isprime s3 (PNR-TIMEOUT at it 0 in suite7; gifast1's route). cmpchain s1 /
 s4's farm verdict NOT EQUIVALENT was a checker false alarm on dead cells (fixed e060d7980; auditor T166 confirms s1);
-those routes pass 4 / 4 draws each when rejudged. 8 of the 22 ratios rested on one rule-clean route (branchloop, now out,
+those routes pass 4 / 4 draws each when rejudged. 8 of the 22 ratios rest on one rule-clean route (branchloop (fit),
 digitdiv, dot2, fold64, horner, if_loop_1, single_loop, sqrtsub; counted on this table, auditor T169 counted 7 on the
 56-of-62 one).
 
 | kernel | status | routes judged (rule-clean + NOT CLEAN) / built | draws passing (clean; not clean) | ns per iteration (P) on clean routes, median (range) [on NOT CLEAN routes] | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | binary_search | PASS | 0 + 3 / 3 | -; 12 / 12 | - [37.59 (36.21-38.02)] | 4068 | 1655 | 24.18 (ESTIMATE) | - | - | 3102.00 (3042.86-3146.57) | - | - |
-| branchloop | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 14.79 (14.79-14.79) [14.22 (13.47-14.52)] (INNER loop's trip) | 2160 | 2213 | 36.77 (ESTIMATE; OUTER loop) | - (0.40 withdrawn: two loops compared) | - | 489.86 (463.29-522.43) | 486.08 (ESTIMATE) | 1.01 |
+| branchloop | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | fit 31.35 (31.35-31.35) (slope of call latency on trip count; no event-graph P) [fit 31.83 (30.01-34.44)] | 2160 | 2213 | 36.77 (ESTIMATE) | 0.85 (fit) | - | 489.86 (463.29-522.43) | 486.08 (ESTIMATE) | 1.01 |
 | brhash | PASS | 0 + 4 / 4 | -; 16 / 16 | - [fit 32.08 (30.73-34.34)] | 8664 | 2110 | 36.40 (ESTIMATE) | - | - | 1314.30 (1261.20-1402.80) | 1443.81 (ESTIMATE) | 0.91 |
 | cmpchain | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 120 | 3083 | - | - | - | 100.94 (96.71-100.94) | 33.90 (ESTIMATE) | 2.98 |
 | collatz | PASS | 5 + 3 / 8 | 40 / 40; 24 / 24 | 22.54 (18.98-25.56) [22.86 (22.79-26.70)] | 7032 | 1289 | 14.05 (measured, 1 route) | 1.60 | 21.50 | 2275.06 (1845.18-2625.18) | 1362.02 (cycles simulated, period measured (1 route)) | 1.67 |
@@ -89,12 +94,12 @@ digitdiv, dot2, fold64, horner, if_loop_1, single_loop, sqrtsub; counted on this
 | divmods | PASS | 2 + 0 / 2 | 8 / 8; - | 1614.00 (1614.00-1614.00) | 420 | 5988 | - | - | - | 354.12 (270.25-438.00) | - | - |
 | divmodu | PASS | 4 + 0 / 4 | 16 / 16; - | 1614.00 (1614.00-1614.00) | 276 | 2764 | - | - | - | 273.00 (258.00-282.00) | - | - |
 | dot2 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 30.97 (30.97-30.97) [33.84 (33.39-34.28)] | 1152 | 1436 | 59.28 (ESTIMATE) | 0.52 | - | 717.75 (640.50-761.25) | 1212.19 (ESTIMATE) | 0.59 |
-| factorial | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 204 | 2635 | 129.79 (ESTIMATE) | - | - | 139.00 (131.00-142.00) | 233.79 (ESTIMATE) | 0.59 |
+| factorial | PASS | 0 + 4 / 4 | -; 16 / 16 | - [fit 28.21 (26.76-28.85)] | 204 | 2635 | 129.79 (ESTIMATE) | - | - | 139.00 (131.00-142.00) | 233.79 (ESTIMATE) | 0.59 |
 | fill | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 32.86 (32.17-33.55) [29.88 (29.42-30.34)] | 1404 | 1942 | 10.95 (ESTIMATE) | 3.00 | - | 560.40 (528.00-600.00) | 208.09 (ESTIMATE) | 2.69 |
 | fir | PASS | 3 + 1 / 4 | 6 / 6; 2 / 2 | 26.04 (25.99-26.64) [26.98 (26.98-26.98)] | 27036 | 793 | 48.68 (ESTIMATE) | 0.53 | - | 26826.00 (25668.00-28032.00) | 48738.03 (ESTIMATE) | 0.55 |
 | fold64 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 24.10 (24.10-24.10) [23.96 (23.67-24.25)] | 6252 | 2794 | 11.93 (ESTIMATE) | 2.02 | - | 930.60 (901.80-943.20) | 448.74 (ESTIMATE) | 2.07 |
 | gather | PASS | 0 + 4 / 4 | -; 16 / 16 | - [51.69 (48.15-55.22)] | 1824 | 1493 | 69.20 (ESTIMATE) | - | - | 1210.00 (1124.00-1244.67) | 1510.48 (ESTIMATE) | 0.80 |
-| gcd | PASS | 0 + 3 / 4 | -; 12 / 12 | - [62.82 (61.42-66.30)] | 2172 | 7178 | 50.60 (ESTIMATE) | - | 87.20 | 600.00 (593.25-628.50) | 429.97 (ESTIMATE) | 1.40 |
+| gcd | PASS | 0 + 3 / 4 | -; 12 / 12 | - [fit 29.05 (28.36-31.16)] | 2172 | 7178 | 50.60 (ESTIMATE) | - | 87.20 | 600.00 (593.25-628.50) | 429.97 (ESTIMATE) | 1.40 |
 | horner | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 28.03 (28.03-28.03) [30.22 (29.25-31.28)] | 8064 | 1735 | 41.81 (ESTIMATE) | 0.67 | - | 1193.45 (1147.09-1233.27) | 1601.58 (ESTIMATE) | 0.75 |
 | if_convert | PASS | 4 + 0 / 4 | 16 / 16; - | 50.48 (49.09-51.86) | 10056 | 807 | 65.70 (ESTIMATE) | 0.77 | - | 7281.00 (6960.00-7592.00) | - | - |
 | if_loop_1 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 27.97 (27.97-27.97) [33.51 (28.61-33.70)] | 3432 | 1888 | 19.90 (ESTIMATE) | 1.41 | - | 1833.00 (1629.00-2007.00) | 1145.83 (ESTIMATE) | 1.60 |
@@ -102,15 +107,15 @@ digitdiv, dot2, fold64, horner, if_loop_1, single_loop, sqrtsub; counted on this
 | iir | PASS | 0 + 3 / 3 | -; 12 / 12 | - [55.15 (55.09-57.72)] | 57696 | 1184 | 48.68 (ESTIMATE) | - | - | 56868.00 (54852.00-59310.00) | - | - |
 | image_resize | PASS | 0 + 2 / 2 | -; 8 / 8 | - [69.67 (69.12-70.23)] | 63504 | 2454 | 18.95 (ESTIMATE) | - | - | 63180.00 (61782.00-64578.00) | - | - |
 | ipow | PASS | 6 + 2 / 8 | 48 / 48; 16 / 16 | 19.95 (18.71-21.58) [22.96 (22.57-23.36)] | 780 | 1341 | 49.98 (ESTIMATE) | 0.40 | 36.20 | 271.59 (254.12-296.47) | 513.90 (ESTIMATE) | 0.53 |
-| isprime | PASS | 0 + 3 / 3 | -; 12 / 12 | - [358.38 (346.76-374.58)] | 16632 | 3954 | 9.26 (ESTIMATE) | - | - | 4402.67 (4358.33-4658.67) | 2501.23 (ESTIMATE) | 1.76 |
+| isprime | PASS | 0 + 3 / 3 | -; 12 / 12 | - [fit 49.65 (49.30-52.87)] | 16632 | 3954 | 9.26 (ESTIMATE) | - | - | 4402.67 (4358.33-4658.67) | 2501.23 (ESTIMATE) | 1.76 |
 | iterative_division | PASS | 0 + 4 / 4 | -; 16 / 16 | - [25.97 (24.97-31.51)] | 8160 | 3814 | 10.23 (ESTIMATE) | - | - | 1896.60 (1871.20-2326.40) | 754.13 (ESTIMATE) | 2.51 |
 | iterative_sqrt | PASS | 0 + 4 / 4 | -; 16 / 16 | - [64.45 (62.67-64.91)] | 1164 | 2249 | 110.84 (ESTIMATE) | - | - | 489.50 (487.00-497.50) | 758.20 (ESTIMATE) | 0.65 |
 | lfsrfind | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 25.33 (23.18-27.48) [27.79 (26.32-29.27)] | 7536 | 890 | 19.52 (ESTIMATE) | 1.30 | - | 1260.60 (1077.00-1395.00) | 901.06 (ESTIMATE) | 1.40 |
 | loop_path | PASS | 2 + 0 / 2 | 8 / 8; - | 45.23 (41.61-48.85) | 8208 | 1045 | 32.27 (ESTIMATE) | 1.40 | - | 7713.00 (7230.00-8196.00) | - | - |
 | memsum | PASS | 2 + 2 / 4 | 6 / 6; 8 / 8 | 29.43 (27.48-31.39) [29.08 (28.15-30.01)] | 1068 | 1394 | 59.33 (ESTIMATE) | 0.50 | - | 570.60 (552.00-604.80) | 1033.21 (ESTIMATE) | 0.55 |
 | mul_example | PASS | 0 + 3 / 3 | -; 12 / 12 | - [59.88 (55.17-66.61)] | 6696 | 334 | 79.88 (ESTIMATE) | - | - | 6066.00 (5676.00-6858.00) | - | - |
-| nest3 | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 4992 | 5437 | 11.06 (ESTIMATE) | - | - | 1007.75 (983.50-1050.50) | 545.62 (ESTIMATE) | 1.85 |
-| nested | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 8556 | 3554 | 9.98 (ESTIMATE) | - | - | 1091.73 (1027.09-1222.91) | 416.53 (ESTIMATE) | 2.62 |
+| nest3 | PASS | 0 + 4 / 4 | -; 16 / 16 | - [fit 48.57 (47.51-51.16)] | 4992 | 5437 | 11.06 (ESTIMATE) | - | - | 1007.75 (983.50-1050.50) | 545.62 (ESTIMATE) | 1.85 |
+| nested | PASS | 0 + 4 / 4 | -; 16 / 16 | - [fit 29.73 (27.57-34.14)] | 8556 | 3554 | 9.98 (ESTIMATE) | - | - | 1091.73 (1027.09-1222.91) | 416.53 (ESTIMATE) | 2.62 |
 | nested_loop | PASS | 0 + 4 / 4 | -; 16 / 16 | - [44.89 (40.44-46.05)] | 18576 | 1303 | 44.56 (ESTIMATE) | - | - | 18357.00 (16356.00-18996.00) | - | - |
 | quadrec | PASS | 0 + 4 / 4 | -; 16 / 16 | - [44.85 (37.71-45.98)] | 11796 | 3291 | 9.09 (ESTIMATE) | - | - | 1689.60 (1393.20-1727.40) | 352.76 (ESTIMATE) | 4.79 |
 | share_test_1 | PASS | 0 + 1 / 1 | -; 4 / 4 | - [27.27 (27.27-27.27)] | 55548 | 1663 | 58.41 (ESTIMATE) | - | - | 55074.00 (55074.00-55074.00) | - | - |
@@ -140,7 +145,9 @@ digitdiv, dot2, fold64, horner, if_loop_1, single_loop, sqrtsub; counted on this
 | while_loop_3 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 24.86 (24.49-25.75) [27.57 (27.57-27.57)] | 996 | 800 | 34.00 (ESTIMATE) | 0.73 | - | 293.57 (288.00-307.71) | - | - |
 | xorshift | PASS | 6 + 2 / 8 | 48 / 48; 16 / 16 | 22.16 (20.42-23.57) [20.89 (20.55-21.23)] | 6096 | 1316 | 12.73 (measured, 1 route) | 1.74 | 16.76 | 2214.79 (2061.16-2427.16) | 1257.59 (cycles simulated, period measured (1 route)) | 1.76 |
 
-59 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 21, branchloop out: corrected by hand 2026-11-19 21:50 UTC, not regenerated; it was n = 22: 1.01): 1.06. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 31): 1.38.
+59 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 22; 1 with our figure from the latency fit): 1.05. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 31): 1.38.
+
+P refused (off its route's own slope of call latency on the most executed loop's trip counts by more than 15 %: the event graph's marker was on another loop; the slope is used): branchloop seed 1 P=14.22 ns against a slope of 31.83 ns (0.45x); branchloop seed 2 P=14.52 ns against a slope of 34.44 ns (0.42x); branchloop seed 3 P=13.47 ns against a slope of 30.01 ns (0.45x); branchloop seed 4 P=14.79 ns against a slope of 31.35 ns (0.47x); gcd seed 1 P=62.82 ns against a slope of 29.05 ns (2.16x); gcd seed 3 P=61.42 ns against a slope of 28.36 ns (2.17x); gcd seed 4 P=66.30 ns against a slope of 31.16 ns (2.13x); isprime seed 2 P=346.76 ns against a slope of 49.30 ns (7.03x); isprime seed 3 P=358.38 ns against a slope of 49.65 ns (7.22x); isprime seed 4 P=374.58 ns against a slope of 52.87 ns (7.08x).
 
 **The same flow WITH the three md5-keyed rewrites (BDC_AUTO_REWRITES=1; farm suite6, 8 seeds, 8 draws; not the automatic
 column):** collatz PASS, 6 + 2 routes (clean + NOT CLEAN), 48 / 48 + 16 / 16 draws, P on clean routes 17.24 (16.20-19.46)

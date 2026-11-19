@@ -7649,3 +7649,20 @@ Next (general, nothing per kernel; replaces the 21:47 Next's first item): in sui
 a P that departs from it by more than 15 % (the single-loop scatter is 6 %) and use the fit, which is Dynamatic's own
 convention; that removes the hand edit and the --no-ratio list for branchloop and isprime alike and fills gcd. Then
 regenerate.
+### progress 21:51 (the rule in the tool, nothing per kernel: suite_table.py refuses a P off its route's own latency slope by > 15 % and uses the slope; branchloop 0.85 (fit), mean with estimates 1.05)
+- **Dynamatic's per-iteration figure is a slope**: branchloop's 3.44 cycles recomputes as 3.43 = the least-squares slope of
+  its cycles per call on bb1's header executions (dynamatic_lat.tsv). So the like-for-like figure on our side is the same
+  slope on the same trip counts, which suite_table.py already computes ("fit") where P is missing.
+- **suite_table.py**: (1) a P more than PSLOPE_TOL = 15 % off its route's slope is refused, listed under its own "P refused"
+  note, and the slope is used (the single-loop scatter over every farm route is 6 %, so the margin is 2.5x it); (2) the fit
+  is no longer limited to one-loop kernels (Dynamatic's figure is the most executed loop's slope whatever the count).
+- **Check:** regenerated with the provenance command over /tmp/bot/farmres (copied 20:03 UTC): unmodified, it reproduces the
+  committed table's 63 rows byte for byte; modified, the only row changes are branchloop (all 4 suite9r3 P refused at
+  0.42-0.47x; clean route fit 31.35 ns, **ratio 0.85 (fit)**) and NOT CLEAN bracket fits where there was no figure or a
+  refused P (factorial 28.21, gcd 29.05, isprime 49.65, nest3 48.57, nested 29.73): no ratio of theirs changes (no clean
+  route; isprime stays --no-ratio). Means: with estimates **1.05 (n = 22, 1 from the fit)** (1.01 with the old 0.40),
+  measured 1.69 (n = 3) and latency 1.38 (n = 31) unchanged; non-memory 1.24 (n = 11). The hand edit of 21:47 is replaced
+  by these generated rows (research/data/suite/pslope/headline_regen_2152.md is the full output).
+- Does NOT show: that 15 % is the right margin on a kernel whose single loop has a branch (brhash's arms differ by design;
+  its routes are within 6 % today); the slope includes the bench's per-trip overhead (none is known: P and slope agree to
+  2 % on the single-loop kernels, so it is small).
