@@ -7689,3 +7689,15 @@ Next, in order:
   P 1.6 % off: kept. The regeneration over /tmp/bot/farmres is byte-identical to the 21:51 one (the guard does not bind
   on today's data), so the headline stands as committed.
 - Does NOT show: that 3 SE is the right multiple; nothing on today's routes sits between the two tests.
+### progress 21:54 (lock retaken 21:51 for one read-only check; cleared again with this commit; session end)
+- **while_loop_3** (one of the 7 headline kernels with no slope: Dynamatic's table has one call of its own test, so
+  dynamatic_lat.tsv has no trip counts for it): trip counts from the C itself on the suite's 7 calls (vec/while_loop_3.hex
+  bounds -2^31, 0, 1, 2, 100, 101, 1025 -> 0, 0, 1, 2, 10, 11, 33 trips). P / slope on its 4 farm routes: 1.00
+  (suite10b s1, NOT CLEAN), 0.96 (suite10b s2), 0.99 / 0.97 (suite11 s3 / s4, both clean); slopes 25.12-27.44 +- 0.04-0.10 ns.
+  So its P (24.86 clean median) is the loop's per-iteration time. Still unchecked: digitdiv, if_convert, loop_path,
+  single_loop (one call each in Dynamatic's table, fixed trips in ours too or not: look at their vec files), sumi3_mem and
+  fir (1000 trips in every call: no slope possible; P against (latency - 0-trip latency) / 1000 is the check there).
+- **Generalising (Next 3 of 21:52, refined):** take every kernel's trip counts from the C run on the suite's own vectors
+  (the oracle already runs the C), not from Dynamatic's simulation; then the slope, and with it today's P check and the
+  fit, exist for every kernel whose vectors vary the trip count, Dynamatic's figure or not.
+- Session end: branch pushed, LOCK cleared, BOARD-QUEUE unchanged, nothing running locally.
