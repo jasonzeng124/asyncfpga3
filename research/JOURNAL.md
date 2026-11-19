@@ -7851,3 +7851,6 @@ Next: as at session 20's Next.
   rj_ipow_4 and bqa_ipow_2 (research/data/ringfuse/README.md rows). Each provenance.txt names its SDF md5 and source path.
   su_straight_3_4 holds no arcs / nodes / check (as built). Nothing was rebuilt or re-checked: these are the files the
   citations were written from, kept so a later session can reread them. The 16 uncited graph dirs stay uncommitted.
+
+## Session 2026-11-19 22:08 UTC -- cluster-research-29466208-22: the job's last 5 minutes; read-only farm check, no build
+Toolchain: 0d42657914fc25d3   Seeds: none (no build)
