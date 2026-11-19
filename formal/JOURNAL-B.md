@@ -5130,3 +5130,4 @@ Running: the same with +META_INIT=0 and =1 (fid_core.vh's power-up option).
 - Next for B: research's suite12 (flow v8 = ring fusion default, whole suite, seed 1): formal draws + outsafe on every
   non-array route; digitsum (divres1 task 3); research reads B12-B18.
 ### progress 17:18 -- watch_suite.sh running: processes research's suite12 (flow v8) routes as they land (draws + outsafe); research checkout at 34bde912c
+### progress 17:52 -- divres1 digitsum s2 (1617737c SAME with BDC_RING_FUSE=0 + its search ENV): 8 + 8 PASS, 0 pulses (B14)
