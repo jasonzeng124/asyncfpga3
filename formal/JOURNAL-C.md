@@ -4939,3 +4939,12 @@ task.txt (c_mem15 = the two such routes; c_mem14's rows 2 and 7 were built with 
 PNR_SEED=2003 from a fresh copy of research HEAD: sdf 36a3907f SAME (nextpnr 7c3bfb9c684a2551), draws 10301-10308
 8 / 8 pass, slow-carry/RAM 0.8-1.0 8 / 8 pass. So the decoded-gate approximator needs nothing new for ring-fused
 emissions, on this one route; it does not show the other v8 routes pass.
+
+### progress 21:00 -- c_mem14 back: 13 routes SAME, all pass 16 + 16; spmv 4 f52af15f has a 22 ps ADDR setup margin
+Farm (nextpnr 6e5d224472232d5d, sdf-identical to local), HOSTPORT, 16 draws + 16 slow-carry/RAM draws each, 0 setup/hold
+violations, 0 wrong memory words: binary_search 4, dot2 3 cee82855 (v8, fused), if_convert 4, if_loop_1 1 c3113cc4,
+if_loop_2 4 93d2bf9f (v8, fused), iir 3, nested_loop 3 / 4, single_loop 2 (suite10d), spmv 3 / 4, stencil_2d 4,
+test_flatten_array 3. Rows 2 / 7 DIFFERENT (alt-seed routes built with SEED: c_mem15); row 16 (test_flatten_array 4)
+still running. Smallest RAM setup margins (min over 32 draws): spmv 4 ADDR 22 ps (32 draws: 22-~200 ps, WE 662), nested_loop 3
+ADDR/DI 403, if_convert 4 575; the rest >= 750. spmv 4's is the thinnest RAM margin any route has shown that passes:
+not a failure in 32 draws, but too thin to call safe; local 64 + 64 draws and the race's location are running.
