@@ -340,6 +340,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 |---|---|---|---|---|---|
 | 1 | xorshift | 9dd1f661 SAME | 8/8 + 8/8 | 0 | 0.191 |
 | 2 | collatz | 119e89fc SAME | 8/8 + 8/8 | 0 | 0.279 |
+| 3 | collatz64 | 921c6f7d SAME | 8/8 + 8/8 | 0 | 0.142 |
 | 7 | straight | 524c6161 SAME | 8/8 + 8/8 | 0 | 0.260 |
 | 9 | sqrtsub | 33ec83be SAME | 8/8 + 8/8 | 0 | 0.239 |
 | 11 | twoloops | 73d89e84 SAME | 8/8 + 8/8 | 0 | 0.388 |
