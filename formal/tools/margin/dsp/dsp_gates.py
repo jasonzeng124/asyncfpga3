@@ -270,7 +270,7 @@ def check(D, N, routed, n):
         return seen
     for pb in res:
         inner = set().union(*[under(o) for o in ops_of[pb] if o in res]) if any(o in res for o in ops_of[pb]) else set()
-        if inner & set(ops_of[pb]):
+        if len(ops_of[pb]) >= 3 and inner & set(ops_of[pb]):   # only for 3+: x * (x * x) must keep its x (mul_example)
             ops_of[pb] = [o for o in ops_of[pb] if o not in inner]
     order = []
     while len(order) < len(res):
