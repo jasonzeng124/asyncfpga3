@@ -7103,3 +7103,30 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   EQUIVALENT -- and every route NOT CLEAN, on the A' row no line can pad (gcdclean's question).
 - Headline regenerated (research/data/fifteen/README.md top): **21 of 62 kernels pass**; the no-list xorshift / collatz
   rows are now in the table (ratio to Dynamatic's measured figure 1.74 / 1.70).
+### progress 01:41 (ifloop and memorder landed; CORRECTION of 22:52: spmv / sobel were the RTL model, not a bdc bug)
+- **CORRECTION of the 22:52 entry ("bdc's default flow computes WRONG VALUES on spmv and sobel"):** subagent memorder
+  (research/data/suite/memorder.md) found no ordering bug and nothing specific to the default flow. At 0 ps per arc
+  (memtb's default) bdc's placeholder clock-to-out line (12 elements = 1488 ps) acknowledges a read before the RAMB18E1
+  model's data (2454 ps after the edge), so every bdc_load_cap latch closes on the previous word; BDC_AUTO=1 fails the
+  same way at 0 ps, both flows pass at 350 ps per arc (where dyntests had run AUTO) and with DCO >= 18. bdc unchanged;
+  memtb now covers the RAM model's clock-to-out in the testbench (--keep-dco keeps the emitted value: the negative
+  control fails), monitors every RAM, checks program order on every chained arbitrated port (0 out-of-order accesses in
+  32 548 per flow on 11 kernels; it fires on 1060 / 1088 on binary_search's unchained port) and waits for a quiet port
+  before a host access (a harness bug the slow-RAM runs found). All 32 memory kernels, both flows: 64 / 64 PASS; delay
+  scatter (BD_JITTER, cells/sim, opt-in) +-30 % 68 / 68, +-50 % on spmv 16 / 16; slow RAMs 14 / 14; the capture latch
+  removed (BDC_MEM_NOCAP=1) fails 18 / 18. spmv's default flow routed for the first time (seed 1): PASS 4/4 at worst,
+  EQUIVALENT. Open: no rule checks a capture latch's timing on a route (capmargin.py: worst margins 2490-5261 ps over 11
+  routes); rule C fails on two spmv routes by -46..-345 ps; nothing sizes DCO in the default flow.
+- **ifloop** (research/data/suite/ifloop.md, research/tools/ramrace/): if_loop_1 s1 (sdf b2ad5a7b rebuilt = the farm's)
+  fails because the **bench's host write to umem0 misses the RAM's WE setup** (100 RAMB18 SETUP VIOLATION lines, one per
+  host write: the setup line's 2 elements bundle the host request through a 49-row wire to the WE LUT; 515 ps against 532
+  needed). Rule B measures exactly this race and passed it at +79 / +101 ps: it has **no scatter guard**, and the draws'
+  within-die scatter moves it by ~112 ps (one sigma), so ~10 % of draws fail on this route. It was NOT among the route's
+  9 short rows. BD_RAM_GUARD_PS (tighten.py, opt-in): with 400 ps the rule raises USETUP 2 -> 5; that route (3386e563)
+  passes draws 10101-10108 8 / 8. The race is in the bench's host slot, on every RAM of every memory kernel: over the
+  14 other shipped memory routes of suite9 (rebuilt = the farm's) the worst host-race margins are gather s2 +234 ps and
+  dot2 s4 +367 (every other >= +551; kernel load slots >= +785). **Gate hole closed** (bench_gate.sh): a batch whose
+  signature contains x now fails (the run-to-run compare  was never true against x: a route with a select race
+  passed 3/3 with x in run 0), and any RAMB18 violation line fails the run; a clean run's verdict line is unchanged.
+- **auto_size.sh now runs the rule with BD_RAM_GUARD_PS=400 by default** (a named race, a measured spread; it only
+  lengthens a setup line on a host / store access). suite9r2 (still waiting) will resume the memory loops with it.

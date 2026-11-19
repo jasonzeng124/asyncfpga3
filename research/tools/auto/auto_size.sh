@@ -69,6 +69,11 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   # 8-10x faster (gcd ~34x), every output file byte-identical to the old path on xorshift, collatz, ipow, gather,
   # collatz64, dot2, iterative_sqrt, quadrec routes (research/tools/auto/ca_fast_e2e.sh) and the gcd / isprime it-0
   # proposals equal to the farm's old-rule ones (research/data/loopfast/).
+  # BD_RAM_GUARD_PS=400 (default here since 2026-11-19; subagent ifloop, research/data/suite/ifloop.md): rule B (a RAM's
+  # setup: the host's or a store's WE / DI against the manufactured clock, sized by bd_mem's USETUP line) had no scatter
+  # guard; on if_loop_1 seed 1 it passed the host fill's WE at +79 ps and 2 of 4 draws failed (the draws' within-die
+  # scatter moves that race by ~112 ps, one sigma). 400 ps = 3x the largest spread measured on any memory route's worst
+  # race. It only lengthens a setup line, which sits outside the kernel's loop on a host access.
   # PYTHONHASHSEED pinned (default 1): the rule iterates Python sets of pin names (find_chains), so the greedy shrink's
   # order among lines of equal length, and with it a proposal, could depend on the hash seed (loopfast, 2026-11-18).
   # CA_JOINAWARE=1 (default here; research/data/sizerule/joinaware.md): rule A' checks an operator's data where it is
@@ -83,7 +88,7 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   # default 1).  Passed through from the environment; unset, the rule is byte-identical.
   local c; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
     BD_SKEW_E_JOIN=${BD_SKEW_E_JOIN:-} BD_SKEW_E_JOIN_DEPTH=${BD_SKEW_E_JOIN_DEPTH:-1} \
-    PYTHONHASHSEED=${PYTHONHASHSEED:-1} CA_FAST=${CA_FAST:-1} \
+    PYTHONHASHSEED=${PYTHONHASHSEED:-1} CA_FAST=${CA_FAST:-1} BD_RAM_GUARD_PS=${BD_RAM_GUARD_PS:-400} \
     BD_SKEW_STEER_SELF=${BD_SKEW_STEER_SELF:-1} CA_JOINAWARE=${CA_JOINAWARE:-1} BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 \
       python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
         --band "$c" --inst-rx '\.chain\.g\[\d+\]\.u$:0.20' --out "$CA/rule_$c" > "$O/ca_${i}_$c.txt" 2>&1 &
