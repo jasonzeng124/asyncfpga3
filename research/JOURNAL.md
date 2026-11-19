@@ -7329,3 +7329,20 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - The other divider kernels never had this (their dividers reach the bench through a fork / pipe / link): divmodu
   passed suite10b 4 / 4 on seeds 1 / 2 (lines 319 / 345). Farm: **divsize1** (test_divui seeds 1-8) and **divres1**
   (digitdiv s1 / s2, digitsum s2, divmods s1 resumed, 8 cores) filed.
+### progress 11:20 (ringfuse landed: fusing each loop's update with its test; farm ringfuse1 filed)
+- **ringfuse** (research/data/ringfuse/README.md; bdc/emit.py BDC_RING_FUSE, opt-in; checked here: 195 / 195 emitted
+  outputs byte-identical with it unset): on every loop ring the update and its test sit back to back with a link
+  between them (7.8-11.1 ns of an 18-23 ns rising floor; wire 85-87 %); compute fusion stopped there because the update's
+  value forks to the test and to the loop's data steer. BDC_RING_FUSE=1 merges them into one cell (any kernel, by the
+  fork's shape; refused across basic blocks, above 8 members, or where a result could re-enter the cell in the same
+  iteration): the rising floor drops, but return to zero lands on the cycle (the fused cell waits for every steer the
+  test feeds); **=2 adds a 1-bit link on the test's output** (the stage the search ranked first on every =1 graph).
+  RTL: simcheck 21 scalar + memtb 25 memory kernels, both flows, 92 / 92 for =1 and =2; negative controls hang / give
+  wrong values (12 / 17 on ipow); the deadlock guard's own control hangs memsum without it.
+- Through the whole automatic flow (v7, local, one route per seed; baselines = the farm's same seeds without it):
+  **=2 faster on 7 of 10 routes, median -1.27 ns; xorshift all three seeds -1.76 / -2.34 / -2.59 ns (18.79 / 18.08 /
+  19.61, below every one of the 8 no-list baseline seeds)**, collatz s2 -2.13 (s1 +1.66 against an unusually short
+  baseline), ipow -0.39 / -1.20 (its floor is the multiply ring), countloop -1.34 / +1.31 / +3.85 (its binding cycle
+  moves to the operand's fork into its steer, which the search phase picks but does not always make clean). 14 / 14
+  routes pass 4 / 4 draws, no pulse under 1 ns, EQUIVALENT. One route per seed: not a claim. **Farm ringfuse1 filed**
+  (=2 on 8 seeds x xorshift / collatz / countloop / ipow, plus v7 baselines for countloop s5-8 and ipow s1-8).
