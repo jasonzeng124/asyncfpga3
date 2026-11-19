@@ -80,6 +80,9 @@ mux's own select decode feeding its own join, i.e. its request path, not data.
   * an input of one of the operator's own join C-elements (a storage node inside the operator that reaches its request
     chain head without crossing storage) is neither capture nor odd (CA_BENCHCAP_OWNJOIN=0: odd, as before).
   Unset: no code path changes (clk_of empty, both new branches guarded by BENCHCAP, the row text gets "").
+  CA_FAST=1 (auto_size.sh's default) stays exact with it set: ca_fast_check.py on xorshift s1 it4 at 0.20, base + 48
+  lines (UMUX3 among them) + 2 verify-like specs, each run both ways and compared whole: 0 of 51 differ
+  (fastcheck_xorshift.txt).  The memo key of A' / A'j sites carries CA_BENCHCAP / _PS / _OWNJOIN.
 
 5. NEGATIVE CONTROL (negative_control.txt): one arc on umux13's data path into result_hold[0] lengthened in a copy of
   the isprime it-5 SDF, CA_BENCHCAP=1, --no-size, 0.20.  Predicted from the arithmetic / measured:
@@ -112,6 +115,25 @@ mux's own select decode feeding its own join, i.e. its request path, not data.
       xorshift UMUX3 5 -> 1 (A' had PADDED it 2 -> 5 for -522 ps: a real 1x data-vs-request margin at the mux's own
       tail, which only the bench consumes), collatz UMUX2 3 -> 1, gather UMUX3 2 -> 1; kernel links 73 -> 69,
       96 -> 94, 202 -> 201.  Nothing else in sizes.vh / lines.tsv changes.
+
+7. THE LOOP (loop_isprime_1.txt): isprime seed 1, auto_size.sh with CA_BENCHCAP=1, CONTINUED from loopfast's run
+  (it 0-5 with the shipped rule: NOT CLEAN after 5, "unfixable 2" on every iteration) by AUTO_RESUME, phase 2
+  (raise-only, headroom 1), every route built here (nextpnr 6e5d224472232d5d, NEXTPNR_SEED 1):
+      it 5 (loopfast)  raised 2  unfixable 2  negative 22   (umux13 A' -5125 / -5612)
+      it 6  ec2b3d48   raised 6  unfixable 0  negative 10   worst H -584
+      it 7  4261a258   raised 4  unfixable 0  negative 6    worst A'j uselect0 -171
+      it 8  130f0428   raised 1  unfixable 0  negative 2    A'm umux12 -37 / -154
+      it 9  ff60e1a4   raised 1  unfixable 0  negative 1    I ulink_n_falseResult_37 stage[2] -41 (0.31 only)
+  The default budget (AUTO_FINISH=3: IMAX = MAXIT 4 + 3 = 7) ends at it 7, NOT CLEAN; I resumed twice to give it more
+  raise-only routes (AUTO_FINISH 5, then 6) and stopped the loop's final full stack on it 7 and on it 9 (a not-clean
+  route) to save the time.  umux13's A'j on these routes: +18684 / +18553 (it 6), +18536 / +18438 (it 7).
+      it 10 0e894c83   raised 3  unfixable 0  negative 5    H -109 / -79 / -30 / -11, A'm umux3 -35
+  -> NOT CLEAN after 10 (5 more routes than loopfast's run; kernel links of the sizes built: 403, 420, 430, 432 at it
+  6, 7, 9, 10).  What changed is the KIND of miss: from it 6 on no row is unfixable, every negative is fixable by a line
+  and the ratchet raises it, and the misses shrink (worst -584 -> -171 -> -154 -> -41 ps) until it 10, where a re-route
+  opened new small H / A'm misses (-11..-109 ps) on other links.  That is the re-route churn of raise-only phase 2 (each
+  route moves the small margins by tens to ~100 ps, about one element: auto_size.sh's own note on headroom 1), not a
+  row the rule cannot fix; whether it settles needs more routes (or more headroom) than this session had.
 
 WHAT THIS DOES NOT SHOW
   * No board run and no GLS: the 19000 ps rests on reading gen_bench.py (2-flop synchronisers in front of the only

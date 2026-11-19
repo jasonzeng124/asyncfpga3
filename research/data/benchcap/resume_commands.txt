@@ -1,0 +1,21 @@
+# benchcap: how to repeat / resume each measurement (gcdclean's clone = the bot's repo + this patch set; scripts in tools/)
+# corner_audit as auto_size.sh's rule() runs it, one corner (tools/ca_run.sh REPO ROUTE_DIR CORNER OUT [args]):
+CA_BENCHCAP=1 research/data/benchcap/tools/ca_run.sh $PWD $RUNS/ca/su_isprime_1_5/seed1 0.20 /tmp/bc/isp15_bc_0.20
+# the same with the tool before the change (a worktree at the parent commit) and unset: the byte-identity check
+git worktree add /tmp/orig <parent-commit>; research/data/benchcap/tools/ca_run.sh /tmp/orig <route>/seed1 0.20 /tmp/bc/X_orig
+python3 research/data/benchcap/tools/cmp_ca.py /tmp/bc/X_orig /tmp/bc/X_new [-v]
+# NOT RUN (time): gcd seed 1 it 0's baseline with the shipped tool at PYTHONHASHSEED=1 (results.txt compares with
+# loopfast's outputs instead), both corners, ~35 min each on this node:
+research/data/benchcap/tools/ca_run.sh /tmp/orig /tmp/bot/sa/loopfast/runs/ca/gcdchk_0/seed1 0.20 /tmp/bc/gcd0_orig_0.20
+research/data/benchcap/tools/ca_run.sh /tmp/orig /tmp/bot/sa/loopfast/runs/ca/gcdchk_0/seed1 0.31 /tmp/bc/gcd0_orig_0.31
+# negative control: route copy with one arc lengthened, then the rule report-only
+research/data/benchcap/tools/negctl.sh $RUNS/ca/su_isprime_1_5/seed1/pnr /tmp/bc/neg_d19500 19500
+CA_BENCHCAP=1 research/data/benchcap/tools/ca_run.sh $PWD /tmp/bc/neg_d19500/seed1 0.20 /tmp/bc/out_d19500 --no-size
+# the isprime seed 1 loop, continued past it 10 (its state, it 0..10, is in gcdclean out/loop_isprime_1_state: copy it to
+# $RUNS/auto/su_isprime_1 or point AUTO_RESUME at it; sizes_11.vh is the
+# it-10 ratchet): AUTO_FINISH=8 gives IMAX = 4 + 8 = 12, i.e. two more raise-only routes, then the final full stack
+CA_BENCHCAP=1 CA_FAST=1 CA_JOBS=1 AUTO_FINISH=8 PNR_TIMEOUT=3600 AUTO_RESUME=$RUNS/auto/su_isprime_1 \
+  research/tools/auto/auto_size.sh gc_su_isprime_1 su_isprime_1 isprime 1 $PWD/research/data/suite/vec/isprime_period.hex 4
+# CA_FAST exactness with CA_BENCHCAP=1 (every spec run both ways, compared whole):
+CA_BENCHCAP=1 CA_SIZERULE=1 CA_JOINAWARE=1 BD_SKEW_STEER_SELF=1 BD_SKEW_AND_JOIN=1 PYTHONHASHSEED=1 \
+  python3 research/tools/auto/ca_fast_check.py <corner_audit --out dir> --lines all --verify-like 2 --old-jobs 2
