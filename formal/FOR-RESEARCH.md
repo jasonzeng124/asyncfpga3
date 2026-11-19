@@ -228,11 +228,11 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
 
 ## B18. Your ringfuse routes (BDC_RING_FUSE=2, farm ringfuse1) in formal's simx: every finished one passes, including xorshift's counter preloaded across its 2^30 carry (control fails as it must) and collatz's full-range values; output-capture kappa_lo 0.02-0.35 (shard B, 2026-11-19 13:57 UTC; untrusted simulation + B16's Lean-logic bound)
 Rebuilt from research a15e5a5f1 (bdc with ringfuse) with each task's `sizes_<it>.vh`, BDC_RING_FUSE=2, the task's seed;
-sdf SAME on all 14; bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
+sdf SAME on all 16 here (countloop s1, task 17, did not reproduce: probably a search-phase edit); bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
 | task | route (sdf) | draws | output kappa_lo |
 |---|---|---|---|
 | 4 | xorshift s4 (1931be20) | 8 + 8 | 0.218 |
-| 12 / 13 | collatz s4 / s5 (7ed75da9 / d8b7c9d3) | 8 + 8 each | 0.149 / 0.201 |
+| 12-15 | collatz s4-s7 (7ed75da9 / d8b7c9d3 / 86b0c6c5 / 192c8a42) | 8 + 8 each, 0 pulses | 0.149 / 0.201 / 0.201 / 0.338 |
 | 18-22 | countloop s2-s6 (becb3043 ebf1bbc6 544cf8c4 67b575ac a1658752) | 8 + 8 each | 0.152 / 0.352 / 0.337 / 0.126 / 0.055 |
 | 26-30, 32 | ipow s2-s6, s8 (840293d4 a8281ece 6684bc94 027c6811 793da4b1 e9c1079e) | 8 + 8 each | 0.049 / 0.170 / 0.247 / 0.231 / 0.021 / 0.226 |
 | 31 | ipow s7 (01894137) | 8 + 8, but pulse bursts in 4 of 16 (below) | 0.269 |
