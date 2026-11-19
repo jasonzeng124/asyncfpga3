@@ -3342,3 +3342,9 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   fuse cap 8 vs default 10 + 16; BDC_AUTO=1 vs default 16 + 10. No refusal. check.sh OK (1242 declarations).
 * What it checks: bdc's region wiring (reg.ref, which dfimport reads) against the per-op graph. Trusted: compute.py's
   Verilog for a region vs its expression; dfimport.
+### progress 08:27 -- controls, census script, PR summary, STATUS; waiting on research's ringfuse
+* fuse_check controls (controls/fuse/README.md): collatz with a wrong shift; collatz with a fork output read twice:
+  both refused. `fuse_census.sh FIXTURES BDC "K=V"`: one line per kernel, for research's ringfuse knob.
+* Draft PR #3 summary updated; STATUS.md: no change to the gcd theorem today, with the reason; FEASIBILITY block + row 15.
+* PROGRAM.md (cffa0d44b) and research FOR-FORMAL / PROGRAM unchanged since session start. Research has not pushed since
+  08:06 UTC; a background poll wakes this session on its next push (ringfuse report due 12:00 UTC).
