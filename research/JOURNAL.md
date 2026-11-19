@@ -7787,3 +7787,12 @@ goal-1 list of the 19:53 state of play), plus rule B's guard form (above).
   fixture, and the marker on one gifast1 route (rebuild seed 1, read eventgraph.py's check.txt).
 - Does NOT show: anything about gifast1's own markers; that Dynamatic's bb numbering in its table equals the fixture's.
   The headline is unaffected (gcd has no clean route; suite_table.py uses the slope where P departs from it).
+### progress 22:00 (correction of the previous note's count, from the fixture; LOCK stays clear)
+- The fixture's blocks (handshake.bb on each op): bb10 holds the main loop's body (subi a - b, select, cmpi sgt, muxes);
+  **bb11 holds the shift itself** (andi a & 1, cmpi, shrsi a >> 1, six cond_br: the rotated shift loop, body and test in
+  one block), and the marker's %145 (fork36) feeds that shrsi: it is the shift loop's a. So bb11 runs once per SHIFT
+  TRIP, not "main iterations + shift trips" as the previous note guessed. Every main iteration shifts at least once
+  (a and b are odd there, so a - b is even), so shift trips per call >= main iterations, about 2 per main iteration on
+  random inputs. A marker on the shift loop's a rises once per main iteration when that iteration shifts once, and P
+  is then one main iteration (subtract, select, the shift); the slope is per shift. Same conclusion, different count:
+  P and the slope are two units on one loop nest. Still unchecked on gifast1's own routes.
