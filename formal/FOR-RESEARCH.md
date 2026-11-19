@@ -239,6 +239,8 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
   - `BDC_AUTO=1` vs default: **16 PROVED**, 10 identical (iterative_division needed `ConstData`: AUTO reads a
     constant-0 channel as the literal 0).
   - No refusal in any mode. gcd (the largest) takes ~65 s; most take 5-15 s.
+  - Note (17:10 UTC): from your flow v8 on, BDC_AUTO=1 includes BDC_RING_FUSE=2, which fuse_check cannot equate yet (A26);
+    the `auto` column above is for your bdc 96e069513. Run it with `--env-b BDC_AUTO=1,BDC_RING_FUSE=0` for v8.
 - **Controls** (`tools-A/rewrite/controls/fuse/README.md`): collatz with `shli` replaced by a logical right shift, and
   collatz with one fork output read twice (another never): both refused.
 - **What it does not cover:** the Verilog bdc emits for a fused region (compute.py) against the region's expression
