@@ -1,0 +1,65 @@
+// merge_rules.py: per line the largest proposal of rule_0.20, rule_0.31
+// corner_audit.py /tmp/task/runs/ca/su_collatz64_5_6/seed1: per-line proposal at corner b0.2_c1_i0.20, guards lo 0.970 hi 1.030, rule-A guard max(0.030*t, 50), slack 0, floor 1; c_lo 179 ps. ONE route: re-route and run the full stack before using it.  [rule_0.20]
+// CA_SIZERULE=1 (sizerule1, research/data/sizerule/README.md): c_mlo 242 ps, floor file none  [rule_0.20]
+// corner_audit.py /tmp/task/runs/ca/su_collatz64_5_6/seed1: per-line proposal at corner b0.31_c1_i0.20, guards lo 0.970 hi 1.030, rule-A guard max(0.030*t, 50), slack 0, floor 1; c_lo 179 ps. ONE route: re-route and run the full stack before using it.  [rule_0.31]
+// CA_SIZERULE=1 (sizerule1, research/data/sizerule/README.md): c_mlo 242 ps, floor file none  [rule_0.31]
+`define BD_SZ_BRIDGE_I_UDUT_UCMPI0 11   // rule_0.31
+`define BD_SZ_BRIDGE_I_UDUT_UMUX0 5   // rule_0.31
+`define BD_SZ_BRIDGE_I_UDUT_UMUX1 3   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0_OLINK 2   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0_OLINK_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0_RLINK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0_RLINK_UACK 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_UADDI0 8   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_USELECT0 7   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N30__0_FOLINK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N30__0_FOLINK_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_UADDI1 8   // rule_0.31
+`define BD_SZ_BRIDGE_I_UDUT_UCMPI2 14   // rule_0.31
+`define BD_SZ_BRIDGE_I_UDUT_UMUX2 4   // rule_0.31
+`define BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE1 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N1__1 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N1__1_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N10__1 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N10__1_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N10__2 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N10__2_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N10__3 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N10__3_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N11 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N11_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N13 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N13_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N14__0 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N14__0_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N14__1 2   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N14__1_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N14__1_SDELAY 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N28 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N28_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N30__1 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N30__1_UACK 4   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N7 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N7_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N7_SDELAY 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N8 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N8_UACK 2   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N8_SDELAY 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_3 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_3_UACK 2   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_3_SDELAY 2   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_5 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_5_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_5_SDELAY 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_7 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_7_UACK 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_9 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_9_UACK 3   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_9_SDELAY 3   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_INDEX_11 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_INDEX_11_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_INDEX_11_SDELAY 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_TRUERESULT_4 0   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_TRUERESULT_4_UACK 1   // rule_0.20
+`define BD_SZ_BRIDGE_I_UDUT_ULINK_N_TRUERESULT_4_SDELAY 1   // rule_0.20
