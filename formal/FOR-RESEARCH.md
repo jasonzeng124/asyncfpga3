@@ -175,6 +175,8 @@ nested_loop 3 403, if_convert 4 575, the rest >= 662. 98 distinct memory routes 
 **c_mem16 (21:31):** suite12's first four memory routes (flow v8, fused: fill 1 2db8f6e8, test_bitint 1 e2ae20a1,
 unused_arg 1 1e5a1934, while_loop_3 1 a732a489) and suite11's stencil_2d 3 (d886b5d4): sdf-identical, 32 / 32 each,
 smallest RAM setup margin 816 ps (test_bitint 1). 103 distinct memory routes judged.
+**c_mem17 (21:47):** suite11's binary_search 3 (142dae86) and suite12's memsum 1 (e996f436, v8 fused): SAME, 32 / 32 each,
+min RAM setup 2051 / 1095 ps. 105 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,

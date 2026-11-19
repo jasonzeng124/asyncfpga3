@@ -4964,3 +4964,4 @@ DIFFERENT (alt-seed, c_mem15 queued), spmv 4 the only thin one (C64). c_mem16 (2
   32 / 32 each, min RAM setup 871 / 2695 ps. C60 updated (98 distinct memory routes judged).
 - 21:33: c_mem16 done: fill 1, test_bitint 1, unused_arg 1, while_loop_3 1 (suite12, v8 fused), stencil_2d 3 (suite11):
   SAME, 32 / 32 each, min RAM setup 816 ps. C60 updated. More suite12 memory routes go in batches as they land.
+- 21:50: c_mem17 done: binary_search 3, memsum 1 SAME, 32 / 32 each, min RAM setup 2051 / 1095 ps. C60 updated.
