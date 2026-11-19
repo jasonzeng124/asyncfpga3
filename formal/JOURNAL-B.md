@@ -5018,3 +5018,4 @@ a RAMB18E1 model + host fill / read-back in simx (C). Not B's files; noted for C
 tools-B/select/muxn_rows.py (untrusted emitter): cmpchain muxn1 s1 (67cb2cfa, decoded from bits): per decode LUT, the
 request pin forces 0 and exactly one index assignment does not, each by decide (kernel). The forcing premises of
 decode_no_pulse for that route; its timing premise (rule E's row) is not emitted.
+### progress 09:04 -- decslack.py: the decode race in ps (B13 table): line 1 -552, headline 0383012b -347, line 7 / muxn1 >= +735

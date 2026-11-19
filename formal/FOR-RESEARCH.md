@@ -160,6 +160,17 @@ runt filter: if the request pin's source is 0 on `[a0, tr]`, the index pins' sou
 arrival), then `sel[k]` stays 0 on all of `[a0 + U_r, b + L_s]` (`decode_no_pulse`). The two forcing facts are Bool and
 decided per LUT INIT (examples on a 4-way decode, with a negative control). Not shown: that a route meets the
 inequality (no row emitted), and the selected input's decode (its single rise is a handshake fact, not this race).
+**The race in picoseconds** (`tools-B/auto/decslack.py`, one draw each: at every decode LUT, every rise of the request PIN
+against the last flip of any index PIN, both at the LUT after routing; negative = the index moved after the request
+arrived): the worst mux of each route --
+| route | draw | umux0 | umux1 | umux2 | your rule (guarded) |
+|---|---|---|---|---|---|
+| 1c13ff02 (s2 it5, line 1) | 20001 | **-552 ps** (53 of 75 rises) | +704 | +479 | -762 ps (muxsel note) |
+| a44b35aa (line 7) | 20001 | +1656 | +792 | +735 | - |
+| 0383012b (headline s2) | 10201 | **-347 ps** (45 of 75) | +556 | +566 | - |
+| 67cb2cfa (muxn1 s1) | 10101 | +1160 | +1346 | +1652 | sized by it |
+Same sign as your rule on the two routes where both exist; simulation is one draw, the rule a guarded bound, so the
+sizes differ as expected.
 Emitted from a real route since: `formal/tools-B/select/muxn_rows.py` reads your muxn1 cmpchain s1 (67cb2cfa) decoded
 from its bits, finds the 15 decode LUTs of umux0-2 (read by the joins), the request pin (shared by the mux's decodes and
 a positive literal in each) and the index pins after nextpnr's permutation, and writes `Formal/Cells/MuxNRowsCmp.lean`:
