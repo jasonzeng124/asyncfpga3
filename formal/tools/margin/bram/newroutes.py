@@ -24,6 +24,19 @@ for f in glob.glob(os.path.join(H, "routes_mem*.txt")):
             done.add((t[0], t[1], t[3]))
 files = [p for p in git("ls-tree", "-r", "--name-only", a.ref, "results/").split()
          if re.match(r"^results/(?!fm_)[^/]+/\d+/result\.txt$", p)]
+_rf = {}
+def rf0(req):
+    """ " BDC_RING_FUSE=0" when the request built without ring fusion: its research commit predates flow v8 (no
+    _RING_FUSE_DEFAULT in bdc/emit.py) or its request script exports BDC_RING_FUSE=0 (suite10d: v7 loops). Our builds
+    run at research HEAD, where BDC_AUTO alone turns fusion on; the SAME / DIFFERENT sdf check catches a wrong guess."""
+    if req not in _rf:
+        c = re.search(r"^commit\s+(\S+)", git("show", "%s:results/%s/status.txt" % (a.ref, req)), re.M)
+        c = c.group(1) if c else ""
+        rg = lambda x: subprocess.run(["git", "-C", a.rs] + x, capture_output=True, text=True).stdout
+        old = c and "_RING_FUSE_DEFAULT" not in rg(["show", "%s:bdc/emit.py" % c])
+        sc = rg(["show", "%s:research/cluster/requests/%s.sh" % (c, req)]) if c else ""
+        _rf[req] = " BDC_RING_FUSE=0" if (old or re.search(r"\bBDC_RING_FUSE=0\b", sc)) else ""
+    return _rf[req]
 rows = {}
 for p in sorted(files, key=lambda p: (p.split("/")[1], int(p.split("/")[2]))):
     r = git("show", "%s:%s" % (a.ref, p)).strip().splitlines()
@@ -40,7 +53,7 @@ for p in sorted(files, key=lambda p: (p.split("/")[1], int(p.split("/")[2]))):
     if not mm: continue
     it = mm.group(1)
     env = re.search(r"; search ([^)]*)\)", ar[-1])
-    rows[(k, s, m.group(1))] = (d, it, env.group(1).strip() if env else "", re.search(r"status=(\S+)", r[-1]).group(1) if "status=" in r[-1] else "?")
+    rows[(k, s, m.group(1))] = (d, it, (env.group(1).strip() if env else "") + rf0(d.split("/")[1]), re.search(r"status=(\S+)", r[-1]).group(1) if "status=" in r[-1] else "?")
 out = ["# K SEED SIZES SDF8 NDRAWS [ENV...]  (newroutes.py from %s: memory routes no routes_mem*.txt has judged)" % a.ref]
 for (k, s, sdf), (d, it, env, st) in sorted(rows.items()):
     if (k, s, sdf) in done: continue
