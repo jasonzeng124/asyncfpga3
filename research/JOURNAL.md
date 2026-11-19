@@ -7570,3 +7570,16 @@ bench check on branch kernels; (4) the open goal-1 list in the 19:53 state of pl
   tool for a cap / default). **Next session, before regenerating the headline:** find both causes; until then have
   suite_table.py flag a route whose P sits far off its kernel's P-vs-latency line, or use the bench's per-iteration
   time for the ns column.
+### progress 21:38 (the two P anomalies narrowed; adoption is not the cause; session end)
+- **Not adoption:** 13 of finseeds1's 18 DA loops adopted an alternate seed's route (adopt() renames its hw / r / ca
+  directories before final() computes P); on 12 of the 13, P(DA) / P(A) equals lat_sum(DA) / lat_sum(A) within 0.02
+  (e.g. xorshift s8 1.38 / 1.40, sqrtsub s1 1.19 / 1.18, twoloops s1 1.14 / 1.13). Only branchloop s2 departs (P 2.47x
+  at latency 0.98x). So P is a faithful per-iteration measure on every other pair, adopted or not.
+- **Both anomalous P values came from the ordinary single-stride graph** (no `stride=2` on their it lines: suite9/46
+  auto/it_7.txt `su_dot2_2_7 4d68e57e P=156000`, finseeds1/16 auto/it_8.txt `su_branchloop_2_8 e5e9c01f P=35116`).
+  research/tools/fifteen/lane2_run.sh's own comment names dot2 suite8 s2: its iterations alternate (bench intervals
+  27.85 / 28.20 ns), so the true per-iteration time there is about 28 ns and 156.000 is 5.6x off. Lead: eventgraph.py's
+  steady-state detection on a route with alternating iterations (dot2) and on a loop with a data-dependent branch
+  (branchloop); the graphs are under research/data/eventgraph/graphs/ in the farm's results if it copied them.
+- Session end (job ends 22:13 UTC): branch pushed, journal current, BOARD-QUEUE unchanged (no new candidate judged this
+  session), LOCK cleared. Next: see the 21:35 note's Next list; the P check above goes before the headline regeneration.
