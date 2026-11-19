@@ -34,6 +34,10 @@ def base_env(extra):
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env["LIVE_BDC_DIR"] = os.path.join(RS, "bdc")
     env.update(extra)
+    # LIVE_BDC_EXTRA="K=V,K2=V2": BDC_* knobs for every row of the sweep (e.g. a new opt-in pass of research's), on top of
+    # the flow / floor columns (2026-11-19)
+    for kv in filter(None, os.environ.get("LIVE_BDC_EXTRA", "").split(",")):
+        k, v = kv.split("=", 1); env[k] = v
     return env
 
 
