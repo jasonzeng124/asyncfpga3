@@ -14,6 +14,8 @@ while [ $(date +%s) -lt $END ]; do
     M=$(echo $l | grep -o 'sdf=[0-9a-f]*' | cut -d= -f2); IT=$(echo $l | grep -o ' it=[0-9]*' | cut -d= -f2)
     Z=$P/suite/sizes/s12_${K}_$S.vh; { echo "// from claude/cluster results/suite12/$t/auto/sizes_$IT.vh"; cat $d/auto/sizes_$IT.vh; } > $Z
     EV=$(grep '^ENV ' $d/auto/search.txt 2>/dev/null | tail -1 | cut -c5-)
+    SI=$(grep -o '^search: .* from it [0-9]*' $d/auto/log.txt 2>/dev/null | tail -1 | grep -o '[0-9]*$')
+    [ -n "$SI" ] && [ "$IT" -lt "$SI" ] && EV=""   # the shipped route predates the search (its knob was rejected): no search ENV
     O=/home/user/b/s12_${K}_$S; rm -rf $O
     env $EV RS=/home/user/rs JOBS=4 bash $P/suite/task.sh $K $S $Z $M $O 8 > /dev/null 2>&1
     sm=$(grep -o 'sdf [0-9a-f]* ([^)]*) [A-Z]*' $O/summary.txt 2>/dev/null); dr=$(grep -o 'PASS [0-9]* FAIL [0-9]*' $O/summary.txt 2>/dev/null | tr '\n' ' ')

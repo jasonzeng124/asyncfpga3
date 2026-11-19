@@ -9,6 +9,13 @@ export TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 [ -f "$O/net.json" ] || JOBS=1 DRAWS=0 KERNEL=$K PAIRS="1,1" SYNTH=$D/${K}_bench_gen.json ROUTED=$D/${K}_bench_gen_routed.json \
   KV=$D/${K}_kernel_bench.v BV=$D/${K}_bench_gen.v bash "$F/tools/margin/run.sh" "$D/${K}_bench_gen.fasm" "$O" > "$D/decode.txt" 2>&1
 [ -f "$O/net.json" ] || { echo "decode failed: $D/decode.txt"; exit 1; }
+# shard B, 2026-11-19: C's run.sh stops (set -e) when dsp_gates --check finds mismatches, after net.json is written. If
+# B's copy (dsp_gates_sq.py: also accepts a square in yosys' (x >> 1)^2 form) checks every product, finish the decode here.
+if [ ! -f "$O/synth.json" ] && [ -f "$O/net0.json" ] && grep -q "dsp_gates --check: .* [1-9][0-9]* mismatches" "$D/decode.txt"; then
+  python3 "$H/dsp_gates_sq.py" "$O/d0.json" "$O/net0.json" "$O/net_sq.json" --routed "$O/routed.json" --check 2000 >> "$D/decode.txt" 2>&1 &&
+    cmp -s "$O/net_sq.json" "$O/net.json" && cp "$D/${K}_bench_gen.json" "$O/synth.json" && rm -f "$O/net0.json" "$O/net_sq.json" ||
+    { echo "decode failed (DSP check, also in B's dsp_gates_sq): $D/decode.txt"; exit 1; }
+fi
 python3 "$H/boundary_bench.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$D/${K}_kernel_bench.v" "$D/${K}_bench_gen.v" "$O/bnd_bench.json" | tail -3
 python3 "$A/mk_bnd_sim.py" "$O/bnd_bench.json" "$O/bnd.json"
 python3 "$H/bnd_const.py" "$O/bnd.json" "$O/net.json"
