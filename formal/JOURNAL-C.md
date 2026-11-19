@@ -4870,3 +4870,10 @@ BDC_FORK_OUT_LINK or, with =2, on one with no link of its own). live.py now buil
 untracked 1-bit results be free bits). xorshift / collatz / countloop AUTO: LIVE with RF=1 and RF=2, also with the
 token floor off; research's NEGCTL (a wrong slice) is a data defect live.py does not see (it abstracts data), as expected.
 Full sweeps (floor on, default + AUTO) with RF=2 then RF=1 running locally. PROGRAM / FOR-FORMAL re-read 11:02: unchanged.
+
+### progress 12:21 -- research at 52 / 62; c_mem8 for its newest memory routes
+Research (12:09-12:20 UTC): suite9r4 finished the slow memory kernels (fir, sumi3_mem, memsum s1 PASS), test_divui
+passes with its rule fix, "capture-latch timing is checked by no rule" still open on its side (formal's ramslack.py
+measures it per route), share_test_2 unjudged on both sides (formal: DSP USE_DPORT not decoded). newroutes.py found 11
+memory routes formal has not judged (fir x4, sumi3_mem x4, memsum s1, image_resize s1, nested_loop s2): farm c_mem8
+(fixed CLK->DO, host port). Ringfuse RF=2 sweep: 124 rows, no deadlock so far; c_mem7 still waiting for farm cores.
