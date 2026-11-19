@@ -372,6 +372,7 @@ CARRY4 / F7F8 / FF at 0.8-1.0, your C oracle (oracle.sh; gcd: gcd8 + gcd_oracle.
 | straight | 1-4 | pass |
 | gcd | 3, 4 (190535ff efddb3d1) | pass (8 + 8) |
 | divmodu | 1, 2 (99effc30 2ce27c67) | pass (its divider lines: B12) |
+| digitdiv (divres1) | 1 (7582477a; UDIVUI0 325) | pass 8 + 8, 0 pulses (output kappa_lo 0.200) |
 | divmods (divres1) | 1 (ccaa7fa4; UDIVSI0 340, link pads 173 / 183) | pass 8 + 8 (output-capture kappa_lo 0.412; its divider's capture is internal, not bounded) |
 | nested / fold64 / iterative_division / quadrec (suite10b's new routes) | s1 cf7458c5, s1 f50aee65, s1 e3188230, s3 91affd4d | pass (farm b_hl5, 16 + 16 each) |
 | test_divui | 1, 2 | fail every draw, as yours (B12) |
