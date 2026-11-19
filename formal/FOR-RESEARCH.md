@@ -341,6 +341,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 1 | xorshift | 9dd1f661 SAME | 8/8 + 8/8 | 0 | 0.191 |
 | 2 | collatz | 119e89fc SAME | 8/8 + 8/8 | 0 | 0.279 |
 | 3 | collatz64 | 921c6f7d SAME | 8/8 + 8/8 | 0 | 0.142 |
+| 4 | ipow | de1fb587 DIFFERENT | - |  | none |
 | 7 | straight | 524c6161 SAME | 8/8 + 8/8 | 0 | 0.260 |
 | 9 | sqrtsub | 33ec83be SAME | 8/8 + 8/8 | 0 | 0.239 |
 | 11 | twoloops | 73d89e84 SAME | 8/8 + 8/8 | 0 | 0.388 |
@@ -355,6 +356,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 31 | iterative_division | ed5e281e SAME | 8/8 + 8/8 | 0 | 0.325 |
 | 32 | iterative_sqrt | f8ef55a7 SAME | DECODE FAILED |  | none |
 | 34 | test_int16 | 21440296 SAME | - (constant output) |  | none |
+| 49 | share_test_2 | - | research: share_test_2 1 status=NOT-A-BOARD-ROUTE P=NA lat_max_cyc=NA  | | |
 (table continues as the farm returns)
 
 B19 note (22:25 UTC), cmpchain s1 (v8, sdf 738df70c): the N-way mux decode race of B13, measured with `decslack.py` on
