@@ -91,8 +91,11 @@ lat=$(grep BENCHRES "$RD/run.log" 2>/dev/null | grep -o 'latmax=[0-9]*' | cut -d
 base="P=${P:-NA} lat_max_cyc=${lat:-NA} luts=$luts sdf=$md5 rule=$RULE it=$IT bits=$eq $ff"
 if [ "$eq" != EQUIVALENT ] || [ "$ff" != ffmux-clean ]; then fin "status=NOT-A-BOARD-ROUTE $base"; fi
 # DRAW_JOBS draws at a time (default 1); each draw has its own work directory and draw file
+# GATE_RUNTS=1 by default (report only: the verdict line gains a "runts" field, a pass stays a pass; subagent steerrunt,
+# research/data/suite/steerrunt/README.md): every draw counts pulses under 150 / 500 / 1000 ps on the kernel's handshake
+# outputs, at no measurable cost; GATE_RUNTS=fail makes such a pulse fail the draw, GATE_RUNTS= (empty) turns it off.
 draw() { local k=$1 g
-  g=$("$R/research/tools/eventgraph/bench_gate.sh" "$HW" "$D" "$RUNS/g/$RT/d$k" "$R/$V" "$O/exp.txt" "draw:$k" 2>&1 | tail -1)
+  g=$(GATE_RUNTS=${GATE_RUNTS-1} "$R/research/tools/eventgraph/bench_gate.sh" "$HW" "$D" "$RUNS/g/$RT/d$k" "$R/$V" "$O/exp.txt" "draw:$k" 2>&1 | tail -1)
   echo "draw $k $(cut -d' ' -f3-8 "$RUNS/g/$RT/d$k/draw_$k.txt" 2>/dev/null) :: ${g:-none}" > "$O/draw_$k.txt"
   grep '^BENCHRES' "$RUNS/g/$RT/d$k/draw_$k/run.log" 2>/dev/null | sed 's/sig=[0-9a-f]* //' > "$O/benchres_$k.txt"
   rm -rf "$RUNS/g/$RT/d$k/draw_$k" 2>/dev/null; }

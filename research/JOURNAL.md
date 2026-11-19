@@ -7145,3 +7145,20 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   prediction is in the request.
 - suite9r2 waited 4.5 h for 184 free cores while smaller requests went ahead: withdrawn and re-filed as suite9r3 with
   only its 52 tasks that have a state (104 cores); it started at once.
+### progress 02:39 (steerrunt landed: a runt check in the gate; on by default in the suite as a report)
+- **steerrunt** (research/data/suite/steerrunt/README.md, cells/gls/ps/gen_runt_mon.py): bench_gate.sh GATE_RUNTS=1 |
+  fail (opt-in; unset byte-identical): a Verilog monitor compiled into the gate's run counts, at every kernel steer /
+  mux / merge / C-element / fork / link-enable / matched-delay output (its driver in the bits-decoded netlist), pulses
+  under 150 / 500 / 1000 ps and the narrowest pulse of any width; cost not measurable; checked net by net against a VCD.
+  Threshold 1 ns: above every kernel C-element loop at the draws (<= 0.89 ns), below every legitimate handshake phase
+  measured (>= 1.54 ns over 25 clean runs; at SLOW_MAX loops exceed 1 ns: use GATE_RUNTS_T=150,500,0 there). Nothing
+  is known about what silicon swallows (H_RUNT, BOARD-QUEUE item 2, unrun).
+- **Negative control:** flow v1's ipow s4 route (sdf 1ac15af5) passes draws 10402 / 10403 17/17 while the monitor counts
+  1756 / 554 pulses under 1 ns on 41 / 40 of its 192 nets (exit branch of ucond_br9: 36 runts of 33-268 ps): fails
+  under GATE_RUNTS=fail. **Board items 38-41** (rebuilt to their sdf md5s; 13 runs over corners and draws): 0 pulses
+  under 1 ns, no x pulse. **suite6 sample** (9 shipped routes, 5 of them NOT CLEAN, rebuilt with BDC_AUTO_REWRITES=1;
+  worst corner + the draw nearest the rule's 0.31 corner on the three with select-race rows): 0 pulses under 1 ns.
+  So the rule's small NOT CLEAN rows did not turn into runts there; rows A and H are data races a handshake monitor
+  cannot see.
+- suite_one.sh runs every draw with GATE_RUNTS=1 (report) by default from now on; BOARD-QUEUE judgments should use
+  GATE_RUNTS=fail. Merged with ifloop's gate changes (x in a SIG and any RAMB18 event fail): both kept.
