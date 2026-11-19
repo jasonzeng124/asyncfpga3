@@ -298,6 +298,20 @@ class Join(Cell):
         return self.fn([data(i, S, V) for i in self.ins])
 
     def choices(self, g, S, V):
+        tc = getattr(self, "tuple_choice", None)   # a multi-result fused cell: its untracked 1-bit results are free bits
+        if tc is not None and S[g] == 0:
+            v = self._val(S, V)
+            miss = [i for i in tc if v is None or v[i] is None]
+            if not miss:
+                return None
+            base = list(v) if v is not None else [None] * (max(tc) + 1)
+            out = []
+            for bits in range(1 << len(miss)):
+                t = list(base)
+                for j, i in enumerate(miss):
+                    t[i] = (bits >> j) & 1
+                out.append(tuple(t))
+            return out
         if S[g] == 0 and self.choice and self._val(S, V) is None:
             pat = getattr(self, "pattern", None)
             if pat is not None:
@@ -914,8 +928,27 @@ def build(path, ninv):
                     order = ["s", "a", "b"] if n.op == "select" else ["a", "b"]
                     w = width(n.results[0]) or 1
                     vals[m] = op_fn(n.op, w)([args[p] for p in order])
-                return vals[reg.anchor]
-            net.add(Join(inst, [Q(x) for x in ext], P(z), fn=fused_fn, choice=width(z) == 1))
+                return vals[reg.anchor] if reg.outputs is None else tuple(vals.get(mm) for _, mm in reg.outputs)
+            if getattr(reg, "outputs", None) is None:
+                net.add(Join(inst, [Q(x) for x in ext], P(z), fn=fused_fn, choice=width(z) == 1))
+                continue
+            # BDC_RING_FUSE (bdc emit.py _lower_fused_multi): one cell whose output carries every result side by side,
+            # a bd_fork <inst>_fo splitting its request into one channel per result; a result in BDC_FORK_OUT_LINK, or
+            # (BDC_RING_FUSE=2) one with no link of its own, gets a bd_link ulink_<v>_folink after the fork.
+            zc = net.ch(inst + ".z")
+            vals_ = [v for v, _ in reg.outputs]
+            jc = net.add(Join(inst, [Q(x) for x in ext], zc, fn=fused_fn, choice=False))
+            jc.tuple_choice = [k for k, v in enumerate(vals_) if width(v) == 1]
+            fo = [net.ch("%s.fo%d" % (inst, k), ctl(v)) for k, v in enumerate(vals_)]
+            net.add(Fork(inst + "_fo", [zc], fo))
+            for k, v in enumerate(vals_):
+                sl = (lambda k: lambda d: (lambda t: None if t is None else t[k])(d()))(k)
+                if emit.vname(v) in emit.FORK_OUT_LINK or (emit.RING_FUSE_LINK and v not in e.linked):
+                    lc = net.ch("%s.fl%d" % (inst, k), ctl(v))
+                    net.add(Wire("%s.s%d" % (inst, k), fo[k], lc, sl))
+                    net.add(Stage("ulink_%s_folink" % emit.vname(v), [lc], [P(v)]))
+                else:
+                    net.add(Wire("%s.s%d" % (inst, k), fo[k], P(v), sl))
             continue
         ops, res = node.operands, node.results
         if op in ("fork", "lazy_fork"):
