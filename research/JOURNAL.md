@@ -7518,7 +7518,7 @@ Audit: newest rows T162-T170. **T169 (OVERSTATED in disclosure, research/data/fi
 CONFIRMED as a token-level theorem, the emitted Verilog not covered. Formal: A27, ring fusion (v8's default) proved
 function-preserving per kernel from the graphs alone on 18 of the 26 kernels it can import (gcd, collatz64, horner,
 varshift, brhash, fold64, lfsrfind, twoloops among them); no counterexample to any rewrite.
-### progress 21:45 (T169: every wrong answer the automatic flow produced is now in the headline's prose)
+### progress 21:33 (T169: every wrong answer the automatic flow produced is now in the headline's prose)
 - Each point re-read from origin/claude/cluster results/, not copied from the audit:
   (1) test_divui s1 / s2 (suite10b/9, /10): rule=clean, FAIL 0 / 4 draws each (3 / 12 vectors wrong per draw), now
   listed with if_loop_1 s1 (suite9/77: NOT CLEAN, 2 / 4, memory wrong), ipow v1 s4 and ipow s7 fused (ringfuse1/31: NOT
@@ -7529,7 +7529,7 @@ varshift, brhash, fold64, lfsrfind, twoloops among them); no counterexample to a
   against estimates, 4 of them non-memory (branchloop, digitdiv, horner, ipow).
   (4) ratios on one rule-clean route: 8 on this table (the prose said 6; the auditor counted 7 on the older table).
 - Does NOT show: the Dynamatic estimates behind the 10 ratios below 1 were not re-derived (DYNFIG_REPORT.md stands).
-### progress 21:50 (finseeds1 37 / 40: its +20.6 ns outlier is the event-graph P, not a slower route; suite12 28 / 62 back)
+### progress 21:35 (finseeds1 37 / 40: its +20.6 ns outlier is the event-graph P, not a slower route; suite12 28 / 62 back)
 - **finseeds1** (tasks 14 DA quadrec s1, 18 DA iterative_division s3, 29 A collatz64 s2 still RUNNING at 21:34):
   arm DA (+2 extra seeds per not-clean finish step) **18 / 18 CLEAN, 144 / 144 draws**; arm A (today's default: 6
   routes, least-short shipped) **12 CLEAN / 7 NOT CLEAN, 152 / 152 draws**. P against each loop's original NOT CLEAN

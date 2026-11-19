@@ -3,7 +3,7 @@ T156 / T161 rules).** One switch, BDC_AUTO=1, with no list of kernels (the md5-k
 f7573b807), the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model;
 nextpnr 6e5d224472232d5d (suite3a / 3b and suite6's own predecessors partly 9c732bc6303458df: identical routes where no GND
 pin was missed). Ns per iteration and the ratio use rule-CLEAN routes only; the NOT CLEAN routes' figures are in brackets.
-**Every wrong answer the automatic flow has produced, superseded routes included (auditor T169; read 2026-11-19 21:40 UTC
+**Every wrong answer the automatic flow has produced, superseded routes included (auditor T169; read 2026-11-19 21:32 UTC
 from origin/claude/cluster results/): rule-CLEAN is not a certificate, two of the wrong routes were clean.** test_divui
 seeds 1 and 2 (suite10b/9, /10, flow v7, **rule-CLEAN**, FAIL 0 / 4 draws each, 3 of 12 vectors wrong in every draw;
 cause: rule A's peers escaped the cell; superseded by divsize1's routes after the fix 1daa7efd4); if_loop_1 seed 1
