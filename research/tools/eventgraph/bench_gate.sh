@@ -17,6 +17,16 @@
 # Since 2026-11-18 (research/data/suite/ifloop.md): a batch whose SIG (the fold of every run's result) has an x is not a
 # pass, and any `RAMB18 ` line in the run (the GLS RAM model's setup / hold violation, or a RAM clock that went x) fails
 # the whole run; a clean run's verdict line is unchanged.
+# GATE_RUNTS=1 | fail (opt-in, 2026-11-19; unset: the run and the verdict line are byte-identical to before): compile
+# cells/gls/ps/gen_runt_mon.py's monitor into the run (build_ps.sh PS_RUNTS=1) and count, on every kernel steer / mux /
+# merge / C-element / link enable output (at its driver in the bits-decoded netlist), every pulse narrower than three
+# thresholds (GATE_RUNTS_T, default 150,500,1000 ps; a third threshold of 0 = the loop threshold, the run's longest
+# kernel C-element loop + WIN/2 + 3 sigma: the widest pulse the gate's runt model can still reject).  The verdict line
+# gets a "runts" field (counts, narrowest pulse of any width, longest kernel loop, the nets hit) and runts.txt (per net)
+# is written beside run.log.  With GATE_RUNTS=fail a pulse narrower than the LAST threshold on a net of a class in
+# GATE_RUNTS_CLASSES (default: every class) fails the run.  Why: the gate's runt model rejects a pulse shorter than the
+# receiving C-element's loop, so a select race that fires on every call can pass (research/data/suite/hangs.md section
+# 3, research/data/suite/steerrunt/README.md); whether silicon rejects such a pulse is BOARD-QUEUE item 2 (H_RUNT).
 set -euo pipefail
 HW=$(cd "$1" && pwd); D=$2; mkdir -p "$3"; W=$(cd "$3" && pwd); VEC=$(readlink -f "$4"); EXP=$(readlink -f "$5"); COL=$6
 R=$(cd "$(dirname "$0")/../../.." && pwd); G=$R/cells/gls
@@ -49,6 +59,9 @@ case $COL in
 esac
 # one compile at a time on the machine: build_ps.sh's iverilog peaks at several GB (OOM kills lose runs)
 CD=${COL/:/_}
+if [ -n "${GATE_RUNTS:-}" ]; then
+  export PS_RUNTS=1; IFS=, read -r RT1 RT2 RT3 <<< "${GATE_RUNTS_T:-150,500,1000}"
+fi
 "$R/research/tools/compile_slot.sh" "$G/ps/build_ps.sh" "$HW" "$W/$CD" "" bit > "$W/$CD.build.log" 2>&1
 cd "$W/$CD"
 # GATE_ANNOTATE=1: also run gate.vvp (cells/gls/build.sh: the SDF through iverilog's annotator, which names every arc it
@@ -59,9 +72,10 @@ if [ "${GATE_ANNOTATE:-0}" = 1 ]; then
   ANN=" | annotate $(grep -q ANNOTATE_DONE annotate.log && echo DONE || echo MISSING) sdf-warn/err $(grep -ciE 'SDF (WARNING|ERROR)' annotate.log || true)"
 fi
 rm -f gate.vvp
-vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=${GATE_NRUNS:-2} +VECFILE="$VEC" ${GATE_MEMEXP:+"+MEMDUMP=1"} +TBATCH=${GATE_TBATCH:-1200000} +TEND=20000000 ${GATE_PLUSARGS:-} > run.log 2>&1 || true   # GATE_PLUSARGS: e.g. +META_INIT=0; GATE_TBATCH: ns per batch before HANG (default 1200000; preload runs, research/tools/preload)
+vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=${GATE_NRUNS:-2} +VECFILE="$VEC" ${GATE_MEMEXP:+"+MEMDUMP=1"} +TBATCH=${GATE_TBATCH:-1200000} +TEND=20000000 ${GATE_PLUSARGS:-} ${GATE_RUNTS:+"+RUNT_T1=$RT1" "+RUNT_T2=$RT2" "+RUNT_T3=$RT3"} > run.log 2>&1 || true   # GATE_PLUSARGS: e.g. +META_INIT=0; GATE_TBATCH: ns per batch before HANG (default 1200000; preload runs, research/tools/preload)
 rm -f run_baked.vvp
-python3 - "$EXP" run.log "$(grep -o 'VERDICT: [A-Z_ ]*' fid/equiv.txt | head -1)" "${GATE_MEMEXP:-}" "$ANN" <<'PY'
+python3 - "$EXP" run.log "$(grep -o 'VERDICT: [A-Z_ ]*' fid/equiv.txt | head -1)" "${GATE_MEMEXP:-}" "$ANN" \
+    ${GATE_RUNTS:+"$GATE_RUNTS" "${GATE_RUNTS_CLASSES:-}"} <<'PY'
 import sys, re
 exp = open(sys.argv[1]).read().split(); got = {}
 memexp = {}
@@ -116,7 +130,44 @@ if nvoid:
     sys.argv[5] = (" | void: arrays only" if memexp else " | void kernel WITHOUT GATE_MEMEXP: nothing checked, no pass") \
         + sys.argv[5]
 # an EXPFILE with no line (an oracle that failed, a truncated file) is a run with nothing to compare: never a pass
-print("%s %d/%d cycles %d %s%s%s" % ("PASS" if exp and ok == len(exp) else "FAIL", ok, len(exp), cyc, sys.argv[3],
+passed = bool(exp and ok == len(exp))
+if len(sys.argv) > 6:   # GATE_RUNTS (cells/gls/ps/gen_runt_mon.py): narrow pulses on the kernel's handshake outputs
+    rsum, rnet, rcls = None, {}, {}
+    for l in open(sys.argv[2]):
+        if l.startswith("RUNTSUM ") and "minall=" in l:
+            rsum = dict(re.findall(r"(\w+)=(\S+)", l))
+        elif l.startswith("RUNTCLS "):   # (a line cut short by a killed run is skipped)
+            d = dict(re.findall(r"(\w+)=(\S+)", l))
+            if "minall" in d: rcls[d["cls"]] = d
+        elif l.startswith("RUNTMON batch="):
+            d = dict(re.findall(r"(\w+)=(\S+)", l))
+            if "net" in d: rnet[int(d["k"])] = d   # cumulative: a net's last line wins
+    fcls = [c for c in sys.argv[7].split(",") if c] if len(sys.argv) > 7 else []
+    if rsum is None:
+        sys.argv[5] += " | runts: NO MONITOR OUTPUT"
+        if sys.argv[6] == "fail": passed = False
+    else:
+        hits = sorted(rnet.values(), key=lambda d: -(int(d["n3"]) + int(d["x"])))
+        bad = [d for d in hits if (not fcls or d["cls"] in fcls) and int(d["n3"]) + int(d["x"]) > 0]
+        top = ", ".join("%s %s.%s %s%s (%s ps)" % (d["cls"], d["inst"], d["role"], d["n3"],
+                        ("+%sx" % d["x"]) if int(d["x"]) else "", d["min"]) for d in hits[:4])
+        cl = " ".join("%s %s/%s" % (c, d["hit"], d["nets"]) for c, d in sorted(rcls.items()) if int(d["hit"]))
+        sys.argv[5] += " | runts <%s/%s/%s ps %s/%s/%s x %s on %s of %s nets%s, narrowest %s ps, loops <= %s ps%s%s" % (
+            rsum["t1"], rsum["t2"], rsum["t3"], rsum["n1"], rsum["n2"], rsum["n3"], rsum["x"], rsum["hit"], rsum["nets"],
+            " (%s)" % cl if cl else "", rsum["minall"], rsum.get("tloopmax", "?"),
+            (": " + top + (" ..." if len(hits) > 4 else "")) if hits else "",
+            (" RUNTS FAIL (%d net(s)%s)" % (len(bad), " of " + "/".join(fcls) if fcls else "")) if sys.argv[6] == "fail" and bad else "")
+        if sys.argv[6] == "fail" and bad: passed = False
+        with open("runts.txt", "w") as f:
+            f.write("# k cls inst role net n<%s n<%s n<%s hi lo x min_any_width_ps first_ps (cumulative, batch %s)\n"
+                    % (rsum["t1"], rsum["t2"], rsum["t3"], rsum["batch"]))
+            for d in hits:
+                f.write(" ".join(d[c] for c in ("k", "cls", "inst", "role", "net", "n1", "n2", "n3", "hi", "lo", "x", "min",
+                                                 "first")) + "\n")
+            for c, d in sorted(rcls.items()):   # per class: the narrowest pulse of ANY width (handshakes included)
+                f.write("# class %s nets %s hit %s pulses<%s %s narrowest_any %s\n" % (c, d["nets"], d["hit"], rsum["t3"],
+                                                                                  d["n3"], d["minall"]))
+print("%s %d/%d cycles %d %s%s%s" % ("PASS" if passed else "FAIL", ok, len(exp), cyc, sys.argv[3],
       (" | MISMATCH in batch(es) %s" % ",".join(map(str, sorted(mm)))) if mm else "",
       (" | MEMORY wrong in batch(es) %s" % ",".join(map(str, sorted(membad)))) if membad else "") + sys.argv[5]
       + ((" | X in a run's result (SIG) in batch(es) %s" % ",".join(map(str, sorted(xr)))) if xr else "")

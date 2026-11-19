@@ -42,6 +42,9 @@ FIDDEF=""; [ "${GLS_MODEL:-}" = fid ] && FIDDEF="-DGLS_FID -I$GLS"
 # violation: it reads O_DATA two synchronizer clocks after o_req).
 MON=""; if [ -n "${PS_MON_GEN:-}" ]; then python3 "$PS_MON_GEN" "$J" nets.map mon_gen.v; MON=mon_gen.v; fi
 if [ "${PS_BUNDLE:-0}" = 1 ]; then python3 "$PS/gen_bundle_mon.py" "$J" nets.map bundle_mon.v; MON="$MON bundle_mon.v"; fi
+# PS_RUNTS=1 (opt-in, 2026-11-19; research/tools/eventgraph/bench_gate.sh GATE_RUNTS sets it): add gen_runt_mon.py's
+# narrow-pulse monitor on the kernel's handshake outputs (steers, muxes, C-elements, link enables). Unset: unchanged.
+if [ "${PS_RUNTS:-0}" = 1 ]; then python3 "$PS/gen_runt_mon.py" "$J" nets.map runt_mon.v; MON="$MON runt_mon.v"; fi
 # shellcheck disable=SC2086
 iverilog -gspecify -DGLS_TRANSPORT_IC $FIDDEF -I. -o run_baked.vvp "$PS/tb_ps.v" netlist_baked.v "$GLS/prims.v" "$HOST" $MON 2>&1 \
     | grep -v 'procedural continuous' || true
