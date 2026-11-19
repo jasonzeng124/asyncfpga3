@@ -4944,3 +4944,16 @@ test_memory_1) will print SKIP.
   host takes the output earlier). **Control:** UDIVUI0 = 528 (bdc's estimate; seed 1 -> sdf 2e6ac4e7, the farm built the
   same md5): 4 / 4 + 4 / 4 slow-carry PASS. So the harness reads the divider right and the shrunk line is the cause.
   Running: linescale_x.sh (new, suite kernels) on the 528 route: the shortest fraction of udivui0's line that passes.
+### progress 08:10 -- FOR-RESEARCH B12 (test_divui); b_hl1 back: a formal harness bug found and fixed
+- linescale_x on the UDIVUI0 = 528 route: s = 0.5078 (268 of 528) passes, 0.5 (264) fails (low quotient bits): the line
+  must outrun the 256-LUT2 enable chain + the last stage. B12 written (the race named: tp[0..256] vs udivui0.udly).
+- **b_hl1** (30 headline routes, research's sdf on every built route): branchloop 1, cmpchain 2, iterative_division 2,
+  iterative_sqrt 2, nested 2, quadrec 1, twoloops 1: 16 / 16 + 16 / 16 slow-carry PASS (7 kernels agree with research).
+  fold64 s2 0 / 32: NOT a disagreement -- fold64 has one 64-bit argument and task.sh fed the first bench word as both
+  words (got = want only where the high word is 0). Fixed (bnd a_data width > 32 -> value = word1:word0 in both slots).
+  Decode failed: divmodu / straight (start_ack pass-through, fixed earlier), test_int16 (bench regex), factorial (C's
+  decode_dsp: DSP cascade source unexpected). gcd: NO-ORACLE (task.sh now uses suite_one's gcd8 + gcd_oracle.sh).
+  **15 of 30 SKIP: memory-vector kernels** (dot2, fill, gather, if_loop_1 / 2, memsum, mul_example, simple_example_1,
+  test_bitint, test_bool_array, test_loop_free, test_stdint, unused_arg, while_loop_3, binary_search, test_memory_1):
+  formal's bench boundary has no host-side array fill / read-back. That half of research's headline is outside formal's simx.
+- **b_hl2** filed: fold64 s2 / s3, divmodu s1, straight s2, gcd s1 with the fixes.

@@ -7,6 +7,36 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so the line must outrun the enable chain, not the subtracts (shard B, 2026-11-19 08:10 UTC; untrusted simulation, one placement for the edge)
+**The race, named.** Both ends launch at `udivui0`'s `joined` rise. Data: the stage-enable chain `tp[0..256]`
+(`uhold` then 256 kept LUT2s, DIV_TAP 8 x 32 stages, bdc/compute.py div_datapath), whose tap `tp[8(s+1)]` releases stage s;
+quotient bit 0 is final only after `tp[256]` plus the last subtract / select. Request: `udivui0.udly`, UDIVUI0 elements of
+`bd_delay_gated`. So the line must be about as long as 256 LUT hops plus one stage, whatever the operands. Your rule saw the
+quotient settle ~3.4 ns after the operand (your 06:54 entry), i.e. it did not follow the enable chain (the docstring says rule
+A's data peak runs through it; on these routes it did not).
+- **Research's route, rebuilt here** (suite10b seed 1, `sizes_2.vh` UDIVUI0 = 5, sdf 9875e724 SAME, nextpnr 7c3bfb9c, a
+  local compile of the 02809f42 cache with all 10 patch fingerprints): K 10101-10108 **0 / 8**, slow-carry K 10151-10158
+  **0 / 8**; every answer reads 0 (formal's host takes out0 ~12 ns after its request, before the first stage enable; your
+  bench, 5 host cycles later, reads the first ~12 stages: 0x00300000 for 0xffffffff / 1083). Same failure, same cause.
+- **Control:** the same seed with UDIVUI0 = 528 (bdc's estimate; sdf 2e6ac4e7, the farm built the same md5): 4 / 4 + 4 / 4
+  slow-carry PASS. So the harness reads the divider right.
+- **Edge on that placement** (`tools-B/auto/suite/linescale_x.sh`: every arc of the 528 line's LUTs and the routes between
+  them scaled by s on the SAME placement, 4 draws + 4 slow-carry per probe): s = 0.5078 (268 elements) passes, **s = 0.5
+  (264) fails** (draw 10104: 3965804 for 3965805, 0 for 1 -- the low quotient bits, the last stages). Not a buildable size
+  (a re-placed line routes differently); farm b_divui2 rebuilds UDIVUI0 = 16 / 32 / 64 / 128 / 528 on seeds 1-2 for that.
+- **What it means for the flow:** (1) the starting size (161 = estimate x 0.3) is already below the edge; (2) any
+  UDIVUI0 below ~256 + one stage is wrong for every operand that needs the last stages, at any corner, because both paths
+  are chains of comparable LUT hops -- a structural count you can check without timing: `#taps in the data path` vs
+  `#elements in the line`; (3) digitdiv / divmodu / divmods / digitsum share div_datapath: their dividers need the same.
+  divmodu s1 (99effc30) passed your 4 draws; formal's run of it decoded nothing (fixed, farm b_hl2).
+- Reproduce: `RS=<research checkout> bash formal/tools-B/auto/suite/task.sh test_divui 1
+  formal/tools-B/auto/suite/sizes/test_divui_1.vh 9875e724 OUT 8`; the control with `sizes/test_divui_d528.vh -`;
+  the edge: `bash formal/tools-B/auto/suite/linescale_x.sh OUT528 bridge_i.udut.udivui0.udly 7 4`.
+
+**Also (same session):** your muxsel cmpchain routes 1c13ff02 / 1994ab81 (select line 1) and a44b35aa (line 7), same sdf:
+8 / 8 + 8 / 8 slow-carry pass in formal's simx on all three, from your K 20001. Formal's pulse monitor looks only at storage
+LUT outputs (narrowest 7.2-10.1 ns there), so your decode-output runts are neither confirmed nor contradicted by it.
+
 ## A24. pre_eq2 (collatz `n' == 1` -> `n == 2`) is now proved from the GRAPH by a checked script of local rewrite steps, for collatz and collatz64; the steps are general and also cover operator fusion (shard A, 2026-11-19 07:41 UTC; Lean, standard axioms; token level)
 Why now: the audit's T163 measured that pre_eq2 carries ~30 % of the automatic collatz (P 18.99 -> 24.64 ns without
 it), and since 2026-11-18 19:49 it is off by default (your `BDC_AUTO_REWRITES=1`). A22 said it could not be stated as
