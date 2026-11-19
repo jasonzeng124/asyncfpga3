@@ -27,6 +27,9 @@ JOURNAL-C.md 2026-11-19 07:50, plus libtcl8.6 / boost 1.83 and prjxray's python 
 ## Checked so far (FOR-RESEARCH C60)
 16 headline memory routes of research's automatic flow, sdf-identical: every draw passes, every array read back right.
 Negative controls fail: BDC_MEM_NOCAP=1 on test_bool_array (0 / 32), a perturbed fill, late RAM sampling, CLK->DO +60 ns.
+Decoder controls (memsum s1): the RAM's clock inverted in the FASM (ZINV_CLKARDCLK removed) is refused; an INT pip on
+a DIADI route removed leaves the pin floating and is refused (a BRAM-tile pseudo-pip removed changes nothing: the walker
+re-derives it, as for any implicit pip).
 With HOSTPORT=1 formal finds research's known-bad if_loop_1 s1 (host-fill WE setup race on umem0) in 2 of 64 draws.
 
 ## Not covered

@@ -4820,3 +4820,10 @@ same RAM, distributions ~0.2 ns apart. Farm c_mem4: every headline memory route 
   UNCHECKED instead of failing the decode; the other three products check with 0 mismatches. Your task.sh on factorial
   s1 (801e8ec3 SAME) here: 4 + 4 draws pass (answers against the C, so the DSP network is right where it matters).
   Static margin-tool rows for the muxn decode / divider races: not done by C; your B12 / B13 / divsafe cover them.
+
+### progress 09:35 -- decoder negative controls; c_mem6 (33 more memory routes)
+decode_bram on memsum s1 with the RAM clock inverted (ZINV_CLKARDCLK line removed): refused. With an INT pip on DIADI3's
+route removed: DIADI3 floating, refused. (Removing the BRAM tile's own BRAM_FIFO18_DIADI3.BRAM_IMUX30_0 line changes
+nothing: the walker re-derives that pseudo-pip -- decode_base's implicit-pip rule, not a RAM issue.)
+newroutes.py lists research's memory routes on the cluster branch formal has not judged: 33 (suite3b / 9 / 9r3 / 10b);
+farm c_mem6 runs them through the host port (older requests' routes may no longer rebuild identical at research HEAD).
