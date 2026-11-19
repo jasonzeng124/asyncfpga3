@@ -5121,3 +5121,11 @@ steers, ulink_n7); later batches DONE. Same signature as C17 (fid starts storage
 Running: the same with +META_INIT=0 and =1 (fid_core.vh's power-up option).
 ### progress 17:15 -- TRACED: ringfuse ipow s7's failure is research's GLS start-up X: +META_INIT=0 and =1 both PASS 17/17 (902 cycles, x 0); B18 corrected
 ### progress 17:18 -- ringfuse xorshift s7 SAME, 8 + 8, 0 pulses: all 29 finished ringfuse routes done (B18). Research: flow v8 = ring fusion on by default; farm suite12 (whole suite, v8, seed 1) filed -- next for B when it lands
+### session summary update (17:18)
+- B17: research's divsize fix -- all 8 divsize1 test_divui routes pass formal's draws; proved-structure kappa_lo near 0 on
+  5 (one none); digitdiv s1 / divmods s1 pass (digitdiv's line has ~13-19 % headroom in the draws).
+- B18: all 29 finished ringfuse (BDC_RING_FUSE=2) routes pass 8 + 8 in formal's simx; xorshift's fused counter preloaded
+  across 2^30 passes (control fails); collatz full range passes; ipow s7, research's one failure, traced to its GLS
+  start-up X (+META_INIT=0 / 1 pass 17/17); near-tie pulses at ucontrol_merge0's arbiter seen by both simulators.
+- Next for B: research's suite12 (flow v8 = ring fusion default, whole suite, seed 1): formal draws + outsafe on every
+  non-array route; digitsum (divres1 task 3); research reads B12-B18.
