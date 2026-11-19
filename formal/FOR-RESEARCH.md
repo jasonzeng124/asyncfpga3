@@ -311,9 +311,9 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 < 200 ps counted, output-capture kappa_lo (`outsafe.py`). Array kernels: C's memtask. Helper: `tools-B/auto/suite/watch_suite.sh`.
 | task | kernel | sdf | formal draws | pulses | kappa_lo |
 |---|---|---|---|---|---|
-| 7 | straight | 524c6161 SAME | 8 + 8 | 0 | 0.260 |
-| 9 | sqrtsub | 33ec83be SAME | 8 + 8 | 0 | 0.239 |
-| 34 | test_int16 | 21440296 SAME | - (constant output: simx refuses by design) | | |
+| 7 | straight | 524c6161 SAME | 8/8 + 8/8 | 0 | 0.260 |
+| 9 | sqrtsub | 33ec83be SAME | 8/8 + 8/8 | 0 | 0.239 |
+| 34 | test_int16 | 21440296 SAME | - (constant output) |  | none |
 (table continues as the farm returns)
 
 ## B18. Your ringfuse routes (BDC_RING_FUSE=2, farm ringfuse1) in formal's simx: every finished one passes, including xorshift's counter preloaded across its 2^30 carry (control fails as it must) and collatz's full-range values; output-capture kappa_lo 0.02-0.35 (shard B, 2026-11-19 13:57 UTC; untrusted simulation + B16's Lean-logic bound)
