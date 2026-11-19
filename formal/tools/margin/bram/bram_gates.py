@@ -37,11 +37,20 @@ def die(m):
 def clk2do(tiletype):
     t = open(os.path.join(DG.BN.DB, "timings", "%s.sdf" % tiletype)).read()
     vals = set()
-    for m in re.finditer(r"\(IOPATH CLKARDCLK[LU] DOADO[LU] \(([\d.]+)::([\d.]+)\)\(([\d.]+)::([\d.]+)\)\)", t):
-        vals.add(tuple(int(round(float(x) * 1000)) for x in m.groups()))
+    # only the cell types with the output register OFF (DOA_REG_[LU]_0): the DOA_REG_1 types carry the register's much
+    # faster CLK->DO (204 / 468 ps), which a 2026-11-19 review found mixed in here (the min over all types was taken)
+    for cell in re.split(r"\(CELL\b", t):
+        ct = re.search(r'CELLTYPE "([^"]*)"', cell)
+        if not ct or not re.search(r"DOA_REG_[LU]_0", ct.group(1)):
+            continue
+        for m in re.finditer(r"\(IOPATH CLKARDCLK[LU] DOADO[LU] \(([\d.]+)::([\d.]+)\)\(([\d.]+)::([\d.]+)\)\)", cell):
+            vals.add(tuple(int(round(float(x) * 1000)) for x in m.groups()))
     if not vals:
         die("no IOPATH CLKARDCLK -> DOADO in %s.sdf" % tiletype)
-    return [min(v[0] for v in vals), max(v[1] for v in vals), min(v[2] for v in vals), max(v[3] for v in vals)]
+    r = [min(v[0] for v in vals), max(v[1] for v in vals), min(v[2] for v in vals), max(v[3] for v in vals)]
+    if r != CLK2DO:
+        die("CLK->DO from %s.sdf is %s, not the expected DOA_REG=0 %s" % (tiletype, r, CLK2DO))
+    return r
 
 
 def main():

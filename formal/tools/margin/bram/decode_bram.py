@@ -158,8 +158,8 @@ def main():
         k["_route"] = {"sink": DD.nname(fab, fab.node(tile, wire)), "sinkwire": [tile, wire], "pips": pips,
                        "srcnode": pips[0][4] if pips else DD.nname(fab, fab.node(tile, wire)),
                        "srcpin": ([src[1], src[3], src[2]["type"], src[2]["x_coord"]] if src[0] in ("slice", "site") else None)}
-        tl = bool(pips) and pips[0][0] == tile and not pips[0][2].startswith("BRAM_IMUX") and "GND" in pips[0][2] or \
-            (bool(pips) and pips[0][0] == tile and "VCC" in pips[0][2])
+        tl = bool(pips) and pips[0][0] == tile and not pips[0][2].startswith("BRAM_IMUX") and \
+            ("GND" in pips[0][2] or "VCC" in pips[0][2])
         return k, tl
 
     J = None

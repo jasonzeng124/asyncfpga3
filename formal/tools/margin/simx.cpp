@@ -607,7 +607,7 @@ int main(int argc, char** argv) {
             bool v;
             if (gram[g] >= 0) {   // RAMB18E1 DOADO bit: the word of the last edge whose DO arc (role 0) has elapsed
                 const RamG& r = RAMG[gram[g]]; ram_step(r.id, t);
-                int d0 = 0; for (int i = 0; i < kk; i++) if (r.roles[i] == 0) d0 = DS[b0 + i];
+                int d0 = 0; for (int i = 0; i < kk; i++) if (r.roles[i] == 0) d0 = (int)PD(b0 + i, t);   // PD: --tcut's arrival map
                 const auto& o = RAMS[r.id].outs;
                 auto it = upper_bound(o.begin(), o.end(), make_pair(t - d0, (unsigned)0xffffffffu));
                 v = it == o.begin() ? r.ini : (((it - 1)->second >> r.obit) & 1);
