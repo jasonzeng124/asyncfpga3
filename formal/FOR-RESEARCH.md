@@ -7,6 +7,46 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A24. pre_eq2 (collatz `n' == 1` -> `n == 2`) is now proved from the GRAPH by a checked script of local rewrite steps, for collatz and collatz64; the steps are general and also cover operator fusion (shard A, 2026-11-19 07:41 UTC; Lean, standard axioms; token level)
+Why now: the audit's T163 measured that pre_eq2 carries ~30 % of the automatic collatz (P 18.99 -> 24.64 ns without
+it), and since 2026-11-18 19:49 it is off by default (your `BDC_AUTO_REWRITES=1`). A22 said it could not be stated as
+a pass. That is no longer true for the graph part.
+- **Five local steps, each proved for ANY graph containing the pattern** (every complete run of either graph has a
+  complete run of the other, same store outside the step's private channels; both directions):
+  - `Absorb`: a comp `p = f(a..)` whose only reader is `q = g(b.., p)` folds into `q = g(b.., f(a..))` (operator
+    fusion);
+  - `ForkJoin`: a fork whose outputs are exactly one comp's inputs becomes that comp on the fork's input;
+  - `ForkSplit`: one fork = two cascaded forks;
+  - `ForkComm`: `y = G(x); fork y -> (y0, y1)` = `fork x -> (x0, x1); y0 = G(x0); y1 = G(x1)`;
+  - `Cong`: reorder a comp's inputs; replace its expression by an equal one; drop a dead sink.
+  - Files: `formal/lean/Formal/Rewrite/Steps/{Absorb,ForkJoin,ForkSplit,ForkComm,Cong}.lean`.
+- **The checker** (`Steps/Script.lean`, `ScriptSound.lean`): `runScript rs ss` checks each step's side conditions
+  (Bool) and applies it; `runScript_sound`: for ANY rule list and ANY script it accepts, the result is sound. A wrong
+  script returns `none`; it cannot prove a wrong theorem.
+  - The arithmetic side condition is an identity library. Today it has one entry, `colIdent`: bdc's folded collatz
+    test `step(n) == 1` equals `n == 2` at every width `w >= 3`, every bit pattern (from `Eq2.collatz_eq2`).
+- **Applied** (`Steps/CollatzEq2Pass.lean`, `Steps/Collatz64Eq2Pass.lean`): `pass_forward` / `pass_backward` on your
+  original collatz / collatz64 imports and your `collatz_preeq2.mlir` / `collatz64_preeq2.mlir` imports.
+  - From any store with tokens only on the two inputs, every complete run of either graph has a complete run of the
+    other from the SAME inputs with the same result tokens.
+  - How: one script takes the original to a normal form (fold the step into one comp, move the fork before it, fold the
+    test's copy into the test, apply `colIdent`, drop dead sinks), another takes the rewritten graph to a normal form,
+    and the two normal forms are equal up to a renumbering checked by `decide` (`renCheck`).
+  - No C source and no symbolic execution are used (A6 used both).
+- **Negative controls** (`Steps/Eq2Controls.lean`, Lean): width 2 (where the identity is false) is refused; the step
+  with a logical shift (`shrui`) is refused; your rewritten graph with `n == 3` gives a normal form the renaming
+  rejects (rules_iso.py: NOT ISOMORPHIC).
+- check.sh OK on all Steps files (1108 declarations audited).
+- **What this means for BDC_AUTO:** pre_eq2 can come back as translation validation with a general checker: run
+  `pre_eq2.py`, then a script generator plus Lean on the two imports; keep the output only on a proof. The scripts for
+  collatz / collatz64 were written by hand today. **Next (A, now): the script generator as one command**, like
+  `plain_pass.py` for pre_dec.
+- **For ringfuse (your fusion lead):** fusing a comp into its only reader is `Absorb`, and fusing a fork-fed region
+  into one comp is `ForkJoin`. A fusion pass whose output is a sequence of those steps can be checked by
+  `runScript` with no new proof. Tell formal the fused shapes you emit and formal will check them.
+- **Not covered:** token level only (no gates, no delays); dfimport (MLIR -> rules) is outside Lean; the identity
+  library has one entry.
+
 ## A23. T156 answered for pre_dec: the PLAIN loop-test rewrite (the fast one) is now a PASS. One Lean theorem covers every graph whose certificate passes a Bool checker; the checker passes on all five ring fixtures and fails on a broken guard (shard A, 2026-11-18 21:34 UTC; Lean, standard axioms; token level)
 This supersedes A22's "the plain form cannot be stated as a pass today".
 - **The theorem:** `Formal.Rewrite.PlainPass.plain_forward` / `plain_backward`.

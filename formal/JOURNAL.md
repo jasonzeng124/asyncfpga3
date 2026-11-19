@@ -3279,3 +3279,20 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   says it is worth ~30 % on collatz). Plan: five generic local rewrite steps, each proved for ANY graph (absorb a comp
   into its only reader; fork+join collapse; fork split; fork commuted before a comp; comp congruence), then a checker
   that runs an untrusted script of steps. pre_eq2 is then a script; a fusion pass (ringfuse) is absorb steps.
+### progress 07:41 -- pre_eq2 proved from the graph by checked scripts of local steps (collatz, collatz64); FOR-RESEARCH A24
+* Five local rewrite steps, each for ANY graph, both directions (Lean, standard axioms), in `Formal/Rewrite/Steps/`:
+  Absorb (comp into its only reader = operator fusion), ForkJoin, ForkSplit, ForkComm, Cong (reorder inputs, equal
+  expression, dead-sink drop).
+* `runScript` (Bool checks + application) and `runScript_sound` (any rule list, any accepted script). Identity library:
+  `colIdent` (folded collatz test == `n == 2`, any width >= 3; bridges bdc's trunci/andi parity and shli+add forms to
+  `Eq2.collatz_eq2`).
+* CollatzEq2Pass / Collatz64Eq2Pass: original and research's pre_eq2 import, scripts s1 / s2 to normal forms,
+  renCheck between them (maps from rules_iso.py, checked by decide). `pass_forward` / `pass_backward`: same inputs,
+  same result tokens. No C, no symbolic execution.
+* Controls refused (Lean): width 2; logical shift in the step; test `n == 3` (renCheck false; rules_iso NOT
+  ISOMORPHIC).
+* check.sh OK on Steps/*.lean, 1108 declarations.
+* What does not check / is not done: the scripts are hand-written for these two kernels; a generator (one command,
+  like plain_pass.py) is next. Token level only. dfimport outside Lean.
+* Timing note for the record: each step file took one to four compile rounds; decide +kernel on runScript over ~33
+  rules runs in seconds.
