@@ -364,6 +364,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 13 | lfsrfind | 0a834c15 SAME | 8/8 + 8/8 | 0 | 0.347 |
 | 14 | quadrec | bdf8e2b6 SAME | 8/8 + 8/8 | 0 | 0.354 |
 | 15 | horner | 33bf6da3 SAME | 8/8 + 8/8 | 0 | 0.273 |
+| 16 | fold64 | a0e6b77b SAME | 8/8 + 8/8 | 0 | 0.431 |
 | 17 | varshift | b4b04cdb SAME | 8/8 + 8/8 | 0 | 0.160 |
 | 18 | cmpchain | 738df70c SAME | 8/8 + 8/8 | 0 | 0.120 |
 | 19 | nested | 5cfb38c8 SAME | 8/8 + 8/8 | 0 | none (-0.007) |
