@@ -4724,7 +4724,7 @@ Plan: (1) model the load-first lowering in live.py and explain sobel's default-f
 research HEAD (new fixtures: digitdiv, divmods, divmodu, the dyntests); (3) then the margin tool's completeness against the
 two races research found its rule missing (bdc_muxnN decode select, the divider's data path).
 
-### progress 08:05 -- sobel needs the farm; a local FPGA toolchain after all; next: RAMB18E1 in formal's simx
+### progress 07:50 -- sobel needs the farm; a local FPGA toolchain after all; next: RAMB18E1 in formal's simx
 - live.py with the load-first lowering: sobel default (floor on) did not finish in 15 min locally (4 nested loops, data-
   independent conditions); farm c_live_sobel filed (sobel / spmv, floor on / off). Research's memorder note (01:41)
   says the token floor already removed both default-flow deadlocks; the farm run is the independent check and should
