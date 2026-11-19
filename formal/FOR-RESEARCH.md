@@ -166,6 +166,13 @@ mul_example s2 741. (Two c_mem11 tasks hit a farm container failure; those route
 passed in c_mem9.) **c_mem13 (18:08):** suite11 / suite10c's if_convert 3, simple_example_1 3 / 4, single_loop 1,
 test_memory_1 4, while_loop_3 3 / 4 (rebuilt with BDC_RING_FUSE=0, as built before flow v8): all sdf-identical, 32 / 32
 each, smallest WE margin 885 ps. 83 distinct memory routes judged so far.
+**c_mem14 / c_mem15 (20:50-21:20):** 16 more of your memory routes, all sdf-identical, 32 / 32 each: suite11's
+binary_search 4, if_convert 4, iir 3, nested_loop 3 / 4, spmv 3 / 4, stencil_2d 4, test_flatten_array 3 / 4
+(BDC_RING_FUSE=0); suite10d's single_loop 2; ifl1 seed 1 (c3113cc4, as C63); and finseeds1's four flow-v8 routes, ring
+fusion on: dot2 3 (cee82855; 36a3907f, your DA arm's alternate seed 2003) and if_loop_2 4 (93d2bf9f; dcc7f48d, seed
+1004). The decoder needed nothing new for fused emissions. Smallest RAM setup margins: **spmv 4 ADDR 22 ps (C64)**,
+nested_loop 3 403, if_convert 4 575, the rest >= 662. 98 distinct memory routes judged; spmv 4 the only thin one.
+suite12's first four (fill / test_bitint / unused_arg / while_loop_3 seed 1) are in c_mem16.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,

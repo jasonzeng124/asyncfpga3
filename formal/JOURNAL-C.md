@@ -4960,3 +4960,5 @@ in this model only. Owner notified.
 c_mem14 row 16 test_flatten_array 4 (927c767c) SAME, 16 + 16 pass, min RAM setup 1870 ps. So 14 SAME rows pass, 2
 DIFFERENT (alt-seed, c_mem15 queued), spmv 4 the only thin one (C64). c_mem16 (21:15): suite12's first memory routes
 (v8, fused: fill 1, test_bitint 1, unused_arg 1, while_loop_3 1) + suite11 stencil_2d 3. suite12 21 / 62, suite10d 2 / 7.
+- 21:25: c_mem15 done: finseeds1 DA routes dot2 3 36a3907f (seed 2003) and if_loop_2 4 dcc7f48d (seed 1004) SAME,
+  32 / 32 each, min RAM setup 871 / 2695 ps. C60 updated (98 distinct memory routes judged).
