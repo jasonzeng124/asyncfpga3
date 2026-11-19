@@ -688,23 +688,25 @@ def reaches(edges, start, stops):
 # WITHOUT LEAVING THE CELL.  The old test followed the tail anywhere, and a
 # path that leaves the cell comes back in only through the cell's own inputs,
 # i.e. through the consumer's response to the request: its acknowledge.  When
-# that consumer acknowledges COMBINATIONALLY (the bench: o_ack_pl = flop &
-# o_req_pl, research/tools/fifteen's harness) and the cell feeds its own z_ack
-# into its datapath (the divider's enable chain, hold = join | z_ack,
-# bdc/compute.py div_datapath), the old test called the whole datapath
-# "downstream of the request" and dropped it: on test_divui (`var1 / 1083`,
-# the divider driving the kernel's output) rule A kept 117 of 2512 outputs --
-# the stage subtracts' first carry bit, ~1-3 ns -- and the automatic flow cut
-# the divider's line from 159 links to 5 against a ~100 ns datapath (farm
-# suite10b tasks 9 / 10: every draw wrong).  The z_ack path cannot make any of
-# those outputs move in the request's phase (hold is already up from the join);
-# a "second line hanging off this one", which is what the exclusion is for,
-# hangs off it inside the cell.  STORAGE the request reaches is still
-# downstream wherever the path went: the C-elements on a bd_mux / bd_merge's
-# acknowledge (uxa = C(j0, z_ack)) cannot fire before the acknowledge rises,
-# and they were the only other outputs the confinement would have added (one
-# site in most loop kernels: 2-4 C-elements; census over 55 routes in
-# research/data/suite/divsize.md).  research/data/suite/divsize.md.
+# that consumer acknowledges COMBINATIONALLY (the bench, cells/hw/gen_bench.py:
+# o_ack_pl = (bench_busy ? bench_o_ack : ctrl_o_ack) & o_req_pl) and the cell
+# feeds its own z_ack into its datapath (the divider's enable chain,
+# hold = join | z_ack, bdc/compute.py div_datapath), the old test called the
+# whole datapath "downstream of the request" and dropped it: on test_divui
+# (`var1 / 1083`, the divider driving the kernel's output) rule A kept 117 of
+# its 2510 outputs -- the stage subtracts' first carry bit, ~1-3 ns -- and the
+# automatic flow cut the divider's line from 159 links to 5 against a ~100 ns
+# datapath (farm suite10b tasks 9 / 10: every draw wrong).  The z_ack path
+# cannot make any of those outputs move in the request's phase (hold is
+# already up from the join); a "second line hanging off this one", which is
+# what the exclusion is for, hangs off it inside the cell.  STORAGE the
+# request reaches is still downstream wherever the path went: the C-elements
+# on a bd_mux / bd_merge's acknowledge (uxa = C(j0, z_ack)) cannot fire before
+# the acknowledge rises, and they were the only other outputs the confinement
+# would have added (census over 55 routes of 25 kernels: one site in most loop
+# kernels, 2-4 C-elements; with them kept downstream, test_divui's divider is
+# the only site whose peers change).  Subagent divsize, 2026-11-19;
+# cells/verify/test_peers_cell.py.
 PEERS_CELL = __import__("os").environ.get("BD_PEERS_CELL", "1") != "0"
 
 
