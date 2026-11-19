@@ -4877,3 +4877,8 @@ passes with its rule fix, "capture-latch timing is checked by no rule" still ope
 measures it per route), share_test_2 unjudged on both sides (formal: DSP USE_DPORT not decoded). newroutes.py found 11
 memory routes formal has not judged (fir x4, sumi3_mem x4, memsum s1, image_resize s1, nested_loop s2): farm c_mem8
 (fixed CLK->DO, host port). Ringfuse RF=2 sweep: 124 rows, no deadlock so far; c_mem7 still waiting for farm cores.
+
+### progress 13:05 -- C62: ringfuse liveness sweeps done (RF=2 and RF=1: 121 LIVE, 0 deadlock each, as without the pass)
+Both sweeps at research ea42472f6 (floor on, default + AUTO): 222 rows each, 121 LIVE exhaustive, 9 sampled, 82 refused,
+10 crash (emit refuses too). Results committed under formal/tools/live/fixtures/results_ringfuse{1,2}_ea42472f6.jsonl.
+c_mem7 / c_mem8 still waiting for farm cores (12:55).
