@@ -7371,3 +7371,9 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - **Open, speed:** on the no-list column xorshift / collatz sit at their rising-only floor (storage cannot help;
   the sizing box costs ~11 %); the levers left are structural (ringfuse: fewer units per ring; mux + increment and
   compare + steer need new cells) and placement (hard RLOC groups untried; soft weights negative).
+### progress 12:09 (headline 52 of 62: the slow memory kernels finished; test_divui passes with the rule fix)
+- suite9r4 done: memsum s1, sumi3_mem s1-4, fir s1 / s2 / s4 PASS (2 draws each, 7 of 8 rule-clean; fir s3 ran out
+  again) -- the loops had finished, their final stack and draws needed the time. divsize1 (rule A's peers confined to the
+  cell): test_divui s1 / s6 PASS clean (s1 = divsize's local route, sdf ecbc22cc), s7 PASS (NOT CLEAN, unfixable row at
+  it 1). The table still shows test_divui WRONG ANSWER through seed 2's suite10b route (the old rule) until divsize1's
+  seed 2 arrives. **52 of 62 kernels pass.**

@@ -1,4 +1,4 @@
-**THE AUTOMATIC COLUMN, every kernel the suite lists (2026-11-19 10:13 UTC; corrected for auditor T161 / T167 and the owner's
+**THE AUTOMATIC COLUMN, every kernel the suite lists (2026-11-19 12:09 UTC; corrected for auditor T161 / T167 and the owner's
 T156 / T161 rules).** One switch, BDC_AUTO=1, with no list of kernels (the md5-keyed MLIR rewrites are off since
 f7573b807), the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model;
 nextpnr 6e5d224472232d5d (suite3a / 3b and suite6's own predecessors partly 9c732bc6303458df: identical routes where no GND
@@ -12,11 +12,12 @@ the August board, research/SIM-VS-BOARD.md).
 same (kernel, seed): `research/tools/suite/suite_table.py --kernels research/tools/suite/kernels.txt --reasons
 research/data/suite/headline_reasons.tsv --no-ratio isprime` over the farm's results/{suite3a, suite3b, suite8, suite7,
 suite6 (tasks 25-32 only: ipow, the one suite6 kernel no rewrite touched), suite9, suite9r3, norw1, norw1r2, gifast1,
-nsearch1, suite10b, muxn1}. The flow differs by request, by the defaults at each request's commit: suite3a e18df972b,
+nsearch1, suite10b, muxn1, suite9r4, divsize1, divres1}. The flow differs by request, by the defaults at each request's commit: suite3a e18df972b,
 suite3b dfd498a94, suite8 c605cc2a6, suite9 eaef0dec7, norw1 0cebd725c: flow v6; suite7 45db9e386: v5; suite6 55988c8d5:
 v6; norw1r2 8d8f48878 and gifast1 ff31a03c1: + CA_FAST (identical proposals) and the bench-clock seed fallback;
 suite9r3 fe52cd741: + rule B's RAM guard; nsearch1 5c6ece20e: + the search phase (countloop's routes are v7); suite10b
-3167ade0e: v7 (+ the runt monitor reporting); muxn1 ec9c4c2d8: v7 + the N-way mux select rule. Resumes replaced four
+3167ade0e: v7 (+ the runt monitor reporting); muxn1 ec9c4c2d8: v7 + the N-way mux select rule; suite9r4: suite9r3's loops finished with 2 draws; divsize1 /
+divres1: + rule A's peers confined to the cell (1daa7efd4: test_divui's suite10b routes were undersized by the old rule). Resumes replaced four
 earlier build failures, which the table no longer shows: quadrec s2 and varshift s2 / s4 (the bench missed 83 MHz on
 one iteration; resumed with the seed fallback), isprime s3 (PNR-TIMEOUT at it 0 in suite7; gifast1's route). cmpchain s1 /
 s4's farm verdict NOT EQUIVALENT was a checker false alarm on dead cells (fixed e060d7980; auditor T166 confirms s1);
@@ -31,14 +32,14 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | collatz | PASS | 5 + 3 / 8 | 40 / 40; 24 / 24 | 22.54 (18.98-25.56) [22.86 (22.79-26.70)] | 7032 | 1289 | 14.05 (measured, 1 route) | 1.60 | 21.50 | 2275.06 (1845.18-2625.18) | 1362.02 (cycles simulated, period measured (1 route)) | 1.67 |
 | collatz64 | PASS | 3 + 5 / 8 | 24 / 24; 40 / 40 | 30.93 (29.89-31.49) [30.46 (28.10-33.47)] | 11784 | 1916 | 17.84 (measured, 1 route) | 1.73 | 31.40 | 7245.17 (6792.67-8181.33) | 4131.94 (cycles simulated, period measured (1 route)) | 1.75 |
 | countloop | PASS | 4 + 0 / 4 | 16 / 16; - | 21.14 (20.45-24.30) | 6276 | 1812 | 8.36 (ESTIMATE) | 2.53 | - | 893.10 (865.80-1018.20) | 341.14 (ESTIMATE) | 2.62 |
-| digitdiv | NO RESULT (suite10b's loops ran out of time and are not resumed: the automatic flow undersizes the divider's matched delay (test_divui gives wrong answers on clean routes; subagent divsize is on it)) | 0 / 0 | - | - | - | - | 303.77 (ESTIMATE) | - | - | - | - | - |
-| digitsum | NO RESULT (suite10b's loops ran out of time and are not resumed: the automatic flow undersizes the divider's matched delay (test_divui gives wrong answers on clean routes; subagent divsize is on it)) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
-| divmods | NO RESULT (suite10b's loops ran out of time and are not resumed: the automatic flow undersizes the divider's matched delay (test_divui gives wrong answers on clean routes; subagent divsize is on it)) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| digitdiv | NO RESULT (suite10b's loops ran out of time; resumed in divres1 (8 cores; the divider makes each rule step slow), running) | 0 / 0 | - | - | - | - | 303.77 (ESTIMATE) | - | - | - | - | - |
+| digitsum | NO RESULT (suite10b's loops ran out of time; resumed in divres1 (8 cores; the divider makes each rule step slow), running) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| divmods | PASS | 1 + 0 / 1 | 4 / 4; - | 1614.00 (1614.00-1614.00) | 264 | 5610 | - | - | - | 270.25 (270.25-270.25) | - | - |
 | divmodu | PASS | 2 + 0 / 2 | 8 / 8; - | 1614.00 (1614.00-1614.00) | 276 | 2753 | - | - | - | 273.00 (264.00-282.00) | - | - |
 | dot2 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 30.97 (30.97-30.97) [33.84 (33.39-34.28)] | 1152 | 1436 | 59.28 (ESTIMATE) | 0.52 | - | 717.75 (640.50-761.25) | 1212.19 (ESTIMATE) | 0.59 |
 | factorial | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 204 | 2635 | 129.79 (ESTIMATE) | - | - | 139.00 (131.00-142.00) | 233.79 (ESTIMATE) | 0.59 |
 | fill | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 32.86 (32.17-33.55) [29.88 (29.42-30.34)] | 1404 | 1942 | 10.95 (ESTIMATE) | 3.00 | - | 560.40 (528.00-600.00) | 208.09 (ESTIMATE) | 2.69 |
-| fir | NO RESULT (no finished route yet: 1000-element arrays refilled through the host port make the final stack and the draws slow; resumed in suite9r4 (2 draws), running) | 0 / 0 | - | - | - | - | 48.68 (ESTIMATE) | - | - | - | - | - |
+| fir | PASS | 3 + 1 / 4 | 6 / 6; 2 / 2 | 26.04 (25.99-26.64) [26.98 (26.98-26.98)] | 27036 | 793 | 48.68 (ESTIMATE) | 0.53 | - | 26826.00 (25668.00-28032.00) | 48738.03 (ESTIMATE) | 0.55 |
 | fold64 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 24.10 (24.10-24.10) [23.96 (23.67-24.25)] | 6252 | 2794 | 11.93 (ESTIMATE) | 2.02 | - | 930.60 (901.80-943.20) | 448.74 (ESTIMATE) | 2.07 |
 | gather | PASS | 0 + 4 / 4 | -; 16 / 16 | - [51.69 (48.15-55.22)] | 1824 | 1493 | 69.20 (ESTIMATE) | - | - | 1210.00 (1124.00-1244.67) | 1510.48 (ESTIMATE) | 0.80 |
 | gcd | PASS | 0 + 3 / 4 | -; 12 / 12 | - [62.82 (61.42-66.30)] | 2172 | 7178 | 50.60 (ESTIMATE) | - | 87.20 | 600.00 (593.25-628.50) | 429.97 (ESTIMATE) | 1.40 |
@@ -54,7 +55,7 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | iterative_sqrt | PASS | 0 + 4 / 4 | -; 16 / 16 | - [64.45 (62.67-64.91)] | 1164 | 2249 | 110.84 (ESTIMATE) | - | - | 489.50 (487.00-497.50) | 758.20 (ESTIMATE) | 0.65 |
 | lfsrfind | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 25.33 (23.18-27.48) [27.79 (26.32-29.27)] | 7536 | 890 | 19.52 (ESTIMATE) | 1.30 | - | 1260.60 (1077.00-1395.00) | 901.06 (ESTIMATE) | 1.40 |
 | loop_path | PASS | 2 + 0 / 2 | 8 / 8; - | 45.23 (41.61-48.85) | 8208 | 1045 | 32.27 (ESTIMATE) | 1.40 | - | 7713.00 (7230.00-8196.00) | - | - |
-| memsum | PASS | 1 + 2 / 3 | 4 / 4; 8 / 8 | 27.48 (27.48-27.48) [29.08 (28.15-30.01)] | 1020 | 1395 | 59.33 (ESTIMATE) | 0.46 | - | 560.40 (552.00-580.80) | 1033.21 (ESTIMATE) | 0.54 |
+| memsum | PASS | 2 + 2 / 4 | 6 / 6; 8 / 8 | 29.43 (27.48-31.39) [29.08 (28.15-30.01)] | 1068 | 1394 | 59.33 (ESTIMATE) | 0.50 | - | 570.60 (552.00-604.80) | 1033.21 (ESTIMATE) | 0.55 |
 | mul_example | PASS | 0 + 1 / 1 | -; 4 / 4 | - [55.17 (55.17-55.17)] | 5556 | 317 | 79.88 (ESTIMATE) | - | - | 5676.00 (5676.00-5676.00) | - | - |
 | nest3 | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 11.06 (ESTIMATE) | - | - | - | - | - |
 | nested | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 8556 | 3554 | 9.98 (ESTIMATE) | - | - | 1091.73 (1027.09-1222.91) | 416.53 (ESTIMATE) | 2.62 |
@@ -69,10 +70,10 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | sqrtsub | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 23.91 (23.91-23.91) [21.81 (21.17-24.36)] | 6300 | 1398 | 8.36 (ESTIMATE) | 2.86 | - | 832.85 (759.23-896.77) | 292.00 (ESTIMATE) | 2.85 |
 | stencil_2d | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 40.43 (ESTIMATE) | - | - | - | - | - |
 | straight | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | - | 72 | 1327 | - | - | - | 72.00 (72.00-72.00) | 14.92 (ESTIMATE) | 4.83 |
-| sumi3_mem | NO RESULT (no finished route yet: 1000-element arrays refilled through the host port make the final stack and the draws slow; resumed in suite9r4 (2 draws), running) | 0 / 0 | - | - | - | - | 88.44 (ESTIMATE) | - | - | - | - | - |
+| sumi3_mem | PASS | 4 + 0 / 4 | 8 / 8; - | 25.99 (23.22-27.86) | 27912 | 610 | 88.44 (ESTIMATE) | 0.29 | - | 26451.00 (23040.00-29226.00) | 88540.06 (ESTIMATE) | 0.30 |
 | test_bitint | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | - | 300 | 635 | 44.32 (ESTIMATE) | - | - | 288.00 (276.00-294.00) | 504.74 (ESTIMATE) | 0.57 |
 | test_bool_array | PASS | 0 + 2 / 2 | -; 8 / 8 | - | 96 | 113 | - | - | - | 96.00 (96.00-96.00) | - | - |
-| test_divui | WRONG ANSWER under draws | 2 + 0 / 2 | 0 / 8; - | - | 60 | 1937 | - | - | - | 60.00 (60.00-60.00) | - | - |
+| test_divui | WRONG ANSWER under draws | 3 + 1 / 4 | 8 / 12; 4 / 4 | - | 252 | 2272 | - | - | - | 186.00 (60.00-252.00) | - | - |
 | test_flatten_array | PASS | 0 + 2 / 2 | -; 8 / 8 | - [57.48 (57.48-57.48)] | 29580 | 1548 | 15.74 (ESTIMATE) | - | - | 28935.00 (28230.00-29640.00) | - | - |
 | test_int16 | PASS | 4 + 0 / 4 | 16 / 16; - | - | 60 | 3 | - | - | - | 60.00 (60.00-60.00) | - | - |
 | test_loop_free | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 1007 | - | - | - | 72.00 (72.00-72.00) | 11.55 (ESTIMATE; period extrapolated, model path 4.86 ns) | 6.23 (extrapolated period) |
@@ -87,7 +88,7 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | while_loop_3 | PASS | 1 + 1 / 2 | 4 / 4; 4 / 4 | 25.75 (25.75-25.75) [27.57 (27.57-27.57)] | 996 | 801 | 34.00 (ESTIMATE) | 0.76 | - | 303.43 (299.14-307.71) | - | - |
 | xorshift | PASS | 6 + 2 / 8 | 48 / 48; 16 / 16 | 22.16 (20.42-23.57) [20.89 (20.55-21.23)] | 6096 | 1316 | 12.73 (measured, 1 route) | 1.74 | 16.76 | 2214.79 (2061.16-2427.16) | 1257.59 (cycles simulated, period measured (1 route)) | 1.76 |
 
-49 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 17): 1.15. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 27): 1.49.
+52 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 19): 1.03. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 29): 1.36.
 
 **The same flow WITH the three md5-keyed rewrites (BDC_AUTO_REWRITES=1; farm suite6, 8 seeds, 8 draws; not the automatic
 column):** collatz PASS, 6 + 2 routes (clean + NOT CLEAN), 48 / 48 + 16 / 16 draws, P on clean routes 17.24 (16.20-19.46)
