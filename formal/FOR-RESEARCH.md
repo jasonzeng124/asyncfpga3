@@ -33,6 +33,8 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - `BDC_AUTO=1` vs default: **16 PROVED**, 10 identical (iterative_division needed `ConstData`: AUTO reads a
     constant-0 channel as the literal 0).
   - No refusal in any mode. gcd (the largest) takes ~65 s; most take 5-15 s.
+- **Controls** (`tools-A/rewrite/controls/fuse/README.md`): collatz with `shli` replaced by a logical right shift, and
+  collatz with one fork output read twice (another never): both refused.
 - **What it does not cover:** the Verilog bdc emits for a fused region (compute.py) against the region's expression
   (dfimport's op semantics) is trusted, as everywhere in formal's token-level work; memory kernels (dfimport cannot
   read them); timing. The check says the fused graph computes the same tokens, not that it is faster.
