@@ -3308,3 +3308,13 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   (name-keyed: cmpi2 / fork3 / fork7); the test-on-update shape also occurs in ipow (`sgt(e >> 1, 0)`: an exact
   identity, but a 1-bit shift is wiring, no gain) and factorial (`sgt(n - 1, k)`: not an identity at INT_MIN).
 * FEASIBILITY row 14 updated.
+### progress 07:56 -- two more steps (Dedupe, Wire); fuse_check.py (operator fusion checked in Lean); MARGINS rows
+* `Steps/Dedupe.lean`: a comp reading two outputs of one fork reads one of them twice (lockstep simulation; generic
+  `Lockstep` lemma). `Steps/Wire.lean`: a one-output fork feeding a comp is removed. Both in `runScript` (steps
+  `dedupe`, `wire`), soundness in ScriptSound. check.sh OK on Steps/*.lean, 1207 declarations.
+* `tools-A/rewrite/fuse_check.py A B [--env-a K=V,..] [--env-b ..] [--bdc DIR]`: each import to its maximal-fusion
+  normal form (absorb / dedupe / wire to a fixpoint, inputs in first-read order, dead sinks dropped), rules_iso
+  between the normal forms, Lean file as eq2_check. collatz with BDC_OP_FUSION=0,BDC_FORK_FUSION=0 vs default:
+  PROVED (10 s). Census over research's fixtures running (unfused vs default; BDC_MAX_FUSE_NODES=8 vs default).
+  Purpose: research's ringfuse (a fusion pass, report due 12:00 UTC) can be checked the same way.
+* MARGINS.md: rows for B12 (test_divui: the divider's enable chain vs its line), B's muxsel cmpchain routes, b_hl1.
