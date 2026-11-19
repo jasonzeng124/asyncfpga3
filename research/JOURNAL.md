@@ -7715,3 +7715,13 @@ Next, in order:
 - With 21:52-21:55: P is the per-iteration time of the loop Dynamatic's figure measures on every single-loop kernel in the
   headline that has a ratio, except if_convert (unchecked: its trips depend on the array contents, i += 1 or 2). The one
   multi-loop kernel with a ratio, branchloop, is now from the slope (0.85).
+### progress 21:57 (if_convert too: P is faithful on every kernel with a ratio; LOCK stays clear)
+- **if_convert** (trips depend on a[]: the C run on the 3 calls' arrays from vec/if_convert.hex gives 193, 100, 130 trips):
+  P / slope 1.00 / 0.97 / 1.00 / 0.97 on suite10b s1 / s2, suite11 s3 / s4 (all clean; slopes 49.03-53.61 +- 0.01 ns).
+- **So, over every one of the 22 kernels with a ratio in the headline:** 21 single-loop kernels have P within 0.94-1.04
+  of the bench's own per-trip time on every farm route checked (trip counts from Dynamatic's simulation where it has them,
+  from the C on the suite's calls for the other 7), and branchloop, the one with two loops, now uses that slope (0.85).
+  The per-iteration column measures what Dynamatic's figure measures. What it still does not settle: the ESTIMATED
+  Dynamatic figures themselves (DYNFIG_REPORT.md), which carry the 9 other ratios below 1.
+- Next stays as at 21:52, with item 3 done for the headline's kernels; for the regeneration, take trip counts from the C
+  for every kernel (suite_table.py reads them from dynamatic_lat.tsv today, so 7 kernels have no slope there).
