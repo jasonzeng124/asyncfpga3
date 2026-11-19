@@ -4986,3 +4986,8 @@ test_memory_1) will print SKIP.
 - b_hl3: straight s2 16 / 16 + 16 / 16. divmodu failed to decode there; boundary_bench now resolves drivers through the
   yosys hierarchy (nested operator modules, pass-through ports, nextpnr's LUT6_2 -> $LUT6 / $LUT5 split); the four
   earlier decodes (test_divui x2, straight, cmpchain) give identical boundaries.
+### progress 08:20 -- divmodu s1 passes; its line needs only ~110 of 319: B12 corrected
+- divmodu s1 99effc30 (local, boundary resolver): 16 / 16 + 16 / 16 PASS. linescale_x on udivui0 (same placement):
+  s = 0.344 (~110 elements) passes 4 + 4, 0.3125 fails (wrong answers). So B12's "any line below ~256 + one stage is
+  wrong" was too strong: it holds for test_divui, whose quotient goes straight to out0. B12 rewritten (the race is the
+  last enable tap against the capturing latch's close; why divmodu's close comes later is NOT traced).
