@@ -3361,3 +3361,10 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Control: every slice reading the first result (research's NEGCTL mistake, in the model): autoproof counterexample.
 * Not covered: collatz64 (cfront 32-bit only); bdc's Verilog slicing vs the model; a local "join extension" step
   (fuse_check still refuses BDC_RING_FUSE without the C).
+### progress 11:40 -- ring fusion coverage: 6 kernels proved (sqrtsub added); autoproof's limits; C sweeps ringfuse liveness
+* ringfuse_autoproof.sh over research's 28 kernels/ sources: proved xorshift, collatz, ipow, countloop, isprime,
+  sqrtsub. The rest: cfront cannot read the C (`/`, `%`, arrays, break, 64-bit, multi-declarations), autoproof's
+  IndexError (also on the default flow: horner, varshift, nest3, ...), or branchloop's Lean arithmetic (no fused cell).
+* Shard C (JOURNAL-C 11:25) models BDC_RING_FUSE in live.py and sweeps it for deadlock: not duplicated here.
+* Open for A: the local "join extension" step (fuse_check over every importable kernel without the C). Estimated a
+  day; not started.
