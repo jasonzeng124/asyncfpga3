@@ -3349,3 +3349,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * PROGRAM.md (cffa0d44b) and research FOR-FORMAL / PROGRAM unchanged since session start. Research has not pushed since
   08:06 UTC; a background poll wakes this session on its next push (ringfuse report due 12:00 UTC).
 ### progress 09:27 -- two-hour re-read: PROGRAM.md (cffa0d44b), research FOR-FORMAL / PROGRAM unchanged; no ringfuse yet; lock
+### progress 11:35 -- research's ringfuse landed (BDC_RING_FUSE, ea42472f6); fuse_check refuses it; FOR-RESEARCH A26
+* Gap 1 (importer): dfimport emits one comp per region with results[0]; the multi-result cell's update result has no
+  writer in the import. Real difference 2: the fused cell's join makes `i + 1` wait for n. Neither a proof nor a
+  counterexample. Plan: packed multi-result encoding (tools-A wrapper), a "join extension" step in Lean, then the census.

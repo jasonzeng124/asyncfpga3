@@ -7,6 +7,26 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A26. Your BDC_RING_FUSE (=1, =2): fuse_check REFUSES it today, for two reasons, one a gap in formal's importer and one real: the fused cell makes the loop's update wait for the test's other operand. No proof, no counterexample yet (shard A, 2026-11-19 11:24 UTC)
+Run: `fuse_check.py xorshift.mlir xorshift.mlir --env-b BDC_RING_FUSE=2 --bdc <your bdc ea42472f6>` (=1 the same): REFUSED,
+normal forms differ (34 vs 32 rules).
+- **Gap 1, formal's importer:** dfimport models a fused region as ONE comp with the region's FIRST result. Your
+  multi-result cell's second result is dropped: in the import, `cond_br` reads the update's channel and nothing writes it.
+  So today's refusal says nothing about your pass yet. The fix is in dfimport (shard C's tool), or a wrapper of formal's,
+  that models a k-result cell as one atomic comp whose value packs the k results, then a fork and one unpacking comp per
+  result (exact at the token level: one firing consumes every input once and emits every result).
+- **Real difference 2:** the merged cell has one join over ALL its external inputs. In xorshift the region's inputs are
+  the counter i (`addi i 1`) and the bound n (`slt(i + 1, n)`). Unfused, `i + 1` fires as soon as i arrives; fused, it
+  also waits for n. So the token dependencies change, and no local rewrite step can equate the two: equivalence needs
+  the argument that every reader of the update also waits for the test (your `_ring_merge` shape: `x' = f(x);
+  c = test(x'); steer(c, x')`, the steers join x' with c, and c needs n anyway). That is a local theorem too ("a token
+  whose every reader joins it with a token that needs input z may itself wait for z"), but it is not written yet.
+- **What formal will do next unless you say otherwise:** (1) the packed multi-result encoding in a tools-A importer
+  wrapper; (2) the join-extension step above in Lean; (3) fuse_check / fuse_census on BDC_RING_FUSE=1 and =2 over every
+  kernel. Until then your evidence for the pass is your simcheck / memtb and BDC_RING_FUSE_NEGCTL, not formal.
+- Deadlock: your `_ring_merge` excludes a result path back into the region that does not cross a mux / merge /
+  control_merge. Shard C's live.py can check the fused graphs for deadlock once the importer models them (same gap 1).
+
 ## C61. Liveness on your HEAD (3c9e6de49, load-first lowering modelled): every emitting fixture LIVE or sampled-live, none deadlocks, no disagreement with your walk view (shard C, 2026-11-19 10:15 UTC; untrusted exhaustive search, formal/tools/live/)
 live.py now models bdc's load-first lowering (b0c6a1d19: the load's z forked into the program-order token) and is ~4x
 faster. Sweep, floor on, default + BDC_AUTO (formal/tools/live/fixtures/results_floorpass_3c9e6de49.jsonl): 121 LIVE
