@@ -7387,3 +7387,14 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   rule-clean (s7 NOT CLEAN on an unfixable row at it 1); seeds 1-4 = divsize's local routes byte for byte (ecbc22cc,
   96c7d776, 14c880c4, a43e6557); the divider's line ends at 324-516 links (s4: 1111, rule F's padding of very short
   lines -- open). suite10b's failing routes of seeds 1 / 2 (the old rule) are superseded in the table.
+### progress 14:34 (ringfuse1, 39 / 44: the fusion pays on xorshift only; a NOT CLEAN route fails a draw)
+- BDC_RING_FUSE=2 through the whole v7 flow vs the same seeds' v7 routes without it (nsearch1 / norw1r2 / ringfuse1's v7
+  arm), paired: **xorshift faster on 4 / 4 seeds, median -2.17 ns** (-1.16..-3.42; 4 seeds so far); collatz -0.25
+  (faster on 4 / 7); countloop +0.45 (3 / 6); ipow +0.12 (3 / 7). Not a default for every kernel on this evidence; the
+  xorshift gain matches ringfuse's local runs. countloop s7 / s8 hit PNR-TIMEOUT at it 0 (3 cores).
+- **ipow s7 with the fusion FAILS draw 10707** (chains 0.2017 / rest 0.2972 / carry 0.92, near the rule's worst
+  vertex: batch 0 hangs; the runt monitor counts 12 pulses under 1 ns and 28 x pulses on 29 of 189 nets -- merges,
+  links, steers), 7 / 8 draws. The route was shipped NOT CLEAN with **16 short rows**, while the loop's previous route
+  had 2: when nothing is clean the loop ships its LAST route, not its least-short one. A third NOT CLEAN route that is
+  actually wrong (after flow v1's ipow s4 and if_loop_1 s1); the rule flagged it. Passed to the converge subagent
+  (ship the least-short route; make the finish phase converge).
