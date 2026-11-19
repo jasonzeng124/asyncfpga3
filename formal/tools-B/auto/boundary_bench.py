@@ -93,6 +93,13 @@ def phys(ybit, what):
                 ib = sub["ports"][p]["bits"][bs.index(ybit)]
                 if ib in ("0", "1"):
                     return "const" + ib
+                # shard B, 2026-11-19: an output bit that is an INPUT port bit inside the kernel (a pass-through,
+                # e.g. test_divui's start_ack = p_end_ack): follow the input's top-level bit to its driver
+                for q, qd in sub["ports"].items():
+                    if qd["direction"] == "input" and ib in qd["bits"] and q in c["connections"]:
+                        tb = c["connections"][q][qd["bits"].index(ib)]
+                        if tb != ybit:
+                            return phys(tb, what + " (= %s)" % q)
     sys.exit("%s: no routed alias with a driver among %s" % (what, alias.get(ybit)))
 
 
