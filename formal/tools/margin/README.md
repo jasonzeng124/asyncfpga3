@@ -132,6 +132,11 @@ other than through one slow pin, corners other than 0 and 1.
   some input channels of the shared request, not all, and stopped): Spec.Env has no continuation, so the frozen
   statement is vacuous there; listed as PHYSICAL (a real harness hangs), not as a Spec counterexample.
 
+## RAMB18E1 and memory kernels (2026-11-19): `bram/`
+Memory kernels (research's benchvec vectors): RAMB18E1 sites decoded from the bits, a clocked RAM in simx (flag 3), the
+arrays filled / read back per call, optionally through the bench's host port (`--hostport`). One command:
+`bram/memtask.sh`; see bram/README.md and FOR-RESEARCH C60 (with its correction).
+
 ## DSP48E1 (2026-11-17): ipow builds
 A FASM with `DSP48.` config lines is decoded by `dsp/decode_dsp.py` (wraps A's decode_base.py; every DSP register must be
 off; control pins must be constants; unsupported modes refused) and `dsp/dsp_gates.py` (one combinational `dsp` gate per
