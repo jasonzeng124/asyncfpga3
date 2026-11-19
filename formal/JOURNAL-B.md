@@ -5087,3 +5087,4 @@ task.sh: the four board kernels use research's gate vectors + kernel_oracle.sh.
   but gcd (2 of 3), iterative_sqrt (4 of 4), iterative_division (2 of 3), whose mux data paths outrun their lines at the
   extremes (all pass every draw).
 - Not attempted: internal link captures (rule I's round trip through C-elements; C's AO certificates are the tool).
+### progress 10:27 -- PROGRAM / FOR-FORMAL re-read: unchanged; research headline 49 of 62 (10:13); b_hl5 filed (4 new non-array routes)
