@@ -1127,7 +1127,8 @@ def _absorb_forks(nodes, uf, value_producer, value_consumers, max_nodes):
 _ITER_BOUNDARY = ("mux", "merge", "control_merge")
 
 
-def _bb(node):
+def _ring_bb(node):
+    """A node's basic block (handshake.bb), parsed (a TypedLiteral) or plain; None when it has none."""
     v = node.attrs.get("handshake.bb")
     return getattr(v, "value", v)
 
@@ -1174,7 +1175,7 @@ def _ring_merge(nodes, uf, value_producer, value_consumers, fork_owners, cap):
         members = {i for i in uf.parent if uf.find(i) in roots}
         if len(members) > cap:
             continue
-        if len({_bb(nodes[i]) for i in members} | {_bb(f)}) != 1:
+        if len({_ring_bb(nodes[i]) for i in members} | {_ring_bb(f)}) != 1 or _ring_bb(f) is None:
             continue
         inside_forks = {i for i, t in absorbed_by.items() if uf.find(t) in roots} | {fi}
         region = members | inside_forks
