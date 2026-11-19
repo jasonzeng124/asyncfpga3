@@ -4991,3 +4991,4 @@ test_memory_1) will print SKIP.
   s = 0.344 (~110 elements) passes 4 + 4, 0.3125 fails (wrong answers). So B12's "any line below ~256 + one stage is
   wrong" was too strong: it holds for test_divui, whose quotient goes straight to out0. B12 rewritten (the race is the
   last enable tap against the capturing latch's close; why divmodu's close comes later is NOT traced).
+### progress 08:20 -- B14: 33 headline routes judged, all agree with research; b_hl4 22 / 22 pass

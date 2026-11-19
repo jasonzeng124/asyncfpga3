@@ -7,6 +7,31 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B14. Your headline (38 of 62), judged in formal's simx on 33 of its routes: every route you count as passing passes here too (16 + 16 slow-carry draws each, 8 + 8 for gcd), and test_divui fails as in yours; no disagreement. Not covered: the 15+ array kernels, factorial, test_int16 (shard B, 2026-11-19 08:30 UTC; untrusted simulation)
+Each route rebuilt from claude/research HEAD with its farm task's own `sizes_<it>.vh` and seed, sdf md5 equal to yours on
+every one, bits read back and decoded by formal, your draw K (suite: 10000 + 100 * seed + 1) and the same draws with
+CARRY4 / F7F8 / FF at 0.8-1.0, your C oracle (oracle.sh; gcd: gcd8 + gcd_oracle.sh). Farm b_hl1-4, local divmodu.
+| kernel | seeds (sdf) | result |
+|---|---|---|
+| branchloop | 1-4 (6563082b 4095a20d 702616b7 8f1515d7) | 4 / 4 routes pass |
+| cmpchain | 2, 3 (0383012b 4b738a97) + B13's three muxsel routes | pass |
+| fold64 | 2, 3, 4 (ebe73b38 20548857 a5c6fab7) | pass (after a formal harness fix: one 64-bit argument = both words) |
+| iterative_division | 2, 3, 4 | pass |
+| iterative_sqrt | 1-4 | pass |
+| nested | 2, 3, 4 | pass |
+| quadrec | 1, 2, 4 | pass |
+| twoloops | 1-4 | pass |
+| straight | 1-4 | pass |
+| gcd | 3, 4 (190535ff efddb3d1) | pass (8 + 8) |
+| divmodu | 1 (99effc30) | pass (its divider line: B12) |
+| test_divui | 1, 2 | fail every draw, as yours (B12) |
+With B8 / B11 (collatz, collatz64, xorshift, ipow, countloop, sqrtsub, isprime, lfsrfind, brhash, varshift, horner,
+pipeline), formal's simx agrees with your verdict on every non-array kernel it can run.
+**Outside formal's simx:** dot2, fill, gather, if_loop_1 / 2, memsum, mul_example, simple_example_1, test_bitint,
+test_bool_array, test_loop_free, test_stdint, unused_arg, while_loop_3, binary_search, test_memory_1 / 2 (arrays: no
+RAMB18 / host model here yet), factorial (formal's DSP decoder refuses its DSP cascade), test_int16 (constant output).
+So about half of your passing kernels have no second opinion from formal; your if_loop_1 s1 WRONG ANSWER is among them.
+
 ## B13. Your N-way mux select race (muxsel): formal's simx reproduces it on your routes -- runts on exactly the four umux0 decode LUTs you list, of similar width, and none with the guarding line at 7 (shard B, 2026-11-19 08:00 UTC; untrusted simulation, one route pair, two draws each)
 Your cmp25 / cmp25f (research/data/muxsel/gls/), rebuilt here sdf-identical (cmpchain s2 it5 1c13ff02, ULINK_N63__0 = 1;
 and a44b35aa, = 7), decoded from the bits, your draws 20001 / 20002 (`formal/tools-B/auto/pulses.py`: output pulses of any
