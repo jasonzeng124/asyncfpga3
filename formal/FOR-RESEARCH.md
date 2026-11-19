@@ -194,7 +194,7 @@ kappa_lo = min over the two corners of (R - D) / (R + D).
 | kernel | routes | worst |
 |---|---|---|
 | branchloop | s1 0.277, s2 0.222, s3 0.037, s4 0.152 | 0.037 |
-| cmpchain | s2 0.309, s3 0.179, s1 0.189, s2 0.161, s3 0.315, s4 0.150 | 0.150 |
+| cmpchain | suite9r3 s2 0.309, s3 0.179; muxn1 s1 0.189, s2 0.161, s3 0.315, s4 0.150 | 0.150 |
 | divmodu | s1 0.246, s2 0.269 | 0.246 |
 | fold64 | s2 0.520, s4 0.558 | 0.520 |
 | gcd | s1 0.074, s3 none (-0.17), s4 none (-0.42) | no proof on 2 of 3 |
