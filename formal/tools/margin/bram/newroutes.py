@@ -23,7 +23,7 @@ for f in glob.glob(os.path.join(H, "routes_mem*.txt")):
         if t and not l.startswith("#") and "NOCAP" not in l:
             done.add((t[0], t[1], t[3]))
 files = [p for p in git("ls-tree", "-r", "--name-only", a.ref, "results/").split()
-         if re.match(r"^results/suite[^/]*/\d+/result\.txt$", p)]
+         if re.match(r"^results/(?!fm_)[^/]+/\d+/result\.txt$", p)]
 rows = {}
 for p in sorted(files, key=lambda p: (p.split("/")[1], int(p.split("/")[2]))):
     r = git("show", "%s:%s" % (a.ref, p)).strip().splitlines()
