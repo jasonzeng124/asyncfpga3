@@ -7457,3 +7457,11 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   cascade mode: unjudged), sobel and video_filter (their resumed loops still running). Every WRONG ANSWER of this
   session's tables is accounted for: if_loop_1 (rule B had no scatter guard -> the RAM guard), test_divui (rule A's
   peers escaped the cell -> confined), ipow s7 fused (a NOT CLEAN last route -> the least-short route ships).
+### progress 18:29 (v8 smoke: dot2 passes; suite10d filed; the farm runs on for the next session)
+- Flow v8 locally on a shape ringfuse1 did not route (dot2, seed 9, nextpnr 6e5d224472232d5d): the loop, the search
+  phase (it picked fork-output links, no clean route: shipped the loop's route), CLEAN at it 8, EQUIVALENT, **2 / 2
+  draws PASS**, P 34.96 ns (one seed: not comparable with v7's routes). nest3 under v8 still running (5400 LUTs).
+- suite10c done: sobel s1 / s2, video_filter s1 / s2, share_test_1 s2, single_loop s2 had all 7 ratchet steps but ran out
+  in the final stack / draws again; with divres1's digitdiv s2 they are resumed in **suite10d** (v7 circuit:
+  BDC_RING_FUSE=0, 2 draws, 3 cores). In flight for the next session: suite11 (seeds 3-4 of the 27 newer kernels),
+  finseeds1 (the finish-phase levers), suite12 (the whole suite on v8, seed 1), suite10d.
