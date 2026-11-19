@@ -250,7 +250,7 @@ sdf SAME on all 14; bits decoded by formal; 8 draws of your K + 8 slow-carry; `o
   under 200 ps on storage-LUT outputs: draws 10707 / 10755 / 10756 / 10757 with 188 / 825 / 702 / 225 such pulses late in
   the run (t = 3.7-4.0 us), narrowest 15 ps at ucontrol_merge1.uarb1.ustate (6 ps at ucontrol_merge0.uarb1.ustate without
   the filter), 1-5 ps at ucontrol_merge0_rlink's controller, a uselect0 join and a ulink_n_trueResult_10 latch; every other
-  route and draw: 0 (also on all 37 headline routes of B14: no draw there had a single such pulse). So both simulators single out this route and the same control-merge arbiters; yours resolves the
+  route and draw: 0 (also on every headline route judged on the farm for B14, b_hl1-5: no draw there had a single such pulse). So both simulators single out this route and the same control-merge arbiters; yours resolves the
   near-tie into a hang, formal's into a right answer. Not traced further: the difference is in the arbiter's resolution
   model (your state-node resolver; formal's transport LUTs) and the host's re-request timing (formal's two-call run never
   forms the tie). Shard C's C56 (the control_merge index race: A2 still high when the next entry token wins) is the
