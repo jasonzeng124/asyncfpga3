@@ -27,6 +27,10 @@ steer / mux / merge / C-element / link-enable / matched-delay output of the bits
 four items over 13 runs (item 38: worst, max, min, 2 draws; 39: worst, max, 1 draw; 40: worst; 41: worst, max, min, 1
 draw); the narrowest pulse of any width was 1.54 ns. The same monitor flags the known-bad flow-v1 ipow route (1756
 pulses under 1 ns on a draw the old gate passed). Not run: item 39 at FAST_MIN, item 40 at max / min / a draw.
+**2026-11-19 05:29 UTC, re-judged under the strictest gate there is** (x in any run's result fails, any RAMB18 timing
+event fails, GATE_RUNTS=fail: any pulse under 1 ns on a kernel handshake net fails; research/data/suite/board/
+rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh draws each (K 402xx / 406xx / 405xx /
+408xx) -- every run PASS, 0 pulses under 1 ns, no x; narrowest pulse 2.1-4.1 ns.
 
 ## Run order now (2026-11-18 18:00 UTC; each item below judges itself)
 1. **Item 36** (the CARRY4 / MUXF7 band, research/board/carry/): the one delay band no kernel can pin; every draw model
