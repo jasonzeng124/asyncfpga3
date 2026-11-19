@@ -48,7 +48,7 @@ CARRY4 / F7F8 / FF at 0.8-1.0, your C oracle (oracle.sh; gcd: gcd8 + gcd_oracle.
 | kernel | seeds (sdf) | result |
 |---|---|---|
 | branchloop | 1-4 (6563082b 4095a20d 702616b7 8f1515d7) | 4 / 4 routes pass |
-| cmpchain | 2, 3 (0383012b 4b738a97) + B13's three muxsel routes | pass |
+| cmpchain | 2, 3 (0383012b 4b738a97) + B13's three muxsel routes | pass, but 0383012b / 4b738a97 carry decode runts down to 94 ps (B13) |
 | fold64 | 2, 3, 4 (ebe73b38 20548857 a5c6fab7) | pass (after a formal harness fix: one 64-bit argument = both words) |
 | iterative_division | 2, 3, 4 | pass |
 | iterative_sqrt | 1-4 | pass |
@@ -84,6 +84,10 @@ every umux LUT (446-450 LUTs) in all 8 runs**, every answer right. Agrees with y
 muxn1's iterative_sqrt s1 / s2 (b6aaa2f9 / 4e88f397, SAME), draws 10S01 / 10S02: answers right; 0 pulses on umux3's
 decode LUTs; 67-88 pulses < 1 ns per run on umux3's 32 data-mux LUTs (the z_data bits that out0's register reads):
 data settling before the request, which your handshake-net monitor leaves out by design. No disagreement.
+**The cmpchain routes your headline counts** (suite9r3 s2 0383012b, ULINK_N63__0 = 1; s3 4b738a97, = 3; both SAME),
+draws 10S01 / 10S02: answers right, but 7-10 pulses per run on the decode LUTs (umux0 $23187 / $23189; umux1 $23248 /
+$23249 / $23251), narrowest **94-100 ps**. So the cmpchain PASS in the 38-of-62 table rests on routes with the race your
+muxsel rule now sizes away; the muxn1 routes (above) are the clean replacement.
 
 ## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so on test_divui the line must outrun the enable chain, not the subtracts; divmodu needs far less (see the correction) (shard B, 2026-11-19 07:48 UTC, corrected 08:18; untrusted simulation, one placement for the edge)
 **The race, named.** Both ends launch at `udivui0`'s `joined` rise. Data: the stage-enable chain `tp[0..256]`

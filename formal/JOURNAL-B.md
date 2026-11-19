@@ -5000,3 +5000,4 @@ SelectTree build locally (1018 jobs) now that Mathlib is built.
 ### progress 08:43 -- muxn1 iterative_sqrt: decode LUTs clean; data-mux glitches only (B13); pulrun.sh pair fix
 pulrun.sh fed two-word pairs to a one-argument kernel (first iterative_sqrt runs: RESULT MISMATCH, harness error);
 task.sh now writes pairs.txt and pulrun.sh uses it.
+### progress 08:49 -- research's headline cmpchain routes carry the decode race (runts to 94 ps); B13 / B14
