@@ -1,4 +1,4 @@
-**THE AUTOMATIC COLUMN, every kernel the suite lists (2026-11-19 17:43 UTC; corrected for auditor T161 / T167 and the owner's
+**THE AUTOMATIC COLUMN, every kernel the suite lists (2026-11-19 20:03 UTC; corrected for auditor T161 / T167 and the owner's
 T156 / T161 rules).** One switch, BDC_AUTO=1, with no list of kernels (the md5-keyed MLIR rewrites are off since
 f7573b807), the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model;
 nextpnr 6e5d224472232d5d (suite3a / 3b and suite6's own predecessors partly 9c732bc6303458df: identical routes where no GND
@@ -25,7 +25,7 @@ same (kernel, seed): `research/tools/suite/suite_table.py --kernels research/too
 research/data/suite/headline_reasons.tsv --no-ratio isprime` over the farm's results/{suite3a, suite3b, suite8, suite7,
 suite6 (tasks 25-32 only: ipow, the one suite6 kernel no rewrite touched), suite9, suite9r3, norw1, norw1r2, gifast1,
 nsearch1, suite10b, muxn1, suite9r4, divsize1, divres1, suite10c, ifl1, ringfuse1 tasks 33-44 only (its v7 baselines; the
-BDC_RING_FUSE arm is a variant, not the column)}. The flow differs by request, by the defaults at each request's commit: suite3a e18df972b,
+BDC_RING_FUSE arm is a variant, not the column), suite11 (e2c8e6c52: v7 with the mux rule and the cell-confined peers)}. The flow differs by request, by the defaults at each request's commit: suite3a e18df972b,
 suite3b dfd498a94, suite8 c605cc2a6, suite9 eaef0dec7, norw1 0cebd725c: flow v6; suite7 45db9e386: v5; suite6 55988c8d5:
 v6; norw1r2 8d8f48878 and gifast1 ff31a03c1: + CA_FAST (identical proposals) and the bench-clock seed fallback;
 suite9r3 fe52cd741: + rule B's RAM guard; nsearch1 5c6ece20e: + the search phase (countloop's routes are v7); suite10b
@@ -38,7 +38,7 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 
 | kernel | status | routes judged (rule-clean + NOT CLEAN) / built | draws passing (clean; not clean) | ns per iteration (P) on clean routes, median (range) [on NOT CLEAN routes] | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| binary_search | PASS | 0 + 2 / 2 | -; 8 / 8 | - [36.90 (36.21-37.59)] | 4068 | 1657 | 24.18 (ESTIMATE) | - | - | 3094.71 (3042.86-3146.57) | - | - |
+| binary_search | PASS | 0 + 3 / 3 | -; 12 / 12 | - [37.59 (36.21-38.02)] | 4068 | 1655 | 24.18 (ESTIMATE) | - | - | 3102.00 (3042.86-3146.57) | - | - |
 | branchloop | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 14.79 (14.79-14.79) [14.22 (13.47-14.52)] | 2160 | 2213 | 36.77 (ESTIMATE) | 0.40 | - | 489.86 (463.29-522.43) | 486.08 (ESTIMATE) | 1.01 |
 | brhash | PASS | 0 + 4 / 4 | -; 16 / 16 | - [fit 32.08 (30.73-34.34)] | 8664 | 2110 | 36.40 (ESTIMATE) | - | - | 1314.30 (1261.20-1402.80) | 1443.81 (ESTIMATE) | 0.91 |
 | cmpchain | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 120 | 3083 | - | - | - | 100.94 (96.71-100.94) | 33.90 (ESTIMATE) | 2.98 |
@@ -47,8 +47,8 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | countloop | PASS | 7 + 1 / 8 | 28 / 28; 4 / 4 | 21.37 (20.31-24.87) [23.50 (23.50-23.50)] | 6420 | 1797 | 8.36 (ESTIMATE) | 2.56 | - | 921.30 (865.80-1018.20) | 341.14 (ESTIMATE) | 2.70 |
 | digitdiv | PASS | 1 + 0 / 1 | 4 / 4; - | 147.74 (147.74-147.74) | 4788 | 3813 | 303.77 (ESTIMATE) | 0.49 | - | 1416.00 (1416.00-1416.00) | - | - |
 | digitsum | PASS | 1 + 0 / 1 | 4 / 4; - | 146.42 (146.42-146.42) | 4752 | 3874 | - | - | - | 1447.33 (1447.33-1447.33) | - | - |
-| divmods | PASS | 1 + 0 / 1 | 4 / 4; - | 1614.00 (1614.00-1614.00) | 264 | 5610 | - | - | - | 270.25 (270.25-270.25) | - | - |
-| divmodu | PASS | 2 + 0 / 2 | 8 / 8; - | 1614.00 (1614.00-1614.00) | 276 | 2753 | - | - | - | 273.00 (264.00-282.00) | - | - |
+| divmods | PASS | 2 + 0 / 2 | 8 / 8; - | 1614.00 (1614.00-1614.00) | 420 | 5988 | - | - | - | 354.12 (270.25-438.00) | - | - |
+| divmodu | PASS | 4 + 0 / 4 | 16 / 16; - | 1614.00 (1614.00-1614.00) | 276 | 2764 | - | - | - | 273.00 (258.00-282.00) | - | - |
 | dot2 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 30.97 (30.97-30.97) [33.84 (33.39-34.28)] | 1152 | 1436 | 59.28 (ESTIMATE) | 0.52 | - | 717.75 (640.50-761.25) | 1212.19 (ESTIMATE) | 0.59 |
 | factorial | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 204 | 2635 | 129.79 (ESTIMATE) | - | - | 139.00 (131.00-142.00) | 233.79 (ESTIMATE) | 0.59 |
 | fill | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 32.86 (32.17-33.55) [29.88 (29.42-30.34)] | 1404 | 1942 | 10.95 (ESTIMATE) | 3.00 | - | 560.40 (528.00-600.00) | 208.09 (ESTIMATE) | 2.69 |
@@ -57,10 +57,10 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | gather | PASS | 0 + 4 / 4 | -; 16 / 16 | - [51.69 (48.15-55.22)] | 1824 | 1493 | 69.20 (ESTIMATE) | - | - | 1210.00 (1124.00-1244.67) | 1510.48 (ESTIMATE) | 0.80 |
 | gcd | PASS | 0 + 3 / 4 | -; 12 / 12 | - [62.82 (61.42-66.30)] | 2172 | 7178 | 50.60 (ESTIMATE) | - | 87.20 | 600.00 (593.25-628.50) | 429.97 (ESTIMATE) | 1.40 |
 | horner | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 28.03 (28.03-28.03) [30.22 (29.25-31.28)] | 8064 | 1735 | 41.81 (ESTIMATE) | 0.67 | - | 1193.45 (1147.09-1233.27) | 1601.58 (ESTIMATE) | 0.75 |
-| if_convert | PASS | 2 + 0 / 2 | 8 / 8; - | 49.76 (49.09-50.43) | 9780 | 812 | 65.70 (ESTIMATE) | 0.76 | - | 7158.00 (6960.00-7356.00) | - | - |
+| if_convert | PASS | 4 + 0 / 4 | 16 / 16; - | 50.48 (49.09-51.86) | 10056 | 807 | 65.70 (ESTIMATE) | 0.77 | - | 7281.00 (6960.00-7592.00) | - | - |
 | if_loop_1 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 27.97 (27.97-27.97) [33.51 (28.61-33.70)] | 3432 | 1888 | 19.90 (ESTIMATE) | 1.41 | - | 1833.00 (1629.00-2007.00) | 1145.83 (ESTIMATE) | 1.60 |
 | if_loop_2 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 29.77 (26.38-32.36) [29.54 (29.54-29.54)] | 3288 | 1541 | 16.67 (ESTIMATE) | 1.79 | - | 1959.38 (1743.00-2142.75) | 1063.98 (ESTIMATE) | 1.84 |
-| iir | PASS | 0 + 2 / 2 | -; 8 / 8 | - [56.40 (55.09-57.72)] | 57696 | 1185 | 48.68 (ESTIMATE) | - | - | 57081.00 (54852.00-59310.00) | - | - |
+| iir | PASS | 0 + 3 / 3 | -; 12 / 12 | - [55.15 (55.09-57.72)] | 57696 | 1184 | 48.68 (ESTIMATE) | - | - | 56868.00 (54852.00-59310.00) | - | - |
 | image_resize | PASS | 0 + 2 / 2 | -; 8 / 8 | - [69.67 (69.12-70.23)] | 63504 | 2454 | 18.95 (ESTIMATE) | - | - | 63180.00 (61782.00-64578.00) | - | - |
 | ipow | PASS | 6 + 2 / 8 | 48 / 48; 16 / 16 | 19.95 (18.71-21.58) [22.96 (22.57-23.36)] | 780 | 1341 | 49.98 (ESTIMATE) | 0.40 | 36.20 | 271.59 (254.12-296.47) | 513.90 (ESTIMATE) | 0.53 |
 | isprime | PASS | 0 + 3 / 3 | -; 12 / 12 | - [358.38 (346.76-374.58)] | 16632 | 3954 | 9.26 (ESTIMATE) | - | - | 4402.67 (4358.33-4658.67) | 2501.23 (ESTIMATE) | 1.76 |
@@ -69,36 +69,36 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | lfsrfind | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 25.33 (23.18-27.48) [27.79 (26.32-29.27)] | 7536 | 890 | 19.52 (ESTIMATE) | 1.30 | - | 1260.60 (1077.00-1395.00) | 901.06 (ESTIMATE) | 1.40 |
 | loop_path | PASS | 2 + 0 / 2 | 8 / 8; - | 45.23 (41.61-48.85) | 8208 | 1045 | 32.27 (ESTIMATE) | 1.40 | - | 7713.00 (7230.00-8196.00) | - | - |
 | memsum | PASS | 2 + 2 / 4 | 6 / 6; 8 / 8 | 29.43 (27.48-31.39) [29.08 (28.15-30.01)] | 1068 | 1394 | 59.33 (ESTIMATE) | 0.50 | - | 570.60 (552.00-604.80) | 1033.21 (ESTIMATE) | 0.55 |
-| mul_example | PASS | 0 + 1 / 1 | -; 4 / 4 | - [55.17 (55.17-55.17)] | 5556 | 317 | 79.88 (ESTIMATE) | - | - | 5676.00 (5676.00-5676.00) | - | - |
+| mul_example | PASS | 0 + 3 / 3 | -; 12 / 12 | - [59.88 (55.17-66.61)] | 6696 | 334 | 79.88 (ESTIMATE) | - | - | 6066.00 (5676.00-6858.00) | - | - |
 | nest3 | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 4992 | 5437 | 11.06 (ESTIMATE) | - | - | 1007.75 (983.50-1050.50) | 545.62 (ESTIMATE) | 1.85 |
 | nested | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 8556 | 3554 | 9.98 (ESTIMATE) | - | - | 1091.73 (1027.09-1222.91) | 416.53 (ESTIMATE) | 2.62 |
-| nested_loop | PASS | 0 + 2 / 2 | -; 8 / 8 | - [45.33 (44.60-46.05)] | 18576 | 1309 | 44.56 (ESTIMATE) | - | - | 18450.00 (17904.00-18996.00) | - | - |
+| nested_loop | PASS | 0 + 4 / 4 | -; 16 / 16 | - [44.89 (40.44-46.05)] | 18576 | 1303 | 44.56 (ESTIMATE) | - | - | 18357.00 (16356.00-18996.00) | - | - |
 | quadrec | PASS | 0 + 4 / 4 | -; 16 / 16 | - [44.85 (37.71-45.98)] | 11796 | 3291 | 9.09 (ESTIMATE) | - | - | 1689.60 (1393.20-1727.40) | 352.76 (ESTIMATE) | 4.79 |
 | share_test_1 | PASS | 0 + 1 / 1 | -; 4 / 4 | - [27.27 (27.27-27.27)] | 55548 | 1663 | 58.41 (ESTIMATE) | - | - | 55074.00 (55074.00-55074.00) | - | - |
-| share_test_2 | NOT-A-BOARD-ROUTE | 0 + 0 / 2 | -; - | - | - | - | 91.89 (ESTIMATE) | - | - | - | - | - |
-| simple_example_1 | PASS | 2 + 0 / 2 | 8 / 8; - | - | 72 | 85 | - | - | - | 72.00 (72.00-72.00) | - | - |
+| share_test_2 | NOT-A-BOARD-ROUTE | 0 + 0 / 4 | -; - | - | - | - | 91.89 (ESTIMATE) | - | - | - | - | - |
+| simple_example_1 | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 86 | - | - | - | 72.00 (72.00-72.00) | - | - |
 | single_loop | PASS | 1 + 0 / 1 | 4 / 4; - | 46.04 (46.04-46.04) | 23112 | 735 | 40.32 (ESTIMATE) | 1.14 | - | 22974.00 (22974.00-22974.00) | - | - |
 | sobel | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 43.37 (ESTIMATE) | - | - | - | - | - |
-| spmv | PASS | 0 + 2 / 2 | -; 8 / 8 | - | 1512 | 4047 | 43.09 (ESTIMATE) | - | - | 922.50 (898.50-946.50) | - | - |
+| spmv | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 1512 | 4027 | 43.09 (ESTIMATE) | - | - | 900.75 (874.50-946.50) | - | - |
 | sqrtsub | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 23.91 (23.91-23.91) [21.81 (21.17-24.36)] | 6300 | 1398 | 8.36 (ESTIMATE) | 2.86 | - | 832.85 (759.23-896.77) | 292.00 (ESTIMATE) | 2.85 |
-| stencil_2d | PASS | 0 + 1 / 1 | -; 4 / 4 | - [439.62 (439.62-439.62)] | 12360 | 2335 | 40.43 (ESTIMATE) | - | - | 12306.00 (12306.00-12306.00) | - | - |
+| stencil_2d | PASS | 0 + 2 / 2 | -; 8 / 8 | - [407.69 (375.76-439.62)] | 12360 | 2322 | 40.43 (ESTIMATE) | - | - | 11547.00 (10788.00-12306.00) | - | - |
 | straight | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | - | 72 | 1327 | - | - | - | 72.00 (72.00-72.00) | 14.92 (ESTIMATE) | 4.83 |
 | sumi3_mem | PASS | 4 + 0 / 4 | 8 / 8; - | 25.99 (23.22-27.86) | 27912 | 610 | 88.44 (ESTIMATE) | 0.29 | - | 26451.00 (23040.00-29226.00) | 88540.06 (ESTIMATE) | 0.30 |
 | test_bitint | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | - | 300 | 635 | 44.32 (ESTIMATE) | - | - | 288.00 (276.00-294.00) | 504.74 (ESTIMATE) | 0.57 |
-| test_bool_array | PASS | 0 + 2 / 2 | -; 8 / 8 | - | 96 | 113 | - | - | - | 96.00 (96.00-96.00) | - | - |
+| test_bool_array | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 96 | 112 | - | - | - | 96.00 (84.00-96.00) | - | - |
 | test_divui | PASS | 7 + 1 / 8 | 28 / 28; 4 / 4 | - | 480 | 2286 | - | - | - | 195.00 (180.00-516.00) | - | - |
-| test_flatten_array | PASS | 0 + 2 / 2 | -; 8 / 8 | - [57.48 (57.48-57.48)] | 29580 | 1548 | 15.74 (ESTIMATE) | - | - | 28935.00 (28230.00-29640.00) | - | - |
+| test_flatten_array | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | - [57.48 (57.48-57.48)] | 29580 | 1544 | 15.74 (ESTIMATE) | - | - | 28935.00 (25878.00-29934.00) | - | - |
 | test_int16 | PASS | 4 + 0 / 4 | 16 / 16; - | - | 60 | 3 | - | - | - | 60.00 (60.00-60.00) | - | - |
 | test_loop_free | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 1007 | - | - | - | 72.00 (72.00-72.00) | 11.55 (ESTIMATE; period extrapolated, model path 4.86 ns) | 6.23 (extrapolated period) |
-| test_memory_1 | PASS | 0 + 2 / 2 | -; 8 / 8 | - | 288 | 1052 | 13.94 (ESTIMATE) | - | - | 178.00 (176.00-180.00) | - | - |
-| test_memory_2 | PASS | 0 + 2 / 2 | -; 8 / 8 | - | 276 | 1172 | 13.94 (ESTIMATE) | - | - | 162.00 (159.43-164.57) | - | - |
-| test_stdint | PASS | 0 + 2 / 2 | -; 8 / 8 | - [48.29 (47.97-48.62)] | 4896 | 399 | 80.67 (ESTIMATE) | - | - | 4860.00 (4848.00-4872.00) | - | - |
+| test_memory_1 | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 288 | 1048 | 13.94 (ESTIMATE) | - | - | 172.50 (168.00-180.00) | - | - |
+| test_memory_2 | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 288 | 1172 | 13.94 (ESTIMATE) | - | - | 167.14 (159.43-169.71) | - | - |
+| test_stdint | PASS | 0 + 4 / 4 | -; 16 / 16 | - [50.02 (47.97-53.50)] | 5388 | 399 | 80.67 (ESTIMATE) | - | - | 5043.00 (4848.00-5364.00) | - | - |
 | twoloops | PASS | 0 + 4 / 4 | -; 16 / 16 | - [18.34 (17.33-18.74)] | 4884 | 2259 | 9.09 (ESTIMATE) | - | - | 1132.91 (1130.73-1214.18) | 514.10 (ESTIMATE) | 2.20 |
 | unused_arg | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 86 | - | - | - | 72.00 (72.00-72.00) | 1.95 (ESTIMATE; period extrapolated, model path 1.23 ns) | 36.92 (extrapolated period) |
 | varshift | PASS | 0 + 4 / 4 | -; 16 / 16 | - [34.22 (29.19-39.06)] | 10056 | 2524 | 11.84 (ESTIMATE) | - | - | 1452.60 (1252.80-1620.00) | 493.64 (ESTIMATE) | 2.94 |
-| vector_rescale | PASS | 0 + 1 / 1 | -; 4 / 4 | - [60.02 (60.02-60.02)] | 60048 | 596 | 48.68 (ESTIMATE) | - | - | 61164.00 (61164.00-61164.00) | - | - |
+| vector_rescale | PASS | 0 + 3 / 3 | -; 12 / 12 | - [58.10 (55.10-60.02)] | 60048 | 588 | 48.68 (ESTIMATE) | - | - | 57840.00 (55428.00-61164.00) | - | - |
 | video_filter | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 57.14 (ESTIMATE) | - | - | - | - | - |
-| while_loop_3 | PASS | 1 + 1 / 2 | 4 / 4; 4 / 4 | 25.75 (25.75-25.75) [27.57 (27.57-27.57)] | 996 | 801 | 34.00 (ESTIMATE) | 0.76 | - | 303.43 (299.14-307.71) | - | - |
+| while_loop_3 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 24.86 (24.49-25.75) [27.57 (27.57-27.57)] | 996 | 800 | 34.00 (ESTIMATE) | 0.73 | - | 293.57 (288.00-307.71) | - | - |
 | xorshift | PASS | 6 + 2 / 8 | 48 / 48; 16 / 16 | 22.16 (20.42-23.57) [20.89 (20.55-21.23)] | 6096 | 1316 | 12.73 (measured, 1 route) | 1.74 | 16.76 | 2214.79 (2061.16-2427.16) | 1257.59 (cycles simulated, period measured (1 route)) | 1.76 |
 
 59 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 22): 1.01. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 31): 1.38.
