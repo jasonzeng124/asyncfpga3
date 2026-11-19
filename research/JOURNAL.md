@@ -7277,7 +7277,7 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 ### progress 06:54 (headline 38 of 62; FOUND: the automatic flow undersizes the divider -- test_divui wrong on CLEAN routes)
 - Headline regenerated with suite9r3 (50 / 52), norw1r2 (done), suite10b (19 / 64): **38 of 62 kernels pass**;
   WRONG ANSWER under draws: if_loop_1 (the host-fill race, fixed in the rule since: ifloop), **test_divui** (new).
-- **test_divui (), suite10b seeds 1 / 2: every draw FAILS on two rule-CLEAN routes** (sdf 9875e724 /
+- **test_divui (return var1 / 1083), suite10b seeds 1 / 2: every draw FAILS on two rule-CLEAN routes** (sdf 9875e724 /
   8ca1bfa7, bits EQUIVALENT, no runt): the sizing loop shrank the divider's matched delay UDIVUI0 from 161 links (the
   start) to 4-5 because the rule measures the quotient settling ~3.4 ns after the operand (A -40 ps "req 3400 data 3340")
   while the real enable-gated divider needs ~122 ns at the worst corner; the bench reads garbage after 5 host cycles
