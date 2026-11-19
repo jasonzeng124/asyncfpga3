@@ -135,6 +135,20 @@ near_args() {  # near_args I: AUTO_NEAR_PS (opt-in): the finish phase also pads 
   local c l=""; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do l="$l${l:+,}$O/lines_${1}_$c.txt"; done
   echo "--near $AUTO_NEAR_PS $l"
 }
+place_dump() {  # place_dump I: route I's placement, one "cell<TAB>bel" per line (AUTO_PLACE_KEEP)
+  python3 - "$RUNS/hw/${N}_$1/${D}_routed.json" > "$O/place_$1.txt" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+for m in d["modules"].values():
+    cs = m.get("cells", {})
+    if any("NEXTPNR_BEL" in c.get("attributes", {}) for c in cs.values()):
+        for n, c in sorted(cs.items()):
+            b = c.get("attributes", {}).get("NEXTPNR_BEL")
+            if b:
+                print("%s\t%s" % (n, b))
+        break
+PY
+}
 build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); final() runs the full stack on the kept one
   # A route whose BENCH side (the PS-clocked harness, not the kernel) misses build_bench.sh's 83 MHz target is refused
   # by build_bench.sh ("TIMING FAILED"), and with NEXTPNR_SEED pinned it gets one attempt, so one such route used to
@@ -142,14 +156,36 @@ build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); f
   # that iteration is built again on seed S + 100, then S + 200 (AUTO_SEED_TRIES, default 3 attempts); only a missed
   # bench clock is retried. The seed each iteration was built with is in seed_I.txt (a resume rebuilds with it; a
   # board item names it). Without such a miss nothing changes: every iteration is built on S, as before.
-  local i=$1 Z=$2 a s HWI=$RUNS/hw/${N}_$1
+  local i=$1 Z=$2 a s HWI=$RUNS/hw/${N}_$1 PF="" pfa
   local s0; s0=$(cat "$O/seed_$i.txt" 2>/dev/null || echo "$S")
+  # AUTO_PLACE_KEEP=1 (opt-in; unset, nothing below changes a build): a FINISH-phase route keeps the placement of the
+  # route before it (cells/hw/build_bench.sh BD_PLACE_FROM; only the cells a raised line adds are placed). Why: a
+  # fresh re-route moves every margin by ~0.5 ns (sd) where no line changed (research/data/converge/notes.txt), and the
+  # raise-only steps chase those fresh misses; test_bool_array s1 it 5 -> 6: 6051 of 6136 cells moved for 3 new LUTs.
+  # placefrom_I.txt names the route kept (a rebuild on resume uses it again); place_I.txt is route I's placement
+  # (cell, bel), written for every route the loop builds while the knob is on. A bench clock missed with the kept
+  # placement is retried fresh on the next seed (and placefrom_I.txt removed), as before.
+  if [ -f "$O/placefrom_$i.txt" ]; then PF=$O/place_$(cat "$O/placefrom_$i.txt").txt
+  elif [ "${AUTO_PLACE_KEEP:-0}" = 1 ] && [ "${ph:-1}" = 2 ] && [ "$i" -ge 1 ]; then
+    local j=$((i - 1))
+    [ -f "$O/place_$j.txt" ] || { [ -f "$RUNS/hw/${N}_$j/${D}_routed.json" ] && place_dump "$j"; }
+    [ -f "$O/place_$j.txt" ] && { PF=$O/place_$j.txt; echo "$j" > "$O/placefrom_$i.txt"; }
+  fi
   for a in $(seq 0 $(( ${AUTO_SEED_TRIES:-3} - 1 ))); do
     s=$s0; [ "$a" -gt 0 ] && s=$((S + 100 * a)); [ "$a" -gt 0 ] && [ "$s" = "$s0" ] && s=$((S + 100 * (a + 1)))
     [ "$a" -gt 0 ] && rm -rf "$HWI" "$RUNS/r/${N}_$i"
-    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/it_$i.log" 2>&1
+    pfa=""; [ "$a" = 0 ] && [ -n "$PF" ] && pfa="BD_PLACE_FROM=$PF"
+    [ "$a" -gt 0 ] && rm -f "$O/placefrom_$i.txt"
+    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s" "$VEC" BDC_AUTO=1 ${XENV:-} $pfa > "$O/it_$i.log" 2>&1
     tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
-    if [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$HWI/${D}_routed.json" ]; then echo "$s" > "$O/seed_$i.txt"; return 0; fi
+    if [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$HWI/${D}_routed.json" ]; then
+      echo "$s" > "$O/seed_$i.txt"
+      if [ "${AUTO_PLACE_KEEP:-0}" = 1 ]; then
+        place_dump "$i"
+        [ -n "$pfa" ] && echo "it $i: placement kept from it $(cat "$O/placefrom_$i.txt") ($(grep -o 'place_from: bound [0-9]* of [0-9]* cells (new [0-9]*' "$HWI/build.log" 2>/dev/null | head -1 || true)))" >> "$O/log.txt"
+      fi
+      return 0
+    fi
     grep -q "TIMING FAILED" "$HWI/build.log" 2>/dev/null || return 1
     echo "it $i: seed $s missed the bench clock ($(grep -o 'TIMING FAILED: [0-9.]* MHz' "$HWI/build.log" | head -1)); next seed" >> "$O/log.txt"
   done

@@ -467,6 +467,7 @@ while [ "$attempt" -lt "$PNR_TRIES" ]; do
         exit 1
     fi
 
+    if [ -n "$PREPLACE" ]; then grep -h '^place_from:' "$OUT/pnr.log" || true; fi   # BD_PLACE_FROM: cells kept
     ACHIEVED=$(grep -oP "(?<=Max frequency for clock 'fclk0_bufg': )[0-9.]+" "$OUT/pnr.log" | tail -1)
     if [ -z "$ACHIEVED" ]; then
         echo "TIMING: no Fmax for fclk0_bufg in $OUT/pnr.log -- cannot certify this build" >&2

@@ -26,10 +26,19 @@ free_rx = os.environ.get("BD_PLACE_FREE", "")
 free_re = re.compile(free_rx) if free_rx else None
 STRENGTH = {"user": STRENGTH_USER, "locked": STRENGTH_LOCKED, "fixed": STRENGTH_FIXED, "strong": STRENGTH_STRONG}[
     os.environ.get("BD_PLACE_STRENGTH", "fixed")]
-with open(src) as f:
-    d = json.load(f)
-top = [m for m in d["modules"].values() if any("NEXTPNR_BEL" in c.get("attributes", {}) for c in m.get("cells", {}).values())]
-prev = {n: c["attributes"]["NEXTPNR_BEL"] for n, c in top[0]["cells"].items() if "NEXTPNR_BEL" in c.get("attributes", {})}
+if src.endswith(".json"):            # a routed JSON: its NEXTPNR_BEL attributes
+    with open(src) as f:
+        d = json.load(f)
+    top = [m for m in d["modules"].values()
+           if any("NEXTPNR_BEL" in c.get("attributes", {}) for c in m.get("cells", {}).values())]
+    prev = {n: c["attributes"]["NEXTPNR_BEL"] for n, c in top[0]["cells"].items() if "NEXTPNR_BEL" in c.get("attributes", {})}
+else:                                # research/tools/auto/auto_size.sh's place_I.txt: "cell<TAB>bel" per line
+    prev = {}
+    with open(src) as f:
+        for ln in f:
+            if ln.strip() and not ln.startswith("#"):
+                n, b = ln.rstrip("\n").split("\t")
+                prev[n] = b
 n = new = freed = taken = mism = bound = 0
 for name, cell in ctx.cells:
     n += 1
