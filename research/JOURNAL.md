@@ -7756,3 +7756,13 @@ host-write race on the row array's RAM) had no answer in the journal**: answered
 Next: session 19's 21:52 list stands (regenerate the headline over the newest farm results with the P-vs-slope rule and v8
 as its own column; AUTO_FINISH_SEEDS=3 default + a smoke run; trip counts from the C for every kernel; gcd's P loop; the
 goal-1 list of the 19:53 state of play), plus rule B's guard form (above).
+### progress 21:57 (farm state for the next session; session end, LOCK cleared)
+- Read from origin/claude/cluster at 21:57: **suite12** (flow v8, seed 1) 35 of 62 results back: 34 PASS on every draw
+  (4 / 4), share_test_2 NOT-A-BOARD-ROUTE (fasm2net's DSP48E1 cascade gap, as before); 21 rule-clean, 14 not (6
+  not-clean, 8 not-clean-unfixable: xorshift, cmpchain, gather, factorial, iterative_division, iterative_sqrt,
+  test_memory_1 / 2, test_bool_array, binary_search, mul_example, test_stdint, countloop, share_test_2). New since session
+  18's 28: binary_search P 37.86, collatz64 29.89, countloop 24.20, gather 56.03, if_convert 55.13, iterative_division
+  20.99, iterative_sqrt 55.25, test_stdint 53.28 (one seed each: no claim). suite11 52 / 54, finseeds1 39 / 40, suite10d
+  2 / 7 finished.
+- Session end: branch pushed, journal current, BOARD-QUEUE unchanged (no candidate judged), nothing running locally,
+  LOCK cleared with this commit. Next: as at the session heading's Next.
