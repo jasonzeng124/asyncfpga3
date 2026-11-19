@@ -4914,14 +4914,14 @@ muxsel: the N-way mux decode race is in no rule, cmpchain lines at 1 show runts 
 open row on B's files; T153 / T154 confirmed items 39-41).
 Setup: formal/setup.sh running in the background (Mathlib cache unreachable, building from source again).
 No local FPGA toolchain: simx work goes to the farm this session.
-### progress 07:40 -- farm b_divui and b_muxn filed
+### progress 07:14 -- farm b_divui and b_muxn filed
 - **b_divui** (8 tasks): research's two failing test_divui routes (suite10b s1 / s2, sdf 9875e724 / 8ca1bfa7, UDIVUI0 5 / 6)
   rebuilt + sdf-checked + decoded from the bits, 32 + 32 slow-carry draws with research's K and C oracle; and what-if
   rebuilds with UDIVUI0 at 16 / 32 / 64 / 128 / 528 (seed 1) and 64 (seed 2), 16 + 16 draws: an independent answer to
   "does formal's simx also see the wrong divider" and how long the line must be. task.sh: SDF8 '-' = a what-if route.
 - **b_muxn** (3 tasks): research's muxsel routes cmpchain s2 it5 (1c13ff02, line 1), s3 it2 (1994ab81), s2 it5 with the
   line at 7 (a44b35aa); 8 draws from research's K 20001 + 8 slow-carry.
-### progress 07:58 -- farm b_hl1 filed: research's headline judged by formal's simx
+### progress 07:17 -- farm b_hl1 filed: research's headline judged by formal's simx
 30 routes, one per headline kernel not covered by B8 / B11 (NOT CLEAN preferred; route list from claude/cluster
 results/{suite3a,3b,9,9r3,10b,gifast1}/*/result.txt, the latest request per seed; sizes = that task's auto/sizes_<it>.vh),
 16 + 16 slow-carry draws each. Controls: if_loop_1 s1 (b2ad5a7b) is research's WRONG ANSWER route (host-fill race);
