@@ -7529,3 +7529,31 @@ varshift, brhash, fold64, lfsrfind, twoloops among them); no counterexample to a
   against estimates, 4 of them non-memory (branchloop, digitdiv, horner, ipow).
   (4) ratios on one rule-clean route: 8 on this table (the prose said 6; the auditor counted 7 on the older table).
 - Does NOT show: the Dynamatic estimates behind the 10 ratios below 1 were not re-derived (DYNFIG_REPORT.md stands).
+### progress 21:50 (finseeds1 37 / 40: its +20.6 ns outlier is the event-graph P, not a slower route; suite12 28 / 62 back)
+- **finseeds1** (tasks 14 DA quadrec s1, 18 DA iterative_division s3, 29 A collatz64 s2 still RUNNING at 21:34):
+  arm DA (+2 extra seeds per not-clean finish step) **18 / 18 CLEAN, 144 / 144 draws**; arm A (today's default: 6
+  routes, least-short shipped) **12 CLEAN / 7 NOT CLEAN, 152 / 152 draws**. P against each loop's original NOT CLEAN
+  route (12 / 14 pairs with an original P): DA median -1.46 ns, A median -2.50 ns (A includes its NOT CLEAN routes).
+  Prediction (A >= 11 of 20 CLEAN; DA clean wherever A is, plus 1-3) held: 12 and 18.
+  Note: it5_check says DIFFERENT on 16 of 18 DA tasks (the rebuilt it 5 is not the farm's route: the request ran at a
+  later commit than norw1 / split1 / suite9r3), so the farm runs are not the control the request's header claims;
+  the comparison is arm against arm, same commit.
+- **The outlier explained:** branchloop s2, arm DA, adopted seed 2002's route at it 8 (sdf e5e9c01f): P 35.12 ns,
+  against 14.23 on arm A's seed-2 route (cda01728) and 14.52 originally. The bench's latency per call is the same on
+  both (median 222 ns; sum over the 14 vectors 7422 vs 7572 ns: the DA route is 2 % FASTER). P is the event graph's
+  period (auto_size.sh final(): "event-graph P"), not a bench time; on a loop with a data-dependent branch it can
+  pick a cycle the vectors barely run. **Lead (goal 2 reporting, before the next headline):** check P against the
+  bench's per-call latency on every kernel with a branch in its loop; the headline's ns column is this P (branchloop's
+  ratio 0.40 rests on one clean route).
+- **AUTO_FINISH_SEEDS=3 as a default: recommended, NOT changed here** (no time left in this job for the smoke test a
+  default change needs; DA costs two extra routes per not-clean finish step, and 2 of its 20 tasks are still running
+  after 3.5 h at 3 cores). Next session: make it the default with a local smoke run, after the last 3 tasks.
+- **suite12** (flow v8, seed 1): 28 of 62 back, **27 PASS on every draw**, share_test_2 NOT-A-BOARD-ROUTE (decoder
+  gap). One seed per kernel, so no claim; beside the headline's v6 / v7 clean medians: xorshift 17.81 [NOT CLEAN]
+  (v7 22.16), horner 22.07 (28.03), lfsrfind 22.40 (25.33), memsum 27.77 (29.43), fill 30.40 (32.86), collatz 23.50
+  (22.54), ipow 20.62 (19.95), sqrtsub 29.74 (23.91, slower), while_loop_3 28.34 (24.86, slower); twoloops 19.07 and
+  varshift 33.52 now rule-clean. test_divui s1 (wrong under v7's old rule) passes 4 / 4.
+- Does NOT show: anything about v8 as a distribution (one seed); finseeds1's three running tasks.
+Next: (1) suite12's last 34 kernels, suite11's last 3, suite10d, finseeds1's last 3 -> regenerate the headline
+(suite_table.py, provenance paragraph), v8 as its own column; (2) AUTO_FINISH_SEEDS=3 default + smoke; (3) the P vs
+bench check on branch kernels; (4) the open goal-1 list in the 19:53 state of play stands.
