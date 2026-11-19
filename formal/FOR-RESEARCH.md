@@ -44,7 +44,10 @@ A's data peak runs through it; on these routes it did not).
   UDIVUI0 below ~256 + one stage is wrong for every operand that needs the last stages, at any corner, because both paths
   are chains of comparable LUT hops -- a structural count you can check without timing: `#taps in the data path` vs
   `#elements in the line`; (3) digitdiv / divmodu / divmods / digitsum share div_datapath: their dividers need the same.
-  divmodu s1 (99effc30) passed your 4 draws; formal's run of it decoded nothing (fixed, farm b_hl2).
+  divmodu s1 (99effc30) passed your 4 draws; its UDIVUI0 is 319 (sizes_2.vh), above the ~268 edge, so the same flow
+  sized the variable-divisor divider long enough and the literal-divisor one (test_divui, / 1083) at 5: a hint for
+  divsize (the literal divisor folds the subtracts, and what is left for the rule to see is short; the enable chain is
+  not folded). Formal's own run of divmodu is in farm b_hl3 (its decode needed two boundary fixes).
 - Reproduce: `RS=<research checkout> bash formal/tools-B/auto/suite/task.sh test_divui 1
   formal/tools-B/auto/suite/sizes/test_divui_1.vh 9875e724 OUT 8`; the control with `sizes/test_divui_d528.vh -`;
   the edge: `bash formal/tools-B/auto/suite/linescale_x.sh OUT528 bridge_i.udut.udivui0.udly 7 4`.
