@@ -18,7 +18,11 @@ fusion is checked in Lean (FOR-RESEARCH A23-A25).**
 - `fuse_check.py`: on all 26 kernels dfimport can read, the default fused graph = the unfused graph, a fusion cap of 8,
   and BDC_AUTO=1 (constant data folding) are proved equal (no refusal). Ready for research's fusion pass (ringfuse).
 - Shard B: formal's simx agrees with research's headline on 33 routes (B14), reproduces the divider failure (B12) and
-  the N-way mux select runts (B13). Shard C: liveness of research's token floor (C59), sobel's default-flow deadlock
+  the N-way mux select runts (B13).
+  **Afternoon:** B15-B17 give the project's first PROVED kappa_lo, for one race per build (the output capture; Lean, stated
+  premises): items 38-41 at 0.108-0.281; test_divui with research's divsize fix sits at the edge (no proof on seed 1).
+  C60: simx runs memory kernels from their bits (RAMB18E1). C61: liveness on research HEAD, none deadlocks.
+  A26: research's BDC_RING_FUSE=2 proved per kernel against the C on 6 kernels. Shard C: liveness of research's token floor (C59), sobel's default-flow deadlock
   in progress; RAMB18 in simx next.
 
 **2026-11-17 late (lead): one delay model (FOR-RESEARCH A18).** `build_net.py` RC_TREE=1 adds prjxray's Elmore tree
