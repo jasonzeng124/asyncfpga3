@@ -256,7 +256,7 @@ sdf SAME on all 28 here (countloop s1 / ipow s1 with their search-phase ENV, BDC
 | 9-16 | collatz s1-s8 (9881f22a / 707608d0 / bd157c2e / 7ed75da9 / d8b7c9d3 / 86b0c6c5 / 192c8a42 / 5a801ad9) | 8 + 8 each, 0 pulses | 0.351 / none (-0.012) / 0.260 / 0.149 / 0.201 / 0.201 / 0.338 / 0.326 |
 | 17-22 | countloop s1-s6 (84dad03e becb3043 ebf1bbc6 544cf8c4 67b575ac a1658752) | 8 + 8 each, 0 pulses | 0.323 / 0.152 / 0.352 / 0.337 / 0.126 / 0.055 |
 | 25-30, 32 | ipow s1-s6, s8 (d0d6f410 840293d4 a8281ece 6684bc94 027c6811 793da4b1 e9c1079e) | 8 + 8 each, 0 pulses | 0.128 / 0.049 / 0.170 / 0.247 / 0.231 / 0.021 / 0.226 |
-| 31 | ipow s7 (01894137) | 8 + 8, but pulse bursts in 4 of 16 (below) | 0.269 |
+| 31 | ipow s7 (01894137) | 8 + 8, but pulse bursts in 4 of 16; your failing draw is start-up X (below) | 0.269 |
 - **The fused counter's long carry (xorshift s4):** the loop counter preloaded at 0x3ffffff0 through ulink_n6 (B8's
   check), 7 vectors crossing 2^30: 8 / 8 pass. Control: +20 ns on the carry-in of the fused cell's bits 16-19 slice
   (ucmpi1 slice[4], SLICE_X26Y55): preloaded 0 / 2, ordinary xor19 2 / 2 -- the preload reaches the carry and the
@@ -275,7 +275,18 @@ sdf SAME on all 28 here (countloop s1 / ipow s1 with their search-phase ENV, BDC
   near-tie into a hang, formal's into a right answer. Not traced further: the difference is in the arbiter's resolution
   model (your state-node resolver; formal's transport LUTs) and the host's re-request timing (formal's two-call run never
   forms the tie). Shard C's C56 (the control_merge index race: A2 still high when the next entry token wins) is the
-  candidate mechanism. A route to keep off the board.
+  candidate mechanism.
+  **TRACED (17:15 UTC): your failure is the start-up X of your GLS, not a timing failure.** Your own bench_gate.sh,
+  run here on the rebuilt route (draw:10707, GATE_RUNTS=1), reproduces your verdict exactly (FAIL 16/17, 100 869 cycles,
+  the same runts): 28 handshake nets go X at t ~1.645 us in batch 0, the first call after reset (control merges, branch
+  steers, ulink_n7), and batch 0's second call hangs with an X in the host's FSM (fsm=000005X4); every later batch is DONE.
+  With your fid_core.vh power-up option (GATE_PLUSARGS=+META_INIT=0, and again =1: storage LUTs start at a value, as the
+  configured chip does) the same draw **PASSES 17/17 in 902 cycles, x 0**, on both. What remains in all three runs are
+  the near-tie pulses (narrowest 85-119 ps at ucontrol_merge0.uarb1.ustate.q and the branch steers ucond_br2 / ucond_br5):
+  the same place formal's simx shows its pulse bursts. So: not a failing route (both simulators agree once the X is
+  removed), but the most marginal of the 29 at that arbiter. C17 found the same start-up X behind your select-join
+  injections on 2026-11-16; draws that fail only in batch 0 with x > 0 are worth rerunning with +META_INIT=0 / 1 before
+  they count.
 - Not run here: tasks still on the farm; the v7 baselines (task 33 did not reproduce its sdf from a15e5a5f1).
 
 ## B17. Your divsize fix, checked: its test_divui routes pass formal's draws, but sit on the edge of what can be proved -- seed 1 (line 332) has no proof even at kappa 0, seed 3 (338) 0.006, seed 2 (386) 0.082 (shard B, 2026-11-19 11:00 UTC; untrusted simulation + B15's Lean-logic bound)
