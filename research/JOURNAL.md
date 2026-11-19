@@ -7188,3 +7188,10 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   (and the sizing rule) measure s against ctl_req at the decode LUTs, opt-in first, CA_FAST kept exact; a negative
   control that fails statically AND in the routed GLS (GATE_RUNTS=1); the margins on the routes available, and whether
   any board item has an N-way mux.
+### progress 03:46 (headline: 29 of 62 kernels pass; collatz64 with no kernel list 30.93 ns on clean routes)
+- norw1r2 (norw1's loops resumed, CA_FAST): every rebuilt shipped route had its earlier sdf md5; collatz64 s4-s7 with no
+  kernel list: 28.10 / 29.85 (NOT CLEAN), 30.93 / 31.49 (clean), 8 / 8 draws each (with its rewrite, suite6: 23.01):
+  the rewrite was worth ~8 ns on collatz64, inside the 28-32 predicted; collatz s1 18.98 (clean at it 2).
+- Headline regenerated over suite3a / 3b / 8 / 7 / 6 (ipow) / 9 / 9r3 (partial) / norw1 / norw1r2 / gifast1: **29 of 62
+  kernels attempted pass**; no-list column on clean routes: xorshift 22.16 (6 routes), collatz 22.54 (5), collatz64
+  30.93 (3); gcd 62.82 and isprime 358.38 on NOT CLEAN routes only (the bench-capture lap; CA_BENCHCAP opt-in).
