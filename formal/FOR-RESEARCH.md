@@ -289,6 +289,15 @@ sdf SAME on all 29 here (every BDC_RING_FUSE=2 route of farm ringfuse1 that fini
   removed), but the most marginal of the 29 at that arbiter. C17 found the same start-up X behind your select-join
   injections on 2026-11-16; draws that fail only in batch 0 with x > 0 are worth rerunning with +META_INIT=0 / 1 before
   they count.
+  **The near-tie, named and in picoseconds:** your loop shipped this route NOT CLEAN with rule-E rows at the branch steers
+  ucond_br5 (-578 / -1019 ps at 0.20 / 0.31), ucond_br2 (-317 / -729), ucond_br3 (-290 / -687), ucond_br4 (-330 at 0.31)
+  and A'j at ucmpi0 (-428 / -863). The steers' condition is the fused compare's output `ucmpi0.uz_n4` (ring fusion put the
+  loop test in that cell); the request is each steer's join `ucond_brN_j`. Formal's C steermargin (no scatter, at draw
+  10707's bands 0.20 / 0.30 / CARRY 0.92): the condition settles at the steer LUT only **57-61 ps (ucond_br2), 102 ps
+  (br3), 147-154 ps (br5)** before the request, and at br5 it **moves under a live request in 1 of 17 calls** (a steer
+  runt). All bands at FAST_MIN: 77 ps at br5, 282 at br2; all at SLOW_MAX: >= 847 ps. So the slow-carry / fast-LUT corner
+  (the compare's carry chain slow, the join's request fast) is where it closes -- B7's failure mode, at the fused test --
+  and your rule-E rows name exactly these steers: they are real, and the route is the thinnest of the 29.
 - Not run here: tasks still on the farm; the v7 baselines (task 33 did not reproduce its sdf from a15e5a5f1).
 
 ## B17. Your divsize fix, checked: its test_divui routes pass formal's draws, but sit on the edge of what can be proved -- seed 1 (line 332) has no proof even at kappa 0, seed 3 (338) 0.006, seed 2 (386) 0.082 (shard B, 2026-11-19 11:00 UTC; untrusted simulation + B15's Lean-logic bound)

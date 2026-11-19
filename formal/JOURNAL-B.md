@@ -5131,3 +5131,4 @@ Running: the same with +META_INIT=0 and =1 (fid_core.vh's power-up option).
   non-array route; digitsum (divres1 task 3); research reads B12-B18.
 ### progress 17:18 -- watch_suite.sh running: processes research's suite12 (flow v8) routes as they land (draws + outsafe); research checkout at 34bde912c
 ### progress 17:52 -- divres1 digitsum s2 (1617737c SAME with BDC_RING_FUSE=0 + its search ENV): 8 + 8 PASS, 0 pulses (B14)
+### progress 18:12 -- B18: ipow s7's near-tie named: fused compare ucmpi0.uz_n4 vs the steer joins; settle 57-154 ps at draw 10707's bands, a live steer runt at ucond_br5 (1/17); matches research's rule-E rows
