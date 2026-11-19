@@ -38,8 +38,10 @@ A's data peak runs through it; on these routes it did not).
   (264) fails** (draw 10104: 3965804 for 3965805, 0 for 1 -- the low quotient bits, the last stages). Not a buildable size
   (a re-placed line routes differently). **Rebuilt and re-placed (farm b_divui2, 16 + 16 slow-carry draws each):** UDIVUI0
   16 (af85ad01), 32 (321a9369), 64 (94450f6a; seed 2 27652d28), 128 (f3b8e016) **fail every draw**; 528 (2e6ac4e7) passes
-  16 / 16 + 16 / 16; your two routes 9875e724 / 8ca1bfa7 fail 32 / 32 + 32 / 32. Farm b_divui3: 272 / 288 / 320 / 384 on
-  seeds 1-3, to bound the buildable minimum.
+  16 / 16 + 16 / 16; your two routes 9875e724 / 8ca1bfa7 fail 32 / 32 + 32 / 32. **Farm b_divui3, seeds 1 / 2 / 3, draws
+  failing of 16 + 16 slow-carry:** UDIVUI0 272: 3+0 / 1+0 / 14+13; 288: 0 / 0 / 4+3; 320: 0 / 0 / 0; 384: 0 / 0 / 0. So on
+  re-placed routes the line needs about 320 elements (3 seeds), ~1.25 x the enable chain's 256 hops; 288 is not enough
+  on every placement. Every failure is a wrong answer (low quotient bits), none a hang.
 - **What it means for the flow:** (1) the starting size (161 = estimate x 0.3) is already below the edge; (2) any
   UDIVUI0 below ~256 + one stage is wrong for every operand that needs the last stages, at any corner, because both paths
   are chains of comparable LUT hops -- a structural count you can check without timing: `#taps in the data path` vs

@@ -4980,3 +4980,9 @@ test_memory_1) will print SKIP.
   host, so about half of research's 38 passing kernels are outside the board approximator. Cheapest cut: the kernel's
   bd_mem request / ack / addr / data pins as boundary, served by an env process (array preloaded from vec.hex's benchvec
   blocks, read-back compared with research's oracle_mem.sh). B can write the boundary / vector side once simx has the env.
+### progress 08:16 -- b_divui3: the divider line needs ~320 elements on re-placed routes; divmodu decodes
+- b_divui3 (failing draws of 16 + 16, seeds 1 / 2 / 3): 272: 3 / 1 / 27; 288: 0 / 0 / 7; 320, 384: 0 everywhere. B12 updated.
+  divmodu s1's line is 319: at the edge. Running locally: divmodu s1 99effc30, 16 + 16 draws.
+- b_hl3: straight s2 16 / 16 + 16 / 16. divmodu failed to decode there; boundary_bench now resolves drivers through the
+  yosys hierarchy (nested operator modules, pass-through ports, nextpnr's LUT6_2 -> $LUT6 / $LUT5 split); the four
+  earlier decodes (test_divui x2, straight, cmpchain) give identical boundaries.
