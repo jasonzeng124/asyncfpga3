@@ -20,6 +20,14 @@ are memory kernels (the fixture's handshake has a memref: dot2, fill, fir, if_co
 memsum, single_loop, sumi3_mem, while_loop_3); without them the mean with estimates is 1.16 (n = 11), against 1.01 with
 them. All 10 ratios below 1 are against ESTIMATED figures, none against a measured one, and 4 of the 10 are not memory
 kernels (branchloop, digitdiv, horner, ipow), so the estimate itself, not only the memory buffering, is in question there.
+**What "ns per iteration" is (checked 2026-11-19 21:35 UTC):** P is the event graph's period of the routed design
+(auto_size.sh final()), not a time the bench measured. Over every PASS route on origin/claude/cluster (30 kernels with
+>= 4 routes on the same vectors), P tracks the bench's latency per call (correlation >= +0.9 on 24; on iterative_sqrt,
+binary_search, divmodu and fir P varies by under 6 %, too little for a correlation to say anything), except on two
+kernels, one route each: **dot2 seed 2** (suite8 / suite9, NOT CLEAN: P 156.000 ns exactly, on the
+route with the LOWEST latency of the kernel) and **branchloop seed 2 in finseeds1 arm DA** (rule-clean: P 35.12 ns, against
+14.2-14.8 on the kernel's other routes, at the same latency: 222 ns median per call). Neither is in the table below; the
+second WILL be at the next regeneration (finseeds1 supersedes suite9r3 for that seed) and must not be read as a speed.
 
 **The flow moved on after these routes (2026-11-19 17:07 UTC):** BDC_AUTO=1 now fuses each loop's update with its test
 (BDC_RING_FUSE=2, flow v8; farm ringfuse1: faster on 19 of 29 paired seeds, median -1.27 ns, xorshift 8 / 8 at -1.87),

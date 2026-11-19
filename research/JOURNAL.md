@@ -7557,3 +7557,16 @@ varshift, brhash, fold64, lfsrfind, twoloops among them); no counterexample to a
 Next: (1) suite12's last 34 kernels, suite11's last 3, suite10d, finseeds1's last 3 -> regenerate the headline
 (suite_table.py, provenance paragraph), v8 as its own column; (2) AUTO_FINISH_SEEDS=3 default + smoke; (3) the P vs
 bench check on branch kernels; (4) the open goal-1 list in the 19:53 state of play stands.
+### progress 21:36 (P against the bench, every PASS route on the farm: two single-route anomalies, one of them about to enter the headline)
+- Read only (git cat-file over origin/claude/cluster results/*/*/result.txt, 1135 files): for the 30 kernels with >= 4
+  PASS routes on the same vectors, the event-graph P and the bench's latency per call (lat_call_sum_ns) correlate at
+  >= +0.9 on 24 kernels; iterative_sqrt, binary_search, divmodu and fir have P spreads under 6 % (correlation says
+  nothing there). The two exceptions are one route each: **dot2 s2** (suite8 / suite9, NOT CLEAN, P = 156.000 ns
+  exactly -- a round number, on the kernel's LOWEST-latency route: looks like a fallback value, not a period) and
+  **branchloop s2 finseeds1 DA** (rule-clean, P 35.12 vs 13.5-14.8 on the other five routes at equal latency).
+- Headline: a caveat paragraph says what P is and names both routes; the branchloop one becomes the clean s2 route at
+  the next regeneration (finseeds1 supersedes suite9r3) and would move branchloop's ratio from 0.40 to about 0.7.
+- Does NOT show: which cycle the event graph picked on either route, or where 156.000 comes from (grep the event-graph
+  tool for a cap / default). **Next session, before regenerating the headline:** find both causes; until then have
+  suite_table.py flag a route whose P sits far off its kernel's P-vs-latency line, or use the bench's per-iteration
+  time for the ns column.
