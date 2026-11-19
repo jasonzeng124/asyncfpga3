@@ -7126,7 +7126,7 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   passes draws 10101-10108 8 / 8. The race is in the bench's host slot, on every RAM of every memory kernel: over the
   14 other shipped memory routes of suite9 (rebuilt = the farm's) the worst host-race margins are gather s2 +234 ps and
   dot2 s4 +367 (every other >= +551; kernel load slots >= +785). **Gate hole closed** (bench_gate.sh): a batch whose
-  signature contains x now fails (the run-to-run compare  was never true against x: a route with a select race
+  signature contains x now fails (the run-to-run compare, a "!=", was never true against x: a route with a select race
   passed 3/3 with x in run 0), and any RAMB18 violation line fails the run; a clean run's verdict line is unchanged.
 - **auto_size.sh now runs the rule with BD_RAM_GUARD_PS=400 by default** (a named race, a measured spread; it only
   lengthens a setup line on a host / store access). suite9r2 (still waiting) will resume the memory loops with it.
