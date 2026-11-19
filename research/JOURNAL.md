@@ -7183,3 +7183,8 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   select_consumers() misreads the bd_c2 pins); on isprime the line guarding it (ULINK_N_INDEX_71) stayed at its start
   size 3 from it 0 to it 10 with 363-633 ps of unguarded slack at 0.20. A goal-1 gap: next lead.
 - All 13 subagents of this session have reported and landed.
+### progress 03:18 (subagent muxsel: the N-way mux's select race into the rule)
+- **muxsel** (report by 08:00 UTC): confirm which rules see a bdc_muxnN's select and which kernels emit one; make rule E
+  (and the sizing rule) measure s against ctl_req at the decode LUTs, opt-in first, CA_FAST kept exact; a negative
+  control that fails statically AND in the routed GLS (GATE_RUNTS=1); the margins on the routes available, and whether
+  any board item has an N-way mux.
