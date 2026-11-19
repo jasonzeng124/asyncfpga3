@@ -4707,3 +4707,8 @@ c_floormin_nest3 task 1: control LIVE 2 718 974, falseResult_17 -> 1 DEADLOCK 61
 (AUTO): no floor addition on nest3 (empty table). c_live_big2 task 3: gcd def inv 2 LIVE, 10 667 715 states, 2.1 GB, 2 h 06.
 Tasks 1 / 5 (nest3 AUTO; nest3 def inv 2) still running at 2 h 06 of 4 h. The background lock loop and farm poll hit the
 sandbox's 2 h background limit; lock refreshed by hand.
+
+### progress 01:43 (2026-11-19) -- farm c_live_big2 done: nest3 def inv 2 LIVE (32.5M states); nest3 AUTO timed out
+Task 5: nest3 default, 2 invocations, LIVE exhaustive, 32 547 932 states, 0 hazards, 3 h 31, 6.0 GB. Task 1: nest3 AUTO, killed
+by timeout 13800 s at 6.3 GB, no verdict: stays sampled (the only emitting fixture without an exhaustive verdict). C59 updated.
+Not retried: a 4 h farm task is the limit, and Python BFS is the bottleneck (a faster checker would be the next step).

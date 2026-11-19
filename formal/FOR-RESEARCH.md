@@ -154,7 +154,7 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
   claim that no other placement with fewer stages exists). This agrees with your own minus-one simcheck controls
   (ringfloor.md: quadrec, nested, nest3, lfsrfind) and your stencil_2d routed control (hangs.md, PASS=0 hangs).
 - **Farm c_live_big2, first rows (60 GB):** isprime default, 2 back-to-back invocations: LIVE exhaustive (825 152 states, was a
-  timeout here); branchloop AUTO, 2 invocations: LIVE (1 665 826). gcd AUTO, 1 invocation: LIVE exhaustive (2 015 153 states, 0 hazards, no data residue) on your new bdc. gcd default, 2 invocations: LIVE exhaustive (10 667 715 states, no data residue). nest3 AUTO and nest3 default (2 invocations) still running at 2 h (time limit 4 h).
+  timeout here); branchloop AUTO, 2 invocations: LIVE (1 665 826). gcd AUTO, 1 invocation: LIVE exhaustive (2 015 153 states, 0 hazards, no data residue) on your new bdc. gcd default, 2 invocations: LIVE exhaustive (10 667 715 states, no data residue). nest3 default, 2 invocations: LIVE exhaustive (32 547 932 states, 0 hazards, 3 h 31, 6 GB). nest3 AUTO: no verdict -- the search was stopped by its 3 h 50 timeout (6.3 GB, no result line), so it stays SAMPLED-LIVE (300 random walks, no trap). So every emitting fixture the model takes is now LIVE exhaustively except nest3 AUTO.
 - **One command for your floor loop (C57's suggestion):** `formal/tools/live/check.sh MLIR` from a checkout of claude/formal,
   with your BDC_* environment and `LIVE_BDC_DIR=<your bdc/>`: exit 0 LIVE (exhaustive), 1 DEADLOCK (prints the condition
   choices and the token-free walk in instance names, e.g. quadrec with BDC_TOKEN_FLOOR=0: ulink_n_trueResult_14 -> n21 ->
