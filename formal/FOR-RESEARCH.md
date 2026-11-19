@@ -360,6 +360,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 25 | test_divui | ecbc22cc SAME | 8/8 + 8/8 | 0 | none (-0.012) |
 | 30 | factorial | a853b143 SAME | 8/8 + 8/8 | 0 | 0.062 |
 | 31 | iterative_division | ed5e281e SAME | 8/8 + 8/8 | 0 | 0.325 |
+| 32 | iterative_sqrt | f8ef55a7 SAME | 8/8 + 8/8 | 0 | none (-0.450) |
 | 34 | test_int16 | 21440296 SAME | - (constant output) |  | none |
 | 49 | share_test_2 | - | research: share_test_2 1 status=NOT-A-BOARD-ROUTE P=NA lat_max_cyc=NA  | | |
 (table continues as the farm returns)
