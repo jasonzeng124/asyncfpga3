@@ -4931,3 +4931,11 @@ finseeds1 (4: dot2 3 x2, if_loop_2 4 x2; flow v8, fused). newroutes now adds BDC
 before v8, or the request script exports it -- suite10d does); memtask's sdf check will show whether that was right.
 c_mem14 = 16 tasks x 2 cores. Local check of the fused dot2 3 36a3907f running. suite12 (62 tasks, v8) running on
 research's side; suite10d 2 / 7.
+
+### progress 20:40 -- first fused (flow v8) memory route judged: finseeds1 dot2 3 36a3907f SAME, 8 + 8 pass
+The first local rebuild came out DIFFERENT (7e2b0daf): research's finseeds1 DA arm shipped an alternate-seed route
+("alt it 6 seed 2003 ... 36a3907f"), not the SEED-3 one. memtask takes PNR_SEED, newroutes reads the alt seed from
+task.txt (c_mem15 = the two such routes; c_mem14's rows 2 and 7 were built with SEED and are not results). With
+PNR_SEED=2003 from a fresh copy of research HEAD: sdf 36a3907f SAME (nextpnr 7c3bfb9c684a2551), draws 10301-10308
+8 / 8 pass, slow-carry/RAM 0.8-1.0 8 / 8 pass. So the decoded-gate approximator needs nothing new for ring-fused
+emissions, on this one route; it does not show the other v8 routes pass.
