@@ -7311,3 +7311,21 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   share_test_2 (NOT-A-BOARD-ROUTE: fasm2net does not decode its DSP48E1 cascade mode), and 10 with no finished route:
   digitdiv / digitsum / divmods (not resumed until the divider sizing is fixed), fir / sumi3_mem (suite9r4, 2 draws),
   nest3 / sobel / stencil_2d / single_loop / video_filter (suite10c).
+### progress 10:52 (divsize landed: rule A's peers confined to the cell -- the divider was hidden through the bench's acknowledge)
+- **divsize** (1daa7efd4..996eb42d3; cells/verify/test_peers_cell.py): rule A drops every output of a cell that is
+  "downstream of the request" (reached from the line's tail without crossing storage) -- but that reach left the cell:
+  test_divui's divider drives out0, the bench acknowledges combinationally (o_ack_pl), and through udivui0.uhold
+  (hold = join | z_ack) the reach opened the enable chain and every gated stage, so 2393 of the divider's 2510 outputs
+  were dropped (in tighten.py's site_peers and corner_audit's A' / A'j copies) and only 117 ungated carry bits (settling
+  in ~3.4 ns) were measured. The GLS settle monitor (gen_settle_mon.py) on the farm route: the request rose 2.65 ns
+  after the join while the quotient moved until 44-48 ns; the return to zero dropped the enables mid-divide. **Fix
+  (default on; BD_PEERS_CELL=0 the old test): downstream = reachable without leaving the cell** (storage reached by any
+  path stays downstream, which keeps the mux / merge acknowledge C-elements out of the peers). Negative controls: the
+  farm's 5- / 6-link routes -104.4 / -101.7 ns, the it-0 route (159 links) -45.0 / -58.6. Peer census over 55 routes of
+  25 kernels: only test_divui's divider set changes; rule outputs byte-identical on xorshift / collatz / gather (both
+  corners, original vs fixed). **test_divui through the flow with it: 4 seeds clean at it 2-4, divider line 332 / 386 /
+  338 / 1111 links, 16 / 16 draws, 0 runts** (the farm's seeds 1 / 2 had 0 / 4 on the same draw numbers). Open: rule F
+  pads very short lines without converging (seed 4's 1111 links, 3.4x the need; 6 -> 6406 on a forced case).
+- The other divider kernels never had this (their dividers reach the bench through a fork / pipe / link): divmodu
+  passed suite10b 4 / 4 on seeds 1 / 2 (lines 319 / 345). Farm: **divsize1** (test_divui seeds 1-8) and **divres1**
+  (digitdiv s1 / s2, digitsum s2, divmods s1 resumed, 8 cores) filed.
