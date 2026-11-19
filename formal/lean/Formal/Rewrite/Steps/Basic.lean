@@ -59,6 +59,9 @@ theorem heads_some_iff {σ : Store Nat Nat} {ins : List Nat} {vs : List Nat} (h 
   refine ⟨hn, ?_⟩
   rw [heads_all hn] at h; exact (Option.some.inj h).symm
 
+theorem exists_empty {σ : Store Nat Nat} {ins : List Nat} (h : ¬ ∀ c ∈ ins, σ c ≠ []) : ∃ c ∈ ins, σ c = [] := by
+  apply Classical.byContradiction; intro hn; apply h; intro c hc he; exact hn ⟨c, hc, he⟩
+
 /-! ## Firing a comp and a fork -/
 
 theorem fire_comp {ins : List Nat} {o : Nat} {F : E} {σ : Store Nat Nat} (h : ∀ c ∈ ins, σ c ≠ []) :
