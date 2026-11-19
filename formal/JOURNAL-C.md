@@ -4723,3 +4723,22 @@ sobel at 0cebd725c (load-first not lowered then). No local FPGA toolchain: simx 
 Plan: (1) model the load-first lowering in live.py and explain sobel's default-flow deadlock; (2) the liveness sweep on
 research HEAD (new fixtures: digitdiv, divmods, divmodu, the dyntests); (3) then the margin tool's completeness against the
 two races research found its rule missing (bdc_muxnN decode select, the divider's data path).
+
+### progress 08:05 -- sobel needs the farm; a local FPGA toolchain after all; next: RAMB18E1 in formal's simx
+- live.py with the load-first lowering: sobel default (floor on) did not finish in 15 min locally (4 nested loops, data-
+  independent conditions); farm c_live_sobel filed (sobel / spmv, floor on / off). Research's memorder note (01:41)
+  says the token floor already removed both default-flow deadlocks; the farm run is the independent check and should
+  name the token-free walk with the floor off.
+- Sweep on research 3c9e6de49 (floor on, def + auto) running: every row so far LIVE and agreeing with research's walk view;
+  the new divider kernels (digitdiv, digitsum, divmods, divmodu) LIVE.
+- **Local toolchain:** research's cloud/toolchain-cache.sh key at 3c9e6de49 is 02809f4230dfd3a7, and the branch
+  origin/toolchain-cache/02809f4230dfd3a7 holds it (one zstd part; python3.13's zstandard unpacks it; its export.sh names
+  /root/audit-tc2, so a symlink to ~/dev2/lib/fpgatoolchain). cells/verify/toolchain.sh: every patch ok, nextpnr sha256
+  7c3bfb9c684a2551 (the audit's T166 build; same routes as research's 6e5d2244 per T166). So builds, bit2fasm and simx
+  run here; the farm is for width. (Shards A / B: the same works in your sandboxes.)
+- **Next (C, the board approximator's biggest gap):** formal's simx cannot run any memory kernel (no RAMB18E1 model;
+  tools-B/auto/suite/task.sh SKIPs benchvec kernels), so the 32 memory kernels of research's suite have no independent
+  judge and the RAM capture race (memorder: "no rule checks a capture latch's timing on a route") has no formal check.
+  Plan: decode RAMB18E1 sites (margin/bram/, like margin/dsp/), a clocked RAM gate in simx (WRITE_FIRST, CLK->DO arc,
+  setup / hold window -> X), and a memory bench boundary (preload / read back the arrays, N operand words). First build:
+  memsum seed 1 (research's suite/bench README route), building here now.
