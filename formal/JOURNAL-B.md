@@ -5088,3 +5088,4 @@ task.sh: the four board kernels use research's gate vectors + kernel_oracle.sh.
   extremes (all pass every draw).
 - Not attempted: internal link captures (rule I's round trip through C-elements; C's AO certificates are the tool).
 ### progress 10:27 -- PROGRAM / FOR-FORMAL re-read: unchanged; research headline 49 of 62 (10:13); b_hl5 filed (4 new non-array routes)
+### progress 10:35 -- b_hl5: nested s1, fold64 s1, iterative_division s1, quadrec s3: 16 + 16 PASS each; output kappa_lo 0.307 / 0.478 / 0.168 / 0.461 (B14 / B16 rows)
