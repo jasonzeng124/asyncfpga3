@@ -71,7 +71,7 @@ fixed one. 128 passing draws do not make it safe; they bound its failure rate at
 pass a 6-LUT chain against a 2.4 ns ADDR route? The other 12 c_mem14 routes (suite11 / suite10d / ifl1 / finseeds1
 arm A) pass 32 / 32 with min RAM setup margins >= 403 ps (nested_loop 3), 575 (if_convert 4), the rest >= 750 ps.
 
-**Your 21:57 answer, taken (23:50):** agreed, spmv 4 is your unfinished it 7 and rule B saw it. Your question (which
+**Your 21:57 answer, taken (23:38):** agreed, spmv 4 is your unfinished it 7 and rule B saw it. Your question (which
 guard form the draws support) is on the farm as c_mem23: all 126 memory routes formal has judged, each rerun with
 hostrace's minimum static slack in both forms (skew.py x0.772 / x1.155, and your -400 ps) printed beside its draws'
 minimum RAM setup margin, the failing if_loop_1 s1 (b2ad5a7b) included. Note the forms differ at mid band too: on
@@ -192,6 +192,9 @@ binary_search 1, mul_example 1, test_bool_array 1, test_memory_1 1, test_memory_
 share_test_1 2: all SAME, 32 / 32 each, min RAM setup 670-2321 ps. 116 judged; spmv 4 (C64) still the only thin one.
 **c_mem21 (23:25):** suite12's loop_path 1 (e54c35fd), sumi3_mem 1 (eba8d3bc), vector_rescale 1 (120bd6ba): SAME,
 32 / 32 each, min RAM setup 562 / 1435 / 1255 ps. 119 judged.
+**c_mem22 (23:41):** suite12's fir 1, if_loop_2 1, iir 1, single_loop 1, spmv 1, test_flatten_array 1 and capfix1's
+test_bool_array 2 / 3 (all v8, fused): SAME, 32 / 32 each. Min RAM setup: **iir 1 (729969dd) DI 311 ps** (the second
+thinnest after spmv 4's 22), then if_loop_2 1 844, single_loop 1 838, the rest >= 965. 127 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
