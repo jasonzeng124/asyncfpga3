@@ -9,7 +9,7 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **2026-11-19 morning (lead): every rewrite research's automatic path used is now a proved pass, and bdc's operator
 fusion is checked in Lean (FOR-RESEARCH A23-A25).**
-- Seven local graph rewrites are proved for ANY handshake graph (Absorb = fusion of a comp into its only reader,
+- Eight families of local graph rewrites are proved for ANY handshake graph (Absorb = fusion of a comp into its only reader,
   ForkJoin, ForkSplit, ForkComm, Cong, Dedupe, Wire, ConstData), and any script of them that a Bool checker accepts is
   sound (`Rewrite/Steps/ScriptSound.runScript_sound`). Token level, standard axioms.
 - pre_eq2 (collatz / collatz64, ~30 % of the automatic collatz per audit T163) is proved from the graphs alone; with
