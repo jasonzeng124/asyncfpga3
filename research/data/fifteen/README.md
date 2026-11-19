@@ -15,6 +15,11 @@ the August board, research/SIM-VS-BOARD.md).
 and the sizing loop's finish phase has 6 routes and ships its least-short route. The table below is v6 / v7; farm
 suite12 measures v8 on every kernel.
 
+**xorshift against the 15 ns yardstick** (owner, 2026-11-19: a yardstick, not a bar): the automatic column with no
+kernel list (v7) runs 22.16 ns per iteration (median of 6 rule-clean routes); flow v8's ring fusion took 1.87 ns off
+it on 8 of 8 paired seeds (farm ringfuse1, median of the fused routes 19.9 ns); the hand recipe (item 37) 16.76;
+Dynamatic 12.73 (one nextpnr route).
+
 **Provenance (auditor T167).** The exact command, inputs in this order, a later request superseding an earlier one for the
 same (kernel, seed): `research/tools/suite/suite_table.py --kernels research/tools/suite/kernels.txt --reasons
 research/data/suite/headline_reasons.tsv --no-ratio isprime` over the farm's results/{suite3a, suite3b, suite8, suite7,
