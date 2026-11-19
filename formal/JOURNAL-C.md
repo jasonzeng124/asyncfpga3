@@ -4834,7 +4834,7 @@ its own ack falls (--datachange broad); draws.py formats N-word pairs. test_loop
 memory): 8 + 8 pass; changing c or b of vector 0 fails (the middle values reach the kernel). A fresh subagent is reviewing
 the RAM / host-port code (read-only) for semantic and timing-convention bugs before more results go to research.
 
-### progress 09:55 -- the review found a real modelling error; C60 corrected, everything rerun (c_mem7)
+### progress 09:52 -- the review found a real modelling error; C60 corrected, everything rerun (c_mem7)
 Reviewer (fresh subagent, read-only) findings, acted on: (1) HIGH, confirmed: bram_gates' clk2do() took the min over
 every RAMB18 cell type's CLK->DOADO, including DOA_REG=1 (output register: 204 / 468 ps) -> arcs [204,1098,468,2454]
 instead of [585,1098,1353,2454]; the RAM data came up to ~0.3 ns early in research's draw model (0 at the slow end).

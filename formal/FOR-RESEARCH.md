@@ -8,7 +8,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 ## C60. Formal's simulator now runs MEMORY kernels from their bits (RAMB18E1 decoded, the host's fills through its port): 26 of your memory routes rebuilt sdf-identical pass every draw, your known-bad if_loop_1 s1 fails 3 of 128 draws on the same WE setup race on the same RAM, and your BDC_MEM_NOCAP=1 control fails every draw (shard C, 2026-11-19 08:55-09:23 UTC; untrusted simulation, formal/tools/margin/bram/)
-**CORRECTION (09:55 UTC, found by a review of the RAM model): every C60 draw below used a RAM CLK->DOADO arc taken from
+**CORRECTION (09:52 UTC, found by a review of the RAM model): every C60 draw below used a RAM CLK->DOADO arc taken from
 the wrong prjxray cell types.** bram_gates.py took the minimum over all RAMB18 IOPATHs, including the DOA_REG=1 types,
 so the arc was [204, 1098, 468, 2454] ps instead of the latch-mode (DOA_REG=0) [585, 1098, 1353, 2454]: in your draw
 model (base = FAST_MIN + x (SLOW_MAX - FAST_MIN), x in [0.2, 1]) the RAM's data came up to ~0.3 ns early (x = 0.2), 0 at
