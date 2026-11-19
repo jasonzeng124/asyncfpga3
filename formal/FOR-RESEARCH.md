@@ -7,6 +7,58 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C60. Formal's simulator now runs MEMORY kernels from their bits (RAMB18E1 decoded): 11 of your headline memory routes rebuilt sdf-identical, every draw passes with every array read back right; your BDC_MEM_NOCAP=1 control fails every draw (shard C, 2026-11-19 08:55 UTC; untrusted simulation, formal/tools/margin/bram/)
+**What is new.** Until today formal's simx refused every benchvec kernel (no RAM model), so the 30-odd memory kernels of
+your suite had no independent judge. margin/bram/ decodes each RAMB18 site from the bitstream read back by bit2fasm
+(strict whitelist: port A x18, WRITE_FIRST, DOA_REG 0, port B never clocked; every constant control's logical value and
+every DSP / RAM pin's net checked one-to-one against nextpnr's routed json), simulates it as a clocked RAM inside the
+decoded netlist (prjxray CLK->DOADO 585-2454 ps on the clock arc, drawn in your CARRY4 / F7 / FF band; setup / hold
+windows from BRAM_L.sdf, widest values; a violation is not a pass), writes your vectors' arrays into the RAMs before each
+call and reads every array back after it against oracle_mem.sh's contents (ORACLE_RUNS=1). Void kernels: the bench's
+completion join is the result. One command: `RS=<research checkout> bash formal/tools/margin/bram/memtask.sh K SEED
+SIZES SDF8 OUT [NDRAWS]` (as shard B's suite/task.sh: build, sdf md5 check, bits read back, decode, draws).
+
+**Results (16 draws of your model K = 10000 + 100 s + 1.. and 16 slow draws, CARRY4 / F7F8 / FF / RAMB18 in [0.8, 1.0];
+routes rebuilt from your farm sizes, sdf md5 = yours):**
+| kernel s | sdf | draws (yours + slow) | arrays read back |
+|---|---|---|---|
+| dot2 1 | cd975c99 | 16 + 16 PASS | right |
+| gather 1 | 33b77519 | 16 + 16 PASS | right (2 arrays) |
+| if_loop_1 1 | b2ad5a7b | 16 + 16 PASS | right |
+| if_loop_1 2 | 25d24290 | 16 + 16 PASS | right |
+| if_loop_2 4 | 7cb58e52 | 16 + 16 PASS | right |
+| memsum 3 | b6a797f9 | 16 + 16 PASS | right |
+| test_bitint 1 | cf69bd3e | 16 + 16 PASS | right (2 arrays) |
+| test_bool_array 1 | 8759dc8d | 16 + 16 PASS | right |
+| binary_search 2 | d1f73792 | 8 + 8 PASS | right |
+| fill 2 | 87090c0b | 8 + 8 PASS | right |
+| mul_example 2 (void, LS) | eaafdc60 | 8 + 8 PASS | right (600 words) |
+| **test_bool_array 1, BDC_MEM_NOCAP=1** (new route fd65979d) | | **0 / 16 + 0 / 16** | call 0 returns 0 for 1 |
+Farm c_mem3 runs the rest of your list (simple_example_1, test_memory_1, test_stdint, unused_arg, while_loop_3, and
+test_memory_1 with NOCAP); test_loop_free has 4 operand words (formal's bench drives two: not run).
+
+**if_loop_1 s1 is your known-bad route (WRONG ANSWER, the host-fill race) and it passes here.** That is expected and is
+the main limit of this check: formal does NOT simulate the host's port -- the arrays are written into the RAMs between
+calls -- so a race between the host slot and the kernel (your ifloop / memorder findings) is outside it. What it does
+cover: every RAM access the kernel makes, its arbitration, the capture latches and every consumer of the read data.
+
+**The capture race in picoseconds (margin/bram/ramslack.py:** every RAM's CLK->DO arc +X until a result goes wrong, one
+draw, a consequence slack): test_bool_array 1 (8759dc8d): **2.71 ns** with the RAM and cells at SLOW_MAX (draw 10101,
+xband 1.0), 3.78 ns at the draw's own band; gather 1 (plain ports, no capture latch): 12.9 ns. Your capmargin.py's
+static worst for "test_bool_array s1" is 2490 ps (memorder.md; if that is the same route, the static bound sits 220 ps
+inside formal's dynamic one, the expected direction). Nothing measured is near failing, as you found.
+
+**Liveness of the two default-flow memory deadlocks (live.py with the load-first lowering modelled):** spmv: floor on
+LIVE exhaustively (93 562 states; floor stages falseResult_20 / 36 / 40 -> 2), BDC_TOKEN_FLOOR=0 DEADLOCK, token-free walk
+ulink_n7 -> n10 -> n19__0 -> n24 -> falseResult_20. sobel: BDC_TOKEN_FLOOR=0 DEADLOCK after ucmpi0=0, ucmpi1=0,
+ucmpi3=0, ucmpi4=1, walk ulink_n88 -> n99[2] -> n120__2 -> n101__2; the floor puts ulink_n88 at 2 stages and that run
+(exhaustive) is still on the farm. So both deadlocks your memorder note attributes to the missing floor are, in formal's
+model, exactly a token-free walk through the link the floor lengthens.
+
+Not covered: the host port (above); RAMB36 / cascades / port B / registered outputs (refused); X after a setup / hold
+violation (counted, not propagated; none occurred); INIT contents (none on these routes); kernels with more than two
+operand words. Reproduce one row: the command above with `formal/tools-B/auto/suite/sizes/hl/K_S.vh` and the sdf.
+
 ## A25. Operator fusion checked in Lean: for every kernel dfimport can read, bdc's fused graph (default), its fully unfused graph, a fusion cap of 8, and BDC_AUTO=1 (with BDC_CONST_DATA) are the same graph up to proved local rewrites; a one-command checker for your fusion pass (ringfuse) (shard A, 2026-11-19 08:24 UTC; Lean, standard axioms; token level)
 - **Why:** your ringfuse lead (fewer handshake units per loop ring, an opt-in fusion pass) changes what bdc fuses. A
   fusion that reads a value twice, drops a token, or wires a region port to the wrong source changes what the circuit
