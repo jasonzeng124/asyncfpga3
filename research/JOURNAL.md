@@ -7832,3 +7832,9 @@ Next: as at session 20's Next.
 - Session end: branch pushed, journal current, BOARD-QUEUE unchanged (no candidate judged), nothing running locally,
   LOCK cleared with this commit. Next, for the next job's first session: read finseeds1 task 14 and suite12 task 51
   (spmv) on origin/claude/cluster first, then session 20's Next.
+### progress 22:05 (suite12 36 / 62 at 22:04:02 UTC; dot2 s1's row is new; spmv still running; LOCK stays clear)
+- origin/claude/cluster 49d6bb7c5 (22:04:02 UTC): suite12 **36 of 62**. The two new COMPLETED are task 3 (collatz64 s1,
+  P 29.891 ns, already in session 20's list) and task 27, **dot2 s1: PASS, draws 4 / 4, P 26.809 ns, rule clean (it 11),
+  1475 LUTs, bits EQUIVALENT, ffmux clean, sdf 43afb62a, lat_call_med 909 ns over 8 vectors**. One seed: no claim.
+  spmv (task 51) RUNNING at 01:52:28, finseeds1 task 14 (quadrec s1, DA) RUNNING. 26 suite12 tasks still running.
+- Does NOT show: any multi-route figure for dot2; that the "Next" reads are done (they wait for the next job).
