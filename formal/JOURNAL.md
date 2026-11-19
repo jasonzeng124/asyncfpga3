@@ -3265,7 +3265,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * No new request for A. From 23:00 the limit is at most 2 subagents; A is running none.
 
 ## Session 2026-11-19 (A, from 07:08 UTC)
-### progress 07:40 -- start; plan: pre_eq2 as a PASS, built from proved local rewrite steps
+### progress 07:16 -- start; plan: pre_eq2 as a PASS, built from proved local rewrite steps
 * Lock taken (the 2026-11-18 23:00 lock was 8 h old). setup.sh stopped during the Mathlib source build: today's work
   is Core-only (Formal/Rewrite/*); `lake build` of those modules takes seconds.
 * Audit (origin/claude/audit 07:05 UTC): no REFUTED / OVERSTATED row on A's files. T162 CONFIRMED A19-A21 (its
