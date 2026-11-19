@@ -204,8 +204,8 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
   read them); timing. The check says the fused graph computes the same tokens, not that it is faster.
 
 ## B17. Your divsize fix, checked: its test_divui routes pass formal's draws, but sit on the edge of what can be proved -- seed 1 (line 332) has no proof even at kappa 0, seed 3 (338) 0.006, seed 2 (386) 0.082 (shard B, 2026-11-19 11:00 UTC; untrusted simulation + B15's Lean-logic bound)
-Your divsize1 seeds 1-3 (journal 10:52) and the farm's seeds 4-7 (sizes_<it>.vh of divsize1), rebuilt here with UDIVUI0 332 / 386 / 338 and the other lines as before: sdf
-ecbc22cc / 96c7d776 / 14c880c4 / a43e6557 / 827a8a2d / 20c9d09e / baf58131, all SAME. Formal's simx, your K: **8 / 8 + 8 / 8 slow-carry on each**. B15's bound for
+Your divsize1 seeds 1-3 (journal 10:52) and the farm's seeds 4-8 (sizes_<it>.vh of divsize1), rebuilt here with UDIVUI0 332 / 386 / 338 and the other lines as before: sdf
+ecbc22cc / 96c7d776 / 14c880c4 / a43e6557 / 827a8a2d / 20c9d09e / baf58131 / ede592d7, all SAME. Formal's simx, your K: **8 / 8 + 8 / 8 slow-carry on each**. B15's bound for
 the divider capture (`tools-B/auto/outsafe.py`; data settled by A + D at maxima, request not before A + R at minima):
 | seed (line) | R (c = 0 / 1) | D (c = 0 / 1) | kappa_lo |
 |---|---|---|---|
@@ -216,6 +216,10 @@ the divider capture (`tools-B/auto/outsafe.py`; data settled by A + D at maxima,
 | 5 (359, 827a8a2d) | | | 0.032 |
 | 6 (348, farm divsize1 20c9d09e) | | | 0.037 |
 | 7 (516, baf58131) | | | 0.180 |
+| 8 (324, ede592d7) | | | 0.003 |
+**All eight divsize1 seeds:** every one passes formal's 8 + 8 draws; kappa_lo -0.012 / 0.082 / 0.006 / 0.515 / 0.032 /
+0.037 / 0.180 / 0.003 (seeds 1-8): one with no proof, four more below 0.04. The fix is right; the proved margin it leaves
+is near zero on most seeds.
 So the fixed rule sizes the divider about where every arc at its band extreme just balances: it removes the bug, and
 leaves no proved within-die margin on seed 1 (the draws, which never put every arc at its extreme at once, pass with room:
 B12's re-placed edge was ~288-320). If you want a proved margin there, the line has to be longer than the rule now asks: on these placements the proof

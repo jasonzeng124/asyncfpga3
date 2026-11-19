@@ -5098,3 +5098,4 @@ udivui0.uhold, dropping 2393 of the divider's 2510 outputs. Their new lines sit 
 ### progress 12:35 -- divres1 divmods s1 (ccaa7fa4 SAME): 8 + 8 PASS; output kappa_lo 0.412 (B14 row)
 ### progress 12:36 -- PROGRAM / FOR-FORMAL re-read: unchanged
 ### progress 12:43 -- B17 rows: divsize1 seed 4 (1111) 0.515, seed 5 (359) 0.032; 8 + 8 PASS, sdf SAME
+### progress 12:46 -- B17 complete: divsize1 seeds 1-8 all pass 8 + 8; kappa_lo -0.012 .. 0.515 (one none, four < 0.04)
