@@ -7208,3 +7208,15 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   placement can shorten. Prediction (xorshift -2.5..-4.5 ns) failed; countloop's (-3..-4) held on 2 of 4 seeds.
 - **gifast1** done (gcd / isprime x 4, CA_FAST): every loop finished in ~75-80 min, all draws passing, all NOT CLEAN on
   the bench-capture lap (CA_BENCHCAP fixes that row; see gcdclean).
+### progress 04:19 (PROGRAM General-first item 2: the draw model's box is NOT where the sizes' excess is)
+- Question (PROGRAM): the draws said the STATIC sizes were 1.4-1.8x longer than needed; which part of the sizing rule
+  carries that? Measured on one route (su_xorshift_1_4, the flow's own sizes, CA_FAST, PYTHONHASHSEED 1;
+  research/data/sizerule/box/): the rule at the draw model's worst vertex (chains 0.20, rest 0.31) proposes 79 kernel
+  links, at the other vertex (both 0.20) 73, merged 80; at the board fit for both bands (0.222) 72. **The box's
+  independence costs ~11 % of the links** (8 links: UMUX3 6 vs 5, UCMPI1 8 vs 7, UCMPI0 7 vs 6, and 1-element steps),
+  not 40-80 %: today's automatic sizes are already within ~10 % of a single-band rule at the board's position. The
+  1.4-1.8x was the OLD static sizing (tighten.py's rule A with its fixed guards), which the automatic rule replaced.
+- So, with nsearch1's result (the no-list xorshift cycle is at its rising floor): xorshift's 22 ns is matched delays
+  bundling wire-dominated data paths (85-87 % of the cycle is wire) -- the remaining levers are placement (shorter data
+  paths make shorter lines), not the rule. ringplace's soft weights were negative; hard relative placement of a ring
+  (RLOC_GROUP) is untried.
