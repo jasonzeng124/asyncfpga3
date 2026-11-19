@@ -891,6 +891,7 @@ def build(path, ninv):
     net.src_cells = [c for c in net.cells if isinstance(c, Src) and c.env]
 
     mem_cells = {}
+    ztok = {}
     for i, node in enumerate(nodes):
         if fus is not None and i in fus.skip:
             continue
@@ -986,7 +987,16 @@ def build(path, ninv):
             w = width(res[0])
             net.add(Join(inst, [Q(o) for o in ops], P(res[0]), fn=op_fn(op, w), choice=(w == 1)))
         elif op == "load":
-            mem_cells[res[0]] = net.add(MemStation(inst, [Q(ops[0])], P(res[1])))
+            zfi = e.accessor_info.get(res[0], {})
+            if "z_fork" in zfi:
+                # load first on an arbitrated port (bdc emit.py _op_load, mc:load1st): the station's z is forked
+                # (bd_fork N=2, {token, consumer}); the token is the second accessor's program-order c.
+                zf = net.ch(inst + ".zf")
+                mem_cells[res[0]] = net.add(MemStation(inst, [Q(ops[0])], zf))
+                ztok[zfi["mc_inst"]] = net.ch(zfi["mc_inst"] + ".tok")
+                net.add(Fork(inst + "_uztok", [zf], [ztok[zfi["mc_inst"]], P(res[1])]))
+            else:
+                mem_cells[res[0]] = net.add(MemStation(inst, [Q(ops[0])], P(res[1])))
         elif op == "store":
             info = e.accessor_info[res[0]]
             done = res[2] if len(res) == 3 else None
@@ -1016,6 +1026,8 @@ def build(path, ninv):
                 mem_cells[addr_res] = st
             else:
                 st = mem_cells[addr_res]
+                if "z_fork" in ai:
+                    tok = ztok[info["inst"]]
             if ai["seq"]:
                 if tok is None:
                     raise ModelError("seq accessor without a token")

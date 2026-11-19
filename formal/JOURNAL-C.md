@@ -4712,3 +4712,14 @@ sandbox's 2 h background limit; lock refreshed by hand.
 Task 5: nest3 default, 2 invocations, LIVE exhaustive, 32 547 932 states, 0 hazards, 3 h 31, 6.0 GB. Task 1: nest3 AUTO, killed
 by timeout 13800 s at 6.3 GB, no verdict: stays sampled (the only emitting fixture without an exhaustive verdict). C59 updated.
 Not retried: a 4 h farm task is the limit, and Python BFS is the bottleneck (a faster checker would be the next step).
+
+## Session 2026-11-19 07:20 UTC (session_01HC49FxQW8r5uA2xMt5hjkc)
+Lock taken (LOCK-C 01:43 from session ...Fz5dt9, > 90 min old). PROGRAM: from 23:00 UTC all shards go on, at most 2
+subagents; C's standing items: the margin tool (completeness, speed), the board approximator, liveness. FOR-FORMAL unchanged
+since 2026-11-18 06:29 UTC. Audit (07:05): no open row on C's files. Research HEAD 3c9e6de49: bdc now lowers a LOAD FIRST
+on an arbitrated port (b0c6a1d19, mc:load1st: the load's z forked into the program-order token), and research's notes say
+**sobel deadlocks in the default flow (RTL, every call), BDC_AUTO passes, "not explained"** (d209bdc2d). live.py refused
+sobel at 0cebd725c (load-first not lowered then). No local FPGA toolchain: simx work goes to the farm.
+Plan: (1) model the load-first lowering in live.py and explain sobel's default-flow deadlock; (2) the liveness sweep on
+research HEAD (new fixtures: digitdiv, divmods, divmodu, the dyntests); (3) then the margin tool's completeness against the
+two races research found its rule missing (bdc_muxnN decode select, the divider's data path).
