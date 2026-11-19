@@ -100,7 +100,7 @@ class FPlan(Q.Plan):
             rs.append(('comp', [x0, n0], y0, G)); rs.append(('comp', [x1, n1], y1, G))
             self.pre += [y, x0, x1, n0, n1]; self.chg += [x, n, y, x0, x1, n0, n1]; self.steps.append(st)
         elif k == 'unpack':
-            _, l = st; r = rs[l]; F2 = unslice(r[3]); assert F2 is not None, st
+            _, l = st; r = rs[l]; F2 = unslice_deep(r[3]); assert F2 != r[3], st
             rs[l] = ('comp', r[1], r[2], F2); self.steps.append(st)
         elif k == 'unjoin':
             _, lx, ln, lc, lk, lb, lu = st; rn, ru_ = rs[ln], rs[lu]
@@ -181,6 +181,15 @@ def unslice(F):
     if lo == w0 and b1 <= w: return e1
     return None
 
+def unslice_deep(e):
+    """Lean: Formal.Rewrite.Steps.unsliceDeep (unslice at every node, outermost first)."""
+    t = unslice(e)
+    if t is not None: return t
+    if e[0] == 'un': return ('un', e[1], e[2], unslice_deep(e[3]))
+    if e[0] == 'bin': return ('bin', e[1], e[2], unslice_deep(e[3]), unslice_deep(e[4]))
+    if e[0] == 'sel': return ('sel', unslice_deep(e[1]), unslice_deep(e[2]), unslice_deep(e[3]))
+    return e
+
 def fresh(R):
     return 1 + max([c for r in R for c in (Q.ins_of(r) + Q.outs_of(r))] + [0])
 
@@ -196,7 +205,7 @@ def rf_unpack(p):
             if len(Wf) != 1 or R[Wf[0]][0] != 'fork' or len(R[Wf[0]][2]) != 2: continue
             lf = Wf[0]; sl = [Q.readers(R, z) for z in R[lf][2]]
             if not all(len(a) == 1 and R[a[0]][0] == 'comp' and len(R[a[0]][1]) == 1 for a in sl): continue
-            if not all(unslice(Q.subst(R[a[0]][3], [r[3]])) is not None for a in sl): continue
+            if not all(unslice_deep(Q.subst(R[a[0]][3], [r[3]])) != Q.subst(R[a[0]][3], [r[3]]) for a in sl): continue
             hit = (lc, lf, [a[0] for a in sl]); break
         if hit is None: return done
         lc, lf, sls = hit; e = fresh(R); x0, x1, n0, n1 = e, e + 1, e + 2, e + 3
@@ -242,6 +251,9 @@ def rf_split(p):
             if len(a) != 1: return None
             q = R[a[0]]
             if q[0] == 'branch' and q[2] == ch: return 'data'
+            if q[0] == 'comp' and len(q[1]) == 1:   # a one-input comp on the way to the branch (absorbed later)
+                b = Q.readers(R, q[2])
+                if len(b) == 1 and R[b[0]][0] == 'branch' and R[b[0]][2] == q[2]: return 'data'
             if q[0] == 'comp' and len(q[1]) in (1, 2): return 'test'
             return None
         ks = (kind(s0), kind(s1))

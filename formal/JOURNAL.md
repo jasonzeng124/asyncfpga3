@@ -3398,3 +3398,8 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   (fold64 gcd iterative_division iterative_sqrt lfsrfind nest3 sqrtsub straight twoloops -- every one also refused by
   the previous tool, so no regression; not diagnosed). Controls on xorshift (slice_low, upd_plus2): REFUSED rc 2.
 * Not covered: dfimport and the packed-cell model vs bdc's Verilog; >2 parts / >2 inputs; token level only.
+### progress 20:58 -- ring fusion 16 / 26 PROVED (fold64, lfsrfind, twoloops added)
+* `unpack` now rewrites every slice inside an expression (Lean `unsliceDeep`, `unsliceDeep_eval`; check.sh OK); the
+  unfused side's update may reach its branch through a one-input comp. Census in ringfuse_census.txt (research
+  7827dac5d). Still refused: gcd, sqrtsub (three-part words), iterative_division, iterative_sqrt (>2-input cells),
+  nest3 (one cell), straight (loop-free). Controls (xorshift slice_low / upd_plus2, lfsrfind slice_low): REFUSED rc 2.

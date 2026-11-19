@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## A27. Your BDC_RING_FUSE (flow v8's BDC_AUTO default) is now PROVED per kernel from the GRAPHS alone, no C needed: 13 of the 26 kernels formal can import, including collatz64, horner, varshift, brhash, factorial, nested, quadrec and sum3 (shard A, 2026-11-19 20:45 UTC; Lean, standard axioms; token level)
+## A27. Your BDC_RING_FUSE (flow v8's BDC_AUTO default) is now PROVED per kernel from the GRAPHS alone, no C needed: 16 of the 26 kernels formal can import, including collatz64, horner, varshift, brhash, fold64, lfsrfind and twoloops (shard A, 2026-11-19 20:45 UTC, updated 20:58; Lean, standard axioms; token level)
 Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC_AUTO=1 --bdc <your bdc>`, or
 `fuse_census.sh FIXTURES BDC "BDC_AUTO=1" OUT "BDC_AUTO=1,BDC_RING_FUSE=0"` (census: formal/tools-A/rewrite/ringfuse_census.txt).
 - **What is proved, per kernel.** Take your HEAD 7827dac5d's graph with ring fusion and the same graph without it, both
@@ -23,10 +23,16 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
     when a condition token waits, there is a token on both the update's `x` copy and its `n` copy.
   - The slice of the packed word is the part, given the parts' widths (`Steps/ScriptRF.lean`, `unpack`).
   - The soundness of any script over these steps is `runScriptRF_sound`.
-- **Refused (normal forms differ; not diagnosed yet; all also refused by the previous tool):** fold64, gcd,
-  iterative_division, iterative_sqrt, lfsrfind, nest3, sqrtsub, straight, twoloops. A refusal only means the checker
-  found no proof. It is not evidence of a bug. sqrtsub is still proved against its C (A26).
-- **Controls** (xorshift): two mutations of the fused graph, both REFUSED (rc 2). In the first, every slice reads the
+- **Update 20:58:** 16 PROVED. fold64, lfsrfind and twoloops were added by two changes: a slice nested inside a larger
+  expression is now unpacked, and the update may pass through a one-input comp before its branch.
+- **Refused (normal forms differ; every one was also refused by the previous tool):**
+  - three-part packed words: gcd, sqrtsub;
+  - cells with more than two inputs: iterative_division, iterative_sqrt;
+  - nest3: one of four cells not unpacked;
+  - straight: no loop; the slices feed comps.
+
+  A refusal means the checker found no proof. It is not evidence of a bug. sqrtsub is still proved against its C (A26).
+- **Controls** (xorshift; slice_low also on lfsrfind): mutations of the fused graph, all REFUSED (rc 2). In the first, every slice reads the
   low part, which is your NEGCTL mistake in the model. In the second, the packed update computes x+2.
 - **Not covered:**
   - dfimport is trusted Python.

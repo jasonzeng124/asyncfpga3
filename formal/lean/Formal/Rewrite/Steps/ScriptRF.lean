@@ -13,8 +13,8 @@ without the C source?
 **Proved** (`runScriptRF_sound`): for ANY rule list and ANY script over `Step` (the steps of `Script`) and three more
 steps, if `runScriptRF rs ss = some (rs', pre, chg)` then `Sound rs rs' pre chg`. The new steps:
 * `forkcomm2 lc lf x0 x1 n0 n1`: a fork after a two-input comp moves before two copies of it (`ForkComm2`);
-* `unpack l`: a comp whose expression is a slice of a two-part packed word, `trunci w (shrui W (addi W e0 (shli W e1
-  w0)) lo)`, computes the part directly (`e0` when `lo = 0, w = w0`; `e1` when `lo = w0`), given that `e0` fits in
+* `unpack l`: in a comp's expression, every slice of a two-part packed word, `trunci w (shrui W (addi W e0 (shli W e1
+  w0)) lo)`, is replaced by the part (`e0` when `lo = 0, w = w0`; `e1` when `lo = w0`), given that `e0` fits in
   `w0` bits and `e1` in `W - w0` and in `w` bits, from the widths of their top operators (`unslice_eval`);
 * `unjoin lx ln lc lk lb lu`: the update `comp [x2, n2] u F` that also waits for its own copy `n2` of the loop bound,
   with `F` not reading `n2`, waits for `x2` only, and `n2` leaves the bound's fork (`JoinExtSim`, read backward).
@@ -198,6 +198,36 @@ theorem unslice_eval {F F' : E} (h : unslice F = some F') (env : List Nat) : F'.
     next => cases h
   next => cases h
 
+/-- `unslice` at every node, outermost first. -/
+def unsliceDeep (e : E) : E :=
+  match unslice e with
+  | some e' => e'
+  | none =>
+    match e with
+    | .un o w a => .un o w (unsliceDeep a)
+    | .bin o w a b => .bin o w (unsliceDeep a) (unsliceDeep b)
+    | .sel s a b => .sel (unsliceDeep s) (unsliceDeep a) (unsliceDeep b)
+    | e => e
+termination_by structural e
+
+theorem unsliceDeep_eval (env : List Nat) : ∀ e : E, (unsliceDeep e).eval env = e.eval env := by
+  intro e
+  induction e with
+  | var k => unfold unsliceDeep; split <;> rename_i h <;> first | exact unslice_eval h env | rfl
+  | lit v => unfold unsliceDeep; split <;> rename_i h <;> first | exact unslice_eval h env | rfl
+  | un o w a ih =>
+    unfold unsliceDeep; split
+    · rename_i h; exact unslice_eval h env
+    · simp only [E.eval, ih]
+  | bin o w a b iha ihb =>
+    unfold unsliceDeep; split
+    · rename_i h; exact unslice_eval h env
+    · simp only [E.eval, iha, ihb]
+  | sel s a b ihs iha ihb =>
+    unfold unsliceDeep; split
+    · rename_i h; exact unslice_eval h env
+    · simp only [E.eval, ihs, iha, ihb]
+
 /-! ## The three steps -/
 
 def applyFC2 (rs : List Rule) (lc lf x0 x1 n0 n1 : Nat) : Option Res :=
@@ -213,10 +243,7 @@ def applyFC2 (rs : List Rule) (lc lf x0 x1 n0 n1 : Nat) : Option Res :=
 
 def applyUP (rs : List Rule) (l : Nat) : Option Res :=
   match rs[l]? with
-  | some (.comp ins o F) =>
-    match unslice F with
-    | some F' => some (rs.set l (.comp ins o F'), [], [])
-    | none => none
+  | some (.comp ins o F) => some (rs.set l (.comp ins o (unsliceDeep F)), [], [])
   | _ => none
 
 /-- The seven internal channels of the join-extension pattern. -/
@@ -288,12 +315,9 @@ theorem applyUP_sound {rs : List Rule} {l : Nat} {res : Res} (h : applyUP rs l =
   unfold applyUP at h
   split at h
   next ins o F hl =>
-    split at h
-    next F' hF =>
-      obtain rfl := (Option.some.inj h).symm
-      exact Sound.of_steps (same_steps hl (set_self hl) (fun k hk => set_ne (Ne.symm hk))
-        (ident_fire (fun vs _ => unslice_eval hF vs)))
-    next => cases h
+    obtain rfl := (Option.some.inj h).symm
+    exact Sound.of_steps (same_steps hl (set_self hl) (fun k hk => set_ne (Ne.symm hk))
+      (ident_fire (fun vs _ => unsliceDeep_eval vs F)))
   next => cases h
 
 theorem or6 {l a b c d e g : Nat} {X : Bool}

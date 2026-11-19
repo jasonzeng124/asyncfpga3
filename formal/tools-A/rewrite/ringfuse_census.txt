@@ -1,9 +1,12 @@
 fuse_check.py census, ring fusion: A = BDC_AUTO=1,BDC_RING_FUSE=0 vs B = BDC_AUTO=1 (flow v8 default, ring fusion on).
-Research origin/claude/research 7827dac5d: its bdc and its 111 cloud/fixtures/frontend; 2026-11-19 ~20:40 UTC, shard A.
-Tool: fuse_check.py with the ScriptRF steps (forkcomm2 / unpack / unjoin; Formal/Rewrite/Steps/ScriptRF.lean).
-Summary: 26 import (85 dfimport cannot read). 13 PROVED, 4 same rules (no ring fused), 9 REFUSED (normal forms differ).
+Research origin/claude/research 7827dac5d: its bdc and its 111 cloud/fixtures/frontend; 2026-11-19 ~20:55 UTC, shard A.
+Tool: fuse_check.py with the ScriptRF steps (forkcomm2 / unpack (slices anywhere in an expression) / unjoin).
+Summary: 26 import (85 dfimport cannot read). 16 PROVED, 4 same rules (no ring fused), 6 REFUSED (normal forms differ):
+gcd, sqrtsub: three-part packed words; iterative_division, iterative_sqrt: cells with more than two inputs;
+nest3: one of four cells not unpacked; straight: no loop (the packed cell's slices feed comps). Not supported yet.
 PROVED = Lean pass_forward/pass_backward, axioms propext/Classical.choice/Quot.sound; dfimport (trusted Python) and
 the multi-result model of bdc's packed cell (fuse_check MR_NEW) are not covered.
+Controls: xorshift slice_low, xorshift upd_plus2, lfsrfind slice_low: REFUSED rc 2.
 atax                         dfimport failed
 bicg                         dfimport failed
 binary_search                dfimport failed
@@ -24,7 +27,7 @@ dot2                         dfimport failed
 factorial                    fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/factorial//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cl
 fill                         dfimport failed
 fir                          dfimport failed
-fold64                       fuse_check: REFUSED -- normal forms differ: rules: 48 vs 48
+fold64                       fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/fold64//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claud
 gather                       dfimport failed
 gaussian                     dfimport failed
 gcd                          fuse_check: REFUSED -- normal forms differ: rules: 150 vs 150
@@ -45,7 +48,7 @@ jacobi_1d_imper              dfimport failed
 kernel_2mm                   dfimport failed
 kernel_3mm                   dfimport failed
 kmp                          dfimport failed
-lfsrfind                     fuse_check: REFUSED -- normal forms differ: rules: 45 vs 45
+lfsrfind                     fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/lfsrfind//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cla
 loop_array                   dfimport failed
 loop_path                    dfimport failed
 matrix                       dfimport failed
@@ -53,7 +56,7 @@ matrix_power                 dfimport failed
 matvec                       dfimport failed
 memsum                       dfimport failed
 mul_example                  dfimport failed
-nest3                        fuse_check: REFUSED -- normal forms differ: rules: 138 vs 139
+nest3                        fuse_check: REFUSED -- normal forms differ: rules: 137 vs 138
 nested                       fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/nested//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claud
 nested_conditionals_1        dfimport failed
 nested_conditionals_2        dfimport failed
@@ -105,7 +108,7 @@ test_unroll                  dfimport failed
 threshold                    dfimport failed
 triangular                   dfimport failed
 trisolv                      dfimport failed
-twoloops                     fuse_check: REFUSED -- normal forms differ: rules: 71 vs 71
+twoloops                     fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/twoloops//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cla
 unused_arg                   dfimport failed
 varshift                     fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/varshift//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cla
 vector_rescale               dfimport failed
