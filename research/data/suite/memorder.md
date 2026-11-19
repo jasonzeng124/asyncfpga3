@@ -91,7 +91,7 @@ The threshold is where the model's clock-to-out says it should be; nothing about
   Enable: the shortest path from the RAM clock's driver through the DCO line, the port's acknowledge logic, `done` and
   `ucapen` (whose net to the 32 latch LUTs alone is 1.6-1.8 ns); data: T_CO 2454 + the longest DOADO -> D wire (up to
   2.3 ns: BRAM to CLB). **Worst capture margin per route, 11 routes with a capture station (dyntests' 10 smokes +
-  the default-flow spmv route below): 2490 - 5261 ps** (test_bool_array s1 2490, mul_example 2669, spmv default s1
+  the default-flow spmv route above): 2490 - 5261 ps** (test_bool_array s1 2490, mul_example 2669, spmv default s1
   3173, test_memory_2 3333, test_bool_array unchained 3804, spmv AUTO unchained 3814, binary_search 4074, test_memory_1
   4569, test_stdint 4602, spmv AUTO s1 4762, share_test_2 5261). So the stale capture of section 1 needs a DCO line
   about 2.5 ns shorter than any measured route's -- and NO rule checks it: on the default-flow spmv route rule C itself
@@ -111,9 +111,9 @@ The order a later iteration's access needs is built, not raced, for the two shap
   completed (its `c` acknowledged) and returned to zero. L(k+1) after S(k) (LS), S(k+1) after L(k+1), every access of
   one station in order: by the four-phase handshake, for any delays.
 - **Across blocks** (no chain; iir's load before its loop, binary_search's two loops): what Dynamatic's own
-  mem_controller has -- the arbiter, no order -- and the dataflow; Dynamatic gives an array a controller (not an LSQ)
-  only when the accesses it leaves unordered do not depend on each other (iir: y[0] before the loop, y[i >= 1]
-  in it). stores.md section 2's argument (a block's control token waits for its stores) adds order on top.
+  mem_controller has -- the arbiter, no order -- and the dataflow; the frontend gives an array a controller (not an
+  LSQ) only when its dependence analysis finds nothing the dataflow does not already order (iir: y[0] before the loop,
+  y[i >= 1] in it). stores.md section 2's argument (a block's control token waits for its stores) adds order on top.
 
 Two checks of that, both new here (section 5):
 
@@ -132,8 +132,11 @@ Two checks of that, both new here (section 5):
 ### Every memory kernel of research/tools/suite/kernels.txt, both flows (memtb as changed here, 0 ps, DCO covered)
 
 `memtb.py K VEC --timeout-us 5000` (2 runs per call without refilling, every array read back against the C; the
-suite's vector files: kernels/K/vec.hex or research/data/suite/vec/K.hex), default flow and `BDC_AUTO=1`, on this
-clone's HEAD (bdc as on the branch). Every DCO raised 12 -> 23 in the testbench (`MEMTB note`, 64 of 64 runs); the
+suite's vector files: kernels/K/vec.hex or research/data/suite/vec/K.hex), default flow and `BDC_AUTO=1`, bdc as on
+the branch, memtb with the RAM cover, the RAM monitor and the void fix (the order monitor and the quiet-port host came
+later: with 0 changes under an acknowledge in every run below the host never met a busy port, so they change nothing
+here; spmv and sobel were rerun with the final memtb: PASS 4/4 and 3/3 in both flows, 92 and 2340 ordered accesses
+per flow, 0 out of order). Every DCO raised 12 -> 23 in the testbench (`MEMTB note`, 64 of 64 runs); the
 monitor saw the acknowledge at least 2852 ps after the clock edge on every RAM and no read data change under an
 acknowledge; no RAM setup or one-hot message in any run. **64 / 64 PASS.**
 
@@ -194,64 +197,93 @@ and at 350 ps; hangs' token floor, merged since (spmv: `ulink_n_falseResult_36` 
 WITHOUT the cover the same emission returned wrong values instead of hanging (the journal's observation): the stale
 row bounds made every inner loop empty, and the loop that deadlocked never ran.
 
-### The scatter (BD_JITTER) and its controls
+### The order monitor, the scatter, slow RAMs, and their controls
 
-- **spmv, +-30%, seeds 1-8: default 8/8 PASS, AUTO 8/8 PASS** (values and arrays right in every run; RAM monitor 0;
-  acknowledge >= 3915 ps after the edge with DCO covered for the worst draw).
-- **`BDC_MEM_NOCAP=1`** (the capture latch left out, dyntests' negative control for it): **FAIL at the nominal arcs
-  and under all 8 seeds, both flows** (every row's bounds wrong, out0 = row[i+1] -- call 1 0x0a for 0, call 3 9 for 5).
-  Without the capture, uload1's RAM edge rewrites DOADO before uload0's consumers have taken their word, at any of
-  these delays: the capture is what makes the chain's two loads safe, and the harness sees its absence.
-- **A margin the nominal arcs hold** (DCO 18 at 0 ps, uncovered: the capture closes ~270 ps after the read data, ~120
-  ps net of the latch's own arc): values right at the nominal arcs AND under all 8 seeds at +-30% (the monitor flags it
-  every time, 598 changes under the acknowledge: it is rule C's condition, stricter than the capture's). So +-30% per
-  instance did not expose a ~10% margin on a 2.7 ns path -- a long chain's scatter averages out. The scatter's power is
-  limited; what carries the ordering claim is section 4's argument. TBD (+-50%)
+All memtb, both flows unless said; "values" = out0 and every array against the C.
 
-## 6. The change (harness and simulation model only; bdc's emission untouched)
+| run | kernels | result |
+|---|---|---|
+| order monitor, nominal arcs | the 11 kernels with a chained port (LS in one block: test_memory_1, test_memory_2, mul_example, share_test_2, test_stdint, image_resize, vector_rescale, video_filter; LL in one block: test_bool_array, spmv, sobel) | **0 accesses out of program order in 2 x 32 548** (spmv 92, test_memory_1 48, test_memory_2 52, test_bool_array 16, mul_example 1200, share_test_2 1200, test_stdint 1600, image_resize 7200, vector_rescale 8000, video_filter 10800, sobel 2340 per flow); values PASS |
+| control: `--order-all` on binary_search (two loads in two loops: unchained, nothing makes them alternate) | binary_search | 1060 of 1088 "out of order" in both flows: the check fires when the order is not built (not judged; values PASS) |
+| scatter +-30%, seeds 1-2 (spmv 1-8) | the 11 above + binary_search, iir, share_test_1 (unchained) | **68 / 68 PASS** (values; RAM monitor 0; where the monitor ran, 0 out of order: e.g. image_resize 14 400, video_filter 21 600, sobel 4680 accesses over the two seeds and flows) |
+| scatter +-50%, seeds 1-8 | spmv | **16 / 16 PASS**, 736 ordered accesses per flow, 0 out of order |
+| slow RAMs (`--ram-slow 200`: every DSETUP / DCO 200 arcs, ~25 ns each) + scatter +-30% seed 3, memtb with the quiet-port host | spmv, test_memory_1, test_memory_2, mul_example, test_stdint, test_bool_array, binary_search (vector_rescale and iir dropped: ~35 min each at 200-arc RAMs) | **14 / 14 PASS** (values); ordered accesses per flow 92 + 48 + 52 + 1200 + 1600 + 16 = 3008, 0 out of order; the acknowledge >= 24.1 ns after every edge, 0 changes under it (binary_search default took 1529 s of wall) |
+| control: `BDC_MEM_NOCAP=1` (no capture latch), nominal and +-30% seeds 1-8 | spmv | **FAIL 18 / 18** (every row's bounds wrong, out0 = row[i+1]: call 1 0x0a for 0, call 3 9 for 5) |
+| control: DCO 18 kept (capture ~270 ps after the read data, ~120 ps net of the latch's own arc), nominal, +-30% and +-50% seeds 1-8 | spmv | values right in 18 / 18 (the monitor flags every run: 487-598 read-data changes under the acknowledge, rule C's stricter condition) |
 
-- `research/tools/suite/memtb.py`: by default every RAM delay parameter of the DUT whose DCO is shorter than the RAM
-  model's clock-to-out + 3 arcs at `--route-ps` is raised in the testbench's instantiation (12 -> 23 at 0 ps; nothing
-  at 350 ps), with a `MEMTB note:` line -- the condition rule C requires of every route; `--keep-dco` keeps the
-  emitted value (the negative control). A monitor on every bd_mem counts read data that changes while its
-  acknowledge is high (`MEMTB RAM-BOUNDARY`, a failure in the summary) and prints the smallest acknowledge-after-edge
-  seen; the RAM model's setup violations and the ports' one-hot check, until now only in run.log, are printed as
-  `MEMTB VIOLATION` and fail the summary. `--jitter SEED[:PCT]` compiles with BD_JITTER (and covers DSETUP too).
+What the controls say. Without the capture the chain's second load rewrites DOADO before the first load's consumers
+have taken their word, at the nominal arcs already: the capture is necessary, and memtb sees its absence. The order
+check fires on a port whose accesses are not chained. But the scatter did NOT expose a ~120 ps net margin on a
+2.7 ns path, at +-30% or +-50% per instance (a long chain's scatter averages out): passing it is weak evidence for
+anything held by margin. The order claim rests on section 4's argument and on the monitor, not on the scatter.
+
+**A harness defect the slow-RAM stress found, fixed here.** The first slow-RAM batch failed test_memory_1 and
+test_memory_2 in both flows and mul_example in the default flow (its AUTO run was stopped): values, 14-223 read-data
+changes under an acknowledge, 2-4 accesses "out of order". In test_memory_1 the first of them came after the last run
+of the call had completed, in the host's read-back: on an arbitrated port the host slot
+stands outside the arbiter and its acknowledge is gated by its own phase bit, so memtb's host task, which waited only
+for that acknowledge to be low, could raise its request while the kernel's last access was still returning to zero
+(DSETUP + DCO after the claim drops: ~50 ns at 200 arcs; memtb waits 3 ns). It now waits for every RAM of the port to
+have returned to zero; then all three pass (row above). At the nominal arcs the port was always quiet in time (0 changes under an acknowledge in all 64 table runs).
+The real bench's host is the PS, microseconds away; that the port is quiet before its first read-back is a timing
+assumption of the bench, not checked by anything (section 8).
+
+## 6. The change (harnesses and the simulation model; bdc's emission untouched)
+
+- `research/tools/suite/memtb.py`:
+  - **the RAM boundary**: every RAM delay parameter of the DUT whose DCO is shorter than the RAM model's clock-to-out
+    + 3 arcs at `--route-ps` is raised in the testbench's instantiation (12 -> 23 at 0 ps; nothing at 350 ps), with a
+    `MEMTB note:` line -- the condition rule C requires of every route; `--keep-dco` keeps every emitted RAM delay
+    (the negative control). A monitor on every bd_mem counts read data that changes while its acknowledge is high
+    (`MEMTB RAM-BOUNDARY`, a failure) and prints the smallest acknowledge-after-edge; the RAM model's setup violations
+    and the ports' one-hot checks, until now only in run.log, are printed as `MEMTB VIOLATION` and fail the summary.
+  - **program order**: on every chained arbitrated port the RAM edges must alternate first / second accessor
+    (`MEMTB ORDER`, a failure if not); `--order-all` applies it to unchained ports too (a control).
+  - **the host waits for a quiet port** before each request (section 5).
+  - **void kernels**: oracle_mem.sh's `void` lines parsed (memtb crashed on all 15 void kernels at HEAD).
+  - `--jitter SEED[:PCT]` (cells/sim BD_JITTER; DSETUP covered too), `--ram-slow N` (a stress).
 - `research/tools/suite/rtl_bench.sh`: the same DCO cover through gen_bench.py's `BD_SZ_` macros (`RTL_KEEP_DCO=1`
-  keeps the emitted value); at RTL_ROUTE_PS = 350 nothing changes.
-- `cells/sim/bd_prims_sim.v`: BD_JITTER, opt-in. Without it the preprocessed model is identical to before (checked:
-  `iverilog -E` of both, comments stripped, `cmp`). cells/rtl/ untouched.
-- bdc/: unchanged, so every emission is byte-identical by construction (no file emit.py reads was touched).
+  keeps the emitted value; emit.log says which); at RTL_ROUTE_PS = 350 nothing changes.
+- `cells/sim/bd_prims_sim.v`: BD_JITTER, opt-in (one draw per LUT instance, both outputs). Without it the
+  preprocessed model is identical to before (`iverilog -E` of both, comments stripped, `cmp`). cells/rtl/ untouched.
+- **bdc/: unchanged** (`git diff <base> -- bdc/` empty), so every emission of every fixture in every mode is
+  byte-identical to the branch's by construction; no AUTO emission changed, so no routed smoke was owed for one.
+  Nothing in bdc needed changing: the order the brief asked to make hold by construction already does (section 4),
+  and the stale captures came from a testbench that ran the design outside the timing every route is held to.
 
 ## 7. What it does NOT show
 
 - **One new route, one corner.** The default flow's spmv seed 1 at `worst` is a smoke (CLAUDE.md: 4 seeds); the
-  capture margins of section 3 are static numbers on 11 existing routes, not draws. Everything else here is RTL:
-  cells/sim's cell arcs (zero wire delay with the RAM boundary met, 350 ps per arc, or the scatter) -- handshakes
+  capture margins of section 3 are static numbers on 11 existing routes, not draws. Everything else is RTL: cells/sim's
+  cell arcs (zero wire delay with the RAM boundary met, 350 ps per arc, the scatter, slow RAMs) -- handshakes
   complete, values and arrays match the C, the access order holds; nothing about routed timing.
-- **The order claim rests on the handshake argument of section 4.** The monitor checks it on every chained port of
-  the 14 kernels that have one, in both flows, under the nominal arcs, the scatter and slow RAMs; that is a sample
-  of delay assignments, not a proof. The scatter's power is limited (the DCO 18 control: a ~10% margin on a 2.7 ns path
-  was not exposed by 8 seeds at +-30%).
+- **The order claim rests on the handshake argument of section 4.** The monitor checks it on every chained port of the
+  11 kernels that have one, in both flows, at the nominal arcs, under the scatter and with slow RAMs: a sample of delay
+  assignments, not a proof. The scatter's power is limited (the DCO 18 control was not exposed at +-30% or +-50%).
 - **Cross-block accesses on one controller** (no chain: binary_search, share_test_1, iir) are ordered by the dataflow
   only; the frontend gives such an array a controller rather than an LSQ only when it finds the accesses independent,
   and bdc checks neither. No kernel here has a load of a later iteration reading what an earlier one stored through a
-  controller (the frontend puts such an array on an LSQ, which bdc refuses), so a RAW across iterations was not
-  exercised -- there is nothing to exercise it with today.
-- The RAM model's clock-to-out is prjxray's max (2454 ps) at every corner here; the routed numbers use tighten.py's
-  arc values and the same constant.
+  controller (the frontend puts such an array on an LSQ, which bdc refuses): a RAW across iterations was not exercised
+  -- nothing can exercise it today.
+- The RAM model's clock-to-out is prjxray's max (2454 ps) at every corner here; the routed numbers use tighten.py's arc
+  values and the same constant.
 
 ## 8. Open problems
 
 - **No rule checks the capture.** Rule C stops at bd_mem's acknowledge; the capture closes after the port's
-  acknowledge logic, `done`, `ucapen` and a 1.6-1.8 ns fanout net, while the word crosses a DOADO -> latch wire of up to
-  2.3 ns. capmargin.py (out/extra) measures it: 2490-5261 ps on the 11 routes that have a capture, so nothing is near
+  acknowledge logic, `done`, `ucapen` and a 1.6-1.8 ns fanout net, while the word crosses a DOADO -> latch wire of up
+  to 2.3 ns. capmargin.py (out/extra) measures it: 2490-5261 ps on the 11 routes that have a capture, so nothing is near
   failing today; a rule (or the gate, on the routes it judges) is what would catch the route that is.
-- **The default flow does not size DCO.** Rule C VIOLATIONs on 2 of 10 lines of the default-flow spmv route (plain
-  ports, -149 / -46 ps; the gate passed). A capture port would tolerate ~2.5 ns more than that; a plain port's
-  consumer tolerates it by its own path length. Neither is guaranteed by construction.
+- **Nothing sizes DCO in the default flow (nor in a BDC_AUTO emission routed without the sizing loop).** Rule C on all
+  19 routes at hand (dyntests' 18 smokes + the default-flow spmv here; 101 DCO lines): 17 routes clean (smallest
+  margins 516-2754 ps), 2 with VIOLATIONs, both spmv, all on plain ports: default s1 val[] / col[] -149 / -46 ps (the
+  gate passed it), AUTO unchained s1 col[] / vec[] -345 / -284 ps. A capture port tolerates ~2.5 ns more than rule C
+  asks; a plain port's consumer tolerates a shortfall by its own path length. Neither is guaranteed by construction.
+- **The host slot of an arbitrated port needs a quiet port, and only time provides it on the bench.** memtb now waits
+  for it; on the board the PS's latency is microseconds against a return to zero of a few ns, and the routed one-hot
+  monitor checks the host slot against the kernel slots' requests, not against the RAM's return to zero.
 - **sobel's vectors are blind to its in[] reads in 2 of 3 calls** (call 0: the Sobel kernels sum to zero, so the sums
   do not depend on what was read; call 2: in[] constant). A call with non-zero-sum gX / gY and varying in[] would see a
   wrong in[] word on every x.
 - Other testbenches of an emitted memory kernel at zero wire delay (tb_store1.v and tb_capture.v are the ones in the
-  tree; neither is a general harness) do not cover DCO; any new one should, or run at a plausible hop (350 ps).
+  tree; neither is general) do not cover DCO; a new one should, or run at a plausible hop (350 ps).
