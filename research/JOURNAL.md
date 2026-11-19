@@ -7248,3 +7248,22 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   (research/data/suite/board/rejudge_2026-11-19_gate_strict.txt). BOARD-QUEUE says so.
 - Headline regenerated with nsearch1 (countloop's v7 routes: 4 clean, median 21.14 ns, was 25.05) and the resume
   rounds so far: 31 of 62 kernels pass.
+### progress 05:47 (muxsel landed: the N-way mux's select race is measured, and on in the loop; a real case on cmpchain)
+- **muxsel** (research/data/muxsel/notes.txt): tighten.select_consumers() never returned a bdc_muxnN (its joins are
+  <p>.uj<k>.u, read as tag u under parent <p>.uj<k>), so no rule (E, D, A'j's select captures) saw the decode LUTs
+  sel[k] = ctl_req & (s == k); 2-way bd_mux and steers are read correctly. Six fixtures emit an N-way mux: cmpchain (3 x
+  5-way), gcd, isprime, iterative_sqrt, sobel (3 x 3-way); none of board items 37-41. **BD_SKEW_MUXN=1**: tighten's
+  muxn_decode_sites() finds each mux by structure (the request pin from the LUT functions, not names) and skew.py
+  checks every (request, index) pin pair like a 2-way mux join; unset byte-identical (isprime, xorshift routes); CA_FAST
+  exact with it. Negative controls: lengthening the 8 arcs into umux13's index pins by 100 / 250 / 1000 ps moves the
+  row to +122 / -32 / -804 ps exactly as predicted; in routed GLS (GATE_RUNTS=1) the +1000 ps route and a route with
+  the guarding line removed put runts (247-631 ps) and x pulses on exactly the decode outputs, answers still right.
+- **A real case:** the sizing loop had shrunk cmpchain's guarding select links to 1 element ("on no measured
+  constraint"): s2 it5 (route 1c13ff02) -762 ps, s3 it2 (1994ab81) -1083 ps under the new rule, and in GLS 12 + 3 x / 12
+  + 2 x narrow pulses on those muxes' decode outputs; with the line at 7 (what the new rule asks) 0 pulses, 17/17. Answers
+  stayed right only because these muxes merge exclusive branches (the input whose decode pulses holds no token);
+  sobel's muxes sit inside a loop body, where that may not hold. isprime / gcd / iterative_sqrt routes measured +36..+740
+  ps (isprime it5 at 0.31: +36, now held by the rule).
+- **auto_size.sh: BD_SKEW_MUXN=1 by default in the loop** (BD_SKEW_MUXN= off). Shipped routes with an N-way mux (cmpchain
+  s1 / s4 in suite9; gcd / isprime / iterative_sqrt loops) were sized without it: the suite's next rounds re-size them;
+  the runt monitor (GATE_RUNTS=1 in suite_one) now reports such pulses in every draw.
