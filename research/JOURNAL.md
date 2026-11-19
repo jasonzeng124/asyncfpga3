@@ -7772,3 +7772,18 @@ goal-1 list of the 19:53 state of play), plus rule B's guard form (above).
   carries a number in the headline. No route of spmv has finished sizing yet: it belongs on the goal-1 list of NOT CLEAN
   loops, where the RAM guard rows (row's umem0 / umem1) are what the loop could not close on s4. suite12 (v8, 6-route
   finish) has not returned spmv yet: read it there first.
+### progress 21:59 (gcd's P: the marker IS in Dynamatic's block on the one route whose marker is on record; the 2.16x is not "another loop"; LOCK stays clear)
+- Session 19 read gcd's P / slope = 2.16 (gifast1 s1 / s3 / s4: P 61.4-66.3 ns) as "P sits on another loop than
+  Dynamatic's most executed (bb11)". The gifast1 files hold no marker net (auto/it_*.txt, log.txt: P only), so that was
+  not checked. The only gcd route with its marker on record is a local graph left in this job's clone,
+  research/data/eventgraph/graphs/au_gcd_1_0 (2026-11-17, BDC_AUTO=1 it 0, sdf 68cd1f94, P 56.49 ns, untracked, not
+  committed): its auto marker n10770 = bridge_i.udut.n145__3_req, and in the fixture (unchanged since 2026-10-25) %145
+  is fork36, **handshake.bb = 11**. So on that route P is measured on a net of the block Dynamatic's figure counts.
+- Candidate explanation, NOT checked: gcd (research/data/gcd_draws/gcd_kernel.c, Stein) has 5 loops; the main loop
+  `while (a != 0)` holds the shift loop `while (a > 0 && (a & 1) == 0)`, whose test runs at least once per main
+  iteration. If bb11 is that inner test, its executions per call are main iterations + shift trips (about 2 per main
+  iteration), and a period measured per main iteration is about 2x the per-execution slope. That would make P and the
+  slope two different units on one loop nest, not two loops. To check: which block is the main loop's header in the
+  fixture, and the marker on one gifast1 route (rebuild seed 1, read eventgraph.py's check.txt).
+- Does NOT show: anything about gifast1's own markers; that Dynamatic's bb numbering in its table equals the fixture's.
+  The headline is unaffected (gcd has no clean route; suite_table.py uses the slope where P departs from it).
