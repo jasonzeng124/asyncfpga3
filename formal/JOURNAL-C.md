@@ -4850,3 +4850,10 @@ every route of c_mem4 / 5 / 6 + the NOCAP controls). C60 carries a CORRECTION pa
 ### progress 09:56 -- first route rechecked with the fixed CLK->DO
 test_bool_array s1 (8759dc8d SAME), HOSTPORT: 16 + 16 pass; ramslack at draw 10101 3.60 ns (was 3.78 with the fast arc;
 the SLOW_MAX figure 2.71 ns is unchanged by construction). c_mem7 for the rest.
+
+### progress 10:33 -- local reruns with the fixed CLK->DO; C61 (liveness on research HEAD)
+With 2fb47f746 (+ the dsp_gates pruning narrowed to 3+-operand products: the 09:27 pruning had broken mul_example's
+x * (x*x) check), HOSTPORT, 32 + 32 draws: if_loop_1 s1 32 + 31 (slow draw 10174 fails, WE setup -98 ps, 1600 violations
+-- identical to c_mem4's, as expected: the WE race does not use CLK->DO); test_stdint s1 and test_bitint s1 64 / 64;
+mul_example s2 and spmv s1 16 + 16. c_mem7 (all 68) still waiting behind c_mem6 (which runs the old arc: superseded).
+FOR-RESEARCH C61: the liveness sweep on research 3c9e6de49 and how to run it with the ringfuse knob.
