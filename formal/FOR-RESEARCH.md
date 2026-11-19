@@ -154,6 +154,33 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
   (dfimport's op semantics) is trusted, as everywhere in formal's token-level work; memory kernels (dfimport cannot
   read them); timing. The check says the fused graph computes the same tokens, not that it is faster.
 
+## B16. Proved-structure lower bounds (kappa_lo) for the OUTPUT CAPTURE race of your board items 38-41 and other routes: xorshift 0.117, collatz 0.281, collatz64 0.108, ipow 0.169; gcd / iterative_sqrt get no proof (shard B, 2026-11-19 10:10 UTC; Lean logic, untrusted extraction; one race per route)
+B15's method made generic (`formal/tools-B/auto/outsafe.py MDIR`, on any decoded bench route): the race between out0_data
+(its whole combinational cone, every operand: Lean `SettleAll.settle_all`) and out0_req (a chain of gates each forced to
+0 by one pin, constant-tied pins at their values: Lean `ChainHold.chain_hold` / `chain_hold_side`), both from the rise of
+the join J that launches the request. Where several joins can launch it (a mux), the bound is the worst one. g = 1;
+kappa_lo = min over the two corners of (R - D) / (R + D).
+| route (sdf, all SAME as yours) | launching join (worst) | request >= A + (c = 0 / 1) | data <= A + (c = 0 / 1) | kappa_lo |
+|---|---|---|---|---|
+| item 41 xorshift s8 (3497ca67) | umux3.uj1 | 1.31 / 3.10 ns | 1.04 / 2.22 ns | **0.117** |
+| item 39 collatz s6 (c56def07) | umux2.uj0 | 2.32 / 5.38 | 1.30 / 2.53 | **0.281** |
+| item 40 collatz64 s5 (9585dde4) | umux2.uj1 | 1.69 / 3.89 | 1.36 / 2.69 | **0.108** |
+| item 38 ipow s2 (81bbe268) | umux3.uj1 | 1.85 / 4.35 | 1.31 / 2.60 | **0.169** |
+| straight s2 (23c31cf3) | uaddi3.ujoin | 2.75 / 6.22 | 1.44 / 3.43 | 0.290 |
+| divmodu s1 (99effc30) | uaddi0.ujoin | 10.53 / 24.46 | 6.37 / 14.74 | 0.246 |
+| cmpchain muxn1 s1 (67cb2cfa) | uxori0.ujoin | 3.61 / 8.45 | 2.46 / 5.65 | 0.189 |
+| test_divui line 528 (2e6ac4e7) | udivui0.ujoin | 149.2 / 352.8 | 91.4 / 215.5 | 0.240 (B15) |
+| gcd s3 (190535ff) | umux21.uj1 | 0.98 / 2.18 | 1.40 / 2.99 | none (-0.17) |
+| iterative_sqrt s1 (b6aaa2f9) | umux3.uj1 | 0.86 / 1.96 | 2.06 / 3.88 | none (-0.41) |
+- **Premises (other races, not proved here):** the cone's roots (input / select latches) hold their values from J's rise
+  to the capture; for a mux, the other joins stay 0 while the request walks (the mux's exclusivity); out0 is captured at
+  out0_req's rise (your bench samples a host cycle or more later, so gcd's / iterative_sqrt's "none" says only that the
+  bound, taken at out0_req, cannot prove them: both pass every draw); H_DECODE.
+- **Reading:** on the board items this race is not the weak spot: at kappa 0.11-0.28 (every arc of the race at its
+  extreme, the two sides at opposite ends of their per-arc scatter) it still holds. The margin tool's kappa_hi for the
+  same builds (C's) is where the failures are.
+- Farm b_os2 runs the same on the other non-array headline routes.
+
 ## B15. A PROVED lower bound (kappa_lo) for one race of a real route: test_divui's divider capture is safe for every delay in the band up to kappa 0.240 with the line at 528, 0.067 at 384, and has no proof at 320 (where your draws and formal's pass) (shard B, 2026-11-19 09:25 UTC; Lean logic, untrusted extraction of the numbers)
 The owner's question (PROGRAM: can lower bounds be proved at all?) answered for one capture race. Race: out0_data
 (the quotient, through the divider's gated stages) against out0_req (the divider's matched line), both launched by the
