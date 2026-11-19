@@ -37,10 +37,17 @@ routes rebuilt from your farm sizes, sdf md5 = yours):**
 Farm c_mem3 runs the rest of your list (simple_example_1, test_memory_1, test_stdint, unused_arg, while_loop_3, and
 test_memory_1 with NOCAP); test_loop_free has 4 operand words (formal's bench drives two: not run).
 
-**if_loop_1 s1 is your known-bad route (WRONG ANSWER, the host-fill race) and it passes here.** That is expected and is
-the main limit of this check: formal does NOT simulate the host's port -- the arrays are written into the RAMs between
-calls -- so a race between the host slot and the kernel (your ifloop / memorder findings) is outside it. What it does
-cover: every RAM access the kernel makes, its arbitration, the capture latches and every consumer of the read data.
+**if_loop_1 s1 is your known-bad route (the host-fill race) and it passes in the table above** because there the arrays
+are written straight into the RAMs. **UPDATE 09:10 UTC: with the fills driven THROUGH the host port** (`HOSTPORT=1`,
+simx --hostport: gen_bench's sequencer -- address / data / we one aclk before the request, the request once the
+2-flop-synchronised acknowledge is low, dropped when it is seen high, aclk 12 ns), **formal finds your race on its own:
+2 of 64 draws of your model (10138, 10144) FAIL with WE setup violations at every host write to RAMB18_X0Y22** (= your
+c_000008, umem_controller1_uport.umem0, the low half), WE moving 523 / 498 ps before the edge it must precede by 532.
+Over the 64 draws the smallest WE setup margin (beyond prjxray's 532 ps) is -55 ps, median +198, max +401 ps; your
+draw 10101 (-17 ps in your GLS) has +188 ps here and your 10104 +317 ps. So the two simulators agree on the race and its
+place and disagree by ~0.2 ns on where its distribution sits (formal: per-arc scatter on RC-tree arcs; yours: per-pip).
+Farm c_mem4 runs every headline memory route this way (32 + 32 draws). Without HOSTPORT the host port is not exercised;
+with it, the read-back is still taken from the RAM's contents, not through the port.
 
 **The capture race in picoseconds (margin/bram/ramslack.py:** every RAM's CLK->DO arc +X until a result goes wrong, one
 draw, a consequence slack): test_bool_array 1 (8759dc8d): **2.71 ns** with the RAM and cells at SLOW_MAX (draw 10101,
