@@ -6723,7 +6723,7 @@ node3627, RUNS=/tmp/bot/runs. research/tools/compile_slot.sh (bf9204114): the GL
   unused_arg in, the two that do not compile out -- they are recorded as DOES-NOT-COMPILE already).
 - Still judging: collatz64 v3 s5 (13 / 13 so far), xorshift v3 s8 (6 / 6, plus 8 slow-carry draws to come).
 
-## Session 2026-11-18 16:50 UTC -- (in progress) cluster bot, session 17: recovering session 1's lost tail; items 40 / 41; the v6 headline
+## Session 2026-11-18 16:50 UTC -- cluster bot, session 17: the automatic column over every listed kernel (59 of 62 pass), flow v6 -> v8, 15 subagents, every wrong answer traced to a rule and fixed
 Toolchain: patches.sha 0d42657914fc25d3, nextpnr 6e5d224472232d5d (toolchain.sh all ok on node3627)   Seeds: per item
 Lock: cluster-research-29466208-1 (this wrapper's session 1, ended 10:17 UTC) taken 16:48 UTC as cluster-research-29466208-17.
 cluster: sessions 2-16 of this wrapper (10:17-16:17 UTC) each ended after 60 s on "You've hit your weekly limit"; nothing
