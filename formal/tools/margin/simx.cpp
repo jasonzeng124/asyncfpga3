@@ -173,6 +173,7 @@ static void load_net(const char* fn) {
         for (int i = 0; i < n; i++) { Bdata[j].push_back(strtol(p, &e, 10)); p = e; }
         p++;
     }
+    while (*p == '\n' || *p == ' ') p++;
     if (!strncmp(p, "xacks ", 6)) {   // margin/bram/mk_bnd_mem.py: the other input channels' acknowledges
         p += 6; int n = strtol(p, &e, 10); p = e;
         for (int i = 0; i < n; i++) { XACKS.push_back(strtol(p, &e, 10)); p = e; }
