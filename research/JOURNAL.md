@@ -7292,3 +7292,7 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   (the earlier loops shrank it to 1), **0 pulses under 1 ns on all 340 kernel handshake nets** in every draw (the
   earlier routes: 12-15 on the decode outputs), 4 / 4 draws each; iterative_sqrt s2 P 64.56 ns, 4 / 4, 0 runts. All
   three NOT CLEAN on other rows (the loop's finish phase, as everywhere).
+### progress 07:38 (a subagent's analysis reached 53 GB of the job's 64: killed; a watchdog now kills any process over 30 GB)
+- divsize's peakpath.py (a path search through the divider's 32 gated stages) grew to 53 GB RSS in 8 minutes; killed
+  before an OOM could take down the session and every subagent; the subagent was told to use a bounded longest-path DP.
+  /tmp/bot/memwatch.sh (node-local) kills any single process over 30 GB from now on (logged to /tmp/bot/memwatch.log).
