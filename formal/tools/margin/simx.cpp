@@ -73,6 +73,7 @@ static vector<int> ds;                                      // flattened delays
 static vector<double> his;                                  // flattened H_RUNT upper bounds (LUT gates)
 static map<string, int> BN;
 static vector<int> Bdata[3];                                // a_data, b_data, out0_data
+static vector<int> XACKS;                                   // other input channels' acks (memory kernels), all waited for
 
 // DSP48E1 output-bit gates (flag 2 in the .simx file; margin/dsp/dsp_gates.py, model margin/dsp/dspmodel.py): the
 // combinational DSP48E1 datapath (every register off; yosys cells_sim.v semantics), bit obit of P (= PCOUT).
@@ -169,6 +170,10 @@ static void load_net(const char* fn) {
         const char* q = strchr(p, ' '); p = q; int n = strtol(p, &e, 10); p = e;
         for (int i = 0; i < n; i++) { Bdata[j].push_back(strtol(p, &e, 10)); p = e; }
         p++;
+    }
+    if (!strncmp(p, "xacks ", 6)) {   // margin/bram/mk_bnd_mem.py: the other input channels' acknowledges
+        p += 6; int n = strtol(p, &e, 10); p = e;
+        for (int i = 0; i < n; i++) { XACKS.push_back(strtol(p, &e, 10)); p = e; }
     }
 }
 
@@ -631,6 +636,7 @@ int main(int argc, char** argv) {
         // ---- the environment reacts to the settled state at t
         bool A0 = val(aA, t), A1 = val(aB, t), A2 = val(aS, t); TOUCH[aA] = TOUCH[aB] = TOUCH[aS] = 1;
         bool anyA = A0 || A1 || A2, allA = A0 && A1 && A2;
+        for (int x : XACKS) { bool v = val(x, t); TOUCH[x] = 1; anyA = anyA || v; allA = allA && v; }
         if (datachange == "broad" && 0 < k && k < np) {
             int ackn[2] = {aA, aB};
             for (int j = 0; j < 2; j++) if (!val(ackn[j], t) && broad_k[j] != k) {

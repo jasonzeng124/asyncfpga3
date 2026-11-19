@@ -10,7 +10,7 @@
 #      ('-' = a new route);
 #   3. the bits read back (prjxray bit2fasm) and decoded: decode_bram.py (LUTs, routes, DSP48E1, RAMB18E1, every
 #      DSP / RAM pin checked one-to-one against nextpnr's routed json), build_net.py (RC_TREE=1), dsp_gates.py,
-#      bram_gates.py; the kernel boundary (margin/boundary_bench.py, A's mk_bnd_sim.py, B's bnd_const.py);
+#      bram_gates.py; the kernel boundary (margin/boundary_bench.py, mk_bnd_mem.py (A's mk_bnd_sim.py generalised), B's bnd_const.py);
 #   4. memvec.py; NDRAWS (16) draws of research's model from K0 (10000 + 100 SEED + 1) and NDRAWS slow-carry draws
 #      (CARRY4 / F7F8 / FF / RAMB18 in [0.8, 1.0]) with tools-B/auto/xdraws.py -> draws.py --mem.
 # The host's fill / read-back is NOT simulated through its port: memvec writes the arrays into the RAMs between calls.
@@ -52,7 +52,7 @@ say "decoded from $SRC; bits md5 $(md5sum < "$BD/$N.bit" | cut -c1-8)"
     else cp net0.json net1.json; fi; } &&
   python3 "$H/bram_gates.py" d0.json net1.json net.json &&
   python3 "$M/boundary_bench.py" synth.json routed.json net.json "$W/${K}_kernel_bench.v" "$W/$N.v" bnd_bench.json | tail -1 &&
-  python3 "$A/mk_bnd_sim.py" bnd_bench.json bnd.json && python3 "$B/bnd_const.py" bnd.json net.json && rm -f net0.json net1.json
+  python3 "$H/mk_bnd_mem.py" bnd_bench.json bnd.json && python3 "$B/bnd_const.py" bnd.json net.json && rm -f net0.json net1.json
 ) > "$O/decode.out" 2>&1
 [ -f "$W/m/bnd.json" ] || { say "DECODE FAILED: $(tail -2 "$O/decode.out" | tr '\n' ' ' | cut -c1-200)"; exit 0; }
 grep -E "RAMB18 sites agree|DSP sites agree|ram gates|mismatches|operands" "$O/decode.out" | tee -a "$SM"

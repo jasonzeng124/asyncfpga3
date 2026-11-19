@@ -61,5 +61,7 @@ with open(outf, "w") as f:
         # node index, or -1 (const0) / -2 (const1) for tied bits (as simadv: any name starting "const")
         f.write("%s %d %s\n" % (k, len(B[k]), " ".join(
             str(-2 if nm == "const1" else -1) if nm.startswith("const") else str(idx[nm]) for nm in B[k])))
+    if B.get("xacks"):   # margin/bram/mk_bnd_mem.py: acknowledges of the other input channels (simx waits for all)
+        f.write("xacks %d %s\n" % (len(B["xacks"]), " ".join(str(idx[x]) for x in B["xacks"])))
 print("simx_conv: %d nodes, %d gates simulated (--full), kernel cone %d gates (%d nodes) -> %s"
       % (len(names), len(order), ncone_kernel, nseen, outf), file=sys.stderr)

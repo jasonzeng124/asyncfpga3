@@ -61,6 +61,12 @@ for a in arrays:
     if not mm:
         sys.exit("memvec: no port whose s_req takes %s_host_req" % a)
     ctrl[a] = mm.group(1)
+dw = {}
+for a in arrays:   # the port's data width: bdc_memport_<AW>_<DW>_<N> ... <ctrl>_uport (
+    mm = re.search(r"\bbdc_memport_(?:[a-z]+_)*(\d+)_(\d+)_\d+\b[^;]*?\b%s_uport\s*\(" % re.escape(ctrl[a]), kv, re.S)
+    if not mm:
+        sys.exit("memvec: no bdc_memport module for %s_uport" % ctrl[a])
+    dw[a] = int(mm.group(2))
 N = json.load(open(netf))
 rid = {}
 for r in N.get("rams", []):
@@ -78,10 +84,13 @@ for k, c in enumerate(calls):
                 sys.exit("memvec: no expected contents for call %d array %d" % (k, ai))
             for adr, w in enumerate(words):
                 for j in rams:
-                    lines.append("%s %d %d %d %04x" % (tag, k, rid[(ctrl[a], j)], adr, (w >> (16 * j)) & 0xffff))
+                    wm = w & ((1 << dw[a]) - 1)          # the element's bits the port holds (an i8 array: 8)
+                    lines.append("%s %d %d %d %04x" % (tag, k, rid[(ctrl[a], j)], adr, (wm >> (16 * j)) & 0xffff))
 open(os.path.join(out, "mem.txt"), "w").write("\n".join(lines) + "\n")
-ops = [c["ops"] + c["ops"][:1] if nw == 1 else c["ops"][:2] for c in calls]
+ops = [[0, 0] if nw == 0 else c["ops"] + c["ops"][:1] if nw == 1 else c["ops"][:2] for c in calls]
+if nw > 2:
+    sys.exit("memvec: %d operand words (formal's bench drives at most two)" % nw)
 open(os.path.join(out, "pairs.txt"), "w").write(" ".join("0x%x,0x%x" % (o[0], o[1]) for o in ops) + "\n")
 open(os.path.join(out, "want.txt"), "w").write(",".join("0x" + e for e in exp) + "\n")
-print("memvec: %d calls, %d operand words, arrays %s -> %s, RAMs %s; %d mem lines" % (len(calls), nw, arrays,
-      [ctrl[a] for a in arrays], sorted(rid.items()), len(lines)), file=sys.stderr)
+print("memvec: %d calls, %d operand words, arrays %s -> %s (data widths %s), RAMs %s; %d mem lines" % (len(calls), nw, arrays,
+      [ctrl[a] for a in arrays], [dw[a] for a in arrays], sorted(rid.items()), len(lines)), file=sys.stderr)
