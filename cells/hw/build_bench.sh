@@ -428,9 +428,17 @@ while [ "$attempt" -lt "$PNR_TRIES" ]; do
     # seconds on one seed and produced nothing, where every other null finished
     # in 35-60.  A seed that has not converged in PNR_TIMEOUT is not close, so
     # spend the time on the next seed instead of on this one.
+    # BD_PLACE_FROM=ROUTED_JSON (opt-in; unset, the command line is what it was): keep that route's placement for
+    # every cell it has (hw/place_from.py, a --pre-place script); only new cells are placed.  BD_PLACE_FREE=REGEX
+    # leaves the matching cells free too.  research/tools/auto/auto_size.sh uses it between finish routes.
+    PREPLACE=""
+    if [ -n "${BD_PLACE_FROM:-}" ]; then
+        [ -f "$BD_PLACE_FROM" ] || { echo "BD_PLACE_FROM=$BD_PLACE_FROM: no such file" >&2; exit 1; }
+        export BD_PLACE_FROM; PREPLACE="--pre-place $(cd "$(dirname "$0")" && pwd)/place_from.py"
+    fi
     # shellcheck disable=SC2086
     if ! timeout "${PNR_TIMEOUT:-420}" "$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $TRYSEED \
-               --freq "$TARGET_MHZ" --timing-allow-fail \
+               $PREPLACE --freq "$TARGET_MHZ" --timing-allow-fail \
                --json "$OUT/$TOP.json" --write "$OUT/${TOP}_routed.json" \
                --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
                > "$OUT/pnr.log" 2>&1; then
