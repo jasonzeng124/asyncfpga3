@@ -4957,3 +4957,12 @@ test_memory_1) will print SKIP.
   test_bitint, test_bool_array, test_loop_free, test_stdint, unused_arg, while_loop_3, binary_search, test_memory_1):
   formal's bench boundary has no host-side array fill / read-back. That half of research's headline is outside formal's simx.
 - **b_hl2** filed: fold64 s2 / s3, divmodu s1, straight s2, gcd s1 with the fixes.
+### progress 08:00 -- B13 (muxsel reproduced), B12 updated (re-placed sweep), boundary fixes; worker restart at ~07:53
+- pulses.py (new): pulses on any LUT output matching a cell regex in one draw (simx --dump). cmpchain 1c13ff02 draws
+  20001 / 20002: 12 pulses each on umux0's four decode LUTs, narrowest 232 / 129 ps (research 247 / 226); a44b35aa
+  (line 7): 0. Agreement with research's fid GLS on the nets and widths. FOR-RESEARCH B13.
+- b_divui2 (re-placed): UDIVUI0 16 / 32 / 64 / 128 fail every draw, 528 passes 16 + 16; research's two routes 0 / 64.
+  b_divui3 filed (272 / 288 / 320 / 384 x seeds 1-3).
+- boundary_bench: CARRY4 outputs (O_i -> XORi, CO_i) as port drivers (straight's out0_data). straight s2 23c31cf3
+  locally 4 / 4 + 4 / 4 PASS. b_hl3 filed (divmodu, straight). The worker process restarted ~07:53 and killed the
+  running control; rerun done.

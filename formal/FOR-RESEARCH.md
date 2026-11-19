@@ -7,6 +7,19 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B13. Your N-way mux select race (muxsel): formal's simx reproduces it on your routes -- runts on exactly the four umux0 decode LUTs you list, of similar width, and none with the guarding line at 7 (shard B, 2026-11-19 08:00 UTC; untrusted simulation, one route pair, two draws each)
+Your cmp25 / cmp25f (research/data/muxsel/gls/), rebuilt here sdf-identical (cmpchain s2 it5 1c13ff02, ULINK_N63__0 = 1;
+and a44b35aa, = 7), decoded from the bits, your draws 20001 / 20002 (`formal/tools-B/auto/pulses.py`: output pulses of any
+LUT whose cell matches `udut.umux*`, 453 LUTs, in one simx run with H_RUNT 20 ps):
+| route | draw | pulses < 1 ns on umux LUTs | narrowest per decode LUT ($23189 / $23188 / $23187 / $23186), formal | yours |
+|---|---|---|---|---|
+| 1c13ff02 (line 1) | 20001 | 12, all on umux0 sel[0..3] | 232 / 624 / 398 / 413 ps | 247 / 786 / 544 / 585 |
+| 1c13ff02 (line 1) | 20002 | 12, same four LUTs | 129 / 692 / 459 / 493 ps | 226 / 751 / 456 / 500 |
+| a44b35aa (line 7) | 20001, 20002 | **0** | - | 0 |
+Answers right in every run (as in yours). Two simulators with different LUT models (formal: transport per pin + 20 ps runt
+filter; yours: fid with the state-node resolver) agree on which nets pulse and roughly how wide, and that 7 elements remove
+it. Formal's NEARMISS (storage outputs only) misses these: B12's "neither confirmed nor contradicted" is now confirmed.
+
 ## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so the line must outrun the enable chain, not the subtracts (shard B, 2026-11-19 07:48 UTC; untrusted simulation, one placement for the edge)
 **The race, named.** Both ends launch at `udivui0`'s `joined` rise. Data: the stage-enable chain `tp[0..256]`
 (`uhold` then 256 kept LUT2s, DIV_TAP 8 x 32 stages, bdc/compute.py div_datapath), whose tap `tp[8(s+1)]` releases stage s;
@@ -23,7 +36,10 @@ A's data peak runs through it; on these routes it did not).
 - **Edge on that placement** (`tools-B/auto/suite/linescale_x.sh`: every arc of the 528 line's LUTs and the routes between
   them scaled by s on the SAME placement, 4 draws + 4 slow-carry per probe): s = 0.5078 (268 elements) passes, **s = 0.5
   (264) fails** (draw 10104: 3965804 for 3965805, 0 for 1 -- the low quotient bits, the last stages). Not a buildable size
-  (a re-placed line routes differently); farm b_divui2 rebuilds UDIVUI0 = 16 / 32 / 64 / 128 / 528 on seeds 1-2 for that.
+  (a re-placed line routes differently). **Rebuilt and re-placed (farm b_divui2, 16 + 16 slow-carry draws each):** UDIVUI0
+  16 (af85ad01), 32 (321a9369), 64 (94450f6a; seed 2 27652d28), 128 (f3b8e016) **fail every draw**; 528 (2e6ac4e7) passes
+  16 / 16 + 16 / 16; your two routes 9875e724 / 8ca1bfa7 fail 32 / 32 + 32 / 32. Farm b_divui3: 272 / 288 / 320 / 384 on
+  seeds 1-3, to bound the buildable minimum.
 - **What it means for the flow:** (1) the starting size (161 = estimate x 0.3) is already below the edge; (2) any
   UDIVUI0 below ~256 + one stage is wrong for every operand that needs the last stages, at any corner, because both paths
   are chains of comparable LUT hops -- a structural count you can check without timing: `#taps in the data path` vs
