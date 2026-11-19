@@ -5008,3 +5008,5 @@ task.sh now writes pairs.txt and pulrun.sh uses it.
   value != k on [ts, b], rule E's ts + Us <= tr + L_r + 1 => sel[k] = 0 on [a0 + U_r, b + L_s], every behaviour of the
   Spec gate model (transport, no runt filter). Forcing facts decided on an example 4-way decode INIT (+ negative control).
 * *Not shown:* any route instance; the selected input's decode; what a pulse does to the join.
+### progress 08:59 -- divmodu s2 (2ce27c67, UDIVUI0 345 + N4_SDELAY 155) 16 + 16 PASS; research headline now 43 of 62
+The newly passing kernels (if_convert, spmv, binary_search, ...) are array kernels: outside formal's simx (B14).

@@ -109,7 +109,7 @@ CARRY4 / F7F8 / FF at 0.8-1.0, your C oracle (oracle.sh; gcd: gcd8 + gcd_oracle.
 | twoloops | 1-4 | pass |
 | straight | 1-4 | pass |
 | gcd | 3, 4 (190535ff efddb3d1) | pass (8 + 8) |
-| divmodu | 1 (99effc30) | pass (its divider line: B12) |
+| divmodu | 1, 2 (99effc30 2ce27c67) | pass (its divider lines: B12) |
 | test_divui | 1, 2 | fail every draw, as yours (B12) |
 With B8 / B11 (collatz, collatz64, xorshift, ipow, countloop, sqrtsub, isprime, lfsrfind, brhash, varshift, horner,
 pipeline), formal's simx agrees with your verdict on every non-array kernel it can run.
