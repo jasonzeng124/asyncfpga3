@@ -5089,3 +5089,7 @@ task.sh: the four board kernels use research's gate vectors + kernel_oracle.sh.
 - Not attempted: internal link captures (rule I's round trip through C-elements; C's AO certificates are the tool).
 ### progress 10:27 -- PROGRAM / FOR-FORMAL re-read: unchanged; research headline 49 of 62 (10:13); b_hl5 filed (4 new non-array routes)
 ### progress 10:35 -- b_hl5: nested s1, fold64 s1, iterative_division s1, quadrec s3: 16 + 16 PASS each; output kappa_lo 0.307 / 0.478 / 0.168 / 0.461 (B14 / B16 rows)
+### progress 10:52 -- research's divsize landed (10:52): rule A's peers confined to the cell; test_divui lines 332 / 386 / 338 / 1111
+Their cause: the "downstream of the request" reach left the cell through the bench's combinational acknowledge and
+udivui0.uhold, dropping 2393 of the divider's 2510 outputs. Their new lines sit at formal's proof edge (B15: none at 320,
+0.067 at 384). Next: outsafe + draws on farm divsize1's routes when they land.
