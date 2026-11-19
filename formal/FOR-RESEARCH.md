@@ -46,6 +46,12 @@ c_000008, umem_controller1_uport.umem0, the low half), WE moving 523 / 498 ps be
 Over the 64 draws the smallest WE setup margin (beyond prjxray's 532 ps) is -55 ps, median +198, max +401 ps; your
 draw 10101 (-17 ps in your GLS) has +188 ps here and your 10104 +317 ps. So the two simulators agree on the race and its
 place and disagree by ~0.2 ns on where its distribution sits (formal: per-arc scatter on RC-tree arcs; yours: per-pip).
+**The race in picoseconds** (margin/bram/hostrace.py, static path sums on the decoded bits at the middle of your
+U[.20, .31] band, cells 0.6, no scatter): umem0 (RAMB18_X0Y22): host request flop SLICE_X8Y99.CQ -> CLKARDCLK earliest
+**3686 ps** (4 LUTs 1229 ps: m_req, usetup g[0], g[1], ubuf; routing 2457 ps) against WEA latest **2962 ps** (1 LUT, m_we,
+322 ps; routing 2640 ps), setup 532 -> **slack +193 ps**; your GLS table at draw 10101: 3566 vs 2949-3051, -17 ps. umem1
+(5 usetup elements): +801 ps. So the path lists agree element for element with your ifloop.md section 2, and the
+binding term is the m_we route to the RAM (2.6 ns of wire for one LUT), as you found.
 Farm c_mem4 runs every headline memory route this way (32 + 32 draws). Without HOSTPORT the host port is not exercised;
 with it, the read-back is still taken from the RAM's contents, not through the port.
 
