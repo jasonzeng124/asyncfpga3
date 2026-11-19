@@ -3263,3 +3263,19 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 
 ### progress 23:00 -- 23:00 re-read: PROGRAM.md (cffa0d44b) and research/FOR-FORMAL.md (105e2ff9f) unchanged; lock
 * No new request for A. From 23:00 the limit is at most 2 subagents; A is running none.
+
+## Session 2026-11-19 (A, from 07:08 UTC)
+### progress 07:40 -- start; plan: pre_eq2 as a PASS, built from proved local rewrite steps
+* Lock taken (the 2026-11-18 23:00 lock was 8 h old). setup.sh stopped during the Mathlib source build: today's work
+  is Core-only (Formal/Rewrite/*); `lake build` of those modules takes seconds.
+* Audit (origin/claude/audit 07:05 UTC): no REFUTED / OVERSTATED row on A's files. T162 CONFIRMED A19-A21 (its
+  "CountloopSame assumes the C returns within fuel" is answered by CountloopTotal, yesterday 22:13). T163 (auditor's
+  own run): with auto.py's rewrite table emptied, collatz s6 is +30 % slower (P 18.99 -> 24.64 ns): pre_eq2 carries
+  about 5.6 ns of the automatic collatz, and the automatic-vs-hand comparison reverses without it.
+* research (04:38-06:54 UTC): rewrites are off by default since 2026-11-18 19:49 (BDC_AUTO_REWRITES=1 variant);
+  ringfuse (fewer handshake units per loop ring: a fusion pass) is research's next structural lever, report due 12:00.
+  FOR-FORMAL unchanged since 2026-11-18 06:29 UTC.
+* So A's highest-value item: pre_eq2 stated as a pass (A22 said it needs a theorem for a multi-input update; T163
+  says it is worth ~30 % on collatz). Plan: five generic local rewrite steps, each proved for ANY graph (absorb a comp
+  into its only reader; fork+join collapse; fork split; fork commuted before a comp; comp congruence), then a checker
+  that runs an untrusted script of steps. pre_eq2 is then a script; a fusion pass (ringfuse) is absorb steps.
