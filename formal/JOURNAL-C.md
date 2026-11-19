@@ -4899,3 +4899,9 @@ ifl1 (if_loop_1 x 4 with its RAM guard) to judge through the host port.
 ifl1 seed 1 (c3113cc4, CLEAN) rebuilt SAME locally, HOSTPORT 32 + 32 pass, min WE setup +1326 ps; hostrace +1365 ps on
 umem0 (was +193 on b2ad5a7b). newroutes.py now reads every research request. c_mem10 (ifl1 s3 / s4, stencil_2d s1)
 submitted 15:18.
+
+### progress 16:55 -- the CLK->DO correction is closed: every memory row rerun with the fixed arc, no verdict changed
+c_mem11 (16) and c_mem12 (33), 2 cores a task, ran at once where c_mem7 (68 x 4) waited 7 h: all pass, all SAME; with
+c_mem8 (11) and c_mem9 (16 + controls), 76 distinct memory routes of research's are judged with the fixed arc. Smallest
+WE margins besides if_loop_1 s1: if_loop_1 s4 (old) 458 ps, gather s2 563, dot2 s4 690. ifl1 seed 2 timed out on
+research's farm (no route); C63 rests on seeds 1 and 3. C60 marked RESOLVED. c_mem7 still queued (now redundant).

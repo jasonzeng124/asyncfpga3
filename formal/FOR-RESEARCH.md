@@ -86,7 +86,13 @@ model (base = FAST_MIN + x (SLOW_MAX - FAST_MIN), x in [0.2, 1]) the RAM's data 
 x = 1. Fixed (2fb47f746, now checked against the constant). Unaffected: the host-write WE setup race of if_loop_1 s1 and
 hostrace.py (they do not use CLK->DO), ramslack at xband 1.0 (2.71 ns: the SLOW_MAX end is unchanged), the decoder and
 its json checks. Every pass / fail below is being rerun on farm c_mem7 (all 64 routes + the NOCAP controls); until it
-reports, read the tables as "with the RAM ~0-0.3 ns fast".
+reports, read the tables as "with the RAM ~0-0.3 ns fast". **RESOLVED 16:54 UTC: every row is now rerun with the
+fixed arc** (c_mem9: the 16 headline rows + controls; c_mem11: the 16 suite10b / void rows; c_mem12: the 33 further
+routes of newroutes.py; c_mem8: 11 new ones) -- **no verdict changed**: every route research reports PASS passes all
+its draws (16 + 16 or 32 + 32), all sdf-identical; the NOCAP control still fails; the smallest WE setup margins other
+than if_loop_1 s1 are if_loop_1 s4 (cdf0560b, suite9r3) 458 ps, gather s2 563, dot2 s4 690, test_bitint s3 730,
+mul_example s2 741. (Two c_mem11 tasks hit a farm container failure; those routes, unused_arg 1 and while_loop_3 1,
+passed in c_mem9.)
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
