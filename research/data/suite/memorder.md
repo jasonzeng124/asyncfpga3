@@ -100,7 +100,7 @@ The threshold is where the model's clock-to-out says it should be; nothing about
   default flow sizes DCO, so the 12-link placeholder's routed length is whatever the placer makes it (2305-5238 ps on
   this route's 10 lines).
 
-## 4. Ordering: why LS / LL in one block is ordered by construction, and the scatter test
+## 4. Ordering: why LS / LL in one block is ordered by construction, and how it was checked
 
 The order a later iteration's access needs is built, not raced, for the two shapes bdc lowers on one controller:
 
