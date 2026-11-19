@@ -5129,3 +5129,4 @@ Running: the same with +META_INIT=0 and =1 (fid_core.vh's power-up option).
   start-up X (+META_INIT=0 / 1 pass 17/17); near-tie pulses at ucontrol_merge0's arbiter seen by both simulators.
 - Next for B: research's suite12 (flow v8 = ring fusion default, whole suite, seed 1): formal draws + outsafe on every
   non-array route; digitsum (divres1 task 3); research reads B12-B18.
+### progress 17:18 -- watch_suite.sh running: processes research's suite12 (flow v8) routes as they land (draws + outsafe); research checkout at 34bde912c
