@@ -33,6 +33,7 @@ ap.add_argument("--model", default="research", choices=["research", "fid"],
                      "per-pip 0.126); fid: one band for all (--band), region --sreg, per-arc --sarc")
 ap.add_argument("--routed", default=None, help="routed.json (research model: delay-chain cells by name)")
 ap.add_argument("--inject", default=None, help="simx classes JSON with an 'I' list [[node, pin, ps], ..]: extra delay on those arcs (a negative control; not a model draw)")
+ap.add_argument("--mem", default=None, help="simx --mem file (margin/bram/memvec.py): RAM fills before / contents expected after each call")
 ap.add_argument("--wallcap", type=int, default=1800); ap.add_argument("--maxev", default="100000000")
 a = ap.parse_args()
 os.makedirs(a.out, exist_ok=True)
@@ -58,7 +59,7 @@ if a.model == "research":
     bel = {c["attributes"].get("NEXTPNR_BEL"): n for n, c in cells.items() if c.get("attributes", {}).get("NEXTPNR_BEL")}
     cls = {}
     for gi, g in enumerate(G):
-        if g["kind"] in ("carry", "muxf"): cls[gi] = "x"
+        if g["kind"] in ("carry", "muxf", "ram"): cls[gi] = "x"   # ram: RAMB18E1 CLK -> DO (margin/bram/), research's cell band
         elif g["kind"] in ("lut6", "lut5"):
             m = re.match(r"^(SLICE_X\d+Y\d+)\.([A-D])LUT\.O([56])$", g["name"])
             nm = bel.get("%s/%s%sLUT" % (m.group(1), m.group(2), m.group(3)), "") if m else ""
@@ -112,7 +113,7 @@ def run(seed):
            "--pairs", *a.pairs, "--kernel", a.kernel, "--corner", "0", "--data0", "--full", "--R", "400000", "--su", "1000",
            "--datachange", "broad", "--nextreq", "seq", "--tmax", str(a.tmax), "--draw", str(seed), "--band", str(a.band),
            "--sreg", str(a.sreg), "--sarc", str(a.sarc), "--regsize", str(a.regsize)] + (
-           ["--gclass", GCL, "--bands", "%.6f,%.6f,%.6f" % bands(seed)] if GCL else []) + (["--classes", a.inject] if a.inject else []) + (["--w", str(a.w)] if a.w else [])
+           ["--gclass", GCL, "--bands", "%.6f,%.6f,%.6f" % bands(seed)] if GCL else []) + (["--classes", a.inject] if a.inject else []) + (["--w", str(a.w)] if a.w else []) + (["--mem", a.mem] if a.mem else [])
     t0 = time.time()
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=a.wallcap)
@@ -122,6 +123,8 @@ def run(seed):
     per = re.search(r"PERIODIC P=(\d+) from (\d+)", r.stdout + r.stderr)
     ts = [int(m.group(1)) for m in re.finditer(r"^out0 #\d+ at (\d+) ps", r.stdout, re.M)]
     out0 = "last out0 at %d ps (%d answers)" % (ts[-1], len(ts)) if ts else "no out0"
+    rc_ = re.search(r"^RAMCHECK: (.*)$", r.stderr, re.M)
+    if rc_: out0 += " [%s]" % rc_.group(1)[:300]
     nm = re.search(r"^NEARMISS storage-output pulses < \d+ ps: (\d+); narrowest \(width, node, t\) \[\((\d+), '([^']*)', (\d+)\)", r.stderr, re.M)
     if nm: out0 += " [nearmiss %s; min %s ps at %s t=%s]" % (nm.group(1), nm.group(2), cellname(nm.group(3)), nm.group(4))
     for c in ("storage", "feeding-storage"):   # simx RACES=1: the closest input reordering that would flip a LUT

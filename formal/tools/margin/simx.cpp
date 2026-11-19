@@ -79,6 +79,14 @@ static vector<int> Bdata[3];                                // a_data, b_data, o
 // Inputs: data pins, role = port * 64 + bit (port 0 A_muxed, 1 B_muxed, 2 C, 3 PCIN); constant pins are in base[].
 struct DspG { int obit, opm, alu, inm, cis, cin; ull base[4]; vector<int> roles; };
 static vector<DspG> DSPG; static vector<int> gdsp;          // gdsp[g]: index into DSPG, or -1
+// RAMB18E1 port A output bits (flag 3, margin/bram/bram_gates.py): one shared state per RAM (id), lazily stepped at the
+// rising edges of its clock node; roles 0 clk (edge -> DO arc), 1 clk (edge at the pin: sampling), 2/3 WEA0/1,
+// 16+i ADDR[4+i], 32+i DIADI[i]; WRITE_FIRST; setup / hold windows checked at the end (RAMVIOL).
+struct RamG { int id, obit, ini; ull base; vector<int> roles; int su[3], ho[3]; vector<pair<int, unsigned>> mem; };
+static vector<RamG> RAMG; static vector<int> gram;         // gram[g]: index into RAMG, or -1
+struct RamS { int master = -1; vector<unsigned> mem; size_t ep = 0; vector<pair<ll, unsigned>> outs;
+              vector<tuple<ll, int, bool>> edges; };    // outs: (edge time at the clock node, DO word); edges: (sample t, addr, wrote)
+static vector<RamS> RAMS;
 static const ull M48 = (1ULL << 48) - 1;
 static inline ll sxt(ull v, int w) { v &= (1ULL << w) - 1; return (v >> (w - 1)) ? (ll)v - (1LL << w) : (ll)v; }
 static ull dsp48_p(int opm, int alu, int inm, int cis, ull A, ull B, ull C, ull PCIN, int cin) {
@@ -108,11 +116,12 @@ static void load_net(const char* fn) {
         gorig.push_back(strtol(p, &e, 10)); p = e;    // original gate index (--gclass)
         gout[g] = strtol(p, &e, 10); p = e; gk[g] = strtol(p, &e, 10); p = e; glut[g] = strtol(p, &e, 10); p = e;
         bool isdsp = glut[g] == 2; if (isdsp) glut[g] = 0;   // a DSP48E1 output bit: no truth table, not a LUT
-        gdsp.push_back(-1);
+        bool isram = glut[g] == 3; if (isram) glut[g] = 0;   // a RAMB18E1 DOADO bit
+        gdsp.push_back(-1); gram.push_back(-1);
         while (*p == ' ') p++;
         const char* h = p; while (isxdigit((unsigned char)*p)) p++;
         ginit0[g] = initw.size();
-        int nw = (gk[g] <= 6 || isdsp) ? 1 : (1 << (gk[g] - 6));
+        int nw = (gk[g] <= 6 || isdsp || isram) ? 1 : (1 << (gk[g] - 6));
         vector<uint64_t> w(nw, 0);
         int nd = p - h;   // hex digits, least significant last
         for (int j = 0; j < nd; j++) {
@@ -135,6 +144,20 @@ static void load_net(const char* fn) {
             for (int i = 0; i < gk[g]; i++) { d.roles.push_back(strtol(p, &e, 10)); p = e; }
             dsp48_p(d.opm, d.alu, d.inm, d.cis, 0, 0, 0, 0, d.cin);   // refuses an unmodelled configuration at load
             gdsp[g] = DSPG.size(); DSPG.push_back(d);
+        }
+        if (isram) {
+            while (*p == ' ') p++; if (*p != 'R') die("bad ram gate line"); p++;
+            RamG r; r.id = strtol(p, &e, 10); p = e; r.obit = strtol(p, &e, 10); p = e; r.base = strtoull(p, &e, 16); p = e;
+            for (int j = 0; j < 3; j++) { r.su[j] = strtol(p, &e, 10); p = e; r.ho[j] = strtol(p, &e, 10); p = e; }
+            for (int i = 0; i < gk[g]; i++) { r.roles.push_back(strtol(p, &e, 10)); p = e; }
+            while (*p == ' ') p++; if (*p != 'M') die("bad ram gate line (M)"); p++;
+            int nm = strtol(p, &e, 10); p = e;
+            for (int j = 0; j < nm; j++) { int ad = strtol(p, &e, 10); p = e; unsigned w = strtoul(p, &e, 16); p = e; r.mem.push_back({ad, w}); }
+            r.ini = (int)(initw[ginit0[g]] & 1);
+            if ((int)RAMS.size() <= r.id) RAMS.resize(r.id + 1);
+            RamS& st = RAMS[r.id];
+            if (st.master < 0) { st.master = g; st.mem.assign(1024, 0); for (auto& m : r.mem) st.mem.at(m.first) = m.second; }
+            gram[g] = RAMG.size(); RAMG.push_back(r);
         }
         while (*p == ' ') p++; if (*p != '\n') die("bad gate line"); p++;
     }
@@ -219,6 +242,50 @@ static inline void changed(int n, ll t) {
     for (int r = rd0[n]; r < rd0[n + 1]; r++) sched(max(t + rdf[r], TCUT + rdd[r]), rdg[r]);
 }
 
+// RAM: step every rising edge h of the clock node with h + d1 <= T (d1 = the master's sampling arc, role 1)
+static void ram_step(int id, ll T) {
+    RamS& st = RAMS[id]; int m = st.master; const RamG& r = RAMG[gram[m]]; int b0 = gins0[m], k = gk[m];
+    int clk = -1, d1 = -1;
+    for (int i = 0; i < k; i++) { if (r.roles[i] == 0) clk = ins[b0 + i]; if (r.roles[i] == 1) d1 = ds[b0 + i]; }
+    const vector<int>& h = H[clk];
+    while (st.ep < h.size()) {
+        ll e = h[st.ep];
+        if (e + d1 >= T) break;                     // strictly before T: every sampled value is final
+        bool after = V0[clk] ^ ((st.ep + 1) & 1);
+        st.ep++;
+        if (!after) continue;                       // a falling edge: nothing
+        ll sp = e + d1; ull v = r.base;
+        for (int i = 0; i < k; i++) { int ro = r.roles[i]; if (ro < 2) continue;
+            if (val(ins[b0 + i], sp - ds[b0 + i])) v |= 1ULL << ro; }
+        bool w0 = (v >> 2) & 1, w1 = (v >> 3) & 1; int ad = (v >> 16) & 1023; unsigned di = (v >> 32) & 0xffff;
+        unsigned& wd = st.mem[ad];
+        if (w0) wd = (wd & 0xff00) | (di & 0xff);
+        if (w1) wd = (wd & 0x00ff) | (di & 0xff00);
+        st.outs.push_back({e, wd});                 // WRITE_FIRST: DO shows the word as it is after the write
+        st.edges.push_back({sp, ad, w0 || w1});
+    }
+}
+static ll RAMVIOL = 0; static string RAMVIOL_EX;
+static void ram_checks() {   // setup / hold: no sampled pin changes within [sp - SETUP, sp + HOLD] of its own sample point
+    for (size_t id = 0; id < RAMS.size(); id++) {
+        RamS& st = RAMS[id]; if (st.master < 0) continue;
+        int m = st.master; const RamG& r = RAMG[gram[m]]; int b0 = gins0[m], k = gk[m];
+        for (auto& ed : st.edges) {
+            ll s = get<0>(ed); bool wrote = get<2>(ed);
+            for (int i = 0; i < k; i++) { int ro = r.roles[i]; if (ro < 2) continue;
+                int cls = ro < 16 ? 1 : ro < 32 ? 0 : 2;   // 0 ADDR, 1 WE, 2 DI
+                if (cls == 2 && !wrote) continue;
+                ll sp = s - ds[b0 + i]; const vector<int>& h = H[ins[b0 + i]];
+                auto it = upper_bound(h.begin(), h.end(), (int)(sp - r.su[cls]));
+                if (it != h.end() && *it <= sp + r.ho[cls]) {
+                    RAMVIOL++;
+                    if (RAMVIOL <= 3) { char b[400]; snprintf(b, sizeof b, "%s(ram %zu %s pin %s sampled at %lld ps, changed at %d ps)",
+                        RAMVIOL > 1 ? ", " : "", id, names[gout[m]].c_str(), names[ins[b0 + i]].c_str(), sp, *it); RAMVIOL_EX += b; }
+                }
+            }
+        }
+    }
+}
 static int W = 0; static ll NSKIP = 0;
 // RACES=1 (env): closest input reorderings at storage LUTs (class 0) and at LUTs feeding one (class 1), after reset
 static bool RACEON = false; static ll RACEX = 300, RACET0 = 5000; static vector<char> RACEG;   // RACES_T0: skip this long after reset release (start-up settling)
@@ -277,7 +344,7 @@ int main(int argc, char** argv) {
     vector<pair<ull, ull>> pairs; vector<string> pairstr; vector<ull> wantv; bool has_want = false; string kernel = "gcd";
     double corner = 0.5, kappa = NAN; const char* classes = nullptr; char cdefault = 'M';
     bool data0 = false, full = false, pipelined = false; ll R = 20000, su = 0, dout = 3000, dfall = -1, tmax = 5000000, reqgap = 0, maxev = -1, hostd = 1;
-    string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr; bool periodic = false;
+    string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr; bool periodic = false; const char* memf = nullptr;
     for (int i = 2; i < argc; i++) {
         string o = argv[i];
         auto nxt = [&]() -> const char* { if (i + 1 >= argc) die("missing value for %s", o.c_str()); return argv[++i]; };
@@ -316,6 +383,7 @@ int main(int argc, char** argv) {
         else if (o == "--regsize") DREGSZ = atoi(nxt());
         else if (o == "--gclass") GCLF = nxt();          // research's draw model: per-gate class file "gi c|r|x|q|p"
         else if (o == "--bands") { if (sscanf(nxt(), "%lf,%lf,%lf", &DBC, &DBR, &DBX) != 3) die("--bands bc,br,bx"); }   // stop with PERIODIC when the run provably (untrusted) repeats
+        else if (o == "--mem") memf = nxt();   // RAM contents: "F k id addr hex" fill before call k, "X k id addr hex" expected after call k
         else if (o == "--pos" || o == "--seed") nxt();
         else die("unsupported option %s (simx ports only simadv's --classes/--full subset)", o.c_str());
     }
@@ -330,6 +398,23 @@ int main(int argc, char** argv) {
     bool slowc = corner == 1;
 
     load_net(netf);
+    map<ll, vector<tuple<int, int, unsigned>>> MFILL, MEXP; ll memmis = 0, memchk = 0; string memex;
+    if (memf) { FILE* f = fopen(memf, "r"); if (!f) die("cannot open %s", memf); char c; ll kk; int id, ad; unsigned w;
+        while (fscanf(f, " %c %lld %d %d %x", &c, &kk, &id, &ad, &w) == 5) {
+            if (id < 0 || id >= (int)RAMS.size() || RAMS[id].master < 0 || ad < 0 || ad >= 1024) die("--mem: bad ram id / address");
+            (c == 'F' ? MFILL : MEXP)[kk].push_back({id, ad, w}); }
+        fclose(f); fprintf(stderr, "simx: --mem %zu fill calls, %zu checked calls, %zu RAMs\n", MFILL.size(), MEXP.size(), RAMS.size()); }
+    auto mem_check = [&](ll kc, ll tt) {
+        for (size_t id = 0; id < RAMS.size(); id++) if (RAMS[id].master >= 0) ram_step(id, tt);
+        auto it = MEXP.find(kc); if (it == MEXP.end()) return;
+        for (auto& x : it->second) { memchk++; unsigned got = RAMS[get<0>(x)].mem[get<1>(x)];
+            if (got != get<2>(x)) { memmis++; if (memmis <= 3) { char b[200]; snprintf(b, sizeof b, "%s(call %lld ram %d word %d: %04x, want %04x)", memmis > 1 ? ", " : "", kc, get<0>(x), get<1>(x), got, get<2>(x)); memex += b; } } }
+    };
+    auto mem_fill = [&](ll kc, ll tt) {
+        for (size_t id = 0; id < RAMS.size(); id++) if (RAMS[id].master >= 0) ram_step(id, tt);
+        auto it = MFILL.find(kc); if (it == MFILL.end()) return;
+        for (auto& x : it->second) RAMS[get<0>(x)].mem[get<1>(x)] = get<2>(x);
+    };
     vector<char> GCL(NG, 'r');
     if (GCLF) { map<int, char> m; FILE* f = fopen(GCLF, "r"); if (!f) die("cannot open %s", GCLF); int gi; char c;
       while (fscanf(f, "%d %c", &gi, &c) == 2) m[gi] = c; fclose(f);
@@ -463,9 +548,15 @@ int main(int argc, char** argv) {
                 for (int i = 0; i < kk; i++) { ll u; bool v = fval(INS[b0 + i], t - PD(b0 + i, t), u);
                     if ((double)(t - u) > his[b0 + i]) INF[{g, i}]++;
                     if (v) ad |= 1u << i; }
-            } else if (gdsp[g] < 0) for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - PD(b0 + i, t))) ad |= 1u << i;
+            } else if (gdsp[g] < 0 && gram[g] < 0) for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - PD(b0 + i, t))) ad |= 1u << i;
             bool v;
-            if (gdsp[g] >= 0) {   // DSP48E1 output bit: every data pin read at t - its arc (transport), the datapath, bit obit
+            if (gram[g] >= 0) {   // RAMB18E1 DOADO bit: the word of the last edge whose DO arc (role 0) has elapsed
+                const RamG& r = RAMG[gram[g]]; ram_step(r.id, t);
+                int d0 = 0; for (int i = 0; i < kk; i++) if (r.roles[i] == 0) d0 = DS[b0 + i];
+                const auto& o = RAMS[r.id].outs;
+                auto it = upper_bound(o.begin(), o.end(), make_pair(t - d0, (unsigned)0xffffffffu));
+                v = it == o.begin() ? r.ini : (((it - 1)->second >> r.obit) & 1);
+            } else if (gdsp[g] >= 0) {   // DSP48E1 output bit: every data pin read at t - its arc (transport), the datapath, bit obit
                 const DspG& d = DSPG[gdsp[g]]; ull pv[4] = {d.base[0], d.base[1], d.base[2], d.base[3]};
                 for (int i = 0; i < kk; i++) if (val(INS[b0 + i], t - PD(b0 + i, t))) pv[d.roles[i] >> 6] |= 1ULL << (d.roles[i] & 63);
                 v = (dsp48_p(d.opm, d.alu, d.inm, d.cis, pv[0], pv[1], pv[2], pv[3], d.cin) >> d.obit) & 1;
@@ -555,6 +646,7 @@ int main(int argc, char** argv) {
             drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1);
         }
         if (!req_state && !anyA && k < np && next_ok) {
+            if (memf) { if (k > 0) mem_check(k - 1, t); mem_fill(k, t); }   // the host reads back call k-1, fills call k
             if (datachange == "next" && k > 0) {
                 drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1);
                 env_set(t + hostd + max(su, 1LL), req, true);
@@ -599,6 +691,16 @@ int main(int argc, char** argv) {
         if (pr != pend_state) { pend_state = pr; env_set(t + (pr ? dout : dfall), eA, pr); }
     }
     fprintf(stderr, "sim: %lld events, t = %lld ps, %lld pairs offered, %lld accepted, %zu outputs\n", nev, t, np, done_in, outvals.size());
+    bool ramok = true;
+    if (!RAMS.empty()) {
+        if (memf && (ll)outvals.size() == np && np > 0) mem_check(np - 1, t + 1);
+        for (size_t id = 0; id < RAMS.size(); id++) if (RAMS[id].master >= 0) ram_step(id, t + 1);
+        ram_checks();
+        size_t ned = 0; for (auto& r : RAMS) ned += r.edges.size();
+        fprintf(stderr, "RAMCHECK: %zu RAMs, %zu clock edges, setup/hold violations %lld %s; memory words checked %lld, wrong %lld %s\n",
+                RAMS.size(), ned, RAMVIOL, RAMVIOL_EX.c_str(), memchk, memmis, memex.c_str());
+        ramok = RAMVIOL == 0 && memmis == 0;
+    }
     if (W) {
         size_t nlut = 0; for (int g = 0; g < NG; g++) nlut += glut[g];
         vector<tuple<ll, string, int>> iv; for (auto& x : INF) iv.push_back({x.second, names[gout[x.first.first]], x.first.second});
@@ -673,7 +775,7 @@ int main(int argc, char** argv) {
     if (has_want) want = wantv;
     else for (auto& pq : pairs) { ull x = pq.first, y = pq.second; while (y) { ull r = x % y; x = y; y = r; } want.push_back(x); }
     for (auto& o : outvals) got.push_back(o.second);
-    bool ok = got == want;
+    bool ok = got == want && ramok;
     printf("RESULT %s: want %s got %s\n", ok ? "OK" : "MISMATCH", pylist(want).c_str(), pylist(got).c_str());
     fflush(stdout);
     return ok ? 0 : 2;

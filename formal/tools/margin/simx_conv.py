@@ -45,10 +45,16 @@ with open(outf, "w") as f:
         assert len(g["ins"]) == g["k"] == len(g["arcs"])
         # a DSP48E1 output bit (margin/dsp/dsp_gates.py): flag 2, its function's parameters after the arcs
         dd = g.get("dsp") if g["kind"] == "dsp" else None
-        f.write("%d %d %d %d %x %s %s%s\n" % (gi, g["out"], g["k"], 2 if dd else lut, g["init"], " ".join(map(str, g["ins"])),
+        rr = g.get("ram") if g["kind"] == "ram" else None
+        rtail = ""
+        if rr:   # a RAMB18E1 DOADO bit (margin/bram/bram_gates.py): flag 3, then R id obit base su/ho (ADDR, WE, DI) roles M n (addr word)..
+            rtail = " R %d %d %x %d %d %d %d %d %d %s M %d%s" % (rr["id"], rr["obit"], rr["base"], rr["setup"]["A"], rr["hold"]["A"],
+                rr["setup"]["W"], rr["hold"]["W"], rr["setup"]["D"], rr["hold"]["D"], " ".join(map(str, rr["roles"])),
+                len(rr["mem"]), "".join(" %s %x" % (a_, w_) for a_, w_ in sorted(rr["mem"].items(), key=lambda x: int(x[0]))))
+        f.write("%d %d %d %d %x %s %s%s%s\n" % (gi, g["out"], g["k"], 3 if rr else 2 if dd else lut, g["init"], " ".join(map(str, g["ins"])),
                 " ".join("%d %d %d %d" % (e["fmin"], e["fmax"], e["smin"], e["smax"]) for e in g["arcs"]),
                 (" D %d %d %d %d %d %d %s %s" % (dd["obit"], dd["opmode"], dd["alumode"], dd["inmode"], dd["carryinsel"], dd["carryin"],
-                 " ".join("%x" % b for b in dd["base"]), " ".join(map(str, dd["roles"])))) if dd else ""))
+                 " ".join("%x" % b for b in dd["base"]), " ".join(map(str, dd["roles"])))) if dd else "", rtail))
     for k in ("rst", "req", "a_ack", "b_ack", "start_ack", "out0_req", "out0_ack", "pend_ack"):
         f.write("%s %d\n" % (k, nb(k)))
     for k in ("a_data", "b_data", "out0_data"):
