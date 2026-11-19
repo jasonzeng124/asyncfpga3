@@ -5134,3 +5134,4 @@ Running: the same with +META_INIT=0 and =1 (fid_core.vh's power-up option).
 ### progress 18:12 -- B18: ipow s7's near-tie named: fused compare ucmpi0.uz_n4 vs the steer joins; settle 57-154 ps at draw 10707's bands, a live steer runt at ucond_br5 (1/17); matches research's rule-E rows
 ### progress 18:32 -- CHECKED: MuxNDecode steer section (decode_no_pulse covers bd_steer's not-taken output; facts decided + control); check.sh OK (314 decls)
 ### progress 18:51 -- PROGRAM / FOR-FORMAL re-read: unchanged; suite12 still waiting for farm cores
+### progress 20:17 -- suite12 picked up by the farm (research 1b47b72a7, 62 tasks); watcher waiting
