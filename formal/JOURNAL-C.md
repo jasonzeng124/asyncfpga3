@@ -4780,3 +4780,13 @@ two races research found its rule missing (bdc_muxnN decode select, the divider'
   mul_example s2 8 + 8 pass. c_mem3 runs the rest. ramslack.py: test_bool_array 2.71 ns at SLOW_MAX (research's static
   2490 ps), gather 12.9 ns. Owner notified (first independent judge of memory kernels).
 - live sweep on research 3c9e6de49 (floor on, def + auto) running locally; c_live_sobel task 1 (sobel floor on) running.
+
+### progress 09:04 -- the host port: formal reproduces research's if_loop_1 s1 known-bad on its own (C60 update)
+simx --hostport (memtask HOSTPORT=1): the fills go through each array's host port as gen_bench's sequencer drives it
+(payload one aclk before the request, 2-flop-synchronised ack, aclk 12 ns, 8 idle edges between accesses). Two harness
+bugs found on the way: the sequencer stalled when its branch shared the kernel-offer condition (now independent), and
+simx's --periodic check declared the sequencer's ticking a livelock (the env is not idle while it runs: off then).
+RAMMARGIN now prints the smallest setup / hold margin per pin class. if_loop_1 s1 (b2ad5a7b SAME), 64 draws: 2 FAIL
+(10138, 10144) with WE setup violations at every host write to RAMB18_X0Y22 = research's c_000008 (umem0); WE margin
+over the draws min -55, median +198, max +401 ps; research's failing draws 10101 / 10104: +188 / +317 here. Same race,
+same RAM, distributions ~0.2 ns apart. Farm c_mem4: every headline memory route with HOSTPORT, 32 + 32 draws.
