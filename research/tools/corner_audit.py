@@ -509,7 +509,8 @@ def _per_site(rule, graph, fn, parent, head, tail, links, *extra):
         key = ("site", rule, ca_fast.fp_graph(edges), ca_fast.fp_set(stops), ca_fast.fp_back(back),
                ca_fast.fp_small(skew.AND_NODES), skew.K,
                tuple(os.environ.get(v) for v in ("CA_JOIN_PEERS", "CA_ODD_LINKS", "CA_MUX_PEERS", "CA_DEBUG_FOREIGN",
-                                                 "CA_BENCHCAP", "CA_BENCHCAP_PS", "CA_BENCHCAP_OWNJOIN")),
+                                                 "CA_BENCHCAP", "CA_BENCHCAP_PS", "CA_BENCHCAP_OWNJOIN",
+                                                 "BD_PEERS_CELL")),
                parent, head, tail, tuple(links)) + extra
         r = ca_fast.call(key, fn, parent, head, tail, links)
     return dict(r) if r is not None else None
@@ -1428,6 +1429,9 @@ def main():
                % (a.guard_lo, a.guard_hi, a.a_frac, a.a_min, a.slack))
     rep.append("  rule A data launches from constant drivers: %s" % ("kept (tighten.py as is)" if a.keep_const_launch
                                                                    else "DROPPED (a constant never transitions)"))
+    if os.environ.get("BD_PEERS_CELL") == "0":         # the default (on) prints nothing: its reports are unchanged
+        rep.append("  rule A peers: BD_PEERS_CELL=0, the OLD test: a request's downstream followed outside its cell "
+                   "(hid test_divui's divider behind its consumer's acknowledge)")
     rep.append("  audits exit: tighten %s, skew %s, arb_fork %s" % (base["tighten_rc"], base["skew_rc"], base["arb_rc"]))
     rep.append("  per-link cost at this corner: c_lo %s ps (cheapest link-to-link step on the route), lut_lo %d ps; "
                "chain mean steps %s-%s ps" % (c_lo, lut_lo, int(min(means.values())) if means else "-",
