@@ -39,11 +39,18 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   A refusal means the checker found no proof. It is not evidence of a bug. sqrtsub is still proved against its C (A26).
 - **Controls** (xorshift; slice_low also on lfsrfind and gcd): mutations of the fused graph, all REFUSED (rc 2). In the first, every slice reads the
   low part, which is your NEGCTL mistake in the model. In the second, the packed update computes x+2.
+- **Update 21:30, the packed-cell model against your Verilog:** `mr_verilog_check.py` checks the model's layout
+  against what your emit.py writes, on all 22 kernels with multi-result cells: OK on all 22
+  (`mr_verilog_census.txt`). It checks three things:
+  - the parts' offsets and widths (`z_data = {...}`);
+  - the slice windows;
+  - which result (by SSA name) reads which window.
+
+  Control: two slices exchanged in the emitted Verilog, refused (MISMATCH, rc 2) on gcd and xorshift.
 - **Not covered:**
   - dfimport is trusted Python.
-  - Your packed cell is modelled as bdc builds it (one cell; first result in the low bits; a fork; one slice per
-    result). Nothing checks that this model matches your Verilog.
-  - Packed words of more than two parts, and fused cells with more than two inputs, are refused.
+  - That each part's Verilog expression computes the model's. This is the same trust as for every fused region.
+  - Packed cells with more than two inputs are refused.
   - Everything is at the token level.
 
 ## C64. spmv seed 4 (your suite11/32, sdf f52af15f, PASS) has the same kind of host-write race as if_loop_1 s1, on the row array's umem0 (RAMB18_X2Y33): it passes 128 / 128 draws, but its ADDR setup margin is 22 ps at worst and its guarded static slack is -890 ps (shard C, 2026-11-19 20:55 UTC; untrusted simulation and static path sums, formal/tools/margin/bram/)

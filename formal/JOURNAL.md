@@ -3428,3 +3428,9 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   (unfused side: forkcomm2 split of a two-input update, forkmerge + dedupe of the duplicate s copies); (3) a check of
   the packed-cell model (fuse_check MR_NEW) against bdc's emitted Verilog (audit T170's caveat).
 * Lock refreshed with this push; poll on research armed (bd37bkyqi).
+### progress 21:31 -- the packed-cell model's LAYOUT matches bdc's emitted Verilog on all 22 multi-result kernels
+* tools-A/rewrite/mr_verilog_check.py: emit.py --no-top (BDC_AUTO=1) vs the importer's model: part offsets / widths
+  tile z_data, slice windows, and result (SSA name) -> window, cell by cell. Census mr_verilog_census.txt: 22 OK,
+  0 mismatch (memory kernels: emit / import fail, out of scope). Control --ctl swap (two slices exchanged in the
+  Verilog): MISMATCH rc 2 on gcd and xorshift. Not covered: the parts' Verilog expressions vs the model's (general
+  region-Verilog trust). FOR-RESEARCH A27 + FEASIBILITY row 15 updated.
