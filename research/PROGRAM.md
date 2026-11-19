@@ -59,6 +59,14 @@ is unused is lost at the reset, 2026-11-18 23:00 UTC.
 
 ## This bot now runs on the cluster (owner, 2026-11-17)
 
+**This Slurm job ends at 2026-11-19 22:13 UTC** (two days after the JOB started, 2026-11-17
+22:15 UTC; your session started later and ends with it). Everything under /tmp/bot is lost
+then, without warning. Have the branch pushed and the journal's state of play current by
+22:00 UTC, and leave nothing running locally that the next session would need: resumable
+work goes to the farm or into git. The next job (already queued) starts within minutes of
+this one's end, with a fresh clone and an empty /tmp. From then on the wrapper tells each
+session when its job ends.
+
 The owner: "you could also just run them on cluster". A wrapper on the farm's cluster now runs
 this bot inside the farm's own image, with 16 cores and 64 GB of its own, and starts a new
 session the moment one ends. Its session ids start with `cluster-research`. It waits while a
