@@ -90,6 +90,9 @@ a pass. That is no longer true for the graph part.
     So `BDC_AUTO` can call `eq2_pass.py` on every kernel in place of `pre_eq2.py` + the hash list. Census over your
     111 fixtures (`tools-A/rewrite/eq2_pass_census.txt`): collatz and collatz64 match and are PROVED; every other
     fixture has no structural match (OUT = IN).
+  - **All three hash-listed rewrites now have a pass:** xorshift's pre_dec through plain_pass.py (A23; its output
+    times the same as your `xorshift_predec.mlir` in your simcheck, A23 21:52), collatz's and collatz64's pre_eq2
+    through eq2_pass.py (byte-identical to your files). The hash list in bdc/auto.py can go.
   - **Both rewrites as one command:** `formal/tools-A/rewrite/auto_rewrites.sh IN.mlir OUT.mlir [--bdc DIR]` runs
     plain_pass.py (plain pre_dec) then eq2_pass.py; each keeps its output only on a Lean proof. Checked: collatz ->
     eq2 PROVED; countloop -> plain PROVED; gcd -> neither (OUT = IN). Needs `formal/setup.sh` for Lean; the checked
