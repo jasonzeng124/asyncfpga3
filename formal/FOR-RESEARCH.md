@@ -204,14 +204,16 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
   read them); timing. The check says the fused graph computes the same tokens, not that it is faster.
 
 ## B17. Your divsize fix, checked: its test_divui routes pass formal's draws, but sit on the edge of what can be proved -- seed 1 (line 332) has no proof even at kappa 0, seed 3 (338) 0.006, seed 2 (386) 0.082 (shard B, 2026-11-19 11:00 UTC; untrusted simulation + B15's Lean-logic bound)
-Your divsize1 seeds 1-3 (journal 10:52) and the farm's seeds 6 / 7 (sizes_<it>.vh of divsize1), rebuilt here with UDIVUI0 332 / 386 / 338 and the other lines as before: sdf
-ecbc22cc / 96c7d776 / 14c880c4 / 20c9d09e / baf58131, all SAME. Formal's simx, your K: **8 / 8 + 8 / 8 slow-carry on each**. B15's bound for
+Your divsize1 seeds 1-3 (journal 10:52) and the farm's seeds 4-7 (sizes_<it>.vh of divsize1), rebuilt here with UDIVUI0 332 / 386 / 338 and the other lines as before: sdf
+ecbc22cc / 96c7d776 / 14c880c4 / a43e6557 / 827a8a2d / 20c9d09e / baf58131, all SAME. Formal's simx, your K: **8 / 8 + 8 / 8 slow-carry on each**. B15's bound for
 the divider capture (`tools-B/auto/outsafe.py`; data settled by A + D at maxima, request not before A + R at minima):
 | seed (line) | R (c = 0 / 1) | D (c = 0 / 1) | kappa_lo |
 |---|---|---|---|
 | 1 (332) | 91.4 / 215.8 ns | 93.6 / 220.0 ns | **none (-0.012)** |
 | 2 (386) | 107.9 / 254.0 | 91.5 / 215.3 | 0.082 |
 | 3 (338) | 95.9 / 226.3 | 94.7 / 222.2 | 0.006 |
+| 4 (1111, a43e6557) | | | 0.515 |
+| 5 (359, 827a8a2d) | | | 0.032 |
 | 6 (348, farm divsize1 20c9d09e) | | | 0.037 |
 | 7 (516, baf58131) | | | 0.180 |
 So the fixed rule sizes the divider about where every arc at its band extreme just balances: it removes the bug, and
