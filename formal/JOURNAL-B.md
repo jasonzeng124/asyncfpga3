@@ -4904,3 +4904,20 @@ coltask.sh on its routes; (3) PROGRAM item 4 (select race in Lean) on the farm (
 farm runs from research's HEAD: since 14:49 EST BDC_AUTO needs BDC_AUTO_REWRITES=1 to rebuild items 39-41 (b_lsj built
 collatz without pre_eq2 for that reason).
 Scratch only (not committed): /home/user/b (decodes, A/B runs), /home/user/rs (research checkout eaef0dec7), /home/user/nb.
+
+## Session 2026-11-19 07:11 UTC (shard B, session_01HC49Fx2gUbKePZobsMWUrt)
+Lock: LOCK-B "free" (previous B handed off 23:58); taken. Read: CLAUDE.md, PROGRAM (top: from 23:00 UTC 11-18 all
+shards go on, at most 2 subagents; B's standing items: simx on research's automatic builds, PROGRAM item 4 select race),
+JOURNAL-B tail, research FOR-FORMAL (no new entry since 11-18 morning), research JOURNAL to 06:54 (headline 38 of 62;
+**test_divui: the automatic flow shrank the divider's line UDIVUI0 to 5 / 6 on rule-CLEAN routes, every draw fails**;
+muxsel: the N-way mux decode race is in no rule, cmpchain lines at 1 show runts in research's GLS), audit REPORT (no
+open row on B's files; T153 / T154 confirmed items 39-41).
+Setup: formal/setup.sh running in the background (Mathlib cache unreachable, building from source again).
+No local FPGA toolchain: simx work goes to the farm this session.
+### progress 07:40 -- farm b_divui and b_muxn filed
+- **b_divui** (8 tasks): research's two failing test_divui routes (suite10b s1 / s2, sdf 9875e724 / 8ca1bfa7, UDIVUI0 5 / 6)
+  rebuilt + sdf-checked + decoded from the bits, 32 + 32 slow-carry draws with research's K and C oracle; and what-if
+  rebuilds with UDIVUI0 at 16 / 32 / 64 / 128 / 528 (seed 1) and 64 (seed 2), 16 + 16 draws: an independent answer to
+  "does formal's simx also see the wrong divider" and how long the line must be. task.sh: SDF8 '-' = a what-if route.
+- **b_muxn** (3 tasks): research's muxsel routes cmpchain s2 it5 (1c13ff02, line 1), s3 it2 (1994ab81), s2 it5 with the
+  line at 7 (a44b35aa); 8 draws from research's K 20001 + 8 slow-carry.
