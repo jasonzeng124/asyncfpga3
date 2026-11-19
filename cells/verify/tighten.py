@@ -682,14 +682,64 @@ def reaches(edges, start, stops):
     return seen
 
 
+# BD_PEERS_CELL (default 1; =0 is the old test, for comparison only): what
+# rule A calls DOWNSTREAM of a request -- the outputs it drops from the cell's
+# peers -- is what the request's tail reaches without crossing storage AND
+# WITHOUT LEAVING THE CELL.  The old test followed the tail anywhere, and a
+# path that leaves the cell comes back in only through the cell's own inputs,
+# i.e. through the consumer's response to the request: its acknowledge.  When
+# that consumer acknowledges COMBINATIONALLY (the bench: o_ack_pl = flop &
+# o_req_pl, research/tools/fifteen's harness) and the cell feeds its own z_ack
+# into its datapath (the divider's enable chain, hold = join | z_ack,
+# bdc/compute.py div_datapath), the old test called the whole datapath
+# "downstream of the request" and dropped it: on test_divui (`var1 / 1083`,
+# the divider driving the kernel's output) rule A kept 117 of 2512 outputs --
+# the stage subtracts' first carry bit, ~1-3 ns -- and the automatic flow cut
+# the divider's line from 159 links to 5 against a ~100 ns datapath (farm
+# suite10b tasks 9 / 10: every draw wrong).  The z_ack path cannot make any of
+# those outputs move in the request's phase (hold is already up from the join);
+# a "second line hanging off this one", which is what the exclusion is for,
+# hangs off it inside the cell.  STORAGE the request reaches is still
+# downstream wherever the path went: the C-elements on a bd_mux / bd_merge's
+# acknowledge (uxa = C(j0, z_ack)) cannot fire before the acknowledge rises,
+# and they were the only other outputs the confinement would have added (one
+# site in most loop kernels: 2-4 C-elements; census over 55 routes in
+# research/data/suite/divsize.md).  research/data/suite/divsize.md.
+PEERS_CELL = __import__("os").environ.get("BD_PEERS_CELL", "1") != "0"
+
+
+def downstream_of(edges, stops, parent, tail):
+    """The pins rule A drops from `parent`'s peers as downstream of its
+    request `tail`: reachable from the tail without crossing storage and
+    (BD_PEERS_CELL, the default) without leaving the cell, plus every storage
+    node the tail reaches by any path."""
+    full = reaches(edges, tail, stops)
+    if not PEERS_CELL:
+        return full
+    pfx = parent + "."
+    seen, work = {tail}, [tail]
+    while work:
+        p = work.pop()
+        for d, _ in edges.get(p, ()):
+            if d not in seen:
+                i = pin_split(d)[0]
+                if i != parent and not i.startswith(pfx):
+                    continue
+                seen.add(d)
+                if d not in stops:
+                    work.append(d)
+    return seen | {p for p in full if p in stops}
+
+
 def site_peers(edges, stops, parent, head, tail, links):
     """Rule A's peers at one request site: every other output the parent
     cell produces -- minus the ones that are not peers at all: anything
     upstream of the chain (the OR that feeds it is not a datapath the chain
-    must cover) and anything downstream of it (a second line hanging off this
-    one is not a race against it either).  -> sorted list.  (A function of
-    the graph's topology alone, so research/tools/ca_fast.py can reuse it.)"""
-    downstream = reaches(edges, tail, stops)
+    must cover) and anything downstream of it inside the cell (a second line
+    hanging off this one is not a race against it either; downstream_of()).
+    -> sorted list.  (A function of the graph's topology alone, so
+    research/tools/ca_fast.py can reuse it.)"""
+    downstream = downstream_of(edges, stops, parent, tail)
     upstream   = {p for p in edges
                   if is_output(p) and head in reaches(edges, p, stops)}
     # The line's own links are not peers of their own output.

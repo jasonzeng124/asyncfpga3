@@ -343,7 +343,14 @@ def rule_a_from_link(T, skew, sdf):
     chains = T.find_chains(edges)
     walks = {}
 
-    def walk(c, lng):                           # skew.walk's tables from c (CA_FAST: the memo, which notes the read)
+    def walk(c, lng, term=None):                # skew.walk's tables from c (CA_FAST: the memo, which notes the read)
+        if term is not None:                    # BD_PEERS_CELL: a data walk that never leaves the request line (below)
+            if FAST:
+                return skew.walk(edges if lng else X["early_edges"], stops, X["binc"], X["feed"], c, lng, term)[0]
+            if (c, lng, term) not in walks:
+                walks[(c, lng, term)] = skew.walk(edges if lng else X["early_edges"], stops, X["binc"], X["feed"], c,
+                                                  lng, term)[0]
+            return walks[(c, lng, term)]
         if FAST:
             return skew.walk(edges if lng else X["early_edges"], stops, X["binc"], X["feed"], c, lng)[0]
         if (c, lng) not in walks:
@@ -360,7 +367,7 @@ def rule_a_from_link(T, skew, sdf):
         if not X:
             build()
         timing = X["timing"]
-        downstream = T.reaches(edges, tail, stops)
+        downstream = T.downstream_of(edges, stops, parent, tail)     # inside the cell (BD_PEERS_CELL; tighten.py)
         upstream = {p for p in edges if T.is_output(p) and head in T.reaches(edges, p, stops)}
         own = set(links)
         # the cell's own request join (parent.ujoin.*) is the request path, not data: its inner C nodes reach the chain
@@ -418,12 +425,22 @@ def rule_a_from_link(T, skew, sdf):
                         print("A' refused at %s: foreign %s (stop %s; outside starts %s)" % (parent, s, s in stops,
                               sorted(x for x in T.starts_reaching(back, s, stops) if not inside(x))[:6]), file=dbg)
             return None
+        # BD_PEERS_CELL: a peer the request reaches only through its consumer's acknowledge (the divider's enables,
+        # tighten.downstream_of) is reached by this unconfined data walk that way too -- C node, join, the request line,
+        # the consumer, z_ack, the peer: a lap through the request, later than the request by construction.  At such a
+        # site the data walk may arrive at the request line but never leave it (skew.walk's `term`); every other site
+        # walks exactly as before.
+        lap = None
+        if T.PEERS_CELL:
+            full = T.reaches(edges, tail, stops)
+            if any(p in full for p in peers):
+                lap = (RE_LINK.match(links[0]).group("base") + ".") if links else (T.pin_split(tail)[0] + "/")
         worst = None
         for link in ups:
             for c in (link + ".ctl.u.u/O6", link + ".ctl.ub/O6"):
                 if c not in stops:
                     continue
-                wf, wt = walk(c, False), walk(c, True)
+                wf, wt = walk(c, False), walk(c, True, lap)
                 r = at(wf, tail)
                 # the data may cross one storage node more than the request (the link's latch, when the request
                 # leaves the C node directly); a peer first reached deeper than that is a lap, not this token
@@ -643,10 +660,19 @@ def rule_a_joined(T, skew, sdf, aprime):
     def site(parent, head, tail, links):              # one operator's A'j row (or its "j" row)
         own = set(links)
         inside = [p for p in edges if T.is_output(p) and T.pin_split(p)[0].startswith(parent + ".")]
-        downstream = T.reaches(edges, tail, stops)
+        downstream = T.downstream_of(edges, stops, parent, tail)     # inside the cell (BD_PEERS_CELL; tighten.py)
         upstream = {p for p in inside if head in T.reaches(edges, p, stops)}
         peers = sorted(p for p in inside if T.pin_split(p)[0] not in own and p not in downstream and p not in upstream
                        and not T.pin_split(p)[0].startswith(parent + ".ujoin."))
+        if T.PEERS_CELL:
+            # a peer the request reaches only through its consumer's acknowledge (rule_a_from_link): the walks below
+            # are unconfined and would time its data through the request itself; this cell keeps its A' row
+            full = T.reaches(edges, tail, stops)
+            envd = sum(1 for p in peers if p in full)
+            if envd:
+                return {"rule": "j", "margin": aprime[parent], "knob": None, "sized": False,
+                        "text": "%s joined: not applied, keeps A': its request reaches %d of its data outputs through its"
+                                " consumer's acknowledge (BD_PEERS_CELL)" % (parent, envd)}
         # the data's forward cone, to every storage input it reaches; a select pin ends the cone at its gate
         caps, odd = {}, set()
         bench = {"clocked": 0, "ownjoin": 0}          # CA_BENCHCAP: the sinks it reclassified (reported in the row)
