@@ -4911,3 +4911,7 @@ Checked at research's new HEAD: BDC_AUTO alone now gives the fused emission (xor
 states, = C62's RF=2 rows), so C62's sweep is the liveness check of v8's AUTO column. The memory approximator works on
 the decoded gates, so fused routes need nothing new; suite12 (whole suite, v8, seed 1) memory routes will go through
 newroutes.py when they land.
+
+### progress 18:08 -- c_mem13: 7 newest memory routes pass (83 judged in all)
+if_convert 3, simple_example_1 3 / 4, single_loop 1, test_memory_1 4, while_loop_3 3 / 4: SAME (BDC_RING_FUSE=0), 32 / 32,
+min WE 885 ps. Research's suite10d (7 loops, v7) and suite12 (whole suite, v8) pending.

@@ -95,7 +95,9 @@ routes of newroutes.py; c_mem8: 11 new ones) -- **no verdict changed**: every ro
 its draws (16 + 16 or 32 + 32), all sdf-identical; the NOCAP control still fails; the smallest WE setup margins other
 than if_loop_1 s1 are if_loop_1 s4 (cdf0560b, suite9r3) 458 ps, gather s2 563, dot2 s4 690, test_bitint s3 730,
 mul_example s2 741. (Two c_mem11 tasks hit a farm container failure; those routes, unused_arg 1 and while_loop_3 1,
-passed in c_mem9.)
+passed in c_mem9.) **c_mem13 (18:08):** suite11 / suite10c's if_convert 3, simple_example_1 3 / 4, single_loop 1,
+test_memory_1 4, while_loop_3 3 / 4 (rebuilt with BDC_RING_FUSE=0, as built before flow v8): all sdf-identical, 32 / 32
+each, smallest WE margin 885 ps. 83 distinct memory routes judged so far.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
