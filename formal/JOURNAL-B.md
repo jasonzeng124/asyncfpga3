@@ -5081,3 +5081,9 @@ gcd s3 -0.16, iterative_sqrt s1 -0.33: no proof (their out0 comes through an N-w
 its line at the extremes; the bench samples out0 one host cycle or more after out0_req, which the bound does not use).
 task.sh: the four board kernels use research's gate vectors + kernel_oracle.sh.
 ### progress 10:26 -- b_os2: output-capture kappa_lo on 38 headline routes (B16 table); no proof on gcd / iterative_sqrt / 2 iterative_division routes
+### session summary update (10:26)
+- B15 / B16: proved-structure kappa_lo (Lean SettleAll + ChainHold; untrusted extraction) for the output-capture race:
+  test_divui divider 0.067 (384) / 0.240 (528); board items 38-41 0.108-0.281; 38 headline routes (b_os2): proofs on all
+  but gcd (2 of 3), iterative_sqrt (4 of 4), iterative_division (2 of 3), whose mux data paths outrun their lines at the
+  extremes (all pass every draw).
+- Not attempted: internal link captures (rule I's round trip through C-elements; C's AO certificates are the tool).
