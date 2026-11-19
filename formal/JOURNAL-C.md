@@ -4742,3 +4742,31 @@ two races research found its rule missing (bdc_muxnN decode select, the divider'
   Plan: decode RAMB18E1 sites (margin/bram/, like margin/dsp/), a clocked RAM gate in simx (WRITE_FIRST, CLK->DO arc,
   setup / hold window -> X), and a memory bench boundary (preload / read back the arrays, N operand words). First build:
   memsum seed 1 (research's suite/bench README route), building here now.
+
+### progress 08:40 -- formal's simx runs MEMORY kernels: RAMB18E1 decoded from the bits (margin/bram/); first results
+- Local toolchain needed libtcl8.6 / boost 1.83 (apt, as research's cloud/setup-toolchain.sh installs) and prjxray's python
+  requirements (python3 -m pip); then build_bench.sh, bit2fasm and the decode run here. setup.sh's full-project Lean build
+  was OOM-killing processes again (CertRowsPS2 at 2-4 GB each): stopped; this session's Lean is not needed for this work.
+- **margin/bram/** (untrusted): decode_bram.py (wraps decode_dsp: every RAMB18 site in use decoded under a strict whitelist
+  -- port A x18, WRITE_FIRST, DOA_REG 0, port B never clocked -- every control constant's logical value and every pin's net
+  checked one-to-one against nextpnr's routed json; read-back defaults of unused sites accepted); bram_gates.py (one gate
+  per read DOADO bit, prjxray CLK->DO 585-2454 ps on the clock arc, setup / hold windows from BRAM_L.sdf, widest values);
+  simx flag 3 (one RAM state per site stepped lazily at the clock node's rising edges, sampling at the pin, WRITE_FIRST,
+  setup / hold violations counted as RAMVIOL = not a pass; `--mem`: fills before each call written into the RAM, contents
+  read back after each call against the C); memvec.py (research's benchvec + oracle_mem.sh, ORACLE_RUNS=1);
+  mk_bnd_mem.py (no-operand kernels; every input channel's ack waited for); memtask.sh (one command per route, as B's
+  task.sh: build, bits read back, decode, draws).
+- **Results:** memsum s1 (default flow, bdc estimates): 5/5 answers, 320/320 words, 8 + 8 draws; research's headline
+  gather s1 (sdf 33b77519 rebuilt SAME): 16 + 16 draws, 2 arrays read back right; test_bool_array s1 (8759dc8d SAME): 16 + 16.
+  **Negative controls fail:** a perturbed fill (wrong answer and read-back flagged); late sampling (+20 ns on the RAM's
+  sampling arc: 3 of 5 answers wrong); clk2do +60 ns (wrong; +30 ns still absorbed by memsum's estimate-sized lines);
+  **research's BDC_MEM_NOCAP=1 (capture latch removed) on test_bool_array: call 0 returns 0 for 1** -- the capture race
+  memorder's RTL showed is visible in formal's decoded-bitstream simulation.
+- NOT covered: the host's port (fills / read-back are written into the RAMs, so a host-fill race like if_loop_1 s1's is
+  outside); RAMB36 / cascades / port B / registered outputs (refused); X after a setup / hold violation (counted, not
+  propagated); INIT contents unverified against a fuzzer (none seen); kernels with more than two operand words.
+- Farm c_mem1 (research's 17 headline memory routes + 2 NOCAP controls) was filed before the no-operand / i8 fixes:
+  its rows for those kernels will need a rerun.
+- c_live_sobel: spmv floor on LIVE (93 562 states), floor off DEADLOCK (walk ulink_n7 -> n10 -> n19__0 -> n24 ->
+  falseResult_20); sobel floor off DEADLOCK (after ucmpi0=0, ucmpi1=0, ucmpi3=0, ucmpi4=1; walk ulink_n88 -> n99[2] ->
+  n120__2 -> n101__2); sobel floor on (ulink_n88 -> 2) still running.
