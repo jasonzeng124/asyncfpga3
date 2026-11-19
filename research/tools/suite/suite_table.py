@@ -107,6 +107,17 @@ def slope(x, y):
         return None
     return sum((a - mx) * (b - my) for a, b in zip(x, y)) / sxx
 
+def slope_se(x, y):
+    """(slope, its standard error from the residuals), or (None, None) when x does not vary or n < 3."""
+    n = len(x)
+    b = slope(x, y)
+    if b is None or n < 3:
+        return b, None
+    mx, my = sum(x) / n, sum(y) / n
+    sxx = sum((a - mx) ** 2 for a in x)
+    rss = sum((c - (my + b * (a - mx))) ** 2 for a, c in zip(x, y))
+    return b, math.sqrt(rss / (n - 2) / sxx)
+
 def fmt_range(v):
     return "%.2f (%.2f-%.2f)" % (st.median(v), min(v), max(v))
 
@@ -184,8 +195,10 @@ for k in sorted(set(rows) | set(listed)):
         if P is not None and P % (fclk or 12000) == 0:
             hostP.append("%s seed %s P=%d = %d x %d ps" % (k, r["seed"], P, P // (fclk or 12000), fclk or 12000))
             P = None
-        b = slope(dl["execs"], v) if (v and dl and dl["execs"] and len(dl["execs"]) == len(v)) else None
-        if P is not None and b and b > 0 and abs(P / 1000.0 / b - 1) > PSLOPE_TOL:
+        b, se = slope_se(dl["execs"], v) if (v and dl and dl["execs"] and len(dl["execs"]) == len(v)) else (None, None)
+        # refused only when the gap is also beyond 3 standard errors of the slope: a trip count that barely varies over
+        # the vectors gives a slope too noisy (12 ns quantisation per call) to overrule P
+        if P is not None and b and b > 0 and se is not None and abs(P / 1000.0 - b) > max(PSLOPE_TOL * b, 3 * se):
             offP.append("%s seed %s P=%.2f ns against a slope of %.2f ns (%.2fx)" % (k, r["seed"], P / 1000.0, b, P / 1000.0 / b))
             P = None
         if P is not None:

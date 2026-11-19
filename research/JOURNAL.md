@@ -7681,3 +7681,11 @@ Next, in order:
 4. gcd's P sits on another loop than Dynamatic's most executed (2.16x the slope): name the loop from the event graph,
    for the record; the table uses the slope now.
 5. The open goal-1 list of the 19:53 state of play (session 17) stands.
+### progress 21:53 (lock retaken 21:50 for one hardening of the 21:51 rule; cleared again with this commit)
+- suite_table.py: a P is refused only when its gap to the slope is beyond BOTH 15 % and 3 standard errors of the slope
+  (residual-based, new slope_se()). Why: a kernel whose trip counts barely vary gives a slope too noisy, with calls
+  quantised to 12 ns, to overrule P. Synthetic check (12 ns-quantised calls, trips 10-12): slope 27.00 +- 2.29, P 21.0 ->
+  refused by the 15 % test alone, kept with the guard; wide range (trips 0-60, P 0.45x): slope 33.03 +- 0.08, still refused;
+  P 1.6 % off: kept. The regeneration over /tmp/bot/farmres is byte-identical to the 21:51 one (the guard does not bind
+  on today's data), so the headline stands as committed.
+- Does NOT show: that 3 SE is the right multiple; nothing on today's routes sits between the two tests.
