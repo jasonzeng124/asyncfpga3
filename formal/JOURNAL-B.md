@@ -5042,3 +5042,8 @@ was wrong by the time it was written for the array kernels; corrected.
 ### progress 09:12 -- CHECKED: ChainHold.chain_hold_side (side pins; v = true gives an arrival upper bound); check.sh OK (321 decls)
 divchain.py: research's 9875e724 request chain joined -> uor -> g[0..4] = out0_req <= 5667 ps at SLOW_MAX, side conditions
 met; data >= 74.1 ns. Both bounds now instances of Lean lemmas (numbers extracted by untrusted Python). B12 updated.
+### progress 09:16 -- CHECKED: Formal/Cells/SettleAll.lean (forcesP_all, settle_all; check.sh OK, 308 decls, standard axioms)
+* *Problem:* an upper bound on when a data path has settled, for EVERY operand (the data side of a proved kappa_lo).
+* *Proved:* a full assignment forces a LUT's INIT bit at its address; an acyclic island under any consistent valuation
+  shows its values on windows given by the longest / shortest path recurrences, which do not depend on the values.
+* *Next:* the divider capture on the 528-line route: data settle (longest path) vs request arrival (chain_hold, v = 0).
