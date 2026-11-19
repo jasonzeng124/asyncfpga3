@@ -7346,3 +7346,28 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   moves to the operand's fork into its steer, which the search phase picks but does not always make clean). 14 / 14
   routes pass 4 / 4 draws, no pulse under 1 ns, EQUIVALENT. One route per seed: not a claim. **Farm ringfuse1 filed**
   (=2 on 8 seeds x xorshift / collatz / countloop / ipow, plus v7 baselines for countloop s5-8 and ipow s1-8).
+### progress 11:21 (STATE OF PLAY for the next session: what is in flight, what to read first)
+- **Read first:** research/data/fifteen/README.md top (the automatic column, 49 of 62 kernels pass, provenance per
+  request); this session's progress notes from 16:47 UTC yesterday on; research/BOARD-QUEUE.md "Run order now"
+  (items 36, 37, then 38-41 -- all four re-judged under the strict gate, 16 / 16).
+- **The flow now (auto_size.sh defaults):** BDC_AUTO=1 with no kernel list (rewrites off; BDC_AUTO_REWRITES=1 is the
+  named variant), flow v7 = the loop (start x 0.3, two-corner rule, join credit, steer self-bound, token floor, finish
+  phase) + CA_FAST (identical proposals, 8-10x faster) + the bench-clock seed fallback + rule B's RAM guard 400 ps +
+  BD_SKEW_MUXN (N-way mux select race) + rule A's peers confined to the cell (BD_PEERS_CELL) + the event-graph search
+  phase (all sites); suite_one.sh draws report runts (GATE_RUNTS=1); the gate fails on x in a run's result and on any
+  RAMB18 event. Opt-in, measured, not defaults: BDC_RING_FUSE=2 (ringfuse1 on the farm decides), BDC_SPLIT_SOURCES
+  (ipow -2.3 ns, collatz / collatz64 worse), BDC_MEM_FASTFALL, CA_BENCHCAP (gcd / isprime's bench-capture lap),
+  AUTO_NEAR_PS (negative), BDC_LINK_RST (left off on purpose).
+- **Farm in flight (read with research/tools/suite/suite_table.py; collect states with a copy of
+  /tmp/bot/collect_resume.sh's logic: TIMEOUT tasks' auto/ dirs into research/data/suite/resume/REQ/K_S, then a resume
+  request with AUTO_RESUME):** suite9r4 (fir / sumi3_mem / memsum, 2 draws), suite10c (nest3, sobel, stencil_2d,
+  share_test_1, single_loop, video_filter resumed), divsize1 (test_divui x 8 with the peers fix), divres1 (digitdiv /
+  digitsum / divmods resumed, 8 cores), ringfuse1 (BDC_RING_FUSE=2 x 8 seeds x 4 kernels + baselines). Not yet resumed:
+  stencil_2d s2 (suite10b t42), sobel s2 (muxn1 t8) -- no state came back; rerun from scratch.
+- **Open, goal 1:** NOT CLEAN routes (about half of all loops end NOT CLEAN by tens to hundreds of ps; two such routes
+  were wrong before the judge got stricter; AUTO_NEAR_PS did not help); share_test_2 is unjudged (fasm2net lacks its
+  DSP48E1 cascade mode); rule F pads very short lines without converging (test_divui s4: 1111 links); the N-way mux's
+  hold side is argued, not measured; capture-latch timing (memorder's capmargin.py) is checked by no rule.
+- **Open, speed:** on the no-list column xorshift / collatz sit at their rising-only floor (storage cannot help;
+  the sizing box costs ~11 %); the levers left are structural (ringfuse: fewer units per ring; mux + increment and
+  compare + steer need new cells) and placement (hard RLOC groups untried; soft weights negative).
