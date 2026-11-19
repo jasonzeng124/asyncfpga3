@@ -19,6 +19,8 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   same result tokens, and vice versa. 2 = refused. 3 = A and B import to the same rules.
   - To check ringfuse: `fuse_check.py K.mlir K.mlir --env-b <your ringfuse knob>=1 --bdc <your bdc>` on every kernel
     (or `A.mlir B.mlir` if the pass rewrites the MLIR).
+  - Every kernel in one command: `formal/tools-A/rewrite/fuse_census.sh cloud/fixtures/frontend <your bdc> "<KNOB>=1"
+    out.txt` (one line per kernel).
 - **New proved steps (any graph, both directions; `formal/lean/Formal/Rewrite/Steps/`):** `Dedupe` (a comp reading two
   outputs of one fork reads one of them twice), `Wire` (a one-output fork feeding a comp is removed), `ConstData`
   (your BDC_CONST_DATA: a comp reads a channel that only ever carries the constant v as the literal v; proved with the
