@@ -235,6 +235,7 @@ sdf SAME on all 14; bits decoded by formal; 8 draws of your K + 8 slow-carry; `o
 | 12 / 13 | collatz s4 / s5 (7ed75da9 / d8b7c9d3) | 8 + 8 each | 0.149 / 0.201 |
 | 18-22 | countloop s2-s6 (becb3043 ebf1bbc6 544cf8c4 67b575ac a1658752) | 8 + 8 each | 0.152 / 0.352 / 0.337 / 0.126 / 0.055 |
 | 26-30, 32 | ipow s2-s6, s8 (840293d4 a8281ece 6684bc94 027c6811 793da4b1 e9c1079e) | 8 + 8 each | 0.049 / 0.170 / 0.247 / 0.231 / 0.021 / 0.226 |
+| 31 | ipow s7 (01894137) | 8 + 8, but pulse bursts in 4 of 16 (below) | 0.269 |
 - **The fused counter's long carry (xorshift s4):** the loop counter preloaded at 0x3ffffff0 through ulink_n6 (B8's
   check), 7 vectors crossing 2^30: 8 / 8 pass. Control: +20 ns on the carry-in of the fused cell's bits 16-19 slice
   (ucmpi1 slice[4], SLICE_X26Y55): preloaded 0 / 2, ordinary xor19 2 / 2 -- the preload reaches the carry and the
@@ -242,6 +243,18 @@ sdf SAME on all 14; bits decoded by formal; 8 draws of your K + 8 slow-carry; `o
 - **collatz full range (s4, s5):** c32hi (31-bit trajectories), 4 + 4 slow-carry draws each, pass (and item 39 too, same
   vectors). (A first try with kernel_oracle.sh as the oracle "failed" identically on item 39: that oracle applies the
   bench's 16-bit input mask, formal's boundary drives all 32 bits. Not a finding.)
+- **Your one failing ringfuse route, ipow s7 (task 31, 01894137, your draw 10707: 16 / 17, batch 0's second ipow(3, 1)
+  call hangs, runts at ucontrol_merge0.uarb1.ustate.q 119 ps and the branch steers):** rebuilt here SAME. Formal's simx
+  passes all 8 + 8 draws (answers right, also draw 10707 without the 20 ps runt filter, and the exact two-call sequence
+  (3, 1), (3, 1)), but it is the ONLY one of the 15 ringfuse routes (and of item 38) where formal sees bursts of pulses
+  under 200 ps on storage-LUT outputs: draws 10707 / 10755 / 10756 / 10757 with 188 / 825 / 702 / 225 such pulses late in
+  the run (t = 3.7-4.0 us), narrowest 15 ps at ucontrol_merge1.uarb1.ustate (6 ps at ucontrol_merge0.uarb1.ustate without
+  the filter), 1-5 ps at ucontrol_merge0_rlink's controller, a uselect0 join and a ulink_n_trueResult_10 latch; every other
+  route and draw: 0. So both simulators single out this route and the same control-merge arbiters; yours resolves the
+  near-tie into a hang, formal's into a right answer. Not traced further: the difference is in the arbiter's resolution
+  model (your state-node resolver; formal's transport LUTs) and the host's re-request timing (formal's two-call run never
+  forms the tie). Shard C's C56 (the control_merge index race: A2 still high when the next entry token wins) is the
+  candidate mechanism. A route to keep off the board.
 - Not run here: tasks still on the farm; the v7 baselines (task 33 did not reproduce its sdf from a15e5a5f1).
 
 ## B17. Your divsize fix, checked: its test_divui routes pass formal's draws, but sit on the edge of what can be proved -- seed 1 (line 332) has no proof even at kappa 0, seed 3 (338) 0.006, seed 2 (386) 0.082 (shard B, 2026-11-19 11:00 UTC; untrusted simulation + B15's Lean-logic bound)

@@ -5102,3 +5102,4 @@ udivui0.uhold, dropping 2393 of the divider's 2510 outputs. Their new lines sit 
 ### progress 13:15 -- ringfuse1 (BDC_RING_FUSE=2) routes: ipow s3 a8281ece, countloop s2 becb3043 SAME, 8 + 8 PASS; output kappa_lo 0.170 / 0.152; more running (research checkout moved to a15e5a5f1 for the ringfuse bdc)
 ### progress 13:25 -- ringfuse countloop s3 / s4 / s5 SAME, 8 + 8 PASS; kappa_lo 0.352 / 0.337 / 0.126 (v7 baseline task 33: sdf DIFFERENT, skipped)
 ### progress 13:57 -- B18: 14 ringfuse routes pass 8 + 8 (sdf SAME); xorshift s4 preloaded counter 8 / 8 (control 0 / 2); collatz full range pass; kappa_lo 0.021-0.352
+### progress 14:05 -- B18: ringfuse ipow s7 (research FAIL 7/8): formal passes 16/16 but is the only route with storage-pulse bursts (4 draws, 188-825 pulses, control-merge arbiters); disagreement in resolution, same location
