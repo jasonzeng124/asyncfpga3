@@ -7089,3 +7089,17 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   with a state (now in research/data/suite/resume/suite9/, 52 in all); fill s1, fold64 s1, iterative_division s1,
   quadrec s3 timed out with none. suite9r2 (waiting for cores) resumes every task with a state at the head it is
   submitted at -- now with CA_FAST (the same proposals, ~8-10x faster rule steps) and the bench-clock seed fallback.
+### progress 01:31 (norw1: the column with no kernel list; gifast1: gcd and isprime loops now finish; headline updated)
+- **norw1** (BDC_AUTO=1 with the md5-keyed rewrites OFF, flow v6, 8 seeds, 8 draws; nextpnr 6e5d224472232d5d):
+  **xorshift 22.19 ns per iteration** on its 5 rule-clean routes (20.42-23.57; 2 NOT CLEAN routes 20.55 / 21.23), 40 / 40
+  + 16 / 16 draws; **collatz 23.86** on 4 clean routes (22.14-25.56; NOT CLEAN 22.79-26.70), 32 / 32 + 24 / 24 draws;
+  with the rewrites (suite6) the clean-route medians were 22.71 and 17.24 -- the rewrite was worth ~6.6 ns on collatz
+  and nothing on xorshift (the prediction said 24-26 / 20-22 / 28-32: xorshift and collatz came in at its low / above
+  its high end). **collatz64: all 7 finished tasks ran out of time** in their final stack / draws (6-7 ratchet steps
+  done); resumed in norw1r2. xorshift s7, collatz s1 timed out at it 0.
+- **gifast1** (gcd / isprime x 4 seeds, CA_FAST=1, the default finish phase, 8 cores): **the loops finish** -- gcd s3 /
+  s4 and isprime s2 / s3 ran all 7 routes, the full stack and 4 draws in ~75-80 min each (suite5 / suite7: one rule step
+  in 4 h): gcd P 61.42 / 66.30 ns, isprime 346.76 / 358.38 (the outer trial's period), every draw passing, bits
+  EQUIVALENT -- and every route NOT CLEAN, on the A' row no line can pad (gcdclean's question).
+- Headline regenerated (research/data/fifteen/README.md top): **21 of 62 kernels pass**; the no-list xorshift / collatz
+  rows are now in the table (ratio to Dynamatic's measured figure 1.74 / 1.70).
