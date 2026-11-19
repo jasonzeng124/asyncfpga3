@@ -3403,3 +3403,8 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   unfused side's update may reach its branch through a one-input comp. Census in ringfuse_census.txt (research
   7827dac5d). Still refused: gcd, sqrtsub (three-part words), iterative_division, iterative_sqrt (>2-input cells),
   nest3 (one cell), straight (loop-free). Controls (xorshift slice_low / upd_plus2, lfsrfind slice_low): REFUSED rc 2.
+### progress 21:08 -- re-read: PROGRAM.md unchanged (cffa0d44b); research FOR-FORMAL / bdc unchanged since 20:05 (LOCK only, 7827dac5d)
+* Audit: T170 CONFIRMED A26 "as a token-level theorem about bdc's fusion plan; the emitted Verilog is not covered" --
+  the same caveat A27 states. No new REFUTED / OVERSTATED row on A's files.
+* Next (A): gcd's ring-fused cell packs three parts (test, a>>1, b>>1); needs k-part slice rules, a fork-merge step,
+  and the planner. Started.
