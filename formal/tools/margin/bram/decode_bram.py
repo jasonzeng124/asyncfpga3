@@ -66,7 +66,8 @@ def die(m):
 REQUIRED = {"IN_USE", "READ_WIDTH_A_18", "WRITE_WIDTH_A_18", "ZINV_CLKARDCLK"}
 OPTIONAL = re.compile(r"^(READ_WIDTH_B_(1|2|4|9|18)|WRITE_WIDTH_B_(1|2|4|9|18)|RSTREG_PRIORITY_[AB]_(RSTREG|REGCE)|"
                       r"ZINV_(CLKBWRCLK|ENARDEN|ENBWREN|REGCLKARDRCLK|REGCLKB|RSTRAMARSTRAM|RSTRAMB|RSTREGARSTREG|RSTREGB)|"
-                      r"DOB_REG|WRITE_MODE_B_(READ_FIRST|NO_CHANGE))$")
+                      r"DOB_REG|WRITE_MODE_B_(READ_FIRST|NO_CHANGE)|RDADDR_COLLISION_HWCONFIG_DELAYED_WRITE)$")
+UNUSED_OK = re.compile(r"^(READ_WIDTH_[AB]_1|WRITE_WIDTH_[AB]_1|RSTREG_PRIORITY_[AB]_RSTREG|RDADDR_COLLISION_HWCONFIG_DELAYED_WRITE)$")
 VECOK = re.compile(r"^(ZINIT_[AB]|ZSRVAL_[AB]|INIT_[0-3][0-9A-F]|INITP_0[0-7])$")
 INVPINS = ("CLKARDCLK", "CLKBWRCLK", "ENARDEN", "ENBWREN", "REGCLKARDRCLK", "REGCLKB", "RSTRAMARSTRAM", "RSTRAMB",
            "RSTREGARSTREG", "RSTREGB")
@@ -83,7 +84,7 @@ def main():
     ap.add_argument("fasm"); ap.add_argument("xdc"); ap.add_argument("--json", required=True)
     ap.add_argument("--routed")
     a = ap.parse_args()
-    ramcfg = re.compile(r"^BRAM_[LR]_X\d+Y\d+\.RAMB18_Y[01]\.")
+    ramcfg = re.compile(r"^BRAM_[LR]_X\d+Y\d+\.(RAMB18_Y[01]|RAMB36)\.")
     lines = open(a.fasm).read().splitlines(True)
     keep = [l for l in lines if not ramcfg.match(l.split("#", 1)[0].strip())]
     fd, tmp = tempfile.mkstemp(suffix=".fasm", dir=os.path.dirname(os.path.abspath(a.json)))
@@ -109,6 +110,10 @@ def main():
         m = re.match(r"^(BRAM_[LR]_X\d+Y\d+)\.RAMB18_Y([01])\.(.+)$", f)
         if m:
             cfg[(m.group(1), int(m.group(2)))].add(m.group(3))
+    for f in ex.site_feats:
+        m = re.match(r"^(BRAM_[LR]_X\d+Y\d+)\.RAMB36\.(.+)$", f)
+        if m and m.group(2) not in ("RAM_EXTENSION_A_NONE_OR_UPPER", "RAM_EXTENSION_B_NONE_OR_UPPER"):
+            die("%s: RAMB36 feature not modelled (a cascaded / 36-bit RAM)" % f)
     for k, v in vecs.items():
         m = re.match(r"^(BRAM_[LR]_X\d+Y\d+)\.RAMB18_Y([01])\.(\w+)$", k)
         if m:
@@ -171,6 +176,10 @@ def main():
         site = ram_site(fab, tile, y)
         sn = fab.site_name(tile, site)
         if "IN_USE" not in fs:
+            # an unused site read back from the bits: its default configuration only (the widths' and priorities'
+            # zero state, the collision mode); nothing reads it (checked below: a read of it has no decoded site)
+            if all(UNUSED_OK.match(x) for x in fs) and all(VECOK.match(k_) and not k_.startswith("INIT") for k_ in vcfg[(tile, y)]):
+                continue
             die("%s: RAMB18 configuration without IN_USE: %s" % (sn, sorted(fs)))
         miss = sorted(REQUIRED - fs)
         if miss:
