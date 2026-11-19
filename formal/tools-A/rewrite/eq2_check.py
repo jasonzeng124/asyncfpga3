@@ -347,7 +347,8 @@ theorem pass_forward {{σ0 t : Store Nat Nat}} {{n : Nat}} (h0 : ∀ ch, {NA} �
     intro ch h1' h2'
     rw [a3 _ h2']; simp only [renS, fp_inv P Pi hP]; exact a1 ch h1'
   refine ⟨t3, m3, run3, term3, key, ?_⟩
-  rw [← out_maps]; exact key _ out1 (by rw [out_maps]; exact out2)
+  have k := key _ out1 (by rw [out_maps]; exact out2)
+  rw [out_maps] at k; exact k
 
 theorem pass_backward {{σ0 t' : Store Nat Nat}} {{n : Nat}} (h0 : ∀ ch, {NA} ≤ ch → σ0 ch = [])
     (hr : Run (step (graph rulesOut)) σ0 n t') (ht : Terminal (step (graph rulesOut)) t') :
@@ -363,7 +364,8 @@ theorem pass_backward {{σ0 t' : Store Nat Nat}} {{n : Nat}} (h0 : ∀ ch, {NA} 
     intro ch h1' h2'
     rw [a0 ch h1']; simp only [renS]; exact a2 _ h2'
   refine ⟨t0, m0, run0, term0, key, ?_⟩
-  rw [← out_maps]; exact key _ out1 (by rw [out_maps]; exact out2)
+  have k := key _ out1 (by rw [out_maps]; exact out2)
+  rw [out_maps] at k; exact k
 
 end Eq2CheckRun
 

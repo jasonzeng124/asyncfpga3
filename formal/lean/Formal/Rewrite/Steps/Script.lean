@@ -5,6 +5,7 @@ import Formal.Rewrite.Steps.ForkComm
 import Formal.Rewrite.Steps.Cong
 import Formal.Rewrite.Steps.Dedupe
 import Formal.Rewrite.Steps.Wire
+import Formal.Rewrite.Steps.ConstData
 import Formal.Rewrite.Eq2
 
 /-!
@@ -28,7 +29,9 @@ Lean evaluates: it checks each step's side conditions (Bool) and applies it. The
   identity, the collatz loop test, `colIdent`, any width `w ≥ 3`);
 * `drop l`: delete a `sink c` that nothing writes (`Cong`);
 * `dedupe lf lc a b`: a comp reading two outputs `a, b` of one fork reads `a` twice instead (`Dedupe`);
-* `wire lf lc`: a one-output fork feeding a comp is removed, the comp reads the fork's input (`Wire`).
+* `wire lf lc`: a one-output fork feeding a comp is removed, the comp reads the fork's input (`Wire`);
+* `constdata lc i v C`: input `i` of the comp at `lc` is a channel of `C`, a class written only by constant comps of
+  value `v` and forks of `C`: the comp reads it as the literal `v` (`ConstData`; bdc's BDC_CONST_DATA).
 A wrong script makes `runScript` return `none` (a check fails); it cannot prove a wrong theorem.
 
 **Not covered:** token level only; the identity library has one entry.
@@ -178,6 +181,7 @@ inductive Step
   | drop (l : Nat)
   | dedupe (lf lc a b : Nat)
   | wire (lf lc : Nat)
+  | constdata (lc i v : Nat) (C : List Nat)
   deriving Repr
 
 /-- The result of a step: new rules, channels that must start empty, channels the rewrite may leave different. -/
@@ -273,6 +277,35 @@ def applyW (rs : List Rule) (lf lc : Nat) : Option Res :=
     else none
   | _, _ => none
 
+def constWriterB (C : List Nat) (v : Nat) (r : Rule) : Bool :=
+  r.outsL.all fun c => !decide (c ∈ C) || match r with
+    | .comp _ _ (.lit w) => w == v
+    | .fork k _ => decide (k ∈ C)
+    | _ => false
+
+theorem of_constWriterB {C : List Nat} {v : Nat} {r : Rule} (h : constWriterB C v r = true) : ConstWriter C v r := by
+  intro c hc ho
+  have := List.all_eq_true.mp h c ho
+  simp only [hc, decide_true, Bool.not_true, Bool.false_or] at this
+  cases r with
+  | comp ins o e =>
+    cases e with
+    | lit w =>
+      simp only [beq_iff_eq] at this; subst this
+      simp only [Rule.outsL, List.mem_singleton] at ho; subst ho
+      exact Or.inl ⟨ins, rfl⟩
+    | _ => simp at this
+  | fork k os => simp only [decide_eq_true_eq] at this; exact Or.inr ⟨k, os, rfl, this⟩
+  | _ => simp at this
+
+def applyCD (rs : List Rule) (lc i v : Nat) (C : List Nat) : Option Res :=
+  match rs[lc]? with
+  | some (.comp ins y F) =>
+    if i < ins.length ∧ ins.getD i 0 ∈ C ∧ y ∉ C ∧ allL rs (fun _ r => constWriterB C v r) = true then
+      some (rs.set lc (.comp ins y (constE ins.length i v F)), C, [])
+    else none
+  | _ => none
+
 def applyStep (rs : List Rule) : Step → Option Res
   | .absorb lp lq => applyAB rs lp lq
   | .forkjoin lf lc => applyFJ rs lf lc
@@ -284,6 +317,7 @@ def applyStep (rs : List Rule) : Step → Option Res
   | .drop l => applyDR rs l
   | .dedupe lf lc a b => applyDD rs lf lc a b
   | .wire lf lc => applyW rs lf lc
+  | .constdata lc i v C => applyCD rs lc i v C
 
 def runScript : List Rule → List Step → Option Res
   | rs, [] => some (rs, [], [])

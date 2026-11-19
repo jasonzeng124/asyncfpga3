@@ -42,6 +42,10 @@ class FPlan(Q.Plan):
             _, lf, lc = st; rf, rc = rs[lf], rs[lc]; x, a = rf[1], rf[2][0]
             rs[lf] = ('sink', a); rs[lc] = ('comp', [swA(a, x, c) for c in rc[1]], rc[2], rc[3])
             self.sinks.append(lf); self.pre += [a]; self.chg += [x, a]; self.steps.append(st)
+        elif k == 'constdata':
+            _, lc, i, v, C = st; rc = rs[lc]; n = len(rc[1])
+            F2 = Q.subst(rc[3], [('lit', v) if j == i else ('var', j) for j in range(n)])
+            rs[lc] = ('comp', rc[1], rc[2], F2); self.pre += list(C); self.steps.append(st)
         else:
             Q.Plan.do(self, st)
 
@@ -54,8 +58,44 @@ def first_vars(e, acc):
     elif k == 'sel': first_vars(e[1], acc); first_vars(e[2], acc); first_vars(e[3], acc)
     return acc
 
+def uses_var(e, i):
+    k = e[0]
+    if k == 'var': return e[1] == i
+    if k == 'lit': return False
+    if k == 'un': return uses_var(e[3], i)
+    if k == 'bin': return uses_var(e[3], i) or uses_var(e[4], i)
+    if k == 'sel': return any(uses_var(x, i) for x in e[1:])
+    return False
+
+def const_class(R, ch):
+    """(v, C) if ch carries only the constant v: its writers go back through forks to one `comp _ k (lit v)`."""
+    seen = set()
+    while True:
+        if ch in seen: return None
+        seen.add(ch); W = Q.writers(R, ch)
+        if len(W) != 1: return None
+        r = R[W[0]]
+        if r[0] == 'fork': ch = r[1]; continue
+        if r[0] == 'comp' and r[3][0] == 'lit': root = ch; v = r[3][1]; break
+        return None
+    C = [root]; frontier = [root]
+    while frontier:
+        c = frontier.pop()
+        for l in Q.readers(R, c):
+            if R[l][0] == 'fork':
+                for o in R[l][2]:
+                    if o not in C: C.append(o); frontier.append(o)
+    return v, C
+
 def normal_form(rs):
     p = FPlan(rs); R = p.rs
+    # BDC_CONST_DATA's move, on both sides: a comp reads a constant-only channel as the literal
+    for l, r in enumerate(R):
+        if r[0] != 'comp': continue
+        for i, ch in enumerate(r[1]):
+            cc = const_class(R, ch)
+            if cc is None or not uses_var(R[l][3], i) or R[l][2] in cc[1]: continue
+            p.do(('constdata', l, i, cc[0], cc[1]))
     changed = True
     while changed:
         changed = False

@@ -256,6 +256,27 @@ theorem applyW_sound {rs : List Rule} {lf lc : Nat} {res : Res} (h : applyW rs l
     next => cases h
   next => cases h
 
+theorem applyCD_sound {rs : List Rule} {lc i v : Nat} {C : List Nat} {res : Res} (h : applyCD rs lc i v C = some res) :
+    Sound rs res.1 res.2.1 res.2.2 := by
+  unfold applyCD at h
+  split at h
+  next ins y F hc =>
+    split at h
+    next hk =>
+      obtain ⟨hi, hC, hy, hA⟩ := hk
+      obtain rfl := (Option.some.inj h).symm
+      have P : PatCD rs (rs.set lc (.comp ins y (constE ins.length i v F))) lc y i v ins C F :=
+        { hc := hc
+          hc' := set_self hc
+          hsame := fun l h1 => set_ne (Ne.symm h1)
+          hi := hi
+          hC := hC
+          hw := fun l r hr => of_constWriterB (of_allL hA l r hr)
+          hy := hy }
+      exact ⟨fun h0 hr ht => cd_forward P h0 hr ht, fun h0 hr ht => cd_backward P h0 hr ht⟩
+    next => cases h
+  next => cases h
+
 theorem applyStep_sound {rs : List Rule} {s : Step} {res : Res} (h : applyStep rs s = some res) :
     Sound rs res.1 res.2.1 res.2.2 := by
   cases s with
@@ -269,6 +290,7 @@ theorem applyStep_sound {rs : List Rule} {s : Step} {res : Res} (h : applyStep r
   | drop l => exact applyDR_sound h
   | dedupe lf lc a b => exact applyDD_sound h
   | wire lf lc => exact applyW_sound h
+  | constdata lc i v C => exact applyCD_sound h
 
 /-- **The pass theorem.** Whatever the rule list and the script, a script `runScript` accepts is sound. -/
 theorem runScript_sound : ∀ {rs : List Rule} {ss : List Step} {rs' : List Rule} {pre chg : List Nat},
