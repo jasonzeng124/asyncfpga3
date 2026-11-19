@@ -4921,3 +4921,10 @@ No local FPGA toolchain: simx work goes to the farm this session.
   "does formal's simx also see the wrong divider" and how long the line must be. task.sh: SDF8 '-' = a what-if route.
 - **b_muxn** (3 tasks): research's muxsel routes cmpchain s2 it5 (1c13ff02, line 1), s3 it2 (1994ab81), s2 it5 with the
   line at 7 (a44b35aa); 8 draws from research's K 20001 + 8 slow-carry.
+### progress 07:58 -- farm b_hl1 filed: research's headline judged by formal's simx
+30 routes, one per headline kernel not covered by B8 / B11 (NOT CLEAN preferred; route list from claude/cluster
+results/{suite3a,3b,9,9r3,10b,gifast1}/*/result.txt, the latest request per seed; sizes = that task's auto/sizes_<it>.vh),
+16 + 16 slow-carry draws each. Controls: if_loop_1 s1 (b2ad5a7b) is research's WRONG ANSWER route (host-fill race);
+divmodu s1 (99effc30, a divider route that PASSED research's 4 draws, rule clean, it 3) is a suspect, not a known-bad
+(the commit message calls both controls; only if_loop_1 s1 is known-bad). Memory-vector kernels (binary_search,
+test_memory_1) will print SKIP.
