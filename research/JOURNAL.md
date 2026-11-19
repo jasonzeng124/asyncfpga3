@@ -7287,3 +7287,8 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   delay chain / request side, the gated stages, the literal divisor?), a fix with a negative control, and the flow on
   test_divui / digitdiv with every draw passing. Until then every divider result of the automatic flow is suspect
   (digitdiv, divmodu, divmods, digitsum, test_divui in suite10b).
+### progress 07:33 (muxn1, first results: the N-way mux guard now sized by the flow; no runts)
+- With BD_SKEW_MUXN=1 in the loop: cmpchain s1 / s2 keep the select link that guards umux0's decode at 5 / 3 elements
+  (the earlier loops shrank it to 1), **0 pulses under 1 ns on all 340 kernel handshake nets** in every draw (the
+  earlier routes: 12-15 on the decode outputs), 4 / 4 draws each; iterative_sqrt s2 P 64.56 ns, 4 / 4, 0 runts. All
+  three NOT CLEAN on other rows (the loop's finish phase, as everywhere).
