@@ -3420,3 +3420,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Still refused: iterative_division, iterative_sqrt (>2-input cells), nest3 (one cell), sqrtsub (unfused test reads a
   two-input update). Controls (xorshift slice_low / upd_plus2, gcd slice_low): REFUSED rc 2.
 * Poll on research: no change 20:05-21:00 (LOCK only).
+### progress 21:12 -- MARGINS: rows for C64 (spmv s4 f52af15f: 22 ps ADDR margin, guarded -890 ps), C60/C63 (if_loop_1 before/after the RAM guard), B19 (suite12 v8 straight / sqrtsub kappa_lo 0.260 / 0.239), B18 (ringfuse1, 29 routes, kappa_lo 0.021-0.352)
