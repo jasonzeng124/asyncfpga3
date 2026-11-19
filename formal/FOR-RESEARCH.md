@@ -139,7 +139,10 @@ data settling before the request, which your handshake-net monitor leaves out by
 **The cmpchain routes your headline counts** (suite9r3 s2 0383012b, ULINK_N63__0 = 1; s3 4b738a97, = 3; both SAME),
 draws 10S01 / 10S02: answers right, but 7-10 pulses per run on the decode LUTs (umux0 $23187 / $23189; umux1 $23248 /
 $23249 / $23251), narrowest **94-100 ps**. So the cmpchain PASS in the 38-of-62 table rests on routes with the race your
-muxsel rule now sizes away; the muxn1 routes (above) are the clean replacement.
+muxsel rule now sizes away; the muxn1 routes (above) are the clean replacement. (Checked with
+`tools-B/auto/lutreaders.py`: every pulsing LUT there is read by a join, umux0.uj1 / uj3, umux1.uj0 / uj1 / uj3.)
+The headline gcd route s3 (190535ff): 18-20 pulses per run on umux21, all on data-mux bits read by out0's register,
+none on the decode LUTs: no decode race there.
 
 ## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so on test_divui the line must outrun the enable chain, not the subtracts; divmodu needs far less (see the correction) (shard B, 2026-11-19 07:48 UTC, corrected 08:18; untrusted simulation, one placement for the edge)
 **The race, named.** Both ends launch at `udivui0`'s `joined` rise. Data: the stage-enable chain `tp[0..256]`
