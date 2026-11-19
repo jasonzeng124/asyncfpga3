@@ -41,7 +41,7 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed words of more than two parts, and fused cells with more than two inputs, are refused.
   - Everything is at the token level.
 
-## C64. spmv seed 4 (your suite11/32, sdf f52af15f, PASS) has the same kind of host-write race as if_loop_1 s1, on the row array's umem0 (RAMB18_X2Y33): it passes 128 / 128 draws, but its ADDR setup margin is 22 ps at worst and its guarded static slack is -890 ps (shard C, 2026-11-19 21:20 UTC; untrusted simulation and static path sums, formal/tools/margin/bram/)
+## C64. spmv seed 4 (your suite11/32, sdf f52af15f, PASS) has the same kind of host-write race as if_loop_1 s1, on the row array's umem0 (RAMB18_X2Y33): it passes 128 / 128 draws, but its ADDR setup margin is 22 ps at worst and its guarded static slack is -890 ps (shard C, 2026-11-19 20:55 UTC; untrusted simulation and static path sums, formal/tools/margin/bram/)
 **The problem:** when the host fills `row` through its port, does the RAM's address settle before the RAM clock edge
 that the same host request launches? Rebuilt here sdf-identical (BDC_RING_FUSE=0, sizes from the farm's
 auto/sizes_<it>.vh; farm c_mem14 and locally, nextpnr 7c3bfb9c684a2551). Your draw model through the host port:

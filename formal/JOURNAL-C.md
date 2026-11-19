@@ -4940,7 +4940,7 @@ PNR_SEED=2003 from a fresh copy of research HEAD: sdf 36a3907f SAME (nextpnr 7c3
 8 / 8 pass, slow-carry/RAM 0.8-1.0 8 / 8 pass. So the decoded-gate approximator needs nothing new for ring-fused
 emissions, on this one route; it does not show the other v8 routes pass.
 
-### progress 21:00 -- c_mem14 back: 13 routes SAME, all pass 16 + 16; spmv 4 f52af15f has a 22 ps ADDR setup margin
+### progress 20:50 -- c_mem14 back: 13 routes SAME, all pass 16 + 16; spmv 4 f52af15f has a 22 ps ADDR setup margin
 Farm (nextpnr 6e5d224472232d5d, sdf-identical to local), HOSTPORT, 16 draws + 16 slow-carry/RAM draws each, 0 setup/hold
 violations, 0 wrong memory words: binary_search 4, dot2 3 cee82855 (v8, fused), if_convert 4, if_loop_1 1 c3113cc4,
 if_loop_2 4 93d2bf9f (v8, fused), iir 3, nested_loop 3 / 4, single_loop 2 (suite10d), spmv 3 / 4, stencil_2d 4,
@@ -4949,7 +4949,7 @@ still running. Smallest RAM setup margins (min over 32 draws): spmv 4 ADDR 22 ps
 ADDR/DI 403, if_convert 4 575; the rest >= 750. spmv 4's is the thinnest RAM margin any route has shown that passes:
 not a failure in 32 draws, but too thin to call safe; local 64 + 64 draws and the race's location are running.
 
-### progress 21:20 -- spmv 4 f52af15f: host-write ADDR race on row umem0, 128 / 128 pass but guarded slack -890 ps (C64)
+### progress 20:55 -- spmv 4 f52af15f: host-write ADDR race on row umem0, 128 / 128 pass but guarded slack -890 ps (C64)
 Local rebuild SAME (nextpnr 7c3bfb9c684a2551), 64 + 64 draws: all PASS, 0 violations, min ADDR setup 22 ps (draw 10416:
 BRAM_R_X25Y80 ADDRARDADDR5 at 807 ns, host fill phase). hostrace mid band: row umem0 (RAMB18_X2Y33) clock 3332 ps (6-LUT
 usetup chain) vs ADDR 2508 ps -> +258 ps; guarded (0.772 / 1.155, skew.py) -890 ps; if_loop_1 s1 failing route -1108,
