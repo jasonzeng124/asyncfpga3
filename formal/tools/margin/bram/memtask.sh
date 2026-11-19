@@ -29,6 +29,8 @@ mkdir -p "$O/v"
 T=${TREE:-$O/tree}
 if [ ! -d "$T/cells" ]; then mkdir -p "$T/build"; cp -r "$RS/cells" "$RS/bdc" "$T/"; cp -r "$RS/cloud/fixtures/frontend" "$T/build/"; fi
 FL=(); [ "${FLOW:-auto}" = auto ] && FL=(BDC_AUTO=1)
+# REUSE=1: keep a build already in the tree (same K) and only redo the decode and draws
+[ "${REUSE:-0}" = 1 ] && [ -f "$T/cells/build/hw/${K}_bench_gen/${K}_bench_gen.bit" ] || \
 ( cd "$T/cells" && rm -rf "build/hw/${K}_bench_gen" && env "${FL[@]}" NEXTPNR_SEED=$S BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 \
     BD_SIZES="$Z" PNR_TIMEOUT=${PNR_TIMEOUT:-3600} ./hw/build_bench.sh "$K" ) > "$O/build.log" 2>&1 \
   || { say "$K $S BUILD FAILED: $(grep -m1 -iE 'error|fail' "$O/build.log" | cut -c1-120)"; exit 0; }

@@ -99,6 +99,14 @@ def phys(ybit, what):
                 ib = sub["ports"][p]["bits"][bs.index(ybit)]
                 if ib in ("0", "1"):
                     return "const" + ib
+                # shard C, 2026-11-19: an output bit that is ANOTHER bit of an output port inside the kernel (a sign
+                # extension: binary_search's out0_data[31:8] = n71_data[7]): the top-level bit of the first such twin
+                for q, qd in sub["ports"].items():
+                    if qd["direction"] == "output" and q in c["connections"]:
+                        for j, x in enumerate(qd["bits"]):
+                            tb = c["connections"][q][j]
+                            if x == ib and tb != ybit and any(a_ in rbits and rbits[a_][0] in drv for a_ in alias.get(tb, [])):
+                                return phys(tb, what + " (= %s[%d])" % (q, j))
                 # shard B, 2026-11-19: an output bit that is an INPUT port bit inside the kernel (a pass-through,
                 # e.g. test_divui's start_ack = p_end_ack): follow the input's top-level bit to its driver
                 for q, qd in sub["ports"].items():
