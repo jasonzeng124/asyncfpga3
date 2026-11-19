@@ -297,7 +297,10 @@ sdf SAME on all 29 here (every BDC_RING_FUSE=2 route of farm ringfuse1 that fini
   (br3), 147-154 ps (br5)** before the request, and at br5 it **moves under a live request in 1 of 17 calls** (a steer
   runt). All bands at FAST_MIN: 77 ps at br5, 282 at br2; all at SLOW_MAX: >= 847 ps. So the slow-carry / fast-LUT corner
   (the compare's carry chain slow, the join's request fast) is where it closes -- B7's failure mode, at the fused test --
-  and your rule-E rows name exactly these steers: they are real, and the route is the thinnest of the 29.
+  and your rule-E rows name exactly these steers: they are real, and the route is the thinnest of the 29. In Lean
+  (`Formal/Cells/MuxNDecode.lean`, the steer section, check.sh OK): `decode_no_pulse` covers a steer's not-taken output
+  too -- rule E at a steer (condition settled at the LUT pin no later than the request) is sufficient for no pulse there,
+  every delay in the band, glitches included; the steer LUT2s' forcing facts are decided, with a negative control.
 - Not run here: tasks still on the farm; the v7 baselines (task 33 did not reproduce its sdf from a15e5a5f1).
 
 ## B17. Your divsize fix, checked: its test_divui routes pass formal's draws, but sit on the edge of what can be proved -- seed 1 (line 332) has no proof even at kappa 0, seed 3 (338) 0.006, seed 2 (386) 0.082 (shard B, 2026-11-19 11:00 UTC; untrusted simulation + B15's Lean-logic bound)

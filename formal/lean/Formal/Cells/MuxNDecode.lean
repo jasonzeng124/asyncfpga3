@@ -118,4 +118,19 @@ theorem sel1_idx2 : ForcesP 3 8 ([1, 2].map fun j => (j, (if j = 2 then true els
 /-- Negative control: index 1 does NOT force `sel[1]` to 0 (the selected input's decode follows the request). -/
 theorem sel1_idx1_not : ForcesP 3 8 ([1, 2].map fun j => (j, (if j = 1 then true else false))) false = false := by decide
 
+
+/-! ### The same theorem for a branch steer (bd_steer)
+
+A steer's two outputs are `req & s` (taken) and `req & ~s` (not taken), LUT2s with INIT 8 and 2 (pin 0 = req, pin 1 = s).
+`decode_no_pulse` applies with `P = [1]`: the not-taken output cannot pulse if the condition `s` has settled (at the
+LUT pin) no later than the request arrives: research's rule E at a steer (FOR-RESEARCH B18 measured that race on ipow s7).
+The forcing facts, decided: -/
+
+theorem steer_true_req_low : ForcesP 2 8 ([0].map fun j => (j, false)) false = true := by decide
+theorem steer_true_cond_low : ForcesP 2 8 ([1].map fun j => (j, false)) false = true := by decide
+theorem steer_false_req_low : ForcesP 2 2 ([0].map fun j => (j, false)) false = true := by decide
+theorem steer_false_cond_high : ForcesP 2 2 ([1].map fun j => (j, true)) false = true := by decide
+/-- Negative control: the condition at the TAKEN value does not force the output. -/
+theorem steer_true_cond_high_not : ForcesP 2 8 ([1].map fun j => (j, true)) false = false := by decide
+
 end Formal.Cells.MuxNDecode
