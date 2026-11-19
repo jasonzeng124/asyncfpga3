@@ -4743,7 +4743,7 @@ two races research found its rule missing (bdc_muxnN decode select, the divider'
   setup / hold window -> X), and a memory bench boundary (preload / read back the arrays, N operand words). First build:
   memsum seed 1 (research's suite/bench README route), building here now.
 
-### progress 08:40 -- formal's simx runs MEMORY kernels: RAMB18E1 decoded from the bits (margin/bram/); first results
+### progress 08:26 -- formal's simx runs MEMORY kernels: RAMB18E1 decoded from the bits (margin/bram/); first results
 - Local toolchain needed libtcl8.6 / boost 1.83 (apt, as research's cloud/setup-toolchain.sh installs) and prjxray's python
   requirements (python3 -m pip); then build_bench.sh, bit2fasm and the decode run here. setup.sh's full-project Lean build
   was OOM-killing processes again (CertRowsPS2 at 2-4 GB each): stopped; this session's Lean is not needed for this work.
