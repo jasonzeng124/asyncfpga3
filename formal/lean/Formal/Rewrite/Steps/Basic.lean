@@ -211,6 +211,24 @@ theorem drain_fork {rs : List Rule} {l i : Nat} {os : List Nat} (hr : rs[l]? = s
       · by_cases h2 : c ∈ os <;> simp [h1, h2]
     rw [e] at hrun; exact hrun
 
+/-- Firing a single-input comp until its input is empty (function form). -/
+theorem drain_comp1f {rs : List Rule} {l i o : Nat} {F : E} (hr : rs[l]? = some (.comp [i] o F)) (hio : i ≠ o) :
+    ∀ (L : List Nat) (σ : Store Nat Nat), σ i = L →
+      ∃ n, Run (step (graph rs)) σ n (fun c => if c = i then [] else if c = o then σ o ++ L.map (fun v => F.eval [v])
+        else σ c) := by
+  intro L σ hσ
+  obtain ⟨n, h⟩ := drain_comp1 hr hio L σ hσ
+  refine ⟨n, ?_⟩
+  have e : upd (upd σ i []) o (σ o ++ L.map (fun v => F.eval [v])) =
+      (fun c => if c = i then [] else if c = o then σ o ++ L.map (fun v => F.eval [v]) else σ c) := by
+    funext c
+    by_cases h1 : c = o
+    · subst h1; simp [upd, Ne.symm hio]
+    · by_cases h2 : c = i
+      · subst h2; simp [upd, h1]
+      · simp [upd, h1, h2]
+  rw [e] at h; exact h
+
 /-- A label beyond both lists is disabled in both. -/
 theorem none_none {rs : List Rule} {l : Nat} (h : rs[l]? = none) (σ : Store Nat Nat) : step (graph rs) σ l = none :=
   step_graph_none h σ
