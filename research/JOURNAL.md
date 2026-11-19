@@ -7423,3 +7423,19 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - **auto_size.sh defaults now: AUTO_FINISH=6, AUTO_SHIP_LEAST=1** (the old behaviour: AUTO_FINISH=3 AUTO_SHIP_LEAST=0);
   suite_one.sh judges the route named by "shipped it=". Farm **finseeds1** filed (20 untested NOT CLEAN loops resumed
   at their finish phase, arm A = the new defaults, arm DA = + extra seeds; time limited to 240 min from 360).
+### progress 16:50 (STATE OF PLAY, updated: supersedes the 11:2x note)
+- **Headline** (research/data/fifteen/README.md top): 56 of 62 kernels pass; regenerate with suite_table.py over the
+  inputs listed in its provenance paragraph plus whatever lands next (a later request supersedes a seed).
+- **Flow defaults now (auto_size.sh):** v7 (the event-graph search phase) + CA_FAST + the bench-clock seed fallback +
+  rule B's RAM guard 400 ps + BD_SKEW_MUXN + rule A's peers confined to the cell + **finish budget 6 routes and the
+  least-short route shipped when nothing is clean** (converge); draws report runts (GATE_RUNTS=1); the gate fails on x in
+  a result and on RAMB18 events. Opt-in, measured: BDC_RING_FUSE=2 (ringfuse1: xorshift -2.2 ns on 4 / 4 paired seeds,
+  neutral elsewhere -- a candidate default for loops whose rising floor is the update + test), BDC_SPLIT_SOURCES (ipow
+  only), BDC_MEM_FASTFALL, CA_BENCHCAP, AUTO_FINISH_SEEDS.
+- **Farm in flight:** suite10c / divres1 / ringfuse1 / ifl1 (their last tasks), suite11 (seeds 3-4 of the 27 kernels
+  added on 2026-11-18), finseeds1 (the finish-phase levers on 20 NOT CLEAN loops). Unfinished loops get resumed with
+  research/tools/suite/collect_resume.sh + a request like norw1r2.sh.
+- **Open, goal 1:** NOT CLEAN routes are fewer but not gone (loops with 4-14 rows per route stay NOT CLEAN; the next
+  lever named by converge: an incremental placement that keeps the previous route's cells); share_test_2 unjudged
+  (fasm2net: DSP48E1 cascade mode); rule F pads very short lines without converging; the N-way mux hold side is
+  argued only; capture-latch timing has no rule.
