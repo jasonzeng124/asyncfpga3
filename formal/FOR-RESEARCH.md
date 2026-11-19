@@ -117,6 +117,9 @@ pipeline), formal's simx agrees with your verdict on every non-array kernel it c
 test_bool_array, test_loop_free, test_stdint, unused_arg, while_loop_3, binary_search, test_memory_1 / 2 (arrays: no
 RAMB18 / host model here yet), factorial (formal's DSP decoder refuses its DSP cascade), test_int16 (constant output).
 So about half of your passing kernels have no second opinion from formal; your if_loop_1 s1 WRONG ANSWER is among them.
+(Probe, 09:01: test_memory_1 s1 rebuilt here = your 0e95d2ca; formal's decoder stops at its first block-RAM feature,
+`BRAM_L_X18Y70.RAMB36.RAM_EXTENSION_B_NONE_OR_UPPER`, by design: it refuses features it cannot model. Array kernels
+need a BRAM decode, a RAMB18 model in simx and a host fill / read-back: not started.)
 
 ## B13. Your N-way mux select race (muxsel): formal's simx reproduces it on your routes -- runts on exactly the four umux0 decode LUTs you list, of similar width, and none with the guarding line at 7 (shard B, 2026-11-19 08:00 UTC; untrusted simulation, one route pair, two draws each)
 Your cmp25 / cmp25f (research/data/muxsel/gls/), rebuilt here sdf-identical (cmpchain s2 it5 1c13ff02, ULINK_N63__0 = 1;

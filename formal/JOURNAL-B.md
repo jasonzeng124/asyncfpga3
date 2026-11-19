@@ -5010,3 +5010,7 @@ task.sh now writes pairs.txt and pulrun.sh uses it.
 * *Not shown:* any route instance; the selected input's decode; what a pulse does to the join.
 ### progress 08:59 -- divmodu s2 (2ce27c67, UDIVUI0 345 + N4_SDELAY 155) 16 + 16 PASS; research headline now 43 of 62
 The newly passing kernels (if_convert, spmv, binary_search, ...) are array kernels: outside formal's simx (B14).
+### progress 09:01 -- array-kernel probe: the decoder stops at the first BRAM feature (for C / A)
+test_memory_1 s1 rebuilt (sdf 0e95d2ca = research's), bits read back: 168 BRAM lines; formal/tools/margin/run.sh's decode
+refuses BRAM_L_X18Y70.RAMB36.RAM_EXTENSION_B_NONE_OR_UPPER. Needed for array kernels: BRAM decode (fasm2lean, A/C),
+a RAMB18E1 model + host fill / read-back in simx (C). Not B's files; noted for C (see 08:0x entry).
