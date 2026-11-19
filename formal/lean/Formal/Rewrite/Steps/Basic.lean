@@ -156,6 +156,58 @@ theorem outside_none {rs rs' : List Rule} {D : List Nat} {l : Nat} {r : Rule} (h
   | none => rfl
   | some fr => rw [hf] at hs; cases hs
 
+
+/-- The outside step, when the second store extends the first on the rule's inputs (`σ c = σ' c ++ z`): a firing
+on `σ'` is the same firing on `σ` (monotonicity of strict rules). -/
+theorem outside_step_ext {rs rs' : List Rule} {l : Nat} {r : Rule} (hl : rs[l]? = some r)
+    (hl' : rs'[l]? = some r) {σ σ' u' : Store Nat Nat} (hx : ∀ c ∈ r.insL, ∃ z, σ c = σ' c ++ z)
+    (hs : step (graph rs') σ' l = some u') :
+    ∃ fr, r.fire natVI σ' = some fr ∧ r.fire natVI σ = some fr ∧ u' = applyF σ' fr ∧
+      step (graph rs) σ l = some (applyF σ fr) := by
+  rw [step_graph hl'] at hs
+  cases hf : r.fire natVI σ' with
+  | none => rw [hf] at hs; cases hs
+  | some fr =>
+    rw [hf] at hs
+    have hf2 : r.fire natVI σ = some fr := (r.node natVI).mono σ' σ fr hf hx
+    refine ⟨fr, rfl, hf2, (Option.some.inj hs).symm, ?_⟩
+    rw [step_graph hl, hf2]; rfl
+
+/-- Popping at most what the shorter list holds commutes with appending. -/
+theorem drop_app_of_le {A B : List Nat} {k : Nat} (h : k ≤ A.length) : (A ++ B).drop k = A.drop k ++ B :=
+  List.drop_append_of_le_length h
+
+/-- Firing a fork until its input is empty. -/
+theorem drain_fork {rs : List Rule} {l i : Nat} {os : List Nat} (hr : rs[l]? = some (.fork i os)) (hi : i ∉ os) :
+    ∀ (L : List Nat) (σ : Store Nat Nat), σ i = L →
+      ∃ n, Run (step (graph rs)) σ n (fun c => if c = i then [] else if c ∈ os then σ c ++ L else σ c) := by
+  intro L
+  induction L with
+  | nil =>
+    intro σ hσ
+    refine ⟨0, run_refl_eq ?_⟩
+    funext c
+    by_cases h1 : c = i
+    · subst h1; simp [hσ]
+    · by_cases h2 : c ∈ os <;> simp [h1, h2]
+  | cons v vs ih =>
+    intro σ hσ
+    have hs : step (graph rs) σ l = some (applyF σ (popOf [i], fun c => if c ∈ os then [v] else [])) := by
+      rw [step_graph hr, fire_fork hσ]; rfl
+    obtain ⟨n, hrun⟩ := ih (applyF σ (popOf [i], fun c => if c ∈ os then [v] else []))
+      (by rw [fork_at hi]; simp [hσ])
+    refine ⟨n + 1, Run.cons l hs ?_⟩
+    have e : (fun c => if c = i then [] else if c ∈ os then
+        applyF σ (popOf [i], fun c => if c ∈ os then [v] else []) c ++ vs else
+        applyF σ (popOf [i], fun c => if c ∈ os then [v] else []) c) =
+        (fun c => if c = i then [] else if c ∈ os then σ c ++ v :: vs else σ c) := by
+      funext c
+      rw [fork_at hi]
+      by_cases h1 : c = i
+      · simp [h1]
+      · by_cases h2 : c ∈ os <;> simp [h1, h2]
+    rw [e] at hrun; exact hrun
+
 /-- A label beyond both lists is disabled in both. -/
 theorem none_none {rs : List Rule} {l : Nat} (h : rs[l]? = none) (σ : Store Nat Nat) : step (graph rs) σ l = none :=
   step_graph_none h σ
