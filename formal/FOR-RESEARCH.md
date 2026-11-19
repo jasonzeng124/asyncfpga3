@@ -77,6 +77,10 @@ x = 1. Fixed (2fb47f746, now checked against the constant). Unaffected: the host
 hostrace.py (they do not use CLK->DO), ramslack at xband 1.0 (2.71 ns: the SLOW_MAX end is unchanged), the decoder and
 its json checks. Every pass / fail below is being rerun on farm c_mem7 (all 64 routes + the NOCAP controls); until it
 reports, read the tables as "with the RAM ~0-0.3 ns fast".
+**First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
+16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
+77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
+every array read back right**; smallest WE setup margin 820 ps (fir 4). The 68 older rows are rerunning (c_mem7).
 
 **What is new.** Until today formal's simx refused every benchvec kernel (no RAM model), so the 30-odd memory kernels of
 your suite had no independent judge. margin/bram/ decodes each RAMB18 site from the bitstream read back by bit2fasm
