@@ -5120,3 +5120,4 @@ hangs the second with fsm=000005X4 (an X in the host's FSM); 28 handshake nets g
 steers, ulink_n7); later batches DONE. Same signature as C17 (fid starts storage LUTs at X; the chip powers them to INIT).
 Running: the same with +META_INIT=0 and =1 (fid_core.vh's power-up option).
 ### progress 17:15 -- TRACED: ringfuse ipow s7's failure is research's GLS start-up X: +META_INIT=0 and =1 both PASS 17/17 (902 cycles, x 0); B18 corrected
+### progress 17:18 -- ringfuse xorshift s7 SAME, 8 + 8, 0 pulses: all 29 finished ringfuse routes done (B18). Research: flow v8 = ring fusion on by default; farm suite12 (whole suite, v8, seed 1) filed -- next for B when it lands

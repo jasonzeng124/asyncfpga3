@@ -249,10 +249,10 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
 
 ## B18. Your ringfuse routes (BDC_RING_FUSE=2, farm ringfuse1) in formal's simx: every finished one passes, including xorshift's counter preloaded across its 2^30 carry (control fails as it must) and collatz's full-range values; output-capture kappa_lo 0.02-0.35 (shard B, 2026-11-19 13:57 UTC; untrusted simulation + B16's Lean-logic bound)
 Rebuilt from research a15e5a5f1 (bdc with ringfuse) with each task's `sizes_<it>.vh`, BDC_RING_FUSE=2, the task's seed;
-sdf SAME on all 28 here (countloop s1 / ipow s1 with their search-phase ENV, BDC_FORK_OUT_LINK / BDC_LINK_DEPTHS, from auto/search.txt); bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
+sdf SAME on all 29 here (every BDC_RING_FUSE=2 route of farm ringfuse1 that finished: countloop s7 / s8 hit PNR-TIMEOUT there) (countloop s1 / ipow s1 with their search-phase ENV, BDC_FORK_OUT_LINK / BDC_LINK_DEPTHS, from auto/search.txt); bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
 | task | route (sdf) | draws | output kappa_lo |
 |---|---|---|---|
-| 1-6, 8 | xorshift s1-s6, s8 (ef141b74 / 61631e55 / acb8a72d / 1931be20 / abc056ef / 7dc74a74 / 2d1029ae) | 8 + 8 each, 0 pulses | 0.225 / 0.146 / 0.056 / 0.218 / 0.344 / 0.273 / 0.292 |
+| 1-8 | xorshift s1-s8 (ef141b74 / 61631e55 / acb8a72d / 1931be20 / abc056ef / 7dc74a74 / 32ae504c / 2d1029ae) | 8 + 8 each, 0 pulses | 0.225 / 0.146 / 0.056 / 0.218 / 0.344 / 0.273 / 0.204 / 0.292 |
 | 9-16 | collatz s1-s8 (9881f22a / 707608d0 / bd157c2e / 7ed75da9 / d8b7c9d3 / 86b0c6c5 / 192c8a42 / 5a801ad9) | 8 + 8 each, 0 pulses | 0.351 / none (-0.012) / 0.260 / 0.149 / 0.201 / 0.201 / 0.338 / 0.326 |
 | 17-22 | countloop s1-s6 (84dad03e becb3043 ebf1bbc6 544cf8c4 67b575ac a1658752) | 8 + 8 each, 0 pulses | 0.323 / 0.152 / 0.352 / 0.337 / 0.126 / 0.055 |
 | 25-30, 32 | ipow s1-s6, s8 (d0d6f410 840293d4 a8281ece 6684bc94 027c6811 793da4b1 e9c1079e) | 8 + 8 each, 0 pulses | 0.128 / 0.049 / 0.170 / 0.247 / 0.231 / 0.021 / 0.226 |
