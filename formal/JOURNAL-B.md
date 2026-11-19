@@ -4966,3 +4966,17 @@ test_memory_1) will print SKIP.
 - boundary_bench: CARRY4 outputs (O_i -> XORi, CO_i) as port drivers (straight's out0_data). straight s2 23c31cf3
   locally 4 / 4 + 4 / 4 PASS. b_hl3 filed (divmodu, straight). The worker process restarted ~07:53 and killed the
   running control; rerun done.
+### progress 08:03 -- fold64 passes after the harness fix; b_hl4 filed; memory-kernel gap (for C)
+- b_hl2: fold64 s2 ebe73b38 and s3 20548857 (sdf SAME): 16 / 16 + 16 / 16 PASS each (b_hl1's 0 / 32 was formal feeding
+  the low word twice). divmodu / straight: DECODE FAILED there (the CARRY4 fix came later: b_hl3). gcd did not run (the
+  routes file had a two-line header; gcd seeds 3-4 are in b_hl4). test_int16: decodes now, but its out0 is a constant
+  (return -1), which simx refuses by design: left out.
+- b_hl4 filed: 22 routes, the remaining seeds of branchloop, cmpchain, fold64, iterative_division / sqrt, nested,
+  quadrec, twoloops, straight, gcd.
+- **For C (simx is C's file):** 15 of b_hl1's 30 headline kernels SKIP because they take arrays (dot2, fill, gather,
+  if_loop_1 / 2, memsum, mul_example, simple_example_1, test_bitint, test_bool_array, test_loop_free, test_stdint,
+  unused_arg, while_loop_3, binary_search, test_memory_1 / 2). Their kernels talk to bd_mem (RAMB18E1 behind a manufactured
+  clock edge) and the PS host fills / reads the arrays. Formal's decode has no RAMB18 gate and simx's env has no memory
+  host, so about half of research's 38 passing kernels are outside the board approximator. Cheapest cut: the kernel's
+  bd_mem request / ack / addr / data pins as boundary, served by an env process (array preloaded from vec.hex's benchvec
+  blocks, read-back compared with research's oracle_mem.sh). B can write the boundary / vector side once simx has the env.
