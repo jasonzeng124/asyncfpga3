@@ -86,3 +86,29 @@ def lp(u):   # longest smax arrival from start to u within the cone, cycles cut
                 if r is not None: best = max(best or 0, r + h["arcs"][p]["smax"])
     onstack.discard(u); memo[u] = best; return best
 print("request: joined (%s) -> out0_req (%s): longest SLOW_MAX path %s ps through a cone of %d nodes" % (names[start], names[tgt], lp(tgt), len(cone)))
+
+# chain_hold_side's numbers for the request (v = true): joined -> uor -> udly.chain.g[0..] -> out0_req
+def pinmax(g, i):
+    tot = g["arcs"][i]["smax"]; u = g["ins"][i]
+    for _ in range(400):
+        h = drv.get(u)
+        if h is None or h["kind"] not in ("pip", "hop"): return tot, u
+        tot += h["arcs"][0]["smax"]; u = h["ins"][0]
+    return tot, u
+els = [byc[DIV + ".uor"]] + [byc[k] for k in sorted((c for c in byc if c.startswith(DIV + ".udly.chain.g[")), key=lambda c: int(re.search(r"g\[(\d+)\]", c).group(1)))]
+prev = start; SU = 0; ok = True; rows = []
+for e in els:
+    pins = [(pinmax(e, q), q) for q in range(len(e["ins"]))]
+    cp = [(t, q) for (t, s), q in pins if s == prev]
+    if not cp: rows.append("no pin of %s reads the previous node" % cellof(e)); ok = False; break
+    tU, qj = cp[0]; SU += tU
+    side = [(t, q) for (t, s), q in pins if s == start and q != qj]
+    sw = max([t for t, _ in side], default=0)
+    # ForcesP: chain pin and side pins at 1 force 1?
+    k = len(e["ins"]); need = [qj] + [q for _, q in side]
+    forced = all(((int(e["init"]) >> ad) & 1) for ad in range(1 << k) if all((ad >> q) & 1 for q in need))
+    if sw > SU: ok = False
+    rows.append("%s: chain pin %d max %d ps (sum %d), side pins %s max %d ps, forced to 1: %s" % (cellof(e).split(".")[-3:], qj, tU, SU, [q for _, q in side], sw, forced))
+    ok = ok and forced; prev = e["out"]
+print("request chain (chain_hold_side, v = true):"); [print("  " + r) for r in rows]
+print("request at out0_req no later than join + %d ps (SLOW_MAX, kappa = 0), side conditions %s, ends at out0_req: %s" % (SU, "met" if ok else "NOT met", prev == tgt))

@@ -88,6 +88,64 @@ theorem chain_hold_const {p : DelayPar} {c : ℚ} {x : Beh} (n : Nat) (g : Nat �
   exact chain_hold n g src arcs S nd j v L U A T hg hsrc hLU hF hS h0 t h1
     (by have := sumTo_ge L Lmin n hmin; omega)
 
+
+/-- **A forcing chain with side pins.** As `chain_hold`, but gate `i` is forced to `v` by its chain pin `j i` (at `v`)
+together with side pins `sp i` at values `sv i q`, whose sources `src i q` hold those values on `[α i q, β i q]`
+reaching far enough: `α i q + Us i q ≤ A + ΣU_i` and `T + ΣL_i ≤ β i q + Ls i q`. Used with `v = true` it is an
+UPPER bound on an arrival: the last node is `true` from `A + ΣU` on (e.g. a request through a matched-delay line whose
+elements are `a & gate`). -/
+theorem chain_hold_side {p : DelayPar} {c : ℚ} {x : Beh} (n : Nat) (g : Nat → Gate) (src : Nat → Nat → Nat)
+    (arcs : Nat → Nat → List Arc) (S : Nat → Nat) (nd : Nat → Nat) (j : Nat → Nat) (v : Bool) (L U : Nat → Nat)
+    (sp : Nat → List Nat) (sv : Nat → Nat → Bool) (α β Ls Us : Nat → Nat → Nat) (A T : Nat)
+    (hg : ∀ i, 1 ≤ i → i ≤ n → (g i).out = nd i ∧ CGateOK p c (g i) (src i) (arcs i) (S i) x)
+    (hsrc : ∀ i, 1 ≤ i → i ≤ n → src i (j i) = nd (i - 1))
+    (hLU : ∀ i, 1 ≤ i → i ≤ n → j i < (g i).k ∧ ∀ D, SumAdm p c (arcs i (j i)) D → L i ≤ D ∧ D ≤ U i)
+    (hLUs : ∀ i, 1 ≤ i → i ≤ n → ∀ q ∈ sp i, q < (g i).k ∧ ∀ D, SumAdm p c (arcs i q) D → Ls i q ≤ D ∧ D ≤ Us i q)
+    (hnot : ∀ i, 1 ≤ i → i ≤ n → j i ∉ sp i)
+    (hF : ∀ i, 1 ≤ i → i ≤ n →
+      ForcesP (g i).k (g i).init ((j i :: sp i).map fun q => (q, if q = j i then v else sv i q)) v = true)
+    (hside : ∀ i, 1 ≤ i → i ≤ n → ∀ q ∈ sp i, (∀ t, α i q ≤ t → t ≤ β i q → x (src i q) t = sv i q) ∧
+      α i q + Us i q ≤ A + sumTo U i ∧ T + sumTo L i ≤ β i q + Ls i q)
+    (hS : ∀ i, 1 ≤ i → i ≤ n → S i ≤ A + sumTo U i)
+    (h0 : ∀ t, A ≤ t → t ≤ T → x (nd 0) t = v) :
+    ∀ t, A + sumTo U n ≤ t → t ≤ T + sumTo L n → x (nd n) t = v := by
+  induction n with
+  | zero => intro t h1 h2; simp [sumTo] at h1 h2; exact h0 t h1 h2
+  | succ m ih =>
+    intro t h1 h2
+    have ih' := ih (fun i a b => hg i a (by omega)) (fun i a b => hsrc i a (by omega))
+      (fun i a b => hLU i a (by omega)) (fun i a b => hLUs i a (by omega)) (fun i a b => hnot i a (by omega))
+      (fun i a b => hF i a (by omega)) (fun i a b => hside i a (by omega)) (fun i a b => hS i a (by omega))
+    have hm : 1 ≤ m + 1 := by omega
+    obtain ⟨hout, hgo⟩ := hg (m + 1) hm le_rfl
+    obtain ⟨hk, hb⟩ := hLU (m + 1) hm le_rfl
+    have hn := hnot (m + 1) hm le_rfl
+    rw [← hout]
+    refine gate_window (g (m + 1)) (src (m + 1)) (arcs (m + 1)) (S (m + 1)) (j (m + 1) :: sp (m + 1))
+      (fun q => if q = j (m + 1) then v else sv (m + 1) q) v
+      (fun q => if q = j (m + 1) then A + sumTo U m else α (m + 1) q)
+      (fun q => if q = j (m + 1) then T + sumTo L m else β (m + 1) q)
+      (fun q => if q = j (m + 1) then L (m + 1) else Ls (m + 1) q)
+      (fun q => if q = j (m + 1) then U (m + 1) else Us (m + 1) q) hgo ?_ (hF (m + 1) hm le_rfl) ?_ t
+      (by have := hS (m + 1) hm le_rfl; simp only [sumTo] at this h1; omega) ?_
+    · intro q hq
+      rcases List.mem_cons.mp hq with rfl | hq'
+      · simp only [ite_true]; exact ⟨hk, hb⟩
+      · have hne : q ≠ j (m + 1) := fun e => hn (e ▸ hq')
+        simp only [hne, ite_false]; exact hLUs (m + 1) hm le_rfl q hq'
+    · intro q hq t' a b
+      rcases List.mem_cons.mp hq with rfl | hq'
+      · simp only [ite_true] at a b ⊢; rw [hsrc (m + 1) hm le_rfl]; exact ih' t' a b
+      · have hne : q ≠ j (m + 1) := fun e => hn (e ▸ hq')
+        simp only [hne, ite_false] at a b ⊢; exact (hside (m + 1) hm le_rfl q hq').1 t' a b
+    · intro q hq
+      rcases List.mem_cons.mp hq with rfl | hq'
+      · simp only [ite_true]; simp only [sumTo] at h1 h2; omega
+      · have hne : q ≠ j (m + 1) := fun e => hn (e ▸ hq')
+        simp only [hne, ite_false]
+        obtain ⟨-, w1, w2⟩ := hside (m + 1) hm le_rfl q hq'
+        simp only [sumTo] at h1 h2 w1 w2; omega
+
 /-- The divider's chain LUT2 (`INIT = 8`: `O = I0 & I1`) is forced to 0 by either pin at 0 (decided). -/
 theorem lut2_and_pin0 : ForcesP 2 8 ([0].map fun q => (q, false)) false = true := by decide
 theorem lut2_and_pin1 : ForcesP 2 8 ([1].map fun q => (q, false)) false = true := by decide

@@ -5039,3 +5039,6 @@ was wrong by the time it was written for the array kernels; corrected.
   + 0.4 ns; request path to out0_req <= 5.7 ns at SLOW_MAX (longest path, untrusted). So kappa < 0.86 at g = 1 cannot save
   it. On the 528 route the request cone is 435 ns long (not a tight bound: cycles cut by DFS). B12 updated.
 * *Not shown:* the request-side upper bound in Lean; the host's read time.
+### progress 09:12 -- CHECKED: ChainHold.chain_hold_side (side pins; v = true gives an arrival upper bound); check.sh OK (321 decls)
+divchain.py: research's 9875e724 request chain joined -> uor -> g[0..4] = out0_req <= 5667 ps at SLOW_MAX, side conditions
+met; data >= 74.1 ns. Both bounds now instances of Lean lemmas (numbers extracted by untrusted Python). B12 updated.

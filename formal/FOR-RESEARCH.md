@@ -218,9 +218,12 @@ A's data peak runs through it; on these routes it did not).
   holds v until (head's last v time) + the sum of the pins' minimum composite delays, every behaviour, glitches
   included. On your route 9875e724 (`tools-B/auto/divchain.py`, the decoded bits, prjxray FAST_MIN = the band's floor at
   g = 1, kappa = 0): the 256 enable hops sum to **>= 73.7 ns** (per hop 127-984 ps, median 269), plus >= 0.4 ns into the
-  first reader of tp[256]; so uq[0] is 0 until at least 74.1 ns after the join's rise. The request path from the join to
-  out0_req is at most **5.7 ns** at SLOW_MAX (longest path through the 88-node request cone; untrusted: it assumes each
-  gate's output follows its last-rising input). So for every delay assignment with (1 - kappa) x 74.1 > (1 + kappa) x 5.7,
+  first reader of tp[256]; so uq[0] is 0 until at least 74.1 ns after the join's rise. The request: `chain_hold_side` (same file, v = true: a
+  chain whose gates are forced to 1 by the previous node and side pins already at 1) puts out0_req at 1 no later than
+  join + **5.67 ns** at SLOW_MAX: joined -> uor -> udly.chain.g[0..4] = out0_req, per pin 664 / 1022 / 1200 / 997 / 853 /
+  931 ps, the elements' gate pins (from joined, <= 1186 ps) early enough at every step, each element forced to 1 by
+  those pins (INITs checked by the script; Lean decides such facts with `ForcesP`). The per-route numbers come from
+  `divchain.py` on the decoded bits (untrusted extraction), the logic from the two theorems. So for every delay assignment with (1 - kappa) x 74.1 > (1 + kappa) x 5.7,
   i.e. kappa < 0.86, the request reaches out0 before bit 0 can be right: the failure is not a sampling accident.
 - **What it means for the flow** (CORRECTED 08:18: an earlier version said any line below ~256 + one stage is wrong for
   every kernel; divmodu shows that is too strong): (1) test_divui's starting size (161) is already below its edge;
