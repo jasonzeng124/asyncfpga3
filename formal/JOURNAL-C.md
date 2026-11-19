@@ -4771,7 +4771,7 @@ two races research found its rule missing (bdc_muxnN decode select, the divider'
   falseResult_20); sobel floor off DEADLOCK (after ucmpi0=0, ucmpi1=0, ucmpi3=0, ucmpi4=1; walk ulink_n88 -> n99[2] ->
   n120__2 -> n101__2); sobel floor on (ulink_n88 -> 2) still running.
 
-### progress 08:56 -- C60 posted: 11 headline memory routes pass in formal's simx, NOCAP control fails; capture slack
+### progress 08:54 -- C60 posted: 11 headline memory routes pass in formal's simx, NOCAP control fails; capture slack
 - Farm c_mem1 failed on a relative sizes path (every build); c_mem2 (rerun): 8 routes decided, all pass 16 + 16 draws,
   test_bool_array NOCAP 0 / 32; 3 boundary failures (binary_search: out0 bits [31:8] are a sign extension of bit 7 --
   boundary_bench now follows a twin bit; fill / unused_arg) and 5 void kernels skipped -> fixed locally (void bench:
