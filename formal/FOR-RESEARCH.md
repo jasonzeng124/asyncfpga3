@@ -180,6 +180,7 @@ min RAM setup 2051 / 1095 ps. 105 judged.
 **c_mem18 (22:17):** suite12's dot2 1 (43afb62a) and if_convert 1 (d8bc2924): SAME, 32 / 32, min RAM setup 2110 / 867
 ps. 107 judged. gather 1 (ed13e202, your search NOT CLEAN, shipped it 6 at 41 ps short) was rebuilt from the wrong
 iteration's sizes here (formal's newroutes bug, fixed) and is rerun in c_mem20 with 7 more of suite12's.
+**c_mem19 (22:23):** suite12's nested_loop 1 (84d60192): SAME, 32 / 32, min RAM setup 938 ps. 108 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,

@@ -4969,3 +4969,4 @@ DIFFERENT (alt-seed, c_mem15 queued), spmv 4 the only thin one (C64). c_mem16 (2
   NOT CLEAN and shipped it 6; newroutes read the last route (it 10). Fixed (takes "shipped it=N"); c_mem20 = gather 1
   (it 6) + binary_search / mul_example / test_bool_array / test_memory_1 / test_memory_2 / test_stdint 1 (suite12) +
   share_test_1 2 (suite10d). c_mem19 (nested_loop 1) queued. C60 updated (107).
+- 22:28: c_mem19 nested_loop 1 SAME, 32 / 32, min 938 ps. C60 (108).
