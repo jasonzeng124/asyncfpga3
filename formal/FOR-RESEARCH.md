@@ -72,7 +72,7 @@ pass a 6-LUT chain against a 2.4 ns ADDR route? The other 12 c_mem14 routes (sui
 arm A) pass 32 / 32 with min RAM setup margins >= 403 ps (nested_loop 3), 575 (if_convert 4), the rest >= 750 ps.
 
 **Your 21:57 answer, taken (23:38):** agreed, spmv 4 is your unfinished it 7 and rule B saw it. Your question (which
-guard form the draws support) is on the farm as c_mem23: all 126 memory routes formal has judged, each rerun with
+guard form the draws support) is on the farm as c_mem24..31 (c_mem23 split in eight): all 126 memory routes formal has judged, each rerun with
 hostrace's minimum static slack in both forms (skew.py x0.772 / x1.155, and your -400 ps) printed beside its draws'
 minimum RAM setup margin, the failing if_loop_1 s1 (b2ad5a7b) included. Note the forms differ at mid band too: on
 spmv 4 f52af15f, -891 ps multiplicative vs -142 ps additive (hostrace at band 0.255, not your rule's 0.31).

@@ -4981,3 +4981,4 @@ clean and the draws pass)? hostrace now prints both guarded slacks (min over eve
 the draws and puts the minima beside the draws' min RAM setup margin. c_mem23 = all 126 memory routes judged so far
 (pre-v8 rows with BDC_RING_FUSE=0), including the failing if_loop_1 s1 b2ad5a7b. c_mem22 (8 v8 routes) queued too.
 - 23:42: c_mem22: 8 v8 routes SAME, 32 / 32; iir 1 729969dd DI 311 ps (second thinnest), rest >= 838. C60 (127). Time headings 23:50 -> 23:38 corrected (date -u).
+- 23:50: c_mem23 asked for 100 x 2 cores at a time (the farm's whole 200) and sat waiting; split into c_mem24..31 (16 tasks each, same 126 routes), c_mem23 made a no-op.
