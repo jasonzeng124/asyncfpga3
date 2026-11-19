@@ -3333,3 +3333,12 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   the whole-circuit S4 / S6 argument (StepHypR) and Lean versions of the decoder's carry / output-mux selects
   (FormalWit-scale builds, hours, OOM-prone here). The program's first items for A (the rewrites in research's
   automatic path) had a clear payoff today (audit T163: ~30 % on collatz). STATUS.md unchanged.
+### progress 08:30 -- ConstData step; fuse_check census clean on all 26 importable kernels (3 modes); FOR-RESEARCH A25
+* `Steps/ConstData.lean`: bdc's BDC_CONST_DATA move (a comp reads a constant-only channel as the literal), any graph,
+  lockstep with the invariant "every token on the class is v". In runScript (`constdata lc i v C`), ScriptSound.
+* fuse_check fixes: script results stated as literals (the elaborator's recursion limit on gcd); the result-channel
+  step no longer rewrites both sides when the two result channels have the same number (isprime / nest3 / nested AUTO).
+* Census (tools-A/rewrite/fuse_census.txt), 26 kernels dfimport can read: unfused vs default 24 PROVED + 2 identical;
+  fuse cap 8 vs default 10 + 16; BDC_AUTO=1 vs default 16 + 10. No refusal. check.sh OK (1242 declarations).
+* What it checks: bdc's region wiring (reg.ref, which dfimport reads) against the per-op graph. Trusted: compute.py's
+  Verilog for a region vs its expression; dfimport.

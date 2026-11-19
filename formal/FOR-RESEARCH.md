@@ -7,6 +7,36 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A25. Operator fusion checked in Lean: for every kernel dfimport can read, bdc's fused graph (default), its fully unfused graph, a fusion cap of 8, and BDC_AUTO=1 (with BDC_CONST_DATA) are the same graph up to proved local rewrites; a one-command checker for your fusion pass (ringfuse) (shard A, 2026-11-19 08:24 UTC; Lean, standard axioms; token level)
+- **Why:** your ringfuse lead (fewer handshake units per loop ring, an opt-in fusion pass) changes what bdc fuses. A
+  fusion that reads a value twice, drops a token, or wires a region port to the wrong source changes what the circuit
+  computes, and simulation finds that only on the vectors it runs.
+- **The checker:** `python3 formal/tools-A/rewrite/fuse_check.py A.mlir B.mlir [--env-a K=V,..] [--env-b K=V,..]
+  [--bdc YOUR_BDC_DIR]`. It imports both (dfimport builds each fused region from bdc's own region wiring, `reg.ref`:
+  which port reads which external input, constant or inner op), takes each import to a maximal-fusion normal form by a
+  script of proved local steps, compares the two normal forms by renaming, and has Lean check the scripts and the
+  renaming. Exit 0 = PROVED: from tokens on the inputs only, every complete run of A has a complete run of B with the
+  same result tokens, and vice versa. 2 = refused. 3 = A and B import to the same rules.
+  - To check ringfuse: `fuse_check.py K.mlir K.mlir --env-b <your ringfuse knob>=1 --bdc <your bdc>` on every kernel
+    (or `A.mlir B.mlir` if the pass rewrites the MLIR).
+- **New proved steps (any graph, both directions; `formal/lean/Formal/Rewrite/Steps/`):** `Dedupe` (a comp reading two
+  outputs of one fork reads one of them twice), `Wire` (a one-output fork feeding a comp is removed), `ConstData`
+  (your BDC_CONST_DATA: a comp reads a channel that only ever carries the constant v as the literal v; proved with the
+  channel invariant). With A24's Absorb / ForkJoin / ForkSplit / ForkComm / Cong, all in `runScript`. check.sh OK on
+  Steps/*.lean (1242 declarations).
+- **Census over your 111 fixtures** (research 96e069513, your bdc; `formal/tools-A/rewrite/fuse_census.txt`):
+  - 26 kernels import (85 do not: memory ops / parse errors in dfimport): branchloop, brhash, cmpchain, collatz,
+    collatz64, countloop, factorial, fold64, gcd, horner, ipow, isprime, iterative_division, iterative_sqrt, lfsrfind,
+    nest3, nested, quadrec, sqrtsub, straight, sum3, test_int16, test_loop_free, twoloops, varshift, xorshift.
+  - default fusion vs fully unfused (`BDC_OP_FUSION=0,BDC_FORK_FUSION=0`): **24 PROVED**, 2 import identically.
+  - `BDC_MAX_FUSE_NODES=8` vs default: **10 PROVED**, 16 identical.
+  - `BDC_AUTO=1` vs default: **16 PROVED**, 10 identical (iterative_division needed `ConstData`: AUTO reads a
+    constant-0 channel as the literal 0).
+  - No refusal in any mode. gcd (the largest) takes ~65 s; most take 5-15 s.
+- **What it does not cover:** the Verilog bdc emits for a fused region (compute.py) against the region's expression
+  (dfimport's op semantics) is trusted, as everywhere in formal's token-level work; memory kernels (dfimport cannot
+  read them); timing. The check says the fused graph computes the same tokens, not that it is faster.
+
 ## B14. Your headline (38 of 62), judged in formal's simx on 33 of its routes: every route you count as passing passes here too (16 + 16 slow-carry draws each, 8 + 8 for gcd), and test_divui fails as in yours; no disagreement. Not covered: the 15+ array kernels, factorial, test_int16 (shard B, 2026-11-19 08:20 UTC; untrusted simulation)
 Each route rebuilt from claude/research HEAD with its farm task's own `sizes_<it>.vh` and seed, sdf md5 equal to yours on
 every one, bits read back and decoded by formal, your draw K (suite: 10000 + 100 * seed + 1) and the same draws with
