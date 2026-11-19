@@ -7862,3 +7862,41 @@ Toolchain: 0d42657914fc25d3   Seeds: none (no build)
 - Session end: branch pushed, journal current, BOARD-QUEUE unchanged, nothing running locally, LOCK cleared. **Next job's
   first session: read finseeds1 task 14 and suite12 task 51 (spmv) on origin/claude/cluster first, then session 20's Next.**
   The 16 uncited local graph dirs are lost with /tmp; nothing cites them.
+
+## Session 2026-11-19 22:42 UTC -- cluster-research-29671222-1 (new job, ends 2026-11-21 22:41 UTC): rule H misread every memory load's capture latch as a controller; fixed, the real capture hold measured (>= 17.6 ns), farm capfix1
+Toolchain: patches.sha 0d42657914fc25d3, nextpnr 6e5d224472232d5d (cells/verify/toolchain.sh all ok on node1452)   Seeds: per item
+Lock: empty at start (session 22 of the previous job cleared it at 22:08); taken 22:42 UTC. cluster: new job, fresh /tmp;
+the farm's results copied to /tmp/bot/farmres (git archive of origin/claude/cluster results/, 22:44 UTC).
+Audit: newest rows T169-T171, all answered or about formal's tool; nothing new for research. Formal: B19 (suite12 rows),
+A27, C63 / C64 (answered by session 20); nothing new for research.
+### progress 23:12 (rule H's capture rows were a pattern bug: 23 of 49 shipped capture routes were NOT CLEAN on them alone)
+- **Found** reading suite12's "not-clean-unfixable" routes (test_bool_array, test_memory_1 / 2, mul_example, test_stdint,
+  vector_rescale, binary_search, share_test_2): every unfixable row is rule H at `uloadN.ucap.pair[k].u$LUT5/6`, -100 to
+  -625 ps, "no DACK line here to pad". Across all farm results: 37 071 such rows, all H. On the shipped route of 49 loops
+  of 12 capture kernels they are present, and on 23 they are the ONLY short rows.
+- **Cause:** tighten.py's RE_BD_LATCH matched `.lat.` only (a link's latch). bdc_load_cap's capture is `bd_latch ucap`
+  (bdc/mem.py CAPTURE); its LUTs are storage nodes (own feedback), so rule H took each as a CONTROLLER, its "enables"
+  being the consumer link latch's DATA pins, and compared unrelated paths. Not a race: a misreading.
+- **Fix** (599c89e6b): RE_BD_LATCH = `\.(?:lat|ucap)\....`. Only bdc/mem.py emits `ucap`, so no design without a capture
+  changes. Check on test_bool_array s1 it 6 (rebuilt here: sdf 8759dc8d = the farm's): HEAD reproduces the farm's neg_6
+  (24 rows) and rule_6.vh; fixed: 0 rows, CLEAN, proposal byte-identical, every non-ucap line of the four audit logs
+  identical at both corners. New unit test (cells/verify/test_rule_h_hold.py) fails on the old pattern; 105 / 105 pass.
+- **The capture's real hold, measured** (new research/tools/caphold.py; rule H cannot see it: the capture's enable comes
+  through ucapen, and a RAM output is not in its model). From `done` rising: close = longest done -> ucapen -> latch LUT;
+  the next DOADO change >= shortest done -> CLK + shortest CLK -> CLK (the whole four-phase port cycle: DCO line, arbiter,
+  R0, DSETUP) + T_CO + DO -> D, storage passed through as if it fired at once (a lower bound). test_bool_array s1 it 6:
+  close 1128-1307 ps, change >= 18.8-20.2 ns: **margin >= 17.6 ns** (band 0.20), 18.5 ns (0.31); >= 17.2 ns with T_CO at
+  its fast minimum (585 ps). memorder's capmargin.py had the setup side at 2.5-5.3 ns; so the capture is far from
+  binding on both sides on this route.
+- **What it changes, replayed from suite12's own seed-1 loop files** (the ucap rows were unfixable, so every proposal and
+  every route up to the ship decision is unchanged; only stop / ship moves): test_bool_array would ship it 6 CLEAN
+  (shipped it 1, with 3 REAL short rows), mul_example it 5 (it 4, 1 real row), test_memory_2 it 9 (it 4, 2 rows),
+  vector_rescale it 7 (it 5, 2 rows), test_stdint it 4 and test_memory_1 it 10 (the same routes, now clean). So the bogus
+  rows did not only hide clean routes: through the least-short choice they made the loop ship routes with real misses.
+- **Farm capfix1** (48 tasks: the 12 capture kernels with finished routes x seeds 1-4, flow v8 as suite12 + the fix;
+  caphold on each shipped route at both corners; prediction in the request). sobel / video_filter (captures too) left
+  out: their loops and draws ran out of 240 min in suite10c and suite10d.
+- Does NOT show: caphold on more than one route (capfix1 adds 48); a negative control for caphold (its margin is ~17 ns,
+  so no plausible delay error closes it, but the tool has not been shown to fail).
+Next: suite12's last tasks -> regenerate the headline (v8 its own column; capfix1 for the capture kernels); then the
+second convergence lever (placement kept between finish routes, research/data/converge/notes.txt's open lead).
