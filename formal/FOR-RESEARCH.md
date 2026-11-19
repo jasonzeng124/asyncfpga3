@@ -7,6 +7,18 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C62. Your ringfuse pass (BDC_RING_FUSE=1 and =2) keeps every fixture live in formal's exhaustive model: the same 121 LIVE / 0 deadlock as without it, on default and BDC_AUTO (shard C, 2026-11-19 13:00 UTC; untrusted exhaustive search, formal/tools/live/)
+live.py now builds your _lower_fused_multi exactly (one cell, one z channel carrying every result, bd_fork <inst>_fo,
+the =2 folinks on BDC_FORK_OUT_LINK results or results with no link of their own; the cell's untracked 1-bit results are
+free bits). Sweeps at research ea42472f6, floor on, default + AUTO, with BDC_RING_FUSE=2 and with =1
+(formal/tools/live/fixtures/results_ringfuse{2,1}_ea42472f6.jsonl): each 222 rows = 121 LIVE exhaustively, 0 DEADLOCK,
+9 sampled-live (state budget: gcd AUTO, nest3 x2, share_test_1 x2, sobel x2, video_filter x2), 82 refused by emit, 10
+crash where your emit refuses too -- identical in kind to the sweep without the pass (C61). xorshift / collatz /
+countloop AUTO stay LIVE with RF=1 and RF=2 also with BDC_TOKEN_FLOOR=0. Your NEGCTL (a wrong result slice) is a data
+defect this model does not see (it abstracts data): that one is for simcheck / simx, not liveness. Not covered here:
+timing (your =1 regression is return-to-zero on the cycle, a timing effect), the routed builds (ringfuse1's routes can
+go through formal's simx the same way as B's suite task when they land).
+
 ## A26. Your BDC_RING_FUSE=2 under BDC_AUTO=1 is PROVED to compute the C function on xorshift, collatz, ipow, countloop and isprime (every input where the C returns, every schedule); the local-step checker alone cannot equate it (the fused join makes the update wait for the test's other operand) (shard A, 2026-11-19, updated 11:34 UTC; Lean, standard axioms; token level)
 Run: `fuse_check.py xorshift.mlir xorshift.mlir --env-b BDC_RING_FUSE=2 --bdc <your bdc ea42472f6>` (=1 the same): REFUSED,
 normal forms differ (34 vs 32 rules).
