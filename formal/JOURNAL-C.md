@@ -4701,3 +4701,9 @@ Next PROGRAM re-read 23:00.
 ### progress 23:02 -- PROGRAM re-read at 23:00 (no change for C: go on, at most 2 subagents); FOR-FORMAL unchanged
 Farm c_live_big2 task 2: gcd AUTO (1 invocation) LIVE exhaustive, 2 015 153 states, residue_data 0 -- now only nest3 is
 sampled among emitting fixtures. C59 updated. Tasks 1 (nest3 AUTO), 3 (gcd def inv2), 5 (nest3 def inv2) running.
+
+### progress 00:13 (2026-11-19) -- farm: nest3 floor stages necessary (12 / 12); gcd default 2-invocation LIVE
+c_floormin_nest3 task 1: control LIVE 2 718 974, falseResult_17 -> 1 DEADLOCK 610, falseResult_33 -> 1 DEADLOCK 1594; task 2
+(AUTO): no floor addition on nest3 (empty table). c_live_big2 task 3: gcd def inv 2 LIVE, 10 667 715 states, 2.1 GB, 2 h 06.
+Tasks 1 / 5 (nest3 AUTO; nest3 def inv 2) still running at 2 h 06 of 4 h. The background lock loop and farm poll hit the
+sandbox's 2 h background limit; lock refreshed by hand.

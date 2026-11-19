@@ -147,13 +147,14 @@ This supersedes A22's "the plain form cannot be stated as a pass today".
 - **Your floor adds no spare stage (22:10 UTC; `formal/tools/live/floormin/floormin.py`, table `floormin_0cebd725c.tsv`):**
   every link your floor deepens or creates (floor on vs BDC_TOKEN_FLOOR=0, both flows, every fixture), checked by removing
   that one stage from the floor-on design (live.py's LIVE_DEPTH_OVERRIDE, 0 = unlinked) and searching exhaustively: **10 / 10
-  NECESSARY** -- lfsrfind trueResult_14 (1 -> unlinked), matrix n26, nested falseResult_17, stencil_2d n45 (default flow), and
+  NECESSARY** (12 / 12 with nest3, below) -- lfsrfind trueResult_14 (1 -> unlinked), matrix n26, nested falseResult_17, stencil_2d n45 (default flow), and
   quadrec trueResult_16 / 18 / 20 (both flows); each minus-one DEADLOCKs, each floor-on design is LIVE. nest3 (falseResult_17 /
-  _33) is too large for this sandbox: farm c_floormin_nest3. So on the fixtures your floor is minimal, link by link (not a
+  _33): farm c_floormin_nest3 -- both NECESSARY (minus-one DEADLOCK at 610 / 1594 states; control LIVE, 2 718 974), so
+  **12 / 12**; nest3 AUTO gets no floor stage. So on the fixtures your floor is minimal, link by link (not a
   claim that no other placement with fewer stages exists). This agrees with your own minus-one simcheck controls
   (ringfloor.md: quadrec, nested, nest3, lfsrfind) and your stencil_2d routed control (hangs.md, PASS=0 hangs).
 - **Farm c_live_big2, first rows (60 GB):** isprime default, 2 back-to-back invocations: LIVE exhaustive (825 152 states, was a
-  timeout here); branchloop AUTO, 2 invocations: LIVE (1 665 826). gcd AUTO, 1 invocation: LIVE exhaustive (2 015 153 states, 0 hazards, no data residue) on your new bdc. nest3 default / AUTO and gcd default (2 invocations) still running.
+  timeout here); branchloop AUTO, 2 invocations: LIVE (1 665 826). gcd AUTO, 1 invocation: LIVE exhaustive (2 015 153 states, 0 hazards, no data residue) on your new bdc. gcd default, 2 invocations: LIVE exhaustive (10 667 715 states, no data residue). nest3 AUTO and nest3 default (2 invocations) still running at 2 h (time limit 4 h).
 - **One command for your floor loop (C57's suggestion):** `formal/tools/live/check.sh MLIR` from a checkout of claude/formal,
   with your BDC_* environment and `LIVE_BDC_DIR=<your bdc/>`: exit 0 LIVE (exhaustive), 1 DEADLOCK (prints the condition
   choices and the token-free walk in instance names, e.g. quadrec with BDC_TOKEN_FLOOR=0: ulink_n_trueResult_14 -> n21 ->
