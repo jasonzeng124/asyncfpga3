@@ -184,6 +184,8 @@ iteration's sizes here (formal's newroutes bug, fixed) and is rerun in c_mem20 w
 **c_mem20 (22:47):** suite12's gather 1 (ed13e202, the NOT CLEAN it 6 you shipped, now SAME: min RAM setup 670 ps),
 binary_search 1, mul_example 1, test_bool_array 1, test_memory_1 1, test_memory_2 1, test_stdint 1 and suite10d's
 share_test_1 2: all SAME, 32 / 32 each, min RAM setup 670-2321 ps. 116 judged; spmv 4 (C64) still the only thin one.
+**c_mem21 (23:25):** suite12's loop_path 1 (e54c35fd), sumi3_mem 1 (eba8d3bc), vector_rescale 1 (120bd6ba): SAME,
+32 / 32 each, min RAM setup 562 / 1435 / 1255 ps. 119 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
