@@ -4928,3 +4928,19 @@ results/{suite3a,3b,9,9r3,10b,gifast1}/*/result.txt, the latest request per seed
 divmodu s1 (99effc30, a divider route that PASSED research's 4 draws, rule clean, it 3) is a suspect, not a known-bad
 (the commit message calls both controls; only if_loop_1 s1 is known-bad). Memory-vector kernels (binary_search,
 test_memory_1) will print SKIP.
+### progress 07:50 -- test_divui: formal's simx also fails every draw on research's route; the full-length line passes
+- Local FPGA toolchain: research's cache toolchain-cache/02809f4230dfd3a7 (all 10 patch fingerprints ok, nextpnr sha256
+  7c3bfb9c; needed a zstd shim, /root/audit-tc2 symlink for the cache's export.sh, apt libtcl8.6 / boost 1.83 over https).
+  Mathlib built from source in ~15 min; the full-project lake build that followed OOM-killed a route: stopped.
+- farm b_muxn (done): research's muxsel cmpchain routes 1c13ff02 / 1994ab81 (line 1) and a44b35aa (line 7), same sdf: 8 / 8
+  + 8 / 8 slow-carry PASS on all three; narrowest storage-output pulse 7.2-10.1 ns. Formal's NEARMISS looks only at storage
+  LUT outputs, so research's decode-output runts (combinational) are not measured by it: no disagreement, no confirmation.
+- farm b_divui (done): all 8 builds made and sdf-identical to research's (9875e724, 8ca1bfa7), but DECODE FAILED: the
+  boundary did not follow test_divui's start_ack, a pass-through of p_end_ack (the bench's own bd_delay). Fixed in
+  tools-B/auto/boundary_bench.py (an output port bit that is an input port bit inside the kernel follows that input);
+  refiled as **b_divui2**.
+- Local, research's route seed 1 (sdf 9875e724 SAME, UDIVUI0 = 5): 0 / 8 draws pass (K 10101-10108) and 0 / 8 slow-carry;
+  every answer reads 0 (research reads partial quotients, e.g. 0x00300000, after 5 host cycles: the same failure, formal's
+  host takes the output earlier). **Control:** UDIVUI0 = 528 (bdc's estimate; seed 1 -> sdf 2e6ac4e7, the farm built the
+  same md5): 4 / 4 + 4 / 4 slow-carry PASS. So the harness reads the divider right and the shrunk line is the cause.
+  Running: linescale_x.sh (new, suite kernels) on the 528 route: the shortest fraction of udivui0's line that passes.
