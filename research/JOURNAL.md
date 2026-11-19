@@ -7162,3 +7162,24 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   cannot see.
 - suite_one.sh runs every draw with GATE_RUNTS=1 (report) by default from now on; BOARD-QUEUE judgments should use
   GATE_RUNTS=fail. Merged with ifloop's gate changes (x in a SIG and any RAMB18 event fail): both kept.
+### progress 03:18 (gcdclean landed: gcd's / isprime's "unfixable" row is a lap through the bench, not a race; a real rule gap found)
+- **gcdclean** (research/data/benchcap/): isprime's umux13 / gcd's umux21 row is a LAP, not data: launched at an input
+  link, the "data" is reached two storage crossings later through the bench's acknowledge LUT (o_ack_pl = ... &
+  core_o_req), the select link's return to zero and its request delay -- the timing walk crosses the bench's AND as if
+  the clocked bench_o_ack were already 1. The out0 mux's real sinks: 2 (isprime) / 64 (gcd) flops of the PS-clocked
+  bench (result_hold, captured only after two 2-flop synchronisers: >= 2 periods of FCLK0, <= 100 MHz, so >= 19 ns with
+  1 ns of setup / skew allowance, an assumption) and the mux's own join C-elements (which A' read as data). Margins on
+  every route checked: +17.4..+18.7 ns (isprime, gcd, and farm routes of xorshift, collatz, gather).
+- corner_audit **CA_BENCHCAP=1** (opt-in with CA_JOINAWARE=1; unset byte-identical on xorshift / collatz / gather, all
+  8 output files; CA_FAST stays exact with it, 0 of 51 runs differ): a D / CE pin of a BUFG-clocked flop is a capture at
+  the request's earliest arrival at a flop on that clock + CA_BENCHCAP_PS (19000); the operator's own join inputs are not
+  data. Negative control (an arc on the data path into result_hold lengthened): +17000 ps -> +1177 margin, +19500 ->
+  -1398 (sized: umux13's line), +25000 -> -7063 -- the shipped rule never measured that path at all. Effect: isprime it
+  5's 2 unfixable rows gone; gcd it 0 73 -> 71 rows, all fixable, UMUX21 4 -> 1, the proposal 542 -> 520 links; on other
+  kernels the out0 mux's line drops to its floor (xorshift UMUX3 5 -> 1, collatz UMUX2 3 -> 1, gather UMUX3 2 -> 1).
+  isprime s1's loop resumed with it (it 6-10): 10, 6, 2, 1, 5 rows short, none unfixable -- still NOT CLEAN after 10
+  (tens of ps that move with each re-route). Not the default yet: the out0 muxes at their floor need draws first.
+- **Found: the select race inside bdc_muxnN is measured by no rule** (s must settle before ctl_req at the decode LUTs;
+  select_consumers() misreads the bd_c2 pins); on isprime the line guarding it (ULINK_N_INDEX_71) stayed at its start
+  size 3 from it 0 to it 10 with 363-633 ps of unguarded slack at 0.20. A goal-1 gap: next lead.
+- All 13 subagents of this session have reported and landed.
