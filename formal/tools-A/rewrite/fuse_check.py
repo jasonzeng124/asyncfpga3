@@ -37,11 +37,11 @@ class FPlan(Q.Plan):
             _, lf, lc, a, b = st; rf, rc = rs[lf], rs[lc]
             os_ = list(rf[2]); os_.remove(b); ins = list(rc[1]); er = list(ins); er.remove(b)
             rs[lf] = ('fork', rf[1], os_); rs[lc] = ('comp', er, rc[2], dedupE(ins, a, b, rc[3]))
-            self.steps.append(st)
+            self.pre += [a, b]; self.chg += [b]; self.steps.append(st)
         elif k == 'wire':
             _, lf, lc = st; rf, rc = rs[lf], rs[lc]; x, a = rf[1], rf[2][0]
             rs[lf] = ('sink', a); rs[lc] = ('comp', [swA(a, x, c) for c in rc[1]], rc[2], rc[3])
-            self.sinks.append(lf); self.steps.append(st)
+            self.sinks.append(lf); self.pre += [a]; self.chg += [x, a]; self.steps.append(st)
         else:
             Q.Plan.do(self, st)
 
@@ -155,7 +155,7 @@ def run(fa, fb, ea, eb, tmp):
     s2 = '[' + ', '.join(Q.ser_step(s) for s in pb.steps) + ']'
     lean = Q.TEMPLATE.format(inp=f'{os.path.abspath(fa)} [{ea}]', out=f'{os.path.abspath(fb)} [{eb}]',
                              rin=PP.ser_rules(Ra), rout=PP.ser_rules(Rb), s1=s1, s2=s2, P=P, Pi=Pi, T=T, Ti=Ti,
-                             NA=naa, oi=oa, oo=ob).replace('eq2_check.py', 'fuse_check.py')
+                             NA=naa, oi=oa, oo=ob, **Q.lits(pa, pb)).replace('eq2_check.py', 'fuse_check.py')
     lf = os.path.join(tmp, 'Eq2CheckRun.lean'); open(lf, 'w').write(lean)
     env = dict(os.environ); env['PATH'] = os.path.expanduser('~/.elan/bin') + ':' + env.get('PATH', '')
     b = subprocess.run(['lake', 'build', 'Formal.Rewrite.Steps.ScriptSound', 'Formal.Rewrite.Rename'], cwd=LEAN,

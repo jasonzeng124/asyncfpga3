@@ -76,7 +76,7 @@ def readers(rs, c): return [l for l, r in enumerate(rs) for x in ins_of(r) if x 
 def maxch(rs): return max([c for r in rs for c in ins_of(r) + outs_of(r)] + [0])
 
 class Plan:
-    def __init__(self, rs): self.rs = list(rs); self.steps = []; self.sinks = []
+    def __init__(self, rs): self.rs = list(rs); self.steps = []; self.sinks = []; self.pre = []; self.chg = []
 
     def do(self, st):
         rs = self.rs; k = st[0]
@@ -85,20 +85,22 @@ class Plan:
             assert rp[0] == 'comp' and rq[0] == 'comp' and rq[1][-1] == rp[2], st
             bs = rq[1][:-1]; a = rp[1]
             rs[lp] = ('sink', rp[2]); rs[lq] = ('comp', bs + a, rq[2], absorbE(len(bs), len(a), rp[3], rq[3]))
-            self.sinks.append(lp)
+            self.sinks.append(lp); self.pre += [rp[2]]; self.chg += [rp[2]] + list(a)
         elif k == 'forkjoin':
             _, lf, lc = st; rf, rc = rs[lf], rs[lc]
             assert rf[0] == 'fork' and rc[0] == 'comp' and list(rc[1]) == list(rf[2]), st
             rs[lf] = ('comp', [rf[1]], rc[2], allZero(rf[2], rc[3])); rs[lc] = ('sink', rf[2][0])
-            self.sinks.append(lc)
+            self.sinks.append(lc); self.pre += list(rf[2]); self.chg += list(rf[2])
         elif k == 'forksplit':
             _, lf, kk, e = st; rf = rs[lf]
             rs[lf] = ('fork', rf[1], [e] + rf[2][kk:]); rs.append(('fork', e, rf[2][:kk]))
+            self.pre += [e]; self.chg += [e]
         elif k == 'forkcomm':
             _, lc, lf, x0, x1 = st; rc, rf = rs[lc], rs[lf]
             assert rc[0] == 'comp' and len(rc[1]) == 1 and rf[0] == 'fork' and rf[1] == rc[2] and len(rf[2]) == 2, st
             rs[lc] = ('fork', rc[1][0], [x0, x1]); rs[lf] = ('comp', [x0], rf[2][0], rc[3])
             rs.append(('comp', [x1], rf[2][1], rc[3]))
+            self.pre += [rf[1], x0, x1]; self.chg += [rf[1], x0, x1]
         elif k == 'reorder':
             _, l, ins2 = st; r = rs[l]; rs[l] = ('comp', list(ins2), r[2], reindex(r[1], ins2, r[3]))
         elif k == 'forder':
@@ -106,7 +108,7 @@ class Plan:
         elif k == 'ident':
             _, l, w = st; r = rs[l]; assert r[3] == colLhs(w), st; rs[l] = ('comp', r[1], r[2], colRhs(w))
         elif k == 'drop':
-            _, l = st; assert rs[l][0] == 'sink'; del rs[l]
+            _, l = st; assert rs[l][0] == 'sink'; self.pre += [rs[l][1]]; del rs[l]
         self.steps.append(st)
 
     def collapse(self, L):
@@ -201,6 +203,9 @@ def ser_step(st):
     def s(x): return '[' + ', '.join(map(str, x)) + ']' if isinstance(x, list) else str(x)
     return '.' + k + ' ' + ' '.join(s(x) for x in a)
 
+def lits(p1, p2):
+    return dict(nf1=PP.ser_rules(p1.rs), nf2=PP.ser_rules(p2.rs), pre1=p1.pre, chg1=p1.chg, pre2=p2.pre, chg2=p2.chg)
+
 def refuse(why):
     print('eq2_check: REFUSED -- ' + why); return 2
 
@@ -247,7 +252,8 @@ def run(inp, out, tmp):
     s1 = '[' + ', '.join(ser_step(s) for s in p1.steps) + ']'
     s2 = '[' + ', '.join(ser_step(s) for s in p2.steps) + ']'
     lean = TEMPLATE.format(inp=os.path.abspath(inp), out=os.path.abspath(out), rin=PP.ser_rules(Ri),
-                           rout=PP.ser_rules(Ro), s1=s1, s2=s2, P=P, Pi=Pi, T=T, Ti=Ti, NA=na, oi=oi, oo=oo)
+                           rout=PP.ser_rules(Ro), s1=s1, s2=s2, P=P, Pi=Pi, T=T, Ti=Ti, NA=na, oi=oi, oo=oo,
+                           **lits(p1, p2))
     lf = os.path.join(tmp, 'Eq2CheckRun.lean'); open(lf, 'w').write(lean)
     env = dict(os.environ); env['PATH'] = os.path.expanduser('~/.elan/bin') + ':' + env.get('PATH', '')
     b = subprocess.run(['lake', 'build', 'Formal.Rewrite.Steps.ScriptSound', 'Formal.Rewrite.Rename'], cwd=LEAN,
@@ -280,8 +286,10 @@ def rulesOut : List Rule := {rout}
 def s1 : List Step := {s1}
 def s2 : List Step := {s2}
 
-def r1 : Res := (runScript rulesIn s1).getD ([], [], [])
-def r2 : Res := (runScript rulesOut s2).getD ([], [], [])
+def nf1 : List Rule := {nf1}
+def nf2 : List Rule := {nf2}
+def r1 : Res := (nf1, {pre1}, {chg1})
+def r2 : Res := (nf2, {pre2}, {chg2})
 theorem h1 : runScript rulesIn s1 = some r1 := by decide +kernel
 theorem h2 : runScript rulesOut s2 = some r2 := by decide +kernel
 
