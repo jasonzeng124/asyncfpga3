@@ -7630,3 +7630,22 @@ or in suite_table.py: measure the most executed loop (by back-edge count over th
 cannot be identified; then regenerate the headline with --no-ratio isprime,branchloop dropped where the loop now
 matches. Before that, the 21:35 Next list of session 18 stands (suite12's last kernels, suite11's last 3, suite10d,
 finseeds1's last 3 -> regenerate; AUTO_FINISH_SEEDS=3 default + smoke; the open goal-1 list of the 19:53 state of play).
+### progress 21:49 (P against the bench's own per-iteration time, every kernel: P is faithful on all 19 single-loop kernels; it departs only where a kernel has several loops)
+- New read-only tool research/tools/suite/p_vs_slope.py: per route, P against the least-squares slope of the route's call
+  latencies (latmin x 12 ns, median over draws, as suite_table.py's route_lat) on Dynamatic's header executions per call
+  of the most executed loop (dynamatic_lat.tsv, the same trip counts suite_table.py's "fit" uses). Over the farm results
+  copied to /tmp/bot/farmres (28 requests, finseeds1 34 of its 40 tasks); table in research/data/suite/pslope/p_vs_slope.txt.
+- **Single-loop kernels (19): P / slope median 0.97-1.01 on every kernel, every route within 0.94-1.04** (xorshift 43
+  routes, collatz 56, ipow 60, collatz64 34, countloop 22, ...), except dot2's two pre-fix routes (156.00 / 28.50: the host
+  fill, already refused). So on one-loop kernels P is the per-iteration time of the loop Dynamatic's figure measures.
+- **Multi-loop kernels depart:** branchloop 0.45 (five routes on the inner loop, one at 1.00: the DA route, the one session
+  18 called the outlier, is the one that matches Dynamatic's loop); **gcd 2.16** (3 routes, gifast1: P 61-66 ns against a
+  slope of 28-31 ns per execution of Dynamatic's bb11, the most executed of 5 loops; gcd has no ratio in the headline yet);
+  isprime 7.07 (already out of every mean). twoloops 0.97 (P happens to be on the most executed loop).
+- Does NOT show: digitdiv, if_convert, loop_path, single_loop, sumi3_mem, while_loop_3 and fir have a ratio in the headline
+  but no row here (their trip counts do not vary over the vectors, or no '-' -> header column, so no slope): their P is
+  unchecked this way. The slope includes everything per trip the bench sees, so it is an upper bound for the loop alone.
+Next (general, nothing per kernel; replaces the 21:47 Next's first item): in suite_table.py, where the slope exists, refuse
+a P that departs from it by more than 15 % (the single-loop scatter is 6 %) and use the fit, which is Dynamatic's own
+convention; that removes the hand edit and the --no-ratio list for branchloop and isprime alike and fills gcd. Then
+regenerate.
