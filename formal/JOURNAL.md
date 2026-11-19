@@ -3435,3 +3435,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   Verilog): MISMATCH rc 2 on gcd and xorshift. Not covered: the parts' Verilog expressions vs the model's (general
   region-Verilog trust). FOR-RESEARCH A27 + FEASIBILITY row 15 updated.
 ### progress 22:01 -- research FOR-FORMAL 21:57 answers C64 (spmv s4 unfinished; their rule B: umem0 usetup -373 ps; asks C for the multiplicative guard sum on the 13 c_mem14 routes) -- C's item; MARGINS row updated; lock
+### progress 22:40 -- quiet: no research change to FOR-FORMAL / bdc since 21:57; lock
