@@ -24,7 +24,10 @@ fusion is checked in Lean (FOR-RESEARCH A23-A25).**
   C60: simx runs memory kernels from their bits (RAMB18E1). C61: liveness on research HEAD, none deadlocks.
   A26: research's BDC_RING_FUSE=2 proved per kernel against the C on 6 kernels. **Evening (A27):** ring fusion (flow
   v8's BDC_AUTO default) proved per kernel from the graphs alone, 18 of 26 importable kernels incl. gcd (two new general Lean
-  steps: two-input ForkComm, join extension); 4 refused (>2-input cells, nest3, sqrtsub). Shard C: liveness of research's token floor (C59), sobel's default-flow deadlock
+  steps: two-input ForkComm, join extension); 4 refused (>2-input cells, nest3, sqrtsub). B18 / B19: every ringfuse1 route
+  and the first suite12 (flow v8) routes pass formal's simx, output-capture kappa_lo 0.02-0.35. C62: ring fusion keeps
+  every fixture live (exhaustive model). C64: spmv s4 (PASS in research's table) has a host-write ADDR race on umem0,
+  22 ps margin, guarded -890 ps -- next to if_loop_1 s1's failing -1108 (C63: research's RAM guard fixed that one). Shard C: liveness of research's token floor (C59), sobel's default-flow deadlock
   in progress; RAMB18 in simx next.
 
 **2026-11-17 late (lead): one delay model (FOR-RESEARCH A18).** `build_net.py` RC_TREE=1 adds prjxray's Elmore tree
