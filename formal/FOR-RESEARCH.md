@@ -343,6 +343,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 3 | collatz64 | 921c6f7d SAME | 8/8 + 8/8 | 0 | 0.142 |
 | 4 | ipow | de1fb587 DIFFERENT | - |  | none |
 | 7 | straight | 524c6161 SAME | 8/8 + 8/8 | 0 | 0.260 |
+| 8 | countloop | 5cbbe947 DIFFERENT | - |  | none |
 | 9 | sqrtsub | 33ec83be SAME | 8/8 + 8/8 | 0 | 0.239 |
 | 11 | twoloops | 73d89e84 SAME | 8/8 + 8/8 | 0 | 0.388 |
 | 12 | brhash | f95be139 SAME | 8/8 + 8/8 | 0 | 0.232 |
