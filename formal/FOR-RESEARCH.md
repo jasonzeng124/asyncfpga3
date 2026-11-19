@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so the line must outrun the enable chain, not the subtracts (shard B, 2026-11-19 08:10 UTC; untrusted simulation, one placement for the edge)
+## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so the line must outrun the enable chain, not the subtracts (shard B, 2026-11-19 07:48 UTC; untrusted simulation, one placement for the edge)
 **The race, named.** Both ends launch at `udivui0`'s `joined` rise. Data: the stage-enable chain `tp[0..256]`
 (`uhold` then 256 kept LUT2s, DIV_TAP 8 x 32 stages, bdc/compute.py div_datapath), whose tap `tp[8(s+1)]` releases stage s;
 quotient bit 0 is final only after `tp[256]` plus the last subtract / select. Request: `udivui0.udly`, UDIVUI0 elements of

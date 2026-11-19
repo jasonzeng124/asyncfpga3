@@ -4944,7 +4944,7 @@ test_memory_1) will print SKIP.
   host takes the output earlier). **Control:** UDIVUI0 = 528 (bdc's estimate; seed 1 -> sdf 2e6ac4e7, the farm built the
   same md5): 4 / 4 + 4 / 4 slow-carry PASS. So the harness reads the divider right and the shrunk line is the cause.
   Running: linescale_x.sh (new, suite kernels) on the 528 route: the shortest fraction of udivui0's line that passes.
-### progress 08:10 -- FOR-RESEARCH B12 (test_divui); b_hl1 back: a formal harness bug found and fixed
+### progress 07:48 -- FOR-RESEARCH B12 (test_divui); b_hl1 back: a formal harness bug found and fixed
 - linescale_x on the UDIVUI0 = 528 route: s = 0.5078 (268 of 528) passes, 0.5 (264) fails (low quotient bits): the line
   must outrun the 256-LUT2 enable chain + the last stage. B12 written (the race named: tp[0..256] vs udivui0.udly).
 - **b_hl1** (30 headline routes, research's sdf on every built route): branchloop 1, cmpchain 2, iterative_division 2,
