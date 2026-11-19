@@ -7869,7 +7869,7 @@ Lock: empty at start (session 22 of the previous job cleared it at 22:08); taken
 the farm's results copied to /tmp/bot/farmres (git archive of origin/claude/cluster results/, 22:44 UTC).
 Audit: newest rows T169-T171, all answered or about formal's tool; nothing new for research. Formal: B19 (suite12 rows),
 A27, C63 / C64 (answered by session 20); nothing new for research.
-### progress 23:12 (rule H's capture rows were a pattern bug: 23 of 49 shipped capture routes were NOT CLEAN on them alone)
+### progress 23:01 (rule H's capture rows were a pattern bug: 23 of 49 shipped capture routes were NOT CLEAN on them alone)
 - **Found** reading suite12's "not-clean-unfixable" routes (test_bool_array, test_memory_1 / 2, mul_example, test_stdint,
   vector_rescale, binary_search, share_test_2): every unfixable row is rule H at `uloadN.ucap.pair[k].u$LUT5/6`, -100 to
   -625 ps, "no DACK line here to pad". Across all farm results: 37 071 such rows, all H. On the shipped route of 49 loops
@@ -7896,6 +7896,8 @@ A27, C63 / C64 (answered by session 20); nothing new for research.
 - **Farm capfix1** (48 tasks: the 12 capture kernels with finished routes x seeds 1-4, flow v8 as suite12 + the fix;
   caphold on each shipped route at both corners; prediction in the request). sobel / video_filter (captures too) left
   out: their loops and draws ran out of 240 min in suite10c and suite10d.
+- Correction (times): this note's heading was first written 23:12, an estimate; `date -u` said 23:01. capfix1's header says
+  "PREDICTION (2026-11-19 23:10 UTC)", also estimated: it was committed at 23:00:39 UTC (599c89e6b), before any result.
 - Does NOT show: caphold on more than one route (capfix1 adds 48); a negative control for caphold (its margin is ~17 ns,
   so no plausible delay error closes it, but the tool has not been shown to fail).
 Next: suite12's last tasks -> regenerate the headline (v8 its own column; capfix1 for the capture kernels); then the
