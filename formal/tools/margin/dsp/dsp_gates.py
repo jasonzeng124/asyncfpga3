@@ -237,8 +237,12 @@ def check(D, N, routed, n):
     bases = sorted({b for b, _ in src_of.values()})
     print("dsp_gates --check: operands %s; products %s" % (bases, sorted(res)), file=sys.stderr)
     idx = {nm: i for i, nm in enumerate(names)}
-    # each product's operands: the operand bases reachable from its P nodes
-    def cone(n, seen):   # back through DSP gates and copies (pips / hops) to the operand nets
+    # 2026-11-19: a product may read another product (x * x * x: mul_example); such a product's bits count as an operand
+    pbit = {}
+    for pb, bits in res.items():
+        for i, b in bits.items():
+            pbit[idx[b]] = (pb, i)
+    def cone(n, seen, me):   # back through DSP gates and copies (pips / hops) to the operand nets or another product's bits
         todo = [n]
         while todo:
             x = todo.pop()
@@ -246,47 +250,69 @@ def check(D, N, routed, n):
             seen.add(x)
             g = drv.get(x)
             if names[x] in src_of or g is None: continue
+            if x in pbit and pbit[x][0] != me: continue
             if g["kind"] in ("dsp", "dspcasc") or (g["k"] == 1 and g["init"] == 2): todo += g["ins"]
-    r = random.Random(12345)
-    tbad = 0
-    for pb, bits in sorted(res.items()):
-        bad = 0
+    ops_of = {}
+    for pb, bits in res.items():
         seen = set()
-        for b in bits.values(): cone(idx[b], seen)
-        ops = sorted({src_of[names[i]][0] for i in seen if names[i] in src_of})
+        for b in bits.values(): cone(idx[b], seen, pb)
+        ops = sorted({src_of[names[i]][0] for i in seen if names[i] in src_of} |
+                     {pbit[i][0] for i in seen if i in pbit and pbit[i][0] != pb})
         if len(ops) not in (1, 2):
             die("product %s: operands %s" % (pb, ops))
-        vecs = [(0, 0), (1, 1), (0xffffffff, 0xffffffff), (0x7fffffff, 0x7fffffff), (0x80000000, 3), (0x1ffff, 0x1ffff),
-                (0x20000, 0x20000)] + [(r.getrandbits(32), r.getrandbits(32)) for _ in range(n)]
-        for x, y in vecs:
-            opv = {ops[0]: x, ops[-1]: y if len(ops) == 2 else x}
+        ops_of[pb] = ops
+    order = []
+    while len(order) < len(res):
+        prog = False
+        for pb in sorted(res):
+            if pb not in order and all(o in order or o not in res for o in ops_of[pb]):
+                order.append(pb); prog = True
+        if not prog: die("check: products depend on each other in a cycle: %s" % ops_of)
+    r = random.Random(12345)
+    tbad = 0
+    vecs = [(0, 0), (1, 1), (0xffffffff, 0xffffffff), (0x7fffffff, 0x7fffffff), (0x80000000, 3), (0x1ffff, 0x1ffff),
+            (0x20000, 0x20000)] + [(r.getrandbits(32), r.getrandbits(32)) for _ in range(n)]
+    nbad = defaultdict(int)
+    leaf = [b for b in bases]
+    for x, y in vecs:
+        opv = {leaf[0]: x, leaf[-1]: y if len(leaf) > 1 else x}
+        for b in leaf[1:-1]: opv[b] = r.getrandbits(32)
+        pv = {}
+        for pb in order:
+            ops = ops_of[pb]
             memo = {}
             def val(ni):
                 if ni in memo: return memo[ni]
                 nm = names[ni]
                 if nm in src_of:
                     b, i = src_of[nm]; v = (opv[b] >> i) & 1
+                elif ni in pbit and pbit[ni][0] != pb:
+                    q, i = pbit[ni]; v = (pv[q] >> i) & 1
                 else:
                     g = drv.get(ni)
                     if g is None: die("check: %s undriven inside the DSP network" % nm)
                     if g["kind"] == "const": v = g["init"]
                     elif g["k"] == 1 and g["init"] == 2: v = val(g["ins"][0])
                     elif g["kind"] == "dsp":
-                        dd = g["dsp"]; pv = list(dd["base"])
+                        dd = g["dsp"]; pv_ = list(dd["base"])
                         for i_, ro in zip(g["ins"], dd["roles"]):
-                            pv[ro // 64] |= val(i_) << (ro % 64)
-                        p = dspmodel.dsp_p(dd["opmode"], dd["alumode"], dd["inmode"], dd["carryinsel"], pv[0], pv[1], pv[2], pv[3], dd["carryin"])
+                            pv_[ro // 64] |= val(i_) << (ro % 64)
+                        p = dspmodel.dsp_p(dd["opmode"], dd["alumode"], dd["inmode"], dd["carryinsel"], pv_[0], pv_[1], pv_[2], pv_[3], dd["carryin"])
                         v = (p >> dd["obit"]) & 1
                     else: die("check: %s driven by a %s gate inside the DSP network" % (nm, g["kind"]))
                 memo[ni] = v; return v
+            bits = res[pb]
             got = sum(val(idx[bits[i]]) << i for i in range(32))
-            want = (opv[ops[0]] * opv[ops[-1]]) & 0xffffffff
+            ov = lambda o: pv[o] if o in pv else opv[o]
+            want = (ov(ops[0]) * ov(ops[-1])) & 0xffffffff
+            pv[pb] = got
             if got != want:
-                bad += 1
-                if bad <= 5:
-                    print("  MISMATCH %s = %s * %s: %#x * %#x -> %#010x, want %#010x" % (pb, ops[0], ops[-1], opv[ops[0]], opv[ops[-1]], got, want), file=sys.stderr)
-        print("dsp_gates --check: %s = %s * %s mod 2^32: %d vectors, %d mismatches" % (pb, ops[0], ops[-1], len(vecs), bad), file=sys.stderr)
-        tbad += bad
+                nbad[pb] += 1
+                if nbad[pb] <= 5:
+                    print("  MISMATCH %s = %s * %s: %#x * %#x -> %#010x, want %#010x" % (pb, ops[0], ops[-1], ov(ops[0]), ov(ops[-1]), got, want), file=sys.stderr)
+    for pb in order:
+        print("dsp_gates --check: %s = %s * %s mod 2^32: %d vectors, %d mismatches" % (pb, ops_of[pb][0], ops_of[pb][-1], len(vecs), nbad[pb]), file=sys.stderr)
+        tbad += nbad[pb]
     bad = tbad
     if bad and any(c["dsp"].get("corrupted") for c in dsps.values()):
         print("dsp_gates --check: mismatches EXPECTED (negative control: a decoded DSP bit was flipped)", file=sys.stderr)

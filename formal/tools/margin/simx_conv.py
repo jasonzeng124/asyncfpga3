@@ -56,7 +56,7 @@ with open(outf, "w") as f:
                 (" D %d %d %d %d %d %d %s %s" % (dd["obit"], dd["opmode"], dd["alumode"], dd["inmode"], dd["carryinsel"], dd["carryin"],
                  " ".join("%x" % b for b in dd["base"]), " ".join(map(str, dd["roles"])))) if dd else "", rtail))
     for k in ("rst", "req", "a_ack", "b_ack", "start_ack", "out0_req", "out0_ack", "pend_ack"):
-        f.write("%s %d\n" % (k, nb(k)))
+        f.write("%s %d\n" % (k, -1 if B.get(k) is None else nb(k)))   # pend_ack None: a void kernel (bench logic acks p_end)
     for k in ("a_data", "b_data", "out0_data"):
         # node index, or -1 (const0) / -2 (const1) for tied bits (as simadv: any name starting "const")
         f.write("%s %d %s\n" % (k, len(B[k]), " ".join(

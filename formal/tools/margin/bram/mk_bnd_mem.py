@@ -20,9 +20,12 @@ else:
     a = bb = "start"
     aack = back = one("start_ack"); ad = bd = []
 xacks = sorted({one(c + "_ack") for c in chans} - {aack, back, one("start_ack")})
+void = "void" in b   # a void kernel: the bench's completion join takes p_end (its own logic drives p_end_ack)
 B = {"rst": one("rst"), "req": reqs.pop(), "a_ack": aack, "b_ack": back,
-     "start_ack": one("start_ack"), "out0_req": one("out0_req"), "out0_ack": one("out0_ack"), "pend_ack": one("p_end_ack"),
+     "start_ack": one("start_ack"), "out0_req": one("out0_req"), "out0_ack": one("out0_ack"),
+     "pend_ack": None if void else one("p_end_ack"),
      "a_data": ad, "b_data": bd, "out0_data": b["out0_data"]["nodes"], "xacks": xacks}
-env = sorted({B["rst"], B["req"], B["out0_ack"], B["pend_ack"]} | {x for x in ad + bd if not x.startswith("const")})
+env = sorted({B["rst"], B["req"], B["out0_ack"]} | ({B["pend_ack"]} if B["pend_ack"] else set()) |
+             {x for x in ad + bd if not x.startswith("const")})
 json.dump({"boundary": B, "env": env, "operands": [a, bb], "channels": chans}, open(sys.argv[2], "w"))
-print("operands", a, bb, "channels", chans, "extra acks", len(xacks), "env nodes", len(env))
+print("void" if void else "", "operands", a, bb, "channels", chans, "extra acks", len(xacks), "env nodes", len(env))

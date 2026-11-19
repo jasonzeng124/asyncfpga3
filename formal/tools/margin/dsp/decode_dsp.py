@@ -386,6 +386,8 @@ def main():
             if n.startswith("DSP48_"):
                 s, p = n.split("/")
                 want = {"ACIN": "ACOUT", "BCIN": "BCOUT", "PCIN": "PCOUT"}.get(re.sub(r"\d+$", "", pin))
+                if want is None and s in names and re.match(r"^P\d+$", p):
+                    continue   # 2026-11-19: a fabric operand (A / B / C) routed from another DSP's P output: a read, not a cascade
                 if s not in names or want is None or p != want + re.sub(r"^\D+", "", pin):
                     die("%s %s: cascade source %s unexpected" % (c["name"], pin, n))
     D["cells"] += sites

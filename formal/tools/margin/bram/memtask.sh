@@ -26,7 +26,6 @@ head -1 "$RS/$V" 2>/dev/null | grep -q '^// benchvec' || { say "$K $S SKIP (no b
 mkdir -p "$O/v"
 ( cd "$RS" && ORACLE_RUNS=1 ORACLE_MEMOUT="$O/v/memexp.txt" research/tools/suite/oracle_mem.sh "$K" "$V" ) > "$O/v/exp.txt" 2> "$O/oracle.err" \
   || { say "$K $S NO-ORACLE $(head -1 "$O/oracle.err")"; exit 0; }
-grep -q void "$O/v/exp.txt" && { say "$K $S SKIP (void kernel: no out0 boundary in formal's bench yet)"; exit 0; }
 T=${TREE:-$O/tree}
 if [ ! -d "$T/cells" ]; then mkdir -p "$T/build"; cp -r "$RS/cells" "$RS/bdc" "$T/"; cp -r "$RS/cloud/fixtures/frontend" "$T/build/"; fi
 FL=(); [ "${FLOW:-auto}" = auto ] && FL=(BDC_AUTO=1)
@@ -60,7 +59,7 @@ python3 "$H/memvec.py" "$RS/$V" "$O/v/exp.txt" "$O/v/memexp.txt" "$W/m/net.json"
 [ -s "$O/v/mem.txt" ] || { say "MEMVEC FAILED"; exit 0; }
 for x in "" 0.8,1.0; do
   k0=$K0; [ -n "$x" ] && k0=$((K0 + 50))
-  DRAW_XBAND=$x python3 "$B/xdraws.py" "$O/v/exp.txt" "$W/m/net.json" "$W/m/bnd.json" "$O/d$k0" --kernel "$K" --pairs $(cat "$O/v/pairs.txt") \
+  DRAW_XBAND=$x python3 "$B/xdraws.py" "$O/v/exp_num.txt" "$W/m/net.json" "$W/m/bnd.json" "$O/d$k0" --kernel "$K" --pairs $(cat "$O/v/pairs.txt") \
     --draws "$ND" --seed0 "$k0" --jobs "${JOBS:-4}" --routed "$W/m/routed.json" --tmax "${TMAX:-1900000000}" --mem "$O/v/mem.txt" > "$O/d$k0.log" 2>&1
   say "draws K $k0..$((k0 + ND - 1))${x:+ slow-carry/RAM $x}: $(grep '^draws [0-9]' "$O/d$k0.log" | head -1) $(grep -E 'seed [0-9]+ (FAIL|UND)' "$O/d$k0.log" | head -4 | tr '\n' ' ' | cut -c1-400)"
   cp "$O/d$k0/draws_summary.txt" "$O/draws_summary_$k0.txt" 2>/dev/null; cp "$O/d$k0/draws.txt" "$O/draws_$k0.txt" 2>/dev/null

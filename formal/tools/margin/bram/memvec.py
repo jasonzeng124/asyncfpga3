@@ -91,6 +91,7 @@ ops = [[0, 0] if nw == 0 else c["ops"] + c["ops"][:1] if nw == 1 else c["ops"][:
 if nw > 2:
     sys.exit("memvec: %d operand words (formal's bench drives at most two)" % nw)
 open(os.path.join(out, "pairs.txt"), "w").write(" ".join("0x%x,0x%x" % (o[0], o[1]) for o in ops) + "\n")
-open(os.path.join(out, "want.txt"), "w").write(",".join("0x" + e for e in exp) + "\n")
+open(os.path.join(out, "exp_num.txt"), "w").write("".join(("00000000" if e == "void" else e) + "\n" for e in exp))
+open(os.path.join(out, "want.txt"), "w").write(",".join("0x0" if e == "void" else "0x" + e for e in exp) + "\n")   # void: ODATA 0
 print("memvec: %d calls, %d operand words, arrays %s -> %s (data widths %s), RAMs %s; %d mem lines" % (len(calls), nw, arrays,
       [ctrl[a] for a in arrays], [dw[a] for a in arrays], sorted(rid.items()), len(lines)), file=sys.stderr)

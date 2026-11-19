@@ -127,8 +127,18 @@ for name, d, w in ports:
     if len(bits) != w:
         sys.exit("port %s: width %d in yosys, %d in the module header" % (name, len(bits), w))
     res[name] = {"dir": d, "bench_net": e, "nodes": [phys(b, "%s[%d]" % (name, i)) for i, b in enumerate(bits)]}
+if "out0_req" not in res:
+    # shard C, 2026-11-19: a VOID kernel (gen_bench.py void_completion_lines): no out0 port; the bench's completion join
+    # drives o_req_pl and takes o_ack_pl, ODATA is 0. Its nets stand in for out0 (no data bits).
+    for name, d, bn in (("out0_req", "output", "o_req_pl"), ("out0_ack", "input", "o_ack_pl")):
+        yn = "%s.%s" % (dut, bn)
+        if yn not in Y["netnames"]:
+            sys.exit("void kernel: no bench net %s" % yn)
+        res[name] = {"dir": d, "bench_net": bn, "nodes": [phys(Y["netnames"][yn]["bits"][0], name)]}
+    res["out0_data"] = {"dir": "output", "bench_net": "(void: 0)", "nodes": []}
+    res["void"] = {"dir": "none", "bench_net": "", "nodes": []}
 json.dump({"dut": dut, "ports": res}, open(outp, "w"), indent=1)
 for name, v in res.items():
     ns = v["nodes"]
-    print("%-10s %-6s %s" % (name, v["dir"], ns[0] if len(ns) == 1 else "%d bits, %d distinct, e.g. %s" %
+    print("%-10s %-6s %s" % (name, v["dir"], "(none)" if not ns else ns[0] if len(ns) == 1 else "%d bits, %d distinct, e.g. %s" %
                              (len(ns), len(set(ns)), ns[0])))

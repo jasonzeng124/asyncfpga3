@@ -522,7 +522,7 @@ int main(int argc, char** argv) {
         for (auto& x : want) env_set(t, x.first, x.second);
     };
     { ll md = 0; for (int x : ds) md = max(md, (ll)x); double hm = 0; for (double x : his) hm = max(hm, x);
-      PER_L = md + (W ? (ll)ceil(hm) + W : 0) + 2; PER_B = {rst, req, aA, aB, aS, oR, oA, eA}; }
+      PER_L = md + (W ? (ll)ceil(hm) + W : 0) + 2; PER_B = {rst, req, aA, aB, aS, oR, oA}; if (eA >= 0) PER_B.push_back(eA); for (int x : XACKS) PER_B.push_back(x); }
     env_set(0, rst, true);
     env_set(R, rst, false);
     { ll md = 0; for (int x : ds) md = max(md, (ll)x); Q.init(md); }
@@ -694,7 +694,7 @@ int main(int argc, char** argv) {
         }
         if (seq_wait && !r0 && !val(oA, t)) { seq_wait = false; next_ok = true; Q.env.push({t + 1, -2, 0, -1}); }
         bool pr = val(req, t);
-        if (pr != pend_state) { pend_state = pr; env_set(t + (pr ? dout : dfall), eA, pr); }
+        if (pr != pend_state) { pend_state = pr; if (eA >= 0) env_set(t + (pr ? dout : dfall), eA, pr); }
     }
     fprintf(stderr, "sim: %lld events, t = %lld ps, %lld pairs offered, %lld accepted, %zu outputs\n", nev, t, np, done_in, outvals.size());
     bool ramok = true;
