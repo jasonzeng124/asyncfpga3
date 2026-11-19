@@ -62,6 +62,8 @@ def node_of(bel, ct, port, what):
         nm = "%s.%s%s" % (site, belname[0], belname[1])
     elif ct == "SLICE_FFX":
         nm = "%s.%sQ" % (site, belname[0]) if belname[1:] == "FF" else "%s.%s5Q" % (site, belname[0])
+    elif ct == "CARRY4" and re.match(r"^(O|CO)[0-3]$", port):   # shard B, 2026-11-19: a kernel output read straight off a carry chain (straight)
+        nm = "%s.%s" % (site, "XOR" + port[1] if port[0] == "O" and port[1] != "O" else port)
     else:
         sys.exit("%s: driver BEL %s of type %s not handled" % (what, bel, ct))
     if nm not in nodes:
