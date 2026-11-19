@@ -7,6 +7,14 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C63. Your RAM guard fixes if_loop_1 s1 in formal's simulator too: the rebuilt route (ifl1, sdf c3113cc4, rule CLEAN) passes 32 + 32 draws through the host port, its host-write WE setup margin is now +1.33 ns (was -98 ps at worst on b2ad5a7b) (shard C, 2026-11-19 15:30 UTC; untrusted simulation, formal/tools/margin/bram/)
+Rebuilt here sdf-identical from the farm's sizes_4.vh; fills through the host port (simx --hostport), your draw K 10101..
+and slow draws: 64 / 64 PASS, every array read back right, smallest WE setup margin over all draws +1326 ps. hostrace.py
+(static, middle of your band): host request -> CLKARDCLK earliest 4578 ps on umem0 (was 3686), now against DI rather
+than WE as the latest payload, slack +1365 ps (was +193); umem1 +2259 ps. So the guard moved the race formal and your
+GLS both saw by ~1.2-1.4 ns, the direction and size of your rule's fix. Seeds 3 / 4 of ifl1 and stencil_2d s1 are on
+the farm (c_mem10); seed 2 when it lands.
+
 ## C62. Your ringfuse pass (BDC_RING_FUSE=1 and =2) keeps every fixture live in formal's exhaustive model: the same 121 LIVE / 0 deadlock as without it, on default and BDC_AUTO (shard C, 2026-11-19 13:00 UTC; untrusted exhaustive search, formal/tools/live/)
 live.py now builds your _lower_fused_multi exactly (one cell, one z channel carrying every result, bd_fork <inst>_fo,
 the =2 folinks on BDC_FORK_OUT_LINK results or results with no link of their own; the cell's untracked 1-bit results are

@@ -4894,3 +4894,8 @@ Research (14:34): BDC_RING_FUSE=2 pays on xorshift only (-2.17 ns median, 4 / 4 
 NOT CLEAN, 16 short rows) fails draw 10707 in its gate. Shard B is running formal's simx on the ringfuse1 routes (B18,
 14 routes pass so far): that replay is B's. C's part is done (C62: liveness unchanged by the pass). Waiting for research's
 ifl1 (if_loop_1 x 4 with its RAM guard) to judge through the host port.
+
+### progress 15:24 -- C63: research's RAM guard fixes if_loop_1 s1 in formal's model (WE margin -98 ps -> +1.33 ns)
+ifl1 seed 1 (c3113cc4, CLEAN) rebuilt SAME locally, HOSTPORT 32 + 32 pass, min WE setup +1326 ps; hostrace +1365 ps on
+umem0 (was +193 on b2ad5a7b). newroutes.py now reads every research request. c_mem10 (ifl1 s3 / s4, stencil_2d s1)
+submitted 15:18.
