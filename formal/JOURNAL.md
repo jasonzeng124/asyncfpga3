@@ -3373,3 +3373,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 17:10 -- research made ring fusion the BDC_AUTO default (flow v8, 34bde912c); the six proofs regenerate byte-identical
 * ringfuse_autoproof.sh with BDC_AUTO=1 only, research HEAD: xorshift, collatz, ipow, countloop, isprime, sqrtsub files
   identical to Formal/Rewrite/RingFuse/*.lean (check.sh OK earlier today). FOR-RESEARCH A26 updated.
+### progress 18:59 -- quiet since 17:10 (no research change to FOR-FORMAL / PROGRAM / bdc); lock
