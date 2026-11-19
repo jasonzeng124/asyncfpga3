@@ -7377,3 +7377,8 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   cell): test_divui s1 / s6 PASS clean (s1 = divsize's local route, sdf ecbc22cc), s7 PASS (NOT CLEAN, unfixable row at
   it 1). The table still shows test_divui WRONG ANSWER through seed 2's suite10b route (the old rule) until divsize1's
   seed 2 arrives. **52 of 62 kernels pass.**
+### progress 12:20 (subagent converge: why the finish phase does not converge, and a change that does)
+- **converge** (report by 19:00 UTC): the residual rows of every returned loop (kinds, sizes, recurrence vs new, against
+  one element and against route-to-route movement), what more routes / headroom 2 / movement-proportional headroom
+  would have fixed, the best change as an opt-in knob (resume intact), tested by resuming NOT CLEAN loops from the
+  start of their finish phase on >= 4 loops, a farm request if it works.
