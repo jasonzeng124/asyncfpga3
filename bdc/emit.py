@@ -3977,9 +3977,11 @@ class Emitter:
 
     def _lower_fused_multi(self, region, inst, name, d):
         """BDC_RING_FUSE: a region with several results (Region.outputs).  The cell has one output channel `<inst>_z*`
-        whose data is every result side by side (the first output in the low bits); a bd_fork `<inst>_f` splits its
+        whose data is every result side by side (the first output in the low bits); a bd_fork `<inst>_fo` splits its
         request into one channel per result, each taking its slice of the data -- the same split _op_fork makes for
-        a fork, BDC_FORK_OUT_LINK included, so a result that rule F links still gets its link."""
+        a fork, BDC_FORK_OUT_LINK included, so a result that rule F (or the flow's storage search) links gets its link.
+        Not `<inst>_f`: that suffix is a control_merge's result fork to research/tools/eventgraph (whatif.py,
+        search.py), which would name a stage on a result BDC_MERGE_RES_LINK=<inst>, a knob nothing here reads."""
         outs = region.outputs
         widths = [max(self.width(v), 1) for v, _ in outs]
         zr, za, zd = f"{inst}_zreq", f"{inst}_zack", f"{inst}_zdata"
@@ -4003,7 +4005,7 @@ class Emitter:
                 self.emit(f"    wire {rq[v]}, {ak[v]};")
         reqs = ", ".join(rq[v] for v in reversed(vals))
         acks = ", ".join(ak[v] for v in reversed(vals))
-        self.emit(f"    bd_fork #(.N({len(vals)})) {inst}_f (")
+        self.emit(f"    bd_fork #(.N({len(vals)})) {inst}_fo (")
         self.emit(f"        .rst(rst), .req({zr}), .ack({za}),")
         self.emit(f"        .req_out({{{reqs}}}), .ack_in({{{acks}}}));")
         lo = 0
