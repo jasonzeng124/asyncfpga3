@@ -7138,3 +7138,10 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   graphsearch measured; every draw passing (80 / 80). 14 tasks timed out in their final stack / draws (all of
   collatz64, five ipow, one collatz; 6-7 ratchet steps done): **split1r2** filed to finish them (CA_FAST, draws 3 at a
   time). Prediction (>= 5 % on all three) failed on collatz.
+### progress 02:29 (farm nsearch1: the storage search inside the flow, on the column with no kernel list; suite9r3)
+- nsearch1 filed: 18 finished loops (norw1's xorshift x 7, collatz x 7; suite3a's countloop x 4) resumed, their
+  shipped routes rebuilt, then AUTO_SEARCH=1 with graphsearch's all-sites candidates (fork-output / merge latches and
+  link depth, 1 ns of wire charged per stage), raise-only for at most 4 routes, then the draws: a per-seed A/B. The
+  prediction is in the request.
+- suite9r2 waited 4.5 h for 184 free cores while smaller requests went ahead: withdrawn and re-filed as suite9r3 with
+  only its 52 tasks that have a state (104 cores); it started at once.
