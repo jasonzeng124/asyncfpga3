@@ -75,6 +75,8 @@ case $AR in
     fin "status=BUILD-FAILED (it=$BI: $( { grep -m1 -iE 'error|failed' "$BL" 2>/dev/null || tail -1 "$RUNS/auto/$N/it_$BI.log" 2>/dev/null; } | cut -c1-140))";;
   *) fin "status=FLOW-FAILED ($AR)";;
 esac
+# auto_size.sh AUTO_SHIP_LEAST=1: a NOT CLEAN loop may ship an earlier route than its last ("shipped it=X"); judge that one
+SHIP=$(echo "$AR" | grep -o 'shipped it=[0-9]*' | head -1 | cut -d= -f2); [ -n "$SHIP" ] && IT=$SHIP
 RT=${N}_$IT; HW=$RUNS/hw/$RT; RD=$RUNS/r/$RT
 LINE=$(cat "$RUNS/auto/$N/it_$IT.txt" 2>/dev/null)
 md5=$(echo "$LINE" | awk '{print $2}'); P=$(echo "$LINE" | grep -o 'P=[0-9A-Z]*' | cut -d= -f2)

@@ -46,12 +46,24 @@
 # the loop ships it as it would a clean seed-S route. If none is clean, the loop goes on from the seed-S route, exactly
 # as without the knob (the same next sizes, so the same later routes). AUTO_FINISH_JOBS=J builds J of them at once
 # (default 1). log.txt gets one "alt it I seed S' ..." line per draw and an "adopt it I ..." line.
-# Why (subagent converge, research/data/converge/): on the farm's loops 97 % of the rows short on a finish route are on
-# constraints no earlier finish route had short (2255 of 2367), so a larger headroom on the raised lines (AUTO_HEADROOM,
-# AUTO_NEAR_PS) cannot reach them; on the local loops whose every route kept its corner_audit report, a re-route moves a
-# constraint's margin by sd ~500 ps even when none of its lines changed size, and the rows that open on a raise-only
-# route came from 200-800 ps of margin (jumps of 300-1300 ps). Each route is a fresh draw of those margins; this takes
-# more draws per finish step instead of padding every line by the scatter (which costs period on every cycle it is on).
+# Why (subagent converge, research/data/converge/notes.txt): on the farm's loops 95 % of the rows short on a finish route
+# are on constraints and lines no earlier finish route had short (2255 of 2367; on 2 of 383 routes was every short row a
+# recurrence), so more headroom on the raised lines (AUTO_HEADROOM, AUTO_NEAR_PS) cannot reach them. On local loops that
+# kept every route's corner_audit report, a re-route moves a constraint's margin by sd ~0.5 ns with none of its lines
+# changed, and the rows that open on a raise-only route had a median 474 ps the route before; at identical sizes three
+# seeds' short sets barely overlap. A finish route is a fresh draw of those margins: this takes more draws per step,
+# with no padding, where a slack covering the scatter would pad every line (corner_audit --slack 1000 on xorshift s1's
+# route 5: 100 -> 186 kernel delay elements). AUTO_FINISH=N (more raise-only steps) is the other lever; both were run
+# locally on farm loops resumed at their finish phase (notes.txt) and at scale by research/cluster/requests/finseeds1.sh.
+#
+# AUTO_SHIP_LEAST=1 (opt-in; unset = as before: the last route): when no route was clean, the loop ships the LEAST SHORT
+# route it built (it >= 1, from neg_I.txt): the smallest total miss (per short constraint its worst corner's deficit,
+# summed), then the fewest short constraints, then the later route. result.txt names it ("shipped it=X", which
+# research/tools/suite/suite_one.sh reads), with the last route's numbers beside it; final() rebuilds it from sizes_X and
+# seed_X if this run did not build it. Why (research/data/converge/notes.txt, asked by the research bot after farm
+# ringfuse1 task 31: ipow s7 shipped it 7 with 8 constraints short by up to 1019 ps, where it 6 had two, -84 / -18 ps,
+# and it 7 fails draw 10707): each finish route is a fresh draw, so the last one is no better than any other; on 64 of
+# the farm's 135 NOT CLEAN loops an earlier finish route had a smaller total miss (median 343 vs 1081 ps).
 #
 # Writes $RUNS/auto/NAME/{sizes_I.vh, it_I.txt, ca_I.txt, result.txt}.  result.txt: "CLEAN it=I route=NAME_I P=.."
 # or "NOT CLEAN after MAXIT".  The shipped route's files are $RUNS/hw/NAME_I, $RUNS/r/NAME_I (lane2.sh).
@@ -185,8 +197,41 @@ adopt() {  # adopt I J SEED (AUTO_FINISH_SEEDS): route N_IsJ becomes route N_I; 
       cp "$O/${f}_${i}s${j}_$c.txt" "$O/${f}_${i}_$c.txt" 2>/dev/null; done
   done
   for f in it_$i.txt it_$i.log ca_$i.txt rule_$i.vh neg_$i.txt; do cp "$O/${f/_$i./_${i}s$j.}" "$O/$f" 2>/dev/null; done
+  sed -i "1s/^${N}_${i}s$j /${N}_$i /" "$O/it_$i.txt"   # lane2's line names the route as it now is
   echo "$3" > "$O/seed_$i.txt"
   echo "adopt it $i seed $3: route ${N}_${i}s$j is ${N}_$i (the seed-$S route kept as ${N}_${i}s0)" >> "$O/log.txt"
+}
+least_short() {  # least_short LAST (AUTO_SHIP_LEAST): "I TOTAL_PS N" of the least short route it 1..LAST built (neg_I.txt)
+  python3 - "$O" "$1" <<'PY'
+import os, sys
+O, last = sys.argv[1], int(sys.argv[2])
+best = None
+for i in range(1, last + 1):
+    p = os.path.join(O, "neg_%d.txt" % i)
+    if not os.path.exists(p):
+        continue
+    d = {}
+    for ln in open(p):
+        f = ln.rstrip("\n").split("\t")
+        if len(f) >= 3 and f[0] != "rule":
+            d[f[2]] = min(d.get(f[2], 0), int(f[1]))
+    key = (-sum(d.values()), len(d), -i)
+    if best is None or key < best:
+        best = key
+print("%d %d %d" % (-best[2], best[0], best[1]) if best else "%d -1 -1" % last)
+PY
+}
+least_short_one() {  # least_short_one I: "I TOTAL_PS N" of route I alone
+  python3 - "$O/neg_$1.txt" "$1" <<'PY'
+import os, sys
+d = {}
+if os.path.exists(sys.argv[1]):
+    for ln in open(sys.argv[1]):
+        f = ln.rstrip("\n").split("\t")
+        if len(f) >= 3 and f[0] != "rule":
+            d[f[2]] = min(d.get(f[2], 0), int(f[1]))
+print("%s %d %d" % (sys.argv[2], -sum(d.values()), len(d)))
+PY
 }
 finish_draws() {  # finish_draws I (AUTO_FINISH_SEEDS, finish phase): route I not clean -> sizes_I on more seeds
   local i=$1 j=1 k s n b
@@ -400,11 +445,17 @@ if [ -n "$LC" ]; then
   final "$LC"; cp "$O/sizes_$LC.vh" "$O/sizes_final.vh"; X=$LC; RC=0
   RES3="CLEAN it=$LC route=${N}_$LC (last it $i) $(cat "$O/it_$LC.txt")"
 else
-  final "$i"; cp "$O/sizes_$i.vh" "$O/sizes_final.vh"; X=$i
+  X=$i; SH=""
+  if [ "${AUTO_SHIP_LEAST:-0}" = 1 ]; then   # the least short route, not the last (opt-in)
+    read -r X tm nk <<< "$(least_short "$i")"; read -r _ tl kl <<< "$(least_short_one "$i")"
+    SH="; shipped it=$X, the least short: $tm ps over $nk constraint(s) (last route: $tl ps over $kl)"
+    echo "least short: it $X ($tm ps over $nk constraint(s)); last it $i ($tl ps over $kl)" >> "$O/log.txt"
+  fi
+  final "$X"; cp "$O/sizes_$X.vh" "$O/sizes_final.vh"
   if [ "$nr" = 0 ]; then RC=3
-    RES3="NOT CLEAN it=$i: $neg negative, none fixable by a line (route ${N}_$i) $(cat "$O/it_$i.txt")"
+    RES3="NOT CLEAN it=$i: $neg negative, none fixable by a line (route ${N}_$i$SH) $(cat "$O/it_$X.txt")"
   else RC=2
-    RES3="NOT CLEAN after $i (last route ${N}_$i; next sizes sizes_$((i + 1)).vh) $(cat "$O/it_$i.txt")"
+    RES3="NOT CLEAN after $i (last route ${N}_$i$SH; next sizes sizes_$((i + 1)).vh) $(cat "$O/it_$X.txt")"
   fi
 fi
 # Flow v7 (2026-11-19): the search phase is ON by default (AUTO_SEARCH=0 turns it off), with graphsearch's all-sites
