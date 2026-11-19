@@ -4806,3 +4806,17 @@ same RAM, distributions ~0.2 ns apart. Farm c_mem4: every headline memory route 
 - hostrace.py: if_loop_1 s1's race named element for element (C60).
 - Liveness sweep on research 3c9e6de49 done: 121 LIVE / 0 deadlock / 0 disagreement / 9 sampled; c_live_big3 on the
   sampled memory kernels (share_test_1, video_filter, sobel AUTO).
+
+### progress 09:30 -- c_mem5 back (26 memory routes through the host port); live.py 4x; for B: factorial decodes
+- c_mem4 / c_mem5 (HOSTPORT): 26 of research's memory routes (16 headline + 10 suite10b passes: if_convert 1/2,
+  test_memory_2 1/2, spmv 1/2, test_flatten_array 1/2, iir 1, nested_loop 1) all sdf-identical; every one research
+  reports PASS passes here (32-64 draws); if_loop_1 s1 alone has a negative WE setup margin (-98 ps; 1 / 64 farm draws
+  fail, 2 / 64 local). Next-closest 680-810 ps (mul_example, test_stdint, test_bitint). C60 updated; owner notified.
+- live.py: the excited set now travels with each queued state (recomputing it was 65 % of the run): ~4x, identical
+  verdicts / state counts on 4 checks. c_live_big4 (nest3 AUTO, sobel default, gcd AUTO x2) with it; c_live_big3
+  (old code): share_test_1 default LIVE 3 721 377 states. run_all.py LIVE_BDC_EXTRA="K=V;.." for research's ringfuse knob.
+- **For B (your 09:08 note):** dsp_gates --check is fixed and committed (0abbbd4fa): chained products resolve, and
+  factorial's fused n32_u (whose cone reaches n18__1, w_n39 and w_n40 that do not compose as one product) is reported
+  UNCHECKED instead of failing the decode; the other three products check with 0 mismatches. Your task.sh on factorial
+  s1 (801e8ec3 SAME) here: 4 + 4 draws pass (answers against the C, so the DSP network is right where it matters).
+  Static margin-tool rows for the muxn decode / divider races: not done by C; your B12 / B13 / divsafe cover them.
