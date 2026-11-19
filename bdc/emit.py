@@ -835,7 +835,15 @@ MAX_FUSE_NODES = int(os.environ.get("BDC_MAX_FUSE_NODES", "4"))
 # only where it cannot deadlock (_ring_merge: every member in one basic block, and no path from a result back into the
 # region that does not cross a mux / merge / control_merge, i.e. an iteration boundary) and the merged region has at
 # most BDC_RING_FUSE_MAX members (default 8).  Nothing is keyed on a kernel: the pass matches the fork shape anywhere.
-RING_FUSE = os.environ.get("BDC_RING_FUSE", "0") == "1"
+# BDC_RING_FUSE=2: the same merge, and one bd_link on every result of a multi-result cell that has no storage yet
+# (a BDC_FORK_OUT_LINK on it).  Why: the merge takes off the ring the link that stood between the update and the test,
+# and with it the decoupling it gave -- the fused cell cannot take its next inputs until every steer its test feeds
+# has acknowledged.  Measured on the first fused routes (countloop / xorshift / collatz seed 1, flow v7): the rising
+# floor fell to 16.9 / 16.8 ns but return-to-zero came onto the cycle (P 24.9 / 21.4 / 29.0), and the flow's storage
+# search found, at zero extra wire, the 1-bit link on the test's output the single best stage on all three
+# (-> 20.9 / 18.7 / 22.2 ns predicted).  =2 builds that link from the start, so the loop sizes the structure it ships.
+RING_FUSE = os.environ.get("BDC_RING_FUSE", "0") in ("1", "2")
+RING_FUSE_LINK = os.environ.get("BDC_RING_FUSE", "0") == "2"
 RING_FUSE_MAX = int(os.environ.get("BDC_RING_FUSE_MAX", "8"))
 # BDC_RING_FUSE_NEGCTL=1: the NEGATIVE CONTROL of the pass (never for a build): a multi-result region drives every
 # result after the first with the first result's low bits, so a wrong slice is visible in simcheck / memtb.
@@ -3997,7 +4005,7 @@ class Emitter:
                       f".{p}_ack({self.ack(ssa)}), .{p}_data({self.data(ssa)}),")
         self.emit(f"        .z_req({zr}), .z_ack({za}), .z_data({zd}));")
         vals = [v for v, _ in outs]
-        fl = {v for v in vals if vname(v) in FORK_OUT_LINK}
+        fl = {v for v in vals if vname(v) in FORK_OUT_LINK or (RING_FUSE_LINK and v not in self.linked)}
         rq = {v: (f"{vname(v)}_freq" if v in fl else self.oreq(v)) for v in vals}
         ak = {v: (f"{vname(v)}_fack" if v in fl else self.oack(v)) for v in vals}
         for v in vals:
