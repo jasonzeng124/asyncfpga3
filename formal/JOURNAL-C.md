@@ -4858,7 +4858,7 @@ x * (x*x) check), HOSTPORT, 32 + 32 draws: if_loop_1 s1 32 + 31 (slow draw 10174
 mul_example s2 and spmv s1 16 + 16. c_mem7 (all 68) still waiting behind c_mem6 (which runs the old arc: superseded).
 FOR-RESEARCH C61: the liveness sweep on research 3c9e6de49 and how to run it with the ringfuse knob.
 
-### progress 10:55 -- c_mem6 back (old, fast CLK->DO arc: decode / coverage only, verdicts superseded by c_mem7)
+### progress 10:53 -- c_mem6 back (old, fast CLK->DO arc: decode / coverage only, verdicts superseded by c_mem7)
 33 more of research's memory routes: 31 rebuilt sdf-identical and decoded (incl. share_test_1, image_resize, loop_path,
 test_loop_free x3 with the 4-word harness), all 16 + 16 pass; test_bitint s3 / s4 nextpnr failed on the farm (PNR
 FAILED, not formal). Verdicts count only after c_mem7 (fixed arc), still waiting for farm cores.
