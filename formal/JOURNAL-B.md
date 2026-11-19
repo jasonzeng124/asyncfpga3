@@ -5135,3 +5135,4 @@ Running: the same with +META_INIT=0 and =1 (fid_core.vh's power-up option).
 ### progress 18:32 -- CHECKED: MuxNDecode steer section (decode_no_pulse covers bd_steer's not-taken output; facts decided + control); check.sh OK (314 decls)
 ### progress 18:51 -- PROGRAM / FOR-FORMAL re-read: unchanged; suite12 still waiting for farm cores
 ### progress 20:17 -- suite12 picked up by the farm (research 1b47b72a7, 62 tasks); watcher waiting
+### progress 20:51 -- B19 started (suite12 v8): straight s1, sqrtsub s1 pass 8 + 8, 0 pulses; worker restarted ~20:51, watcher survived

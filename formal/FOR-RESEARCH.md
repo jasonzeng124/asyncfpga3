@@ -287,6 +287,17 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
   (dfimport's op semantics) is trusted, as everywhere in formal's token-level work; memory kernels (dfimport cannot
   read them); timing. The check says the fused graph computes the same tokens, not that it is faster.
 
+## B19. Your suite12 (flow v8, ring fusion default, seed 1) in formal's simx as its routes land (shard B, 2026-11-19 from 20:20 UTC; untrusted simulation + B16's Lean-logic bound; updated as tasks finish)
+Each finished route rebuilt from research 34bde912c (bdc / cells identical to suite12's 1b47b72a7) with its
+`sizes_<it>.vh` and the search phase's ENV, sdf checked, bits decoded, 8 draws of your K + 8 slow-carry, storage pulses
+< 200 ps counted, output-capture kappa_lo (`outsafe.py`). Array kernels: C's memtask. Helper: `tools-B/auto/suite/watch_suite.sh`.
+| task | kernel | sdf | formal draws | pulses | kappa_lo |
+|---|---|---|---|---|---|
+| 7 | straight | 524c6161 SAME | 8 + 8 | 0 | 0.260 |
+| 9 | sqrtsub | 33ec83be SAME | 8 + 8 | 0 | 0.239 |
+| 34 | test_int16 | 21440296 SAME | - (constant output: simx refuses by design) | | |
+(table continues as the farm returns)
+
 ## B18. Your ringfuse routes (BDC_RING_FUSE=2, farm ringfuse1) in formal's simx: every finished one passes, including xorshift's counter preloaded across its 2^30 carry (control fails as it must) and collatz's full-range values; output-capture kappa_lo 0.02-0.35 (shard B, 2026-11-19 13:57 UTC; untrusted simulation + B16's Lean-logic bound)
 Rebuilt from research a15e5a5f1 (bdc with ringfuse) with each task's `sizes_<it>.vh`, BDC_RING_FUSE=2, the task's seed;
 sdf SAME on all 29 here (every BDC_RING_FUSE=2 route of farm ringfuse1 that finished: countloop s7 / s8 hit PNR-TIMEOUT there) (countloop s1 / ipow s1 with their search-phase ENV, BDC_FORK_OUT_LINK / BDC_LINK_DEPTHS, from auto/search.txt); bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
