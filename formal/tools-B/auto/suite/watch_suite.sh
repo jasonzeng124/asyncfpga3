@@ -1,10 +1,10 @@
 #!/bin/bash
-# tools-B/auto/suite/watch_suite.sh (shard B, UNTRUSTED simulation; local helper): written for research's suite12; paths are this sandbox's (/home/user/clu = a depth-1 clone of claude/cluster, /home/user/rs = research).
+# tools-B/auto/suite/watch_suite.sh (shard B, UNTRUSTED simulation; local helper): written for research's suite12; paths are this sandbox's.
 # s12.sh: process research's suite12 (flow v8) routes as they land: rebuild (sizes_<it>.vh + search ENV), 8 + 8 draws, outsafe
 P=/home/user/asyncfpga3/formal/tools-B/auto; OUTF=/home/user/b/s12_results.txt; touch $OUTF
-END=$(( $(date +%s) + 6*3600 ))
+END=$(( $(date +%s) + 10*3600 ))
 while [ $(date +%s) -lt $END ]; do
-  (cd /home/user/clu && git pull -q --depth 1 2>/dev/null || (git fetch -q --depth 1 origin claude/cluster && git reset -q --hard FETCH_HEAD))
+  (cd /home/user/clu && timeout 300 git fetch -q --depth 1 origin claude/cluster && git reset -q --hard FETCH_HEAD)
   for d in /home/user/clu/results/suite12/*/; do t=$(basename $d); [ -f $d/result.txt ] || continue
     grep -q "^T$t " $OUTF && continue
     l=$(tail -1 $d/result.txt); K=$(echo $l | cut -d' ' -f1); S=$(echo $l | cut -d' ' -f2)
