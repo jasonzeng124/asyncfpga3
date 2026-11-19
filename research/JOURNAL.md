@@ -7766,3 +7766,9 @@ goal-1 list of the 19:53 state of play), plus rule B's guard form (above).
   2 / 7 finished.
 - Session end: branch pushed, journal current, BOARD-QUEUE unchanged (no candidate judged), nothing running locally,
   LOCK cleared with this commit. Next: as at the session heading's Next.
+### progress 21:58 (one check of the C64 answer; LOCK stays clear)
+- Checked, not assumed: the headline (research/data/fifteen/README.md line 126) has spmv at **0 rule-clean + 4 NOT CLEAN
+  routes of 4**, no ns per iteration and no ratio, its latency only in brackets (900.75, 874.50-946.50). So no spmv route
+  carries a number in the headline. No route of spmv has finished sizing yet: it belongs on the goal-1 list of NOT CLEAN
+  loops, where the RAM guard rows (row's umem0 / umem1) are what the loop could not close on s4. suite12 (v8, 6-route
+  finish) has not returned spmv yet: read it there first.
