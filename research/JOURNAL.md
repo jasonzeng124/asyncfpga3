@@ -7406,3 +7406,20 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   Ratio to Dynamatic: 1.69 over the 3 measured figures; 0.99 over 20 with estimates -- the memory kernels' estimates
   assume Dynamatic's on-merges buffering (up to ~6x pessimistic for Dynamatic), so that mean flatters us; said so in the
   headline.
+### progress 16:50 (converge landed: the finish phase gets 6 routes and ships its least-short route, by default)
+- **converge** (research/data/converge/notes.txt; 14 farm requests, 252 loops, 231 with a finish phase): the clean rate
+  per finish step is 7 / 11 / 21 % (steps 1 / 2 / 3); 2367 short rows on finish routes, median 172 ps (p90 606), by rule
+  E 827, H 445, I 390, A'j 219, A'm 212; **95.3 % are on constraints and lines that no earlier finish route had
+  short** -- a re-route moves every margin by sd ~483 ps (14 958 constraint pairs over 24 local loops; the same at fixed
+  sizes on another seed), so the next misses come from rows that had 0.2-0.8 ns, and headroom on the raised lines
+  (AUTO_NEAR_PS, headroom 2) cannot reach them (it would have cleared 0 of 383 routes).
+- Tested by resuming 8 farm loops at the start of their finish phase (each replay exact: the farm's sdf md5s and rule
+  rows): **more raise-only routes on the loop's own seed made 4 of 5 low-row loops clean with one extra route**
+  (AUTO_FINISH); extra draws on new seeds (AUTO_FINISH_SEEDS, opt-in) are weak (2 of 40 draws clean); loops with 4-14
+  rows per route clean under neither. P moves within route scatter (median +0.07 ns).
+- **Ship the least-short route:** on 64 of 135 NOT CLEAN farm loops an earlier finish route had a smaller total miss than
+  the shipped last one (median 343 vs 1081 ps). On ringfuse1 task 31 (ipow s7, the route that failed draw 10707),
+  AUTO_SHIP_LEAST=1 ships it 6, which passes all 8 draws with no pulse under 1 ns (it 7 reproduced: FAIL 16/17).
+- **auto_size.sh defaults now: AUTO_FINISH=6, AUTO_SHIP_LEAST=1** (the old behaviour: AUTO_FINISH=3 AUTO_SHIP_LEAST=0);
+  suite_one.sh judges the route named by "shipped it=". Farm **finseeds1** filed (20 untested NOT CLEAN loops resumed
+  at their finish phase, arm A = the new defaults, arm DA = + extra seeds; time limited to 240 min from 360).

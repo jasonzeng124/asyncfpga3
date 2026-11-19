@@ -297,7 +297,11 @@ cp "$RUNS/ca/${N}_0/rule/sizes.vh" "$O/sizes_1.vh"
 echo "it 0 rule: $(grep -c . "$RUNS/ca/${N}_0/rule/negative_sized.tsv") negative rows (incl. header); $(grep '^proposal' "$O/ca_0.txt")" >> "$O/log.txt"
 fi
 [ -n "$RES" ] || rm -f "$O/pinned.txt"
-LC=""; FIN=${AUTO_FINISH:-3}
+# The finish phase's budget is 6 routes since 2026-11-19 (was 3; subagent converge, research/data/converge/notes.txt):
+# a re-route moves every margin by ~0.5 ns (sd), and 95 % of the rows short on a finish route were not short before, so
+# only more raise-only routes on the loop's own seed help -- one more made 4 of 5 low-row loops clean. AUTO_FINISH=3 is
+# the old budget.
+LC=""; FIN=${AUTO_FINISH:-6}
 # Phase 1 (i = 1..MAXIT): the pinning ratchet; go on while a clean route still shortens a line.
 # Phase 2, only when no route was clean by MAXIT (i = MAXIT+1..MAXIT+FIN): raise-only (every line max(S, proposal)), so
 # no lowering opens new misses, until a route is clean.  Why: the loop used to ship its last route NOT CLEAN, and
@@ -446,7 +450,7 @@ if [ -n "$LC" ]; then
   RES3="CLEAN it=$LC route=${N}_$LC (last it $i) $(cat "$O/it_$LC.txt")"
 else
   X=$i; SH=""
-  if [ "${AUTO_SHIP_LEAST:-0}" = 1 ]; then   # the least short route, not the last (opt-in)
+  if [ "${AUTO_SHIP_LEAST:-1}" = 1 ]; then   # the least short route, not the last (default since 2026-11-19; =0 the last)
     read -r X tm nk <<< "$(least_short "$i")"; read -r _ tl kl <<< "$(least_short_one "$i")"
     SH="; shipped it=$X, the least short: $tm ps over $nk constraint(s) (last route: $tl ps over $kl)"
     echo "least short: it $X ($tm ps over $nk constraint(s)); last it $i ($tl ps over $kl)" >> "$O/log.txt"

@@ -1,5 +1,5 @@
 #!/bin/bash
-#CLUSTER array=1-40 cores=3 mem=16G time=360
+#CLUSTER array=1-40 cores=3 mem=16G time=240
 # finseeds1: does the sizing loop's finish phase converge with more draws per step and more steps (arm DA), or with
 # more steps alone (arm A)? Twenty loops that ended NOT CLEAN after the three raise-only routes (norw1, split1 with
 # BDC_SPLIT_SOURCES=1, suite9r3; none tested locally by subagent converge; research/data/suite/resume/finseeds1/R_K_S:
