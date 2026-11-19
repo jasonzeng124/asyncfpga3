@@ -4992,3 +4992,5 @@ test_memory_1) will print SKIP.
   wrong" was too strong: it holds for test_divui, whose quotient goes straight to out0. B12 rewritten (the race is the
   last enable tap against the capturing latch's close; why divmodu's close comes later is NOT traced).
 ### progress 08:20 -- B14: 33 headline routes judged, all agree with research; b_hl4 22 / 22 pass
+### progress 08:21 -- divmodu explained: ULINK_N4_SDELAY 160 after the divider; line + link ~270 = test_divui's edge
+B12 updated: the requirement is on the sum of request delays from the divider's join to the capture (~256 taps + a stage).

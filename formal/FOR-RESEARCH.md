@@ -73,9 +73,13 @@ A's data peak runs through it; on these routes it did not).
   request line is only part of the path to that close. In test_divui the quotient goes straight to out0, so the line
   alone must cover the enable chain (~268 same-placement, ~320 re-placed). **divmodu s1 (99effc30, line 319), here:**
   16 / 16 + 16 / 16 PASS, and on the same placement the line can shrink to s = 0.344 (~110 elements) and still pass
-  4 + 4 draws (0.3125 fails, wrong answers): its quotient goes on through the remainder multiply and adds; presumably
-  their handshakes keep the capturing latch open longer (NOT traced yet). So the needed length is kernel-specific; what the rule has to see
-  is the enable chain as data (tp[0..256] from the join) up to the actual capture. (3) digitdiv / divmods / digitsum
+  4 + 4 draws (0.3125 fails, wrong answers). **Why (traced in the sizes, 08:2x):** divmodu's quotient goes into link n4,
+  whose request carries `ULINK_N4_SDELAY` = 160 elements, before the fused mul / sub / shl / add (UADDI0 33). So the
+  request path from the divider's join to the capture is ~110 + 160 = ~270 elements at the same-placement edge: the
+  same ~268 that test_divui needs from its line alone (it has no link after the divider). The requirement is on the
+  SUM of matched delays from udivui0's join to the latch that captures the quotient, and it is ~the 256-tap enable
+  chain plus one stage in both kernels. Your rule apparently counted that sum in divmodu (319 + 160) and missed it in
+  test_divui (5); what it has to see is the enable chain as data (tp[0..256] from the join) up to the capture. (3) digitdiv / divmods / digitsum
   share div_datapath; their lines need the same measurement, not a fixed number.
   divmodu: your flow sized UDIVUI0 319 / 345 (seeds 1 / 2) and test_divui 5 / 6. A hint for divsize: test_divui divides
   by a literal (1083), divmodu by a variable.
