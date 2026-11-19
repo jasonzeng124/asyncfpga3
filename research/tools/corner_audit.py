@@ -117,6 +117,39 @@ SIZERULE_MLO = os.environ.get("CA_SIZERULE_MLO", "") == "1"
 #   * a line that no measured constraint depends on, and whose cell has an A'j row, may go to --floor (it is measured
 #     free, not unmeasured); every other line on no constraint is kept, as before.
 JOINAWARE = os.environ.get("CA_JOINAWARE", "") == "1"
+# CA_BENCHCAP=1 (opt-in, 2026-11-19, with CA_JOINAWARE=1; data: research/data/benchcap/): the kernel's LAST operator --
+# the one whose data is out0's -- is checked against the bench's clocked capture, not against its own request.  Unset,
+# every output of this tool is byte-identical to before.  Why: on every kernel that operator kept A' (row "j": "its data
+# reaches 64 input(s) that are not a latch's data or a select"), because its data's only sinks are flip-flops of the
+# PS-clocked bench (cells/hw/gen_bench.py: result_hold, sampled in S_WAIT_RES only once BOTH 2-flop synchronisers
+# of out0_req, o_req_l_s and o_req_s, read 1; o_data_capture, the free-running mirror the host reads by hand, ms after
+# an idle handshake).  On isprime / gcd (a bdc_muxnN mux: its select decode sel[k] = ctl_req & (s == k) is a LUT of its
+# own, outside its join C-elements uj0..ujN-1) A' then took that decode as data and measured it two crossings deep:
+# the select link's return to zero after the BENCH's acknowledge (o_ack_pl = bench_o_ack & o_req_pl, a LUT the timing
+# graph crosses as if the clocked bench_o_ack were already 1) -- a lap, not this token, that grows with the mux's own
+# delay, so no line could pad it (-5125 ps on isprime umux13, -3422 on gcd umux21).  Set, two things change, in A'j only:
+#   * a cone sink that is the D or CE pin of a flip-flop clocked by a global clock (its CK net driven by a BUFG*) is a
+#     CLOCKED capture.  Its event: the operator's request entering that clock domain -- the earliest arrival, on A'j's
+#     own early walk from the launch, at any input pin of a flip-flop on the same clock that the operator's request
+#     tail reaches without crossing storage (out0_req's synchronisers' first stages, and anything else it reaches:
+#     the earliest one is the conservative choice) -- plus CA_BENCHCAP_PS (default 19000): the bench samples out0's data
+#     at least two full clock periods after a synchroniser's first stage can first have seen the request (one period
+#     per flop; a first stage that samples the rising request inside its window still hands it on one edge later), at
+#     the fastest clock the board scripts set (FCLK0 100 MHz, CLK_CTRL 0x00100A00; build_bench.sh closes the bench at
+#     83 MHz), less 1000 ps for the first stage's setup / hold window, the capture flop's setup and the clock tree's
+#     skew: 2 * 10000 - 1000.  The data's arrival at the flop's pin (A'j's late walk) must beat that event, with A''s
+#     guard on the data leg; the event's walk must pass through the operator's tail, as for every A'j capture.  A
+#     request that reaches no flop on that clock leaves the sink odd (the operator keeps A', as before).
+#   * a cone sink that is an input of one of the operator's OWN join C-elements (a storage node inside the operator
+#     that reaches its request chain's head without crossing storage: bdc_muxnN's uj<k>, fed by its select decode) is
+#     neither a capture nor odd: it is the request's own cause (sel[k] rises, then uj<k> fires, then the chain), not a
+#     place where data must beat a request.  The race on that decode -- s settling before ctl_req -- is a select race,
+#     between two pins of the decode LUT, which A' never measured either.  CA_BENCHCAP_OWNJOIN=0 keeps such a sink odd.
+#   The row's text says how many sinks of each kind it saw.  Nothing else moves: other rules, other cells' rows, and an
+#   operator whose cone reaches any other non-capture keep their old rows.
+BENCHCAP = os.environ.get("CA_BENCHCAP", "") == "1"
+BENCHCAP_PS = int(os.environ.get("CA_BENCHCAP_PS", "19000"))
+BENCHCAP_OWNJOIN = os.environ.get("CA_BENCHCAP_OWNJOIN", "1") != "0"
 RE_LINK_C = re.compile(r"\.ctl\.u\.u/O6$")     # a bd_link (Muller) controller's C node
 # CA_FAST=1 (opt-in, 2026-11-18; research/tools/ca_fast.py): the same audits, the base run made in this process and
 # every later run (each line's sensitivity, each verify) in a fork of it, with the functions they call memoized exactly
@@ -458,7 +491,8 @@ def _per_site(rule, graph, fn, parent, head, tail, links, *extra):
         edges, stops, back, skew = graph
         key = ("site", rule, ca_fast.fp_graph(edges), ca_fast.fp_set(stops), ca_fast.fp_back(back),
                ca_fast.fp_small(skew.AND_NODES), skew.K,
-               tuple(os.environ.get(v) for v in ("CA_JOIN_PEERS", "CA_ODD_LINKS", "CA_MUX_PEERS", "CA_DEBUG_FOREIGN")),
+               tuple(os.environ.get(v) for v in ("CA_JOIN_PEERS", "CA_ODD_LINKS", "CA_MUX_PEERS", "CA_DEBUG_FOREIGN",
+                                                 "CA_BENCHCAP", "CA_BENCHCAP_PS", "CA_BENCHCAP_OWNJOIN")),
                parent, head, tail, tuple(links)) + extra
         r = ca_fast.call(key, fn, parent, head, tail, links)
     return dict(r) if r is not None else None
@@ -555,6 +589,14 @@ def rule_a_joined(T, skew, sdf, aprime):
             rq = [r for r in reqs if T.pin_split(r)[0] == T.pin_split(q)[0]]
             if rq:
                 sel_req[q] = (rq, "%s %s" % (kind, par))
+    clk_of = {}                                       # CA_BENCHCAP: flip-flop -> its clock bit, when a BUFG* drives it
+    if BENCHCAP:
+        gbits = {b for c in jcells.values() if c.get("type", "").startswith("BUFG")
+                 for p, dr in c.get("port_directions", {}).items() if dr == "output" for b in c["connections"].get(p, [])}
+        for n, c in jcells.items():
+            ck = c.get("connections", {}).get("CK", []) if c.get("type") == "SLICE_FFX" else []
+            if len(ck) == 1 and ck[0] in gbits:
+                clk_of[n] = ck[0]
     cache = {}
 
     def wk(launch, lng, floor=None, ro=True):
@@ -607,6 +649,14 @@ def rule_a_joined(T, skew, sdf, aprime):
                        and not T.pin_split(p)[0].startswith(parent + ".ujoin."))
         # the data's forward cone, to every storage input it reaches; a select pin ends the cone at its gate
         caps, odd = {}, set()
+        bench = {"clocked": 0, "ownjoin": 0}          # CA_BENCHCAP: the sinks it reclassified (reported in the row)
+        entry = {}                                    # CA_BENCHCAP: clock bit -> the request's entry pins on that clock
+
+        def entries(clk):                             # flop inputs on clock `clk` the operator's request tail reaches
+            if clk not in entry:
+                entry[clk] = sorted(q for q in T.reaches(edges, tail, stops) if not T.is_output(q)
+                                    and clk_of.get(T.pin_split(q)[0]) == clk)
+            return entry[clk]
         seen, work = set(peers), list(peers)
         while work:
             p = work.pop()
@@ -620,13 +670,21 @@ def rule_a_joined(T, skew, sdf, aprime):
                 if not T.is_output(d) and not edges.get(d):
                     # no arc on: a pin its LUT / carry / mux ignores (pruned or never timed: no path), or an input of
                     # a cell that is not combinational (an FF's D, the PS7, an IO): a sink this rule cannot time
-                    if celltype.get(T.pin_split(d)[0]) not in ("SLICE_LUTX", "CARRY4", "SELMUX2_1"):
+                    inst = T.pin_split(d)[0]
+                    if BENCHCAP and inst in clk_of and T.pin_split(d)[1] in ("D", "CE") and entries(clk_of[inst]):
+                        caps[d] = (entries(clk_of[inst]), "clocked", inst)     # sampled by the bench's clock
+                        bench["clocked"] += 1
+                        continue
+                    if celltype.get(inst) not in ("SLICE_LUTX", "CARRY4", "SELMUX2_1"):
                         odd.add(d)
                     continue
                 if not T.is_output(d) and any(o in stops for o, _ in edges.get(d, ())):
                     inst = T.pin_split(d)[0]
                     if T.RE_BD_LATCH.search(inst) and en_of.get(inst) and d not in en_of[inst]:
                         caps[d] = (sorted(en_of[inst]), "latch", inst)
+                    elif BENCHCAP and BENCHCAP_OWNJOIN and inst.startswith(parent + ".") and any(
+                            o in stops and head in T.reaches(edges, o, stops) for o, _ in edges.get(d, ())):
+                        bench["ownjoin"] += 1                     # the operator's own join: its request, not data
                     else:
                         odd.add(d)
                     continue
@@ -694,6 +752,8 @@ def rule_a_joined(T, skew, sdf, aprime):
                         r = at(tabs, e)
                         if r is not None:
                             a_e = out_arc(e, False) if kind == "latch" else 0
+                            if kind == "clocked":            # CA_BENCHCAP: the bench samples >= this after entry
+                                a_e = BENCHCAP_PS
                             if best is None or r[0] + a_e < best[0]:
                                 best = (r[0] + a_e, r[1], e)
                     pe = path(preds, best[1], best[2]) if best else []
@@ -716,22 +776,27 @@ def rule_a_joined(T, skew, sdf, aprime):
                 if worst is None or m < worst[0]:
                     worst = [m, g, S, p, t_d + a_d, k_d, e, t_e, k_e, kind, label,
                              stops_on(path(wk(S, True)[1], k_d, p)), stops_on(pe), ctext, m_own]
+        def btext():                                  # CA_BENCHCAP: what it reclassified here (unset: nothing)
+            if not (bench["clocked"] or bench["ownjoin"]):
+                return ""
+            return "  [bench: %d clocked capture(s), event = request's entry into the clock domain + %d ps; " \
+                   "%d own-join input(s), not data]" % (bench["clocked"], BENCHCAP_PS, bench["ownjoin"])
         if odd or worst is None:
             why = ("its data reaches %d input(s) that are not a latch's data or a select (%s)"
                    % (len(odd), ", ".join(sorted(short(q) + "/" + q.rsplit("/", 1)[1] for q in odd)[:3]))
                    if odd else "no capture of its data from its upstream links (%d capture pin(s) in its cone, "
                    "none reached from %s within 2 crossings)" % (len(caps), ", ".join(short(x) for x in srcs) or "-"))
             return {"rule": "j", "margin": aprime[parent], "knob": None, "sized": False,
-                    "text": "%s joined: not applied, keeps A': %s" % (parent, why)}
+                    "text": "%s joined: not applied, keeps A': %s%s" % (parent, why, btext())}
         m, g, S, p, t_d, k_d, e, t_e, k_e, kind, label, dpath, cpath, ctext, m_own = worst
         return {"rule": "A", "margin": int(m), "sized": True,
                 "knob": parent if (not ctext or m_own == m) else None,
                 "text": "%s %d links joined: %d capture(s); worst %s %s  launch %s: data %d (%dx: %s) at %s  "
-                        "capture %d (%dx: %s) at %s%s  guard %d  margin %d  (own-request bound %d)"
+                        "capture %d (%dx: %s) at %s%s  guard %d  margin %d  (own-request bound %d)%s"
                         % (parent, len(links), len(caps), kind, short(label), short(S), t_d, k_d, dpath,
                            short(p) + "/" + p.rsplit("/", 1)[1], t_e, k_e, cpath,
                            short(e) + "/" + e.rsplit("/", 1)[1], ("  [" + ctext + "]") if ctext else "",
-                           g, m, m_own)}
+                           g, m, m_own, btext())}
     out = {}
     for parent, head, tail, links in T.request_sites(edges, back, chains):
         if parent not in aprime:
@@ -1355,6 +1420,11 @@ def main():
                    "enable, select vs its gate's request; C-elements wait for their last input; join credit), their "
                    "A' rows reported as 'a'; %d kept on A' (rows 'j' say why)"
                    % (nj, sum(1 for k, c in cons.items() if k.startswith("A'j ") and c["rule"] == "j")))
+    if BENCHCAP:                                       # unset: no line
+        rep.append("  bench capture: CA_BENCHCAP=1: in A'j, a D / CE pin of a flip-flop on a BUFG clock is captured by "
+                   "that clock >= %d ps after the operator's request first reaches a flop on it (gen_bench.py's 2-flop "
+                   "synchronisers at <= 100 MHz, less 1 ns); an input of the operator's own join is not data%s"
+                   % (BENCHCAP_PS, "" if BENCHCAP_OWNJOIN else " -- OFF (CA_BENCHCAP_OWNJOIN=0)"))
     for w in warn:
         rep.append("  WARNING " + w)
     neg = sorted((c["margin"], k) for k, c in cons.items() if c["margin"] < 0)
