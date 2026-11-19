@@ -842,8 +842,14 @@ MAX_FUSE_NODES = int(os.environ.get("BDC_MAX_FUSE_NODES", "4"))
 # floor fell to 16.9 / 16.8 ns but return-to-zero came onto the cycle (P 24.9 / 21.4 / 29.0), and the flow's storage
 # search found, at zero extra wire, the 1-bit link on the test's output the single best stage on all three
 # (-> 20.9 / 18.7 / 22.2 ns predicted).  =2 builds that link from the start, so the loop sizes the structure it ships.
-RING_FUSE = os.environ.get("BDC_RING_FUSE", "0") in ("1", "2")
-RING_FUSE_LINK = os.environ.get("BDC_RING_FUSE", "0") == "2"
+# Default under BDC_AUTO=1 since 2026-11-19 (flow v8): "2" (farm ringfuse1, the whole automatic flow, 8 seeds x
+# xorshift / collatz / countloop / ipow against the same seeds without it: faster on 19 of 29 paired seeds, median
+# -1.27 ns; xorshift 8 / 8, -1.87; collatz 5 / 8, -1.17; countloop and ipow neutral; every draw passing on the shipped
+# routes but one NOT CLEAN last route, which the loop's least-short rule now avoids). Without BDC_AUTO, or with
+# BDC_RING_FUSE=0, the pass is off and the output is what it was.
+_RING_FUSE_DEFAULT = "2" if os.environ.get("BDC_AUTO", "0") == "1" else "0"
+RING_FUSE = os.environ.get("BDC_RING_FUSE", _RING_FUSE_DEFAULT) in ("1", "2")
+RING_FUSE_LINK = os.environ.get("BDC_RING_FUSE", _RING_FUSE_DEFAULT) == "2"
 RING_FUSE_MAX = int(os.environ.get("BDC_RING_FUSE_MAX", "8"))
 # BDC_RING_FUSE_NEGCTL=1: the NEGATIVE CONTROL of the pass (never for a build): a multi-result region drives every
 # result after the first with the first result's low bits, so a wrong slice is visible in simcheck / memtb.

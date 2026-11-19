@@ -16,6 +16,9 @@ named here decodes EQUIVALENT (or only the benign GND-buffer kinds). If the md5 
 the full stack's equivalence on it before using the board (cells/gls/ps/build_ps.sh HWDIR WORK "" bit prints the
 fasm_equiv VERDICT; refuse "not configured by the bits" and any "MUX/S0 json ('const', 0) bits ('const', 1)").
 
+**2026-11-19 17:07 UTC: BDC_AUTO=1 now also fuses each loop's update with its test (BDC_RING_FUSE=2, flow v8).
+Items 38-41 were built without it: their commands now say BDC_RING_FUSE=0, which rebuilds the same routes.**
+
 **2026-11-18 20:00 UTC: items 39, 40 and 41 were built with bdc/auto.py's three md5-keyed MLIR rewrites (pre_dec /
 pre_eq2), which BDC_AUTO=1 no longer applies by default (owner, auditor T156: the automatic path must not carry a list
 of kernels). Their commands now say BDC_AUTO_REWRITES=1, which rebuilds the same routes. Item 38 (ipow) never used a
@@ -82,7 +85,7 @@ negative control fails). Run it before the speed items.
    edited). Hand: item 32, 31.4 ns; item 26 (full range), 36.2. Built on the farm with nextpnr 9c732bc6303458df; rebuilt
    on the cluster with 6e5d224472232d5d, the same sdf. From cells/:
 
-       BDC_AUTO=1 BDC_AUTO_REWRITES=1 NEXTPNR_SEED=5 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/collatz64_v3_s5_sizes.vh ./hw/build_bench.sh collatz64
+       BDC_AUTO=1 BDC_AUTO_REWRITES=1 BDC_RING_FUSE=0 NEXTPNR_SEED=5 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/collatz64_v3_s5_sizes.vh ./hw/build_bench.sh collatz64
        md5sum build/hw/collatz64_bench_gen/collatz64_bench_gen.sdf    # 9585dde4 = the route judged here
        python3 ../research/tools/ffmux_scan.py build/hw/collatz64_bench_gen/collatz64_bench_gen.fasm; echo "exit $?"   # must be 0
        CLK=0x00100C00 hw/loop_cost.sh collatz64 && cp build/hw/loop_cost_collatz64.tsv build/hw/lc_c64_auto.tsv
@@ -102,7 +105,7 @@ negative control fails). Run it before the speed items.
    research/data/suite/board/xorshift_v3_s8_sizes.vh (nothing edited). The hand recipe is faster on xorshift (item 37,
    16.49 ns): this item is here as the automatic flow's own xorshift, not as the fastest one. nextpnr as item 40. From cells/:
 
-       BDC_AUTO=1 BDC_AUTO_REWRITES=1 NEXTPNR_SEED=8 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/xorshift_v3_s8_sizes.vh ./hw/build_bench.sh xorshift
+       BDC_AUTO=1 BDC_AUTO_REWRITES=1 BDC_RING_FUSE=0 NEXTPNR_SEED=8 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/xorshift_v3_s8_sizes.vh ./hw/build_bench.sh xorshift
        md5sum build/hw/xorshift_bench_gen/xorshift_bench_gen.sdf    # 3497ca67 = the route judged here
        python3 ../research/tools/ffmux_scan.py build/hw/xorshift_bench_gen/xorshift_bench_gen.fasm; echo "exit $?"   # must be 0
        CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_auto.tsv
@@ -122,7 +125,7 @@ negative control fails). Run it before the speed items.
    research/data/suite/board/collatz_v3_s6_sizes.vh (the loop's sizes_final.vh, nothing edited). Hand: item 31, 21.5 ns.
    Built on the farm with nextpnr 9c732bc6303458df; rebuilt here with 6e5d224472232d5d, identical. From cells/:
 
-       BDC_AUTO=1 BDC_AUTO_REWRITES=1 NEXTPNR_SEED=6 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/collatz_v3_s6_sizes.vh ./hw/build_bench.sh collatz
+       BDC_AUTO=1 BDC_AUTO_REWRITES=1 BDC_RING_FUSE=0 NEXTPNR_SEED=6 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/collatz_v3_s6_sizes.vh ./hw/build_bench.sh collatz
        md5sum build/hw/collatz_bench_gen/collatz_bench_gen.sdf    # c56def07 = the route judged here
        python3 ../research/tools/ffmux_scan.py build/hw/collatz_bench_gen/collatz_bench_gen.fasm; echo "exit $?"   # must be 0
        CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_col_auto.tsv
@@ -145,7 +148,7 @@ every hand ipow item (item 29: 36.2 ns median; item 30's route 35.54).
    nothing edited). nextpnr: built on the farm with 9c732bc6303458df; the rebuild with 6e5d224472232d5d is identical
    (no missed GND pin on this route). From cells/:
 
-       BDC_AUTO=1 NEXTPNR_SEED=2 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/ipow_v3_s2_sizes.vh ./hw/build_bench.sh ipow
+       BDC_AUTO=1 BDC_RING_FUSE=0 NEXTPNR_SEED=2 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=../research/data/suite/board/ipow_v3_s2_sizes.vh ./hw/build_bench.sh ipow
        md5sum build/hw/ipow_bench_gen/ipow_bench_gen.sdf    # 81bbe268 = the route judged here
        python3 ../research/tools/ffmux_scan.py build/hw/ipow_bench_gen/ipow_bench_gen.fasm; echo "exit $?"   # must be 0
        CLK=0x00100C00 hw/loop_cost.sh ipow && cp build/hw/loop_cost_ipow.tsv build/hw/lc_ipow_auto.tsv
