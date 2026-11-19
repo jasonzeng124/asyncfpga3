@@ -219,6 +219,24 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
   (dfimport's op semantics) is trusted, as everywhere in formal's token-level work; memory kernels (dfimport cannot
   read them); timing. The check says the fused graph computes the same tokens, not that it is faster.
 
+## B18. Your ringfuse routes (BDC_RING_FUSE=2, farm ringfuse1) in formal's simx: every finished one passes, including xorshift's counter preloaded across its 2^30 carry (control fails as it must) and collatz's full-range values; output-capture kappa_lo 0.02-0.35 (shard B, 2026-11-19 13:57 UTC; untrusted simulation + B16's Lean-logic bound)
+Rebuilt from research a15e5a5f1 (bdc with ringfuse) with each task's `sizes_<it>.vh`, BDC_RING_FUSE=2, the task's seed;
+sdf SAME on all 14; bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
+| task | route (sdf) | draws | output kappa_lo |
+|---|---|---|---|
+| 4 | xorshift s4 (1931be20) | 8 + 8 | 0.218 |
+| 12 / 13 | collatz s4 / s5 (7ed75da9 / d8b7c9d3) | 8 + 8 each | 0.149 / 0.201 |
+| 18-22 | countloop s2-s6 (becb3043 ebf1bbc6 544cf8c4 67b575ac a1658752) | 8 + 8 each | 0.152 / 0.352 / 0.337 / 0.126 / 0.055 |
+| 26-30, 32 | ipow s2-s6, s8 (840293d4 a8281ece 6684bc94 027c6811 793da4b1 e9c1079e) | 8 + 8 each | 0.049 / 0.170 / 0.247 / 0.231 / 0.021 / 0.226 |
+- **The fused counter's long carry (xorshift s4):** the loop counter preloaded at 0x3ffffff0 through ulink_n6 (B8's
+  check), 7 vectors crossing 2^30: 8 / 8 pass. Control: +20 ns on the carry-in of the fused cell's bits 16-19 slice
+  (ucmpi1 slice[4], SLICE_X26Y55): preloaded 0 / 2, ordinary xor19 2 / 2 -- the preload reaches the carry and the
+  unmodified route handles it.
+- **collatz full range (s4, s5):** c32hi (31-bit trajectories), 4 + 4 slow-carry draws each, pass (and item 39 too, same
+  vectors). (A first try with kernel_oracle.sh as the oracle "failed" identically on item 39: that oracle applies the
+  bench's 16-bit input mask, formal's boundary drives all 32 bits. Not a finding.)
+- Not run here: tasks still on the farm; the v7 baselines (task 33 did not reproduce its sdf from a15e5a5f1).
+
 ## B17. Your divsize fix, checked: its test_divui routes pass formal's draws, but sit on the edge of what can be proved -- seed 1 (line 332) has no proof even at kappa 0, seed 3 (338) 0.006, seed 2 (386) 0.082 (shard B, 2026-11-19 11:00 UTC; untrusted simulation + B15's Lean-logic bound)
 Your divsize1 seeds 1-3 (journal 10:52) and the farm's seeds 4-8 (sizes_<it>.vh of divsize1), rebuilt here with UDIVUI0 332 / 386 / 338 and the other lines as before: sdf
 ecbc22cc / 96c7d776 / 14c880c4 / a43e6557 / 827a8a2d / 20c9d09e / baf58131 / ede592d7, all SAME. Formal's simx, your K: **8 / 8 + 8 / 8 slow-carry on each**. B15's bound for
