@@ -1110,7 +1110,15 @@ def upstream_data_lag(timing, back, confine, links, srcs):
 
 # ------------------------------------------------------------ H: the hold rule
 
-RE_BD_LATCH = re.compile(r"\.lat\.(?:pair\[\d+\]|odd)\.u(?:\$LUT[56])?$")
+# Every bd_latch instance the flow emits: a link's `lat` (rtl/bd_link.v) and a memory load's capture `ucap`
+# (bdc/mem.py CAPTURE).  `ucap` was missing until 2026-11-19: each capture LUT (a storage node, its own feedback)
+# was then read as a CONTROLLER whose "enables" were the consumer link latch's DATA pins, and rule H reported
+# 100-625 ps hold "violations" between unrelated paths on every capture station (37 071 'unfixable' rows on the
+# farm's memory routes; the only short rows on 23 of 49 shipped routes).  With it, the capture has no rule H row:
+# its enable comes through ucapen from `done`, not from a storage node.  Its real hold race (the RAM's DOADO moves
+# only on the port's next rising clock edge) is measured by research/tools/caphold.py (>= 17.6 ns on
+# test_bool_array s1 it 6).  No design without a capture station changes (only bdc/mem.py emits `ucap`).
+RE_BD_LATCH = re.compile(r"\.(?:lat|ucap)\.(?:pair\[\d+\]|odd)\.u(?:\$LUT[56])?$")
 # The bd_delay a link's ack-fall hold lives on, and the DACK knob it is sized
 # by: every stage of a bd_pipe has its own line but the pipe has one knob.
 RE_ACK_CHAIN = re.compile(r"^(.*?)(?:\.(?:one|many\.stage\[\d+\])\.u)?\.uack$")

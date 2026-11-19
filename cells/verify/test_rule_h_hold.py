@@ -134,3 +134,24 @@ def test_input_lead_is_latest_data_against_earliest_enable():
     assert tighten.input_lead(timing, back, "env/req", ["env/d1"]) == -100
     # a request that reaches no controller has nothing to lead
     assert tighten.input_lead(timing, back, "env/d1", ["env/d0"]) is None
+
+
+def test_capture_latch_is_a_latch_not_a_controller():
+    """bdc_load_cap's capture (bdc/mem.py CAPTURE: `bd_latch ucap`) is a bd_latch like a link's `lat`.  Until
+    2026-11-19 RE_BD_LATCH matched `.lat.` only, so each capture LUT (a storage node: its own feedback) was read as a
+    CONTROLLER whose 'enables' were the next link latch's DATA pins, and rule H compared unrelated paths: 37 071
+    'unfixable' rows on the farm's memory routes.  A capture LUT drives a link latch's data pin here; it must not
+    come back as that latch's controller."""
+    edges, _ = graph([
+        ("ld.ucap.pair[0].u$LUT5/O5", "ld.ucap.pair[0].u$LUT5/I2", 50),     # its own feedback: a storage node
+        ("ld.ucap.pair[0].u$LUT5/O5", "rx.lat.pair[0].u$LUT5/I0", 300),     # the consumer link's DATA pin
+        ("ld.ucap.odd.u/O6", "rx.lat.odd.u/I0", 300),
+    ])
+    assert tighten.RE_BD_LATCH.search("ld.ucap.pair[0].u$LUT5")
+    assert tighten.RE_BD_LATCH.search("ld.ucap.odd.u")
+    assert tighten.latch_enables(edges, "ld.ucap.pair[0].u$LUT5/O5") == []
+    assert tighten.latch_enables(edges, "ld.ucap.odd.u/O6") == []
+    # the link latches stay recognised, and nothing else is
+    assert tighten.RE_BD_LATCH.search("rx.lat.pair[3].u$LUT6")
+    assert not tighten.RE_BD_LATCH.search("ld.ucapen")
+    assert not tighten.RE_BD_LATCH.search("ld.udone")
