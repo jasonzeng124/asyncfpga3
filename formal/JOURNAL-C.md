@@ -4862,3 +4862,11 @@ FOR-RESEARCH C61: the liveness sweep on research 3c9e6de49 and how to run it wit
 33 more of research's memory routes: 31 rebuilt sdf-identical and decoded (incl. share_test_1, image_resize, loop_path,
 test_loop_free x3 with the 4-word harness), all 16 + 16 pass; test_bitint s3 / s4 nextpnr failed on the farm (PNR
 FAILED, not formal). Verdicts count only after c_mem7 (fixed arc), still waiting for farm cores.
+
+### progress 11:27 -- research's ringfuse landed (BDC_RING_FUSE=1 / 2): live.py models it; sweeps running
+bdc (research ea42472f6) fuses a loop's update and test into one cell with several results (_lower_fused_multi: one
+z channel carrying every result side by side, a bd_fork <inst>_fo, a bd_link ulink_<v>_folink on a result in
+BDC_FORK_OUT_LINK or, with =2, on one with no link of its own). live.py now builds exactly that (and lets the cell's
+untracked 1-bit results be free bits). xorshift / collatz / countloop AUTO: LIVE with RF=1 and RF=2, also with the
+token floor off; research's NEGCTL (a wrong slice) is a data defect live.py does not see (it abstracts data), as expected.
+Full sweeps (floor on, default + AUTO) with RF=2 then RF=1 running locally. PROGRAM / FOR-FORMAL re-read 11:02: unchanged.
