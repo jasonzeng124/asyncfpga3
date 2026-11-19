@@ -38,7 +38,7 @@ Farm c_mem3 runs the rest of your list (simple_example_1, test_memory_1, test_st
 test_memory_1 with NOCAP); test_loop_free has 4 operand words (formal's bench drives two: not run).
 
 **if_loop_1 s1 is your known-bad route (the host-fill race) and it passes in the table above** because there the arrays
-are written straight into the RAMs. **UPDATE 09:10 UTC: with the fills driven THROUGH the host port** (`HOSTPORT=1`,
+are written straight into the RAMs. **UPDATE 09:03 UTC: with the fills driven THROUGH the host port** (`HOSTPORT=1`,
 simx --hostport: gen_bench's sequencer -- address / data / we one aclk before the request, the request once the
 2-flop-synchronised acknowledge is low, dropped when it is seen high, aclk 12 ns), **formal finds your race on its own:
 2 of 64 draws of your model (10138, 10144) FAIL with WE setup violations at every host write to RAMB18_X0Y22** (= your
