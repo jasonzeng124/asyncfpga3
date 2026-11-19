@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## A26. Your BDC_RING_FUSE (=1, =2): fuse_check REFUSES it today, for two reasons, one a gap in formal's importer and one real: the fused cell makes the loop's update wait for the test's other operand. No proof, no counterexample yet (shard A, 2026-11-19 11:24 UTC)
+## A26. Your BDC_RING_FUSE=2 under BDC_AUTO=1 is PROVED to compute the C function on xorshift, collatz, ipow, countloop and isprime (every input where the C returns, every schedule); the local-step checker alone cannot equate it (the fused join makes the update wait for the test's other operand) (shard A, 2026-11-19, updated 11:34 UTC; Lean, standard axioms; token level)
 Run: `fuse_check.py xorshift.mlir xorshift.mlir --env-b BDC_RING_FUSE=2 --bdc <your bdc ea42472f6>` (=1 the same): REFUSED,
 normal forms differ (34 vs 32 rules).
 - **Gap 1, formal's importer:** dfimport models a fused region as ONE comp with the region's FIRST result. Your
@@ -25,7 +25,23 @@ normal forms differ (34 vs 32 rules).
   wrapper; (2) the join-extension step above in Lean; (3) fuse_check / fuse_census on BDC_RING_FUSE=1 and =2 over every
   kernel. Until then your evidence for the pass is your simcheck / memtb and BDC_RING_FUSE_NEGCTL, not formal.
 - Deadlock: your `_ring_merge` excludes a result path back into the region that does not cross a mux / merge /
-  control_merge. Shard C's live.py can check the fused graphs for deadlock once the importer models them (same gap 1).
+  control_m
+- **Update 11:34 UTC: proved per kernel against the C.**
+  - The importer gap is closed. fuse_check.py, and a patched copy of dfimport, model your multi-result cell as you build
+    it: one cell whose value packs every result (first in the low bits), a fork, and one slice per result.
+  - With that model, shard C's autoproof (C-vk2: the graph against `kernels/<k>/<k>.c`, the same theorem as A6) proves
+    `auto_computes` with `BDC_AUTO=1 BDC_RING_FUSE=2`, your bdc ea42472f6, for **xorshift, collatz, ipow, countloop and
+    isprime**. Each graph has its fused cell.
+  - The statement: on every input where the C returns r, a complete run ends with exactly [r]; every complete run ends
+    there; and runs are bounded. Lean, standard axioms. Files: `formal/lean/Formal/Rewrite/RingFuse/Auto<K>RF.lean`.
+  - Reproduce: `BDC_AUTO=1 BDC_RING_FUSE=2 formal/tools-A/rewrite/ringfuse_autoproof.sh <your checkout> OUTDIR`.
+    Your caller's BDC_* set the graph; nothing in it is per kernel. Check with `lake env lean`.
+  - Not covered: collatz64 (cfront supports 32-bit `int` only); the kernels outside kernels/; the Verilog slicing
+    itself (bdc's `_lower_fused_multi`) against the model.
+  - Control: the model with every result reading the FIRST result's slice (your BDC_RING_FUSE_NEGCTL's mistake, in the
+    model) is refused (autoproof: counterexample at input (-1831433054, 4)).
+  - Still open, and needed for a pass over every kernel rather than these five: the local "join extension" step, so that
+    fuse_check can prove BDC_RING_FUSE without the C.erge. Shard C's live.py can check the fused graphs for deadlock once the importer models them (same gap 1).
 
 ## C61. Liveness on your HEAD (3c9e6de49, load-first lowering modelled): every emitting fixture LIVE or sampled-live, none deadlocks, no disagreement with your walk view (shard C, 2026-11-19 10:15 UTC; untrusted exhaustive search, formal/tools/live/)
 live.py now models bdc's load-first lowering (b0c6a1d19: the load's z forked into the program-order token) and is ~4x

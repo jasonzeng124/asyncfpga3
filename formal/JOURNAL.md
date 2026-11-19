@@ -3353,3 +3353,11 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Gap 1 (importer): dfimport emits one comp per region with results[0]; the multi-result cell's update result has no
   writer in the import. Real difference 2: the fused cell's join makes `i + 1` wait for n. Neither a proof nor a
   counterexample. Plan: packed multi-result encoding (tools-A wrapper), a "join extension" step in Lean, then the census.
+### progress 12:10 -- BDC_RING_FUSE=2 (BDC_AUTO=1) proved per kernel against the C: xorshift, collatz, ipow, countloop, isprime
+* fuse_check / a dfimport copy now model bdc's multi-result cell as bdc emits it (packed value, fork, slices).
+* Shard C's autoproof on that model (copy of formal/tools with two run-time patches: the multi-result model; keep the
+  caller's BDC_* in --combined), research's bdc ea42472f6: auto_computes for 5 kernels, standard axioms, check.sh OK on
+  Formal/Rewrite/RingFuse/*.lean (1552 declarations). `tools-A/rewrite/ringfuse_autoproof.sh` + `ringfuse_patch.py`.
+* Control: every slice reading the first result (research's NEGCTL mistake, in the model): autoproof counterexample.
+* Not covered: collatz64 (cfront 32-bit only); bdc's Verilog slicing vs the model; a local "join extension" step
+  (fuse_check still refuses BDC_RING_FUSE without the C).
