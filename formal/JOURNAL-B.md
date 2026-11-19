@@ -5047,3 +5047,9 @@ met; data >= 74.1 ns. Both bounds now instances of Lean lemmas (numbers extracte
 * *Proved:* a full assignment forces a LUT's INIT bit at its address; an acyclic island under any consistent valuation
   shows its values on windows given by the longest / shortest path recurrences, which do not depend on the values.
 * *Next:* the divider capture on the 528-line route: data settle (longest path) vs request arrival (chain_hold, v = 0).
+### progress 09:17 -- divsafe.py: a kappa_lo for one race of a real route (test_divui, line 528, sdf 2e6ac4e7): 0.240
+Data (SettleAll: out0_data's cone, 30 020 nodes, acyclic, roots = 32 operand latch outputs + joined + out0_ack) settles
+by A + 91.4 ns (c = 0) / 215.5 ns (c = 1) at maxima; request (chain_hold, v = 0, 529 gates, each forced to 0 by its
+chain pin) not before A + 149.2 / 352.8 ns at minima: kappa_lo 0.240 / 0.241 at g = 1. Control: research's line-5 route
+-0.960. Premises: operands stable from A to the capture (input bundling + hold), out0_ack low until after the request,
+H_DECODE; extraction untrusted. Running 272 / 320 / 384 rebuilds for comparison with b_divui3's simulated edge.
