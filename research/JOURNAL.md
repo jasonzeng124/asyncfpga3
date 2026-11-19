@@ -7220,3 +7220,8 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   bundling wire-dominated data paths (85-87 % of the cycle is wire) -- the remaining levers are placement (shorter data
   paths make shorter lines), not the rule. ringplace's soft weights were negative; hard relative placement of a ring
   (RLOC_GROUP) is untried.
+### progress 04:19 (farm suite10: the 27 listed kernels never run through the automatic path, and 10 loops to redo)
+- suite10 filed: digitsum, digitdiv, divmodu, divmods, test_divui and dyntests' 22 listed tests (stores, load first, two
+  loads, void kernels), seeds 1-2; and suite9's 10 loops that returned no state (nest3 s1-4, nested s1,
+  iterative_sqrt s2, fill s1, fold64 s1, iterative_division s1, quadrec s3), from scratch -- all with CA_FAST, the RAM
+  guard, the seed fallback and the runt monitor reporting.
