@@ -7498,3 +7498,11 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   padding very short lines without converging (test_divui s4: 1111 links), the N-way mux hold side (argued only),
   capture-latch timing (no rule; capmargin.py measures it); speed -- v8 on the whole suite (suite12), mux + increment and
   compare + steer fusion (new cells needed), hard relative placement of a ring (untried).
+### progress 21:10 (last note of this session: flow v8 on the whole suite, first results)
+- suite12 (every listed kernel, seed 1, flow v8 -- ring fusion, the 6-route finish shipping its least-short route,
+  every rule fix of this session), 17 of 62 back: **16 PASS, every draw** (brhash, collatz 23.50 ns, fill 30.40,
+  lfsrfind 22.40, mul_example, simple_example_1, sqrtsub 29.74, straight, test_bitint, test_bool_array, test_divui,
+  test_int16, test_loop_free, test_memory_2, test_stdint, unused_arg, varshift 33.53), 11 rule-clean, 5 NOT CLEAN with
+  an unfixable row (shipped least-short); share_test_2 NOT-A-BOARD-ROUTE (the decoder gap). suite10d: share_test_1 s2
+  and single_loop s2 PASS. suite11 51 / 54, finseeds1 36 / 40: their final numbers are for the next session.
+- Nothing local is needed: every result, tool and request is on claude/research or claude/cluster.
