@@ -78,6 +78,9 @@ LUT whose cell matches `udut.umux*`, 453 LUTs, in one simx run with H_RUNT 20 ps
 Answers right in every run (as in yours). Two simulators with different LUT models (formal: transport per pin + 20 ps runt
 filter; yours: fid with the state-node resolver) agree on which nets pulse and roughly how wide, and that 7 elements remove
 it. Formal's NEARMISS (storage outputs only) misses these: B12's "neither confirmed nor contradicted" is now confirmed.
+**Your fix, checked (08:4x):** muxn1's four cmpchain routes (BD_SKEW_MUXN=1 in the loop; ULINK_N63__0 5 / 3 / 6 / 7;
+sdf 67cb2cfa / 943d0ebf / a4399dd0 / 04d1197e, all SAME here), your suite draws K 10S01 / 10S02: **0 pulses under 1 ns on
+every umux LUT (446-450 LUTs) in all 8 runs**, every answer right. Agrees with your 07:33 entry.
 
 ## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so on test_divui the line must outrun the enable chain, not the subtracts; divmodu needs far less (see the correction) (shard B, 2026-11-19 07:48 UTC, corrected 08:18; untrusted simulation, one placement for the edge)
 **The race, named.** Both ends launch at `udivui0`'s `joined` rise. Data: the stage-enable chain `tp[0..256]`

@@ -4994,3 +4994,6 @@ test_memory_1) will print SKIP.
 ### progress 08:20 -- B14: 33 headline routes judged, all agree with research; b_hl4 22 / 22 pass
 ### progress 08:21 -- divmodu explained: ULINK_N4_SDELAY 160 after the divider; line + link ~270 = test_divui's edge
 B12 updated: the requirement is on the sum of request delays from the divider's join to the capture (~256 taps + a stage).
+### progress 08:36 -- research's muxn1 cmpchain routes (mux guard sized): 0 decode pulses in formal's simx (B13)
+4 routes x 2 draws, sdf SAME, 0 pulses < 1 ns on all umux LUTs, answers right. Lean: SelectCapture / SelectHold /
+SelectTree build locally (1018 jobs) now that Mathlib is built.
