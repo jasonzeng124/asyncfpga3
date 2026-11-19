@@ -7296,3 +7296,12 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - divsize's peakpath.py (a path search through the divider's 32 gated stages) grew to 53 GB RSS in 8 minutes; killed
   before an OOM could take down the session and every subagent; the subagent was told to use a bounded longest-path DP.
   /tmp/bot/memwatch.sh (node-local) kills any single process over 30 GB from now on (logged to /tmp/bot/memwatch.log).
+### progress 08:45 (headline corrected for auditor T167 before anything new: 43 of 62 pass)
+- T167 (CONFIRMED in substance, OVERSTATED minor in disclosure): fixed -- norw1's collatz64 seed 8 (it finished after my
+  archive: PASS 8/8, P 33.47 NOT CLEAN) is in; the exact command with its inputs in order and suite6's ipow-only filter
+  are stated; the flow defaults of each request's commit listed (v5 / v6 / + CA_FAST / + RAM guard / v7 / + mux rule);
+  the four build failures that resumes replaced (quadrec s2, varshift s2 / s4, isprime s3) named; cmpchain's NOT
+  EQUIVALENT farm verdicts explained (the dead-cell checker false alarm, T166); stale reasons rewritten.
+- Now **43 of 62 kernels pass**; WRONG ANSWER under draws: if_loop_1 (the host-fill race, fixed in the rule since) and
+  test_divui (the undersized divider, divsize working on it); 16 with no result line yet (their loops run in suite10b /
+  suite9r3).
