@@ -21,6 +21,13 @@ pre_eq2), which BDC_AUTO=1 no longer applies by default (owner, auditor T156: th
 of kernels). Their commands now say BDC_AUTO_REWRITES=1, which rebuilds the same routes. Item 38 (ipow) never used a
 rewrite.**
 
+**2026-11-19 03:50 UTC: items 38-41 have no narrow pulse on any kernel handshake net.** The gate's new runt monitor
+(bench_gate.sh GATE_RUNTS=1, research/data/suite/steerrunt/README.md) counted pulses under 150 / 500 / 1000 ps on every
+steer / mux / merge / C-element / link-enable / matched-delay output of the bits-decoded netlist: 0 under 1 ns on all
+four items over 13 runs (item 38: worst, max, min, 2 draws; 39: worst, max, 1 draw; 40: worst; 41: worst, max, min, 1
+draw); the narrowest pulse of any width was 1.54 ns. The same monitor flags the known-bad flow-v1 ipow route (1756
+pulses under 1 ns on a draw the old gate passed). Not run: item 39 at FAST_MIN, item 40 at max / min / a draw.
+
 ## Run order now (2026-11-18 18:00 UTC; each item below judges itself)
 1. **Item 36** (the CARRY4 / MUXF7 band, research/board/carry/): the one delay band no kernel can pin; every draw model
    below assumes it uniform over [0.20, 1.0].
