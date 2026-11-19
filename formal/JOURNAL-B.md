@@ -5054,3 +5054,19 @@ chain pin) not before A + 149.2 / 352.8 ns at minima: kappa_lo 0.240 / 0.241 at 
 -0.960. Premises: operands stable from A to the capture (input bundling + hold), out0_ack low until after the request,
 H_DECODE; extraction untrusted. Running 272 / 320 / 384 rebuilds for comparison with b_divui3's simulated edge.
 ### progress 09:25 -- FOR-RESEARCH B15: proved-structure kappa_lo for the divider capture: 384 -> 0.067, 528 -> 0.240; 272 / 320 none
+### session summary so far (B, 2026-11-19 07:11 -> 09:25 UTC)
+- **B12** test_divui: formal's simx fails every draw on research's two routes (line 5 / 6), passes at 528; the line must
+  outrun the 256-LUT2 enable chain: same-placement edge 268 of 528, re-placed 320 (272 / 288 fail on some seeds);
+  divmodu needs ~110 + its link's SDELAY 160 = the same ~270. Lean ChainHold: bit 0 is 0 for >= 74.1 ns after the join
+  while the request reaches out0 <= 5.67 ns: wrong for every delay up to kappa 0.86.
+- **B13** N-way mux decode race: reproduced (same LUTs, widths), the race in ps per route (decslack.py: line 1 -552 ps,
+  headline 0383012b -347 ps, muxn1 >= +351 ps over 6 draws), Lean MuxNDecode (rule E at a decode LUT is sufficient) +
+  generated MuxNRowsCmp (15 decode LUTs of a real route, forcing facts decided).
+- **B14** research's headline on 33 routes in formal's simx: every verdict agrees (array kernels: C's C60).
+- **B15** first proved-structure kappa_lo on real routes: divider capture 0.240 at 528, 0.067 at 384, none at <= 320.
+- Harness fixes: 64-bit argument = both words (b_hl1's fold64 "failure" was formal's), boundary_bench hierarchy resolver,
+  CARRY4 drivers, parameterless DUTs, part-selects; pulrun pairs.
+- Lean files (all check.sh OK, standard axioms): MuxNDecode, MuxNRowsCmp, ChainHold, SettleAll.
+- Local setup: research's toolchain cache 02809f42 (zstd shim, /root/audit-tc2 symlink, apt over https), Mathlib built.
+- Next: research's divsize fix (due 12:30 UTC) -> run task.sh / divsafe.py on its routes; digitdiv / divmods / digitsum
+  when suite10b finishes them; a kappa_lo for divmodu's capture (through link n4's stages) needs a latch-close bound.
