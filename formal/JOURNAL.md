@@ -3421,3 +3421,10 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   two-input update). Controls (xorshift slice_low / upd_plus2, gcd slice_low): REFUSED rc 2.
 * Poll on research: no change 20:05-21:00 (LOCK only).
 ### progress 21:12 -- MARGINS: rows for C64 (spmv s4 f52af15f: 22 ps ADDR margin, guarded -890 ps), C60/C63 (if_loop_1 before/after the RAM guard), B19 (suite12 v8 straight / sqrtsub kappa_lo 0.260 / 0.239), B18 (ringfuse1, 29 routes, kappa_lo 0.021-0.352)
+### progress 21:15 -- state; open items for A (in order)
+* Ring fusion (A27): 18 / 26 proved by local steps; the Lean steps are general (any graph of the stated shape).
+* Open: (1) k-input ForkComm + k-input join extension (iterative_division, iterative_sqrt, nest3; 3+ inputs, some dead
+  after BDC_CONST_DATA) -- est. several hours (per-input queue lists in the backward relation); (2) sqrtsub planner
+  (unfused side: forkcomm2 split of a two-input update, forkmerge + dedupe of the duplicate s copies); (3) a check of
+  the packed-cell model (fuse_check MR_NEW) against bdc's emitted Verilog (audit T170's caveat).
+* Lock refreshed with this push; poll on research armed (bd37bkyqi).
