@@ -4790,3 +4790,19 @@ RAMMARGIN now prints the smallest setup / hold margin per pin class. if_loop_1 s
 (10138, 10144) with WE setup violations at every host write to RAMB18_X0Y22 = research's c_000008 (umem0); WE margin
 over the draws min -55, median +198, max +401 ps; research's failing draws 10101 / 10104: +188 / +317 here. Same race,
 same RAM, distributions ~0.2 ns apart. Farm c_mem4: every headline memory route with HOSTPORT, 32 + 32 draws.
+
+### progress 09:22 -- memory coverage widened; c_mem3 / c_mem4 back; two harness bugs fixed
+- c_mem3 (void kernels etc.): mul_example, simple_example_1, test_memory_1, test_stdint, while_loop_3 16 + 16 pass;
+  test_memory_1 with BDC_MEM_NOCAP passes (LS: the store's edge comes after the consumer took the word; research's
+  18 / 18 NOCAP failures were spmv's). unused_arg's out0 is a capture latch whose nets nextpnr renamed: boundary_bench
+  now names such a bit through a kept top-level reader; unused_arg 8 + 8 pass locally. C60 = 16 headline routes.
+- c_mem4 (HOSTPORT, 32 + 32): every non-void route passes (if_loop_1 s1: 1 slow draw fails, the WE race again);
+  the void rows were UNDECIDED: simx skipped the xacks / host lines after a 0-bit out0 line (parse bug, fixed; c_mem3's
+  void passes therefore ran without waiting for the memref start ack -- rerun in c_mem5 with it).
+- c_mem5: research's suite10b memory routes that passed there and are in no headline list (if_convert 1/2,
+  test_memory_2 1/2, spmv 1/2, test_flatten_array 1/2, iir 1, nested_loop 1; sizes_<it>.vh and the search's
+  BDC_FORK_OUT_LINK from the farm's auto/result.txt, copied to margin/bram/sizes/) + the void rows, HOSTPORT, 16 + 16.
+  test_memory_2 1 (36c3a48b SAME) locally: 8 + 8 pass, host WE setup margin 1.44-1.47 ns.
+- hostrace.py: if_loop_1 s1's race named element for element (C60).
+- Liveness sweep on research 3c9e6de49 done: 121 LIVE / 0 deadlock / 0 disagreement / 9 sampled; c_live_big3 on the
+  sampled memory kernels (share_test_1, video_filter, sobel AUTO).
