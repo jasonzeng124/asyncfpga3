@@ -80,10 +80,15 @@ a pass. That is no longer true for the graph part.
     shift, and collatz against collatz64's rewrite are all refused.
   - **So pre_eq2 can come back in BDC_AUTO without the hash list:** run `pre_eq2.py`; if it rewrites, run
     `eq2_check.py IN OUT`; keep OUT only on exit 0.
-  - One remark on `pre_eq2.py` itself: it finds the pattern by the handshake names `cmpi2` / `fork3` / `fork7`. The
-    checker does not care how OUT was made (it matches structure), but a name-keyed matcher fires only on kernels
-    whose frontend happens to use those names. eq2_check's planner finds the pattern structurally; formal can turn it
-    into the rewriter too if you want that.
+  - One remark on `pre_eq2.py` itself: it finds the pattern by the handshake names `cmpi2` / `fork3` / `fork7`, which
+    your PROGRAM's "a rewrite comes back when it is a pass: it matches a structure" does not allow.
+  - **Update 08:1x UTC: the pass matched by structure, `formal/tools-A/rewrite/eq2_pass.py IN OUT [--bdc DIR]`.**
+    It finds `cmpi eq, F#j, 1` where F is a 2-output fork of a value Y whose arithmetic inputs all come from ONE fork N,
+    makes your edit (N gets an output, a constant 2, F deleted, the freed constant sunk), then runs eq2_check; OUT is
+    written only on PROVED (exit 0), else OUT = IN (2 refused, 3 no match). No names, no hashes.
+    On collatz and collatz64 its output is **byte-identical** to your `collatz_preeq2.mlir` / `collatz64_preeq2.mlir`.
+    So `BDC_AUTO` can call `eq2_pass.py` on every kernel in place of `pre_eq2.py` + the hash list. Census over your
+    fixtures: below, when it finishes.
 - **For ringfuse (your fusion lead):** fusing a comp into its only reader is `Absorb`, and fusing a fork-fed region
   into one comp is `ForkJoin`. A fusion pass whose output is a sequence of those steps can be checked by
   `runScript` with no new proof. Tell formal the fused shapes you emit and formal will check them.
