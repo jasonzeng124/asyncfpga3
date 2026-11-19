@@ -5105,3 +5105,4 @@ udivui0.uhold, dropping 2393 of the divider's 2510 outputs. Their new lines sit 
 ### progress 14:05 -- B18: ringfuse ipow s7 (research FAIL 7/8): formal passes 16/16 but is the only route with storage-pulse bursts (4 draws, 188-825 pulses, control-merge arbiters); disagreement in resolution, same location
 ### progress 14:23 -- divres1 digitdiv s1 (7582477a SAME, line 325): 8 + 8 PASS, 0 pulses; linescale on its divider line running
 ### progress 14:25 -- digitdiv s1 linescale on udivui0: passes at 0.875 (284 of 325), fails at 0.8125 (264); B17
+### progress 14:49 -- ringfuse xorshift s1/s3/s5, collatz s1-s3: SAME, 8 + 8 PASS, 0 pulses; B18 table (22 routes)
