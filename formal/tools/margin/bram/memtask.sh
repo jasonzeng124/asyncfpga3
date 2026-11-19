@@ -16,7 +16,7 @@
 # The host's fill / read-back is NOT simulated through its port: memvec writes the arrays into the RAMs between calls.
 # OUT/summary.txt.  Env: RS (default /home/user/rs), TREE (default $OUT/tree: a private copy of cells/ bdc/ build/frontend).
 set -uo pipefail
-K=$1; S=$2; Z=$3; M8=$4; O=$(mkdir -p "$5" && cd "$5" && pwd); ND=${6:-16}; K0=${7:-$((10000 + 100 * S + 1))}
+K=$1; S=$2; Z=$3; [ "$Z" = none ] || Z=$(readlink -f "$Z"); M8=$4; O=$(mkdir -p "$5" && cd "$5" && pwd); ND=${6:-16}; K0=${7:-$((10000 + 100 * S + 1))}
 H=$(cd "$(dirname "$0")" && pwd); M=$(cd "$H/.." && pwd); F=$(cd "$M/../.." && pwd); A=$F/tools-A/target; B=$F/tools-B/auto
 RS=${RS:-/home/user/rs}; export TC=${TC:-$HOME/dev2/lib/fpgatoolchain} RC_TREE=1
 SM=$O/summary.txt; : > "$SM"; say() { echo "$*" | tee -a "$SM"; }
