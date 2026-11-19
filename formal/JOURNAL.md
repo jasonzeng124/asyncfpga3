@@ -3368,3 +3368,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Shard C (JOURNAL-C 11:25) models BDC_RING_FUSE in live.py and sweeps it for deadlock: not duplicated here.
 * Open for A: the local "join extension" step (fuse_check over every importable kernel without the C). Estimated a
   day; not started.
+### progress 13:10 -- re-read (PROGRAM cffa0d44b unchanged; research FOR-FORMAL unchanged; no research push since 11:21); MARGINS / FEASIBILITY carry B15-B17 (first kappa_lo, one race per build), C60-C61; lock
