@@ -1,4 +1,4 @@
-**THE AUTOMATIC COLUMN, every kernel the suite lists (2026-11-19 15:13 UTC; corrected for auditor T161 / T167 and the owner's
+**THE AUTOMATIC COLUMN, every kernel the suite lists (2026-11-19 17:43 UTC; corrected for auditor T161 / T167 and the owner's
 T156 / T161 rules).** One switch, BDC_AUTO=1, with no list of kernels (the md5-keyed MLIR rewrites are off since
 f7573b807), the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model;
 nextpnr 6e5d224472232d5d (suite3a / 3b and suite6's own predecessors partly 9c732bc6303458df: identical routes where no GND
@@ -41,7 +41,7 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | collatz64 | PASS | 3 + 5 / 8 | 24 / 24; 40 / 40 | 30.93 (29.89-31.49) [30.46 (28.10-33.47)] | 11784 | 1916 | 17.84 (measured, 1 route) | 1.73 | 31.40 | 7245.17 (6792.67-8181.33) | 4131.94 (cycles simulated, period measured (1 route)) | 1.75 |
 | countloop | PASS | 7 + 1 / 8 | 28 / 28; 4 / 4 | 21.37 (20.31-24.87) [23.50 (23.50-23.50)] | 6420 | 1797 | 8.36 (ESTIMATE) | 2.56 | - | 921.30 (865.80-1018.20) | 341.14 (ESTIMATE) | 2.70 |
 | digitdiv | PASS | 1 + 0 / 1 | 4 / 4; - | 147.74 (147.74-147.74) | 4788 | 3813 | 303.77 (ESTIMATE) | 0.49 | - | 1416.00 (1416.00-1416.00) | - | - |
-| digitsum | NO RESULT (suite10b's loops ran out of time; resumed in divres1 (8 cores; the divider makes each rule step slow), running) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| digitsum | PASS | 1 + 0 / 1 | 4 / 4; - | 146.42 (146.42-146.42) | 4752 | 3874 | - | - | - | 1447.33 (1447.33-1447.33) | - | - |
 | divmods | PASS | 1 + 0 / 1 | 4 / 4; - | 1614.00 (1614.00-1614.00) | 264 | 5610 | - | - | - | 270.25 (270.25-270.25) | - | - |
 | divmodu | PASS | 2 + 0 / 2 | 8 / 8; - | 1614.00 (1614.00-1614.00) | 276 | 2753 | - | - | - | 273.00 (264.00-282.00) | - | - |
 | dot2 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 30.97 (30.97-30.97) [33.84 (33.39-34.28)] | 1152 | 1436 | 59.28 (ESTIMATE) | 0.52 | - | 717.75 (640.50-761.25) | 1212.19 (ESTIMATE) | 0.59 |
@@ -53,7 +53,7 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | gcd | PASS | 0 + 3 / 4 | -; 12 / 12 | - [62.82 (61.42-66.30)] | 2172 | 7178 | 50.60 (ESTIMATE) | - | 87.20 | 600.00 (593.25-628.50) | 429.97 (ESTIMATE) | 1.40 |
 | horner | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 28.03 (28.03-28.03) [30.22 (29.25-31.28)] | 8064 | 1735 | 41.81 (ESTIMATE) | 0.67 | - | 1193.45 (1147.09-1233.27) | 1601.58 (ESTIMATE) | 0.75 |
 | if_convert | PASS | 2 + 0 / 2 | 8 / 8; - | 49.76 (49.09-50.43) | 9780 | 812 | 65.70 (ESTIMATE) | 0.76 | - | 7158.00 (6960.00-7356.00) | - | - |
-| if_loop_1 | WRONG ANSWER under draws | 0 + 4 / 4 | -; 14 / 16 | - [31.06 (27.52-33.70)] | 3432 | 1888 | 19.90 (ESTIMATE) | - | - | 1833.00 (1615.50-2007.00) | 1145.83 (ESTIMATE) | 1.60 |
+| if_loop_1 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 27.97 (27.97-27.97) [33.51 (28.61-33.70)] | 3432 | 1888 | 19.90 (ESTIMATE) | 1.41 | - | 1833.00 (1629.00-2007.00) | 1145.83 (ESTIMATE) | 1.60 |
 | if_loop_2 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 29.77 (26.38-32.36) [29.54 (29.54-29.54)] | 3288 | 1541 | 16.67 (ESTIMATE) | 1.79 | - | 1959.38 (1743.00-2142.75) | 1063.98 (ESTIMATE) | 1.84 |
 | iir | PASS | 0 + 2 / 2 | -; 8 / 8 | - [56.40 (55.09-57.72)] | 57696 | 1185 | 48.68 (ESTIMATE) | - | - | 57081.00 (54852.00-59310.00) | - | - |
 | image_resize | PASS | 0 + 2 / 2 | -; 8 / 8 | - [69.67 (69.12-70.23)] | 63504 | 2454 | 18.95 (ESTIMATE) | - | - | 63180.00 (61782.00-64578.00) | - | - |
@@ -72,7 +72,7 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | share_test_1 | PASS | 0 + 1 / 1 | -; 4 / 4 | - [27.27 (27.27-27.27)] | 55548 | 1663 | 58.41 (ESTIMATE) | - | - | 55074.00 (55074.00-55074.00) | - | - |
 | share_test_2 | NOT-A-BOARD-ROUTE | 0 + 0 / 2 | -; - | - | - | - | 91.89 (ESTIMATE) | - | - | - | - | - |
 | simple_example_1 | PASS | 2 + 0 / 2 | 8 / 8; - | - | 72 | 85 | - | - | - | 72.00 (72.00-72.00) | - | - |
-| single_loop | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 40.32 (ESTIMATE) | - | - | - | - | - |
+| single_loop | PASS | 1 + 0 / 1 | 4 / 4; - | 46.04 (46.04-46.04) | 23112 | 735 | 40.32 (ESTIMATE) | 1.14 | - | 22974.00 (22974.00-22974.00) | - | - |
 | sobel | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 43.37 (ESTIMATE) | - | - | - | - | - |
 | spmv | PASS | 0 + 2 / 2 | -; 8 / 8 | - | 1512 | 4047 | 43.09 (ESTIMATE) | - | - | 922.50 (898.50-946.50) | - | - |
 | sqrtsub | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 23.91 (23.91-23.91) [21.81 (21.17-24.36)] | 6300 | 1398 | 8.36 (ESTIMATE) | 2.86 | - | 832.85 (759.23-896.77) | 292.00 (ESTIMATE) | 2.85 |
@@ -96,7 +96,7 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | while_loop_3 | PASS | 1 + 1 / 2 | 4 / 4; 4 / 4 | 25.75 (25.75-25.75) [27.57 (27.57-27.57)] | 996 | 801 | 34.00 (ESTIMATE) | 0.76 | - | 303.43 (299.14-307.71) | - | - |
 | xorshift | PASS | 6 + 2 / 8 | 48 / 48; 16 / 16 | 22.16 (20.42-23.57) [20.89 (20.55-21.23)] | 6096 | 1316 | 12.73 (measured, 1 route) | 1.74 | 16.76 | 2214.79 (2061.16-2427.16) | 1257.59 (cycles simulated, period measured (1 route)) | 1.76 |
 
-56 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 20): 0.99. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 30): 1.38.
+59 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 22): 1.01. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 31): 1.38.
 
 **The same flow WITH the three md5-keyed rewrites (BDC_AUTO_REWRITES=1; farm suite6, 8 seeds, 8 draws; not the automatic
 column):** collatz PASS, 6 + 2 routes (clean + NOT CLEAN), 48 / 48 + 16 / 16 draws, P on clean routes 17.24 (16.20-19.46)
