@@ -74,6 +74,8 @@ static vector<double> his;                                  // flattened H_RUNT 
 static map<string, int> BN;
 static vector<int> Bdata[3];                                // a_data, b_data, out0_data
 static vector<int> XACKS;                                   // other input channels' acks (memory kernels), all waited for
+struct HostP { string name; int req, we, ack; vector<int> addr, wdata; };
+static vector<HostP> HOSTS;                                 // memory kernels: the host's port of each array (--hostport)
 
 // DSP48E1 output-bit gates (flag 2 in the .simx file; margin/dsp/dsp_gates.py, model margin/dsp/dspmodel.py): the
 // combinational DSP48E1 datapath (every register off; yosys cells_sim.v semantics), bit obit of P (= PCOUT).
@@ -175,6 +177,14 @@ static void load_net(const char* fn) {
         p += 6; int n = strtol(p, &e, 10); p = e;
         for (int i = 0; i < n; i++) { XACKS.push_back(strtol(p, &e, 10)); p = e; }
     }
+    while (*p == '\n' || *p == ' ') p++;
+    while (!strncmp(p, "host ", 5)) {   // host NAME req we ack na addr.. nw wdata..
+        p += 5; const char* q = strchr(p, ' '); HostP h; h.name.assign(p, q - p); p = q;
+        h.req = strtol(p, &e, 10); p = e; h.we = strtol(p, &e, 10); p = e; h.ack = strtol(p, &e, 10); p = e;
+        int na = strtol(p, &e, 10); p = e; for (int i = 0; i < na; i++) { h.addr.push_back(strtol(p, &e, 10)); p = e; }
+        int nw = strtol(p, &e, 10); p = e; for (int i = 0; i < nw; i++) { h.wdata.push_back(strtol(p, &e, 10)); p = e; }
+        HOSTS.push_back(h); while (*p == '\n' || *p == ' ') p++;
+    }
 }
 
 // ---------------- node histories: v0 and flip times (values alternate) ----------------
@@ -271,7 +281,9 @@ static void ram_step(int id, ll T) {
     }
 }
 static ll RAMVIOL = 0; static string RAMVIOL_EX;
+static ll RAMMIN[3][2]; static string RAMMIN_AT[3][2];   // smallest setup / hold margin (ps, after the window) per class ADDR / WE / DI
 static void ram_checks() {   // setup / hold: no sampled pin changes within [sp - SETUP, sp + HOLD] of its own sample point
+    for (int c = 0; c < 3; c++) for (int j = 0; j < 2; j++) RAMMIN[c][j] = 1LL << 50;
     for (size_t id = 0; id < RAMS.size(); id++) {
         RamS& st = RAMS[id]; if (st.master < 0) continue;
         int m = st.master; const RamG& r = RAMG[gram[m]]; int b0 = gins0[m], k = gk[m];
@@ -281,6 +293,13 @@ static void ram_checks() {   // setup / hold: no sampled pin changes within [sp 
                 int cls = ro < 16 ? 1 : ro < 32 ? 0 : 2;   // 0 ADDR, 1 WE, 2 DI
                 if (cls == 2 && !wrote) continue;
                 ll sp = s - ds[b0 + i]; const vector<int>& h = H[ins[b0 + i]];
+                {   // margins: last change at or before sp (setup), first change after sp (hold)
+                    auto u = upper_bound(h.begin(), h.end(), (int)sp);
+                    if (u != h.begin()) { ll m_ = sp - *(u - 1) - r.su[cls];
+                        if (m_ < RAMMIN[cls][0]) { RAMMIN[cls][0] = m_; char b[300]; snprintf(b, sizeof b, "ram %zu pin %s at %lld", id, names[ins[b0 + i]].c_str(), sp); RAMMIN_AT[cls][0] = b; } }
+                    if (u != h.end()) { ll m_ = *u - sp - r.ho[cls];
+                        if (m_ < RAMMIN[cls][1]) { RAMMIN[cls][1] = m_; char b[300]; snprintf(b, sizeof b, "ram %zu pin %s at %lld", id, names[ins[b0 + i]].c_str(), sp); RAMMIN_AT[cls][1] = b; } }
+                }
                 auto it = upper_bound(h.begin(), h.end(), (int)(sp - r.su[cls]));
                 if (it != h.end() && *it <= sp + r.ho[cls]) {
                     RAMVIOL++;
@@ -349,7 +368,7 @@ int main(int argc, char** argv) {
     vector<pair<ull, ull>> pairs; vector<string> pairstr; vector<ull> wantv; bool has_want = false; string kernel = "gcd";
     double corner = 0.5, kappa = NAN; const char* classes = nullptr; char cdefault = 'M';
     bool data0 = false, full = false, pipelined = false; ll R = 20000, su = 0, dout = 3000, dfall = -1, tmax = 5000000, reqgap = 0, maxev = -1, hostd = 1;
-    string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr; bool periodic = false; const char* memf = nullptr;
+    string datachange = "handshake", nextreq = "sample"; const char* dump = nullptr; bool periodic = false; const char* memf = nullptr; bool hostport = false;
     for (int i = 2; i < argc; i++) {
         string o = argv[i];
         auto nxt = [&]() -> const char* { if (i + 1 >= argc) die("missing value for %s", o.c_str()); return argv[++i]; };
@@ -388,7 +407,8 @@ int main(int argc, char** argv) {
         else if (o == "--regsize") DREGSZ = atoi(nxt());
         else if (o == "--gclass") GCLF = nxt();          // research's draw model: per-gate class file "gi c|r|x|q|p"
         else if (o == "--bands") { if (sscanf(nxt(), "%lf,%lf,%lf", &DBC, &DBR, &DBX) != 3) die("--bands bc,br,bx"); }   // stop with PERIODIC when the run provably (untrusted) repeats
-        else if (o == "--mem") memf = nxt();   // RAM contents: "F k id addr hex" fill before call k, "X k id addr hex" expected after call k
+        else if (o == "--mem") memf = nxt();
+        else if (o == "--hostport") hostport = true;   // fills go through each array's host port (the bench's sequencer), not into the RAM   // RAM contents: "F k id addr hex" fill before call k, "X k id addr hex" expected after call k
         else if (o == "--pos" || o == "--seed") nxt();
         else die("unsupported option %s (simx ports only simadv's --classes/--full subset)", o.c_str());
     }
@@ -404,11 +424,20 @@ int main(int argc, char** argv) {
 
     load_net(netf);
     map<ll, vector<tuple<int, int, unsigned>>> MFILL, MEXP; ll memmis = 0, memchk = 0; string memex;
-    if (memf) { FILE* f = fopen(memf, "r"); if (!f) die("cannot open %s", memf); char c; ll kk; int id, ad; unsigned w;
-        while (fscanf(f, " %c %lld %d %d %x", &c, &kk, &id, &ad, &w) == 5) {
+    map<ll, vector<tuple<int, int, unsigned>>> HFILL;   // call -> (host index, element index, word): --hostport
+    if (memf) { FILE* f = fopen(memf, "r"); if (!f) die("cannot open %s", memf); char line[512];
+        while (fgets(line, sizeof line, f)) {
+            char c, nm[200]; ll kk; int id, ad; unsigned w;
+            if (line[0] == 'H') {
+                if (sscanf(line, "H %lld %199s %d %x", &kk, nm, &ad, &w) != 4) die("--mem: bad H line");
+                int hi = -1; for (size_t j = 0; j < HOSTS.size(); j++) if (HOSTS[j].name == nm) hi = j;
+                if (hi < 0) { if (hostport) die("--mem: no host port %s", nm); continue; }
+                HFILL[kk].push_back({hi, ad, w}); continue; }
+            if (sscanf(line, " %c %lld %d %d %x", &c, &kk, &id, &ad, &w) != 5) continue;
             if (id < 0 || id >= (int)RAMS.size() || RAMS[id].master < 0 || ad < 0 || ad >= 1024) die("--mem: bad ram id / address");
             (c == 'F' ? MFILL : MEXP)[kk].push_back({id, ad, w}); }
-        fclose(f); fprintf(stderr, "simx: --mem %zu fill calls, %zu checked calls, %zu RAMs\n", MFILL.size(), MEXP.size(), RAMS.size()); }
+        fclose(f); fprintf(stderr, "simx: --mem %zu fill calls, %zu checked calls, %zu RAMs, %zu host ports%s\n", MFILL.size(), MEXP.size(),
+                           RAMS.size(), HOSTS.size(), hostport ? " (fills THROUGH the host ports)" : ""); }
     auto mem_check = [&](ll kc, ll tt) {
         for (size_t id = 0; id < RAMS.size(); id++) if (RAMS[id].master >= 0) ram_step(id, tt);
         auto it = MEXP.find(kc); if (it == MEXP.end()) return;
@@ -534,6 +563,8 @@ int main(int argc, char** argv) {
     ll np = pairs.size();
     if (np) { ll t0d = data0 ? 0 : (su ? R - su - 1 : R); drive_data(t0d, pairs[0].first, 0); drive_data(t0d, pairs[0].second, 1); }
     ll t = 0, nev = 0; vector<pair<ll, ull>> outvals;
+    int hst = 0; ll hk = -1, hq = 0, hnext = 0, hgap = 0, nhost = 0;
+    const ll HCLK = getenv("HOSTCLK") ? atoll(getenv("HOSTCLK")) : 12000, HGAP = getenv("HOSTGAP") ? atoll(getenv("HOSTGAP")) : 8;
     bool req_state = false, pend_state = false, capped = false;
     const int* INS = ins.data(); const int* DS = ds.data(); const int* DSF = dsf.data();
     if (TCUT >= 0) fprintf(stderr, "simx: --tcut %lld: slowed arcs take their F delay for input changes at or after it\n", TCUT);
@@ -600,7 +631,7 @@ int main(int argc, char** argv) {
             }
             if (setv(gout[g], t, v)) changed(gout[g], t);
         }
-        if (periodic && t > R && (nev & ((1 << 18) - 1)) == 0 && Q.env.empty() && LASTN >= 0) {
+        if (periodic && t > R && (nev & ((1 << 18) - 1)) == 0 && Q.env.empty() && LASTN >= 0 && hst == 0) {   // hst: the host's sequencer is a clock, not an idle env
             // Eventual periodicity (UNTRUSTED argument, as Lean's Frontier36 made by hand): every gate reads its inputs at
             // most maxD + lookback ps back, so if every node's history on (te-L, te] equals its history on (te-L-P, te-P]
             // shifted by P (values at the window starts included), no boundary node moved in (te-L-P, te] and the env has
@@ -651,8 +682,35 @@ int main(int argc, char** argv) {
             printf("env: data -> pair %lld at %lld ps (all acks low, before out0)\n", k, t + 1);
             drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1);
         }
+        // --hostport: before call k the bench's sequencer (gen_bench.py) writes call k's arrays through the host ports, one
+        // element at a time, on aclk (HOSTCLK ps) edges: payload (addr, data, we) at a start edge, the request at the next edge
+        // once the synchronised acknowledge is low, the request dropped at the edge that sees it high, done at the edge that
+        // sees it low again; the acknowledge as seen at edge e is its value at e - 2 HOSTCLK (2-flop synchroniser); HOSTGAP
+        // idle edges between accesses (the PS's AXI writes).
+        if (hostport && hst == 0 && hk != k && !req_state && !anyA && k < np && next_ok) {
+            if (k > 0) mem_check(k - 1, t);
+            hk = k; hq = 0; hst = 1; hgap = 0; hnext = ((t / HCLK) + 1) * HCLK; Q.env.push({hnext, -2, 0, -1});
+        }
+        if (hostport && hst > 0) {   // the sequencer runs on its own clock, whatever the kernel's acknowledges do
+            auto& W_ = HFILL[hk];
+            while (hst > 0 && t >= hnext) {
+                ll e = hnext; hnext += HCLK;
+                if (hq >= (ll)W_.size()) { hst = 0; hnext = e; break; }
+                const HostP& h = HOSTS[get<0>(W_[hq])]; bool hs = val(h.ack, e - 2 * HCLK);
+                if (hst == 1) { if (hgap > 0) { hgap--; continue; }
+                    unsigned ad = get<1>(W_[hq]), w = get<2>(W_[hq]);
+                    for (size_t i = 0; i < h.addr.size(); i++) if (h.addr[i] >= 0) env_set(e + 1, h.addr[i], (ad >> i) & 1);
+                    for (size_t i = 0; i < h.wdata.size() && i < 32; i++) if (h.wdata[i] >= 0) env_set(e + 1, h.wdata[i], (w >> i) & 1);
+                    if (h.we >= 0) env_set(e + 1, h.we, true); hst = 2; }
+                else if (hst == 2) { if (!hs) { env_set(e + 1, h.req, true); hst = 3; } }
+                else if (hst == 3) { if (hs) { env_set(e + 1, h.req, false); hst = 4; } }
+                else if (hst == 4) { if (!hs) { hq++; hst = 1; hgap = HGAP; nhost++; } }
+            }
+            if (hst > 0) { Q.env.push({hnext, -2, 0, -1}); continue; }
+        }
         if (!req_state && !anyA && k < np && next_ok) {
-            if (memf) { if (k > 0) mem_check(k - 1, t); mem_fill(k, t); }   // the host reads back call k-1, fills call k
+            if (memf && !hostport) { if (k > 0) mem_check(k - 1, t); mem_fill(k, t); }   // the host reads back call k-1, fills call k
+            if (hostport) hst = 0;
             if (datachange == "next" && k > 0) {
                 drive_data(t + hostd, pairs[k].first, 0); drive_data(t + hostd, pairs[k].second, 1);
                 env_set(t + hostd + max(su, 1LL), req, true);
@@ -703,8 +761,12 @@ int main(int argc, char** argv) {
         for (size_t id = 0; id < RAMS.size(); id++) if (RAMS[id].master >= 0) ram_step(id, t + 1);
         ram_checks();
         size_t ned = 0; for (auto& r : RAMS) ned += r.edges.size();
-        fprintf(stderr, "RAMCHECK: %zu RAMs, %zu clock edges, setup/hold violations %lld %s; memory words checked %lld, wrong %lld %s\n",
-                RAMS.size(), ned, RAMVIOL, RAMVIOL_EX.c_str(), memchk, memmis, memex.c_str());
+        fprintf(stderr, "RAMCHECK: %zu RAMs, %zu clock edges, setup/hold violations %lld %s; memory words checked %lld, wrong %lld %s; host writes %lld\n",
+                RAMS.size(), ned, RAMVIOL, RAMVIOL_EX.c_str(), memchk, memmis, memex.c_str(), nhost);
+        { const char* cn[3] = {"ADDR", "WE", "DI"}; string m_;
+          for (int c = 0; c < 3; c++) for (int j = 0; j < 2; j++) if (RAMMIN[c][j] < (1LL << 49)) {
+              char b[400]; snprintf(b, sizeof b, "%s%s %s %lld ps (%s)", m_.empty() ? "" : "; ", cn[c], j ? "hold" : "setup", RAMMIN[c][j], RAMMIN_AT[c][j].c_str()); m_ += b; }
+          fprintf(stderr, "RAMMARGIN (beyond prjxray's widest setup / hold): %s\n", m_.c_str()); }
         ramok = RAMVIOL == 0 && memmis == 0;
     }
     if (W) {

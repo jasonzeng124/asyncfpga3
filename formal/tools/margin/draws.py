@@ -34,6 +34,7 @@ ap.add_argument("--model", default="research", choices=["research", "fid"],
 ap.add_argument("--routed", default=None, help="routed.json (research model: delay-chain cells by name)")
 ap.add_argument("--inject", default=None, help="simx classes JSON with an 'I' list [[node, pin, ps], ..]: extra delay on those arcs (a negative control; not a model draw)")
 ap.add_argument("--mem", default=None, help="simx --mem file (margin/bram/memvec.py): RAM fills before / contents expected after each call")
+ap.add_argument("--hostport", action="store_true", help="simx --hostport: the fills go through each array's host port")
 ap.add_argument("--wallcap", type=int, default=1800); ap.add_argument("--maxev", default="100000000")
 a = ap.parse_args()
 os.makedirs(a.out, exist_ok=True)
@@ -113,7 +114,8 @@ def run(seed):
            "--pairs", *a.pairs, "--kernel", a.kernel, "--corner", "0", "--data0", "--full", "--R", "400000", "--su", "1000",
            "--datachange", "broad", "--nextreq", "seq", "--tmax", str(a.tmax), "--draw", str(seed), "--band", str(a.band),
            "--sreg", str(a.sreg), "--sarc", str(a.sarc), "--regsize", str(a.regsize)] + (
-           ["--gclass", GCL, "--bands", "%.6f,%.6f,%.6f" % bands(seed)] if GCL else []) + (["--classes", a.inject] if a.inject else []) + (["--w", str(a.w)] if a.w else []) + (["--mem", a.mem] if a.mem else [])
+           ["--gclass", GCL, "--bands", "%.6f,%.6f,%.6f" % bands(seed)] if GCL else []) + (["--classes", a.inject] if a.inject else []) + (["--w", str(a.w)] if a.w else []) + (["--mem", a.mem] if a.mem else []) + (["--hostport"] if a.hostport else [])
+    if os.environ.get("DRAWS_PRINT_CMD"): print(" ".join(cmd), file=sys.stderr)
     t0 = time.time()
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=a.wallcap)
@@ -125,6 +127,8 @@ def run(seed):
     out0 = "last out0 at %d ps (%d answers)" % (ts[-1], len(ts)) if ts else "no out0"
     rc_ = re.search(r"^RAMCHECK: (.*)$", r.stderr, re.M)
     if rc_: out0 += " [%s]" % rc_.group(1)[:300]
+    rm_ = re.search(r"^RAMMARGIN[^:]*: (.*)$", r.stderr, re.M)
+    if rm_: out0 += " [ram margins: %s]" % "; ".join(re.findall(r"(\w+ (?:setup|hold) -?\d+ ps)", rm_.group(1)))
     nm = re.search(r"^NEARMISS storage-output pulses < \d+ ps: (\d+); narrowest \(width, node, t\) \[\((\d+), '([^']*)', (\d+)\)", r.stderr, re.M)
     if nm: out0 += " [nearmiss %s; min %s ps at %s t=%s]" % (nm.group(1), nm.group(2), cellname(nm.group(3)), nm.group(4))
     for c in ("storage", "feeding-storage"):   # simx RACES=1: the closest input reordering that would flip a LUT

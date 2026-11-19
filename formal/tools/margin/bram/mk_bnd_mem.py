@@ -25,7 +25,17 @@ B = {"rst": one("rst"), "req": reqs.pop(), "a_ack": aack, "b_ack": back,
      "start_ack": one("start_ack"), "out0_req": one("out0_req"), "out0_ack": one("out0_ack"),
      "pend_ack": None if void else one("p_end_ack"),
      "a_data": ad, "b_data": bd, "out0_data": b["out0_data"]["nodes"], "xacks": xacks}
-env = sorted({B["rst"], B["req"], B["out0_ack"]} | ({B["pend_ack"]} if B["pend_ack"] else set()) |
+# the host's port of each array (<array>_host_req / _we / _addr / _wdata in, _ack out): simx --hostport drives the fills
+# through it as the bench's sequencer does (gen_bench.py: payload one aclk before the request, 2-flop synchronised ack)
+hosts = []
+for k in sorted(b):
+    if k.endswith("_host_req") and b[k]["dir"] == "input":
+        h = k[:-len("_host_req")]
+        hosts.append({"name": h, "req": one(h + "_host_req"), "we": one(h + "_host_we"), "ack": one(h + "_host_ack"),
+                      "addr": b[h + "_host_addr"]["nodes"], "wdata": b[h + "_host_wdata"]["nodes"]})
+B["hosts"] = hosts
+hostin = {x for h in hosts for x in [h["req"], h["we"]] + h["addr"] + h["wdata"] if not x.startswith("const")}
+env = sorted(hostin | {B["rst"], B["req"], B["out0_ack"]} | ({B["pend_ack"]} if B["pend_ack"] else set()) |
              {x for x in ad + bd if not x.startswith("const")})
 json.dump({"boundary": B, "env": env, "operands": [a, bb], "channels": chans}, open(sys.argv[2], "w"))
 print("void" if void else "", "operands", a, bb, "channels", chans, "extra acks", len(xacks), "env nodes", len(env))

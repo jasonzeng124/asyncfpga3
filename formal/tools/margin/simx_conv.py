@@ -63,5 +63,9 @@ with open(outf, "w") as f:
             str(-2 if nm == "const1" else -1) if nm.startswith("const") else str(idx[nm]) for nm in B[k])))
     if B.get("xacks"):   # margin/bram/mk_bnd_mem.py: acknowledges of the other input channels (simx waits for all)
         f.write("xacks %d %s\n" % (len(B["xacks"]), " ".join(str(idx[x]) for x in B["xacks"])))
+    for h in B.get("hosts", []):   # margin/bram/mk_bnd_mem.py: a host port per array (simx --hostport)
+        cn = lambda x: -2 if x == "const1" else -1 if x.startswith("const") else idx[x]
+        f.write("host %s %d %d %d %d %s %d %s\n" % (h["name"], cn(h["req"]), cn(h["we"]), cn(h["ack"]), len(h["addr"]),
+                " ".join(str(cn(x)) for x in h["addr"]), len(h["wdata"]), " ".join(str(cn(x)) for x in h["wdata"])))
 print("simx_conv: %d nodes, %d gates simulated (--full), kernel cone %d gates (%d nodes) -> %s"
       % (len(names), len(order), ncone_kernel, nseen, outf), file=sys.stderr)

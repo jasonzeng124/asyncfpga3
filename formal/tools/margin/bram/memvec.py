@@ -79,6 +79,8 @@ for k, c in enumerate(calls):
         rams = sorted(j for (cc, j) in rid if cc == ctrl[a])
         if not rams:
             sys.exit("memvec: no RAM of %s_uport in the net" % ctrl[a])
+        for adr, w in enumerate(c["arrs"][ai]):   # the host's write through its port (simx --hostport): the whole element
+            lines.append("H %d %s %d %08x" % (k, a, adr, w & ((1 << dw[a]) - 1)))
         for tag, words in (("F", c["arrs"][ai]), ("X", mexp.get((k, ai)))):
             if words is None:
                 sys.exit("memvec: no expected contents for call %d array %d" % (k, ai))

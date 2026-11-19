@@ -13,7 +13,9 @@
 #      bram_gates.py; the kernel boundary (margin/boundary_bench.py, mk_bnd_mem.py (A's mk_bnd_sim.py generalised), B's bnd_const.py);
 #   4. memvec.py; NDRAWS (16) draws of research's model from K0 (10000 + 100 SEED + 1) and NDRAWS slow-carry draws
 #      (CARRY4 / F7F8 / FF / RAMB18 in [0.8, 1.0]) with tools-B/auto/xdraws.py -> draws.py --mem.
-# The host's fill / read-back is NOT simulated through its port: memvec writes the arrays into the RAMs between calls.
+# The host's fill: by default memvec writes the arrays into the RAMs between calls; HOSTPORT=1 drives each write through
+# the array's host port instead, as the bench's sequencer does (simx --hostport; payload one aclk before the request, a
+# 2-flop synchronised acknowledge, HOSTCLK 12000 ps). The read-back is always read from the RAM's contents.
 # OUT/summary.txt.  Env: RS (default /home/user/rs), TREE (default $OUT/tree: a private copy of cells/ bdc/ build/frontend).
 set -uo pipefail
 K=$1; S=$2; Z=$3; [ "$Z" = none ] || Z=$(readlink -f "$Z"); M8=$4; O=$(mkdir -p "$5" && cd "$5" && pwd); ND=${6:-16}; K0=${7:-$((10000 + 100 * S + 1))}
@@ -62,7 +64,7 @@ python3 "$H/memvec.py" "$RS/$V" "$O/v/exp.txt" "$O/v/memexp.txt" "$W/m/net.json"
 for x in "" 0.8,1.0; do
   k0=$K0; [ -n "$x" ] && k0=$((K0 + 50))
   DRAW_XBAND=$x python3 "$B/xdraws.py" "$O/v/exp_num.txt" "$W/m/net.json" "$W/m/bnd.json" "$O/d$k0" --kernel "$K" --pairs $(cat "$O/v/pairs.txt") \
-    --draws "$ND" --seed0 "$k0" --jobs "${JOBS:-4}" --routed "$W/m/routed.json" --tmax "${TMAX:-1900000000}" --mem "$O/v/mem.txt" > "$O/d$k0.log" 2>&1
+    --draws "$ND" --seed0 "$k0" --jobs "${JOBS:-4}" --routed "$W/m/routed.json" --tmax "${TMAX:-1900000000}" --mem "$O/v/mem.txt" ${HOSTPORT:+--hostport} > "$O/d$k0.log" 2>&1
   say "draws K $k0..$((k0 + ND - 1))${x:+ slow-carry/RAM $x}: $(grep '^draws [0-9]' "$O/d$k0.log" | head -1) $(grep -E 'seed [0-9]+ (FAIL|UND)' "$O/d$k0.log" | head -4 | tr '\n' ' ' | cut -c1-400)"
   cp "$O/d$k0/draws_summary.txt" "$O/draws_summary_$k0.txt" 2>/dev/null; cp "$O/d$k0/draws.txt" "$O/draws_$k0.txt" 2>/dev/null
   rm -rf "$O/d$k0/net.simx" "$O/d$k0/simx"
