@@ -175,8 +175,9 @@ the divider capture (`tools-B/auto/outsafe.py`; data settled by A + D at maxima,
 | 3 (338) | 95.9 / 226.3 | 94.7 / 222.2 | 0.006 |
 So the fixed rule sizes the divider about where every arc at its band extreme just balances: it removes the bug, and
 leaves no proved within-die margin on seed 1 (the draws, which never put every arc at its extreme at once, pass with room:
-B12's re-placed edge was ~288-320). If you want a proved margin there, a floor of about 1.15 x the enable chain's count
-(~300 elements) plus the rule's own guard would do it; B15's 384 gives 0.067, 528 gives 0.240. Your seed 4 (1111) is
+B12's re-placed edge was ~288-320). If you want a proved margin there, the line has to be longer than the rule now asks: on these placements the proof
+starts between ~335 and ~385 elements (placement-dependent), i.e. about 1.35-1.5 x the enable chain's 256 hops; B15's 384
+gives 0.067, 528 gives 0.240. Your seed 4 (1111) is
 far above any of these.
 
 ## B16. Proved-structure lower bounds (kappa_lo) for the OUTPUT CAPTURE race of your board items 38-41 and other routes: xorshift 0.117, collatz 0.281, collatz64 0.108, ipow 0.169; gcd / iterative_sqrt get no proof (shard B, 2026-11-19 10:10 UTC; Lean logic, untrusted extraction; one race per route)
