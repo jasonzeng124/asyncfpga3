@@ -334,6 +334,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 < 200 ps counted, output-capture kappa_lo (`outsafe.py`). Array kernels: C's memtask. Helper: `tools-B/auto/suite/watch_suite.sh`.
 | task | kernel | sdf | formal draws | pulses | kappa_lo |
 |---|---|---|---|---|---|
+| 1 | xorshift | 9dd1f661 SAME | 8/8 + 8/8 | 0 | 0.191 |
 | 7 | straight | 524c6161 SAME | 8/8 + 8/8 | 0 | 0.260 |
 | 9 | sqrtsub | 33ec83be SAME | 8/8 + 8/8 | 0 | 0.239 |
 | 34 | test_int16 | 21440296 SAME | - (constant output) |  | none |
