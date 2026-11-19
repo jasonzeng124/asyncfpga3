@@ -7398,3 +7398,11 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   had 2: when nothing is clean the loop ships its LAST route, not its least-short one. A third NOT CLEAN route that is
   actually wrong (after flow v1's ipow s4 and if_loop_1 s1); the rule flagged it. Passed to the converge subagent
   (ship the least-short route; make the finish phase converge).
+### progress 15:13 (headline: 56 of 62 kernels pass)
+- With suite10c (nest3 s1-4, stencil_2d s1 PASS), divres1 (digitdiv s1, divmods s1 PASS, rule-clean), ifl1 (if_loop_1
+  s3 / s4 PASS with rule B's RAM guard) and ringfuse1's v7 baselines: **56 of 62 kernels attempted pass**. Not passing:
+  if_loop_1 (seeds 1 / 2's old routes, sized before the guard; ifl1's seeds 1 / 2 still running), share_test_2 (the
+  decoder lacks its DSP48E1 cascade mode), and digitsum / single_loop / sobel / video_filter (loops still running).
+  Ratio to Dynamatic: 1.69 over the 3 measured figures; 0.99 over 20 with estimates -- the memory kernels' estimates
+  assume Dynamatic's on-merges buffering (up to ~6x pessimistic for Dynamatic), so that mean flatters us; said so in the
+  headline.
