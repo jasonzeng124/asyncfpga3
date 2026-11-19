@@ -7084,3 +7084,8 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   the data reaches six inputs, among them  flip-flop D pins) -- a real race, or the bench's clocked result
   capture (sampled a synchronizer's delay after the request) seen as an asynchronous one; if false, rule A' checks such
   a capture against the bench's sampling edge (opt-in, with a negative control), so their loops can end CLEAN.
+### progress 01:21 (suite9 done; its last 9 unfinished loops added to suite9r2's state, which has not started yet)
+- suite9's last tasks: gather s4 PASS; branchloop s4, factorial s1 / s2, fill s2 / s4, quadrec s1 / s2 / s4 timed out
+  with a state (now in research/data/suite/resume/suite9/, 52 in all); fill s1, fold64 s1, iterative_division s1,
+  quadrec s3 timed out with none. suite9r2 (waiting for cores) resumes every task with a state at the head it is
+  submitted at -- now with CA_FAST (the same proposals, ~8-10x faster rule steps) and the bench-clock seed fallback.
