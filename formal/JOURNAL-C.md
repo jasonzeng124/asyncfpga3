@@ -4905,3 +4905,9 @@ c_mem11 (16) and c_mem12 (33), 2 cores a task, ran at once where c_mem7 (68 x 4)
 c_mem8 (11) and c_mem9 (16 + controls), 76 distinct memory routes of research's are judged with the fixed arc. Smallest
 WE margins besides if_loop_1 s1: if_loop_1 s4 (old) 458 ps, gather s2 563, dot2 s4 690. ifl1 seed 2 timed out on
 research's farm (no route); C63 rests on seeds 1 and 3. C60 marked RESOLVED. c_mem7 still queued (now redundant).
+
+### progress 17:19 -- research flow v8: ring fusion (BDC_RING_FUSE=2) on by default in BDC_AUTO
+Checked at research's new HEAD: BDC_AUTO alone now gives the fused emission (xorshift / collatz AUTO LIVE with 319
+states, = C62's RF=2 rows), so C62's sweep is the liveness check of v8's AUTO column. The memory approximator works on
+the decoded gates, so fused routes need nothing new; suite12 (whole suite, v8, seed 1) memory routes will go through
+newroutes.py when they land.
