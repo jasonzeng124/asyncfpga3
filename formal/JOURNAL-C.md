@@ -4955,3 +4955,8 @@ BRAM_R_X25Y80 ADDRARDADDR5 at 807 ns, host fill phase). hostrace mid band: row u
 usetup chain) vs ADDR 2508 ps -> +258 ps; guarded (0.772 / 1.155, skew.py) -890 ps; if_loop_1 s1 failing route -1108,
 its fix c3113cc4 -63. Static path sums are a bound, not a simulation; 0 / 128 failures bounds the rate at ~2.9 % (95 %)
 in this model only. Owner notified.
+
+### progress 21:20 -- c_mem14 done; c_mem16 filed
+c_mem14 row 16 test_flatten_array 4 (927c767c) SAME, 16 + 16 pass, min RAM setup 1870 ps. So 14 SAME rows pass, 2
+DIFFERENT (alt-seed, c_mem15 queued), spmv 4 the only thin one (C64). c_mem16 (21:15): suite12's first memory routes
+(v8, fused: fill 1, test_bitint 1, unused_arg 1, while_loop_3 1) + suite11 stencil_2d 3. suite12 21 / 62, suite10d 2 / 7.
