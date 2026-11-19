@@ -4791,7 +4791,7 @@ RAMMARGIN now prints the smallest setup / hold margin per pin class. if_loop_1 s
 over the draws min -55, median +198, max +401 ps; research's failing draws 10101 / 10104: +188 / +317 here. Same race,
 same RAM, distributions ~0.2 ns apart. Farm c_mem4: every headline memory route with HOSTPORT, 32 + 32 draws.
 
-### progress 09:22 -- memory coverage widened; c_mem3 / c_mem4 back; two harness bugs fixed
+### progress 09:14 -- memory coverage widened; c_mem3 / c_mem4 back; two harness bugs fixed
 - c_mem3 (void kernels etc.): mul_example, simple_example_1, test_memory_1, test_stdint, while_loop_3 16 + 16 pass;
   test_memory_1 with BDC_MEM_NOCAP passes (LS: the store's edge comes after the consumer took the word; research's
   18 / 18 NOCAP failures were spmv's). unused_arg's out0 is a capture latch whose nets nextpnr renamed: boundary_bench
