@@ -63,9 +63,27 @@ def bw : E → Option Nat
   | .bin .xori w _ _ => some w
   | .bin .shli w _ _ => some w
   | .bin (.cmpi _) _ _ _ => some 1
+  | .bin .shrui w _ _ => some w
+  | .bin .shrsi w _ _ => some w
+  | .sel _ a b =>
+    match bw a, bw b with
+    | some x, some y => some (max x y)
+    | _, _ => none
   | _ => none
 
 theorem b2n_lt (b : Bool) : Ops.b2n b < 2 ^ 1 := by cases b <;> decide
+
+theorem shrui_lt (w a b : Nat) : Ops.shrui w a b < 2 ^ w := by
+  simp only [Ops.shrui, Nat.shiftRight_eq_div_pow]
+  exact Nat.lt_of_le_of_lt (Nat.div_le_self _ _) (Nat.mod_lt _ (Nat.two_pow_pos w))
+
+theorem shrsi_lt (w a b : Nat) : Ops.shrsi w a b < 2 ^ w := by
+  have hp := Nat.two_pow_pos w
+  have hm := Nat.mod_lt a hp
+  simp only [Ops.shrsi]
+  split
+  · simp only [Nat.shiftRight_eq_div_pow]; exact Nat.lt_of_le_of_lt (Nat.div_le_self _ _) hm
+  · exact Nat.lt_of_le_of_lt (Nat.sub_le _ _) (Nat.sub_lt hp (by decide))
 
 theorem bw_lt : ∀ (e : E) (b : Nat), bw e = some b → ∀ env, e.eval env < 2 ^ b := by
   intro e b h env
@@ -87,10 +105,20 @@ theorem bw_lt : ∀ (e : E) (b : Nat), bw e = some b → ∀ env, e.eval env < 2
     | ori => simp only [bw, Option.some.injEq] at h; subst h; exact P _ _
     | xori => simp only [bw, Option.some.injEq] at h; subst h; exact P _ _
     | shli => simp only [bw, Option.some.injEq] at h; subst h; exact P _ _
-    | shrsi => simp [bw] at h
-    | shrui => simp [bw] at h
+    | shrsi => simp only [bw, Option.some.injEq] at h; subst h; exact shrsi_lt _ _ _
+    | shrui => simp only [bw, Option.some.injEq] at h; subst h; exact shrui_lt _ _ _
     | cmpi p => simp only [bw, Option.some.injEq] at h; subst h; exact b2n_lt _
-  | sel s a c => simp [bw] at h
+  | sel s a c =>
+    simp only [bw] at h
+    split at h
+    next x y hx hy =>
+      obtain rfl := Option.some.inj h
+      have ha := bw_lt a x hx env; have hc := bw_lt c y hy env
+      simp only [E.eval, Ops.select]
+      split
+      · exact Nat.lt_of_lt_of_le ha (Nat.pow_le_pow_right (by decide) (Nat.le_max_left _ _))
+      · exact Nat.lt_of_lt_of_le hc (Nat.pow_le_pow_right (by decide) (Nat.le_max_right _ _))
+    next => cases h
 
 /-! ## Slices of a two-part packed word -/
 

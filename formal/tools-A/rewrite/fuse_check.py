@@ -80,6 +80,7 @@ def dedupE(ins, a, b, F):
 def swA(a, x, c): return x if c == a else c
 
 class FPlan(Q.Plan):
+    rf = 0
     def do(self, st):
         k = st[0]; rs = self.rs
         if k == 'dedupe':
@@ -91,6 +92,22 @@ class FPlan(Q.Plan):
             _, lf, lc = st; rf, rc = rs[lf], rs[lc]; x, a = rf[1], rf[2][0]
             rs[lf] = ('sink', a); rs[lc] = ('comp', [swA(a, x, c) for c in rc[1]], rc[2], rc[3])
             self.sinks.append(lf); self.pre += [a]; self.chg += [x, a]; self.steps.append(st)
+        elif k == 'forkcomm2':
+            _, lc, lf, x0, x1, n0, n1 = st; rc, rf = rs[lc], rs[lf]
+            assert rc[0] == 'comp' and len(rc[1]) == 2 and rf[0] == 'fork' and rf[1] == rc[2] and len(rf[2]) == 2, st
+            (x, n), y, G = rc[1], rc[2], rc[3]; y0, y1 = rf[2]
+            rs[lc] = ('fork', x, [x0, x1]); rs[lf] = ('fork', n, [n0, n1])
+            rs.append(('comp', [x0, n0], y0, G)); rs.append(('comp', [x1, n1], y1, G))
+            self.pre += [y, x0, x1, n0, n1]; self.chg += [x, n, y, x0, x1, n0, n1]; self.steps.append(st)
+        elif k == 'unpack':
+            _, l = st; r = rs[l]; F2 = unslice(r[3]); assert F2 is not None, st
+            rs[l] = ('comp', r[1], r[2], F2); self.steps.append(st)
+        elif k == 'unjoin':
+            _, lx, ln, lc, lk, lb, lu = st; rn, ru_ = rs[ln], rs[lu]
+            x1, n1 = rs[lc][1]; c = rs[lc][2]; cc = rs[lb][1]; x2, n2 = ru_[1]; u = ru_[2]
+            assert rn[0] == 'fork' and rn[2][0] == n2 and not uses_var(ru_[3], 1), st
+            rs[ln] = ('fork', rn[1], rn[2][1:]); rs[lu] = ('comp', [x2], u, ru_[3])
+            self.pre += [x1, x2, n1, n2, c, cc, u]; self.chg += [x2, n2, u]; self.steps.append(st)
         elif k == 'constdata':
             _, lc, i, v, C = st; rc = rs[lc]; n = len(rc[1])
             F2 = Q.subst(rc[3], [('lit', v) if j == i else ('var', j) for j in range(n)])
@@ -136,7 +153,105 @@ def const_class(R, ch):
                     if o not in C: C.append(o); frontier.append(o)
     return v, C
 
-def normal_form(rs):
+BW_OPS = {'addi', 'subi', 'muli', 'andi', 'ori', 'xori', 'shli'}
+
+def bw(e):
+    """Width bound from the top operator (Lean: Formal.Rewrite.Steps.bw)."""
+    if e[0] == 'un' and e[1][0] in ('trunci', 'extui'): return e[2]
+    if e[0] == 'bin' and e[1][0] in BW_OPS: return e[2]
+    if e[0] == 'bin' and e[1][0] == 'cmpi': return 1
+    if e[0] == 'bin' and e[1][0] in ('shrui', 'shrsi'): return e[2]
+    if e[0] == 'sel':
+        a, b = bw(e[2]), bw(e[3])
+        return None if a is None or b is None else max(a, b)
+    return None
+
+def unslice(F):
+    """Lean: Formal.Rewrite.Steps.unslice (the part a slice of a two-part packed word reads)."""
+    try:
+        assert F[0] == 'un' and F[1] == ('trunci',); w = F[2]; sh = F[3]
+        assert sh[0] == 'bin' and sh[1] == ('shrui',) and sh[4][0] == 'lit'; W = sh[2]; lo = sh[4][1]; pk = sh[3]
+        assert pk[0] == 'bin' and pk[1] == ('addi',) and pk[2] == W; e0 = pk[3]; t = pk[4]
+        assert t[0] == 'bin' and t[1] == ('shli',) and t[2] == W and t[4][0] == 'lit'; e1 = t[3]; w0 = t[4][1]
+    except (AssertionError, IndexError, TypeError):
+        return None
+    b0, b1 = bw(e0), bw(e1)
+    if b0 is None or b1 is None or not (b0 <= w0 and w0 + b1 <= W): return None
+    if lo == 0 and w == w0: return e0
+    if lo == w0 and b1 <= w: return e1
+    return None
+
+def fresh(R):
+    return 1 + max([c for r in R for c in (Q.ins_of(r) + Q.outs_of(r))] + [0])
+
+def rf_unpack(p):
+    """Fused side (BDC_RING_FUSE): a two-input packed cell, its fork and its two slices become the update and the
+    test as separate comps; the update stops waiting for the bound (unjoin). Returns the number of cells done."""
+    R = p.rs; done = 0
+    while True:
+        hit = None
+        for lc, r in enumerate(R):
+            if r[0] != 'comp' or len(r[1]) not in (1, 2): continue
+            Wf = Q.readers(R, r[2])
+            if len(Wf) != 1 or R[Wf[0]][0] != 'fork' or len(R[Wf[0]][2]) != 2: continue
+            lf = Wf[0]; sl = [Q.readers(R, z) for z in R[lf][2]]
+            if not all(len(a) == 1 and R[a[0]][0] == 'comp' and len(R[a[0]][1]) == 1 for a in sl): continue
+            if not all(unslice(Q.subst(R[a[0]][3], [r[3]])) is not None for a in sl): continue
+            hit = (lc, lf, [a[0] for a in sl]); break
+        if hit is None: return done
+        lc, lf, sls = hit; e = fresh(R); x0, x1, n0, n1 = e, e + 1, e + 2, e + 3
+        L = len(R); one = len(R[lc][1]) == 1
+        if one:   # a one-input cell (the test reads a literal): ForkComm, no join to retract
+            p.do(('forkcomm', lc, lf, x0, x1)); src = [lf, L]
+        else:
+            p.do(('forkcomm2', lc, lf, x0, x1, n0, n1)); src = [L, L + 1]
+        for k, ls in enumerate(sls):
+            p.do(('absorb', src[k], ls)); p.do(('unpack', ls))
+        # which slice is the test (its output forked to branch conditions) and which the update (branch data)
+        outs = [R[ls][2] for ls in sls]
+        def branch_data(ch):
+            rd = Q.readers(R, ch); return rd[0] if len(rd) == 1 and R[rd[0]][0] == 'branch' and R[rd[0]][2] == ch else None
+        iu = next((k for k in (0, 1) if branch_data(outs[k]) is not None), None)
+        if iu is None: return done
+        lu, lt = sls[iu], sls[1 - iu]; lb = branch_data(outs[iu]); cc = R[lb][1]
+        rk = Q.readers(R, outs[1 - iu])
+        if len(rk) != 1 or R[rk[0]][0] != 'fork' or cc not in R[rk[0]][2]: return done
+        lk = rk[0]
+        if one:
+            done += 1
+            if iu != 0: p.do(('forder', lc, [x1, x0]))
+            continue
+        if uses_var(R[lu][3], 1): return done
+        n2 = R[lu][1][1]; os_ = list(R[lf][2])
+        if os_[0] != n2: p.do(('forder', lf, [n2] + [c for c in os_ if c != n2]))
+        p.do(('unjoin', lc, lf, lt, lk, lb, lu)); done += 1
+        if iu != 0: p.do(('forder', lc, [x1, x0]))   # the update's copy first, as on the unfused side
+
+def rf_split(p):
+    """Unfused side: an update `comp [x] s F` whose fork feeds one branch (data) and one two-input test comp moves
+    after a fork of `x` (forkcomm), so the test's copy can be absorbed into the test."""
+    R = p.rs; done = 0
+    for lc in range(len(R)):
+        r = R[lc]
+        if r[0] != 'comp' or len(r[1]) != 1: continue
+        rd = Q.readers(R, r[2])
+        if len(rd) != 1 or R[rd[0]][0] != 'fork' or len(R[rd[0]][2]) != 2: continue
+        lf = rd[0]; s0, s1 = R[lf][2]
+        def kind(ch):
+            a = Q.readers(R, ch)
+            if len(a) != 1: return None
+            q = R[a[0]]
+            if q[0] == 'branch' and q[2] == ch: return 'data'
+            if q[0] == 'comp' and len(q[1]) in (1, 2): return 'test'
+            return None
+        ks = (kind(s0), kind(s1))
+        if set(ks) != {'data', 'test'}: continue
+        e = fresh(R)
+        p.do(('forkcomm', lc, lf, e, e + 1)); done += 1
+        if ks[0] != 'data': p.do(('forder', lc, [e + 1, e]))   # the update's copy first, as on the fused side
+    return done
+
+def normal_form(rs, rf=None):
     p = FPlan(rs); R = p.rs
     # BDC_CONST_DATA's move, on both sides: a comp reads a constant-only channel as the literal
     for l, r in enumerate(R):
@@ -145,37 +260,43 @@ def normal_form(rs):
             cc = const_class(R, ch)
             if cc is None or not uses_var(R[l][3], i) or R[l][2] in cc[1]: continue
             p.do(('constdata', l, i, cc[0], cc[1]))
-    changed = True
-    while changed:
-        changed = False
-        # absorb: a comp whose output only one comp reads
-        for lp, r in enumerate(R):
-            if r[0] != 'comp' or not r[1]: continue
-            o = r[2]; W = Q.writers(R, o); Rd = Q.readers(R, o)
-            if W != [lp] or len(Rd) != 1 or Rd[0] == lp or R[Rd[0]][0] != 'comp': continue
-            lq = Rd[0]; ins = list(R[lq][1])
-            if ins.count(o) != 1 or set(r[1]) & set(ins) or R[lq][2] in r[1] + [o]: continue
-            ins2 = [c for c in ins if c != o] + [o]
-            if ins2 != ins: p.do(('reorder', lq, ins2))
-            p.do(('absorb', lp, lq)); changed = True; break
-        if changed: continue
-        # dedupe: a comp reading two outputs of one fork
-        for lc, r in enumerate(R):
-            if r[0] != 'comp': continue
-            byfork = {}
-            for c in r[1]:
-                W = Q.writers(R, c)
-                if len(W) == 1 and R[W[0]][0] == 'fork' and Q.readers(R, c) == [lc]: byfork.setdefault(W[0], []).append(c)
-            hit = next(((lf, cs) for lf, cs in byfork.items() if len(cs) >= 2), None)
-            if hit:
-                lf, cs = hit; p.do(('dedupe', lf, lc, cs[0], cs[1])); changed = True; break
-        if changed: continue
-        # wire: a one-output fork feeding a comp
-        for lf, r in enumerate(R):
-            if r[0] != 'fork' or len(r[2]) != 1: continue
-            a = r[2][0]; x = r[1]; Rd = Q.readers(R, a)
-            if len(Rd) != 1 or R[Rd[0]][0] != 'comp' or x in R[Rd[0]][1] or Q.readers(R, x) != [lf]: continue
-            p.do(('wire', lf, Rd[0])); changed = True; break
+    def fuse_loop():
+        changed = True
+        while changed:
+            changed = False
+            # absorb: a comp whose output only one comp reads
+            for lp, r in enumerate(R):
+                if r[0] != 'comp' or not r[1]: continue
+                o = r[2]; W = Q.writers(R, o); Rd = Q.readers(R, o)
+                if W != [lp] or len(Rd) != 1 or Rd[0] == lp or R[Rd[0]][0] != 'comp': continue
+                lq = Rd[0]; ins = list(R[lq][1])
+                if ins.count(o) != 1 or set(r[1]) & set(ins) or R[lq][2] in r[1] + [o]: continue
+                ins2 = [c for c in ins if c != o] + [o]
+                if ins2 != ins: p.do(('reorder', lq, ins2))
+                p.do(('absorb', lp, lq)); changed = True; break
+            if changed: continue
+            # dedupe: a comp reading two outputs of one fork
+            for lc, r in enumerate(R):
+                if r[0] != 'comp': continue
+                byfork = {}
+                for c in r[1]:
+                    W = Q.writers(R, c)
+                    if len(W) == 1 and R[W[0]][0] == 'fork' and Q.readers(R, c) == [lc]: byfork.setdefault(W[0], []).append(c)
+                hit = next(((lf, cs) for lf, cs in byfork.items() if len(cs) >= 2), None)
+                if hit:
+                    lf, cs = hit; p.do(('dedupe', lf, lc, cs[0], cs[1])); changed = True; break
+            if changed: continue
+            # wire: a one-output fork feeding a comp
+            for lf, r in enumerate(R):
+                if r[0] != 'fork' or len(r[2]) != 1: continue
+                a = r[2][0]; x = r[1]; Rd = Q.readers(R, a)
+                if len(Rd) != 1 or R[Rd[0]][0] != 'comp' or x in R[Rd[0]][1] or Q.readers(R, x) != [lf]: continue
+                p.do(('wire', lf, Rd[0])); changed = True; break
+    fuse_loop()
+    # BDC_RING_FUSE: after maximal fusion (a packed cell's inputs are then those of its region)
+    if rf == 'unpack': p.rf = rf_unpack(p)
+    elif rf == 'split': p.rf = rf_split(p)
+    if p.rf: fuse_loop()
     # canonical input order: first read in the expression
     for l, r in enumerate(R):
         if r[0] != 'comp' or len(r[1]) < 2: continue
@@ -185,6 +306,39 @@ def normal_form(rs):
         if ins2 != ins: p.do(('reorder', l, ins2))
     p.drops()
     return p
+
+RF_STEPS = ('forkcomm2', 'unpack', 'unjoin')
+CTL = None
+
+def mutate(R, ctl):
+    """Negative controls on B (each changes what a ring-fused graph computes; each must be refused).
+    slice_low: every multi-result slice reads the low part (research's NEGCTL mistake, in the model).
+    upd_plus2: the packed cell's update part computes x + 2 instead of x + 1."""
+    out = []; hits = 0
+    for r in R:
+        if ctl == 'slice_low' and r[0] == 'comp' and r[3][0] == 'un' and r[3][1] == ('trunci',):
+            sh = r[3][3]
+            if sh[0] == 'bin' and sh[1] == ('shrui',) and sh[3] == ('var', 0) and sh[4][0] == 'lit' and sh[4][1] > 0:
+                r = ('comp', r[1], r[2], ('un', ('trunci',), r[3][2], ('bin', ('shrui',), sh[2], sh[3], ('lit', 0))))
+                hits += 1
+        if ctl == 'upd_plus2' and r[0] == 'comp' and r[3][0] == 'bin' and r[3][1] == ('addi',) and \
+                r[3][4][0] == 'bin' and r[3][4][1] == ('shli',):
+            t = r[3][4]
+            if t[3] == ('bin', ('addi',), 32, ('var', 0), ('lit', 1)):
+                t = ('bin', ('shli',), t[2], ('bin', ('addi',), 32, ('var', 0), ('lit', 2)), t[4])
+                r = ('comp', r[1], r[2], ('bin', ('addi',), r[3][2], r[3][3], t)); hits += 1
+        out.append(r)
+    assert hits, 'control ' + ctl + ' found nothing to mutate'
+    print(f'fuse_check: control {ctl}: {hits} rule(s) mutated')
+    return out
+
+def ser_step_rf(st):
+    return Q.ser_step(st) if st[0] in RF_STEPS else '.base (' + Q.ser_step(st) + ')'
+
+TEMPLATE_RF = (Q.TEMPLATE.replace('import Formal.Rewrite.Steps.ScriptSound', 'import Formal.Rewrite.Steps.ScriptRF')
+               .replace('List Step :=', 'List StepRF :=').replace('runScript rules', 'runScriptRF rules')
+               .replace('runScript_sound', 'runScriptRF_sound'))
+assert TEMPLATE_RF.count('runScriptRF_sound') == 4 and TEMPLATE_RF.count('List StepRF') == 2
 
 def refuse(why):
     print('fuse_check: REFUSED -- ' + why); return 2
@@ -204,6 +358,9 @@ def imp(mlir, out, ns, env):
 
 def main():
     args = sys.argv[1:]; keep = None; ea = eb = ''
+    global CTL
+    if '--ctl' in args:   # negative controls: mutate B's rules after import (see controls/fuse/README.md)
+        i = args.index('--ctl'); CTL = args[i + 1]; del args[i:i + 2]
     for flag in ('--keep', '--bdc', '--env-a', '--env-b'):
         if flag in args:
             i = args.index(flag); v = args[i + 1]; del args[i:i + 2]
@@ -221,10 +378,17 @@ def main():
 def run(fa, fb, ea, eb, tmp):
     Ra, Na, oa, naa = imp(fa, os.path.join(tmp, 'A.lean'), 'FuA', ea)
     Rb, Nb, ob, nab = imp(fb, os.path.join(tmp, 'B.lean'), 'FuB', eb)
+    if CTL:
+        Rb = mutate(Rb, CTL)
+        open(os.path.join(tmp, 'B.lean'), 'w').write('-- mutated: ' + CTL + '\n')
     if Ra == Rb: print('fuse_check: A and B import to the same rules'); return 3
     if naa != nab: return refuse('different numbers of inputs')
     if oa is None or ob is None: return refuse('no data output channel (chOut)')
-    pa, pb = normal_form(Ra), normal_form(Rb)
+    # BDC_RING_FUSE: unpack a fused side's packed cells; split the other side's update to meet it
+    pa, pb = normal_form(Ra, 'unpack'), normal_form(Rb, 'unpack')
+    if pb.rf and not pa.rf: pa = normal_form(Ra, 'split')
+    elif pa.rf and not pb.rf: pb = normal_form(Rb, 'split')
+    RF = bool(pa.rf or pb.rf or getattr(pa, 'rfs', 0) or getattr(pb, 'rfs', 0))
     n1, n2 = os.path.join(tmp, 'nf1.lean'), os.path.join(tmp, 'nf2.lean')
     open(n1, 'w').write('def rules : List Rule := ' + PP.ser_rules(pa.rs) + '\n')
     open(n2, 'w').write('def rules : List Rule := ' + PP.ser_rules(pb.rs) + '\n')
@@ -240,14 +404,17 @@ def run(fa, fb, ea, eb, tmp):
     for a, b in ch.items(): Pi[b] = a
     R = len(ru); T = [ru[l] for l in range(R)]; Ti = [0] * R
     for a, b in ru.items(): Ti[b] = a
-    s1 = '[' + ', '.join(Q.ser_step(s) for s in pa.steps) + ']'
-    s2 = '[' + ', '.join(Q.ser_step(s) for s in pb.steps) + ']'
-    lean = Q.TEMPLATE.format(inp=f'{os.path.abspath(fa)} [{ea}]', out=f'{os.path.abspath(fb)} [{eb}]',
+    RF = RF or any(st[0] in RF_STEPS for st in pa.steps + pb.steps)
+    ser = ser_step_rf if RF else Q.ser_step
+    s1 = '[' + ', '.join(ser(s) for s in pa.steps) + ']'
+    s2 = '[' + ', '.join(ser(s) for s in pb.steps) + ']'
+    lean = (TEMPLATE_RF if RF else Q.TEMPLATE).format(inp=f'{os.path.abspath(fa)} [{ea}]', out=f'{os.path.abspath(fb)} [{eb}]',
                              rin=PP.ser_rules(Ra), rout=PP.ser_rules(Rb), s1=s1, s2=s2, P=P, Pi=Pi, T=T, Ti=Ti,
                              NA=naa, oi=oa, oo=ob, **Q.lits(pa, pb)).replace('eq2_check.py', 'fuse_check.py')
     lf = os.path.join(tmp, 'Eq2CheckRun.lean'); open(lf, 'w').write(lean)
     env = dict(os.environ); env['PATH'] = os.path.expanduser('~/.elan/bin') + ':' + env.get('PATH', '')
-    b = subprocess.run(['lake', 'build', 'Formal.Rewrite.Steps.ScriptSound', 'Formal.Rewrite.Rename'], cwd=LEAN,
+    b = subprocess.run(['lake', 'build', 'Formal.Rewrite.Steps.ScriptRF' if RF else 'Formal.Rewrite.Steps.ScriptSound',
+                        'Formal.Rewrite.Rename'], cwd=LEAN,
                        env=env, capture_output=True, text=True)
     if b.returncode != 0: return refuse('lake build failed: ' + b.stdout[-400:])
     c = subprocess.run(['lake', 'env', 'lean', lf], cwd=LEAN, env=env, capture_output=True, text=True)
