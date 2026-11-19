@@ -1180,14 +1180,17 @@ class Search:
         if self.excited(S, V, g):
             exc.add(g)
 
-    def pack(self, S, V, k):
-        return (bytes(S), tuple(V[i] for i in self.net.vhold), k)
+    def pack(self, S, V, k, exc=None):
+        # the excited set travels with the state (2026-11-19: recomputing it for every gate on unpack was 65 % of the run)
+        return (bytes(S), tuple(V[i] for i in self.net.vhold), k, tuple(exc) if exc is not None else None)
 
     def unpack(self, t):
         S = list(t[0])
         V = [None] * self.net.nvar
         for i, v in zip(self.net.vhold, t[1]):
             V[i] = v
+        if t[3] is not None:
+            return S, V, set(t[3]), t[2]
         exc = {g for g in self.net.gates if self.excited(S, V, g)}
         return S, V, exc, t[2]
 
@@ -1282,7 +1285,7 @@ class Search:
                 seen[k2] = (k, net.varname[g], v)
                 if len(seen) > self.max_states:
                     return {"verdict": "BLOWUP", "states": len(seen), "fired": nfired}
-                q.append(self.pack(S2, V2, k2))
+                q.append(self.pack(S2, V2, k2, e2))
         res = {"states": len(seen), "fired": nfired, "finished": finished}
         if deadlocks:
             S, V, k = deadlocks[0]
