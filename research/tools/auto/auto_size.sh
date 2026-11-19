@@ -282,7 +282,7 @@ search_phase() {
   # AUTO_SEARCH_ARGS (default --depth-only): the search's candidates. "--all-sites --buildable-only --wire 1000" adds a
   # latch on any fork output and on any merge output / result branch (search.py --all-sites, subagent graphsearch:
   # research/data/eventgraph/search_all.md); its ENV names every link of each knob it sets, rules F / M's included.
-  python3 "$R/research/tools/eventgraph/search.py" "$G" "$O/sizes_$X.vh" ${AUTO_SEARCH_ARGS:---depth-only} \
+  python3 "$R/research/tools/eventgraph/search.py" "$G" "$O/sizes_$X.vh" ${AUTO_SEARCH_ARGS:---all-sites --buildable-only --wire 1000} \
     > "$O/search.txt" 2>&1
   XENV=$(sed -n 's/^ENV //p' "$O/search.txt")
   echo "search on ${N}_$X: $(grep -E '^(base|chosen)' "$O/search.txt" | tr '\n' ' ')" >> "$O/log.txt"
@@ -338,6 +338,13 @@ else
     RES3="NOT CLEAN after $i (last route ${N}_$i; next sizes sizes_$((i + 1)).vh) $(cat "$O/it_$i.txt")"
   fi
 fi
-[ "${AUTO_SEARCH:-0}" = 1 ] && search_phase
+# Flow v7 (2026-11-19): the search phase is ON by default (AUTO_SEARCH=0 turns it off), with graphsearch's all-sites
+# candidates (AUTO_SEARCH_ARGS default "--all-sites --buildable-only --wire 1000"; "--depth-only" was xorgap's first
+# form). PROGRAM General-first item 1 asks for exactly this: "where the latches go and how deep the links are (the event
+# graph's search, run inside the flow)". It can only ship a route that is rule-CLEAN and measured faster than the
+# loop's own; otherwise the loop's route ships unchanged. Farm nsearch1 (no-list flow, 18 finished loops): countloop
+# 26.60 -> 20.92, 22.15 -> 21.37, 25.80 -> 20.45 ns (s4 unchanged); xorshift / collatz unchanged (their cycles sit at
+# the rising-only floor, which storage cannot move); every draw passing.
+[ "${AUTO_SEARCH:-1}" = 1 ] && search_phase
 echo "$RES3" | tee -a "$O/result.txt"
 exit "$RC"

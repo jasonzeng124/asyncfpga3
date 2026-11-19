@@ -7233,3 +7233,11 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   all three) does not survive the sizing loop on collatz / collatz64. Not a default (a choice only ipow justifies);
   candidate for an automatic "build both structures, keep the faster clean route" phase like AUTO_SEARCH's, which would
   cost one more loop per kernel.
+### progress 04:38 (flow v7: the event graph's search runs inside the flow by default)
+- nsearch1 complete: 18 / 18 tasks, 128 / 128 draws passing, every rebuilt route with its earlier sdf md5. The search
+  shipped a faster route on countloop s1 / s2 / s3 only (26.60 -> 20.92, 22.15 -> 21.37, 25.80 -> 20.45 ns); xorshift
+  (7 seeds) and collatz (7 seeds) kept their routes.
+- **auto_size.sh: AUTO_SEARCH=1 with the all-sites candidates is now the default (flow v7; AUTO_SEARCH=0 = v6)** --
+  PROGRAM General-first item 1 ("the event graph's search, run inside the flow"). It ships a new route only if it is
+  rule-CLEAN and measured faster, so no kernel's result gets slower; it costs up to 4 more routes where it picks an
+  edit. suite10 (waiting) will run v7.
