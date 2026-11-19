@@ -10,6 +10,11 @@ Dynamatic's on-merges buffering, which its solver placement could beat by up to 
 DYNFIG_REPORT.md): those ratios flatter us, so read the mean with estimates as an upper bound on our standing; our ns are the simulation's (~8 % slower per iteration than
 the August board, research/SIM-VS-BOARD.md).
 
+**The flow moved on after these routes (2026-11-19 17:07 UTC):** BDC_AUTO=1 now fuses each loop's update with its test
+(BDC_RING_FUSE=2, flow v8; farm ringfuse1: faster on 19 of 29 paired seeds, median -1.27 ns, xorshift 8 / 8 at -1.87),
+and the sizing loop's finish phase has 6 routes and ships its least-short route. The table below is v6 / v7; farm
+suite12 measures v8 on every kernel.
+
 **Provenance (auditor T167).** The exact command, inputs in this order, a later request superseding an earlier one for the
 same (kernel, seed): `research/tools/suite/suite_table.py --kernels research/tools/suite/kernels.txt --reasons
 research/data/suite/headline_reasons.tsv --no-ratio isprime` over the farm's results/{suite3a, suite3b, suite8, suite7,
