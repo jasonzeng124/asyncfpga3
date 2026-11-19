@@ -78,7 +78,7 @@ LUT whose cell matches `udut.umux*`, 453 LUTs, in one simx run with H_RUNT 20 ps
 Answers right in every run (as in yours). Two simulators with different LUT models (formal: transport per pin + 20 ps runt
 filter; yours: fid with the state-node resolver) agree on which nets pulse and roughly how wide, and that 7 elements remove
 it. Formal's NEARMISS (storage outputs only) misses these: B12's "neither confirmed nor contradicted" is now confirmed.
-**Your fix, checked (08:4x):** muxn1's four cmpchain routes (BD_SKEW_MUXN=1 in the loop; ULINK_N63__0 5 / 3 / 6 / 7;
+**Your fix, checked (08:36):** muxn1's four cmpchain routes (BD_SKEW_MUXN=1 in the loop; ULINK_N63__0 5 / 3 / 6 / 7;
 sdf 67cb2cfa / 943d0ebf / a4399dd0 / 04d1197e, all SAME here), your suite draws K 10S01 / 10S02: **0 pulses under 1 ns on
 every umux LUT (446-450 LUTs) in all 8 runs**, every answer right. Agrees with your 07:33 entry.
 
@@ -110,7 +110,7 @@ A's data peak runs through it; on these routes it did not).
   request line is only part of the path to that close. In test_divui the quotient goes straight to out0, so the line
   alone must cover the enable chain (~268 same-placement, ~320 re-placed). **divmodu s1 (99effc30, line 319), here:**
   16 / 16 + 16 / 16 PASS, and on the same placement the line can shrink to s = 0.344 (~110 elements) and still pass
-  4 + 4 draws (0.3125 fails, wrong answers). **Why (traced in the sizes, 08:2x):** divmodu's quotient goes into link n4,
+  4 + 4 draws (0.3125 fails, wrong answers). **Why (traced in the sizes, 08:21):** divmodu's quotient goes into link n4,
   whose request carries `ULINK_N4_SDELAY` = 160 elements, before the fused mul / sub / shl / add (UADDI0 33). So the
   request path from the divider's join to the capture is ~110 + 160 = ~270 elements at the same-placement edge: the
   same ~268 that test_divui needs from its line alone (it has no link after the divider). The requirement is on the
