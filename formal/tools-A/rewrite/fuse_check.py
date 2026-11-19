@@ -24,6 +24,55 @@ sys.path.insert(0, HERE)
 import plain_pass as PP   # noqa: E402
 import eq2_check as Q     # noqa: E402
 
+
+MR_OLD = """            if fu is not None and i in fu.anchor_region:
+                reg = fu.anchor_region[i]
+"""
+MR_NEW = """            if fu is not None and i in fu.anchor_region and getattr(fu.anchor_region[i], "outputs", None):
+                # formal A (fuse_check): a multi-result cell (BDC_RING_FUSE), modelled as bdc builds it: ONE cell whose
+                # output packs every result (the first in the low bits), a fork, one slice per result
+                reg = fu.anchor_region[i]
+                parts, W = [], 0
+                for v, mi in reg.outputs:
+                    w = max(em.width(v), 1); parts.append((v, mi, W, w)); W += w
+                pack = None
+                for v, mi, lo, w in parts:
+                    e = self.region_expr(reg, mi)
+                    t = ("bin", "shli", W, e, ("lit", lo)) if lo else e
+                    pack = t if pack is None else ("bin", "addi", W, pack, t)
+                z = "__mr_%d" % i
+                comp(list(reg.ext_inputs), z, pack, "fused multi-result cell")
+                zs = ["__mr_%d_%d" % (i, k) for k in range(len(parts))]
+                self.rules.append(("fork", self.ch(z), [self.ch(x) for x in zs], "multi-result fork"))
+                for (v, mi, lo, w), zk in zip(parts, zs):
+                    ex = ("un", "trunci", w, ("bin", "shrui", W, ("var", 0), ("lit", lo)))
+                    self.rules.append(("comp", [self.ch(zk)], self.ch(v), ex, "multi-result slice"))
+                continue
+            if fu is not None and i in fu.anchor_region:
+                reg = fu.anchor_region[i]
+"""
+
+def importer_mr(tmp):
+    """A copy of formal/tools/dfimport with multi-result cells modelled (patched at run time; the tool is not edited)."""
+    import shutil
+    d = os.path.join(tmp, 'imp', 'formal', 'tools', 'dfimport'); os.makedirs(d, exist_ok=True)
+    src = os.path.join(ROOT, 'formal/tools/dfimport')
+    for f in os.listdir(src):
+        if f.endswith('.py'): shutil.copy(os.path.join(src, f), d)
+    m = os.path.join(d, 'mlir2lean.py'); t = open(m).read()
+    assert t.count(MR_OLD) == 1, 'dfimport changed: the multi-result patch no longer applies'
+    t = t.replace(MR_OLD, MR_NEW)
+    old2 = "        return self.em.ch[v][1]\n"
+    assert t.count(old2) == 1
+    t = t.replace(old2, "        return self.em.ch[v][1] if v in self.em.ch else False\n")
+    open(m, 'w').write(t)
+    link = os.path.join(tmp, 'imp', 'bdc')
+    if os.path.islink(link): os.remove(link)
+    os.symlink(os.path.abspath(PP.BDCDIR or os.path.join(ROOT, 'bdc')), link)
+    return os.path.join(d, 'mlir2lean.py')
+
+PP.importer = importer_mr
+
 def dedupE(ins, a, b, F):
     er = list(ins); er.remove(b)
     return Q.subst(F, [('var', Q.pos(er, a if c == b else c)) for c in ins])
