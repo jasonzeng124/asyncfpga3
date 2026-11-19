@@ -22,7 +22,7 @@ B=$RS/cells/build/hw/${K}_bench_gen
   ./hw/build_bench.sh "$K" ) > "$O/build.log" 2>&1 || { say "$K $S BUILD FAILED: $(grep -m1 -iE 'error|fail' "$O/build.log" | cut -c1-120)"; exit 0; }
 md=$(md5sum "$B/${K}_bench_gen.sdf" | cut -c1-8)
 say "$K $S sdf $md (research $M8) $([ "$md" = "$M8" ] && echo SAME || echo DIFFERENT) nextpnr $(sha256sum "$TC/openxc7/bin/nextpnr-xilinx" | cut -c1-16)"
-[ "$md" = "$M8" ] || exit 0
+[ "$md" = "$M8" ] || [ "$M8" = - ] || exit 0   # SDF8 '-': a new route (a what-if size set), no research route to match
 W=$O/w; mkdir -p "$W"; T=${K}_bench_gen; PRJ=$TC/openxc7-src/prjxray; DB=${XRAY_DB:-$TC/openxc7/share/nextpnr/prjxray-db}/zynq7
 [ -d "$DB" ] || DB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7
 PYTHONPATH="$PRJ:$PRJ/third_party/fasm:$TC/openxc7/lib/python" python3 -W ignore "$PRJ/utils/bit2fasm.py" --db-root "$DB" \
