@@ -33,7 +33,10 @@ def rf0(req):
         c = re.search(r"^commit\s+(\S+)", git("show", "%s:results/%s/status.txt" % (a.ref, req)), re.M)
         c = c.group(1) if c else ""
         rg = lambda x: subprocess.run(["git", "-C", a.rs] + x, capture_output=True, text=True).stdout
-        old = c and "_RING_FUSE_DEFAULT" not in rg(["show", "%s:bdc/emit.py" % c])
+        em = rg(["show", "%s:bdc/emit.py" % c]) if c else ""
+        if c and not em:                      # commit not in RS: refuse rather than guess "before v8"
+            sys.exit("newroutes: research commit %s (request %s) not in %s: git fetch there first" % (c, req, a.rs))
+        old = c and "_RING_FUSE_DEFAULT" not in em
         sc = rg(["show", "%s:research/cluster/requests/%s.sh" % (c, req)]) if c else ""
         _rf[req] = " BDC_RING_FUSE=0" if (old or re.search(r"\bBDC_RING_FUSE=0\b", sc)) else ""
     return _rf[req]
