@@ -72,6 +72,53 @@ def node_of(bel, ct, port, what):
     return nm
 
 
+def hier_names(mod, bit, prefix, depth):
+    """shard B: every hierarchical name of `bit` inside module `mod` (instance path `prefix`), descending into submodules."""
+    out = []
+    for n, v in mod["netnames"].items():
+        if bit in v["bits"]:
+            out.append("%s.%s" % (prefix, n) if len(v["bits"]) == 1 else "%s.%s[%d]" % (prefix, n, v["bits"].index(bit)))
+    if depth < 6:
+        for cn, c in mod["cells"].items():
+            sm = mods.get(c["type"])
+            if sm is None: continue
+            for q, qb in c["connections"].items():
+                if bit in qb and q in sm["ports"]:
+                    out += hier_names(sm, sm["ports"][q]["bits"][qb.index(bit)], "%s.%s" % (prefix, cn), depth + 1)
+    return out
+
+
+def hdrive(mod, bit, prefix, stack, what, depth=0):
+    """shard B: the decoded node driving `bit` of module `mod` (instance path `prefix`), following yosys' hierarchy down
+    into submodule cells and up through pass-through ports (an output bit that is an input port bit)."""
+    if bit in ("0", "1"): return "const" + bit
+    if depth > 40: return None
+    J = lambda a, b: "%s.%s" % (a, b) if a else b
+    for cn, c in mod["cells"].items():
+        for q, qb in c["connections"].items():
+            if bit not in qb or c["port_directions"].get(q) != "output": continue
+            sm = mods.get(c["type"])
+            if sm is not None and (not sm.get("cells") or str(sm.get("attributes", {}).get("blackbox", "0")).strip("0") != ""):
+                sm = None   # a primitive (LUT6_2, CARRY4, ...): a leaf
+            if sm is not None and q in sm["ports"]:
+                r = hdrive(sm, sm["ports"][q]["bits"][qb.index(bit)], J(prefix, cn), stack + [(mod, c, prefix)], what, depth + 1)
+                if r: return r
+            else:
+                rn = J(prefix, cn)
+                if rn not in R["cells"] and c["type"] == "LUT6_2":   # nextpnr splits a LUT6_2 into <name>$LUT6 / $LUT5
+                    rn += "$LUT6" if q == "O6" else "$LUT5"
+                if rn in R["cells"]:
+                    rc = R["cells"][rn]
+                    return node_of(rc["attributes"]["NEXTPNR_BEL"], rc["type"], q, what)
+    if stack:
+        for q, qd in mod["ports"].items():
+            if qd["direction"] == "input" and bit in qd["bits"]:
+                pm, pc, pp = stack[-1]
+                if q in pc["connections"]:
+                    return hdrive(pm, pc["connections"][q][qd["bits"].index(bit)], pp, stack[:-1], what, depth + 1)
+    return None
+
+
 def phys(ybit, what):
     if ybit in ("0", "1"):
         return "const" + ybit
@@ -96,6 +143,13 @@ def phys(ybit, what):
                 ib = sub["ports"][p]["bits"][bs.index(ybit)]
                 if ib in ("0", "1"):
                     return "const" + ib
+                # shard B, 2026-11-19: the bit's driver is INSIDE the kernel module (yosys kept the DUT, and its operators,
+                # as modules of their own): search the hierarchical net names of that bit, at every depth, among the
+                # names nextpnr kept
+                for hn in hier_names(sub, ib, dut + ".udut", 0):
+                    if hn in rbits and rbits[hn][0] in drv:
+                        cn2, ct2, p2, bel2 = drv[rbits[hn][0]]
+                        return node_of(bel2, ct2, p2, what)
                 # shard B, 2026-11-19: an output bit that is an INPUT port bit inside the kernel (a pass-through,
                 # e.g. test_divui's start_ack = p_end_ack): follow the input's top-level bit to its driver
                 for q, qd in sub["ports"].items():
@@ -103,6 +157,8 @@ def phys(ybit, what):
                         tb = c["connections"][q][qd["bits"].index(ib)]
                         if tb != ybit:
                             return phys(tb, what + " (= %s)" % q)
+    r = hdrive(Y, ybit, "", [], what)   # shard B, 2026-11-19: the general case (nested operator modules, pass-throughs)
+    if r: return r
     sys.exit("%s: no routed alias with a driver among %s" % (what, alias.get(ybit)))
 
 
