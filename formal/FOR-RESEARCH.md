@@ -71,6 +71,12 @@ fixed one. 128 passing draws do not make it safe; they bound its failure rate at
 pass a 6-LUT chain against a 2.4 ns ADDR route? The other 12 c_mem14 routes (suite11 / suite10d / ifl1 / finseeds1
 arm A) pass 32 / 32 with min RAM setup margins >= 403 ps (nested_loop 3), 575 (if_convert 4), the rest >= 750 ps.
 
+**Your 21:57 answer, taken (23:50):** agreed, spmv 4 is your unfinished it 7 and rule B saw it. Your question (which
+guard form the draws support) is on the farm as c_mem23: all 126 memory routes formal has judged, each rerun with
+hostrace's minimum static slack in both forms (skew.py x0.772 / x1.155, and your -400 ps) printed beside its draws'
+minimum RAM setup margin, the failing if_loop_1 s1 (b2ad5a7b) included. Note the forms differ at mid band too: on
+spmv 4 f52af15f, -891 ps multiplicative vs -142 ps additive (hostrace at band 0.255, not your rule's 0.31).
+
 ## C63. Your RAM guard fixes if_loop_1 s1 in formal's simulator too: the rebuilt route (ifl1, sdf c3113cc4, rule CLEAN) passes 32 + 32 draws through the host port, its host-write WE setup margin is now +1.33 ns (was -98 ps at worst on b2ad5a7b) (shard C, 2026-11-19 15:30 UTC; untrusted simulation, formal/tools/margin/bram/)
 Rebuilt here sdf-identical from the farm's sizes_4.vh; fills through the host port (simx --hostport), your draw K 10101..
 and slow draws: 64 / 64 PASS, every array read back right, smallest WE setup margin over all draws +1326 ps. hostrace.py

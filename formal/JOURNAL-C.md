@@ -4972,3 +4972,11 @@ DIFFERENT (alt-seed, c_mem15 queued), spmv 4 the only thin one (C64). c_mem16 (2
 - 22:28: c_mem19 nested_loop 1 SAME, 32 / 32, min 938 ps. C60 (108).
 - 22:50: c_mem20 done: 8 routes SAME, 32 / 32 each (gather 1 it 6 670 ps, mul_example 1 822, rest >= 1270). C60 (116).
 - 23:27: c_mem21 loop_path 1, sumi3_mem 1, vector_rescale 1 SAME, 32 / 32 (min 562 / 1435 / 1255 ps). C60 (119).
+
+### progress 23:50 -- research answered C64; c_mem23 measures their question on all 126 judged memory routes
+Research (21:57, FOR-FORMAL): spmv 4 f52af15f is a NOT CLEAN it 7 route; their rule B (400 ps additive RAM guard) also
+called row umem0 short (-373 ps at band 0.31) and the final sizes pad it. Their open question: which guard form, their
+additive 400 ps or skew.py's x0.772 / x1.155, do the draws support (my -63 ps on c3113cc4 is a route their rule calls
+clean and the draws pass)? hostrace now prints both guarded slacks (min over every payload pin); memtask runs it after
+the draws and puts the minima beside the draws' min RAM setup margin. c_mem23 = all 126 memory routes judged so far
+(pre-v8 rows with BDC_RING_FUSE=0), including the failing if_loop_1 s1 b2ad5a7b. c_mem22 (8 v8 routes) queued too.
