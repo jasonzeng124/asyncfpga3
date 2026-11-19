@@ -825,6 +825,21 @@ BDC_FORK_FUSION = os.environ.get("BDC_FORK_FUSION", "1") == "1"
 # iteration on collatz's critical cycle).
 BDC_CONST_DATA = os.environ.get("BDC_CONST_DATA", "0") == "1"
 MAX_FUSE_NODES = int(os.environ.get("BDC_MAX_FUSE_NODES", "4"))
+# BDC_RING_FUSE=1 (OFF by default; unset, compute_fusion and the emitted Verilog are byte-identical): fusion goes on
+# through a fork that splits a region's result between a fusable reader and anything else -- the shape of every loop's
+# update and test, `x' = f(x); c = test(x'); steer(c, x')`, where today the fork between f and the test stops fusion
+# (a region may have only one result) and leaves a rule-1 link, a bd_join, a uor and a second matched delay on the
+# loop's ring (research/data/ringfuse/README.md: countloop, xorshift, collatz, ipow all have it).  The merged region
+# is one cell with one join over its external inputs, one matched delay covering the whole merged datapath, and as
+# many results as leave it: one request (the delay's) split by a bd_fork, each result its slice of the data.  Taken
+# only where it cannot deadlock (_ring_merge: every member in one basic block, and no path from a result back into the
+# region that does not cross a mux / merge / control_merge, i.e. an iteration boundary) and the merged region has at
+# most BDC_RING_FUSE_MAX members (default 8).  Nothing is keyed on a kernel: the pass matches the fork shape anywhere.
+RING_FUSE = os.environ.get("BDC_RING_FUSE", "0") == "1"
+RING_FUSE_MAX = int(os.environ.get("BDC_RING_FUSE_MAX", "8"))
+# BDC_RING_FUSE_NEGCTL=1: the NEGATIVE CONTROL of the pass (never for a build): a multi-result region drives every
+# result after the first with the first result's low bits, so a wrong slice is visible in simcheck / memtb.
+RING_FUSE_NEGCTL = os.environ.get("BDC_RING_FUSE_NEGCTL", "0") == "1"
 BDC_FASTFALL = compute.BDC_FASTFALL
 # Opt-in, default off: a fast fall on every bare bd_link's request line (RFAST)
 # and every bd_mux's output delay (FASTFALL).  Off emits the same text as
@@ -910,6 +925,9 @@ class Region:
         self.ext_inputs = []
         self.const_of = {}
         self.ref = {}
+        # BDC_RING_FUSE only: [(ssa value, member that computes it), ...] when the region has more than one result
+        # (or its one result is a fork output); None for every region built the original way.
+        self.outputs = None
 
 
 class FusionPlan:
@@ -960,7 +978,10 @@ def _topo_order(nodes, members, value_producer, member_set, aliases):
 
 
 def _build_region(func, members, value_producer, value_consumers, const_of,
-                  aliases=None, known=None):
+                  aliases=None, known=None, leaving=None):
+    """`leaving` (BDC_RING_FUSE only; None otherwise, and then nothing below differs from the original): {member:
+    [fork outputs that leave the region carrying that member's result]} for the forks _ring_merge absorbed in part.
+    With it the region may have several results (Region.outputs)."""
     aliases = aliases or {}
     nodes = func.nodes
     member_set = set(members)
@@ -990,14 +1011,29 @@ def _build_region(func, members, value_producer, value_consumers, const_of,
         eaters = value_consumers.get(nodes[i].results[0], [])
         if not eaters or any(c not in member_set for c in eaters):
             sinks.append(i)
-    if len(sinks) != 1:
+    if leaving is not None:
+        outs = [(nodes[i].results[0], i) for i in sinks]
+        for i in region.node_ids:
+            outs.extend((v, i) for v in leaving.get(i, []))
+        if not outs:
+            raise EmitError(f"BDC_RING_FUSE: fused region {[nodes[i].op for i in region.node_ids]} has no result")
+        if len(outs) == 1 and outs[0][0] == nodes[outs[0][1]].results[0]:
+            sinks = [outs[0][1]]          # one result, a member's own: the original single-result region
+        else:
+            region.outputs = outs
+            region.anchor = region.node_ids[-1]
+            sinks = None
+    if sinks is None:
+        pass
+    elif len(sinks) != 1:
         raise EmitError(
             f"BDC_OP_FUSION: fused region "
             f"{[nodes[i].op for i in region.node_ids]} has {len(sinks)} "
             f"external result(s), expected exactly 1 -- the single-consumer "
             f"guarantee --handshake-materialize gives every value does not "
             f"hold here, and fusion cannot assume a single external output")
-    region.anchor = sinks[0]
+    if sinks is not None:
+        region.anchor = sinks[0]
 
     region.const_of = {(i, port): v for (i, port), v in const_of.items()
                         if i in member_set}
@@ -1084,6 +1120,98 @@ def _absorb_forks(nodes, uf, value_producer, value_consumers, max_nodes):
             src = aliases[src]
         aliases[value] = src
     return owners, aliases
+
+
+# An iteration boundary for _ring_merge's deadlock check: a token that enters one of these leaves it as part of the
+# next firing of a loop header (or of a branch join) -- never as an input of the firing that produced it.
+_ITER_BOUNDARY = ("mux", "merge", "control_merge")
+
+
+def _bb(node):
+    v = node.attrs.get("handshake.bb")
+    return getattr(v, "value", v)
+
+
+def _ring_merge(nodes, uf, value_producer, value_consumers, fork_owners, cap):
+    """BDC_RING_FUSE: merge a region with the fusable readers of a fork that splits its result, the fork's other
+    outputs becoming results of the merged region.  `value_consumers` is the ORIGINAL map (every reader of every value,
+    forks included).  Returns ({fork index: [its outputs that leave the merged region]}, {fork output read inside: the
+    fork's operand}).  Fully absorbed forks (_absorb_forks, `fork_owners`) are not touched.
+
+    A merge is refused unless (1) every member of the merged region and the fork sit in one basic block, (2) it has at
+    most `cap` members, and (3) no path leaves the merged region and comes back into it without crossing an
+    iteration boundary (_ITER_BOUNDARY).  (3) is the deadlock condition: the merged region fires only when ALL its
+    external inputs have arrived, so an input that waits for one of its own results in the same firing never comes.
+    Through a mux / merge / control_merge the path continues in a later firing (the loop header's next iteration, or a
+    branch join's), which is the loop the region is on, not a deadlock: inside one basic block a path can only reach a
+    member again through the block's own header.  Checked over the whole graph, not assumed."""
+    partial, alias = {}, {}
+    absorbed_by = {}                              # fork index -> uf node it belongs to (fully or partly absorbed)
+    for i, t in fork_owners.items():
+        absorbed_by[i] = t
+
+    def root(i):
+        if i in uf.parent:
+            return uf.find(i)
+        if i in absorbed_by:
+            return uf.find(absorbed_by[i])
+        return None
+
+    for fi, f in enumerate(nodes):
+        if f.op != "fork" or fi in fork_owners or fi in partial or len(f.operands) != 1 or not f.results:
+            continue
+        p = value_producer.get(f.operands[0])
+        if p is None or p not in uf.parent or value_consumers.get(f.operands[0]) != [fi]:
+            continue
+        cons = [value_consumers.get(r, []) for r in f.results]
+        if any(len(c) != 1 for c in cons) or any(c[0] in absorbed_by for c in cons):
+            continue
+        rp = uf.find(p)
+        targets = {uf.find(c[0]) for c in cons if c[0] in uf.parent and uf.find(c[0]) != rp}
+        if not targets:
+            continue
+        roots = targets | {rp}
+        members = {i for i in uf.parent if uf.find(i) in roots}
+        if len(members) > cap:
+            continue
+        if len({_bb(nodes[i]) for i in members} | {_bb(f)}) != 1:
+            continue
+        inside_forks = {i for i, t in absorbed_by.items() if uf.find(t) in roots} | {fi}
+        region = members | inside_forks
+        # (3): every reader outside the merged region of a value made inside it, then forward through readers,
+        # stopping at iteration boundaries; reaching the region again is a same-firing cycle.
+        start = set()
+        for i in region:
+            for r in nodes[i].results:
+                for c in value_consumers.get(r, []):
+                    if c not in region:
+                        start.add(c)
+        seen, stack, cyclic = set(), list(start), False
+        while stack and not cyclic:
+            x = stack.pop()
+            if x in seen:
+                continue
+            seen.add(x)
+            if nodes[x].op in _ITER_BOUNDARY:
+                continue
+            for r in nodes[x].results:
+                for c in value_consumers.get(r, []):
+                    if c in region:
+                        cyclic = True
+                        break
+                    stack.append(c)
+                if cyclic:
+                    break
+        if cyclic:
+            continue
+        for t in targets:
+            uf.union_if(rp, t, cap)
+        partial[fi] = [r for r, c in zip(f.results, cons) if root(c[0]) != uf.find(rp)]
+        for r, c in zip(f.results, cons):
+            if root(c[0]) == uf.find(rp):
+                alias[r] = f.operands[0]
+        absorbed_by[fi] = p
+    return partial, alias
 
 
 def compute_fusion(func, *, forks=None, max_nodes=None):
@@ -1179,6 +1307,7 @@ def compute_fusion(func, *, forks=None, max_nodes=None):
     for _, p, c in edges:
         uf.union_if(p, c, max_nodes)
 
+    orig_consumers = value_consumers
     fork_owners, aliases = {}, {}
     if forks:
         fork_owners, aliases = _absorb_forks(
@@ -1190,6 +1319,20 @@ def compute_fusion(func, *, forks=None, max_nodes=None):
             for opnd in n.operands:
                 value = aliases.get(opnd, opnd)
                 value_consumers.setdefault(value, []).append(i)
+
+    partial = {}
+    if RING_FUSE:
+        partial, palias = _ring_merge(nodes, uf, value_producer, orig_consumers, fork_owners, RING_FUSE_MAX)
+        if partial:
+            aliases = dict(aliases)
+            aliases.update(palias)
+            value_consumers = {}
+            for i, n in enumerate(nodes):
+                if i in fork_owners or i in partial:
+                    continue
+                for opnd in n.operands:
+                    value = aliases.get(opnd, opnd)
+                    value_consumers.setdefault(value, []).append(i)
 
     groups = {}
     for i in fusable:
@@ -1212,15 +1355,38 @@ def compute_fusion(func, *, forks=None, max_nodes=None):
                             known[r] = known[n.operands[0]]; changed = True
     plan = FusionPlan()
     plan.skip |= absorbed | fork_owners.keys()
+    leaving_of = {}                       # BDC_RING_FUSE: region root -> {member: [fork outputs leaving with its result]}
+    for fi, leave in partial.items():
+        p = value_producer[nodes[fi].operands[0]]
+        leaving_of.setdefault(uf.find(p), {}).setdefault(p, []).extend(leave)
     for members in groups.values():
-        region = _build_region(func, members, value_producer, value_consumers,
-                                const_of, aliases, known)
+        leaving = leaving_of.get(uf.find(members[0]))
+        if leaving is None:
+            region = _build_region(func, members, value_producer, value_consumers,
+                                    const_of, aliases, known)
+        else:
+            region = _build_region(func, members, value_producer, value_consumers,
+                                    const_of, aliases, known, leaving=leaving)
+        if region.outputs is not None:
+            outv = {v for v, _ in region.outputs}
+            for i in region.node_ids:
+                plan.region_of[i] = region
+                if i != region.anchor:
+                    plan.skip.add(i)
+                if nodes[i].results[0] not in outv:
+                    plan.dead_values.add(nodes[i].results[0])
+            plan.anchor_region[region.anchor] = region
+            continue
         for i in region.node_ids:
             plan.region_of[i] = region
             if i != region.anchor:
                 plan.skip.add(i)
                 plan.dead_values.add(nodes[i].results[0])
         plan.anchor_region[region.anchor] = region
+    for fi, leave in partial.items():
+        plan.region_of[fi] = plan.region_of[value_producer[nodes[fi].operands[0]]]
+        plan.skip.add(fi)
+        plan.dead_values.update(r for r in nodes[fi].results if r not in leave)
     for i in absorbed:
         plan.dead_values.add(nodes[i].results[0])
     for i, target in fork_owners.items():
@@ -3790,6 +3956,9 @@ class Emitter:
                   f"(anchor line {anchor.src_line})")
         name, default = self._emit_fused_module(region, inst)
         d = self.delay(inst, default)
+        if region.outputs is not None:
+            self._lower_fused_multi(region, inst, name, d)
+            return
         z = anchor.results[0]
         if inst in SPEC_INC:
             ds = self.delay(inst + "_short", SPEC_INC[inst][1])
@@ -3803,6 +3972,54 @@ class Emitter:
                       f".{p}_ack({self.ack(ssa)}), .{p}_data({self.data(ssa)}),")
         self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
                   f".z_data({self.odata_out(z)}));")
+        self.emit()
+
+    def _lower_fused_multi(self, region, inst, name, d):
+        """BDC_RING_FUSE: a region with several results (Region.outputs).  The cell has one output channel `<inst>_z*`
+        whose data is every result side by side (the first output in the low bits); a bd_fork `<inst>_f` splits its
+        request into one channel per result, each taking its slice of the data -- the same split _op_fork makes for
+        a fork, BDC_FORK_OUT_LINK included, so a result that rule F links still gets its link."""
+        outs = region.outputs
+        widths = [max(self.width(v), 1) for v, _ in outs]
+        zr, za, zd = f"{inst}_zreq", f"{inst}_zack", f"{inst}_zdata"
+        self.emit(f"    wire {zr}, {za};")
+        self.emit(f"    wire [{sum(widths) - 1}:0] {zd};")
+        if inst in SPEC_INC:
+            raise EmitError(f"BDC_SPEC_INC={inst}: not on a multi-result region (BDC_RING_FUSE)")
+        self.emit(f"    {name} #(.DELAY({d})) {inst} (")
+        self.emit(f"        .rst(rst),")
+        for k, ssa in enumerate(region.ext_inputs):
+            p = f"e{k}"
+            self.emit(f"        .{p}_req({self.req(ssa)}), "
+                      f".{p}_ack({self.ack(ssa)}), .{p}_data({self.data(ssa)}),")
+        self.emit(f"        .z_req({zr}), .z_ack({za}), .z_data({zd}));")
+        vals = [v for v, _ in outs]
+        fl = {v for v in vals if vname(v) in FORK_OUT_LINK}
+        rq = {v: (f"{vname(v)}_freq" if v in fl else self.oreq(v)) for v in vals}
+        ak = {v: (f"{vname(v)}_fack" if v in fl else self.oack(v)) for v in vals}
+        for v in vals:
+            if v in fl:
+                self.emit(f"    wire {rq[v]}, {ak[v]};")
+        reqs = ", ".join(rq[v] for v in reversed(vals))
+        acks = ", ".join(ak[v] for v in reversed(vals))
+        self.emit(f"    bd_fork #(.N({len(vals)})) {inst}_f (")
+        self.emit(f"        .rst(rst), .req({zr}), .ack({za}),")
+        self.emit(f"        .req_out({{{reqs}}}), .ack_in({{{acks}}}));")
+        lo = 0
+        for v, w in zip(vals, widths):
+            sl = f"{zd}[{lo + w - 1}:{lo}]"
+            lo += w
+            if v in fl:
+                li = f"ulink_{vname(v)}_folink"
+                dl = self.delay(li, STAGE_PAD)
+                a = self.delay(f"{li}_uack", ACK_PAD)
+                rf = ", .RFAST(1)" if FORK_OUT_FASTFALL else ""
+                self.emit(f"    bd_link #(.W({w}), .DELAY({dl}), .DACK({a}){rf}) {li} (")
+                self.emit(f"        .rst(rst),")
+                self.emit(f"        .req_in({rq[v]}), .ack_in({ak[v]}), .data_in({sl}),")
+                self.emit(f"        .req_out({self.oreq(v)}), .ack_out({self.oack(v)}), .data_out({self.odata_out(v)}));")
+            elif not self.is_control(v):
+                self.emit(f"    assign {self.odata(v)} = {sl};")
         self.emit()
 
     def _emit_fused_module(self, region, inst):
@@ -3856,6 +4073,26 @@ class Emitter:
         anchor = nodes[region.anchor]
         out_w = 1 if anchor.op == "cmpi" else self.width(
             anchor.operands[_FUSABLE_CHANS[anchor.op]["a"]])
+        z_expr = node_wire[region.anchor]
+        if region.outputs is not None:
+            # BDC_RING_FUSE: every result side by side, the first in the low bits (_lower_fused_multi slices them)
+            parts = [node_wire[i] for _, i in region.outputs]
+            if RING_FUSE_NEGCTL:
+                # the negative control: every result after the first carries the first one's value instead (its low
+                # bits, or zero-extended), so a consumer of any later result reads the wrong data
+                w0 = max(self.width(region.outputs[0][0]), 1)
+                bad = [parts[0]]
+                for v, _ in region.outputs[1:]:
+                    wk = max(self.width(v), 1)
+                    if wk == w0:
+                        bad.append(parts[0])
+                    elif wk < w0:
+                        bad.append(f"{parts[0]}[{wk - 1}:0]")
+                    else:
+                        bad.append(f"{{{{{wk - w0}{{1'b0}}}}, {parts[0]}}}")
+                parts = bad
+            out_w = sum(max(self.width(v), 1) for v, _ in region.outputs)
+            z_expr = "{" + ", ".join(reversed(parts)) + "}"
 
         ext_w = [self.width(ssa) for ssa in region.ext_inputs]
         decls = []
@@ -3918,7 +4155,7 @@ module {name} #(parameter DELAY = {default_total}{extra_param})
     // region at once; the matched delay above is what makes whatever it
     // picks safe.
 {chr(10).join(body_lines)}
-    assign z_data = {node_wire[region.anchor]};
+    assign z_data = {z_expr};
 endmodule
 `default_nettype wire
 """
