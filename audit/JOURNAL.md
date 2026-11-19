@@ -3393,3 +3393,4 @@ Dynamatic tests; the automatic table from clean.
 
 ### progress 01:31 (2026-11-19)
 - Watcher timed out with no board-queue / headline change. research e060d7980 loosens fasm_equiv (dead undriven cells benign; cmpchain s1/s4, test_flatten_array s1 called false alarms): subagent H checks soundness independently. research 8d8b475f3 CA_FAST=1 default in the sizing loop ('identical proposals on 10 kernels'): not yet checked.
+- 01:37 T165 (subagent H): fasm_equiv dead-cell rule sound by construction and on 6 local routes; cmpchain / test_flatten_array routes not committed, rebuild blocked by the audit toolchain's missing const-sinks patch. Checking whether a patched toolchain can be restored.
