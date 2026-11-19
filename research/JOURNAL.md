@@ -7585,3 +7585,48 @@ bench check on branch kernels; (4) the open goal-1 list in the 19:53 state of pl
   session), LOCK cleared. Next: see the 21:35 note's Next list; the P check above goes before the headline regeneration.
 - 21:38: no wrong answer in flight: suite11 (36 results), suite12 (30), suite10d (2), finseeds1 (37) are all PASS on
   every draw except share_test_2 (NOT-A-BOARD-ROUTE on s1 / s3 / s4: fasm2net's DSP48E1 cascade gap, as before).
+
+## Session 2026-11-19 21:40 UTC -- cluster bot, session 19 (the job's last 33 minutes): branchloop's ratio 0.40 withdrawn (our inner loop against Dynamatic's outer loop); both P anomalies explained
+Toolchain: patches.sha 0d42657914fc25d3 (no build this session)   Seeds: none built
+Lock: empty at start (session 18 cleared it at 21:38); taken 21:40 UTC as cluster-research-29466208-19. The job ends at
+22:13 UTC: read-only work on the farm's committed results, nothing started locally.
+Audit: newest row T171 (formal's mr_verilog_check passes bdc's BDC_RING_FUSE_NEGCTL build) is about formal's tool, not
+research's files; T169 marked answered by the auditor at 21:39. Formal: C60 (memory routes SAME, 32 / 32), A27 ring fusion
+proved on 18 of 26 kernels; no counterexample to any rewrite.
+### progress 21:47 (the two P anomalies of session 18: both explained; branchloop's headline ratio was two different loops)
+- **dot2 seed 2, P = 156.000 ns**: already known and handled. It is 13 x 12 ns, the host's array fill through the memory
+  port picked as the auto marker; eventgraph.py masks bridge_i.mem_busy since 430f52be7 (2026-11-18 21:38 UTC), and suite9
+  ran at eaef0dec7 (2026-11-18 17:03 UTC), before it. suite_table.py refuses a P that is a multiple of the host clock
+  (line 176), so it never reached the table (dot2's bracket there is 33.39-34.28). Session 18 missed the earlier fix.
+- **branchloop seed 2 (finseeds1 DA, P 35.12) is the OUTER loop; every other branchloop P (13.5-14.8) is the INNER loop.**
+  branchloop (kernels/branchloop/branchloop.c) has an outer loop with an odd / even branch and an inner loop in the odd
+  arm. The auto marker is the request net with the longest run of equal rise intervals, so which loop P measures depends
+  on which net's run is longest on that route. Measured from the bench's per-call latencies (latmin x 12 ns minus the
+  0-trip call; finseeds1 task 16 = DA route e5e9c01f, task 36 = A route cda01728, draw 10201):
+
+  | quantity (from the vector that isolates it) | DA route (P 35.12) | A route (P 14.23) |
+  |---|---|---|
+  | inner trip (n = 0x7fffffff: 30 trips, minus n = 3's O + E) | 14.07 ns | 14.48 ns |
+  | outer iteration (n = 0x40000001: 61 alternating O0 / E) | 35.80 ns | 36.39 ns |
+  | even-arm iteration (n = 0x40000000: 30 E) | 30.00 ns | 29.60 ns |
+
+  Both routes have the same loop times within the 12 ns quantisation; their P differ by 2.47x because P picked a
+  different loop. Which net the marker was is not in the farm's files (the VCD is not kept): the identification is by
+  period only.
+- **Consequence for the headline: branchloop's ratio 0.40 was 14.79 ns (our inner trip) / 36.77 ns (Dynamatic's figure,
+  3.44 cycles on bb1, "the most executed of 2 loops": 160 outer iterations against 68 inner trips over the 14 calls, so
+  the outer loop).** Withdrawn, and out of every mean (suite_table.py's existing --no-ratio, as for isprime); like for
+  like about 35.8 / 36.77 = 0.97, matching the latency-per-call ratio 1.01 on the same calls. Corrected by hand in
+  research/data/fifteen/README.md (not regenerated): geometric mean with estimates 1.01 (n = 22) -> **1.06 (n = 21)**;
+  without memory kernels 1.16 (n = 11) -> **1.28 (n = 10)**; ratios below 1: 10 -> 9, non-memory among them 4 -> 3
+  (digitdiv, horner, ipow). The measured-figure mean (n = 3, 1.69) and the latency mean (n = 31, 1.38) do not change.
+- Of the 22 kernels with a ratio, branchloop is the only one that Dynamatic's table lists with more than one loop
+  (research/data/suite/dynamatic/table.md, "of N loops": 18 kernels). On the other 17 (gcd, nested, nest3, twoloops,
+  binary_search, the memory nests; isprime already out) no ratio is filled yet; the same check comes first when one is.
+- Does NOT show: that our P on single-loop kernels measures the iteration Dynamatic's figure measures (one loop each, so
+  it should, but not checked against the bench the way branchloop was here); the ESTIMATED Dynamatic figures themselves.
+Next (general, nothing per kernel): make P follow Dynamatic's convention on every kernel, in eventgraph.py's auto marker
+or in suite_table.py: measure the most executed loop (by back-edge count over the calls), and refuse a P whose loop
+cannot be identified; then regenerate the headline with --no-ratio isprime,branchloop dropped where the loop now
+matches. Before that, the 21:35 Next list of session 18 stands (suite12's last kernels, suite11's last 3, suite10d,
+finseeds1's last 3 -> regenerate; AUTO_FINISH_SEEDS=3 default + smoke; the open goal-1 list of the 19:53 state of play).
