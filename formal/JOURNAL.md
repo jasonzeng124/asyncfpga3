@@ -3318,7 +3318,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   PROVED (10 s). Census over research's fixtures running (unfused vs default; BDC_MAX_FUSE_NODES=8 vs default).
   Purpose: research's ringfuse (a fusion pass, report due 12:00 UTC) can be checked the same way.
 * MARGINS.md: rows for B12 (test_divui: the divider's enable chain vs its line), B's muxsel cmpchain routes, b_hl1.
-### progress 08:05 -- eq2_pass.py (structural pre_eq2 + Lean), auto_rewrites.sh; censuses; why the gcd theorem did not move
+### progress 08:00 -- eq2_pass.py (structural pre_eq2 + Lean), auto_rewrites.sh; censuses; why the gcd theorem did not move
 * `tools-A/rewrite/eq2_pass.py IN OUT`: matches `cmpi eq, F#j, 1` with F a 2-output fork of Y whose arithmetic
   inputs come from one fork N (no names); makes research's edit; keeps OUT only if eq2_check PROVES it. Output on
   collatz / collatz64 byte-identical to research's `*_preeq2.mlir`. Census over research's 111 fixtures
