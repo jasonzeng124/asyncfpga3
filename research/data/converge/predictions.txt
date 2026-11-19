@@ -1,0 +1,57 @@
+PREDICTION run A (2026-11-19T12:39:56Z, before any result): five farm loops that ended NOT CLEAN after three raise-only
+finish routes, resumed at the start of their finish phase (files up to it 4, sizes_5) at clone HEAD a95cf35dc with
+AUTO_FINISH_SEEDS=3 AUTO_FINISH_JOBS=1 AUTO_SEARCH=0 (nextpnr 6e5d224472232d5d; seed S, alternates S+1000, S+2000):
+  xorshift s1 (norw1/1, farm P 20550 NOT CLEAN), collatz s7 (norw1/15, 22791), collatz64 s3 (norw1/19, 32125),
+  sqrtsub s2 (suite9r3/2, 24360), ipow s3 (split1/19, BDC_SPLIT_SOURCES=1, 18549).
+- Control: every resumed loop's it-5 route on seed S has the farm's it-5 sdf md5 (xorshift s1 already checked: same);
+  its rule is NOT clean, as on the farm (row counts may differ where the rule changed since the request: BD_PEERS_CELL).
+- Each alternate draw is clean with probability ~0.1-0.2 (the farm's finish routes: 7 %, 11 %, 21 % clean at steps
+  1 / 2 / 3); these loops were selected for failing all three seed-S draws, so lower: 2-3 of the 5 end CLEAN on an
+  adopted alternate, after 2-6 extra routes; the others NOT CLEAN exactly as on the farm (same seed-S sequence).
+- P of an adopted clean route within +-1.5 ns of the farm's NOT CLEAN route of the same loop, no systematic increase
+  (it carries the sizes of the same or an earlier finish step: no added elements).
+
+PREDICTION run A2 (2026-11-19T13:42:02Z, before any result): run A's protocol (resume at the start of the finish phase,
+AUTO_FINISH_SEEDS=3, AUTO_FINISH_JOBS=1, AUTO_SEARCH=0, clone HEAD a95cf35dc) on three more suite9r3 loops whose whole
+finish phase ran at fe52cd74: branchloop s1 (farm P 14222, rows 6/11/4 on its finish routes), varshift s4 (37417,
+4/10/4), iterative_division s2 (24972, 1/12/7). Run A so far: 2 of 4 finished loops CLEAN on an adopted alternate
+(xorshift s1 at it 7, collatz64 s3 at it 6), collatz s7 and sqrtsub s2 not. These have more rows per route, so:
+1 of 3 ends CLEAN (range 0-2); every it-5 route on seed S has the farm's md5 and rows; P of an adopted route within
++-1.5 ns of the farm's NOT CLEAN route.
+
+PREDICTION run B (2026-11-19T13:42:02Z, before any result): run A's two NOT CLEAN loops (collatz s7, sqrtsub s2) continued
+from their own state after it 7 with AUTO_FINISH=6 (three more raise-only steps, it 8-10) and AUTO_FINISH_SEEDS=3
+(up to 9 more routes). The farm's per-step clean rate rises (7, 11, 21 % at steps 1-3) as the raise steps pad what was
+short; at steps 4-6 I expect 15-25 % per draw, so each loop ends CLEAN with probability ~0.8: both CLEAN (range 1-2),
+the seed-S (primary) route clean at least once. P of the shipped route: +0.3..+1.0 ns over the loop's NOT CLEAN it-7
+route (the extra raise steps' padding), within seed scatter if adopted at it 8.
+
+PREDICTION run C (2026-11-19T14:04:24Z, before any result): (a) alone -- more raise-only finish routes, no extra seeds -- on
+the two loops where run A's draws succeeded: xorshift s1 (norw1/1) and collatz64 s3 (norw1/19), resumed from the farm's
+own final state (after it 7, sizes_8.vh) with AUTO_FINISH=6 (it 8-10), routes named sc_K_S_I. Run B so far: collatz s7
+and sqrtsub s2 were CLEAN on the seed-S route at it 8. Prediction: both end CLEAN by it 10, at least one at it 8; P of
+the shipped route within +-1.5 ns of the farm's NOT CLEAN it-7 route (20550 / 32125).
+
+PREDICTION run B, ipow s3 (2026-11-19T14:05:23Z, before its continuation): run A left ipow s3 NOT CLEAN after 7 (its six
+draws 2/16, 15/4, 7/4 rows; its seed-S it-7 route 1 row); run B so far: collatz s7 and sqrtsub s2 CLEAN on the seed-S
+route at it 8. Continued as they were (AUTO_FINISH=6, AUTO_FINISH_SEEDS=3): CLEAN by it 10 (p ~0.8), P within +-1.5 ns
+of its it-7 route (18549).
+
+PREDICTION draws (2026-11-19T14:25:51Z, before any result): the shipped CLEAN routes judged by suite_one.sh SUITE_SKIP_AUTO=1
+(bench_gate draw:K at the suite's own draw points 10000 + 100 S + j, expected values from the C oracle): every draw PASS.
+
+PREDICTION ringfuse1/31 (2026-11-19T14:37:39Z, before any result; the coordinator's case: ipow s7, BDC_RING_FUSE=2, shipped
+it 7 NOT CLEAN with 8 constraints short by up to 1019 ps, FAILS draw 10707 on the farm): its it 6 route (2 rows, -84 / -18
+ps) and it 7 route rebuilt here (sizes_6 / sizes_7, seed 7) have the farm's md5s 7b4b4384 / 01894137; draw 10707 FAILS on
+it 7 here too (the control), and it 6 passes all eight suite draws 10701-10708 including 10707.
+
+PREDICTION AUTO_SHIP_LEAST end-to-end (2026-11-19T14:39:43Z, before any result): auto_size.sh at bfeddbc21 (side branch
+converge-final) resumed from farm ringfuse1 task 31's own final state (after it 7) with AUTO_SHIP_LEAST=1, AUTO_SEARCH=0,
+BDC_RING_FUSE=2: no route is built for the loop itself (it 7 = MAXIT + AUTO_FINISH); it picks it 6 (102 ps over 2
+constraints vs 6393 over 9 on it 7), rebuilds it from sizes_6 / seed 7 with the farm's md5 7b4b4384, runs the full stack,
+and result.txt says "shipped it=6"; suite_one.sh SUITE_SKIP_AUTO=1 then judges route it 6 (its line says it=6).
+
+PREDICTION run C2 (2026-11-19T15:12:12Z, before any result): run C's protocol ((a) alone: the farm's state after it 7,
+AUTO_FINISH=6, no extra seeds, routes sc_K_S_I) on run A2's three loops, which carry many rows: branchloop s1 (farm it 5-7:
+6 / 11 / 4 rows; A2's draws 9 / 14 / 10 rows), varshift s4 (4 / 10 / 4; draws 19 / 10 / 27), iterative_division s2
+(1 / 12 / 7; draws 13 / 20). Expect 1 of 3 CLEAN by it 10 (range 0-2); the others end with 1-6 short constraints.
