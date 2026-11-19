@@ -7439,3 +7439,14 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   lever named by converge: an incremental placement that keeps the previous route's cells); share_test_2 unjudged
   (fasm2net: DSP48E1 cascade mode); rule F pads very short lines without converging; the N-way mux hold side is
   argued only; capture-latch timing has no rule.
+### progress 17:07 (flow v8: ring fusion on by default under BDC_AUTO; farm suite12 runs the whole suite on it)
+- ringfuse1 final (BDC_RING_FUSE=2 vs the same seeds' v7 routes, the whole automatic flow): **faster on 19 of 29 paired
+  seeds, median -1.27 ns; xorshift 8 / 8, median -1.87 ns (-1.16..-3.42); collatz 5 / 8, -1.17**; countloop 3 / 6,
+  +0.45; ipow 3 / 7, +0.12; one fused route failed a draw (ipow s7: the NOT CLEAN last-route case the least-short rule
+  now avoids). **bdc/emit.py: BDC_RING_FUSE defaults to 2 under BDC_AUTO=1 (flow v8)**; without BDC_AUTO, or with
+  BDC_RING_FUSE=0, nothing changes (checked: default and host-mem emissions 65 / 65 byte-identical; the BDC_AUTO
+  emission changes on 49 of 65 fixtures, the ring-fused ones). Board items 38-41 now say BDC_RING_FUSE=0 (their v3
+  routes). A resume of a v7 loop must set BDC_RING_FUSE=0 too, or it rebuilds a different circuit (log.txt would say
+  "DIFFERENT ROUTE"); suite11 and finseeds1 were picked up before this commit.
+- Farm **suite12** filed: all 62 listed kernels, seed 1, flow v8 -- the first whole-suite run of v8, for the next session
+  to compare with the headline's v7 / v6 routes.
