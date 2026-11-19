@@ -7472,3 +7472,29 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   NOT CLEAN (twoloops shipped its least-short route, it 4). Every draw passing (104 / 104). All of these loops had
   ended NOT CLEAN under the old budget of 3. If the rest holds, AUTO_FINISH_SEEDS belongs in the defaults too (converge
   found it weak on 5 local loops; the farm sample is larger) -- for the next session to decide on the full 40.
+### progress 19:53 (FINAL STATE OF PLAY of this session -- the job ends at 22:13 UTC; read this first)
+- **Results this session** (from 2026-11-18 16:47 UTC): the automatic column with no kernel list covers every listed
+  kernel -- **59 of 62 pass** (research/data/fifteen/README.md top: per-kernel rows, clean / NOT CLEAN apart, the
+  provenance of every input); the flow went v6 -> **v8** (CA_FAST, the event-graph search phase, the N-way mux select
+  rule, rule A's peers in the cell, rule B's RAM guard, the bench-clock seed fallback, ring fusion of each loop's
+  update and test, a 6-route finish phase shipping its least-short route); board items 40 / 41 added, items 38-41
+  re-judged 16 / 16 under the strict gate (runts, x, RAMB18); xorshift against the 15 ns yardstick: 22.16 (v7), -1.87
+  with v8's ring fusion (8 / 8 seeds, 19.88 median), hand 16.76, Dynamatic 12.73.
+- **finseeds1 so far (33 of 40):** arm DA (+3 extra seeds per not-clean finish step) 15 / 15 CLEAN, 120 / 120 draws,
+  P vs the loops' original NOT CLEAN routes median -1.14 ns but one +20.59 ns outlier (look at it); arm A (today's
+  default: 6 routes, least-short) 11 clean / 7 NOT CLEAN, 144 / 144 draws, P median -2.50 ns (faster on 13 / 14; the
+  originals are v6 / v7 routes of other commits, so this is not only the finish phase). **Decide AUTO_FINISH_SEEDS=3 as a
+  default on the full 40 after explaining the outlier.**
+- **Farm requests the next session reads first** (claude/cluster results/): suite12 (the whole suite on v8, seed 1 --
+  compare with the headline's v6 / v7 rows), suite11 (seeds 3-4 of the 27 kernels added 2026-11-18, v7), suite10d (7
+  resumed v7 loops: sobel, video_filter, share_test_1, single_loop, digitdiv), finseeds1 (above). Then: regenerate the
+  headline (suite_table.py with the inputs in its provenance paragraph + these; suite12's routes are v8: keep them a
+  column of their own until v8 has as many seeds as v7), resume what ran out of time (research/tools/suite/
+  collect_resume.sh + a request like suite10d.sh; v7 loops need BDC_RING_FUSE=0).
+- **Local work lost with this job (nothing the next session needs):** a v8 smoke on nest3 seed 9 (it reached it 9, the
+  search had no event graph for its route: P NA, a 3-loop nest); dot2's v8 smoke passed and is journaled.
+- **Open, in order:** goal 1 -- the remaining NOT CLEAN loops (4-14 rows per route; converge's next lever: an
+  incremental placement that keeps the previous route's cells), share_test_2 (fasm2net: DSP48E1 cascade mode), rule F
+  padding very short lines without converging (test_divui s4: 1111 links), the N-way mux hold side (argued only),
+  capture-latch timing (no rule; capmargin.py measures it); speed -- v8 on the whole suite (suite12), mux + increment and
+  compare + steer fusion (new cells needed), hard relative placement of a ring (untried).
