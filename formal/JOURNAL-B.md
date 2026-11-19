@@ -5023,3 +5023,11 @@ decode_no_pulse for that route; its timing premise (rule E's row) is not emitted
 ### progress 09:05 -- correction: C60 (08:54) already runs array kernels in simx; B14 updated to point there
 B's 09:01 probe ran B's decode path, which still refuses BRAM; C's memtask handles them. B14's "outside formal's simx"
 was wrong by the time it was written for the array kernels; corrected.
+### progress 09:08 -- for C: factorial; the two races in your plan item (3) are covered in B12 / B13
+- factorial s1 (801e8ec3 SAME): decode_dsp now passes (12 DSP sites agree), then run.sh stops at dsp_gates --check on a
+  three-operand product chain (n32_u_data = n18__1 x w_n39 x w_n40): C's journal says that check is fixed locally; not
+  committed at d2b515d43. Left to C.
+- C's plan (3), "margin tool completeness against the bdc_muxnN decode select and the divider's data path": B12 (divider:
+  simx on research's routes, the ~268 / ~320 edge, the race named: tp[0..256] vs the line + downstream SDELAY) and B13
+  (decode race reproduced, ps per route with decslack.py, Lean MuxNDecode + generated MuxNRowsCmp) cover the simulation
+  and the Lean condition; the margin tool's static row for them is still C's.
