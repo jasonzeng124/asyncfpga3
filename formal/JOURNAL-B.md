@@ -5074,3 +5074,9 @@ H_DECODE; extraction untrusted. Running 272 / 320 / 384 rebuilds for comparison 
 Local: test_divui 528 0.240 (= B15), 384 0.067, line 5 -0.96; straight s2 0.290; divmodu s1 0.246; cmpchain muxn1 s1
 0.189; gcd s3 / iterative_sqrt s1: out0_req comes through an N-way mux's OR of joins, no single-pin forcing chain (not
 handled: chain_hold_side with the other joins at 0 would need their windows as premises).
+### progress 10:09 -- outsafe on board items 38-41 (local, sdf SAME): output-capture kappa_lo xorshift 0.117, collatz 0.281, collatz64 0.108, ipow 0.169
+Fixes: constant-tied pins fixed at their value (chain_hold_side side pins) and excluded as chain candidates; a mux's
+uor (OR of its joins) walked with the other joins at 0 as listed premises; kappa_lo over the WORST launching join (min R).
+gcd s3 -0.16, iterative_sqrt s1 -0.33: no proof (their out0 comes through an N-way mux whose data path is longer than
+its line at the extremes; the bench samples out0 one host cycle or more after out0_req, which the bound does not use).
+task.sh: the four board kernels use research's gate vectors + kernel_oracle.sh.

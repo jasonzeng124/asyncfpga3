@@ -14,6 +14,9 @@ source "$TC/openxc7/export.sh" > /dev/null
 case $K in
   isprime) V=research/data/alltable/isp17.hex; OR="research/tools/fifteen/kernel_oracle.sh isprime";;
   gcd) V=research/data/suite/vec/gcd8.hex; OR="research/data/gcd_draws/gcd_oracle.sh";;   # suite_one.sh's choice
+  xorshift|collatz|collatz64|ipow)   # the board kernels: research's gate vectors, its kernel oracle (as coltask.sh)
+    V=research/data/eventgraph/gate/$(case $K in xorshift) echo xor19;; collatz) echo col18;; collatz64) echo c6419;; ipow) echo ipow17;; esac).hex
+    OR="research/tools/fifteen/kernel_oracle.sh $K";;
   *) V=kernels/$K/vec.hex; [ -f "$RS/$V" ] || V=research/data/suite/vec/$K.hex; OR="research/tools/suite/oracle.sh $K";;
 esac
 head -1 "$RS/$V" | grep -q '^// benchvec' && { say "$K $S SKIP (memory vectors: not supported by formal's bench boundary yet)"; exit 0; }
