@@ -3318,3 +3318,18 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   PROVED (10 s). Census over research's fixtures running (unfused vs default; BDC_MAX_FUSE_NODES=8 vs default).
   Purpose: research's ringfuse (a fusion pass, report due 12:00 UTC) can be checked the same way.
 * MARGINS.md: rows for B12 (test_divui: the divider's enable chain vs its line), B's muxsel cmpchain routes, b_hl1.
+### progress 08:05 -- eq2_pass.py (structural pre_eq2 + Lean), auto_rewrites.sh; censuses; why the gcd theorem did not move
+* `tools-A/rewrite/eq2_pass.py IN OUT`: matches `cmpi eq, F#j, 1` with F a 2-output fork of Y whose arithmetic
+  inputs come from one fork N (no names); makes research's edit; keeps OUT only if eq2_check PROVES it. Output on
+  collatz / collatz64 byte-identical to research's `*_preeq2.mlir`. Census over research's 111 fixtures
+  (eq2_pass_census.txt): 2 match, both PROVED; 109 no match.
+* `auto_rewrites.sh IN OUT [--bdc DIR]`: plain_pass then eq2_pass. collatz -> eq2 PROVED; countloop -> plain PROVED;
+  gcd -> neither. All three of research's hash-listed rewrites (xorshift pre_dec, collatz / collatz64 pre_eq2) now have
+  a pass (FOR-RESEARCH A24).
+* The checked Lean closure for these tools is 25 Core-only modules (no Mathlib import).
+* fuse_check census (unfused vs default; BDC_MAX_FUSE_NODES=8 vs default) still running: every finished row so far
+  PROVED or "same rules".
+* The gcd theorem (second priority) did not move today, and I am not starting on it this morning: its open items are
+  the whole-circuit S4 / S6 argument (StepHypR) and Lean versions of the decoder's carry / output-mux selects
+  (FormalWit-scale builds, hours, OOM-prone here). The program's first items for A (the rewrites in research's
+  automatic path) had a clear payoff today (audit T163: ~30 % on collatz). STATUS.md unchanged.
