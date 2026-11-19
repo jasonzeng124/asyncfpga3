@@ -25,3 +25,8 @@ for v in old new; do f=$W/cells/gls/fid/fasm_equiv.py; [ $v = new ] && f=/root/t
 python3 $A/t165/dead.py $D/${K}_bench_gen_routed.json /root/t166w/dead.json > /root/t166w/dead.out 2> /root/t166w/dead.err; echo "dead.py rc=$?" >> $L
 cp /root/t166w/equiv_*.txt /root/t166w/dead.json $A/t166/ 2>/dev/null
 echo DONE >> $L
+# NOTE (2026-11-19): the decode above lacked --ps7 and TC; the valid decode is:
+#   TC=/root/audit-tc2 python3 $W/cells/gls/fid/fasm2net.py --ps7 --bit $D/cmpchain_bench_gen.bit --out /root/t166cmp/fid \
+#       --names $D/cmpchain_bench_gen_routed.json --sdf $D/cmpchain_bench_gen.sdf
+# then fasm_equiv (eaef0dec7 = old, e060d7980 = new) on fid/{fasm_routed.json,routes.tsv,stubs.tsv} -> equiv_{old,new}_ps7.txt
+# control: the same decode of item 41's route (/root/t65/auto_xor_s8) is EQUIVALENT under both.
