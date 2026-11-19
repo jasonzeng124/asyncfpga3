@@ -7225,3 +7225,11 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   loads, void kernels), seeds 1-2; and suite9's 10 loops that returned no state (nest3 s1-4, nested s1,
   iterative_sqrt s2, fill s1, fold64 s1, iterative_division s1, quadrec s3), from scratch -- all with CA_FAST, the RAM
   guard, the seed fallback and the runt monitor reporting.
+### progress 04:29 (split1 + split1r2: BDC_SPLIT_SOURCES through the whole flow helps ipow, hurts collatz / collatz64)
+- BDC_SPLIT_SOURCES=1 through the no-list automatic flow (8 seeds each, 8 draws, 184 / 184 draws passing) against the
+  same flow without it (norw1 / norw1r2; suite6 for ipow, which no rewrite touched), all routes, seeds paired:
+  **ipow -2.28 ns** median paired difference (faster on 5 of 7; all-route median 21.58 -> 19.22, -11 %); **collatz
+  +1.39 ns** (faster on 3 of 8); **collatz64 +1.15 ns** (faster on 1 of 4). graphsearch's fixed-size A/B (-6..-8 % on
+  all three) does not survive the sizing loop on collatz / collatz64. Not a default (a choice only ipow justifies);
+  candidate for an automatic "build both structures, keep the faster clean route" phase like AUTO_SEARCH's, which would
+  cost one more loop per kernel.
