@@ -104,6 +104,18 @@ theorem comp_at {ins : List Nat} {o : Nat} {F : E} {σ : Store Nat Nat} (ho : o 
     · subst h2; simp [h1]
     · simp [h1, h2]
 
+/-- `comp_at` for any pushed value. -/
+theorem comp_atv {ins : List Nat} {o : Nat} {σ : Store Nat Nat} (ho : o ∉ ins) (v : Nat) (c : Nat) :
+    applyF σ (popOf ins, fun c => if c = o then [v] else []) c =
+      if c ∈ ins then (σ c).tail else if c = o then σ c ++ [v] else σ c := by
+  simp only [applyF_at, popOf]
+  by_cases h1 : c ∈ ins
+  · have : c ≠ o := fun e => ho (e ▸ h1)
+    simp [h1, this, List.drop_one]
+  · by_cases h2 : c = o
+    · subst h2; simp [h1]
+    · simp [h1, h2]
+
 theorem fork_at {i : Nat} {os : List Nat} {σ : Store Nat Nat} {v : Nat} (hi : i ∉ os) (c : Nat) :
     applyF σ (popOf [i], fun c => if c ∈ os then [v] else []) c =
       if c = i then (σ c).tail else if c ∈ os then σ c ++ [v] else σ c := by

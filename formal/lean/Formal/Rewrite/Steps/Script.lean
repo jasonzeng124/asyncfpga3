@@ -3,6 +3,8 @@ import Formal.Rewrite.Steps.ForkJoin
 import Formal.Rewrite.Steps.ForkSplit
 import Formal.Rewrite.Steps.ForkComm
 import Formal.Rewrite.Steps.Cong
+import Formal.Rewrite.Steps.Dedupe
+import Formal.Rewrite.Steps.Wire
 import Formal.Rewrite.Eq2
 
 /-!
@@ -24,7 +26,9 @@ Lean evaluates: it checks each step's side conditions (Bool) and applies it. The
 * `forder l os'`: a fork lists its outputs in another order (`Cong`);
 * `ident l w`: a comp's expression is replaced by an equal one from the identity library (`Cong`; today one
   identity, the collatz loop test, `colIdent`, any width `w ≥ 3`);
-* `drop l`: delete a `sink c` that nothing writes (`Cong`).
+* `drop l`: delete a `sink c` that nothing writes (`Cong`);
+* `dedupe lf lc a b`: a comp reading two outputs `a, b` of one fork reads `a` twice instead (`Dedupe`);
+* `wire lf lc`: a one-output fork feeding a comp is removed, the comp reads the fork's input (`Wire`).
 A wrong script makes `runScript` return `none` (a check fails); it cannot prove a wrong theorem.
 
 **Not covered:** token level only; the identity library has one entry.
@@ -172,6 +176,8 @@ inductive Step
   | forder (l : Nat) (os' : List Nat)
   | ident (l w : Nat)
   | drop (l : Nat)
+  | dedupe (lf lc a b : Nat)
+  | wire (lf lc : Nat)
   deriving Repr
 
 /-- The result of a step: new rules, channels that must start empty, channels the rewrite may leave different. -/
@@ -247,6 +253,26 @@ def applyDR (rs : List Rule) (l : Nat) : Option Res :=
     if allL rs (fun _ r => writesNone [c] r) = true then some (rs.eraseIdx l, [c], []) else none
   | _ => none
 
+def applyDD (rs : List Rule) (lf lc a b : Nat) : Option Res :=
+  match rs[lf]?, rs[lc]? with
+  | some (.fork x os), some (.comp ins y F) =>
+    if a ∈ os ∧ b ∈ os ∧ a ∈ ins ∧ b ∈ ins ∧ a ≠ b ∧ os.Nodup ∧ ins.Nodup ∧ x ∉ os ∧ y ∉ ins ∧
+        allL rs (fun l r => l == lc || readsNone [a, b] r) = true ∧
+        allL rs (fun l r => l == lf || writesNone [a, b] r) = true then
+      some ((rs.set lf (.fork x (os.erase b))).set lc (.comp (ins.erase b) y (dedupE ins a b F)), [a, b], [b])
+    else none
+  | _, _ => none
+
+def applyW (rs : List Rule) (lf lc : Nat) : Option Res :=
+  match rs[lf]?, rs[lc]? with
+  | some (.fork x [a]), some (.comp ins y F) =>
+    if a ∈ ins ∧ ins.Nodup ∧ x ∉ ins ∧ x ≠ a ∧ y ∉ x :: ins ∧
+        allL rs (fun l r => l == lf || l == lc || readsNone [x, a] r) = true ∧
+        allL rs (fun l r => l == lf || writesNone [a] r) = true then
+      some ((rs.set lf (.sink a)).set lc (.comp (ins.map (swA a x)) y F), [a], [x, a])
+    else none
+  | _, _ => none
+
 def applyStep (rs : List Rule) : Step → Option Res
   | .absorb lp lq => applyAB rs lp lq
   | .forkjoin lf lc => applyFJ rs lf lc
@@ -256,6 +282,8 @@ def applyStep (rs : List Rule) : Step → Option Res
   | .forder l os' => applyFO rs l os'
   | .ident l w => applyID rs l w
   | .drop l => applyDR rs l
+  | .dedupe lf lc a b => applyDD rs lf lc a b
+  | .wire lf lc => applyW rs lf lc
 
 def runScript : List Rule → List Step → Option Res
   | rs, [] => some (rs, [], [])

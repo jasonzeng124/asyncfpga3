@@ -201,6 +201,61 @@ theorem applyDR_sound {rs : List Rule} {l : Nat} {res : Res} (h : applyDR rs l =
     next => cases h
   next => cases h
 
+theorem applyDD_sound {rs : List Rule} {lf lc a b : Nat} {res : Res} (h : applyDD rs lf lc a b = some res) :
+    Sound rs res.1 res.2.1 res.2.2 := by
+  unfold applyDD at h
+  split at h
+  next x os ins y F hf hc =>
+    split at h
+    next hk =>
+      obtain ⟨hao, hbo, hai, hbi, hab, hosnd, hinsnd, hx, hy, hA1, hA2⟩ := hk
+      obtain rfl := (Option.some.inj h).symm
+      have hne : lf ≠ lc := fun e => by rw [e, hc] at hf; cases hf
+      have P : PatDD rs ((rs.set lf (.fork x (os.erase b))).set lc (.comp (ins.erase b) y (dedupE ins a b F)))
+          lf lc x y a b os ins F :=
+        { hf := hf
+          hc := hc
+          hf' := by rw [set_ne (Ne.symm hne), set_self hf]
+          hc' := set_self (by rw [set_ne hne]; exact hc)
+          hsame := fun l h1 h2 => by rw [set_ne (Ne.symm h2), set_ne (Ne.symm h1)]
+          hins := fun l r h1 hr => by
+            have := of_readsNone (or2 (of_allL hA1 l r hr) h1)
+            exact ⟨fun h => this a h (by simp), fun h => this b h (by simp)⟩
+          houts := fun l r h1 hr => by
+            have := of_writesNone (or2 (of_allL hA2 l r hr) h1)
+            exact ⟨fun h => this a h (by simp), fun h => this b h (by simp)⟩
+          hao := hao, hbo := hbo, hai := hai, hbi := hbi, hab := hab, hosnd := hosnd, hinsnd := hinsnd,
+          hx := hx, hy := hy }
+      exact ⟨fun h0 hr ht => dd_forward P (h0 a (by simp)) (h0 b (by simp)) hr ht,
+        fun h0 hr ht => dd_backward P (h0 a (by simp)) (h0 b (by simp)) hr ht⟩
+    next => cases h
+  next => cases h
+
+theorem applyW_sound {rs : List Rule} {lf lc : Nat} {res : Res} (h : applyW rs lf lc = some res) :
+    Sound rs res.1 res.2.1 res.2.2 := by
+  unfold applyW at h
+  split at h
+  next x a ins y F hf hc =>
+    split at h
+    next hk =>
+      obtain ⟨hai, hnd, hxi, hxa, hy, hA1, hA2⟩ := hk
+      obtain rfl := (Option.some.inj h).symm
+      have hne : lf ≠ lc := fun e => by rw [e, hc] at hf; cases hf
+      have P : PatW rs ((rs.set lf (.sink a)).set lc (.comp (ins.map (swA a x)) y F)) lf lc x a y ins F :=
+        { hf := hf
+          hc := hc
+          hf' := by rw [set_ne (Ne.symm hne), set_self hf]
+          hc' := set_self (by rw [set_ne hne]; exact hc)
+          hsame := fun l h1 h2 => by rw [set_ne (Ne.symm h2), set_ne (Ne.symm h1)]
+          hins := fun l r h1 h2 hr => by
+            have := of_readsNone (or3 (of_allL hA1 l r hr) h1 h2)
+            exact ⟨fun h => this x h (by simp), fun h => this a h (by simp)⟩
+          houts := fun l r h1 hr h => of_writesNone (or2 (of_allL hA2 l r hr) h1) a h (by simp)
+          hai := hai, hnd := hnd, hxi := hxi, hxa := hxa, hy := hy }
+      exact ⟨fun h0 hr ht => w_forward P (h0 a (by simp)) hr ht, fun h0 hr ht => w_backward P (h0 a (by simp)) hr ht⟩
+    next => cases h
+  next => cases h
+
 theorem applyStep_sound {rs : List Rule} {s : Step} {res : Res} (h : applyStep rs s = some res) :
     Sound rs res.1 res.2.1 res.2.2 := by
   cases s with
@@ -212,6 +267,8 @@ theorem applyStep_sound {rs : List Rule} {s : Step} {res : Res} (h : applyStep r
   | forder l os' => exact applyFO_sound h
   | ident l w => exact applyID_sound h
   | drop l => exact applyDR_sound h
+  | dedupe lf lc a b => exact applyDD_sound h
+  | wire lf lc => exact applyW_sound h
 
 /-- **The pass theorem.** Whatever the rule list and the script, a script `runScript` accepts is sound. -/
 theorem runScript_sound : ∀ {rs : List Rule} {ss : List Step} {rs' : List Rule} {pre chg : List Nat},
