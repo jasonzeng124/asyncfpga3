@@ -7359,7 +7359,7 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   (ipow -2.3 ns, collatz / collatz64 worse), BDC_MEM_FASTFALL, CA_BENCHCAP (gcd / isprime's bench-capture lap),
   AUTO_NEAR_PS (negative), BDC_LINK_RST (left off on purpose).
 - **Farm in flight (read with research/tools/suite/suite_table.py; collect states with a copy of
-  /tmp/bot/collect_resume.sh's logic: TIMEOUT tasks' auto/ dirs into research/data/suite/resume/REQ/K_S, then a resume
+  research/tools/suite/collect_resume.sh: TIMEOUT tasks' auto/ dirs into research/data/suite/resume/REQ/K_S, then a resume
   request with AUTO_RESUME):** suite9r4 (fir / sumi3_mem / memsum, 2 draws), suite10c (nest3, sobel, stencil_2d,
   share_test_1, single_loop, video_filter resumed), divsize1 (test_divui x 8 with the peers fix), divres1 (digitdiv /
   digitsum / divmods resumed, 8 cores), ringfuse1 (BDC_RING_FUSE=2 x 8 seeds x 4 kernels + baselines). Not yet resumed:
