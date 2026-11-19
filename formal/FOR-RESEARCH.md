@@ -344,9 +344,9 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 1 | xorshift | 9dd1f661 SAME | 8/8 + 8/8 | 0 | 0.191 |
 | 2 | collatz | 119e89fc SAME | 8/8 + 8/8 | 0 | 0.279 |
 | 3 | collatz64 | 921c6f7d SAME | 8/8 + 8/8 | 0 | 0.142 |
-| 4 | ipow | de1fb587 DIFFERENT | - |  | none |
+| 4 | ipow | 03bda888 SAME | 8/8 + 8/8 | 0 | 0.137 |
 | 7 | straight | 524c6161 SAME | 8/8 + 8/8 | 0 | 0.260 |
-| 8 | countloop | 5cbbe947 DIFFERENT | - |  | none |
+| 8 | countloop | 6c6b5316 SAME | 8/8 + 8/8 | 0 | 0.418 |
 | 9 | sqrtsub | 33ec83be SAME | 8/8 + 8/8 | 0 | 0.239 |
 | 11 | twoloops | 73d89e84 SAME | 8/8 + 8/8 | 0 | 0.388 |
 | 12 | brhash | f95be139 SAME | 8/8 + 8/8 | 0 | 0.232 |
@@ -359,7 +359,6 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 25 | test_divui | ecbc22cc SAME | 8/8 + 8/8 | 0 | none (-0.012) |
 | 30 | factorial | a853b143 SAME | 8/8 + 8/8 | 0 | 0.062 |
 | 31 | iterative_division | ed5e281e SAME | 8/8 + 8/8 | 0 | 0.325 |
-| 32 | iterative_sqrt | f8ef55a7 SAME | DECODE FAILED |  | none |
 | 34 | test_int16 | 21440296 SAME | - (constant output) |  | none |
 | 49 | share_test_2 | - | research: share_test_2 1 status=NOT-A-BOARD-ROUTE P=NA lat_max_cyc=NA  | | |
 (table continues as the farm returns)
