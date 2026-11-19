@@ -5112,3 +5112,4 @@ udivui0.uhold, dropping 2393 of the divider's 2510 outputs. Their new lines sit 
 ### progress 15:20 -- ringfuse xorshift s2 SAME, 8 + 8, 0 pulses (27 routes); divres1 task 2 (digitdiv s2) TIMEOUT on the farm
 ### progress 15:59 -- tracing ringfuse ipow s7: research's own fid GLS (bench_gate.sh draw:10707, GATE_RUNTS=1) running locally on the rebuilt route (sdf 01894137)
 ### progress 16:22 -- ringfuse xorshift s8 SAME, 8 + 8, 0 pulses (28 routes)
+### progress 16:52 -- PROGRAM / FOR-FORMAL re-read: unchanged; research GLS of ipow s7 draw 10707 still running (~65 min)
