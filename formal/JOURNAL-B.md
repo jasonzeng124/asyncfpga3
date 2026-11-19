@@ -5020,3 +5020,6 @@ request pin forces 0 and exactly one index assignment does not, each by decide (
 decode_no_pulse for that route; its timing premise (rule E's row) is not emitted.
 ### progress 09:04 -- decslack.py: the decode race in ps (B13 table): line 1 -552, headline 0383012b -347, line 7 / muxn1 >= +735
 ### progress 09:05 -- decslack over 6 draws x 4 muxn1 routes: min +1160 / +351 / +964 / +1304 ps (B13)
+### progress 09:05 -- correction: C60 (08:54) already runs array kernels in simx; B14 updated to point there
+B's 09:01 probe ran B's decode path, which still refuses BRAM; C's memtask handles them. B14's "outside formal's simx"
+was wrong by the time it was written for the array kernels; corrected.

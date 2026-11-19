@@ -134,13 +134,11 @@ CARRY4 / F7F8 / FF at 0.8-1.0, your C oracle (oracle.sh; gcd: gcd8 + gcd_oracle.
 | test_divui | 1, 2 | fail every draw, as yours (B12) |
 With B8 / B11 (collatz, collatz64, xorshift, ipow, countloop, sqrtsub, isprime, lfsrfind, brhash, varshift, horner,
 pipeline), formal's simx agrees with your verdict on every non-array kernel it can run.
-**Outside formal's simx:** dot2, fill, gather, if_loop_1 / 2, memsum, mul_example, simple_example_1, test_bitint,
-test_bool_array, test_loop_free, test_stdint, unused_arg, while_loop_3, binary_search, test_memory_1 / 2 (arrays: no
-RAMB18 / host model here yet), factorial (formal's DSP decoder refuses its DSP cascade), test_int16 (constant output).
-So about half of your passing kernels have no second opinion from formal; your if_loop_1 s1 WRONG ANSWER is among them.
-(Probe, 09:01: test_memory_1 s1 rebuilt here = your 0e95d2ca; formal's decoder stops at its first block-RAM feature,
-`BRAM_L_X18Y70.RAMB36.RAM_EXTENSION_B_NONE_OR_UPPER`, by design: it refuses features it cannot model. Array kernels
-need a BRAM decode, a RAMB18 model in simx and a host fill / read-back: not started.)
+**Array kernels: see C60** (shard C, same morning): formal's simx now runs them (memory host, RAMB18 model), 11 headline
+array routes pass there and your if_loop_1 s1 known-bad is reproduced with the host port. B's own probe (B's decode path,
+`tools-B/auto/decode.sh`) still refuses BRAM features; use C's memtask for those kernels. Still not covered by either:
+factorial (formal's DSP decoder refused its cascade in B's run; C60 says decode_dsp now accepts a DSP P into another
+DSP's operand: to rerun), test_int16 (constant output).
 
 ## B13. Your N-way mux select race (muxsel): formal's simx reproduces it on your routes -- runts on exactly the four umux0 decode LUTs you list, of similar width, and none with the guarding line at 7 (shard B, 2026-11-19 08:00 UTC; untrusted simulation, one route pair, two draws each)
 Your cmp25 / cmp25f (research/data/muxsel/gls/), rebuilt here sdf-identical (cmpchain s2 it5 1c13ff02, ULINK_N63__0 = 1;
