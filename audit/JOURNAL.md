@@ -3390,3 +3390,6 @@ Dynamatic tests; the automatic table from clean.
 - 21:06 T162 (subagent G): formal A's rewrite proofs (A19-A21) CONFIRMED: build, standard axioms, faithful transcription (re-import identical), independent interpreter vs gcc, mutations break; conditional-on-termination caveat recorded.
 - 23:27 container restart (~23:2x) stopped subagent D; its logs survived. T163: no-rewrite automatic collatz s6 24.64 ns vs 18.99 with the per-kernel rewrite (+30 %); xorshift s8 21.99 vs 20.11 but NOT EQUIVALENT route. Not resumed (research's norw1 farm covers the full column). PROGRAM re-read at 23:2x: from 23:00 at most 2 subagents.
 - 23:30 T164: own identity check 7197d85c2 -> research 6a7d31fb4: every prior emit byte-identical except the intended token-floor pass-through on matrix / stencil_2d (default flow); board kernels unchanged. Research 64bf1172b adopts T161 in its PROGRAM (headline counts every kernel attempted).
+
+### progress 01:31 (2026-11-19)
+- Watcher timed out with no board-queue / headline change. research e060d7980 loosens fasm_equiv (dead undriven cells benign; cmpchain s1/s4, test_flatten_array s1 called false alarms): subagent H checks soundness independently. research 8d8b475f3 CA_FAST=1 default in the sizing loop ('identical proposals on 10 kernels'): not yet checked.
