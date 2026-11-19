@@ -7267,3 +7267,10 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - **auto_size.sh: BD_SKEW_MUXN=1 by default in the loop** (BD_SKEW_MUXN= off). Shipped routes with an N-way mux (cmpchain
   s1 / s4 in suite9; gcd / isprime / iterative_sqrt loops) were sized without it: the suite's next rounds re-size them;
   the runt monitor (GATE_RUNTS=1 in suite_one) now reports such pulses in every draw.
+### progress 05:48 (subagent ringfuse: fewer handshake units per loop ring; farm muxn1)
+- **ringfuse** (report by 12:00 UTC): on the column with no kernel list xorshift / collatz sit at their rising-only
+  floor (no storage edit helps; the rule's box costs ~11 %), so the lever left is structural: fewer handshake units on
+  each loop ring (PROGRAM General-first 6c). Price the merges on the event graphs, find where bdc's compute fusion
+  stops on the rings, an opt-in general fusion pass (byte-identical off; simcheck / memtb on every kernel; a negative
+  control), measured through the whole automatic flow on 2+ seeds of xorshift / collatz / countloop / ipow.
+- Farm muxn1 filed (cmpchain x 4, iterative_sqrt x 2, sobel x 2 with the N-way mux race measured in the rule).
