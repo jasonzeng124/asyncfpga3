@@ -7796,3 +7796,13 @@ goal-1 list of the 19:53 state of play), plus rule B's guard form (above).
   random inputs. A marker on the shift loop's a rises once per main iteration when that iteration shifts once, and P
   is then one main iteration (subtract, select, the shift); the slope is per shift. Same conclusion, different count:
   P and the slope are two units on one loop nest. Still unchecked on gifast1's own routes.
+### progress 22:01 (finseeds1 39 / 40: one DA task hit the time limit -- a cost of AUTO_FINISH_SEEDS=3 to weigh; LOCK stays clear)
+- Read from origin/claude/cluster at 22:01 (request at bc9e26857; 240 min per task, 3 cores): **arm A** (today's default,
+  6 routes, least-short shipped) 20 / 20 back: **13 rule-clean, 7 NOT CLEAN, 160 / 160 draws right**. **Arm DA** (+2
+  extra seeds per not-clean finish step) 19 / 20 back: **18 rule-clean, 144 / 144 draws right**, and task 18
+  (iterative_division s3) **CANCELLED AT THE 240 MIN TIME LIMIT** in finish phase 2 (log: "phase 2 (raise-only) from it 5";
+  no result line). Task 14 (quadrec s1, DA) is still running.
+- For the default decision (session 18's item 2): DA turns 7 NOT CLEAN routes into clean ones on these loops, but at
+  least one DA loop does not finish in 4 h at 3 cores, where arm A finished all 20. A default that makes a route miss the
+  farm's time limit loses the route (a "time limit" row in the table). So the smoke run should measure DA's wall time per
+  kernel, and the default may need a cap (extra seeds only while time is left), not just AUTO_FINISH_SEEDS=3.
