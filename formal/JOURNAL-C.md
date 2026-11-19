@@ -4888,3 +4888,9 @@ c_mem7 (68 x 4 cores) waited from 09:52 for 200 free cores; c_mem9 (19 x 2 cores
 each (all SAME), WE setup min if_loop_1 s1 +25 ps (no failing draw in these 32), test_bool_array NOCAP 0 / 32,
 test_memory_1 NOCAP 32 / 32. C60 updated: the correction changed no verdict. c_mem7 left queued (no cancel mechanism;
 it would only repeat these rows plus the c_mem6 ones).
+
+### progress 14:36 -- research's ringfuse1: an ipow s7 route fails a draw; B covers the ringfuse routes (B18), C does not duplicate
+Research (14:34): BDC_RING_FUSE=2 pays on xorshift only (-2.17 ns median, 4 / 4 seeds); ipow s7's rf2 route (sdf 01894137,
+NOT CLEAN, 16 short rows) fails draw 10707 in its gate. Shard B is running formal's simx on the ringfuse1 routes (B18,
+14 routes pass so far): that replay is B's. C's part is done (C62: liveness unchanged by the pass). Waiting for research's
+ifl1 (if_loop_1 x 4 with its RAM guard) to judge through the host port.
