@@ -3375,3 +3375,14 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   identical to Formal/Rewrite/RingFuse/*.lean (check.sh OK earlier today). FOR-RESEARCH A26 updated.
 ### progress 18:59 -- quiet since 17:10 (no research change to FOR-FORMAL / PROGRAM / bdc); lock
 ### progress 20:05 -- container restarted (background poll lost); repo in sync; lock
+### progress 20:21 -- join-extension step PROVED (Steps/JoinExt.lean + JoinExtSim.lean; check.sh OK, 971 decls, std axioms)
+* Problem: research's BDC_RING_FUSE cell waits for x AND n; once unpacked, the fused graph's loop update is
+  `comp [x2, n2] u F'` (extra copy n2 of the bound) where the unfused one has `comp [x2] u F`. Can the extra wait
+  deadlock or change anything?
+* Proved (`je_forward`, `je_backward`), any graph: with `fork x (x1,x2..)`, `fork n (n1..)`, `comp [x1,n1] c G`,
+  `fork c (cc..)`, `branch cc u t f` and nothing else touching x1 x2 n1 n2 c cc u, the two graphs have the same
+  complete runs from empty internal channels, same store outside x2 n2 u. Store-only invariant of the fused graph:
+  |x2|+|u| = |x1|+|c|+|cc| (and n2/n1). No ghost history.
+* Not yet: a `Script` step for it and the planner's unpacking of bdc's packed cell (so fuse_check can use it on the
+  26 importable kernels without the C). Residual NF gap seen on xorshift (AUTO vs AUTO+RING_FUSE=0): exactly the
+  packed cell + slices vs the separate update/test, as notes/A-joinext.md predicted.
