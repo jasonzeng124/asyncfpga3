@@ -5133,3 +5133,4 @@ Running: the same with +META_INIT=0 and =1 (fid_core.vh's power-up option).
 ### progress 17:52 -- divres1 digitsum s2 (1617737c SAME with BDC_RING_FUSE=0 + its search ENV): 8 + 8 PASS, 0 pulses (B14)
 ### progress 18:12 -- B18: ipow s7's near-tie named: fused compare ucmpi0.uz_n4 vs the steer joins; settle 57-154 ps at draw 10707's bands, a live steer runt at ucond_br5 (1/17); matches research's rule-E rows
 ### progress 18:32 -- CHECKED: MuxNDecode steer section (decode_no_pulse covers bd_steer's not-taken output; facts decided + control); check.sh OK (314 decls)
+### progress 18:51 -- PROGRAM / FOR-FORMAL re-read: unchanged; suite12 still waiting for farm cores
