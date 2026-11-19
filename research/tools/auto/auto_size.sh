@@ -38,6 +38,21 @@
 # AUTO_NEAR_PS=PS (opt-in; unset = as before): in the finish phase (raise-only) every line the rule keeps at its size with
 # fewer than PS ps left at a corner gets the headroom element too, not only the lines that are short (ratchet.py --near).
 #
+# AUTO_FINISH_SEEDS=K (opt-in; unset or 1 = as before): in the finish phase, a route the rule finds NOT clean is drawn
+# again from the same sizes on up to K-1 more placer seeds (S + 1000 j, j = 1..K-1, lanes L"s"j, routes NAME_I"s"j, one
+# attempt each: a missed bench clock is a failed draw), the rule run on each in turn; the first one it finds clean is
+# ADOPTED as route I: its hw / r / ca directories become NAME_I (the seed-S route is kept as NAME_I"s"0), its it / ca /
+# rule / neg / lines files become iteration I's, seed_I.txt holds its seed (final() and a resume rebuild exactly it), and
+# the loop ships it as it would a clean seed-S route. If none is clean, the loop goes on from the seed-S route, exactly
+# as without the knob (the same next sizes, so the same later routes). AUTO_FINISH_JOBS=J builds J of them at once
+# (default 1). log.txt gets one "alt it I seed S' ..." line per draw and an "adopt it I ..." line.
+# Why (subagent converge, research/data/converge/): on the farm's loops 97 % of the rows short on a finish route are on
+# constraints no earlier finish route had short (2255 of 2367), so a larger headroom on the raised lines (AUTO_HEADROOM,
+# AUTO_NEAR_PS) cannot reach them; on the local loops whose every route kept its corner_audit report, a re-route moves a
+# constraint's margin by sd ~500 ps even when none of its lines changed size, and the rows that open on a raise-only
+# route came from 200-800 ps of margin (jumps of 300-1300 ps). Each route is a fresh draw of those margins; this takes
+# more draws per finish step instead of padding every line by the scatter (which costs period on every cycle it is on).
+#
 # Writes $RUNS/auto/NAME/{sizes_I.vh, it_I.txt, ca_I.txt, result.txt}.  result.txt: "CLEAN it=I route=NAME_I P=.."
 # or "NOT CLEAN after MAXIT".  The shipped route's files are $RUNS/hw/NAME_I, $RUNS/r/NAME_I (lane2.sh).
 set -uo pipefail
@@ -141,6 +156,55 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
   tail -1 "$O/final_$i.log" > "$O/it_$i.txt"
   echo "final it $i $(cat "$O/it_$i.txt")" >> "$O/log.txt"
 }
+nneg() {  # nneg DIR: the rule's negative rows on a route (auto_size's clean test: none)
+  tail -n +2 "$1/negative_sized.tsv" 2>/dev/null | grep -c .
+}
+alt_build() {  # alt_build I J SEED (AUTO_FINISH_SEEDS): sizes_I on SEED as route N_IsJ in lane LsJ; one attempt
+  local NA=${N}_$1s$2
+  rm -rf "$RUNS/hw/$NA" "$RUNS/r/$NA"
+  LANE_NORUN=1 "$LANE" "${L}s$2" "$NA" "$K" "$O/sizes_$1.vh" "$3" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/it_$1s$2.log" 2>&1
+  tail -1 "$O/it_$1s$2.log" > "$O/it_$1s$2.txt"
+}
+adopt() {  # adopt I J SEED (AUTO_FINISH_SEEDS): route N_IsJ becomes route N_I; the seed-S route is kept as N_Is0
+  local i=$1 j=$2 d f c
+  for d in hw r ca; do
+    rm -rf "$RUNS/$d/${N}_${i}s0"
+    [ -e "$RUNS/$d/${N}_$i" ] && mv "$RUNS/$d/${N}_$i" "$RUNS/$d/${N}_${i}s0"
+    mv "$RUNS/$d/${N}_${i}s$j" "$RUNS/$d/${N}_$i"
+  done
+  for d in "${i}s0" "$i"; do   # the rule's links into its route, renamed with it
+    [ -d "$RUNS/ca/${N}_$d/seed1/pnr" ] || continue
+    ln -sfn "$RUNS/r/${N}_$d/xray.sdf" "$RUNS/ca/${N}_$d/seed1/pnr/soak_xray.sdf"
+    ln -sfn "$RUNS/hw/${N}_$d/${D}_routed.json" "$RUNS/ca/${N}_$d/seed1/pnr/soak_routed.json"
+  done
+  for f in it_$i.txt it_$i.log seed_$i.txt ca_$i.txt rule_$i.vh neg_$i.txt; do
+    [ -f "$O/$f" ] && mv "$O/$f" "$O/${f/_$i./_${i}s0.}"
+  done
+  for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
+    for f in ca lines; do [ -f "$O/${f}_${i}_$c.txt" ] && mv "$O/${f}_${i}_$c.txt" "$O/${f}_${i}s0_$c.txt"
+      cp "$O/${f}_${i}s${j}_$c.txt" "$O/${f}_${i}_$c.txt" 2>/dev/null; done
+  done
+  for f in it_$i.txt it_$i.log ca_$i.txt rule_$i.vh neg_$i.txt; do cp "$O/${f/_$i./_${i}s$j.}" "$O/$f" 2>/dev/null; done
+  echo "$3" > "$O/seed_$i.txt"
+  echo "adopt it $i seed $3: route ${N}_${i}s$j is ${N}_$i (the seed-$S route kept as ${N}_${i}s0)" >> "$O/log.txt"
+}
+finish_draws() {  # finish_draws I (AUTO_FINISH_SEEDS, finish phase): route I not clean -> sizes_I on more seeds
+  local i=$1 j=1 k s n b
+  [ "$(nneg "$RUNS/ca/${N}_$i/rule")" -gt 0 ] || return 0
+  while [ "$j" -lt "$AUTO_FINISH_SEEDS" ]; do
+    b=""; while [ "$(echo $b | wc -w)" -lt "${AUTO_FINISH_JOBS:-1}" ] && [ "$j" -lt "$AUTO_FINISH_SEEDS" ]; do b="$b $j"; j=$((j + 1)); done
+    for k in $b; do alt_build "$i" "$k" $((S + 1000 * k)) & done; wait
+    for k in $b; do
+      s=$((S + 1000 * k))
+      if [ ! -f "$RUNS/r/${N}_${i}s$k/xray.sdf" ] || [ ! -f "$RUNS/hw/${N}_${i}s$k/${D}_routed.json" ]; then
+        echo "alt it $i seed $s: no route ($(cat "$O/it_${i}s$k.txt" 2>/dev/null))" >> "$O/log.txt"; continue; fi
+      rule "${i}s$k" "$O/sizes_$i.vh" || { echo "alt it $i seed $s: RULE FAILED" >> "$O/log.txt"; continue; }
+      n=$(nneg "$RUNS/ca/${N}_${i}s$k/rule")
+      echo "alt it $i seed $s $(cat "$O/it_${i}s$k.txt") | negative $n" >> "$O/log.txt"
+      if [ "$n" = 0 ]; then adopt "$i" "$k" "$s"; return 0; fi
+    done
+  done
+}
 if [ -n "$RES" ]; then
   echo "auto_size $N RESUMED from $RES $(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" >> "$O/log.txt"
 else
@@ -229,6 +293,8 @@ while [ -z "$STOP" ]; do
   i=$((i + 1))
   build "$i" "$O/sizes_$i.vh" || { echo "BUILD FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
   rule "$i" "$O/sizes_$i.vh" || { echo "RULE FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
+  # AUTO_FINISH_SEEDS (opt-in): a finish route that is not clean is drawn again on more seeds; a clean one is adopted
+  [ "$ph" = 2 ] && [ "${AUTO_FINISH_SEEDS:-1}" -gt 1 ] && finish_draws "$i"
   # phase 2 raises with one element of headroom: each re-route moves the small margins by a few hundred ps (local v4
   # xorshift seed 8: 5, 3, 4 constraints short at -5..-278 ps on three raise-only routes), about one element
   ro=""; [ "$ph" = 2 ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1} $(near_args "$i")"
