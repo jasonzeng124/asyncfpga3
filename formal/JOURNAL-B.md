@@ -4928,7 +4928,7 @@ results/{suite3a,3b,9,9r3,10b,gifast1}/*/result.txt, the latest request per seed
 divmodu s1 (99effc30, a divider route that PASSED research's 4 draws, rule clean, it 3) is a suspect, not a known-bad
 (the commit message calls both controls; only if_loop_1 s1 is known-bad). Memory-vector kernels (binary_search,
 test_memory_1) will print SKIP.
-### progress 07:50 -- test_divui: formal's simx also fails every draw on research's route; the full-length line passes
+### progress 07:45 -- test_divui: formal's simx also fails every draw on research's route; the full-length line passes
 - Local FPGA toolchain: research's cache toolchain-cache/02809f4230dfd3a7 (all 10 patch fingerprints ok, nextpnr sha256
   7c3bfb9c; needed a zstd shim, /root/audit-tc2 symlink for the cache's export.sh, apt libtcl8.6 / boost 1.83 over https).
   Mathlib built from source in ~15 min; the full-project lake build that followed OOM-killed a route: stopped.
