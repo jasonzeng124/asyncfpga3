@@ -7195,3 +7195,16 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - Headline regenerated over suite3a / 3b / 8 / 7 / 6 (ipow) / 9 / 9r3 (partial) / norw1 / norw1r2 / gifast1: **29 of 62
   kernels attempted pass**; no-list column on clean routes: xorshift 22.16 (6 routes), collatz 22.54 (5), collatz64
   30.93 (3); gcd 62.82 and isprime 358.38 on NOT CLEAN routes only (the bench-capture lap; CA_BENCHCAP opt-in).
+### progress 04:16 (nsearch1: on the column with no kernel list the search pays on countloop only; gifast1 done)
+- **nsearch1** (16 of 18 back; the search phase with all-sites candidates on finished no-list loops; every route
+  rebuilt with its earlier sdf md5; every draw passing, 116 / 116): **countloop**: the search adds fork-output latches
+  (BDC_FORK_OUT_LINK=n13__0,n15__0,n22__0 or n24__3; s3 also a 4-deep trueResult_10): s1 26.60 -> 20.92 ns, s2 22.15
+  -> 21.37, s3 25.80 -> 20.45, s4 picked but the new route was not shipped (24.30 kept) -- 3 of 4 faster, 0.8-5.7 ns.
+  **xorshift** (no rewrite): nothing on 5 of 6 seeds -- the critical cycle already sits at the rising-only floor (base
+  P = the R floor: no return to zero on it, so no storage can help); s8 picked n32__2 (21.24 -> 20.64 predicted) but
+  shipped its old route. **collatz**: nothing on 6 seeds. So xorgap's p8 / graphsearch's n32__2 gains (2-4 ns) were a
+  property of the REWRITTEN xorshift (pre_dec moves the loop test onto a coupled cycle with polarity changes); on the
+  no-list structure xorshift's 22.2 ns is all rising pass -- matched delays and wire -- which only the sizing and
+  placement can shorten. Prediction (xorshift -2.5..-4.5 ns) failed; countloop's (-3..-4) held on 2 of 4 seeds.
+- **gifast1** done (gcd / isprime x 4, CA_FAST): every loop finished in ~75-80 min, all draws passing, all NOT CLEAN on
+  the bench-capture lap (CA_BENCHCAP fixes that row; see gcdclean).
