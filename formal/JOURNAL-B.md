@@ -5107,3 +5107,4 @@ udivui0.uhold, dropping 2393 of the divider's 2510 outputs. Their new lines sit 
 ### progress 14:25 -- digitdiv s1 linescale on udivui0: passes at 0.875 (284 of 325), fails at 0.8125 (264); B17
 ### progress 14:49 -- ringfuse xorshift s1/s3/s5, collatz s1-s3: SAME, 8 + 8 PASS, 0 pulses; B18 table (22 routes)
 ### progress 14:49 -- PROGRAM / FOR-FORMAL re-read: unchanged; research session active again (ringfuse1 notes)
+### progress 15:02 -- ringfuse xorshift s6, collatz s8: SAME, 8 + 8, 0 pulses (24 routes); ipow s1 DIFFERENT sdf (skipped)

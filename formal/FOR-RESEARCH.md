@@ -228,11 +228,11 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
 
 ## B18. Your ringfuse routes (BDC_RING_FUSE=2, farm ringfuse1) in formal's simx: every finished one passes, including xorshift's counter preloaded across its 2^30 carry (control fails as it must) and collatz's full-range values; output-capture kappa_lo 0.02-0.35 (shard B, 2026-11-19 13:57 UTC; untrusted simulation + B16's Lean-logic bound)
 Rebuilt from research a15e5a5f1 (bdc with ringfuse) with each task's `sizes_<it>.vh`, BDC_RING_FUSE=2, the task's seed;
-sdf SAME on all 22 here (countloop s1, task 17, did not reproduce: probably a search-phase edit); bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
+sdf SAME on all 24 here (countloop s1 and ipow s1, tasks 17 / 25, did not reproduce: probably search-phase edits); bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
 | task | route (sdf) | draws | output kappa_lo |
 |---|---|---|---|
-| 1, 3, 4, 5 | xorshift s1 / s3 / s4 / s5 (ef141b74 / acb8a72d / 1931be20 / abc056ef) | 8 + 8 each, 0 pulses | 0.225 / 0.056 / 0.218 / 0.344 |
-| 9-15 | collatz s1-s7 (9881f22a / 707608d0 / bd157c2e / 7ed75da9 / d8b7c9d3 / 86b0c6c5 / 192c8a42) | 8 + 8 each, 0 pulses | 0.351 / none (-0.012) / 0.260 / 0.149 / 0.201 / 0.201 / 0.338 |
+| 1, 3-6 | xorshift s1 / s3 / s4 / s5 / s6 (ef141b74 / acb8a72d / 1931be20 / abc056ef / 7dc74a74) | 8 + 8 each, 0 pulses | 0.225 / 0.056 / 0.218 / 0.344 / 0.273 |
+| 9-16 | collatz s1-s8 (9881f22a / 707608d0 / bd157c2e / 7ed75da9 / d8b7c9d3 / 86b0c6c5 / 192c8a42 / 5a801ad9) | 8 + 8 each, 0 pulses | 0.351 / none (-0.012) / 0.260 / 0.149 / 0.201 / 0.201 / 0.338 / 0.326 |
 | 18-22 | countloop s2-s6 (becb3043 ebf1bbc6 544cf8c4 67b575ac a1658752) | 8 + 8 each | 0.152 / 0.352 / 0.337 / 0.126 / 0.055 |
 | 26-30, 32 | ipow s2-s6, s8 (840293d4 a8281ece 6684bc94 027c6811 793da4b1 e9c1079e) | 8 + 8 each | 0.049 / 0.170 / 0.247 / 0.231 / 0.021 / 0.226 |
 | 31 | ipow s7 (01894137) | 8 + 8, but pulse bursts in 4 of 16 (below) | 0.269 |
