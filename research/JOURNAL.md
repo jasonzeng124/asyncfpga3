@@ -7845,3 +7845,9 @@ Next: as at session 20's Next.
   (routed.json md5 37dbffe8..., sdf 68cd1f94, fid model, netlist from the bitstream EQUIVALENT, **toolchain:
   UNSTAMPED**), build.txt (BDC_AUTO=1, 6955ef48). One route, toolchain not stamped: evidence for the marker's net only,
   not a period claim. The other 24 untracked graph dirs are not cited anywhere and are left uncommitted.
+### progress 22:05 (8 more local graphs that the journal or a README cites committed before the wipe; LOCK stays clear)
+- Committed as is, from this job's clone (~1 MB, the committed graphs' layout): au_collatz_1_0 (research/data/pnrfix/README.md),
+  su_xorshift_1_4, su_xorshift_2_7, su_straight_3_4, su_collatz_1_4, su_collatz64_1_4 (journal tables, sessions 2 to 17),
+  rj_ipow_4 and bqa_ipow_2 (research/data/ringfuse/README.md rows). Each provenance.txt names its SDF md5 and source path.
+  su_straight_3_4 holds no arcs / nodes / check (as built). Nothing was rebuilt or re-checked: these are the files the
+  citations were written from, kept so a later session can reread them. The 16 uncited graph dirs stay uncommitted.
