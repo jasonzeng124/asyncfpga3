@@ -4965,3 +4965,7 @@ DIFFERENT (alt-seed, c_mem15 queued), spmv 4 the only thin one (C64). c_mem16 (2
 - 21:33: c_mem16 done: fill 1, test_bitint 1, unused_arg 1, while_loop_3 1 (suite12, v8 fused), stencil_2d 3 (suite11):
   SAME, 32 / 32 each, min RAM setup 816 ps. C60 updated. More suite12 memory routes go in batches as they land.
 - 21:50: c_mem17 done: binary_search 3, memsum 1 SAME, 32 / 32 each, min RAM setup 2051 / 1095 ps. C60 updated.
+- 22:25: c_mem18: dot2 1, if_convert 1 SAME, 32 / 32 (min 2110 / 867 ps); gather 1 DIFFERENT -- research's search was
+  NOT CLEAN and shipped it 6; newroutes read the last route (it 10). Fixed (takes "shipped it=N"); c_mem20 = gather 1
+  (it 6) + binary_search / mul_example / test_bool_array / test_memory_1 / test_memory_2 / test_stdint 1 (suite12) +
+  share_test_1 2 (suite10d). c_mem19 (nested_loop 1) queued. C60 updated (107).
