@@ -4828,7 +4828,7 @@ nothing: the walker re-derives that pseudo-pip -- decode_base's implicit-pip rul
 newroutes.py lists research's memory routes on the cluster branch formal has not judged: 33 (suite3b / 9 / 9r3 / 10b);
 farm c_mem6 runs them through the host port (older requests' routes may no longer rebuild identical at research HEAD).
 
-### progress 09:38 -- more than two operand words; a reviewer on the RAM model
+### progress 09:37 -- more than two operand words; a reviewer on the RAM model
 simx: pairs "a,m1,..,b" -- the middle operand channels (mk_bnd_mem.py xdata) are driven like a / b, each released when
 its own ack falls (--datachange broad); draws.py formats N-word pairs. test_loop_free s2 (42c0bac6 SAME, 4 words, no
 memory): 8 + 8 pass; changing c or b of vector 0 fails (the middle values reach the kernel). A fresh subagent is reviewing
