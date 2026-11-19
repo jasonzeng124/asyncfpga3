@@ -179,6 +179,17 @@ T_CO = 2454
 # Rule C reports the bound these are checked against; sim/bd_prims_sim.v has
 # the same three numbers, and tb/tb_bdc_mem.v measures the real value.
 T_HOLD = {"ADDRARDADDR": 360, "DIADI": 667, "WEA": 197}
+# BD_RAM_GUARD_PS=N (opt-in, default 0: unset, every output is what it was;
+# research/data/suite/ifloop.md): rule B's setup window is the vendor's PLUS N
+# ps.  Rule B had no guard at all beyond T_SU (+ SLACK), unlike rule A's
+# residual guard, and the race it checks is two independent long wires: the
+# port's request reaches the RAM's clock through the DSETUP line and a slice ->
+# BRAM-column wire, and its payload (the one-hot mux LUT's WE / ADDR / DI)
+# through another.  Under the draws' within-die scatter (bench_gate.sh: per pip
+# 0.126, per region 0.02) that difference has sd ~105-115 ps on if_loop_1 seed
+# 1's route 7 (race_mc.py), where rule B said +79 / +101 ps and draws 10101 /
+# 10104 wrote X into every word the host filled (WEA 17 / 61 ps short).
+RAM_GUARD = int(__import__("os").environ.get("BD_RAM_GUARD_PS", "0") or 0)
 
 # What one bd_delay link costs, in ps.  MEASURED OFF THIS ROUTE, not assumed.
 #
@@ -2226,8 +2237,8 @@ def main():
             port = pin_split(p)[1]
             for k, v in T_SU.items():
                 if port.startswith(k):
-                    return v + SLACK
-            return 200 + SLACK
+                    return v + SLACK + RAM_GUARD
+            return 200 + SLACK + RAM_GUARD
 
         res = check(timing, srcs, payload, clk, guard_of)
         if res is None:

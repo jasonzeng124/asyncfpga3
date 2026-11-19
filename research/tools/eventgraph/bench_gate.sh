@@ -14,6 +14,9 @@
 # oracle must be run with the same count (ORACLE_RUNS).
 # A `void` line in EXPFILE (oracle_mem.sh: the kernel returns nothing; gen_bench.py completes its call on its control
 # results and ODATA reads 0) has no result to compare: that call passes only on its arrays, so only with GATE_MEMEXP.
+# Since 2026-11-18 (research/data/suite/ifloop.md): a batch whose SIG (the fold of every run's result) has an x is not a
+# pass, and any `RAMB18 ` line in the run (the GLS RAM model's setup / hold violation, or a RAM clock that went x) fails
+# the whole run; a clean run's verdict line is unchanged.
 set -euo pipefail
 HW=$(cd "$1" && pwd); D=$2; mkdir -p "$3"; W=$(cd "$3" && pwd); VEC=$(readlink -f "$4"); EXP=$(readlink -f "$5"); COL=$6
 R=$(cd "$(dirname "$0")/../../.." && pwd); G=$R/cells/gls
@@ -67,6 +70,7 @@ if sys.argv[4]:   # the C's final array contents per call (oracle_mem.sh ORACLE_
         d = dict(re.findall(r"(\w+)=(\S+)", l)); memexp[(int(d["call"]), int(d["mem"]))] = d["data"]
 memgot, membad = {}, set()
 mon, onehot_fail = [], 0
+ramev = 0
 for l in open(sys.argv[2]):
     if l.startswith("BENCHRES"):
         d = dict(re.findall(r"(\w+)=(\S+)", l)); got[int(d["batch"])] = d
@@ -82,6 +86,8 @@ for l in open(sys.argv[2]):
         if int(d["overlaps"]): membad.add(int(d["batch"]))
     elif l.startswith("MEMPORT ONEHOT FAIL"):
         onehot_fail += 1
+    elif l.startswith("RAMB18 "):      # the GLS RAM model (cells/gls/prims.v): a setup / hold violation, or a clock that
+        ramev += 1                     # went x ("treated as a possible edge"); either poisons what that edge did
 for (j, m), v in memexp.items():
     if memgot.get((j, m)) != v: membad.add(j)
 for j in membad: got.pop(j, None)   # a batch whose arrays were not what the C had is not a pass
@@ -89,6 +95,11 @@ for j in membad: got.pop(j, None)   # a batch whose arrays were not what the C h
 # the LAST run's result only, so a wrong first run followed by a right one passed this gate until 2026-11-16 (farm
 # steerneg: 5 such runs judged PASS). A batch counts only if every run agreed AND the last one equals the oracle.
 mm = [j for j in got if int(got[j].get("mism_st", "0"), 16) & 1]
+# SIG folds EVERY run's result; an x / z in it means some run of the batch returned an unknown value, which the
+# repeatability latch cannot see (its `!=` against an x reference is never true) and odata (the last run) hides
+# (if_loop_1 seed 1, route sizes_7 + UMEM0_USETUP 3: run 0 of batch 0 read x through an x pulse on the RAM clock,
+# run 1 was right, and this gate said PASS; research/data/suite/ifloop.md).  Such a batch is not a pass.
+xr = [j for j in got if re.search(r"[xXzZ]", got[j].get("sig", ""))]
 if onehot_fail: got.clear()   # two slots of one port at once: no batch of this run is a pass
 # `void` (oracle_mem.sh, a kernel that returns nothing): no out0; the bench's ODATA is its constant 0 and the answer is
 # the arrays, so such a call passes only if GATE_MEMEXP held this call's arrays and they matched (membad above).
@@ -97,7 +108,8 @@ def right(j, e):
         return got[j]["odata"] == "00000000" and any(c == j for c, _ in memexp)
     return got[j]["odata"] == e
 ok = sum(1 for j, e in enumerate(exp) if j in got and right(j, e) and got[j]["completed"] == got[j]["n"]
-         and j not in mm)
+         and j not in mm and j not in xr)
+if ramev: ok = 0     # the RAM saw an edge it could not resolve: no batch of this run is a pass
 cyc = sum(int(got[j]["cycles"]) for j in got)
 nvoid = sum(1 for e in exp if e == "void")
 if nvoid:
@@ -107,6 +119,8 @@ if nvoid:
 print("%s %d/%d cycles %d %s%s%s" % ("PASS" if exp and ok == len(exp) else "FAIL", ok, len(exp), cyc, sys.argv[3],
       (" | MISMATCH in batch(es) %s" % ",".join(map(str, sorted(mm)))) if mm else "",
       (" | MEMORY wrong in batch(es) %s" % ",".join(map(str, sorted(membad)))) if membad else "") + sys.argv[5]
+      + ((" | X in a run's result (SIG) in batch(es) %s" % ",".join(map(str, sorted(xr)))) if xr else "")
+      + ((" | RAMB18 timing events %d" % ramev) if ramev else "")
       + ((" | memport one-hot: %d batch line(s), host reqs %d, kernel reqs %d, overlaps %d%s" % (
           len(mon), sum(int(d["host_reqs"]) for d in mon), sum(int(d["kernel_reqs"]) for d in mon),
           sum(int(d["overlaps"]) for d in mon), " ONEHOT FAIL" if onehot_fail else "")) if mon or onehot_fail else ""))
