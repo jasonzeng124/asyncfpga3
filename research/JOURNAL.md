@@ -7583,3 +7583,5 @@ bench check on branch kernels; (4) the open goal-1 list in the 19:53 state of pl
   (branchloop); the graphs are under research/data/eventgraph/graphs/ in the farm's results if it copied them.
 - Session end (job ends 22:13 UTC): branch pushed, journal current, BOARD-QUEUE unchanged (no new candidate judged this
   session), LOCK cleared. Next: see the 21:35 note's Next list; the P check above goes before the headline regeneration.
+- 21:38: no wrong answer in flight: suite11 (36 results), suite12 (30), suite10d (2), finseeds1 (37) are all PASS on
+  every draw except share_test_2 (NOT-A-BOARD-ROUTE on s1 / s3 / s4: fasm2net's DSP48E1 cascade gap, as before).
