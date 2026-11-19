@@ -5095,3 +5095,4 @@ udivui0.uhold, dropping 2393 of the divider's 2510 outputs. Their new lines sit 
 0.067 at 384). Next: outsafe + draws on farm divsize1's routes when they land.
 ### progress 11:00 -- B17: research's fixed test_divui routes (332 / 386 / 338, sdf SAME) pass 8 + 8; kappa_lo -0.012 / 0.082 / 0.006
 ### progress 12:13 -- B17 rows: divsize1 seed 6 (348) kappa_lo 0.037, seed 7 (516) 0.180; both 8 + 8 PASS, sdf SAME
+### progress 12:35 -- divres1 divmods s1 (ccaa7fa4 SAME): 8 + 8 PASS; output kappa_lo 0.412 (B14 row)
