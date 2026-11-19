@@ -7838,3 +7838,10 @@ Next: as at session 20's Next.
   1475 LUTs, bits EQUIVALENT, ffmux clean, sdf 43afb62a, lat_call_med 909 ns over 8 vectors**. One seed: no claim.
   spmv (task 51) RUNNING at 01:52:28, finseeds1 task 14 (quadrec s1, DA) RUNNING. 26 suite12 tasks still running.
 - Does NOT show: any multi-route figure for dot2; that the "Next" reads are done (they wait for the next job).
+### progress 22:05 (au_gcd_1_0 committed: the evidence for session 20's gcd marker note survives the job; LOCK stays clear)
+- Session 20's gcd P-marker note rests on research/data/eventgraph/graphs/au_gcd_1_0, a local graph from 2026-11-17
+  that was untracked and would be wiped with /tmp at 22:13. Committed it as is (404 KB, the same files as the committed
+  graphs such as colsz2_6): check.txt (marker auto n10770, P 56488 ps, period and cycle checks PASS), provenance.txt
+  (routed.json md5 37dbffe8..., sdf 68cd1f94, fid model, netlist from the bitstream EQUIVALENT, **toolchain:
+  UNSTAMPED**), build.txt (BDC_AUTO=1, 6955ef48). One route, toolchain not stamped: evidence for the marker's net only,
+  not a period claim. The other 24 untracked graph dirs are not cited anywhere and are left uncommitted.
