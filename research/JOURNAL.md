@@ -7902,3 +7902,35 @@ A27, C63 / C64 (answered by session 20); nothing new for research.
   so no plausible delay error closes it, but the tool has not been shown to fail).
 Next: suite12's last tasks -> regenerate the headline (v8 its own column; capfix1 for the capture kernels); then the
 second convergence lever (placement kept between finish routes, research/data/converge/notes.txt's open lead).
+### progress 23:31 (placement kept between finish routes: the hook works; first numbers; four loops resumed)
+- **The open convergence lever (research/data/converge/notes.txt: "an incremental placement keeping the previous
+  route's cells") is in, opt-in:** cells/hw/build_bench.sh BD_PLACE_FROM=<routed JSON or cell/bel list> runs
+  cells/hw/place_from.py as nextpnr's --pre-place script (unset: the command line is unchanged); auto_size.sh
+  AUTO_PLACE_KEEP=1 builds every finish-phase route from the previous route's placement (place_I.txt / placefrom_I.txt
+  so a resume rebuilds it; a kept-placement build that fails is built fresh).
+- **Why it is needed, measured:** test_bool_array s1 it 5 -> it 6 (USETUP 6 -> 9, 3 new LUTs): cell names identical,
+  but a fresh re-route moved 6051 of the 6136 shared cells to another bel.
+- **What it took to work (each measured on that pair, nextpnr 6e5d224472232d5d):** binding at STRENGTH_USER keeps every
+  cell but the router then does not permute the bound LUTs' input pins: the packer starts LUT5 / LUT6 pairs on the same
+  pin (A1) and 55 site wires stay overused, no route. STRENGTH_STRONG lets the post-place repair move 681 cells.
+  STRENGTH_FIXED: 6130 kept, the 3 new cells placed, 8313 LUT pins permuted, routed, bench clock 111.5 MHz, rule CLEAN,
+  ffmux-clean. Margin change of the 16 sized constraints whose lines did not change: **sd 95 ps against 221** for the
+  fresh re-route (median |d| 115 vs 222). The router still re-routes everything, so ~100 ps of scatter is left.
+- On xorshift the first try bound only 3687 of 7533 cells: yosys's abc names shift by a constant between routes
+  ($abc$21205..$21206 -> $abc$21209..$21210), and other auto-numbered classes move inside (9 carry chains +4, 104 of 1910
+  flops). place_from.py now matches by the abc index relative to its run, then by order inside a name class (7346 of
+  7533 by the first two keys on a pack-only check); the half-bound try had also tripped nextpnr's known
+  "post-placement validity check failed for Bel ..A5FF (no cell)".
+- `--fixed-routes` (an undocumented option of this nextpnr binary, to keep the previous ROUTES too) dumped it 5's routes
+  without changing that route (sdf db9c761d both ways) but crashed nextpnr (core dump) when applied to it 6: not used.
+- **Running (local, worktree /tmp/bot/wt_exp at 1fd98f586):** suite12's seed-1 loops of xorshift, countloop,
+  iterative_division and gather (each ended NOT CLEAN after the 6-route fresh finish phase on the farm) resumed at their
+  finish phase with AUTO_PLACE_KEEP=1, AUTO_SEARCH=0; their it 5 is the farm's own route (sdf bed7ecfa, 46ef015c,
+  b276174b reproduced), so the farm's finish phase is the control. PREDICTION (23:31): at least 3 of 4 reach a clean
+  route within 3 kept-placement steps (the farm's fresh steps: 0 of 4 in 6).
+- share_test_2 s1 it 6 rebuilt here (st2_6): fasm2net refuses DSP48_X0Y27: the pre-adder (USE_DPORT=TRUE, INMODE=00100:
+  (D + A) * B) with B from BCIN and Z = PCIN>>>17. A subagent extends the decoder / dsp_model / prims.v to it, with
+  negative controls (worktree, no git); share_test_2 is the suite's only NOT-A-BOARD-ROUTE kernel.
+- CA_BENCHCAP (opt-in since 2026-11-19, research/data/benchcap/: the bench's synchronised capture of out0, negative
+  control on record) removes the other unfixable family (A' at the out0 mux: iterative_sqrt umux3 -5.2 ns, isprime
+  umux13, gcd umux21; 26 shipped routes); it waits only for draws on routes built with it: next farm candidate.
