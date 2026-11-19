@@ -1,4 +1,4 @@
-# A: the "join extension" step (design, not started) -- what fuse_check needs to prove BDC_RING_FUSE without the C
+# A: the "join extension" step (DONE 2026-11-19 evening; see the status block at the end) -- what fuse_check needs to prove BDC_RING_FUSE without the C
 
 Shard A, 2026-11-19. Context: FOR-RESEARCH A26. Research's BDC_RING_FUSE merges a loop's update `u = f(x)` and test
 `c = g(f(x), n)` into one cell whose single join waits for x AND n. After the existing steps (multi-input ForkComm on
@@ -25,3 +25,12 @@ Terminal: rs' may keep a tokens on a (their rs counterparts sit unconsumed on u 
 
 Estimate: one day (the counting invariant across forks of c is the bulk). Payoff: fuse_check proves BDC_RING_FUSE on
 all 26 importable kernels without C sources (today: 6 kernels via autoproof).
+
+## Status (2026-11-19 21:10 UTC)
+* Done, all Lean-checked with standard axioms: `Steps/JoinExt.lean` + `JoinExtSim.lean` (je_forward / je_backward,
+  store-only counting invariant, no ghost history), `Steps/ForkComm2.lean` (two-input ForkComm), `Steps/ScriptRF.lean`
+  (StepRF: forkcomm2, unpack with k-part slice rules, unjoin, permute, forkmerge; runScriptRF_sound).
+* fuse_check.py proves BDC_RING_FUSE per kernel on 18 of 26 importable kernels (ringfuse_census.txt), gcd included.
+* Open, in order of payoff: (1) k-input ForkComm and a k-input join extension (iterative_division, iterative_sqrt,
+  nest3: cells with 3+ inputs, some dead after BDC_CONST_DATA); (2) sqrtsub: the unfused test reads a two-input
+  update's result (planner: forkcomm2 on the unfused side + dedupe across a fork tree via forkmerge).
