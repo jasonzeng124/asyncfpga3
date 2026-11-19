@@ -49,7 +49,8 @@ for p in sorted(files, key=lambda p: (p.split("/")[1], int(p.split("/")[2]))):
     d = os.path.dirname(p)
     ar = git("show", "%s:%s/auto/result.txt" % (a.ref, d)).strip().splitlines()
     if not ar: continue
-    mm = re.search(r"(?:route=|last route )su_\w+?_(\d+)\b", ar[-1])
+    # NOT CLEAN searches ship the least-short iteration ("shipped it=N"), not the last route
+    mm = re.search(r"shipped it=(\d+)", ar[-1]) or re.search(r"(?:route=|last route )su_\w+?_(\d+)\b", ar[-1])
     if not mm: continue
     it = mm.group(1)
     env = re.search(r"; search ([^)]*)\)", ar[-1])
