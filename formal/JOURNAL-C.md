@@ -4948,3 +4948,10 @@ test_flatten_array 3. Rows 2 / 7 DIFFERENT (alt-seed routes built with SEED: c_m
 still running. Smallest RAM setup margins (min over 32 draws): spmv 4 ADDR 22 ps (32 draws: 22-~200 ps, WE 662), nested_loop 3
 ADDR/DI 403, if_convert 4 575; the rest >= 750. spmv 4's is the thinnest RAM margin any route has shown that passes:
 not a failure in 32 draws, but too thin to call safe; local 64 + 64 draws and the race's location are running.
+
+### progress 21:20 -- spmv 4 f52af15f: host-write ADDR race on row umem0, 128 / 128 pass but guarded slack -890 ps (C64)
+Local rebuild SAME (nextpnr 7c3bfb9c684a2551), 64 + 64 draws: all PASS, 0 violations, min ADDR setup 22 ps (draw 10416:
+BRAM_R_X25Y80 ADDRARDADDR5 at 807 ns, host fill phase). hostrace mid band: row umem0 (RAMB18_X2Y33) clock 3332 ps (6-LUT
+usetup chain) vs ADDR 2508 ps -> +258 ps; guarded (0.772 / 1.155, skew.py) -890 ps; if_loop_1 s1 failing route -1108,
+its fix c3113cc4 -63. Static path sums are a bound, not a simulation; 0 / 128 failures bounds the rate at ~2.9 % (95 %)
+in this model only. Owner notified.

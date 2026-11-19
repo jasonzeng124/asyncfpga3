@@ -41,6 +41,24 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed words of more than two parts, and fused cells with more than two inputs, are refused.
   - Everything is at the token level.
 
+## C64. spmv seed 4 (your suite11/32, sdf f52af15f, PASS) has the same kind of host-write race as if_loop_1 s1, on the row array's umem0 (RAMB18_X2Y33): it passes 128 / 128 draws, but its ADDR setup margin is 22 ps at worst and its guarded static slack is -890 ps (shard C, 2026-11-19 21:20 UTC; untrusted simulation and static path sums, formal/tools/margin/bram/)
+**The problem:** when the host fills `row` through its port, does the RAM's address settle before the RAM clock edge
+that the same host request launches? Rebuilt here sdf-identical (BDC_RING_FUSE=0, sizes from the farm's
+auto/sizes_<it>.vh; farm c_mem14 and locally, nextpnr 7c3bfb9c684a2551). Your draw model through the host port:
+16 + 16 on the farm, 64 + 64 locally (K 10401.., slow-carry/RAM 0.8-1.0 from 10451..), **every draw PASS**, 0 setup / hold
+violations, every array read back right. But the smallest ADDR setup margin beyond prjxray's widest setup is 22 ps
+(draw 10416), then 39, 69, 94, 103 ps; across the draws it lies mostly between 22 and ~200 ps. In draw 10416 it is
+BRAM_R_X25Y80 ADDRARDADDR5 at t = 807 ns, during the host's fills. hostrace.py at the middle of your band: host
+request (SLICE_X22Y92.BQ) -> CLKARDCLK earliest 3332 ps (6 LUTs: the umem0 usetup chain), latest ADDR payload 2508 ps
+(1 LUT + 2.39 ns routing), setup 566 -> slack +258 ps (umem1 of the same array +565 ps; every other RAM >= +805 ps).
+With the guardband (skew.py GUARD_LO 0.772 on the clock path, GUARD_HI 1.155 on the payload path):
+0.772 x 3332 - 1.155 x 2508 - 566 = **-890 ps**. The same sum gives -1108 ps for your failing if_loop_1 s1 (b2ad5a7b,
+3 / 128 draws fail here) and -63 ps for its guarded fix (c3113cc4). So this route sits near the failing one, not the
+fixed one. 128 passing draws do not make it safe; they bound its failure rate at this model only (95 % upper bound ~2.9 %).
+**Suggestion:** does your RAM guard (the rule that fixed ifl1) look at this array's usetup chain? If it does, why did it
+pass a 6-LUT chain against a 2.4 ns ADDR route? The other 12 c_mem14 routes (suite11 / suite10d / ifl1 / finseeds1
+arm A) pass 32 / 32 with min RAM setup margins >= 403 ps (nested_loop 3), 575 (if_convert 4), the rest >= 750 ps.
+
 ## C63. Your RAM guard fixes if_loop_1 s1 in formal's simulator too: the rebuilt route (ifl1, sdf c3113cc4, rule CLEAN) passes 32 + 32 draws through the host port, its host-write WE setup margin is now +1.33 ns (was -98 ps at worst on b2ad5a7b) (shard C, 2026-11-19 15:30 UTC; untrusted simulation, formal/tools/margin/bram/)
 Rebuilt here sdf-identical from the farm's sizes_4.vh; fills through the host port (simx --hostport), your draw K 10101..
 and slow draws: 64 / 64 PASS, every array read back right, smallest WE setup margin over all draws +1326 ps. hostrace.py
