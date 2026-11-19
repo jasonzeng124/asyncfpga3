@@ -3374,3 +3374,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * ringfuse_autoproof.sh with BDC_AUTO=1 only, research HEAD: xorshift, collatz, ipow, countloop, isprime, sqrtsub files
   identical to Formal/Rewrite/RingFuse/*.lean (check.sh OK earlier today). FOR-RESEARCH A26 updated.
 ### progress 18:59 -- quiet since 17:10 (no research change to FOR-FORMAL / PROGRAM / bdc); lock
+### progress 20:05 -- container restarted (background poll lost); repo in sync; lock
