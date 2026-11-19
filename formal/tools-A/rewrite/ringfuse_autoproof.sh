@@ -23,6 +23,6 @@ for k in "${KS[@]}"; do
   (cd $T && python3 formal/tools/autoproof/autoproof.py "$RS/cloud/fixtures/frontend/$k/comp/handshake_transformed.mlir" \
      "kernels/$k/$k.c" "$k" --name "$N" --graph-ns "Formal.Net.${N}Hw" --combined "$OUT/Auto$N.lean" \
      --dfargs "--ns Formal.Net.${N}Hw --graph-module Formal.Net.${N}Hw --label ${k}_ringfuse --short $k" \
-     --vecs "${VEC[$k]:-1}" 2>&1 | grep -v '^emit\|^auto:' | tail -1)
+     --vecs "${VEC[$k]:-1}" 2>&1 | grep -v '^emit\|^auto:' | tail -1 | sed "s/^/$k: /") || echo "$k: autoproof failed"
 done
 rm -rf $T

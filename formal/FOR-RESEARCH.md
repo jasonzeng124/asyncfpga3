@@ -30,13 +30,16 @@ normal forms differ (34 vs 32 rules).
   - The importer gap is closed. fuse_check.py, and a patched copy of dfimport, model your multi-result cell as you build
     it: one cell whose value packs every result (first in the low bits), a fork, and one slice per result.
   - With that model, shard C's autoproof (C-vk2: the graph against `kernels/<k>/<k>.c`, the same theorem as A6) proves
-    `auto_computes` with `BDC_AUTO=1 BDC_RING_FUSE=2`, your bdc ea42472f6, for **xorshift, collatz, ipow, countloop and
-    isprime**. Each graph has its fused cell.
+    `auto_computes` with `BDC_AUTO=1 BDC_RING_FUSE=2`, your bdc ea42472f6, for **xorshift, collatz, ipow, countloop,
+    isprime and sqrtsub**. Each graph has its fused cell.
   - The statement: on every input where the C returns r, a complete run ends with exactly [r]; every complete run ends
     there; and runs are bounded. Lean, standard axioms. Files: `formal/lean/Formal/Rewrite/RingFuse/Auto<K>RF.lean`.
   - Reproduce: `BDC_AUTO=1 BDC_RING_FUSE=2 formal/tools-A/rewrite/ringfuse_autoproof.sh <your checkout> OUTDIR`.
     Your caller's BDC_* set the graph; nothing in it is per kernel. Check with `lake env lean`.
-  - Not covered: collatz64 (cfront supports 32-bit `int` only); the kernels outside kernels/; the Verilog slicing
+  - Coverage over your 28 kernels/ sources: autoproof (cfront) cannot read most of them (`/`, `%`, arrays, `break`, 64-bit,
+    multi-declarations) or crashes on the same kernels without BDC_RING_FUSE (horner, varshift, nest3, ...): a limit of the
+    tool, not a finding about your pass. branchloop (no fused cell) fails in Lean on the default flow's arithmetic too.
+  - Not covered: collatz64 (cfront supports 32-bit `int` only); the kernels autoproof cannot read; the Verilog slicing
     itself (bdc's `_lower_fused_multi`) against the model.
   - Control: the model with every result reading the FIRST result's slice (your BDC_RING_FUSE_NEGCTL's mistake, in the
     model) is refused (autoproof: counterexample at input (-1831433054, 4)).
