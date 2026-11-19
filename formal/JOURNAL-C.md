@@ -4833,3 +4833,16 @@ simx: pairs "a,m1,..,b" -- the middle operand channels (mk_bnd_mem.py xdata) are
 its own ack falls (--datachange broad); draws.py formats N-word pairs. test_loop_free s2 (42c0bac6 SAME, 4 words, no
 memory): 8 + 8 pass; changing c or b of vector 0 fails (the middle values reach the kernel). A fresh subagent is reviewing
 the RAM / host-port code (read-only) for semantic and timing-convention bugs before more results go to research.
+
+### progress 09:55 -- the review found a real modelling error; C60 corrected, everything rerun (c_mem7)
+Reviewer (fresh subagent, read-only) findings, acted on: (1) HIGH, confirmed: bram_gates' clk2do() took the min over
+every RAMB18 cell type's CLK->DOADO, including DOA_REG=1 (output register: 204 / 468 ps) -> arcs [204,1098,468,2454]
+instead of [585,1098,1353,2454]; the RAM data came up to ~0.3 ns early in research's draw model (0 at the slow end).
+Fixed (DOA_REG_0 types only, asserted equal to the constant). (2) the DO lookup ignored --tcut's arrival map (margin.py
+runs only; draws unaffected): fixed with PD. (3) decode_bram's tile-tie flag had an operator-precedence slip (VCC branch
+without the IMUX exclusion): fixed. Not fixed, noted: constant address / WE pins are not cross-checked against the json;
+the host's read-back accesses are not simulated (RAM contents peeked); the sequencer's address moves at the payload edge
+rather than at M_RTZ, drives only the selected array's port, and skips constant host bits without the representability
+check; --periodic ignores RAM contents (could give a false livelock FAIL, not a false PASS); no clock pulse-width check;
+ramstep's sampling arcs still use ds under --tcut. c_mem6 (bound to the old commit) is superseded by c_mem7 (68 tasks:
+every route of c_mem4 / 5 / 6 + the NOCAP controls). C60 carries a CORRECTION paragraph at its top.
