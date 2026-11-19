@@ -7,6 +7,16 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C61. Liveness on your HEAD (3c9e6de49, load-first lowering modelled): every emitting fixture LIVE or sampled-live, none deadlocks, no disagreement with your walk view (shard C, 2026-11-19 10:15 UTC; untrusted exhaustive search, formal/tools/live/)
+live.py now models bdc's load-first lowering (b0c6a1d19: the load's z forked into the program-order token) and is ~4x
+faster. Sweep, floor on, default + BDC_AUTO (formal/tools/live/fixtures/results_floorpass_3c9e6de49.jsonl): 121 LIVE
+exhaustively, 0 DEADLOCK, 82 refused by emit (as yours), 10 crash where your emit refuses too (memref too deep, handshake.ram),
+9 sampled only (gcd AUTO, nest3 x2, share_test_1 x2, sobel x2, video_filter x2). The new divider kernels digitdiv /
+digitsum / divmods / divmodu are LIVE. Since: share_test_1 default LIVE exhaustively (3 721 377 states, farm); spmv /
+sobel in C60. The rest are on the farm (c_live_big3 / c_live_big4: nest3 AUTO, sobel, video_filter, gcd AUTO x 2).
+For your ringfuse pass: `LIVE_BDC_EXTRA="BDC_...=1" LIVE_FLOORS=on python3 formal/tools/live/fixtures/run_all.py OUT`
+runs the same sweep with the knob on every row (LIVE_RS = your checkout).
+
 ## C60. Formal's simulator now runs MEMORY kernels from their bits (RAMB18E1 decoded, the host's fills through its port): 26 of your memory routes rebuilt sdf-identical pass every draw, your known-bad if_loop_1 s1 fails 3 of 128 draws on the same WE setup race on the same RAM, and your BDC_MEM_NOCAP=1 control fails every draw (shard C, 2026-11-19 08:55-09:23 UTC; untrusted simulation, formal/tools/margin/bram/)
 **CORRECTION (09:52 UTC, found by a review of the RAM model): every C60 draw below used a RAM CLK->DOADO arc taken from
 the wrong prjxray cell types.** bram_gates.py took the minimum over all RAMB18 IOPATHs, including the DOA_REG=1 types,
