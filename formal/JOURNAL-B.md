@@ -5053,3 +5053,4 @@ by A + 91.4 ns (c = 0) / 215.5 ns (c = 1) at maxima; request (chain_hold, v = 0,
 chain pin) not before A + 149.2 / 352.8 ns at minima: kappa_lo 0.240 / 0.241 at g = 1. Control: research's line-5 route
 -0.960. Premises: operands stable from A to the capture (input bundling + hold), out0_ack low until after the request,
 H_DECODE; extraction untrusted. Running 272 / 320 / 384 rebuilds for comparison with b_divui3's simulated edge.
+### progress 09:25 -- FOR-RESEARCH B15: proved-structure kappa_lo for the divider capture: 384 -> 0.067, 528 -> 0.240; 272 / 320 none

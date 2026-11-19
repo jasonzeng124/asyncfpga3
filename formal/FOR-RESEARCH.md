@@ -145,6 +145,35 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
   (dfimport's op semantics) is trusted, as everywhere in formal's token-level work; memory kernels (dfimport cannot
   read them); timing. The check says the fused graph computes the same tokens, not that it is faster.
 
+## B15. A PROVED lower bound (kappa_lo) for one race of a real route: test_divui's divider capture is safe for every delay in the band up to kappa 0.240 with the line at 528, 0.067 at 384, and has no proof at 320 (where your draws and formal's pass) (shard B, 2026-11-19 09:25 UTC; Lean logic, untrusted extraction of the numbers)
+The owner's question (PROGRAM: can lower bounds be proved at all?) answered for one capture race. Race: out0_data
+(the quotient, through the divider's gated stages) against out0_req (the divider's matched line), both launched by the
+divider's `joined` rise at A.
+- **Data side, Lean `Formal/Cells/SettleAll.lean` (`settle_all`, check.sh OK):** an acyclic island whose gates take any
+  consistent valuation shows it on windows given by the longest / shortest path recurrences, independent of the values,
+  so one computation covers every operand. Island = the backward cone of out0_data stopped at storage LUTs and boundary
+  nodes (30 020 nodes incl. routing, acyclic); roots: the 32 operand latch outputs (ulink_n_arg0), joined, out0_ack.
+- **Request side, Lean `ChainHold.chain_hold` (v = 0):** out0_req stays 0 until A + the sum of the minimum pin delays
+  along joined -> uor -> the line's elements (each element forced to 0 by its chain pin, checked on its INIT).
+- **Numbers** (`formal/tools-B/auto/divsafe.py` on the decoded bits; g = 1; max = (1+k) lerp(FAST_MAX, SLOW_MAX, c),
+  min = (1-k) lerp(FAST_MIN, SLOW_MIN, c); each side is linear in c, so c = 0 and 1 suffice):
+| UDIVUI0 (seed 1, sdf) | data settled by A + (c = 0 / 1) | request not before A + (c = 0 / 1) | kappa_lo | formal draws (b_divui2/3) |
+|---|---|---|---|---|
+| 5 (yours, 9875e724) | 91.6 / 215.9 ns | 1.9 / 4.4 ns | none (-0.96) | 0 / 64 |
+| 272 (aa53bf21) | 92.4 / 217.2 | 76.2 / 180.4 | none (-0.09) | 13 / 16 + 16 / 16 |
+| 320 (d1b3ec06) | 94.5 / 220.6 | 88.9 / 209.7 | none (-0.03) | 16 + 16 |
+| 384 (8ce6d49c) | 93.1 / 218.2 | 106.4 / 251.5 | **0.067** | 16 + 16 |
+| 528 (2e6ac4e7) | 91.4 / 215.5 | 149.2 / 352.8 | **0.240** | 16 + 16 |
+- **Premises (not proved here):** the operand latches hold their value from A until the capture (the divider's input
+  bundling and the hold at out0: other races); out0_ack stays low until after the request; the host reads out0 at or
+  after out0_req (the bench); H_DECODE (the bits decode to this netlist). The extraction (cone, sums, INIT checks) is a
+  Python script; the arithmetic is reproducible from the decoded net.
+- **Reading:** the draws pass from ~288-320 elements (B12); a proof at kappa = 0 needs ~340+ (between 320 and 384),
+  because the bound takes every arc at its band's extreme at once. For the flow: a proved-safe divider line is about
+  1.2 x the length the draws need, and 0.24 of within-die scatter is covered at 528.
+- Reproduce: `bash formal/tools-B/auto/suite/task.sh test_divui 1 formal/tools-B/auto/suite/sizes/test_divui_d528.vh -
+  OUT 1` then `python3 formal/tools-B/auto/divsafe.py OUT/w/m`.
+
 ## B14. Your headline (38 of 62), judged in formal's simx on 33 of its routes: every route you count as passing passes here too (16 + 16 slow-carry draws each, 8 + 8 for gcd), and test_divui fails as in yours; no disagreement. Not covered: the 15+ array kernels, factorial, test_int16 (shard B, 2026-11-19 08:20 UTC; untrusted simulation)
 Each route rebuilt from claude/research HEAD with its farm task's own `sizes_<it>.vh` and seed, sdf md5 equal to yours on
 every one, bits read back and decoded by formal, your draw K (suite: 10000 + 100 * seed + 1) and the same draws with
