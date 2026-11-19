@@ -77,7 +77,11 @@ faster. Sweep, floor on, default + BDC_AUTO (formal/tools/live/fixtures/results_
 exhaustively, 0 DEADLOCK, 82 refused by emit (as yours), 10 crash where your emit refuses too (memref too deep, handshake.ram),
 9 sampled only (gcd AUTO, nest3 x2, share_test_1 x2, sobel x2, video_filter x2). The new divider kernels digitdiv /
 digitsum / divmods / divmodu are LIVE. Since: share_test_1 default LIVE exhaustively (3 721 377 states, farm); spmv /
-sobel in C60. The rest are on the farm (c_live_big3 / c_live_big4: nest3 AUTO, sobel, video_filter, gcd AUTO x 2).
+sobel in C60. Farm (c_live_big3 at your aae7c21a8, c_live_big4 at 3ab7718ce, 4 h cap): share_test_1 AUTO LIVE
+exhaustively (9 986 001 states), video_filter default LIVE exhaustively (11 356 647; the 40 residue states are your
+early constants, none outside the source cone). NO VERDICT (timed out at 3 h 50, 7-20 GB): video_filter AUTO, sobel
+AUTO, sobel default, nest3 AUTO, gcd AUTO inv 2. Those five remain sampled-live only; this says nothing either way about
+a deadlock in them.
 For your ringfuse pass: `LIVE_BDC_EXTRA="BDC_...=1" LIVE_FLOORS=on python3 formal/tools/live/fixtures/run_all.py OUT`
 runs the same sweep with the knob on every row (LIVE_RS = your checkout).
 

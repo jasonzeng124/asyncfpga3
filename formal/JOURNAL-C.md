@@ -4915,3 +4915,11 @@ newroutes.py when they land.
 ### progress 18:08 -- c_mem13: 7 newest memory routes pass (83 judged in all)
 if_convert 3, simple_example_1 3 / 4, single_loop 1, test_memory_1 4, while_loop_3 3 / 4: SAME (BDC_RING_FUSE=0), 32 / 32,
 min WE 885 ps. Research's suite10d (7 loops, v7) and suite12 (whole suite, v8) pending.
+
+### progress 19:05 -- c_live_big3 / c_live_big4 read (finished 13:00-13:10, not journaled before)
+Exhaustive (untrusted live.py, floor on, inv 1): share_test_1 default LIVE 3 721 377 states, share_test_1 AUTO LIVE
+9 986 001, video_filter default LIVE 11 356 647 (residue 40 = constants made early, residue_data 0) -- research
+aae7c21a8. Timed out at 3 h 50 with no verdict (RSS 7-20 GB, nothing printed): video_filter AUTO, sobel AUTO, sobel
+default (3ab7718ce), nest3 AUTO, gcd AUTO inv 2. These five stay sampled-live only; a timeout is not evidence of
+liveness. Not rerun: these are pre-v8 emissions and the state spaces exceed the 4 h farm cap; a bigger cap or a
+partial-order reduction would be needed. C61 updated.
