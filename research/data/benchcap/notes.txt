@@ -1,0 +1,131 @@
+benchcap (subagent gcdclean, 2026-11-19): why isprime / gcd never end CLEAN in auto_size.sh, and CA_BENCHCAP=1
+
+QUESTION.  On every iteration of the automatic sizing loop (auto_size.sh: corner_audit CA_SIZERULE=1 CA_JOINAWARE=1,
+corners 0.20 / 0.31) one rule-A' row on isprime and on gcd is "unfixable": isprime umux13 -5125 / -5612 ps, gcd umux21
+-3422 / -3680 ps, each with a "j" row "joined: not applied, keeps A': its data reaches N input(s) that are not a latch's
+data or a select".  Hypothesis to test: the late data goes to flip-flops of the PS-clocked bench, which samples only after
+a synchroniser has seen the request, so the row is false.
+
+ROUTES (all nextpnr 6e5d224472232d5d = const-sinks patch set, NEXTPNR_SEED as named; no new route was built for this):
+  isprime seed 1 it 5   su_isprime_1_5 (subagent loopfast's auto_size loop; route ca9609ba)
+  gcd seed 1 it 0       gcdchk_0 (loopfast's check route, built as auto_size.sh builds it 0)
+  xorshift / collatz / gather (memory kernel): loopfast's copies of farm suite routes su_xorshift_1_4, su_collatz_1_4,
+                        su_gather_1_5 (seed 1); creator nextpnr 0.9.2-100-gbfdeaf7c, patch fingerprint not recorded with
+                        the copy -- used only to compare the tool with itself.
+
+1. THE SINKS (isprime_s1_it5_umux13.txt, gcd_s1_it0_umux21.txt; tools/diag_cone.py repeats rule_a_joined's cone walk)
+  isprime umux13 (bdc_muxn4_1, out0 = {31'b0, umux13.z_data}), 6 sinks:
+    $auto$ff.cc:337:slice$8960/D    bench flop result_hold[0] (D through its reset mux LUT $24110; CE = the S_WAIT_RES
+                                    capture condition), CK fclk0_bufg, src build/gen/isprime_bench_gen.v:415-712
+    $auto$ff.cc:337:slice$10725/D   bench flop o_data_capture[0] (free-running mirror, no CE), CK fclk0_bufg
+    umux13.uj0.u/A2, uj1.u/A4, uj2.u/A1, uj3.u/A1
+                                    the mux's OWN join C-elements' b input = sel[k] = ctl_req & (s == k): bdc_muxnN
+                                    decodes its select in a LUT of its own (a "peer", since it reaches the request chain
+                                    only through uj<k>, a storage node), and that LUT feeds the join
+  gcd umux21 (bdc_muxn3_32), 67 sinks: result_hold[31:0] and o_data_capture[31:0] D pins (64) + uj0..uj2's sel input (3).
+  Every other kernel's out0 mux (library bd_mux, 2 inputs): 64 sinks, all bench flops (collatz umux2, gather umux3,
+  ipow umux3, xorshift umux3 -- loopfast's e2e reports): the same "j" row on every kernel; there A' was a 1x crossing
+  data-vs-request check (xorshift -522 / -711 ps, PAD 2->5/6; collatz/gather/ipow binding with 28..163 ps left).
+
+2. THE A' ROW IS A LAP THROUGH THE BENCH'S ACKNOWLEDGE (same files, "upstream links" section)
+  isprime 0.20, from ulink_n_trueResult_62 stage[1]'s C node: req at umux13's tail 1923 ps (1 crossing); "data" =
+  the decode LUT sel[0] at 6843 ps, 2 crossings deep, by
+     C node > uj3 > |j LUT > uor > udly (1 link) > bench LUT $23671 (o_ack_pl = (bench_busy ? bench_o_ack : ctrl_o_ack)
+     & core_o_req, driving n_index_71_ack = umux13's ctl_ack) > ulink_n_index_71 stage[1] C node (its c_next) > rdly
+     (3 links) > sel[0]
+  i.e. the select link's return to zero after the bench has acknowledged out0: the next phase of the handshake, not this
+  token's data.  The timing graph holds no flip-flop state, so it crosses the AND gate from core_o_req as if the clocked
+  bench_o_ack were already 1; on silicon o_ack_pl rises only after bench_o_ack, which the bench sets on the capture
+  edge.  The lap runs through umux13's own delay line on both sides (request and "data"), so removing or padding that
+  line moves neither margin: corner_audit finds no line with sensitivity -> "unfixable".  gcd umux21 is the same path
+  (bench LUT $24082 driving n_index_97_ack, rdly 3 links, sel LUT $24008 at 6356 ps vs req 3124 ps).
+  Every real data peer of these muxes (z_data's LUTs) is reached at 1 crossing and settles before the request at the
+  tail (isprime: 744..998 ps vs 1603..2998 ps).
+
+3. THE BENCH'S CAPTURE (cells/hw/gen_bench.py)
+  out0_req = o_req_pl -> (a) o_req_latched (async-set flop, yosys dfflegalize emulation) -> sync_o_reql[1:0];
+                         (b) sync_o_req[1:0]; both 2-flop synchronisers on aclk (fclk0_bufg).
+  S_WAIT_RES: if (o_req_l_s && (o_req_s || res_wait == 8'hFF)) { result_hold <= o_data_pl; bench_o_ack <= 1; }
+  o_req_l_s = sync_o_reql[1], o_req_s = sync_o_req[1].  For both to read 1 before edge E, each first stage must have
+  sampled 1 at an edge <= E - 2T, and it can only sample the request if the request reached its D before that edge plus
+  its hold window: E >= t_r + 2T - (window).  o_data_capture samples every edge but is read only through ODATA while
+  hold_valid = 0 (the host's manual handshake, ms after an idle bus).  The data cannot change before E: the mux's inputs
+  are released only through z_ack = o_ack_pl, which needs bench_o_ack, set ON E.
+  Clock: FCLK0 = 100 MHz in every xsdb script found (xsdb_bench_gen.tcl default CLK_CTRL 0x00100A00); build_bench.sh
+  closes the bench at 83 MHz ("the PS drives them at CLK_CTRL=0x00100C00, which is 83.3 MHz").  Fastest: T = 10 ns.
+  -> the bench samples out0's data >= 2 x 10000 - 1000 = 19000 ps after out0_req first reaches a synchroniser's first
+  stage (1000 ps: first stage's setup/hold window + the capture flop's setup + BUFG skew; an allowance, not measured).
+  Measured (the A'j rows, worst launch; entry = the request's earliest arrival at a flop on fclk0_bufg):
+      route / corner          data at result_hold D   request entry   data - entry   A'j margin (event = entry + 19000)
+      isprime s1 it5  0.20    1912                    1656            +256           +18687
+      isprime s1 it5  0.31    2168                    1818            +350           +18585
+      gcd s1 it0      0.20    2929                    2535            +394           +18519
+      gcd s1 it0      0.31    3309                    2698            +611           +18290
+      xorshift s1 it4 0.20    3405                    1858            +1547          +17351
+      collatz s1 it4  0.20    3171                    2276            +895           +18010
+      gather s1 it5   0.20    2924                    2349            +575           +18338
+  On every route the result reaches the bench's flops AFTER the request reaches its synchroniser: the out0 mux's matched
+  delay never covered the path into the bench (A' checks the data at the mux's own tail, inside the kernel); the
+  2-flop synchroniser does, with 17.4..18.7 ns to spare.
+
+DECISION: the row is false (a lap), and the constraint it stands for (out0's data at the bench's flops) is met by the
+synchroniser with ~18.6 ns.  The hypothesis is right for the 2 (gcd: 64) flop sinks; the other 4 (gcd: 3) sinks are the
+mux's own select decode feeding its own join, i.e. its request path, not data.
+
+4. THE CHANGE: corner_audit.py CA_BENCHCAP=1 (opt-in, with CA_JOINAWARE=1; header comment there), A'j only:
+  * a D / CE pin of a flip-flop on a BUFG clock is a "clocked" capture; event = the earliest arrival (A'j's early walk
+    from the launch, through the operator's tail) at any input pin of a flop on that clock reachable from the operator's
+    request tail without crossing storage, + CA_BENCHCAP_PS (default 19000); data leg guarded as A'.  A request that
+    reaches no flop on that clock leaves the sink odd.
+  * an input of one of the operator's own join C-elements (a storage node inside the operator that reaches its request
+    chain head without crossing storage) is neither capture nor odd (CA_BENCHCAP_OWNJOIN=0: odd, as before).
+  Unset: no code path changes (clk_of empty, both new branches guarded by BENCHCAP, the row text gets "").
+
+5. NEGATIVE CONTROL (negative_control.txt): one arc on umux13's data path into result_hold[0] lengthened in a copy of
+  the isprime it-5 SDF, CA_BENCHCAP=1, --no-size, 0.20.  Predicted from the arithmetic / measured:
+     +17000 ps  -> +1177 / +1177 (still inside the window)
+     +19500 ps  -> -1398 / -1398 (NEGATIVE, sized, knob umux13)
+     +25000 ps  -> -7063 / -7063 (NEGATIVE)
+  The shipped rule (unset) on the +25000 route: unchanged A' -5125 + j row: it never measured the data's path into the
+  bench, so a result 25 ns late at result_hold was invisible to it.
+
+6. EFFECT (results.txt; every run: corner_audit as auto_size.sh's rule() runs it, PYTHONHASHSEED=1)
+  Unset: byte-identical to the tool at c7ca40e39 on xorshift s1 it4, collatz s1 it4, gather s1 it5 (corner 0.20; all 8
+  output files: report, lines, sizes, verify, negative_sized, tighten / skew / arb_fork logs; the out dir's own path
+  aside).  By construction too: both new branches are behind `BENCHCAP and ...`, clk_of stays empty, the text adds "".
+  Set (CA_BENCHCAP=1):
+    isprime s1 it5, 0.20 / 0.31: umux13's 'j' row gone; A'j +18687 / +18585 (2 clocked captures, 4 own-join inputs
+      skipped; worst result_hold[0]: data 1912 / 2168 ps at its D, request at sync_o_req[0]/D 1656 / 1818 ps + 19000);
+      A' (-5125 / -5612) now 'a', reported only.  negative_sized: 22 rows incl. 2 unfixable -> 20 rows, 0 unfixable
+      (all "line": E at ucond_br33-36, A'j ucmpi7 / uaddi0).  Proposal sizes IDENTICAL at both corners (UMUX13 is
+      already at the floor, 1); verify 1 -> 0 below slack.
+    gcd s1 it0, 0.20 / 0.31: umux21's 'j' row gone; A'j +18519 / +18290 (64 clocked captures, 3 own-join inputs);
+      UMUX21 4 -> 1 (floor; was "on no measured constraint: kept").  negative_sized (merged): 73 rows incl. 2 unfixable
+      -> 71 rows, 0 unfixable.  With the unfixable row gone the verify ends clean (0 below slack, 22 / 35 iterations
+      instead of 1 / 2), so corner_audit's step 4 -- trim every pad to the smallest size that still verifies, skipped
+      while any sized constraint stays below slack -- runs on gcd for the first time: 11 padded SDELAY / UACK lines
+      come out 1-3 links shorter.  Merged proposal: 542 -> 520 kernel links (12 lines differ: UMUX21 and the 11 trims).
+      Baseline here = loopfast's outputs (the shipped rule, PYTHONHASHSEED not pinned); on isprime it5 those equal
+      the tool at c7ca40e39 with PYTHONHASHSEED=1 line for line (sizes.vh at both corners).
+    xorshift s1 it4 / collatz s1 it4 / gather s1 it5, 0.20: the out0 mux (a library bd_mux; its 64 sinks are bench
+      flops) switches from A' to A'j-clocked: +17351 / +18010 / +18338.  Exactly one line moves on each:
+      xorshift UMUX3 5 -> 1 (A' had PADDED it 2 -> 5 for -522 ps: a real 1x data-vs-request margin at the mux's own
+      tail, which only the bench consumes), collatz UMUX2 3 -> 1, gather UMUX3 2 -> 1; kernel links 73 -> 69,
+      96 -> 94, 202 -> 201.  Nothing else in sizes.vh / lines.tsv changes.
+
+WHAT THIS DOES NOT SHOW
+  * No board run and no GLS: the 19000 ps rests on reading gen_bench.py (2-flop synchronisers in front of the only
+    request-correlated capture) and on FCLK0 <= 100 MHz in the board scripts; the 1000 ps allowance is not measured.
+  * o_data_capture is not request-gated at all; checking it against the same event is vacuous (it is read only on the
+    host's manual path).  A bench that sampled out0's data outside the 4-phase window (the old S_NEXT read of
+    o_data_capture, a real board bug) would not be caught by this rule: it checks setup to the capture, not that the
+    capture is inside the window.
+  * One route per kernel and one seed (the rule is deterministic per route); the conclusion does not hinge on the
+    route: the A'j margins are 17.4..18.7 ns on 5 kernels, ~40x the route-to-route scatter of a few hundred ps.
+  * The A' row stays in the report as 'a' (reported, not sized) and still reads -5125: rule_a_from_link's "one crossing
+    more for the data" allowance lets a lap through a combinational acknowledge count; not changed here.
+  * bdc_muxnN's own select race (s settling before ctl_req at the decode LUTs) is measured by NO rule, before or after
+    this change: select_consumers() reads uj0/uj1 as a library bd_mux's join (I1 ctl_req, I2 s), but in bd_c2 I1 is b
+    (= sel[k]) and I2 the feedback q.  The line that protects it (isprime: BD_SZ_..._ULINK_N_INDEX_71, the select
+    link's rdly, 3 links) is "on no measured constraint: kept" -- kept at its start size (estimate 8 x 0.3 -> 3, it 0..6).  At 0.20 on
+    isprime it 5 s leads ctl_req at the decode LUTs by 363..633 ps unguarded (isprime_s1_it5_umux13_selrace.txt).

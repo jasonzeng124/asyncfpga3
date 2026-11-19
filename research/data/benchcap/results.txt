@@ -1,0 +1,66 @@
+# benchcap results (subagent gcdclean).  corner_audit as auto_size.sh's rule() runs it (CA_SIZERULE=1 CA_JOINAWARE=1
+# BD_SKEW_AND_JOIN=1 BD_SKEW_STEER_SELF=1 CA_FAST=1 PYTHONHASHSEED=1 --band C --inst-rx chains:0.20), scratch ca_run.sh.
+# 'orig' = the tool at c7ca40e39 (git worktree), 'new' = this change with CA_BENCHCAP unset, 'bc' = CA_BENCHCAP=1.
+# loopfast = subagent loopfast's rule outputs on the same routes (the shipped rule; PYTHONHASHSEED not pinned there).
+
+== 1. unset = byte-identical (orig vs new, every output file)
+  xs14 0.20: RESULT IDENTICAL
+  co14 0.20: RESULT IDENTICAL
+  ga15 0.20: RESULT IDENTICAL
+
+== 2. isprime seed 1 it 5 (su_isprime_1_5, nextpnr 6e5d224472232d5d, NEXTPNR_SEED 1)
+  corner 0.20  baseline ca/isp15_orig_0.20
+    shipped rule:  proposal: 46 line(s) changed, kernel links 388 -> 282; verify: 1 sized constraint(s) below slack
+        j      -5125  bridge_i.udut.umux13 joined: not applied, keeps A': its data reaches 6 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10725/D, $auto$ff.cc:337:slice$8960/D, umux13.uj0.u/A2)
+        j   -5125  bridge_i.udut.umux13 joined: not applied, keeps A': its data reaches 6 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10725/D, $auto$ff.cc:337:slice$8960/D, umux13.uj0.u/A2)
+    CA_BENCHCAP=1: proposal: 46 line(s) changed, kernel links 388 -> 282; verify: 0 sized constraint(s) below slack
+        A  +18687  bridge_i.udut.umux13 1 links joined: 2 capture(s); worst clocked $auto$ff.cc:337:slice$8960  launch ulink_n_trueResult_14.many.stage[1].u.ctl.u.u: data 1912 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > ulink_n_trueResult_14.many.stage[1].u
+    UMUX13 line: 1	1	on no measured constraint: kept -> 1	1	floor 1
+    verify: iterations 1, sized constraints below slack 1 after the last -> iterations 7, sized constraints below slack 0 after the last
+  corner 0.31  baseline ca/isp15_orig_0.31
+    shipped rule:  proposal: 45 line(s) changed, kernel links 388 -> 297; verify: 1 sized constraint(s) below slack
+        j      -5612  bridge_i.udut.umux13 joined: not applied, keeps A': its data reaches 6 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10725/D, $auto$ff.cc:337:slice$8960/D, umux13.uj0.u/A2)
+        j   -5612  bridge_i.udut.umux13 joined: not applied, keeps A': its data reaches 6 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10725/D, $auto$ff.cc:337:slice$8960/D, umux13.uj0.u/A2)
+    CA_BENCHCAP=1: proposal: 45 line(s) changed, kernel links 388 -> 297; verify: 0 sized constraint(s) below slack
+        A  +18585  bridge_i.udut.umux13 1 links joined: 2 capture(s); worst clocked $auto$ff.cc:337:slice$8960  launch ulink_n_trueResult_14.many.stage[1].u.ctl.u.u: data 2168 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > ulink_n_trueResult_14.many.stage[1].u
+    UMUX13 line: 1	1	on no measured constraint: kept -> 1	1	floor 1
+    verify: iterations 1, sized constraints below slack 1 after the last -> iterations 7, sized constraints below slack 0 after the last
+
+== 3. gcd seed 1 it 0 (gcdchk_0, nextpnr 6e5d224472232d5d, NEXTPNR_SEED 1)
+  corner 0.20  baseline /tmp/bot/sa/loopfast/runs/ca/gcdchk_0/rule_0.20
+        j      -3422  bridge_i.udut.umux21 joined: not applied, keeps A': its data reaches 67 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10666/D, $auto$ff.cc:337:slice$10667/D, $auto$ff.cc:337:slice$10668/D)
+        j   -3422  bridge_i.udut.umux21 joined: not applied, keeps A': its data reaches 67 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10666/D, $auto$ff.cc:337:slice$10667/D, $auto$ff.cc:337:slice$10668/D)
+        A  +18519  bridge_i.udut.umux21 4 links joined: 64 capture(s); worst clocked $auto$ff.cc:337:slice$8994  launch ulink_n_trueResult.many.stage[1].u.ctl.u.u: data 2929 (1x: ulink_n_trueResult.many.stage[1].u.ctl.u.u > ulink_n_trueResult.many.stage[1].u.lat.pai
+    proposal: proposal: 162 line(s) changed, kernel links 748 -> 480; verify: 0 sized constraint(s) below slack  [CA_BENCHCAP=1]
+    UMUX21 line: 4	4	on no measured constraint: kept -> 4	1	floor 1
+    verify: iterations 1, sized constraints below slack 1 after the last -> iterations 22, sized constraints below slack 0 after the last
+  corner 0.31  baseline /tmp/bot/sa/loopfast/runs/ca/gcdchk_0/rule_0.31
+        j      -3680  bridge_i.udut.umux21 joined: not applied, keeps A': its data reaches 67 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10666/D, $auto$ff.cc:337:slice$10667/D, $auto$ff.cc:337:slice$10668/D)
+        j   -3680  bridge_i.udut.umux21 joined: not applied, keeps A': its data reaches 67 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10666/D, $auto$ff.cc:337:slice$10667/D, $auto$ff.cc:337:slice$10668/D)
+        A  +18290  bridge_i.udut.umux21 4 links joined: 64 capture(s); worst clocked $auto$ff.cc:337:slice$8994  launch ulink_n_trueResult.many.stage[1].u.ctl.u.u: data 3309 (1x: ulink_n_trueResult.many.stage[1].u.ctl.u.u > ulink_n_trueResult.many.stage[1].u.lat.pai
+    proposal: proposal: 167 line(s) changed, kernel links 748 -> 519; verify: 0 sized constraint(s) below slack  [CA_BENCHCAP=1]
+    UMUX21 line: 4	4	on no measured constraint: kept -> 4	1	floor 1
+    verify: iterations 2, sized constraints below slack 1 after the last -> iterations 35, sized constraints below slack 0 after the last
+
+== 4. other kernels, corner 0.20: CA_BENCHCAP=1 vs orig (what moves)
+  -- xs14: proposal: 14 line(s) changed, kernel links 106 -> 73; verify: 0 sized constraint(s) below slack  ->  proposal: 14 line(s) changed, kernel links 106 -> 69; verify: 0 sized constraint(s) below slack
+    sizes.vh             DIFFERENT
+  RESULT DIFFERENT
+    sizes BD_SZ_BRIDGE_I_UDUT_UMUX3                               5 -> 1
+    orig:   j       -522  bridge_i.udut.umux3 joined: not applied, keeps A': its data reaches 64 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$8208/D, $auto$ff.cc:337:slice$8209/D, $au
+    orig:   j    -522  bridge_i.udut.umux3 joined: not applied, keeps A': its data reaches 64 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$8208/D, $auto$ff.cc:337:slice$8209/D, $auto$
+    bc:     A  +17351  bridge_i.udut.umux3 2 links joined: 64 capture(s); worst clocked $auto$ff.cc:337:slice$8234  launch ulink_n_falseResult_9.many.stage[1].u.ctl.u.u: data 3405 (1x: ulink_n_falseResult_9.many.stage[1].u.ctl.u.u > ulink_n_falseResult_9.many.stage[1].u.lat.pair[26].u$LUT5) at $auto$ff.cc:337:slice$8234/D  capture 20858 (
+    neg <   A       -522  bridge_i.udut.umux3 2 links  from bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u.ctl.u.u/O6: req 1806 (1x)  data 2261 (1x, bridge_i.udut.umux3.udat.pair[26].u$LUT5)  guard 67  m
+    neg <   j       -522  bridge_i.udut.umux3 joined: not applied, keeps A': its data reaches 64 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$8208/D, $auto$ff.cc:337:slice$8209/D, $
+  -- co14: proposal: 12 line(s) changed, kernel links 124 -> 96; verify: 0 sized constraint(s) below slack  ->  proposal: 12 line(s) changed, kernel links 124 -> 94; verify: 0 sized constraint(s) below slack
+    sizes.vh             DIFFERENT
+  RESULT DIFFERENT
+    sizes BD_SZ_BRIDGE_I_UDUT_UMUX2                               3 -> 1
+    orig:   j    +411  bridge_i.udut.umux2 joined: not applied, keeps A': its data reaches 64 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10650/D, $auto$ff.cc:337:slice$10651/D, $aut
+    bc:     A  +18010  bridge_i.udut.umux2 4 links joined: 64 capture(s); worst clocked $auto$ff.cc:337:slice$7868  launch ulink_n8.many.stage[1].u.ctl.u.u: data 3171 (1x: ulink_n8.many.stage[1].u.ctl.u.u > ulink_n8.many.stage[1].u.lat.pair[12].u$LUT5) at $auto$ff.cc:337:slice$7868/D  capture 21276 (1x: ulink_n8.many.stage[1].u.ctl.u.u > 
+  -- ga15: proposal: 26 line(s) changed, kernel links 170 -> 202; verify: 0 sized constraint(s) below slack  ->  proposal: 26 line(s) changed, kernel links 170 -> 201; verify: 0 sized constraint(s) below slack
+    sizes.vh             DIFFERENT
+  RESULT DIFFERENT
+    sizes BD_SZ_BRIDGE_I_UDUT_UMUX3                               2 -> 1
+    orig:   j    +391  bridge_i.udut.umux3 joined: not applied, keeps A': its data reaches 64 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10691/D, $auto$ff.cc:337:slice$10692/D, $aut
+    bc:     A  +18338  bridge_i.udut.umux3 3 links joined: 64 capture(s); worst clocked $auto$ff.cc:337:slice$8859  launch ulink_n_falseResult_11.many.stage[1].u.ctl.u.u: data 2924 (1x: ulink_n_falseResult_11.many.stage[1].u.ctl.u.u > ulink_n_falseResult_11.many.stage[1].u.lat.pair[26].u$LUT5) at $auto$ff.cc:337:slice$8859/D  capture 2134
