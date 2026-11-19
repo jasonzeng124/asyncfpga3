@@ -25,13 +25,14 @@ syn, rout, netp, kv, bv, outp = sys.argv[1:7]
 dut = "bridge_i"
 mods = json.load(open(syn))["modules"]
 Y = next(m for m in mods.values() if any(n.startswith(dut + ".") for n in m["netnames"]))
-pm = re.search(r"\)\s*udut\s*\((.*?)\);", open(bv).read(), re.S).group(1)
+pm = re.search(r"(?:\)|\bbdc_\w+)\s*udut\s*\((.*?)\);", open(bv).read(), re.S).group(1)   # shard B: also a DUT with no parameters
 conn = dict(re.findall(r"\.(\w+)\s*\(\s*([^()]*?)\s*\)", pm))
 R = json.load(open(rout))["modules"]["top"]
 nodes = set(json.load(open(netp))["nodes"])
 
 src = open(kv).read()
-dmod = re.search(r"\b(bdc_\w+)\s*#\((?:(?!\bbdc_\w+\s*#\().)*?\)\s*udut\s*\(", open(bv).read(), re.S).group(1)
+dmod = (re.search(r"\b(bdc_\w+)\s*#\((?:(?!\bbdc_\w+\s*#\().)*?\)\s*udut\s*\(", open(bv).read(), re.S)
+        or re.search(r"\b(bdc_\w+)\s+udut\s*\(", open(bv).read())).group(1)
 m = re.search(r"module\s+" + dmod + r"\s*(#\(.*?\))?\s*\((.*?)\);", src, re.S)
 ports = []
 for line in m.group(2).splitlines():
@@ -111,14 +112,15 @@ for name, d, w in ports:
     elems = [x.strip() for x in e.strip()[1:-1].split(",")] if e.strip().startswith("{") else [e]
     bits = []
     for x in reversed(elems):          # Verilog {msb_part, ..., lsb_part}; yosys bit lists are LSB first
-        mm = re.match(r"^(\w+)(\[(\d+)\])?$", x)
+        mm = re.match(r"^(\w+)(\[(\d+)(?::(\d+))?\])?$", x)   # shard B: also a part-select net[hi:lo]
         if not mm:
             sys.exit("port %s: connection %r not a net, net bit or concatenation of them" % (name, e))
         yn = "%s.%s" % (dut, mm.group(1))
         if yn not in Y["netnames"]:
             sys.exit("port %s: no yosys net %s" % (name, yn))
         bb = Y["netnames"][yn]["bits"]
-        bits += [bb[int(mm.group(3))]] if mm.group(3) is not None else list(bb)
+        if mm.group(4) is not None: bits += bb[int(mm.group(4)):int(mm.group(3)) + 1]
+        else: bits += [bb[int(mm.group(3))]] if mm.group(3) is not None else list(bb)
     if len(bits) != w:
         sys.exit("port %s: width %d in yosys, %d in the module header" % (name, len(bits), w))
     res[name] = {"dir": d, "bench_net": e, "nodes": [phys(b, "%s[%d]" % (name, i)) for i, b in enumerate(bits)]}
