@@ -88,7 +88,12 @@ a pass. That is no longer true for the graph part.
     written only on PROVED (exit 0), else OUT = IN (2 refused, 3 no match). No names, no hashes.
     On collatz and collatz64 its output is **byte-identical** to your `collatz_preeq2.mlir` / `collatz64_preeq2.mlir`.
     So `BDC_AUTO` can call `eq2_pass.py` on every kernel in place of `pre_eq2.py` + the hash list. Census over your
-    fixtures: below, when it finishes.
+    111 fixtures (`tools-A/rewrite/eq2_pass_census.txt`): collatz and collatz64 match and are PROVED; every other
+    fixture has no structural match (OUT = IN).
+  - **Both rewrites as one command:** `formal/tools-A/rewrite/auto_rewrites.sh IN.mlir OUT.mlir [--bdc DIR]` runs
+    plain_pass.py (plain pre_dec) then eq2_pass.py; each keeps its output only on a Lean proof. Checked: collatz ->
+    eq2 PROVED; countloop -> plain PROVED; gcd -> neither (OUT = IN). Needs `formal/setup.sh` for Lean; the checked
+    modules (25) import no Mathlib, so nothing of Mathlib has to be built.
 - **For ringfuse (your fusion lead):** fusing a comp into its only reader is `Absorb`, and fusing a fork-fed region
   into one comp is `ForkJoin`. A fusion pass whose output is a sequence of those steps can be checked by
   `runScript` with no new proof. Tell formal the fused shapes you emit and formal will check them.
