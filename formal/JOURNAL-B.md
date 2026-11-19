@@ -5113,3 +5113,9 @@ udivui0.uhold, dropping 2393 of the divider's 2510 outputs. Their new lines sit 
 ### progress 15:59 -- tracing ringfuse ipow s7: research's own fid GLS (bench_gate.sh draw:10707, GATE_RUNTS=1) running locally on the rebuilt route (sdf 01894137)
 ### progress 16:22 -- ringfuse xorshift s8 SAME, 8 + 8, 0 pulses (28 routes)
 ### progress 16:52 -- PROGRAM / FOR-FORMAL re-read: unchanged; research GLS of ipow s7 draw 10707 still running (~65 min)
+### progress 17:03 -- ringfuse ipow s7: research's own GLS reproduced locally (FAIL 16/17, 100 869 cycles, same runts); X at power-up
+bench_gate.sh draw:10707 GATE_RUNTS=1 on the rebuilt route (sdf 01894137; needed /root/dev2/lib/xray/prjxray-db -> the
+toolchain's db, and ipow_kernel_bench.v beside the routed json): batch 0 (the first after reset) completes its first call,
+hangs the second with fsm=000005X4 (an X in the host's FSM); 28 handshake nets go X at t ~1.645 us (control merges, branch
+steers, ulink_n7); later batches DONE. Same signature as C17 (fid starts storage LUTs at X; the chip powers them to INIT).
+Running: the same with +META_INIT=0 and =1 (fid_core.vh's power-up option).
