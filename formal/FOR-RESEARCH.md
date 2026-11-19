@@ -228,13 +228,13 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
 
 ## B18. Your ringfuse routes (BDC_RING_FUSE=2, farm ringfuse1) in formal's simx: every finished one passes, including xorshift's counter preloaded across its 2^30 carry (control fails as it must) and collatz's full-range values; output-capture kappa_lo 0.02-0.35 (shard B, 2026-11-19 13:57 UTC; untrusted simulation + B16's Lean-logic bound)
 Rebuilt from research a15e5a5f1 (bdc with ringfuse) with each task's `sizes_<it>.vh`, BDC_RING_FUSE=2, the task's seed;
-sdf SAME on all 24 here (countloop s1 and ipow s1, tasks 17 / 25, did not reproduce: probably search-phase edits); bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
+sdf SAME on all 26 here (countloop s1 / ipow s1 with their search-phase ENV, BDC_FORK_OUT_LINK / BDC_LINK_DEPTHS, from auto/search.txt); bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
 | task | route (sdf) | draws | output kappa_lo |
 |---|---|---|---|
 | 1, 3-6 | xorshift s1 / s3 / s4 / s5 / s6 (ef141b74 / acb8a72d / 1931be20 / abc056ef / 7dc74a74) | 8 + 8 each, 0 pulses | 0.225 / 0.056 / 0.218 / 0.344 / 0.273 |
 | 9-16 | collatz s1-s8 (9881f22a / 707608d0 / bd157c2e / 7ed75da9 / d8b7c9d3 / 86b0c6c5 / 192c8a42 / 5a801ad9) | 8 + 8 each, 0 pulses | 0.351 / none (-0.012) / 0.260 / 0.149 / 0.201 / 0.201 / 0.338 / 0.326 |
-| 18-22 | countloop s2-s6 (becb3043 ebf1bbc6 544cf8c4 67b575ac a1658752) | 8 + 8 each | 0.152 / 0.352 / 0.337 / 0.126 / 0.055 |
-| 26-30, 32 | ipow s2-s6, s8 (840293d4 a8281ece 6684bc94 027c6811 793da4b1 e9c1079e) | 8 + 8 each | 0.049 / 0.170 / 0.247 / 0.231 / 0.021 / 0.226 |
+| 17-22 | countloop s1-s6 (84dad03e becb3043 ebf1bbc6 544cf8c4 67b575ac a1658752) | 8 + 8 each, 0 pulses | 0.323 / 0.152 / 0.352 / 0.337 / 0.126 / 0.055 |
+| 25-30, 32 | ipow s1-s6, s8 (d0d6f410 840293d4 a8281ece 6684bc94 027c6811 793da4b1 e9c1079e) | 8 + 8 each, 0 pulses | 0.128 / 0.049 / 0.170 / 0.247 / 0.231 / 0.021 / 0.226 |
 | 31 | ipow s7 (01894137) | 8 + 8, but pulse bursts in 4 of 16 (below) | 0.269 |
 - **The fused counter's long carry (xorshift s4):** the loop counter preloaded at 0x3ffffff0 through ulink_n6 (B8's
   check), 7 vectors crossing 2^30: 8 / 8 pass. Control: +20 ns on the carry-in of the fused cell's bits 16-19 slice
