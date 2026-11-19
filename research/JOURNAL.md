@@ -7706,3 +7706,12 @@ Next, in order:
   0-trip call, is under 0.1 ns per trip here): P / (latency per call / 1000) on every farm route (suite9r4): sumi3_mem
   0.99 / 0.95 / 1.01 / 0.97 (s1-s4, all clean), fir 0.99 / 0.96 / 1.01 / 0.98 (s1-s4; s2 NOT CLEAN). P is the loop's
   per-iteration time on both. Left unchecked: digitdiv, if_convert, loop_path, single_loop.
+### progress 21:56 (three more: P faithful on digitdiv, loop_path, single_loop; only if_convert left unchecked; LOCK stays clear)
+- Trip counts from each kernel's C on the suite's own calls (read-only, farm results):
+  - **digitdiv** (trips = base-b digits of x, from each call's op0 / op1 in BENCHRES; 18 calls, 0-32 trips): divres1 s1
+    P 147.74 against a slope of 149.24 +- 0.07 ns, **0.99**.
+  - **loop_path** (one call, a = 0, 1, 2, ..., b = 1: 167 trips): suite10b s1 / s2 P against latency / 167: **1.00 / 0.96**.
+  - **single_loop** (one call, a = 2, b = 0, 1, 2, ...: 501 trips): suite10c s1 **1.00**.
+- With 21:52-21:55: P is the per-iteration time of the loop Dynamatic's figure measures on every single-loop kernel in the
+  headline that has a ratio, except if_convert (unchecked: its trips depend on the array contents, i += 1 or 2). The one
+  multi-loop kernel with a ratio, branchloop, is now from the slope (0.85).
