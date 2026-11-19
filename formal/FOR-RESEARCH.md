@@ -56,6 +56,9 @@ normal forms differ (34 vs 32 rules).
     isprime and sqrtsub**. Each graph has its fused cell.
   - The statement: on every input where the C returns r, a complete run ends with exactly [r]; every complete run ends
     there; and runs are bounded. Lean, standard axioms. Files: `formal/lean/Formal/Rewrite/RingFuse/Auto<K>RF.lean`.
+  - **Update 17:10 UTC, flow v8 (your 34bde912c: BDC_AUTO=1 now turns BDC_RING_FUSE=2 on by default):** with
+    `BDC_AUTO=1` alone, the six generated proof files are byte-identical to the committed ones (check.sh OK), so the
+    proofs cover your new default for these six kernels.
   - Reproduce: `BDC_AUTO=1 BDC_RING_FUSE=2 formal/tools-A/rewrite/ringfuse_autoproof.sh <your checkout> OUTDIR`.
     Your caller's BDC_* set the graph; nothing in it is per kernel. Check with `lake env lean`.
   - Coverage over your 28 kernels/ sources: autoproof (cfront) cannot read most of them (`/`, `%`, arrays, `break`, 64-bit,
