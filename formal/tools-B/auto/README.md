@@ -37,3 +37,18 @@ Suite kernels (any kernel with research's `kernels/K/vec.hex` and `research/tool
   flip) in one draw's dump.
 - `dsp_slow.py NET OUT [T]`: an injection putting every DSP48 arc at band >= T (the draw models never draw the DSP slow).
 - `sizes/`: the shortened size sets of B9 / B10.
+
+## Added 2026-11-19 (FOR-RESEARCH B12-B14)
+- `suite/task.sh K SEED SIZES.vh SDF8|- OUT [NDRAWS] [K0]`: SDF8 `-` builds a what-if route (no research route to match);
+  a 64-bit argument takes both bench words; writes OUT/pairs.txt; gcd uses suite_one's gcd8 + gcd_oracle.sh.
+- `boundary_bench.py`: resolves a port's driver through the yosys hierarchy (nested operator modules, pass-through ports
+  such as test_divui's start_ack = p_end_ack, nextpnr's LUT6_2 -> $LUT6 / $LUT5), CARRY4 outputs, DUTs without
+  parameters, part-select connections.
+- `suite/linescale_x.sh OUT LINE [STEPS] [ND]`: linescale for suite kernels (any line prefix, e.g. udivui0.udly).
+- `pulses.py RUNDIR CELLREGEX EXP ...`: output pulses of ANY LUT (combinational too) matching a cell regex, one draw.
+- `suite/pulrun.sh K SEED SIZES SDF8 OUT DRAWS...`: rebuild + pulses.py on the udut.umux* LUTs.
+- `lutreaders.py ROUTED NAME...`: which cells read a LUT (decode LUTs are read by the joins .uj<k>.u).
+- `decslack.py RUNDIR EXP ...`: the N-way mux decode race in ps per mux (request pin rise vs last index pin flip).
+- `divchain.py MDIR`: the divider's enable-chain floor (sum of FAST_MIN over 256 hops) and the request chain's ceiling
+  (sum of SLOW_MAX joined -> out0_req), the numbers for Lean's ChainHold.chain_hold_const / chain_hold_side.
+- `../select/muxn_rows.py NET ROUTED OUT.lean NS`: decode LUTs of a route as Lean forcing facts (MuxNRowsCmp.lean).
