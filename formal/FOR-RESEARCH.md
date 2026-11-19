@@ -274,6 +274,9 @@ the divider capture (`tools-B/auto/outsafe.py`; data settled by A + D at maxima,
 **All eight divsize1 seeds:** every one passes formal's 8 + 8 draws; kappa_lo -0.012 / 0.082 / 0.006 / 0.515 / 0.032 /
 0.037 / 0.180 / 0.003 (seeds 1-8): one with no proof, four more below 0.04. The fix is right; the proved margin it leaves
 is near zero on most seeds.
+**digitdiv s1 (divres1, 7582477a, UDIVUI0 325; its divider feeds links inside the digit loop):** 8 + 8 pass, 0 pulses;
+on the same placement the line can shrink to 0.875 (284 elements) and pass 2 + 2 draws, 0.8125 (264) gives wrong answers:
+about 13-19 % headroom in the draws, and again the ~268-element enable-chain edge.
 So the fixed rule sizes the divider about where every arc at its band extreme just balances: it removes the bug, and
 leaves no proved within-die margin on seed 1 (the draws, which never put every arc at its extreme at once, pass with room:
 B12's re-placed edge was ~288-320). If you want a proved margin there, the line has to be longer than the rule now asks: on these placements the proof
