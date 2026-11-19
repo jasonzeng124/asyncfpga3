@@ -12,6 +12,7 @@ import argparse, heapq, json, os, re, sys
 ap = argparse.ArgumentParser(); ap.add_argument("out"); ap.add_argument("--array", default=None)
 ap.add_argument("--band", type=float, default=0.255); ap.add_argument("--xband", type=float, default=0.6)
 a = ap.parse_args()
+GLO, GHI = 0.772, 1.155     # cells/verify/skew.py GUARD_LO / GUARD_HI
 M = os.path.join(os.path.abspath(a.out), "w", "m")
 N = json.load(open(os.path.join(M, "net.json"))); BJ = json.load(open(os.path.join(M, "bnd.json")))["boundary"]
 cells = json.load(open(os.path.join(M, "routed.json")))["modules"]["top"]["cells"]
@@ -86,8 +87,11 @@ for h in hosts:
         if not rows: continue
         rows.sort()
         sl, cls, ro, n, tp = rows[0]
-        print("%s %s (%s): host request %s -> CLKARDCLK earliest %.0f ps; worst payload %s pin role %d latest %.0f ps; setup %d -> slack %+.0f ps  [band %.3f, cells %.2f]"
-              % (h["name"], r["site"], r.get("json_cell"), cname(names[src]), tclk, cls, ro, tp, SU[cls], sl, a.band, a.xband))
+        # guarded forms (research's C64 question): skew.py's multiplicative GUARD_LO on the clock path, GUARD_HI on the
+        # payload path, minimised over every payload pin; research's rule B's additive 400 ps RAM guard
+        gm = min(GLO * tclk - GHI * q[4] - SU[q[1]] for q in rows)
+        print("%s %s (%s): host request %s -> CLKARDCLK earliest %.0f ps; worst payload %s pin role %d latest %.0f ps; setup %d -> slack %+.0f ps; guarded x%.3f/x%.3f %+.0f ps, -400 %+.0f ps  [band %.3f, cells %.2f]"
+              % (h["name"], r["site"], r.get("json_cell"), cname(names[src]), tclk, cls, ro, tp, SU[cls], sl, GLO, GHI, gm, sl - 400, a.band, a.xband))
         for lab, b, nn in (("clock", lo, clkn), ("payload", hi, n)):
             pp = path(b, nn)
             luts = [(cname(x[0]), x[2]) for x in pp if x[1].startswith("lut")]

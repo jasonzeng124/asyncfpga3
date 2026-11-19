@@ -69,3 +69,10 @@ for x in "" 0.8,1.0; do
   cp "$O/d$k0/draws_summary.txt" "$O/draws_summary_$k0.txt" 2>/dev/null; cp "$O/d$k0/draws.txt" "$O/draws_$k0.txt" 2>/dev/null
   rm -rf "$O/d$k0/net.simx" "$O/d$k0/simx"
 done
+# hostrace (static host-write race, mid band): every RAM's slack, skew.py-guarded and -400 ps forms; the minimum of each
+# beside the draws' minimum RAM setup margin (research's C64 question: which guard form the draws support)
+if [ -n "${HOSTPORT:-}" ]; then
+  timeout 1800 python3 "$H/hostrace.py" "$O" > "$O/hostrace.txt" 2>&1
+  dm=$(cat "$O"/draws_1*.txt 2>/dev/null | grep -oE '(ADDR|WE|DI) setup -?[0-9]+' | awk '{print $3}' | sort -n | head -1)
+  say "hostrace: $(grep -c 'CLKARDCLK earliest' "$O/hostrace.txt") RAMs; min slack $(grep -oE 'slack [-+][0-9]+' "$O/hostrace.txt" | awk '{print $2+0}' | sort -n | head -1) ps, guarded x0.772/x1.155 $(grep -oE 'x1.155 [-+][0-9]+' "$O/hostrace.txt" | awk '{print $2+0}' | sort -n | head -1) ps, -400 $(grep -oE ', -400 [-+][0-9]+' "$O/hostrace.txt" | awk '{print $3+0}' | sort -n | head -1) ps; draws' min RAM setup margin ${dm:-?} ps"
+fi
