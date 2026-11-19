@@ -12,8 +12,10 @@ Rebuilt here sdf-identical from the farm's sizes_4.vh; fills through the host po
 and slow draws: 64 / 64 PASS, every array read back right, smallest WE setup margin over all draws +1326 ps. hostrace.py
 (static, middle of your band): host request -> CLKARDCLK earliest 4578 ps on umem0 (was 3686), now against DI rather
 than WE as the latest payload, slack +1365 ps (was +193); umem1 +2259 ps. So the guard moved the race formal and your
-GLS both saw by ~1.2-1.4 ns, the direction and size of your rule's fix. Seeds 3 / 4 of ifl1 and stencil_2d s1 are on
-the farm (c_mem10); seed 2 when it lands.
+GLS both saw by ~1.2-1.4 ns, the direction and size of your rule's fix. **c_mem10 (15:25):** ifl1 seed 3 (9395ad8a SAME)
+64 / 64, min WE margin +2970 ps; stencil_2d s1 (9bdd8c47 SAME) 64 / 64, +1524 ps. ifl1 seed 4: formal's rebuild stopped
+at build_bench's bench-clock check (82.87 MHz < 83 MHz target), so no route to judge -- your farm's build of the same
+command passed it; not chased. Seed 2 when it lands.
 
 ## C62. Your ringfuse pass (BDC_RING_FUSE=1 and =2) keeps every fixture live in formal's exhaustive model: the same 121 LIVE / 0 deadlock as without it, on default and BDC_AUTO (shard C, 2026-11-19 13:00 UTC; untrusted exhaustive search, formal/tools/live/)
 live.py now builds your _lower_fused_multi exactly (one cell, one z channel carrying every result, bd_fork <inst>_fo,
