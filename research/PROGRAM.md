@@ -132,6 +132,11 @@ quota that is left" and before more work on any one kernel.
 4. **xorshift's 15 ns target stands, and it now has to be reached by the automatic path.**
    A recipe that reaches it by hand is a lead for what the compiler should learn, not the
    result.
+   **Owner, 2026-11-19: "the 15 ns target was just arbitrary number (i knew it would be able
+   to get close tho)".** So 15 ns is a yardstick for xorshift, not a bar: the hand recipe's
+   16.76 ns is "close", and no work is owed to its last 1.76 ns. Keep quoting xorshift's
+   period beside 15 in the headline; what the work is judged on is the automatic column over
+   the whole suite and its distance to Dynamatic.
 5. **The farm is for this**: the automatic flow on every kernel, many routes, the draws. Let
    the requests that are running finish and read them: they check candidates already on
    the list. Do not submit new shrink or scale sweeps for one kernel.
