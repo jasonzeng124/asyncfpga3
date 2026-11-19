@@ -7506,3 +7506,5 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   an unfixable row (shipped least-short); share_test_2 NOT-A-BOARD-ROUTE (the decoder gap). suite10d: share_test_1 s2
   and single_loop s2 PASS. suite11 51 / 54, finseeds1 36 / 40: their final numbers are for the next session.
 - Nothing local is needed: every result, tool and request is on claude/research or claude/cluster.
+### progress 21:29 (session end: LOCK cleared; the job ends at 22:13 UTC)
+- Branch pushed, state of play current (the 20:0x note + the 21:1x note). LOCK cleared for the next session.
