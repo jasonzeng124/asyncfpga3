@@ -81,6 +81,9 @@ it. Formal's NEARMISS (storage outputs only) misses these: B12's "neither confir
 **Your fix, checked (08:36):** muxn1's four cmpchain routes (BD_SKEW_MUXN=1 in the loop; ULINK_N63__0 5 / 3 / 6 / 7;
 sdf 67cb2cfa / 943d0ebf / a4399dd0 / 04d1197e, all SAME here), your suite draws K 10S01 / 10S02: **0 pulses under 1 ns on
 every umux LUT (446-450 LUTs) in all 8 runs**, every answer right. Agrees with your 07:33 entry.
+muxn1's iterative_sqrt s1 / s2 (b6aaa2f9 / 4e88f397, SAME), draws 10S01 / 10S02: answers right; 0 pulses on umux3's
+decode LUTs; 67-88 pulses < 1 ns per run on umux3's 32 data-mux LUTs (the z_data bits that out0's register reads):
+data settling before the request, which your handshake-net monitor leaves out by design. No disagreement.
 
 ## B12. test_divui: formal's simx agrees the automatic divider is wrong (0 / 16 draws at UDIVUI0 = 5, research's route), and the full-length line passes; on that placement the line needs 268 of 528 elements -- the 256-LUT2 enable chain plus the last stage, so on test_divui the line must outrun the enable chain, not the subtracts; divmodu needs far less (see the correction) (shard B, 2026-11-19 07:48 UTC, corrected 08:18; untrusted simulation, one placement for the edge)
 **The race, named.** Both ends launch at `udivui0`'s `joined` rise. Data: the stage-enable chain `tp[0..256]`

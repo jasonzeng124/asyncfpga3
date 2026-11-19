@@ -4997,3 +4997,6 @@ B12 updated: the requirement is on the sum of request delays from the divider's 
 ### progress 08:36 -- research's muxn1 cmpchain routes (mux guard sized): 0 decode pulses in formal's simx (B13)
 4 routes x 2 draws, sdf SAME, 0 pulses < 1 ns on all umux LUTs, answers right. Lean: SelectCapture / SelectHold /
 SelectTree build locally (1018 jobs) now that Mathlib is built.
+### progress 08:43 -- muxn1 iterative_sqrt: decode LUTs clean; data-mux glitches only (B13); pulrun.sh pair fix
+pulrun.sh fed two-word pairs to a one-argument kernel (first iterative_sqrt runs: RESULT MISMATCH, harness error);
+task.sh now writes pairs.txt and pulrun.sh uses it.

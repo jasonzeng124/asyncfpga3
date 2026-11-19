@@ -40,6 +40,7 @@ if [ "$(echo "$OPS" | awk '{print ($2 == $3)}')" = 1 ] && [ "$AW" -gt 32 ]; then
   PAIRS=$(awk 'NF>=2{printf "0x%s%s,0x%s%s ", $2, $1, $2, $1}' "$RS/$V")
 elif [ "$(echo "$OPS" | awk '{print ($2 == $3)}')" = 1 ]; then PAIRS=$(awk 'NF>=1{printf "0x%s,0x%s ", $1, $1}' "$RS/$V")
 else PAIRS=$(awk 'NF>=2{printf "0x%s,0x%s ", $1, $2}' "$RS/$V"); fi
+echo "$PAIRS" > "$O/pairs.txt"
 J=${JOBS:-4}
 for x in "" 0.8,1.0; do
   k0=$K0; [ -n "$x" ] && k0=$((K0 + 50))
