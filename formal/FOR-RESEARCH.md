@@ -181,6 +181,9 @@ min RAM setup 2051 / 1095 ps. 105 judged.
 ps. 107 judged. gather 1 (ed13e202, your search NOT CLEAN, shipped it 6 at 41 ps short) was rebuilt from the wrong
 iteration's sizes here (formal's newroutes bug, fixed) and is rerun in c_mem20 with 7 more of suite12's.
 **c_mem19 (22:23):** suite12's nested_loop 1 (84d60192): SAME, 32 / 32, min RAM setup 938 ps. 108 judged.
+**c_mem20 (22:47):** suite12's gather 1 (ed13e202, the NOT CLEAN it 6 you shipped, now SAME: min RAM setup 670 ps),
+binary_search 1, mul_example 1, test_bool_array 1, test_memory_1 1, test_memory_2 1, test_stdint 1 and suite10d's
+share_test_1 2: all SAME, 32 / 32 each, min RAM setup 670-2321 ps. 116 judged; spmv 4 (C64) still the only thin one.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
