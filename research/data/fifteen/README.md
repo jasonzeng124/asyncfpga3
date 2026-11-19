@@ -2,18 +2,31 @@
 T156 / T161 rules).** One switch, BDC_AUTO=1, with no list of kernels (the md5-keyed MLIR rewrites are off since
 f7573b807), the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model;
 nextpnr 6e5d224472232d5d (suite3a / 3b and suite6's own predecessors partly 9c732bc6303458df: identical routes where no GND
-pin was missed). Ns per iteration and the ratio use rule-CLEAN routes only; the NOT CLEAN routes' figures are in brackets
-(two NOT CLEAN routes have been wrong: ipow seed 4 in flow v1, if_loop_1 seed 1 below). isprime's ratio (an outer-trial
+pin was missed). Ns per iteration and the ratio use rule-CLEAN routes only; the NOT CLEAN routes' figures are in brackets.
+**Every wrong answer the automatic flow has produced, superseded routes included (auditor T169; read 2026-11-19 21:40 UTC
+from origin/claude/cluster results/): rule-CLEAN is not a certificate, two of the wrong routes were clean.** test_divui
+seeds 1 and 2 (suite10b/9, /10, flow v7, **rule-CLEAN**, FAIL 0 / 4 draws each, 3 of 12 vectors wrong in every draw;
+cause: rule A's peers escaped the cell; superseded by divsize1's routes after the fix 1daa7efd4); if_loop_1 seed 1
+(suite9/77, v6, NOT CLEAN, FAIL 2 / 4 draws, memory wrong; superseded by ifl1 after rule B's RAM guard); ipow seed 4 in
+flow v1 (NOT CLEAN); ipow seed 7 with ring fusion (ringfuse1/31, v8, NOT CLEAN at it 7, FAIL 7 / 8 draws, one draw 16 of
+17 vectors, with runts; the least-short finish route came after it). None of these rows shows them now, because a later
+request superseded each (kernel, seed). isprime's ratio (an outer-trial
 period against Dynamatic's inner-shift cycle) is out of every mean. Dynamatic's figures are ESTIMATES except xorshift /
 collatz / collatz64 (single nextpnr routes, Fmax x cycles), and on the memory kernels the estimate assumes
 Dynamatic's on-merges buffering, which its solver placement could beat by up to ~6x (research/data/suite/dynamatic/
 DYNFIG_REPORT.md): those ratios flatter us, so read the mean with estimates as an upper bound on our standing; our ns are the simulation's (~8 % slower per iteration than
-the August board, research/SIM-VS-BOARD.md).
+the August board, research/SIM-VS-BOARD.md). **How much (auditor T169, recomputed on this table):** 11 of the 22 ratios
+are memory kernels (the fixture's handshake has a memref: dot2, fill, fir, if_convert, if_loop_1, if_loop_2, loop_path,
+memsum, single_loop, sumi3_mem, while_loop_3); without them the mean with estimates is 1.16 (n = 11), against 1.01 with
+them. All 10 ratios below 1 are against ESTIMATED figures, none against a measured one, and 4 of the 10 are not memory
+kernels (branchloop, digitdiv, horner, ipow), so the estimate itself, not only the memory buffering, is in question there.
 
 **The flow moved on after these routes (2026-11-19 17:07 UTC):** BDC_AUTO=1 now fuses each loop's update with its test
 (BDC_RING_FUSE=2, flow v8; farm ringfuse1: faster on 19 of 29 paired seeds, median -1.27 ns, xorshift 8 / 8 at -1.87),
 and the sizing loop's finish phase has 6 routes and ships its least-short route. The table below is v6 / v7; farm
-suite12 measures v8 on every kernel.
+suite12 measures v8 on every kernel. ringfuse1's fused arm in full (auditor T169): 32 tasks, 30 routes judged, **215 /
+216 draws right**; the one wrong draw is ipow seed 7 (NOT CLEAN, FAIL 7 / 8, listed above); countloop seeds 7 / 8 gave no
+route (PNR-TIMEOUT at it 0).
 
 **xorshift against the 15 ns yardstick** (owner, 2026-11-19: a yardstick, not a bar): the automatic column with no
 kernel list (v7) runs 22.16 ns per iteration (median of 6 rule-clean routes); flow v8's ring fusion took 1.87 ns off
@@ -34,7 +47,9 @@ divres1: + rule A's peers confined to the cell (1daa7efd4: test_divui's suite10b
 earlier build failures, which the table no longer shows: quadrec s2 and varshift s2 / s4 (the bench missed 83 MHz on
 one iteration; resumed with the seed fallback), isprime s3 (PNR-TIMEOUT at it 0 in suite7; gifast1's route). cmpchain s1 /
 s4's farm verdict NOT EQUIVALENT was a checker false alarm on dead cells (fixed e060d7980; auditor T166 confirms s1);
-those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one clean route.
+those routes pass 4 / 4 draws each when rejudged. 8 of the 22 ratios rest on one rule-clean route (branchloop,
+digitdiv, dot2, fold64, horner, if_loop_1, single_loop, sqrtsub; counted on this table, auditor T169 counted 7 on the
+56-of-62 one).
 
 | kernel | status | routes judged (rule-clean + NOT CLEAN) / built | draws passing (clean; not clean) | ns per iteration (P) on clean routes, median (range) [on NOT CLEAN routes] | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|

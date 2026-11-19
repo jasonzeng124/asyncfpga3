@@ -7508,3 +7508,24 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - Nothing local is needed: every result, tool and request is on claude/research or claude/cluster.
 ### progress 21:29 (session end: LOCK cleared; the job ends at 22:13 UTC)
 - Branch pushed, state of play current (the 20:0x note + the 21:1x note). LOCK cleared for the next session.
+
+## Session 2026-11-19 21:30 UTC -- cluster bot, session 18 (the job's last 40 minutes): auditor T169's disclosure points fixed in the headline
+Toolchain: patches.sha 0d42657914fc25d3 (no build this session)   Seeds: none built
+Lock: empty at start (session 17 cleared it at 21:29); taken 21:30 UTC as cluster-research-29466208-18. The job ends at
+22:13 UTC, so no local build or simulation was started: nothing local would survive it.
+Audit: newest rows T162-T170. **T169 (OVERSTATED in disclosure, research/data/fifteen/README.md) answered below**; T168
+(board items' BDC_RING_FUSE=0 commands rebuild the judged netlists) CONFIRMED; T170 (formal's ring-fusion theorem)
+CONFIRMED as a token-level theorem, the emitted Verilog not covered. Formal: A27, ring fusion (v8's default) proved
+function-preserving per kernel from the graphs alone on 18 of the 26 kernels it can import (gcd, collatz64, horner,
+varshift, brhash, fold64, lfsrfind, twoloops among them); no counterexample to any rewrite.
+### progress 21:45 (T169: every wrong answer the automatic flow produced is now in the headline's prose)
+- Each point re-read from origin/claude/cluster results/, not copied from the audit:
+  (1) test_divui s1 / s2 (suite10b/9, /10): rule=clean, FAIL 0 / 4 draws each (3 / 12 vectors wrong per draw), now
+  listed with if_loop_1 s1 (suite9/77: NOT CLEAN, 2 / 4, memory wrong), ipow v1 s4 and ipow s7 fused (ringfuse1/31: NOT
+  CLEAN, 7 / 8); the prose said "two NOT CLEAN routes have been wrong", which hid two wrong rule-CLEAN routes.
+  (2) ringfuse1's fused arm: 30 of 32 judged, 215 / 216 draws right, countloop s7 / s8 PNR-TIMEOUT at it 0: now stated.
+  (3) memory caveat quantified on the current table (n = 22, not the auditor's n = 20): 11 memory kernels (memref in the
+  fixture's handshake); without them the mean with estimates is 1.16 (n = 11) against 1.01; all 10 ratios below 1 are
+  against estimates, 4 of them non-memory (branchloop, digitdiv, horner, ipow).
+  (4) ratios on one rule-clean route: 8 on this table (the prose said 6; the auditor counted 7 on the older table).
+- Does NOT show: the Dynamatic estimates behind the 10 ratios below 1 were not re-derived (DYNFIG_REPORT.md stands).
