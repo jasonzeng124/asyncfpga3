@@ -171,19 +171,24 @@ build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); f
     [ -f "$O/place_$j.txt" ] || { [ -f "$RUNS/hw/${N}_$j/${D}_routed.json" ] && place_dump "$j"; }
     [ -f "$O/place_$j.txt" ] && { PF=$O/place_$j.txt; echo "$j" > "$O/placefrom_$i.txt"; }
   fi
+  if [ -n "$PF" ]; then   # the kept placement, on the iteration's seed; any failure: built fresh below, as without it
+    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s0" "$VEC" BDC_AUTO=1 ${XENV:-} BD_PLACE_FROM="$PF" > "$O/it_$i.log" 2>&1
+    tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
+    if [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$HWI/${D}_routed.json" ]; then
+      echo "$s0" > "$O/seed_$i.txt"; place_dump "$i"
+      echo "it $i: placement kept from it $(cat "$O/placefrom_$i.txt") ($(grep -o 'place_from: bound [0-9]* of [0-9]* cells.*) from' "$HWI/build.log" 2>/dev/null | head -1 | sed 's/ from$//'))" >> "$O/log.txt"
+      return 0
+    fi
+    echo "it $i: the kept placement failed ($(grep -m1 -E 'ERROR|FAILED' "$HWI/build.log" 2>/dev/null | cut -c1-120)); built fresh" >> "$O/log.txt"
+    rm -f "$O/placefrom_$i.txt"; rm -rf "$HWI" "$RUNS/r/${N}_$i"
+  fi
   for a in $(seq 0 $(( ${AUTO_SEED_TRIES:-3} - 1 ))); do
     s=$s0; [ "$a" -gt 0 ] && s=$((S + 100 * a)); [ "$a" -gt 0 ] && [ "$s" = "$s0" ] && s=$((S + 100 * (a + 1)))
     [ "$a" -gt 0 ] && rm -rf "$HWI" "$RUNS/r/${N}_$i"
-    pfa=""; [ "$a" = 0 ] && [ -n "$PF" ] && pfa="BD_PLACE_FROM=$PF"
-    [ "$a" -gt 0 ] && rm -f "$O/placefrom_$i.txt"
-    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s" "$VEC" BDC_AUTO=1 ${XENV:-} $pfa > "$O/it_$i.log" 2>&1
+    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/it_$i.log" 2>&1
     tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
     if [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$HWI/${D}_routed.json" ]; then
-      echo "$s" > "$O/seed_$i.txt"
-      if [ "${AUTO_PLACE_KEEP:-0}" = 1 ]; then
-        place_dump "$i"
-        [ -n "$pfa" ] && echo "it $i: placement kept from it $(cat "$O/placefrom_$i.txt") ($(grep -o 'place_from: bound [0-9]* of [0-9]* cells (new [0-9]*' "$HWI/build.log" 2>/dev/null | head -1 || true)))" >> "$O/log.txt"
-      fi
+      echo "$s" > "$O/seed_$i.txt"; [ "${AUTO_PLACE_KEEP:-0}" = 1 ] && place_dump "$i"
       return 0
     fi
     grep -q "TIMING FAILED" "$HWI/build.log" 2>/dev/null || return 1

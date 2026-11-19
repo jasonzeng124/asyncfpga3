@@ -39,10 +39,53 @@ else:                                # research/tools/auto/auto_size.sh's place_
             if ln.strip() and not ln.startswith("#"):
                 n, b = ln.rstrip("\n").split("\t")
                 prev[n] = b
+# yosys numbers abc's cells from a counter shared by the whole run ($abc$<run>$auto$blifparse.cc:<l>:parse_blif$<k>),
+# and a kernel whose size changed shifts <run> and every <k> of the harness's LUTs by the same amount (xorshift s1 it 5
+# -> 6: 21205 -> 21209; only 3687 of 7533 names matched).  The cell is the same: key it by k - run.  A key two cells
+# of one route share is dropped (no guess).
+RE_ABC = re.compile(r"\$abc\$(\d+)\$auto\$blifparse\.cc:(\d+):parse_blif\$(\d+)")
+
+
+def norm(name):
+    return RE_ABC.sub(lambda m: "$abc$*$auto$blifparse.cc:%s:parse_blif$+%d" % (m.group(2), int(m.group(3)) - int(m.group(1))),
+                      name)
+
+
+nprev, dup = {}, set()
+for k, b in prev.items():
+    q = norm(k)
+    if q in nprev:
+        dup.add(q)
+    nprev[q] = b
+for q in dup:
+    del nprev[q]
+# Then by order within a name class: the other auto-numbered names ($auto$ff.cc:..$N, $auto$alumacc.cc:..$N.carry4, ...)
+# keep their count and their order while some of their numbers move (xorshift s1 it 5 -> 6: 9 carry chains all +4, a
+# block of 104 of 1910 flops renumbered).  The cells neither key matched are paired in numeric order inside each class
+# (digits replaced), and only where the class has as many unmatched cells on both sides; else they are left new.
+cur = [nm for nm, _ in ctx.cells]
+hit = {nm: (prev.get(nm) or nprev.get(norm(nm))) for nm in cur}
+used = {b for b in hit.values() if b}
+klass = lambda nm: re.sub(r"\d+", "N", nm)
+nums = lambda nm: tuple(int(x) for x in re.findall(r"\d+", nm))
+left_prev, left_cur = {}, {}
+for k, b in prev.items():
+    if b not in used:
+        left_prev.setdefault(klass(k), []).append(k)
+for nm in cur:
+    if not hit[nm]:
+        left_cur.setdefault(klass(nm), []).append(nm)
+ranked = 0
+for c, lc in left_cur.items():
+    lp = left_prev.get(c, [])
+    if lp and len(lp) == len(lc):
+        for a, b in zip(sorted(lc, key=nums), sorted(lp, key=nums)):
+            hit[a] = prev[b]
+            ranked += 1
 n = new = freed = taken = mism = bound = 0
 for name, cell in ctx.cells:
     n += 1
-    bel = prev.get(name)
+    bel = hit.get(name)
     if bel is None:
         new += 1
         continue
@@ -61,5 +104,5 @@ for name, cell in ctx.cells:
         continue
     ctx.bindBel(bel, cell, STRENGTH)
     bound += 1
-print("place_from: bound %d of %d cells (new %d, free %d, taken %d, type-mismatch %d) from %s"
-      % (bound, n, new, freed, taken, mism, src))
+print("place_from: bound %d of %d cells (new %d, free %d, taken %d, type-mismatch %d, ambiguous keys %d, paired by order %d) from %s"
+      % (bound, n, new, freed, taken, mism, len(dup), ranked, src))
