@@ -7130,3 +7130,11 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   passed 3/3 with x in run 0), and any RAMB18 violation line fails the run; a clean run's verdict line is unchanged.
 - **auto_size.sh now runs the rule with BD_RAM_GUARD_PS=400 by default** (a named race, a measured spread; it only
   lengthens a setup line on a host / store access). suite9r2 (still waiting) will resume the memory loops with it.
+### progress 02:10 (split1: the source split buys collatz nothing through the loop; ipow ~6 % on 3 routes; split1r2 filed)
+- Farm split1 (BDC_SPLIT_SOURCES=1 through the whole automatic flow, rewrites off, 8 draws): collatz 7 routes judged,
+  P on 3 clean routes 24.24 ns (21.77-25.27; NOT CLEAN 23.20-27.14) vs norw1 without the split 23.86 (4 clean) --
+  **no gain** (graphsearch had measured -7.6 % at the farm routes' own sizes, with the rewrites on: the loop re-sizes it
+  away); ipow 3 routes judged: 18.98 (1 clean) / 20.27 (2 NOT CLEAN) vs suite6 21.39 / 21.73 -- ~6 % faster, as
+  graphsearch measured; every draw passing (80 / 80). 14 tasks timed out in their final stack / draws (all of
+  collatz64, five ipow, one collatz; 6-7 ratchet steps done): **split1r2** filed to finish them (CA_FAST, draws 3 at a
+  time). Prediction (>= 5 % on all three) failed on collatz.
