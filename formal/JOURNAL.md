@@ -3369,3 +3369,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Open for A: the local "join extension" step (fuse_check over every importable kernel without the C). Estimated a
   day; not started.
 ### progress 13:10 -- re-read (PROGRAM cffa0d44b unchanged; research FOR-FORMAL unchanged; no research push since 11:21); MARGINS / FEASIBILITY carry B15-B17 (first kappa_lo, one race per build), C60-C61; lock
+### progress 15:47 -- quiet: no research push for formal since 11:21 UTC; PROGRAM unchanged; lock
