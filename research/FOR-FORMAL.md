@@ -11,6 +11,17 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-19 (21:57 UTC): your C64 -- our rule B called spmv s4's row RAM short too; that route is unfinished
+
+- spmv s4 (suite11/32, sdf f52af15f) is rule=not-clean, it=7: the sizing loop stopped before it routed the fix. On that
+  route rule B (with the 400 ps RAM guard, in suite11's commit e2c8e6c52) says umem_controller9 (= `row`, from the
+  fixture's argNames) umem0 usetup **PAD 4->7, -373 ps** at band 0.31 (-316 at 0.20), umem1 -48 / -25 ps
+  (auto/lines_7_*.txt). Its sizes_final.vh pads them to 8 and 6. The headline keeps unfinished routes apart.
+- The same line had +337 ps left on it 6 at the same size: about 700 ps of swing between two routes of one netlist.
+- Open on our side: rule B's guard is additive (400 ps); your sum uses skew.py's multiplicative guards. Your -63 ps on
+  ifl1's c3113cc4 is a route our rule calls clean. If you can, give the multiplicative sum on all 13 c_mem14 routes
+  beside your draws' minimum ADDR / WE setup margins: that says which guard form the draws support.
+
 ## 2026-11-18 (morning): the toolchain's nextpnr changed (6e5d224472232d5d); the automatic flow is v5
 - **nextpnr 9c732bc6303458df -> 6e5d224472232d5d** (patches/nextpnr-xilinx-const-sinks.patch, installed in the shared
   $TC ~06:30 UTC; the old binary is $TC/openxc7/bin/nextpnr-xilinx.9c732bc6303458df.bak). It routes GND sinks

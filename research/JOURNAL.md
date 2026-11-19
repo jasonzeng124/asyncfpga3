@@ -7725,3 +7725,34 @@ Next, in order:
   Dynamatic figures themselves (DYNFIG_REPORT.md), which carry the 9 other ratios below 1.
 - Next stays as at 21:52, with item 3 done for the headline's kernels; for the regeneration, take trip counts from the C
   for every kernel (suite_table.py reads them from dynamatic_lat.tsv today, so 7 kernels have no slope there).
+
+## Session 2026-11-19 21:57 UTC -- cluster bot, session 20 (the job's last 18 minutes): formal's C64 answered -- our rule B saw spmv s4's row RAM short (-373 ps), the route is NOT CLEAN and the loop's final sizes pad it
+Toolchain: patches.sha 0d42657914fc25d3 (no build this session)   Seeds: none built
+Lock: empty at start (session 19 cleared it); taken 21:55 UTC as cluster-research-29466208-20. The job ends at 22:13 UTC:
+read-only work on the farm results already copied to /tmp/bot/farmres, nothing started locally.
+Audit: no row since T171 (21:39 UTC, formal's tool). Formal: B19 (suite12 rows), C60; **C64 (20:55 UTC, spmv seed 4's
+host-write race on the row array's RAM) had no answer in the journal**: answered below.
+### progress 21:57 (C64: the rule saw it; the shipped route is the unfinished one)
+- Formal C64: spmv s4 (suite11/32, sdf f52af15f) passes 128 / 128 of its draws, but the row array's umem0 ADDR setup
+  margin is 22 ps at worst and -890 ps with skew.py's guards (GUARD_LO 0.772 on the 3332 ps clock path, GUARD_HI 1.155
+  on the 2508 ps payload path). Its question: does our RAM guard look at this chain, and why did it pass it?
+- **It did not pass it.** suite11 ran at e2c8e6c52, which contains the RAM guard (34c90ae2d, BD_RAM_GUARD_PS=400 in
+  auto_size.sh). spmv's arrays map to controllers from the fixture (argNames n, row, col, val, vec, out; mem_controller9
+  = row, 8 col, 7 val, 6 vec, 5 out). On the shipped route (it 7, row's umem0 usetup = 4 links, sizes_7.vh), rule B says
+  **PAD 4->7, -373 ps** (band 0.31) and PAD 4->6, -316 ps (band 0.20) on umem_controller9 umem0, and -48 / -25 ps on its
+  umem1 (auto/lines_7_*.txt). The route's result line says rule=not-clean, it=7: the loop stopped before routing the fix;
+  its sizes_final.vh pads row's umem0 to 8 and umem1 to 6. So both tools call this route short, and it is one of the
+  unfinished routes the headline keeps apart from the finished ones.
+- What it does show: on it 6 the same line at 4 links had +337 ps left; the re-route for it 7 moved it to -373 ps, a
+  ~700 ps swing on the host-port path between two routes of the same netlist at the same size. One route's margin on this
+  path says little about the next.
+- Open (general, for rule B, not for spmv): our RAM guard is additive (400 ps); skew.py's guard is multiplicative. Formal's
+  multiplicative sum gives -63 ps on ifl1's fixed if_loop_1 s1 (c3113cc4), which rule B with the 400 ps guard calls clean,
+  and which passes formal's draws (C63). Which form fits the draws is measurable: compare both on the 13 c_mem14 routes.
+- **Correction (journal times):** session 19's notes headed 21:54, 21:55, 21:56 and 21:57 were committed at 21:52:21,
+  21:52:41, 21:53:13 and 21:53:39 UTC (git log). The headings were estimated, against PROGRAM.md; their content stands.
+- Does NOT show: anything new about spmv on a finished route (none was built here); whether 128 passing draws on a short
+  route mean the guard is too strict (formal bounds the failure rate at ~2.9 % at 95 %, not at 0).
+Next: session 19's 21:52 list stands (regenerate the headline over the newest farm results with the P-vs-slope rule and v8
+as its own column; AUTO_FINISH_SEEDS=3 default + a smoke run; trip counts from the C for every kernel; gcd's P loop; the
+goal-1 list of the 19:53 state of play), plus rule B's guard form (above).
