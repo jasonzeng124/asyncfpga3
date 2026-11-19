@@ -5019,3 +5019,4 @@ tools-B/select/muxn_rows.py (untrusted emitter): cmpchain muxn1 s1 (67cb2cfa, de
 request pin forces 0 and exactly one index assignment does not, each by decide (kernel). The forcing premises of
 decode_no_pulse for that route; its timing premise (rule E's row) is not emitted.
 ### progress 09:04 -- decslack.py: the decode race in ps (B13 table): line 1 -552, headline 0383012b -347, line 7 / muxn1 >= +735
+### progress 09:05 -- decslack over 6 draws x 4 muxn1 routes: min +1160 / +351 / +964 / +1304 ps (B13)

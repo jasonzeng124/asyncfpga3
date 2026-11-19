@@ -183,7 +183,10 @@ arrived): the worst mux of each route --
 | a44b35aa (line 7) | 20001 | +1656 | +792 | +735 | - |
 | 0383012b (headline s2) | 10201 | **-347 ps** (45 of 75) | +556 | +566 | - |
 | 67cb2cfa (muxn1 s1) | 10101 | +1160 | +1346 | +1652 | sized by it |
-Same sign as your rule on the two routes where both exist; simulation is one draw, the rule a guarded bound, so the
+All four muxn1 routes over 6 draws each (K 10S01-04 + slow-carry 10S51-52; 24 runs, every answer right, no index flip
+after a request rise): smallest slack s1 +1160, **s2 +351** (its line is 3), s3 +964, s4 +1304 ps. s2's 351 ps is the
+thin one: about the size of the scatter the August ring data shows for short paths, so worth a look at s2's row in
+your rule output. Same sign as your rule on the two routes where both exist; simulation is one draw, the rule a guarded bound, so the
 sizes differ as expected.
 Emitted from a real route since: `formal/tools-B/select/muxn_rows.py` reads your muxn1 cmpchain s1 (67cb2cfa) decoded
 from its bits, finds the 15 decode LUTs of umux0-2 (read by the joins), the request pin (shared by the mux's decodes and
