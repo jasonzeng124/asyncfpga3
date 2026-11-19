@@ -3296,3 +3296,15 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   like plain_pass.py) is next. Token level only. dfimport outside Lean.
 * Timing note for the record: each step file took one to four compile rounds; decide +kernel on runScript over ~33
   rules runs in seconds.
+### progress 07:52 -- eq2_check.py: pre_eq2 as one command; census; FOR-RESEARCH A24 updated
+* `tools-A/rewrite/eq2_check.py IN OUT [--bdc DIR]`: dfimport both, untrusted planner writes the two scripts (it
+  reproduces the hand scripts step for step), rules_iso for the renumbering, one Lean file, compile, axioms checked.
+  Exit 0 PROVED / 2 refused / 3 same rules. ~6 s.
+* PROVED: collatz, collatz64, with this branch's bdc and research's (96e069513), default and BDC_AUTO=1.
+* Controls refused (controls/eq2/README.md): `n == 3`; logical shift in the step; collatz vs collatz64's rewrite.
+* New step `forder` (a fork lists its outputs in another order; same firings) for graphs where the test's branch is
+  not last. Lean side: Cong.forder_fire, Script.applyFO, ScriptSound.applyFO_sound.
+* Census over research's 111 fixtures (eq2_census.txt): research's pre_eq2.py fires on collatz / collatz64 only
+  (name-keyed: cmpi2 / fork3 / fork7); the test-on-update shape also occurs in ipow (`sgt(e >> 1, 0)`: an exact
+  identity, but a 1-bit shift is wiring, no gain) and factorial (`sgt(n - 1, k)`: not an identity at INT_MIN).
+* FEASIBILITY row 14 updated.
