@@ -7450,3 +7450,10 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
   "DIFFERENT ROUTE"); suite11 and finseeds1 were picked up before this commit.
 - Farm **suite12** filed: all 62 listed kernels, seed 1, flow v8 -- the first whole-suite run of v8, for the next session
   to compare with the headline's v7 / v6 routes.
+### progress 17:43 (headline: 59 of 62 kernels pass)
+- divres1: digitdiv s1, digitsum s2 (clean at it 11), divmods s1 PASS, rule-clean (digitdiv s2 ran out again); ifl1:
+  if_loop_1 s1 (the seed that failed under the old rule) PASS rule-clean with the RAM guard, s3 / s4 PASS; suite10c:
+  single_loop passes. **59 of 62 kernels attempted pass**; left: share_test_2 (fasm2net cannot decode its DSP48E1
+  cascade mode: unjudged), sobel and video_filter (their resumed loops still running). Every WRONG ANSWER of this
+  session's tables is accounted for: if_loop_1 (rule B had no scatter guard -> the RAM guard), test_divui (rule A's
+  peers escaped the cell -> confined), ipow s7 fused (a NOT CLEAN last route -> the least-short route ships).
