@@ -4846,3 +4846,7 @@ rather than at M_RTZ, drives only the selected array's port, and skips constant 
 check; --periodic ignores RAM contents (could give a false livelock FAIL, not a false PASS); no clock pulse-width check;
 ramstep's sampling arcs still use ds under --tcut. c_mem6 (bound to the old commit) is superseded by c_mem7 (68 tasks:
 every route of c_mem4 / 5 / 6 + the NOCAP controls). C60 carries a CORRECTION paragraph at its top.
+
+### progress 10:00 -- first route rechecked with the fixed CLK->DO
+test_bool_array s1 (8759dc8d SAME), HOSTPORT: 16 + 16 pass; ramslack at draw 10101 3.60 ns (was 3.78 with the fast arc;
+the SLOW_MAX figure 2.71 ns is unchanged by construction). c_mem7 for the rest.
