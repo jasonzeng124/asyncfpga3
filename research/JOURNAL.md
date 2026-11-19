@@ -7305,3 +7305,9 @@ table (27 routes, 8 draws each, model error and Dynamatic's kind stated). Formal
 - Now **43 of 62 kernels pass**; WRONG ANSWER under draws: if_loop_1 (the host-fill race, fixed in the rule since) and
   test_divui (the undersized divider, divsize working on it); 16 with no result line yet (their loops run in suite10b /
   suite9r3).
+### progress 10:13 (headline 49 of 62; suite10c / suite9r4 resume the rest)
+- suite10b (the kernels new to the flow, v7) 62 / 64 back and muxn1 7 / 8: **49 of 62 kernels pass**. Not passing:
+  if_loop_1 (its old routes; the RAM guard that fixes it is in the rule since), test_divui (the undersized divider),
+  share_test_2 (NOT-A-BOARD-ROUTE: fasm2net does not decode its DSP48E1 cascade mode), and 10 with no finished route:
+  digitdiv / digitsum / divmods (not resumed until the divider sizing is fixed), fir / sumi3_mem (suite9r4, 2 draws),
+  nest3 / sobel / stencil_2d / single_loop / video_filter (suite10c).

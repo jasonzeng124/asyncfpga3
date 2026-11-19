@@ -1,4 +1,4 @@
-**THE AUTOMATIC COLUMN, every kernel the suite lists (2026-11-19 08:45 UTC; corrected for auditor T161 / T167 and the owner's
+**THE AUTOMATIC COLUMN, every kernel the suite lists (2026-11-19 10:13 UTC; corrected for auditor T161 / T167 and the owner's
 T156 / T161 rules).** One switch, BDC_AUTO=1, with no list of kernels (the md5-keyed MLIR rewrites are off since
 f7573b807), the flow's own sizing loop (research/tools/auto/auto_size.sh), judged by draws of the delay model;
 nextpnr 6e5d224472232d5d (suite3a / 3b and suite6's own predecessors partly 9c732bc6303458df: identical routes where no GND
@@ -31,14 +31,14 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | collatz | PASS | 5 + 3 / 8 | 40 / 40; 24 / 24 | 22.54 (18.98-25.56) [22.86 (22.79-26.70)] | 7032 | 1289 | 14.05 (measured, 1 route) | 1.60 | 21.50 | 2275.06 (1845.18-2625.18) | 1362.02 (cycles simulated, period measured (1 route)) | 1.67 |
 | collatz64 | PASS | 3 + 5 / 8 | 24 / 24; 40 / 40 | 30.93 (29.89-31.49) [30.46 (28.10-33.47)] | 11784 | 1916 | 17.84 (measured, 1 route) | 1.73 | 31.40 | 7245.17 (6792.67-8181.33) | 4131.94 (cycles simulated, period measured (1 route)) | 1.75 |
 | countloop | PASS | 4 + 0 / 4 | 16 / 16; - | 21.14 (20.45-24.30) | 6276 | 1812 | 8.36 (ESTIMATE) | 2.53 | - | 893.10 (865.80-1018.20) | 341.14 (ESTIMATE) | 2.62 |
-| digitdiv | NO RESULT (compiles since 2026-11-18 (research/data/suite/divmod.md); its automatic loop is running in suite10b -- and the automatic flow undersizes the divider's matched delay (test_divui: wrong answers on clean routes, journal 2026-11-19 06:5x; subagent divsize)) | 0 / 0 | - | - | - | - | 303.77 (ESTIMATE) | - | - | - | - | - |
-| digitsum | NO RESULT (compiles since 2026-11-18 (research/data/suite/divmod.md); its automatic loop is running in suite10b -- and the automatic flow undersizes the divider's matched delay (test_divui: wrong answers on clean routes, journal 2026-11-19 06:5x; subagent divsize)) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
-| divmods | NO RESULT (compiles since 2026-11-18 (research/data/suite/divmod.md); its automatic loop is running in suite10b -- and the automatic flow undersizes the divider's matched delay (test_divui: wrong answers on clean routes, journal 2026-11-19 06:5x; subagent divsize)) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| digitdiv | NO RESULT (suite10b's loops ran out of time and are not resumed: the automatic flow undersizes the divider's matched delay (test_divui gives wrong answers on clean routes; subagent divsize is on it)) | 0 / 0 | - | - | - | - | 303.77 (ESTIMATE) | - | - | - | - | - |
+| digitsum | NO RESULT (suite10b's loops ran out of time and are not resumed: the automatic flow undersizes the divider's matched delay (test_divui gives wrong answers on clean routes; subagent divsize is on it)) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
+| divmods | NO RESULT (suite10b's loops ran out of time and are not resumed: the automatic flow undersizes the divider's matched delay (test_divui gives wrong answers on clean routes; subagent divsize is on it)) | 0 / 0 | - | - | - | - | - | - | - | - | - | - |
 | divmodu | PASS | 2 + 0 / 2 | 8 / 8; - | 1614.00 (1614.00-1614.00) | 276 | 2753 | - | - | - | 273.00 (264.00-282.00) | - | - |
 | dot2 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 30.97 (30.97-30.97) [33.84 (33.39-34.28)] | 1152 | 1436 | 59.28 (ESTIMATE) | 0.52 | - | 717.75 (640.50-761.25) | 1212.19 (ESTIMATE) | 0.59 |
 | factorial | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 204 | 2635 | 129.79 (ESTIMATE) | - | - | 139.00 (131.00-142.00) | 233.79 (ESTIMATE) | 0.59 |
 | fill | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 32.86 (32.17-33.55) [29.88 (29.42-30.34)] | 1404 | 1942 | 10.95 (ESTIMATE) | 3.00 | - | 560.40 (528.00-600.00) | 208.09 (ESTIMATE) | 2.69 |
-| fir | NO RESULT (no finished route yet: earlier rounds stopped at the farm's 240-min limit; its loop is running again (suite9r3 resumes / suite10b from scratch)) | 0 / 0 | - | - | - | - | 48.68 (ESTIMATE) | - | - | - | - | - |
+| fir | NO RESULT (no finished route yet: 1000-element arrays refilled through the host port make the final stack and the draws slow; resumed in suite9r4 (2 draws), running) | 0 / 0 | - | - | - | - | 48.68 (ESTIMATE) | - | - | - | - | - |
 | fold64 | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 24.10 (24.10-24.10) [23.96 (23.67-24.25)] | 6252 | 2794 | 11.93 (ESTIMATE) | 2.02 | - | 930.60 (901.80-943.20) | 448.74 (ESTIMATE) | 2.07 |
 | gather | PASS | 0 + 4 / 4 | -; 16 / 16 | - [51.69 (48.15-55.22)] | 1824 | 1493 | 69.20 (ESTIMATE) | - | - | 1210.00 (1124.00-1244.67) | 1510.48 (ESTIMATE) | 0.80 |
 | gcd | PASS | 0 + 3 / 4 | -; 12 / 12 | - [62.82 (61.42-66.30)] | 2172 | 7178 | 50.60 (ESTIMATE) | - | 87.20 | 600.00 (593.25-628.50) | 429.97 (ESTIMATE) | 1.40 |
@@ -46,34 +46,34 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | if_convert | PASS | 2 + 0 / 2 | 8 / 8; - | 49.76 (49.09-50.43) | 9780 | 812 | 65.70 (ESTIMATE) | 0.76 | - | 7158.00 (6960.00-7356.00) | - | - |
 | if_loop_1 | WRONG ANSWER under draws | 0 + 4 / 4 | -; 14 / 16 | - [30.66 (27.52-33.70)] | 3432 | 1865 | 19.90 (ESTIMATE) | - | - | 1822.12 (1615.50-2007.00) | 1145.83 (ESTIMATE) | 1.59 |
 | if_loop_2 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 29.77 (26.38-32.36) [29.54 (29.54-29.54)] | 3288 | 1541 | 16.67 (ESTIMATE) | 1.79 | - | 1959.38 (1743.00-2142.75) | 1063.98 (ESTIMATE) | 1.84 |
-| iir | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md); its first automatic loops are running in suite10b) | 0 / 0 | - | - | - | - | 48.68 (ESTIMATE) | - | - | - | - | - |
-| image_resize | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md); its first automatic loops are running in suite10b) | 0 / 0 | - | - | - | - | 18.95 (ESTIMATE) | - | - | - | - | - |
+| iir | PASS | 0 + 2 / 2 | -; 8 / 8 | - [56.40 (55.09-57.72)] | 57696 | 1185 | 48.68 (ESTIMATE) | - | - | 57081.00 (54852.00-59310.00) | - | - |
+| image_resize | PASS | 0 + 2 / 2 | -; 8 / 8 | - [69.67 (69.12-70.23)] | 63504 | 2454 | 18.95 (ESTIMATE) | - | - | 63180.00 (61782.00-64578.00) | - | - |
 | ipow | PASS | 2 + 5 / 7 | 16 / 16; 40 / 40 | 21.39 (21.20-21.58) [21.73 (19.84-23.36)] | 780 | 1331 | 49.98 (ESTIMATE) | 0.43 | 36.20 | 276.35 (261.53-296.47) | 513.90 (ESTIMATE) | 0.54 |
 | isprime | PASS | 0 + 3 / 3 | -; 12 / 12 | - [358.38 (346.76-374.58)] | 16632 | 3954 | 9.26 (ESTIMATE) | - | - | 4402.67 (4358.33-4658.67) | 2501.23 (ESTIMATE) | 1.76 |
-| iterative_division | PASS | 0 + 3 / 3 | -; 12 / 12 | - [26.05 (24.97-31.51)] | 8160 | 3829 | 10.23 (ESTIMATE) | - | - | 1921.60 (1871.20-2326.40) | 754.13 (ESTIMATE) | 2.55 |
+| iterative_division | PASS | 0 + 4 / 4 | -; 16 / 16 | - [25.97 (24.97-31.51)] | 8160 | 3814 | 10.23 (ESTIMATE) | - | - | 1896.60 (1871.20-2326.40) | 754.13 (ESTIMATE) | 2.51 |
 | iterative_sqrt | PASS | 0 + 4 / 4 | -; 16 / 16 | - [64.45 (62.67-64.91)] | 1164 | 2249 | 110.84 (ESTIMATE) | - | - | 489.50 (487.00-497.50) | 758.20 (ESTIMATE) | 0.65 |
 | lfsrfind | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 25.33 (23.18-27.48) [27.79 (26.32-29.27)] | 7536 | 890 | 19.52 (ESTIMATE) | 1.30 | - | 1260.60 (1077.00-1395.00) | 901.06 (ESTIMATE) | 1.40 |
-| loop_path | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md); its first automatic loops are running in suite10b) | 0 / 0 | - | - | - | - | 32.27 (ESTIMATE) | - | - | - | - | - |
+| loop_path | PASS | 2 + 0 / 2 | 8 / 8; - | 45.23 (41.61-48.85) | 8208 | 1045 | 32.27 (ESTIMATE) | 1.40 | - | 7713.00 (7230.00-8196.00) | - | - |
 | memsum | PASS | 1 + 2 / 3 | 4 / 4; 8 / 8 | 27.48 (27.48-27.48) [29.08 (28.15-30.01)] | 1020 | 1395 | 59.33 (ESTIMATE) | 0.46 | - | 560.40 (552.00-580.80) | 1033.21 (ESTIMATE) | 0.54 |
 | mul_example | PASS | 0 + 1 / 1 | -; 4 / 4 | - [55.17 (55.17-55.17)] | 5556 | 317 | 79.88 (ESTIMATE) | - | - | 5676.00 (5676.00-5676.00) | - | - |
-| nest3 | NO RESULT (no finished route yet: earlier rounds stopped at the farm's 240-min limit; its loop is running again (suite9r3 resumes / suite10b from scratch)) | 0 / 0 | - | - | - | - | 11.06 (ESTIMATE) | - | - | - | - | - |
+| nest3 | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 11.06 (ESTIMATE) | - | - | - | - | - |
 | nested | PASS | 0 + 4 / 4 | -; 16 / 16 | - | 8556 | 3554 | 9.98 (ESTIMATE) | - | - | 1091.73 (1027.09-1222.91) | 416.53 (ESTIMATE) | 2.62 |
-| nested_loop | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md); its first automatic loops are running in suite10b) | 0 / 0 | - | - | - | - | 44.56 (ESTIMATE) | - | - | - | - | - |
+| nested_loop | PASS | 0 + 2 / 2 | -; 8 / 8 | - [45.33 (44.60-46.05)] | 18576 | 1309 | 44.56 (ESTIMATE) | - | - | 18450.00 (17904.00-18996.00) | - | - |
 | quadrec | PASS | 0 + 4 / 4 | -; 16 / 16 | - [44.85 (37.71-45.98)] | 11796 | 3291 | 9.09 (ESTIMATE) | - | - | 1689.60 (1393.20-1727.40) | 352.76 (ESTIMATE) | 4.79 |
-| share_test_1 | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md); its first automatic loops are running in suite10b) | 0 / 0 | - | - | - | - | 58.41 (ESTIMATE) | - | - | - | - | - |
+| share_test_1 | PASS | 0 + 1 / 1 | -; 4 / 4 | - [27.27 (27.27-27.27)] | 55548 | 1663 | 58.41 (ESTIMATE) | - | - | 55074.00 (55074.00-55074.00) | - | - |
 | share_test_2 | NOT-A-BOARD-ROUTE | 0 + 0 / 2 | -; - | - | - | - | 91.89 (ESTIMATE) | - | - | - | - | - |
 | simple_example_1 | PASS | 2 + 0 / 2 | 8 / 8; - | - | 72 | 85 | - | - | - | 72.00 (72.00-72.00) | - | - |
-| single_loop | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md); its first automatic loops are running in suite10b) | 0 / 0 | - | - | - | - | 40.32 (ESTIMATE) | - | - | - | - | - |
-| sobel | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md); its first automatic loops are running in suite10b) | 0 / 0 | - | - | - | - | 43.37 (ESTIMATE) | - | - | - | - | - |
+| single_loop | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 40.32 (ESTIMATE) | - | - | - | - | - |
+| sobel | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 43.37 (ESTIMATE) | - | - | - | - | - |
 | spmv | PASS | 0 + 2 / 2 | -; 8 / 8 | - | 1512 | 4047 | 43.09 (ESTIMATE) | - | - | 922.50 (898.50-946.50) | - | - |
 | sqrtsub | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 23.91 (23.91-23.91) [21.81 (21.17-24.36)] | 6300 | 1398 | 8.36 (ESTIMATE) | 2.86 | - | 832.85 (759.23-896.77) | 292.00 (ESTIMATE) | 2.85 |
-| stencil_2d | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md); its first automatic loops are running in suite10b) | 0 / 0 | - | - | - | - | 40.43 (ESTIMATE) | - | - | - | - | - |
+| stencil_2d | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 40.43 (ESTIMATE) | - | - | - | - | - |
 | straight | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | - | 72 | 1327 | - | - | - | 72.00 (72.00-72.00) | 14.92 (ESTIMATE) | 4.83 |
-| sumi3_mem | NO RESULT (no finished route yet: earlier rounds stopped at the farm's 240-min limit; its loop is running again (suite9r3 resumes / suite10b from scratch)) | 0 / 0 | - | - | - | - | 88.44 (ESTIMATE) | - | - | - | - | - |
+| sumi3_mem | NO RESULT (no finished route yet: 1000-element arrays refilled through the host port make the final stack and the draws slow; resumed in suite9r4 (2 draws), running) | 0 / 0 | - | - | - | - | 88.44 (ESTIMATE) | - | - | - | - | - |
 | test_bitint | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | - | 300 | 635 | 44.32 (ESTIMATE) | - | - | 288.00 (276.00-294.00) | 504.74 (ESTIMATE) | 0.57 |
 | test_bool_array | PASS | 0 + 2 / 2 | -; 8 / 8 | - | 96 | 113 | - | - | - | 96.00 (96.00-96.00) | - | - |
 | test_divui | WRONG ANSWER under draws | 2 + 0 / 2 | 0 / 8; - | - | 60 | 1937 | - | - | - | 60.00 (60.00-60.00) | - | - |
-| test_flatten_array | PASS | 0 + 1 / 1 | -; 4 / 4 | - | 27324 | 1549 | 15.74 (ESTIMATE) | - | - | 28230.00 (28230.00-28230.00) | - | - |
+| test_flatten_array | PASS | 0 + 2 / 2 | -; 8 / 8 | - [57.48 (57.48-57.48)] | 29580 | 1548 | 15.74 (ESTIMATE) | - | - | 28935.00 (28230.00-29640.00) | - | - |
 | test_int16 | PASS | 4 + 0 / 4 | 16 / 16; - | - | 60 | 3 | - | - | - | 60.00 (60.00-60.00) | - | - |
 | test_loop_free | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 1007 | - | - | - | 72.00 (72.00-72.00) | 11.55 (ESTIMATE; period extrapolated, model path 4.86 ns) | 6.23 (extrapolated period) |
 | test_memory_1 | PASS | 0 + 2 / 2 | -; 8 / 8 | - | 288 | 1052 | 13.94 (ESTIMATE) | - | - | 178.00 (176.00-180.00) | - | - |
@@ -82,12 +82,12 @@ those routes pass 4 / 4 draws each when rejudged. 6 of the ratios rest on one cl
 | twoloops | PASS | 0 + 4 / 4 | -; 16 / 16 | - [18.34 (17.33-18.74)] | 4884 | 2259 | 9.09 (ESTIMATE) | - | - | 1132.91 (1130.73-1214.18) | 514.10 (ESTIMATE) | 2.20 |
 | unused_arg | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 86 | - | - | - | 72.00 (72.00-72.00) | 1.95 (ESTIMATE; period extrapolated, model path 1.23 ns) | 36.92 (extrapolated period) |
 | varshift | PASS | 0 + 4 / 4 | -; 16 / 16 | - [34.22 (29.19-39.06)] | 10056 | 2524 | 11.84 (ESTIMATE) | - | - | 1452.60 (1252.80-1620.00) | 493.64 (ESTIMATE) | 2.94 |
-| vector_rescale | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md); its first automatic loops are running in suite10b) | 0 / 0 | - | - | - | - | 48.68 (ESTIMATE) | - | - | - | - | - |
-| video_filter | NO RESULT (added 2026-11-18 (research/data/suite/dyn/README.md); its first automatic loops are running in suite10b) | 0 / 0 | - | - | - | - | 57.14 (ESTIMATE) | - | - | - | - | - |
+| vector_rescale | PASS | 0 + 1 / 1 | -; 4 / 4 | - [60.02 (60.02-60.02)] | 60048 | 596 | 48.68 (ESTIMATE) | - | - | 61164.00 (61164.00-61164.00) | - | - |
+| video_filter | NO RESULT (no finished route yet: suite10b's loops ran out of time; resumed in suite10c, running) | 0 / 0 | - | - | - | - | 57.14 (ESTIMATE) | - | - | - | - | - |
 | while_loop_3 | PASS | 1 + 1 / 2 | 4 / 4; 4 / 4 | 25.75 (25.75-25.75) [27.57 (27.57-27.57)] | 996 | 801 | 34.00 (ESTIMATE) | 0.76 | - | 303.43 (299.14-307.71) | - | - |
 | xorshift | PASS | 6 + 2 / 8 | 48 / 48; 16 / 16 | 22.16 (20.42-23.57) [20.89 (20.55-21.23)] | 6096 | 1316 | 12.73 (measured, 1 route) | 1.74 | 16.76 | 2214.79 (2061.16-2427.16) | 1257.59 (cycles simulated, period measured (1 route)) | 1.76 |
 
-43 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 16): 1.14. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 27): 1.49.
+49 of 62 kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 17): 1.15. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 27): 1.49.
 
 **The same flow WITH the three md5-keyed rewrites (BDC_AUTO_REWRITES=1; farm suite6, 8 seeds, 8 draws; not the automatic
 column):** collatz PASS, 6 + 2 routes (clean + NOT CLEAN), 48 / 48 + 16 / 16 draws, P on clean routes 17.24 (16.20-19.46)
