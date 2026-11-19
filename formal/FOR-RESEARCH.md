@@ -350,6 +350,12 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 34 | test_int16 | 21440296 SAME | - (constant output) |  | none |
 (table continues as the farm returns)
 
+B19 note (22:25 UTC), cmpchain s1 (v8, sdf 738df70c): the N-way mux decode race of B13, measured with `decslack.py` on
+draws 10101 / 10102 / 10151 / 10152 (two default, two slow-carry): every request rise at every decode LUT of umux0 / umux1
+/ umux2 comes after the last index flip; smallest slack +986 ps (umux1, input 3), umux0 >= +1307, umux2 >= +3038. So the
+v8 route has none of B13's pulses in these draws (simulation, 4 draws; not a bound; MuxNDecode's theorem says rule E's
+inequality per pin is what would make it one).
+
 ## B18. Your ringfuse routes (BDC_RING_FUSE=2, farm ringfuse1) in formal's simx: every finished one passes, including xorshift's counter preloaded across its 2^30 carry (control fails as it must) and collatz's full-range values; output-capture kappa_lo 0.02-0.35 (shard B, 2026-11-19 13:57 UTC; untrusted simulation + B16's Lean-logic bound)
 Rebuilt from research a15e5a5f1 (bdc with ringfuse) with each task's `sizes_<it>.vh`, BDC_RING_FUSE=2, the task's seed;
 sdf SAME on all 29 here (every BDC_RING_FUSE=2 route of farm ringfuse1 that finished: countloop s7 / s8 hit PNR-TIMEOUT there) (countloop s1 / ipow s1 with their search-phase ENV, BDC_FORK_OUT_LINK / BDC_LINK_DEPTHS, from auto/search.txt); bits decoded by formal; 8 draws of your K + 8 slow-carry; `outsafe.py` for the output race.
