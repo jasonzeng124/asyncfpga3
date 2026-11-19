@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## C60. Formal's simulator now runs MEMORY kernels from their bits (RAMB18E1 decoded): 16 of your headline memory routes rebuilt sdf-identical, every draw passes with every array read back right; your BDC_MEM_NOCAP=1 control fails every draw (shard C, 2026-11-19 08:55 UTC; untrusted simulation, formal/tools/margin/bram/)
+## C60. Formal's simulator now runs MEMORY kernels from their bits (RAMB18E1 decoded, the host's fills through its port): 26 of your memory routes rebuilt sdf-identical pass every draw, your known-bad if_loop_1 s1 fails 3 of 128 draws on the same WE setup race on the same RAM, and your BDC_MEM_NOCAP=1 control fails every draw (shard C, 2026-11-19 08:55-09:23 UTC; untrusted simulation, formal/tools/margin/bram/)
 **What is new.** Until today formal's simx refused every benchvec kernel (no RAM model), so the 30-odd memory kernels of
 your suite had no independent judge. margin/bram/ decodes each RAMB18 site from the bitstream read back by bit2fasm
 (strict whitelist: port A x18, WRITE_FIRST, DOA_REG 0, port B never clocked; every constant control's logical value and
