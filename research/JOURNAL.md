@@ -7701,3 +7701,8 @@ Next, in order:
   (the oracle already runs the C), not from Dynamatic's simulation; then the slope, and with it today's P check and the
   fit, exist for every kernel whose vectors vary the trip count, Dynamatic's figure or not.
 - Session end: branch pushed, LOCK cleared, BOARD-QUEUE unchanged, nothing running locally.
+### progress 21:55 (two more of the 7 unchecked kernels: P faithful; LOCK stays clear)
+- **sumi3_mem and fir** (1000 trips in every call, so no slope; the per-call overhead, 72-84 ns on the kernels that have a
+  0-trip call, is under 0.1 ns per trip here): P / (latency per call / 1000) on every farm route (suite9r4): sumi3_mem
+  0.99 / 0.95 / 1.01 / 0.97 (s1-s4, all clean), fir 0.99 / 0.96 / 1.01 / 0.98 (s1-s4; s2 NOT CLEAN). P is the loop's
+  per-iteration time on both. Left unchecked: digitdiv, if_convert, loop_path, single_loop.
