@@ -445,6 +445,7 @@ def install(T, skew, ca):
     T.fastrise_side_arcs = memo_topo("fastrise_side_arcs", T.fastrise_side_arcs, lambda e: (fp_graph(e),))
     T.false_arcs = memo_topo("false_arcs", T.false_arcs, lambda e, sdf=None: (str(sdf if sdf is not None else T.SDF),))
     T.select_consumers = memo_topo("select_consumers", T.select_consumers, lambda j: (str(j),))
+    T.muxn_decode_sites = memo_topo("muxn_decode_sites", T.muxn_decode_sites, lambda j: (str(j),))   # BD_SKEW_MUXN
     T.measure_delay_element = memo_topo("measure_delay_element", T.measure_delay_element,
                                         lambda text: (len(text), hash(text)))
 

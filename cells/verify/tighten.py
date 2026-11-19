@@ -1558,6 +1558,112 @@ def select_consumers(jpath):
     return out
 
 
+def muxn_decode_sites(jpath):
+    """The select gates of every bdc_muxnN (bdc/emit.py emit_muxn, a mux of N > 2 inputs) in the routed netlist:
+    the one select gate select_consumers() does not find, because it is not a library cell.  skew.py rule E
+    measures them with BD_SKEW_MUXN=1.
+
+    bdc_muxnN decodes its index in logic of its own, outside its joins:
+
+        sel[k] = ctl_req & (s == k)          one LUT per k (yosys / ABC: ctl_req and the index bits)
+        uj<k>  = C(in<k>_req, sel[k])        bd_c2: I0 a = in<k>_req, I1 b = sel[k], I2 q, I3 rst
+
+    so the race bd_mux's join LUT holds (its I1 ctl_req against its I2 s) sits here at the decode LUT, between
+    its ctl_req pin and each of its index pins: if ctl_req rises there before an index bit has settled, sel[j] of
+    the index the select USED to name (or of a code between the two) pulses high, and uj<j> fires if input j
+    holds a token.  select_consumers() looks for cells named `<parent>.uj0` / `.uj1` (bd_mux's own LUT6s); a
+    bdc_muxnN's joins are `<parent>.uj<k>.u` (the LUT inside bd_c2), so it never matched them, and no rule
+    measured the decode (research/data/benchcap/notes.txt; research/data/muxsel/).
+
+    Found by STRUCTURE, the way select_consumers() is: a parent with joins uj0..uj<N-1> and acknowledges
+    ua0..ua<N-1> (each `.u`, a bd_c2) and a `.uor` -- emit_muxn's own instance names -- is a bdc_muxnN.  The
+    decode of input k is the LUT driving uj<k>'s logical I1 (b).  Which of its pins is ctl_req is read off the
+    LUTs' functions, not off any name: sel[0] = ctl_req & ~s[0] & ... is a single minterm whose ONLY positive
+    literal is ctl_req, so the net on that pin is the request; on every decode LUT the pin on that net is the
+    request pin and every other pin the function depends on is an index pin (each LUT must be one minterm over the
+    pins it reads, the request among them, positive).  A mux whose decode does not have that shape (a decode split
+    over several LUTs, a LUT holding more than a minterm, no permutation record) is
+    reported in `notes` and not checked -- the same abstention select_consumers() and false_arcs() make.
+
+    -> (sites, notes): sites [(parent, decode cell, request pin, [index pin, ...]), ...], k order;
+       notes [str, ...]; None when there is no routed netlist."""
+    if not jpath.exists():
+        return None
+    top = list(json.loads(jpath.read_text())["modules"].values())[0]
+    cells = top.get("cells", {})
+    drv = {}
+    for cn, c in cells.items():
+        for p, d in c.get("port_directions", {}).items():
+            if d == "output":
+                for b in c.get("connections", {}).get(p, []):
+                    if isinstance(b, int):
+                        drv[b] = cn
+    joins = defaultdict(dict)
+    for cn in cells:
+        m = re.match(r"^(.*)\.uj(\d+)\.u$", cn)
+        if m:
+            joins[m.group(1)][int(m.group(2))] = cn
+
+    def logic(cn):
+        """{logical input: physical pin} the LUT's function depends on, and its true rows over them; or None."""
+        c = cells[cn]
+        init = c.get("parameters", {}).get("INIT")
+        if not init or c.get("type") != "SLICE_LUTX" or set(init) - {"0", "1"}:
+            return None
+        n = len(init).bit_length() - 1
+        if 1 << n != len(init):
+            return None
+        bit = lambda a: init[len(init) - 1 - a] == "1"
+        ports = orig_ports(c)
+        dep = [k for k in range(n) if any(bit(a) != bit(a ^ (1 << k)) for a in range(len(init)))]
+        if any("I%d" % k not in ports for k in dep):
+            return None
+        rows = {tuple((a >> k) & 1 for k in dep) for a in range(len(init)) if bit(a)}
+        return {"I%d" % k: ports["I%d" % k] for k in dep}, dep, rows
+
+    def net(cn, pin):
+        b = cells[cn].get("connections", {}).get(pin, [])
+        return b[0] if len(b) == 1 and isinstance(b[0], int) else None
+
+    sites, notes = [], []
+    for parent, js in sorted(joins.items()):
+        n = len(js)
+        if (n < 3 or sorted(js) != list(range(n)) or parent + ".uor" not in cells
+                or not all("%s.ua%d.u" % (parent, k) in cells for k in range(n))):
+            continue
+        dec, why = {}, None
+        for k in range(n):
+            b_pin = orig_ports(cells[js[k]]).get("I1")
+            d = drv.get(net(js[k], b_pin)) if b_pin else None
+            lg = logic(d) if d and d.startswith(parent + ".") else None
+            if lg is None:
+                why = "uj%d's select input is not driven by a LUT of the mux with a recorded pin permutation" % k
+                break
+            dec[k] = (d, lg)
+        if why is None:
+            ins0, dep0, rows0 = dec[0][1]
+            pos = [k for i, k in enumerate(dep0) if next(iter(rows0))[i] == 1] if len(rows0) == 1 else []
+            if len(pos) != 1:
+                why = "sel[0]'s LUT is not one minterm with a single positive literal (the request)"
+            else:
+                req_net = net(dec[0][0], ins0["I%d" % pos[0]])
+        rows = []
+        for k in range(n) if why is None else ():
+            d, (ins, dep, rws) = dec[k]
+            on = [ins["I%d" % i] for i in dep if net(d, ins["I%d" % i]) == req_net]
+            sel = [ins["I%d" % i] for i in dep if net(d, ins["I%d" % i]) != req_net]
+            ri = [j for j, i in enumerate(dep) if net(d, ins["I%d" % i]) == req_net]
+            if len(on) != 1 or not sel or len(rws) != 1 or next(iter(rws))[ri[0]] != 1:
+                why = "sel[%d]'s LUT (%s) is not ctl_req AND a minterm of the index" % (k, d)
+                break
+            rows.append((parent, d, "%s/%s" % (d, on[0]), ["%s/%s" % (d, p) for p in sorted(sel)]))
+        if why is not None:
+            notes.append("%s (bdc_muxn, %d inputs): %s -- its select decode is not checked" % (parent, n, why))
+            continue
+        sites += rows
+    return sites, notes
+
+
 def main():
     if not SDF.exists():
         print(f"no routed SDF at {SDF} -- run ./flow.sh first", file=sys.stderr)

@@ -86,8 +86,11 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   # BD_SKEW_E_JOIN=1 (opt-in, default OFF; research/data/sizerule/ejoin.md): rule E credits a C-element on the request
   # path with its other inputs' arrivals, case by case on what made the launch fire (BD_SKEW_E_JOIN_DEPTH causes back,
   # default 1).  Passed through from the environment; unset, the rule is byte-identical.
+  # BD_SKEW_MUXN=1 (opt-in, default OFF; research/data/muxsel/notes.txt): rule E also checks every bdc_muxnN's select decode
+  # sel[k] = ctl_req & (s == k) (its ctl_req pin against each index pin), which no rule measured, so the select link's DELAY
+  # that guards it was "on no measured constraint: kept".  Passed through from the environment; unset, byte-identical.
   local c; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
-    BD_SKEW_E_JOIN=${BD_SKEW_E_JOIN:-} BD_SKEW_E_JOIN_DEPTH=${BD_SKEW_E_JOIN_DEPTH:-1} \
+    BD_SKEW_MUXN=${BD_SKEW_MUXN:-} BD_SKEW_E_JOIN=${BD_SKEW_E_JOIN:-} BD_SKEW_E_JOIN_DEPTH=${BD_SKEW_E_JOIN_DEPTH:-1} \
     PYTHONHASHSEED=${PYTHONHASHSEED:-1} CA_FAST=${CA_FAST:-1} BD_RAM_GUARD_PS=${BD_RAM_GUARD_PS:-400} \
     BD_SKEW_STEER_SELF=${BD_SKEW_STEER_SELF:-1} CA_JOINAWARE=${CA_JOINAWARE:-1} BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 \
       python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \

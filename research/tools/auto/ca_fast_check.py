@@ -26,6 +26,7 @@ ap.add_argument("--verify-like", type=int, default=2)
 ap.add_argument("--jobs", type=int, default=1, help="CA_FAST forks at a time")
 ap.add_argument("--old-jobs", type=int, default=1, help="old worker processes at a time")
 ap.add_argument("--skip-old", action="store_true", help="time the fast path only")
+ap.add_argument("--include", default=None, help="regex: sensitivity specs for every line whose macro matches, besides --lines")
 a = ap.parse_args()
 sdf = (a.corner_dir / "soak.sdf").resolve()
 spec = {"a_frac": 0.03, "a_min": 50, "glo": 0.97, "ghi": 1.03, "drop_const": True, "rule_a_link": True,
@@ -48,6 +49,8 @@ for b in geo:                      # chain base -> line, as corner_audit groups 
 macs = sorted(lines)
 rng = random.Random(a.seed)
 pick = macs if a.lines == "all" else sorted(rng.sample(macs, min(int(a.lines), len(macs))))
+if a.include:                      # --include: these lines too (the random draw above is unchanged)
+    pick = sorted(set(pick) | {m for m in macs if re.search(a.include, m)})
 specs = [("sens " + m, {**spec, "scale": {b: 0.0 for b in lines[m]}}) for m in pick]
 for k in range(a.verify_like):
     ms = rng.sample(macs, min(len(macs), 12))

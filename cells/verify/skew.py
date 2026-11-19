@@ -180,6 +180,15 @@ if "--e-join" in _raw:
     _raw.remove("--e-join")
 E_JOIN_DEPTH = int(os.environ.get("BD_SKEW_E_JOIN_DEPTH", "1"))
 EJ_DEBUG = os.environ.get("BD_SKEW_E_JOIN_DEBUG", "")      # diagnosis only: print every case at a request pin
+# --muxn (or BD_SKEW_MUXN=1): also check the select gates of every bdc_muxnN
+# (bdc/emit.py's N > 2 input mux), which select_consumers() does not find: its
+# decode LUTs sel[k] = ctl_req & (s == k), the request pin against each index
+# pin on the same LUT (tighten.py muxn_decode_sites()).  One row per decode
+# LUT, its worst index pin, kind "bdc_muxn".  Opt-in until reviewed; unset,
+# every output of this file is byte-identical.
+MUXN = os.environ.get("BD_SKEW_MUXN") == "1" or "--muxn" in _raw
+if "--muxn" in _raw:
+    _raw.remove("--muxn")
 if "--select-pads" in _raw:
     _i = _raw.index("--select-pads")
     PADS = pathlib.Path(_raw[_i + 1])
@@ -792,6 +801,17 @@ def main():
         for cell, d in sorted(by_cell.items()):
             if "req" in d and "sel" in d:
                 checks.append((kind, parent, cell, d["req"], d["sel"]))
+    # --muxn: a bdc_muxnN's decode LUT has ONE request pin and several index
+    # pins.  Each (request, index) pair is checked exactly as a bd_mux join's
+    # (ctl_req, s), under a cell label of its own (the per-cell notes below are
+    # keyed by it), and the LUT keeps its worst pair after the loop.
+    muxn_sites, muxn_notes, muxn_pairs = [], [], 0
+    if MUXN:
+        muxn_sites, muxn_notes = T.muxn_decode_sites(jpath) or ([], [])
+        for parent, cell, rp, sps in muxn_sites:
+            for sp in sps:
+                checks.append(("bdc_muxn", parent, f"{cell}|{T.pin_split(sp)[1]}", rp, sp))
+                muxn_pairs += 1
 
     # Bounded cache.  fwd() returns arrival tables AND predecessor tables, one
     # per crossing level, and rule E walks up to four candidate launches per
@@ -1249,6 +1269,12 @@ def main():
         return int(GUARD_LO * (t_req - t_c) - GUARD_HI * (t_sel - t_c))
 
     rows = [(guarded(r[7], r[9], r[11]),) + r for r in rows]
+    if MUXN:                    # one row per decode LUT (its request pin): the worst index pin
+        worst_pair = {}
+        for r in rows:
+            if r[2] == "bdc_muxn" and (r[5] not in worst_pair or r[:2] < worst_pair[r[5]][:2]):
+                worst_pair[r[5]] = r
+        rows = [r for r in rows if r[2] != "bdc_muxn"] + list(worst_pair.values())
     rows.sort()
     bad = [r for r in rows if r[0] <= 0]
     short = [r for r in rows if r[0] <= SLACK]
@@ -1262,8 +1288,14 @@ def main():
         elem_src = (f"{t_elem} ps per bd_delay link, measured off this route's "
                     f"own chains")
 
-    print(f"             {len(checks)} select gates, {len(rows)} measured, "
+    print(f"             {len(checks) - muxn_pairs + len(muxn_sites)} select gates, {len(rows)} measured, "
           f"{len(bad)} violated")
+    if MUXN:
+        print(f"             --muxn: {len(muxn_sites)} bdc_muxnN decode LUT(s) in "
+              f"{len({s[0] for s in muxn_sites})} mux(es), {muxn_pairs} (request, index) "
+              f"pin pair(s); a LUT's row is its worst pair")
+        for note in muxn_notes:
+            print(f"             {note}")
     print(f"             guardband {GUARD_LO:.3f}*req vs {GUARD_HI:.3f}*sel, "
           f"from hw/README.md's five measured rings")
     print(f"             element cost: {elem_src}")

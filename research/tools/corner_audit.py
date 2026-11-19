@@ -1414,6 +1414,10 @@ def main():
     if os.environ.get("BD_SKEW_STEER_SELF") == "1":   # rule E's --steer-self (cells/verify/skew.py (5)); unset: no line
         rep.append("  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the "
                    "select's own channel request is bounded by that request (research/data/sizerule/steerE.md)")
+    if os.environ.get("BD_SKEW_MUXN") == "1":         # rule E's --muxn (cells/verify/skew.py); unset: no line
+        rep.append("  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select "
+                   "gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); "
+                   "research/data/muxsel/)")
     if JOINAWARE:
         nj = sum(1 for k, c in cons.items() if k.startswith("A'j ") and c["rule"] == "A")
         rep.append("  join-aware: CA_JOINAWARE=1: %d operator(s) sized at their data's captures (A'j: latch data vs its "

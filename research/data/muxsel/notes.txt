@@ -1,0 +1,246 @@
+muxsel (subagent muxsel, 2026-11-19): bdc_muxnN's select race at its decode LUTs -- measured by no rule; rule E BD_SKEW_MUXN=1
+
+QUESTION (gcdclean's open problem 1, research/data/benchcap/notes.txt "WHAT THIS DOES NOT SHOW").  bdc/emit.py's N-input mux
+(bdc_muxnN, N > 2) decodes its index outside its joins: sel[k] = ctl_req & (s == k), one LUT per k, then uj<k> = C(in<k>_req,
+sel[k]).  The index s must be settled at each decode LUT before ctl_req rises there.  Which rule measures that, and if none, make
+rule E measure it, size the line that guards it, show the rule names a real race (negative control that fails, routed GLS), and
+survey the routes there are.
+
+ROUTES (every one: nextpnr 6e5d224472232d5d, the const-sinks patch set; NEXTPNR_SEED as named; toolchain.sh passed before each
+build here).  isprime seed 1 it 0..5 (subagent loopfast's auto_size loop, $L = /tmp/bot/sa/loopfast/runs), it 6..10 (subagent
+gcdclean's continuation, $G = /tmp/bot/sa/gcdclean/runs), ispchk2_0, gcdchk_0, gcdchk2_0 (loopfast's check routes, built as
+auto_size.sh builds it 0); su_isprime_1_0 / su_gcd_1_0 (loopfast's copies of farm suite routes: creator nextpnr not recorded with the
+copy).  Built here (lane2.sh LANE_NORUN=1, BDC_AUTO=1, seed 1): ms_isprime_1_5r = it 5's sizes again -> sdf ca9609ba, prjxray SDF
+md5 31bdafab, both identical to loopfast's it 5 (the seed pins the route); ms_isprime_1_5z = it 5's sizes with
+BD_SZ_..._ULINK_N_INDEX_71 3 -> 0 -> sdf 40cbebff.  From the farm's suite9 loop states (research/data/suite/resume/suite9),
+rebuilt here from their sizes_I.vh with their seed, each sdf md5 equal to the farm's it_I.txt (the same route):
+iterative_sqrt s4 it 2 fb47737a, cmpchain s2 it 1 b3a8024a, cmpchain s2 it 5 1c13ff02, cmpchain s3 it 2 1994ab81; and
+ms_cmpchain_2_5f = cmpchain s2 it 5's sizes with ULINK_N63__0 1 -> 7 (seed 2) -> sdf a44b35aa.
+
+1. THE GAP: WHICH RULE SEES WHICH SELECT
+  * tighten.py select_consumers() -- the only source of select gates for rule E (skew.py), rule D (tighten's screen) and A'j's
+    select captures (corner_audit.py) -- matches cells named <parent>.uj0 / .uj1 (bd_mux's own LUT6s) and <parent>.u + .uack
+    (bd_steer).  A bdc_muxnN's joins are bd_c2 instances, cells <parent>.uj<k>.u: the regex reads them as parent
+    "<parent>.uj<k>", tag "u", with no "uack" sibling -> not a steer, not a mux.  So a bdc_muxnN is NOT FOUND (gcdclean's note
+    said "misreads the bd_c2 pins"; measured, it is not returned at all): isprime it 5 -> 30 bd_steer + 13 bd_mux = every steer
+    and 2-way mux kernel.v instantiates, umux13 absent; gcd gcdchk_0 -> 38 + 21, umux21 absent.
+  * 2-way muxes and steers are read right: bd_mux.v uj0/uj1 = LUT6(.I0(x/y_req), .I1(ctl_req), .I2(s), .I3(j), .I4(rst)) and
+    select_consumers takes I1 / I2; bd_ctl.v bd_steer u = LUT6_2(.I0(req), .I1(s)) and it takes I0 / I1; every instance found
+    (counts above), through nextpnr's X_ORIG_PORT pin permutation.
+  * Rule A' / A'm (corner_audit rule_a_from_link): the decode LUTs are inside umux13, outside its chain, so they are "peers"
+    (data outputs) and A' compares their OUTPUT against the mux's own request at its delay-chain tail -- the lap gcdclean
+    found (-5125 ps on isprime it 5) -- not s against ctl_req at their inputs.  A' / A'm do cover the other half of the
+    select, the data mux z_data = in[s] against z_req.
+  * So: the decode race is in no rule, and the line that guards it -- the select link's DELAY (isprime BD_SZ_..._
+    ULINK_N_INDEX_71, gcd ..._ULINK_N_INDEX_97) -- is "on no measured constraint: kept" (lines.tsv): 3 links on every isprime
+    route it 0..10 (the start, estimate 8 x 0.3), 3 on gcd.
+
+2. WHICH KERNELS EMIT AN N-WAY MUX (bdc/auto.py + BDC_AUTO=1 bdc/emit.py --no-top on every build/frontend fixture, as
+  auto_size.sh's iteration 0 does; tools/emit_one.sh, list emit_survey.txt): 111 fixtures, 65 emit
+  (46 stop in emit: lsq ops, memories > 1024 words, > 2 accessors).  6 of the 65 have a bdc_muxnN:
+      cmpchain        umux0 bdc_muxn5_31, umux1 / umux2 bdc_muxn5_32 (index forked: n63__0/1/2)
+      gcd             umux21 bdc_muxn3_32 (out0's mux)
+      isprime         umux13 bdc_muxn4_1  (out0's mux)
+      iterative_sqrt  umux3  bdc_muxn3_32
+      sobel           umux27 bdc_muxn3_32, umux28 / umux29 bdc_muxn3_4
+  BOARD-QUEUE items 38-41 (ipow, collatz, collatz64, xorshift, BDC_AUTO=1; 39-41 with BDC_AUTO_REWRITES=1) emit NO N-way mux
+  (re-emitted here with their rewrites: 4 / 3 / 3 / 4 bd_mux, 0 bdc_muxn; their sizes files hold UMUX0..2/3 only), nor does
+  item 37 (xorshift): the gap does not touch the board queue.
+
+3. THE CHANGE (opt-in: BD_SKEW_MUXN=1, or skew.py --muxn; unset, no code path changes)
+  * tighten.py muxn_decode_sites(jpath): every bdc_muxnN in the routed netlist, by structure (joins uj0..uj<N-1> and
+    acknowledges ua0..ua<N-1>, each a bd_c2 `.u`, and a `.uor`: emit_muxn's instance names); the decode of input k is the LUT
+    driving uj<k>'s logical I1 (b).  Which decode pin is ctl_req is read off the LUT functions, not names: sel[0] =
+    ctl_req & ~s[0] & ~s[1] .. is one minterm whose only positive literal is ctl_req, so that pin's net is the request; on
+    every decode LUT the pin on that net is the request pin, every other pin the function depends on an index pin (each must be
+    a minterm with the request positive).  A mux whose decode has another shape is listed as "not checked" (a gap line in
+    skew.log, which corner_audit's report carries) -- none on any route here.  On isprime it 5 it returns exactly the pins
+    diag_selrace.py classified by name (req A4 / A3 / A5 / A3, index [A2 A3] [A1 A4] [A1 A2] [A1 A4]).
+  * skew.py: each (request pin, index pin) pair of a decode LUT is one more rule-E check, measured exactly as a bd_mux join's
+    (ctl_req, s): common launch, request earliest on the fast-fall-pruned arcs, index latest, worst over launches, divergent
+    tails guarded at GUARD_LO / GUARD_HI (corner_audit: 0.97 / 1.03), knob from the measured request path (req_knob).  The
+    LUT keeps its worst pair: one row per decode LUT, kind "bdc_muxn", key "E <request pin>" in corner_audit.
+  * corner_audit.py: a report line when set; nothing else (E is already sized).  ca_fast.py: muxn_decode_sites memoized like
+    select_consumers (topology only).  research/tools/auto/ca_fast_check.py: --include REGEX (lines always checked).
+  * Not changed: select_consumers() itself (rule D and A'j's select captures still do not see the decode -- rule D is a screen;
+    A'j's cones reach a decode index pin only through the select link's latch, which ends the cone first).
+
+4. UNSET = BYTE-IDENTICAL; CA_FAST EXACT
+  * BD_SKEW_MUXN unset, the tool here vs the tool at the starting commit bbd6fecda (git archive), corner_audit as auto_size.sh's
+    rule() runs it (PYTHONHASHSEED=1, CA_FAST=1), corner 0.20: isprime it 5 and xorshift s1 it 4 (loopfast's farm copy): all 8
+    output files (sizes.vh, lines.tsv, negative_sized.tsv, report.txt, verify.txt, tighten / skew / arb_fork logs) and stdout
+    identical, the out dir's path aside.
+  * CA_FAST with BD_SKEW_MUXN=1: exact, 0 of 13 and 0 of 12 runs differ (section 13).
+
+5. WHAT THE RULE MEASURES ON ISPRIME IT 5 (route ca9609ba), and what the sizing rule does with it
+                    0.20 guarded (raw)                     0.31 guarded (raw)
+    sel[2] $23626   +225 (+338)  req 2045  index 1707       +36 (+158)  req 2109  index 1951
+    sel[1] $23625   +330 (+445)                            +146 (+271)
+    sel[3] $23627   +332 (+448)                            +148 (+274)
+    sel[0] $23624   +472 (+586)                            +309 (+433)
+  binding launch: the select pipe's stage[0] C node (request 1 crossing, index 2), no shared prefix credited (t_c 0).
+  Full sizing rule, both corners (auto_size.sh's rule environment + BD_SKEW_MUXN=1): ULINK_N_INDEX_71 3 -> 3, now "bound by E
+  ..$23626/A5 (225 ps left)" at 0.20 and "(36 ps left)" at 0.31 instead of "on no measured constraint: kept"; every proposed
+  size identical to the unset run (sizes.vh: no diff at 0.20 or 0.31), negative_sized.tsv identical.
+
+6. NEGATIVE CONTROL 1 -- THE RULE (negsel.py: a copy of the route's prjxray SDF with the 8 INTERCONNECTs into umux13's
+  decode INDEX pins lengthened by DELTA, all of min:typ:max; request pins and every other arc untouched; corner_audit --no-size
+  as auto_size.sh's rule() runs it).  isprime it 5 (worst LUT $23626, unmodified +225 / +36), guarded margin per LUT:
+      DELTA     0.20                              0.31                          predicted at 0.20 (0.97 req - 1.03 (sel + DELTA))
+      100       +122 +227 +229 +369               -66 +43 +45 +206              +122
+      250       -32 +72 +75 +215                  -221 -111 -108 +51            -32
+      1000      -804 -699 -697 -557               -993 -883 -881 -720           -805 -700 -697 -557
+  The shipped rule (BD_SKEW_MUXN unset) on DELTA 1000: no row on any decode pin (0 "bdc_muxn" rows); umux13's sized A' row
+  -5125 / -5612, the same as on the unmodified route (the lap); tighten's unsized 'a' row -523 -> -809.  A select 1 ns late
+  at the decode moves nothing the shipped rule sizes.
+  isprime it 9 (route ff60e1a4, gcdclean's; worst LUT +635 / +584), DELTA 1000: -394 -157 -122 -118 at 0.20 (raw -297 -61 -22
+  -18), -445 -169 -133 -129 at 0.31.
+
+7. NEGATIVE CONTROL 2 -- THE ROUTED GLS (research/tools/eventgraph/bench_gate.sh GATE_RUNTS=1: bits-decoded netlist
+  (fasm_equiv EQUIVALENT on every run), prjxray SDF re-keyed by fasm2net (the 8 lengthened arcs checked in its fasm.sdf), fid
+  model, FCLK 83.3 MHz, 2 runs per vector; draw 20001 = chains 0.2256, rest 0.2940, CARRY4/F7F8/FF 0.6959, region 0.02,
+  wire 0.126, seed 20001; draw 20002 = chains 0.2037, rest 0.3090, 0.6617, seed 20002).  The 8 lengthened arcs are the only
+  INTERCONNECT lines that differ between the two arms' re-keyed fid/fasm.sdf (checked on it 5 and it 9).  Vectors research/data/muxsel/isp_sw.hex: 14 cheap calls whose exits alternate (n = 1 2 4 5 0 3
+  9 7 6 11 1 13 8 2), expected values from the C (kernel_oracle.sh isprime -> isp_sw.exp: 0 1 0 1 ...).
+    route                                       verdict    runts <150/500/1000 ps, x   nets hit (of 586)
+    it 9 ff60e1a4, unmodified                   PASS 14/14  0/0/0, x 0                  none; narrowest pulse anywhere 4532 ps
+    it 9 ff60e1a4, decode index arcs +1000 ps   PASS 14/14  3/5/5, x 0                  3, all umux13 decode outputs:
+         sel[0] 2 x 385 ps (rule raw -297), sel[2] 2 x 86 ps (raw -18), sel[3] 1 x 100 ps (raw -61); sel[1] (raw -22) none
+         each a 0-1-0 pulse on the decode of the index the select USED to name, at a batch boundary where the exit changes
+         (t = 4.24 us: n 1 -> 2; 14.51: 0 -> 3; 22.99: 7 -> 6; 34.63: 13 -> 8; 37.70: 8 -> 2); nothing else in the kernel moves
+    it 9, decode index arcs +1000 ps, draw 20002  PASS 14/14  1/7/9, x 2              4, all umux13 decode outputs (39-171 ps)
+    it 9, unmodified, draw 20002                 PASS 14/14  0/0/0, x 0                  none; narrowest pulse anywhere 3759 ps
+    ms_isprime_1_5z 40cbebff (ULINK_N_INDEX_71 3 -> 0; rule: -647 -613 -534 -532 at 0.20, -783 -742 -644 -643 at 0.31)
+                                                PASS 14/14  0/5/12, x 13                13: all four decode outputs (12 high
+         runts 247-631 ps, about one per exit change, + 4 x pulses: 3 at t = 1.66 us, the first call, when the index
+         latch still holds x) and 9 x pulses of 95-419 ps at t = 6.92 us on steers ucond_br34 / ucond_br35 and links n18__*,
+         which the shipped rule E already flags on this route (ucond_br34 -695, ucond_br35 -351 at 0.20): a second race
+    it 5 ca9609ba (unmodified, and decode arcs +1000) -- NOT USABLE AS A BASE: both arms passed batches 0-1 and then stalled
+         in batch 2 (n = 4; no BENCHRES after 40 CPU-min, where these calls take ~3 us of simulated time); I stopped them before
+         the bench's HANG verdict (TBATCH 1.2 ms).  The same batch put x pulses on ucond_br34/35 on the 5z route; on it 5
+         the shipped rule has E at ucond_br33-36 at -1212..-1472 ps (gcdclean's "negative 22").  A hang of it 5 on its own
+         flagged races, not on the decode (the unmodified arm stalled too).
+  Why the answers stay right: umux13 is out0's mux; on each call exactly one exit sends a token, so the input whose decode
+  pulses holds none, and uj<k> = C(in<k>_req = 0, pulse) stays 0.  At a mux where the input the select used to name still
+  holds a token (a loop header) the same pulse meets in<k>_req = 1: uj<k> fires or not depending on whether the C-element
+  swallows a pulse of that width -- in the gate's model one shorter than its loop (here <= 745-1190 ps) is rejected, on
+  silicon that is BOARD-QUEUE item 2 (H_RUNT).  So the GLS shows the race the rule names (runts exactly on the decode LUTs it
+  flags, widths in line with its raw margins), not a wrong answer: no route here puts a token on a non-selected input.
+
+8. SURVEY (research/data/muxsel/tools/survey.sh: corner_audit --no-size with BD_SKEW_MUXN=1 at 0.20 and 0.31, auto_size.sh's
+  environment; rows: survey_rows.tsv).  Worst decode LUT per mux, guarded (raw):
+    route (seed; sdf)                                   select link DELAY   0.20            0.31
+    isprime s1 it 0..10 (loopfast / gcdclean)           ULINK_N_INDEX_71 3
+       it 0  +372 (+425) / +317 (+374)    it 1  +672 / +612    it 2  +533 / +486    it 3  +687 / +614
+       it 4  +419 (+490) / +275 (+396)    it 5  +225 (+338) / +36 (+158)           it 6  +480 / +402
+       it 7  +503 / +441    it 8  +642 / +547    it 9  +635 / +584    it 10 +740 / +646
+    isprime ispchk2_0                                   3                   +646 (+718)     +559 (+635)
+    isprime su_isprime_1_0 (farm copy, estimate sizes)  8                   +2178 (+2299)   +2100 (+2225)
+    gcd gcdchk_0 / gcdchk2_0                            ULINK_N_INDEX_97 3  +629 / +713     +558 / +638
+    gcd su_gcd_1_0 (farm copy, estimate sizes)          8                   +2721 (+2883)   +2641 (+2810)
+    iterative_sqrt s4 it 2 (farm suite9 state, rebuilt here: sdf fb47737a = the farm's it_2.txt)
+                                                        ULINK_N_INDEX_25    umux3 +709 (+809)  +659 (+766)
+    cmpchain s2 it 5 (farm suite9 state, rebuilt here: sdf 1c13ff02 = the farm's it_5.txt)
+       umux0 (ULINK_N63__0 = 1)                                             -762 (-691)     -946 (-868)   ALL 5 decode LUTs < 0
+       umux1 (index from ulink_n61 stage[0]; N63__1 = 3)                    +212 (+389)     +71 (+260)
+       umux2 (ULINK_N63__2 = 3)                                             +296 (+392)     +145 (+248)
+    cmpchain s3 it 2 (farm suite9 state, rebuilt here: sdf 1994ab81 = the farm's it_2.txt)
+       umux1 (ULINK_N63__1 = 1)                                             -1083 (-999)    -1230 (-1138) ALL 5 decode LUTs < 0
+       umux0 (N63__0 = 3)                                                   +82 (+182)      -76 (+30)
+       umux2 (N63__2 = 3)                                                   +266 (+343)     +144 (+227)
+  Every isprime / gcd / iterative_sqrt route: positive at both corners; the tightest is isprime it 5 at 0.31, +36 ps.
+  cmpchain seed 2 it 5 is SHORT at both corners on every decode LUT of umux0, and seed 3 it 2 on every decode LUT of umux1
+  -- and the loop did it: seed 2's ULINK_N63__0 went 3 -> 1 in it 1's proposal (rule_1.vh; built from it 2 on), seed 3's
+  ULINK_N63__1 3 -> 1 in it 0's proposal (built from it 1 on), on no constraint that measures this race.  Both binding launches
+  are the select pipe's own last-stage C node (not a lap).  The 3-way muxes of the 1-bit index (isprime, gcd,
+  iterative_sqrt) sit at the line the start gave them; only cmpchain's lines were moved.  No cmpchain route was shipped (the
+  farm states stop in phase 2, NOT CLEAN), and no cmpchain / isprime / gcd / iterative_sqrt / sobel route is on the board queue.
+
+9. THE LOOP'S OWN ROUTE MISBEHAVES IN GLS, ON THE DECODE THE RULE FLAGS (cmpchain s2 it 5, unmodified; GATE_RUNTS=1, draw 20001,
+  kernels/cmpchain/vec.hex: 17 vectors covering r = 1..7, expected from the C (oracle.sh cmpchain == kernels/cmpchain/vec.exp))
+    PASS 17/17, runts <150/500/1000 ps 0/4/12, x 3, on 4 of 340 kernel nets, all umux0 decode outputs: sel[3] 4 x 247 ps,
+    sel[2] 3 x 786, sel[1] 2 x 544, sel[0] 3 x 585..771 (+ 3 x pulses at the first call); every other class (chan, join, link,
+    merge, op, steer): 0 pulses < 1000 ps, narrowest 12490 ps.  The fifth decode (sel[4], $23190, the rule's least negative,
+    -400) never pulsed.
+  The sizing rule with BD_SKEW_MUXN=1 on that route (full, both corners): ULINK_N63__0 1 -> 6 ("PAD 1->6 for E umux0..$23189/A5
+  (-762 ps)") at 0.20, 1 -> 7 (-946) at 0.31; verify: 0 sized constraints below slack at both corners.
+  Second draw (20002: chains 0.2037, rest 0.3090, near the 0.31 corner), the same route: PASS 17/17, runts 0/6/12, x 3 on the
+  same 4 umux0 decode nets (narrowest 226 ps), nothing else.
+  cmpchain s3 it 2 (1994ab81, ULINK_N63__1 = 1), draw 20001: PASS 17/17, runts 1/5/12, x 2 on 4 of 340 nets, all umux1 decode
+  outputs (sel[0..3]; narrowest 142 ps, widest 965); every other class 0 pulses < 1000 ps (narrowest 9905 ps).
+
+10. THE GUARD THE RULE ASKS FOR REMOVES THE RUNTS (cmpchain s2 it 5's sizes with ULINK_N63__0 1 -> 7, the merged proposal of
+  section 9, nothing else changed; built here, seed 2: ms_cmpchain_2_5f, sdf a44b35aa -- a re-placed route)
+    rule (BD_SKEW_MUXN=1): umux0 decode +1415 (+1536) at 0.20, +1289 (+1417) at 0.31 (was -762 / -946); umux1 +385 / +269,
+      umux2 +604 / +530.  The route has other short rows (I at ulink_n56 -769 / -1015, I at n_trueResult_18, H at ulink_n55,
+      E at ucond_br10 -105 at 0.31 ...): the re-route churn of a raise-only step, other rules' rows, not this one.
+    GLS draw 20001: PASS 17/17, runts 0/0/0, x 0 on 0 of 340 nets (narrowest pulse anywhere 13007 ps); draw 20002: the same,
+      0/0/0, x 0 (narrowest 13289 ps).
+  The unset (shipped) rule on cmpchain s2 it 5: ULINK_N63__0 1 -> 1, "on no measured constraint: kept"; every other proposed
+  size identical to the BD_SKEW_MUXN=1 run at both corners (sizes.vh differ only in ULINK_N63__0: kernel links 159 -> 164 at
+  0.20, 172 -> 178 at 0.31).
+
+11. HOW THE LOOP CAME TO SHRINK IT (cmpchain s2 it 1, the farm's sizes_1.vh rebuilt here, seed 2: sdf b3a8024a = the farm's
+  it_1.txt).  The shipped rule at 0.20: ULINK_N63__0 3 -> 1 "floor 1", measured on ONE constraint -- umux0's A'm row (the data
+  mux z_data = in[s] against z_req), which zeroing the line moves by -21 ps, with budget to spare -- so the greedy shrink took
+  it to the floor.  With BD_SKEW_MUXN=1 the five decode rows (+411..+527 on that route) depend on it too: 3 -> 2, because one
+  link less (~233 ps at the E slope 0.97) would take the worst decode row below 0; lines.tsv names the constraint with the
+  least budget left after the shrink, A'm umux0 (14 ps).  Since CA_SIZERULE=1 select links are
+  shrinkable like any line ("rules E and M ... model the select races", PROGRAM 2026-11-15); for a bdc_muxnN's index that was
+  true of M (A'm) and not of E.
+
+12. A LIMIT THE NEW ROWS INHERIT FROM RULE E: THE WORST LAUNCH CAN BE A LAP.  Rule E takes the worst over candidate launches,
+  with the request walk seeding a link's C node from its EARLIEST input and the index walk from its LATEST, and credits no
+  shared prefix when the two walks' predecessor chains part at once (t_c 0).  When the binding launch is the select pipe's own
+  last-stage C node (isprime it 0..3, it 4 at 0.20, it 6..10, ispchk2_0, gcd, iterative_sqrt, cmpchain it 5 umux0 / umux2)
+  the row is the race.  When it is further away the row is more pessimistic:
+    isprime it 5: launch = the select pipe's stage[0] C node; from stage[1] (diag_selrace.py) the raw leads are 363..633 ps,
+      the rows 338..586 (25-47 ps more pessimistic).
+    cmpchain s2 it 1, umux2: launch = umux2's OWN OUTPUT link (ulink_n62 stage[0]: its acknowledge reaches the select pipe's
+      c_next), row -383 guarded (-234 raw) at 0.20; from the select pipe ulink_n63__2's stage[1] C node the worst raw lead is
+      +23 ps (guarded about -70).  A pad sized on that row is longer than the race needs (it costs time, not correctness).
+    cmpchain s2 it 5, umux1: launch = umux1's own output link (ulink_n61 stage[0]), +212 / +71 (positive anyway).
+  Not changed here: it is rule E's launch policy for every gate (bd_steer, bd_mux too), and BD_SKEW_STEER_SELF / E_JOIN
+  address other forms of it.
+  Evidence: diag_selrace_from_cnode.txt (the race from the select pipe's own last-stage C node, unguarded) beside the rows.
+
+13. CA_FAST STAYS EXACT WITH BD_SKEW_MUXN=1 (research/tools/auto/ca_fast_check.py, CA_FAST vs the old path run for run, every
+  constraint, chain geometry and the three audit logs compared whole; auto_size.sh's environment)
+    isprime it 5, 0.20: base + 10 line-zeroed runs (8 drawn with seed 1 + --include 'INDEX_71|UMUX13': the select pipe's
+      delay lines -- grouped by the check as _SDELAY, both stages -- its _UACK, UMUX13) + 2 verify-like: 0 of 13 differ
+      (fastcheck_isp5_muxn.txt).
+    cmpchain s2 it 5, 0.20 (negative decode rows: the pad / verify path): base + 9 line-zeroed (6 drawn + N63__0_SDELAY,
+      N63__0_UACK, UMUX0) + 2 verify-like: 0 of 12 differ (fastcheck_cmp25_muxn.txt).
+
+WHAT THIS DOES NOT SHOW
+  * No board.  Whether silicon passes a 200-800 ps pulse on sel[k] into a C-element is BOARD-QUEUE item 2 (H_RUNT); the gate's
+    model rejects pulses shorter than the receiving C-element's loop, so every GLS here passed its answers.
+  * No wrong answer: every bdc_muxnN on these routes is a merge of exclusive branches (an exit mux, an if-else chain), so the
+    input whose decode pulses holds no token.  A bdc_muxnN where it can (a loop body run ahead by a later iteration's token, a
+    loop header with more than two entries) would turn the same pulse into a mis-steer; none was found or built here.
+  * Only the setup side.  The decode must also keep its index until ctl_req has fallen at EVERY decode LUT; the next index
+    reaches it only after ctl_req's fall at the selected decode, the join, the mux's delay, the downstream acknowledge, the
+    select link's next request -- a whole handshake, against the skew of one net's fall between decode LUTs.  Argued, not
+    measured.
+  * One route per kernel for every routed claim except the isprime iteration sweep (11 routes of one seed); 2 GLS draws per
+    A/B (20001, 20002).  cmpchain: one route per seed (s2 it 5, s3 it 2; s2 it 1 for the mechanism), one rebuilt with the
+    guard (s2).  sobel not routed (no route or loop state to rebuild).
+  * The rows inherit rule E's launch pessimism (section 12); the margins are rule E's, not a separate model's.
+  * isprime it 5 stalls in GLS at draw 20001 on its own flagged races (section 7): recorded, not investigated.
+
+FILES (research/data/muxsel/)
+  notes.txt                  this file
+  tools/negsel.py            the SDF negative control (decode index arcs + DELTA)
+  tools/survey.sh, ca_run.sh the survey (corner_audit --no-size, BD_SKEW_MUXN=1, both corners) and auto_size's rule environment
+  tools/emit_one.sh          one fixture through bdc/auto.py + BDC_AUTO=1 emit.py, counting bdc_muxn / bd_mux instances
+  emit_survey.txt            its output on all 111 build/frontend fixtures
+  isp_sw.hex / isp_sw.exp    isprime vectors whose exits alternate; expected values from kernels/isprime/isprime.c
+  survey_rows.tsv            every decode-LUT row of the survey: route corner mux lut/req-pin guarded raw t_req t_sel launch
+  diag_selrace_from_cnode.txt  the race from the select pipe's own C node (section 12)
+  fastcheck_isp5_muxn.txt, fastcheck_cmp25_muxn.txt   CA_FAST vs the old path with BD_SKEW_MUXN=1 (section 13)
+  rule/<run>/                corner_audit excerpts: stdout (proposal), report_excerpt, negative_sized, skew_muxn (rule E's
+                             bdc_muxn blocks), lines.tsv / sizes.vh for the sizing runs.  Runs: isp5_{mx,un} (isprime it 5),
+                             neg_d{100,250,1000}_{mx,un} (section 6), neg9_d1000_mx (it 9 + 1000), z_mx (INDEX_71 = 0),
+                             isp9_mx, cmp25_{mx,un} (cmpchain s2 it 5), cmp21_{mx,un}_0.20 (s2 it 1), cmp25f_nosize (guard 7)
+  gls/<run>/                 bench_gate verdict line, draw, provenance, runts.txt, RUNT / BENCHRES lines: isp9_base(_d2),
+                             isp9_d1000(_d2), isp5z, cmp25(_d2), cmp25f(_d2), cmp32, isp5_stalled (the two it 5 logs, stopped)
