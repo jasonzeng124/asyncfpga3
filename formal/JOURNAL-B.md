@@ -5070,3 +5070,7 @@ H_DECODE; extraction untrusted. Running 272 / 320 / 384 rebuilds for comparison 
 - Local setup: research's toolchain cache 02809f42 (zstd shim, /root/audit-tc2 symlink, apt over https), Mathlib built.
 - Next: research's divsize fix (due 12:30 UTC) -> run task.sh / divsafe.py on its routes; digitdiv / divmods / digitsum
   when suite10b finishes them; a kappa_lo for divmodu's capture (through link n4's stages) needs a latch-close bound.
+### progress 09:58 -- outsafe.py: output-capture kappa_lo for any route; farm b_os1 (38 routes); board items 38-41 locally
+Local: test_divui 528 0.240 (= B15), 384 0.067, line 5 -0.96; straight s2 0.290; divmodu s1 0.246; cmpchain muxn1 s1
+0.189; gcd s3 / iterative_sqrt s1: out0_req comes through an N-way mux's OR of joins, no single-pin forcing chain (not
+handled: chain_hold_side with the other joins at 0 would need their windows as premises).
