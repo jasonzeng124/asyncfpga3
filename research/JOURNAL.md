@@ -7806,3 +7806,10 @@ goal-1 list of the 19:53 state of play), plus rule B's guard form (above).
   least one DA loop does not finish in 4 h at 3 cores, where arm A finished all 20. A default that makes a route miss the
   farm's time limit loses the route (a "time limit" row in the table). So the smoke run should measure DA's wall time per
   kernel, and the default may need a cap (extra seeds only while time is left), not just AUTO_FINISH_SEEDS=3.
+### progress 22:01 (CORRECTION of the previous note: DA cleaned 5 of arm A's 7 NOT CLEAN loops, not 7; LOCK stays clear)
+- Paired by kernel and seed (task.txt of each finseeds1 task): arm A's 7 NOT CLEAN loops are branchloop s2, quadrec s1,
+  quadrec s4, sqrtsub s1, twoloops s1, xorshift s8, iterative_division s3. Arm DA is rule-clean on **5** of them
+  (branchloop s2, quadrec s4, sqrtsub s1, twoloops s1, xorshift s8). The other two are exactly DA's unfinished tasks:
+  iterative_division s3 (time limit) and quadrec s1 (still running). The previous note's "turns 7 NOT CLEAN routes into
+  clean ones" was wrong. So the extra seeds fail to finish precisely on the loops where they are needed most, which
+  makes a time cap part of the default question, not a detail.
