@@ -6,6 +6,13 @@ DecodedPS.boundary DecodedPS.arbs p T R su Δo` (owner decision 4: sequential en
 Updated 2026-11-06 (shard A) from the 2026-11-02 journals of all three shards. Everything below is Lean-checked with
 standard axioms unless marked; "C" / "B" name the shard whose file it is.
 
+## 2026-11-19 (A): no change to the gcd theorem (morning)
+The list did not shrink and no new counterexample. The day went to the first priority: research's automatic path
+(FOR-RESEARCH A24 / A25: pre_eq2 and plain pre_dec as Lean-checked passes; operator fusion and BDC_AUTO's graph changes
+checked on 26 kernels). The open items here (StepHypR = S4 + S6 on the decoded net; the decoder's carry / output-mux
+selects in Lean) are multi-day and Mathlib/FormalWit-scale. The new `Rewrite/Steps` theorems are token-level and say
+nothing about THE target's gates.
+
 ## 2026-11-18 (A): no change to the gcd theorem today
 Checked against all three journals at 22:25 UTC: no new result on THE target's statement, its refutations or its
 positive route (S4 / S6). Today's work was the first priority: B on the automatic builds and the select race
