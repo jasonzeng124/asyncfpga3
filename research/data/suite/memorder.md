@@ -10,7 +10,8 @@ prjxray's max), and a load that captures its word at the acknowledge (`bdc_load_
 port since dyntests' `mc:load1st`) returns the PREVIOUS word on its port. BDC_AUTO=1's emission fails identically at
 0 ps; both flows pass as soon as the acknowledge trails the read data. dyntests had recorded this exact limit
 (dyn/README.md section 3: "the capture needs DCO >= clock-to-out, and cells/sim's RAM model breaks that at zero wire
-delay"; every RTL figure there is at 350 ps per arc) -- memtb, written later, defaulted to 0 ps and did not say so.
+delay"; every RTL figure there is at 350 ps per arc) -- memtb (hangs', written before the captures existed) runs at
+0 ps by default, and nothing in it flagged the boundary.
 
 ## 1. The mechanism (waves)
 
@@ -38,10 +39,10 @@ Classification asked for: **not** a stale read across iterations (RAW), not a lo
 later one -- a read of the previous word on the port because the read data is announced before it exists, a
 bundling violation at the RAM's read boundary that only the RTL model has (section 3: a route is checked against it).
 
-**sobel**: the two loads of `in[x]` (LICM hoisted them out of the i, j loops into one block: LL, chained, both
-captured) -- load0 returns the previous word on in[]'s port (in[x'] of the previous x), load1 returns load0's word
-(in[x], right). An emulation of exactly that in Python (sobel_stale.py, in the subagent's out/extra/), with load0
-feeding sumY, reproduces the RTL bit for bit: call 1 run 0 out0 0000c33c (C:
+**sobel**: the two loads of `in[x]` (the frontend hoisted them out of the i, j loops into one block, bb5: LL,
+chained, both captured) -- load0 returns the previous word on in[]'s port (in[x'] of the previous x), load1 returns load0's word
+(in[x], right). An emulation of exactly that in Python (sobel_stale.py, in the subagent's out/extra/) reproduces the
+RTL bit for bit with load0's word feeding sumY (not with it feeding sumX): call 1 run 0 out0 0000c33c (C:
 0000c23d), run 1 0000c23d, out[] 6 elements wrong, the three memtb prints ([15]=b5 want b6, [17]=b7 want b8,
 [20]=b9 want ba) identical; calls 0 and 2 right. Those two calls cannot see this defect at all: call 0's gX / gY are
 the Sobel kernels, which sum to zero, so sumX = v * sum(gX) = 0 whatever v was read; call 2's in[] is constant, so

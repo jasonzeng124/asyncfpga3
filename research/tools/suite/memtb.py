@@ -314,12 +314,24 @@ def main():
               ", setup %d ps) at %d ps per arc%s: %s" % (len(over), tco, tsu, hop, " +-%d%%" % jpct if jpct else "",
               ", ".join(sorted(set("%s %s" % (k.rpartition("_")[2], v) for k, v in over.items())))))
     rams = []          # every bd_mem instance path under dut
+    port_rams = {}     # port instance -> its bd_mem paths
     for pm, body in re.findall(r"^module\s+(\w+)(.*?)^endmodule", text, flags=re.S | re.M):
         um = re.findall(r"\bbd_mem(?:_ff)?\s*#\s*\((?:[^()]|\([^()]*\))*\)\s*(\w+)\s*\(", body)
         if not um:
             continue
         for inst in re.findall(r"\b" + re.escape(pm) + r"\s*(?:#\s*\((?:[^()]|\([^()]*\))*\))?\s*(\w+)\s*\(", text):
             rams += [f"dut.{inst}.{u}" for u in um]
+            port_rams[inst] = [f"dut.{inst}.{u}" for u in um]
+    # THE HOST WAITS FOR A QUIET PORT.  On an arbitrated port the host slot stands outside the arbiter and its
+    # acknowledge is gated by its own phase bit, so `{h}_ack` low says nothing about the kernel's last access, whose
+    # return to zero (DSETUP + DCO after its claim drops) can still be running when the call has already completed.
+    # The bench's obligation (bdc/mem.py: host accesses only between calls, never while a kernel slot is live) is met
+    # here by waiting for every RAM of the port to have returned to zero before each host request.
+    quiet = {}
+    for inst, pconn in re.findall(r"\bbdc_memport\w*\s*#\s*\((?:[^()]|\([^()]*\))*\)\s*(\w+)\s*\((.*?)\);", text, flags=re.S):
+        for b, _d, _w in mems:
+            if re.search(r"\b" + re.escape(b) + r"_host_req\b", pconn) and inst in port_rams:
+                quiet[b] = " && ".join(f"{rp}.ack === 1'b0" for rp in port_rams[inst])
     L.append("    integer ramviol = 0; time ackmin = 64'd1000000000;")
     for j, rp in enumerate(rams):
         L += [f"    time tedge{j} = 0;", f"    always @(posedge {rp}.ram_clk) tedge{j} = $time;",
@@ -350,7 +362,7 @@ def main():
     for b, d, w in mems:
         h = b + "_host"
         L += [f"    task host_{b}(input integer a, input [31:0] dd, input we, output [31:0] qq);", "        begin",
-              f"            wait ({h}_ack === 1'b0);",
+              f"            wait ({h}_ack === 1'b0);" + (f" wait ({quiet[b]});" if b in quiet else ""),
               f"            {h}_addr = a; {h}_wdata = dd; {h}_we = we;",
               f"            #1000 {h}_req = 1;", f"            wait ({h}_ack === 1'b1);",
               f"            #3000 qq = {h}_rdata;", f"            {h}_req = 0;", f"            wait ({h}_ack === 1'b0);",
