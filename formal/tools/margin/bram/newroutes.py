@@ -53,7 +53,10 @@ for p in sorted(files, key=lambda p: (p.split("/")[1], int(p.split("/")[2]))):
     if not mm: continue
     it = mm.group(1)
     env = re.search(r"; search ([^)]*)\)", ar[-1])
-    rows[(k, s, m.group(1))] = (d, it, (env.group(1).strip() if env else "") + rf0(d.split("/")[1]), re.search(r"status=(\S+)", r[-1]).group(1) if "status=" in r[-1] else "?")
+    # an alternate-seed finish (finseeds DA arm: "alt it N seed X su_.. <sdf8>") placed with seed X, not SEED
+    alt = re.search(r"^alt it \d+ seed (\d+) \S+ %s\b" % m.group(1), git("show", "%s:%s/task.txt" % (a.ref, d)), re.M)
+    rows[(k, s, m.group(1))] = (d, it, (env.group(1).strip() if env else "") + rf0(d.split("/")[1])
+                                + (" PNR_SEED=" + alt.group(1) if alt else ""), re.search(r"status=(\S+)", r[-1]).group(1) if "status=" in r[-1] else "?")
 out = ["# K SEED SIZES SDF8 NDRAWS [ENV...]  (newroutes.py from %s: memory routes no routes_mem*.txt has judged)" % a.ref]
 for (k, s, sdf), (d, it, env, st) in sorted(rows.items()):
     if (k, s, sdf) in done: continue

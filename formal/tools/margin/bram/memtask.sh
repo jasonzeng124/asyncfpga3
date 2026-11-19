@@ -5,7 +5,7 @@
 #   1. vectors (kernels/K/vec.hex, else research/data/suite/vec/K.hex; must be benchvec v2), oracle from the C
 #      (research/tools/suite/oracle_mem.sh, ORACLE_RUNS=1: one run per call, results and final array contents);
 #   2. the route: build_bench.sh in a copy of research's tree ($RS, a claude/research checkout), FLOW=auto (BDC_AUTO=1,
-#      default) or FLOW=default, BD_SIZES=SIZES (none = bdc's estimates), NEXTPNR_SEED=SEED, BD_DSP=1 BD_NO_TIGHTEN=1
+#      default) or FLOW=default, BD_SIZES=SIZES (none = bdc's estimates), NEXTPNR_SEED=SEED (PNR_SEED=N overrides: research's alt-seed finishes), BD_DSP=1 BD_NO_TIGHTEN=1
 #      BD_SIZES_GATE=0; any BDC_* in the caller's environment is passed on; SDF8 = research's sdf md5 prefix to match
 #      ('-' = a new route);
 #   3. the bits read back (prjxray bit2fasm) and decoded: decode_bram.py (LUTs, routes, DSP48E1, RAMB18E1, every
@@ -33,7 +33,7 @@ if [ ! -d "$T/cells" ]; then mkdir -p "$T/build"; cp -r "$RS/cells" "$RS/bdc" "$
 FL=(); [ "${FLOW:-auto}" = auto ] && FL=(BDC_AUTO=1)
 # REUSE=1: keep a build already in the tree (same K) and only redo the decode and draws
 [ "${REUSE:-0}" = 1 ] && [ -f "$T/cells/build/hw/${K}_bench_gen/${K}_bench_gen.bit" ] || \
-( cd "$T/cells" && rm -rf "build/hw/${K}_bench_gen" && env "${FL[@]}" NEXTPNR_SEED=$S BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 \
+( cd "$T/cells" && rm -rf "build/hw/${K}_bench_gen" && env "${FL[@]}" NEXTPNR_SEED=${PNR_SEED:-$S} BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 \
     BD_SIZES="$Z" PNR_TIMEOUT=${PNR_TIMEOUT:-3600} ./hw/build_bench.sh "$K" ) > "$O/build.log" 2>&1 \
   || { say "$K $S BUILD FAILED: $(grep -m1 -iE 'error|fail' "$O/build.log" | cut -c1-120)"; exit 0; }
 BD=$T/cells/build/hw/${K}_bench_gen; N=${K}_bench_gen
