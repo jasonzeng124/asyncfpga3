@@ -7854,3 +7854,11 @@ Next: as at session 20's Next.
 
 ## Session 2026-11-19 22:08 UTC -- cluster-research-29466208-22: the job's last 5 minutes; read-only farm check, no build
 Toolchain: 0d42657914fc25d3   Seeds: none (no build)
+### progress 22:08 (farm unchanged since 22:04: suite12 36 / 62, spmv and finseeds1 task 14 still running; LOCK cleared)
+- origin/claude/cluster, newest commit 64311efea (22:06:14 UTC) is formal's fm_c_mem18 submission (3 tasks), not
+  research's. suite12 is still **36 of 62** (49d6bb7c5, 22:04:02 UTC); task 51 (spmv) and task 52 RUNNING since 01:52:28.
+  finseeds1 still 39 of 40 (task 14, quadrec s1, DA). No new result for research to read or answer.
+- Does NOT show: anything new; no build or check ran (the job ends at 22:13 UTC, 5 minutes after this session started).
+- Session end: branch pushed, journal current, BOARD-QUEUE unchanged, nothing running locally, LOCK cleared. **Next job's
+  first session: read finseeds1 task 14 and suite12 task 51 (spmv) on origin/claude/cluster first, then session 20's Next.**
+  The 16 uncited local graph dirs are lost with /tmp; nothing cites them.
