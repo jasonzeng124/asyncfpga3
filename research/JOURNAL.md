@@ -8716,3 +8716,16 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   on suite13t's unpadded route the same point 10102 had 118 pulses under 150 ps. Different routes: consistent, not
   paired. Its cycles per draw are ~5-6 % above suite13t's (the pad's cost, scatter included).
 - xorshift s1 plain move alone (arw2): PASS 4 / 4, 16350 ps (untrimmed 17123); suite13t 17588 / 18319.
+### progress 16:57 (the $SHARED resume block works end to end; countloop s1 plain + sibling 16.39 ns vs suite13t 22.22; collatz64 eq2's search route 22.38 untrimmed)
+- **Resume test done** (straight s1, suite13t_s5a_v10_1a.sh's body): r3 took the trim-only path, rebuilt the loop's
+  route (sdf 3aee4aab = r2's), ran the final stack and **4 / 4 draws PASS**, wrote its result line, and removed its
+  state ("state left:" empty). So a v10 task stopped at 240 min continues from its last ratchet step, and one stopped
+  after its loop continues from its shipped route; mk_resume.py files the parts. Side note: on a loop-free kernel the
+  scoped trim finds 0 cycle lines and its rule step logs "RULE FAILED" (no trim either way; tidy after v10's parts).
+- **countloop s1, plain move + BDC_SIBLING_FUSE** (sib, v9 + scoped trim): the loop's it 10 21110 / 19533; the search
+  phase's it 12 (BDC_FORK_OUT_LINK=n13__0,n15__0,n21,n23) clean: **untrimmed 17268, trimmed 16392 ps** (rounds 16730,
+  16392). suite13t's countloop s1: 22896 / 22224 (its search found no clean route): -24.6 % / -26.2 %. Draws running.
+  formal A30 warned the merged cell makes the test wait for the accumulator's operands; on this route that did not
+  cost what the plain move and the search gained.
+- **collatz64 s1 + eq2** (arw2): it 7 24706 (untrimmed = trimmed); the search phase's it 8 (BDC_FORK_OUT_LINK=n19__0,
+  n33__0) untrimmed 22383, trimming. suite13t: 29391 / 25557. Prediction (14:33): 16.6-21.7 ns trimmed.
