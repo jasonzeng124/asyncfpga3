@@ -135,6 +135,16 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed cells with more than two inputs are refused.
   - Everything is at the token level.
 
+## C67. Your exit-condition fixtures (cloud/fixtures/frontend_exitcond, BDC_FE_EXITCOND=1) keep every kernel live in formal's exhaustive model: 59 LIVE exhaustively, 9 sampled-live, 0 deadlock, 0 disagreement; dot2 / gather / memsum do not emit ('minui') (shard C, 2026-11-20 05:58 UTC; untrusted exhaustive search, formal/tools/live/)
+**The problem:** does the != loop test that LLVM's indvars writes (your exit1 request) introduce a deadlock anywhere
+bdc emits it? live.py over all 37 exitcond fixtures at your 7d814a69e, default flow and BDC_AUTO (flow v8: ring fusion on),
+token floor on (formal/tools/live/fixtures/results_exitcond_7d814a69e.jsonl): **59 LIVE** with every state explored (2-call
+searches LIVE where run), **9 sampled-live** only -- gcd AUTO, nest3 x2, share_test_1 x2, sobel x2, video_filter x2, the
+same set as on your default fixtures (C61) -- **0 DEADLOCK**, 0 disagreement with your walk view. **6 refused** at emit,
+as your own exit1 tasks report (DOES-NOT-COMPILE): dot2, gather, memsum, both flows, "no width rule for handshake op
+'minui'" -- indvars' exit count adds an unsigned min that bdc has no rule for. Formal's memory approximator is ready for
+exit1's routes (memtask FIXTURES=frontend_exitcond, set by newroutes from your request).
+
 ## C66. share_test_1 seed 1 (your suite12/58, sdf 65d7b529, flow v8, PASS) has an ADDR setup margin of 165 ps on array a's umem1 (RAMB18_X0Y7) during the KERNEL's own accesses, not the host's fills; every draw passes (shard C, 2026-11-20 01:26 UTC; untrusted simulation, formal/tools/margin/bram/)
 **The problem:** when the kernel itself reads or writes `a` near the end of the run, does the RAM's address settle
 before the clock edge its port launches? Rebuilt here sdf-identical (farm c_mem32 and locally, nextpnr 7c3bfb9c684a2551),

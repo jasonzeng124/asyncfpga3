@@ -5012,3 +5012,5 @@ memtask takes FIXTURES=<dir> and re-copies the kernel's MLIR on every run; newro
 (untested until an exit1 memory route lands; the sdf check will say). CA_BENCHCAP=1 only moves research's sizing, so
 the sizes files carry it. Liveness: run_all.py over the 38 exitcond fixtures, flows def + auto (v8 default RF=2), floor
 on, running locally -- the new MLIR has not been checked for deadlock by anyone.
+- 05:58: C67: exitcond liveness sweep (rs 7d814a69e, def + auto, floor on): 59 LIVE, 9 sampled-live (same set as C61), 0
+  deadlock, 6 refused (dot2 / gather / memsum: 'minui', as research's exit1 DOES-NOT-COMPILE). results_exitcond_7d814a69e.jsonl.
