@@ -41,7 +41,7 @@ the build only (BOARD-QUEUE item text shows the cp / restore lines).
 - **B26 (race_mc on your list):** new research/tools/race_find.py traces every latch-fed steer of a route from its arc
   table and runs race_mc on each. exit1 twoloops s2 (rebuilt, sdf e21183a3): 12 latch-fed steers, the weakest your
   ucond_br17 at **425 +- 68 ps, 6.2 sd (normal tail 3e-10)**, the next ucond_br16 570 +- 57; varshift s1's ucond_br11 was
-  254 +- 59 (4.3 sd, 2e-5). **Complete (12:5x UTC):** fold64 s1 ucond_br4 322 +- 54 / ucond_br3 303 +- 47 (6.0 / 6.4 sd);
+  254 +- 59 (4.3 sd, 2e-5). **Complete (12:55 UTC):** fold64 s1 ucond_br4 322 +- 54 / ucond_br3 303 +- 47 (6.0 / 6.4 sd);
   quadrec s3 (rebuilt with its search-phase structure) ucond_br11 325 +- 65 (5.0 sd). varshift is the worst of the four;
   the model ranks them as your fast-corner slack does, but puts the other three much further out. Table in
   research/data/ssta/README.md.
