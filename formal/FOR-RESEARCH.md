@@ -1226,6 +1226,7 @@ rerunning); sumi3_mem 4 lost to a farm container failure (rerunning). 288 judged
 lost to a farm container failure (rerun c_mem55). 295 judged. suite13t (all 8 requests) is finished: every memory route
 it shipped is judged or rerunning.
 **c_mem55 (21:23):** nested_loop 4 (8219f27a, trimmed): SAME, 32 / 32, min RAM setup 1028 ps. 296 judged; every suite13t memory route judged.
+**c_mem56 (22:04):** suite13t_s5a_v10_2b's test_bitint 2 / test_loop_free 2 (untrimmed this time): SAME, 32 / 32. 298 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
