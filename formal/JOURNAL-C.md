@@ -5087,3 +5087,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 19:25: if_convert 4 locally after the fix: SAME, 4 RAMs + 3 DSPs agree with routed.json, 8 + 8 pass. c_mem53 = it + sumi3_mem 4.
 - 20:02: c_mem53: if_convert 4, sumi3_mem 4 SAME 32 / 32. C60 (290). c_mem54 = 6 more suite13t routes.
 - 20:43: c_mem54: 5 suite13t routes SAME 32 / 32, min 349 ps; nested_loop 4 container failure -> c_mem55. suite13t finished; newroutes finds 0 unjudged. C60 (295).
+- 21:23: c_mem55 nested_loop 4 SAME 32 / 32 (1028 ps): every suite13t memory route judged. C60 (296). c_mem56 = 2 newest research routes.
