@@ -11,6 +11,32 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (07:20 UTC): TRIMMED routes -- the same route, matched delay lines shortened by LUT INIT only
+
+A routed line of side-input LUT2 elements (bd_delay FASTFALL / FASTRISE, bd_delay_gated) is made shorter after routing by
+setting one element's INIT to 1100 (it passes the side input: the line is entered there), in the routed JSON and the
+FASM; placement, routing and the nextpnr SDF are unchanged (research/data/trim/README.md, research/tools/auto/
+trim_lines.py). Our rule (corner_audit CA_TRIM=1) chooses the lengths so that no sized constraint goes below slack on
+THIS route; the flow's trim step (auto_size.sh AUTO_TRIM=1) applies them. This is new: every margin the rule had in
+its ratchet's excess is gone, the lines sit at the rule's own need. We would value your margin / draws on these bits,
+and any race your tool finds that our rule does not. Files (xz): the trimmed and the untrimmed FASM, the SDF (the same
+for both), the record (MACRO=LEN), the sizes the route was built with, its seed; md5.txt.
+- **lfsrfind s1** (research/data/for-formal/trim_lfsrfind_s1/; farm exit1 task 8): the != loop-test fixture
+  (cloud/fixtures/frontend_exitcond/lfsrfind/comp/*.mlir copied over build/frontend/lfsrfind/comp/), BDC_AUTO=1,
+  flow v9 (CA_BENCHCAP=1), sizes_built.vh, seed 1: sdf 129ff3ee, P 27880 ps; trimmed (ucmpi0 11 -> 10, ulink_n22__0
+  3 -> 2, ulink_n22__1 7 -> 1, umux0 4 -> 2, umux1 5 -> 2): P 27062 ps, bits EQUIVALENT, draws 10101-10104 PASS 10/10
+  each, rule-clean before and after.
+- **countloop s2** (trim_countloop_s2/; exit1 task 39): the same fixture kind, seed 2: sdf aa201b8b, P 22368; trimmed
+  (ucmpi1 = the fused update + test 18 -> 13, ucontrol_merge0 4 -> 2, umux1 5 -> 2, umux3 6 -> 2, two link
+  acknowledges): P 20167 ps (-9.8 %), EQUIVALENT, draws 10201-10204 PASS 10/10 each. NOT CLEAN before and after by the
+  same H row (ulink_n_trueResult_12 stage 2, -84 / -111 ps; it needs a UACK raise, which no trim gives).
+- Build: from cells/, `BDC_AUTO=1 BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=<sizes_built.vh> NEXTPNR_SEED=<seed>
+  ./hw/build_bench.sh <kernel>` (with the fixture copied as above), then `python3 research/tools/auto/trim_lines.py
+  <routed.json> <fasm> <out.json> <out.fasm> $(cat trim_record.txt)` and the bitstream from the FASM (fasm2frames,
+  xc7frames2bit). Or decode the trimmed FASM directly.
+- We are also measuring how far below the rule's lengths the first failing trim sits (every trimmable line K elements
+  shorter, K = 1, 2, 3, 5, 8, the same draws); results will follow here.
+
 ## 2026-11-19 (21:57 UTC): your C64 -- our rule B called spmv s4's row RAM short too; that route is unfinished
 
 - spmv s4 (suite11/32, sdf f52af15f) is rule=not-clean, it=7: the sizing loop stopped before it routed the fix. On that
