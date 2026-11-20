@@ -8,6 +8,8 @@
 #  3. research's trim_lines.py applies DIR/trim_record.txt to the routed JSON and the FASM; the trimmed FASM's md5 is
 #     checked against DIR/md5.txt (and must differ from the untrimmed one); fasm2frames + xc7frames2bit make the bits;
 #  4. the trimmed bits are read back (bit2fasm), decoded and drawn exactly as step 2 (OUT/trimmed; tools-B's steps).
+# TRIM_RECORD=<file> replaces DIR/trim_record.txt (a negative control: lines shorter than research's); the trimmed FASM is
+# then not research's, so its md5 is reported, not required.
 set -uo pipefail
 D=$1; O=$(mkdir -p "$2" && cd "$2" && pwd); ND=${3:-32}
 RS=${RS:-/home/user/rs}; export RS TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
@@ -18,7 +20,7 @@ FX=${FIXTURES:-frontend_exitcond}
 cp "$RS/cloud/fixtures/$FX/$K/comp/"*.mlir "$RS/build/frontend/$K/comp/" || { say "$K $S NO FIXTURE $FX"; exit 0; }
 SDF8=$(awk '/\.sdf$/{print substr($1,1,8)}' "$RS/$D/md5.txt"); MT=$(awk '/_bench_gen\.fasm$/{print $1}' "$RS/$D/md5.txt")
 MU=$(awk '/untrimmed\.fasm$/{print $1}' "$RS/$D/md5.txt")
-say "$K $S fixtures $FX sizes $D/sizes_built.vh sdf $SDF8 trim $(tr '\n' ' ' < "$RS/$D/trim_record.txt")"
+say "$K $S fixtures $FX sizes $D/sizes_built.vh sdf $SDF8 trim $(tr '\n' ' ' < "${TRIM_RECORD:-$RS/$D/trim_record.txt}")${TRIM_RECORD:+ (OVERRIDE: not the research record)}"
 bash "$HB/suite/task.sh" "$K" "$S" "$RS/$D/sizes_built.vh" "$SDF8" "$O/untrimmed" "$ND" > "$O/untrimmed.log" 2>&1
 sed 's/^/untrimmed: /' "$O/untrimmed/summary.txt" | tee -a "$SM"
 grep -q SAME "$O/untrimmed/summary.txt" || { say "route not SAME: stop"; exit 0; }
@@ -27,10 +29,10 @@ say "untrimmed FASM md5 $(md5sum < "$B/$T.fasm" | cut -c1-32) (research $MU)"
 source "$TC/openxc7/export.sh" > /dev/null
 PRJ=$TC/openxc7-src/prjxray; DB=${XRAY_DB:-$TC/openxc7/share/nextpnr/prjxray-db}/zynq7; [ -d "$DB" ] || DB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7
 ( cd "$RS" && python3 research/tools/auto/trim_lines.py "$B/${T}_routed.json" "$B/$T.fasm" "$TB/${T}_routed.json" "$TB/$T.fasm" \
-    $(cat "$RS/$D/trim_record.txt") ) > "$O/trim.log" 2>&1 || { say "TRIM REFUSED: $(tail -2 "$O/trim.log" | tr '\n' ' ')"; exit 0; }
+    $(cat "${TRIM_RECORD:-$RS/$D/trim_record.txt}") ) > "$O/trim.log" 2>&1 || { say "TRIM REFUSED: $(tail -2 "$O/trim.log" | tr '\n' ' ')"; exit 0; }
 mt=$(md5sum < "$TB/$T.fasm" | cut -c1-32)
 say "trimmed FASM md5 $mt (research $MT) $([ "$mt" = "$MT" ] && echo SAME || echo DIFFERENT); $(grep -c . "$O/trim.log") trim lines"
-[ "$mt" = "$MT" ] || exit 0
+[ "$mt" = "$MT" ] || [ -n "${TRIM_RECORD:-}" ] || exit 0
 PYTHONPATH="$PRJ:$TC/openxc7/lib/python" python3 "$PRJ/utils/fasm2frames.py" --db-root "$DB" --part xc7z010clg400-1 \
   "$TB/$T.fasm" > "$TB/$T.frames" 2> "$O/frames.log" || { say "FASM2FRAMES FAILED"; exit 0; }
 "$TC/openxc7/bin/xc7frames2bit" --part_file "$DB/xc7z010clg400-1/part.yaml" --part_name xc7z010clg400-1 \
