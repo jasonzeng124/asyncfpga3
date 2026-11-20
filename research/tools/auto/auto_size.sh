@@ -423,16 +423,34 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
       fi
       python3 "$T/cycle_macros.py" "$O/cyc_${i}_untrimmed.txt" "$O/sizes_$i.vh" > "$O/trim_allow_$i.txt"
       echo "trim: it $i scope cycle, round 1: $(grep -c . "$O/trim_allow_$i.txt") line(s) on the untrimmed cycle" >> "$O/log.txt"
+      # Each round is kept only if the period it leaves is lower than the one before it (re-timed by the next round's
+      # full stack); a round that buys nothing is reverted, its trims undone (xorshift s1: round 2 moved 3 lines of its
+      # new cycle and P stayed 17588 ps).  snap / unsnap hold the bits, the routed JSON and the record before a round.
+      local H=$RUNS/hw/${N}_$i pprev pnow
+      pprev=$(grep -o 'P=[0-9]*' "$O/it_${i}_untrimmed.txt" | head -1 | cut -d= -f2)
+      snap() { cp "$H/${D}_routed.json" "$O/snap_$i.json"; cp "$H/$D.fasm" "$O/snap_$i.fasm"; cp "$H/$D.bit" "$O/snap_$i.bit"
+        cp "$O/trim_$i.txt" "$O/snap_${i}_trim.txt" 2>/dev/null || : > "$O/snap_${i}_trim.txt"
+        cp "$O/sizes_${i}_trim.vh" "$O/snap_${i}_sizes.vh" 2>/dev/null || cp "$O/sizes_$i.vh" "$O/snap_${i}_sizes.vh"; }
+      unsnap() { cp "$O/snap_$i.json" "$H/${D}_routed.json"; cp "$O/snap_$i.fasm" "$H/$D.fasm"; cp "$O/snap_$i.bit" "$H/$D.bit"
+        cp "$O/snap_${i}_trim.txt" "$O/trim_$i.txt"; cp "$O/snap_${i}_sizes.vh" "$O/sizes_${i}_trim.vh"; }
+      snap
       TRIM_ALLOW=$O/trim_allow_$i.txt trim_route "$i"
-      for r in $(seq 2 "${AUTO_TRIM_ROUNDS:-3}"); do
-        [ -s "$O/trim_$i.txt" ] || break       # nothing trimmed: the cycle is the untrimmed one
+      for r in $(seq 2 $(( ${AUTO_TRIM_ROUNDS:-3} + 1 ))); do   # the last pass only times the last round
+        cmp -s "$O/trim_$i.txt" "$O/snap_${i}_trim.txt" && break   # the round moved nothing: nothing to time
         "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_r$r.log" 2>&1
         python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_r$r.txt" 2>&1
-        echo "trim: it $i round $r: $(tail -1 "$O/final_${i}_r$r.log" | grep -o 'P=[0-9A-Z]*')" >> "$O/log.txt"
+        pnow=$(tail -1 "$O/final_${i}_r$r.log" | grep -o 'P=[0-9]*' | cut -d= -f2)
+        echo "trim: it $i round $r: P=${pnow:-?} (before the round: ${pprev:-?})" >> "$O/log.txt"
+        if [ -n "$pnow" ] && [ -n "$pprev" ] && [ "$pnow" -ge "$pprev" ]; then
+          unsnap; echo "trim: it $i round $((r - 1)) bought nothing: its trims reverted" >> "$O/log.txt"; break
+        fi
+        pprev=$pnow
+        [ "$r" -le "${AUTO_TRIM_ROUNDS:-3}" ] || break
         rr=$(python3 "$T/cycle_macros.py" "$O/cyc_${i}_r$r.txt" "$O/sizes_$i.vh" | grep -vxF -f "$O/trim_allow_$i.txt")
         [ -n "$rr" ] || { echo "trim: it $i round $r: the cycle brings no new line" >> "$O/log.txt"; break; }
         echo "$rr" >> "$O/trim_allow_$i.txt"
         echo "trim: it $i round $r: $(echo "$rr" | grep -c .) new line(s) on the cycle" >> "$O/log.txt"
+        snap
         TRIM_ALLOW=$O/trim_allow_$i.txt TRIM_CONTINUE=1 trim_route "$i"
       done
     else
