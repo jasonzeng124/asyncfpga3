@@ -851,6 +851,16 @@ _RING_FUSE_DEFAULT = "2" if os.environ.get("BDC_AUTO", "0") == "1" else "0"
 RING_FUSE = os.environ.get("BDC_RING_FUSE", _RING_FUSE_DEFAULT) in ("1", "2")
 RING_FUSE_LINK = os.environ.get("BDC_RING_FUSE", _RING_FUSE_DEFAULT) == "2"
 RING_FUSE_MAX = int(os.environ.get("BDC_RING_FUSE_MAX", "8"))
+# BDC_SIBLING_FUSE=1 (opt-in, 2026-11-20; needs BDC_RING_FUSE for multi-result cells; unset, compute_fusion and the
+# emitted Verilog are byte-identical): a fork whose every output feeds a fusable op, in two or more regions, merges
+# those regions into ONE multi-result cell -- one join over their external inputs (the fork's operand read once), one
+# matched delay covering the merged datapath, whose branches now run side by side.  The shape is a loop's update and
+# its test both reading the loop value, which formal's proved plain loop-test move produces (`i + 1 < n` ->
+# `i < n - 1`, research/data/autorw/): without this the increment and the test stay two cells with a fork and links
+# between them; with it the cell's line covers max(add, compare) instead of the two carry chains in series.  The same
+# conditions as BDC_RING_FUSE (one basic block, at most BDC_RING_FUSE_MAX members, no same-firing path out of the merged
+# region and back into it).
+SIBLING_FUSE = os.environ.get("BDC_SIBLING_FUSE", "0") == "1"
 # BDC_RING_FUSE_NEGCTL=1: the NEGATIVE CONTROL of the pass (never for a build): a multi-result region drives every
 # result after the first with the first result's low bits, so a wrong slice is visible in simcheck / memtb.
 RING_FUSE_NEGCTL = os.environ.get("BDC_RING_FUSE_NEGCTL", "0") == "1"
@@ -1147,6 +1157,64 @@ def _ring_bb(node):
     return getattr(v, "value", v)
 
 
+def _sibling_merge(nodes, uf, value_producer, value_consumers, cap):
+    """BDC_SIBLING_FUSE: union the regions fed by one fork when ALL the fork's outputs go to fusable nodes (one each) in
+    two or more regions, the fork's operand comes from outside them, and the merge is safe by _ring_merge's three
+    conditions.  Run before _absorb_forks, which then absorbs the fork (its whole fanout now reconverges in one region).
+    Returns the roots of the merged regions (their emission takes the multi-result path)."""
+    roots_out = set()
+    for fi, f in enumerate(nodes):
+        if f.op != "fork" or len(f.operands) != 1 or len(f.results) < 2:
+            continue
+        cons = [value_consumers.get(r, []) for r in f.results]
+        if any(len(c) != 1 for c in cons) or any(c[0] not in uf.parent for c in cons):
+            continue
+        roots = {uf.find(c[0]) for c in cons}
+        if len(roots) < 2:
+            continue
+        p = value_producer.get(f.operands[0])
+        if p is not None and p in uf.parent and uf.find(p) in roots:
+            continue
+        members = {i for i in uf.parent if uf.find(i) in roots}
+        if len(members) > cap:
+            continue
+        if len({_ring_bb(nodes[i]) for i in members} | {_ring_bb(f)}) != 1 or _ring_bb(f) is None:
+            continue
+        region = members | {fi}
+        start = set()
+        for i in region:
+            for r in nodes[i].results:
+                for c in value_consumers.get(r, []):
+                    if c not in region:
+                        start.add(c)
+        seen, stack, cyclic = set(), list(start), False
+        while stack and not cyclic:
+            x = stack.pop()
+            if x in seen:
+                continue
+            seen.add(x)
+            if nodes[x].op in _ITER_BOUNDARY:
+                continue
+            for r in nodes[x].results:
+                for c in value_consumers.get(r, []):
+                    if c in region:
+                        cyclic = True
+                        break
+                    stack.append(c)
+                if cyclic:
+                    break
+        if cyclic:
+            continue
+        rl = sorted(roots)
+        ok = True
+        for t in rl[1:]:
+            if not uf.union_if(rl[0], t, cap):
+                ok = False
+        if ok:
+            roots_out.add(uf.find(rl[0]))
+    return {uf.find(r) for r in roots_out}
+
+
 def _ring_merge(nodes, uf, value_producer, value_consumers, fork_owners, cap):
     """BDC_RING_FUSE: merge a region with the fusable readers of a fork that splits its result, the fork's other
     outputs becoming results of the merged region.  `value_consumers` is the ORIGINAL map (every reader of every value,
@@ -1323,6 +1391,9 @@ def compute_fusion(func, *, forks=None, max_nodes=None):
         uf.union_if(p, c, max_nodes)
 
     orig_consumers = value_consumers
+    sibling_roots = set()
+    if SIBLING_FUSE and RING_FUSE:
+        sibling_roots = _sibling_merge(nodes, uf, value_producer, value_consumers, RING_FUSE_MAX)
     fork_owners, aliases = {}, {}
     if forks:
         fork_owners, aliases = _absorb_forks(
@@ -1374,6 +1445,8 @@ def compute_fusion(func, *, forks=None, max_nodes=None):
     for fi, leave in partial.items():
         p = value_producer[nodes[fi].operands[0]]
         leaving_of.setdefault(uf.find(p), {}).setdefault(p, []).extend(leave)
+    for r in sibling_roots:                # BDC_SIBLING_FUSE: several members' own results leave the merged region
+        leaving_of.setdefault(uf.find(r), {})
     for members in groups.values():
         leaving = leaving_of.get(uf.find(members[0]))
         if leaving is None:
