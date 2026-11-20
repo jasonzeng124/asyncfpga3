@@ -157,8 +157,7 @@ def auto():
         if lre is None:   # a transparent link latch holds the condition: launch = the join of the compute that feeds it
             own = m2.group(1).replace("bridge_i.udut.", "")
             inst = sorted({mm.group(1) for u in isl for mm in [re.match(r"^bridge_i\.udut\.([A-Za-z0-9_]+)\.", ncell(u))] if mm} - {own})
-            if not inst: rows.append((None, name, "latch condition: no compute instance in its cone")); continue
-            lre = r"bridge_i\.udut\.(%s)\.ujoin" % "|".join(re.escape(i) for i in inst)
+            lre = (r"bridge_i\.udut\.(%s)\.ujoin" % "|".join(re.escape(i) for i in inst)) if inst else "(no compute: ctl only)"
         launch = {G[j]["out"] for j in range(len(G)) if G[j]["kind"] in ("lut5", "lut6") and G[j]["out"] in storage and re.search(lre, cellof(G[j]))}
         if not launch and kind == "compare":   # a one-channel compare has no join: its line starts at the input link's ctl
             inst = m1.group(1)
@@ -177,6 +176,7 @@ def auto():
                     if opn == set(opened): break
                     opened = frozenset(opn); isl, roots, order, acyc = cone(g["ins"][q], opened)
                 if not acyc: rows.append((None, name, "condition cone cyclic")); continue
+        if not launch and kind == "latch" and lre.startswith("(no compute"): launch = {r for r in roots if re.search(r"\.ctl\.", ncell(r))}
         if not launch: rows.append((None, name, "no launch node for %s" % lre)); continue
         def side(lset, rset, c):
             """request >= A + R (walk to lset), condition <= A + D (longest path from the roots in rset only)"""
@@ -194,7 +194,7 @@ def auto():
         elif kind == "compare*": parts = [("ctl", launch, roots)]   # roots: the launch ctl at A, other storage settled at A
         else:   # transparent while ctl is high: (1) from ctl's rise: the enable path through the latch; (2) from the compute's join: the data
             ctl = {r for r in roots if re.search(r"\.ctl\.", ncell(r))}
-            parts = [("ctl", ctl, ctl), ("join", launch, roots - ctl)]
+            parts = [("ctl", ctl, ctl)] + ([] if lre.startswith("(no compute") else [("join", launch, roots - ctl)])
         res, txt = [], []
         for nm_, ls, rs in parts:
             rr = [side(ls, rs, c) for c in (0, 1)]
