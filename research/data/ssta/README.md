@@ -57,3 +57,21 @@ no guard, and repeat over many draws.
 - The trim step moves the constraints of the lines it shortens from slack to the rule's own guard, 2.4-3.5 sd in the
   model, and nothing else (countloop s2, lfsrfind s1); the loop's own sized lines sit at the same distance (A'm umux0 untrimmed, 2.0
   sd). Formal's B23 says the same of its steer bounds.
+
+## Formal's latch-fed steer races (B21 / B26) in the draw model
+
+`research/tools/race_find.py` traces every steer whose condition comes from a link latch and whose request crosses that
+link's request line and the steer's join (both launched by the link's controller rising), and runs race_mc.py on each.
+Per route, the weakest such race (mean +- sd of request minus condition at the steer's output, over 100 000 points of
+the model; the band corners alone in brackets):
+
+| exit1 route | latch-fed steers | weakest | margin | sd from 0 | formal's ctl slack at kappa 0 (corner 0 / 1) |
+|---|---|---|---|---|---|
+| varshift s1 | 10 (5 steers x 2 halves) | ucond_br11 | 254 +- 59 ps (211-296) | 4.3 | -21 / +25 ps |
+| twoloops s2 | 24 | ucond_br17 | 425 +- 68 (370-479) | 6.2 | +42 / +115 |
+| fold64 s1 | 20 | ucond_br4 / br3 | 322 +- 54 / 303 +- 47 | 6.0 / 6.4 | +66 / +202 |
+| quadrec s3 | (rebuilding with its search-phase structure) | | | | +5 / +10 |
+
+varshift's race is the weakest found; the model loses it about 2e-5 of the time and the others are beyond 6 sd.
+formal's ranking (its fast-corner slack) and the model's agree on varshift being worst, but the model puts the
+other three much further from it than formal's corner does: formal's adversary sits outside the model's band box.
