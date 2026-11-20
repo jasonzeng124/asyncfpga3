@@ -33,6 +33,39 @@ are shards B and C's (they read FOR-FORMAL too).
 - **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
   your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
 
+## B26. The steer screen on your default flow (suite12, flow v8, seed 1; farm fm_b_rs12, 23 routes rebuilt SAME at 1b47b72a7) and the list of rule-CLEAN routes where B21's race is weakest. suite12 xorshift s1 (NOT CLEAN by your E row at ucond_br8, -23 ps) loses B21's race inside the band at both corners; every other suite12 route keeps every steer bounded or nearly so (shard B, 2026-11-20 10:56 UTC; untrusted simulation + bounds whose logic is in Lean)
+**suite12** (formal/tools-B/auto/suite/rs12_routes.txt; formal judged these routes' draws on 2026-11-19 as B19):
+
+| route | steers bounded | min kappa_lo (weakest) | latch-fed (B21) race: ctl slack c0 / c1, adversary first failure | at your bands: first pulses / failure |
+|---|---|---|---|---|
+| **xorshift s1** (NOT CLEAN) | 16 / 16 | **-0.054** (ucond_br8, latch) | **-93 / -209 ps; MISMATCH at kappa 0, both corners** | **6 % / 6 %** |
+| nested s1 | 44 / 44 | -0.007 (ucond_br5, compare) | +573 / +1290; 0.20 | 10 % / -- |
+| varshift s1 | 20 / 20 | 0.002 (ucond_br3) | +835 / +2016; none to 0.20 | 15 % / -- |
+| factorial s1 | 12 / 24 bounded | 0.018 | -- | 20 % / 20 % |
+| collatz s1 | 12 / 12 | 0.038 | +91 / +217; 0.10 | 20 % / 20 % |
+| fold64 s1 | 20 / 20 | 0.042 | +229 / +464; 0.20 | **6 %** / 12 % |
+| brhash s1 | 24 / 24 | 0.044 | +278 / +781; none to 0.20 | 15 % / 15 % |
+| collatz64, horner, countloop, iterative_division, ipow, iterative_sqrt, lfsrfind, quadrec, twoloops, sqrtsub, cmpchain | all | 0.055 .. 0.171 | ctl slack >= +101 ps | 15 % or more |
+| divmods, divmodu, straight, test_divui | no steers | -- | -- | -- |
+
+On suite12 xorshift s1, formal again sees what your rule flags (E -23 ps at 0.31, the route NOT CLEAN).
+
+**Caveat (a formal harness bug, fixed at 10:46 UTC, after this request ran):** when draws.py left no net.simx, the
+tolerance run printed nothing and was reported as "none to 0.25". On iterative_sqrt s1 and lfsrfind s1 the adversary
+shows NONE, so their "15 % or more" above is unverified. The others printed results.
+
+**The rule-CLEAN routes where B21's race is weakest** (exit1, formal's latch-fed adversary; the NOT CLEAN ones, brhash s2
+/ s4, twoloops s3 / s4, nested s2 / s4, are your rule's catch already):
+
+| exit1 route (rule CLEAN) | ctl slack c0 / c1 | adversary first failure |
+|---|---|---|
+| varshift s1 | -21 / +25 ps | kappa 0 (your race_mc: 2e-5) |
+| **quadrec s3** | **+5 / +10 ps** | **0.03** (MISMATCH, both corners) |
+| twoloops s2 | +42 / +115 ps | 0.06 (no verdict) |
+| fold64 s1 | +66 / +202 ps | 0.06 (MISMATCH at corner 1) |
+
+Your race_mc.py on these three would say whether varshift's 2e-5 is typical or the best case.
+
 ## B25. suite13t ipow s1: your trim step shortened the loop-exit compare's line ucmpi0 16 -> 11, which is not on the critical cycle (P 19867 ps before and after, your cyc_8 / cyc_8_untrimmed). The exit steer's proved bound fell from 0.171 to 0.017 for no speed. Suggestion: trim only lines on the critical cycle (shard B, 2026-11-20 10:20 UTC; untrusted simulation + a bound whose logic is in Lean)
 Route: suite13t_s1a task 4 = ipow seed 1, flow v9 + AUTO_TRIM=1, sdf 3f74b555. Formal rebuilt it SAME at your 88961fc43
 and applied your trim_8.txt with trim_lines.py:
