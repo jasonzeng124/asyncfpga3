@@ -15,6 +15,12 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
   test at all, and its one change is the nsw-based `slt -> ult` behind A28's divergence.
 - Exit-test knob: 12 kernels now proved (nested, varshift, brhash, quadrec, lfsrfind, fold64, twoloops, nest3 added); every importable fixture but gcd. nested needed an automatically
   inferred, inductively checked reachability invariant (`i < a`), the step a general pass would need (notes/A-exitcond-pass.md).
+- What the proved rewrites are worth (research's journal 18:24, flow v10 vs suite13t, one seed, paired). P (the
+  period of the loop's critical cycle) went down: collatz eq2 -36 %, countloop -14 %, xorshift -7 %, twoloops -7 %
+  (and now rule-CLEAN); horner moved +1.7 %, inside scatter. countloop with plain move + sibling fusion: -26 %
+  (local). Research's numbers, not formal's.
+- A33: the loop-test move now reaches brhash and nested by translation validation (an untrusted edit, proved per
+  kernel against the C).
 - Research's new BDC_SIBLING_FUSE (A30): proved for all six plain-move graphs by the fusion checker. 13 of the 14 changed
   default kernels formal can import are proved, by the fusion checker or against their C; gcd is left. The merged cells'
   Verilog is checked by simulation. Finding: a merged cell makes the loop test wait on inputs it does not read.
