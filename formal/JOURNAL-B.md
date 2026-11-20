@@ -5247,3 +5247,13 @@ xtol (weakest steer, research's bands): brhash s1 pulses 0.15 / none; s2 0.10 / 
 ### progress 09:33 -- farm b_rs12 filed: steer screen on research's 23 suite12 routes (default flow v8) at research 1b47b72a7; queued behind suite13t (farm full)
 xtol so far (weakest steer, research's bands, first pulses / first failure): fold64 s2 / s4 none / none, s3 0.15 / none; horner s1 0.10 / none, s2 0.15 / none, s3 0.25 / 0.25
 ### progress 09:34 -- hold half, screened: the swapped steer adversary (condition side fast, request side slow) passes to kappa 0.30 with 0 pulses on exit1 varshift s1, brhash s4, xorshift s1 and item 38 ipow (a screen, not a bound)
+### session summary update (09:35)
+- B20 (trim ucmpi0 8 -> 7 loses xorshift's exit steer race), B21 (latch-fed steer race: exit1 varshift s1 deadlocks at
+  kappa 0 in the FAST interval; fails at +-10 % opposite path error at research's own bands; brhash s4 shows it live at
+  research's nominal bands, matching research's own E row there; research reproduced formal's arcs within 5 ps and is
+  replaying), B22 (items 38-41: every steer bounded, ipow weakest 0.038; tolerance >= 12 % before pulses), B23 (trim
+  margin study: draws margin 2-3 elements, countloop's proved steer bound lost at k = 1), B24 (racescreen.sh handover).
+- Correction issued in B21 within minutes: research's GLS and rule DO carry prjxray per-pin LUT delays (xray_delay.py).
+- Lean: SteerSettle.lean (check.sh OK).
+- Running: exit1 watcher (rsx), loopscreen (ctl sweep + tolerance per new exit1 route), farm b_rs12 (suite12 steer
+  screen, queued). suite13t (8 split requests) not started; watch_trim.sh ready for it.
