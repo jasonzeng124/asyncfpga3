@@ -1570,6 +1570,15 @@ def main():
         for k, c in sorted(cons.items(), key=lambda kv: kv[1]["margin"]):
             if c["rule"] in SIZED_RULES and kernel_con(k) and c["margin"] < a.slack:
                 f.write("%s\t%d\t%s\t%s\n" % (c["rule"], c["margin"], k, "unfixable" if k in unf else "line"))
+    # CA_ALLCONS=1 (opt-in, 2026-11-20; research/tools/ssta_draws.sh): also every sized kernel constraint, short or not,
+    # with its margin at this corner and guard (all_constraints.tsv) -- the margin of each race under one draw of the
+    # delay model (research/tools/draw_sdf.py), collected over many draws.  Unset: no file, every output unchanged.
+    if os.environ.get("CA_ALLCONS", "") == "1":
+        with open(out / "all_constraints.tsv", "w") as f:
+            f.write("rule\tmargin\tkey\n")
+            for k, c in sorted(cons.items(), key=lambda kv: kv[1]["margin"]):
+                if c["rule"] in SIZED_RULES and kernel_con(k):
+                    f.write("%s\t%d\t%s\n" % (c["rule"], c["margin"], k))
 
     # ---- outputs
     rep = []
