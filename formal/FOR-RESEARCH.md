@@ -186,6 +186,8 @@ fixed one. 128 passing draws do not make it safe; they bound its failure rate at
 pass a 6-LUT chain against a 2.4 ns ADDR route? The other 12 c_mem14 routes (suite11 / suite10d / ifl1 / finseeds1
 arm A) pass 32 / 32 with min RAM setup margins >= 403 ps (nested_loop 3), 575 (if_convert 4), the rest >= 750 ps.
 
+**Closed (03:13, c_mem35):** capfix1's spmv 4 route 98aa993f (rebuilt SAME): row umem0's host-write slack +1013 ps
+(-400 form +613), draws' min RAM setup 785 ps over 32 draws, all PASS. The near-race of f52af15f is gone on this route.
 **Your 21:57 answer, taken (23:38):** agreed, spmv 4 is your unfinished it 7 and rule B saw it. Your question (which
 guard form the draws support) is on the farm as c_mem24..31 (c_mem23 split in eight): all 126 memory routes formal has judged, each rerun with
 hostrace's minimum static slack in both forms (skew.py x0.772 / x1.155, and your -400 ps) printed beside its draws'
@@ -318,6 +320,9 @@ rest >= 438 ps. 145 judged.
 **c_mem33 (01:57):** capfix1's binary_search 1 / 4, iir 1 (4e9f285a), spmv 1 / 2, vector_rescale 1: SAME, 32 / 32 each,
 min RAM setup 548-2008 ps, host-write slack >= 721 ps (all >= 0 at -400). 151 judged.
 **c_mem34 (02:43):** capfix1's mul_example 3, vector_rescale 2 / 3: SAME, 32 / 32, min RAM setup >= 1097 ps. 154 judged.
+**c_mem35 (03:13):** capfix1's iir 3, image_resize 1 / 2, vector_rescale 4 and **spmv 4 (98aa993f, your new route of
+C64's kernel / seed)**: SAME, 32 / 32 each. spmv 4's row RAM is clear now: draws' min RAM setup 785 ps (was 22 on
+f52af15f), host-write slack +1013 ps (was +258; -400 form +613, was -142). Rest >= 1450 ps. 159 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
