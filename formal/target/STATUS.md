@@ -6,6 +6,13 @@ DecodedPS.boundary DecodedPS.arbs p T R su Δo` (owner decision 4: sequential en
 Updated 2026-11-06 (shard A) from the 2026-11-02 journals of all three shards. Everything below is Lean-checked with
 standard axioms unless marked; "C" / "B" name the shard whose file it is.
 
+## 2026-11-20 (A): no change to the gcd theorem
+The list did not shrink, and there is no new counterexample. The day went to the first priority:
+- the exit-test knob, proved on 12 fixtures (FOR-RESEARCH A28);
+- research's trimmed routes, checked from the bits (A29);
+- the audit's T171 update.
+The new proofs are token level and say nothing about THE target's gates. Open, as before: S4 / S6 on the decoded net.
+
 ## 2026-11-19 (A): no change to the gcd theorem (morning)
 The list did not shrink and no new counterexample. The day went to the first priority: research's automatic path
 (FOR-RESEARCH A24 / A25: pre_eq2 and plain pre_dec as Lean-checked passes; operator fusion and BDC_AUTO's graph changes
