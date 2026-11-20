@@ -55,6 +55,30 @@ def knob_of_base(base, last_stage):
     return base
 
 
+def last_stages(cells):
+    """{link: its last stage}, from EVERY cell of the link's stages, as corner_audit.py computes it.  From the delay
+    chains alone, a link whose last stage has no request line (DELAY 0: a bypass, no chain) looked one stage shorter,
+    and its stage-0 line (the _SDELAY macro) was named after the link itself: the trim step could not find _SDELAY, and
+    AUTO_OVERBUILD raised the link's own macro (0 -> 3, a new line on the last stage) instead (sym ipow s1, 2026-11-20)."""
+    # Opt-in until flow v10's last parts and resumes have run (it would change which _SDELAY trims the step applies):
+    # TRIM_STAGEFIX=1, or AUTO_OVERBUILD / BD_SYMTRIM in the environment (the runs this was found on). Unset: the old,
+    # chain-only computation, byte-identical behaviour.
+    if not (os.environ.get("TRIM_STAGEFIX") == "1" or os.environ.get("AUTO_OVERBUILD")
+            or "BD_SYMTRIM" in os.environ.get("BD_DEFINES", "")):
+        out = {}
+        for n in cells:
+            m = re.match(r"^(.*)\.many\.stage\[(\d+)\]\.u\.rdly$", RE_EL.match(n).group("base")) if RE_EL.match(n) and n.startswith("bridge_i.udut.") else None
+            if m:
+                out[m.group(1)] = max(out.get(m.group(1), -1), int(m.group(2)))
+        return out
+    out = {}
+    for n in cells:
+        m = re.match(r"^(.*?)\.many\.stage\[(\d+)\]\.u\.", n)
+        if m:
+            out[m.group(1)] = max(out.get(m.group(1), -1), int(m.group(2)))
+    return out
+
+
 def macro(path):
     return "BD_SZ_" + re.sub(r"[^A-Za-z0-9]", "_", path).upper()
 
@@ -70,11 +94,7 @@ def list_lines(rj):
         m = RE_EL.match(n)
         if m and n.startswith("bridge_i.udut."):
             chains.setdefault(m.group("base"), {})[int(m.group("i"))] = n
-    last_stage = {}
-    for b in chains:
-        m = re.match(r"^(.*)\.many\.stage\[(\d+)\]\.u\.rdly$", b)
-        if m:
-            last_stage[m.group(1)] = max(last_stage.get(m.group(1), -1), int(m.group(2)))
+    last_stage = last_stages(cells)
     # A 1-element line shows no type (g[0] is a LUT1 in every kind).  Two kinds are side-input lines by construction:
     # a link's acknowledge line (rtl/bd_link.v: uack is FASTFALL / FASTRISE in every variant) and a bdc compute unit's
     # request line (bdc/compute.py request_delay: bd_delay_gated under BDC_FASTFALL, the default); any other
@@ -123,11 +143,7 @@ def main():
         m = RE_EL.match(n)
         if m and n.startswith("bridge_i.udut."):
             chains.setdefault(m.group("base"), {})[int(m.group("i"))] = n
-    last_stage = {}
-    for b in chains:
-        m = re.match(r"^(.*)\.many\.stage\[(\d+)\]\.u\.rdly$", b)
-        if m:
-            last_stage[m.group(1)] = max(last_stage.get(m.group(1), -1), int(m.group(2)))
+    last_stage = last_stages(cells)
     by_macro = {}
     for b in chains:
         by_macro.setdefault(macro(knob_of_base(b, last_stage)), []).append(b)
