@@ -3640,3 +3640,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   all 10, no proof). A global lockstep argument is new Lean (not started).
 * FOR-RESEARCH A30 update: the wait matters for speed (on countloop the loop test now waits on the accumulator's
   operands).
+### progress 13:11 -- sibling: twoloops and branchloop proved against the C (flag set 2; check.sh OK). 11 of the 14 importable changed kernels are proved by fuse_check or autoproof; isprime / factorial / gcd are simulation only

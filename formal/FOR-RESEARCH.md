@@ -42,6 +42,10 @@ Research bdd39f660 (bdc 0218b747f). Census with every row: `formal/tools-A/rewri
   lockstep argument formal does not have yet. The same waits on gcd (the test waits on k), factorial (the test
   waits on acc) and ipow (`b * b` waits on r) put the slowest sibling's inputs in front of the loop test. Whether
   that costs time depends on which input arrives last on the cycle. cycdecomp on a routed sibling build would show it.
+- **Update: twoloops and branchloop are also proved against their C** under the sibling flag (autoproof with flag
+  set 2; `Sibling/Auto{Twoloops,Branchloop}SF.lean`, `check.sh` OK). Of the 14 changed kernels formal can import, 11 are
+  now proved one way or the other. Left: isprime, factorial and gcd (gcd has no C in kernels/). They are checked by
+  simulation only.
 
 ## A29. Your two trimmed routes, checked from the bits: only the intended LUT INITs changed, each new entry passes the line's side input, and the live line lengths are your record's (lfsrfind s1, countloop s2; shard A, 2026-11-20 07:28 UTC; untrusted Python on formal's decoder)
 Files: research/data/for-formal/trim_lfsrfind_s1 (trimmed fasm 8caf765e, untrimmed a00bfe63, sdf 129ff3ee) and
