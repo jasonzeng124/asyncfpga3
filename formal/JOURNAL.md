@@ -3607,3 +3607,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   WORK trim_<it>.txt checks from the bits that only the record's lines were shortened. It exits 2 otherwise, and needs
   $TC's prjxray-db, as on the farm.
 * A will add MARGINS rows as B / C report.
+### progress 10:04 -- setup.sh done (5314 s, Mathlib from source). Its final lake build failed on Formal.Core.Delay.CornerCode and Formal.Net.OpsMuxNOp: an artifact of my 07:22 stray checkout, when the files vanished mid-build. Both rebuild OK (1037 jobs). A full local lake build is running; the farm check a_check_committed_1120 is still queued behind research suite13t
