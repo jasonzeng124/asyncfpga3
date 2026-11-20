@@ -188,7 +188,7 @@ def auto():
                 if not acyc: rows.append((None, name, "condition cone cyclic")); continue
         if not launch and kind == "latch" and lre.startswith("(no compute"): launch = {r for r in roots if re.search(r"\.ctl\.", ncell(r))}
         if not launch: rows.append((None, name, "no launch node for %s" % lre)); continue
-        def side(lset, rset, c):
+        def side(lset, rset, c, order=order, roots=roots, opened=opened):
             """request >= A + R (walk to lset), condition <= A + D (longest path from the roots in rset only)"""
             global launch
             launch = lset; Rv = req_bound(g["ins"][p], c)
@@ -200,14 +200,36 @@ def auto():
                 t[u] = max((x + lerp(gg["arcs"][i]["fmax"], gg["arcs"][i]["smax"], c) for i, x in enumerate(vals) if i not in fb and x is not None), default=None)
             D = t.get(g["ins"][q])
             return (Rv + lerp(g["arcs"][p]["fmin"], g["arcs"][p]["smin"], c), None if D is None else D + lerp(g["arcs"][q]["fmax"], g["arcs"][q]["smax"], c))
-        if kind == "compare": parts = [("join", launch, roots)]
+        if kind == "compare":
+            # FIX 2026-11-20 12:00: a compare's operand latches are transparent while their link's ctl is HIGH, so they
+            # change AFTER the ctl rise that the compare's join waits for; "operands settled at the join's rise" was false
+            # (exit1-style suite12 lfsrfind s1: an operand latch flipped 787 ps after the join). One term per input link:
+            # launch = that link's ctl (read by the join), its latches opened, their data pins cut (the link's bundling),
+            # other links' latches excluded from the term (each is its own term).
+            Ls = sorted({through(w) for j in launch for w in G[drv[j]]["ins"] if re.search(r"\.ctl\.", ncell(through(w)))})
+            if not Ls: rows.append((None, name, "compare's join reads no link ctl: not handled")); continue
+            parts = []
+            for Lc in Ls:
+                CUT.clear(); CUT.add(Lc); opn = frozenset()
+                for _ in range(3):
+                    il, rl, ol, al = cone(g["ins"][q], opn)
+                    new_opn = set(opn) | {r for r in rl if r in storage and re.search(r"\.lat\.", ncell(r)) and
+                                          any(through(w) == Lc for i, w in enumerate(G[drv[r]]["ins"]) if i not in fbpins(r))}
+                    if new_opn == set(opn): break
+                    opn = frozenset(new_opn)
+                if not al: parts = None; break
+                rs_ = {r for r in rl if not (r in storage and re.search(r"\.lat\.", ncell(r)))}
+                parts.append(("ctl " + ncell(Lc).replace(".ctl.u.u", ""), {Lc}, rs_, ol, rl, opn))
+            CUT.clear()
+            if parts is None: rows.append((None, name, "condition cone cyclic")); continue
         elif kind == "compare*": parts = [("ctl", launch, roots)]   # roots: the launch ctl at A, other storage settled at A
         else:   # transparent while ctl is high: (1) from ctl's rise: the enable path through the latch; (2) from the compute's join: the data
             ctl = {r for r in roots if re.search(r"\.ctl\.", ncell(r))}
             parts = [("ctl", ctl, ctl)] + ([] if lre.startswith("(no compute") else [("join", launch, roots - ctl)])
         res, txt = [], []
-        for nm_, ls, rs in parts:
-            rr = [side(ls, rs, c) for c in (0, 1)]
+        for pt in parts:
+            nm_, ls, rs = pt[:3]
+            rr = [side(ls, rs, c, *pt[3:]) if len(pt) > 3 else side(ls, rs, c) for c in (0, 1)]
             if any(x is None for x in rr): txt.append("%s: no forcing request path" % nm_); res = None; break
             if any(x[1] is None for x in rr): txt.append("%s: no condition path" % nm_); continue
             kk_ = min((R - D) / (R + D) for R, D in rr); res.append(kk_)
