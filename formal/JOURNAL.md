@@ -3518,3 +3518,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   4-input cell into one comp per part so JoinExt's unjoin applies. Re-verified here: check.sh OK on Width.lean (1713
   decls, std axioms); iterative_sqrt / iterative_division PROVED UNDER THE WIDTH ASSUMPTION; xorshift, nest3, sqrtsub
   PROVED; iterative_sqrt controls slice_low / part_plus1 REFUSED rc 2. Census (subagent): 22 PROVED, 4 same, 0 refused.
+### progress 03:54 -- two-hour re-read: PROGRAM.md unchanged (cffa0d44b); research FOR-FORMAL / PROGRAM / bdc unchanged since f538cb518 (HEAD 7a7cffb2d); audit: no new row on A's files. Background poll and lock refresher reached their 2 h limit (not restarted); lock now refreshed by hand
