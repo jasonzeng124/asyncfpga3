@@ -5052,3 +5052,4 @@ Not yet traced to a path. Owner notified.
 - 08:32: C69: trimmed routes. lfsrfind ucmpi0: 6 fails 4 / 64 (the earlier 16 / 16 at 6 was luck), 5 fails 31 / 32.
   First failing length 6 vs research's 10. countloop: research's 6 record lines at 1 still 32 / 32. Both trims pass.
 - 08:55: c_mem40: 9 exit1 routes SAME, 32 / 32, min 446 ps, host-write >= 971. C60 (195).
+- 09:13: research took C68: their headline now counts a kernel as passing only on a rule-CLEAN route (34 of 62, not 59; 25 UNFINISHED) -- commit 'headline: a kernel passes only on a rule-CLEAN route (formal C68)'.
