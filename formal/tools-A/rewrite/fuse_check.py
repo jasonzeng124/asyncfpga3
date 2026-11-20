@@ -121,6 +121,11 @@ class FPlan(Q.Plan):
             assert last[0] == 'fork' and rf[0] == 'fork' and rf[2][0] == last[1], st
             rs[lf] = ('fork', rf[1], list(last[2]) + list(rf[2][1:])); self.pre += [last[1]]; self.chg += [last[1]]
             self.steps.append(st)
+        elif k == 'unabsorb':   # Absorb read backward (Lean: applyUA, checked by absorbing back and dropping the sink)
+            _, lq, bs, as_, pc, f, g = st; rq = rs[lq]
+            assert rq[0] == 'comp' and list(rq[1]) == list(bs) + list(as_) and Q.absorbE(len(bs), len(as_), f, g) == rq[3], st
+            rs[lq] = ('comp', list(bs) + [pc], rq[2], g); rs.append(('comp', list(as_), pc, f))
+            self.pre += [pc, pc]; self.chg += [pc] + list(as_); self.steps.append(st)
         elif k == 'constdata':
             _, lc, i, v, C = st; rc = rs[lc]; n = len(rc[1])
             F2 = Q.subst(rc[3], [('lit', v) if j == i else ('var', j) for j in range(n)])
@@ -238,17 +243,108 @@ def rf_merge(p, inner, outer, labs):
     p.do(('forkmerge', outer))
     return outer
 
+def subterms(e):
+    yield e
+    if e[0] == 'un': yield from subterms(e[3])
+    elif e[0] == 'bin': yield from subterms(e[3]); yield from subterms(e[4])
+    elif e[0] == 'sel':
+        for x in e[1:]: yield from subterms(x)
+
+def vars_of(e): return {s[1] for s in subterms(e) if s[0] == 'var'}
+
+def replace_t(e, t, by):
+    if e == t: return by
+    if e[0] == 'un': return ('un', e[1], e[2], replace_t(e[3], t, by))
+    if e[0] == 'bin': return ('bin', e[1], e[2], replace_t(e[3], t, by), replace_t(e[4], t, by))
+    if e[0] == 'sel': return ('sel',) + tuple(replace_t(x, t, by) for x in e[1:])
+    return e
+
+def contains(e, t): return any(s == t for s in subterms(e))
+
+def size(e): return sum(1 for _ in subterms(e))
+
+def rf_factor(H, k, slices):
+    """A k-input cell `comp (n :: as) z H` (n first) as `comp as p f` absorbed into `comp [n, p] z g`:
+    f is a subterm of H over `as` only, every read of `as` in H lies inside a copy of f, and every slice of the
+    packed word still unpacks with f folded (no part is f itself). Largest such f first. None if there is none."""
+    seen = []
+    for s in subterms(H):
+        v = vars_of(s)
+        if s[0] != 'var' and v and v <= set(range(1, k)) and s not in seen: seen.append(s)
+    for s in sorted(seen, key=size, reverse=True):
+        g = replace_t(H, s, ('var', 10 ** 6))
+        if not vars_of(g) <= {0, 10 ** 6}: continue
+        g = replace_t(g, ('var', 10 ** 6), ('var', 1))
+        f = Q.subst(s, [('lit', 0)] + [('var', j) for j in range(k - 1)])
+        if Q.absorbE(1, k - 1, f, g) != H: continue
+        if all(not contains(unslice_n(8, Q.subst(S, [g])), g) for S in slices): return f, g
+    return None
+
+def is_test(R, ch):
+    """`ch` is read by a comp whose result only steers branches (a loop test), possibly through comps that absorb."""
+    a = Q.readers(R, ch)
+    if len(a) != 1 or R[a[0]][0] != 'comp': return False
+    b = Q.readers(R, R[a[0]][2])
+    if len(b) == 1 and R[b[0]][0] == 'comp': return is_test(R, R[a[0]][2])   # the test's copy, not yet absorbed
+    if len(b) != 1 or R[b[0]][0] != 'fork': return False
+    return all(len(Q.readers(R, z)) == 1 and R[Q.readers(R, z)[0]][0] == 'branch'
+               and R[Q.readers(R, z)[0]][1] == z for z in R[b[0]][2])
+
+def rf_flatten(p, pins):
+    """Every fork fed by the fork reading `pin` merges into it (so duplicate reads can dedupe)."""
+    R = p.rs
+    for pin in pins:
+        while True:
+            lo = [l for l in Q.readers(R, pin) if R[l][0] == 'fork']
+            if len(lo) != 1: break
+            lo = lo[0]
+            kid = next((ch for ch in R[lo][2]
+                        if len(Q.readers(R, ch)) == 1 and R[Q.readers(R, ch)[0]][0] == 'fork'), None)
+            if kid is None: break
+            os_ = list(R[lo][2])
+            if os_[0] != kid: p.do(('forder', lo, [kid] + [x for x in os_ if x != kid]))
+            rf_merge(p, Q.readers(R, kid)[0], lo, {})
+
+def rf_order(p, pins):
+    """Canonical order, as on the other side: the updates' copies first, the test's last."""
+    R = p.rs
+    for pin in pins:
+        lo = [l for l in Q.readers(R, pin) if R[l][0] == 'fork']
+        if len(lo) != 1: continue
+        os_ = list(R[lo[0]][2]); want = [c for c in os_ if not is_test(R, c)] + [c for c in os_ if is_test(R, c)]
+        if want != os_: p.do(('forder', lo[0], want))
+
+def rf_prefactor(p, lc, sls, branch_data):
+    """A three-input packed cell with two slices: the inputs the update parts read (`as`, two of them) are folded
+    into one fresh channel by `unabsorb`, so that the cell reads `[n, pc]` and the two-input steps apply.
+    Returns (label of `comp as pc f`, pc, as) or None (nothing done)."""
+    R = p.rs; r = R[lc]; ins = list(r[1]); H = r[3]
+    if len(sls) != 2: return None
+    parts = [unslice_n(8, Q.subst(R[s][3], [H])) for s in sls]
+    ups = [k for k in range(2) if branch_data(R[sls[k]][2]) is not None]
+    if not ups: return None
+    U = set().union(*(vars_of(parts[k]) for k in ups))
+    bs = [ins[i] for i in range(3) if i not in U]; as_ = [ins[i] for i in range(3) if i in U]
+    if len(bs) != 1 or len(as_) != 2: return None
+    ins2 = bs + as_; H2 = Q.reindex(ins, ins2, H)
+    fg = rf_factor(H2, 3, [R[s][3] for s in sls])
+    if fg is None: return None
+    if ins2 != ins: p.do(('reorder', lc, ins2))
+    pc = fresh(R)
+    p.do(('unabsorb', lc, bs, as_, pc, fg[0], fg[1]))
+    return len(R) - 1, pc, as_
+
 def rf_unpack(p):
     """Fused side (BDC_RING_FUSE): a one- or two-input packed cell, its fork and its two or three slices become the
     test and the updates as separate comps; an update stops waiting for the input it does not read (unjoin).
     Returns the number of cells done."""
-    R = p.rs; done = 0
+    R = p.rs; done = 0; skip = set()
     def branch_data(ch):
         rd = Q.readers(R, ch); return rd[0] if len(rd) == 1 and R[rd[0]][0] == 'branch' and R[rd[0]][2] == ch else None
     while True:
         hit = None
         for lc, r in enumerate(R):
-            if r[0] != 'comp' or len(r[1]) not in (1, 2): continue
+            if r[0] != 'comp' or len(r[1]) not in (1, 2, 3) or lc in skip: continue
             Wf = Q.readers(R, r[2])
             if len(Wf) != 1 or R[Wf[0]][0] != 'fork' or len(R[Wf[0]][2]) not in (2, 3): continue
             lf = Wf[0]; sl = [Q.readers(R, z) for z in R[lf][2]]
@@ -256,7 +352,11 @@ def rf_unpack(p):
             if not all(unslice_n(8, Q.subst(R[a[0]][3], [r[3]])) != Q.subst(R[a[0]][3], [r[3]]) for a in sl): continue
             hit = (lc, lf, [a[0] for a in sl]); break
         if hit is None: return done
-        lc, lf, sls = hit; one = len(R[lc][1]) == 1; k3 = len(sls) == 3
+        lc, lf, sls = hit; fac = None
+        if len(R[lc][1]) == 3:   # a three-input cell: factored into a two-input one first (unabsorb)
+            fac = rf_prefactor(p, lc, sls, branch_data)
+            if fac is None: skip.add(lc); continue
+        one = len(R[lc][1]) == 1; k3 = len(sls) == 3
         L0 = len(R); e = fresh(R); f = lambda i: e + 1 + i
         labs = {'lc': lc, 'lf': lf, 'sls': list(sls)}
         if not k3:
@@ -314,6 +414,16 @@ def rf_unpack(p):
         for lfk in [l for l in (lx, ln) if l is not None]:
             os_ = list(R[lfk][2]); want = [c for c in upd_ins if c in os_] + [c for c in os_ if c not in upd_ins]
             if want != os_: p.do(('forder', lfk, want))
+        if fac:   # the factored comp `comp as pc f` now feeds a two-way fork of pc: one copy per comp (forkcomm2)
+            Lp, pc, as_ = fac; lfp = Q.readers(R, pc)
+            if len(lfp) != 1 or R[lfp[0]][0] != 'fork' or len(R[lfp[0]][2]) != 2: return done
+            pins = []
+            for c in as_:
+                W = Q.writers(R, c)
+                if len(W) == 1 and R[W[0]][0] == 'fork': pins.append(R[W[0]][1])
+            e2 = fresh(R)
+            p.do(('forkcomm2', Lp, lfp[0], e2, e2 + 1, e2 + 2, e2 + 3))
+            rf_flatten(p, pins); rf_order(p, pins)
         done += 1
 
 def rf_split(p):
@@ -352,30 +462,8 @@ def rf_split(p):
         for c in r[1]:    # remember the fork tree above each input; flattened after every split is done
             W = Q.writers(R, c)
             if len(W) == 1 and R[W[0]][0] == 'fork': pins.append(R[W[0]][1])
-    for pin in pins:      # every fork fed by the parent fork merges into it (so duplicate reads can dedupe)
-        while True:
-            lo = [l for l in Q.readers(R, pin) if R[l][0] == 'fork']
-            if len(lo) != 1: break
-            lo = lo[0]
-            kid = next((ch for ch in R[lo][2]
-                        if len(Q.readers(R, ch)) == 1 and R[Q.readers(R, ch)[0]][0] == 'fork'), None)
-            if kid is None: break
-            os_ = list(R[lo][2])
-            if os_[0] != kid: p.do(('forder', lo, [kid] + [x for x in os_ if x != kid]))
-            rf_merge(p, Q.readers(R, kid)[0], lo, {})
-    def is_test(ch):      # read by a comp whose result only steers branches (a loop test)
-        a = Q.readers(R, ch)
-        if len(a) != 1 or R[a[0]][0] != 'comp': return False
-        b = Q.readers(R, R[a[0]][2])
-        if len(b) == 1 and R[b[0]][0] == 'comp': return is_test(R[a[0]][2])   # the test's copy, not yet absorbed
-        if len(b) != 1 or R[b[0]][0] != 'fork': return False
-        return all(len(Q.readers(R, z)) == 1 and R[Q.readers(R, z)[0]][0] == 'branch'
-                   and R[Q.readers(R, z)[0]][1] == z for z in R[b[0]][2])
-    for pin in pins:      # canonical order, as on the fused side: the updates' copies first, the test's last
-        lo = [l for l in Q.readers(R, pin) if R[l][0] == 'fork']
-        if len(lo) != 1: continue
-        os_ = list(R[lo[0]][2]); want = [c for c in os_ if not is_test(c)] + [c for c in os_ if is_test(c)]
-        if want != os_: p.do(('forder', lo[0], want))
+    rf_flatten(p, pins)   # every fork fed by the parent fork merges into it (so duplicate reads can dedupe)
+    rf_order(p, pins)     # canonical order, as on the fused side: the updates' copies first, the test's last
     return done
 
 def normal_form(rs, rf=None):
@@ -437,7 +525,7 @@ def normal_form(rs, rf=None):
     p.drops()
     return p
 
-RF_STEPS = ('forkcomm2', 'unpack', 'unjoin', 'permute', 'forkmerge')
+RF_STEPS = ('forkcomm2', 'unpack', 'unjoin', 'permute', 'forkmerge', 'unabsorb')
 CTL = None
 
 def mutate(R, ctl):
@@ -469,6 +557,9 @@ def mutate(R, ctl):
     return out
 
 def ser_step_rf(st):
+    if st[0] == 'unabsorb':
+        _, lq, bs, as_, pc, f, g = st
+        return f'.unabsorb {lq} {PP.ser(list(bs))} {PP.ser(list(as_))} {pc} {PP.ser(f)} {PP.ser(g)}'
     return Q.ser_step(st) if st[0] in RF_STEPS else '.base (' + Q.ser_step(st) + ')'
 
 TEMPLATE_RF = (Q.TEMPLATE.replace('import Formal.Rewrite.Steps.ScriptSound', 'import Formal.Rewrite.Steps.ScriptRF')

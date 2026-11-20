@@ -541,6 +541,36 @@ theorem applyFM_sound {rs : List Rule} {lf : Nat} {res : Res} (h : applyFM rs lf
     next => cases h
   next => cases h
 
+/-! ## Absorb read backward (a k-input cell factored into a 2-input one) -/
+
+/-- The comp at `lq` (writing `q`) is split into `comp as p f`, appended at the end on the fresh channel `p`, and
+`comp (bs ++ [p]) q g` at `lq`. Checked, not trusted: absorbing the new comp back into `lq` (`Absorb`) and dropping
+the sink that leaves (`drop`) must give `rs` exactly. -/
+def applyUA (rs : List Rule) (lq : Nat) (bs as : List Nat) (p : Nat) (f g : E) : Option Res :=
+  match rs[lq]? with
+  | some (.comp _ q _) =>
+    match runScript (rs.set lq (.comp (bs ++ [p]) q g) ++ [.comp as p f]) [.absorb rs.length lq, .drop rs.length] with
+    | some (rs2, pre, chg) =>
+      if rs2 = rs then some (rs.set lq (.comp (bs ++ [p]) q g) ++ [.comp as p f], pre, chg) else none
+    | none => none
+  | _ => none
+
+theorem applyUA_sound {rs : List Rule} {lq : Nat} {bs as : List Nat} {p : Nat} {f g : E} {res : Res}
+    (h : applyUA rs lq bs as p f g = some res) : Sound rs res.1 res.2.1 res.2.2 := by
+  unfold applyUA at h
+  split at h
+  next q _ _ =>
+    split at h
+    next rs2 pre chg hr =>
+      split at h
+      next he =>
+        subst he
+        obtain rfl := (Option.some.inj h).symm
+        exact (runScript_sound hr).symm
+      next => cases h
+    next => cases h
+  next => cases h
+
 /-! ## Scripts with the ring-fusion steps -/
 
 inductive StepRF
@@ -550,6 +580,7 @@ inductive StepRF
   | unjoin (lx ln lc lk lb lu : Nat)
   | permute (T Ti : List Nat)
   | forkmerge (lf : Nat)
+  | unabsorb (lq : Nat) (bs as : List Nat) (p : Nat) (f g : E)
   deriving Repr
 
 def applyStepRF (rs : List Rule) : StepRF → Option Res
@@ -559,6 +590,7 @@ def applyStepRF (rs : List Rule) : StepRF → Option Res
   | .unjoin lx ln lc lk lb lu => applyUJ rs lx ln lc lk lb lu
   | .permute T Ti => applyPM rs T Ti
   | .forkmerge lf => applyFM rs lf
+  | .unabsorb lq bs as p f g => applyUA rs lq bs as p f g
 
 def runScriptRF : List Rule → List StepRF → Option Res
   | rs, [] => some (rs, [], [])
@@ -579,6 +611,7 @@ theorem applyStepRF_sound {rs : List Rule} {s : StepRF} {res : Res} (h : applySt
   | unjoin lx ln lc lk lb lu => exact applyUJ_sound h
   | permute T Ti => exact applyPM_sound h
   | forkmerge lf => exact applyFM_sound h
+  | unabsorb lq bs as p f g => exact applyUA_sound h
 
 /-- **The pass theorem with the ring-fusion steps.** A script `runScriptRF` accepts is sound. -/
 theorem runScriptRF_sound : ∀ {rs : List Rule} {ss : List StepRF} {rs' : List Rule} {pre chg : List Nat},
