@@ -8916,3 +8916,24 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   period cost) is moot if it is not taken alone. **Replaced by** sym ipow s1 and sym sqrtsub s2 (flow v10 + BD_SYMTRIM +
   AUTO_OVERBUILD=3 + AUTO_RACE_KEEP=1; v10 shipped both clean after 4 finish routes, P 19867 / 21661): the period cost
   of the combination. PREDICTION: trimmed P within -3 .. +8 % of v10's; clean within 2 finish routes; every draw passes.
+### progress 21:52 (Dynamatic routed on 9 kernels so far: the timing-model estimates were 11-30 % too slow on 5 and 28-45 % too fast on 3)
+- research/tools/suite/dyn_all.sh, nextpnr 6e5d224472232d5d, seeds 1-4 each; every export checked exact (results = the
+  C, cycles = dynamatic_est.py's model, every call):
+
+  | kernel | period ESTIMATE (model x 0.793), ns | period ROUTED, mean of 4, ns | routed / estimate | cycles per iteration (simulated) |
+  |---|---|---|---|---|
+  | xorshift | 11.92 | 11.48 | 0.96 | 1.00 |
+  | collatz | 15.48 | 13.79 | 0.89 | 1.00 |
+  | collatz64 | 17.11 | 16.90 | 0.99 | 1.00 |
+  | ipow | 10.00 | 9.12 | 0.91 | 5.00 |
+  | gcd | 12.55 | 11.05 | 0.88 | 0.99 |
+  | straight | 14.92 | 14.66 | 0.98 | - |
+  | isprime | 9.26 | 11.74 | **1.27** | 1.00 |
+  | countloop | 8.36 | 11.74 | **1.40** | 1.00 |
+  | sqrtsub | 8.36 | 12.11 | **1.45** | 1.00 |
+
+  countloop's routed critical path is the counter's 32-bit add (8 CARRY4) straight into the 32-bit loop compare:
+  Dynamatic does not have our proved plain move (i < n - 1 tested on i), and its unit-delay model prices that pair
+  low. So the headline's estimated ratios for such kernels made us look worse than we are (countloop: ours 19.12 / 8.36
+  = 2.29 against the estimate, 19.12 / 11.74 = 1.63 against the route). The tables are rewritten when the run ends
+  (dyn_apply.py; a preview over v10's interim results: measured-ratio geometric mean 1.22 over n = 6).
