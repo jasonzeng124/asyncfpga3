@@ -5023,3 +5023,9 @@ Research shortens matched delay lines after routing (LUT INIT only, trim_lines.p
 formal's margins / draws and any race its rule misses. trimtask.sh: fixture copy, tools-B task.sh rebuild (sdf checked
 against research's md5.txt) with untrimmed decode + draws, then research's trim_lines.py (trimmed FASM md5 checked),
 fasm2frames / xc7frames2bit, read back, decode, the same draws on the trimmed bits. Both routes running locally (16 + 16).
+- 07:37: trimmed routes: lfsrfind s1 (129ff3ee) and countloop s2 (aa201b8b) rebuilt SAME, trim_lines reproduces
+  research's trimmed FASM md5 exactly (8caf765e / c025f8bf), bits read back and decoded: 16 + 16 draws PASS untrimmed
+  AND trimmed on both; mean last answer drops 2.8 % / 11 % (research 2.9 / 9.8 %), so the decoder sees the trims.
+  NEGATIVE CONTROL: countloop with research's 6 lines all at 1 element: still 16 + 16 PASS -- the draws cannot tell
+  research's trim from a much harsher one here, so "trimmed passes" is no margin evidence yet. Running every sized
+  line (79 macros) at 1 to see whether the draws can fail at all on this kernel.
