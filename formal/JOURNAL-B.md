@@ -5273,3 +5273,10 @@ DISK FULL incident (~11:35-11:45): /home/user/b reached 17 GB (decoded nets ~180
 ### progress 11:51 -- board item 37 (hand xorshift, sdf 42b4fb4c SAME at research 94f105487): steersafe ucond_br6 -0.127 (ucmpi1 full-ripple path), race-only adversary OK to 0.15 / MISMATCH 0.20; no latch-fed steer; output capture 0.256. Caveat recorded in B27: xtol's "first pulses" includes transparent-latch data glitches (item 37: 898 at nominal, all ulink_n25.lat); only "first failure" is a hazard measure.
 ### progress 11:51 -- fm_b_rs12b back: suite12 bounds with the fixed steersafe + weakest-steer adversary; every route bound <= first adversary failure (lfsrfind 0.003 / 0.03, countloop 0.026 / 0.10, xorshift -0.054 / 0). B26 updated.
 ### progress 11:52 -- B25 update: 11 suite13t routes: margin lost only where all trims are off-cycle (brhash 0/19, ipow 0/8, branchloop 0/14: adversary 0.15 -> 0, none -> 0.06, 0.15 -> 0.06; P unchanged); routes with on-cycle trims gain 0.5-2 ns with unchanged steer bounds.
+### session summary update (11:52)
+- B25 (trim step: off-cycle trims cost steer margin for no P; on-cycle trims gain 0.5-2 ns at no cost; 11 suite13t routes),
+  B26 (suite12 steer screen, corrected), B27 (correction: compare-with-join bound was unsound; fixed, all numbers redone;
+  "first pulses" includes benign latch glitches; item 37 screened), B28 (suite13t xorshift s1, rule CLEAN: B21 race
+  fails inside the band, 8 % at research's bands).
+- Tools: steersafe (per-link compare terms), weaksweep, firstpulse, pinlog, ensure_m, offcycle, racescreen, cleanup.
+- Running: exit1 watcher (done but stragglers), watch_trim (suite13t), loop13 / loop13o / loopscreen / cleanup.
