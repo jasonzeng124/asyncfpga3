@@ -19,6 +19,13 @@ their code as the thing under test, not as a reference. Assume every claim
 is wrong until you have reproduced it. A claim you could not check is
 **UNVERIFIED**, not passed.
 
+## Quota (owner, 2026-11-20 15:00 UTC): "can you chill on claude usage a bit"
+
+**From now on: at most 1 subagent at a time.** This replaces every helper limit below
+(the 4 / 2 / 2 of 2026-11-18 included). The cost of a session is mostly its helpers, so keep
+them for work that needs them in parallel, and do the rest in the main session. Nothing else
+changes: the work, its order and the schedule stay as they are.
+
 ## Quota (owner, 2026-11-18 16:48 UTC): a full allowance until the reset, then the usual limits
 
 The week's quota ran out at 10:16 UTC today and every bot stopped. At 16:48 UTC the owner:
