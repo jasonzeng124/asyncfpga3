@@ -15,6 +15,12 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
   test at all, and its one change is the nsw-based `slt -> ult` behind A28's divergence.
 - Exit-test knob: 12 kernels now proved (nested, varshift, brhash, quadrec, lfsrfind, fold64, twoloops, nest3 added); every importable fixture but gcd. nested needed an automatically
   inferred, inductively checked reachability invariant (`i < a`), the step a general pass would need (notes/A-exitcond-pass.md).
+- Shards B / C on research's newest routes:
+  - B21: a race research's rule calls clean, a steer whose condition comes through a link latch, deadlocks exit1
+    varshift s1 inside the prjxray fast interval (kappa 0); the same race fails at 0.03-0.06 on three more routes.
+  - C68: exit1 spmv s1 hangs in 11 / 32 draws, starting at the steer the rule flagged as short.
+  - B20 / B23: trims move the steer races; the draws' "k elements of margin" overstates the distance to formal's
+    first lost bound.
 - Research's first trimmed routes (lfsrfind s1, countloop s2) checked from the bits (A29): only the intended LUT INITs
   changed, each new entry passes the side input, live lengths = record; negative control caught.
 - Shard C: the exit-test fixtures stay live in the exhaustive model (C67: 59 LIVE, 9 sampled-live, 0 deadlock);
