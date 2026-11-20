@@ -7,7 +7,7 @@ certificate) and `eq2_pass.py` (the test on the update -> the test on the value,
 matches by structure and writes its output only when Lean proves the rewritten graph equal to the input (token level,
 every schedule); `auto_rewrites.sh` runs both.
 
-## Census (default fixtures, claude/formal 2a34c3dfb, Lean v4.35.0, formal's farm lake cache)
+## Census (default fixtures, claude/formal 5b4c68912 (2026-11-20 10:04 UTC), Lean v4.35.0, formal's farm lake cache)
 
 `census.txt`. With `BDC_AUTO=1` as flow v8+ sets it (ring fusion on), plain_pass refuses every kernel ("0 matches of
 the pattern in the import"): dfimport reads bdc's fusion plan, and ring fusion has already merged the increment with its

@@ -65,6 +65,22 @@ if [ "${AUTO_PROVED_RW:-0}" = 1 ]; then
     RW=" rw=none"
   fi
 fi
+# AUTO_PROVED_RW=cache (opt-in): the same passes, memoized -- research/data/autorw/cache.tsv holds what
+# auto_rewrites.sh produced on EVERY default fixture at one formal commit (the census: its Lean proofs, or "none"),
+# keyed by the input MLIR's md5.  For hosts without formal's Lean build (the farm's tasks).  A fixture the memo does not
+# know stops the flow (run the pass, AUTO_PROVED_RW=1); a memo file whose md5 differs from the table stops it too.
+if [ "${AUTO_PROVED_RW:-0}" = cache ]; then
+  im=$(md5sum < "$FX" | cut -c1-32)
+  row=$(awk -F'\t' -v m="$im" '$1 == m' "$R/research/data/autorw/cache.tsv" | head -1)
+  [ -n "$row" ] || fin "status=FLOW-FAILED (AUTO_PROVED_RW=cache: no memo for fixture md5 $im; run the pass, AUTO_PROVED_RW=1)"
+  IFS=$'\t' read -r _ _ pv of om fc <<< "$row"
+  if [ "$pv" != none ]; then
+    [ "$(md5sum < "$R/$of" | cut -c1-32)" = "$om" ] || fin "status=FLOW-FAILED (AUTO_PROVED_RW=cache: $of is not the memo's $om)"
+    export MLIR_OVERRIDE=$of; FX=$R/$of; RW=" rw=$pv(memo@$fc)"
+  else
+    RW=" rw=none(memo@$fc)"
+  fi
+fi
 CE=$O/compile; mkdir -p "$CE"
 python3 "$R/bdc/auto.py" "$FX" "$CE/auto.mlir" > "$CE/log" 2>&1 && BDC_AUTO=1 python3 "$R/bdc/emit.py" "$CE/auto.mlir" --no-top \
   -o "$CE/kernel.v" >> "$CE/log" 2>&1 || fin "status=DOES-NOT-COMPILE (bdc: $(grep -E 'Error' "$CE/log" | tail -1 | cut -c1-140))"
