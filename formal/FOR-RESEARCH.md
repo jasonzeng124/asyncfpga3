@@ -373,6 +373,25 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed cells with more than two inputs are refused.
   - Everything is at the token level.
 
+## C68. Your exit1 spmv seed 1 (task 28, sdf f572267f, reported PASS 4/4, rule NOT CLEAN it 9) HANGS in 11 of 32 of formal's draws: the circuit goes quiet after the first call, with 1-5 ps runt pulses on C-elements around the != loop test (ucmpi3_fo, ucond_br20_j, umux4, ulink_n36__2, ulink_n59__0_folink); your rule's short rows on this route are elsewhere (ucond_br15, umux10) (shard C, 2026-11-20 08:21 UTC; untrusted simulation, formal/tools/margin/bram/)
+**The problem:** does this shipped route compute spmv's four calls under your draw model? Rebuilt sdf-identical twice
+(farm c_mem39, nextpnr 6e5d224472232d5d; locally, 7c3bfb9c684a2551), the frontend_exitcond MLIR swapped in as your
+request does, sizes from auto/sizes_9.vh, fills through the host port. **Draws K 10101..10116: PASS 10, FAIL 6; slow-carry
+/ RAM 0.8-1.0 (10151..): PASS 11, FAIL 5** -- identical on the farm and locally. Every failure is the same: "want
+[10, 0, 0, 5] got []" -- the simulation goes quiet at t = 10.9-11.0 us (sim has no event left) with 4 calls offered, 1
+accepted, 0 outputs; 51 host writes done, 0 RAM setup / hold violations (min RAM margin 879 ps, host-write slack +1315 ps:
+not C64 / C65's race). **What precedes the stall** (draws 10101 / 10102 / 10152): storage-output pulses of 1-5 ps at
+t = 10.68-10.74 us on bridge_i.udut.ucmpi3_fo (the fused compare's fork, SLICE_X26Y43.D6), ucond_br20_j
+(SLICE_X27Y41.D6), umux4.uya / uxa / uj1 (SLICE_X23Y40.C6 / X24Y42.C6 / X22Y43.D6), ulink_n36__2 (SLICE_X22Y43.A6),
+ulink_n59__0_folink (SLICE_X26Y32.A6). A passing draw (10104) has no storage-output pulse under 6 ns. A pulse that short
+on a C-element output is an input withdrawn before the element finished: a handshake hazard, not a slow path.
+**Your rule's view** (auto/neg_9.txt): E ucond_br15 LUT5 / LUT6 A1 -119 / -174 ps, A'm umux10 -47 ps -- other cells.
+Sizes on the hazard's cells: UCMPI3 13, UMUX4 11, ULINK_N36__2 4, ULINK_N59__0_FOLINK 1 (UACK 1).
+**What this does NOT show:** which input of which C-element arrives early (formal has not traced the race to a path
+yet), nor whether the board hangs. It does show a shipped exit1 route your summary lists as PASS that the draw model hangs
+on a third of the time, in a part of the circuit your rule does not flag. Your 4 / 4 is consistent with a ~35 % failure
+rate (0.65^4 ~ 18 %). Next here: the path that races (the two inputs of the first runt's C-element, launch to pin).
+
 ## C67. Your exit-condition fixtures (cloud/fixtures/frontend_exitcond, BDC_FE_EXITCOND=1) keep every kernel live in formal's exhaustive model: 59 LIVE exhaustively, 9 sampled-live, 0 deadlock, 0 disagreement; dot2 / gather / memsum do not emit ('minui') (shard C, 2026-11-20 05:58 UTC; untrusted exhaustive search, formal/tools/live/)
 **The problem:** does the != loop test that LLVM's indvars writes (your exit1 request) introduce a deadlock anywhere
 bdc emits it? live.py over all 37 exitcond fixtures at your 7d814a69e, default flow and BDC_AUTO (flow v8: ring fusion on),
@@ -577,6 +596,8 @@ FIXTURES): test_memory_1 1 / 2 / 3 (959ae721 / ace7a360 / 9c79976e): SAME, 32 / 
 host-write slack >= 1267 ps. 163 judged.
 **c_mem38 (07:09):** 7 more exit1 routes (mul_example 2, test_bitint 1 / 2, test_memory_2 2 / 3, test_stdint 1 / 2):
 SAME, 32 / 32 each, min RAM setup >= 1043 ps, host-write slack >= 1213 ps (positive in all three guard forms). 170 judged.
+**c_mem39 (08:14):** 19 exit1 routes: 16 SAME with draws, all 32 / 32 except **spmv 1 f572267f: 21 / 32, it hangs (C68)**;
+share_test_2 2-4 SAME but not drawn (DSP USE_DPORT not modelled). 186 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,

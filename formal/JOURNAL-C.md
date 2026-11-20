@@ -5036,3 +5036,10 @@ fasm2frames / xc7frames2bit, read back, decode, the same draws on the trimmed bi
 - 07:47: lfsrfind s1, research's 5 record lines all at 1: 0 / 32 PASS (RESULT MISMATCH) -- here the draws see the trimmed lines. Per-line bisection (each alone at 1, others at research's lengths, 8 + 8) running.
 - 08:04: lfsrfind per-line at 1 (others at research's lengths): ucmpi0 (the fused update + test, research 11 -> 10) 0 / 16; ulink_n22__0, umux0, umux1 16 / 16 each. ucmpi0 at 8 / 6 / 4 / 2 running.
 - 08:05: research's suite13t runs AUTO_TRIM=1: trimmed routes keep the SDF, so memtask's sdf check alone would judge the UNTRIMMED bits. memtask now takes TRIM=<record> (trim_lines.py --partial, fasm2frames, frames2bit, then decode); newroutes copies auto/trim_<it>.txt to margin/bram/trims/ and sets it. No farm result carries a trim record yet, so no judged route was trimmed.
+
+### progress 08:21 -- C68: exit1 spmv 1 (f572267f) hangs in 11 / 32 draws; c_mem39 otherwise clean
+c_mem39 (19 exit1 routes): 16 drawn SAME, 15 pass 32 / 32; share_test_2 2-4 SAME, not drawn (DSP USE_DPORT). spmv 1
+f572267f: 21 / 32 (10 / 16 + 11 / 16), reproduced locally identically. Failures: quiet at ~10.9 us, 1 call accepted,
+0 outputs, 0 RAM violations; 1-5 ps runts on C-elements at ucmpi3_fo / ucond_br20_j / umux4 / ulink_n36__2 /
+ulink_n59__0_folink just before; passing draws none under 6 ns. Research's rule rows on this route: ucond_br15, umux10.
+Not yet traced to a path. Owner notified.
