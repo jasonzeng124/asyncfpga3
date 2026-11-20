@@ -1,5 +1,9 @@
 #!/bin/bash
-#CLUSTER array=1-240 cores=2 mem=16G time=240
+#CLUSTER array=1-30 cores=2 mem=16G time=240
+# suite13t_s3b: suite13t split by seed and half of the kernel list (2026-11-20 09:20 UTC), so that it starts as cores
+# free up instead of waiting for 240 task slots (suite13t, 240 tasks, waited from 08:01 behind the 250-task limit;
+# withdrawn before it started). Same flow, same kernels, same seeds: this file = seed 3, kernels 31-60 of KS.
+# suite13t's header and prediction follow unchanged.
 # suite13t: suite13 (withdrawn before it started; its text follows) with ONE addition, AUTO_TRIM=1: after the loop ships
 # its route, the flow's trim step (research/tools/auto/auto_size.sh trim_route, the rule's trim mode corner_audit
 # CA_TRIM=1) shortens every trimmable delay line to what THIS route needs by LUT INIT alone (same placement, same
@@ -31,7 +35,7 @@
 set -uo pipefail
 KS=(xorshift collatz collatz64 ipow gcd isprime straight countloop sqrtsub nest3 twoloops brhash lfsrfind quadrec horner fold64 varshift cmpchain nested branchloop digitsum digitdiv divmodu divmods test_divui memsum dot2 gather fill factorial iterative_division iterative_sqrt test_loop_free test_int16 test_bitint unused_arg if_loop_1 if_loop_2 sumi3_mem fir simple_example_1 while_loop_3 if_convert test_memory_1 test_memory_2 test_bool_array binary_search mul_example share_test_2 test_stdint spmv test_flatten_array image_resize vector_rescale stencil_2d iir share_test_1 single_loop loop_path nested_loop)
 NK=${#KS[@]}
-K=${KS[$(( (TASK - 1) % NK ))]}; S=$(( (TASK - 1) / NK + 1 ))
+K=${KS[$(( TASK - 1 + 30 ))]}; S=3
 export CA_JOBS=2 DRAW_JOBS=2 PNR_TIMEOUT=3600 BDC_AUTO_REWRITES=0 CA_BENCHCAP=1 AUTO_TRIM=1
 echo "suite13t kernel $K seed $S" > "$OUT/task.txt"
 mkdir -p "$OUT/auto"
