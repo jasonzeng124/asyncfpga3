@@ -79,6 +79,7 @@ vvp -n rtl.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=${GATE_NRUNS:-2} +VECFILE="$VEC" ${
     +TBATCH=${RTL_TBATCH:-400000} +TEND=200000000 ${RTL_PLUSARGS:-} > run.log 2>&1 || true
 rm -f rtl.vvp
 # the gate's verdict, verbatim (bench_gate.sh's inline python, between its `python3 - "$EXP" run.log` line and PY)
-sed -n '/^python3 - "\$EXP" run.log/,/^PY$/p' "$R/research/tools/eventgraph/bench_gate.sh" | sed '1d;$d' > verdict.py
+# (the call spans two lines since the runt monitor's arguments were added: everything up to the line with <<'PY' goes)
+sed -n '/^python3 - "\$EXP" run.log/,/^PY$/p' "$R/research/tools/eventgraph/bench_gate.sh" | sed "0,/<<'PY'/d;\$d" > verdict.py
 [ -s verdict.py ] || { echo "$K rtl NO VERDICT CODE (bench_gate.sh changed)"; exit 2; }
 echo "$K rtl $(python3 verdict.py "$EXP" run.log "RTL (route ${RTL_ROUTE_PS:-0} ps/arc)" "$MEMEXP" "")"
