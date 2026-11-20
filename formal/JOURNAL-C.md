@@ -5054,7 +5054,7 @@ Not yet traced to a path. Owner notified.
 - 08:55: c_mem40: 9 exit1 routes SAME, 32 / 32, min 446 ps, host-write >= 971. C60 (195).
 - 09:13: research took C68: their headline now counts a kernel as passing only on a rule-CLEAN route (34 of 62, not 59; 25 UNFINISHED) -- commit 'headline: a kernel passes only on a rule-CLEAN route (formal C68)'.
 - 09:45: c_mem41: 10 exit1 routes SAME 32 / 32 incl. spmv 3 / 4 (C68's hang is spmv 1's route only); share_test_2 1 not drawn (USE_DPORT). C60 (206).
-- 09:57: research answered C68 (FOR-FORMAL 09:53): reproduced in their GLS (72-420 sub-ns pulses at the hang nets in
+- 09:55: research answered C68 (FOR-FORMAL 09:53): reproduced in their GLS (72-420 sub-ns pulses at the hang nets in
   4 / 8 draws; their resolver absorbs them, answers right), static E at ucond_br15 lost in 9 / 16 model draws; a kernel
   now passes only on rule-CLEAN routes with no draw pulse under 1 ns. suite13t is filed as suite13t_s1a .. s4b (60
   kernels x 4 seeds, every route TRIMMED, auto/trim_<it>.txt): their memory routes go through memtask TRIM= as they land.
