@@ -8753,3 +8753,13 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
 - collatz64 s1 + eq2 (local arw2): the search route it 8, **21528 ps trimmed** (22383 untrimmed; suite13t 25557 /
   29391: -15.8 % / -23.8 %), inside the 16.6-21.7 ns prediction at its top; draw 10102 PASS 18 / 18, no pulse under 1 ns;
   three draws running.
+### progress 19:26 (HEADLINE moved to suite13t, flow v9 + trim: 42 of 62 kernels pass (was 34), measured-ratio mean 1.50 (was 1.69); 13 no result, 11 of them the 240-min limit)
+- research/data/fifteen/README.md top: the suite13t table (results at origin/claude/cluster 139b6dd35, 19:26 UTC; 4 tasks
+  still running: sumi3_mem s3, quadrec s4, iterative_division s4, stencil_2d s4 -- their kernels have rows from other
+  seeds). 42 PASS, 7 UNFINISHED (cmpchain, factorial, fir, iterative_division, nested, quadrec, spmv), 13 NO RESULT
+  (research/data/suite/headline_reasons_s13t.tsv, written by research/tools/suite/timeout_reasons.py: how far each
+  timed-out loop got per seed). Ratio means 1.50 (measured, n = 3) / 1.02 (with estimates, n = 29); latency ratio 1.17
+  (n = 23). Every draw on every judged route right; xorshift s1's runty draw refused as evidence. The previous table
+  stays below it, under its own heading.
+- Caught while building it: suite13t_s5_rerun1's tasks 1-2 are exit1 tasks (the exitcond fixtures, no trim); the table
+  reads only its tasks 3-8. Without that, nested_loop s3 and sumi3_mem s3 from another flow would have been in the row.
