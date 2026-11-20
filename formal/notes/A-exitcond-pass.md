@@ -49,3 +49,15 @@ The previous estimate stands: days, not hours. A Bool checker for (a)-(d) on the
 - If exit1 shows a gain, gate the knob kernel by kernel: keep LFTR, and keep gcd's nsw predicate change out.
 - Until the general theorem exists, the per-kernel proofs (about a minute each to regenerate) are the ticket for
   LFTR. The nsw change has no ticket.
+
+## Update 2026-11-20 08:58: translation validation as the general mechanism
+Per-kernel proofs now cover all 12 memory-free fixtures the knob changes, except gcd. The tool that produces them is
+the same for every kernel: `ringfuse_autoproof.sh` with the flags in FOR-RESEARCH A28. It infers the reachability
+inequalities itself (AP_INEQ / AP_INEQR), and nested's `i < a` is exactly the LFTR side condition above. That makes
+a general mechanism without the general theorem: translation validation.
+- The flow turns the knob on for a kernel only if the proof generates and Lean checks it (about a minute per kernel).
+- Otherwise it keeps the default fixture.
+- This needs no list of hashes or kernel names, and it fails closed. On gcd it fails, as it should.
+
+It trusts two things, as every proof here does: cfront's reading of the C (tested against gcc) and dfimport. Memory
+kernels are outside it, because they are not importable.
