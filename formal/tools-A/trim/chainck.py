@@ -42,11 +42,11 @@ for f in changed:
     # downstream chain: next element = a lut reading this element's output and K
     n=1; cur=i; path=[G[i]['name']]
     while True:
-        nx=[j for j in fwd(G[cur]['out']) if G[j]['kind']=='lut6' and any(src(G[j]['ins'][p])==K for p in deps(G[j]['init']))]
+        nx=[j for j in fwd(G[cur]['out']) if G[j]['kind']=='lut6' and any(src(G[j]['ins'][p])==K for p in range(len(G[j]['ins'])))]  # K connected (live: fast-fall; unused: BD_SYMTRIM)
         if len(nx)!=1: break
         cur=nx[0]; n+=1; path.append(G[cur]['name'])
     # the dropped pin: which pin of the untrimmed function? predecessor = a lut that reads K too
-    preds=[j for j in fwd(G[K]['out']) if G[j]['kind']=='lut6' and j!=i and any(src(G[j]['ins'][p])==K for p in deps(G[j]['init']))] if isinstance(K,int) else []
+    preds=[j for j in fwd(G[K]['out']) if G[j]['kind']=='lut6' and j!=i] if isinstance(K,int) else []
     feeds_entry=[j for j in preds if i in fwd(G[j]['out'])]
     print(f"{f}: kept pin A{d[0]+1} <- {G[K]['name'] if isinstance(K,int) else K}; live line from entry = {n} elements; "
           f"a LUT reading the same source feeds the entry (dead predecessor): {'yes' if feeds_entry else 'NO'}")

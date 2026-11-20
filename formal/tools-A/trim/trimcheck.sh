@@ -4,7 +4,9 @@
 # INIT that passes the line's side input. This checks, from the bits alone:
 #  1. the two FASMs differ ONLY in LUT INIT lines (no pip, no other feature): placement and routing are unchanged;
 #  2. each changed LUT read two pins before (the chain AND / OR of predecessor and side) and passes exactly one of
-#     them afterwards, uninverted, on O6 and O5 (lutdep.py);
+#     them afterwards, uninverted, on O6 and O5 (lutdep.py); or, for a BD_SYMTRIM symmetric line (opt-in since research
+#     c0f2bab80: elements INIT 1010 pass the chain pin only), passes the OTHER connected pin, which check 3 must find
+#     to be the side net;
 #  3. in the netlist decoded from the TRIMMED bits (tools-A/target/make_net_fasm.sh: prjxray-db, round trip invented 0),
 #     the kept pin is the line's side input: the source it reads also feeds a LUT that drives the entry, i.e. the dead
 #     predecessor reads the same source; and the live line from the entry onwards has N elements (chainck.py).

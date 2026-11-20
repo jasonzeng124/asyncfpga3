@@ -25,7 +25,12 @@ bad=0
 for site in sorted(set(u)|set(t)):
     if u.get(site)!=t.get(site):
         su,ou=desc(u.get(site,0)); st,ot=desc(t.get(site,0))
-        ok=len(ot)==1 and set(ot)<set(ou) and 'A%d'%(ot[0]+1) in st.split('=')[1].split(';')[0] and '~' not in st.split(';')[0]
+        one = len(ot)==1 and 'A%d'%(ot[0]+1) in st.split('=')[1].split(';')[0] and '~' not in st.split(';')[0]
+        # fast-fall / fast-rise / gated lines: the entry passes one of the two pins it read; BD_SYMTRIM symmetric lines
+        # (2026-11-20): the element passed the chain pin only (INIT 1010) and the entry passes the other, connected pin
+        # (the line input; check 3 confirms it is the side net)
+        sym = one and len(ou)==1 and ot != ou
+        ok = one and (set(ot)<set(ou) or sym)
         bad+= not ok
-        print(site, '\n   before:', su, f'(INIT {u.get(site,0):016x})', '\n   after: ', st, f'(INIT {t.get(site,0):016x})', '\n   ', 'OK: passes one input it read before' if ok else 'CHECK')
+        print(site, '\n   before:', su, f'(INIT {u.get(site,0):016x})', '\n   after: ', st, f'(INIT {t.get(site,0):016x})', '\n   ', ('OK: passes one input it read before' if not sym else 'OK: symmetric-line entry (passes the other pin)') if ok else 'CHECK')
 print('changed LUTs:', sum(u.get(s)!=t.get(s) for s in set(u)|set(t)), 'not as expected:', bad)

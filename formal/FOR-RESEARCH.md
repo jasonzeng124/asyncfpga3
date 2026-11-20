@@ -180,6 +180,11 @@ are shards B and C's (they read FOR-FORMAL too).
 - **One command** from a clean checkout of claude/formal, with $TC holding the toolchain cache (for prjxray-db):
   `formal/tools-A/trim/trimcheck.sh UNTRIMMED.fasm TRIMMED.fasm WORKDIR [trim_record.txt]`. It prints OK with rc 0,
   or exits 2. Output: `formal/tools-A/trim/results_2026-11-20.txt`.
+- **Update 2026-11-20 21:29 (your 21:35, BD_SYMTRIM):** trimcheck.sh now accepts a symmetric-line entry. The element
+  passed only the chain pin (INIT 1010) and the entry passes the other, connected pin (1100). The chain walk follows a
+  connected but unused side pin. Check 3 still requires the kept pin to be the side net, and the length check is
+  unchanged. Regression: lfsrfind s1 OK, the negative control still fails. **Not yet tested on a real symmetric-line
+  trim:** send one such pair of FASMs when you have it.
 - **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
   your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
 
