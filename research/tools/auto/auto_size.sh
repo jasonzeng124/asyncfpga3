@@ -165,11 +165,16 @@ build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); f
   # placefrom_I.txt names the route kept (a rebuild on resume uses it again); place_I.txt is route I's placement
   # (cell, bel), written for every route the loop builds while the knob is on. A bench clock missed with the kept
   # placement is retried fresh on the next seed (and placefrom_I.txt removed), as before.
-  if [ -f "$O/placefrom_$i.txt" ]; then PF=$O/place_$(cat "$O/placefrom_$i.txt").txt
-  elif [ "${AUTO_PLACE_KEEP:-0}" = 1 ] && [ "${ph:-1}" = 2 ] && [ "$i" -ge 1 ]; then
-    local j=$((i - 1))
+  # The previous route's routed JSON when it is on this disk (place_from.py's matching needs its connectivity and LUT
+  # pins), else its place_J.txt (cell / bel only: a resume elsewhere; names alone match less).
+  local j=""
+  if [ -f "$O/placefrom_$i.txt" ]; then j=$(cat "$O/placefrom_$i.txt")
+  elif [ "${AUTO_PLACE_KEEP:-0}" = 1 ] && [ "${ph:-1}" = 2 ] && [ "$i" -ge 1 ]; then j=$((i - 1)); fi
+  if [ -n "$j" ]; then
     [ -f "$O/place_$j.txt" ] || { [ -f "$RUNS/hw/${N}_$j/${D}_routed.json" ] && place_dump "$j"; }
-    [ -f "$O/place_$j.txt" ] && { PF=$O/place_$j.txt; echo "$j" > "$O/placefrom_$i.txt"; }
+    if [ -f "$RUNS/hw/${N}_$j/${D}_routed.json" ]; then PF=$RUNS/hw/${N}_$j/${D}_routed.json
+    elif [ -f "$O/place_$j.txt" ]; then PF=$O/place_$j.txt; fi
+    [ -n "$PF" ] && echo "$j" > "$O/placefrom_$i.txt"
   fi
   if [ -n "$PF" ]; then   # the kept placement, on the iteration's seed; any failure: built fresh below, as without it
     LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s0" "$VEC" BDC_AUTO=1 ${XENV:-} BD_PLACE_FROM="$PF" > "$O/it_$i.log" 2>&1

@@ -24,10 +24,10 @@ import json, os, re
 src = os.environ["BD_PLACE_FROM"]
 free_rx = os.environ.get("BD_PLACE_FREE", "")
 free_re = re.compile(free_rx) if free_rx else None
-# BD_PLACE_ONLY (regex, default the kernel: ^bridge_i\.udut\.): only matching cells are kept; the rest (the bench
-# harness) is placed afresh around them.  The sizing rule's constraints are all inside the kernel, and the harness is
-# where the unstable names are (xorshift s1 it 5 -> 6: its flops renumbered, its constant ties stranded).
-only_rx = os.environ.get("BD_PLACE_ONLY", r"^bridge_i\.udut\.")
+# BD_PLACE_ONLY (regex, default empty = every cell): only matching cells are kept (e.g. ^bridge_i\.udut\. for the
+# kernel alone: the rest is placed afresh around it).  xorshift s1 it 5 -> it 6, margin change of the sized constraints
+# whose lines did not change: kernel only median |d| 196 ps, everything 122, fresh 282.
+only_rx = os.environ.get("BD_PLACE_ONLY", "")
 only_re = re.compile(only_rx) if only_rx else None
 STRENGTH = {"user": STRENGTH_USER, "locked": STRENGTH_LOCKED, "fixed": STRENGTH_FIXED, "strong": STRENGTH_STRONG}[
     os.environ.get("BD_PLACE_STRENGTH", "fixed")]
