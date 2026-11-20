@@ -248,10 +248,11 @@ trim_route() {  # trim_route I (AUTO_TRIM=1): the shipped route's lines shortene
   # route (the rule reads trimmed lines). Each step: rule -> proposal -> trim every line it moves (shorter, or longer
   # within the line's built length) -> bits -> rule; a step whose short constraints include one the route did not have
   # before, or whose total miss is larger, is reverted (keeping the lines those rows do not depend on, once per step).
-  # AUTO_TRIM_MAX steps (default 6). AUTO_TRIM_DAMP=1 (default): a step shortens each line by half its gap to the
-  # proposal (at least one element), because the proposal prices a removed element at the line's mean step while a
-  # trimmed line is entered through the side net and loses more (xorshift s1 it 9: the full proposal opened 16 short
-  # constraints, 1458 ps, once the rule read trimmed lines correctly).
+  # AUTO_TRIM_MAX steps (default 6). The proposal is the rule's trim mode (AUTO_TRIM_PLAN=ca, see below): exact per
+  # entry, so a step normally opens nothing. With AUTO_TRIM_PLAN=0, AUTO_TRIM_DAMP=1 (default) shortens each line by half
+  # its gap to the rebuild proposal (at least one element), because that proposal prices a removed element at the
+  # line's mean step while a trimmed line is entered through the side net and loses more (xorshift s1 it 9: the full
+  # proposal opened 16 short constraints, 1458 ps, once the rule read trimmed lines correctly).
   # $O/trim_I.txt records the final MACRO=LEN; a rebuild of route I (resume, a board item) re-applies it.
   local i=$1 H=$RUNS/hw/${N}_$1 k Z cur prev_keys prev_tot keys tot t retried="" CA_LAST=""
   [ -f "$H/${D}_routed.json" ] || return 0
@@ -268,7 +269,8 @@ trim_route() {  # trim_route I (AUTO_TRIM=1): the shipped route's lines shortene
   for k in $(seq 1 $(( ${AUTO_TRIM_MAX:-6} + 2 ))); do   # past AUTO_TRIM_MAX a pass only checks (a partial retry may need one)
     rm -rf "$RUNS/hw/${N}_${i}t$k" "$RUNS/r/${N}_${i}t$k"
     ln -s "$H" "$RUNS/hw/${N}_${i}t$k"; ln -s "$RUNS/r/${N}_$i" "$RUNS/r/${N}_${i}t$k"
-    rule "${i}t$k" "$cur" || { echo "trim: it $i step $k: RULE FAILED" >> "$O/log.txt"; break; }
+    if [ "${AUTO_TRIM_PLAN:-ca}" = ca ]; then CA_TRIM=1 rule "${i}t$k" "$cur"; else rule "${i}t$k" "$cur"; fi ||
+      { echo "trim: it $i step $k: RULE FAILED" >> "$O/log.txt"; break; }
     CA_LAST=$RUNS/ca/${N}_${i}t$k
     keys=$(neg_keys "$O/neg_${i}t$k.txt" | cut -f1); tot=$(neg_keys "$O/neg_${i}t$k.txt" | awk -F'\t' '{s -= $2} END {print s + 0}')
     if [ -n "$prev_tot" ]; then   # the step before was applied: did it open anything?
@@ -317,9 +319,20 @@ PY
     retried=""
     prev_keys=$keys; prev_tot=$tot
     [ "$k" -gt "${AUTO_TRIM_MAX:-6}" ] && { echo "trim: it $i: $(echo $keys | wc -w) short, $tot ps after the last step" >> "$O/log.txt"; break; }
-    # the trims: trim_plan.py prices each candidate entry exactly from this route's corner SDFs and charges it to every
-    # sized constraint that depends on the line (AUTO_TRIM_PLAN=0: the rule's proposal, damped, as before)
-    if [ "${AUTO_TRIM_PLAN:-1}" = 1 ]; then
+    # the trims. AUTO_TRIM_PLAN=ca (default): the rule's own proposal made in its trim mode (corner_audit CA_TRIM=1:
+    # each line priced at its new entry exactly -- input wire, the anchor the entry skips, the chain after it -- and
+    # verified with the entry moved in the timing graph as trim_lines.py moves it; on xorshift s1 it 9 every margin
+    # it predicted matched the trimmed route's within 2 ps), applied in full. AUTO_TRIM_PLAN=1: trim_plan.py (a linear
+    # charge; it opened 12 constraints there). AUTO_TRIM_PLAN=0: the rule's rebuild proposal, damped (opened 14-16).
+    if [ "${AUTO_TRIM_PLAN:-ca}" = ca ]; then
+      t=$(python3 - "$cur" "$O/rule_${i}t$k.vh" <<'PY'
+import re, sys
+rd = lambda p: {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(p)) if m}
+a, b = rd(sys.argv[1]), rd(sys.argv[2])
+print(" ".join("%s=%d" % (k, v) for k, v in sorted(b.items()) if k in a and v != a[k]))
+PY
+)
+    elif [ "${AUTO_TRIM_PLAN:-ca}" = 1 ]; then
       t=$(python3 "$T/trim_plan.py" "$CA_LAST" "$H/${D}_routed.json" 2> "$O/trim_${i}_${k}_plan.txt")
     else
     t=$(python3 - "$cur" "$O/rule_${i}t$k.vh" "${AUTO_TRIM_DAMP:-1}" <<'PY'

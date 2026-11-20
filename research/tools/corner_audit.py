@@ -91,6 +91,15 @@ RE_LINK = re.compile(r"^(?P<base>.+)\.chain\.g\[(?P<i>\d+)\]\.u$")
 SIZERULE = os.environ.get("CA_SIZERULE", "") == "1"
 SIZERULE_FLOOR = os.environ.get("CA_SIZERULE_FLOOR", "")
 SIZERULE_MLO = os.environ.get("CA_SIZERULE_MLO", "") == "1"
+# CA_TRIM=1 (opt-in, 2026-11-20; research/data/trim/README.md): the proposal is for THIS route's bits, not for a new
+# route.  A line whose elements g[1..N-1] are LUT2s with a side input can be re-entered at any g[k] by LUT INIT
+# (research/tools/auto/trim_lines.py), so its length can move anywhere in 1..N (N = the elements placed) with no
+# re-route.  Set: each such line's new delay is priced EXACTLY from this corner's arcs -- the line's input wire into
+# the new entry pin, that pin's LUT arc and the chain after it (_trim_entries) -- instead of at a mean step; a pad
+# can raise a trimmed line back up to N and no further; every other line keeps its size (a new size needs a route).
+# The constraints, their margins and negative_sized.tsv do not depend on it (they are the route as built and trimmed).
+# Unset, every output is byte-identical.
+TRIM = os.environ.get("CA_TRIM", "") == "1"
 # CA_JOINAWARE=1 (opt-in, 2026-11-17; research/data/sizerule/joinaware.md): an operator's data is checked where it is
 # CAPTURED, not at its own request.  Unset, every output of this tool is byte-identical to before.  Set:
 #   * for every cell with an A' row (a generated operator whose data comes only from its upstream links), the data's
@@ -180,10 +189,40 @@ def worker(sdf, spec):
         if ca_fast.M.gen:             # a forked run: the pins whose outgoing arcs this run's scale changes
             ca_fast.M.changed = ca_fast.changed_pins(spec.get("scale") or {}, RE_LINK, T.pin_split)
             ca_fast.M.decrease_only = all(f <= 1 for f in (spec.get("scale") or {}).values())
+            if spec.get("entry"):     # CA_TRIM: entries moved -- arcs cut and restored, not only shortened
+                ent = set()
+                for g, _, _, _ in ca_fast.install.raw.values():
+                    for b, (k, e) in spec["entry"].items():
+                        ent |= set().union(*_entry_pins(T, g, b, k, e))
+                ca_fast.M.changed = frozenset(ca_fast.M.changed | ent)
+                ca_fast.M.decrease_only = False
             ca_fast.M._stale = None
             ca_fast.stale_keys()      # before this run replaces any base entry
-    for name in ("parse_sdf", "line_links", "cell_boundary", "audit_fastfall"):
+    for name in ("parse_sdf", "line_links", "cell_boundary", "audit_fastfall", "false_arcs"):
         _ORIG.setdefault(name, getattr(T, name))
+    # CA_TRIM's verify: spec['entry'] {chain base: [k, e]} re-times the route as if trim_lines.py had moved the line's
+    # entry from g[e] to g[k]: exactly what false_arcs() makes of a trimmed route's INITs -- g[k]'s pin from g[k-1]
+    # loses its LUT arc (the side input is the entry), g[e]'s gets its arc back (an AND / OR element again).  Every
+    # rule then reads the line as it would on the trimmed route (chain_side_arcs: g[k] is no longer fed, so its side
+    # arc is the rising entry), wires and the anchor the entry skips included.  Unset: false_arcs() as imported.
+    entry = spec.get("entry") or {}
+    orig_fa = _ORIG["false_arcs"]
+    if entry:
+        def fa(edges, sdf=None):
+            dead, jp = orig_fa(edges, sdf)
+            dead = set(dead)
+            for b, (k, e) in entry.items():
+                cut, back_on = _entry_pins(T, edges, b, k, e)
+                for pins, inst, on in ((back_on, "%s.chain.g[%d].u" % (b, e), True),
+                                       (cut, "%s.chain.g[%d].u" % (b, k), False)):
+                    for p in pins:
+                        for o, _ in edges.get(p, ()):
+                            if T.pin_split(o)[0] == inst:
+                                (dead.discard if on else dead.add)((p, o))
+            return dead, jp
+        T.false_arcs = fa
+    else:
+        T.false_arcs = orig_fa
     a_frac, a_min = spec["a_frac"], spec["a_min"]
     T.req_guard = lambda p, t: max(int(a_frac * t), a_min) + T.SLACK
     skew.GUARD_LO, skew.GUARD_HI = spec["glo"], spec["ghi"]
@@ -947,6 +986,7 @@ def chain_geometry(T, sdf):
     # a line trimmed after routing (research/tools/auto/trim_lines.py) starts at its entry stage, the one whose INIT
     # passes its side input: the stages before it are placed but out of the line
     entry = {}
+    side_ok = collections.defaultdict(dict)      # CA_TRIM: base -> {i: g[i] is a LUT2 that can pass its side input}
     jpath = pathlib.Path(sdf).with_name(pathlib.Path(sdf).stem + "_routed.json")
     if jpath.exists():
         for n, c in _routed_cells(jpath).items():
@@ -954,8 +994,15 @@ def chain_geometry(T, sdf):
             if m and c.get("parameters", {}).get("INIT") == "1100" and \
                     c.get("attributes", {}).get("X_ORIG_TYPE") == "LUT2":
                 entry[m.group("base")] = max(entry.get(m.group("base"), 0), int(m.group("i")))
+            if TRIM and m:
+                side_ok[m.group("base")][int(m.group("i"))] = (
+                    c.get("attributes", {}).get("X_ORIG_TYPE") == "LUT2"
+                    and c.get("parameters", {}).get("INIT") in ("1000", "1110", "1100"))
     geo = {}
     for base, links in chains.items():
+        full = links
+        if TRIM:
+            tr = _trim_entries(T, base, full, entry.get(base, 0), side_ok.get(base, {}), lut, back)
         links = links[entry.get(base, 0):]
         arr, prev, steps, ok = None, None, [], True
         for i, inst in enumerate(links):
@@ -981,7 +1028,85 @@ def chain_geometry(T, sdf):
                 steps.append(bstep)
         geo[base] = {"n": len(links), "D": arr if ok else None, "steps": steps if ok else [],
                      "luts": sorted(v for inst in links for v in lut.get(inst, {}).values())}
+        if TRIM and ok and tr is not None and abs(tr["D"][tr["e"]] - arr) <= 1:   # the same D at the current entry
+            geo[base]["trim"] = tr
     return geo
+
+
+def _entry_pins(T, edges, base, k, e):
+    """CA_TRIM verify: (g[k]'s input pins driven by g[k-1], g[e]'s driven by g[e-1]) -- the chain inputs whose LUT
+    arcs moving the line's entry from g[e] to g[k] cuts and restores; an empty set for index 0 or k == e."""
+    def fed(i):
+        if i < 1 or k == e:
+            return set()
+        prev, cur = "%s.chain.g[%d].u" % (base, i - 1), "%s.chain.g[%d].u" % (base, i)
+        return {d for s, lst in edges.items() if T.pin_split(s)[0] == prev for d, _ in lst if T.pin_split(d)[0] == cur}
+    return fed(k), fed(e)
+
+
+def _trim_entries(T, base, full, e, side_ok, lut, back):
+    """CA_TRIM: the line `base` (all elements `full`, entered at g[e]) re-entered at every g[k] by LUT INIT
+    (research/tools/auto/trim_lines.py): {N, e, a[k], D[k]} with a[k] the arrival at g[k]'s entry pin from R, the driver
+    of the line's side net (g[k >= 1]: the routed wire into its side pin; g[0]: through whatever sits between R and
+    g[0]'s input, the cell's request OR `uor` on generated operators), and D[k] that pin's LUT arc plus the chain after
+    g[k] (chain_geometry's convention, which leaves the input out).  A trim to entry k changes the request by
+    a[k] + D[k] - (a[e] + D[e]).  Both terms matter: the side net reaches each element by its own branch, and an entry at
+    g[k >= 1] skips the anchor too (xorshift s1 it 9, ucmpi1 at band 0.31: R -> uor -> g[0] 1114 ps, R -> g[4]'s side
+    pin 813 ps; pricing the chain alone missed 721 ps of a 1819 ps trim).  None if some element cannot be an entry (a
+    LUT1 line), the side pins have more than one driver, or an arc is missing."""
+    N = len(full)
+    if N < 2 or any(not side_ok.get(k) for k in range(1, N)):
+        return None
+
+    def own(s):
+        m = RE_LINK.match(T.pin_split(s)[0])
+        return bool(m and m.group("base") == base)
+    hop = [None] * N                                   # hop[j]: g[j-1] -> g[j] wire + g[j]'s LUT arc from that pin
+    for j in range(1, N):
+        for p, la in lut.get(full[j], {}).items():
+            for s, w in back.get(p, ()):
+                if T.pin_split(s)[0] == full[j - 1]:
+                    hop[j] = w + la if hop[j] is None else min(hop[j], w + la)
+        if hop[j] is None:
+            return None
+    side = {}                                          # k >= 1: (R, wire, LUT arc) of g[k]'s pin fed from outside
+    for k in range(1, N):
+        cand = [(s, w, la) for p, la in lut.get(full[k], {}).items() for s, w in back.get(p, ())
+                if not own(s) and not T.is_const(s)]
+        if len({s for s, _, _ in cand}) != 1:
+            return None
+        side[k] = min(cand, key=lambda x: x[1] + x[2])
+    R = side[1][0]
+    if any(side[k][0] != R for k in side):
+        return None
+    a, D = [None] * N, [None] * N
+    for k in range(1, N):
+        a[k], D[k] = side[k][1], side[k][2]
+    best = None                                        # g[0]: R -> its input pin, directly or through one cell
+    for p, la in lut.get(full[0], {}).items():
+        for s, w in back.get(p, ()):
+            if own(s) or T.is_const(s):
+                continue
+            if s == R:
+                v = w
+            else:
+                v = None
+                for q, lq in back.get(s, ()):          # s's own cell arcs: input q -> s
+                    if T.pin_split(q)[0] != T.pin_split(s)[0]:
+                        continue
+                    for r, wr in back.get(q, ()):
+                        if r == R:
+                            v = wr + lq + w if v is None else min(v, wr + lq + w)
+            if v is not None and (best is None or v + la < best[0] + best[1]):
+                best = (v, la)
+    if best is None:
+        return None
+    a[0], D[0] = best
+    suffix = 0
+    for k in range(N - 1, -1, -1):                     # D[k] = entry arc + the chain after g[k]
+        D[k] += suffix
+        suffix += hop[k] if k else 0
+    return {"N": N, "e": e, "a": a, "D": D}
 
 
 # ============================================================== driver
@@ -1197,6 +1322,10 @@ def main():
         n, D = g["n"], g["D"] or 0
         if m == n:
             return D
+        if TRIM and g.get("trim") and 1 <= m:     # entered at g[N - m]: its arrival from R + D, less the current entry's arrival
+            tr = g["trim"]
+            k = max(0, tr["N"] - m)
+            return tr["a"][k] + tr["D"][k] - tr["a"][tr["e"]]    # may be < 0: the entry skips the anchor too
         if m > n:
             return D + (m - n) * c_lo
         if m == 0:
@@ -1215,7 +1344,9 @@ def main():
 
     # ---- sensitivity: one run per line with its chains zeroed
     sized_lines = [mac for mac in lines if mac in sizes and sizes[mac] > 0
-                   and (a.all_lines or mac.startswith(MPFX))]
+                   and (a.all_lines or mac.startswith(MPFX))
+                   and (not TRIM or all(geo[b].get("trim") for b in lines[mac]))]   # CA_TRIM: only lines bits can move
+    trim_cap = {mac: min(geo[b]["trim"]["N"] for b in lines[mac]) for mac in sized_lines} if TRIM else {}
     measured_lines = [mac for mac in lines if mac in sizes and sizes[mac] > 0]
     protected = set() if a.shrink_selects else select_path_macros(a.route_dir, list(sizes))
     sens = {}                   # mac -> {key: dM}
@@ -1254,6 +1385,8 @@ def main():
         dd = delta(mac, m)
         if dd <= 0:             # padding: credit nothing to other constraints
             return 0
+        if TRIM:                # an entry past the anchor can take off more than the zeroed chain did
+            return slope(mac, k) * dd
         return min(slope(mac, k) * dd, sens[mac][k])
 
     def kernel_con(k):        # a constraint inside the harness (upipe, uspin) is reported, not sized, unless --all-lines
@@ -1265,9 +1398,10 @@ def main():
         def total_drop(k, p):
             return sum(drop(mac, k, p[mac]) for mac in sized_lines if k in sens.get(mac, {}) and p[mac] != sizes[mac])
 
-        def pad_target(k):
+        def pad_target(k, p=None):
             c = cons[k]
-            cand = [mac for mac in sized_lines if k in sens[mac]]
+            cand = [mac for mac in sized_lines if k in sens[mac]
+                    and not (TRIM and p is not None and p[mac] >= trim_cap[mac])]   # CA_TRIM: a line at N cannot grow
             want = c.get("knob")
             if want:
                 hit = [mac for mac in cand if knob_path[mac] == want or knob_path[mac].endswith("." + want)]
@@ -1280,6 +1414,8 @@ def main():
                 gk = nominal(cons[k]["rule"])
             else:
                 gk = min(nominal(cons[k]["rule"]), sens[mac][k] / d_of(mac)) if d_of(mac) else 0
+            if TRIM:                     # the exact delay the line gains, its least-gaining chain
+                return gk * min(d_new(b, m) - d_new(b, n_from) for b in lines[mac])
             return gk * (m - n_from) * c_lo
         padded = {}
         raised_from = {}
@@ -1293,13 +1429,13 @@ def main():
                 need = a.slack - (cur[k] + gain[k])
                 if need <= 0:
                     continue
-                mac = pad_target(k)
+                mac = pad_target(k, p)
                 if mac is None:
                     why.setdefault("_unfixable", []).append(k)
                     continue
                 n0 = p[mac]
                 m = n0
-                while credit(k, mac, n0, m) < need and m < n0 + 200:
+                while credit(k, mac, n0, m) < need and m < (trim_cap[mac] if TRIM else n0 + 200):
                     m += 1
                 if m > n0:
                     p[mac] = m
@@ -1313,13 +1449,17 @@ def main():
             return changed, gain
 
         def verify(p):
-            scale = {}
+            scale, ent = {}, {}
             for mac in sized_lines:
                 if p[mac] != sizes[mac]:
                     for b in lines[mac]:
+                        if TRIM:            # the trim itself, not a chain scaled to a predicted delay
+                            tr = geo[b]["trim"]
+                            ent[b] = [max(0, tr["N"] - p[mac]), tr["e"]]
+                            continue
                         D = geo[b]["D"] or 0
                         scale[b] = (d_new(b, p[mac]) / D) if D else 1.0
-            ver = run_worker(sdf, {**spec, "scale": scale, "keep_logs": True})
+            ver = run_worker(sdf, {**spec, "scale": scale, "keep_logs": True, **({"entry": ent} if ent else {})})
             bad = {k: v["margin"] for k, v in ver["constraints"].items()
                    if v["rule"] in SIZED_RULES and kernel_con(k) and v["margin"] < a.slack}
             return bad, ver
@@ -1411,8 +1551,9 @@ def main():
             nver += 1
         hist = list(range(nver))
         (out / "verify.txt").write_text(
-            "verify: corner SDF, every changed line's chain arcs scaled to its predicted delay\n"
-            "iterations %d, sized constraints below slack %d after the last\n\n" % (len(hist), len(bad))
+            ("verify: corner SDF, every changed line's entry moved as trim_lines.py would (CA_TRIM)\n" if TRIM else
+             "verify: corner SDF, every changed line's chain arcs scaled to its predicted delay\n")
+            + "iterations %d, sized constraints below slack %d after the last\n\n" % (len(hist), len(bad))
             + "\n".join("%-8s %-70s %+6d" % (v["rule"], k[:70], v["margin"])
                         for k, v in sorted(ver["constraints"].items(), key=lambda kv: kv[1]["margin"]))
             + "\n\n" + ver["tighten_log"] + "\n" + ver["skew_log"])
@@ -1452,6 +1593,12 @@ def main():
                    "shortened lines priced at own mean step%s; selects sized by E/M; floor file %s"
                    % (a.band, (", capped by lowest chain mean c_mlo %s ps" % (int(c_mlo) if c_mlo else "-")) if SIZERULE_MLO
                       else "", SIZERULE_FLOOR or "none"))
+    if TRIM:                                           # unset: no line
+        rep.append("  trim: CA_TRIM=1: a proposal for this route's bits (LUT INIT entries, no re-route): %d of %d sized "
+                   "line(s) can move, each priced exactly at its new entry (input wire + entry arc + chain), at most to "
+                   "its placed length; the other lines keep their size"
+                   % (len(sized_lines), len([mac for mac in lines if mac in sizes and sizes[mac] > 0
+                                             and (a.all_lines or mac.startswith(MPFX))])))
     if os.environ.get("BD_SKEW_STEER_SELF") == "1":   # rule E's --steer-self (cells/verify/skew.py (5)); unset: no line
         rep.append("  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the "
                    "select's own channel request is bounded by that request (research/data/sizerule/steerE.md)")
@@ -1501,7 +1648,9 @@ def main():
         tsv.append("%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s" % (
             mac, sizes[mac], prop[mac], d_of(mac), max(d_new(b, prop[mac]) for b in bs) if sizes[mac] else 0,
             c_rm, len(sens.get(mac, {})),
-            why.get(mac, "harness line: measured, kept" if mac not in sized_lines and sizes[mac] else "")))
+            why.get(mac, ("trim: kept (no entry can be set by bits: a LUT1 line or a missing arc)"
+                          if TRIM and mac.startswith(MPFX) and not a.all_lines else "harness line: measured, kept")
+                    if mac not in sized_lines and sizes[mac] else "")))
     (out / "lines.tsv").write_text("\n".join(tsv) + "\n")
     hdr = ("// corner_audit.py %s: per-line proposal at corner %s, guards lo %.3f hi %.3f, rule-A guard max(%.3f*t, %d), "
            "slack %d, floor %d; c_lo %s ps. ONE route: re-route and run the full stack before using it.\n"

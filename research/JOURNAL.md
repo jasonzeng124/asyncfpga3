@@ -8099,3 +8099,23 @@ second convergence lever (placement kept between finish routes, research/data/co
   exact trim modelling inside corner_audit's verify (rule-clean trims, ~0.5-1 ns here), or sizing by the draws
   (PROGRAM allows it: shorten while every draw passes, report the first failing size; a trim search costs only
   simulations, no routes).
+### progress 05:38 (trim mode in the rule itself: corner_audit CA_TRIM=1 predicts a trimmed route's margins exactly; capfix1 done)
+- **Why the trims kept opening rows:** a trimmed line is entered at g[k]'s side pin, which the side net's DRIVER reaches by
+  its own branch -- and g[0] is reached through the cell's anchor LUT `uor` (bd_delay_gated: a = uor's output, gate =
+  the anchor's input). So the first trim already skips the anchor: ucmpi1 (xorshift s1 it 9, band 0.31) R -> uor -> g[0]
+  1114 ps against R -> g[4]'s side pin 813 ps; a chain-only price missed 721 ps of a 1819 ps trim, and on
+  ucontrol_merge1 (R = the arbiter's state LUT) the trimmed request is 1253 ps earlier, more than the line's whole 879 ps.
+  The rule's own verify (chain arcs scaled to a delay) cannot express that, nor could trim_plan.py.
+- **corner_audit.py CA_TRIM=1** (opt-in; default outputs byte-identical to HEAD, all 8 files at both corners + merged
+  sizes, xorshift s1 it 9 with CA_BENCHCAP=1): lines whose g[1..N-1] are side-input LUT2s are sized for THIS route's
+  bits -- priced at each entry from the side net's driver (wire, anchor, entry arc, chain), raised at most to the placed
+  length, and VERIFIED with the entry moved in the timing graph exactly as trim_lines.py's INIT makes false_arcs() see it
+  (g[k]'s chain-input arc cut, the old entry's restored); other lines keep their size. **On it 9 every one of 111
+  constraints' predicted margin matched the trimmed route's own rule within 2 ps, both corners.** The proposal (umux1 7 ->
+  3, umux2 6 -> 2, ucontrol_merge1 3 -> 2, ulink_n12__0 3 -> 2, two UACK 3 -> 2) opened nothing: the route keeps exactly
+  its one old row (H -30). ucmpi1 stays 15: its first trim skips the anchor (~0.9 ns, counted twice on its 2x capture).
+- auto_size.sh trim step: AUTO_TRIM_PLAN=ca (new default of the opt-in AUTO_TRIM=1) uses that proposal undamped.
+- Running: the full stack (bits, equivalence, P) on the trimmed copy ex_xorshift_1_9e; draws next.
+- capfix1 finished at 04:50 UTC: 38 of 48 tasks returned (34 judged routes all PASS 4 / 4, 34 of 38 rule-clean), 10 hit
+  the 240-min limit (share_test_1 x4, iir s2 / s4, image_resize s3 / s4, spmv s3, binary_search s2). No resume request:
+  suite13 (waiting for room behind another session's 68-task request) runs the same kernels with the same fix.
