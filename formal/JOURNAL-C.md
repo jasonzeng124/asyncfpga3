@@ -5034,3 +5034,4 @@ fasm2frames / xc7frames2bit, read back, decode, the same draws on the trimmed bi
   pass 32 / 32, so in research's draw model those six lines have no correctness role at all and the critical lines are
   among the other 8 chains. lfsrfind's 5 record lines at 1: running.
 - 07:47: lfsrfind s1, research's 5 record lines all at 1: 0 / 32 PASS (RESULT MISMATCH) -- here the draws see the trimmed lines. Per-line bisection (each alone at 1, others at research's lengths, 8 + 8) running.
+- 08:04: lfsrfind per-line at 1 (others at research's lengths): ucmpi0 (the fused update + test, research 11 -> 10) 0 / 16; ulink_n22__0, umux0, umux1 16 / 16 each. ucmpi0 at 8 / 6 / 4 / 2 running.
