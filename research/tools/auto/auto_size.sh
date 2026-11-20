@@ -437,8 +437,8 @@ race_check() {  # race_check I (AUTO_RACE_Z): the latch-fed steer races of route
   echo "$s" | grep -o 'BD_SZ_[A-Z0-9_]* [0-9]*->' | awk '{print $1}' >> "$O/race_padded.txt"
   if [ "${AUTO_RACE_KEEP:-0}" = 1 ]; then   # every race link's request line, short or not (trim_route leaves them alone)
     { cat "$O/race_lines.txt" 2>/dev/null
-      grep -oE ' link [A-Za-z0-9_]+:' "$O/race_$i.txt" | awk '{sub(":", "", $2); print "BD_SZ_BRIDGE_I_UDUT_" toupper($2)}'
-    } | sort -u > "$O/race_lines.new" && mv "$O/race_lines.new" "$O/race_lines.txt"
+      grep -oE ' link [A-Za-z0-9_]+:' "$O/race_$i.txt" | awk '{sub(":", "", $2); print "BD_SZ_BRIDGE_I_UDUT_" toupper($2)}' || true
+    } | sort -u > "$O/race_lines.new"; mv "$O/race_lines.new" "$O/race_lines.txt"   # (no race on this route: no new line)
   fi
   cp "$CA/rule/sizes.vh" "$O/rule_$i.vh"; cp "$CA/rule/negative_sized.tsv" "$O/neg_$i.txt"   # as rule() keeps them
   rm -f "$RC/xray.sdf"
