@@ -317,10 +317,10 @@ def rf_unpack(p):
 def rf_split(p):
     """Unfused side: an update `comp [x] s F` whose fork feeds one branch (data) and one two-input test comp moves
     after a fork of `x` (forkcomm), so the test's copy can be absorbed into the test."""
-    R = p.rs; done = 0
+    R = p.rs; done = 0; pins = []
     for lc in range(len(R)):
         r = R[lc]
-        if r[0] != 'comp' or len(r[1]) != 1: continue
+        if r[0] != 'comp' or len(r[1]) not in (1, 2) or len(set(r[1])) != len(r[1]): continue
         rd = Q.readers(R, r[2])
         if len(rd) != 1 or R[rd[0]][0] != 'fork' or len(R[rd[0]][2]) != 2: continue
         lf = rd[0]; s0, s1 = R[lf][2]
@@ -337,8 +337,43 @@ def rf_split(p):
         ks = (kind(s0), kind(s1))
         if set(ks) != {'data', 'test'}: continue
         e = fresh(R)
-        p.do(('forkcomm', lc, lf, e, e + 1)); done += 1
-        if ks[0] != 'data': p.do(('forder', lc, [e + 1, e]))   # the update's copy first, as on the fused side
+        if len(r[1]) == 1:
+            p.do(('forkcomm', lc, lf, e, e + 1)); done += 1
+            if ks[0] != 'data': p.do(('forder', lc, [e + 1, e]))   # the update's copy first, as on the fused side
+            continue
+        # a two-input update (sqrtsub: n - odd): both inputs forked, one comp per copy (forkcomm2); the test's copy is
+        # absorbed later, and its input forks are flattened into their parents so that duplicate reads dedupe
+        L0 = len(R)
+        p.do(('forkcomm2', lc, lf, e, e + 1, e + 2, e + 3)); done += 1
+        for lfk in (lc, lf):    # the update's copy first
+            if ks[0] != 'data': p.do(('forder', lfk, [R[lfk][2][1], R[lfk][2][0]]))
+        for c in r[1]:    # remember the fork tree above each input; flattened after every split is done
+            W = Q.writers(R, c)
+            if len(W) == 1 and R[W[0]][0] == 'fork': pins.append(R[W[0]][1])
+    for pin in pins:      # every fork fed by the parent fork merges into it (so duplicate reads can dedupe)
+        while True:
+            lo = [l for l in Q.readers(R, pin) if R[l][0] == 'fork']
+            if len(lo) != 1: break
+            lo = lo[0]
+            kid = next((ch for ch in R[lo][2]
+                        if len(Q.readers(R, ch)) == 1 and R[Q.readers(R, ch)[0]][0] == 'fork'), None)
+            if kid is None: break
+            os_ = list(R[lo][2])
+            if os_[0] != kid: p.do(('forder', lo, [kid] + [x for x in os_ if x != kid]))
+            rf_merge(p, Q.readers(R, kid)[0], lo, {})
+    def is_test(ch):      # read by a comp whose result only steers branches (a loop test)
+        a = Q.readers(R, ch)
+        if len(a) != 1 or R[a[0]][0] != 'comp': return False
+        b = Q.readers(R, R[a[0]][2])
+        if len(b) == 1 and R[b[0]][0] == 'comp': return is_test(R[a[0]][2])   # the test's copy, not yet absorbed
+        if len(b) != 1 or R[b[0]][0] != 'fork': return False
+        return all(len(Q.readers(R, z)) == 1 and R[Q.readers(R, z)[0]][0] == 'branch'
+                   and R[Q.readers(R, z)[0]][1] == z for z in R[b[0]][2])
+    for pin in pins:      # canonical order, as on the fused side: the updates' copies first, the test's last
+        lo = [l for l in Q.readers(R, pin) if R[l][0] == 'fork']
+        if len(lo) != 1: continue
+        os_ = list(R[lo[0]][2]); want = [c for c in os_ if not is_test(c)] + [c for c in os_ if is_test(c)]
+        if want != os_: p.do(('forder', lo[0], want))
     return done
 
 def normal_form(rs, rf=None):
@@ -406,7 +441,8 @@ CTL = None
 def mutate(R, ctl):
     """Negative controls on B (each changes what a ring-fused graph computes; each must be refused).
     slice_low: every multi-result slice reads the low part (research's NEGCTL mistake, in the model).
-    upd_plus2: the packed cell's update part computes x + 2 instead of x + 1."""
+    upd_plus2: the packed cell's update part computes x + 2 instead of x + 1.
+    part_plus1: the first packed cell's highest part computes (part + 1), whatever it is (sqrtsub: n - odd + 1)."""
     out = []; hits = 0
     for r in R:
         if ctl == 'slice_low' and r[0] == 'comp' and r[3][0] == 'un' and r[3][1] == ('trunci',):
@@ -420,6 +456,11 @@ def mutate(R, ctl):
             if t[3] == ('bin', ('addi',), 32, ('var', 0), ('lit', 1)):
                 t = ('bin', ('shli',), t[2], ('bin', ('addi',), 32, ('var', 0), ('lit', 2)), t[4])
                 r = ('comp', r[1], r[2], ('bin', ('addi',), r[3][2], r[3][3], t)); hits += 1
+        if ctl == 'part_plus1' and r[0] == 'comp' and r[3][0] == 'bin' and r[3][1] == ('addi',) and \
+                r[3][4][0] == 'bin' and r[3][4][1] == ('shli',) and not hits:
+            t = r[3][4]   # the first packed cell's highest part computes (part + 1) (32-bit parts)
+            t = ('bin', ('shli',), t[2], ('bin', ('addi',), 32, t[3], ('lit', 1)), t[4])
+            r = ('comp', r[1], r[2], ('bin', ('addi',), r[3][2], r[3][3], t)); hits += 1
         out.append(r)
     assert hits, 'control ' + ctl + ' found nothing to mutate'
     print(f'fuse_check: control {ctl}: {hits} rule(s) mutated')

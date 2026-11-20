@@ -1,120 +1,36 @@
 fuse_check.py census, ring fusion: A = BDC_AUTO=1,BDC_RING_FUSE=0 vs B = BDC_AUTO=1 (flow v8 default, ring fusion on).
-Research origin/claude/research 7827dac5d: its bdc and its 111 cloud/fixtures/frontend; 2026-11-19 ~21:05 UTC, shard A.
-Tool: fuse_check.py with the ScriptRF steps (forkcomm2 / unpack / unjoin / permute / forkmerge).
-Summary: 26 import (85 dfimport cannot read). 18 PROVED, 4 same rules (no ring fused), 4 REFUSED (normal forms differ):
-iterative_division, iterative_sqrt: cells with more than two inputs; nest3: one of four cells not unpacked;
-sqrtsub: the unfused side's test reads a two-input update's result (needs a two-input split and dedupe across forks).
+Research origin/claude/research f538cb518 (bdc unchanged since 7827dac5d): its bdc and its cloud/fixtures/frontend; 2026-11-20 01:46 UTC, shard A.
+Tool: fuse_check.py with the ScriptRF steps (forkcomm2 / unpack / unjoin / permute / forkmerge); since 2026-11-20 the
+unfused side's planner also splits a TWO-input update (forkcomm2) and flattens the fork trees above its inputs (sqrtsub).
+Summary: 26 import (85 dfimport cannot read). 19 PROVED, 4 same rules (no ring fused), 3 REFUSED (normal forms differ):
+iterative_division, iterative_sqrt: cells with 3 / 4 inputs; nest3: a 3-input cell whose third input (a block control
+token) is a wait only -- needs a k-input fork-commute and join extension (Lean, not done).
 PROVED = Lean pass_forward/pass_backward, axioms propext/Classical.choice/Quot.sound; dfimport (trusted Python) and
-the multi-result model of bdc's packed cell (fuse_check MR_NEW) are not covered.
-Controls: xorshift slice_low / upd_plus2, gcd slice_low (2 slices mutated): REFUSED rc 2.
-atax                         dfimport failed
-bicg                         dfimport failed
-binary_search                dfimport failed
+the multi-result model of bdc's packed cell (fuse_check MR_NEW, layout checked by mr_verilog_check.py) are not covered.
+Controls on sqrtsub: --ctl slice_low REFUSED rc 2; --ctl part_plus1 (n - odd + 1) REFUSED rc 2.
 branchloop                   fuse_check: A and B import to the same rules
-brhash                       fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/brhash//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claud
+brhash                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/brhash/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fi
 cmpchain                     fuse_check: A and B import to the same rules
-cnn                          dfimport failed
-collatz                      fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/collatz//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/clau
-collatz64                    fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/collatz64//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cl
-countloop                    fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/countloop//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cl
-covariance                   dfimport failed
-digitdiv                     dfimport failed
-digitsum                     dfimport failed
-divergent_paths              dfimport failed
-divmods                      dfimport failed
-divmodu                      dfimport failed
-dot2                         dfimport failed
-factorial                    fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/factorial//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cl
-fill                         dfimport failed
-fir                          dfimport failed
-fold64                       fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/fold64//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claud
-gather                       dfimport failed
-gaussian                     dfimport failed
-gcd                          fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/gcd//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claude-0
-gemver                       dfimport failed
-horner                       fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/horner//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claud
-if_convert                   dfimport failed
-if_loop_1                    dfimport failed
-if_loop_2                    dfimport failed
-if_loop_3                    dfimport failed
-iir                          dfimport failed
-image_resize                 dfimport failed
-insertion_sort               dfimport failed
-ipow                         fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/ipow//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claude-
-isprime                      fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/isprime//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/clau
-iterative_division           fuse_check: REFUSED -- normal forms differ: rules: 70 vs 69
+collatz                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/collatz/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
+collatz64                    fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/collatz64/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
+countloop                    fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/countloop/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
+factorial                    fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/factorial/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
+fold64                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/fold64/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fi
+gcd                          fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/gcd/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fixtu
+horner                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/horner/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fi
+ipow                         fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/ipow/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fixt
+isprime                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/isprime/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
+iterative_division           fuse_check: REFUSED -- normal forms differ: rules: 68 vs 69
 iterative_sqrt               fuse_check: REFUSED -- normal forms differ: rules: 55 vs 55
-jacobi_1d_imper              dfimport failed
-kernel_2mm                   dfimport failed
-kernel_3mm                   dfimport failed
-kmp                          dfimport failed
-lfsrfind                     fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/lfsrfind//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cla
-loop_array                   dfimport failed
-loop_path                    dfimport failed
-matrix                       dfimport failed
-matrix_power                 dfimport failed
-matvec                       dfimport failed
-memsum                       dfimport failed
-mul_example                  dfimport failed
-nest3                        fuse_check: REFUSED -- normal forms differ: rules: 137 vs 138
-nested                       fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/nested//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claud
-nested_conditionals_1        dfimport failed
-nested_conditionals_2        dfimport failed
-nested_loop                  dfimport failed
-path_profiling               dfimport failed
-pivot                        dfimport failed
-polyn_mult                   dfimport failed
-quadrec                      fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/quadrec//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/clau
-share_test_1                 dfimport failed
-share_test_2                 dfimport failed
-simple_example_1             dfimport failed
-single_loop                  dfimport failed
-sobel                        dfimport failed
-spmv                         dfimport failed
-sqrtsub                      fuse_check: REFUSED -- normal forms differ: rules: 39 vs 38
-stencil_2d                   dfimport failed
-straight                     fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/straight//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cla
-sum3                         fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/sum3//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/claude-
-sumi3_mem                    dfimport failed
-test_bitint                  dfimport failed
-test_bool_array              dfimport failed
-test_constant_array          dfimport failed
-test_divui                   dfimport failed
-test_flatten_array           dfimport failed
+lfsrfind                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/lfsrfind/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
+nest3                        fuse_check: REFUSED -- normal forms differ: rules: 136 vs 138
+nested                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/nested/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fi
+quadrec                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/quadrec/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
+sqrtsub                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/sqrtsub/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
+straight                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/straight/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
+sum3                         fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/sum3/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fixt
 test_int16                   fuse_check: A and B import to the same rules
-test_internal_array          dfimport failed
 test_loop_free               fuse_check: A and B import to the same rules
-test_memory_1                dfimport failed
-test_memory_10               dfimport failed
-test_memory_11               dfimport failed
-test_memory_12               dfimport failed
-test_memory_13               dfimport failed
-test_memory_14               dfimport failed
-test_memory_15               dfimport failed
-test_memory_16               dfimport failed
-test_memory_17               dfimport failed
-test_memory_18               dfimport failed
-test_memory_2                dfimport failed
-test_memory_3                dfimport failed
-test_memory_4                dfimport failed
-test_memory_5                dfimport failed
-test_memory_6                dfimport failed
-test_memory_7                dfimport failed
-test_memory_8                dfimport failed
-test_memory_9                dfimport failed
-test_smallbound              dfimport failed
-test_stdint                  dfimport failed
-test_unroll                  dfimport failed
-threshold                    dfimport failed
-triangular                   dfimport failed
-trisolv                      dfimport failed
-twoloops                     fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/twoloops//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cla
-unused_arg                   dfimport failed
-varshift                     fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/varshift//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cla
-vector_rescale               dfimport failed
-video_filter                 dfimport failed
-while_loop_1                 dfimport failed
-while_loop_2                 dfimport failed
-while_loop_3                 dfimport failed
-wrap_if                      dfimport failed
-xorshift                     fuse_check: PROVED -- /tmp/claude-0/rres/cloud/fixtures/frontend/xorshift//comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /tmp/cla
+twoloops                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/twoloops/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
+varshift                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/varshift/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
+xorshift                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/xorshift/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/

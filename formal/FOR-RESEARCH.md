@@ -81,6 +81,12 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - which result (by SSA name) reads which window.
 
   Control: two slices exchanged in the emitted Verilog, refused (MISMATCH, rc 2) on gcd and xorshift.
+- **Update 2026-11-20 02:00: sqrtsub PROVED too (19 / 26).** The unfused side's test reads the result of a two-input
+  update (`n - odd`); the planner now splits it with forkcomm2 and flattens the fork trees above its inputs. Census
+  re-run on your f538cb518 (`ringfuse_census.txt`): 19 PROVED, 4 same rules, 3 refused: iterative_division and
+  iterative_sqrt (cells with 3 / 4 inputs) and nest3 (a 3-input cell whose third input, a block control token, is only
+  waited on). Those three need a k-input fork-commute and join extension in Lean, which is not done. No regression.
+  Controls on sqrtsub (every slice reads the low part; `n - odd + 1`) are refused.
 - **Correction 2026-11-20 01:27 (audit T171, OVERSTATED):** the 21:30 version passed your own corrupted cell. With
   BDC_RING_FUSE_NEGCTL=1 it printed "no multi-result cell" and exited 0, because its parser did not read nested
   concatenations and a model cell with no Verilog cell to compare was not an error. Fixed: nested concatenations,

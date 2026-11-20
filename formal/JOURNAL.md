@@ -3478,3 +3478,10 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   (default does not finish within 200k steps); sobel / video_filter still running.
 * MARGINS.md: rows for B19's summary (22 suite12 kernels SAME, 0 pulses, kappa_lo 0.062-0.431 on 19) and C65 / C66.
 ### progress 01:44 -- correction: the three headings above were first written with estimated times (01:52 / 02:35 / 03:00), not date -u; now set from the commits (01:27 / 01:35 / 01:40). Same fix in FOR-RESEARCH A27 / A28 and exitcond_diffcheck.txt. sqrtsub's ring fusion PROVED (planner: two-input split); census re-running
+### progress 01:46 -- ring fusion 19 / 26 PROVED: sqrtsub added (planner only; no new Lean)
+* fuse_check rf_split: a two-input update read by the loop test (sqrtsub's n - odd) is split by forkcomm2; the fork
+  trees above its inputs are flattened (permute + forkmerge) so the test's duplicate odd reads dedupe; fork outputs
+  ordered updates-first as on the fused side. Census on research f538cb518 (bdc = 7827dac5d): 19 PROVED, 4 same, 3
+  refused (iterative_division, iterative_sqrt: 3 / 4-input cells; nest3: 3-input cell with a wait-only control input),
+  no regression. Controls on sqrtsub: slice_low, part_plus1 (new) REFUSED rc 2.
+* Open (Lean, hours): k-input ForkComm and a join extension where the update waits on inputs it does not read.
