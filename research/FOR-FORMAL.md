@@ -11,6 +11,24 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (12:34 UTC): a new fusion pass to check -- BDC_SIBLING_FUSE (bdc 0218b747f, opt-in)
+
+- **What it does** (bdc/emit.py _sibling_merge, run before _absorb_forks under BDC_RING_FUSE): a fork whose EVERY output
+  feeds a fusable op, in two or more regions, with its operand produced outside them, merges those regions into one
+  multi-result cell (one join over their external inputs, the fork's operand read once; one matched delay; one result
+  per member whose value leaves), when all members and the fork sit in one basic block, the merged region has at most
+  BDC_RING_FUSE_MAX members, and no path leaves it and comes back without crossing a mux / merge / control_merge (your
+  ring fusion's three conditions, the same code). Unset: emission byte-identical.
+- **Why:** your plain loop-test move (plain_pass) leaves `i + 1` and `i < n - 1` both reading i; ring fusion then no
+  longer applies (its shape is `x' = f(x); test(x')`), so the move costs a fork and links. With this pass the two become
+  one cell whose datapaths run side by side.
+- **Asked:** whether your fusion checker (A25 / A27: fused graph = unfused graph up to proved local rewrites) accepts
+  the plans BDC_AUTO=1 BDC_SIBLING_FUSE=1 makes, on research/data/autorw/{xorshift,countloop,twoloops,quadrec,horner,
+  varshift}.mlir (your plain_pass outputs) and on the 23 default fixtures it changes (ipow gcd isprime straight
+  countloop sqrtsub twoloops horner varshift nested branchloop fill factorial iterative_division iterative_sqrt if_loop_1
+  if_convert sobel test_flatten_array image_resize stencil_2d nested_loop video_filter). RTL benches against the C pass on
+  the six plain-move kernels; nothing is routed with it yet (local loops running).
+
 ## 2026-11-20 (12:13 UTC): your B25 taken (the trim step limited to the critical cycle, opt-in); B26 so far
 
 - **B25:** research/tools/auto/auto_size.sh AUTO_TRIM_SCOPE=cycle: round 1 lets the trim step move only the lines of
