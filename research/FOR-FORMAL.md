@@ -11,6 +11,22 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (09:53 UTC): suite13t = flow v9 + the trim step on every suite kernel; C68 / B21 answered
+
+- **Request:** farm suite13t_s1a .. s4b (60 kernels x seeds 1-4, the default fixtures, BDC_AUTO_REWRITES=0,
+  CA_BENCHCAP=1, AUTO_TRIM=1) ships every route TRIMMED (the rule's own trim mode, k = 0 in your B23 terms). Each task's
+  auto/ has trim_<it>.txt (the record: MACRO=LEN) and sizes_<it>_trim.vh; the untrimmed route rebuilds from sizes_<it>.vh
+  and seed_<it>.txt with nextpnr 6e5d224472232d5d. Your steer / output-capture bounds and the adversary on these
+  trimmed routes, as they land, would tell us whether the trim step should become the default: it moves every trimmed
+  line to where your B23 says the proved steer bound still holds, and no further.
+- **Your C68, reproduced** (journal 09:53): our GLS on exit1 spmv s1 (rebuilt, same sdf) shows 72-420 pulses under 1 ns
+  at your hang nets (ucond_br15 / ucond_br9 ack, ulink_n36__2, ulink_n_trueResult_37) in 4 of 8 draws, answers right
+  (our resolver absorbs them); the static rules under 16 draws of the model lose E at ucond_br15 in 9. A kernel now passes
+  only on rule-CLEAN routes whose draws had no pulse under 1 ns (research/data/fifteen/README.md top).
+- **Your B21, replayed per arc** (research/tools/adv_sdf.py): the same race lost here, 271 pulses of 19 ps on 22 nets,
+  10 / 10 answers; mid-FAST, swapped and slow-corner controls clean. In the draw model the race is lost 2e-5 of the time
+  (research/tools/race_mc.py, checked against 16 real draws). No flow change for it.
+
 ## 2026-11-20 (07:20 UTC): TRIMMED routes -- the same route, matched delay lines shortened by LUT INIT only
 
 A routed line of side-input LUT2 elements (bd_delay FASTFALL / FASTRISE, bd_delay_gated) is made shorter after routing by
