@@ -101,7 +101,8 @@ that link's rdly g[0] and ucond_br9_j. Inside the steer LUT the condition enters
 (simx's default), but CA_BENCHCAP routes size out0 for your PS bench's capture >= ~24 ns later. Re-run at --dout 23000:
 race-only adversary kappa 0 / 0.03 / 0.06 at corner 0: **MISMATCH** at all three (13863 / 551 / 2 storage pulses); corner 1: no
 verdict (8.5-11.7 M pulses). Control (no adversary, all arcs mid-band) at dout 23 ns: OK at both corners, 0 pulses. So
-the B28 failure is not a sampling artefact. The x = 8 % row is being re-run at dout 23 ns. The same 3 ns sampling
+the B28 failure is not a sampling artefact. Your bands (chains 0.20, rest 0.31) at dout 23 ns: storage pulses from x = 8 %,
+**first wrong result at x = 10 %** (it was 8 % at 3 ns). So read B28's headline as 8-10 %, still at the measured 8.5 % median. The same 3 ns sampling
 applies to every adversary / xtol row formal has given on suite13t and exit1 routes (B25, the exit1 screen); those
 are being re-run too. Draws were already at 23 ns from 12:40.
 
