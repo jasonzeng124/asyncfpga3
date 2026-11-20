@@ -208,7 +208,7 @@ def auto():
             # other links' latches excluded from the term (each is its own term).
             Ls = sorted({through(w) for j in launch for w in G[drv[j]]["ins"] if re.search(r"\.ctl\.", ncell(through(w)))})
             if not Ls: rows.append((None, name, "compare's join reads no link ctl: not handled")); continue
-            parts = []
+            parts = []; ISL_L = []
             for Lc in Ls:
                 CUT.clear(); CUT.add(Lc); opn = frozenset()
                 for _ in range(3):
@@ -219,9 +219,10 @@ def auto():
                     opn = frozenset(new_opn)
                 if not al: parts = None; break
                 rs_ = {r for r in rl if not (r in storage and re.search(r"\.lat\.", ncell(r)))}
-                parts.append(("ctl " + ncell(Lc).replace(".ctl.u.u", ""), {Lc}, rs_, ol, rl, opn))
+                parts.append(("ctl " + ncell(Lc).replace(".ctl.u.u", ""), {Lc}, rs_, ol, rl, opn)); ISL_L.append(il)
             CUT.clear()
             if parts is None: rows.append((None, name, "condition cone cyclic")); continue
+            isl = set().union(*ISL_L)   # the adversary's slow class: the per-link cones (operand latches opened), not the old one
         elif kind == "compare*": parts = [("ctl", launch, roots)]   # roots: the launch ctl at A, other storage settled at A
         else:   # transparent while ctl is high: (1) from ctl's rise: the enable path through the latch; (2) from the compute's join: the data
             ctl = {r for r in roots if re.search(r"\.ctl\.", ncell(r))}
