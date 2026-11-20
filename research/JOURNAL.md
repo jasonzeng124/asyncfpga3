@@ -8729,3 +8729,10 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   cost what the plain move and the search gained.
 - **collatz64 s1 + eq2** (arw2): it 7 24706 (untrimmed = trimmed); the search phase's it 8 (BDC_FORK_OUT_LINK=n19__0,
   n33__0) untrimmed 22383, trimming. suite13t: 29391 / 25557. Prediction (14:33): 16.6-21.7 ns trimmed.
+### progress 17:08 (v10's first results; the farm's uninterrupted straight s1 = the resume test's route)
+- suite13t_s5a_v10_1a 3 / 30 back (7874b6123): straight s1 PASS 4 / 4, **sdf 3aee4aab -- the same route the local resume
+  test shipped after being killed twice** (r1 mid-loop, r2 after its loop, r3 trim-only): the resume reproduces the
+  uninterrupted run's route. test_divui s1 PASS (clean), brhash s1 PASS 4 / 4 on a NOT CLEAN route (it 9). v10_1b
+  submitted at 50f1fab54 (no flow file differs from 7874b6123's). suite13t: s3b 18 / 30, s4a 19 / 30, s4b 11 / 30,
+  rerun1 done; rwa still waiting (64 cores).
+- countloop s1 plain + sibling (sib): **PASS 4 / 4 at 16392 ps** (no pulse under 1 ns, narrowest 3.46 ns); suite13t 22224.
