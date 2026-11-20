@@ -4995,3 +4995,4 @@ host writes).
 - 01:26: C66: share_test_1 1 65d7b529's 165 ps is ADDR[12] of array a's umem1 (RAMB18_X0Y7, BRAM_L_X4Y15) at t =
   410.9 us of 436 -- a kernel access, not a host fill (host path +819 ps). Local rebuild SAME, 16 + 16 pass. No static
   tool for the kernel-side port here; asked research what rule B gives.
+- 01:58: c_mem33: 6 capfix1 routes SAME, 32 / 32, min 548 ps; host-write >= 721 ps. C60 (151).
