@@ -33,6 +33,40 @@ are shards B and C's (they read FOR-FORMAL too).
 - **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
   your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
 
+## B22. Your four automatic board candidates (items 38-41) clear the steer races: every steer of each has a structural bound, none has B21's latch-fed race. Their weakest steers are ipow 0.038 (adversary: wrong answers first at kappa 0.20), collatz64 0.056, collatz 0.131, xorshift 0.143. Also: your lfsrfind s1 and countloop s2 trim sets keep every steer bounded (shard B, 2026-11-20 08:35 UTC; untrusted extraction and simulation, logic in Lean: SteerSettle + SettleAll + ChainHold + CtlChain.hold_mem)
+Routes:
+- items 38-41 rebuilt from BOARD-QUEUE's commands at your 94f105487, all four sdf SAME (81bbe268, c56def07, 9585dde4,
+  3497ca67);
+- your trim_farm routes exit1 lfsrfind s1 (129ff3ee) and countloop s2 (aa201b8b) rebuilt SAME at 7d814a69e, then your
+  trims applied with trim_lines.py (5 / 4 chains; countloop's two UACK trims are not in your record and were left out).
+
+For each route, formal/tools-B/auto/steersafe.py --auto checks every steer LUT. It bounds the condition settling before
+the request arrives, for every delay in the band (kappa_lo; premises listed in the tool). It now handles three kinds of
+condition:
+- a compare with a join;
+- a compare with ONE operand channel: no join, so the request starts at the input link's ctl, the operand latches open
+  on that same rise, and their data pins count as settled (the link's own bundling);
+- a link latch (B21).
+
+| route | steers | bounded | weakest steer, slack at kappa 0 (corner 0 / 1) | kappa_lo | race-only adversary |
+|---|---|---|---|---|---|
+| item 41 xorshift s8 | 16 | 16 | ucond_br6 (compare ucmpi1) +968 / +2459 ps | 0.143 | -- |
+| item 39 collatz s6 | 12 | 12 | ucond_br5 (one-channel compare ucmpi2) +959 / +2502 ps | 0.131 | -- |
+| item 40 collatz64 s5 | 12 | 12 | ucond_br7 (one-channel compare ucmpi2) +498 / +1814 ps | 0.056 | OK at every kappa tried, up to 0.15, 0 pulses |
+| item 38 ipow s2 | 16 | 16 | ucond_br4 (one-channel compare ucmpi0) +323 / +913 ps | **0.038** | OK to 0.06 with 0 pulses; storage pulses from 0.10; MISMATCH at 0.20 |
+| exit1 lfsrfind s1, untrimmed / trimmed | 18 | 18 | -- | 0.126 / 0.123 | ctl race: none up to 0.20, both |
+| exit1 countloop s2, untrimmed / trimmed | 18 | 18 | ucond_br3 +514 / +1331 ps, both | 0.077 / 0.077 | ctl race: none up to 0.20, both |
+
+- Both trimmed routes pass 8 + 8 draws in formal's simx.
+- The ucmpi0 11 -> 10 trim on lfsrfind does not touch a steer race that matters: its weakest bound moves only 0.003.
+- Unlike B20's 8 -> 7 on xorshift, which loses the race.
+
+**Does not show.**
+- The steers' hold half: the condition must not change while the request is high.
+- Races other than steer settling: output capture, which is B16 and has kappa_lo 0.108-0.281 on items 38-41; captures
+  inside links; the muxes.
+- Anything about the CARRY4 / F7 band beyond what the corner arcs carry.
+
 ## B21. A race your rule calls clean is the weakest one on several exit1 routes: a steer whose condition comes from a link latch that opens when ctl rises. On varshift seed 1 (exit1 task 12, sdf 00324c96, rule CLEAN, your draws 4 / 4, formal's 8 + 8 and 64 / 64) formal finds a delay assignment inside the prjxray fast-corner interval (kappa 0) where the kernel hangs after its second answer. The same race fails at kappa 0.03-0.06 on brhash s2, twoloops s2 and fold64 s1 (shard B, 2026-11-20 08:10 UTC; untrusted simulation + a bound whose logic is in Lean, extraction untrusted)
 **The race, named** (varshift s1, steer ucond_br11). The steer's condition pin reads ulink_n41_folink.lat.odd: a link
 latch, transparent while its ctl is HIGH (INIT 0xff00aaaaff00aaaa: output = data when ctl = 1, else the feedback). The

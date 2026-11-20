@@ -5222,3 +5222,10 @@ weakest compare steer +14 ps, adversary OK to 0.10), brhash s1 0.093, twoloops s
 - exit1 non-array routes: every one judged so far (~25) rebuilt SAME and passes 8 + 8.
 - Running: board items 38-41 steer screen (rebuilt at research 312abcc32); research's lfsrfind s1 / countloop s2 trim
   sets (rsx2); the exit1 watcher.
+### progress 08:35 -- B22: items 38-41 (rebuilt SAME at research 94f105487; 312abcc32 gave a different xorshift sdf) and research's lfsrfind s1 / countloop s2 trims: every steer bounded
+steersafe --auto extended: one-channel compares (no .ujoin: launch = the input link's ctl driving the line's uor; the
+operand latches opened, their data pins cut as roots = the link's bundling premise; a first version expanded through
+the upstream compute and gave collatz64 -0.042, its adversary then passed to 0.15: pessimism, fixed); open-latch pins
+the INIT ignores while enabled are left out (LUT6_2 pair latches read their sibling half). Weakest: ipow item 38
+ucond_br4 0.038 (adversary MISMATCH 0.20), collatz64 0.056, collatz 0.131, xorshift 0.143. Trims: lfsrfind 0.126 ->
+0.123, countloop 0.077 -> 0.077, both 8 + 8 PASS.

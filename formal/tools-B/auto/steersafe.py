@@ -82,9 +82,23 @@ def req_bound(u0, c):
         if best is not None: WALK.add(u)
         return best
     return R(u0)
+FBM = {}
 def fbpins(u):
+    """pins left out when u is expanded as an open latch: its own feedback, and every pin the INIT does not depend on
+    while the enable (the pin read from a '.ctl.' node) is 1, tied pins at their constants (a LUT6_2 pair latch reads
+    its sibling half, which O6 ignores)."""
+    if u in FBM: return FBM[u]
     gi = drv.get(u); g = G[gi]
-    return {i for i, w in enumerate(g["ins"]) if g["kind"] in ("lut5", "lut6") and through(w) == u}
+    fb = {i for i, w in enumerate(g["ins"]) if g["kind"] in ("lut5", "lut6") and through(w) == u}
+    en = [i for i, w in enumerate(g["ins"]) if re.search(r"\.ctl\.", ncell(through(w)))]
+    if g["kind"] in ("lut5", "lut6") and len(en) == 1:
+        k = len(g["ins"]); init = int(g["init"]); fix = {i: constval(w) for i, w in enumerate(g["ins"])}
+        ok = lambda ad: ((ad >> en[0]) & 1) == 1 and all(v is None or ((ad >> i) & 1) == v for i, v in fix.items())
+        for i in range(k):
+            if i == en[0] or fix[i] is not None: continue
+            if all(((init >> ad) & 1) == ((init >> (ad ^ (1 << i))) & 1) for ad in range(1 << k) if ok(ad)): fb.add(i)
+    FBM[u] = fb; return fb
+CUT = set()   # launch nodes: an opened latch's pins NOT read from one of these are roots (settled at A: the link's bundling)
 def cone(u0, opened=frozenset()):
     """backward cone of u0 stopped at storage / env (roots), except storage nodes in `opened`, which are expanded
     with their feedback pins left out (a latch whose output is the condition)."""
@@ -95,7 +109,10 @@ def cone(u0, opened=frozenset()):
         gi = drv.get(u)
         if gi is None or (u in storage and u not in opened) or u in env: roots.add(u); continue
         isl.add(u); fb = fbpins(u) if u in opened else set()
-        st.extend(w for i, w in enumerate(G[gi]["ins"]) if i not in fb)
+        for i, w in enumerate(G[gi]["ins"]):
+            if i in fb: continue
+            if u in opened and CUT and through(w) not in CUT: roots.add(w); continue
+            st.append(w)
     order, state = [], {}
     def visit(u):
         if u in roots: return True
@@ -106,6 +123,7 @@ def cone(u0, opened=frozenset()):
         fb = fbpins(u) if u in opened else set()
         for i, v in enumerate(G[drv[u]]["ins"]):
             if i in fb: continue
+            if u in opened and CUT and through(v) not in CUT: continue
             if not visit(v): return False
         state[u] = 2; order.append(u); return True
     return isl, roots, order, visit(u0)
@@ -123,6 +141,7 @@ def auto():
     for gi, g in enumerate(G):
         if g["kind"] not in ("lut5", "lut6") or not re.search(STEER, cellof(g)): continue
         if ONLY and not re.search(ONLY, cellof(g)): continue
+        CUT.clear()
         src = [through(u) for u in g["ins"]]
         rp = [p for p, s in enumerate(src) if re.search(r"_j\.", ncell(s))]
         cp = [p for p, s in enumerate(src) if p not in rp and constval(g["ins"][p]) is None and drv.get(s) is not None]
@@ -141,6 +160,23 @@ def auto():
             if not inst: rows.append((None, name, "latch condition: no compute instance in its cone")); continue
             lre = r"bridge_i\.udut\.(%s)\.ujoin" % "|".join(re.escape(i) for i in inst)
         launch = {G[j]["out"] for j in range(len(G)) if G[j]["kind"] in ("lut5", "lut6") and G[j]["out"] in storage and re.search(lre, cellof(G[j]))}
+        if not launch and kind == "compare":   # a one-channel compare has no join: its line starts at the input link's ctl
+            inst = m1.group(1)
+            uor = [G[j] for j in range(len(G)) if G[j]["kind"] in ("lut5", "lut6") and cellof(G[j]) == inst + ".uor"]
+            launch = {through(w) for gg in uor for w in gg["ins"] if constval(w) is None and through(w) in storage}
+            if launch:   # the operand latches of that link open on the same rise: expand them (feedback pins left out;
+                # their data pins are roots settled at A, a premise: the input link's own bundling)
+                CUT.clear(); CUT.update(launch)
+                lre = "|".join(sorted(ncell(u) for u in launch)) + " (joinless compare: the input link's ctl)"; kind = "compare*"
+                for _ in range(3):
+                    opn = set(opened)
+                    for r in roots:
+                        if r in storage and re.search(r"\.lat\.", ncell(r)):
+                            L = G[drv[r]]; fb = fbpins(r)
+                            if any(through(w) in launch for i, w in enumerate(L["ins"]) if i not in fb): opn.add(r)
+                    if opn == set(opened): break
+                    opened = frozenset(opn); isl, roots, order, acyc = cone(g["ins"][q], opened)
+                if not acyc: rows.append((None, name, "condition cone cyclic")); continue
         if not launch: rows.append((None, name, "no launch node for %s" % lre)); continue
         def side(lset, rset, c):
             """request >= A + R (walk to lset), condition <= A + D (longest path from the roots in rset only)"""
@@ -155,6 +191,7 @@ def auto():
             D = t.get(g["ins"][q])
             return (Rv + lerp(g["arcs"][p]["fmin"], g["arcs"][p]["smin"], c), None if D is None else D + lerp(g["arcs"][q]["fmax"], g["arcs"][q]["smax"], c))
         if kind == "compare": parts = [("join", launch, roots)]
+        elif kind == "compare*": parts = [("ctl", launch, roots)]   # roots: the launch ctl at A, other storage settled at A
         else:   # transparent while ctl is high: (1) from ctl's rise: the enable path through the latch; (2) from the compute's join: the data
             ctl = {r for r in roots if re.search(r"\.ctl\.", ncell(r))}
             parts = [("ctl", ctl, ctl), ("join", launch, roots - ctl)]
