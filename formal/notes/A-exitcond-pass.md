@@ -50,7 +50,7 @@ The previous estimate stands: days, not hours. A Bool checker for (a)-(d) on the
 - Until the general theorem exists, the per-kernel proofs (about a minute each to regenerate) are the ticket for
   LFTR. The nsw change has no ticket.
 
-## Update 2026-11-20 08:58: translation validation as the general mechanism
+## Update 2026-11-20 08:56: translation validation as the general mechanism
 Per-kernel proofs now cover all 12 memory-free fixtures the knob changes, except gcd. The tool that produces them is
 the same for every kernel: `ringfuse_autoproof.sh` with the flags in FOR-RESEARCH A28. It infers the reachability
 inequalities itself (AP_INEQ / AP_INEQR), and nested's `i < a` is exactly the LFTR side condition above. That makes
