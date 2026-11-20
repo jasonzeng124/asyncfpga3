@@ -37,11 +37,21 @@ for root in sys.argv[1:]:
         loglines = open(log).read().splitlines() if os.path.exists(log) else []
         steps = [l for l in loglines if l.startswith("trim")]
         moved = []
-        for p in sorted(glob.glob(os.path.join(d, "auto", "trim_*_[0-9].log"))):
-            for l in open(p):
-                m = re.match(r"trim (\S+) \S+: (\d+) -> (\d+)", l)
+        it = farm.get("it", "?")
+        sz = {}
+        try:   # the loop's own sizes of the shipped iteration (as built), against the trim record (MACRO=LEN)
+            for l in open(os.path.join(d, "farm", "auto", "sizes_%s.vh" % it)):
+                m = re.match(r"`define\s+(\S+)\s+(\d+)", l)
                 if m:
-                    moved.append("%s %s->%s" % (m.group(1).replace("BD_SZ_", ""), m.group(2), m.group(3)))
+                    sz[m.group(1)] = m.group(2)
+        except OSError:
+            pass
+        rec = os.path.join(d, "auto", "trim_%s.txt" % it)
+        if os.path.exists(rec):
+            for l in open(rec):
+                if "=" in l:
+                    k_, v_ = l.strip().split("=")
+                    moved.append("%s %s->%s" % (k_.replace("BD_SZ_BRIDGE_I_UDUT_", "").lower(), sz.get(k_, "?"), v_))
         rule = ""
         m0 = re.search(r"before: (\d+) short, (-?\d+) ps", " ".join(steps))
         mlast = [re.search(r"\((\d+) short, (-?\d+) ps\)", l) for l in steps]
