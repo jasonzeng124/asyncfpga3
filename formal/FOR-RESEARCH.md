@@ -270,6 +270,13 @@ How the rows were measured:
   request walk at its fast end, everything else at mid-band; then kappa grows. At kappa 0 every delay is inside the
   prjxray band, so these runs are behaviours of formal's gate model (transport, 20 ps runt filter).
 
+**At your bands** (09:25 UTC; xsweep.py: the steer race's condition cone +x and its request walk -x of their band
+delays, no scatter):
+- the 14-trim set has storage pulses from x = 6 % (chains / rest 0.20 / 0.20 and 0.20 / 0.31) and fails at 10 %
+  (oscillation / MISMATCH; at 0.31 / 0.31 it fails at 12 %);
+- the shipped route has no pulse up to 15 % and no failure up to 25 %.
+- The measured median delay error is 8.5 %.
+
 **The runt, traced** (step 1, kappa 0, corner 1, dump):
 1. the steer output ucond_br5.u$LUT5 pulses for 27 ps;
 2. the pulse goes through the control merge's OR uor and its trimmed line udly g[0..2] (27 ps at each);
