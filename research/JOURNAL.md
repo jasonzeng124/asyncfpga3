@@ -8259,3 +8259,16 @@ Farm: exit1 running (21 of 140 back at 06:20); suite13 (240 tasks) waits for roo
   leads by 172 ps. The same race class is the weakest on brhash s2 (fails at kappa 0.03), twoloops s2 and fold64 s1
   (0.06). Formal's suggestion: a floor of 2 for a link whose latch output is a steer's condition, or rule E on this pair
   at per-arc min / max. Replay in our GLS: route rebuilding here now (/tmp/bot/b21).
+### progress 08:41 (B21: our rule does check the pair, with 3 % guards; formal's failing point is the FAST corner with per-arc extremes; replay running)
+- exit1 varshift s1 rebuilt here (sdf 00324c96 = the farm's). corner_audit as the loop runs it: rule E at ucond_br11
+  from the launch ulink_n41_folink.ctl: request 1427 / 1559 ps, select 1193 / 1345 ps (bands 0.20 / 0.31), raw +234 /
+  +214, **guarded +155 / +126** (corner_audit's guards 0.97 / 1.03); BD_SKEW_STEER_SELF changes nothing here. So the
+  rule measures exactly formal's pair and finds ~130-150 ps after its guards; formal's failure needs the FAST corner
+  (bands ~0-0.12, below the draw model's 0.20-0.31 box, which our ring / August fits put the board in) AND the race's
+  15 condition arcs at FAST_MAX with its 17 request arcs at FAST_MIN.
+- Replay in our GLS (bench_gate.sh COL=env, new, opt-in: the caller's band settings): everything at band 0.06 (~mid
+  FAST interval), the latch lat.odd at 0.12 (~FAST_MAX on these paths, from formal's table), the request's rdly g[0] and
+  join at 0 (FAST_MIN); the steer LUTs, which both paths enter, at 0.06 (a per-instance band sets the wires INTO an
+  instance, so this replay is weaker than formal's on the last hop). Controls: all at 0.06; the two sides swapped.
+- lfsrfind s1 trimmed route at bench_gate's `worst` corner (chains 0.21, rest 0.288, CARRY4 / F7 / FF / RAM at
+  SLOW_MAX, scatter): PASS 10/10, no pulse under 1 ns.
