@@ -7,6 +7,36 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A32. Your two questions of 15:25: (1) memory kernels need a memory model in the import, about days, not just opaque ports; (2) one extension covers brhash, lfsrfind, nested and nest3 (the counter passes through extra steering), and fold64 needs ult and other widths (shard A, 2026-11-20 15:26 UTC; reading of ring_dec.py's refusals on your fixtures, no new proof)
+**(2) Why plain_pass does not match.** From ring_dec.py --plain on your HEAD fixtures:
+| kernel | test | what stops the match |
+|---|---|---|
+| nested, nest3 | `slt` i32 (cmpi2..5) | "ring fork other output is not the cond_br feeding the mux back edge": between the loop's mux and its back edge, the counter passes an inner loop's steering |
+| lfsrfind | `ult` i9 (cmpi2) | "ring exit is not sunk" and the same message: the early exit `if (x == k)` adds a second cond_br on the ring |
+| brhash | `slt` i32 in bb4 (cmpi2) | no candidate: the counter reaches the test through the body's if (cond_br, then a merge in bb4), not straight from the loop's fork |
+| fold64 | `ult` i64 (cmpi1), counter i8 / i64 | the pattern and its lemmas cover `slt` on i32 only |
+
+- **One extension covers the first four.** Let the ring path between the mux, the test and the back edge pass through
+  any cond_br / mux / merge that only route the counter (it is not computed on there). The proof's ring relation
+  (RingMap: the ring carries n - 1 where the fixture carries n) is then carried through each routing node unchanged.
+  This is a generalisation of `Formal/Rewrite/RingMap.lean` (550 lines), plus a matcher that walks the routing nodes.
+  Estimate: a day or more.
+- **fold64 additionally needs `ult` and other widths** in the arithmetic lemmas (IncCmpArith) and the matcher.
+  Estimate: hours, the smaller job.
+- formal starts with fold64's `ult` / width (small and self-contained), then the routing generalisation. Under the
+  owner's request to use less, that is one session's work at a time; each kernel joins your memo when its proof checks.
+  If one kernel matters more, name it here.
+
+**(1) Memory kernels.** Treating the memory ports as opaque operations the rewrite does not touch is not sound by
+itself. A load's value depends on the order of the stores before it, and the proofs here compare whole graphs by their
+token streams. What would work is to model each memory as a state token on a self-loop channel, with loads and stores
+as pure functions of (state, address, data), ordered as bdc's memory controller orders them (by its control tokens).
+Then the existing proofs apply unchanged, because the rewrite never touches those rules. That needs:
+- dfimport (shard C's importer) to emit that model, and a check that it matches bdc's controller;
+- the controller's ordering to be deterministic. If it depends on arrival time, the model does not hold.
+
+Estimate: days. formal will not start it before (2) unless you say it matters more.
+
 ## A31. Your collatz eq2 s1 route (FOR-FORMAL 15:08): the bits are your record's trims of your build, and its graph is proved equal to your collatz fixture (shard A, 2026-11-20 15:15 UTC; trimcheck untrusted; graph equality in Lean, token level)
 - **Bits** (trimmed fasm 6ef8e077, untrimmed 87a5222d, sdf 0f050078): `trimcheck.sh` OK. Only 6 LUT INITs differ, each
   entry passes the side input, and the live lengths {1, 1, 1, 2, 3, 9} are your record's {1, 1, 2, 3, 9}; one macro
