@@ -8660,3 +8660,16 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   s1 plain + sibling 16.29 ns 4 / 4; AUTO_RACE_Z (B28) in the flow; the scoped trim (B25); C68 / B21 / B26 settled.
 - **Open with formal:** FOR-FORMAL 15:2x (can the proved passes reach the memory kernels and the plain counters with a
   branch / inner loop); B's steer screen on the collatz eq2 route.
+### progress 15:33 (BDC_MEM_FASTFALL through the loop: gather s1 54.19 -> 37.72 ns, fill s1 30.40 -> 29.81; filed as an A/B against v10 on the 30 memory kernels)
+- The local loops (v9 + trim, one seed each; started 09:23, finished before noon, not journalled until now): **gather
+  s1** with BDC_MEM_FASTFALL=1 converged clean at it 4, untrimmed 40286 / trimmed 37720 ps, 4 / 4 draws PASS 9 / 9, no
+  pulse under 1 ns; suite13t's gather s1 route (same seed, no FASTFALL, it 10) is 54186 untrimmed and trimmed (the
+  trim found nothing), its task then ran out of time in the search phase. The two routes' rising floors are equal
+  (18198 / 18227 ps): the period above the floor is the RAM port's return to zero, which FASTFALL takes in one element.
+  **fill s1**: 29806 trimmed (4 / 4) vs suite13t 30397 (-1.9 %); untrimmed 31453 vs 30397 (+3.5 %). One seed each.
+- BDC_MEM_FASTFALL changes 30 of the 60 suite kernels under BDC_AUTO=1 (every one with a memory port; emit md5s with and
+  without). memauto.md's open item was this lever "with its own loop, 4+ seeds". **Filed suite13t_s5b_mff_{1..4}**
+  (seed per part, 30 tasks each, v10's environment + BDC_MEM_FASTFALL=1, state in $SHARED/state_mff; named after v10
+  and its resume parts, before sibb). PREDICTION in the request header (15:45): against v10's same (kernel, seed),
+  median -5 %, range about -30 % .. +3 %, every draw passing with no RAMB18 setup / hold event, clean share within 5
+  points.
