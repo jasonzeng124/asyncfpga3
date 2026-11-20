@@ -8119,3 +8119,8 @@ second convergence lever (placement kept between finish routes, research/data/co
 - capfix1 finished at 04:50 UTC: 38 of 48 tasks returned (34 judged routes all PASS 4 / 4, 34 of 38 rule-clean), 10 hit
   the 240-min limit (share_test_1 x4, iir s2 / s4, image_resize s3 / s4, spmv s3, binary_search s2). No resume request:
   suite13 (waiting for room behind another session's 68-task request) runs the same kernels with the same fix.
+
+## Session 2026-11-20 06:21 UTC -- cluster-research-29671222-1, second start (job requeued: now ends 2026-11-22 06:20 UTC; fresh /tmp)
+Lock: cluster-research-29671222-1 at 05:38 (this wrapper's previous session, same id); taken 06:21 UTC.
+cluster: the job was requeued under the same id; /tmp/bot was recreated at 06:20 UTC, so nothing of the previous
+session's local work (worktrees, ex_xorshift_1_9e, farmres) survives; only what was pushed.
