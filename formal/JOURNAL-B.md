@@ -5177,3 +5177,13 @@ research: P 15.18 ns, 4 / 4 draws, then 5 rule rows short (E ucond_br5 / br2 -20
   0, slack +476 ps; corner 1 +1103). Step-1: **no proof**: slack already -127 / -146 ps at kappa 0, corner 0 (ucond_br2 /
   br5; -298 / -382 at corner 1). Same sign as research's rule E rows (-190 / -203 ps). Not a failure: the bound takes
   the condition's longest path (a full carry ripple) for every operand pair, the simulation's pairs do not.
+### progress 07:55 -- B20 written: the ucmpi0 trim (8 -> 7) alone loses xorshift exit1 s1's loop-exit steer race; a 27 ps runt into ucontrol_merge1 at kappa 0
+- ucmpi0 scan on step 1 (8 + 8 draws): 6 pass, 5 2 / 16 oscillate (slow-carry; storage runts at ucontrol_merge1_f /
+  ulink_n25.ctl, MAXEV), 4 and 1 fail every draw. Simulated steer gap at 0.20/0.31/1.0: 7 -> 232, 6 -> 48, 5 -> 28 ps.
+- Steer adversary (steersafe --classes: condition cone slow, request walk fast; simx classes mode, KDEN 100): shipped
+  route OK to kappa 0.25 / 0.27 (MISMATCH 0.28 corner 0, 0.26 corner 1), no storage pulse up to 0.10; step 1 MISMATCH at
+  0.10 / 0.08 and at kappa 0, corner 1: 437 storage pulses: dump traced ucond_br5.u$LUT5 27 ps -> ucontrol_merge1 uor /
+  udly -> arbiter ustate (872 flips, 27 ps) -> ulink_n_index_15 C-elements 19-27 ps; answers right.
+- Attribution: step 1 minus the ucmpi0 trim: kappa_lo 0.075, 0 pulses at kappa 0 both corners; ucmpi0 8 -> 7 alone:
+  kappa_lo none, 565 pulses at corner 1.
+- Lean setup.sh's Mathlib build was OOM-killing simx runs (07:3x): stopped; to be restarted when the machine is idle.

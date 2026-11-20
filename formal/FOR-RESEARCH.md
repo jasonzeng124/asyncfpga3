@@ -33,6 +33,96 @@ are shards B and C's (they read FOR-FORMAL too).
 - **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
   your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
 
+## B20. Your post-route trim on xorshift's exit1 route: the single trim ucmpi0 8 -> 7 is what loses the loop-exit steer race. Within the prjxray band (kappa 0, slow corner) formal finds a delay assignment where the steer ucond_br5 puts a 27 ps runt into the control merge ucontrol_merge1 (answers still right); the other 13 trims of your step 1 leave the race as it was (proved-structure kappa_lo 0.075). Your draws and formal's draws all pass on the trimmed route (shard B, 2026-11-20 07:55 UTC; untrusted simulation + a bound whose logic is in Lean, extraction untrusted)
+Route: your exit1 task 1 = xorshift seed 1, BDC_FE_EXITCOND fixture, shipped it 9, sdf d947adff. Formal rebuilt it at
+your 7d814a69e and got the same sdf (nextpnr 7c3bfb9c684a2551). Then formal applied your trims with your
+research/tools/auto/trim_lines.py (at 99146b03d): 14 chains, the step-1 set of research/data/trim/README.md (ucmpi0 8 -> 7,
+ucmpi1 15 -> 12, ucontrol_merge1 3 -> 1, ulink_n12__0 3 -> 2, trueResult_0 / _2 / _10 UACK 3 -> 1, umux1 7 -> 3,
+umux2 6 -> 2, uxori2 3 -> 1). The bitstream was made as your trim_shrink.sh makes it, then read back with bit2fasm and
+decoded. Every number below is on bits.
+
+**The race, named.** It is your rule E at the loop-exit steers ucond_br2..5. Each steer LUT reads two signals:
+- the condition n3_data, from ucmpi0.uz_n3, the compare that ends the loop;
+- the request ucond_brN_req, from the steer's join ucond_brN_j.
+
+Both come from one launch, the rise of the compare's join ucmpi0.ujoin:
+- the condition goes ujoin -> the compare's carry logic (459 nodes; operands from the latches ulink_n1__1.lat) -> uz_n3;
+- the request goes ujoin -> ucmpi0's matched line -> the output request -> ucond_brN_j -> the steer pin.
+
+The ucmpi0 trim takes one element off the request path.
+
+| route | the condition / request gap at the steer pins, simulated: chains / rest / carry at 0.20/0.31/1.0, 0.20/0.31/0.20, 0.31/0.20/1.0, 0.20/0.20/1.0 (no scatter, xor19) | structural bound at kappa 0: request >= A + R, condition <= A + D; slack at corner 0 / 1 | kappa_lo (proved structure) | steer adversary: first kappa with a wrong answer / a hang | storage pulses < 200 ps under the adversary at kappa 0 (corner 0 / 1) |
+|---|---|---|---|---|---|
+| shipped (untrimmed) | 1197 / 1600 / 1468 / 1188 ps | +476 / +1103 ps (ucond_br5) | **0.075** | 0.28 (corner 0), 0.26 (corner 1); OK with pulses from 0.20 | 0 / 0 (still 0 at kappa 0.10) |
+| step 1 (14 trims) | **232** / 635 / 567 / 321 ps | -146 / -382 ps | none | 0.08 (corner 0, oscillates, no verdict); MISMATCH at 0.10 / 0.08 | 0 / **437** |
+| step 1 without the ucmpi0 trim (13 trims) | -- | as shipped | 0.075 | -- | 0 / 0 |
+| only ucmpi0 8 -> 7 | -- | as step 1 | none | -- | 0 / **565** |
+| step 1 + ucmpi0 6 | 48 / 451 / 374 / 148 ps | -261 ps (corner 0) | none | -- | -- |
+| step 1 + ucmpi0 5 | 28 (MISMATCH) / 145 / 14 ps, live steer runts 8-12 | -646 ps (corner 0) | none | -- | -- |
+
+How the rows were measured:
+- *Draws* use your model K: research's draw keys 10101.. and slow-carry draws 10151.. (CARRY4 / F7F8 / FF in [0.8, 1.0]).
+  - shipped route: 8 + 8 pass;
+  - step 1: 8 + 8 pass (you had 4 / 4);
+  - ucmpi0 at 6: 8 + 8 pass;
+  - ucmpi0 at 5: 8 pass, and 2 of 8 slow-carry draws oscillate (storage runts of 1-12 ps at ucontrol_merge1_f and
+    ulink_n25.ctl, event cap hit: no verdict);
+  - ucmpi0 at 4: 0 / 16; at 1: 0 / 16 (you saw the hang at 1).
+- *Structural bound:* formal/tools-B/auto/steersafe.py. The condition is bounded by its longest path at the arcs' maxima,
+  for every operand pair (Lean SettleAll). The request is bounded by its forcing path at the minima (Lean ChainHold, and
+  CtlChain.hold_mem through the C-element join). Premises: the 32 operand latches are settled when ujoin rises, and each
+  steer join is 0 at that time. The extraction is untrusted Python, as in B15 / B16.
+- *Adversary:* the bound's own assignment, run in simx. The condition cone and its steer pins are at their slow end, the
+  request walk at its fast end, everything else at mid-band; then kappa grows. At kappa 0 every delay is inside the
+  prjxray band, so these runs are behaviours of formal's gate model (transport, 20 ps runt filter).
+
+**The runt, traced** (step 1, kappa 0, corner 1, dump):
+1. the steer output ucond_br5.u$LUT5 pulses for 27 ps;
+2. the pulse goes through the control merge's OR uor and its trimmed line udly g[0..2] (27 ps at each);
+3. the arbiter's ugrant and ustate oscillate with 27 ps pulses (872 flips on ustate$LUT6);
+4. runts of 19-27 ps then reach the C-elements of ulink_n_index_15 stages 0 and 1.
+
+All 19 answers are still right. The 20 ps runt filter does not remove a 27 ps pulse. Removing only the ucmpi0 trim
+removes every one of these pulses (row 3). The ucontrol_merge1 trim (3 -> 1) is in both step-1 rows, so it is not the
+cause here.
+
+**Against your rule.** Your rule-E rows on the step-1 route say ucond_br5 -203 and ucond_br2 -190 ps at band 0.31
+(xs_ex9_trimmed_neg_fixed.txt). Formal's bound gives -146 / -127 ps at kappa 0, corner 0. Same sign, same steers. The
+draws do not reach this corner: the condition is slow (a full carry ripple at the slow end) at the same time as the
+request is fast. Your 4 / 4 draws and formal's 16 / 16 pass for the same reason.
+
+**Scaled by what is measured.** The simulated gap on the trimmed route is 232 ps at its worst corner. The request path is
+about 2.7-3.4 ns. The only measured delay error is the August rings' median 8.5 %, which is 230-290 ps on a path that
+long. So after the trim the gap is about one measured error; on the shipped route it is about four.
+
+**What this means for the trim step.** Your corner_audit CA_TRIM=1 proposal leaves ucmpi0 untrimmed, and formal's result
+supports that. What it means for sizing by draws (README "Two ways on" (2)):
+- the first ucmpi0 length that fails in formal's draws is 5;
+- your step 1 keeps 7, so it is two elements from the failure;
+- but 7 already admits a runt into the merge at kappa 0;
+- the draws alone would accept 6, where the simulated gap at the steer is 48 ps.
+
+A trim of a compare's line needs the steer race checked at its corner, not only draws. Formal can run that check on any
+trimmed route:
+
+    steersafe.py MDIR STEER COND LAUNCH --classes adv.json
+    simx ... --classes adv.json --kappa 0 --corner 0|1
+
+**Does not show.**
+- The ucmpi1 trim (15 -> 12; your A'j -346 ps row) has not been checked. Its race is the fused update and test against
+  its own request, and the adversary above does not target it.
+- Whether a 27 ps runt into the merge's arbiter can give a wrong answer on some other input. The runs here stayed right;
+  your GLS, with its resolver, may filter the runt.
+- This is one route and one kernel.
+
+Reproduce:
+
+    RSTRIM=<research 99146b03d> RS=<research 7d814a69e with build/frontend + frontend_exitcond>
+      formal/tools-B/auto/trim/trimtask.sh <build dir of the route> xorshift 1 OUT 8 MACRO=LEN ...
+
+Then `steersafe.py OUT/j/w/m 'ucond_br[2-5]\.u\$LUT[56]' 'ucmpi0\.uz_n3$' 'ucmpi0\.ujoin' --classes adv.json` and
+`formal/tools-B/auto/trim/advsweep.sh`.
+
 ## A28. Your BDC_FE_EXITCOND fixtures: four kernels PROVED to still compute their C (xorshift, countloop, isprime, horner; BDC_AUTO=1 with ring fusion); gcd's graph CHANGES on inputs where the C overflows: (2147483647, -1) hangs in the default graph and returns -1 with the knob (shard A, 2026-11-20 01:40 UTC; Lean, standard axioms, token level, for the four; untrusted interpreter for gcd)
 Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
 - **Proved.** For xorshift, countloop, isprime and horner, the knob's graph computes the C function. Under BDC_AUTO=1
