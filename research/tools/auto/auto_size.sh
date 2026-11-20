@@ -359,6 +359,23 @@ PY
     if [ -n "${TRIM_ALLOW:-}" ] && [ -n "$t" ]; then
       t=$(for x in $t; do grep -qxF "${x%%=*}" "$TRIM_ALLOW" && echo "$x"; done | tr '\n' ' ' | sed 's/ $//')
     fi
+    # TRIM_FLOOR=FILE ("MACRO LEN" per line; AUTO_OVERBUILD's trim-back): no line goes below its floor -- a proposal under
+    # it becomes the floor, a line already there or longer is left alone unless the proposal pads it
+    if [ -n "${TRIM_FLOOR:-}" ] && [ -n "$t" ]; then
+      t=$(python3 - "$TRIM_FLOOR" "$cur" $t <<'PY'
+import re, sys
+fl = dict((l.split()[0], int(l.split()[1])) for l in open(sys.argv[1]) if l.strip())
+cur = {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(sys.argv[2])) if m}
+out = []
+for x in sys.argv[3:]:
+    mac, v = x.split("=")
+    v = max(int(v), fl.get(mac, 0))
+    if v != cur.get(mac):
+        out.append("%s=%d" % (mac, v))
+print(" ".join(out))
+PY
+)
+    fi
     # a line race_pad.py raised (AUTO_RACE_Z: a latch-fed steer below its z) is never trimmed back below its size
     if [ -s "$O/race_padded.txt" ] && [ -n "$t" ]; then
       t=$(for x in $t; do grep -qxF "${x%%=*}" "$O/race_padded.txt" || echo "$x"; done | tr '\n' ' ' | sed 's/ $//')
@@ -491,6 +508,34 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
       done
     else
       trim_route "$i"
+    fi
+    # AUTO_OVERBUILD (opt-in): an overbuilt finish route gives back its extra length.  Every line the switch built H
+    # longer (trimmable_<switch>.txt) and the trims above left alone or cut below it is trimmed to max(the rule's need
+    # on this route, its size minus H) -- the length the finish phase would have built without overbuild -- so the
+    # extra elements bought a clean route and nothing else: no latency on a loop-free kernel, no margin spent on lines
+    # off the critical cycle (formal B25's point), the cycle's own trims as they were.  The trim step's own checks
+    # stand (a step that opens a constraint is undone).  Why: sym test_loop_free s1 (BD_SYMTRIM) was clean as built at
+    # its first overbuilt route, and with AUTO_TRIM_SCOPE=cycle a loop-free kernel would have shipped every line +H.
+    if [ -n "${AUTO_OVERBUILD:-}" ] && [ "${AUTO_OVERBUILD_TRIMBACK:-1}" = 1 ]; then
+      local sw ob cyc fl
+      sw=$(grep -oP '^phase 2 \(raise-only\) from it \K[0-9]+' "$O/log.txt" | tail -1)
+      ob=$O/trimmable_$((sw - 1)).txt
+      if [ -n "$sw" ] && [ "$i" -ge "$sw" ] && [ -s "$ob" ]; then
+        cyc=$O/trim_allow_$i.txt; [ -s "$cyc" ] || cyc=/dev/null
+        awk -F'\t' '$2 == "trimmable" {print $1}' "$ob" | grep -vxF -f "$cyc" > "$O/trimback_allow_$i.txt"
+        python3 - "$O/sizes_$i.vh" "$AUTO_OVERBUILD" "$O/trimback_allow_$i.txt" > "$O/trimback_floor_$i.txt" <<'PY'
+import re, sys
+sz = {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(sys.argv[1])) if m}
+h = int(sys.argv[2])
+for mac in (l.strip() for l in open(sys.argv[3]) if l.strip()):
+    if mac in sz:
+        print("%s %d" % (mac, max(1, sz[mac] - h)))
+PY
+        if [ -s "$O/trimback_allow_$i.txt" ]; then
+          echo "trim: it $i overbuild trim-back: $(grep -c . "$O/trimback_allow_$i.txt") line(s) off the cycle, floor = size - $AUTO_OVERBUILD" >> "$O/log.txt"
+          TRIM_ALLOW=$O/trimback_allow_$i.txt TRIM_FLOOR=$O/trimback_floor_$i.txt TRIM_CONTINUE=1 trim_route "$i"
+        fi
+      fi
     fi
   fi
   "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_$i.log" 2>&1
