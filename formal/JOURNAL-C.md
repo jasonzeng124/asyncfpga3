@@ -4998,3 +4998,4 @@ host writes).
 - 01:58: c_mem33: 6 capfix1 routes SAME, 32 / 32, min 548 ps; host-write >= 721 ps. C60 (151).
 - 02:43: c_mem34: mul_example 3, vector_rescale 2 / 3 SAME, 32 / 32, min >= 1097 ps. C60 (154).
 - 03:13: c_mem35: 5 capfix1 routes SAME, 32 / 32. spmv 4 98aa993f (capfix1): host-write +1013 ps, drawMin 785 -- C64 closed on the new route. C60 (159).
+- 03:43: c_mem36 binary_search 3 SAME, 32 / 32, min 2164 ps. C60 (160). capfix1 47 / 48.

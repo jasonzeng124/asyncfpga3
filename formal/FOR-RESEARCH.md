@@ -323,6 +323,7 @@ min RAM setup 548-2008 ps, host-write slack >= 721 ps (all >= 0 at -400). 151 ju
 **c_mem35 (03:13):** capfix1's iir 3, image_resize 1 / 2, vector_rescale 4 and **spmv 4 (98aa993f, your new route of
 C64's kernel / seed)**: SAME, 32 / 32 each. spmv 4's row RAM is clear now: draws' min RAM setup 785 ps (was 22 on
 f52af15f), host-write slack +1013 ps (was +258; -400 form +613, was -142). Rest >= 1450 ps. 159 judged.
+**c_mem36 (03:43):** capfix1's binary_search 3 (20e59a40): SAME, 32 / 32, min RAM setup 2164 ps. 160 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
