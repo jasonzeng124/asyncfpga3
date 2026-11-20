@@ -45,6 +45,21 @@ md=$(md5sum "$BD/$N.sdf" | cut -c1-8)
 say "$K $S flow ${FLOW:-auto}${FIXTURES:+ fixtures $FIXTURES} sizes $(basename "$Z") sdf $md (research $M8) $([ "$md" = "$M8" ] && echo SAME || echo DIFFERENT) nextpnr $(sha256sum "$TC/openxc7/bin/nextpnr-xilinx" | cut -c1-16)"
 [ "$md" = "$M8" ] || [ "$M8" = - ] || exit 0
 W=$O/w; mkdir -p "$W/m"; PRJ=$TC/openxc7-src/prjxray; DB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7
+# TRIM=<record> (research's AUTO_TRIM routes, auto/trim_<it>.txt): the shipped route is the built one with matched delay
+# lines shortened by LUT INIT only (same placement, routing and SDF -- so the sdf check above cannot tell them apart).
+# research's trim_lines.py --partial applies the record to the routed JSON and the FASM, fasm2frames / xc7frames2bit
+# make the bits, and everything below reads the trimmed files.
+if [ -n "${TRIM:-}" ]; then
+  TR=$(readlink -f "$TRIM"); source "$TC/openxc7/export.sh" > /dev/null
+  cp "$BD/${N}_routed.json" "$BD/${N}_routed.untrimmed.json"; cp "$BD/$N.fasm" "$BD/$N.untrimmed.fasm"
+  ( cd "$RS" && python3 research/tools/auto/trim_lines.py --partial "$BD/${N}_routed.untrimmed.json" "$BD/$N.untrimmed.fasm" \
+      "$BD/${N}_routed.json" "$BD/$N.fasm" $(cat "$TR") ) > "$O/trim.log" 2>&1 || { say "TRIM FAILED: $(tail -1 "$O/trim.log")"; exit 0; }
+  PYTHONPATH="$PRJ:$TC/openxc7/lib/python" python3 "$PRJ/utils/fasm2frames.py" --db-root "$DB" --part xc7z010clg400-1 \
+    "$BD/$N.fasm" > "$BD/$N.frames" 2> "$O/frames.log" &&
+  "$TC/openxc7/bin/xc7frames2bit" --part_file "$DB/xc7z010clg400-1/part.yaml" --part_name xc7z010clg400-1 \
+    --frm_file "$BD/$N.frames" --output_file "$BD/$N.bit" > "$O/bit.log" 2>&1 || { say "TRIM BITGEN FAILED"; exit 0; }
+  say "trimmed: $(tail -1 "$O/trim.log" | cut -c1-120); record $(basename "$TR") ($(grep -c = "$TR") lines)"
+fi
 PYTHONPATH="$PRJ:$PRJ/third_party/fasm:$TC/openxc7/lib/python" python3 -W ignore "$PRJ/utils/bit2fasm.py" --db-root "$DB" \
   --part xc7z010clg400-1 --bitread "$TC/openxc7/bin/bitread" "$BD/$N.bit" > "$W/raw.fasm" 2> "$O/bit2fasm.log"
 if [ -s "$W/raw.fasm" ]; then python3 "$B/fasm_bits.py" "$W/raw.fasm" "$W/m/fromBit.fasm" > /dev/null; SRC=bits

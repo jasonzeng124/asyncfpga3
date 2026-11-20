@@ -61,8 +61,14 @@ for p in sorted(files, key=lambda p: (p.split("/")[1], int(p.split("/")[2]))):
     env = re.search(r"; search ([^)]*)\)", ar[-1])
     # an alternate-seed finish (finseeds DA arm: "alt it N seed X su_.. <sdf8>") placed with seed X, not SEED
     alt = re.search(r"^alt it \d+ seed (\d+) \S+ %s\b" % m.group(1), git("show", "%s:%s/task.txt" % (a.ref, d)), re.M)
+    # AUTO_TRIM (research's suite13t on): auto/trim_<it>.txt is the shipped route's MACRO=LEN record; the SDF does not change
+    tr = git("show", "%s:%s/auto/trim_%s.txt" % (a.ref, d, it)).strip()
+    trf = ""
+    if tr:
+        trf = os.path.join(H, "trims", "%s_%s_%s.txt" % (k, s, m.group(1))); os.makedirs(os.path.dirname(trf), exist_ok=True)
+        open(trf, "w").write(tr + "\n"); trf = " TRIM=" + os.path.relpath(trf, R)
     rows[(k, s, m.group(1))] = (d, it, (env.group(1).strip() if env else "") + rf0(d.split("/")[1])
-                                + (" PNR_SEED=" + alt.group(1) if alt else ""), re.search(r"status=(\S+)", r[-1]).group(1) if "status=" in r[-1] else "?")
+                                + (" PNR_SEED=" + alt.group(1) if alt else "") + trf, re.search(r"status=(\S+)", r[-1]).group(1) if "status=" in r[-1] else "?")
 out = ["# K SEED SIZES SDF8 NDRAWS [ENV...]  (newroutes.py from %s: memory routes no routes_mem*.txt has judged)" % a.ref]
 for (k, s, sdf), (d, it, env, st) in sorted(rows.items()):
     if (k, s, sdf) in done: continue
