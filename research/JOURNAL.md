@@ -8571,3 +8571,11 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   kernel within route scatter of suite13t's trimmed P (median -2 .. +2 %), some routes up to one element slower where
   a latch-fed link is padded; fewer trims (about the cycle's 13 %); every draw passes on every judged route; the
   rule-clean share within 5 points of suite13t's; no route with a latch-fed steer race below 4.5 sd.
+### progress 14:46 (the race check converged: xorshift s1's weakest latch-fed race 2.85 -> 11.5 sd in two more routes; collatz s1 + eq2 first draw 17 / 17)
+- rz loop (xorshift s1, v9 + scoped trim + AUTO_RACE_Z=4.5): it 8 (= suite13t's route) padded ULINK_N31_FOLINK 1 -> 2; it 9
+  one rule row short; **it 10 rule-CLEAN and race check clean: 8 latch-fed steer races, weakest ucond_br8 11.47 sd**. Its
+  period (the pad's cost) and draws next; the trim step will not shorten the padded line (race_padded.txt).
+- collatz s1 + proved eq2 (14.48 ns route): draw 10102 PASS 17 / 17, narrowest pulse 2.7 ns; three draws running.
+  xorshift s1 plain + sibling: final 16289 ps EQUIVALENT, draws running.
+- Farm: suite13t_s2a done, s1b 29 / 30, s2b 19 / 30, s3a 19 / 30 (one more node-c1 failure: task 16, fold64 s3), s3b
+  9 / 30; suite13t_s3a_rwa next; v10 (8 parts) after s4a / s4b and the rerun.
