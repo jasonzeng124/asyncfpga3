@@ -5235,3 +5235,5 @@ umux5.uj1 -241 / -439, countloop s4 -92 / -121, varshift s1 -54 / -109, ...). Ra
 OK to 0.10, twoloops s3 umux5 OK to 0.20, ipow item 38 umux3 OK to 0.20, all with 0 pulses. The bound counts only the
 select's own request; the join also waits for the data request (another link's ctl, no ordering available locally), so
 these are not findings. The steer case (B21) differs: there the adversary deadlocks.
+### progress 08:42 -- 2-hour re-read: PROGRAM unchanged (cffa0d44b); research FOR-FORMAL 07:20 UTC asks for margins / draws on its two trimmed routes (lfsrfind s1, countloop s2): answered in B22 (formal's trimmed FASMs byte-identical to research's, full records); research read B20 / B21 (08:19) and is replaying B21 in its GLS
+varshift s1 (B21): 128 more draws (K 30101-30228) pass: 192 / 192 in all.
