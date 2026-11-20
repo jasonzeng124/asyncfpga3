@@ -181,6 +181,39 @@ applies to the full-stack bitstream items' guard).
   0; the board's 965/2016 correct ipow products contradict that.) USE_MULT has no bit in prjxray-db and is
   assumed MULTIPLY. The pattern detector bits (MASK, PATTERN, ...) are
   consumed, but no modelled output reads them.
+
+  **Pre-adder and B cascade (S8, share_test_2; `dsp_model.py` has the
+  semantics).** On a site with `USE_DPORT[0]` the 25 D pins are traced, on
+  one with `B_INPUT[0]` the 18 BCIN pins (always-on `DSP_1_BCIN<i> <-
+  DSP_0_BCOUT<i>` ppips), and a BCOUT becomes an output of its cell only
+  where such a BCIN reads it; a site with none of the three decodes, and
+  every netlist without them comes out, byte for byte as before (checked on
+  gather and xorshift routes: fasm_routed.json, fasm.sdf, routes.tsv,
+  report.txt, equiv.txt, gen.py's netlists, xray_delay.py's SDF). Modelled:
+  every register off, INMODE=00100 with USE_DPORT (AD = D + A2), BCIN in
+  place of B, BCOUT = the selected B, only in the multiply P = Z + M;
+  anything else with them is refused. `ZIS_INMODE_INVERTED` is consumed on
+  such a site: INMODE comes in through the tie-off bits, which bypass the
+  inverter.
+
+  **ASSUMPTION (the D route).** A D pin has three sources in prjxray-db: the
+  `DSP_GND_*` and `DSP_VCC_*` tie-off bits and ONE tile pip from a BYP
+  (DSP_0) or FAN (DSP_1) interconnect wire, `DSP_<n>_D<i> <- DSP_FAN<j>_<k>`,
+  which is in tile_type_DSP_*.json but has no segbits entry and is not an
+  `always` ppip (fuzzer 071 lists only a node's single uphill pip as always;
+  this node has three). The decoder takes "neither tie-off bit set" to mean
+  the pin reads that wire (`Design.dsp_bitless`; the path in routes.tsv ends
+  in the bit-less pip, and report.txt carries a NOTE per DSP that relies on
+  it). nextpnr routes D that way and writes no bit for it. For it: Vivado
+  routes a used D port through these wires; prjxray's fuzzer 101-dsp-pips
+  drove 10% of D pins from LUTs and solved each tie-off as one positive bit
+  (frames 26/27), and of all bits ever seen set in those frames of a DSP
+  tile (mask_dsp_*.db) only two are explained by no segbit, so no per-pin
+  "route enable" bit was ever seen set there; and the board's INMODE reading
+  1 with no tie-off bit (unpatched constpins writer) is what an undriven FAN
+  wire (INT default VCC) gives. NOT measured: no bitstream with a routed D
+  pin has run on the board here. A D pin whose wire nothing drives (INT
+  default) is refused, and so is a D pin on a tie-off bit (not modelled).
 * **RAMB18E1** (bd_mem's configuration only; 2026-11-17). A RAMB18 half with
   `RAMB18_Y<h>.IN_USE` becomes one `RAMB18E1_RAMB18E1` cell named like
   nextpnr's bel (`RAMB18_X0Y26/RAMB18E1`). The lower half is prjxray's
@@ -293,7 +326,7 @@ See `research/data/fid/f2_gcd_hw.md`.
   cross-read against f4pga-xc-fasm2bels's `clb_models.py` and checked here only
   by agreement with nextpnr's JSON on one design. A shared misreading (for
   example F7AMUX input order) would be invisible to `fasm_equiv.py`.
-* **A subset.** DSP configurations of `dsp_model.py` only (combinational, and registered A/B/C/M/P with nominal clock-to-out timing); latches checked only on a three-latch
+* **A subset.** DSP configurations of `dsp_model.py` only (combinational, and registered A/B/C/M/P with nominal clock-to-out timing; the pre-adder with D and the B cascade combinationally, the D route on the assumption above); latches checked only on a three-latch
   test design (`research/data/fid/f2_phase2.md`); LUTRAM, async flops and
   BRAM other than bd_mem's RAMB18E1 are refused.
 * **The RAMB18E1 is a model, not a measurement.** Its behaviour is UG473's for

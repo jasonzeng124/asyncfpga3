@@ -453,13 +453,18 @@ class CellArcs(object):
         g_out = re.sub(r"\d+$", "", z)
         a_in = params.get("A_INPUT", "DIRECT")
         b_in = params.get("B_INPUT", "DIRECT")
+        # S8 (dsp_model.py): a cell with the pre-adder takes the USE_DPORT_TRUE
+        # timing cells (A -> P through the pre-adder, D -> P), never the
+        # USE_DPORT_FALSE ones; every other cell exactly as before
+        other_dport = "USE_DPORT_FALSE" if params.get("USE_DPORT", "FALSE") == "TRUE" else "USE_DPORT_TRUE"
         best = None
         for (ct, inst), arcs in S.items():
             if not ct.startswith("DSP48E1"):
                 continue
-            # combinational configuration only: no register stage, no D port,
-            # static multiply (gen.py/dsp_config refuses anything else)
-            if re.search(r"REG_[12]", ct) or "USE_DPORT_TRUE" in ct or \
+            # combinational configuration only: no register stage, the D port
+            # as configured, static multiply (gen.py/dsp_config refuses
+            # anything else)
+            if re.search(r"REG_[12]", ct) or other_dport in ct or \
                     "USE_MULT_DYNAMIC" in ct or "USE_MULT_NONE" in ct:
                 continue
             if "A_INPUT" in ct and ("A_INPUT_" + a_in) not in ct:

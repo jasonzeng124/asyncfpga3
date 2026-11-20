@@ -473,8 +473,12 @@ def main():
             flag("DSP REFUSED by the bit decoder", "%s: %s" % (b, f["attributes"]["FASM2NET_REFUSED"]))
         z = int(wj["OPMODE"], 2) >> 4 if set(str(wj["OPMODE"])) <= set("01") else 0
         cas = wj.get("A_INPUT") == "CASCADE"
-        read = ["%s%d" % ("ACIN" if cas else "A", i) for i in range(25)] + ["B%d" % i for i in range(18)] + \
-               (["PCIN%d" % i for i in range(48)] if z else [])
+        # S8 (dsp_model.py): the B cascade reads BCIN instead of B, the pre-adder reads D
+        bcas = wj.get("B_INPUT") == "CASCADE"
+        read = ["%s%d" % ("ACIN" if cas else "A", i) for i in range(25)] + \
+               ["%s%d" % ("BCIN" if bcas else "B", i) for i in range(18)] + \
+               (["PCIN%d" % i for i in range(48)] if z else []) + \
+               (["D%d" % i for i in range(25)] if wj.get("USE_DPORT") == "TRUE" else [])
         # a registered DSP (S7): its clock and the CE/RST pins its registers read
         read += gen.dsp_regs(j)[1]
         bj = {cn: bel(c, cn) for cn, c in jc.items()}

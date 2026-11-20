@@ -236,6 +236,7 @@ class Design:
         self.unused_slices = set()   # slices with no configured feature at all
         self.sitepin_of = {}         # (tile, wire) -> (site, pin name)
         self.used = set()            # (tile, feature) consumed
+        self.dsp_bitless = {}        # (tile, D pin wire) -> its routing pip's source wire (decode_dsp, S8)
         self.ps7 = False             # decode the PS7 (--ps7)
         self.problems = collections.Counter()
         self.examples = collections.defaultdict(list)
@@ -305,6 +306,12 @@ class Design:
                 out.append(("site", t, w, self.siteout[(t, w)]))
             if w in CONST_WIRES:
                 out.append(("const", CONST_WIRES[w], t, w))
+            # S8: the D pin of a DSP48E1 with USE_DPORT reads its routing
+            # (a BYP/FAN wire, through a tile pip prjxray-db has no bit for)
+            # unless a DSP_GND/DSP_VCC tie-off bit is set -- decode_dsp()
+            s = self.dsp_bitless.get((t, w))
+            if s is not None and not any(x[0] == t and x[1] == w for x in seen):
+                out.append(("pip", t, w, s, "bitless"))
         return out
 
     def default_of(self, nid):
@@ -751,6 +758,18 @@ class Design:
         self.live = live
         for cn in sorted(set(self.cells) - live):
             del self.cells[cn]
+        # S8: a DSP48E1's BCOUT is an output of the cell only where a cascaded
+        # BCIN (traced only on a B_INPUT=CASCADE site) reads it; check_dsp()
+        # decides whether that cell's BCOUT is modelled
+        bcout = collections.defaultdict(set)
+        for c in self.cells.values():
+            for p in c.ins:
+                d = self.driver_of(c, p)
+                if d[0] == "drv" and d[1][0] in self.cells and \
+                        self.cells[d[1][0]].type == "DSP48E1_DSP48E1" and re.fullmatch(r"BCOUT\d+", d[1][1]):
+                    bcout[d[1][0]].add(d[1][1])
+        for cn, ps in bcout.items():
+            self.cells[cn].outs.extend(p for p in self._bus(self.DSP_EXT_OUT) if p in ps)
         # every consumed driver must exist
         for c in self.cells.values():
             for p in list(c.ins):
@@ -790,6 +809,9 @@ class Design:
     DSP_IN = [("A", 30), ("ACIN", 30), ("B", 18), ("C", 48), ("PCIN", 48)]
     DSP_CTL = [("OPMODE", 7), ("ALUMODE", 4), ("INMODE", 5), ("CARRYINSEL", 3), ("CARRYIN", 0)]
     DSP_OUT = [("P", 48), ("PCOUT", 48), ("ACOUT", 30)]
+    # S8 (dsp_model.py): traced only where the bits use them (decode_dsp, build)
+    DSP_EXT_IN = [("D", 25), ("BCIN", 18)]
+    DSP_EXT_OUT = [("BCOUT", 18)]
 
     @staticmethod
     def _bus(groups):
@@ -820,6 +842,29 @@ class Design:
             c = Cell("%s/DSP48E1" % sname, "DSP48E1_DSP48E1", root=True)
             for p in self._bus(self.DSP_IN) + self._bus(self.DSP_CTL):
                 c.ins[p] = ("route", tile, pins[p], sname, p)
+            # S8: D (USE_DPORT) and BCIN (B_INPUT=CASCADE) are traced only on a
+            # site whose bits configure them, so every other DSP decodes as it
+            # always did.  A D pin has three sources in prjxray-db: the
+            # DSP_GND_*/DSP_VCC_* tie-off bits and ONE tile pip from a BYP/FAN
+            # interconnect wire that has no bits at all (not in segbits, not an
+            # "always" ppip).  ASSUMPTION (README.md): with neither tie-off bit
+            # set the pin reads that wire -- nextpnr routes D that way and
+            # writes no bit for it.
+            if self.feats[tile].get(pfx + "USE_DPORT", 0) & 1:
+                info = self.fab.tt(self.fab.ttype[tile])
+                for p in self._bus(self.DSP_EXT_IN[:1]):
+                    w = pins[p]
+                    src = [x for (d, x) in info["pips"] if d == w and not x.startswith(("DSP_GND", "DSP_VCC"))
+                           and x not in info["always"].get(w, ())]
+                    if len(src) != 1:
+                        self.problem("REFUSED: DSP48E1 D pin without exactly one routing pip in prjxray-db",
+                                     "%s/%s: %s" % (sname, p, src))
+                        continue
+                    self.dsp_bitless[(tile, w)] = src[0]
+                    c.ins[p] = ("route", tile, w, sname, p)
+            if self.feats[tile].get(pfx + "B_INPUT", 0) & 1:
+                for p in self._bus(self.DSP_EXT_IN[1:]):
+                    c.ins[p] = ("route", tile, pins[p], sname, p)
             # a REGISTERED DSP (S7) also reads its clock and the CE/RST pins of
             # the registers that are on; a combinational one never gets them
             reg, _notes, _why = self.dsp_reg_bits(tile, pfx)
@@ -835,7 +880,7 @@ class Design:
             # inputs float when nothing cascades in, and check_dsp() refuses
             # that only if the decoded mode READS them
             c._float_ok = {p for p in c.ins if p in self.dsp_const_only(side)
-                           or re.fullmatch(r"(ACIN|PCIN)\d+", p)}
+                           or re.fullmatch(r"(ACIN|PCIN|BCIN)\d+", p)}
 
     def dsp_reg_bits(self, tile, pfx):
         """-> (reg, notes, why): the register parameters the bits configure.
@@ -936,10 +981,12 @@ class Design:
             for nt in rnotes:
                 self.problem("NOTE: DSP48E1 register decode", "%s: %s" % (c.name, nt))
             a_cascade = has("A_INPUT[0]")
-            if has("B_INPUT[0]"):
-                why.append("B_INPUT=CASCADE")
-            if has("USE_DPORT[0]"):
-                why.append("USE_DPORT=TRUE")
+            # S8: B_INPUT=CASCADE, USE_DPORT=TRUE and a BCOUT some cascaded BCIN
+            # reads (build()) go to dsp_model.config(), which models exactly
+            # share_test_2's use of them and refuses the rest
+            b_cascade = has("B_INPUT[0]")
+            dport = has("USE_DPORT[0]")
+            bcout = any(re.fullmatch(r"BCOUT\d+", p) for p in c.outs)
             for f in ("USE_SIMD_FOUR12", "USE_SIMD_FOUR12_TWO24"):
                 if has(f):
                     why.append(f)
@@ -995,12 +1042,39 @@ class Design:
             c.attrs["DSP_GND_PINS"] = " ".join(gnd)
             for r, v in reg.items():
                 c.params[r] = format(v if v is not None else 0, "032b")
-            c.params.update({"USE_MULT": "MULTIPLY", "USE_SIMD": "ONE48", "USE_DPORT": "FALSE",
-                             "B_INPUT": "DIRECT", "A_INPUT": "CASCADE" if a_cascade else "DIRECT"})
+            c.params.update({"USE_MULT": "MULTIPLY", "USE_SIMD": "ONE48", "USE_DPORT": "TRUE" if dport else "FALSE",
+                             "B_INPUT": "CASCADE" if b_cascade else "DIRECT",
+                             "A_INPUT": "CASCADE" if a_cascade else "DIRECT"})
             c.attrs["FASM2NET_DSP"] = "OPMODE=%s ALUMODE=%s INMODE=%s CARRYINSEL=%s CARRYIN=%d A_INPUT=%s" % (
                 format(words["OPMODE"], "07b"), format(words["ALUMODE"], "04b"),
                 format(words["INMODE"], "05b"), format(words["CARRYINSEL"], "03b"),
                 words["CARRYIN"], "CASCADE" if a_cascade else "DIRECT")
+            # S8 (nothing is appended for a DSP without them)
+            c.attrs["FASM2NET_DSP"] += "".join(" " + n for n, f in (
+                ("B_INPUT=CASCADE", b_cascade), ("USE_DPORT=TRUE", dport), ("BCOUT=read", bcout)) if f)
+            if dport:
+                # INMODE reaches the site through its DSP_GND/DSP_VCC tie-off
+                # bits, which bypass the site inverter (constpins patch,
+                # board-measured), so ZIS_INMODE_INVERTED changes no decoded
+                # value: consumed, not applied
+                self.val(tile, pfx + "ZIS_INMODE_INVERTED")
+                # the D pins whose path ends in the bit-less pip; any other D
+                # pin is on a tie-off bit, which is not modelled (refused below)
+                via = [p for p in ("D%d" % i for i in range(25)) if p in c.ins and self.sink_root[(c.name, p)][1]
+                       and (tile, self.sink_root[(c.name, p)][1][-1].split(".")[1]) in self.dsp_bitless]
+                if via:
+                    self.problem("NOTE: DSP48E1 D pins read through their bit-less BYP/FAN tile pip "
+                                 "(ASSUMPTION: no DSP_GND/DSP_VCC tie-off bit = the routed input; README.md)",
+                                 "%s: %d pins (%s..%s)" % (c.name, len(via), via[0], via[-1]))
+                for p in via:
+                    root = self.sink_root[(c.name, p)][0]
+                    if root[0] == "const" and root[2] == "default":
+                        why.append("%s reads its interconnect wire, which nothing drives (INT default)" % p)
+                        break
+                tied = [p for p in ("D%d" % i for i in range(25)) if p not in via]
+                if tied:
+                    why.append("USE_DPORT=TRUE with D pins on a DSP_GND/DSP_VCC tie-off bit, not routed "
+                               "(%d: %s; not modelled)" % (len(tied), " ".join(tied[:4])))
             # ---- the configurations prims.v models (gen.py dsp_config, dsp_model.py)
             op = words["OPMODE"]
             if regd:
@@ -1010,14 +1084,16 @@ class Design:
                 if self.driver_of(c, "CLK")[0] != "drv":
                     why.append("registered but CLK is %s" % (self.driver_of(c, "CLK"),))
             cfg, cwhy = dsp_model.config(op, words["ALUMODE"], words["INMODE"],
-                                         words["CARRYINSEL"], words["CARRYIN"], rp if regd else None)
+                                         words["CARRYINSEL"], words["CARRYIN"], rp if regd else None,
+                                         dport=dport, bcasc=b_cascade, bcout=bcout)
             undriven = []
-            for p in [q for q in c.ins if re.fullmatch(r"(ACIN|PCIN)\d+", q)]:
+            for p in [q for q in c.ins if re.fullmatch(r"(ACIN|PCIN|BCIN)\d+", q)]:
                 if self.driver_of(c, p)[0] != "float":
                     continue
                 read = (p.startswith("ACIN") and a_cascade and
                         int(p[4:]) < (30 if "A30" in cfg["reads"] else 25)) or \
-                       (p.startswith("PCIN") and "PCIN" in cfg["reads"])
+                       (p.startswith("PCIN") and "PCIN" in cfg["reads"]) or \
+                       (p.startswith("BCIN") and "BCIN" in cfg["reads"])
                 if read:
                     undriven.append(p)
                 c.ins.pop(p)

@@ -30,9 +30,38 @@ PDF was not reachable from this machine):
     (P>>>17) read that register and are modelled.
 Still REFUSED: ADREG, DREG, INMODEREG, OPMODEREG, ALUMODEREG, CARRYINREG,
 CARRYINSELREG = 1 (a registered control word powers up 0 and needs its CE:
-not modelled), Z=100 (P, MACC extend), USE_DPORT, any AREG/ACASCREG pair
-outside UG479's table, INMODE[0]/[4] with that side's register at 0 and A
-not gated (as before), and INMODE[2]/[3] (pre-adder) with A not gated.
+not modelled), Z=100 (P, MACC extend), USE_DPORT outside S8 below, any
+AREG/ACASCREG pair outside UG479's table, INMODE[0]/[4] with that side's
+register at 0 and A not gated (as before), and INMODE[2]/[3] (pre-adder)
+with A not gated outside S8.
+
+PRE-ADDER AND B CASCADE (S8; config()'s dport / bcasc / bcout, exactly what
+share_test_2's route needs: yosys's xilinx_dsp packs an $add into the
+pre-adder of a cascaded 32-bit multiply and its xilinx_dsp_cascade passes a
+shared B operand on through BCOUT -> BCIN).  Modelled, every register off
+(AREG=BREG=0, ADREG=DREG=INMODEREG=0, all others 0):
+  * USE_DPORT=TRUE with INMODE=00100 exactly (DPORT=1).  The multiplier's A
+    operand is the pre-adder output AD = D[24:0] + A2[24:0], 25 bits (the sum
+    wraps; it is a 25-bit operand of the signed 25x18 multiplier).  yosys
+    cells_sim.v DSP48E1: Dr_gated = INMODE[2] ? D : 0, Ar12_gated = INMODE[1]
+    ? 0 : (INMODE[0] ? A1 : A2), AD_result = INMODE[3] ? Dr_gated - Ar12_gated
+    : Dr_gated + Ar12_gated (wire signed [24:0]), A_MULT = USE_DPORT ? AD : A
+    (UG479 Table 2-7, "INMODE functions": INMODE[3:0]=0100 with USE_DPORT=TRUE
+    is "D + A2"; read in yosys, the PDF was not reachable from this machine).
+    Only in the multiply P = Z + M, OPMODE X=Y=M, Z in {0, PCIN, PCIN>>>17},
+    ALUMODE=0, CARRYINSEL=000, CARRYIN=0.  Any other INMODE with USE_DPORT
+    (D - A, D alone, A1, gated A ...) is refused.
+  * B_INPUT=CASCADE (BCASC=1): the multiplier's B operand is BCIN instead of B
+    (yosys: B_muxed = B_INPUT == "CASCADE" ? BCIN : B; with BREG=0 B1 = B2 =
+    B_muxed).  Same multiply-only restriction; INMODE 00000 (or 00100 with the
+    pre-adder).
+  * BCOUT read by a cascaded BCIN (bcout): BCOUT = B2 = the B operand the
+    cell selected (B or BCIN), combinationally (yosys: BCOUT = BCASCREG == 1
+    && BREG == 2 ? Br1 : Br2, and BREG=0 makes Br2 = B_muxed; UG479 BCASCREG
+    "number of B registers on the cascade path", 0 here).  Any modelled
+    combinational configuration; refused on a registered cell.
+The D pins are routed (fasm2net.py decodes how; its README states the one
+assumption that takes: no DSP_GND/DSP_VCC tie-off bit = the routed input).
 
 Semantics (UG479, 7 Series DSP48E1 User Guide; the PDF was not reachable from
 this machine, so the tables below are the ones this code was written from,
@@ -43,7 +72,8 @@ cross-read against yosys techlibs/xilinx/cells_sim.v DSP48E1):
       register, so they are refused unless the A operand is gated (then M is
       zero whatever A or B is).  INMODE[2]/[3] (D enable, pre-adder subtract)
       act on the pre-adder, which USE_DPORT=FALSE bypasses (the multiplier
-      reads the gated A directly); refused unless A is gated, same reason.
+      reads the gated A directly); refused unless A is gated, same reason --
+      except INMODE=00100 with USE_DPORT=TRUE (S8 above).
       ASSUMPTION: with USE_DPORT=FALSE the pre-adder/D path never reaches the
       multiplier (UG479 USE_DPORT; yosys cells_sim agrees).
   OPMODE (Tables 2-8..2-10)  X[1:0]: 00 0, 01 M, 10 P, 11 A:B.
@@ -121,12 +151,15 @@ def registered(p):
     return any(p.get(k, 0) for k in REGS)
 
 
-def config(opmode, alumode, inmode, carryinsel, carryin, regs=None):
-    """-> (params, why).  params: XMUX YMUX ZMUX ALUMODE AGATE CIN, plus the
-    sets of operand groups the function reads ('A30' all of A, 'A25' A[24:0],
-    'B', 'C', 'PCIN').  why: refusal reasons, empty when modelled.  regs: the
-    register parameters (reg_config()'s rp); None = every register off, the
-    combinational decision exactly as before S7."""
+def config(opmode, alumode, inmode, carryinsel, carryin, regs=None, dport=False, bcasc=False, bcout=False):
+    """-> (params, why).  params: XMUX YMUX ZMUX ALUMODE AGATE CIN DPORT BCASC,
+    plus the sets of operand groups the function reads ('A30' all of A, 'A25'
+    A[24:0], 'B' or 'BCIN', 'C', 'PCIN', 'D').  why: refusal reasons, empty
+    when modelled.  regs: the register parameters (reg_config()'s rp); None =
+    every register off, the combinational decision exactly as before S7.
+    dport: USE_DPORT=TRUE; bcasc: B_INPUT=CASCADE; bcout: a cascaded BCIN
+    reads this cell's BCOUT (S8, the module docstring); all three off = the
+    decision exactly as before S8."""
     why = []
     rg = dict.fromkeys(REGS, 0)
     rg.update(regs or {})
@@ -136,14 +169,35 @@ def config(opmode, alumode, inmode, carryinsel, carryin, regs=None):
     if carryinsel != 0:
         why.append("CARRYINSEL=%s (modelled: 000, CARRYIN)" % format(carryinsel, "03b"))
     # INMODE[0] (A1) / INMODE[4] (B1): modelled once that side has a register
-    # (an A1/B1 to select); the pre-adder bits [2]/[3] never are
+    # (an A1/B1 to select); the pre-adder bits [2]/[3] never are, except
+    # INMODE=00100 with USE_DPORT=TRUE (S8: D + A2, checked below)
     bad_in = 0b01100 | (0b00001 if not rg["AREG"] else 0) | (0b10000 if not rg["BREG"] else 0)
+    if dport and inmode == 0b00100:
+        bad_in &= ~0b00100
+    dp = "TRUE" if dport else "FALSE"
     if not agate and inmode & bad_in:
-        why.append("INMODE=%s with A not gated: A1/B1 select or pre-adder (AREG=%d BREG=%d, USE_DPORT=FALSE) "
-                   "not modelled" % (format(inmode, "05b"), rg["AREG"], rg["BREG"])
+        why.append("INMODE=%s with A not gated: A1/B1 select or pre-adder (AREG=%d BREG=%d, USE_DPORT=%s) "
+                   "not modelled" % (format(inmode, "05b"), rg["AREG"], rg["BREG"], dp)
                    if registered(rg) else
-                   "INMODE=%s with A not gated: A1/B1 select or pre-adder (AREG=BREG=0, USE_DPORT=FALSE) "
-                   "not modelled" % format(inmode, "05b"))
+                   "INMODE=%s with A not gated: A1/B1 select or pre-adder (AREG=BREG=0, USE_DPORT=%s) "
+                   "not modelled" % (format(inmode, "05b"), dp))
+    # S8: the pre-adder with D, the B cascade, BCOUT -- combinational only, and
+    # the first two only in the multiply P = Z + M (the module docstring)
+    ext = [n for n, f in (("USE_DPORT=TRUE", dport), ("B_INPUT=CASCADE", bcasc),
+                          ("BCOUT read by a cascaded BCIN", bcout)) if f]
+    if ext and registered(rg):
+        why.append("%s on a registered DSP48E1 (modelled with every register off only)" % " and ".join(ext))
+    if dport and inmode != 0b00100:
+        why.append("USE_DPORT=TRUE with INMODE=%s (modelled: 00100, the multiplier reads AD = D + A2)"
+                   % format(inmode, "05b"))
+    if bcasc and not dport and inmode != 0:
+        why.append("B_INPUT=CASCADE with INMODE=%s (modelled: 00000, or 00100 with USE_DPORT=TRUE)"
+                   % format(inmode, "05b"))
+    if (dport or bcasc) and not (X == 1 and Y == 1 and alumode == 0 and carryinsel == 0 and not carryin
+                                 and Z in (0, 1, 5)):
+        why.append("%s outside the multiply P = Z + M (modelled: OPMODE X=Y=M, Z 000/001/101, ALUMODE 0000, "
+                   "CARRYINSEL 000, CARRYIN 0)"
+                   % " and ".join(n for n, f in (("USE_DPORT=TRUE", dport), ("B_INPUT=CASCADE", bcasc)) if f))
     preg = rg["PREG"]
     if X == 2 and not preg:
         why.append("OPMODE X=P with PREG=0 (combinational loop)")
@@ -180,14 +234,16 @@ def config(opmode, alumode, inmode, carryinsel, carryin, regs=None):
                        % format(Z, "03b"))
         else:
             zmux = 0          # exact: the output is the same for every Z
-    reads = set(["B"])
+    reads = set(["BCIN" if bcasc else "B"])
     reads.add("A30" if X == 3 else "A25")
     if Y == 3 or zmux == 3:
         reads.add("C")
     if zmux in (1, 5):
         reads.add("PCIN")
+    if dport:
+        reads.add("D")
     p = {"XMUX": X, "YMUX": Y, "ZMUX": zmux, "ALUMODE": alumode, "AGATE": agate,
-         "CIN": carryin, "MUNK": munk, "reads": reads}
+         "CIN": carryin, "MUNK": munk, "DPORT": int(bool(dport)), "BCASC": int(bool(bcasc)), "reads": reads}
     if registered(rg):
         p.update(rg)
         p["ASEL1"] = int(bool(rg["AREG"] and not agate and inmode & 1))
@@ -197,7 +253,11 @@ def config(opmode, alumode, inmode, carryinsel, carryin, regs=None):
 
 def is_default(p):
     return all(p[k] == v for k, v in DEFAULT.items()) and p["ZMUX"] in (0, 1, 5) \
-        and not registered(p)
+        and not registered(p) and not p.get("DPORT") and not p.get("BCASC")
+
+
+# the S8 parameters prims.v takes, written only when set (gen.py)
+EXT_PARAMS = ("DPORT", "BCASC")
 
 
 # the register parameters prims.v takes, in the order gen.py writes them

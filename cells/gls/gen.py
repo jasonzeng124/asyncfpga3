@@ -74,7 +74,8 @@ OUTPUT_PORTS = {
     "PSEUDO_VCC": {"Y"},
     "DSP48E1_DSP48E1": set(["P%d" % i for i in range(48)]
                            + ["PCOUT%d" % i for i in range(48)]
-                           + ["ACOUT%d" % i for i in range(30)]),
+                           + ["ACOUT%d" % i for i in range(30)]
+                           + ["BCOUT%d" % i for i in range(18)]),
     "PAD": set(),          # PAD/PAD is an INTERCONNECT destination: an input here
     "RAMB18E1_RAMB18E1": set(["DOADO%d" % i for i in range(16)] + ["DOPADOP0", "DOPADOP1"]
                              + ["DOBDO%d" % i for i in range(16)] + ["DOPBDOP0", "DOPBDOP1"]),
@@ -125,7 +126,8 @@ PORT_ORDER = {
 # ---- DSP48E1 ----------------------------------------------------------------
 # prims.v models the configurations dsp_model.py accepts -- combinational,
 # and since S7 registered (AREG/BREG/CREG/MREG/PREG; see its DSP48E1_DSP48E1
-# header and dsp_model.reg_config).  These
+# header and dsp_model.reg_config), and since S8 the pre-adder with D and the
+# B cascade (DSP_EXT_IN / DSP_EXT_OUT below).  These
 # are its port groups, in the order prims.v declares them; a group of width 0
 # is a scalar pin.
 DSP_T = "DSP48E1_DSP48E1"
@@ -147,10 +149,15 @@ PORT_ORDER[DSP_T] = _dsp_pins(DSP_IN) + _dsp_pins(DSP_OUT)
 # text is what it always was.
 DSP_REG_IN = [(p, 0) for p in ("CLK", "CEA1", "CEA2", "CEB1", "CEB2", "CEC", "CEM", "CEP",
                                "RSTA", "RSTB", "RSTC", "RSTM", "RSTP")]
+# S8 (dsp_model.py): the pre-adder's D port and the B cascade.  A cell
+# connects these only where its routed JSON does (dsp_ext_conn), so every
+# other cell's instance text is what it always was.
+DSP_EXT_IN = [("D", 25), ("BCIN", 18)]
+DSP_EXT_OUT = [("BCOUT", 18)]
 
 
 def dsp_group(pin):
-    for g, n in DSP_IN + DSP_REG_IN + DSP_OUT:
+    for g, n in DSP_IN + DSP_REG_IN + DSP_EXT_IN + DSP_OUT + DSP_EXT_OUT:
         if pin == g if n == 0 else (pin.startswith(g) and pin[len(g):].isdigit()):
             return g
     return None
@@ -164,7 +171,7 @@ DSP_PARAMS = {"AREG": None, "ACASCREG": None, "BREG": None, "BCASCREG": None, "C
               "DREG": 0, "ADREG": 0, "MREG": None, "PREG": None, "INMODEREG": 0,
               "OPMODEREG": 0, "ALUMODEREG": 0, "CARRYINREG": 0,
               "CARRYINSELREG": 0, "USE_MULT": "MULTIPLY", "USE_SIMD": "ONE48",
-              "USE_DPORT": "FALSE", "B_INPUT": "DIRECT", "A_INPUT": None,
+              "USE_DPORT": None, "B_INPUT": None, "A_INPUT": None,
               "IS_CLK_INVERTED": None}
 RE_DSP_INV = re.compile(r"^IS_(OPMODE|ALUMODE|INMODE)\[(\d)\]_INVERTED$|^IS_CARRYIN_INVERTED$")
 
@@ -249,7 +256,16 @@ def dsp_config(cname, c, netname):
         return sum(ctl("%s%d" % (g, i)) << i for i in range(n))
     opmode, alumode, inmode = word("OPMODE", 7), word("ALUMODE", 4), word("INMODE", 5)
     carryinsel, carryin = word("CARRYINSEL", 3), ctl("CARRYIN")
-    cfg, why = dsp_model.config(opmode, alumode, inmode, carryinsel, carryin, rp if reg else None)
+    # S8: the pre-adder, the B cascade, and a BCOUT some cascaded BCIN reads
+    dport = {"FALSE": False, "TRUE": True}.get(params.get("USE_DPORT", "FALSE"))
+    if dport is None:
+        refuse("USE_DPORT=%s" % params.get("USE_DPORT"))
+    bcasc = {"DIRECT": False, "CASCADE": True}.get(params.get("B_INPUT", "DIRECT"))
+    if bcasc is None:
+        refuse("B_INPUT=%s" % params.get("B_INPUT"))
+    bcout = any(conns.get("BCOUT%d" % i) for i in range(18))
+    cfg, why = dsp_model.config(opmode, alumode, inmode, carryinsel, carryin, rp if reg else None,
+                                dport=dport, bcasc=bcasc, bcout=bcout)
     if why:
         refuse("OPMODE=%s ALUMODE=%s INMODE=%s CARRYINSEL=%s CARRYIN=%d: %s"
                % (format(opmode, "07b"), format(alumode, "04b"), format(inmode, "05b"),
@@ -265,21 +281,31 @@ def dsp_config(cname, c, netname):
     # multiply tie-offs.
     rd = cfg["reads"]
     need = ["%s%d" % ("ACIN" if acasc else "A", i) for i in range(30 if "A30" in rd else 25)] + \
-           ["B%d" % i for i in range(18)] + \
+           ["%s%d" % ("BCIN" if "BCIN" in rd else "B", i) for i in range(18)] + \
            (["PCIN%d" % i for i in range(48)] if "PCIN" in rd else []) + \
-           (["C%d" % i for i in range(48)] if "C" in rd else [])
+           (["C%d" % i for i in range(48)] if "C" in rd else []) + \
+           (["D%d" % i for i in range(25)] if "D" in rd else [])
     missing = [p for p in need if not conns.get(p)]
     if missing:
         refuse("operand pins %s... are not connected" % ", ".join(missing[:4]))
     # the original configuration keeps its original parameter text
     extra = "" if dsp_model.is_default(cfg) else "".join(
         ", .%s(%d)" % (k, cfg[k]) for k in ("XMUX", "YMUX", "ALUMODE", "AGATE", "CIN", "MUNK"))
+    extra += "".join(", .%s(%d)" % (k, cfg[k]) for k in dsp_model.EXT_PARAMS if cfg[k])
     if reg:
         extra += "".join(", .%s(%d)" % (k, cfg[k]) for k in dsp_model.REG_PARAMS)
         extra += ", .CLKINV(%d)" % clkinv
     elif clkinv:
         pass    # no register reads the clock: its inversion changes nothing
     return zmux, acasc, extra
+
+
+def dsp_ext_conn(c):
+    """-> the S8 ports (D, BCIN, BCOUT) a DSP48E1 instance connects: exactly
+    those its routed JSON connects (dsp_config() refused the cell if its
+    function reads one that is not); [] for every cell without them."""
+    conns = c["connections"]
+    return [p for p in _dsp_pins(DSP_EXT_IN + DSP_EXT_OUT) if conns.get(p)]
 
 
 def dsp_reg_conn(c):
@@ -1008,6 +1034,8 @@ def main():
         if t == DSP_T:
             for p, fixed in dsp_reg_conn(c):
                 conn.append(".%s(%s)" % (p, fixed if fixed else arg(p)))
+            for p in dsp_ext_conn(c):
+                conn.append(".%s(%s)" % (p, arg(p)))
 
         # timing parameters for the baked netlist, straight off this cell's own
         # SDF arcs; every arc the SDF does not mention keeps prims.v's nominal.
