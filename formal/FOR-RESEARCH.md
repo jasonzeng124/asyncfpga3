@@ -128,6 +128,26 @@ kappa_lo is the minimum over the terms. The one-channel compares (B22's items 38
 | collatz64, horner, countloop, iterative_division, ipow, iterative_sqrt, lfsrfind, quadrec, twoloops, sqrtsub, cmpchain | all | 0.055 .. 0.171 | ctl slack >= +101 ps | 15 % or more |
 | divmods, divmodu, straight, test_divui | no steers | -- | -- | -- |
 
+**Corrected bounds (B27's fix; farm fm_b_rs12b, the same 23 routes, plus each weakest steer's race-only adversary).**
+
+| suite12 route | min kappa_lo (B26 as first reported -> corrected) | weakest steer | race-only adversary, first failure |
+|---|---|---|---|
+| xorshift s1 | -0.054 -> -0.054 | ucond_br8 (latch) | kappa 0 (MISMATCH, both corners) |
+| nested s1 | -0.007 -> -0.020 | ucond_br5 (compare) | none up to 0.20 |
+| lfsrfind s1 | 0.106 -> **0.003** | ucond_br2 (compare) | 0.03 (no verdict) |
+| varshift s1 | 0.002 -> 0.013 | ucond_br3 (compare) | none up to 0.20 |
+| factorial s1 (12 of 24 bounded) | 0.018 -> 0.018 | ucond_br8 (one-channel) | 0.15 |
+| countloop s1 | 0.075 -> **0.026** | ucond_br5 (compare) | 0.10 |
+| collatz s1 | 0.038 -> 0.038 | ucond_br7 (latch) | 0.10 |
+| fold64 s1 | 0.042 -> 0.042 | ucond_br3 (latch) | 0.10 |
+| brhash s1 | 0.044 -> 0.044 | ucond_br7 (one-channel) | 0.06 (no verdict, corner 1) |
+| collatz64 s1 | 0.055 -> 0.055 | ucond_br3 (one-channel) | 0.15 |
+| iterative_sqrt s1 | 0.102 -> 0.066 | ucond_br4 (compare) | none up to 0.20 |
+| iterative_division, horner, cmpchain, sqrtsub, ipow, twoloops, quadrec s1 | 0.065 .. 0.149 | -- | 0.20 or none |
+
+On every route the proved bound sits at or below the adversary's first failure. That is the consistency the old
+compare bound broke on lfsrfind.
+
 On suite12 xorshift s1, formal again sees what your rule flags (E -23 ps at 0.31, the route NOT CLEAN).
 
 **Caveat (a formal harness bug, fixed at 10:46 UTC, after this request ran):** when draws.py left no net.simx, the
