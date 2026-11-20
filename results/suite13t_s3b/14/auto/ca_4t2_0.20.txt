@@ -1,0 +1,36 @@
+corner_audit /tmp/task/runs/ca/su_test_memory_1_3_4t2/seed1
+  corner: corner_sdf: /tmp/task/runs/ca/su_test_memory_1_3_4t2/seed1/pnr/soak_xray.sdf -> /tmp/task/runs/ca/su_test_memory_1_3_4t2/rule_0.20/soak.sdf
+            band 0.2, cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, 124 instance(s) listed (0.2), all in the SDF
+            INTERCONNECT default (0.2)                        27706 arcs
+            INTERCONNECT into listed instance (0.2)             158 arcs
+            IOPATH CARRY4 (1)                                  2306 arcs
+            IOPATH SELMUX2_1 (1)                                705 arcs
+            IOPATH SLICE_FFX (1)                               1952 arcs
+            IOPATH default (0.2)                              15532 arcs
+            IOPATH listed instance (0.2)                        158 arcs
+            SETUPHOLD (FAST_MIN, as gen.py)                    9458 arcs
+  nextpnr: UNSTAMPED
+  guards: rule E/J 0.970*req vs 1.030*sel; rule A/F/H/I/K/L guard max(0.030*t_data, 50 ps); slack 0
+  rule A data launches from constant drivers: DROPPED (a constant never transitions)
+  audits exit: tighten 1, skew 0, arb_fork 0
+  per-link cost at this corner: c_lo 189 ps (cheapest link-to-link step on the route), lut_lo 61 ps; chain mean steps 264-550 ps
+  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band 0.2, CARRY4/F7F8/FF at --cell; shortened lines priced at own mean step; selects sized by E/M; floor file none
+  trim: CA_TRIM=1: a proposal for this route's bits (LUT INIT entries, no re-route): 5 of 39 sized line(s) can move, each priced exactly at its new entry (input wire + entry arc + chain), at most to its placed length; the other lines keep their size
+  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the select's own channel request is bounded by that request (research/data/sizerule/steerE.md)
+  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); research/data/muxsel/)
+  join-aware: CA_JOINAWARE=1: 2 operator(s) sized at their data's captures (A'j: latch data vs its enable, select vs its gate's request; C-elements wait for their last input; join credit), their A' rows reported as 'a'; 1 kept on A' (rows 'j' say why)
+  bench capture: CA_BENCHCAP=1: in A'j, a D / CE pin of a flip-flop on a BUFG clock is captured by that clock >= 19000 ps after the operator's request first reaches a flop on it (gen_bench.py's 2-flop synchronisers at <= 100 MHz, less 1 ns); an input of the operator's own join is not data
+negative at this corner: 8
+  D   -2985  bridge_i.udut.ucond_br4 (bd_steer) req   206  sel  3099  guard   92  margin  -2985   PAD by 9 bd_delay element(s) (370 ps ea) -- VIOLATION
+  D   -2859  bridge_i.udut.ucond_br2 (bd_steer) req   236  sel  3005  guard   90  margin  -2859   PAD by 8 bd_delay element(s) (370 ps ea) -- VIOLATION
+  D   -2606  bridge_i.udut.ucond_br3 (bd_steer) req   322  sel  2843  guard   85  margin  -2606   PAD by 8 bd_delay element(s) (370 ps ea) -- VIOLATION
+  D    -261  bridge_i.udut.ucond_br7 (bd_steer) req   392  sel   603  guard   50  margin   -261   PAD by 1 bd_delay element(s) (370 ps ea) -- VIOLATION
+  a    -258  bridge_i.udut.ucmpi1   13 links   4829 ps   req  5746  peak  5860  guard  144  margin   -258   PAD to 14 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCMPI1
+  a    -239  bridge_i.udut.ucmpi0    8 links   2512 ps   req  3331  peak  3498  guard   72  margin   -239   PAD to 9 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  D    -231  bridge_i.udut.ucond_br5 (bd_steer) req   319  sel   500  guard   50  margin   -231   PAD by 1 bd_delay element(s) (370 ps ea) -- VIOLATION
+  D    -175  bridge_i.udut.ucond_br6 (bd_steer) req   217  sel   342  guard   50  margin   -175   PAD by 1 bd_delay element(s) (370 ps ea) -- VIOLATION
+proposal: 1 line(s) changed, kernel links 34 -> 33; verify: 0 sized constraint(s) below slack
+  BD_SZ_BRIDGE_I_UDUT_UADDI0                10 ->   9   bound by A' bridge_i.udut.uaddi0 (231 ps left)
+wrote /tmp/task/runs/ca/su_test_memory_1_3_4t2/rule_0.20/{report.txt, lines.tsv, sizes.vh, verify.txt, soak.sdf}
