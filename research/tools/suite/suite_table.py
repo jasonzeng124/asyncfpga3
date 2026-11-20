@@ -99,6 +99,21 @@ def route_lat(r):
         return None, None
     return [st.median(x) for _, x in sorted(per.items())], fclk
 
+def route_runts(r):
+    """The narrowest-pulse evidence of a route's draws (draws.txt beside its result.txt, suite_one.sh's GATE_RUNTS=1
+    report): the largest count of pulses under 150 / 500 / 1000 ps on kernel handshake nets in any one draw, or None
+    when no draw line carries the field (older runs)."""
+    f = os.path.join(r["_dir"], "draws.txt")
+    if not os.path.exists(f):
+        return None
+    best = None
+    for l in open(f):
+        m = re.search(r"runts <150/500/1000 ps (\d+)/(\d+)/(\d+)", l)
+        if m:
+            v = tuple(int(x) for x in m.groups())
+            best = v if best is None else tuple(max(a, b) for a, b in zip(best, v))
+    return best
+
 def slope(x, y):
     """Least-squares slope of y on x, or None when x does not vary."""
     n = len(x)
@@ -154,7 +169,7 @@ for l, d0 in lines(sys.argv[1:]):
 DY = dyn_ref(); HD = hand_ref(); DL = dyn_lat()
 print("| kernel | status | routes judged (rule-clean + NOT CLEAN) / built | draws passing (clean; not clean) | ns per iteration (P) on clean routes, median (range) [on NOT CLEAN routes] | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |")
 print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
-npass, nunf, ratios, lratios, nfit, hostP, notes_k = 0, 0, [], [], 0, [], {}
+npass, nunf, ratios, lratios, nfit, hostP, notes_k, runty = 0, 0, [], [], 0, [], {}, []
 # P against the bench (2026-11-19, research/data/suite/pslope/p_vs_slope.txt): on all 19 single-loop kernels with a varying
 # trip count, P / slope is 0.94-1.04 on every route; on a kernel with several loops the auto marker may sit on another loop
 # than the most executed one (branchloop 0.45, gcd 2.16, isprime 7.07), and Dynamatic's figure is that loop's slope.  A P
@@ -179,6 +194,18 @@ for k in sorted(set(rows) | set(listed)):
     lat = [int(r["lat_max_cyc"]) * 12 for r in judged if r.get("lat_max_cyc", "NA").isdigit()]
     luts = [int(r["luts"]) for r in judged if r.get("luts", "").isdigit()]
     ok_all = bool(judged) and dp == dn and all(r.get("status") == "PASS" for r in judged)
+    # 2026-11-20: a clean route is passing evidence only if its draws also had no pulse under 1 ns on a kernel handshake
+    # net (bench_gate.sh GATE_RUNTS=1, report-only in the draws; GATE_RUNTS=fail is the board items' gate).  Over the 378
+    # farm routes with runt-monitored draws, the 4 that ever had such a pulse were all NOT CLEAN (exit1 spmv s1 among
+    # them, the route formal C68 shows hanging: our draw 10102 there had 72 pulses under 150 ps and passed); no clean
+    # route had one.  Formal's simulator lets such pulses through and hangs; our resolver absorbs them; silicon is
+    # BOARD-QUEUE item 2.  So the pulse is counted against the route, the conservative reading.
+    for r in judged:
+        rr = route_runts(r)
+        if rr and rr[2] > 0:
+            runty.append("%s seed %s (%s, pulses <150/500/1000 ps %d/%d/%d in its worst draw)"
+                         % (k, r["seed"], "clean" if r.get("rule") == "clean" else "NOT CLEAN", *rr))
+    clean = [r for r in clean if not ((route_runts(r) or (0, 0, 0))[2] > 0)]
     # a kernel passes only on a route the sizing loop finished (rule-CLEAN) -- 2026-11-20, formal C68: exit1 spmv s1, the
     # least-short NOT CLEAN route its loop shipped, passed its 4 draws here and hangs in 11 of 32 draws of the same model
     # at the cell the rule called short; 4 draws cannot see a 1-in-3 failure (0.65^4 = 18 %).  Every draw on every judged
@@ -281,6 +308,10 @@ if offP:
     print()
     print("P refused (off its route's own slope of call latency on the most executed loop's trip counts by more than %d %%: "
           "the event graph's marker was on another loop; the slope is used): " % round(PSLOPE_TOL * 100) + "; ".join(offP) + ".")
+if runty:
+    print()
+    print("Routes whose draws had a pulse under 1 ns on a kernel handshake net (not counted as passing evidence, "
+          "whatever their answers): " + "; ".join(runty) + ".")
 if hostP:
     print()
     print("P refused (an exact multiple of the bench's host clock period: a host-clocked marker, not the kernel's loop): "

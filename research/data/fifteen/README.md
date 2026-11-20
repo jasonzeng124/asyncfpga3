@@ -7,7 +7,10 @@ draws of the same delay model, the race starting at the cell our rule had called
 (they were over clean routes already): 1.69 (measured, n = 3), 1.05 (with estimates, n = 22). The latency-ratio mean is
 now over passing kernels' clean routes: 1.22 (n = 19; it was 1.38 over n = 31 with NOT CLEAN routes). stencil_2d gained
 a clean route since the last copy and passes; its P (408 ns) is the outer loop's period against Dynamatic's innermost
-cycle (4.66 cycles of bb3; bb1 is 54), so its ratio is out of the means, as isprime's. The next table is suite13t (flow
+cycle (4.66 cycles of bb3; bb1 is 54), so its ratio is out of the means, as isprime's. A clean route also counts as passing evidence only if no draw on it had a pulse under 1 ns on a kernel handshake net
+(suite_table.py since 2026-11-20 09:44 UTC): over the 378 farm routes with runt-monitored draws, the 4 that ever had one were all
+NOT CLEAN, among them C68's spmv route (its draw 10102 had 72 pulses under 150 ps and passed); no clean route had one,
+so no row moves. The next table is suite13t (flow
 v9: the rule fixes that removed most unfixable rows, plus the trim step; on the capture kernels capfix1 had 34 of 38
 routes clean where suite12 had 0 of 8).
 
@@ -161,6 +164,8 @@ digitdiv, dot2, fold64, horner, if_loop_1, single_loop, sqrtsub; counted on this
 34 of 62 kernels attempted pass (a kernel passes when it has a judged rule-CLEAN route and every draw on every judged route, clean or not, returned every right answer; ns per iteration, latency and the ratios are over rule-CLEAN routes only, the NOT CLEAN routes' figures in brackets); 25 more pass every draw only on routes the sizing loop left NOT CLEAN (UNFINISHED: the rule names a short constraint on each, and such a route can pass 4 draws and fail the model a third of the time, formal C68), not counted; geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a MEASURED Dynamatic figure (n = 3): 1.69; including ESTIMATED figures (n = 22; 1 with our figure from the latency fit): 1.05. Our ns are the simulation's (about 8 % slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes the bench): geometric mean over passing kernels (n = 19): 1.22.
 
 P refused (off its route's own slope of call latency on the most executed loop's trip counts by more than 15 %: the event graph's marker was on another loop; the slope is used): branchloop seed 1 P=14.22 ns against a slope of 31.83 ns (0.45x); branchloop seed 2 P=14.52 ns against a slope of 34.44 ns (0.42x); branchloop seed 3 P=13.47 ns against a slope of 30.01 ns (0.45x); branchloop seed 4 P=14.79 ns against a slope of 31.35 ns (0.47x); gcd seed 1 P=62.82 ns against a slope of 29.05 ns (2.16x); gcd seed 3 P=61.42 ns against a slope of 28.36 ns (2.17x); gcd seed 4 P=66.30 ns against a slope of 31.16 ns (2.13x); isprime seed 2 P=346.76 ns against a slope of 49.30 ns (7.03x); isprime seed 3 P=358.38 ns against a slope of 49.65 ns (7.22x); isprime seed 4 P=374.58 ns against a slope of 52.87 ns (7.08x).
+
+Routes whose draws had a pulse under 1 ns on a kernel handshake net (not counted as passing evidence, whatever their answers): if_loop_1 seed 4 (NOT CLEAN, pulses <150/500/1000 ps 2/2/2 in its worst draw); test_memory_1 seed 2 (NOT CLEAN, pulses <150/500/1000 ps 72/73/78 in its worst draw).
 
 **The same flow WITH the three md5-keyed rewrites (BDC_AUTO_REWRITES=1; farm suite6, 8 seeds, 8 draws; not the automatic
 column):** collatz PASS, 6 + 2 routes (clean + NOT CLEAN), 48 / 48 + 16 / 16 draws, P on clean routes 17.24 (16.20-19.46)
