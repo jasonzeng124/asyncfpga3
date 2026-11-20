@@ -7976,3 +7976,24 @@ second convergence lever (placement kept between finish routes, research/data/co
   research/data/placekeep/README.md has the state. Everything added stays opt-in (unset: byte-identical builds).
 - Waiting on: capfix1 (19 / 48 at 00:31), suite12's last task (if_loop_1), suite13 (v9: v8 + ucap fix + CA_BENCHCAP,
   240 tasks, submitted 00:58), the DSP subagent (share_test_2), the local CA_BENCHCAP smoke (iterative_sqrt s1).
+### progress 01:13 (share_test_2 judgeable: the DSP pre-adder modelled; the != loop test with the real frontend; suite13 waiting)
+- **share_test_2** (subagent dsp, landed 78f74977a; research/data/suite/dsp/README.md): fasm2net refused a DSP48E1 with
+  the pre-adder (USE_DPORT=TRUE, INMODE 00100: (D + A2) * BCIN) and the B cascade. Modelled exactly that (plain
+  multiply only; all else still refused); also fixed: USE_DPORT / B_INPUT were written from defaults, not the bits,
+  and xray_delay gave the pre-adder cell the shorter non-pre-adder A -> P arc (3841 vs 5201 ps at SLOW_MAX).
+  share_test_2 s1 it 6: **EQUIVALENT, P 99.39 ns, draws 10101-10104 PASS 3 / 3 each**; pre-adder made to subtract:
+  FAIL 0 / 3; eight mutated FASMs all refused; bits-stack outputs byte-identical on three routes without it.
+  Does NOT show: the D pin's routing-bit assumption on silicon (a board D-port bit-walk would settle it). suite13 was
+  submitted before this commit: its share_test_2 routes will need re-judging.
+- **The != loop test, now with the real frontend** (Dynamatic in $HOME/dynamatic; PROGRAM 2026-11-14): on today's v8
+  route xorshift's critical cycle is 57 % matched-delay chains, 29 % wires, 13 % cells, and the fused update + test
+  cell ucmpi1 (i + 1, then the signed compare i + 1 < n: two carry chains) carries 15 elements, 5.8 ns. The event
+  graph (sizewhatif.py, same placement): ucmpi1 at 10 -> P 15.93 ns, at <= 7 -> 15.11 (from 18.11). BDC_FE_EXITCOND=1
+  turns the compare into an equality tree. Real frontend on all 62 kernels: 37 change (11 only the loop test's
+  predicate, slt -> ne; the rest indvars restructures more: nest3, sobel, stencil_2d, ...), 25 byte-identical;
+  fixtures committed as cloud/fixtures/frontend_exitcond/ (13d3547ce). The Nov-14 farm test (fxne: no gain) was
+  before ring fusion, when the compare was its own cell of 8-9 elements. Running locally: xorshift, countloop, horner
+  s1 through the v9 flow (CA_BENCHCAP=1) with these fixtures. PREDICTION (01:13): ucmpi1 (or the kernel's fused
+  update + test) sizes to <= 10 elements, P 1.5-3 ns below the same kernels' default-fixture routes; every draw passes.
+- **suite13 is WAITING** (status 00:58: the account's 250-task limit; capfix1 still holds 24 tasks). Nothing else
+  large is filed until it starts.
