@@ -46,6 +46,13 @@ rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh
 The simulation runs ~8 % slower per iteration than the August board (research/SIM-VS-BOARD.md), so expect each ns
 figure above about 8 % lower on the board.
 
+**Coming, not items yet (2026-11-20 15:40 UTC; each needs 4 seeds and the steer screen first):** collatz with formal's
+Lean-proved eq2 loop-test rewrite through the automatic flow (seed 1: 14.48 ns in simulation, 4 / 4 draws, rule CLEAN;
+formal A31 proves the chain from the C to that build's token graph; Dynamatic's routed collatz is 14.05), and xorshift
+with the proved plain move (seed 1: 16.29-16.35 ns, 4 / 4). Farm suite13t_s3a_rwa runs both on 4 seeds; formal's steer
+screen (B24) is running here on the collatz route. Items 38-41 are unaffected by the latch-fed steer race formal found
+on a later automatic xorshift route (B28): formal B22 cleared all four of it.
+
 ## 2026-11-17 (evening): item 36 -- the CARRY4 / MUXF7 band; the most useful board run now
 No August latency can place the CARRY4 / F7 delay band (in bundled data the matched LUT chains set the cycle), yet the
 fastest candidates' correctness depends on it: collatz x0.55 fails draws only with that band at 0.75-0.91, and item 35's
