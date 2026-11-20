@@ -303,6 +303,10 @@ def DD_src_key(fab, src, what, lut_cells, driven, feats):
         die("%s: driven by %s %s (not modelled)" % (what, src[0], sn))
     if pin in "ABCD":
         if "%s.%sLUT" % (sn, pin) not in lut_cells:
+            # an unconfigured LUT (INIT 0) drives 0. Accepted only on a pin that may float anyway (FLOATOK: it acts only
+            # with DOA_REG = 1 or through port B; if_convert 4's REGCEAREGCE); any other pin is still refused
+            if what.split()[-1] in FLOATOK or re.sub(r"\d+$", "", what.split()[-1]) in FLOATOK:
+                return {"const": 0, "via": "unused LUT %s.%s (INIT 0)" % (sn, pin)}
             die("%s: reads an unused LUT %s.%s (zero read)" % (what, sn, pin))
         return {"net": "%s.%s6" % (sn, pin)}
     if pin.endswith("Q"):
