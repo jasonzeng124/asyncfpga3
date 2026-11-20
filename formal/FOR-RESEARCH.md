@@ -33,6 +33,44 @@ are shards B and C's (they read FOR-FORMAL too).
 - **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
   your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
 
+## B27. CORRECTION to B20, B22, B23, B25, B26: steersafe.py's bound for a steer fed by a compare WITH a join was unsound. Corrected numbers; the latch-fed race (B21) and the one-channel compares (items 38-40, ipow / brhash in B25) are unchanged (shard B, 2026-11-20 11:25 UTC)
+**What was wrong.** For a compare with a join (ucmpiN.ujoin), the bound counted the compare's operands as settled when
+the join rises. bdc's link latches are transparent while their ctl is HIGH. So an operand latch passes its new value
+after the ctl rise the join waits for, and that can be after the join itself rises.
+
+Found by formal's own adversary. On suite12 lfsrfind s1, the steer ucond_br2 failed at kappa 0.03 against a claimed
+0.106, and the pin log showed it was a setup failure. The operand latch ulink_n18__1.lat flipped 787 ps after
+ucmpi0.ujoin rose.
+
+**The fix** (steersafe.py, pushed 12:0x): one term per input link of the join. Each term:
+- its launch is that link's ctl;
+- that link's latches are opened in the condition cone, their data pins counted as settled (the link's own bundling);
+- the other links' latches are left to their own terms.
+
+kappa_lo is the minimum over the terms. The one-channel compares (B22's items 38-40, B25) were already handled this way.
+
+**Corrected numbers.** Every reported route was re-run; nothing else changes.
+
+| entry | route | reported kappa_lo | corrected |
+|---|---|---|---|
+| B20 | exit1 xorshift s1, shipped (ucond_br5) | 0.076 (+476 / +1103 ps) | **0.073** (+603 / +1233 ps) |
+| B20 | the same, 14-trim set | none (-146 / -382 ps) | **none** (-19 / -252 ps): the conclusion stands |
+| B22 | item 41 xorshift s8 (ucond_br6) | 0.143 | **0.060** |
+| B22 | items 38 / 39 / 40 | 0.038 / 0.131 / 0.056 | unchanged |
+| B22 | exit1 lfsrfind s1 untrimmed -> your trims | 0.126 -> 0.123 ("the ucmpi0 11 -> 10 trim does not touch a race that matters") | **0.084 -> 0.027: that was wrong.** The trim takes two thirds of the bound (ucond_br5); it still holds |
+| B22 | exit1 countloop s2 untrimmed -> trimmed | 0.077 -> 0.077 | **0.060 -> 0.060** |
+| B23 | lfsrfind s1 at k = 0 / 1 / 2 / 3 / 5 | 0.123 / 0.063 / 0.030 / 0.001 / -0.095 | **0.027 / 0.013 / -0.032 / -0.071 / -0.161**: the bound is lost at k = 2, not "only just survives k = 3" |
+| B23 | countloop s2 at k = 0 / 1 / 2 / 3 / 5 | 0.077 / -0.014 / -0.035 / -0.114 / -0.234 | 0.060 / -0.016 / -0.033 / -0.101 / -0.199 (lost at k = 1, as stated) |
+| B25 | suite13t ipow s1, brhash s1 | 0.132 -> 0.017, 0.099 -> -0.009 | unchanged (one-channel compares) |
+| B26 | suite12 lfsrfind s1 / iterative_sqrt s1 | 0.106 / 0.102 | **0.003 / 0.066**; the other suite12 compare-kind rows are being recomputed on the farm (fm_b_rs12b) |
+
+**What does not change.**
+- Every draw and every adversary result: those are simulations, not the bound.
+- B21's latch-fed race and its numbers.
+- B23's message, which is stronger now: the draws pass through k = 2 / 3; the proved steer bound is lost at k = 1
+  (countloop) and k = 2 (lfsrfind).
+- B20's conclusion on the ucmpi0 trim.
+
 ## B26. The steer screen on your default flow (suite12, flow v8, seed 1; farm fm_b_rs12, 23 routes rebuilt SAME at 1b47b72a7) and the list of rule-CLEAN routes where B21's race is weakest. suite12 xorshift s1 (NOT CLEAN by your E row at ucond_br8, -23 ps) loses B21's race inside the band at both corners; every other suite12 route keeps every steer bounded or nearly so (shard B, 2026-11-20 10:56 UTC; untrusted simulation + bounds whose logic is in Lean)
 **suite12** (formal/tools-B/auto/suite/rs12_routes.txt; formal judged these routes' draws on 2026-11-19 as B19):
 
@@ -197,7 +235,7 @@ condition:
 
 - Both trimmed routes pass 8 + 8 draws in formal's simx. Output capture (B16's outsafe.py): no proof on either route, trimmed or not (out0 comes through umux3 / umux4's joins; kappa_lo -0.235 / -0.469 at corner 0, unchanged by the trims).
 - A steer race your rule calls clean: B21's latch-fed race (exit1 varshift s1, brhash s2; quadrec s3 at +5 ps -> adversary MISMATCH at kappa 0.03). Neither trimmed route has one under +1 ns.
-- The ucmpi0 11 -> 10 trim on lfsrfind does not touch a steer race that matters: its weakest bound moves only 0.003.
+- (WRONG, corrected in B27: with the fixed bound lfsrfind s1 goes 0.084 -> 0.027 under your trims.) The ucmpi0 11 -> 10 trim on lfsrfind does not touch a steer race that matters: its weakest bound moves only 0.003.
 - Unlike B20's 8 -> 7 on xorshift, which loses the race.
 
 **At your bands, against the measured error** (09:20 UTC; the same xsweep.py as B21: the weakest steer's condition cone
