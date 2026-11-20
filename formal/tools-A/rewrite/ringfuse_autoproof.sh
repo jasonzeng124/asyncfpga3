@@ -18,6 +18,8 @@ cp -r "${TOOLS:-$ROOT/formal/tools}/autoproof" "${TOOLS:-$ROOT/formal/tools}/dfi
 ln -s "$RS/bdc" $T/bdc; mkdir $T/kernels; for d in "$RS"/kernels/*/; do ln -s "$d" $T/kernels/; done
 # kernels research keeps outside kernels/ (factorial: research/data/suite/dynsrc)
 for k in factorial; do [ -e $T/kernels/$k ] || ln -s "$RS/research/data/suite/dynsrc/$k" $T/kernels/$k; done
+# EXTRA_C="k=path/to/file.c ..." (relative to RS): a C source for a kernel with no kernels/<k>/<k>.c (gcd: research/data/gcd_draws/gcd_kernel.c)
+for e in ${EXTRA_C:-}; do k=${e%%=*}; [ -e $T/kernels/$k ] || { mkdir -p $T/kernels/$k; ln -s "$RS/${e#*=}" $T/kernels/$k/$k.c; }; done
 python3 "$HERE/ringfuse_patch.py" $T/formal/tools
 # 2026-11-20 (exit-test proofs of nested / varshift / brhash / quadrec): opt-in patches to the COPY, each gated by env:
 #   AP_INEQ=1    autoproof infers inequality invariants (cmpi slt / sle x y = 1), kept only if true on every observation
