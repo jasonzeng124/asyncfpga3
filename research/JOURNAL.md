@@ -8475,3 +8475,23 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   rewrites; the two loops restarted with the fix (SUITE_TAG=arw2, AUTO_TRIM_SCOPE=cycle).
 - B26 so far: exit1 twoloops s2's 12 latch-fed steers, the weakest (formal's ucond_br17) 425 +- 68 ps (6.2 sd); the
   next 570 +- 57. varshift s1 (254 +- 59) is the worst seen. fold64 s1 and quadrec s3 running.
+### progress 12:34 (B26 answered: varshift's latch-fed race is the worst of the routes formal listed, the rest >= 6 sd; new bdc pass BDC_SIBLING_FUSE: the proved loop-test move's parallel increment and test fused into one cell)
+- **B26** (research/tools/race_find.py over every latch-fed steer of each route, 100 000 model points): exit1 varshift s1
+  ucond_br11 254 +- 59 ps (4.3 sd); twoloops s2 ucond_br17 425 +- 68 (6.2 sd); fold64 s1 ucond_br4 322 +- 54 / ucond_br3
+  303 +- 47 (6.0 / 6.4 sd); quadrec s3 rebuilding with its search-phase structure. Table in research/data/ssta/README.md.
+- **Scoped trim refined** (3fb7ae248): a round whose trims leave the period no lower is reverted (xorshift s1's round 2
+  had moved 3 lines of its new cycle for no change in P).
+- **Why the proved plain move may not pay by itself under ring fusion:** after it, the increment and the test both read
+  i, and BDC_RING_FUSE (which fuses `x' = f(x); test(x')`) no longer applies: two cells, a fork, links between them
+  (the first arw loop, with its start-size bug, showed uaddi0 and a new link ulink_n_rd0f__1 on the cycle). **New:
+  bdc BDC_SIBLING_FUSE=1** (0218b747f, opt-in, needs ring fusion's multi-result cells): a fork whose every output feeds
+  fusable ops in two or more regions merges those regions into ONE multi-result cell (one join, one matched delay, the
+  branches side by side), under the same three safety conditions as ring fusion. Unset: byte-identical emission (28
+  emissions checked). With the 6 plain-move MLIRs, each kernel's increment and test become one cell (xorshift's:
+  `i + 1` and `i < n - 1` both from e0_data) and all 6 pass the RTL bench against the C. On the 62 default fixtures
+  (no rewrite) it changes 23 kernels: a separate, unmeasured effect (a merged cell makes a short branch wait for the
+  longest one's line).
+- Running locally: xorshift s1 with the plain move + BDC_SIBLING_FUSE=1 (SUITE_TAG=sib); the plain move alone
+  (arw2); collatz with eq2 (arw2). PREDICTION (written now, before any of them ends): with sibling fusion the fused
+  cell's line is 4-8 elements shorter than suite13t's ucmpi1 (18) and P (trimmed) 1-3 ns below suite13t's 17.59 ns;
+  without it (arw2) P is no better than suite13t's.
