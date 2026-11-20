@@ -3664,3 +3664,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * patches/dec_patch.py (AP_DEC): autoproof may guess `v - 1` for a graph variable.
 * Proved, check.sh OK (1316 declarations): brhash (flag set 1), nested outer loop (set 1); countloop, xorshift
   (controls). Not: nest3 (one omega obligation), nested inner, lfsrfind, fold64 (refused by the matcher).
+### progress 15:41 -- ring_dec_route.py also takes a constant bound read only by the test (value printed signed, refused at the wrap point) and any constant-1 step. lfsrfind: edit applies (256 -> 255, ult i9); tv_gate not proved (one omega obligation, flag set 2); A33 updated

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """ring_dec_route.py IN.mlir OUT.mlir [--only CMPNAME]   (shard A, 2026-11-20; UNTRUSTED edit, proof per kernel)
 The plain loop-test move of ring_dec.py --plain, generalised to a bound that reaches the test through routing:
-the test `cmpi P, F#a, B` with P in {slt, ult} (any width), F a 2-way fork of `addi I, 1` (1 a source constant), and
+the test `cmpi P, F#a, B` with P in {slt, ult} (any width), F a 2-way fork of `addi I, 1` (1 a constant), and
+B either a constant c read only by the test (it becomes c - 1; refused at the wrap point) or
 B a value of the BOUND CLASS: the closure of channels that carry the same token as B through routing only
 (fork outputs, br, cond_br data outputs, mux / merge outputs whose every data input is in the class or an entry).
 Side conditions (anything else is refused):
@@ -56,8 +57,26 @@ def main():
             if not ma: why = 'fork input is not an addi of the test width'
             else:
                 I, one = ma.groups(); n1 = defl(one)
-                mo = n1 is not None and re.match(r'^\s*' + re.escape(one) + r' = constant (%\w+) \{.*value = 1 : i' + w + r'\}', L[n1])
-                if not mo or ' = source ' not in (L[defl(mo.group(1))] or ''): why = 'step is not a source constant 1'
+                mo = n1 is not None and re.match(r'^\s*' + re.escape(one) + r' = constant (%\w+(?:#\d+)?) \{.*value = 1 : i' + w + r'\}', L[n1])
+                if not mo: why = 'step is not a constant 1'
+        nB = defl(B); mk = nB is not None and re.match(r'^\s*' + re.escape(B) + r' = constant (%\w+(?:#\d+)?) \{(.*)value = (-?\d+) : i' + w + r'\}', L[nB])
+        if why is None and mk and len(readers(B)) == 1:   # a constant bound read only by the test: c -> c - 1
+            cval = int(mk.group(3)); ww = int(w); u = cval % (1 << ww)
+            nv = (u - 1) % (1 << ww); nv = nv if nv < (1 << (ww - 1)) else nv - (1 << ww)   # MLIR prints signed
+            if (P == 'ult' and u == 0) or (P == 'slt' and cval == -(1 << (ww - 1))): why = 'constant bound at the wrap point'
+            else:
+                L[nB] = L[nB].replace(f'value = {cval} : i{w}', f'value = {nv} : i{w}', 1)
+                sf_other = sf + '#' + ('0' if A_.endswith('#1') else '1')
+                for r in readers(sf_other):
+                    L[r] = re.sub(re.escape(sf_other) + r'(?![\w#])', s, L[r], count=1)
+                bba = re.search(r'handshake.bb = (\d+)', L[ns]).group(1); t = 'rr'
+                L[ns] = (f'{ind}%{t}f:2 = fork [2] {I} {{handshake.bb = {bba} : ui32, handshake.name = "fork{t}f"}} : <i{w}>\n' +
+                         L[ns].replace(f'= addi {I}, ', f'= addi %{t}f#0, ', 1))
+                L[n0] = f'{ind}{c} = cmpi {P}, %{t}f#1, {B} {{{attrs}}} : <i{w}>'
+                L[nsf] = None
+                open(a[1], 'w').write('\n'.join(x for x in L if x is not None))
+                print(f'rewrote {cname}: test before the increment ({P} i{w}); constant bound {cval} -> {nv}')
+                return 0
         if why is None:   # the bound class, by closure backward and forward through routing
             cls, entries, todo, seen = set(), [], [B], set()
             while todo and why is None:

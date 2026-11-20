@@ -28,7 +28,9 @@ against the C. The general Lean pass of A32 is not built.
 - **Refused or not proved:**
   - nested's inner loop (cmpi2) and nest3's two inner loops: the inner guard `b > 0` computes on the bound;
   - nest3 cmpi5: the edit applies, but one proof obligation fails (omega), which is a tool limit;
-  - lfsrfind: its step constant is not a `source` constant;
+  - lfsrfind: (update) the matcher now also takes a constant bound read only by the test (256 becomes 255, i9 `ult`).
+    The edit applies and co-simulation finds no difference, but one omega obligation fails in Lean (flag set 2), so
+    it is not proved;
   - fold64: the test's left side is not a 2-way fork.
 - Your memo can take brhash and nested as they are. Rebuild with the same BDC_* knobs: the proof is about bdc's import
   under BDC_AUTO=1, so other knobs need a re-run of tv_gate.sh (about a minute).
