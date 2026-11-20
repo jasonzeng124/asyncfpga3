@@ -8305,3 +8305,36 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   FAST_MAX), request ctl -> rdly g[0] -> ucond_br11_j -> ucond_br11/A3 -> steer = 1116 / 1323 ps; formal's 963 / 1140 and
   1120 / 1327. Adversary (condition at FAST_MAX, request at FAST_MIN, all else mid-FAST): the condition arrives 19 ps
   after the request (formal 20). Runs: adversary; swapped; all mid-FAST; adversary at the slow corner.
+### progress 09:46 (B21 replayed per arc: our GLS loses the same race, 271 runts of 19 ps, answers right; the draw model loses it ~2e-5 of the time; a draw with a pulse under 1 ns no longer counts as passing evidence)
+- **B21 replay** (exit1 varshift s1, sdf 00324c96 rebuilt here = the farm's; nextpnr 6e5d224472232d5d; one delay per arc
+  from xray_delay.py's corner table via research/tools/adv_sdf.py; bench_gate.sh COL=env, max column, GATE_RUNTS=1):
+  | assignment | answers | pulses < 150 ps on kernel handshake nets |
+  |---|---|---|
+  | formal's adversary: condition path at FAST_MAX, request path at FAST_MIN, every other arc mid-FAST | 10 / 10 | 271 (19 ps; 22 nets: ucond_br11 req0 / req1 / ack, both control merges' arbiters, ulink_n_index_19 stages, ...) |
+  | every arc mid-FAST (control) | 10 / 10 | 0 (narrowest pulse 2.9 ns) |
+  | the two sides swapped (control) | 10 / 10 | 0 |
+  | the adversary at the slow corner | running | |
+  So the two simulators lose the same race on the same nets; formal's simx (transport, 20 ps filter) then deadlocks, our
+  resolver absorbs 19 ps pulses at the state nodes (SIM-VS-BOARD row 4, updated; silicon: BOARD-QUEUE item 2).
+- **How often the draw model loses it** (new research/tools/race_mc.py: the model's bands, per-pip wire scatter with
+  shared pips, region and per-arc cell scatter on the race's 10 arcs, Monte Carlo): margin request - condition at the
+  steer 254 +- 59 ps, 4 of 200 000 model points below 0 (2e-5; 4.3 sd); the band corners alone 211-296 ps. Checked
+  against 16 real gen.py draws of the same route (draw:K's own SDF, arcs read back from annot.sdf): 227 +- 68 ps, min 95;
+  no-scatter base 251 vs the model's 252. formal's assignment lies outside the model's box (bands ~0-0.12, below its
+  0.20 floor, with the race's arcs at opposite ends of their own intervals). **Decision: no flow change for B21.** Our
+  rule already measures this pair (+126 / +155 ps guarded); a floor of 2 for every latch-fed steer link would be a rule
+  for a race the model loses 2e-5 of the time. Listed as the weakest race on these routes; formal's kappa_lo stays the
+  stress figure for it.
+- **C68 replay running** (exit1 spmv s1 rebuilt, sdf f572267f = the farm's): of our own draws, 10105 and 10106 PASS 4/4,
+  but 10106 had **408 pulses under 150 ps** (narrowest 56 ps) on 25 nets, ucond_br15's ack, ulink_n36__2 and
+  ulink_n_trueResult_37's stage among them -- formal's hang nets (C68). And the farm's own draw 10102 on this route had
+  72 such pulses; it was reported PASS (the runt monitor is report-only in the draws).
+- **So a pulse under 1 ns now costs a route its passing evidence** (suite_table.py, 5be1192f4): over the 378 farm
+  routes with runt-monitored draws, the 4 that ever showed one were all NOT CLEAN (exit1 spmv s1; ringfuse1 ipow s7, the
+  draw that failed; ifl1 if_loop_1 s4; suite10b test_memory_1 s2); no clean route ever had one, so no headline row
+  moves (34 of 62); the two headline routes are listed under the table.
+- **Static rules under the draw model** (new research/tools/draw_sdf.py + ssta_draws.sh + ssta_table.py; corner_audit
+  CA_ALLCONS=1, opt-in, outputs byte-identical without it): each draw K's delays (bench_gate.sh's bands, gen.py's pip /
+  region hashes exactly; cell-arc normals same distribution) written as a one-value-per-arc SDF, every constraint
+  measured raw (no guard). First 4 draws on C68's spmv route: **E at ucond_br15 (the steer formal's trace starts at)
+  -14 +- 30 ps raw, below 0 in 2 of 4 draws**; next A'm umux10 +120 +- 118. 64 draws running.
