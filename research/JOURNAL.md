@@ -8305,7 +8305,7 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   FAST_MAX), request ctl -> rdly g[0] -> ucond_br11_j -> ucond_br11/A3 -> steer = 1116 / 1323 ps; formal's 963 / 1140 and
   1120 / 1327. Adversary (condition at FAST_MAX, request at FAST_MIN, all else mid-FAST): the condition arrives 19 ps
   after the request (formal 20). Runs: adversary; swapped; all mid-FAST; adversary at the slow corner.
-### progress 09:46 (B21 replayed per arc: our GLS loses the same race, 271 runts of 19 ps, answers right; the draw model loses it ~2e-5 of the time; a draw with a pulse under 1 ns no longer counts as passing evidence)
+### progress 09:44 (B21 replayed per arc: our GLS loses the same race, 271 runts of 19 ps, answers right; the draw model loses it ~2e-5 of the time; a draw with a pulse under 1 ns no longer counts as passing evidence)
 - **B21 replay** (exit1 varshift s1, sdf 00324c96 rebuilt here = the farm's; nextpnr 6e5d224472232d5d; one delay per arc
   from xray_delay.py's corner table via research/tools/adv_sdf.py; bench_gate.sh COL=env, max column, GATE_RUNTS=1):
   | assignment | answers | pulses < 150 ps on kernel handshake nets |
