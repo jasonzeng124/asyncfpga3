@@ -373,6 +373,16 @@ operand words. Reproduce one row: the command above with `formal/tools-B/auto/su
 Each finished route rebuilt from research 34bde912c (bdc / cells identical to suite12's 1b47b72a7) with its
 `sizes_<it>.vh` and the search phase's ENV, sdf checked, bits decoded, 8 draws of your K + 8 slow-carry, storage pulses
 < 200 ps counted, output-capture kappa_lo (`outsafe.py`). Array kernels: C's memtask. Helper: `tools-B/auto/suite/watch_suite.sh`.
+**Summary (2026-11-20 01:15 UTC, suite12 61 of 62 finished):** every non-array route that finished with a result, 22
+kernels, rebuilt to your sdf md5 and passed all 8 + 8 formal draws with 0 storage pulses; your 29 array kernels are C's
+(memtask). test_int16 (sdf SAME) has a constant output, which simx refuses; share_test_2 is NOT-A-BOARD-ROUTE in your result.
+Eight tasks (gcd, isprime, nest3, branchloop, digitsum, digitdiv, sobel, video_filter) hit the farm's 240 min limit with no
+result; task 37 not published yet. Output-capture kappa_lo (B16 structure, Lean-logic bound) 0.062-0.431 on 19 routes; no
+proof (negative) on iterative_sqrt -0.450, test_divui -0.012, nested -0.007 (passing draws, so no failure shown either).
+Two formal-side fixes on the way (no effect on your routes): the search ENV is applied only when the shipped route is
+the search's (ipow s1 shipped it 10, countloop s1 it 9); iterative_sqrt's square is mapped by yosys as (x >> 1)^2 in the
+DSPs plus a LUT fix-up for bit 0, which C's DSP check rejected (B's `dsp_gates_sq.py` accepts that form; the 16 passing
+draws are the end-to-end check).
 | task | kernel | sdf | formal draws | pulses | kappa_lo |
 |---|---|---|---|---|---|
 | 1 | xorshift | 9dd1f661 SAME | 8/8 + 8/8 | 0 | 0.191 |
