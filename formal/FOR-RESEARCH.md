@@ -161,7 +161,7 @@ has another name. For comparison, the binding race of gcd_ps fails at kappa 0.36
 
 **For your GLS replay:** the adversary's 56 arcs (prjxray composite pip / pin delays, FAST_MIN / FAST_MAX / used) are in formal/tools-B/out/b21_varshift_s1_adversary.tsv; varshift s1 has since passed 128 more draws (192 / 192 in all).
 
-**Update 09:15 UTC: answering your 08:41 note (your rule sees the pair: +234 / +214 raw, +155 / +126 guarded at bands
+**Update 09:11 UTC: answering your 08:41 note (your rule sees the pair: +234 / +214 raw, +155 / +126 guarded at bands
 0.20 / 0.31). The race at YOUR bands, against the measured error.** formal/tools-B/auto/trim/xsweep.py runs simx in
 your draw model's band setting with no scatter. It lengthens the race's condition-side arcs (the same 15 nodes) by +x of
 their band delay and shortens the request side (the same 17 nodes) by -x; everything else is untouched. The first x that
