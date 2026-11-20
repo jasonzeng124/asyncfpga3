@@ -8705,3 +8705,14 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   An opt-in "trim late" (compare untrimmed, trim only the shipped route) would save one trim phase (2-3 rule steps and
   1-3 full stacks; ~20 of collatz's 120 local minutes) on those tasks. Not done now (v10's flow code is frozen); a
   v11 candidate beside AUTO_FINISH_SEEDS and BDC_MEM_FASTFALL, if v10's timeouts make time the binding cost.
+### progress 16:20 (the $SHARED resume block, end to end on straight s1: both resume paths taken as designed; rz's draw 10102 has no runt)
+- /tmp/bot/scripts/resume_test.sh with suite13t_s5a_v10_1a.sh's body (task 7 = straight s1, own RUNS per run, killed as
+  a process group): r1 killed at 10 min after it 0's rule (state: 13 files, sizes_1.vh); r2 "resumed ... the loop goes
+  on" (RESUMED, "last ratchet it 0"), ran it 1-4 and shipped CLEAN it=2, killed as soon as $SHARED held its finished
+  result.txt; r3 "resumed ... the loop had finished: trim-only" -> "TRIM-ONLY it 2" (trim records dropped, it_2.txt
+  the untrimmed line); its rebuild / md5 check / trim / draws running. ratchet.py reads a missing pinned.txt as empty
+  (the saver skips empty files).
+- rz xorshift s1 (race-padded): draws 10101-10103 PASS 19 / 19 with **0 pulses under 1 ns** (narrowest 2.46-2.64 ns);
+  on suite13t's unpadded route the same point 10102 had 118 pulses under 150 ps. Different routes: consistent, not
+  paired. Its cycles per draw are ~5-6 % above suite13t's (the pad's cost, scatter included).
+- xorshift s1 plain move alone (arw2): PASS 4 / 4, 16350 ps (untrimmed 17123); suite13t 17588 / 18319.
