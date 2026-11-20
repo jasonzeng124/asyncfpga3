@@ -5048,3 +5048,4 @@ Not yet traced to a path. Owner notified.
   (1 ps), then the umux4 / ufork15 / ulink_n36__2 runts. Passing draw 10104: closest storage reordering 182 ps. So the
   rule did see the race; the loop shipped the least-short NOT CLEAN route anyway and the suite line says PASS. The first
   C68 text ("rule flags other cells") was wrong; corrected in place, owner re-notified.
+- 08:25: lfsrfind ucmpi0 alone (others at research's trim): 8 and 6 pass 16 / 16, 4 and 2 fail 16 / 16 (one undecided). Research's 10 sits 4-6 elements above the model's failure point. 5 (16+16) and 6 (32+32) running.
