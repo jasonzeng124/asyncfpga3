@@ -5160,3 +5160,20 @@ Plan: B's half of exit1 = its non-array kernels (xorshift gcd isprime countloop 
 horner fold64 varshift nested; C's c_mem37 / c_mem38 already take the array ones): rebuild each finished route, sdf
 check, bits read back, 8 + 8 draws, outsafe -- watch_suite.sh generalised (suite, research checkout, output, count;
 BDC_AUTO_REWRITES=0 as the request sets).
+### progress 07:45 -- B20 started: research's post-route trims (research/data/trim/README.md) judged by formal's simx + a steer bound
+Route: exit1 xorshift s1 (farm task 1, BDC_FE_EXITCOND fixture, sdf d947adff rebuilt SAME locally, untrimmed P 18.09 ns).
+Research's step-1 trim set (14 chains by INIT only; trim_lines.py at research 99146b03d; ucmpi0 8->7, ucmpi1 15->12,
+ucontrol_merge1 3->1, ulink_n12__0 3->2, trueResult_0 / _2 / _10 UACK 3->1, umux1 7->3, umux2 6->2, uxori2 3->1),
+research: P 15.18 ns, 4 / 4 draws, then 5 rule rows short (E ucond_br5 / br2 -203 / -190 ps at band 0.31, A'j ucmpi1 -346).
+- **simx (formal, bits read back, research's draw model):** step-1 8 / 8 + 8 / 8 slow-carry PASS (agrees with research's
+  4 / 4). Negative control: step-1 with ucmpi0 at 1 (research: hangs): 0 / 8 + 0 / 8; at 4: 0 / 8 + 0 / 8. 5 / 6 running.
+- **Steer settle gaps in simulation** (C's steermargin via xsteer.py; condition ucmpi0.uz_n3 at ucond_br2..5; no scatter,
+  xor19): untrimmed min 1188-1600 ps over four corners (chains / rest / carry 0.20/0.31/1.0, 0.20/0.31/0.20, 0.31/0.20/1.0,
+  0.20/0.20/1.0); step-1 **232 ps** (0.20/0.31/1.0, ucond_br5) .. 635 ps; 0 live runts.
+- **steersafe.py (new; structural bound, untrusted extraction, logic = SettleAll + ChainHold + CtlChain.hold_mem):** the
+  condition's cone (459 nodes, roots = the 32 operand latches ulink_n1__1.lat, premise: settled at A) at its longest max
+  path vs the request's forcing path from ucmpi0.ujoin (A) through the line and ucond_brN_j (premise: the join is 0 at
+  A) at its minima. Untrimmed: **kappa_lo 0.076** (ucond_br5: request >= A + 3358 ps, condition <= A + 2882 ps at corner
+  0, slack +476 ps; corner 1 +1103). Step-1: **no proof**: slack already -127 / -146 ps at kappa 0, corner 0 (ucond_br2 /
+  br5; -298 / -382 at corner 1). Same sign as research's rule E rows (-190 / -203 ps). Not a failure: the bound takes
+  the condition's longest path (a full carry ripple) for every operand pair, the simulation's pairs do not.
