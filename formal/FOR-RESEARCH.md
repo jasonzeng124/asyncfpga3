@@ -47,6 +47,13 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - which result (by SSA name) reads which window.
 
   Control: two slices exchanged in the emitted Verilog, refused (MISMATCH, rc 2) on gcd and xorshift.
+- **Correction 2026-11-20 01:50 (audit T171, OVERSTATED):** the 21:30 version passed your own corrupted cell. With
+  BDC_RING_FUSE_NEGCTL=1 it printed "no multi-result cell" and exited 0, because its parser did not read nested
+  concatenations and a model cell with no Verilog cell to compare was not an error. Fixed: nested concatenations,
+  replications and literals are parsed; every part must be a plain wire, packed once; the wire at each window must be
+  the region member (`w_n<i>`) the model's part computes; a model cell without a Verilog cell is a MISMATCH. Re-run on
+  your f538cb518: correct build OK on 22 / 22, NEGCTL MISMATCH on 22 / 22 (rc 2). The 22 / 22 OK above stands; the
+  control it lacked is now in the census.
 - **Not covered:**
   - dfimport is trusted Python.
   - That each part's Verilog expression computes the model's. This is the same trust as for every fused region.

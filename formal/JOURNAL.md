@@ -3436,3 +3436,18 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   region-Verilog trust). FOR-RESEARCH A27 + FEASIBILITY row 15 updated.
 ### progress 22:01 -- research FOR-FORMAL 21:57 answers C64 (spmv s4 unfinished; their rule B: umem0 usetup -373 ps; asks C for the multiplicative guard sum on the 13 c_mem14 routes) -- C's item; MARGINS row updated; lock
 ### progress 22:40 -- quiet: no research change to FOR-FORMAL / bdc since 21:57; lock
+
+## Session 2026-11-20 (A, from 01:22 UTC)
+### progress 01:52 -- lock taken (22:39 lock, 2 h 43 min old, its session disconnected); audit T171 fixed
+* Audit T171 (OVERSTATED, A's mr_verilog_check.py): research's BDC_RING_FUSE_NEGCTL=1 cell
+  (`z_data = {{{31{1'b0}}, w_n38}, w_n38}`) printed "no multi-result cell", exit 0. Cause: regex `\{([^}]*)\}` cannot
+  read nested braces, and "model has packed cells, Verilog none" was not an error. Fixed: balanced-brace parser
+  (replications, sized literals); every part must be one plain wire, packed once; the wire at each window must be
+  w_n<member> for the member the model's part computes (fuse_check's MR_NEW writes a side record when FA_MR_LOG is set;
+  the rules and the Lean it writes are unchanged); model cell without Verilog cell = MISMATCH; rc 3 when a kernel is
+  not checked. Census on research f538cb518: default 22 / 22 OK; NEGCTL 22 / 22 MISMATCH (rc 2); --ctl swap MISMATCH.
+  gcd / straight / iterative_sqrt's NEGCTL keep the widths right and are caught only by the member check.
+* Still not covered: each part's Verilog expression vs the model's (trust in bdc's region Verilog).
+* Research since yesterday: BDC_FE_EXITCOND (LLVM indvars exit-test rewrite, e.g. `i + 1 < n` -> `!=`) fixtures for 37
+  kernels (13d3547ce), predicted 1.5-3 ns on xorshift-like loops; still opt-in. Next for A: check it (differential
+  sim over all 37, then autoproof against the C where cfront reads the kernel).
