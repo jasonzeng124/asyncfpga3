@@ -8389,3 +8389,25 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   A' rows (a capture before its data) are the ones to watch on trimmed routes.
 - **C68, 13 of our 32 draws:** 7 with 72-420 pulses under 1 ns, every answer right.
 - Running: varshift s1 (exit1, clean) static draws, the clean-route baseline; lfsrfind s1 trimmed next.
+### progress 10:56 (formal's proved loop-test passes run here: 8 suite kernels get a rewrite Lean proves, by structure; the local v9 loops with them started)
+- **The automatic path may carry a rewrite that is a PASS** (PROGRAM, T156). Formal's formal/tools-A/rewrite/
+  auto_rewrites.sh (= plain_pass.py, the plain loop-test move `i + 1 < n -> i < n - 1`, PlainPass certificate; then
+  eq2_pass.py, the test on the update -> the test on the value) matches by structure, no names or hashes, and keeps a
+  rewrite only when Lean proves the rewritten graph equal to the original (token level, every schedule). Set up here:
+  a worktree of origin/claude/formal at /tmp/bot/formal, formal's own farm lake cache ($SHARED/lake/a65e684bd52b.tar,
+  26 GB, the key formal's requests use) extracted, lake build Formal.Rewrite.PlainPass (3 min); Lean v4.35.0 in ~/.elan.
+- **With BDC_AUTO=1 as flow v8+ has it (BDC_RING_FUSE=2), plain_pass refuses** ("0 matches of the pattern in the
+  import"): dfimport reads bdc's fusion plan, and ring fusion has already fused the increment with its test. With
+  BDC_RING_FUSE=0 for the IMPORT only (the proof is about the unfused graph; ring fusion is a separate rewrite of the
+  emitted graph), over the 62 default fixtures (research/data/autorw/census.txt): **plain_pass PROVED on xorshift,
+  countloop, twoloops, quadrec, horner, varshift; eq2_pass PROVED on collatz, collatz64**; matched but refused (memory
+  kernels: dfimport cannot import them) fill, if_loop_1 / 2, test_memory_1, spmv; no match on the other 49.
+- Why it may pay under ring fusion: after plain_pass the loop test reads i (before the increment) against n - 1
+  computed at the ring's entry, so the fused update + test cell's two carry chains run side by side instead of in
+  series (suite13t's xorshift s1: that cell's line is 18 elements, 6.5 ns, 37 % of its 17.59 ns period). The
+  md5-keyed versions measured before ring fusion: collatz -24 %, collatz64 -26 %, xorshift neutral (farm suite6).
+- **Running (local, flow v9 + the trim step, seed 1, SUITE_TAG=arw):** xorshift with plain_pass's output, collatz with
+  eq2_pass's (MLIR_OVERRIDE). Controls: suite13t's xorshift s1 (P 17588 trimmed / 18319 untrimmed) and collatz s1.
+  PREDICTION (written before any result): xorshift s1's fused cell line 18 -> 10-13 elements and P 1.5-3 ns below
+  suite13t's; collatz s1 15-25 % below suite13t's; every draw passes.
+- varshift s1 (exit1, clean), 48 static draws: no draw loses any race; weakest I +275 +- 142 ps (min 4).
