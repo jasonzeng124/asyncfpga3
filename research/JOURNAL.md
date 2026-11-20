@@ -8069,3 +8069,23 @@ second convergence lever (placement kept between finish routes, research/data/co
   (completed=0, result x, bench FSM x); umux1 / umux2 / ulink_n12__0 / the UACK at 1 each complete with the right answer.
   The fixed rule flags ucmpi0 at 1: E -1.1 .. -2.5 ns at four steers, A'j -2.2 ns. So the hang was the defect, not a
   race the rule cannot see; the lesson stands that a trim has to be judged by draws as well as by the rule.
+### progress 04:55 (STATE OF PLAY -- read this first if the session ends here)
+- **Rule H capture fix** (599c89e6b): capfix1 47 / 48 back: 34 / 34 judged routes PASS every draw, 34 of 38 rule-clean
+  (suite12 had 0 of 8 on these kernels), capture hold >= 11.4 ns everywhere; 9 tasks hit 240 min (share_test_1 x4,
+  iir s2 / s4, image_resize s3 / s4, spmv s3): need a resume request (research/tools/suite/collect_resume.sh, cf.
+  research/cluster/requests/suite10d.sh).
+- **share_test_2 judgeable** (78f74977a, DSP pre-adder): suite13 / capfix1 ran before it, so their share_test_2 routes
+  say NOT-A-BOARD-ROUTE: re-judge them (suite_one.sh SUITE_SKIP_AUTO=1 or research/tools/suite/rejudge.sh).
+- **Farm:** suite13 (v9 = v8 + ucap fix + CA_BENCHCAP=1; 60 kernels x 4 seeds) and exit1 (the != loop test fixtures,
+  35 kernels x 4 seeds, the same flow: suite13 is its control) are WAITING for capfix1's last task (binary_search s2,
+  limit ~05:50 UTC). When back: regenerate the headline (research/data/fifteen/README.md; suite_table.py, provenance as
+  its paragraph says) with suite13 as the v9 column; then exit1 against suite13 per kernel.
+- **Closed negative:** placement kept between finish routes (research/data/placekeep/README.md: works where names are
+  stable, fails on 3 of 4 kernels; routes cannot be kept in this toolchain); a hard region on the critical ring (worse
+  on 3 of 4 seeds); the whole kernel boxed (no legal placement).
+- **Open, in progress: post-route trimming** (research/data/trim/README.md): lines of LUT2 elements shortened by INIT on
+  the same route. Measured: -2.9 ns on xorshift's shipped route with draws passing 4 / 4, BUT that set is rule-short by
+  63-346 ps on 5 constraints once the rule reads trimmed lines correctly (f5b32d12d), and the loop's trim step
+  (AUTO_TRIM=1, opt-in) reverts it. Next: damped steps; exact trim deltas in corner_audit (enter via the side net).
+- Local exit-test seed-1 results: countloop CLEAN 21.39 ns, horner CLEAN 21.09, xorshift NOT CLEAN 18.09; CA_BENCHCAP:
+  iterative_sqrt s1 CLEAN, PASS 4 / 4.
