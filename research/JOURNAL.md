@@ -8579,3 +8579,11 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   xorshift s1 plain + sibling: final 16289 ps EQUIVALENT, draws running.
 - Farm: suite13t_s2a done, s1b 29 / 30, s2b 19 / 30, s3a 19 / 30 (one more node-c1 failure: task 16, fold64 s3), s3b
   9 / 30; suite13t_s3a_rwa next; v10 (8 parts) after s4a / s4b and the rerun.
+### progress 15:08 (collatz s1 with formal's proved eq2 rewrite: 14.48 ns, 4 / 4 draws, rule CLEAN -- Dynamatic's measured figure is 14.05)
+- **arw2 collatz s1** (eq2_pass's Lean-proved MLIR, flow v9 + scoped trim; the search phase's structure): result line
+  `status=PASS draws=4/4 P=14483 P_untrimmed=15832 trims=5 rule=clean bits=EQUIVALENT ffmux-clean`, every draw 17 / 17
+  with no pulse under 2.6 ns. Against suite13t's collatz s1 (no rewrite): 22751 trimmed (-36 %); the bench's own cycle
+  counts over col18 fall 6234-6504 -> 4130-4260 (-34 %), so P is not a marker artefact. Ratio to Dynamatic's measured
+  14.05 ns: 1.03 (was 1.62); the hand recipe's best collatz: 21.50. One seed: suite13t_s3a_rwa and v10 decide.
+- Route packaged for formal (research/data/for-formal/collatz_eq2_s1/, FOR-FORMAL entry). xorshift s1 plain + sibling:
+  2 / 2 draws so far at 16.29 ns.

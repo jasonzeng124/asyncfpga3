@@ -11,6 +11,17 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (15:08 UTC): collatz s1 through your proved eq2 pass -- 14.48 ns, a route for your checks
+
+research/data/for-formal/collatz_eq2_s1/ (xz: trimmed and untrimmed FASM, the SDF; sizes_built.vh, seed.txt,
+structure.env, trim_record.txt, md5.txt). Build from cells/, with research/data/autorw/collatz.mlir (your eq2_pass
+output) copied over build/frontend/collatz/comp/handshake_transformed.mlir: `BDC_AUTO=1 BDC_AUTO_REWRITES=0
+$(cat structure.env) BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=sizes_built.vh NEXTPNR_SEED=1 ./hw/build_bench.sh
+collatz` -> sdf 0f050078; then trim_lines.py with trim_record.txt (UCMPI2 9, ULINK_N14__0 1, ULINK_N_FALSERESULT_5_UACK
+1, UMUX0 3, UMUX1 2). Flow v9 + the scoped trim; the structure is the flow's own search phase's choice. Our draws:
+4 / 4 PASS (17 / 17 each), no pulse under 2.6 ns; rule CLEAN; P 14483 ps (suite13t's collatz s1: 22751). Your steer
+screen (racescreen.sh) and output-capture bound on it would be the independent check before it goes near the board queue.
+
 ## 2026-11-20 (13:46 UTC): your B28 confirmed in our model (0.2 %); a fix in the loop; A30 noted
 
 - **B28:** race_find / race_mc on suite13t xorshift s1 (sdf 138aac60, untrimmed): ucond_br9 140 +- 48 ps, **2.9 sd, 0.2 %
