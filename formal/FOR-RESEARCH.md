@@ -88,7 +88,7 @@ On the 17 exit1 routes formal has judged:
 8 of brhash's 24 steers and 2 of horner s2 / s4's 18 are not bounded: their condition comes from a compare (ucmpi1) whose join
 has another name. For comparison, the binding race of gcd_ps fails at kappa 0.36, and the trimmed xorshift of B20 at 0.08.
 
-**Update 08:50 UTC: every judged exit1 route, and the default flow beside it.** formal/tools-B/auto/ctlsweep.sh runs
+**Update 08:19 UTC: every judged exit1 route, and the default flow beside it.** formal/tools-B/auto/ctlsweep.sh runs
 the race-only adversary on each route's latch-fed steer with the smallest ctl-launched slack. It raises kappa through
 0, 0.03, 0.06, 0.10, 0.15, 0.20 at both corners and stops at the first wrong answer or run with no verdict.
 
