@@ -3652,3 +3652,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * cfront vs gcc: factorial 407, isprime 308 vectors, 0 mismatches (sibling_cfront_cdiff_*.py, records). The subagent
   checked regression: countloop / xorshift prove under both flag sets.
 ### progress 14:10 -- gcd under the sibling flag, against research/data/gcd_draws/gcd_kernel.c (new EXTRA_C knob in ringfuse_autoproof.sh): autoproof NOT PROVED under all three flag sets ("T5 variable 3: no expression over the C state matches", e.g. at C state [6, 9, 1, 0]): its state guess fails. A tool limit, as on the default gcd graph; gcd stays the one importable changed kernel without a proof (A30)
+### progress 15:01 -- PROGRAM.md changed (owner, 15:00 UTC: "chill on claude usage"): at most 1 subagent at a time from now on. A has none running. Noted; work order unchanged
