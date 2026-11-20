@@ -3519,3 +3519,13 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   decls, std axioms); iterative_sqrt / iterative_division PROVED UNDER THE WIDTH ASSUMPTION; xorshift, nest3, sqrtsub
   PROVED; iterative_sqrt controls slice_low / part_plus1 REFUSED rc 2. Census (subagent): 22 PROVED, 4 same, 0 refused.
 ### progress 03:54 -- two-hour re-read: PROGRAM.md unchanged (cffa0d44b); research FOR-FORMAL / PROGRAM / bdc unchanged since f538cb518 (HEAD 7a7cffb2d); audit: no new row on A's files. Background poll and lock refresher reached their 2 h limit (not restarted); lock now refreshed by hand
+### progress 03:54 -- state; open items for A (in order)
+* Research (02:46): the != loop test (BDC_FE_EXITCOND) gave no gain on xorshift s1 through the whole v9 loop (P 18.09 vs
+  17.81 / 18.11 ns); farm exit1 (35 kernels x 4 seeds vs suite13) decides. A28 stands either way: 4 kernels proved,
+  gcd differs on C-overflow inputs, bdc lacks minui.
+* Open, in order: (1) if research turns EXITCOND on: a general pass needs a relational ring invariant (counter + 1 <=
+  bound), which ChanInv's unary classes and PairInv do not give -- days; per-kernel autoproof covers 4 kernels now.
+  (2) Ring fusion: done on every importable kernel; dfimport and the packed-cell model stay trusted (model checked by
+  simulation, mr_expr_check). (3) gcd theorem: S4 / S6 unchanged; Mathlib not built in this sandbox (cache host
+  unreachable), so Target work waits for a session with it.
+* Background loops ended at their 2 h limit; lock refreshed by hand at each commit.
