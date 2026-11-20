@@ -5280,3 +5280,4 @@ DISK FULL incident (~11:35-11:45): /home/user/b reached 17 GB (decoded nets ~180
   fails inside the band, 8 % at research's bands).
 - Tools: steersafe (per-link compare terms), weaksweep, firstpulse, pinlog, ensure_m, offcycle, racescreen, cleanup.
 - Running: exit1 watcher (done but stragglers), watch_trim (suite13t), loop13 / loop13o / loopscreen / cleanup.
+### progress 12:38 -- validation of the fixed steersafe: weakest-steer adversary vs proved bound on 7 exit1 routes + items 38-41: bound <= first failure on all 11 (e.g. quadrec s3 0.002 / 0.03, fold64 s1 0.035 / 0.06, item 41 0.060 / 0.20, item 38 0.038 / 0.20). Logic note: the per-link terms are settle_all with heterogeneous root windows (each link's roots from its own ctl) + one chain_hold / hold_mem request bound per link; the request is false until the max of the per-link lower bounds, the condition settles by the max of the per-link upper bounds, so R_i >= D_i for every i suffices.
