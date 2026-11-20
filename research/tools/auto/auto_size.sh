@@ -457,6 +457,39 @@ finish_draws() {  # finish_draws I (AUTO_FINISH_SEEDS, finish phase): route I no
     done
   done
 }
+# AUTO_TRIM_ONLY=1 (opt-in, with AUTO_RESUME=DIR holding a FINISHED loop's files, e.g. a farm task's auto/; unset, nothing
+# here runs): no loop and no search -- the route that loop shipped (its result.txt: "CLEAN it=I", "shipped it=I", else the
+# last route) is rebuilt from its own sizes, seed and structure (structure.env when the search phase shipped it), checked
+# to be the same route (its sdf md5 against the loop's it_I.txt; a different route stops here), then trimmed exactly as
+# the flow's AUTO_TRIM=1 step trims a route it ships (trim_route, the rule's trim mode by default) and given the full
+# stack.  result.txt gets the loop's own line back, so suite_one.sh judges route I, now trimmed, on the same draw points
+# the loop's own run used: a paired measurement of the trim step, the route itself unchanged.  it_I_untrimmed.txt keeps
+# the loop's stack line.  Why: research/data/trim/README.md -- a trim changes LUT INITs only, so its effect can be measured
+# on routes the farm already built and judged, without a re-route's scatter (hundreds of ps) in the comparison.
+if [ "${AUTO_TRIM_ONLY:-0}" = 1 ]; then
+  [ -n "$RES" ] && [ -f "$RES/result.txt" ] || { echo "TRIM-ONLY FAILED (AUTO_RESUME=DIR with a finished loop's files needed)" | tee -a "$O/result.txt"; exit 1; }
+  last=$(grep -E '^(CLEAN|NOT CLEAN)' "$RES/result.txt" | tail -1)
+  [ -n "$last" ] || { echo "TRIM-ONLY FAILED (no finished loop in $RES)" | tee -a "$O/result.txt"; exit 1; }
+  X=$(echo "$last" | grep -o 'shipped it=[0-9]*' | head -1 | cut -d= -f2)
+  [ -n "$X" ] || X=$(echo "$last" | sed -n 's/^CLEAN it=\([0-9]*\).*/\1/p')
+  [ -n "$X" ] || X=$(echo "$last" | sed -n 's/^NOT CLEAN after \([0-9]*\).*/\1/p')
+  [ -n "$X" ] || X=$(echo "$last" | sed -n 's/^NOT CLEAN it=\([0-9]*\).*/\1/p')
+  [ -n "$X" ] && [ -f "$O/sizes_$X.vh" ] || { echo "TRIM-ONLY FAILED (no shipped iteration / sizes_$X.vh in $RES)" | tee -a "$O/result.txt"; exit 1; }
+  echo "$last" | grep -q '; search ' && [ -f "$O/structure.env" ] && XENV=$(cat "$O/structure.env")
+  echo "auto_size $N TRIM-ONLY it $X from $RES ${XENV:+($XENV) }$(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" >> "$O/log.txt"
+  cp "$O/it_$X.txt" "$O/it_${X}_untrimmed.txt"
+  want=$(awk '{print $2}' "$O/it_${X}_untrimmed.txt")
+  build "$X" "$O/sizes_$X.vh" || { echo "TRIM-ONLY FAILED (rebuild of it $X)" | tee -a "$O/result.txt"; exit 1; }
+  got=$(awk '{print $2}' "$O/it_$X.txt")
+  if [ "$got" != "$want" ]; then
+    echo "trim-only: route ${N}_$X rebuilt as sdf $got, the loop's was $want -- DIFFERENT ROUTE, not trimmed" >> "$O/log.txt"
+    echo "TRIM-ONLY FAILED (DIFFERENT ROUTE: sdf $got, the loop's $want)" | tee -a "$O/result.txt"; exit 1
+  fi
+  echo "trim-only: route ${N}_$X rebuilt, sdf $got (the loop's)" >> "$O/log.txt"
+  AUTO_TRIM=1 final "$X"
+  echo "$last" | tee -a "$O/result.txt"
+  exit 0
+fi
 if [ -n "$RES" ]; then
   echo "auto_size $N RESUMED from $RES $(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" >> "$O/log.txt"
 else
