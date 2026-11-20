@@ -17,7 +17,7 @@ T=$(mktemp -d); mkdir -p $T/formal/tools
 cp -r "${TOOLS:-$ROOT/formal/tools}/autoproof" "${TOOLS:-$ROOT/formal/tools}/dfimport" $T/formal/tools/
 ln -s "$RS/bdc" $T/bdc; mkdir $T/kernels; for d in "$RS"/kernels/*/; do ln -s "$d" $T/kernels/; done
 # kernels research keeps outside kernels/ (factorial: research/data/suite/dynsrc)
-for k in factorial; do [ -e $T/kernels/$k ] || ln -s "$RS/research/data/suite/dynsrc/$k" $T/kernels/$k; done
+for d in "$RS"/research/data/suite/dynsrc/*/; do k=$(basename "$d"); [ -e $T/kernels/$k ] || ln -s "$d" $T/kernels/$k; done
 # EXTRA_C="k=path/to/file.c ..." (relative to RS): a C source for a kernel with no kernels/<k>/<k>.c (gcd: research/data/gcd_draws/gcd_kernel.c)
 for e in ${EXTRA_C:-}; do k=${e%%=*}; [ -e $T/kernels/$k ] || { mkdir -p $T/kernels/$k; ln -s "$RS/${e#*=}" $T/kernels/$k/$k.c; }; done
 python3 "$HERE/ringfuse_patch.py" $T/formal/tools
@@ -44,7 +44,7 @@ done; true
 for f in CF_PPIF:cfront_ppif CF_STRLIT:cfront_strlit AP_XINV:xinv AP_OPSX4:opsx4 AP_DEC:dec; do
   v=${f%%:*}; [ "${!v:-}" = 1 ] && python3 "$HERE/patches/${f#*:}_patch.py" $T/formal/tools
 done; true
-declare -A VEC=([nest3]="4,5 0,0 3,2 8,8 -1,3" [gcd]="12,18 7,0 0,5 -6,4" [brhash]="5,3 0,0 -1,-2" [quadrec]="3,4 0,0 -2,3" [horner]="2,3 0,0" [varshift]="5,3 0,1" [lfsrfind]="7,9 1,1" [twoloops]="3,4 0,0 -1,2" [nested]="3,2 0,1" [fold64]="5 0" [xorshift]="-1831433054,4 1,1" [collatz]="6 7 27" [ipow]="3,7 2,10 -3,5" [countloop]="3,5 0,7 10,0 -4,3"
+declare -A VEC=([sum3]="1,2,4 0,0,0 -3,5,3" [nest3]="4,5 0,0 3,2 8,8 -1,3" [gcd]="12,18 7,0 0,5 -6,4" [brhash]="5,3 0,0 -1,-2" [quadrec]="3,4 0,0 -2,3" [horner]="2,3 0,0" [varshift]="5,3 0,1" [lfsrfind]="7,9 1,1" [twoloops]="3,4 0,0 -1,2" [nested]="3,2 0,1" [fold64]="5 0" [xorshift]="-1831433054,4 1,1" [collatz]="6 7 27" [ipow]="3,7 2,10 -3,5" [countloop]="3,5 0,7 10,0 -4,3"
                [isprime]="97 91 2 1 7919" [factorial]="5 0 1 2 3 4 7 12 -3")
 for k in "${KS[@]}"; do
   N="$(tr '[:lower:]' '[:upper:]' <<< ${k:0:1})${k:1}${NSUF:-RF}"

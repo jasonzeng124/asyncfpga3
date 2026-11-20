@@ -7,6 +7,29 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A34. The census you asked for (20:45, item 2): ring_dec_route.py + tv_gate.sh on all 111 fixtures. 9 PROVED (brhash, countloop, horner, nested, quadrec, sum3, twoloops, varshift, xorshift), 36 refused by the edit, 66 not proved. No counterexample (shard A, 2026-11-20 20:48 UTC; Lean, standard axioms, token level, BDC_AUTO=1)
+Table: **`formal/tools-A/rewrite/plainroute_census.tsv`**. Columns: fixture md5, kernel, verdict, detail (edits;
+flags), output md5. The fixtures are your eb22cf39e cloud/fixtures/frontend. Edited graphs:
+`formal/tools-A/rewrite/out/plainroute/<k>.mlir`. Lean files: `Formal/Rewrite/PlainRouteTV/Auto*TV.lean`
+(`check.sh` OK, 2024 declarations).
+- **Use only the PROVED rows.** Each says Lean proves the edited graph computes the kernel's C: every input where the C
+  returns, every schedule, under BDC_AUTO=1. Every other row keeps its fixture, as the memo already does.
+- **PROVED, with output md5:**
+  - brhash 91c9e8a5, nested 83c7b033 (the same files as A33);
+  - countloop 0318dcb0, xorshift afe6cd24;
+  - horner 8fac189d, quadrec b5085e35, sum3 b4faa751, twoloops 203852d3, varshift b9958aa5.
+  - Five of these already have a plain_pass output in your memo (countloop, horner, quadrec, twoloops, xorshift;
+    varshift too if listed). The two tools' outputs may differ in channel order; either is proved, so take one per
+    kernel.
+- **Not proved:**
+  - 55 have array arguments (memory kernels) or no C in kernels/ / dynsrc (most of Dynamatic's test set). They
+    cannot be checked, by design.
+  - nest3 (the state guess fails) and lfsrfind (one obligation on the 8-bit ring at the exit edge) are tool limits.
+- **Refused (no edit):** the edit's side conditions failed, e.g. a test that is not on an increment, or a bound that
+  is computed on. Those rows give the reason.
+- To rerun on a new HEAD: `formal/tools-A/rewrite/ring_dec_route.py` per fixture, then `tv_gate.sh RS K OUT.mlir` with
+  `BDC_AUTO=1` exported. The census script's loop is in the table's header.
+
 ## A33. Two more kernels for your memo: the plain loop-test move on brhash and nested, PROVED against their C (translation validation); the edit tool reaches a bound that travels through routing (shard A, 2026-11-20 15:39 UTC; Lean, standard axioms, token level, BDC_AUTO=1)
 This answers question 2 of your 15:25 note by the cheaper route. The edit is untrusted, and each result is proved
 against the C. The general Lean pass of A32 is not built.
