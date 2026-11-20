@@ -359,6 +359,10 @@ PY
     if [ -n "${TRIM_ALLOW:-}" ] && [ -n "$t" ]; then
       t=$(for x in $t; do grep -qxF "${x%%=*}" "$TRIM_ALLOW" && echo "$x"; done | tr '\n' ' ' | sed 's/ $//')
     fi
+    # a line race_pad.py raised (AUTO_RACE_Z: a latch-fed steer below its z) is never trimmed back below its size
+    if [ -s "$O/race_padded.txt" ] && [ -n "$t" ]; then
+      t=$(for x in $t; do grep -qxF "${x%%=*}" "$O/race_padded.txt" || echo "$x"; done | tr '\n' ' ' | sed 's/ $//')
+    fi
     [ -n "$t" ] || { echo "trim: it $i step $k: the rule moves no line$([ -n "${TRIM_ALLOW:-}" ] && echo ' on the critical cycle') ($(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"; break; }
     cp "$H/${D}_routed.json" "$H/${D}_routed.prev.json"; cp "$H/$D.fasm" "$H/$D.prev.fasm"; cp "$H/$D.bit" "$H/$D.prev.bit"
     cp "$cur" "$O/sizes_${i}_trim.prev.vh"; cp "$O/trim_$i.txt" "$O/trim_${i}.prev.txt"
@@ -389,6 +393,21 @@ overbuild_args() {  # overbuild_args I: AUTO_OVERBUILD=H (opt-in): at the switch
   [ -n "${AUTO_OVERBUILD:-}" ] || return 0
   python3 "$T/trim_lines.py" --list "$RUNS/hw/${N}_$1/${D}_routed.json" > "$O/trimmable_$1.txt" 2>/dev/null || return 0
   echo "--overbuild $AUTO_OVERBUILD $O/trimmable_$1.txt"
+}
+race_check() {  # race_check I (AUTO_RACE_Z): the latch-fed steer races of route I in the draw model (research/tools/
+  # race_find.py over xray_delay.py's corner table, 20 000 points per race); research/tools/auto/race_pad.py raises the
+  # link of every race below AUTO_RACE_Z sd in the rule's proposal and adds a negative row (the route is then not clean;
+  # ratchet.py pins the raise), and records the raised lines in race_padded.txt so the trim step leaves them alone.
+  local i=$1 HW=$RUNS/hw/${N}_$1 CA=$RUNS/ca/${N}_$1 RC=$O/race_$1 tc=${TC:-$HOME/dev2/lib/fpgatoolchain}
+  mkdir -p "$RC"
+  PYTHONPATH=$tc/openxc7-src/prjxray python3 "$R/cells/gls/fid/xray_delay.py" --routed "$HW/${D}_routed.json" \
+    --sdf "$HW/$D.sdf" --out "$RC/xray.sdf" --arcs "$RC/arcs.tsv" > "$RC/xray.log" 2>&1 || { echo "race: it $i: xray_delay FAILED" >> "$O/log.txt"; return 0; }
+  python3 "$R/research/tools/race_find.py" "$HW/${D}_routed.json" "$RC/arcs.tsv" "$RC/specs" 20000 > "$O/race_$i.txt" 2>&1
+  local s; s=$(python3 "$T/race_pad.py" "$O/race_$i.txt" "$AUTO_RACE_Z" "$O/sizes_$i.vh" "$CA/rule/sizes.vh" "$CA/rule/negative_sized.tsv")
+  echo "it $i $s" >> "$O/log.txt"
+  echo "$s" | grep -o 'BD_SZ_[A-Z0-9_]* [0-9]*->' | awk '{print $1}' >> "$O/race_padded.txt"
+  cp "$CA/rule/sizes.vh" "$O/rule_$i.vh"; cp "$CA/rule/negative_sized.tsv" "$O/neg_$i.txt"   # as rule() keeps them
+  rm -f "$RC/xray.sdf"
 }
 final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run, event-graph P) on the route the loop keeps
   local i=$1
@@ -675,6 +694,9 @@ while [ -z "$STOP" ]; do
   i=$((i + 1))
   build "$i" "$O/sizes_$i.vh" || { echo "BUILD FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
   rule "$i" "$O/sizes_$i.vh" || { echo "RULE FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
+  # AUTO_RACE_Z=Z (opt-in, 2026-11-20; formal B21 / B28): a route the rule finds clean is also checked for the latch-fed
+  # steer races (race_find.py: the draw model's margin per race); one below Z sd pads its link and the route is not clean
+  [ -n "${AUTO_RACE_Z:-}" ] && [ "$(nneg "$RUNS/ca/${N}_$i/rule")" = 0 ] && race_check "$i"
   # AUTO_FINISH_SEEDS (opt-in): a finish route that is not clean is drawn again on more seeds; a clean one is adopted
   [ "$ph" = 2 ] && [ "${AUTO_FINISH_SEEDS:-1}" -gt 1 ] && finish_draws "$i"
   # phase 2 raises with one element of headroom: each re-route moves the small margins by a few hundred ps (local v4
@@ -760,6 +782,7 @@ search_phase() {
     k=$((k + 1))
     build "$j" "$O/sizes_$j.vh" || { echo "search: BUILD FAILED it=$j" >> "$O/log.txt"; break; }
     rule "$j" "$O/sizes_$j.vh" || { echo "search: RULE FAILED it=$j" >> "$O/log.txt"; break; }
+    [ -n "${AUTO_RACE_Z:-}" ] && [ "$(nneg "$RUNS/ca/${N}_$j/rule")" = 0 ] && race_check "$j"   # as in the main loop
     ro="--raise-only --headroom ${AUTO_HEADROOM:-1}"
     if [ "$RS" = 1 ]; then ro=""; [ "$k" = 1 ] && ro="--nopin"; [ "$k" -gt $((M3 - 2)) ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1}"; fi
     st=$(python3 "$T/ratchet.py" "$O/sizes_$j.vh" "$RUNS/ca/${N}_$j/rule/sizes.vh" "$RUNS/ca/${N}_$j/rule/negative_sized.tsv" \
