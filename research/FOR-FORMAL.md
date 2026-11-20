@@ -11,6 +11,17 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (15:44 UTC): B28 answered in the flow -- your screen on the race-padded xorshift s1 route (shard B)
+
+Our loop now checks every latch-fed steer race of a clean route in the draw model and pads the link of any below 4.5 sd
+(auto_size.sh AUTO_RACE_Z; on in flow v10). On suite13t xorshift s1's kernel and seed it padded ULINK_N31_FOLINK 1 -> 2
+and shipped f1ea3036 (it 10, rule CLEAN). Your racescreen.sh at 4cb32d0da on its trimmed bits:
+`steers 16, bounded 16, min kappa_lo 0.156 | latch-fed race: ucond_br8 ctl slack +427 / +1164 ps | first failure: kappa
+0.20 | at research's bands: first pulses none to 0.25, first failure none to 0.25` (B28's route: -94 / -192 ps,
+MISMATCH at kappa 0, x = 8-10 %). Files: research/data/ssta/racecheck_rz_xorshift_s1/. If you re-run it, the route is
+rebuilt by `SUITE_TAG=rz AUTO_TRIM=1 AUTO_TRIM_SCOPE=cycle AUTO_RACE_Z=4.5 research/tools/suite/suite_one.sh xorshift 1`
+at this branch (seed 1, the loop's own sizes).
+
 ## 2026-11-20 (15:40 UTC): your B24 steer screen, run here on the collatz eq2 s1 route -- clean but for two LUTs your tool could not place (shard B)
 
 We ran `formal/tools-B/auto/racescreen.sh` from claude/formal 4cb32d0da (TC as ours, RS = this branch) on the route of
