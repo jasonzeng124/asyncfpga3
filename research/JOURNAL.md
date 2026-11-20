@@ -8990,3 +8990,18 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   seven kernels v10 left NOT CLEAN (brhash, cmpchain, nested, factorial, test_memory_2, spmv; test_loop_free already
   done) and ipow (period control; v10: clean after 4 finish routes, P 19867). PREDICTION: at least 5 of the 6 NOT CLEAN
   kernels clean within 2 finish routes; every draw passes; ipow's P within -3 .. +8 % of v10's.
+### progress 23:56 (BD_SYMTRIM, routed GLS with trimmed symmetric lines: test_loop_free s1 PASS 4 / 4; the first negative control could not fail -- by design, noted)
+- **symtb test_loop_free s1** (the sym route 4cae65c5 rebuilt by AUTO_TRIM_ONLY, md5 checked, then the overbuild trim-back
+  with TRIM_STAGEFIX): 15 lines trimmed, symmetric ones among them (ulink_n11 / n22 / n6 / n_index_11 and their
+  _SDELAY, ucontrol_merge2 4 -> 1 or 2: INIT 1010 elements re-entered by INIT 1100), rule CLEAN after every step;
+  **PASS 4 / 4 draws (10 / 10 each), bits EQUIVALENT, ffmux-clean, no pulse under 1 ns (narrowest 3.94 ns)**, latency per
+  call median 72 ns (= v10's). With the untrimmed route's 4 / 4 (22:57): the define's lines work in the bits-decoded
+  GLS both as built and trimmed.
+- **Negative control, first try -- it could not fail, and the reason is a lesson:** every symmetric line of that route
+  set to 1 element (15 lines, 4 -> 1; research tools: /tmp/bot/scripts/symneg.sh) passes 2 / 2 draws. On this kernel
+  the symmetric lines were built 1 + 3 (the overbuild) and the rule needs 1 on all of them, so 1 is not a defect, only
+  the overbuild undone. A control has to cut a symmetric line below what its constraint needs: the sym2 routes of
+  test_memory_2 / spmv carry RAM lines (usetup / uco, symmetric, rule B at the RAM) -- that is the next control.
+- Found while doing it: research/tools/auto/trim_shrink.sh linked the route's .frames into its copy and fasm2frames
+  wrote through the link onto the original route's .frames (5f28cb177). Each copy's .bit was made from what was just
+  written, so the margin studies' verdicts stand.
