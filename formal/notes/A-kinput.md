@@ -44,3 +44,63 @@ the obstacle is the slice identity, not the fork.
 Also not done: a cell with 4 or more inputs (one `unabsorb` folds into two inputs, and the second forkcomm2 needs the
 folded comp to have exactly two). This would need an `unabsorb` per extra input. No kernel in the census needs it
 except iterative_sqrt's, which the width issue blocks first.
+
+# Update (2026-11-20 02:30 UTC): the token-width assumption, iterative_division PROVED under it
+
+Correction to the section above: for iterative_sqrt, widths are necessary but not sufficient (see "Still open").
+
+## What is assumed
+The new theorems state one hypothesis on top of the old ones: `hW : ∀ ch v, v ∈ σ0 ch → InW Wi ch v`. In plain terms,
+every input token fits its declared width (`v < 2^Wi[ch]`, where `Wi` holds the MLIR argument types as read by bdc's
+emitter; a control token has width 0, which means no constraint). Nothing is assumed about any other channel. Inside,
+the planner proposes a width map for each intermediate graph, and Lean checks it: every rule keeps tokens within the
+map (`safeB_ok`), and on the inputs the map is never narrower than declared (`agreeB`).
+
+## Lean (`Steps/Width.lean`, Core only; the old files are unchanged)
+* `bwv` / `bwpv` / `unsliceW` / `unsliceNW` are the width bounds and slice rules of ScriptRF, now also using the
+  variables' widths. `unsliceNW_eval` shows they keep the value in any environment whose variables fit (`EnvOK`).
+* `safeB` / `safeB_ok` check a rule against a map. For a comp, the bound computed from its inputs' widths must fit
+  its output's width. For fork, branch, mux and cm, widths may only grow along the data path. `sel` and pass-through
+  variables get the bound of their input's width, never more.
+* `SoundP P` is `Sound` restricted to initial stores satisfying `P`. `soundP_of_inv`: if every rule keeps the
+  invariant and the two graphs fire alike on every invariant store, their complete runs correspond.
+* Two new steps. `applyUW_sound` (`unpackw l W`) narrows slices using the widths, after checking every rule against
+  `W`. `applyUD_sound` (`undedupe`) is Dedupe read backward, checked by deduping back.
+* `runScriptW_sound`: every StepRF step plus the two new ones, under `InP NA Wi` (inputs only, each within its
+  declared width).
+* Template: when width steps are used, the generated file proves `pass_forward_w` / `pass_backward_w` with `hW`.
+
+## Planner
+Pass 1 is the old planner, unchanged, and gives unconditional theorems. Pass 2 runs only if pass 1's normal forms
+differ. It infers a width map (`infer_W`: forward fixpoint, then any channel whose writer fails `safeB` loses its
+bound) and uses `unpackw` where the plain `unpack` is not enough. For iterative_division's cell `comp [a, b, k]`
+(test `|a| <s |b|`, parts `|a|` and `|b|`, with `k` a wait no part reads), pass 2 goes:
+1. undedupe: the cell reads a second copy `k2` of `k`.
+2. Two gates: `[k, a]` is folded into `x = a` (gated by `k`) and `[k2, b]` into `y`, each by unabsorb with `f = var 1`.
+3. The existing 2-input, 3-slice flow, with `unpackw`.
+4. unjoin on each update, then forkcomm2 on each gate.
+On the unfused side, `rf_litpush` moves the `lit 0` comp through its fork, so that each reader waits on its own copy of
+the control token, as the fused cell does. `rf_canon_forks` sorts the comp readers of each fork by structure only
+(the reader's expression, and where its other inputs come from, traced through forks to the inputs). It is a stable
+sort, so forks the two sides already agree on are not reordered.
+
+## Results
+* iterative_division: PROVED UNDER THE WIDTH ASSUMPTION, Wi = [32, 32, 0]. Axioms: propext, Classical.choice,
+  Quot.sound.
+* Controls: `--ctl slice_low` REFUSED rc 2; `--ctl part_plus1` REFUSED rc 2. The generated certificate with `Wi`
+  changed to [64, 64, 0] is rejected by the kernel at h2.
+* Census: 21 PROVED (20 unconditional, the same as before; 1 under the width assumption), 4 same rules,
+  1 REFUSED (iterative_sqrt).
+* A first version that ran the new planner moves unconditionally made 10 of the 20 REFUSED. That is why pass 2 runs
+  only when pass 1 fails.
+
+## Still open: iterative_sqrt
+Widths are necessary here but not sufficient. The 4-input cell `comp [mid, n, lo, hi]` packs `lo' = sel(c, mid+1, lo)`
+and `hi' = sel(c, hi, mid-1)`, and the loop test `sgt(lo', hi')` reads both outputs. To match the unfused graph, the
+`lo'` part must stop waiting for `hi`, and the `hi'` part must stop waiting for `lo`. The only consumers of `lo'` are
+its branch (steered by the test) and the test itself, and the test reaches `hi` through `hi'`'s producer, not through
+a sibling copy of `hi`. That is a join extension through another update. A route with the existing proof: rf_split
+both outputs, so that the test absorbs copies of both parts and reads copies of mid, n, lo, hi directly. Then pack the
+other inputs into one word (needs a width-checked rewrite step that introduces slices, i.e. `unpackw` read backward)
+so that `unjoin`'s 2-input shape applies to each part. This also needs ForkComm2 read backward, so that the packed
+word is one forked channel shared by the test and the part. Not done.

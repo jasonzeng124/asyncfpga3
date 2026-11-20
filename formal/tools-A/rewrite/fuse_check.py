@@ -357,7 +357,9 @@ def do_unpack(p, l):
     """Narrow the slices in the comp at l: `unpack` when the syntactic widths suffice (as before), else `unpackw`
     with a width map of the current rules (needs the width assumption on the inputs)."""
     r = p.rs[l]; F = r[3]; plain = unslice_n(8, F)
-    W = infer_W(p.rs, p.Wi, p.NA) if p.Wi is not None else []
+    if p.Wi is None:   # no width map: the unconditional step only (as before the width mode)
+        p.do(('unpack', l)); return
+    W = infer_W(p.rs, p.Wi, p.NA)
     wide = unslice_nw([wOf(W, c) for c in r[1]], 8, F)
     if wide == plain:
         if plain != F: p.do(('unpack', l))
@@ -916,17 +918,21 @@ def run(fa, fb, ea, eb, tmp):
     wa, wb = (input_widths(os.path.join(tmp, f + '.lean.widths.json'), naa) for f in ('A', 'B'))
     wi = (wa, naa) if (wa is not None and wa == wb) else None
     if wi is None: print('fuse_check: input widths unavailable or ambiguous (A %r, B %r): no width assumption' % (wa, wb))
-    # BDC_RING_FUSE: unpack a fused side's packed cells; split the other side's update to meet it
-    pa, pb = normal_form(Ra, 'unpack', wi), normal_form(Rb, 'unpack', wi)
-    if pb.rf and not pa.rf: pa = normal_form(Ra, 'split', wi)
-    elif pa.rf and not pb.rf: pb = normal_form(Rb, 'split', wi)
+    # BDC_RING_FUSE: unpack a fused side's packed cells; split the other side's update to meet it.
+    # Pass 1 is the planner without widths (unconditional theorems); only if its normal forms differ, pass 2 plans
+    # with the width map (width-checked steps; the theorems then carry the width assumption).
+    n1, n2 = os.path.join(tmp, 'nf1.lean'), os.path.join(tmp, 'nf2.lean')
+    mp = os.path.join(tmp, 'maps.json')
+    for w in ([None, wi] if wi is not None else [None]):
+        pa, pb = normal_form(Ra, 'unpack', w), normal_form(Rb, 'unpack', w)
+        if pb.rf and not pa.rf: pa = normal_form(Ra, 'split', w)
+        elif pa.rf and not pb.rf: pb = normal_form(Rb, 'split', w)
+        open(n1, 'w').write('def rules : List Rule := ' + PP.ser_rules(pa.rs) + '\n')
+        open(n2, 'w').write('def rules : List Rule := ' + PP.ser_rules(pb.rs) + '\n')
+        ri = subprocess.run([sys.executable, os.path.join(HERE, 'rules_iso.py'), n1, n2, mp], capture_output=True, text=True)
+        if ri.returncode == 0: break
     WMODE = any(st[0] in W_STEPS for st in pa.steps + pb.steps)
     RF = bool(pa.rf or pb.rf or getattr(pa, 'rfs', 0) or getattr(pb, 'rfs', 0))
-    n1, n2 = os.path.join(tmp, 'nf1.lean'), os.path.join(tmp, 'nf2.lean')
-    open(n1, 'w').write('def rules : List Rule := ' + PP.ser_rules(pa.rs) + '\n')
-    open(n2, 'w').write('def rules : List Rule := ' + PP.ser_rules(pb.rs) + '\n')
-    mp = os.path.join(tmp, 'maps.json')
-    ri = subprocess.run([sys.executable, os.path.join(HERE, 'rules_iso.py'), n1, n2, mp], capture_output=True, text=True)
     if ri.returncode != 0: return refuse('normal forms differ: ' + ri.stdout[-300:])
     m = json.load(open(mp))
     ch = {int(a): b for a, b in m['chan'].items()}; ru = {int(a): b for a, b in m['rule'].items()}
