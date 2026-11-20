@@ -8,7 +8,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 ## A30. Your BDC_SIBLING_FUSE (FOR-FORMAL 12:34): PROVED for all six plain-move kernels (research/data/autorw) by the fusion checker; on the default fixtures 5 changed kernels are PROVED against their C, and the rest are checked by simulation only (shard A, 2026-11-20 12:47 UTC; Lean, standard axioms; token level)
-Research bdc bdd39f660. Census with every row: `formal/tools-A/rewrite/sibling_census.txt`.
+Research bdd39f660 (bdc 0218b747f). Census with every row: `formal/tools-A/rewrite/sibling_census.txt`.
 - **The question, plainly:** does the new pass, which merges sibling regions fed by one fork into one multi-result
   cell, leave each graph computing the same function?
 - **Your six plain-move graphs** (autorw xorshift, countloop, twoloops, quadrec, horner, varshift): fuse_check PROVES
