@@ -8548,3 +8548,11 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   search phase's it 11 untrimmed 17123, trimming running.
 - So far the proved rewrites pay most through what they let the rest of the flow do (the search phase's storage on
   collatz; the trim rounds on xorshift), not in the untrimmed period of the route the loop first settles on.
+### progress 14:33 (collatz s1 + proved eq2: final route 14.48 ns, EQUIVALENT, draws running; collatz64 s1 + eq2 loop started)
+- collatz s1 (arw2): the search route it 9 after three trim rounds: **P 14483 ps** (15832 untrimmed -> 14812 -> 14483), bits
+  EQUIVALENT; draws on col18 running. xorshift s1 plain + sibling (sib): 19365 -> 17533 -> 16357 -> **16289** (the last
+  round's 8 lines kept: P lower); its final stack and draws running.
+- Started: collatz64 s1 with eq2_pass's MLIR, flow v9 + scoped trim (control suite13t collatz64 s1: 29391 untrimmed /
+  25557 trimmed; Dynamatic measured 17.84). PREDICTION (now, before any result): trimmed P 16.6-21.7 ns (15-35 % below).
+- Farm: the proved-rewrite + sibling set moved ahead of suite13t's seeds 3-4 (suite13t_s3a_rwa, 32 tasks); set B of
+  sibling fusion alone as suite13t_s5c_sibb (84); suite13t_s5b_sib withdrawn before it ran (79f15698f, 38bfa983b).
