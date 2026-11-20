@@ -18,6 +18,9 @@ read -r _ _ K _ S _ <<< "$(head -1 "$W/farm/task.txt")"
 [ -n "$K" ] && [ -n "$S" ] && [ -f "$W/farm/auto/result.txt" ] || { echo "$Q $TK | no finished loop (task.txt / auto/result.txt)"; exit 1; }
 export RUNS=$W/runs; mkdir -p "$RUNS"
 cp -r "$W/farm/auto" "$RUNS/farm_auto"
+# a request that already ran the trim step (suite13t: AUTO_TRIM=1) left its trim record: drop it, so the step runs afresh
+# on the untrimmed route (auto_size.sh re-applies a recorded trim instead of trimming when one is there)
+rm -f "$RUNS/farm_auto/"trim_*.txt "$RUNS/farm_auto/"sizes_*_trim*.vh "$RUNS/farm_auto/"it_*_untrimmed.txt "$RUNS/farm_auto/"cyc_*.txt
 ( cd "$R" && env "$@" CA_JOBS=${CA_JOBS:-2} DRAW_JOBS=${DRAW_JOBS:-2} PNR_TIMEOUT=${PNR_TIMEOUT:-3600} BDC_AUTO_REWRITES=0 \
     AUTO_RESUME="$RUNS/farm_auto" AUTO_TRIM_ONLY=1 research/tools/suite/suite_one.sh "$K" "$S" 4 4 ) > "$W/suite_one.log" 2>&1
 cp "$RUNS/suite/${K}_$S/"*.txt "$W/" 2>/dev/null

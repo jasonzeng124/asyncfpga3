@@ -262,12 +262,13 @@ trim_route() {  # trim_route I (AUTO_TRIM=1): the shipped route's lines shortene
   if [ ! -f "$H/${D}_routed.untrimmed.json" ]; then
     cp "$H/${D}_routed.json" "$H/${D}_routed.untrimmed.json"; cp "$H/$D.fasm" "$H/$D.untrimmed.fasm"; cp "$H/$D.bit" "$H/$D.untrimmed.bit"
   fi
-  if [ -f "$O/trim_$i.txt" ] && [ -s "$O/trim_$i.txt" ]; then   # a rebuild: re-apply the recorded trims
+  if [ -z "${TRIM_CONTINUE:-}" ] && [ -f "$O/trim_$i.txt" ] && [ -s "$O/trim_$i.txt" ]; then   # a rebuild: re-apply the recorded trims
     python3 "$T/trim_lines.py" --partial "$H/${D}_routed.untrimmed.json" "$H/$D.untrimmed.fasm" "$H/${D}_routed.json" "$H/$D.fasm" \
       $(cat "$O/trim_$i.txt") > "$O/trim_${i}_reapply.log" 2>&1 && mkbit "$H"
     echo "trim: it $i re-applied $(wc -l < "$O/trim_$i.txt") recorded trim(s)" >> "$O/log.txt"; return 0
   fi
-  cur=$O/sizes_${i}_trim.vh; cp "$O/sizes_$i.vh" "$cur"; : > "$O/trim_$i.txt"
+  cur=$O/sizes_${i}_trim.vh
+  if [ -z "${TRIM_CONTINUE:-}" ]; then cp "$O/sizes_$i.vh" "$cur"; : > "$O/trim_$i.txt"; fi   # TRIM_CONTINUE: from the trims made
   prev_keys=""; prev_tot=""
   for k in $(seq 1 $(( ${AUTO_TRIM_MAX:-6} + 2 ))); do   # past AUTO_TRIM_MAX a pass only checks (a partial retry may need one)
     rm -rf "$RUNS/hw/${N}_${i}t$k" "$RUNS/r/${N}_${i}t$k"
@@ -354,7 +355,11 @@ print(" ".join(out))
 PY
 )
     fi
-    [ -n "$t" ] || { echo "trim: it $i step $k: the rule moves no line ($(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"; break; }
+    # TRIM_ALLOW=FILE (AUTO_TRIM_SCOPE=cycle): only the lines listed there may move (the critical cycle's, cycle_macros.py)
+    if [ -n "${TRIM_ALLOW:-}" ] && [ -n "$t" ]; then
+      t=$(for x in $t; do grep -qxF "${x%%=*}" "$TRIM_ALLOW" && echo "$x"; done | tr '\n' ' ' | sed 's/ $//')
+    fi
+    [ -n "$t" ] || { echo "trim: it $i step $k: the rule moves no line$([ -n "${TRIM_ALLOW:-}" ] && echo ' on the critical cycle') ($(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"; break; }
     cp "$H/${D}_routed.json" "$H/${D}_routed.prev.json"; cp "$H/$D.fasm" "$H/$D.prev.fasm"; cp "$H/$D.bit" "$H/$D.prev.bit"
     cp "$cur" "$O/sizes_${i}_trim.prev.vh"; cp "$O/trim_$i.txt" "$O/trim_${i}.prev.txt"
     python3 "$T/trim_lines.py" --partial "$H/${D}_routed.prev.json" "$H/$D.prev.fasm" "$H/${D}_routed.json" "$H/$D.fasm" $t \
@@ -404,7 +409,29 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
       # where the untrimmed route's critical cycle goes (chain / wire between cells / cell logic, per instance)
       python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
     fi
-    trim_route "$i"
+    if [ "${AUTO_TRIM_SCOPE:-all}" = cycle ]; then
+      # AUTO_TRIM_SCOPE=cycle (opt-in, 2026-11-20; formal B25): trim only the lines of instances on the critical cycle
+      # (cycdecomp of the route as it stands), then re-time the trimmed route and let the NEW critical cycle's lines move
+      # too, up to AUTO_TRIM_ROUNDS rounds (default 3), until the cycle brings no new line.  A line off every cycle the
+      # trims expose keeps its built length: shortening it cannot lower the period and spends a race's margin.
+      local r rr
+      python3 "$T/cycle_macros.py" "$O/cyc_${i}_untrimmed.txt" "$O/sizes_$i.vh" > "$O/trim_allow_$i.txt"
+      echo "trim: it $i scope cycle, round 1: $(grep -c . "$O/trim_allow_$i.txt") line(s) on the untrimmed cycle" >> "$O/log.txt"
+      TRIM_ALLOW=$O/trim_allow_$i.txt trim_route "$i"
+      for r in $(seq 2 "${AUTO_TRIM_ROUNDS:-3}"); do
+        [ -s "$O/trim_$i.txt" ] || break       # nothing trimmed: the cycle is the untrimmed one
+        "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_r$r.log" 2>&1
+        python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_r$r.txt" 2>&1
+        echo "trim: it $i round $r: $(tail -1 "$O/final_${i}_r$r.log" | grep -o 'P=[0-9A-Z]*')" >> "$O/log.txt"
+        rr=$(python3 "$T/cycle_macros.py" "$O/cyc_${i}_r$r.txt" "$O/sizes_$i.vh" | grep -vxF -f "$O/trim_allow_$i.txt")
+        [ -n "$rr" ] || { echo "trim: it $i round $r: the cycle brings no new line" >> "$O/log.txt"; break; }
+        echo "$rr" >> "$O/trim_allow_$i.txt"
+        echo "trim: it $i round $r: $(echo "$rr" | grep -c .) new line(s) on the cycle" >> "$O/log.txt"
+        TRIM_ALLOW=$O/trim_allow_$i.txt TRIM_CONTINUE=1 trim_route "$i"
+      done
+    else
+      trim_route "$i"
+    fi
   fi
   "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_$i.log" 2>&1
   [ "${AUTO_TRIM:-0}" = 1 ] && python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_$i.txt" 2>&1

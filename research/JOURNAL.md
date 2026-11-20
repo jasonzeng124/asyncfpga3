@@ -8411,3 +8411,30 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   PREDICTION (written before any result): xorshift s1's fused cell line 18 -> 10-13 elements and P 1.5-3 ns below
   suite13t's; collatz s1 15-25 % below suite13t's; every draw passes.
 - varshift s1 (exit1, clean), 48 static draws: no draw loses any race; weakest I +275 +- 142 ps (min 4).
+### progress 11:34 (formal B25 taken: the trim step limited to the critical cycle, opt-in, being tested; B26 being answered with a new race finder; the proved-rewrite switch is in the flow, opt-in)
+- **Formal B25** (suite13t ipow s1: the trim step shortened the loop-exit compare ucmpi0 16 -> 11, off the critical cycle,
+  P unchanged, the exit steer's proved bound 0.171 -> 0.017; over five suite13t routes most trims are off the cycle):
+  right, and cheap to act on. **auto_size.sh AUTO_TRIM_SCOPE=cycle** (opt-in; unset, byte-identical behaviour): round 1
+  lets the trim step move only the lines of instances on the untrimmed route's critical cycle (cycdecomp ->
+  research/tools/auto/cycle_macros.py: the instance's own line, its _UACK and _SDELAY); then the trimmed route is re-timed
+  and the NEW cycle's lines may move too, up to AUTO_TRIM_ROUNDS (3) rounds, until the cycle brings no new line. The
+  first test re-applied suite13t's own recorded trims (a farm task's auto/ carries them): trim_farm.sh now drops a
+  request's trim record so the step runs afresh. Running on suite13t xorshift s1 (7 trims, -4.0 %) and ipow s1 (8
+  trims, none on the cycle). PREDICTION: xorshift keeps most of its -4.0 % with fewer trims; ipow trims nothing.
+- **Formal B26** asks whether B21's 2e-5 is typical: new research/tools/race_find.py traces every latch-fed steer race of
+  a route from its arc table and runs race_mc on each (on varshift s1 it finds ucond_br7-11; ucond_br11 = the hand
+  spec, 254 +- 59 ps; the other four 7-14 sd). Rebuilding exit1 quadrec s3, twoloops s2, fold64 s1 for it.
+- **Proved rewrites in the flow:** suite_one.sh AUTO_PROVED_RW=1 (opt-in, FORMAL_DIR = a built claude/formal checkout)
+  runs formal's auto_rewrites.sh on the kernel's MLIR and builds every route from the Lean-proved output; checked
+  here: xorshift -> plain_pass, collatz -> eq2_pass, gcd / fill -> none, outputs byte-identical to the committed
+  research/data/autorw/ files that farm suite13t_s1c_arw builds (8 kernels x 4 seeds; filed 11:05).
+- **Memory fast fall, local loops (seed 1):** fill s1 through v9 with BDC_MEM_FASTFALL=1: CLEAN at it 7, untrimmed P
+  34038 ps, trimmed 30356 (-10.8 %), then the search phase continues; suite13t's fill s1 (default port): 30397 untrimmed
+  = trimmed. gather s1: CLEAN at it 4, untrimmed 40286, trim and draws running; suite13t's gather s1 not back yet.
+  So far no gain over the default port on one seed each; zmemff1 (30 memory kernels x 2 seeds) stays unfiled until
+  gather's pair is in.
+- **C68 so far:** 29 of our 32 draws: 7 of 16 default and 2 of 13 slow-carry draws have pulses under 150 ps at formal's
+  nets, every answer right.
+- cluster: **farm node node-c1 fails every task at container creation** ("mount proc ... operation not permitted",
+  5 s): exit1 tasks 91 / 105, suite13t_s1a 16 / 19, suite13t_s2a 9 / 10 / 25 / 26 so far. A rerun request for them
+  goes in when the suite13t waves are submitted.
