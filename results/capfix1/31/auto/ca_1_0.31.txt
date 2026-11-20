@@ -1,0 +1,39 @@
+corner_audit /tmp/task/runs/ca/su_test_stdint_3_1/seed1
+  corner: corner_sdf: /tmp/task/runs/ca/su_test_stdint_3_1/seed1/pnr/soak_xray.sdf -> /tmp/task/runs/ca/su_test_stdint_3_1/rule_0.31/soak.sdf
+            band 0.31, cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, 61 instance(s) listed (0.2), all in the SDF
+            INTERCONNECT default (0.31)                       24140 arcs
+            INTERCONNECT into listed instance (0.2)              77 arcs
+            IOPATH CARRY4 (1)                                  1956 arcs
+            IOPATH SELMUX2_1 (1)                                906 arcs
+            IOPATH SLICE_FFX (1)                               1904 arcs
+            IOPATH default (0.31)                             12895 arcs
+            IOPATH listed instance (0.2)                         77 arcs
+            SETUPHOLD (FAST_MIN, as gen.py)                    9094 arcs
+  nextpnr: UNSTAMPED
+  guards: rule E/J 0.970*req vs 1.030*sel; rule A/F/H/I/K/L guard max(0.030*t_data, 50 ps); slack 0
+  rule A data launches from constant drivers: DROPPED (a constant never transitions)
+  audits exit: tighten 1, skew 0, arb_fork 0
+  per-link cost at this corner: c_lo 191 ps (cheapest link-to-link step on the route), lut_lo 61 ps; chain mean steps 280-470 ps
+  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band 0.31, CARRY4/F7F8/FF at --cell; shortened lines priced at own mean step; selects sized by E/M; floor file none
+  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the select's own channel request is bounded by that request (research/data/sizerule/steerE.md)
+  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); research/data/muxsel/)
+  join-aware: CA_JOINAWARE=1: 1 operator(s) sized at their data's captures (A'j: latch data vs its enable, select vs its gate's request; C-elements wait for their last input; join credit), their A' rows reported as 'a'; 1 kept on A' (rows 'j' say why)
+negative at this corner: 7
+  a    -660  bridge_i.udut.uaddi0   11 links   4023 ps   req  5462  peak  5967  guard  155  margin   -660   PAD to 13 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UADDI0
+  B    -325  bridge_i.udut.umem_controller1_uport.umem0.uram: clk 3676 ps, latest payload WEA3 3069 ps, t_su 932 -> margin -325 ps  VIOLATION
+            depends on: BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM0_USETUP
+  a    -181  bridge_i.udut.ucmpi0    6 links   1932 ps   req  3094  peak  3197  guard   78  margin   -181   PAD to 7 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  D     -75  bridge_i.udut.ucond_br3 (bd_steer) req   583  sel   608  guard   50  margin    -75   PAD by 1 bd_delay element(s) (389 ps ea) -- VIOLATION
+  a     -39  bridge_i.udut.ucmpi0 6 links  from bridge_i.udut.ulink_n8.ctl.u.u/O6: req 3094 (0x)  data 3042 (1x, bridge_i.udut.ucmpi0.uz_n29)  guard 91  margin -39
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  D     -29  bridge_i.udut.ucond_br2 (bd_steer) req   402  sel   381  guard   50  margin    -29   PAD by 1 bd_delay element(s) (389 ps ea) -- VIOLATION
+  D     -16  bridge_i.udut.ucond_br1 (bd_steer) req   283  sel   249  guard   50  margin    -16   PAD by 1 bd_delay element(s) (389 ps ea) -- VIOLATION
+proposal: 5 line(s) changed, kernel links 57 -> 53; verify: 0 sized constraint(s) below slack
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM0_USETUP   3 ->   5   PAD 3->5 for B bridge_i.udut.umem_controller1_uport.umem0.uram (-325 ps)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM0_UCO   9 ->   8   bound by C bridge_i.udut.umem_controller1_uport.umem0.uco (410 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UADDI0                11 ->  10   bound by A' bridge_i.udut.uaddi0 (26 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UCMPI0                 6 ->   4   bound by A'j bridge_i.udut.ucmpi0 (74 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N12__0           3 ->   1   floor 1
+wrote /tmp/task/runs/ca/su_test_stdint_3_1/rule_0.31/{report.txt, lines.tsv, sizes.vh, verify.txt, soak.sdf}
