@@ -8945,3 +8945,16 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   other four NOT CLEAN runs and the four controls were stopped to give the node to the BD_SYMTRIM loops.
 - **Decision:** AUTO_OVERBUILD stays opt-in and out of the next flow unless the BD_SYMTRIM loops (sym test_loop_free,
   factorial, ipow, sqrtsub; phase 1 still) show the combination converging.
+### progress 22:20 (first BD_SYMTRIM verdict: test_loop_free s1's first overbuilt finish route is rule-CLEAN as built; overbuild gets a trim-back)
+- **sym test_loop_free s1** (flow v10 + BD_SYMTRIM + AUTO_OVERBUILD=3 + AUTO_RACE_KEEP=1): phase 1 as v10's (16, 11, 13, 5
+  rows; v10 16, 14, 6, 2), switch at it 4 with every line +3 (under the define all 25 lines are trimmable, the
+  symmetric ones included); **it 5 rule-CLEAN as built**, no latch-fed race. v10's own finish phase on this kernel and
+  seed: 20, 2, 4, 6, 6, 4 rows over it 5-10, never clean; overbuild alone (no define): 3 / 3 / 2 rows at it 5-7, trim
+  checks 4 / 4 / 2 short. Its full stack and draws are running. One kernel and seed so far; factorial, ipow, sqrtsub
+  are in phase 1.
+- **A gap this exposed, fixed (5e9a2eb0b, inside AUTO_OVERBUILD only):** a route clean as built gets no trim check, and
+  with AUTO_TRIM_SCOPE=cycle a loop-free kernel trims nothing, so it would ship every line +3 (latency; margin kept on
+  lines off the cycle for nothing). Now an overbuilt finish route gives the extra length back on every line off the
+  critical cycle, to max(the rule's need on this route, its size - 3) (trim_route TRIM_FLOOR), the trim step's own
+  checks unchanged. The running sym loops started on the earlier script; their shipped routes get it by
+  AUTO_TRIM_ONLY afterwards (same route, md5-checked, trimmed again).
