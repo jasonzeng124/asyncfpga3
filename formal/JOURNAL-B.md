@@ -5143,3 +5143,20 @@ Running: the same with +META_INIT=0 and =1 (fid_core.vh's power-up option).
 ### progress 01:06 -- container restarted ~01:00 (scratch survived; toolchain.sh ok, 7c3bfb9c); watcher restarted. Suite12 61 / 62: 8 tasks hit the farm's 240 min limit with no result (gcd, isprime, nest3, branchloop, digitsum, digitdiv, sobel, video_filter), task 37 pending. B19 summary written: 22 non-array kernels SAME + 16/16, 0 pulses; kappa_lo 0.062-0.431 on 19, no proof on 3.
 ### progress 02:14 -- suite12 done: task 37 (if_loop_1, array) also hit the 240 min limit (9 timeouts in all). B19 complete for the routes with a result; watcher stopped.
 ### progress 02:14 -- B19 no-proof routes explained (outsafe): nested 20 ps short at corner 0 (request >= A+1381, data <= A+1401 through umux13; corner 1 +0.060); test_divui data <= 93.6 ns vs request >= 91.4 ns (value-independent divider path, as B17). Bounds, not failures.
+
+## Session 2026-11-20 07:11 UTC (shard B, session_01HC49FxDJT4HGTj6FwqgGr5)
+Lock: LOCK-B held by the previous B session (session_01HC49Fx2gUbKePZobsMWUrt), last refreshed 02:14 with its last journal
+entry at 02:14 (suite12 done, watcher stopped): 5 h silent, taken. Read: CLAUDE.md, PROGRAM (unchanged since 11-18: B's
+standing items are simx on research's automatic builds and PROGRAM item 4, the select race), JOURNAL-B tail, JOURNAL-C /
+JOURNAL (A) tails, research FOR-FORMAL (newest 11-19 21:57, for C), research JOURNAL to 07:05 (exit1 = BDC_FE_EXITCOND
+fixtures through suite13's flow, 140 tasks on the farm, 55 done; trim step / AUTO_OVERBUILD opt-in, local), audit REPORT
+(no open row on B's files).
+Setup: formal/setup.sh running (Mathlib from source again). Local FPGA toolchain from toolchain-cache/02809f42 (python
+zstandard instead of the zstd binary; apt over https for libtcl8.6 / boost 1.83; prjxray pip requirements): toolchain.sh
+every patch ok, nextpnr sha256 7c3bfb9c684a2551 (as last session). Research checkout /home/user/rsx at exit1's commit
+7d814a69e with build/frontend = cloud/fixtures/frontend + frontend_exitcond's comp/*.mlir (xorshift's MLIR md5 e7abe22c
+= the farm task's).
+Plan: B's half of exit1 = its non-array kernels (xorshift gcd isprime countloop nest3 twoloops brhash lfsrfind quadrec
+horner fold64 varshift nested; C's c_mem37 / c_mem38 already take the array ones): rebuild each finished route, sdf
+check, bits read back, 8 + 8 draws, outsafe -- watch_suite.sh generalised (suite, research checkout, output, count;
+BDC_AUTO_REWRITES=0 as the request sets).
