@@ -1194,6 +1194,9 @@ build_bench's bench-clock check here (82.27 MHz < 83: as C63's ifl1 seed 4; your
 if_convert 4 (4f895356) SAME but refused at decode (a RAM's REGCEAREGCE fed from an unused LUT: formal's decoder fixed,
 rerunning); sumi3_mem 4 lost to a farm container failure (rerunning). 288 judged.
 **c_mem53 (20:02):** if_convert 4 (4f895356, after the decoder fix) and sumi3_mem 4 (b0424e64): SAME, 32 / 32, min RAM setup 1780 / 1950 ps. 290 judged.
+**c_mem54 (20:42):** 5 more suite13t routes SAME, 32 / 32 each, min RAM setup >= 349 ps (fir 4 2624fe8a); nested_loop 4
+lost to a farm container failure (rerun c_mem55). 295 judged. suite13t (all 8 requests) is finished: every memory route
+it shipped is judged or rerunning.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
