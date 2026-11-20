@@ -8774,3 +8774,8 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
 - Started (SUITE_TAG=mff10): v10's environment + BDC_MEM_FASTFALL=1 on memsum s1 / dot2 s1, to be paired with v10's
   same tasks (memsum s1: 24560 ps, the suite13t route). PREDICTION (now): memsum within -8 .. +3 %, dot2 within -5 .. +5 %
   (memauto.md's whatif: memsum -2.5 %, dot2 no change); every draw passes, no RAMB18 event.
+### progress 20:07 (v10's first resume part filed: 7 of v10_1a's tasks hit 240 min)
+- suite13t_s5a_v10_1a: 29 / 30 back at 20:07; TIMEOUT on tasks 6 isprime, 10 nest3, 14 quadrec, 21 digitsum, 22 digitdiv,
+  23 divmodu, 24 divmods (s1); task 5 (gcd s1) was restarted by the farm on another machine (RUNNING 7 min at 20:07): its
+  body resumes from $SHARED by itself. **Filed suite13t_s5a_v10_1a_r1** (mk_resume.py --running-ok: a part not yet done
+  is read, its running tasks left out): the 7 timed-out tasks, 4 cores each, draws 4 at once, same body and state.

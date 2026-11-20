@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""mk_resume.py RESULTS_DIR NEW_SUFFIX PART... -- resume requests for the tasks of farm suite parts that did not finish.
+"""mk_resume.py [--running-ok] RESULTS_DIR NEW_SUFFIX PART... -- resume requests for the tasks of farm suite parts that did not finish.
 
 For each PART (a request name under research/cluster/requests/, whose body keeps its loop state in $SHARED: the
 "$SHARED state" block of suite13t_s5a_v10_* / suite13t_s3a_rwa), read RESULTS_DIR/PART/status.txt (a claude/cluster
@@ -9,7 +9,8 @@ same kernel and seed per task number, and the same $SHARED state directory), wit
   * `#CLUSTER array=` the unfinished tasks only,
   * cores=4 and DRAW_JOBS=4 (the four draws at once; CA_JOBS unchanged: the rule's results do not depend on it),
   * a header line naming what it resumes.
-A part with nothing unfinished gets no file. Prints one line per part. The flow is unchanged: a resumed task goes on
+A part with nothing unfinished gets no file. --running-ok: a part not yet done is read too (its RUNNING / PENDING tasks
+are left out: a task the farm restarted elsewhere resumes from $SHARED by itself). Prints one line per part. The flow is unchanged: a resumed task goes on
 from its state (AUTO_RESUME), or rebuilds and trims its shipped route (AUTO_TRIM_ONLY) and draws it; with no state
 (a task that died before its first save) it starts from the top."""
 import os
@@ -19,12 +20,12 @@ import sys
 BAD = ("TIMEOUT", "FAILED", "NODE_FAIL", "OUT_OF_MEMORY", "CANCELLED")
 
 
-def unfinished(res, part):
+def unfinished(res, part, running_ok=False):
     st = os.path.join(res, part, "status.txt")
     if not os.path.exists(st):
         return None, "no status.txt"
     txt = open(st).read()
-    if not re.search(r"^state\s+done", txt, re.M):
+    if not re.search(r"^state\s+done", txt, re.M) and not running_ok:
         return None, "not done (%s)" % re.search(r"^state\s+(.*)$", txt, re.M).group(1)[:60]
     out = []
     for ln in txt.splitlines():
@@ -32,6 +33,8 @@ def unfinished(res, part):
         if not m:
             continue
         t, state = int(m.group(1)), m.group(2)
+        if state in ("RUNNING", "PENDING"):
+            continue
         rf = os.path.join(res, part, str(t), "result.txt")
         has = os.path.exists(rf) and "status=" in open(rf).read()
         if state in BAD or not has:
@@ -40,11 +43,13 @@ def unfinished(res, part):
 
 
 def main():
+    running_ok = "--running-ok" in sys.argv
+    sys.argv = [a for a in sys.argv if a != "--running-ok"]
     res, suf = sys.argv[1], sys.argv[2]
     here = os.path.dirname(os.path.abspath(__file__))
     reqdir = os.path.normpath(os.path.join(here, "../../cluster/requests"))
     for part in sys.argv[3:]:
-        tasks, why = unfinished(res, part)
+        tasks, why = unfinished(res, part, running_ok)
         if tasks is None:
             print("%s: skipped (%s)" % (part, why))
             continue
