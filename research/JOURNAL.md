@@ -8813,3 +8813,17 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   request line (one, horner s1, trimmed a race link's acknowledge line, which is on neither side of the race). An
   overbuilt route made clean by the trim step skips the race check altogether. Both need closing before overbuild can
   join a flow (next note).
+### progress 20:42 (farm queue trimmed for v11; overbuild also on four loops v10 finishes clean, for its cost)
+- **Most v10 loops end in the finish phase:** of the 41 v10 routes back with a result (parts 1a / 1b / 2a), 33 reached
+  phase 2 -- 26 ended clean there after 1-6 raise-only routes (median 4), 7 NOT CLEAN after 6. So AUTO_OVERBUILD would
+  change about 80 % of all loops, not only the 7: its cost on the loops that converge anyway decides it as much as
+  the 7. **Added (local, same tool, H = 3):** ipow s1 (v10: 4 finish routes, P 19867), fold64 s1 (5, 21348), twoloops
+  s1 (3, 14708, plain move), sqrtsub s2 (4, 21661) -- no search phase on any of the four, so v10's shipped P is its
+  loop route's (trimmed, cycle scope). PREDICTION (written now): each clean within 1-2 finish routes (v10: 3-5); trimmed
+  P within -5 .. +8 % of v10's (overbuilt routes are larger, ~+3 elements on every trimmable line, cut back by bits only).
+  These four started after a72f4a551, so they also carry its one unconditional overbuild change (a route with a race
+  row is never made clean by trims); the first seven do not (it only matters if a race pads a finish route).
+- **Farm queue (11fbcb879):** suite13t_s5c_sibb rewritten before it ran: flow v10 + BDC_SIBLING_FUSE=1 (was v9 + trim
+  against suite13t), 17 kernels the flag changes that carry no proved rewrite, seeds 1-2 (34 tasks; was 84), with the
+  $SHARED resume block; suite13t_s5b_mff_3 / _4 withdrawn (mff = seeds 1-2, 60 routes). Why: each A/B now differs from
+  v10 in one flag, and the farm's time after v10 goes to flow v11 (named to run after sibb).
