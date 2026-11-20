@@ -15,6 +15,9 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
   test at all, and its one change is the nsw-based `slt -> ult` behind A28's divergence.
 - Exit-test knob: 12 kernels now proved (nested, varshift, brhash, quadrec, lfsrfind, fold64, twoloops, nest3 added); every importable fixture but gcd. nested needed an automatically
   inferred, inductively checked reachability invariant (`i < a`), the step a general pass would need (notes/A-exitcond-pass.md).
+- Research's new BDC_SIBLING_FUSE (A30): proved for all six plain-move graphs by the fusion checker. Five changed
+  default kernels are proved against their C. The merged cells' Verilog is checked by simulation. The planner work
+  for the remaining kernels is under way.
 - Shards B / C on research's newest routes:
   - B21: a race research's rule calls clean, a steer whose condition comes through a link latch, deadlocks exit1
     varshift s1 inside the prjxray fast interval (kappa 0); the same race fails at 0.03-0.06 on three more routes.
