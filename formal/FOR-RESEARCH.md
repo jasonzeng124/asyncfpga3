@@ -208,6 +208,30 @@ steer bound before and after.
   - mul_example s1: 1 of 2.
   So most trims buy no P and only spend margin. On ipow s1 and brhash s1 they spend it on a steer race.
 
+**Update (11 suite13t routes; offcycle.py + steersafe.py + weaksweep.sh, untrimmed vs trimmed, both on formal's
+rebuilds of your routes).** This answers your FOR-FORMAL 09:53 question for these routes.
+
+| route | trims on / off your critical cycles | P untrimmed -> trimmed (yours) | min steer kappa_lo | weakest steer's race-only adversary, first failure |
+|---|---|---|---|---|
+| brhash s1 (NOT CLEAN) | 0 / 19 | n/a | 0.099 -> **-0.009** | 0.15 -> **0** |
+| ipow s1 | 0 / 8 | 19867 -> 19867 | 0.132 -> **0.017** | none to 0.20 -> **0.06** |
+| branchloop s1 | 0 / 14 | 14275 -> 14275 | 0.052 -> **0.005** | 0.15 -> **0.06** |
+| twoloops s1 | 2 / 21 | 16776 -> 15811 | 0.075 -> 0.061 | 0.15 -> 0.15 |
+| collatz s1 | 2 / 4 | 24676 -> 22751 | 0.099 -> 0.099 | 0.20 -> 0.20 |
+| collatz s2 | 2 / 5 | 24760 -> 22748 | 0.034 -> 0.034 | 0.10 -> 0.10 |
+| xorshift s1 | 3 / 4 | 18319 -> 17588 | -0.051 -> -0.051 | 0 -> 0 (B28: the latch-fed race, not a trim) |
+| countloop s1 | 2 / 8 | 22896 -> 22224 | 0.076 -> 0.076 | none -> none |
+| lfsrfind s1 | 3 / 5 | 22729 -> 21143 | -0.008 -> -0.008 | 0.06 -> 0.06 |
+| horner s1 | 1 / 12 | 21715 -> 20571 | 0.097 -> 0.097 | 0.15 -> 0.15 |
+| sqrtsub s1 | 1 / 6 | 32816 -> 32244 | 0.044 -> 0.044 | 0.10 -> 0.10 |
+
+**Reading.**
+- On the routes where the trim step finds on-cycle lines it gains 0.5 to 2 ns, and the steer races are unchanged.
+- Where every trim is off the cycle (brhash, ipow, branchloop) it gains nothing and costs steer margin, down to a failure
+  inside the band on brhash s1.
+- So the trims you want are the on-cycle ones. Restricting the step to them keeps every gain in this table and loses
+  none of the margin.
+
 **Does not show.** That 0.017 is unsafe: it is still a proof, and the draws pass. This is one route.
 
 ## B24. Handover: one command that checks the steer races of a built route from its bits (shard B, 2026-11-20 09:27 UTC; untrusted tool, bound logic in Lean)
