@@ -44,3 +44,20 @@ by bits alone; lengthening still needs a route. Symmetric lines (LUT1 elements) 
 ## Does NOT show
 One route of one kernel; the draws' four points; that a trimmed line's entry (the side net, a fanout wire) is as well
 modelled as a chain hop (the rule and the GLS both read it from the same SDF); anything about symmetric lines.
+
+## The loop's trim step with the corrected rule (2026-11-20 04:45-05:05 UTC; AUTO_TRIM=1)
+- Full proposal (step 1 = the 14 trims): 16 short constraints opened (1458 ps) -> reverted. Damped (half the gap): 14
+  (1044 ps) -> reverted. trim_plan.py (each entry priced exactly from the corner SDFs, charged to the constraints that
+  list the line in "depends on"): ucmpi1 15 -> 13, ucontrol_merge1 3 -> 1, umux1 7 -> 2, umux2 6 -> 1, uxori2 and
+  three UACK lines -> 1: 12 opened (754 ps) -> reverted. The opened rows are on the trimmed cells themselves (A'j
+  ucmpi1 -165, A ucontrol_merge1 -145 / -233, A'm umux1 / umux2 -14 .. -112, H trueResult_0 stage 1 -106): the linear
+  charge (delta x sensitivity / line delay) under-estimates, and an A'j / A'm row may not list its own line's macro.
+- What it says about this route: little rule-clean slack is left on the lines that matter. The finish phase pinned
+  ucmpi1 at 15 where this route needs ~14 built-equivalent elements; the 2.9 ns of the first measurement came mostly
+  from going BELOW the rule's need (the four draws tolerated it; the rule's guards sit beyond the draw model).
+- Two ways on, not taken yet: (1) model a trim exactly inside corner_audit (its verify step re-times the route with the
+  trim applied: cut the dead chain input, the side arc becomes the entry) so the rule proposes rule-clean trims
+  directly -- expected gain here ~0.5-1 ns; (2) size by the draws (PROGRAM "Sizes may be chosen by this simulation":
+  shorten while every draw passes, report the distance to the first trim that fails, take the longer on a tie) -- the
+  xorshift route above is such a point (15.18 ns, 4 / 4), and ucmpi0 at 1 is a failing one (hang). Either way the
+  route stays the same and only bits change, which is what makes a search over trims cheap.

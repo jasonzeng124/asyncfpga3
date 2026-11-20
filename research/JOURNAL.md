@@ -8089,3 +8089,13 @@ second convergence lever (placement kept between finish routes, research/data/co
   (AUTO_TRIM=1, opt-in) reverts it. Next: damped steps; exact trim deltas in corner_audit (enter via the side net).
 - Local exit-test seed-1 results: countloop CLEAN 21.39 ns, horner CLEAN 21.09, xorshift NOT CLEAN 18.09; CA_BENCHCAP:
   iterative_sqrt s1 CLEAN, PASS 4 / 4.
+### progress 05:06 (post-route trimming, honest status: the rule-clean slack on xorshift's route is small; the draws allow ~2.9 ns)
+- With the rule reading trimmed lines correctly, the loop's trim step reverts every variant on xorshift s1 it 9: the
+  rule's full proposal (16 rows opened, 1458 ps), damped (14, 1044 ps), and trim_plan.py's exact per-entry pricing
+  (12, 754 ps; new research/tools/auto/trim_plan.py). The opened rows sit on the trimmed cells themselves. So the
+  route has little rule-clean slack on the lines that matter (ucmpi1 needs ~14 built-equivalent elements, pinned at 15);
+  most of the -2.9 ns measured earlier goes below the rule's need, which 4 / 4 draws tolerated.
+- Not adopted as a default; AUTO_TRIM stays opt-in. Two continuations written down in research/data/trim/README.md:
+  exact trim modelling inside corner_audit's verify (rule-clean trims, ~0.5-1 ns here), or sizing by the draws
+  (PROGRAM allows it: shorten while every draw passes, report the first failing size; a trim search costs only
+  simulations, no routes).
