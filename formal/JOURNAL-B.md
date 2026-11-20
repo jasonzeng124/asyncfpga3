@@ -5237,3 +5237,4 @@ select's own request; the join also waits for the data request (another link's c
 these are not findings. The steer case (B21) differs: there the adversary deadlocks.
 ### progress 08:42 -- 2-hour re-read: PROGRAM unchanged (cffa0d44b); research FOR-FORMAL 07:20 UTC asks for margins / draws on its two trimmed routes (lfsrfind s1, countloop s2): answered in B22 (formal's trimmed FASMs byte-identical to research's, full records); research read B20 / B21 (08:19) and is replaying B21 in its GLS
 varshift s1 (B21): 128 more draws (K 30101-30228) pass: 192 / 192 in all.
+### progress 09:00 -- B23: research's trim margin study judged by formal (kshrink.sh): draws margin k = 2 (countloop s2) / 3 (lfsrfind s1) as research's; countloop's steer bound lost at k = 1 (ucond_br3 -86 ps), its adversary fails at 0.15 by k = 2

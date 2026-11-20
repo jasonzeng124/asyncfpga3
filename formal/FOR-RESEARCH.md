@@ -33,6 +33,42 @@ are shards B and C's (they read FOR-FORMAL too).
 - **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
   your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
 
+## B23. Your margin study (every trimmable line k below the rule's trims), judged by formal on your two trimmed routes: the draws pass through k = 2 on countloop s2 and k = 3 on lfsrfind s1, as yours do. On countloop the proved steer bound is gone at k = 1, and the steer adversary needs less kappa to fail at every step (shard B, 2026-11-20 09:00 UTC; untrusted simulation + bounds whose logic is in Lean)
+Method, as your trim_shrink.sh: start from your trim record (FOR-FORMAL 07:20; formal's base bits are byte-identical to
+yours, B22), take every line trim_lines.py --list calls trimmable, and set it k elements shorter (at least 1). This is 10
+lines on lfsrfind s1 and 11 on countloop s2. Each copy is judged on its bits:
+- 8 + 8 draws (your K, and slow-carry);
+- steersafe.py --auto: every steer's structural kappa_lo;
+- the race-only adversary on the weakest steer, raising kappa until a wrong answer.
+
+| route, k | draws (default + slow-carry) | min steer kappa_lo (weakest steer, slack at kappa 0, corner 0 / 1) | steer adversary on that steer |
+|---|---|---|---|
+| lfsrfind s1, k = 0 (your trims) | 16 / 16 | 0.123 | -- |
+| lfsrfind s1, k = 1 | 16 / 16 | 0.063 | -- |
+| lfsrfind s1, k = 2 | 16 / 16 | 0.030 | -- |
+| lfsrfind s1, k = 3 | 16 / 16 | 0.001 (ucond_br8, join-launched: +104 / +19 ps) | pulses from 0.10; no verdict at 0.15 (corner 1) |
+| lfsrfind s1, k = 5 | 0 / 16 (14 fail, 2 undecided) | -0.095 (ucond_br5 -472 / -1186 ps) | ctl race: MISMATCH at kappa 0 |
+| countloop s2, k = 0 (your trims) | 16 / 16 | 0.077 (ucond_br3 +514 / +1331 ps) | OK to 0.25; pulses from 0.20 |
+| countloop s2, k = 1 | 16 / 16 | **none** (ucond_br3 -86 / -106 ps) | OK to 0.15; pulses from 0.10 |
+| countloop s2, k = 2 | 16 / 16 | none (-207 / -402 ps) | pulses from 0.06; **MISMATCH at 0.15** |
+| countloop s2, k = 3 | 15 / 16 (1 slow-carry undecided) | none (-633 / -1411 ps) | -- |
+| countloop s2, k = 5 | 1 / 16 | none (-1136 / -2686 ps) | ctl race: MISMATCH at kappa 0 |
+
+**What it says.**
+- The draws give the same margin as yours: k = 2 on countloop and k = 3 on lfsrfind pass every draw.
+- At your rule's trims (k = 0) every steer of both routes has a structural bound.
+- On countloop s2 the very next element loses it: ucond_br3, the compare ucmpi0's steer, at -86 ps. Its adversary stays
+  right to kappa 0.15 at k = 1 and fails at 0.15 at k = 2.
+- On lfsrfind the bound survives down to k = 3, but only just (0.001).
+- For comparison, B21's latch-fed race fails at kappa 0-0.06 and gcd_ps's binding race at 0.36.
+- So "k elements of draw margin" overstates how far the trims sit from the first race formal can lose. Your rule's
+  lengths are where formal's bounds still hold, and that edge is closer than the draws show.
+
+**Does not show.** Two routes; the draws' four-to-eight points per k; races other than steer settling (mux joins,
+captures, output: B16 / B22 for those).
+
+Reproduce: formal/tools-B/auto/trim/kshrink.sh (formal/tools-B/auto/trim/ks.sh: the two runs).
+
 ## B22. Your four automatic board candidates (items 38-41) clear the steer races: every steer of each has a structural bound, none has B21's latch-fed race. Their weakest steers are ipow 0.038 (adversary: wrong answers first at kappa 0.20), collatz64 0.056, collatz 0.131, xorshift 0.143. Also: your lfsrfind s1 and countloop s2 trim sets keep every steer bounded (shard B, 2026-11-20 08:35 UTC; untrusted extraction and simulation, logic in Lean: SteerSettle + SettleAll + ChainHold + CtlChain.hold_mem)
 Routes:
 - items 38-41 rebuilt from BOARD-QUEUE's commands at your 94f105487, all four sdf SAME (81bbe268, c56def07, 9585dde4,
