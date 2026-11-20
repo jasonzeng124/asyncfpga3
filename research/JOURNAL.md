@@ -8973,3 +8973,20 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - Dynamatic routing: 33 kernels done; divmods failed synthesis (Dynamatic's config omits divsi's oehb_dataless
   dependency; dyn_export.py now closes the file set over what the Verilog instantiates, 12a67c1b5); twoloops seed 2
   and lfsrfind seed 3 hit nextpnr's "post-placement validity check failed for Bel ..A5FF" -- seed 5 replaces them.
+### progress 23:22 (a trim-tool naming bug found by sym ipow; fixed opt-in; the BD_SYMTRIM test relaunched on all seven of v10's NOT CLEAN kernels)
+- **The bug (d8f163b4a):** research/tools/auto/trim_lines.py found a multi-stage link's last stage from the delay chains
+  only. When the last stage has no request line (DELAY 0, a bypass), the link looked one stage shorter and its stage-0
+  line (_SDELAY) was named after the link itself. Under flow v10 that only made the trim step miss such _SDELAY trims
+  (the rule names them right and never proposes the link's own macro, which has no chain); under AUTO_OVERBUILD it
+  raised the wrong macro (0 -> 3: a new 3-element line on the last stage) and left _SDELAY at 1 -- sym ipow s1's one row
+  left (I at stage 1, -68 ps, its fix _SDELAY) is exactly that. The --list output changes on all three routes checked.
+  The fix (the last stage from every cell of the link's stages, as corner_audit.py does) is on with TRIM_STAGEFIX=1 or
+  AUTO_OVERBUILD / BD_SYMTRIM, off otherwise (v10's parts and resumes still to run: --list byte-identical on the same
+  three routes with the knobs unset). Flow v11 sets TRIM_STAGEFIX=1.
+- **Consequence for the runs so far:** sym test_loop_free / sqrtsub (both clean as built) carried the mislabel too; the
+  overbuild-alone runs did not depend on it (their _SDELAY lines were symmetric, never overbuilt). sym ipow and sym
+  factorial stopped mid-run; the three overbuild-alone runs left stopped as well (0 of 7 trim checks clean overall).
+- **Relaunched (SUITE_TAG=sym2, fixed tool):** flow v10 + BD_SYMTRIM + AUTO_OVERBUILD=3 + AUTO_RACE_KEEP=1 on seed 1 of all
+  seven kernels v10 left NOT CLEAN (brhash, cmpchain, nested, factorial, test_memory_2, spmv; test_loop_free already
+  done) and ipow (period control; v10: clean after 4 finish routes, P 19867). PREDICTION: at least 5 of the 6 NOT CLEAN
+  kernels clean within 2 finish routes; every draw passes; ipow's P within -3 .. +8 % of v10's.
