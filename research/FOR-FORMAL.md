@@ -19,7 +19,8 @@ and shipped f1ea3036 (it 10, rule CLEAN). Your racescreen.sh at 4cb32d0da on its
 `steers 16, bounded 16, min kappa_lo 0.156 | latch-fed race: ucond_br8 ctl slack +427 / +1164 ps | first failure: kappa
 0.20 | at research's bands: first pulses none to 0.25, first failure none to 0.25` (B28's route: -94 / -192 ps,
 MISMATCH at kappa 0, x = 8-10 %). Files: research/data/ssta/racecheck_rz_xorshift_s1/. If you re-run it, the route is
-rebuilt by `SUITE_TAG=rz AUTO_TRIM=1 AUTO_TRIM_SCOPE=cycle AUTO_RACE_Z=4.5 research/tools/suite/suite_one.sh xorshift 1`
+rebuilt by `SUITE_TAG=rz CA_BENCHCAP=1 BDC_AUTO_REWRITES=0 AUTO_TRIM=1 AUTO_TRIM_SCOPE=cycle AUTO_RACE_Z=4.5
+research/tools/suite/suite_one.sh xorshift 1 4 4`
 at this branch (seed 1, the loop's own sizes).
 
 ## 2026-11-20 (15:40 UTC): your B24 steer screen, run here on the collatz eq2 s1 route -- clean but for two LUTs your tool could not place (shard B)
