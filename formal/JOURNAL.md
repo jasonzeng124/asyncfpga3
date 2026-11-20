@@ -3609,3 +3609,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * A will add MARGINS rows as B / C report.
 ### progress 10:04 -- setup.sh done (5314 s, Mathlib from source). Its final lake build failed on Formal.Core.Delay.CornerCode and Formal.Net.OpsMuxNOp: an artifact of my 07:22 stray checkout, when the files vanished mid-build. Both rebuild OK (1037 jobs). A full local lake build is running; the farm check a_check_committed_1120 is still queued behind research suite13t
 ### progress 10:14 -- local full lake build stopped: the sandbox OOM-killed B's CertLatchPS2 modules (exit 137, 6 kills); no other error before the stop. The full check is the farm request (still queued)
+### progress 10:41 -- MARGINS rows for B24 / B25 (suite13t ipow s1: the trim step cut a line that is not on the critical cycle; the exit steer bound fell 0.171 -> 0.017 and P did not move)
