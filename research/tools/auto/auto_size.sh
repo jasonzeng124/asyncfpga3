@@ -247,7 +247,11 @@ trim_route() {  # trim_route I (AUTO_TRIM=1): the shipped route's lines shortene
   # so the rule's proposal on the route itself is applied with no re-place and no re-route, and checked on the same
   # route (the rule reads trimmed lines). Each step: rule -> proposal -> trim every line it moves (shorter, or longer
   # within the line's built length) -> bits -> rule; a step whose short constraints include one the route did not have
-  # before, or whose total miss is larger, is reverted and ends the step loop. AUTO_TRIM_MAX steps (default 4).
+  # before, or whose total miss is larger, is reverted (keeping the lines those rows do not depend on, once per step).
+  # AUTO_TRIM_MAX steps (default 6). AUTO_TRIM_DAMP=1 (default): a step shortens each line by half its gap to the
+  # proposal (at least one element), because the proposal prices a removed element at the line's mean step while a
+  # trimmed line is entered through the side net and loses more (xorshift s1 it 9: the full proposal opened 16 short
+  # constraints, 1458 ps, once the rule read trimmed lines correctly).
   # $O/trim_I.txt records the final MACRO=LEN; a rebuild of route I (resume, a board item) re-applies it.
   local i=$1 H=$RUNS/hw/${N}_$1 k Z cur prev_keys prev_tot keys tot t retried="" CA_LAST=""
   [ -f "$H/${D}_routed.json" ] || return 0
@@ -261,7 +265,7 @@ trim_route() {  # trim_route I (AUTO_TRIM=1): the shipped route's lines shortene
   fi
   cur=$O/sizes_${i}_trim.vh; cp "$O/sizes_$i.vh" "$cur"; : > "$O/trim_$i.txt"
   prev_keys=""; prev_tot=""
-  for k in $(seq 1 $(( ${AUTO_TRIM_MAX:-4} + 2 ))); do   # past AUTO_TRIM_MAX a pass only checks (a partial retry may need one)
+  for k in $(seq 1 $(( ${AUTO_TRIM_MAX:-6} + 2 ))); do   # past AUTO_TRIM_MAX a pass only checks (a partial retry may need one)
     rm -rf "$RUNS/hw/${N}_${i}t$k" "$RUNS/r/${N}_${i}t$k"
     ln -s "$H" "$RUNS/hw/${N}_${i}t$k"; ln -s "$RUNS/r/${N}_$i" "$RUNS/r/${N}_${i}t$k"
     rule "${i}t$k" "$cur" || { echo "trim: it $i step $k: RULE FAILED" >> "$O/log.txt"; break; }
@@ -312,12 +316,19 @@ PY
     fi
     retried=""
     prev_keys=$keys; prev_tot=$tot
-    [ "$k" -gt "${AUTO_TRIM_MAX:-4}" ] && { echo "trim: it $i: $(echo $keys | wc -w) short, $tot ps after the last step" >> "$O/log.txt"; break; }
-    t=$(python3 - "$cur" "$O/rule_${i}t$k.vh" <<'PY'
+    [ "$k" -gt "${AUTO_TRIM_MAX:-6}" ] && { echo "trim: it $i: $(echo $keys | wc -w) short, $tot ps after the last step" >> "$O/log.txt"; break; }
+    t=$(python3 - "$cur" "$O/rule_${i}t$k.vh" "${AUTO_TRIM_DAMP:-1}" <<'PY'
 import re, sys
 rd = lambda p: {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(p)) if m}
 a, b = rd(sys.argv[1]), rd(sys.argv[2])
-print(" ".join("%s=%d" % (k, v) for k, v in sorted(b.items()) if k in a and v != a[k]))
+damp = sys.argv[3] == "1"     # AUTO_TRIM_DAMP: a shortening moves half the gap (at least one element); a raise, all
+out = []
+for k, v in sorted(b.items()):
+    if k in a and v != a[k]:
+        if damp and v < a[k]:
+            v = a[k] - max(1, (a[k] - v + 1) // 2)
+        out.append("%s=%d" % (k, v))
+print(" ".join(out))
 PY
 )
     [ -n "$t" ] || { echo "trim: it $i step $k: the rule moves no line ($(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"; break; }
