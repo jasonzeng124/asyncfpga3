@@ -312,6 +312,34 @@ def main():
                 ps.append((p["name"], '"%s"' % v))
         paramsof[en] = ps
         e["mpath"] = mpath
+    # the config's dependency lists are incomplete for some units (handshake.divsi lists join_type and delay_buffer, its
+    # Verilog also instantiates oehb_dataless): close the file set over the modules the copied Verilog instantiates,
+    # each found in the one library file that defines it
+    defs = {}
+    for root, _, fs in os.walk(os.path.join(dyn, "data", "verilog")):
+        if "flopoco" in root or "vivado" in root:
+            continue
+        for fn in fs:
+            if fn.endswith(".v"):
+                p = os.path.join(root, fn)
+                for m in re.findall(r"^\s*module\s+(\w+)", open(p).read(), re.M):
+                    defs.setdefault(m, p)
+    vkw = {"module", "begin", "end", "if", "else", "for", "assign", "always", "wire", "reg", "input", "output", "case",
+           "generate", "endgenerate", "genvar", "localparam", "parameter", "integer", "initial", "function", "task"}
+    while True:
+        have = set()
+        srcs = [open(f).read() for f in files] + list(gen_src.values())
+        for s in srcs:
+            have.update(re.findall(r"^\s*module\s+(\w+)", s, re.M))
+        used = set()
+        for s in srcs:
+            s = re.sub(r"//[^\n]*", "", s)
+            used.update(m for m in re.findall(r"^\s*(\w+)\s*(?:#\s*\(|\w+\s*\()", s, re.M) if m not in vkw)
+        missing = sorted(m for m in used - have if m in defs and defs[m] not in files)
+        if not missing:
+            break
+        for m in missing:
+            files[defs[m]] = True
     # write the component files
     for f in files:
         shutil.copy(f, os.path.join(out, os.path.basename(f) if not os.path.exists(os.path.join(out, os.path.basename(f)))
