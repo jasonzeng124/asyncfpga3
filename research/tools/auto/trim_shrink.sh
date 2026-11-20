@@ -19,7 +19,7 @@ for k in "$@"; do
   W=$OUT/k$k; rm -rf "$W"; mkdir -p "$W/hw"
   # the route copy: every file the gate reads, the trimmed lines K shorter (from the UNTRIMMED copies)
   for f in "$HW"/*; do case $f in *.untrimmed.*|*.prev.*) ;; *) [ -f "$f" ] && ln -s "$f" "$W/hw/";; esac; done
-  rm -f "$W/hw/${D}_routed.json" "$W/hw/$D.fasm" "$W/hw/$D.bit"
+  rm -f "$W/hw/${D}_routed.json" "$W/hw/$D.fasm" "$W/hw/$D.bit" "$W/hw/$D.frames"   # .frames too: fasm2frames would write THROUGH the link into the route itself
   # every trimmable line (trim_lines.py --list on the untrimmed route), from its current length (TRIMREC's, else as
   # built) K shorter, to >= 1: the trims the rule chose and the lines it kept at their built length alike
   args=$(python3 "$R/research/tools/auto/trim_lines.py" --list "$HW/${D}_routed.untrimmed.json" | \
