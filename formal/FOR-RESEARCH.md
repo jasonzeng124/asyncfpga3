@@ -678,6 +678,8 @@ host-write slack >= 1267 ps. 163 judged.
 SAME, 32 / 32 each, min RAM setup >= 1043 ps, host-write slack >= 1213 ps (positive in all three guard forms). 170 judged.
 **c_mem39 (08:14):** 19 exit1 routes: 16 SAME with draws, all 32 / 32 except **spmv 1 f572267f: 21 / 32, it hangs (C68)**;
 share_test_2 2-4 SAME but not drawn (DSP USE_DPORT not modelled). 186 judged.
+**c_mem40 (08:54):** 9 more exit1 routes (fill 3 / 4, if_loop_1 2, if_loop_2 4, mul_example 1, test_flatten_array
+1 / 3, vector_rescale 2 / 3): SAME, 32 / 32 each, min RAM setup >= 446 ps, host-write slack >= 971 ps. 195 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
