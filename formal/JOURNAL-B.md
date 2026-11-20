@@ -5229,7 +5229,7 @@ the upstream compute and gave collatz64 -0.042, its adversary then passed to 0.1
 the INIT ignores while enabled are left out (LUT6_2 pair latches read their sibling half). Weakest: ipow item 38
 ucond_br4 0.038 (adversary MISMATCH 0.20), collatz64 0.056, collatz 0.131, xorshift 0.143. Trims: lfsrfind 0.126 ->
 0.123, countloop 0.077 -> 0.077, both 8 + 8 PASS.
-### progress 08:55 -- steersafe --mux: 2-way mux joins (C-elements reading the select link's latch + its rdly line): bounds too pessimistic to report
+### progress 08:39 -- steersafe --mux: 2-way mux joins (C-elements reading the select link's latch + its rdly line): bounds too pessimistic to report
 Every route: board items 38-41 positive (ipow umux3.uj0 +32 / +136 ps the smallest); 8 exit1 routes negative (twoloops s3
 umux5.uj1 -241 / -439, countloop s4 -92 / -121, varshift s1 -54 / -109, ...). Race-only adversaries: varshift umux0.uj1
 OK to 0.10, twoloops s3 umux5 OK to 0.20, ipow item 38 umux3 OK to 0.20, all with 0 pulses. The bound counts only the
