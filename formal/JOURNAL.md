@@ -3661,6 +3661,6 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   computes on the bound. The decrement goes on the edges into the class. The first version decremented before a fork
   that also fed the guard; autoproof's co-simulation found it at once (n = INT_MIN: the graph hangs, the C returns 0).
   Fixed, and that wrong edit is now tv_gate.sh's negative control (refused).
-* patches/dec_patch.py (AP_DEC): autoproof may guess  for a graph variable.
+* patches/dec_patch.py (AP_DEC): autoproof may guess `v - 1` for a graph variable.
 * Proved, check.sh OK (1316 declarations): brhash (flag set 1), nested outer loop (set 1); countloop, xorshift
   (controls). Not: nest3 (one omega obligation), nested inner, lfsrfind, fold64 (refused by the matcher).
