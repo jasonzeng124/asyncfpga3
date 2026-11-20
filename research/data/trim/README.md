@@ -98,3 +98,26 @@ of wire each); countloop s2 20167 = 8987 + 8023 + 3157 (the trim moved the criti
 stack first (it_I_untrimmed.txt, P_untrimmed on suite_one.sh's line) and the cycle composition before and after
 (cyc_I_untrimmed.txt, cyc_I.txt). Farm suite13t (filed 2026-11-20 08:00 UTC, prediction in the request) runs flow v9 on
 every suite kernel x 4 seeds with it: the paired measurement over the whole suite.
+
+## Trim only the critical cycle (AUTO_TRIM_SCOPE=cycle, 2026-11-20; formal B25)
+
+Formal's B25: on suite13t ipow s1 the trim step shortened the loop-exit compare's line 16 -> 11, off the critical cycle,
+for no change in P, and the exit steer's proved bound fell 0.171 -> 0.017. Over suite13t's first 50 trimmed routes:
+**482 trims, 65 (13 %) on the untrimmed route's critical cycle; 21 routes trimmed nothing on it.** A line off every
+critical cycle does not set P; shortening it only spends margin.
+
+`auto_size.sh AUTO_TRIM_SCOPE=cycle` (opt-in): round 1 lets the trim step move only the lines of instances on the
+untrimmed route's critical cycle (cycdecomp -> `research/tools/auto/cycle_macros.py`: the instance's own line, its _UACK
+and _SDELAY); the trimmed route is re-timed (full stack) and the new cycle's lines may move too, up to AUTO_TRIM_ROUNDS
+(3) rounds; a round whose period is not lower than the one before is reverted (snap / unsnap of bits, routed JSON and
+record). With AUTO_RACE_Z a race-padded line is never trimmed.
+
+| route (rebuilt SAME) | unscoped trim (suite13t) | scoped | draws |
+|---|---|---|---|
+| suite13t ipow s1 | 8 trims, all off the cycle, P 19867 | nothing on the cycle can move: no trim, P 19867 | 4 / 4 |
+| suite13t xorshift s1 | 7 trims (10 chains), P 17588 | round 1: 2 lines -> 17588; round 2: 3 lines -> 17588 (no gain) | 4 / 4 |
+| xorshift s1, plain move + sibling fusion (local loop) | -- | 19365 -> 17533 -> 16357 -> (round 3 timing) | running |
+| collatz s1, eq2 + the search phase's structure (local loop) | -- | 15832 -> 14812 -> 14483 | running |
+
+On the last two the rounds keep lowering P: trimming the cycle's lines first lets them take slack that a one-pass trim
+of every line spends elsewhere.
