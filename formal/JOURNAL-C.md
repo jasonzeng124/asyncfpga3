@@ -5016,3 +5016,4 @@ on, running locally -- the new MLIR has not been checked for deadlock by anyone.
   deadlock, 6 refused (dot2 / gather / memsum: 'minui', as research's exit1 DOES-NOT-COMPILE). results_exitcond_7d814a69e.jsonl.
 - 06:07: FIXTURES checked: exit1 test_memory_1 1 959ae721 rebuilt locally from frontend_exitcond SAME (nextpnr 7c3bfb9c684a2551), 4 + 4 pass, host-write +2034 ps. c_mem37 (exit1 test_memory_1 1-3) on the farm.
 - 06:59: c_mem37: exit1 test_memory_1 1-3 SAME (frontend_exitcond), 32 / 32, min 739 ps, host-write >= 1267. C60 (163).
+- 07:09: c_mem38: 7 exit1 routes SAME, 32 / 32, min 1043 ps, host-write >= 1213. C60 (170).

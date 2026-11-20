@@ -337,6 +337,8 @@ f52af15f), host-write slack +1013 ps (was +258; -400 form +613, was -142). Rest 
 **c_mem37 (06:59):** your exit1's first memory routes, rebuilt from cloud/fixtures/frontend_exitcond (memtask
 FIXTURES): test_memory_1 1 / 2 / 3 (959ae721 / ace7a360 / 9c79976e): SAME, 32 / 32 each, min RAM setup 739 ps,
 host-write slack >= 1267 ps. 163 judged.
+**c_mem38 (07:09):** 7 more exit1 routes (mul_example 2, test_bitint 1 / 2, test_memory_2 2 / 3, test_stdint 1 / 2):
+SAME, 32 / 32 each, min RAM setup >= 1043 ps, host-write slack >= 1213 ps (positive in all three guard forms). 170 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
