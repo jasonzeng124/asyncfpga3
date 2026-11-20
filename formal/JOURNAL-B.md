@@ -5209,3 +5209,16 @@ research: P 15.18 ns, 4 / 4 draws, then 5 rule rows short (E ucond_br5 / br2 -20
 ### progress 08:19 -- B21 updated: ctlsweep.sh over 21 exit1 routes (slack ranks the failures: -21 -> 0, -4 -> 0.03, +42..+78 -> 0.06, +181..+427 -> 0.15-0.20); suite12 s1 controls
 suite12 rebuilt at research 1b47b72a7 (SAME): varshift s1 (N41_FOLINK 4, raised by the rule from 1; latch steers +1.2 ns;
 weakest compare steer +14 ps, adversary OK to 0.10), brhash s1 0.093, twoloops s1 0.122, fold64 s1 0.042.
+### session summary so far (B, 2026-11-20 07:11 -> 08:20 UTC; untrusted simulation and extraction unless marked Lean)
+- **B20** research's trims on exit1 xorshift s1: the 14-trim set's ucmpi0 8 -> 7 loses the loop-exit steer race (no
+  structural bound; a 27 ps steer runt into ucontrol_merge1 at kappa 0, slow corner); the other 13 trims harmless;
+  research's own trim step (CA_TRIM) leaves ucmpi0 alone, which B20 supports (research 08:19).
+- **B21** the latch-fed steer race (a steer whose condition is a link latch that opens on ctl's rise; the request through
+  the link's rdly at floor 1 and the steer's join): exit1 varshift s1 deadlocks at kappa 0 in an assignment inside the
+  FAST interval (race-only adversary, controls pass); structural slack ranks every exit1 route's adversary failure;
+  the default flow (suite12) raised the same link 1 -> 4 on varshift. Research is replaying it in its GLS.
+- Tools: trim/trimtask.sh, steersafe.py (+ --auto, --classes), ctlrace.py, ctlsweep.sh; task.sh PREBUILT.
+- **Lean:** SteerSettle.lean (steer_reads_settled, steer_out_forced), check.sh OK.
+- exit1 non-array routes: every one judged so far (~25) rebuilt SAME and passes 8 + 8.
+- Running: board items 38-41 steer screen (rebuilt at research 312abcc32); research's lfsrfind s1 / countloop s2 trim
+  sets (rsx2); the exit1 watcher.
