@@ -6,7 +6,8 @@ kernel over its seeds: status, routes judged (board routes: EQUIVALENT and ffmux
 (the timed event graph's period P: median and range over the routes judged), worst latency per call, kernel LUTs,
 Dynamatic's figure where one exists (research/tools/suite/dynamatic_ref.tsv; each figure says how it was obtained)
 and the ratio.  A kernel passes when every draw on every judged route returned every right answer and at least one
-route was judged.  Last line: how many of N pass, and the geometric mean of the ratio over kernels with a figure.
+rule-CLEAN route was judged (since 2026-11-20, formal C68: one judged only on routes its loop left NOT CLEAN is
+UNFINISHED, counted apart).  Last line: how many of N pass, and the geometric mean of the ratio over kernels with a figure.
 
 Three additions (dynfig, 2026-11-18):
 - Latency per call, both sides, on the SAME calls: ours = per vector the median over a route's draws of the bench's
@@ -153,7 +154,7 @@ for l, d0 in lines(sys.argv[1:]):
 DY = dyn_ref(); HD = hand_ref(); DL = dyn_lat()
 print("| kernel | status | routes judged (rule-clean + NOT CLEAN) / built | draws passing (clean; not clean) | ns per iteration (P) on clean routes, median (range) [on NOT CLEAN routes] | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |")
 print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
-npass, ratios, lratios, nfit, hostP, notes_k = 0, [], [], 0, [], {}
+npass, nunf, ratios, lratios, nfit, hostP, notes_k = 0, 0, [], [], 0, [], {}
 # P against the bench (2026-11-19, research/data/suite/pslope/p_vs_slope.txt): on all 19 single-loop kernels with a varying
 # trip count, P / slope is 0.94-1.04 on every route; on a kernel with several loops the auto marker may sit on another loop
 # than the most executed one (branchloop 0.45, gcd 2.16, isprime 7.07), and Dynamatic's figure is that loop's slope.  A P
@@ -177,18 +178,28 @@ for k in sorted(set(rows) | set(listed)):
     dn = sum(int(r["draws"].split("/")[1]) for r in judged if "draws" in r)
     lat = [int(r["lat_max_cyc"]) * 12 for r in judged if r.get("lat_max_cyc", "NA").isdigit()]
     luts = [int(r["luts"]) for r in judged if r.get("luts", "").isdigit()]
-    ok = bool(judged) and dp == dn and all(r.get("status") == "PASS" for r in judged)
+    ok_all = bool(judged) and dp == dn and all(r.get("status") == "PASS" for r in judged)
+    # a kernel passes only on a route the sizing loop finished (rule-CLEAN) -- 2026-11-20, formal C68: exit1 spmv s1, the
+    # least-short NOT CLEAN route its loop shipped, passed its 4 draws here and hangs in 11 of 32 draws of the same model
+    # at the cell the rule called short; 4 draws cannot see a 1-in-3 failure (0.65^4 = 18 %).  Every draw on every judged
+    # route, clean or not, must still pass: a wrong answer anywhere is a wrong answer.
+    ok = ok_all and bool(clean)
     if not judged:
         why = [re.search(r"status=\S+ \(([^)]*)\)", r["_l"]) for r in rs]
         status = "/".join(stats) + "".join(" (%s)" % w.group(1) for w in why[:1] if w)
+    elif ok:
+        status = "PASS"
+    elif ok_all:
+        status = "UNFINISHED (draws pass on NOT CLEAN routes only)"
+        nunf += 1
     else:
-        status = "PASS" if ok else "WRONG ANSWER under draws"
+        status = "WRONG ANSWER under draws"
     npass += ok
     dl = DL.get(k)
     # per route: P (refused when it is a multiple of the host clock, or when it departs from the route's own slope of call
     # latency on the most executed loop's trip counts by more than PSLOPE_TOL), our call latencies, the fit where P is
     # missing or refused
-    Ps, Fs, Ls, Pnc, Fnc = [], [], [], [], []
+    Ps, Fs, Ls, Pnc, Fnc, Lnc = [], [], [], [], [], []
     for r in judged:
         v, fclk = route_lat(r)
         P = int(r["P"]) if r.get("P", "NA").isdigit() else None
@@ -203,10 +214,11 @@ for k in sorted(set(rows) | set(listed)):
             P = None
         if P is not None:
             (Ps if r.get("rule") == "clean" else Pnc).append(P / 1000)
+        LL = Ls if (r.get("rule") == "clean" or not clean) else Lnc   # latency: clean routes where any (as P)
         if v:
-            Ls.append(sum(v) / len(v))
+            LL.append(sum(v) / len(v))
         elif r.get("lat_call_sum_ns", "NA").isdigit() and r.get("nvec", "0").isdigit() and int(r["nvec"]):
-            Ls.append(int(r["lat_call_sum_ns"]) / int(r["nvec"]))
+            LL.append(int(r["lat_call_sum_ns"]) / int(r["nvec"]))
         if P is None and b is not None and b > 0:
             (Fs if r.get("rule") == "clean" else Fnc).append(b)
     fit = not Ps and bool(Fs)
@@ -220,12 +232,12 @@ for k in sorted(set(rows) | set(listed)):
     # latency per call: the same calls on both sides (the vector counts must agree)
     lcell, dcell, lrcell = "-", "-", "-"
     if Ls:
-        lcell = fmt_range(Ls)
+        lcell = fmt_range(Ls) + (" [%s]" % fmt_range(Lnc) if Lnc else "")
     if dl:
         dcell = "%.2f (%s%s)" % (dl["mean"], dl["tag"], "; period extrapolated, model path %.2f ns" % dl["cp"] if dl["extrap"] else "")
         # the calls each route's latency is over (routes without any latency data, older result lines, are left out)
         nv = [n for n in (len(route_lat(r)[0] or []) or int(r.get("nvec", "0") if r.get("nvec", "0").isdigit() else 0)
-                          for r in judged) if n]
+                          for r in (clean or judged)) if n]
         if Ls and nv and all(n == dl["n"] for n in nv):
             lr = st.median(Ls) / dl["mean"]
             lrcell = "%.2f%s" % (lr, " (extrapolated period)" if dl["extrap"] else "")
@@ -278,12 +290,12 @@ def gmean(v):
 gm_m = gmean([r for r, m, _ in ratios if m]); gm_a = gmean([r for r, _, _ in ratios])
 gm_l = gmean([r for r, _ in lratios])
 print()
-print("%d of %d kernels attempted pass (a kernel passes when it has a judged route and every draw on every judged route, clean or not, returned every right answer; ns per iteration and the ratio are over rule-CLEAN routes only, the NOT CLEAN routes' P in brackets); geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a "
+print("%d of %d kernels attempted pass (a kernel passes when it has a judged rule-CLEAN route and every draw on every judged route, clean or not, returned every right answer; ns per iteration, latency and the ratios are over rule-CLEAN routes only, the NOT CLEAN routes' figures in brackets); %d more pass every draw only on routes the sizing loop left NOT CLEAN (UNFINISHED: the rule names a short constraint on each, and such a route can pass 4 draws and fail the model a third of the time, formal C68), not counted; geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a "
       "MEASURED Dynamatic figure (n = %d): %s; including ESTIMATED figures (n = %d%s): %s. Our ns are the simulation's "
       "(about 8 %% slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); "
       "Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / "
       "Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes "
       "the bench): geometric mean over passing kernels (n = %d): %s."
-      % (npass, nlist, sum(1 for _, m, _ in ratios if m), ("%.2f" % gm_m) if gm_m else "-",
+      % (npass, nlist, nunf, sum(1 for _, m, _ in ratios if m), ("%.2f" % gm_m) if gm_m else "-",
          len(ratios), ("; %d with our figure from the latency fit" % nfit) if nfit else "", ("%.2f" % gm_a) if gm_a else "-",
          len(lratios), ("%.2f" % gm_l) if gm_l else "-"))
