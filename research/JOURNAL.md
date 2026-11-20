@@ -7934,3 +7934,24 @@ second convergence lever (placement kept between finish routes, research/data/co
 - CA_BENCHCAP (opt-in since 2026-11-19, research/data/benchcap/: the bench's synchronised capture of out0, negative
   control on record) removes the other unfixable family (A' at the out0 mux: iterative_sqrt umux3 -5.2 ns, isprime
   umux13, gcd umux21; 26 shipped routes); it waits only for draws on routes built with it: next farm candidate.
+### progress 00:20 (capfix1 18 / 48: every judged route passes, 17 of 18 rule-clean, capture hold >= 11.4 ns; CORRECTION of 23:01's replay claim; place keeping v2)
+- **capfix1** (origin/claude/cluster, 18 of 48 back; the 12 capture kernels x seeds 1-4, flow v8 + the ucap fix):
+  **16 / 16 judged routes PASS 4 / 4 draws; rule-clean 17 of 18** (test_memory_2 s1 NOT CLEAN at it 9); share_test_2
+  s2 / s3 NOT-A-BOARD-ROUTE (the DSP decoder gap, now rule-clean: the ucap rows were all it had). In suite12 (seed 1)
+  the same kernels were 0 rule-clean of 8. **caphold (the capture's hold, lower bound, band 0.20) on all 18 shipped
+  routes: 11.4 - 17.6 ns.** P on the kernels that have one: mul_example s1 57.59 ns, test_stdint s2 / s3 / s4 47.89 /
+  44.87 / 51.27 (one route each so far).
+- **CORRECTION (23:01 note and capfix1's PREDICTION):** "the fix leaves every proposal unchanged, so seed 1 rebuilds
+  suite12's routes and only the stop / ship decision moves" is FALSE in general. It held on test_bool_array s1 it 6
+  (checked), but on test_memory_1 s1 the trajectories split at it 3 and on test_memory_2 s1 at it 2: corner_audit's
+  verify step only TRIMS a pad when no sized constraint is left below slack, and the 24 always-negative ucap rows had
+  kept it from ever trimming (test_memory_1 it 2: ULINK_N_TRUERESULT_8_SDELAY padded 1 -> 3, now "trimmed 3 -> 2 by
+  verify"). So the fix also shortens over-padded lines on capture kernels. The predicted shipped iterations are
+  therefore not a check of anything; what stands is the per-route rule and draws above.
+- **Place keeping v2** (30fc4597b): matching by trusted names (no yosys counter; abc by relative index), then output
+  net names, then structure (neighbours with their port), every kept LUT's input pins restored to the previous route's
+  (the router does not swap a constant tie's pin back). xorshift s1 it 5 -> 6: 6990 cells kept, routes, EQUIVALENT,
+  margin move of unchanged-line constraints median |d| 122 ps (fresh 282), p5 -332 (fresh -552). Route keeping is not
+  possible in this toolchain (research/data/placekeep/route_from.py: ROUTING pip names do not parse back; --fixed-routes
+  segfaults even on its own netlist). The four suite12 finish phases are running again with v2 (the v1 run kept the
+  placement on only 4 of 17 steps; xorshift s1 went CLEAN on its one kept step, it 7, P 19.59 ns).
