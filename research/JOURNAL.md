@@ -7955,3 +7955,15 @@ second convergence lever (placement kept between finish routes, research/data/co
   possible in this toolchain (research/data/placekeep/route_from.py: ROUTING pip names do not parse back; --fixed-routes
   segfaults even on its own netlist). The four suite12 finish phases are running again with v2 (the v1 run kept the
   placement on only 4 of 17 steps; xorshift s1 went CLEAN on its one kept step, it 7, P 19.59 ns).
+### progress 00:57 (placement kept between finish routes: CLEAN in one step on xorshift, fails to route on 3 other kernels; parked as opt-in)
+- research/data/placekeep/README.md has the whole account. Matcher v2 (trusted names, abc by relative index, output-net
+  names, structure, previous LUT pins restored): **xorshift s1 rule-CLEAN at it 6, its first kept step, P 18.11 ns,
+  EQUIVALENT** (the farm's fresh finish phase: 4, 4, 4, 2, 2 short rows at it 6-10, never clean, shipped it 9 NOT CLEAN
+  17.81); with matcher v1 the one kept step (it 7) was also CLEAN (19.59). But on countloop, iterative_division and
+  gather every kept step failed to route (router2 8 overused wires; a nextpnr segfault on gather, reproduced) and fell
+  back to a fresh build: the harness's yosys names are not stable (gather: 680 abc cells off the run's offset, 1481 of
+  8360 cells unmatched). Route keeping is impossible in this toolchain (pip names do not parse back; --fixed-routes
+  segfaults on its own netlist).
+- Decision: AUTO_PLACE_KEEP stays opt-in and out of the next flow. The fix is at synthesis (deterministic names for a
+  whole loop; yosys autoname makes all 5545 xorshift harness names match across the two routes): next time this is
+  taken up. The convergence lever left for now: the rule fixes that remove unfixable rows (ucap, CA_BENCHCAP).
