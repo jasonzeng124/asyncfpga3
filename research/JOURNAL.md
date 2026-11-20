@@ -8495,3 +8495,20 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   (arw2); collatz with eq2 (arw2). PREDICTION (written now, before any of them ends): with sibling fusion the fused
   cell's line is 4-8 elements shorter than suite13t's ucmpi1 (18) and P (trimmed) 1-3 ns below suite13t's 17.59 ns;
   without it (arw2) P is no better than suite13t's.
+### progress 13:07 (formal B25 suite-wide: 87 % of suite13t's trims were off the critical cycle; sibling fusion RTL-clean on 20 of 21 default kernels; farm suite13t_s5b_sib filed)
+- **suite13t's trims, on or off the cycle** (every task back so far with a trim record: its trim_I.txt against
+  cycle_macros.py of its own cyc_I_untrimmed.txt): **50 routes, 482 trims, 65 on the untrimmed critical cycle (13 %);
+  21 routes trimmed nothing on it.** The period those 417 off-cycle trims could lower is none (a non-critical line does
+  not set P); what they spend is margin (formal B25's ipow / brhash steers). The next flow carries AUTO_TRIM_SCOPE=cycle
+  (measured: ipow s1 trims nothing for the same P, xorshift s1 2 trims for the same P as 7; a round that buys no period
+  is reverted, 3fb7ae248). B26 closed: research/data/ssta/README.md (varshift 4.3 sd, quadrec 5.0, fold64 6.0, twoloops 6.2).
+- **BDC_SIBLING_FUSE on the 21 default kernels it changes** (no rewrite; sobel / video_filter left out), RTL bench against
+  the C: 20 PASS (straight, gcd, countloop, sqrtsub, ipow, twoloops, varshift, branchloop, horner, fill, nested,
+  factorial, iterative_division, iterative_sqrt, if_loop_1, isprime, if_convert, nested_loop, stencil_2d,
+  test_flatten_array), image_resize running. With the six plain-move MLIRs: 6 / 6 PASS (11:59).
+- **Farm suite13t_s5b_sib** (a4a3d5a2f, after suite13t and its rerun): set A = the proved passes + sibling fusion
+  (8 kernels x 4 seeds), set B = sibling fusion alone on 21 default kernels (x 4); prediction in the request.
+- Local loops running: arw2 xorshift / collatz (proved move alone; it 7, not clean yet), sib xorshift (it 3) and sib
+  countloop (started 13:07; control suite13t countloop s1 22896 untrimmed / 22224 trimmed). Partial suite13t table
+  (not committed): 33 of 62 pass so far, 6 UNFINISHED, 23 without a result yet; measured-Dynamatic ratio mean 1.50
+  (was 1.69 on the old flows).
