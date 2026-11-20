@@ -1,5 +1,7 @@
 #!/bin/bash
-#CLUSTER array=1-32 cores=2 mem=16G time=240
+#CLUSTER array=1-16 cores=2 mem=16G time=240
+# SPLIT 2026-11-20 17:25 UTC (before either half started): tasks 1-16 here, 17-32 in suite13t_s3a_rwa2 (same body),
+# because the runner kept placing 60-core v10 parts ahead of this 64-core request; 32 cores each fit sooner.
 # suite13t_s3a_rwa (set A of suite13t_s5b_sib, split off 2026-11-20 14:09 UTC so it runs before suite13t seeds 3-4): bdc BDC_SIBLING_FUSE=1 (0218b747f) through flow v9 + the trim step (suite13t's environment) with
 # AUTO_TRIM_SCOPE=cycle, seeds 1-4, on two sets:
 #   A (tasks 1-32): formal's proved loop-test passes (research/data/autorw/K.mlir, Lean-proved by structure: the plain
