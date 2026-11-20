@@ -176,6 +176,7 @@ build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); f
     elif [ -f "$O/place_$j.txt" ]; then PF=$O/place_$j.txt; fi
     [ -n "$PF" ] && echo "$j" > "$O/placefrom_$i.txt"
   fi
+  rm -rf "$HWI" "$RUNS/r/${N}_$i"   # a failed build must not leave an older route's files looking like this one's
   if [ -n "$PF" ]; then   # the kept placement, on the iteration's seed; any failure: built fresh below, as without it
     LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s0" "$VEC" BDC_AUTO=1 ${XENV:-} BD_PLACE_FROM="$PF" > "$O/it_$i.log" 2>&1
     tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
