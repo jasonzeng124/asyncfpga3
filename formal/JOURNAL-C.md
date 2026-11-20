@@ -5014,3 +5014,4 @@ the sizes files carry it. Liveness: run_all.py over the 38 exitcond fixtures, fl
 on, running locally -- the new MLIR has not been checked for deadlock by anyone.
 - 05:58: C67: exitcond liveness sweep (rs 7d814a69e, def + auto, floor on): 59 LIVE, 9 sampled-live (same set as C61), 0
   deadlock, 6 refused (dot2 / gather / memsum: 'minui', as research's exit1 DOES-NOT-COMPILE). results_exitcond_7d814a69e.jsonl.
+- 06:07: FIXTURES checked: exit1 test_memory_1 1 959ae721 rebuilt locally from frontend_exitcond SAME (nextpnr 7c3bfb9c684a2551), 4 + 4 pass, host-write +2034 ps. c_mem37 (exit1 test_memory_1 1-3) on the farm.
