@@ -8057,3 +8057,15 @@ second convergence lever (placement kept between finish routes, research/data/co
 - Exit-test loops (local, seed 1, v9 flow): countloop CLEAN it 10, P 21.39 (suite12 s1: 24.20 NOT CLEAN), horner CLEAN
   it 12 (search route), P 21.09 (22.07), xorshift NOT CLEAN it 9, 18.09 (17.81); all PASS 4 / 4. CA_BENCHCAP smoke:
   iterative_sqrt s1 CLEAN it 9, PASS 4 / 4 (every suite12 route of it was NOT CLEAN on the out0 mux's unfixable row).
+### progress 04:44 (CORRECTION of the 04:2x note: the trimmed route was not "only the same -30 ps row"; a rule-support bug, fixed; the bisection)
+- The 04:2x note (and research/data/trim/README.md) said the rule on xorshift's 14-trim route showed only the old H -30
+  ps row. False: my chain_side_arcs change counted a trimmed entry as fed through the routed wire into its dead pin, so
+  the trimmed cell went unaudited ("nothing outside bridge_i.udut.ucmpi0 reaches its request -- not audited"). Fixed in
+  f5b32d12d (the predecessor's pin must keep its LUT arc); untrimmed outputs byte-identical. **With the fix that route
+  has 5 new short constraints, 63-346 ps** (A'j ucmpi1 -346, A ucontrol_merge1 -233, E ucond_br5 / br2 -203 / -190,
+  A'j ucmpi0 -63). Its 4 draws had passed; P 15.18 ns stands as a measurement of that route, not as a rule-clean one.
+- The loop's trim step had used the blind spot: its step 2 set ucmpi0 7 -> 1 ("floor 1"), and that route hangs.
+  **Bisected** (each of step 2's five macros alone on the step-1 route, 30 us batch limit): ucmpi0 at 1 alone hangs
+  (completed=0, result x, bench FSM x); umux1 / umux2 / ulink_n12__0 / the UACK at 1 each complete with the right answer.
+  The fixed rule flags ucmpi0 at 1: E -1.1 .. -2.5 ns at four steers, A'j -2.2 ns. So the hang was the defect, not a
+  race the rule cannot see; the lesson stands that a trim has to be judged by draws as well as by the rule.
