@@ -56,7 +56,49 @@ def macro(path):
     return "BD_SZ_" + re.sub(r"[^A-Za-z0-9]", "_", path).upper()
 
 
+def list_lines(rj):
+    """--list ROUTED_JSON: one line per sizes macro, "MACRO<TAB>trimmable|symmetric<TAB>N" (N: its shortest chain's
+    length; trimmable: every chain of the macro has side-input LUT2s at g[1..N-1], so trim_lines.py can shorten it)."""
+    d = json.load(open(rj))
+    top = [m for m in d["modules"].values() if any("NEXTPNR_BEL" in c.get("attributes", {}) for c in m.get("cells", {}).values())][0]
+    cells = top["cells"]
+    chains = {}
+    for n in cells:
+        m = RE_EL.match(n)
+        if m and n.startswith("bridge_i.udut."):
+            chains.setdefault(m.group("base"), {})[int(m.group("i"))] = n
+    last_stage = {}
+    for b in chains:
+        m = re.match(r"^(.*)\.many\.stage\[(\d+)\]\.u\.rdly$", b)
+        if m:
+            last_stage[m.group(1)] = max(last_stage.get(m.group(1), -1), int(m.group(2)))
+    # A 1-element line shows no type (g[0] is a LUT1 in every kind).  Two kinds are side-input lines by construction:
+    # a link's acknowledge line (rtl/bd_link.v: uack is FASTFALL / FASTRISE in every variant) and a bdc compute unit's
+    # request line (bdc/compute.py request_delay: bd_delay_gated under BDC_FASTFALL, the default); any other
+    # 1-element line is "unknown".
+    gated = re.compile(r"^bridge_i\.udut\.u(?:addi|subi|muli|cmpi|andi|ori|xori|shli|shrsi|shrui|select|divui|divsi|"
+                       r"remui|remsi|minui|maxui|minsi|maxsi)\d+\.udly$")
+    out = {}
+    for b, els in chains.items():
+        mac = macro(knob_of_base(b, last_stage))
+        N = max(els) + 1
+        if N == 1:
+            k = "trimmable" if (b.endswith(".uack") or gated.match(b)) else "unknown"
+        else:
+            ok = sorted(els) == list(range(N)) and all(
+                cells[els[i]]["attributes"].get("X_ORIG_TYPE") == "LUT2" and cells[els[i]]["parameters"].get("INIT") in (AND, OR, SIDE)
+                for i in range(1, N))
+            k = "trimmable" if ok else "symmetric"
+        t, n = out.get(mac, (k, N))
+        rank = {"symmetric": 0, "unknown": 1, "trimmable": 2}   # a macro is as trimmable as its least trimmable chain
+        out[mac] = (min(t, k, key=rank.get), min(n, N))
+    for mac in sorted(out):
+        print("%s\t%s\t%d" % (mac, out[mac][0], out[mac][1]))
+
+
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "--list":
+        return list_lines(sys.argv[2])
     if len(sys.argv) < 6:
         sys.exit(__doc__)
     partial = "--partial" in sys.argv          # apply what can be trimmed, list the rest (exit 0)

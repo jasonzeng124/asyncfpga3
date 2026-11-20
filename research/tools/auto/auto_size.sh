@@ -84,6 +84,9 @@ if [ -n "${AUTO_RESUME:-}" ] && [ -f "$AUTO_RESUME/sizes_1.vh" ]; then
 fi
 : > "$O/result.txt"
 D=${K}_bench_gen
+# AUTO_OVERBUILD=H (opt-in; unset, nothing changes) builds the finish phase's routes long and ships them trimmed, so it
+# implies the trim step: a route that is clean only after its trims must not ship untrimmed.
+[ -n "${AUTO_OVERBUILD:-}" ] && AUTO_TRIM=1
 rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built with SIZES
   local i=$1 Z=$2 NI=${N}_$1; local HW=$RUNS/hw/$NI RD=$RUNS/r/$NI CA=$RUNS/ca/$NI
   rm -rf "$CA"; mkdir -p "$CA/seed1/pnr"
@@ -313,6 +316,7 @@ PY
           continue
         fi
         echo "trim: it $i step $((k - 1)) reverted (short: $(echo $keys | wc -w) constraint(s), $tot ps; before: $prev_tot ps)" >> "$O/log.txt"
+        keys=$prev_keys; tot=$prev_tot   # the state left applied is the step before
         break
       fi
     fi
@@ -360,6 +364,26 @@ PY
     trim_record "$cur" "$O/trim_$i.txt" "$O/trim_${i}_$k.log"
     echo "trim: it $i step $k: $(grep -c '^trim ' "$O/trim_${i}_$k.log") chain(s) moved, $(grep -c '^REFUSED' "$O/trim_${i}_$k.log") refused (before: $(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"
   done
+  # the state left applied: its short constraints and total miss (trim_check reads it); -1 if no rule ran
+  if [ -n "$prev_tot" ]; then echo "$(echo $keys | wc -w) $tot" > "$O/trim_${i}_final.txt"; else echo "-1 -1" > "$O/trim_${i}_final.txt"; fi
+}
+trim_check() {  # trim_check I (AUTO_OVERBUILD, finish phase): 0 if route I is made rule-clean by trims alone (the trim
+  # step run on it now: the rule's trim mode, every step verified); the route's bits are then put back untrimmed and the
+  # trims kept in trim_I.txt, which final() re-applies when the loop ships route I.  1 otherwise (trims kept recorded).
+  local i=$1 H=$RUNS/hw/${N}_$1 n
+  trim_route "$i"
+  n=$(awk '{print $1}' "$O/trim_${i}_final.txt" 2>/dev/null)
+  if [ -f "$H/${D}_routed.untrimmed.json" ]; then
+    cp "$H/${D}_routed.untrimmed.json" "$H/${D}_routed.json"; cp "$H/$D.untrimmed.fasm" "$H/$D.fasm"; cp "$H/$D.untrimmed.bit" "$H/$D.bit"
+  fi
+  echo "it $i trim check: ${n:-?} short after the trim step ($(grep -c . "$O/trim_$i.txt" 2>/dev/null) line(s) trimmed)" >> "$O/log.txt"
+  [ "${n:-1}" = 0 ]
+}
+overbuild_args() {  # overbuild_args I: AUTO_OVERBUILD=H (opt-in): at the switch to the finish phase every trimmable line
+  # of route I (trim_lines.py --list) is built H elements longer than max(sizes, proposal); see ratchet.py --overbuild
+  [ -n "${AUTO_OVERBUILD:-}" ] || return 0
+  python3 "$T/trim_lines.py" --list "$RUNS/hw/${N}_$1/${D}_routed.json" > "$O/trimmable_$1.txt" 2>/dev/null || return 0
+  echo "--overbuild $AUTO_OVERBUILD $O/trimmable_$1.txt"
 }
 final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run, event-graph P) on the route the loop keeps
   local i=$1
@@ -583,7 +607,7 @@ if [ -n "$RES" ]; then
       else
         ph=2; IMAX=$((MAXIT + FIN))
         python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$O/rule_$i.vh" "$O/neg_$i.txt" \
-           "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") > /dev/null
+           "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") $(overbuild_args "$i") > /dev/null
         echo "phase 2 (raise-only) from it $((i + 1))" >> "$O/log.txt"
       fi
     elif [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then STOP=1; fi
@@ -607,6 +631,11 @@ while [ -z "$STOP" ]; do
        "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" $ro)
   echo "it $i $(cat "$O/it_$i.txt") | $(echo "$st" | head -1)${ro:+ ($ro)}" >> "$O/log.txt"
   read -r _ nr _ _ _ neg _ nl _ _ <<< "$(echo "$st" | head -1)"
+  # AUTO_OVERBUILD (opt-in; needs AUTO_TRIM=1 to ship the trims): a finish route the rule finds short as built is clean
+  # if the trim step alone makes it so (the trims are recorded; final() applies them to the route it ships)
+  if [ "$neg" != 0 ] && [ "$ph" = 2 ] && [ -n "${AUTO_OVERBUILD:-}" ] && trim_check "$i"; then
+    neg=0; echo "it $i clean after the trim step (AUTO_OVERBUILD)" >> "$O/log.txt"
+  fi
   brk=""
   if [ "$neg" = 0 ]; then LC=$i; { [ "$nl" = 0 ] || [ "$ph" = 2 ]; } && brk=1; fi   # clean: done, or go on while it shortens
   if [ -z "$brk" ] && [ "$neg" != 0 ] && [ "$nr" = 0 ]; then brk=1; fi        # negative and nothing the rule can lengthen
@@ -616,8 +645,8 @@ while [ -z "$STOP" ]; do
       ph=2; IMAX=$((MAXIT + FIN))
       # the next sizes without the lowering phase 1's last ratchet did
       python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
-         "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") > /dev/null
-      echo "phase 2 (raise-only) from it $((i + 1))" >> "$O/log.txt"
+         "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") $(overbuild_args "$i") > /dev/null
+      echo "phase 2 (raise-only) from it $((i + 1))${AUTO_OVERBUILD:+ (overbuild +$AUTO_OVERBUILD on trimmable lines)}" >> "$O/log.txt"
     fi
   elif [ -z "$brk" ] && [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then brk=1; fi
   # ratchet_I.txt LAST: its presence says iteration I is complete (sizes_I+1, the pins, a phase switch) for AUTO_RESUME

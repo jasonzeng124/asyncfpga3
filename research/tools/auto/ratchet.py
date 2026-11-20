@@ -40,6 +40,20 @@ NEAR, NEARLINES = None, []
 if "--near" in sys.argv:
     i = sys.argv.index("--near"); NEAR = int(sys.argv[i + 1])
     NEARLINES = [q for q in sys.argv[i + 2].split(",") if q]; del sys.argv[i:i + 3]
+# --overbuild H LIST (with --raise-only; auto_size.sh AUTO_OVERBUILD, at the switch to the finish phase): every line LIST
+# (trim_lines.py --list on the route) calls trimmable gets H more elements than max(CUR, PROP), short or not.  Why: a
+# re-route moves every margin (sd ~0.5 ns, research/data/converge/notes.txt), so the finish phase chases fresh misses
+# on lines that were not short; a line built H longer covers that, and the trim step (AUTO_TRIM=1) cuts every trimmable
+# line back to what the route it lands on needs, by bits alone (research/data/trim/README.md).  Symmetric and unknown
+# lines are left as before: a symmetric line built longer cannot be cut back.
+OVER, OVERSET = 0, set()
+if "--overbuild" in sys.argv:
+    i = sys.argv.index("--overbuild"); OVER = int(sys.argv[i + 1])
+    for ln in open(sys.argv[i + 2]):
+        f_ = ln.rstrip("\n").split("\t")
+        if len(f_) >= 2 and f_[1] == "trimmable":
+            OVERSET.add(f_[0])
+    del sys.argv[i:i + 3]
 sys.argv = [a for a in sys.argv if a != "--raise-only"]
 near = set()
 if NEAR is not None and RAISE_ONLY:
@@ -66,6 +80,8 @@ with open(sys.argv[4], "w") as f:
         v = max(cur[mac], p) if (mac in pinned or RAISE_ONLY) else p
         if p > cur[mac] or (mac in near and RAISE_ONLY):
             v += HEADROOM
+        if RAISE_ONLY and mac in OVERSET:
+            v = max(cur[mac], p) + OVER
         if v > cur[mac]:
             raised.append("%s %d->%d" % (mac, cur[mac], v))
         elif v < cur[mac]:
@@ -75,7 +91,8 @@ with open(pf, "w") as f:
     f.write("".join(m + "\n" for m in sorted(pinned)))
 unf = [r for r in neg if len(r) > 3 and r[3] == "unfixable"]
 print("raised %d unfixable %d negative %d lowered %d pinned %d" % (len(raised), len(unf), len(neg), len(lowered), len(pinned))
-      + ("" if NEAR is None else " near %d (< %d ps left)" % (len(near & set(order)), NEAR)))
+      + ("" if NEAR is None else " near %d (< %d ps left)" % (len(near & set(order)), NEAR))
+      + ("" if not OVER else " overbuilt %d (+%d)" % (len(OVERSET & set(order)), OVER)))
 for r in raised:
     print("  raised " + r)
 for r in lowered:
