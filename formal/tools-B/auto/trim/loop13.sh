@@ -5,7 +5,9 @@ while [ $(date +%s) -lt $END ]; do
     [ -f $n/t/j/steersafe.txt ] || continue; grep -q "^$n " ../xtol13.txt 2>/dev/null && continue
     a=$(bash /home/user/asyncfpga3/formal/tools-B/auto/trim/xtol.sh $n/u $K 2>&1 | grep -o 'weakest.*')
     b=$(bash /home/user/asyncfpga3/formal/tools-B/auto/trim/xtol.sh $n/t/j $K 2>&1 | grep -o 'weakest.*')
-    echo "$n | untrimmed: $a | trimmed: $b" >> ../xtol13.txt
+    c=$(bash /home/user/asyncfpga3/formal/tools-B/auto/weaksweep.sh $n/u $K 2>&1 | grep -o 'adversary first failure.*')
+    e=$(bash /home/user/asyncfpga3/formal/tools-B/auto/weaksweep.sh $n/t/j $K 2>&1 | grep -o 'adversary first failure.*')
+    echo "$n | untrimmed: $a | $c | trimmed: $b | $e" >> ../xtol13.txt
   done
   sleep 900
 done
