@@ -312,13 +312,16 @@ def chain_side_arcs(edges):
     # (research/tools/auto/trim_lines.py: its INIT passes the side input, so false_arcs() cut the chain input):
     # its side arc carries both transitions, like a first stage's input, and is not a side tap.  Untrimmed, every
     # stage past the first has that arc, and nothing changes.
+    # "Live" means the pin the previous stage drives still has its arc to the stage's own output: false_arcs()
+    # removes a dead pin's LUT arc, but the routed wire INTO the pin stays in the graph.
     fed = set()
     for src, links in edges.items():
         src_inst = pin_split(src)[0]
         for dst, _ in links:
             match = RE_LINK.match(pin_split(dst)[0])
             if match and not is_output(dst) and int(match.group("i")) >= 1 and src_inst == (
-                    f"{match.group('base')}.chain.g[{int(match.group('i')) - 1}].u"):
+                    f"{match.group('base')}.chain.g[{int(match.group('i')) - 1}].u") and any(
+                    is_output(o) and pin_split(o)[0] == pin_split(dst)[0] for o, _ in edges.get(dst, ())):
                 fed.add(pin_split(dst)[0])
     side = {}
     for src, links in edges.items():

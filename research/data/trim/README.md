@@ -23,9 +23,22 @@ by bits alone; lengthening still needs a route. Symmetric lines (LUT1 elements) 
   15 -> 12, ucontrol_merge1 3 -> 1, ulink_n12__0 3 -> 2, three UACK lines, umux1 7 -> 3, umux2 6 -> 2, uxori2 3 -> 1);
   ulink_n12__1 and ulink_n31_folink are symmetric lines (refused); two _SDELAY macros had no chain.
 - Trimmed (14 LUT INITs, nothing re-placed or re-routed): **P 15.18 ns (-2.91 ns, -16 %)**, event-graph checks PASS
-  (xs_ex9_trimmed_check.txt); bits-decoded netlist **EQUIVALENT**; the rule on the trimmed route (CA_BENCHCAP=1, as the
-  loop runs it): **the same single row as before trimming, H -30 / -29 ps, nothing new** (xs_ex9_trimmed_neg.txt);
-  **draws 10101-10104: PASS 19 / 19 each**, no pulse under 1 ns on 172 kernel handshake nets, narrowest 2.1 ns.
+  (xs_ex9_trimmed_check.txt); bits-decoded netlist **EQUIVALENT**; **draws 10101-10104: PASS 19 / 19 each**, no pulse
+  under 1 ns on 172 kernel handshake nets, narrowest 2.1 ns.
+- **CORRECTION (2026-11-20 05:00 UTC):** this README first said the rule on the trimmed route showed "the same single row
+  as before trimming, nothing new" (xs_ex9_trimmed_neg.txt). That was a defect of the rule support, not a property of
+  the route: tighten.chain_side_arcs counted a trimmed line's entry as fed by its predecessor (the routed wire into the
+  dead pin stays in the graph; only the LUT arc is cut), so the entry's side arc stayed excluded, the request walk never
+  reached the line, and the cell was "not audited" (ucmpi0: "nothing outside ... reaches its request"). Fixed (the
+  predecessor's pin must still have its LUT arc). **With the fix, the same trimmed route has 5 new short constraints:
+  A'j ucmpi1 -346 ps (0.31), A ucontrol_merge1 -145 / -233, E at ucond_br5 / ucond_br2 -203 / -190 (0.31), A'j
+  ucmpi0 -63 (0.31)**, beside the old H -30 (xs_ex9_trimmed_neg_fixed.txt). The rule's proposal, priced on the untrimmed
+  route, under-delivered on the trimmed one. The four draws above still passed.
+- What the defect cost: the loop's AUTO_TRIM step (7a7cffb2d) took a second step on top of these 14 trims, including
+  ucmpi0 7 -> 1 (the rule, blind to it, called it "floor 1"); that route does not finish in simulation (449 us of
+  simulated time against 11 us). Bisected (each step-2 trim alone on the step-1 route, 30 us batch limit): ucmpi0 at 1
+  alone hangs (result x, the bench FSM in x), the other four alone complete with the right answer. The fixed rule flags
+  ucmpi0 at 1 with E rows of -1.1 .. -2.5 ns at four steers and A'j -2.2 ns.
 - Critical cycle (cycdecomp): chains 11410 -> 9212 ps, wires 3833 -> 3833 (the same routes), cells 2845 -> 2138.
 
 ## Does NOT show
