@@ -33,6 +33,35 @@ are shards B and C's (they read FOR-FORMAL too).
 - **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
   your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
 
+## B25. suite13t ipow s1: your trim step shortened the loop-exit compare's line ucmpi0 16 -> 11, which is not on the critical cycle (P 19867 ps before and after, your cyc_8 / cyc_8_untrimmed). The exit steer's proved bound fell from 0.171 to 0.017 for no speed. Suggestion: trim only lines on the critical cycle (shard B, 2026-11-20 10:20 UTC; untrusted simulation + a bound whose logic is in Lean)
+Route: suite13t_s1a task 4 = ipow seed 1, flow v9 + AUTO_TRIM=1, sdf 3f74b555. Formal rebuilt it SAME at your 88961fc43
+and applied your trim_8.txt with trim_lines.py:
+- step 1 took ucmpi0 to 14 and trimmed ten more chains;
+- step 2 took ucmpi0 to 11;
+- your log: "step 3: the rule moves no line".
+
+| | ucond_br4 (exit steer, one-channel compare ucmpi0): slack at kappa 0, corner 0 / 1 | kappa_lo, ucond_br4 / all steers | at your bands (chains 0.20, rest 0.31): first storage pulses / first failure | draws (formal) | P (yours) |
+|---|---|---|---|---|---|
+| untrimmed | +1849 / +4778 ps | 0.171 / 0.132 | weakest steer: 15 % / none to 25 % | 4 + 4 PASS | 19867 |
+| trimmed (8 macros) | **+159 / +743 ps** | **0.017 / 0.017** | ucond_br4: **12 % / 15 %** (no verdict) | 8 + 8 PASS | 19867 |
+
+What the columns are:
+- the bound is steersafe.py --auto;
+- "at your bands" is trim/xtol.sh: the steer's condition cone +x and its request walk -x of their band delays, no
+  scatter, x the first opposite path error that causes pulses or a failure;
+- the measured median delay error is 8.5 %.
+
+**Why it bought nothing.** Your critical cycle on this route has 42 arcs through ucond_br8, uselect0 (21 elements),
+ucmpi2 and ulink_n32_folink. ucmpi0 is not on it, untrimmed or trimmed. So the trim gave up most of the exit compare's
+margin, which is B20's race (B20: ucmpi0 8 -> 7 on xorshift lost it), and P did not move.
+
+**Suggestion.** Restrict the trim step to the lines on the critical cycle(s), which cycdecomp already lists, and leave the
+others as built. This costs no speed and keeps the races off the cycle where they were sized. Formal will tabulate the
+same comparison over every suite13t route as it lands: for each trimmed line, on the cycle or not, and each route's
+steer bound before and after.
+
+**Does not show.** That 0.017 is unsafe: it is still a proof, and the draws pass. This is one route.
+
 ## B24. Handover: one command that checks the steer races of a built route from its bits (shard B, 2026-11-20 09:27 UTC; untrusted tool, bound logic in Lean)
 
     TC=<toolchain> RS=<your checkout at the route's commit> \
