@@ -5085,3 +5085,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 17:58: c_mem51: 12 suite13t routes SAME 32 / 32, min 573 ps; if_loop_1 4 bench-clock check 82.27 MHz < 83 (as before). C60 (280).
 - 19:22: c_mem52: 8 suite13t routes SAME 32 / 32 (min 442 ps); if_convert 4 refused at decode_bram (REGCEAREGCE from an unused LUT -- a FLOATOK pin, now decoded as const 0 'via unused LUT', other pins still refused); sumi3_mem 4 farm FAILED in 6 s. Local rerun of if_convert 4 running. C60 (288).
 - 19:25: if_convert 4 locally after the fix: SAME, 4 RAMs + 3 DSPs agree with routed.json, 8 + 8 pass. c_mem53 = it + sumi3_mem 4.
+- 20:02: c_mem53: if_convert 4, sumi3_mem 4 SAME 32 / 32. C60 (290). c_mem54 = 6 more suite13t routes.
