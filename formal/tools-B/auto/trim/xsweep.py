@@ -29,7 +29,9 @@ def run(bc,br,x):
     res=next((l.split(':')[0] for l in o.splitlines() if l.startswith('RESULT')),'MAXEV' if 'MAXEV' in o else 'NONE')
     pul=next((l.split(':')[1].split(';')[0].strip() for l in o.splitlines() if l.startswith('NEARMISS')),'?')
     return res,pul
-for bc,br in ((0.20,0.20),(0.20,0.31),(0.31,0.31)):
+import os
+BL=[tuple(float(v) for v in os.environ['XBANDS'].split(','))] if os.environ.get('XBANDS') else [(0.20,0.20),(0.20,0.31),(0.31,0.31)]
+for bc,br in BL:
     for x in (0.0,0.04,0.06,0.08,0.10,0.12,0.15,0.20,0.25):
         res,pul=run(bc,br,x); print('bands chains %.2f rest %.2f  x=%.2f: %s pulses %s'%(bc,br,x,res,pul),flush=True)
         if 'OK' not in res: break
