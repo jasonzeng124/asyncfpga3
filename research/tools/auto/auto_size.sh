@@ -484,7 +484,10 @@ if [ "${AUTO_TRIM_ONLY:-0}" = 1 ]; then
   [ -n "$X" ] || X=$(echo "$last" | sed -n 's/^NOT CLEAN after \([0-9]*\).*/\1/p')
   [ -n "$X" ] || X=$(echo "$last" | sed -n 's/^NOT CLEAN it=\([0-9]*\).*/\1/p')
   [ -n "$X" ] && [ -f "$O/sizes_$X.vh" ] || { echo "TRIM-ONLY FAILED (no shipped iteration / sizes_$X.vh in $RES)" | tee -a "$O/result.txt"; exit 1; }
-  echo "$last" | grep -q '; search ' && [ -f "$O/structure.env" ] && XENV=$(cat "$O/structure.env")
+  if echo "$last" | grep -q '; search '; then   # the search phase's structure: structure.env, else the line itself
+    # (a farm task returns only *.txt / *.vh, so structure.env does not come back; the line says "(last it J; search ENV)")
+    if [ -f "$O/structure.env" ]; then XENV=$(cat "$O/structure.env"); else XENV=$(echo "$last" | sed -n 's/.*; search \([^)]*\)).*/\1/p'); fi
+  fi
   echo "auto_size $N TRIM-ONLY it $X from $RES ${XENV:+($XENV) }$(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" >> "$O/log.txt"
   cp "$O/it_$X.txt" "$O/it_${X}_untrimmed.txt"
   want=$(awk '{print $2}' "$O/it_${X}_untrimmed.txt")
