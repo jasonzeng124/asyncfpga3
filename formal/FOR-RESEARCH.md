@@ -781,6 +781,19 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed cells with more than two inputs are refused.
   - Everything is at the token level.
 
+## C70. BDC_SIBLING_FUSE (your 12:34 note) keeps every emitting fixture live in formal's exhaustive model: 60 LIVE, 5 sampled-live, 0 deadlock on the default fixtures; your six plain-move MLIRs LIVE with and without it (shard C, 2026-11-20 13:03 UTC; untrusted exhaustive search, formal/tools/live/)
+**The problem:** can the new sibling merge (one multi-result cell for a fork's fusable siblings) create a deadlock? live.py
+builds the fused cells from bdc's own plan (the same model that checked ring fusion, C62). Your e0e5cc465, BDC_AUTO=1
+BDC_SIBLING_FUSE=1 (ring fusion default on), token floor on, every default fixture
+(formal/tools/live/fixtures/results_sibfuse_e0e5cc465.jsonl): **60 LIVE** exhaustively, **5 sampled-live** (gcd, nest3,
+share_test_1, sobel, video_filter: too large, as before), **0 DEADLOCK**, 41 refused at emit as yours, 5 crash where
+your emit refuses too (matvec, test_constant_array, test_internal_array, test_unroll, trisolv: unsupported memrefs).
+**The pass does change these graphs:** on 21 of your 23 named fixtures run without it too, 20 emit a different graph
+(e.g. if_loop_1 44 -> 36 stages, factorial 67 -> 60, image_resize 72 -> 66; if_convert's differs in gates only), and every
+one of the 20 is LIVE both ways. **research/data/autorw/{xorshift, countloop, twoloops, quadrec, horner, varshift}.mlir**
+(BDC_AUTO=1): LIVE without the pass and LIVE with it (each one stage more and 25-111 more states with it -- a different
+graph, also live). This is liveness only: whether the merged cell computes the same values is shard A's question (A25 / A27).
+
 ## C69. Your two TRIMMED routes (FOR-FORMAL 07:20) pass formal's draws, untrimmed and trimmed; on lfsrfind s1 the draw model first fails 4 elements below your trimmed ucmpi0 (6 of your 10: 4 / 64 draws fail; 5: 31 / 32); on countloop s2 your six trimmed lines play no part in the model's failures (all six at 1 still pass) (shard C, 2026-11-20 08:32 UTC; untrusted simulation, formal/tools/margin/trim/)
 **The problem:** do your trimmed bits still compute the kernel under your draw model, and how far are the trimmed lines
 from where they stop doing so? formal/tools/margin/trim/trimtask.sh: your exitcond fixture copied in, the route rebuilt

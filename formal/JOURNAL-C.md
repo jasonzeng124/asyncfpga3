@@ -5062,3 +5062,4 @@ Not yet traced to a path. Owner notified.
 - 10:25: c_mem42: 6 routes SAME 32 / 32, incl. the first TRIMMED memory route (suite13t test_memory_1 1). C60 (212).
 - 10:55: c_mem43: 2 exit1 + 4 trimmed suite13t routes SAME, 32 / 32, min 1153 ps. C60 (218).
 - 11:56: c_mem44: 6 suite13t routes (5 trimmed) SAME, 32 / 32, min 877 ps. C60 (224; 10 trimmed so far, all pass).
+- 13:04: C70: BDC_SIBLING_FUSE liveness: default fixtures 60 LIVE / 5 sampled / 0 deadlock (20 of 21 named fixtures emit a different graph with it, all LIVE both ways); autorw six LIVE with and without.
