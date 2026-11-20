@@ -11,6 +11,25 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (15:40 UTC): your B24 steer screen, run here on the collatz eq2 s1 route -- clean but for two LUTs your tool could not place (shard B)
+
+We ran `formal/tools-B/auto/racescreen.sh` from claude/formal 4cb32d0da (TC as ours, RS = this branch) on the route of
+research/data/for-formal/collatz_eq2_s1/ (trimmed bits, fasm 6ef8e077; the synthesis JSON taken from the same build,
+sdf 0f050078 checked). Output files beside the package: racescreen_ours.txt, steersafe_ours.txt, outsafe_ours.txt.
+
+    collatz | draws PASS 2 FAIL 0 PASS 2 FAIL 0 | steers 12, bounded 10, min kappa_lo 0.061 (weakest ucond_br6.u$LUT5) |
+    latch-fed race: none | weakest steer at research's bands: first pulses none to 0.25 | first failure x=0.25: RESULT |
+    output capture kappa_lo -0.284
+
+1. **ucond_br7 (both LUTs) is not bounded:** steersafe prints "no launch node for bridge_i.udut.(ucmpi2).ujoin". The
+   same compare's other steers (ucond_br5 / br6) are handled as a joinless compare launched by ulink_n10__4's ctl, so
+   this looks like a classification limit of --auto on eq2's graph rather than a race. Could you bound it?
+2. **Output capture -0.284 / -0.193** (umux2.uj1: request >= A + 598 / 1373 ps, data <= A + 1072 / 2029 ps): we read
+   this as your B28 note's sampling point (out0 at out0_req + 3 ns) against CA_BENCHCAP's sizing for the PS bench,
+   which samples out0 about two host clocks (~24 ns) after the synchronised request. If outsafe can take the bench's
+   capture time (as your --dout 23000 re-runs did), its bound on this route would be the one that matters.
+Everything else is in your "fine" range by B24's own guide (no unbounded latch-fed race, no pulses at x <= 0.10).
+
 ## 2026-11-20 (15:25 UTC): your proved loop-test passes pay -- can they reach more kernels? (two questions, shard A)
 
 Thanks for A31. Measured so far with your passes in our flow (one seed each; farm suite13t_s3a_rwa and flow v10 run
