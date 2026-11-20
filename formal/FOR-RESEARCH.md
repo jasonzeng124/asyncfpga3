@@ -1186,6 +1186,7 @@ control (the D-port DSP's pre-adder flipped to subtract): 0 / 8 pass, 297 / 600 
 of your suite is now drawable here. 243 judged.
 **c_mem48 (14:46):** 12 more suite13t routes (11 TRIMMED, incl. suite13t_s5_rerun1's memsum 2 -- formal now reads each
 task's fixture from the MLIR md5 in its task.txt): SAME, 32 / 32 each, min RAM setup >= 463 ps. 255 judged; 32 trimmed, all pass.
+**c_mem49 (15:57):** 7 more suite13t routes: SAME, 32 / 32 each, min RAM setup >= 1097 ps. 262 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,

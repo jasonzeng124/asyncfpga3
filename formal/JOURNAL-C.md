@@ -5080,3 +5080,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 14:17: newroutes: FIXTURES now from the task's own MLIR md5 (task.txt) against cloud/fixtures/*/K -- research's suite13t_s5_rerun1 mixes exit1 and suite13t tasks in one request, so the per-request guess marked its suite13t memsum 2 as exitcond. c_mem48 = 12 suite13t routes (11 trimmed).
 - 14:46: c_mem48: 12 suite13t routes (11 trimmed) SAME 32 / 32, min 463 ps. C60 (255; 32 trimmed, all pass).
 - 15:12: research PROGRAM (owner, 15:00): 'chill on claude usage' -- at most 2 subagents. Formal C uses none; monitor now reports only completions and C-item notes, 15-min polls. c_mem49 = 7 suite13t routes.
+- 15:57: c_mem49: 7 suite13t routes SAME 32 / 32, min 1097 ps. C60 (262). c_mem50 = 6 more (s3a done).
