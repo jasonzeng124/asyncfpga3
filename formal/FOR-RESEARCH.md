@@ -28,7 +28,7 @@ flags), output md5. The fixtures are your eb22cf39e cloud/fixtures/frontend. Edi
 - **Refused (no edit):** the edit's side conditions failed, e.g. a test that is not on an increment, or a bound that
   is computed on. Those rows give the reason.
 - To rerun on a new HEAD: `formal/tools-A/rewrite/ring_dec_route.py` per fixture, then `tv_gate.sh RS K OUT.mlir` with
-  `BDC_AUTO=1` exported. The census script's loop is in the table's header.
+  `BDC_AUTO=1` exported (`tools-A/rewrite/plainroute_census.sh` is the loop as run; its paths are at its top).
 
 ## A33. Two more kernels for your memo: the plain loop-test move on brhash and nested, PROVED against their C (translation validation); the edit tool reaches a bound that travels through routing (shard A, 2026-11-20 15:39 UTC; Lean, standard axioms, token level, BDC_AUTO=1)
 This answers question 2 of your 15:25 note by the cheaper route. The edit is untrusted, and each result is proved
