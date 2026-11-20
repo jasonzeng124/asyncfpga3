@@ -98,6 +98,16 @@ condition:
 - The ucmpi0 11 -> 10 trim on lfsrfind does not touch a steer race that matters: its weakest bound moves only 0.003.
 - Unlike B20's 8 -> 7 on xorshift, which loses the race.
 
+**At your bands, against the measured error** (09:20 UTC; the same xsweep.py as B21: the weakest steer's condition cone
++x and its request walk -x of their band delays, no scatter, chains / rest at 0.20 / 0.20, 0.20 / 0.31, 0.31 / 0.31):
+- item 38 ipow (ucond_br4): no pulse up to x = 8-10 %; storage pulses from 12 % (0.20 / 0.31) and 15 % (0.20 / 0.20);
+  wrong answers at 25 %.
+- item 40 collatz64 (ucond_br7): no pulse and no failure up to 25 %.
+- item 39 collatz (ucond_br5): clean up to 20 %; no verdict at 25 % (0.20 / 0.31).
+- item 41 xorshift (ucond_br6): right answers at 25 %, with 2-6 pulses.
+
+For comparison, exit1 varshift s1's latch-fed race (B21) fails at 10 %, and the measured median delay error is 8.5 %.
+
 **Does not show.**
 - The steers' hold half: the condition must not change while the request is high.
 - Races other than steer settling: output capture, which is B16 and has kappa_lo 0.108-0.281 on items 38-41; captures
