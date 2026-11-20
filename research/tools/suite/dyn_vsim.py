@@ -25,6 +25,8 @@ import tempfile
 def main():
     vdir, k, est = sys.argv[1], sys.argv[2], sys.argv[3]
     mut = int(sys.argv[sys.argv.index("--mutate") + 1]) if "--mutate" in sys.argv else None
+    opt = lambda f: sys.argv[sys.argv.index(f) + 1] if f in sys.argv else None
+    buf, vec = opt("--buffered"), opt("--vectors")
     top = open(os.path.join(vdir, k + ".v")).read()
     hdr = top[top.index("(") + 1:top.index(");")]
     # channels: data ports seen above; control channels have only _valid / _ready
@@ -43,8 +45,29 @@ def main():
         sys.exit("dyn_vsim: no ok call lines in %s" % est)
     data_in = [n for n in chin if n in widths]
     data_out = [n for n in chout if n in widths]
-    if len(data_out) != 1:
+    if len(data_out) > 1:
         sys.exit("dyn_vsim: %d data outputs (%s); this checker takes one" % (len(data_out), data_out))
+    # memory kernels: every memref's port (X_loadData in; X_loadEn / X_loadAddr / X_storeEn / X_storeAddr / X_storeData
+    # out) gets a BRAM with a one-cycle read, as research/tools/suite/dyn_memcosim.py checked Dynamatic's memory units
+    # against; each call's arrays come from the v2 vector file and the expected arrays from the suite's own oracle
+    # (dynamatic_est.read_v2 / oracle_mem: the C), read back after the call and compared element by element.
+    mems = re.findall(r"^\s*input\s*(?:\[\d+:0\])?\s*(\w+)_loadData\s*,?\s*$", hdr, re.M)
+    memcalls, memexp, memgeo = None, None, {}
+    if mems:
+        if not (buf and vec):
+            sys.exit("dyn_vsim: %s has memories %s: needs --buffered BUF.mlir --vectors V2.hex" % (k, mems))
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import dynamatic_est as de
+        cir = de.Circuit(buf)
+        geo = {name: w for name, kind, c, w in cir.args if kind == "memref"}
+        if set(geo) != set(mems):
+            sys.exit("dyn_vsim: memrefs %s in the circuit, memory ports %s in the Verilog" % (sorted(geo), mems))
+        memgeo = geo
+        v2 = de.read_v2(vec, cir)
+        memcalls = [mm for _, mm in v2]
+        memexp = de.oracle_mem(k, vec, cir)
+        if len(v2) != len(calls) or len(memexp) != len(calls):
+            sys.exit("dyn_vsim: %d estimator calls, %d v2 calls, %d oracle answers" % (len(calls), len(v2), len(memexp)))
     for a, _, _ in calls:
         miss = [n for n in data_in if n not in a]
         if miss:
@@ -76,7 +99,18 @@ def main():
         if n in widths:
             tb.append("  wire [%d:0] %s;" % (widths[n] - 1, n))
         tb.append("  wire %s_valid; reg %s_ready;" % (n, n))
+    for m in mems:
+        size, ew = memgeo[m]
+        aw = widths.get(m + "_loadAddr", 1)
+        tb.append("  reg [%d:0] mem_%s [0:%d]; reg [%d:0] q_%s = 0;" % (ew - 1, m, size - 1, ew - 1, m))
+        tb.append("  wire %s_loadEn, %s_storeEn; wire [%d:0] %s_loadAddr, %s_storeAddr; wire [%d:0] %s_storeData;" % (
+            m, m, aw - 1, m, m, ew - 1, m))
+        tb.append("  always @(posedge clk) begin if (%s_loadEn) q_%s <= mem_%s[%s_loadAddr]; "
+                  "if (%s_storeEn) mem_%s[%s_storeAddr] <= %s_storeData; end" % ((m,) * 8))
     conns = [".clk(clk)", ".rst(rst)"]
+    for m in mems:
+        conns += [".%s_loadData(q_%s)" % (m, m)] + [".%s_%s(%s_%s)" % (m, x, m, x) for x in
+                                                     ("loadEn", "loadAddr", "storeEn", "storeAddr", "storeData")]
     for n in chin + chout:
         if n in widths:
             conns.append(".%s(%s)" % (n, n))
@@ -106,8 +140,14 @@ def main():
     tb.append("    end")
     tb.append("  endtask")
     tb.append("  initial begin")
-    for a, cyc, _ in calls:   # each call capped at 4x the estimator's cycles + 200 (past it: cycles -1, a difference)
+    for j, (a, cyc, _) in enumerate(calls):   # each call capped at 4x the estimator's cycles + 200 (past it: -1)
+        for m in mems:
+            fi = os.path.join(work, "in_%s_%d.hex" % (m, j))
+            open(fi, "w").write("".join("%x\n" % x for x in memcalls[j][m]))
+            tb.append('    $readmemh("%s", mem_%s);' % (fi, m))
         tb.append("    call(%s);" % ", ".join(["%d" % (4 * cyc + 200)] + ["%d'h%x" % (widths[n], a[n] & ((1 << widths[n]) - 1)) for n in data_in]))
+        for m in mems:
+            tb.append('    $writememh("%s", mem_%s);' % (os.path.join(work, "out_%s_%d.hex" % (m, j)), m))
     tb.append("    $finish;")
     tb.append("  end")
     tb.append("endmodule")
@@ -123,18 +163,28 @@ def main():
     if len(got) != len(calls):
         sys.exit("dyn_vsim: %d calls simulated, %d expected\n%s" % (len(got), len(calls), r.stdout[-1500:]))
     bad = 0
-    wout = widths[data_out[0]]
-    for (a, cyc, res), (gc, gr) in zip(calls, got):
+    wout = min(widths[data_out[0]], 32 if mems else 64) if data_out else 0
+    for j, ((a, cyc, res), (gc, gr)) in enumerate(zip(calls, got)):
         gr_i = int(gr, 16) if "x" not in gr else None
-        okr = gr_i is not None and gr_i & ((1 << wout) - 1) == res & ((1 << wout) - 1)
+        okr = (not data_out) or (gr_i is not None and gr_i & ((1 << wout) - 1) == res & ((1 << wout) - 1))
         okc = int(gc) == cyc
-        if not (okr and okc):
+        okm, why = True, ""
+        for m in mems:
+            size, ew = memgeo[m]
+            exp_m = memexp[j][1].get(m)
+            if exp_m is None:
+                continue
+            outv = [l.strip() for l in open(os.path.join(work, "out_%s_%d.hex" % (m, j))) if l.strip() and not l.startswith("//")]
+            gotm = [int(x, 16) if "x" not in x.lower() else None for x in outv][:len(exp_m)]
+            if gotm != [x & ((1 << ew) - 1) for x in exp_m]:
+                okm, why = False, why + " array %s differs" % m
+        if not (okr and okc and okm):
             bad += 1
-        print("  %-40s est cycles %6d result %08x | verilog cycles %6s result %s %s" % (
+        print("  %-40s est cycles %6d result %08x | verilog cycles %6s result %s %s%s" % (
             " ".join("%s=%#x" % kv for kv in a.items()), cyc, res, gc, gr,
-            "ok" if okr and okc else ("RESULT DIFFERS" if not okr else "CYCLES DIFFER")))
-    print("dyn_vsim %s: %d calls, %d differ (results and cycles against dynamatic_est.py, which checked results "
-          "against the C)" % (k, len(calls), bad))
+            "ok" if okr and okc and okm else ("RESULT DIFFERS" if not okr else ("CYCLES DIFFER" if not okc else "")), why))
+    print("dyn_vsim %s: %d calls, %d differ (results%s and cycles against dynamatic_est.py, which checked results "
+          "against the C)" % (k, len(calls), bad, ", arrays (the C's)" if mems else ""))
     shutil.rmtree(work, ignore_errors=True)
     sys.exit(1 if bad else 0)
 

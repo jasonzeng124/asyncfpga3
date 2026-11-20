@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # dyn_all.sh OUTROOT KERNEL... -- Dynamatic's own circuit for each kernel, exported, checked and routed:
 #   1. buffers as research/tools/suite/dynamatic_est.py places them (on-merges, then canonicalize / hoist), then
-#      dynamatic-opt --lower-handshake-to-hw;
+#      --handshake-set-unit-impl-attr (the units' latencies: muli 4, div / rem 35, as dynamatic_est.py models them;
+#      without it the lowering refuses a muli; impl=flopoco names an FPU the integer kernels never use; on xorshift
+#      the lowered file is byte-identical with and without it) and --lower-handshake-to-hw;
 #   2. research/tools/suite/dyn_export.py (our export-rtl for the integer subset);
 #   3. dynamatic_est.py on the kernel's suite vectors (the C checks every result) and research/tools/suite/dyn_vsim.py:
 #      the exported Verilog in iverilog on the same calls, results and cycles against the estimator's;
@@ -19,7 +21,9 @@ for K in "$@"; do
   "$DOPT" "$FX" --handshake-set-buffering-properties=version=fpga20 \
       "--handshake-place-buffers=algorithm=on-merges timing-models=$DYN/data/components.json" > "$W/buffered.mlir" 2> "$W/dopt.err" \
     && "$DOPT" "$W/buffered.mlir" --handshake-canonicalize --handshake-hoist-ext-instances > "$W/export.mlir" 2>> "$W/dopt.err" \
-    && "$DOPT" "$W/export.mlir" --lower-handshake-to-hw > "$W/hw.mlir" 2>> "$W/dopt.err" \
+    && "$DOPT" "$W/export.mlir" "--handshake-set-unit-impl-attr=timing-models=$DYN/data/components.json impl=flopoco" \
+         > "$W/export_impl.mlir" 2>> "$W/dopt.err" \
+    && "$DOPT" "$W/export_impl.mlir" --lower-handshake-to-hw > "$W/hw.mlir" 2>> "$W/dopt.err" \
     || { echo "$K | dynamatic-opt FAILED ($(tail -1 "$W/dopt.err" | cut -c1-100))"; continue; }
   python3 "$R/research/tools/suite/dyn_export.py" "$W/hw.mlir" "$W/v" > "$W/export.log" 2>&1 \
     || { echo "$K | export FAILED ($(tail -1 "$W/export.log" | cut -c1-140))"; continue; }
@@ -31,7 +35,8 @@ for K in "$@"; do
   esac
   ( cd "$R" && timeout 3600 python3 research/tools/suite/dynamatic_est.py "$K" "$V" ) > "$W/est.txt" 2>&1
   cpi=$(grep -oP '^cycles per iteration: \K[0-9.]+' "$W/est.txt" | head -1)
-  vs=$(timeout 3600 python3 "$R/research/tools/suite/dyn_vsim.py" "$W/v" "$K" "$W/est.txt" > "$W/vsim.txt" 2>&1; tail -1 "$W/vsim.txt" | cut -c1-120)
+  vs=$(timeout 3600 python3 "$R/research/tools/suite/dyn_vsim.py" "$W/v" "$K" "$W/est.txt" --buffered "$W/export.mlir" \
+         --vectors "$R/$V" > "$W/vsim.txt" 2>&1; tail -1 "$W/vsim.txt" | cut -c1-140)
   "$R/research/tools/suite/dyn_route.sh" "$K" "$W/v" "$W/route" ${DYN_SEEDS:-1 2 3 4} > "$W/route.txt" 2>&1
   echo "$K | export ok | $vs | $(tail -1 "$W/route.txt") | est cycles per iteration ${cpi:-NA}"
 done

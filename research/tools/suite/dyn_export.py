@@ -73,6 +73,11 @@ def width(t):
     return None
 
 
+def plain(t):
+    """a plain integer port (iN, no handshake): the memory interface's loadData / loadAddr / storeEn ..."""
+    return re.fullmatch(r"i\d+", t.strip()) is not None
+
+
 def parse_params(s):
     """'{A = !handshake.channel<i32>, SIZE = 2 : ui32, P = "sgt"}' -> {A: ('type', ...), ...}"""
     s = s.strip()
@@ -286,7 +291,9 @@ def main():
         else:
             f = gfile(c)
             files[f] = True
-            mod = c.get("module-name") or re.search(r"\bmodule\s+(\w+)", open(f).read()).group(1)
+            # export-rtl's rule: the entry's module-name, else the generic file's base name (muli.v holds mul_4_stage
+            # first and muli second: the module is muli)
+            mod = c.get("module-name") or os.path.splitext(os.path.basename(f))[0]
             modof[en] = mod
             mpath = f
         add_deps(c)
@@ -327,24 +334,32 @@ def main():
         if w is None:
             raise SystemExit("dyn_export: top port %s : %s not in the subset" % (n, t))
         io, ri = ("input", "output") if d == "in" else ("output", "input")
+        if plain(t):
+            hdr.append("  %s [%d:0] %s" % (io, w - 1, n) if w > 1 else "  %s %s" % (io, n))
+            if d == "in":
+                W[n] = (w, True)
+            continue
         if w:
             hdr.append("  %s [%d:0] %s" % (io, w - 1, n))
         hdr.append("  %s %s_valid" % (io, n))
         hdr.append("  %s %s_ready" % (ri, n))
         if d == "in":
-            W[n] = w
+            W[n] = (w, False)
     for ins in insts:
         for pn, t, r in ins["outs"]:
             w = width(t)
             if w is None:
                 raise SystemExit("dyn_export: %s.%s : %s not in the subset" % (ins["name"], pn, t))
-            W[r] = w
+            W[r] = (w, plain(t))
     sname = lambda v: re.sub(r"[^\w]", "_", v)
     topnames = {n for d, n, t in tports}
-    for v, w in W.items():
+    for v, (w, pl) in W.items():
         if v in topnames:
             continue
         s = sname(v)
+        if pl:
+            L.append("  wire [%d:0] %s;" % (w - 1, s) if w > 1 else "  wire %s;" % s)
+            continue
         if w:
             L.append("  wire [%d:0] %s;" % (w - 1, s))
         L.append("  wire %s_valid;" % s)
@@ -352,16 +367,20 @@ def main():
     L.append("")
 
     def conn(ports, en, pairs):
-        """pairs: [(hw port, value, width, is_input)] -> Verilog .p(...) list, packing p_0..p_k"""
-        groups = {}
-        for hp, v, w, isin in pairs:
+        """pairs: [(hw port, value, width, is_input, plain)] -> Verilog .p(...) list, packing p_0..p_k"""
+        groups, cs = {}, []
+        for hp, v, w, isin, pl in pairs:
+            if pl:                     # a plain integer port: one wire, no handshake
+                if hp not in ports:
+                    raise SystemExit("dyn_export: %s (%s) has no port %s" % (en, modof[en], hp))
+                cs.append(".%s(%s)" % (hp, sname(v)))
+                continue
             m = re.fullmatch(r"(\w+?)_(\d+)", hp)
             if m and (m.group(1) in ports or m.group(1) + "_valid" in ports) and hp not in ports \
                     and hp + "_valid" not in ports:
                 groups.setdefault(m.group(1), []).append((int(m.group(2)), v, w, isin))
             else:
                 groups.setdefault(hp, []).append((None, v, w, isin))
-        cs = []
         for p, items in groups.items():
             items.sort(key=lambda x: -1 if x[0] is None else x[0])
             vals = [sname(x[1]) for x in items][::-1]          # {p_k, ..., p_0}
@@ -380,8 +399,8 @@ def main():
     for ins in insts:
         en = ins["ext"]
         ports = mports[en]
-        pairs = [(hp, v, width(t), True) for hp, v, t in ins["ins"] if hp not in ("clk", "rst")]
-        pairs += [(hp, r, width(t), False) for hp, t, r in ins["outs"]]
+        pairs = [(hp, v, width(t), True, plain(t)) for hp, v, t in ins["ins"] if hp not in ("clk", "rst")]
+        pairs += [(hp, r, width(t), False, plain(t)) for hp, t, r in ins["outs"]]
         cs = [".%s(%s)" % (x, x) for x in ("clk", "rst") if x in ports] + conn(ports, en, pairs)
         pstr = (" #(" + ", ".join(".%s(%s)" % kv for kv in paramsof[en]) + ")") if paramsof[en] else ""
         L.append("  %s%s %s (\n    %s\n  );" % (modof[en], pstr, ins["name"], ",\n    ".join(cs)))
@@ -391,6 +410,9 @@ def main():
         raise SystemExit("dyn_export: %d outputs, hw.output has %d values" % (len(outs), len(outvals)))
     for (n, t), v in zip(outs, outvals):
         s = sname(v)
+        if plain(t):
+            L.append("  assign %s = %s;" % (n, s))
+            continue
         if width(t):
             L.append("  assign %s = %s;" % (n, s))
         L.append("  assign %s_valid = %s_valid;" % (n, s))
