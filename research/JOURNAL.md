@@ -8903,3 +8903,16 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - **Farm queue after v10:** mff_1 / mff_2 (v10 + BDC_MEM_FASTFALL, seeds 1-2), sibb (v10 + BDC_SIBLING_FUSE, 17 kernels x
   seeds 1-2), then flow v11 (to be filed: v10 + AUTO_RACE_KEEP + cache_v11 (brhash, nested) + sobel / video_filter,
   + overbuild / SYMTRIM / mff / sibling if their evidence holds).
+### progress 21:39 (regression check: v10's route rebuilt at the BD_SYMTRIM head is byte-identical; the overbuild-alone controls replaced by BD_SYMTRIM ones)
+- **Regression:** v10's straight s1 route (it 2, seed 1, its sizes_2.vh) rebuilt with lane2.sh at c0f2bab80 (the
+  BD_SYMTRIM bd_latch.v, define off): **sdf 3aee4aab = the farm's**, ffmux-clean. So the change leaves flow v10's
+  waiting parts' routes as they were.
+- **BD_SYMTRIM routes build and route:** sym test_loop_free s1 it 0 (33c32f69) and factorial s1 it 0 (8919c0dd), both
+  ffmux-clean; test_loop_free's has 2 LUT2-1010 elements (its symmetric lines are mostly 1 element at it 0), and
+  trim_lines --list now calls all 25 of its lines trimmable (default route: 13 trimmable, 2 symmetric, 10 unknown).
+- **Overbuild alone (first finish route of each, as built):** twoloops 9 rows, brhash 2 (v10's it 5: 20), cmpchain 29
+  (23), factorial 13 (19), ipow 5, test_memory_2 8, test_loop_free 3 (20), sqrtsub 12 (9); trim checks done: 0 of 2
+  clean. The four controls (ipow s1, fold64 s1, twoloops s1, sqrtsub s2) stopped: their question (overbuild alone's
+  period cost) is moot if it is not taken alone. **Replaced by** sym ipow s1 and sym sqrtsub s2 (flow v10 + BD_SYMTRIM +
+  AUTO_OVERBUILD=3 + AUTO_RACE_KEEP=1; v10 shipped both clean after 4 finish routes, P 19867 / 21661): the period cost
+  of the combination. PREDICTION: trimmed P within -3 .. +8 % of v10's; clean within 2 finish routes; every draw passes.
