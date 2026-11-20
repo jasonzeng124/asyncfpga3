@@ -33,6 +33,8 @@ def read_kernel(root, k):
     fails = re.findall(r"seed (\d+) (?:PNR FAILED|: no Fmax)", rt)
     if not ps or fails:
         return None, "route failed on seed(s) %s" % (fails or "all")
+    if not re.search(r"^%s period %d routes:" % (re.escape(k), len(ps)), rt, re.M):
+        return None, "routes not finished (%d so far)" % len(ps)
     sha = re.search(r"nextpnr ([0-9a-f]{16})", rt)
     cpi = re.search(r"^cycles per iteration: ([0-9.]+)", est, re.M)
     cyc = [int(x) for x in re.findall(r"^\s*call .*?cycles\s+(\d+)\s+result", est, re.M)]
