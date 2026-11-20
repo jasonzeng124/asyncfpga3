@@ -8167,3 +8167,20 @@ Farm: exit1 running (21 of 140 back at 06:20); suite13 (240 tasks) waits for roo
   landed on needs. First loop: suite12 xorshift s1 (farm: NOT CLEAN after 6 finish routes, shipped it 9, P 17.81 ns),
   phase 1 as the farm ran it, H = 3 (overbuild_farm.sh). PREDICTION (06:47): clean after the trim step within 2 finish
   routes; P at or below the farm's 17.81 ns; every draw passes.
+### progress 06:52 (the != fixtures widen 22 of 37 kernels; first trimmed P: countloop s2 -9.8 %; compile slots were 1)
+- **BDC_FE_EXITCOND widens the datapath on 22 of the 37 kernels it changes** (sum of channel widths in the handshake
+  MLIR, default -> exitcond fixture): +225 (fold64, twoloops) to +2920 bits (test_flatten_array; sobel +2577,
+  stencil_2d +1500, image_resize +1242, lfsrfind +325). Cause, read on lfsrfind: the counter is i8 / i9 under the
+  default fixture (Dynamatic's --handshake-optimize-bitwidths bounds it from the `ult 256` test) and i32 under the
+  != test, which the range analysis cannot bound. The other 15 (xorshift, countloop, horner, gcd, isprime, brhash,
+  nested, quadrec, varshift, fill, if_loop_1 / 2, spmv, test_memory_1 / 2) keep every width: only on those does
+  exit1 test the != loop test itself. Seed-1 routes so far, exit1 against suite12 (v8, one route each, so routing
+  scatter is in it): horner 21.09 vs 22.07 ns, xorshift 18.09 vs 17.81, fold64 25.19 vs 22.93, varshift 37.14 vs
+  33.53, lfsrfind 27.88 vs 22.40. Reading exit1 against suite13 must split the kernels by this.
+- First trimmed routes (full stack after the trim step, the farm's route unchanged otherwise): **countloop s2 (exit1)
+  22368 -> 20167 ps (-9.8 %)**: the fused update + test ucmpi1 18 -> 13, umux3 6 -> 2, umux1 5 -> 2, six more (its one
+  H row stays: it needs a UACK raise no trim can give); lfsrfind s1 -2.9 %, mul_example s2 -1.2 %. Draws running.
+- cluster: /tmp/eventgraph_compile.slots (4 on this node) is lost with /tmp at a job's start, and was missing until
+  06:48: every draw compile of this session waited on one lock till then. Now 4 again.
+- The trimmed lfsrfind s1 cycle (cycdecomp): P 27062 = delay chains 12641 + wire between cells 11966 + cell logic
+  2455 ps over 12 handshake hops (~1 ns of wire each: two compares in series, each behind a join and a steer).
