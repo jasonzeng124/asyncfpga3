@@ -82,6 +82,14 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - which result (by SSA name) reads which window.
 
   Control: two slices exchanged in the emitted Verilog, refused (MISMATCH, rc 2) on gcd and xorshift.
+- **Update 2026-11-20 02:06: nest3 PROVED too (20 / 26).** New checked step `unabsorb` (Absorb read backward; Lean accepts
+  it only if re-absorbing gives back the original rules, `applyUA_sound`). It factors a 3-input packed cell into a
+  2-input one so the existing steps apply. `check.sh` passes on ScriptRF.lean (1581 declarations). Census: 20 PROVED,
+  no regression. Controls on nest3 (slice_low, part_plus1) are refused.
+  Still refused: iterative_sqrt and iterative_division. Their packed parts pass an input straight through (`hi`, `|a|`),
+  and a part equals its 32-bit slice only if the token fits 32 bits. Formal's token model allows any natural number,
+  so a proof needs a stated "every token fits its channel's width" invariant (not done). This is a model limit, not
+  a difference on 32-bit inputs (`mr_expr_check` agrees on both).
 - **Update 2026-11-20 01:46: sqrtsub PROVED too (19 / 26).** The unfused side's test reads the result of a two-input
   update (`n - odd`); the planner now splits it with forkcomm2 and flattens the fork trees above its inputs. Census
   re-run on your f538cb518 (`ringfuse_census.txt`): 19 PROVED, 4 same rules, 3 refused: iterative_division and

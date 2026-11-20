@@ -3495,3 +3495,12 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   nest3. Controls: NEGCTL 22 / 22 MISMATCH; --ctl flipbit MISMATCH. Untrusted (finite vectors, iverilog).
 * Subagent (worktree) on the k-input ForkComm / join extension for iterative_division, iterative_sqrt, nest3: running.
 ### progress 01:53 -- EXITCOND also proved under the default flow (BDC_AUTO unset) on the same four kernels (Auto*ECD.lean, check.sh OK); nested fails as under BDC_AUTO (tool limit). Draft PR #3 summary updated
+### progress 02:06 -- ring fusion 20 / 26: nest3 PROVED (subagent, worktree; cherry-picked and re-verified here)
+* ScriptRF: `StepRF.unabsorb` / `applyUA` / `applyUA_sound` (a comp reading bs ++ as becomes comp (bs ++ [p]) plus
+  comp as p; checked by re-absorbing to the exact original rules). Planner: rf_prefactor / rf_factor; 3-input cells
+  with two slices unpack. Re-verified: check.sh OK on ScriptRF.lean (1581 decls, std axioms); fuse_check PROVED on
+  nest3, xorshift, sqrtsub, gcd; nest3 controls slice_low / part_plus1 REFUSED rc 2. Subagent census: 20 PROVED, 4
+  same, 2 refused, no regression. notes/A-kinput.md.
+* iterative_sqrt / iterative_division: blocked by the model, not the steps -- a packed part that passes an input
+  through equals its 32-bit slice only for tokens < 2^32; Nat tokens are unbounded. Needs a width invariant
+  (named hypothesis: input tokens fit their width; every rule preserves it). Not started.
