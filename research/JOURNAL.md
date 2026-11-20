@@ -8763,3 +8763,10 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   stays below it, under its own heading.
 - Caught while building it: suite13t_s5_rerun1's tasks 1-2 are exit1 tasks (the exitcond fixtures, no trim); the table
   reads only its tasks 3-8. Without that, nested_loop s3 and sumi3_mem s3 from another flow would have been in the row.
+### progress 19:26 (collatz64 s1 + formal's eq2: 21.53 ns, 4 / 4 draws -- the 14:33 prediction (16.6-21.7) held, at its top)
+- arw2 collatz64 s1 (eq2_pass's MLIR, v9 + scoped trim): `status=PASS draws=4/4 P=21528 P_untrimmed=22383 trims=2
+  rule=clean it=8 bits=EQUIVALENT`, every draw 18 / 18 with no pulse under 1 ns (narrowest ~3.0 ns). suite13t collatz64
+  s1: 25557 / 29391 (-15.8 % / -23.8 %). Ratio to Dynamatic's measured 17.84: 1.21 (suite13t's route 1.43).
+- Finish-seed loops (v10 + AUTO_FINISH_SEEDS=3): no alternate route adopted yet; the alternates of the first finish
+  routes were as short as their seed-1 routes (10-30 rows), cmpchain's it 9 alternate 4 rows. They are seed 1 of
+  kernels whose loops are far from clean at the finish switch, not the "1-6 rows of churn" case finseeds1 cleaned.

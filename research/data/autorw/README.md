@@ -51,6 +51,7 @@ kernels: a separate effect, to be measured.
 | xorshift s1 | v9 + trim (cycle scope) + plain move | it 9 20941 / 19710; the search phase's it 11 (BDC_FORK_OUT_LINK=n11__0,n32__2) **17123 / 16350** | 18319 / 17588 | **4 / 4 (19/19 each, no pulse under 1 ns)**; rule CLEAN, EQUIVALENT |
 | xorshift s1 | v9 + trim (cycle scope) + plain move + BDC_SIBLING_FUSE | it 8 19365 / 17533 / 16357 / **16289** (rounds) | 18319 / 17588 | **4 / 4 (19/19 each, no pulse under 1 ns)**; rule CLEAN, EQUIVALENT |
 | countloop s1 | v9 + trim (cycle scope) + plain move + BDC_SIBLING_FUSE | it 10 21110 / 19533; the search phase's it 12 (BDC_FORK_OUT_LINK=n13__0,n15__0,n21,n23) **17268 / 16392** | 22896 / 22224 (its search found no clean route) | **4 / 4**; rule CLEAN, EQUIVALENT |
+| collatz64 s1 | v9 + trim (cycle scope) + eq2 | it 7 24706 / 24706; the search phase's it 8 (BDC_FORK_OUT_LINK=n19__0,n33__0) **22383 / 21528** | 29391 / 25557 | **4 / 4 (18/18 each, no pulse under 1 ns)**; rule CLEAN, EQUIVALENT; Dynamatic measured 17.84 |
 
 collatz's Dynamatic figure (measured, one nextpnr route): 14.05 ns; the hand recipe's best: 21.50. One seed each;
 farm suite13t_s3a_rwa runs the eight proved kernels x 4 seeds, flow v10 (suite13t_s5a_v10_*) the whole suite.
