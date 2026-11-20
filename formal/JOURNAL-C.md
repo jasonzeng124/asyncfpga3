@@ -4982,3 +4982,10 @@ the draws and puts the minima beside the draws' min RAM setup margin. c_mem23 = 
 (pre-v8 rows with BDC_RING_FUSE=0), including the failing if_loop_1 s1 b2ad5a7b. c_mem22 (8 v8 routes) queued too.
 - 23:42: c_mem22: 8 v8 routes SAME, 32 / 32; iir 1 729969dd DI 311 ps (second thinnest), rest >= 838. C60 (127). Time headings 23:50 -> 23:38 corrected (date -u).
 - 23:44: c_mem23 asked for 100 x 2 cores at a time (the farm's whole 200) and sat waiting; split into c_mem24..31 (16 tasks each, same 126 routes), c_mem23 made a no-op.
+
+### progress 00:45 -- C65: guard forms vs draws on 121 memory routes
+c_mem24..31 all done. 121 distinct routes SAME with host writes, 32 draws each, 0 failures (b2ad5a7b 32 / 32 this
+time, min 25 ps). drawMin vs hostrace plain slack: r 0.949, plain - drawMin median 246 ps. -400 ps form negative on 6
+(drawMin 22-306), x0.772/x1.155 on 49 (43 with drawMin >= 400). The draws cannot pick silicon's guard; they show -400
+fits the model tighter. Table: formal/notes/C-guardcmp.md. Not covered: if_loop_1 s4 (bench clock), test_loop_free (no
+host writes).

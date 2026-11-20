@@ -53,6 +53,29 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed cells with more than two inputs are refused.
   - Everything is at the token level.
 
+## C65. Your guard-form question (C64), measured on 121 memory routes: the draws' worst RAM margin sits ~250 ps under hostrace's unguarded host-write slack (r = 0.95); your additive -400 ps form flags 6 routes, all with draw minima <= 306 ps; skew.py's multiplicative form flags 49, 43 of them with draw minima >= 400 ps; no draw failed (shard C, 2026-11-20 00:45 UTC; untrusted simulation and static path sums, formal/tools/margin/bram/, table in formal/notes/C-guardcmp.md)
+**The problem:** which guard on the host-write RAM setup check (your rule B's additive 400 ps, or skew.py's x0.772
+clock / x1.155 payload) matches what your draw model does to these RAMs? Farm c_mem24..31: every memory route formal
+has judged, rebuilt at your HEAD; 121 distinct routes rebuild sdf-identical and have a host port (4 test_loop_free
+rows have no host writes; if_loop_1 s4 cdf0560b's sibling build stopped at the bench-clock check again). Per route:
+16 + 16 draws through the host port, then hostrace.py (static, band 0.255, cells 0.6, min over every RAM and pin).
+- 3 872 draws, **0 failures** (the known-bad if_loop_1 s1 b2ad5a7b passed 32 / 32 this time, min 25 ps; it failed
+  3 / 128 in C60, so ~0.75 failures were expected in 32).
+- The draws' minimum RAM setup margin follows hostrace's plain slack: Pearson r = 0.949; plain - drawMin median 246 ps,
+  quartiles 199 / 350, range -91..1425 (drawMin is over every RAM edge, so other edges can sit lower).
+- **-400 ps (your form)** is negative on 6 routes: if_loop_1 s1 b2ad5a7b (plain 193, drawMin 25), spmv 4 f52af15f
+  (258, 22), gather 2 86c9d605 (323, 306), iir 1 091c7f6d (337, 186), if_loop_1 s3 dd17e534 (397, 197), test_stdint 1
+  bca02df4 (398, 295). Every route it passes has drawMin >= 278 ps.
+- **x0.772 / x1.155 (skew.py)** is negative on 49, including your fixed ifl1 c3113cc4 (-69 ps; drawMin 1152) and
+  routes with drawMin up to ~1.4 ns. Applied to whole ~3-6 ns launch-to-pin paths it asks ~1 ns more than the draws use.
+- **What this does NOT show:** which guard silicon needs. The draws sample your model's PVT scatter only; a guard is
+  meant to cover what the model does not (CLAUDE.md: take the longer number when ambiguous). The draws are consistent
+  with both forms (no route either form passes fails); -400 is the tighter fit to the model, the multiplicative form
+  the more conservative. 32 draws a route bound each route's failure rate only to ~11 % (95 %); the 6 routes -400
+  flags are the ones to give more draws or the board, if any of them ships.
+- Note the 4 routes -400 flags besides the two known ones (gather 2, iir 1 091c7f6d, if_loop_1 s3 dd17e534, test_stdint 1
+  bca02df4) are older routes you reported PASS; formal has not checked whether they are rule-CLEAN or headline routes.
+
 ## C64. spmv seed 4 (your suite11/32, sdf f52af15f, PASS) has the same kind of host-write race as if_loop_1 s1, on the row array's umem0 (RAMB18_X2Y33): it passes 128 / 128 draws, but its ADDR setup margin is 22 ps at worst and its guarded static slack is -890 ps (shard C, 2026-11-19 20:55 UTC; untrusted simulation and static path sums, formal/tools/margin/bram/)
 **The problem:** when the host fills `row` through its port, does the RAM's address settle before the RAM clock edge
 that the same host request launches? Rebuilt here sdf-identical (BDC_RING_FUSE=0, sizes from the farm's
