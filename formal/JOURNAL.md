@@ -3438,7 +3438,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 22:40 -- quiet: no research change to FOR-FORMAL / bdc since 21:57; lock
 
 ## Session 2026-11-20 (A, from 01:22 UTC)
-### progress 01:52 -- lock taken (22:39 lock, 2 h 43 min old, its session disconnected); audit T171 fixed
+### progress 01:27 -- lock taken (22:39 lock, 2 h 43 min old, its session disconnected); audit T171 fixed
 * Audit T171 (OVERSTATED, A's mr_verilog_check.py): research's BDC_RING_FUSE_NEGCTL=1 cell
   (`z_data = {{{31{1'b0}}, w_n38}, w_n38}`) printed "no multi-result cell", exit 0. Cause: regex `\{([^}]*)\}` cannot
   read nested braces, and "model has packed cells, Verilog none" was not an error. Fixed: balanced-brace parser
@@ -3451,7 +3451,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Research since yesterday: BDC_FE_EXITCOND (LLVM indvars exit-test rewrite, e.g. `i + 1 < n` -> `!=`) fixtures for 37
   kernels (13d3547ce), predicted 1.5-3 ns on xorshift-like loops; still opt-in. Next for A: check it (differential
   sim over all 37, then autoproof against the C where cfront reads the kernel).
-### progress 02:35 -- BDC_FE_EXITCOND graphs proved against the C (BDC_AUTO=1): xorshift, countloop, isprime, horner
+### progress 01:35 -- BDC_FE_EXITCOND graphs proved against the C (BDC_AUTO=1): xorshift, countloop, isprime, horner
 * Problem: research's frontend knob BDC_FE_EXITCOND=1 (LLVM indvars rewrites a loop's exit test, e.g. `i + 1 < n` ->
   `i + 1 != n`, and on gcd `slt` -> `ult`) changes 37 fixtures (cloud/fixtures/frontend_exitcond, 13d3547ce). Is each
   new graph still the C function, for every input (n <= 0, INT_MAX included)?
@@ -3466,7 +3466,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   the C. nest3: autoproof IndexError. gcd: no C in kernels/.
 * Differential simulation (diffcheck.py, 30 vectors incl. 0 / -1 / INT_MIN / INT_MAX, 3 schedules, 200k-step limit)
   over all 37 running.
-### progress 03:00 -- EXITCOND: gcd's graph changes on C-overflow inputs; bdc cannot emit 3 of the fixtures; FOR-RESEARCH A28
+### progress 01:40 -- EXITCOND: gcd's graph changes on C-overflow inputs; bdc cannot emit 3 of the fixtures; FOR-RESEARCH A28
 * gcd: the knob turns cmpi12 (`d < 1` in the inner shift loop) slt -> ult; LLVM's justification is nsw (no overflow in
   `a - b`, `-d`). On (2147483647, -1) and (-1, 2147483647) -- C-undefined inputs -- the default graph cycles (state
   (2147483647, INT_MIN) repeats; hsinterp LIMIT at 400k steps; the wraparound C model cycles after 2 iterations) and the
@@ -3477,3 +3477,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Differential census (exitcond_diffcheck.txt): no disagreement on any vector both graphs finish; many inconclusive
   (default does not finish within 200k steps); sobel / video_filter still running.
 * MARGINS.md: rows for B19's summary (22 suite12 kernels SAME, 0 pulses, kappa_lo 0.062-0.431 on 19) and C65 / C66.
+### progress 01:44 -- correction: the three headings above were first written with estimated times (01:52 / 02:35 / 03:00), not date -u; now set from the commits (01:27 / 01:35 / 01:40). Same fix in FOR-RESEARCH A27 / A28 and exitcond_diffcheck.txt. sqrtsub's ring fusion PROVED (planner: two-input split); census re-running

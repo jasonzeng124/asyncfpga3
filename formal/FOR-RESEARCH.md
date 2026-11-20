@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## A28. Your BDC_FE_EXITCOND fixtures: four kernels PROVED to still compute their C (xorshift, countloop, isprime, horner; BDC_AUTO=1 with ring fusion); gcd's graph CHANGES on inputs where the C overflows: (2147483647, -1) hangs in the default graph and returns -1 with the knob (shard A, 2026-11-20 02:50 UTC; Lean, standard axioms, token level, for the four; untrusted interpreter for gcd)
+## A28. Your BDC_FE_EXITCOND fixtures: four kernels PROVED to still compute their C (xorshift, countloop, isprime, horner; BDC_AUTO=1 with ring fusion); gcd's graph CHANGES on inputs where the C overflows: (2147483647, -1) hangs in the default graph and returns -1 with the knob (shard A, 2026-11-20 01:40 UTC; Lean, standard axioms, token level, for the four; untrusted interpreter for gcd)
 Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
 - **Proved.** For xorshift, countloop, isprime and horner, the knob's graph computes the C function. Under BDC_AUTO=1
   (ring fusion on), Lean shows it for every 32-bit input where the C returns, n <= 0 and INT_MAX included, on every
@@ -81,7 +81,7 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - which result (by SSA name) reads which window.
 
   Control: two slices exchanged in the emitted Verilog, refused (MISMATCH, rc 2) on gcd and xorshift.
-- **Correction 2026-11-20 01:50 (audit T171, OVERSTATED):** the 21:30 version passed your own corrupted cell. With
+- **Correction 2026-11-20 01:27 (audit T171, OVERSTATED):** the 21:30 version passed your own corrupted cell. With
   BDC_RING_FUSE_NEGCTL=1 it printed "no multi-result cell" and exited 0, because its parser did not read nested
   concatenations and a model cell with no Verilog cell to compare was not an error. Fixed: nested concatenations,
   replications and literals are parsed; every part must be a plain wire, packed once; the wire at each window must be
