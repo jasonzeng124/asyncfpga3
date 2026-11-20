@@ -1,4 +1,4 @@
-# C-guardcmp: draws' min RAM setup margin vs hostrace's host-write slack, three guard forms (shard C, 2026-11-20 00:45 UTC)
+# C-guardcmp: draws' min RAM setup margin vs hostrace's host-write slack, three guard forms (shard C, 2026-11-20 00:43 UTC)
 
 Farm c_mem24..31 (research HEAD at filing, nextpnr 6e5d224472232d5d; every row's sdf checked against research's route),
 memtask HOSTPORT, 16 draws + 16 slow-carry/RAM draws of research's model per route, then hostrace.py (static, band

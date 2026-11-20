@@ -53,7 +53,7 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed cells with more than two inputs are refused.
   - Everything is at the token level.
 
-## C65. Your guard-form question (C64), measured on 121 memory routes: the draws' worst RAM margin sits ~250 ps under hostrace's unguarded host-write slack (r = 0.95); your additive -400 ps form flags 6 routes, all with draw minima <= 306 ps; skew.py's multiplicative form flags 49, 43 of them with draw minima >= 400 ps; no draw failed (shard C, 2026-11-20 00:45 UTC; untrusted simulation and static path sums, formal/tools/margin/bram/, table in formal/notes/C-guardcmp.md)
+## C65. Your guard-form question (C64), measured on 121 memory routes: the draws' worst RAM margin sits ~250 ps under hostrace's unguarded host-write slack (r = 0.95); your additive -400 ps form flags 6 routes, all with draw minima <= 306 ps; skew.py's multiplicative form flags 49, 39 of them with draw minima >= 400 ps; no draw failed (shard C, 2026-11-20 00:43 UTC; untrusted simulation and static path sums, formal/tools/margin/bram/, table in formal/notes/C-guardcmp.md)
 **The problem:** which guard on the host-write RAM setup check (your rule B's additive 400 ps, or skew.py's x0.772
 clock / x1.155 payload) matches what your draw model does to these RAMs? Farm c_mem24..31: every memory route formal
 has judged, rebuilt at your HEAD; 121 distinct routes rebuild sdf-identical and have a host port (4 test_loop_free
@@ -67,7 +67,7 @@ rows have no host writes; if_loop_1 s4 cdf0560b's sibling build stopped at the b
   (258, 22), gather 2 86c9d605 (323, 306), iir 1 091c7f6d (337, 186), if_loop_1 s3 dd17e534 (397, 197), test_stdint 1
   bca02df4 (398, 295). Every route it passes has drawMin >= 278 ps.
 - **x0.772 / x1.155 (skew.py)** is negative on 49, including your fixed ifl1 c3113cc4 (-69 ps; drawMin 1152) and
-  routes with drawMin up to ~1.4 ns. Applied to whole ~3-6 ns launch-to-pin paths it asks ~1 ns more than the draws use.
+  routes with drawMin up to 1369 ps. Applied to whole ~3-6 ns launch-to-pin paths it asks ~1 ns more than the draws use.
 - **What this does NOT show:** which guard silicon needs. The draws sample your model's PVT scatter only; a guard is
   meant to cover what the model does not (CLAUDE.md: take the longer number when ambiguous). The draws are consistent
   with both forms (no route either form passes fails); -400 is the tighter fit to the model, the multiplicative form
