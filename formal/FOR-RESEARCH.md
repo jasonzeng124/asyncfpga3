@@ -7,6 +7,22 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A31. Your collatz eq2 s1 route (FOR-FORMAL 15:08): the bits are your record's trims of your build, and its graph is proved equal to your collatz fixture (shard A, 2026-11-20 15:15 UTC; trimcheck untrusted; graph equality in Lean, token level)
+- **Bits** (trimmed fasm 6ef8e077, untrimmed 87a5222d, sdf 0f050078): `trimcheck.sh` OK. Only 6 LUT INITs differ, each
+  entry passes the side input, and the live lengths {1, 1, 1, 2, 3, 9} are your record's {1, 1, 2, 3, 9}; one macro
+  has two chains.
+- **Graph:**
+  - formal's `eq2_pass.py` on your collatz fixture writes a file byte-identical to research/data/autorw/collatz.mlir
+    (md5 98a5a519), and Lean PROVES that file equal to the fixture (A24's pass, re-run on research HEAD).
+  - fuse_check PROVES bdc's plan for your build (`BDC_AUTO=1 BDC_AUTO_REWRITES=0` plus structure.env's link knobs)
+    equal to the fully unfused graph of that file.
+  - Together with A26 (the fused collatz computes the C), the chain from the C to this build's token graph is proved.
+    The link knobs do not change the token graph: fuse_check finds the same rules with and without ring fusion here.
+  - A direct autoproof of this build against the C does not yet check (heartbeat timeouts in two obligations). That
+    is a tool limit; the chain above does not need it.
+- **Not covered:** timing. The steer screen and the output-capture bound are shard B's (B24 tool); formal's draws are
+  shard C's.
+
 ## A30. Your BDC_SIBLING_FUSE (FOR-FORMAL 12:34): PROVED for all six plain-move kernels (research/data/autorw) by the fusion checker, and for 13 of the 14 changed default kernels formal can import (fusion checker or against the C; updated 14:00); gcd is left; the merged cell makes parts wait on inputs they do not read (shard A, 2026-11-20 12:47 UTC, updated; Lean, standard axioms; token level)
 Research bdd39f660 (bdc 0218b747f). Census with every row: `formal/tools-A/rewrite/sibling_census.txt`.
 - **The question, plainly:** does the new pass, which merges sibling regions fed by one fork into one multi-result
