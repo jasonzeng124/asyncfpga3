@@ -14,11 +14,16 @@ For a fusion pass (bdc's region fusion, research's ringfuse): the same MLIR impo
      pass_forward / pass_backward from `runScript_sound`: from tokens on the inputs only, every complete run of A has a
      complete run of B with the same result tokens, and vice versa. `#print axioms`: propext, Classical.choice,
      Quot.sound only.
+Pass 3 (BDC_SIBLING_FUSE=1; runs only when the unconditional pass and the width pass both fail; `sib` in the planner):
+  rf_ext also takes 2-input cells and inputs no part reads (each part waits on its own copy: undedupe), and the unfused
+  side factors its updates the same way (rf_extsplit2). A sibling cell whose part waits on an input of another region
+  that its consumer's test does not read cannot be unpacked by these local steps; the refusal then lists, per packed
+  cell, what each part reads and what it only waits on (join_notes).
 Exit 0: PROVED. 2: refused (normal forms differ, or Lean rejected). 3: A and B import to the same rules.
 NOT covered: dfimport (MLIR -> rules) is trusted Python; nothing below the token level.
 """
 import json, os, re, subprocess, sys, tempfile
-HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
+HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.environ.get('FA_ROOT', os.path.abspath(os.path.join(HERE, '..', '..', '..')))
 LEAN = os.path.join(ROOT, 'formal', 'lean')
 sys.path.insert(0, HERE)
 import plain_pass as PP   # noqa: E402
@@ -95,7 +100,7 @@ def dedupE(ins, a, b, F):
 def swA(a, x, c): return x if c == a else c
 
 class FPlan(Q.Plan):
-    rf = 0; Wi = None; NA = 0
+    rf = 0; Wi = None; NA = 0; sib = False
     def do(self, st):
         k = st[0]; rs = self.rs
         if k == 'dedupe':
@@ -561,26 +566,27 @@ def rf_ext(p, lc, lf, sls, branch_data):
     its copies (flatten, dedupe: it reads one copy of X and one of Y), and each data copy stops waiting for the other
     part (unjoin; JoinExt). Returns True if done (False: nothing changed)."""
     R = p.rs; r = R[lc]; ins = list(r[1]); H = r[3]
-    if len(ins) < 3 or p.Wi is None: return False
+    if len(ins) < (2 if p.sib else 3) or p.Wi is None: return False
     sh = ext_shape(R, lc, sls, branch_data)
     if sh is None: return False
     if not (H[0] == 'bin' and H[1] == ('addi',) and H[4][0] == 'bin' and H[4][1] == ('shli',) and H[4][4][0] == 'lit'):
         return False
     WW = H[2]; A = H[3]; B = H[4][3]; w0 = H[4][4][1]
     vA, vB = vars_of(A), vars_of(B)
-    if not vA or not vB or (vA | vB) != set(range(len(ins))): return False
+    waits = sorted(set(range(len(ins))) - (vA | vB))   # (pass 3) inputs no part reads: each part waits on a copy
+    if not vA or not vB or (waits and not p.sib): return False
     # the slices must unpack to A and B (one each) on the cell's own inputs (Lean checks them again on X and Y)
     W = infer_W(R, p.Wi, p.NA); ws = [wOf(W, c) for c in ins]
     got = [unslice_nw(ws, 8, Q.subst(R[s][3], [H])) for s in sls]
     if sorted(map(repr, got)) != sorted(map(repr, [A, B])): return False
-    shared = sorted(vA & vB)
+    shared = sorted((vA & vB) | set(waits))
     for i in shared:   # every shared input must come from a fork the cell alone reads from (or have no other reader)
         ch = ins[i]; Wc = Q.writers(R, ch)
         if Q.readers(R, ch) != [lc]: return False
         if not (len(Wc) == 1 and R[Wc[0]][0] == 'fork'):
             if ch < p.NA: return False
-    # 1. a second copy of each shared input, read by B
-    Bv = B
+    # 1. a second copy of each shared input, read by B (a wait: A waits on the old copy, B on the new one)
+    Bv = B; xA, xB = [], []
     for i in shared:
         ch = R[lc][1][i]; Wc = Q.writers(R, ch)
         if not (len(Wc) == 1 and R[Wc[0]][0] == 'fork'):
@@ -593,9 +599,10 @@ def rf_ext(p, lc, lf, sls, branch_data):
         F2 = ('bin', ('addi',), WW, A, ('bin', ('shli',), WW, Bv, ('lit', w0)))
         p.do(('undedupe', lfk, lc, ch, b, list(R[lfk][2]) + [b], cur + [b], F2))
         comps_first(p, lfk)
+        if i in waits: xA.append(ch); xB.append(b)
     # 2. Y = comp as_B B, X = comp as_A A, the cell reads [X, Y]
     cur = list(R[lc][1]); F = R[lc][3]
-    aA = [cur[i] for i in sorted(vars_of(F[3]))]; aB = [cur[i] for i in sorted(vars_of(F[4][3]))]
+    aA = [cur[i] for i in sorted(vars_of(F[3]))] + xA; aB = [cur[i] for i in sorted(vars_of(F[4][3]))] + xB
     if set(aA) & set(aB) or set(aA) | set(aB) != set(cur): return False   # (cannot happen after step 1)
     ins2 = aA + aB
     if ins2 != cur: p.do(('reorder', lc, ins2))
@@ -681,7 +688,7 @@ def rf_unpack(p):
             hit = (lc, lf, [a[0] for a in sl]); break
         if hit is None: return done
         lc, lf, sls = hit; fac = None
-        if len(R[lc][1]) >= 3 and ext_shape(R, lc, sls, branch_data) is not None:   # an external test (rf_ext)
+        if len(R[lc][1]) >= (2 if p.sib else 3) and ext_shape(R, lc, sls, branch_data) is not None:   # an external test (rf_ext)
             if rf_ext(p, lc, lf, sls, branch_data): done += 1
             else: skip.add(lc)
             continue
@@ -777,6 +784,7 @@ def rf_split(p):
     for lc in range(len(R)):
         r = R[lc]
         if r[0] != 'comp' or len(r[1]) not in (1, 2) or len(set(r[1])) != len(r[1]): continue
+        if r[2] in getattr(p, 'nosplit', ()): continue   # (pass 3) already split by rf_extsplit2
         rd = Q.readers(R, r[2])
         if len(rd) != 1 or R[rd[0]][0] != 'fork' or len(R[rd[0]][2]) != 2: continue
         lf = rd[0]; s0, s1 = R[lf][2]
@@ -880,6 +888,42 @@ def rf_extsplit(p):
             p.do(('absorb', lt, T))
         done += 1
 
+def rf_extsplit2(p):
+    """(BDC_SIBLING_FUSE, pass 3) Unfused side of `rf_ext` when the parts are plain updates: a two-input test
+    `T = comp [t0, t1]` whose inputs are each the copy of a two-way fork `fork X [d, t]` of an update `U = comp ins X F`,
+    `d` the data of a branch. Each update is factored as `comp [p] X v0` after `comp ins p F` (unabsorb), moves after
+    its fork (forkcomm), and the test absorbs its copy: as on the fused side after rf_ext. Returns the number of tests."""
+    R = p.rs; done = 0; seen = set()
+    def shape(lt):
+        r = R[lt]
+        if r[0] != 'comp' or len(r[1]) != 2 or len(set(r[1])) != 2: return None
+        us = []
+        for tc in r[1]:
+            W = Q.writers(R, tc)
+            if len(W) != 1 or R[W[0]][0] != 'fork' or len(R[W[0]][2]) != 2 or Q.readers(R, tc) != [lt]: return None
+            lfu = W[0]; X = R[lfu][1]; WU = Q.writers(R, X)
+            if len(WU) != 1 or R[WU[0]][0] != 'comp' or R[WU[0]][3] == ('var', 0): return None
+            d = [o for o in R[lfu][2] if o != tc][0]; b = Q.readers(R, d)
+            if len(b) != 1 or R[b[0]][0] != 'branch' or R[b[0]][2] != d: return None
+            us.append(X)
+        return us
+    while True:
+        hit = next(((lt, sh) for lt in range(len(R)) if lt not in seen for sh in [shape(lt)] if sh is not None), None)
+        if hit is None: return done
+        lt, us = hit; cT = R[lt][2]
+        for X in us:
+            lu = Q.writers(R, X)[0]; ins = list(R[lu][1]); F = R[lu][3]
+            pc = fresh(R); p.nosplit = getattr(p, 'nosplit', set()) | {pc}
+            p.do(('unabsorb', lu, [], ins, pc, F, ('var', 0)))
+            lfu = Q.readers(R, X)[0]; L1 = len(R); e = fresh(R); os_ = list(R[lfu][2])
+            p.do(('forkcomm', lu, lfu, e + 1, e + 2))      # lu: fork pc [..]; lfu: comp -> os_[0]; L1: comp -> os_[1]
+            T = Q.writers(R, cT)[0]
+            lc_ = lfu if Q.readers(R, os_[0]) == [T] else L1
+            oc = R[lc_][2]; it = list(R[T][1])
+            if it[-1] != oc: p.do(('reorder', T, [c for c in it if c != oc] + [oc]))
+            p.do(('absorb', lc_, T))
+        seen.add(Q.writers(R, cT)[0]); done += 1
+
 def rf_litpush(p):
     """A literal comp `comp [k] o (lit v)` whose fork feeds comps that only wait on it (BDC_CONST_DATA already put
     the literal in their expressions): one literal comp per copy (forksplit / forkcomm), each then absorbed into its
@@ -941,8 +985,8 @@ def rf_canon_forks(p):
         for slot, j in zip(pos, order): new[slot] = os_[pos[j]]
         if new != os_: p.do(('forder', lf, new))
 
-def normal_form(rs, rf=None, wi=None, ext=0):
-    p = FPlan(rs); R = p.rs
+def normal_form(rs, rf=None, wi=None, ext=0, sib=False):
+    p = FPlan(rs); R = p.rs; p.sib = sib
     if wi is not None: p.Wi, p.NA = wi
     # BDC_CONST_DATA's move, on both sides: a comp reads a constant-only channel as the literal
     for l, r in enumerate(R):
@@ -988,6 +1032,7 @@ def normal_form(rs, rf=None, wi=None, ext=0):
     if rf == 'unpack': p.rf = rf_unpack(p)
     elif rf == 'split':
         if ext and p.Wi is not None: p.rf = rf_extsplit(p)   # the other side unpacked a cell with an external test
+        if ext and p.Wi is not None and p.sib: p.rf += rf_extsplit2(p)   # (sibling fusion) the updates themselves
         p.rf += rf_split(p)
     lp = rf_litpush(p) if (rf and p.Wi is not None) else 0
     if p.rf or lp: fuse_loop()
@@ -1080,6 +1125,30 @@ TEMPLATE_W = (TEMPLATE_RF.replace('import Formal.Rewrite.Steps.ScriptRF', 'impor
               .replace('#print axioms Eq2CheckRun.pass_backward\n', '#print axioms Eq2CheckRun.pass_backward_w\n'))
 assert TEMPLATE_W.count('inP_mk h0 hW') == 4 and TEMPLATE_W.count('(hW :') == 2 and TEMPLATE_W.count('pass_forward_w') == 2, TEMPLATE_W
 
+def join_notes(R, side):
+    """(Diagnostics only, after a refusal) Each packed multi-result cell of R: per part (its slice applied to the
+    cell's expression, narrowed by `unpack` / with the largest width), the cell inputs it reads and those it only waits
+    on. A sibling-merged cell (BDC_SIBLING_FUSE) makes a part wait on inputs of another region; the planner can remove
+    such a wait only by JoinExt (the branch that consumes the part is steered by a test that reads a copy of the input)."""
+    out = []
+    for lc, r in enumerate(R):
+        if r[0] != 'comp': continue
+        rd = Q.readers(R, r[2])
+        if len(rd) != 1 or R[rd[0]][0] != 'fork': continue
+        sl = [Q.readers(R, z) for z in R[rd[0]][2]]
+        if not all(len(a) == 1 and R[a[0]][0] == 'comp' and len(R[a[0]][1]) == 1 for a in sl): continue
+        parts = []
+        for a in sl:
+            e = unslice_nw([64] * len(r[1]), 8, Q.subst(R[a[0]][3], [r[3]]))
+            if contains(e, r[3]): parts = None; break
+            parts.append(sorted(vars_of(e)))
+        if not parts or len(parts) < 2: continue
+        n = len(r[1])
+        txt = '; '.join('part %d reads %s waits %s' % (k, [r[1][i] for i in v], [r[1][i] for i in range(n) if i not in v])
+                        for k, v in enumerate(parts))
+        out.append('fuse_check: note (%s): packed cell at rule %d, inputs %s: %s' % (side, lc, list(r[1]), txt))
+    return out
+
 def refuse(why):
     print('fuse_check: REFUSED -- ' + why); return 2
 
@@ -1149,13 +1218,16 @@ def run(fa, fb, ea, eb, tmp):
     # with the width map (width-checked steps; the theorems then carry the width assumption).
     n1, n2 = os.path.join(tmp, 'nf1.lean'), os.path.join(tmp, 'nf2.lean')
     mp = os.path.join(tmp, 'maps.json')
-    for w in ([None, wi] if wi is not None else [None]):
+    # Pass 3 (BDC_SIBLING_FUSE) runs only if passes 1 and 2 fail: the sibling-merge moves of the planner (`sib`).
+    passes = [(None, False), (wi, False), (wi, True)] if wi is not None else [(None, False)]
+    for pi_, (w, sib) in enumerate(passes):
+        last = pi_ == len(passes) - 1
         try:
-            pa, pb = normal_form(Ra, 'unpack', w), normal_form(Rb, 'unpack', w)
-            if pb.rf and not pa.rf: pa = normal_form(Ra, 'split', w, getattr(pb, 'ext', 0))
-            elif pa.rf and not pb.rf: pb = normal_form(Rb, 'split', w, getattr(pa, 'ext', 0))
+            pa, pb = normal_form(Ra, 'unpack', w, 0, sib), normal_form(Rb, 'unpack', w, 0, sib)
+            if pb.rf and not pa.rf: pa = normal_form(Ra, 'split', w, getattr(pb, 'ext', 0), sib)
+            elif pa.rf and not pb.rf: pb = normal_form(Rb, 'split', w, getattr(pa, 'ext', 0), sib)
         except AssertionError as ex:   # a planner step did not apply: no plan from this pass
-            if w is wi or wi is None: return refuse('planner: %s' % ex)
+            if last: return refuse('planner: %s' % ex)
             continue
         open(n1, 'w').write('def rules : List Rule := ' + PP.ser_rules(pa.rs) + '\n')
         open(n2, 'w').write('def rules : List Rule := ' + PP.ser_rules(pb.rs) + '\n')
@@ -1163,7 +1235,9 @@ def run(fa, fb, ea, eb, tmp):
         if ri.returncode == 0: break
     WMODE = any(st[0] in W_STEPS for st in pa.steps + pb.steps)
     RF = bool(pa.rf or pb.rf or getattr(pa, 'rfs', 0) or getattr(pb, 'rfs', 0))
-    if ri.returncode != 0: return refuse('normal forms differ: ' + ri.stdout[-300:])
+    if ri.returncode != 0:
+        for ln in join_notes(Ra, 'A') + join_notes(Rb, 'B'): print(ln)
+        return refuse('normal forms differ: ' + ri.stdout[-300:])
     m = json.load(open(mp))
     ch = {int(a): b for a, b in m['chan'].items()}; ru = {int(a): b for a, b in m['rule'].items()}
     K = max(list(ch) + list(ch.values())) + 1

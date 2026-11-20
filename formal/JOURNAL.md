@@ -3626,3 +3626,17 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   collatz unchanged). Formal/Rewrite/Sibling/*.lean; check.sh OK, 1756 declarations. isprime not proved.
 * mr_verilog_check 20 / 20 OK; mr_expr_check 33 cells OK (untrusted). sibling_census.txt.
 * Subagent (scratch, no git) extending the fuse_check planner to the sibling cells: running.
+### progress 13:05 -- sibling fusion: fuse_check now proves sqrtsub and iterative_division too (width assumption); the other 10 are refused for a structural reason (subagent 3, re-verified here)
+* Subagent changes merged into tools-A/rewrite/fuse_check.py. A third pass runs only when the first two fail:
+  rf_ext takes 2-input cells and pure-wait inputs (undedupe copies), plus a new rf_extsplit2 and join_notes. ROOT
+  is kept relative to the script (the subagent hard-coded /home/user, reverted). New sibling_rsim.py: a rule-level
+  differential simulator.
+* Re-verified here: sqrtsub PROVED (width, Wi [32,0]); iterative_division PROVED (width, [32,32,0]). Ring-fusion
+  regression: xorshift PROVED. Control: sqrtsub part_plus1 REFUSED. countloop refused, with the note "part 1 reads
+  [30, 43] waits [33, 38]". sibling_rsim on countloop: all agree.
+* Why the 10 refusals are not counterexamples, and why they cannot be closed locally: the merged cell's join makes a
+  part wait on inputs it does not read. In an open context where such an input never comes, the unfused graph still
+  fires the test and the fused one does not, so no local step is sound. In the closed loop the graphs agree (rsim on
+  all 10, no proof). A global lockstep argument is new Lean (not started).
+* FOR-RESEARCH A30 update: the wait matters for speed (on countloop the loop test now waits on the accumulator's
+  operands).

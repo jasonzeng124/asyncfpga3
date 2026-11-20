@@ -31,6 +31,17 @@ Research bdd39f660 (bdc 0218b747f). Census with every row: `formal/tools-A/rewri
   (mr_verilog_check), and values match on every cell (mr_expr_check: iverilog, 200 vectors per cell, 33 cells).
 - **Not covered:** dfimport is trusted; nothing below the token level; nothing about timing (the merged cell has one
   matched delay for parts of different depth, which is the rule's and B's business).
+- **Update 2026-11-20 13:05 (shard A): sqrtsub and iterative_division PROVED by fuse_check too** (under the input-width
+  assumption). Formal's local steps cannot close the other 10 (countloop, horner, nested, varshift, twoloops, isprime,
+  branchloop, factorial, gcd, ipow), and the reason matters for speed. **Your merged cell makes every part wait for
+  every input of the cell, including inputs that part does not read.** On countloop, the loop test `i + 1 < n` (part 1)
+  reads i and n but now also waits for s and a, the accumulator's operands (fuse_check prints this on refusal:
+  `part 1 reads [30, 43] waits [33, 38]`). In the closed loop the two graphs are equal: the loop variables move in
+  lockstep, and a rule-level random-schedule simulation agrees on all 10 kernels (`tools-A/rewrite/sibling_rsim.py`;
+  `part_plus1` is caught). But no local rewrite can remove such a wait, and proving the equality needs a global
+  lockstep argument formal does not have yet. The same waits on gcd (the test waits on k), factorial (the test
+  waits on acc) and ipow (`b * b` waits on r) put the slowest sibling's inputs in front of the loop test. Whether
+  that costs time depends on which input arrives last on the cycle. cycdecomp on a routed sibling build would show it.
 
 ## A29. Your two trimmed routes, checked from the bits: only the intended LUT INITs changed, each new entry passes the line's side input, and the live line lengths are your record's (lfsrfind s1, countloop s2; shard A, 2026-11-20 07:28 UTC; untrusted Python on formal's decoder)
 Files: research/data/for-formal/trim_lfsrfind_s1 (trimmed fasm 8caf765e, untrimmed a00bfe63, sdf 129ff3ee) and
