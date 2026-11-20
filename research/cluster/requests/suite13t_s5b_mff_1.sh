@@ -4,7 +4,7 @@
 # exactly (suite13t_s5a_v10_*'s environment) plus BDC_MEM_FASTFALL=1, on the 30 suite kernels it changes (every kernel
 # with a memory port under BDC_AUTO=1: bdc/mem.py emits cells/rtl/optin/bd_mem_ff.v, the port's two lines rising
 # through DSETUP / DCO and falling in one element; research/data/suite/memauto.md section 4 has the safety argument),
-# seed 1. The control is v10's same (kernel, seed). Loop state in $SHARED/state_mff.
+# seed 1. The control is v10's same (kernel, seed). Loop state in $SHARED/state_mff. (2026-11-20 20:55 UTC: parts 3-4 withdrawn; seeds 1-2 = 60 routes are the A/B, the farm's time goes to flow v11.)
 # Local evidence (one seed each, v9 + trim, through the loop): gather s1 54.19 -> 37.72 ns trimmed (suite13t's route,
 # untrimmed and trimmed the same; the FASTFALL loop it 4, 4 / 4 draws), fill s1 30.40 -> 29.81 ns; single routes on the
 # base loops' sizes (memauto.md): gather s1 -6.0 %, gather s2 -8.0 %, fill s2 -12.7 %.
