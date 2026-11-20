@@ -8884,3 +8884,22 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   finish route of each is made rule-clean by the trim step alone (its rows are on lines that are now trimmable), or the
   second is; every draw passes with no pulse under 1 ns; on factorial the trimmed P within +-8 % of v10's NOT CLEAN
   route's slope figure (25.35 ns, suite13t).
+### progress 21:20 (STATE OF PLAY -- read this first if the session ends here)
+- **Headline:** still suite13t (flow v9 + trim, 42 of 62). Next: **flow v10** (suite13t_s5a_v10_*: 1a done but gcd s1;
+  1b done but 3 restarted tasks; 2a / 2b running; 3a / 3b / 4a / 4b waiting; resume parts 1a_r1 (submitted) and 1b_r1
+  (filed 21:12); 5sv = sobel / video_filter under v10 (filed)). File each part's resume with `python3
+  research/tools/suite/mk_resume.py --running-ok <results dir> r1 <part>` once its tasks have timed out; then r2 on the
+  r1 parts. Regenerate the table over all v10 parts + resumes when they are in (suite_table.py, as the headline's
+  command line says), with dyn_apply.py's measured Dynamatic figures written first (below).
+- **Dynamatic routed (new):** research/tools/suite/dyn_all.sh running over the suite (/tmp/bot/dynroute, summary2.txt;
+  xorshift 11.48, collatz 13.79, collatz64 16.90, ipow 9.12 ns periods, 4 seeds each, exports checked exact). When it
+  ends: `python3 research/tools/suite/dyn_apply.py /tmp/bot/dynroute` (dry run), then --write; commit the two tables
+  and the per-kernel route.txt / vsim.txt under research/data/suite/dynamatic/routed/. If /tmp was lost: rerun dyn_all.sh
+  (about 5 min per kernel when the node is quiet).
+- **Convergence:** overbuild alone does not reach the rows on symmetric lines (2 of 2 first trim checks not clean, 9
+  runs still going in /tmp/bot/runs/ob). BD_SYMTRIM (c0f2bab80, opt-in) makes them trimmable; loops sym test_loop_free
+  s1 / factorial s1 (/tmp/bot/runs/sym) test it with overbuild; prediction in the 21:18 note. A regression rebuild of
+  v10's straight s1 at the new head (must give sdf 3aee4aab) is running in /tmp/bot/regchk.
+- **Farm queue after v10:** mff_1 / mff_2 (v10 + BDC_MEM_FASTFALL, seeds 1-2), sibb (v10 + BDC_SIBLING_FUSE, 17 kernels x
+  seeds 1-2), then flow v11 (to be filed: v10 + AUTO_RACE_KEEP + cache_v11 (brhash, nested) + sobel / video_filter,
+  + overbuild / SYMTRIM / mff / sibling if their evidence holds).
