@@ -8438,3 +8438,26 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
 - cluster: **farm node node-c1 fails every task at container creation** ("mount proc ... operation not permitted",
   5 s): exit1 tasks 91 / 105, suite13t_s1a 16 / 19, suite13t_s2a 9 / 10 / 25 / 26 so far. A rerun request for them
   goes in when the suite13t waves are submitted.
+### progress 12:00 (STATE OF PLAY -- read this first if the session ends here)
+- **Headline** (research/data/fifteen/README.md top): a kernel passes only on a rule-CLEAN route whose draws had no pulse
+  under 1 ns; 34 of 62 on the old flows' routes. **Next headline = suite13t** (v9 + the trim step; farm requests
+  suite13t_s1a..s4b, 30 tasks each, 4 parts running / 4 waiting at 12:00; regenerate with research/tools/suite/
+  suite_table.py over the 8 parts + suite13t_s5_rerun1). /tmp/bot/scripts/s13t_status.sh (local) shows the trim's
+  effect per route so far: -3 to -16 % (collatz s1 / s2 -7.8 / -8.1, collatz64 -13.0 / -15.9, xorshift -4.0 / -6.4,
+  countloop -2.9 / -10.3, lfsrfind -7.0 / -10.7); 8 of ~45 routes NOT CLEAN.
+- **Farm queue (mine):** suite13t_s1c_arw (formal's proved loop-test passes, 8 kernels x 4 seeds; prediction in it),
+  suite13t_s5_rerun1 (the 8 tasks node-c1 lost). exit1: 138 of 140.
+- **Local, in flight:** (1) the proved-rewrite loops xorshift s1 / collatz s1 (SUITE_TAG=arw; both CLEAN at it 7, then
+  killed by my in-place edit of auto_size.sh; resumed 11:59 with AUTO_RESUME=/tmp/bot/runs/resume/arw_*); (2)
+  BDC_MEM_FASTFALL loops gather s1 (resumed the same way) / fill s1; (3) AUTO_TRIM_SCOPE=cycle on suite13t xorshift s1 /
+  ipow s1 (/tmp/bot/tscope, trim_farm.sh); (4) formal B26: race_find on exit1 twoloops s2 / fold64 s1, then quadrec s3
+  rebuilt WITH its search structure (BDC_FORK_OUT_LINK=..., the first rebuild missed it: SDF MISMATCH); (5) C68's last
+  slow-carry draw.
+- **Decided / done this session:** C68 (NOT CLEAN routes are UNFINISHED; reproduced: our GLS pulses at formal's hang
+  nets in 10 of 31 draws, every answer right); B21 (our GLS loses the race under formal's assignment, answers right;
+  the draw model loses it ~2e-5; no flow change); the CARRY4-tracking line (measured ~0.7 ns on xorshift: dropped);
+  the static rules under the model (research/data/ssta/README.md: trims bring their lines' constraints to 2.4-3.5 sd).
+- **Next:** read tscope (adopt AUTO_TRIM_SCOPE=cycle if xorshift keeps its trim gain and ipow trims nothing); read the
+  arw loops and suite13t_s1c_arw (if the proved passes pay, AUTO_PROVED_RW=1 joins the next flow; the farm needs
+  formal's lake cache: $SHARED/lake/a65e684bd52b.tar, key = md5(lean-toolchain + lake-manifest.json)[:12]); exit1 vs
+  suite13t (research/tools/suite/pair_cmp.py) for the != knob; then flow v10 on the farm.
