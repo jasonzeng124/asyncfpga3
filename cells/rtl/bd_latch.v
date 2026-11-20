@@ -113,12 +113,25 @@ module bd_delay #(parameter N = 4, parameter FASTFALL = 0,
                   parameter FASTRISE = 0)
                  (input wire a, output wire z);
     // AND with the input flushes the fall; OR with it flushes the rise.
-    localparam [3:0] SIDE_INIT = FASTRISE ? 4'hE : 4'h8;
+    // BD_SYMTRIM (opt-in define, 2026-11-20; undefined, every line below is built as before): a symmetric line is
+    // built like the fast lines -- g[0] a LUT1, g[1..N-1] LUT2s whose side input is the line's input -- but with
+    // INIT 4'hA (O = I0: the chain input, the side input unused), so it delays both edges through N elements exactly as
+    // the LUT1 chain does, and research/tools/auto/trim_lines.py can make any g[k] its entry after routing (INIT 4'hC,
+    // O = I1) on the same placement and routes.  Why: the sizing loop's finish phase chases rows that a re-route moves
+    // by ~0.5 ns (research/data/converge/notes.txt); AUTO_OVERBUILD builds lines long and trims them back by bits on
+    // the route they land on, but on v10's NOT CLEAN loops the rows left short sat on symmetric lines (link request
+    // lines, _SDELAY stage delays, RAM usetup / uco) the trim could not move (research/JOURNAL.md 2026-11-20 21:10).
+`ifdef BD_SYMTRIM
+    localparam SYMT = 1;
+`else
+    localparam SYMT = 0;
+`endif
+    localparam [3:0] SIDE_INIT = FASTRISE ? 4'hE : (FASTFALL ? 4'h8 : 4'hA);
     generate
         if (N == 0) begin : bypass
             assign z = a;
         end
-        if (N != 0 && !FASTFALL && !FASTRISE) begin : `BD_DELAY_SYM_CHAIN
+        if (N != 0 && !FASTFALL && !FASTRISE && !SYMT) begin : `BD_DELAY_SYM_CHAIN
             (* keep *) wire [N:0] s;
             assign s[0] = a;
             genvar i;
@@ -127,7 +140,7 @@ module bd_delay #(parameter N = 4, parameter FASTFALL = 0,
             end
             assign z = s[N];
         end
-        if (N != 0 && (FASTFALL || FASTRISE)) begin : `BD_DELAY_FAST_CHAIN
+        if (N != 0 && (FASTFALL || FASTRISE || SYMT)) begin : `BD_DELAY_FAST_CHAIN
             (* keep *) wire [N:0] s;
             assign s[0] = a;
             genvar i;

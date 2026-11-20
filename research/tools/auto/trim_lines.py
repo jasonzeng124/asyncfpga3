@@ -27,6 +27,9 @@ import fasm_audit as FA  # noqa: E402
 
 RE_EL = re.compile(r"^(?P<base>.+)\.chain\.g\[(?P<i>\d+)\]\.u$")
 AND, OR, SIDE = "1000", "1110", "1100"
+# a symmetric line built with BD_SYMTRIM (cells/rtl/bd_latch.v, opt-in): g[k >= 1] LUT2s with INIT 1010 (O = I0, the
+# chain; the side input unused), trimmed like the AND / OR lines by making one element pass its side input (1100)
+SYM = "1010"
 
 
 def knob_of_base(base, last_stage):
@@ -76,6 +79,9 @@ def list_lines(rj):
     # a link's acknowledge line (rtl/bd_link.v: uack is FASTFALL / FASTRISE in every variant) and a bdc compute unit's
     # request line (bdc/compute.py request_delay: bd_delay_gated under BDC_FASTFALL, the default); any other
     # 1-element line is "unknown".
+    symt = "BD_SYMTRIM" in os.environ.get("BD_DEFINES", "") or any(
+        cells[n]["parameters"].get("INIT") == SYM and cells[n]["attributes"].get("X_ORIG_TYPE") == "LUT2"
+        for els in chains.values() for n in els.values())
     gated = re.compile(r"^bridge_i\.udut\.u(?:addi|subi|muli|cmpi|andi|ori|xori|shli|shrsi|shrui|select|divui|divsi|"
                        r"remui|remsi|minui|maxui|minsi|maxsi)\d+\.udly$")
     out = {}
@@ -83,10 +89,11 @@ def list_lines(rj):
         mac = macro(knob_of_base(b, last_stage))
         N = max(els) + 1
         if N == 1:
-            k = "trimmable" if (b.endswith(".uack") or gated.match(b)) else "unknown"
+            # under BD_SYMTRIM every bd_delay line is a side-input line once it is longer than one element
+            k = "trimmable" if (b.endswith(".uack") or gated.match(b) or symt) else "unknown"
         else:
             ok = sorted(els) == list(range(N)) and all(
-                cells[els[i]]["attributes"].get("X_ORIG_TYPE") == "LUT2" and cells[els[i]]["parameters"].get("INIT") in (AND, OR, SIDE)
+                cells[els[i]]["attributes"].get("X_ORIG_TYPE") == "LUT2" and cells[els[i]]["parameters"].get("INIT") in (AND, OR, SIDE, SYM)
                 for i in range(1, N))
             k = "trimmable" if ok else "symmetric"
         t, n = out.get(mac, (k, N))
@@ -156,7 +163,7 @@ def main():
                 done.append("%s %s: %d -> %d (restored)" % (mac, b, cur, L))
                 continue
             c = cells[els[i]]
-            if c["attributes"].get("X_ORIG_TYPE") != "LUT2" or c["parameters"].get("INIT") not in (AND, OR):
+            if c["attributes"].get("X_ORIG_TYPE") != "LUT2" or c["parameters"].get("INIT") not in (AND, OR, SYM):
                 bad.append("%s: %s g[%d] is %s INIT %s, not a side-input LUT2 (a symmetric line cannot be trimmed)"
                            % (mac, b, i, c["attributes"].get("X_ORIG_TYPE"), c["parameters"].get("INIT")))
                 continue

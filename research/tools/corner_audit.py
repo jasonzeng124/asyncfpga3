@@ -997,7 +997,7 @@ def chain_geometry(T, sdf):
             if TRIM and m:
                 side_ok[m.group("base")][int(m.group("i"))] = (
                     c.get("attributes", {}).get("X_ORIG_TYPE") == "LUT2"
-                    and c.get("parameters", {}).get("INIT") in ("1000", "1110", "1100"))
+                    and c.get("parameters", {}).get("INIT") in ("1000", "1110", "1100", "1010"))   # 1010: BD_SYMTRIM
     geo = {}
     for base, links in chains.items():
         full = links
