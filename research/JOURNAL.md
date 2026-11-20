@@ -8272,3 +8272,36 @@ Farm: exit1 running (21 of 140 back at 06:20); suite13 (240 tasks) waits for roo
   instance, so this replay is weaker than formal's on the last hop). Controls: all at 0.06; the two sides swapped.
 - lfsrfind s1 trimmed route at bench_gate's `worst` corner (chains 0.21, rest 0.288, CARRY4 / F7 / FF / RAM at
   SLOW_MAX, scatter): PASS 10/10, no pulse under 1 ns.
+
+## Session 2026-11-20 09:03 UTC -- cluster-research-29671222-1, third start (job requeued again: ends 2026-11-22 09:02 UTC; fresh /tmp): the headline counts a kernel only on a rule-CLEAN route (formal C68): 34 of 62, 25 UNFINISHED
+Lock: cluster-research-29671222-1 at 08:41 (this wrapper's previous session, same id); taken 09:03 UTC.
+cluster: /tmp/bot was recreated at 09:02 UTC (job requeued under the same id): the previous session's local work (the B21
+replay in /tmp/bot/b21, the overbuild loops, draws on trimmed horner s1 / capfix1 mul_example s2, the margin study K = 3,
+5, 8) is lost; only what was pushed survives. Farm results copied to /tmp/bot/farmres (origin/claude/cluster c6a1972fc).
+Toolchain: patches.sha 0d42657914fc25d3, nextpnr 6e5d224472232d5d (cells/verify/toolchain.sh all ok, 09:04 UTC)   Seeds: per item
+Audit: no new rows for research since T171 (its 01:35 update is about formal's tool). Formal: A28 (exit-test knob: 12
+fixtures proved; gcd's graph differs on C-overflow inputs), A29 (trimmed bits = the record), B20-B23 (trim / latch-fed
+steer races), C67-C69 (exitcond fixtures live; trimmed routes pass formal's draws; **C68: exit1 spmv s1, a NOT CLEAN
+route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
+### progress 09:19 (C68 taken: a NOT CLEAN route is not a pass; the headline corrected; replays of C68 and B21 running)
+- **suite_table.py** (386712f62): a kernel passes only with a judged rule-CLEAN route and every draw on every judged route
+  right; a kernel judged only on routes its loop left NOT CLEAN is UNFINISHED, counted apart. Latency (and its ratio)
+  over clean routes where there are any, as P already was. **Headline regenerated from the same request list at
+  origin/claude/cluster c6a1972fc: 34 of 62 pass (was 59 of 62), 25 UNFINISHED, 2 NO RESULT, 1 NOT-A-BOARD-ROUTE.**
+  Ratio means unchanged (1.69 measured n = 3; 1.05 with estimates n = 22): they were over clean routes already. Latency
+  ratio 1.22 (n = 19), was 1.38 (n = 31). stencil_2d gained a clean route since the 20:03 copy (PASS); its P (408 ns) is
+  the outer loop's against Dynamatic's innermost cycle (4.66 cycles of 3 loops), so its ratio (10.09) is out of the
+  means, as isprime's. Why: formal C68 (4 draws miss a 1-in-3 hang 18 % of the time) and auditor T161's rule.
+- **suite13t split** (88961fc43) into suite13t_s1a .. s4b (30 tasks each, same flow / kernels / seeds): the 240-task
+  request waited behind the 250-task account limit with exit1's 46 tasks running; 30-task requests start as room frees.
+- **C68 replay running here:** exit1 spmv s1 rebuilt from the farm's sizes_9.vh / seed 1 with the exitcond fixture
+  (research tools: lane2.sh MLIR_OVERRIDE), then 16 default draws (10101-10116) and 16 slow-carry draws (10151-10166,
+  DRAW_CARRY=0.8,1.0), GATE_RUNTS=1. Our draws are not formal's samples (formal applies the per-pip scatter per pin
+  arc), so the question is the failure RATE in our own GLS against formal's ~35 %.
+- **B21 replay running here** (exit1 varshift s1, sdf 00324c96 rebuilt = the farm's): new research/tools/adv_sdf.py
+  writes an SDF with ONE delay per arc from xray_delay.py's four-corner arc table, so formal's race-only adversary is
+  replayed per ARC (the previous session's per-instance bands could not set the two wires into the steer apart). Our
+  arcs on the race: condition ctl -> lat.odd/A5 -> lat.odd -> ucond_br11/A1 -> steer = 958 / 1135 ps (FAST_MIN /
+  FAST_MAX), request ctl -> rdly g[0] -> ucond_br11_j -> ucond_br11/A3 -> steer = 1116 / 1323 ps; formal's 963 / 1140 and
+  1120 / 1327. Adversary (condition at FAST_MAX, request at FAST_MIN, all else mid-FAST): the condition arrives 19 ps
+  after the request (formal 20). Runs: adversary; swapped; all mid-FAST; adversary at the slow corner.
