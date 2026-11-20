@@ -5077,4 +5077,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 0 mismatches, 8 + 8 draws PASS, 600 memory words right. NEGATIVE CONTROL: the D-port DSP's pre-adder flipped to subtract
 (INMODE[3]) in net.json: 0 / 8 pass, 297 / 600 memory words wrong. The other share_test_2 routes go to the farm.
 - 14:06: c_mem47: all 6 share_test_2 routes SAME, 11 DSP sites agree, 32 / 32 each, min 1215 ps. Every suite memory kernel is now drawable. C60 (243).
-- 14:20: newroutes: FIXTURES now from the task's own MLIR md5 (task.txt) against cloud/fixtures/*/K -- research's suite13t_s5_rerun1 mixes exit1 and suite13t tasks in one request, so the per-request guess marked its suite13t memsum 2 as exitcond. c_mem48 = 12 suite13t routes (11 trimmed).
+- 14:17: newroutes: FIXTURES now from the task's own MLIR md5 (task.txt) against cloud/fixtures/*/K -- research's suite13t_s5_rerun1 mixes exit1 and suite13t tasks in one request, so the per-request guess marked its suite13t memsum 2 as exitcond. c_mem48 = 12 suite13t routes (11 trimmed).
