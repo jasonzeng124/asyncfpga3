@@ -70,8 +70,9 @@ the model; the band corners alone in brackets):
 | varshift s1 | 10 (5 steers x 2 halves) | ucond_br11 | 254 +- 59 ps (211-296) | 4.3 | -21 / +25 ps |
 | twoloops s2 | 24 | ucond_br17 | 425 +- 68 (370-479) | 6.2 | +42 / +115 |
 | fold64 s1 | 20 | ucond_br4 / br3 | 322 +- 54 / 303 +- 47 | 6.0 / 6.4 | +66 / +202 |
-| quadrec s3 | (rebuilding with its search-phase structure) | | | | +5 / +10 |
+| quadrec s3 (built with its search structure) | 22 | ucond_br11 | 325 +- 65 (259-391) | 5.0 | +5 / +10 |
 
-varshift's race is the weakest found; the model loses it about 2e-5 of the time and the others are beyond 6 sd.
+varshift's race is the weakest found; the model loses it about 2e-5 of the time; quadrec's is at 5.0 sd (normal tail
+~3e-7), fold64's and twoloops' beyond 6 sd.
 formal's ranking (its fast-corner slack) and the model's agree on varshift being worst, but the model puts the
 other three much further from it than formal's corner does: formal's adversary sits outside the model's band box.
