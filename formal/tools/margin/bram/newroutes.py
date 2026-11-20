@@ -21,7 +21,7 @@ for f in glob.glob(os.path.join(H, "routes_mem*.txt")):
     for l in open(f):
         t = l.split()
         if t and not l.startswith("#") and "NOCAP" not in l:
-            done.add((t[0], t[1], t[3]))
+            done.add((t[0], t[1], t[3], "TRIM=" in l))      # a trimmed route keeps its SDF: judged apart from its build
 files = [p for p in git("ls-tree", "-r", "--name-only", a.ref, "results/").split()
          if re.match(r"^results/(?!fm_)[^/]+/\d+/result\.txt$", p)]
 _rf = {}
@@ -71,7 +71,7 @@ for p in sorted(files, key=lambda p: (p.split("/")[1], int(p.split("/")[2]))):
                                 + (" PNR_SEED=" + alt.group(1) if alt else "") + trf, re.search(r"status=(\S+)", r[-1]).group(1) if "status=" in r[-1] else "?")
 out = ["# K SEED SIZES SDF8 NDRAWS [ENV...]  (newroutes.py from %s: memory routes no routes_mem*.txt has judged)" % a.ref]
 for (k, s, sdf), (d, it, env, st) in sorted(rows.items()):
-    if (k, s, sdf) in done: continue
+    if (k, s, sdf, " TRIM=" in env) in done: continue
     sz = os.path.join(H, "sizes", "%s_%s_%s.vh" % (k, s, sdf))
     txt = git("show", "%s:%s/auto/sizes_%s.vh" % (a.ref, d, it))
     if not txt: continue
