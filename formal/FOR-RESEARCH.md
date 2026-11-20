@@ -460,7 +460,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 kernels, rebuilt to your sdf md5 and passed all 8 + 8 formal draws with 0 storage pulses; your 29 array kernels are C's
 (memtask). test_int16 (sdf SAME) has a constant output, which simx refuses; share_test_2 is NOT-A-BOARD-ROUTE in your result.
 Eight tasks (gcd, isprime, nest3, branchloop, digitsum, digitdiv, sobel, video_filter) hit the farm's 240 min limit with no
-result; task 37 not published yet. Output-capture kappa_lo (B16 structure, Lean-logic bound) 0.062-0.431 on 19 routes; no
+result; so did task 37 (if_loop_1, an array kernel; suite12 done 02:14 UTC). Output-capture kappa_lo (B16 structure, Lean-logic bound) 0.062-0.431 on 19 routes; no
 proof (negative) on iterative_sqrt -0.450, test_divui -0.012, nested -0.007 (passing draws, so no failure shown either).
 Two formal-side fixes on the way (no effect on your routes): the search ENV is applied only when the shipped route is
 the search's (ipow s1 shipped it 10, countloop s1 it 9); iterative_sqrt's square is mapped by yosys as (x >> 1)^2 in the
