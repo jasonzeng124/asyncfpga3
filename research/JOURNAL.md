@@ -8353,3 +8353,16 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
 - Running: C68 draws 10109-10116 and the 16 slow-carry draws; the static draws to 64; the trimmed-vs-untrimmed static
   draws on exit1 countloop s2 (the route formal B23 judged); the mff loops (fill s1, gather s1: BDC_MEM_FASTFALL through
   the v9 loop + trim; PREDICTION written before results: P 5-12 % below suite13t's same routes, every draw passing).
+### progress 10:10 (lead measured and dropped: a delay line built from CARRY4 would buy ~0.7 ns on xorshift; C68 draws 8 / 32)
+- **How much of the matched delays covers CARRY4 at its slow bound** (exit1 xorshift s1 rebuilt here, sdf d947adff, P
+  18088 ps as the farm's): the loop's rule on this route (CA_SIZERULE, both corners, CARRY4 / F7F8 / FF at SLOW_MAX,
+  merged) proposes lines whose event-graph period on the same placement is **14878 ps** (sizewhatif); the same rule with
+  CARRY4 at the chains' own band (0.20, as if the data's carry ran with the line) **14143 ps**: **-735 ps (-4.9 %)**,
+  ucmpi1 (the fused update + test, two carry chains) 12 -> 10 elements, ucmpi0 7 -> 6, nothing else on the cycle.
+  A line with a CARRY4 segment that tracks the data's carry would recover at most that, and only where the board's
+  carry sits with its LUTs (never measured: BOARD-QUEUE item 36); at the carry's slow bound it gains nothing; it needs a
+  new cell, bdc emission and rule support. **Not pursued.** (research/tools: cband estimate in /tmp only; the numbers
+  are here.) The same run shows the rule's rebuild proposal at 14.9 ns on this placement against the trim step's 16.74
+  (exact entry pricing: ucmpi1's first trim skips its anchor) and the loop's shipped 18.09.
+- C68: 8 of our 32 draws done, 4 with 72-420 pulses under 1 ns (the rest clean), every answer right. Static draws on the
+  same route: E at ucond_br15 lost in 13 of 24.
