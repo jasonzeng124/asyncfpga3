@@ -8625,3 +8625,16 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   retraces v10's routes up to its first finish route that is not clean; at least one of the two ships an adopted
   alternate route, rule-CLEAN with every latch-fed race >= 4.5 sd, 4 / 4 draws; wall time +30-60 % over the loop
   without the knob.
+### progress 15:26 (suite13t interim, 4.5 of 8 parts back: 39 of 62 kernels pass, 7 UNFINISHED, 16 no result (time limit); the B28 route shows runts in our own draws)
+- suite_table.py over suite13t_s1a..s4a + rerun1 as returned at 15:20 (not committed as the headline: s3a 22 / 30, s3b
+  12 / 30, s4a 2 / 30, s4b 0 / 30 back): **39 of 62 pass** (the current headline, older flows: 34), 7 UNFINISHED
+  (cmpchain, factorial, iterative_division, nested, quadrec, spmv, twoloops), 16 NO RESULT (every task so far at the
+  240-min limit: digitdiv, digitsum, divmods, fir, gcd, iir, image_resize, isprime, loop_path, nest3, nested_loop,
+  share_test_1, single_loop, sobel / video_filter (not run), stencil_2d). Ratio mean over the 3 measured Dynamatic
+  figures 1.51 (headline 1.69); with estimates 1.00 (n = 27). Every draw on every judged route returned every answer.
+- **suite13t xorshift s1** (sdf 138aac60, rule CLEAN, formal B28's route): draw 10102 had **118 pulses under 150 ps on 5
+  of 172 kernel handshake nets (merge 4 / 16, steer 1 / 24), narrowest 6 ps**, answers right (19 / 19); the table
+  already refuses it as passing evidence (the 09:44 runt rule), so xorshift passes on its two other clean routes. The
+  first rule-CLEAN route of the farm's ~470 runt-monitored ones with such a pulse, and it is the route whose latch-fed
+  steer race formal (B28) and race_mc (0.2 % of the model's points lost) flagged: what AUTO_RACE_Z pads in v10. The rz
+  loop (same kernel and seed, race-padded) is in its draws, on the same four draw points.
