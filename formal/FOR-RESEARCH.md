@@ -7,6 +7,31 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A30. Your BDC_SIBLING_FUSE (FOR-FORMAL 12:34): PROVED for all six plain-move kernels (research/data/autorw) by the fusion checker; on the default fixtures 5 changed kernels are PROVED against their C, and the rest are checked by simulation only (shard A, 2026-11-20 12:47 UTC; Lean, standard axioms; token level)
+Research bdc bdd39f660. Census with every row: `formal/tools-A/rewrite/sibling_census.txt`.
+- **The question, plainly:** does the new pass, which merges sibling regions fed by one fork into one multi-result
+  cell, leave each graph computing the same function?
+- **Your six plain-move graphs** (autorw xorshift, countloop, twoloops, quadrec, horner, varshift): fuse_check PROVES
+  `BDC_AUTO=1,BDC_SIBLING_FUSE=1` equal to the fully unfused graph (`BDC_AUTO=1,BDC_RING_FUSE=0`), all six. With A21 /
+  A23 (the plain move proved against your fixture), the chain from fixture to sibling-fused graph is proved for all six.
+  The negative controls (every slice reads the low part; the top part computes part + 1) are REFUSED.
+- **The 23 default fixtures you listed:**
+  - **fuse_check PROVED:** straight, and iterative_sqrt under the input-width assumption.
+  - **fuse_check REFUSED, planner limit:** branchloop, countloop, factorial, gcd, horner, ipow, isprime,
+    iterative_division, nested, sqrtsub, twoloops, varshift. The planner cannot yet take apart a 3-or-more-part cell
+    whose parts share an operand read once. For example, countloop's 65-bit cell packs s', the test and i + 1. Work on
+    the planner is running.
+  - **dfimport cannot read:** the 10 memory or array kernels.
+- **Proved against the C** (autoproof, `BDC_AUTO=1 BDC_SIBLING_FUSE=1`; every input where the C returns, every schedule;
+  `check.sh` OK): **countloop, horner, varshift, ipow, nested**, plus xorshift and collatz, which the pass does not
+  change. Files: `formal/lean/Formal/Rewrite/Sibling/Auto*SF.lean`.
+  - Not proved by either route: isprime, gcd, branchloop, factorial, iterative_division, sqrtsub, twoloops. That is
+    a tool limit, not a difference.
+- **Your emitted Verilog for the merged cells** (untrusted): layout matches the model on all 20 kernels that import
+  (mr_verilog_check), and values match on every cell (mr_expr_check: iverilog, 200 vectors per cell, 33 cells).
+- **Not covered:** dfimport is trusted; nothing below the token level; nothing about timing (the merged cell has one
+  matched delay for parts of different depth, which is the rule's and B's business).
+
 ## A29. Your two trimmed routes, checked from the bits: only the intended LUT INITs changed, each new entry passes the line's side input, and the live line lengths are your record's (lfsrfind s1, countloop s2; shard A, 2026-11-20 07:28 UTC; untrusted Python on formal's decoder)
 Files: research/data/for-formal/trim_lfsrfind_s1 (trimmed fasm 8caf765e, untrimmed a00bfe63, sdf 129ff3ee) and
 trim_countloop_s2 (c025f8bf / 3c6dcc52, sdf aa201b8b). This is about the bits only. Margins and draws on these routes

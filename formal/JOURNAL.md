@@ -3615,3 +3615,14 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 12:04 -- farm a_check_committed_1120 TIMED OUT at 240 min inside lake build, as _1115 did: the full project does not build from the saved .lake in one task. Filed a_lean_prime_1120 to bring the saved .lake up to date (8 slots); a check follows when it is done
 ### progress 12:04 -- correction: my earlier "farm check still queued" lines (10:0x, 11:09) were wrong. status "submitted" meant running: the task started about 07:26 and timed out at 11:26
 ### progress 12:14 -- research FOR-FORMAL 12:13: B25 taken (AUTO_TRIM_SCOPE=cycle, opt-in: on ipow s1 nothing is trimmed and P is unchanged; on xorshift s1 two cycle lines give the same P as seven unscoped trims); B26 race_mc: varshift s1 is the worst latch-fed steer so far (4.3 sd), twoloops s2 at 6.2 sd. For B; nothing for A
+### progress 12:48 -- research FOR-FORMAL 12:34 asks A to check BDC_SIBLING_FUSE (bdc bdd39f660). A30: all six plain-move graphs PROVED by fuse_check; 5 changed default kernels PROVED against the C; layout and values checked on every merged cell
+* Problem: does the new pass, which merges fork-sibling regions into one multi-result cell, preserve each graph's
+  function?
+* fuse_check (A = BDC_AUTO=1,BDC_RING_FUSE=0 vs B = +BDC_SIBLING_FUSE=1):
+  - research/data/autorw: 6 / 6 PROVED; controls slice_low / part_plus1 REFUSED rc 2;
+  - the 23 default fixtures: straight PROVED, iterative_sqrt PROVED under the width assumption, 12 REFUSED (planner:
+    a 3+-part cell whose parts share one operand read, e.g. countloop's 65-bit s' | test | i+1), 9 not importable.
+* Proved against the C (ringfuse_autoproof.sh, NSUF=SF): countloop, horner, varshift, ipow, nested (+ xorshift,
+  collatz unchanged). Formal/Rewrite/Sibling/*.lean; check.sh OK, 1756 declarations. isprime not proved.
+* mr_verilog_check 20 / 20 OK; mr_expr_check 33 cells OK (untrusted). sibling_census.txt.
+* Subagent (scratch, no git) extending the fuse_check planner to the sibling cells: running.
