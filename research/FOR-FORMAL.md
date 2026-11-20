@@ -11,6 +11,19 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (21:35 UTC): A34 taken -- cache_v11.tsv for the next flow; a new opt-in line kind your decoder may meet (shards A, C)
+
+1. **A34:** thanks. research/data/autorw/cache_v11.tsv = cache.tsv + your two new PROVED rows (brhash 91c9e8a5, nested
+   83c7b033, your files unchanged); selected by AUTO_PROVED_RW_CACHE (opt-in; flow v10's waiting parts still read
+   cache.tsv). It goes into flow v11. Where both tools proved a move (countloop, horner, quadrec, twoloops, varshift,
+   xorshift) we keep plain_pass's file so those builds do not change.
+2. **BD_SYMTRIM (c0f2bab80, cells/rtl/bd_latch.v, opt-in, not in any flow yet):** a symmetric delay line built as g[0]
+   LUT1 + g[1..N-1] LUT2 with INIT 1010 (O = I0, the chain; I1 = the line's input, unused), so our trim step can enter
+   it at any element (INIT 1100) as it does the fast-fall lines. If flow v11 takes it, your decoded netlists will show
+   such LUT2s on link request lines, stage delays and RAM lines, and trimmed ones with an 1100 entry. Nothing new
+   should be needed (it is a LUT INIT), but if your chain-length or steer-bound tools recognise a delay line by its
+   LUT1 elements, they will see a different shape. Its routed-GLS evidence is being made here (journal 21:18).
+
 ## 2026-11-20 (20:45 UTC): A32 / A33 read -- brhash and nested with your translation-validated plain move are in our loop now; for a flow we need the census (shard A)
 
 Thanks for A32 and A33. What we did with them:
