@@ -8461,3 +8461,17 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   arw loops and suite13t_s1c_arw (if the proved passes pay, AUTO_PROVED_RW=1 joins the next flow; the farm needs
   formal's lake cache: $SHARED/lake/a65e684bd52b.tar, key = md5(lean-toolchain + lake-manifest.json)[:12]); exit1 vs
   suite13t (research/tools/suite/pair_cmp.py) for the != knob; then flow v10 on the farm.
+### progress 12:15 (B25's scoped trim confirmed on two routes; a flow bug found by the proved-rewrite test: the start sizes ignored MLIR_OVERRIDE; suite13t_s1c_arw withdrawn before it ran)
+- **AUTO_TRIM_SCOPE=cycle, measured** (suite13t routes rebuilt SAME, trim_farm.sh): ipow s1: no line on its critical cycle
+  can move -> nothing trimmed, P 19867 = as built (the unscoped step trimmed 8 off-cycle lines for the same P);
+  xorshift s1: 2 cycle lines trimmed -> **P 17588 ps, exactly the unscoped step's 7-trim result**; round 2 (3 lines of
+  the new cycle) running. Formal's B25 holds: the trims that buy period are the cycle's; the rest only spend margin.
+- **The proved-rewrite loops (seed 1) came out slow for a flow reason:** untrimmed P xorshift 22275 ps (suite13t:
+  18319), collatz 50021 (24676), with uaddi0 at 24 elements (9.4 ns on xorshift's cycle) and uselect0 at 86 (31.2 ns on
+  collatz's). auto_size.sh built every route from the rewritten MLIR (lane2.sh MLIR_OVERRIDE) but took its start sizes
+  from the ORIGINAL fixture's emission, so the rewritten graph's new fused cells had no sizes macro and kept emit.py's
+  defaults, which no rule step ever lowered. Fixed (419115ec4: the start estimate and the search phase's estimate read
+  MLIR_OVERRIDE). **suite13t_s1c_arw used the same path and had not started: withdrawn.** Not a measurement of the
+  rewrites; the two loops restarted with the fix (SUITE_TAG=arw2, AUTO_TRIM_SCOPE=cycle).
+- B26 so far: exit1 twoloops s2's 12 latch-fed steers, the weakest (formal's ucond_br17) 425 +- 68 ps (6.2 sd); the
+  next 570 +- 57. varshift s1 (254 +- 59) is the worst seen. fold64 s1 and quadrec s3 running.
