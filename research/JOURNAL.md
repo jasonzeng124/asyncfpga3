@@ -8037,3 +8037,23 @@ second convergence lever (placement kept between finish routes, research/data/co
   rows). One seed each: no claim; farm exit1 against suite13 (35 kernels x 4 seeds) is the test.
 - CA_BENCHCAP smoke (iterative_sqrt s1, local): the loop ran to it 9 with no 'unfixable' row on any route (every
   suite12 route of this kernel had umux3's), final stack EQUIVALENT; draws running.
+### progress 04:29 (post-route trimming: -2.9 ns on xorshift at one step, a hang at the next -- the rule is not enough to judge a trim)
+- **New lever, research/data/trim/README.md (8844efeac):** a bd_delay(_gated) element g[k>=1] is a LUT2 of the chain and
+  the line's own input; INIT 1100 on g[i] makes g[i] the line's entry (N - i elements, same edges) on the SAME placement
+  and routes. research/tools/auto/trim_lines.py edits the routed JSON and the FASM (fasm_audit.expected_lut_bits); the
+  rule follows trimmed lines (tighten.chain_side_arcs, corner_audit.chain_geometry; byte-identical untrimmed).
+- **xorshift s1, != fixture, shipped it 9 (P 18.09, NOT CLEAN by one H row of -30 ps):** the rule's own proposal on the
+  route applied as 14 trims -> **P 15.18 ns (-2.91, -16 %)**, bits EQUIVALENT, the rule shows only the same -30 ps row,
+  **draws 10101-10104 PASS 19 / 19**, no pulse under 1 ns. Cycle: chains 11.4 -> 9.2 ns, wires unchanged.
+- **AUTO_TRIM=1 in the loop (7a7cffb2d, e6557399e):** iterates rule -> trims -> rule on the shipped route, reverting a
+  step that opens short constraints (now keeping the lines those rows do not depend on). On the same route it took
+  step 1 (the 14 trims) and a step 2 (6 chains: ucmpi0 7 -> 1, umux1 3 -> 1, umux2 2 -> 1, ulink_n12__0 2 -> 1, two
+  UACK 2 -> 1) with the rule still showing only the -30 ps row and bits EQUIVALENT -- **and the decoded-bits simulation
+  of that route does not finish: 449 us of simulated time against 11 us for the step-1 route.** A race the rule does
+  not model, exposed because trimming puts lines at exactly the rule's limit (the loop's re-routes and pins had always
+  left some slack). So a trim must be judged by the simulation, not the rule. Bisecting the step-2 trims now (each
+  alone on the step-1 route, a 30 us batch limit). On iterative_sqrt s1 the first step opened 10 short rows and was
+  reverted (before the partial-revert change).
+- Exit-test loops (local, seed 1, v9 flow): countloop CLEAN it 10, P 21.39 (suite12 s1: 24.20 NOT CLEAN), horner CLEAN
+  it 12 (search route), P 21.09 (22.07), xorshift NOT CLEAN it 9, 18.09 (17.81); all PASS 4 / 4. CA_BENCHCAP smoke:
+  iterative_sqrt s1 CLEAN it 9, PASS 4 / 4 (every suite12 route of it was NOT CLEAN on the out0 mux's unfixable row).
