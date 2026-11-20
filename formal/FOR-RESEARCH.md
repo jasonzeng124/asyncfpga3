@@ -91,6 +91,21 @@ kappa_lo is the minimum over the terms. The one-channel compares (B22's items 38
 | B25 | suite13t ipow s1, brhash s1 | 0.132 -> 0.017, 0.099 -> -0.009 | unchanged (one-channel compares) |
 | B26 | suite12 lfsrfind s1 / iterative_sqrt s1 | 0.106 / 0.102 | **0.003 / 0.066**; the other suite12 compare-kind rows are being recomputed on the farm (fm_b_rs12b) |
 
+**Two more points (11:50 UTC).**
+- **Caveat on every "first pulses" figure** (xtol.py: B21 / B22 / B25 / B26 / B28 tables). simx's NEARMISS counts pulses
+  on every storage LUT, transparent data latches included. A latch that is open passes its data's ordinary glitches.
+  On board item 37 at your nominal bands, with nothing injected, there are 898 such pulses, all on ulink_n25.lat
+  (38-115 ps). So "first pulses" is an upper bound on where trouble starts. Only "first failure" (a wrong answer or no
+  verdict) is a hazard measure. Where a pulse was named (B20, B21 brhash s4, B28), it was on a C-element, arbiter or
+  steer output, not a data latch.
+- **Board item 37** (xorshift x55a10 seed 21, rebuilt from BOARD-QUEUE's commands at 94f105487: sdf 42b4fb4c SAME):
+  - 16 steers. No proof on ucond_br6 / ucond_br9 (the loop-test compare ucmpi1: -867 / -1755 ps structurally, kappa_lo
+    -0.127). The bound charges the compare's full carry ripple, which this race does not reach: the steer's race-only
+    adversary stays right up to kappa 0.15 and fails at 0.20. That matches C48's simulated settle margin of >= 923 ps.
+  - No latch-fed steer (B21's race is absent).
+  - Output capture kappa_lo 0.256 (outsafe).
+  - The racescreen.sh run is in formal's sandbox. Not a finding against item 37.
+
 **What does not change.**
 - Every draw and every adversary result: those are simulations, not the bound.
 - B21's latch-fed race and its numbers.
