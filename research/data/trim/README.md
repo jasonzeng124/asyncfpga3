@@ -61,3 +61,40 @@ modelled as a chain hop (the rule and the GLS both read it from the same SDF); a
   shorten while every draw passes, report the distance to the first trim that fails, take the longer on a tie) -- the
   xorshift route above is such a point (15.18 ns, 4 / 4), and ucmpi0 at 1 is a failing one (hang). Either way the
   route stays the same and only bits change, which is what makes a search over trims cheap.
+
+## The trim step on routes the farm shipped (2026-11-20, session cluster-research-29671222-1)
+
+**Method.** `research/tools/auto/trim_farm.sh REQ TASK OUT [ENV]` (auto_size.sh AUTO_TRIM_ONLY=1): a farm task's
+shipped route is rebuilt from its own sizes, seed and structure (the sdf md5 must equal the farm's, else the run stops:
+it did once, on a search-phase route whose structure the farm does not return -- fixed), the flow's trim step runs on
+it (the rule's trim mode, CA_TRIM=1, as AUTO_TRIM=1 runs it in the loop), the full stack, and suite_one.sh's draws on
+the farm's OWN draw points (K = 10000 + 100 x seed + j). The comparison is paired on one route: only LUT INITs differ.
+`research/tools/auto/trim_table.py OUTROOT...` tabulates. nextpnr 6e5d224472232d5d; rule as flow v9 (CA_BENCHCAP=1).
+
+| route (request task) | P farm -> trimmed (ps) | dP | trimmed lines | draws on the trimmed bits | rule before / after |
+|---|---|---|---|---|---|
+| exit1 countloop s2 (39) | 22368 -> 20167 | -9.8 % | ucmpi1 18->13, ucontrol_merge0 4->2, umux1 5->2, umux3 6->2, two UACK | 4 / 4 PASS (10/10) | NOT CLEAN by one H row (-111 ps), unchanged |
+| exit1 xorshift s1 (1) | 18088 -> 16738 | -7.5 % | | 2 / 4 PASS so far (19/19) | NOT CLEAN by one H row (-30 ps), unchanged |
+| exit1 horner s1 (10) | 21088 -> 20424 | -3.1 % | 20 lines at step 1 | 2 / 4 PASS so far (11/11) | clean / clean |
+| exit1 lfsrfind s1 (8) | 27880 -> 27062 | -2.9 % | ucmpi0 11->10, ulink_n22__0 3->2, ulink_n22__1 7->1, umux0 4->2, umux1 5->2 | 4 / 4 PASS (10/10) | clean / clean |
+| exit1 mul_example s2 (60) | 61750 -> 60989 | -1.2 % | 1 line | 4 / 4 PASS | clean / clean |
+| capfix1 mul_example s2 (17) | 60990 -> 58451 | -4.2 % | | running | clean / clean |
+| exit1 test_stdint s1 (27) | 52701 -> 52701 | 0 | none: the trim mode moves no line | 4 / 4 PASS | clean / clean |
+
+The trimmed xorshift s1 route is the README's first measurement route (d947adff): there the 14-trim set reached
+15.18 ns but was rule-short by 63-346 ps; the rule's own trim mode reaches 16.74 ns with no new short row.
+
+**How far the trims sit from the first trim that fails** (`research/tools/auto/trim_shrink.sh`: EVERY trimmable line
+K elements below its current length -- the trim mode's choice, or as built where it trimmed nothing -- on a copy of the
+route, the same four draws). K = 1: lfsrfind s1 (10 lines) 4 / 4 PASS, countloop s2 (14 lines) 4 / 4 PASS. K = 2, 3, 5, 8:
+running.
+
+**Cycle composition after the trim** (cycdecomp): xorshift s1 16738 = chains 10060 + wire between cells 3833 + cells
+2845 (7 cells on the cycle; the fused update + test ucmpi1, 15 elements, 5.6 ns, is the largest item: its first trim
+step would skip the anchor LUT, more than the rule allows); lfsrfind s1 27062 = 12641 + 11966 + 2455 (12 cells, ~1 ns
+of wire each); countloop s2 20167 = 8987 + 8023 + 3157 (the trim moved the critical cycle from the counter ring to s).
+
+**In the flow.** AUTO_TRIM=1 (opt-in) runs the same step on the route the loop ships, recording the untrimmed route's own
+stack first (it_I_untrimmed.txt, P_untrimmed on suite_one.sh's line) and the cycle composition before and after
+(cyc_I_untrimmed.txt, cyc_I.txt). Farm suite13t (filed 2026-11-20 08:00 UTC, prediction in the request) runs flow v9 on
+every suite kernel x 4 seeds with it: the paired measurement over the whole suite.
