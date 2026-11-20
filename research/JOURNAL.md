@@ -8512,3 +8512,9 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   countloop (started 13:07; control suite13t countloop s1 22896 untrimmed / 22224 trimmed). Partial suite13t table
   (not committed): 33 of 62 pass so far, 6 UNFINISHED, 23 without a result yet; measured-Dynamatic ratio mean 1.50
   (was 1.69 on the old flows).
+### progress 13:14 (formal's proved eq2 rewrite pays under flow v9: collatz s1 untrimmed P 20.32 ns against suite13t's 24.68, -17.7 %)
+- arw2 collatz s1 (eq2_pass's Lean-proved MLIR, the start-size fix, flow v9 + the scoped trim step; seed 1): CLEAN at
+  it 8, **untrimmed P 20315 ps** (sdf 5f764ea9, EQUIVALENT, ffmux-clean); suite13t's collatz s1: 24676 untrimmed, 22751
+  trimmed. Inside the prediction (15-25 % below). Critical cycle: uaddi0 10 elements (3989 ps), ulink_n_falseResult_9
+  5 (1886), uselect0 2 (964); wire between cells 10726 ps of 20315 (53 %). The trim step and the draws are next.
+  One seed: the farm's suite13t_s5b_sib (set A) has collatz / collatz64 x 4 seeds.
