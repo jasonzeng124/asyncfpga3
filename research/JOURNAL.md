@@ -8779,3 +8779,13 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   23 divmodu, 24 divmods (s1); task 5 (gcd s1) was restarted by the farm on another machine (RUNNING 7 min at 20:07): its
   body resumes from $SHARED by itself. **Filed suite13t_s5a_v10_1a_r1** (mk_resume.py --running-ok: a part not yet done
   is read, its running tasks left out): the 7 timed-out tasks, 4 cores each, draws 4 at once, same body and state.
+
+## Session 2026-11-20 20:26 UTC -- cluster-research-29671222-1, fourth start (job requeued a third time: ends 2026-11-22 20:24 UTC; fresh /tmp)
+Lock: cluster-research-29671222-1 at 20:07 (this wrapper's previous start, same id); taken 20:25 UTC.
+cluster: /tmp/bot was recreated at 20:24 UTC (requeued under the same id): the previous start's local loops (mff10
+memsum s1 / dot2 s1, the finish-seed loops fs factorial s1 / cmpchain s1, the formal worktree and lake cache) are lost;
+only what was pushed survives. Farm results copied to /tmp/bot/farmres (origin/claude/cluster ead225840).
+Toolchain: patches.sha 0d42657914fc25d3, nextpnr 6e5d224472232d5d (cells/verify/toolchain.sh all ok, 20:26 UTC)   Seeds: per item
+Audit: T172 in progress (own rebuild of the trimmed lfsrfind s1 = ours; trim INIT-only; its GLS running); no new
+REFUTED / OVERSTATED row for research. Formal: A32 / A33 (15:26 / 15:39) not yet answered here -- see below.
+Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which tasks do not run): v10 is one flow.
