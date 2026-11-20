@@ -218,6 +218,11 @@ share_test_1 2: all SAME, 32 / 32 each, min RAM setup 670-2321 ps. 116 judged; s
 **c_mem22 (23:41):** suite12's fir 1, if_loop_2 1, iir 1, single_loop 1, spmv 1, test_flatten_array 1 and capfix1's
 test_bool_array 2 / 3 (all v8, fused): SAME, 32 / 32 each. Min RAM setup: **iir 1 (729969dd) DI 311 ps** (the second
 thinnest after spmv 4's 22), then if_loop_2 1 844, single_loop 1 838, the rest >= 965. 127 judged.
+**c_mem32 (01:19):** 18 more (flow v8, fused): suite12's image_resize 1, share_test_1 1, stencil_2d 1; capfix1's
+mul_example 1 / 2 / 4, test_memory_1 1-4, test_memory_2 1-4, test_stdint 2-4, test_bool_array 4: SAME, 32 / 32 each.
+hostrace's host-write slacks are all >= 819 ps (none negative at -400). But **share_test_1 1 (65d7b529)** has an ADDR
+setup margin of 165-242 ps on a RAM edge that is not a host write (its host-write slack is +819): being located. The
+rest >= 438 ps. 145 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,

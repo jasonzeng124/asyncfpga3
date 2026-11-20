@@ -4989,3 +4989,6 @@ time, min 25 ps). drawMin vs hostrace plain slack: r 0.949, plain - drawMin medi
 (drawMin 22-306), x0.772/x1.155 on 49 (39 with drawMin >= 400). The draws cannot pick silicon's guard; they show -400
 fits the model tighter. Table: formal/notes/C-guardcmp.md. Not covered: if_loop_1 s4 (bench clock), test_loop_free (no
 host writes).
+- 01:20: c_mem32 done: 18 v8 routes (3 suite12, 15 capfix1) SAME, 32 / 32 each; guard table +18 (all >= 0 at -400).
+  share_test_1 1 65d7b529: ADDR setup 165-242 ps on a non-host edge (host-write slack +819); local rebuild running to
+  find the RAM. C60 (145). Container restarted at ~01:05 (monitor / lock timer re-created; tree, rs, toolchain intact).
