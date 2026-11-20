@@ -82,6 +82,14 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - which result (by SSA name) reads which window.
 
   Control: two slices exchanged in the emitted Verilog, refused (MISMATCH, rc 2) on gcd and xorshift.
+- **Update 2026-11-20 02:34: iterative_division PROVED under a stated width assumption (21 / 26).** The new theorems
+  `pass_forward_w` / `pass_backward_w` (`Steps/Width.lean`, `runScriptW_sound`) carry one extra hypothesis: every
+  INPUT token fits its declared width (32 bits for a and b). The planner proposes a width map for the intermediate
+  channels, and Lean checks that every rule keeps tokens within it. Kernels that do not need the assumption keep
+  their unconditional proofs. check.sh passes on Width.lean (1702 declarations). Census: 20 unconditional + 1 under
+  the width assumption, no regression. Controls on iterative_division (slice_low, part_plus1) are refused.
+  iterative_sqrt is still refused: its loop test reads both packed parts, and each part waits on an input it does
+  not read. That needs a join extension through another update (notes/A-kinput.md). Not done.
 - **Update 2026-11-20 02:06: nest3 PROVED too (20 / 26).** New checked step `unabsorb` (Absorb read backward; Lean accepts
   it only if re-absorbing gives back the original rules, `applyUA_sound`). It factors a 3-input packed cell into a
   2-input one so the existing steps apply. `check.sh` passes on ScriptRF.lean (1581 declarations). Census: 20 PROVED,

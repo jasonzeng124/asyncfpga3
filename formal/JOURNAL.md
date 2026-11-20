@@ -3504,3 +3504,11 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * iterative_sqrt / iterative_division: blocked by the model, not the steps -- a packed part that passes an input
   through equals its 32-bit slice only for tokens < 2^32; Nat tokens are unbounded. Needs a width invariant
   (named hypothesis: input tokens fit their width; every rule preserves it). Not started.
+### progress 02:34 -- ring fusion 21 / 26: iterative_division PROVED under the input-width assumption (subagent; re-verified)
+* Steps/Width.lean (new, Core): SoundP (Sound from stores satisfying a predicate), checked width maps (safeB per rule,
+  agreeB never narrower than declared inputs), steps unpackw / undedupe, runScriptW_sound under InP (only inputs hold
+  tokens, each < 2^declared width). fuse_check: width mode is a second pass only when the plain one fails.
+* Re-verified here: check.sh OK on Width.lean (1702 decls, std axioms); iterative_division "PROVED UNDER THE WIDTH
+  ASSUMPTION"; xorshift / nest3 still PROVED unconditionally; controls slice_low / part_plus1 REFUSED rc 2.
+* iterative_sqrt still refused (test reads both packed parts; each part waits on an input it does not read -- a join
+  extension through another update). notes/A-kinput.md has a route. Not started.
