@@ -8698,3 +8698,10 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
 - **Rule until every v10 part and its resume parts are submitted:** no change to what auto_size.sh, suite_one.sh,
   lane2.sh, bdc or cells do under v10's environment (each part checks out the branch head when it is submitted, so a
   change would split v10 into two flows). Only opt-in knobs v10 does not set (AUTO_FINISH_SEEDS, BDC_MEM_FASTFALL, ...).
+### progress 15:55 (v11 option measured from suite13t's logs: trimming only the shipped route would change 1 of 29 search decisions)
+- When the search phase finds a clean route, v9 / v10 trim BOTH the loop's route and the search's before comparing
+  their trimmed P. Over suite13t's 29 such comparisons, comparing untrimmed P instead picks the same route 28 times
+  (the exception: countloop s2, trimmed 18836 vs 19500 -> search route; untrimmed 21006 vs 20384 -> loop's route).
+  An opt-in "trim late" (compare untrimmed, trim only the shipped route) would save one trim phase (2-3 rule steps and
+  1-3 full stacks; ~20 of collatz's 120 local minutes) on those tasks. Not done now (v10's flow code is frozen); a
+  v11 candidate beside AUTO_FINISH_SEEDS and BDC_MEM_FASTFALL, if v10's timeouts make time the binding cost.
