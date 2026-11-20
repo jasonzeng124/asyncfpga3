@@ -5076,3 +5076,4 @@ except the new use_dport field. dsp_gates: D arcs from prjxray's ADREG_0_DREG_0_
 from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites agree with routed.json, product check
 0 mismatches, 8 + 8 draws PASS, 600 memory words right. NEGATIVE CONTROL: the D-port DSP's pre-adder flipped to subtract
 (INMODE[3]) in net.json: 0 / 8 pass, 297 / 600 memory words wrong. The other share_test_2 routes go to the farm.
+- 14:06: c_mem47: all 6 share_test_2 routes SAME, 11 DSP sites agree, 32 / 32 each, min 1215 ps. Every suite memory kernel is now drawable. C60 (243).
