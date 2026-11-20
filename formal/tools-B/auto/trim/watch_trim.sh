@@ -9,14 +9,14 @@ SU=$1; RS=$2; OUTF=$3; NEXP=${4:-240}; P=/home/user/asyncfpga3/formal/tools-B/au
 END=$(( $(date +%s) + 12*3600 ))
 while [ $(date +%s) -lt $END ]; do
   (cd /home/user/clu && timeout 300 git fetch -q --depth 1 origin claude/cluster && git reset -q --hard FETCH_HEAD)
-  for d in /home/user/clu/results/$SU/*/; do t=$(basename $d); [ -f $d/result.txt ] || continue
+  for d in /home/user/clu/results/$SU*/*/; do t=$(basename $(dirname $d))/$(basename $d); [ -f $d/result.txt ] || continue
     grep -q "^T$t " $OUTF && continue
     l=$(tail -1 $d/result.txt); K=$(echo $l | cut -d' ' -f1); S=$(echo $l | cut -d' ' -f2)
     if ! echo "$l" | grep -q 'status=PASS\|status=FAIL'; then echo "T$t $K $S SKIP-STATUS $(echo $l | cut -c1-80)" >> $OUTF; continue; fi
     f=$RS/kernels/$K/vec.hex; [ -f $f ] || f=$RS/research/data/suite/vec/$K.hex
     if head -1 $f 2>/dev/null | grep -q benchvec; then echo "T$t $K $S ARRAY (C's memtask)" >> $OUTF; continue; fi
     M=$(echo $l | grep -o 'sdf=[0-9a-f]*' | cut -d= -f2); IT=$(echo $l | grep -o ' it=[0-9]*' | cut -d= -f2)
-    Z=$P/suite/sizes/${SU}_${K}_$S.vh; { echo "// from claude/cluster results/$SU/$t/auto/sizes_$IT.vh"; cat $d/auto/sizes_$IT.vh; } > $Z
+    Z=$P/suite/sizes/${SU}_${K}_$S.vh; { echo "// from claude/cluster results/$t/auto/sizes_$IT.vh"; cat $d/auto/sizes_$IT.vh; } > $Z
     EV=$(grep '^ENV ' $d/auto/search.txt 2>/dev/null | tail -1 | cut -c5-)
     SI=$(grep -o '^search: .* from it [0-9]*' $d/auto/log.txt 2>/dev/null | tail -1 | grep -o '[0-9]*$')
     [ -n "$SI" ] && [ "$IT" -lt "$SI" ] && EV=""
