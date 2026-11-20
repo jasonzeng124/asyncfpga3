@@ -5033,3 +5033,4 @@ fasm2frames / xc7frames2bit, read back, decode, the same draws on the trimmed bi
   trim): 0 / 32 PASS (28 RESULT MISMATCH, 4 undecided). So the draws CAN fail on this route; research's own 6 lines at 1
   pass 32 / 32, so in research's draw model those six lines have no correctness role at all and the critical lines are
   among the other 8 chains. lfsrfind's 5 record lines at 1: running.
+- 07:47: lfsrfind s1, research's 5 record lines all at 1: 0 / 32 PASS (RESULT MISMATCH) -- here the draws see the trimmed lines. Per-line bisection (each alone at 1, others at research's lengths, 8 + 8) running.
