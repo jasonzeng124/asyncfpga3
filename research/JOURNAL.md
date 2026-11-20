@@ -8673,3 +8673,16 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   and its resume parts, before sibb). PREDICTION in the request header (15:45): against v10's same (kernel, seed),
   median -5 %, range about -30 % .. +3 %, every draw passing with no RAMB18 setup / hold event, clean share within 5
   points.
+### progress 15:43 (formal's own steer screen, run here: the race check fixes B28 -- latch-fed ctl slack -94 / -192 ps -> +427 / +1164 ps; collatz eq2 route clean but for two LUTs the tool cannot place)
+- formal/tools-B/auto/racescreen.sh (B24; claude/formal 4cb32d0da, in /tmp/bot/formal_wt) on two local routes; files in
+  research/data/ssta/racecheck_rz_xorshift_s1/ and research/data/for-formal/collatz_eq2_s1/*_ours.txt:
+  - **rz xorshift s1** (AUTO_RACE_Z=4.5, f1ea3036, trimmed): steers 16, bounded 16, min kappa_lo 0.156; latch-fed race
+    ucond_br8 ctl slack **+427 / +1164 ps**, adversary's first failure at kappa 0.20; at our bands no pulse and no
+    failure to x = 0.25. suite13t's route of the same kernel and seed (B28): -94 / -192 ps, MISMATCH at kappa 0 and at
+    x = 8-10 %. The check does what it was for, on formal's measure as well as ours (2.85 -> 11.47 sd). Cost +3.8 %
+    untrimmed on this one seed.
+  - **collatz eq2 s1** (0f050078, trimmed): steers 12, bounded 10, min kappa_lo 0.061 (ucond_br6); no latch-fed race;
+    no pulse to x = 0.25 (first failure at 0.25). ucond_br7's two LUTs: "no launch node for ucmpi2.ujoin" -- the tool
+    files ucmpi2 as a compare with a join on this steer and as joinless on br5 / br6; asked formal (FOR-FORMAL).
+  - Both: output capture kappa_lo negative (-0.28 / -0.31) at formal's 3 ns sampling point; CA_BENCHCAP sizes out0 for
+    the PS bench's capture ~24 ns after the request (formal's B28 re-run at --dout 23000 made the same distinction).

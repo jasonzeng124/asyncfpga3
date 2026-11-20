@@ -76,3 +76,23 @@ varshift's race is the weakest found; the model loses it about 2e-5 of the time;
 ~3e-7), fold64's and twoloops' beyond 6 sd.
 formal's ranking (its fast-corner slack) and the model's agree on varshift being worst, but the model puts the
 other three much further from it than formal's corner does: formal's adversary sits outside the model's band box.
+
+## The race check in the loop (AUTO_RACE_Z=4.5), judged by formal's own screen (2026-11-20 15:43 UTC)
+
+suite13t's xorshift s1 route (sdf 138aac60, rule CLEAN; formal B28): the latch-fed steer race at ucond_br9 is 2.85 sd in
+race_mc (0.2 % of the model's points lost); formal's ctl slack -94 / -192 ps, its race-only adversary MISMATCH at
+kappa 0, MISMATCH at x = 8-10 % at our bands; our own draw 10102 on it had 118 pulses under 150 ps (answers right).
+The same kernel and seed through the loop with AUTO_RACE_Z=4.5 (local run rz: v9 + scoped trim + the race check): the
+check padded ULINK_N31_FOLINK 1 -> 2 at it 8; it 10 is rule-CLEAN with its weakest latch-fed race at 11.47 sd. Formal's
+B24 screen (formal/tools-B/auto/racescreen.sh, claude/formal 4cb32d0da) run here on that route's trimmed bits
+(racecheck_rz_xorshift_s1/):
+
+    xorshift | draws PASS 2 FAIL 0 PASS 2 FAIL 0 | steers 16, bounded 16, min kappa_lo 0.156 (weakest ucond_br8.u$LUT6) |
+    latch-fed race: steer ucond_br8.u$LUT5 ctl slack +427 / +1164 ps | first failure: kappa 0.20 (c0:MISMATCH/105 c1:OK/0) |
+    weakest steer at research's bands: first pulses none to 0.25 | first failure none to 0.25 | output capture kappa_lo -0.308
+
+So the weakest latch-fed race went from -94 / -192 ps to +427 / +1164 ps of ctl slack, the adversary's first failure
+from kappa 0 to kappa 0.20, and the tolerance at our bands from 8-10 % to beyond 25 %. Cost on this seed: P untrimmed
+19015 vs 18319 ps (+3.8 %; the routes differ, scatter included). One route; v10 (suite13t_s5a_v10_*) has 240. The
+output-capture figure is formal's sampling point (out0 3 ns after its request), not the PS bench's (~24 ns later, which
+CA_BENCHCAP sizes for).
