@@ -811,6 +811,9 @@ SAME, 32 / 32 each, min RAM setup >= 1043 ps, host-write slack >= 1213 ps (posit
 share_test_2 2-4 SAME but not drawn (DSP USE_DPORT not modelled). 186 judged.
 **c_mem40 (08:54):** 9 more exit1 routes (fill 3 / 4, if_loop_1 2, if_loop_2 4, mul_example 1, test_flatten_array
 1 / 3, vector_rescale 2 / 3): SAME, 32 / 32 each, min RAM setup >= 446 ps, host-write slack >= 971 ps. 195 judged.
+**c_mem41 (09:45):** 11 more exit1 routes, incl. spmv 3 (75d506f7) and spmv 4 (3da5b493): 10 SAME and 32 / 32 each
+(so C68's hang is spmv 1's route, not every exitcond spmv route), min RAM setup >= 677 ps, host-write >= 988 ps;
+share_test_2 1 SAME, not drawn (DSP USE_DPORT). 206 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
