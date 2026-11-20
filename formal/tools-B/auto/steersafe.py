@@ -139,12 +139,20 @@ def auto():
     global launch
     rows = []
     for gi, g in enumerate(G):
-        if g["kind"] not in ("lut5", "lut6") or not re.search(STEER, cellof(g)): continue
+        ismux = MUX and bool(re.search(r"\.uj\d+$", cellof(g)))
+        if g["kind"] not in ("lut5", "lut6") or not (re.search(STEER, cellof(g)) or ismux): continue
         if ONLY and not re.search(ONLY, cellof(g)): continue
         CUT.clear()
         src = [through(u) for u in g["ins"]]
-        rp = [p for p, s in enumerate(src) if re.search(r"_j\.", ncell(s))]
-        cp = [p for p, s in enumerate(src) if p not in rp and constval(g["ins"][p]) is None and drv.get(s) is not None]
+        if ismux:   # a mux join (C-element) reading its select link's latch and that link's request line
+            fbm = {i for i, w in enumerate(g["ins"]) if through(w) == g["out"]}
+            cp = [p for p, s in enumerate(src) if p not in fbm and re.search(r"\.lat\.", ncell(s)) and s in storage]
+            if len(cp) != 1: rows.append((None, cellof(g).replace("bridge_i.udut.", ""), "mux join: select latch pins %s: skipped" % cp)); continue
+            lk = re.sub(r"\.lat\..*$", "", ncell(src[cp[0]]))
+            rp = [p for p, s in enumerate(src) if ncell(s).startswith(lk + ".rdly.") or ncell(s).startswith(lk + ".ctl.")]
+        else:
+            rp = [p for p, s in enumerate(src) if re.search(r"_j\.", ncell(s))]
+            cp = [p for p, s in enumerate(src) if p not in rp and constval(g["ins"][p]) is None and drv.get(s) is not None]
         name = cellof(g).replace("bridge_i.udut.", "")
         if len(rp) != 1 or len(cp) != 1: rows.append((None, name, "request pins %s condition pins %s: skipped" % (rp, cp))); continue
         p, q = rp[0], cp[0]; cs = src[q]; cc = ncell(cs)
@@ -156,7 +164,8 @@ def auto():
         if not acyc: rows.append((None, name, "condition cone cyclic")); continue
         if lre is None:   # a transparent link latch holds the condition: launch = the join of the compute that feeds it
             own = m2.group(1).replace("bridge_i.udut.", "")
-            inst = sorted({mm.group(1) for u in isl for mm in [re.match(r"^bridge_i\.udut\.([A-Za-z0-9_]+)\.", ncell(u))] if mm} - {own})
+            inst = sorted({mm.group(1) for u in isl for mm in [re.match(r"^bridge_i\.udut\.([A-Za-z0-9_]+)\.", ncell(u))] if mm
+                           and not mm.group(1).startswith("ulink")} - {own})
             lre = (r"bridge_i\.udut\.(%s)\.ujoin" % "|".join(re.escape(i) for i in inst)) if inst else "(no compute: ctl only)"
         launch = {G[j]["out"] for j in range(len(G)) if G[j]["kind"] in ("lut5", "lut6") and G[j]["out"] in storage and re.search(lre, cellof(G[j]))}
         if not launch and kind == "compare":   # a one-channel compare has no join: its line starts at the input link's ctl
@@ -212,6 +221,7 @@ def auto():
     print("steers %d, bounded %d, min kappa_lo %s" % (len(rows), len(ks), "%.3f" % min(ks) if ks else "-"))
     if PREM: print("premises: join / storage 0 at A for %d nodes (hold_mem); condition-cone roots settled at A" % len(PREM))
 ONLY = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
+MUX = "--mux" in sys.argv   # also the 2-way mux joins (.uj<k>): select latch vs the select link's request line
 SC, SA, FA = set(), [], []
 if AUTO:
     auto()
