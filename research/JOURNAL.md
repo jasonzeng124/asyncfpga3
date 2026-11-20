@@ -8736,3 +8736,20 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   submitted at 50f1fab54 (no flow file differs from 7874b6123's). suite13t: s3b 18 / 30, s4a 19 / 30, s4b 11 / 30,
   rerun1 done; rwa still waiting (64 cores).
 - countloop s1 plain + sibling (sib): **PASS 4 / 4 at 16392 ps** (no pulse under 1 ns, narrowest 3.46 ns); suite13t 22224.
+### progress 18:24 (v10 early read, 25 seed-1 pairs: the scoped trim gives the same P with 5 trims where suite13t made 108; the race check fired once; the proved rewrites reproduce the local routes)
+- v10_1a / 1b as returned (14 + 11 of 30), paired with suite13t's same kernel and seed (results at origin/claude/cluster
+  as of 18:23; nextpnr 6e5d224472232d5d):
+  - **19 pairs are the SAME route** (sdf equal: no rewrite applies and the race check padded nothing). On every one the
+    trimmed P is identical, and v10's cycle-scoped trim made **5 trims where suite13t's made 108** (fill 0 vs 5, ipow 0
+    vs 8, lfsrfind 3 vs 8, sqrtsub 1 vs 7, nested 0 vs 28, ...). Paired on identical routes, so no scatter: formal B25's
+    point holds suite-wide so far -- ~100 lines keep their built margin for nothing in P.
+  - **The race check fired on test_memory_1 s1**: suite13t shipped it 5 (dd5c5ee7) with a latch-fed race at 3.60 sd
+    (ucond_br5, ulink_n23_folink); v10 padded the link 1 -> 2 and went on to it 10, clean, weakest race 16.61 sd.
+  - **Proved rewrites**: collatz -36.3 % (14483), xorshift -7.0 % (16350) -- both the routes of the local arw2 loops,
+    sdf for sdf; twoloops 15811 (NOT CLEAN) -> 14708 CLEAN (-7.0 %; the same route, d4d19bb6, as the local fs loop's it
+    7); countloop 22224 -> 19116 (-14.0 %); horner 20571 -> 20926 (+1.7 %).
+  - Against the 14:35 prediction so far: collatz beyond the 15-35 % (36.3), countloop beyond the 0-10 % (14.0), horner
+    slightly the wrong side of 0 (+1.7, inside scatter); every unchanged kernel exactly equal (inside "-2 .. +2 %").
+- collatz64 s1 + eq2 (local arw2): the search route it 8, **21528 ps trimmed** (22383 untrimmed; suite13t 25557 /
+  29391: -15.8 % / -23.8 %), inside the 16.6-21.7 ns prediction at its top; draw 10102 PASS 18 / 18, no pulse under 1 ns;
+  three draws running.
