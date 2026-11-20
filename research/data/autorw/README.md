@@ -56,3 +56,18 @@ kernels: a separate effect, to be measured.
 collatz's Dynamatic figure (measured, one nextpnr route): 14.05 ns; the hand recipe's best: 21.50. One seed each;
 farm suite13t_s3a_rwa runs the eight proved kernels x 4 seeds, flow v10 (suite13t_s5a_v10_*) the whole suite.
 Formal package of the collatz route: research/data/for-formal/collatz_eq2_s1/.
+
+## cache_v11.tsv (2026-11-20 21:00 UTC): formal A34's translation-validated plain move joins where the passes matched nothing
+
+Formal's A34 (claude/formal c5b679456 / cf2aca89f, `formal/tools-A/rewrite/plainroute_census.tsv`) ran
+`ring_dec_route.py` (the plain loop-test move, `i + 1 < n -> i < n - 1`, with the bound allowed to reach the test
+through routing nodes) + `tv_gate.sh` (Lean proves the EDITED GRAPH computes the kernel's C: every input where the C
+returns, every schedule, BDC_AUTO=1) on all 111 fixtures of cloud/fixtures/frontend: 9 PROVED, 66 not proved (55 of
+them memory kernels or kernels with no C to check against), 36 refused by the edit's side conditions, no
+counterexample. The edit is untrusted and matched by structure; what is proved is each output against the C
+(translation validation), so a kernel joins only through its PROVED row, as with plain_pass / eq2_pass.
+`cache_v11.tsv` = `cache.tsv` with the two PROVED rows the earlier passes did not have: **brhash** (91c9e8a5) and
+**nested** (83c7b033), files `brhash.mlir` / `nested.mlir` here (formal's outputs, unchanged). Where both tools proved
+a move (countloop, horner, quadrec, twoloops, varshift, xorshift) the existing plain_pass file stays, so those
+kernels' builds do not change. Selected by `AUTO_PROVED_RW=cache AUTO_PROVED_RW_CACHE=research/data/autorw/cache_v11.tsv`
+(suite_one.sh; unset, cache.tsv as before: flow v10's parts still waiting read it unchanged).

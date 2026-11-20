@@ -69,9 +69,12 @@ fi
 # auto_rewrites.sh produced on EVERY default fixture at one formal commit (the census: its Lean proofs, or "none"),
 # keyed by the input MLIR's md5.  For hosts without formal's Lean build (the farm's tasks).  A fixture the memo does not
 # know stops the flow (run the pass, AUTO_PROVED_RW=1); a memo file whose md5 differs from the table stops it too.
+# AUTO_PROVED_RW_CACHE=FILE (opt-in, 2026-11-20; unset: research/data/autorw/cache.tsv, as before): another memo of the
+# same kind, e.g. cache_v11.tsv (the same rows plus formal A34's translation-validated plain move where the passes
+# matched nothing).
 if [ "${AUTO_PROVED_RW:-0}" = cache ]; then
   im=$(md5sum < "$FX" | cut -c1-32)
-  row=$(awk -F'\t' -v m="$im" '$1 == m' "$R/research/data/autorw/cache.tsv" | head -1)
+  row=$(awk -F'\t' -v m="$im" '$1 == m' "$R/${AUTO_PROVED_RW_CACHE:-research/data/autorw/cache.tsv}" | head -1)
   [ -n "$row" ] || fin "status=FLOW-FAILED (AUTO_PROVED_RW=cache: no memo for fixture md5 $im; run the pass, AUTO_PROVED_RW=1)"
   IFS=$'\t' read -r _ _ pv of om fc <<< "$row"
   if [ "$pv" != none ]; then
