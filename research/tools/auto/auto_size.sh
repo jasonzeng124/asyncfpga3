@@ -415,6 +415,12 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
       # too, up to AUTO_TRIM_ROUNDS rounds (default 3), until the cycle brings no new line.  A line off every cycle the
       # trims expose keeps its built length: shortening it cannot lower the period and spends a race's margin.
       local r rr
+      if [ ! -s "$O/cyc_${i}_untrimmed.txt" ]; then   # AUTO_TRIM_ONLY copies the loop's line: time the untrimmed route here
+        "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_untrimmed.log" 2>&1
+        tail -1 "$O/final_${i}_untrimmed.log" > "$O/it_${i}_untrimmed.txt"
+        echo "final it $i untrimmed $(cat "$O/it_${i}_untrimmed.txt")" >> "$O/log.txt"
+        python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
+      fi
       python3 "$T/cycle_macros.py" "$O/cyc_${i}_untrimmed.txt" "$O/sizes_$i.vh" > "$O/trim_allow_$i.txt"
       echo "trim: it $i scope cycle, round 1: $(grep -c . "$O/trim_allow_$i.txt") line(s) on the untrimmed cycle" >> "$O/log.txt"
       TRIM_ALLOW=$O/trim_allow_$i.txt trim_route "$i"
@@ -577,7 +583,10 @@ fi
 if [ -z "$RES" ]; then
 SC=${AUTO_START_SCALE:-0.3}; ONLY=${AUTO_START_ONLY:-'^(?!.*_UMEM[0-9]+_(USETUP|UCO)$)'}
 EM=$O/emit; mkdir -p "$EM"   # the estimates: the same two steps as cells/hw/build_bench.sh with BDC_AUTO=1
-python3 "$R/bdc/auto.py" "$R/build/frontend/$K/comp/handshake_transformed.mlir" "$EM/auto.mlir" > "$EM/auto.log" 2>&1 \
+# (on the MLIR the builds read: lane2.sh's MLIR_OVERRIDE when set -- 2026-11-20: without it a rewritten graph's new
+# fused cells had no macro here and kept emit.py's generous defaults, xorshift's uaddi0 at 24 elements, collatz's
+# uselect0 at 86, so the loop never sized them)
+python3 "$R/bdc/auto.py" "$R/${MLIR_OVERRIDE:-build/frontend/$K/comp/handshake_transformed.mlir}" "$EM/auto.mlir" > "$EM/auto.log" 2>&1 \
   && BDC_AUTO=1 python3 "$R/bdc/emit.py" "$EM/auto.mlir" --no-top -o "$EM/kernel.v" >> "$EM/auto.log" 2>&1 \
   && python3 "$T/est_sizes.py" "$EM/kernel.v" "$K" > "$O/sizes_est.vh" \
   || { echo "BUILD FAILED it=0 (emit: $(tail -1 "$EM/auto.log"))" | tee -a "$O/result.txt"; exit 1; }
@@ -717,7 +726,7 @@ search_phase() {
   echo "search on ${N}_$X: $(grep -E '^(base|chosen)' "$O/search.txt" | tr '\n' ' ')" >> "$O/log.txt"
   [ -n "$XENV" ] || return 0
   mkdir -p "$EM3"
-  python3 "$R/bdc/auto.py" "$R/build/frontend/$K/comp/handshake_transformed.mlir" "$EM3/auto.mlir" > "$EM3/log" 2>&1 \
+  python3 "$R/bdc/auto.py" "$R/${MLIR_OVERRIDE:-build/frontend/$K/comp/handshake_transformed.mlir}" "$EM3/auto.mlir" > "$EM3/log" 2>&1 \
     && env $XENV BDC_AUTO=1 python3 "$R/bdc/emit.py" "$EM3/auto.mlir" --no-top -o "$EM3/kernel.v" >> "$EM3/log" 2>&1 \
     && python3 "$T/est_sizes.py" "$EM3/kernel.v" "$K" > "$EM3/est.vh" \
     && python3 "$R/research/tools/shrink_sizes.py" "$EM3/est.vh" "$SC3" "$EM3/start.vh" --only "$ONLY3" > /dev/null \
