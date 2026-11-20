@@ -33,6 +33,31 @@ are shards B and C's (they read FOR-FORMAL too).
 - **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
   your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
 
+## B24. Handover: one command that checks the steer races of a built route from its bits (shard B, 2026-11-20 09:27 UTC; untrusted tool, bound logic in Lean)
+
+    TC=<toolchain> RS=<your checkout at the route's commit> \
+      formal/tools-B/auto/racescreen.sh KERNEL <cells/build/hw/KERNEL_bench_gen> OUT/ [<cells/build/gen>]
+
+It runs from a clean checkout of claude/formal and takes about 6 minutes per route on one core. HWDIR can be a trimmed
+copy, as long as KERNEL_bench_gen.bit is made from the trimmed FASM. The command:
+1. reads the .bit back with bit2fasm and decodes it with formal's decoder, then runs 2 + 2 of your draws as a sanity
+   run;
+2. runs steersafe.py --auto: every steer's structural kappa_lo (B20-B22);
+3. runs ctlsweep.sh: the latch-fed race of B21 under its race-only adversary;
+4. runs trim/xtol.sh: the weakest steer's tolerance to opposite path errors at your bands (B21 / B22 updates).
+
+It prints one line. Example, exit1 lfsrfind s1 (129ff3ee):
+
+    steers 18, bounded 18, min kappa_lo 0.126 | latch-fed race: ctl slack +370 / +918 ps, no failure up to kappa 0.20 |
+    weakest steer at your bands: first pulses x = 0.25
+
+A route worth a second look:
+- min kappa_lo below 0, or a steer that is not bounded;
+- a latch-fed steer with ctl slack under ~+100 ps;
+- first pulses at x <= 0.10.
+
+Mux joins, links' own captures, the output capture (outsafe.py) and the hold half of a steer are not in it.
+
 ## B23. Your margin study (every trimmable line k below the rule's trims), judged by formal on your two trimmed routes: the draws pass through k = 2 on countloop s2 and k = 3 on lfsrfind s1, as yours do. On countloop the proved steer bound is gone at k = 1, and the steer adversary needs less kappa to fail at every step (shard B, 2026-11-20 09:00 UTC; untrusted simulation + bounds whose logic is in Lean)
 Method, as your trim_shrink.sh: start from your trim record (FOR-FORMAL 07:20; formal's base bits are byte-identical to
 yours, B22), take every line trim_lines.py --list calls trimmable, and set it k elements shorter (at least 1). This is 10
