@@ -48,7 +48,7 @@ kernels: a separate effect, to be measured.
 | kernel, seed | flow | P untrimmed / trimmed (ps) | control: suite13t same seed | draws |
 |---|---|---|---|---|
 | collatz s1 | v9 + trim (cycle scope) + eq2 | it 8 20315 / 19503; the search phase's it 9 (BDC_LINK_DEPTHS=ulink_n10__3=2,ulink_n11=2 BDC_FORK_OUT_LINK=n17__0,n31__0) **15832 / 14483** | 24676 / 22751 | **4 / 4 (17/17 each, narrowest pulse 2.6 ns)**; rule CLEAN, EQUIVALENT; bench cycles on col18 4130-4260 vs 6234-6504 |
-| xorshift s1 | v9 + trim (cycle scope) + plain move | it 9 20941 / 19710; search it 11 17123 / 16605 / 16357 (rounds) | 18319 / 17588 | running |
+| xorshift s1 | v9 + trim (cycle scope) + plain move | it 9 20941 / 19710; the search phase's it 11 (BDC_FORK_OUT_LINK=n11__0,n32__2) **17123 / 16350** | 18319 / 17588 | **4 / 4 (19/19 each, no pulse under 1 ns)**; rule CLEAN, EQUIVALENT |
 | xorshift s1 | v9 + trim (cycle scope) + plain move + BDC_SIBLING_FUSE | it 8 19365 / 17533 / 16357 / **16289** (rounds) | 18319 / 17588 | **4 / 4 (19/19 each, no pulse under 1 ns)**; rule CLEAN, EQUIVALENT |
 
 collatz's Dynamatic figure (measured, one nextpnr route): 14.05 ns; the hand recipe's best: 21.50. One seed each;
