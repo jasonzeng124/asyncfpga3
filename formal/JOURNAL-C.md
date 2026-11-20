@@ -5018,7 +5018,7 @@ on, running locally -- the new MLIR has not been checked for deadlock by anyone.
 - 06:59: c_mem37: exit1 test_memory_1 1-3 SAME (frontend_exitcond), 32 / 32, min 739 ps, host-write >= 1267. C60 (163).
 - 07:09: c_mem38: 7 exit1 routes SAME, 32 / 32, min 1043 ps, host-write >= 1213. C60 (170).
 
-### progress 07:30 -- research's TRIMMED routes (FOR-FORMAL 07:20): trimtask.sh, lfsrfind s1 / countloop s2 running
+### progress 07:22 -- research's TRIMMED routes (FOR-FORMAL 07:20): trimtask.sh, lfsrfind s1 / countloop s2 running
 Research shortens matched delay lines after routing (LUT INIT only, trim_lines.py) to its rule's own need and asks for
 formal's margins / draws and any race its rule misses. trimtask.sh: fixture copy, tools-B task.sh rebuild (sdf checked
 against research's md5.txt) with untrimmed decode + draws, then research's trim_lines.py (trimmed FASM md5 checked),
