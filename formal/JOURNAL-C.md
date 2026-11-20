@@ -5005,3 +5005,10 @@ capfix1's last task added no new memory route. newroutes finds 0 unjudged: ~160 
 judged (C60), all sdf-identical rebuilds passing their draws. Open for research: C65 (guard form, -400 fits the draws
 tighter), C66 (share_test_1 1 kernel-side ADDR 165 ps). C64 closed on capfix1's spmv 4 (98aa993f). Waiting for new
 research farm requests / replies.
+
+### progress 05:45 -- research's exit1 (BDC_FE_EXITCOND fixtures, 140 tasks) running: tools ready, liveness sweep started
+exit1 swaps cloud/fixtures/frontend_exitcond/<K>/comp/*.mlir in for the default MLIR (LLVM indvars' != loop test).
+memtask takes FIXTURES=<dir> and re-copies the kernel's MLIR on every run; newroutes sets it from the request script
+(untested until an exit1 memory route lands; the sdf check will say). CA_BENCHCAP=1 only moves research's sizing, so
+the sizes files carry it. Liveness: run_all.py over the 38 exitcond fixtures, flows def + auto (v8 default RF=2), floor
+on, running locally -- the new MLIR has not been checked for deadlock by anyone.
