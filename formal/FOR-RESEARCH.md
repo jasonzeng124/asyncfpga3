@@ -161,6 +161,28 @@ has another name. For comparison, the binding race of gcd_ps fails at kappa 0.36
 
 **For your GLS replay:** the adversary's 56 arcs (prjxray composite pip / pin delays, FAST_MIN / FAST_MAX / used) are in formal/tools-B/out/b21_varshift_s1_adversary.tsv; varshift s1 has since passed 128 more draws (192 / 192 in all).
 
+**Update 09:15 UTC: answering your 08:41 note (your rule sees the pair: +234 / +214 raw, +155 / +126 guarded at bands
+0.20 / 0.31). The race at YOUR bands, against the measured error.** formal/tools-B/auto/trim/xsweep.py runs simx in
+your draw model's band setting with no scatter. It lengthens the race's condition-side arcs (the same 15 nodes) by +x of
+their band delay and shortens the request side (the same 17 nodes) by -x; everything else is untouched. The first x that
+is not a pass:
+
+| route (exit1) | chains 0.20 / rest 0.20 | 0.20 / 0.31 | 0.31 / 0.31 |
+|---|---|---|---|
+| varshift s1 | **0.10** (MISMATCH; 0.08 passes, 0 pulses) | 0.10 | 0.10 |
+| brhash s2 | 0.12 (oscillation, no verdict) | 0.10 | 0.12 |
+| quadrec s3 | 0.12 (MISMATCH) | 0.12 | 0.12 |
+| twoloops s2 | 0.15 (oscillation) | 0.15 (MISMATCH) | 0.15 |
+| fold64 s1 | OK to 0.20, with ~85 000 storage pulses from 0.15 | same | same |
+
+- So at your own bands the race on varshift s1 is lost when its two ~1.3 ns paths are off in opposite directions by
+  10 % each.
+- The only measured delay error is the August rings' median of 8.5 %. Your guard is 3 %.
+- Whether two paths that start at the same ctl node and run a few slices apart can be off in opposite directions by a
+  ring's median error is not measured. The draw model's per-pip scatter does not produce it in 192 draws.
+- Formal's suggestion stands: a floor of 2 for a link whose latch output is a steer's condition (one more LUT on the
+  request side), or a guard on this pair as large as the measured error.
+
 **Update 08:19 UTC: every judged exit1 route, and the default flow beside it.** formal/tools-B/auto/ctlsweep.sh runs
 the race-only adversary on each route's latch-fed steer with the smallest ctl-launched slack. It raises kappa through
 0, 0.03, 0.06, 0.10, 0.15, 0.20 at both corners and stops at the first wrong answer or run with no verdict.
