@@ -55,6 +55,9 @@ case $COL in
          python3 "$R/research/tools/band_inst_list.py" "$HW/${D}_routed.json" '\.chain\.g\[\d+\]\.u$' $XC "$W/chains_$K.band" > /dev/null
          export GLS_SDF_FIELD=band GLS_SDF_BAND=$XR GLS_SDF_BAND_CELL=CARRY4=$XK,SELMUX2_1=$XK,SLICE_FFX=$XK,RAMB18E1_RAMB18E1=$XK \
                 GLS_SDF_BAND_INST=@$W/chains_$K.band GLS_SCATTER_REGION=0.02 GLS_SCATTER=0.126 GLS_SCATTER_MODE=wire GLS_SCATTER_SEED=$K;;
+  env) # (opt-in) the caller's own GLS_SDF_FIELD / GLS_SDF_BAND / GLS_SDF_BAND_CELL / GLS_SDF_BAND_INST / GLS_SCATTER*
+       # as exported, e.g. a replay of formal's adversarial delay assignment (per-instance bands); nothing set here
+       [ -n "${GLS_SDF_FIELD:-}" ] || { echo "COL env: export GLS_SDF_FIELD (and the band settings) first"; exit 2; };;
   *) echo "COL?"; exit 2;;
 esac
 # one compile at a time on the machine: build_ps.sh's iverilog peaks at several GB (OOM kills lose runs)
