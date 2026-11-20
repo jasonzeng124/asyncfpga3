@@ -317,6 +317,11 @@ PY
     retried=""
     prev_keys=$keys; prev_tot=$tot
     [ "$k" -gt "${AUTO_TRIM_MAX:-6}" ] && { echo "trim: it $i: $(echo $keys | wc -w) short, $tot ps after the last step" >> "$O/log.txt"; break; }
+    # the trims: trim_plan.py prices each candidate entry exactly from this route's corner SDFs and charges it to every
+    # sized constraint that depends on the line (AUTO_TRIM_PLAN=0: the rule's proposal, damped, as before)
+    if [ "${AUTO_TRIM_PLAN:-1}" = 1 ]; then
+      t=$(python3 "$T/trim_plan.py" "$CA_LAST" "$H/${D}_routed.json" 2> "$O/trim_${i}_${k}_plan.txt")
+    else
     t=$(python3 - "$cur" "$O/rule_${i}t$k.vh" "${AUTO_TRIM_DAMP:-1}" <<'PY'
 import re, sys
 rd = lambda p: {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(p)) if m}
@@ -331,6 +336,7 @@ for k, v in sorted(b.items()):
 print(" ".join(out))
 PY
 )
+    fi
     [ -n "$t" ] || { echo "trim: it $i step $k: the rule moves no line ($(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"; break; }
     cp "$H/${D}_routed.json" "$H/${D}_routed.prev.json"; cp "$H/$D.fasm" "$H/$D.prev.fasm"; cp "$H/$D.bit" "$H/$D.prev.bit"
     cp "$cur" "$O/sizes_${i}_trim.prev.vh"; cp "$O/trim_$i.txt" "$O/trim_${i}.prev.txt"
