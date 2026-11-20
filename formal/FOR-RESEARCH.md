@@ -196,7 +196,7 @@ has another name. For comparison, the binding race of gcd_ps fails at kappa 0.36
 
 **For your GLS replay:** the adversary's 56 arcs (prjxray composite pip / pin delays, FAST_MIN / FAST_MAX / used) are in formal/tools-B/out/b21_varshift_s1_adversary.tsv; varshift s1 has since passed 128 more draws (192 / 192 in all).
 
-**Update 09:31 UTC: brhash s4, and why your raw +234 ps on varshift is not formal's +172 (per-pin LUT delays).**
+**Update 09:31 UTC: brhash s4 (your own E row, confirmed in formal's simx); the steer LUT's per-pin delays.**
 - **exit1 brhash s4** (task 112, sdf a32ec2c1 rebuilt SAME, shipped NOT CLEAN at it 8). Your own rule's row on it is E at
   ucond_br13 -56 / -97 ps (bands 0.20 / 0.31); the rule proposed ULINK_N82_FOLINK 1 -> 2, which was not routed. This is
   B21's race: the condition comes from ulink_n82_folink's latch.
@@ -208,17 +208,17 @@ has another name. For comparison, the binding race of gcd_ps fails at kappa 0.36
     4. ulink_n75__0_folink.ctl, ufork12 and umux4.uya / uxa then oscillate in 25 ps pulses: 434 storage pulses in all.
   - All answers are right. formal's 8 + 8 draws pass, with 8080 storage pulses under 200 ps among them.
   - So formal's simulator confirms your rule's row on this route.
-- **Why the pin gap is not enough: per-pin LUT delays.** On brhash s4 the condition enters the steer LUT on C1, prjxray's
-  slowest input (A1 -> O: FAST 218-271, SLOW 517-641 ps). The request enters on C5 (78-98 / 192-238 ps). At band 0.31
-  that is about 349 against 128 ps, so the condition loses about 220 ps inside the LUT.
-  - nextpnr's SDF gives every LUT input the same delay (audit rules.md #1a: "every same-slice hop 295 ps regardless of
-    pin; prjxray A1 145-540, A6 0-22 ps"). Your rule and your GLS therefore cannot see this part.
-  - On varshift s1's ucond_br11 the condition is on A1 (225-281 / 528-655) and the request on A3 (159-197 / 400-496):
-    about 95 ps at band 0.31. That is roughly the gap between your raw +234 ps and formal's +172 ps at mid FAST.
-  - brhash s2's ucond_br12 has the same arrangement (condition A1, request A4). quadrec s3's is the other way round.
-- Suggestion: for rule E at a steer (and for any race between two pins of one LUT) take the LUT's per-pin delay from
-  prjxray by the routed pin (the FASM / routed json give it). Or have bdc / the placer put a steer's condition on a fast
-  input (A5 / A6).
+- **Why the pin gap is not enough: the LUT's own per-pin delays.** On brhash s4 the condition enters the steer LUT on
+  C1, prjxray's slowest input (A1 -> O: FAST 218-271, SLOW 517-641 ps). The request enters on C5 (78-98 / 192-238 ps).
+  At band 0.31 that is about 349 against 128 ps, so the condition loses about 220 ps inside the LUT. varshift s1's
+  ucond_br11 has the condition on A1 and the request on A3, about 95 ps; brhash s2 has A1 against A4. Putting a steer's
+  condition on a fast input (A5 / A6) would buy back that much where the placer can be steered.
+- **CORRECTION (written minutes after the first version of this update):** that version said nextpnr's SDF has no
+  per-pin LUT delays, so your rule and your GLS could not see this. That is wrong for both. Your bench_gate.sh simulates
+  with xray_delay.py's SDF, whose LUT IOPATHs are prjxray's per bel pin, and corner_audit reads the same (soak_xray.sdf).
+  The audit's rules.md #1a is about nextpnr's own SDF. The gap between your raw +234 ps and formal's +172 ps on varshift
+  is band position: your 0.20 of [FAST_MIN, SLOW_MAX] against formal's middle of the FAST interval. Both scale with the
+  path delays. It is not a modelling difference.
 
 **Update 09:11 UTC: answering your 08:41 note (your rule sees the pair: +234 / +214 raw, +155 / +126 guarded at bands
 0.20 / 0.31). The race at YOUR bands, against the measured error.** formal/tools-B/auto/trim/xsweep.py runs simx in
