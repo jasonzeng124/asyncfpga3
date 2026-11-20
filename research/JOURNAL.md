@@ -8144,3 +8144,26 @@ Farm: exit1 running (21 of 140 back at 06:20); suite13 (240 tasks) waits for roo
   rebuilt from its own sizes and seed (sdf md5 checked), trimmed by the flow's trim step (CA_TRIM=1 plan), full stack,
   and suite_one.sh's draws on the task's OWN draw points: a paired measurement of the trim, the route unchanged.
   First four (exit1 lfsrfind s1, countloop s2, test_stdint s1, mul_example s2): all four rebuilt to the farm's sdf.
+### progress 06:47 (trim step on farm routes: first periods; an "overbuild then trim" finish phase, opt-in, first loop running)
+- **Trim step, paired, same route** (trim_farm.sh, AUTO_TRIM_ONLY; nextpnr 6e5d224472232d5d): every rebuilt route
+  matched its farm sdf md5 (lfsrfind s1 129ff3ee, countloop s2 aa201b8b, test_stdint s1 3985966e, mul_example s2
+  8e05893d, capfix1 mul_example s1 / s2, test_stdint s1 / s2). First trimmed periods (full stack, EQUIVALENT):
+  lfsrfind s1 27880 -> 27062 ps (5 lines: ulink_n22__1 7 -> 1, umux1 5 -> 2, umux0 4 -> 2, ucmpi0 11 -> 10,
+  ulink_n22__0 3 -> 2); exit1 mul_example s2 61750 -> 60989 (1 line); test_stdint s1: the rule's trim mode moves no
+  line. countloop s2 (NOT CLEAN by one H row needing a UACK raise): ucmpi1 (the fused update + test) 18 -> 13, umux3
+  6 -> 2, umux1 5 -> 2 and 6 more; its stack is running. Draws on all of them: running (the farm's own draw points).
+- The md5 check works as meant: capfix1 binary_search s1 was shipped by the search phase, whose structure a farm task
+  does not return (structure.env); rebuilt without it, it was refused as a different route (85887ea1 vs 58ff60aa).
+  Fixed (82c85e9c1: the structure is read from the loop's result line); s1 / s3 / s4 to be re-run.
+- **Why routes end NOT CLEAN, on the 111 shipped routes of suite12 / capfix1 / exit1** (the shipped iteration's neg
+  file): 28 NOT CLEAN; besides suite12's ucap rows (fixed since), the rows are churn on lines that only needed padding
+  (H at a link stage's controller 7 routes, A'm at a mux 5, C / B at a RAM 5 / 4, E at mux joins 4, ...), mostly by
+  28-500 ps over 1-3 constraints. A trim can only shorten, so it cannot fix those as built.
+- **AUTO_OVERBUILD=H** (0ea146dd6, opt-in, implies AUTO_TRIM): at the switch to the finish phase every TRIMMABLE line
+  (trim_lines.py --list: side-input LUT2 chains; symmetric lines -- some mux delays, RAM lines, plain link requests --
+  and 1-element lines of unknown kind are left alone) is built H elements longer than max(sizes, proposal); a finish
+  route is clean when the trim step alone makes it so (trim_check: the trim step run, its final rule state read). The
+  idea: churn of ~0.5 ns sd is covered by the extra length, and the trims cut every line back to what the route it
+  landed on needs. First loop: suite12 xorshift s1 (farm: NOT CLEAN after 6 finish routes, shipped it 9, P 17.81 ns),
+  phase 1 as the farm ran it, H = 3 (overbuild_farm.sh). PREDICTION (06:47): clean after the trim step within 2 finish
+  routes; P at or below the farm's 17.81 ns; every draw passes.
