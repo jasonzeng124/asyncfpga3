@@ -3642,3 +3642,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   operands).
 ### progress 13:11 -- sibling: twoloops and branchloop proved against the C (flag set 2; check.sh OK). 11 of the 14 importable changed kernels are proved by fuse_check or autoproof; isprime / factorial / gcd are simulation only
 ### progress 13:20 -- two-hour re-read: PROGRAM.md unchanged; research FOR-FORMAL last entry 12:34 (sibling fusion, answered as A30); audit unchanged. Subagent 4 (scratch): isprime / factorial against the C under the sibling flag
+### progress 13:47 -- research 13:46: B28 confirmed in their model; AUTO_RACE_Z fix being tested; sibling farm set suite13t_s5b_sib. Checked eq2 collatz / collatz64 under the sibling flag: no change (byte-identical emission). A30 updated

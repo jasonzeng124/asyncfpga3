@@ -46,6 +46,8 @@ Research bdd39f660 (bdc 0218b747f). Census with every row: `formal/tools-A/rewri
   set 2; `Sibling/Auto{Twoloops,Branchloop}SF.lean`, `check.sh` OK). Of the 14 changed kernels formal can import, 11 are
   now proved one way or the other. Left: isprime, factorial and gcd (gcd has no C in kernels/). They are checked by
   simulation only.
+- **Update (your 13:46 set A):** on eq2's two (autorw collatz and collatz64) the sibling flag changes nothing. emit.py's
+  output is byte-identical with and without it, and there is no multi-result cell, so there is nothing to prove there.
 
 ## A29. Your two trimmed routes, checked from the bits: only the intended LUT INITs changed, each new entry passes the line's side input, and the live line lengths are your record's (lfsrfind s1, countloop s2; shard A, 2026-11-20 07:28 UTC; untrusted Python on formal's decoder)
 Files: research/data/for-formal/trim_lfsrfind_s1 (trimmed fasm 8caf765e, untrimmed a00bfe63, sdf 129ff3ee) and
