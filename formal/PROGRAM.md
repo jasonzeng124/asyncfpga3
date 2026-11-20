@@ -1,5 +1,12 @@
 # Formal-model feasibility program
 
+## Quota (owner, 2026-11-20 15:00 UTC): "can you chill on claude usage a bit"
+
+**From now on: at most 1 subagent at a time each.** This replaces every helper limit below
+(the 4 / 2 / 2 of 2026-11-18 included). The cost of a session is mostly its helpers, so keep
+them for work that needs them in parallel, and do the rest in the main session. Nothing else
+changes: the work, its order and the schedule stay as they are.
+
 ## Quota (owner, 2026-11-18 16:48 UTC): all three shards until the reset, then the usual limits
 
 The week's quota ran out at 10:16 UTC today and every bot stopped (the stop notice that
