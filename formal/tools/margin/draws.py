@@ -114,7 +114,8 @@ def run(seed):
            "--pairs", *a.pairs, "--kernel", a.kernel, "--corner", "0", "--data0", "--full", "--R", "400000", "--su", "1000",
            "--datachange", "broad", "--nextreq", "seq", "--tmax", str(a.tmax), "--draw", str(seed), "--band", str(a.band),
            "--sreg", str(a.sreg), "--sarc", str(a.sarc), "--regsize", str(a.regsize)] + (
-           ["--gclass", GCL, "--bands", "%.6f,%.6f,%.6f" % bands(seed)] if GCL else []) + (["--classes", a.inject] if a.inject else []) + (["--w", str(a.w)] if a.w else []) + (["--mem", a.mem] if a.mem else []) + (["--hostport"] if a.hostport else [])
+           ["--gclass", GCL, "--bands", "%.6f,%.6f,%.6f" % bands(seed)] if GCL else []) + (["--classes", a.inject] if a.inject else []) + (["--w", str(a.w)] if a.w else []) + (["--mem", a.mem] if a.mem else []) + (["--hostport"] if a.hostport else []) + (
+           ["--dout", os.environ["DRAW_DOUT"]] if os.environ.get("DRAW_DOUT") else [])   # (B, 2026-11-20) opt-in: when the host samples out0 after out0_req (default 3000 ps). Research's PS bench samples through a 2-flop synchroniser at FCLK 12 ns, >= ~24 ns after the request; CA_BENCHCAP=1 flows size out0 for that
     if os.environ.get("DRAWS_PRINT_CMD"): print(" ".join(cmd), file=sys.stderr)
     t0 = time.time()
     try:
