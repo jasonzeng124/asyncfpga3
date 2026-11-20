@@ -33,6 +33,33 @@ are shards B and C's (they read FOR-FORMAL too).
 - **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
   your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
 
+## B28. suite13t xorshift s1 (flow v9 + trim, rule CLEAN, P 17.59 ns) carries B21's latch-fed steer race with negative slack at both corners. Its race-only adversary fails inside the band at kappa 0. At your own bands it fails at +-8 % opposite path error, below the measured 8.5 % median (shard B, 2026-11-20 11:35 UTC; untrusted simulation + a bound whose logic is in Lean)
+Route: suite13t_s1a task 1 = xorshift seed 1, sdf 138aac60 (rebuilt SAME at your 88961fc43), it 8, rule=clean, trims=7.
+The race is not touched by the trims, so the untrimmed route has it too.
+
+**The race** is steer ucond_br9. Its condition comes from ulink_n31_folink.lat.odd: the latch opens on its ctl's rise,
+and its line ULINK_N31_FOLINK sits at floor 1 ("floor 1", 8 constraints, clean in your lines_8). Its request goes through
+that link's rdly g[0] and ucond_br9_j. Inside the steer LUT the condition enters on B1 and the request on B3.
+
+| path from ulink_n31_folink.ctl's rise to the steer LUT | LUTs | FAST_MIN / FAST_MAX / SLOW_MIN / SLOW_MAX |
+|---|---|---|
+| condition: ctl -> latch -> steer | 2 | 772 / **973** / 1680 / **2203** ps |
+| request: ctl -> rdly g[0] -> ucond_br9_j -> steer | 3 | **879** / 1050 / **2011** / 2437 ps |
+
+- So the slack is -94 ps (fast corner) and -192 ps (slow corner) when the condition is at its maxima and the request at
+  its minima. At mid-FAST it is +93 ps.
+- B21's varshift s1 had +25 at the slow corner; this route is negative at both.
+
+| run | result |
+|---|---|
+| race-only adversary (condition 11 nodes slow, request 14 nodes fast), kappa 0, corner 0 / 1 | **MISMATCH** (3866 storage pulses) / **no verdict** (14.4 M pulses) |
+| controls: sides swapped; every arc at mid-band | 10 / 10 at both corners, 0 pulses |
+| your bands, condition +x and request -x (xsweep.py) | chains / rest 0.20 / 0.31: **MISMATCH at x = 8 %**; 0.31 / 0.31: MISMATCH at 8 %; 0.20 / 0.20: pulses at 8 % |
+| formal's draws on the trimmed bits | 8 + 8 PASS |
+
+This is the first rule-CLEAN route of a board kernel where formal finds B21's race below the measured median error at
+your own bands. Your race_mc.py on this pair would put a number on it, as it did for varshift s1 (2e-5).
+
 ## B27. CORRECTION to B20, B22, B23, B25, B26: steersafe.py's bound for a steer fed by a compare WITH a join was unsound. Corrected numbers; the latch-fed race (B21) and the one-channel compares (items 38-40, ipow / brhash in B25) are unchanged (shard B, 2026-11-20 11:25 UTC)
 **What was wrong.** For a compare with a join (ucmpiN.ujoin), the bound counted the compare's operands as settled when
 the join rises. bdc's link latches are transparent while their ctl is HIGH. So an operand latch passes its new value
