@@ -13,7 +13,7 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
   minui): 22 / 22 OK, NEGCTL 22 / 22 MISMATCH, as before.
 - BDC_FE_EXITCOND by op counts (untrusted): 35 of 37 kernels only turn loop-exit compares into `!=`; gcd gains no `!=`
   test at all, and its one change is the nsw-based `slt -> ult` behind A28's divergence.
-- Exit-test knob: 8 kernels now proved (nested, varshift, brhash, quadrec added). nested needed an automatically
+- Exit-test knob: 12 kernels now proved (nested, varshift, brhash, quadrec, lfsrfind, fold64, twoloops, nest3 added); every importable fixture but gcd. nested needed an automatically
   inferred, inductively checked reachability invariant (`i < a`), the step a general pass would need (notes/A-exitcond-pass.md).
 - Research's first trimmed routes (lfsrfind s1, countloop s2) checked from the bits (A29): only the intended LUT INITs
   changed, each new entry passes the side input, live lengths = record; negative control caught.

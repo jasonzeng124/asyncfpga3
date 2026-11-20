@@ -291,6 +291,20 @@ Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
 - **bdc cannot emit three of the knob's fixtures.** dot2, gather and memsum gain an `arith.minui` (the trip count).
   `emit.py` stops with "no width rule for handshake op 'minui'". In formal's interpreter (minui / maxui / minsi / maxsi
   added) all three agree with their default graphs on 30 / 30 vectors.
+- **Update 2026-11-20 08:46 (shard A): four more PROVED: lfsrfind, fold64, twoloops, nest3. 12 exit-test fixtures proved
+  in all**, every importable one except gcd. Same statement and check (`Auto{Lfsrfind,Fold64,Twoloops,Nest3}EC.lean`,
+  `check.sh` OK, standard axioms). What each needed:
+  - lfsrfind: entry and literal-bound invariants.
+  - fold64: cfront reads 64-bit C.
+  - twoloops: a range invariant `m < 256` (the graph carries m on 8 bits), plus compares at any width.
+  - nest3: only a missing input vector in formal's script.
+
+  cfront's new readings (break, #define, a test constant at loop entry, 64-bit) were tested against gcc -fwrapv:
+  210-214 vectors per kernel, 0 mismatches, within each kernel's declared input range
+  (`tools-A/rewrite/exitcond_cfront_cdiff_w64.py`). To rerun, add `CF_W64=1 CF_CONSTTEST=1 CF_BREAK=1 CF_DEFINE=1
+  AP_OPSX2=1 AP_INEQR=1 AP_ENTRYINV=1 AP_TRUNCINV=1` to the command below (CF_IFTEST unset). The DEFAULT graphs of
+  lfsrfind and nest3 do not yet prove. That is a tool limit (lfsrfind's 8-bit counter wraps at the exit), not a
+  difference, and the knob's graphs are the ones proved.
 - **Update 2026-11-20 07:42 (shard A): four more kernels PROVED: nested, varshift, brhash, quadrec** (BDC_AUTO=1, your
   frontend_exitcond fixtures at 99146b03d; Lean, standard axioms, `check.sh` OK; `Formal/Rewrite/ExitCond/Auto{Nested,
   Varshift,Brhash,Quadrec}EC.lean`, theorem `auto_computes`: every input where the C returns, every schedule, token
