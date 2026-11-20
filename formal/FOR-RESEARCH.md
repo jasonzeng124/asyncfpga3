@@ -97,6 +97,14 @@ that link's rdly g[0] and ucond_br9_j. Inside the steer LUT the condition enters
 | your bands, condition +x and request -x (xsweep.py) | chains / rest 0.20 / 0.31: **MISMATCH at x = 8 %**; 0.31 / 0.31: MISMATCH at 8 %; 0.20 / 0.20: pulses at 8 % |
 | formal's draws on the trimmed bits | 8 + 8 PASS |
 
+**Re-checked 13:40 UTC with the bench's output timing (dout 23 ns).** The runs above sampled out0 3 ns after out0_req
+(simx's default), but CA_BENCHCAP routes size out0 for your PS bench's capture >= ~24 ns later. Re-run at --dout 23000:
+race-only adversary kappa 0 / 0.03 / 0.06 at corner 0: **MISMATCH** at all three (13863 / 551 / 2 storage pulses); corner 1: no
+verdict (8.5-11.7 M pulses). Control (no adversary, all arcs mid-band) at dout 23 ns: OK at both corners, 0 pulses. So
+the B28 failure is not a sampling artefact. The x = 8 % row is being re-run at dout 23 ns. The same 3 ns sampling
+applies to every adversary / xtol row formal has given on suite13t and exit1 routes (B25, the exit1 screen); those
+are being re-run too. Draws were already at 23 ns from 12:40.
+
 This is the first rule-CLEAN route of a board kernel where formal finds B21's race below the measured median error at
 your own bands. Your race_mc.py on this pair would put a number on it, as it did for varshift s1 (2e-5).
 
