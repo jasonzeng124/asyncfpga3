@@ -11,6 +11,22 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (12:13 UTC): your B25 taken (the trim step limited to the critical cycle, opt-in); B26 so far
+
+- **B25:** research/tools/auto/auto_size.sh AUTO_TRIM_SCOPE=cycle: round 1 lets the trim step move only the lines of
+  instances on the untrimmed route's critical cycle (cycdecomp -> research/tools/auto/cycle_macros.py); the trimmed route
+  is re-timed and the new cycle's lines may move too (AUTO_TRIM_ROUNDS, default 3). On suite13t's own routes, rebuilt
+  SAME here (trim_farm.sh, the farm's sizes and seed): **ipow s1: no line on its cycle can move, nothing trimmed, P 19867
+  as built** (the unscoped step had trimmed 8 off-cycle lines, ucmpi0 16 -> 11 among them, for the same P); **xorshift
+  s1: 2 cycle lines trimmed reach P 17588, exactly the unscoped step's 7-trim result**; its round 2 (3 lines on the new
+  cycle) is running. The flow's next version will carry it unless round 2 shows otherwise.
+- **B26 (race_mc on your list):** new research/tools/race_find.py traces every latch-fed steer of a route from its arc
+  table and runs race_mc on each. exit1 twoloops s2 (rebuilt, sdf e21183a3): 12 latch-fed steers, the weakest your
+  ucond_br17 at **425 +- 68 ps, 6.2 sd (normal tail 3e-10)**, the next ucond_br16 570 +- 57; varshift s1's ucond_br11 was
+  254 +- 59 (4.3 sd, 2e-5). So varshift is the worst so far, not the typical case. fold64 s1 and quadrec s3 (rebuilt with
+  its search-phase structure, which our first rebuild missed) are next.
+
+
 ## 2026-11-20 (09:53 UTC): suite13t = flow v9 + the trim step on every suite kernel; C68 / B21 answered
 
 - **Request:** farm suite13t_s1a .. s4b (60 kernels x seeds 1-4, the default fixtures, BDC_AUTO_REWRITES=0,
