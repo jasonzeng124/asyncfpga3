@@ -843,6 +843,11 @@ share_test_2 2-4 SAME but not drawn (DSP USE_DPORT not modelled). 186 judged.
 **c_mem41 (09:45):** 11 more exit1 routes, incl. spmv 3 (75d506f7) and spmv 4 (3da5b493): 10 SAME and 32 / 32 each
 (so C68's hang is spmv 1's route, not every exitcond spmv route), min RAM setup >= 677 ps, host-write >= 988 ps;
 share_test_2 1 SAME, not drawn (DSP USE_DPORT). 206 judged.
+**c_mem42 (10:25):** exit1's fir 1 / 3, image_resize 2, stencil_2d 3 and suite13t's first two: test_bool_array 1
+(untrimmed) and **test_memory_1 1 TRIMMED** (dd5c5ee7 = capfix1's route + your record UADDI0=9, ULINK_N_TRUERESULT_8_UACK=1:
+4 chains trimmed by your trim_lines.py here): SAME, 32 / 32 each, min RAM setup >= 432 ps. The trimmed one: min 2439 ps,
+host-write +2959 ps, as untrimmed (the trims are not on its RAM paths). Not checked: the trimmed bits against yours (no
+trimmed-FASM md5 in suite13t's results -- if you add one, formal checks it). 212 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
