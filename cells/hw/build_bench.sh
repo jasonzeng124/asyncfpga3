@@ -316,6 +316,14 @@ echo "== synthesis ($TOP) =="
 # multiply, ipow first.  Whichever setting a bitstream was built with, the
 # host report stamps it, per the harness spec's "stamp results with the
 # BD_DSP setting used" requirement.
+# BD_AUTONAME=1 (opt-in; unset, the yosys script is the same text): yosys `autoname` before write_json gives every
+# private ($-prefixed) cell and wire a name derived from the public nets it touches.  Why: yosys numbers its cells from
+# one counter, so a kernel whose delay lines change length renames the harness's cells (xorshift s1 it 5 -> 6: abc +4,
+# 104 of 1910 flops renumbered, numbers reused for other cells), and a later route cannot be matched to the one before
+# cell by cell (research/data/placekeep/README.md; cells/hw/place_from.py).  With it, all 5545 harness cell names of
+# that pair match.  It changes every cell name, so a route built with it is not the route built without it.
+AUTONAME=""; [ "${BD_AUTONAME:-0}" = 1 ] && AUTONAME="autoname
+"
 DSPOPT="-nodsp"
 [ "${BD_DSP:-1}" = "1" ] && DSPOPT=""
 
@@ -331,7 +339,7 @@ techmap -map +/xilinx/ff_map.v
 techmap -map +/xilinx/lut_map.v -map +/xilinx/cells_map.v -D LUT_WIDTH=6
 opt_lut_ins -tech xilinx
 synth_xilinx -family xc7 -flatten $DSPOPT -nosrl -nolutram -nobram -noclkbuf -top $TOP -run finalize:
-write_json $OUT/$TOP.json
+${AUTONAME}write_json $OUT/$TOP.json
 stat
 " > "$OUT/synth.log" 2>&1 || { echo "SYNTH FAILED"; tail -40 "$OUT/synth.log"; exit 1; }
 

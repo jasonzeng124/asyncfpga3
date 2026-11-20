@@ -74,6 +74,10 @@ LANE=$R/research/tools/fifteen/lane2.sh; T=$R/research/tools/auto
 O=$RUNS/auto/$N; mkdir -p "$O"
 RES=""
 XENV=""   # the structure AUTO_SEARCH=1 chose (BDC_LINK_DEPTHS=...); empty unless its phase picked an edit
+# AUTO_AUTONAME=1 (opt-in; default: AUTO_PLACE_KEEP's value; unset / 0, the builds are what they were): every route of
+# the loop is built with BD_AUTONAME=1 (cells/hw/build_bench.sh: yosys autoname, so a cell keeps its name from one
+# route to the next, which AUTO_PLACE_KEEP's matching needs; research/data/placekeep/README.md).
+ANENV=""; [ "${AUTO_AUTONAME:-${AUTO_PLACE_KEEP:-0}}" = 1 ] && ANENV="BD_AUTONAME=1"
 if [ -n "${AUTO_RESUME:-}" ] && [ -f "$AUTO_RESUME/sizes_1.vh" ]; then
   RES=$(cd "$AUTO_RESUME" && pwd)
   [ "$RES" = "$(cd "$O" && pwd)" ] || cp "$RES"/*.txt "$RES"/*.vh "$O/" 2>/dev/null
@@ -178,7 +182,7 @@ build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); f
   fi
   rm -rf "$HWI" "$RUNS/r/${N}_$i"   # a failed build must not leave an older route's files looking like this one's
   if [ -n "$PF" ]; then   # the kept placement, on the iteration's seed; any failure: built fresh below, as without it
-    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s0" "$VEC" BDC_AUTO=1 ${XENV:-} BD_PLACE_FROM="$PF" > "$O/it_$i.log" 2>&1
+    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s0" "$VEC" BDC_AUTO=1 ${XENV:-} ${ANENV} BD_PLACE_FROM="$PF" > "$O/it_$i.log" 2>&1
     tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
     if [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$HWI/${D}_routed.json" ]; then
       echo "$s0" > "$O/seed_$i.txt"; place_dump "$i"
@@ -191,7 +195,7 @@ build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); f
   for a in $(seq 0 $(( ${AUTO_SEED_TRIES:-3} - 1 ))); do
     s=$s0; [ "$a" -gt 0 ] && s=$((S + 100 * a)); [ "$a" -gt 0 ] && [ "$s" = "$s0" ] && s=$((S + 100 * (a + 1)))
     [ "$a" -gt 0 ] && rm -rf "$HWI" "$RUNS/r/${N}_$i"
-    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/it_$i.log" 2>&1
+    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s" "$VEC" BDC_AUTO=1 ${XENV:-} ${ANENV} > "$O/it_$i.log" 2>&1
     tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
     if [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$HWI/${D}_routed.json" ]; then
       echo "$s" > "$O/seed_$i.txt"; [ "${AUTO_PLACE_KEEP:-0}" = 1 ] && place_dump "$i"
@@ -221,7 +225,7 @@ nneg() {  # nneg DIR: the rule's negative rows on a route (auto_size's clean tes
 alt_build() {  # alt_build I J SEED (AUTO_FINISH_SEEDS): sizes_I on SEED as route N_IsJ in lane LsJ; one attempt
   local NA=${N}_$1s$2
   rm -rf "$RUNS/hw/$NA" "$RUNS/r/$NA"
-  LANE_NORUN=1 "$LANE" "${L}s$2" "$NA" "$K" "$O/sizes_$1.vh" "$3" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/it_$1s$2.log" 2>&1
+  LANE_NORUN=1 "$LANE" "${L}s$2" "$NA" "$K" "$O/sizes_$1.vh" "$3" "$VEC" BDC_AUTO=1 ${XENV:-} ${ANENV} > "$O/it_$1s$2.log" 2>&1
   tail -1 "$O/it_$1s$2.log" > "$O/it_$1s$2.txt"
 }
 adopt() {  # adopt I J SEED (AUTO_FINISH_SEEDS): route N_IsJ becomes route N_I; the seed-S route is kept as N_Is0

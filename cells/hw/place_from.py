@@ -74,9 +74,13 @@ else:                                # research/tools/auto/auto_size.sh's place_
 RE_ABC = re.compile(r"\$abc\$(\d+)\$auto\$blifparse\.cc:(\d+):parse_blif\$(\d+)")
 
 
+RE_PLUT = re.compile(r"\$LUT\$\d+$")   # the packer's own route-through LUTs: <net>$LUT$<its counter>
+
+
 def norm(name):
-    return RE_ABC.sub(lambda m: "$abc$*$auto$blifparse.cc:%s:parse_blif$+%d" % (m.group(2), int(m.group(3)) - int(m.group(1))),
+    name = RE_ABC.sub(lambda m: "$abc$*$auto$blifparse.cc:%s:parse_blif$+%d" % (m.group(2), int(m.group(3)) - int(m.group(1))),
                       name)
+    return RE_PLUT.sub("$LUT$*", name)
 
 
 def out_sig_ctx(cell):
@@ -133,17 +137,19 @@ RE_NUM = re.compile(r"\$\d")
 for nm in cells_by:
     if nm in prev and not RE_NUM.search(nm):
         match[nm] = nm
-qprev = {}
+qprev, qcur = {}, {}
 for k in prev:
-    if RE_ABC.search(k):
+    if RE_ABC.search(k) or RE_PLUT.search(k):
         qprev.setdefault(norm(k), []).append(k)
-taken_prev = set(match.values())
 for nm in cells_by:
-    if nm not in match and RE_ABC.search(nm):
-        ks = qprev.get(norm(nm), [])
-        if len(ks) == 1 and ks[0] not in taken_prev and not RE_NUM.search(norm(nm).replace("$+", "+")):
-            match[nm] = ks[0]
-            taken_prev.add(ks[0])
+    if nm not in match and (RE_ABC.search(nm) or RE_PLUT.search(nm)):
+        qcur.setdefault(norm(nm), []).append(nm)
+taken_prev = set(match.values())
+for q, nms in qcur.items():             # a normalised key with no counter left, one cell on each side
+    ks = qprev.get(q, [])
+    if len(nms) == 1 and len(ks) == 1 and ks[0] not in taken_prev and not RE_NUM.search(q.replace("$+", "+")):
+        match[nms[0]] = ks[0]
+        taken_prev.add(ks[0])
 dup = {q for q, ks in qprev.items() if len(ks) > 1}
 rejected = 0
 # 2. the user names of the output nets (bridge_i.hist[0][10]), one cell on each side
