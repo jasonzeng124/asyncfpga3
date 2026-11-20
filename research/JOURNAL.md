@@ -8025,3 +8025,15 @@ second convergence lever (placement kept between finish routes, research/data/co
 - **The != loop test at fixed sizes:** the same four unconstrained routes (it 5's sizes, != fixture) give P 15.94 -
   17.22 ns (median ~16.3); the default fixture's suite12 / pk routes ran 17.8-18.1. Not a comparison yet (it 5 is
   not a finished, clean route); exit1 on the farm is the paired test.
+### progress 02:46 (region lever closed negative; the != loop test's first finished loop: no gain on xorshift s1)
+- Whole kernel boxed (BD_REGION_RX=^bridge_i\.udut\., shrink 0.7: 1251 cells into 364 slices for 309 needed): no
+  legal placement on any of the 4 seeds (a CARRY4 of ucmpi0 "Unable to find legal placement"); a looser box is the
+  kernel's present extent. With the critical-ring box worse on 3 of 4 seeds, **the hard-region lever is closed as
+  negative**; region.py / BD_REGION_RX stay opt-in.
+- **!= loop test, xorshift s1 through the whole loop (local, v9 flow):** shipped it 9 NOT CLEAN (30 ps over 1 row),
+  **P 18.09 ns**, EQUIVALENT, against the default fixture's seed-1 routes 17.81 (suite12, NOT CLEAN it 9) and 18.11
+  (pk, CLEAN it 6). The fused cell's line stayed short (11) but the finish phase (it 5-10, never clean: 1, 4, 3, 8 rows)
+  raised other lines; at it 5's sizes four seeds gave 15.9-17.2. horner s1: NOT CLEAN, least short it 9 (12 ps over 2
+  rows). One seed each: no claim; farm exit1 against suite13 (35 kernels x 4 seeds) is the test.
+- CA_BENCHCAP smoke (iterative_sqrt s1, local): the loop ran to it 9 with no 'unfixable' row on any route (every
+  suite12 route of this kernel had umux3's), final stack EQUIVALENT; draws running.
