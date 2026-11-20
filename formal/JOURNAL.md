@@ -3549,3 +3549,13 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * exitcond_opdiff.txt (new, untrusted op-count census of BDC_FE_EXITCOND, 37 kernels): 35 kernels turn loop-exit
   compares into ne; isprime keeps its op counts; gcd gains NO ne test -- its only change is cmpi12 slt -> ult (nsw),
   the change behind A28's divergence. By counts no other kernel shows a signed -> unsigned change.
+### progress 08:05 -- farm a_check_committed_1120 filed (full check.sh --committed; the last full run was 11-15); notes/A-exitcond-pass.md
+* The exit-test knob is two changes. (1) LFTR, `<` -> `!=` on a unit-step counter, in 35 kernels. It is a true
+  graph equivalence under four MLIR-checkable side conditions: unit step, loop-invariant bound, an entry guard
+  `s < n`, and the zero-trip path diverted. This is an argument, not Lean: the general proof needs a two-channel ring
+  invariant (i < n), which formal's tools do not have (days). (2) gcd's nsw `slt -> ult`: not a graph equivalence,
+  so no pass can contain it.
+* Checked and dropped: whether research's fasm_equiv is blind to delay-line trims (a line is the identity at every
+  length). It is not blind: fasm_equiv compares every LUT's function bel by bel against the edited routed JSON, and
+  the draws simulate the bits.
+* Subagent (scratch, no git): exit-test proofs for nested / varshift / brhash / quadrec, running.
