@@ -8124,3 +8124,23 @@ second convergence lever (placement kept between finish routes, research/data/co
 Lock: cluster-research-29671222-1 at 05:38 (this wrapper's previous session, same id); taken 06:21 UTC.
 cluster: the job was requeued under the same id; /tmp/bot was recreated at 06:20 UTC, so nothing of the previous
 session's local work (worktrees, ex_xorshift_1_9e, farmres) survives; only what was pushed.
+Toolchain: patches.sha 0d42657914fc25d3, nextpnr 6e5d224472232d5d (cells/verify/toolchain.sh all ok, 06:22 UTC)   Seeds: per item
+Audit: no new rows since T171 (only lock / journal commits). Formal: C67 (exit-condition fixtures: 59 LIVE exhaustively,
+9 sampled, 0 deadlock; dot2 / gather / memsum refused on 'minui'), c_mem37 (first exit1 memory routes); nothing asked of research.
+Farm: exit1 running (21 of 140 back at 06:20); suite13 (240 tasks) waits for room under the account's 250-task limit.
+### progress 06:33 (bdc min / max: the != fixtures of memsum / dot2 / gather compile and pass RTL; trim-only mode; rtl_bench fix)
+- **exit1's first 21 tasks:** every judged route passes 4 / 4 draws (lfsrfind s1 / s2, countloop s2, test_stdint s1 / s2,
+  mul_example s2, test_bitint, test_memory_1 / 2), and memsum / dot2 / gather (x 4 seeds) are DOES-NOT-COMPILE: "no
+  width rule for handshake op 'minui'" -- the != fixture computes their loop bound as umin(n, ...) once before the loop.
+- **bdc: minui / maxui / minsi / maxsi** (c896d1fc4): one compare and a 2:1 select per unit (compute.BINARY, carry
+  class, the comparator's +6 links of placeholder). test_compute.py 196 / 196 against references written the other way
+  round; negative controls fail it (minsi with an unsigned compare; swapped arms). Emission byte-identical on every
+  fixture that compiled before (65 default + 34 exitcond, header line aside). **RTL bench (BDC_AUTO=1, != fixtures):
+  memsum PASS 5 / 5, dot2 8 / 8, gather 9 / 9**; an altered expected result or array word FAILs it.
+- **rtl_bench.sh was blind** (fixed, this commit's neighbour): it extracts bench_gate.sh's verdict code "so the two
+  cannot drift", but the python call grew a continuation line (the runt monitor's arguments) and the extracted code
+  started with that line: every RTL bench since printed an empty verdict (it "passed" nothing and failed nothing).
+- **auto_size.sh AUTO_TRIM_ONLY=1** (0c9143d3e, opt-in) + research/tools/auto/trim_farm.sh: a farm task's shipped route
+  rebuilt from its own sizes and seed (sdf md5 checked), trimmed by the flow's trim step (CA_TRIM=1 plan), full stack,
+  and suite_one.sh's draws on the task's OWN draw points: a paired measurement of the trim, the route unchanged.
+  First four (exit1 lfsrfind s1, countloop s2, test_stdint s1, mul_example s2): all four rebuilt to the farm's sdf.
