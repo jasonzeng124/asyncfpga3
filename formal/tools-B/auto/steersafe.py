@@ -22,7 +22,7 @@ path of maximum delays, every root counted as settled at A (PREMISE: the compare
 to the capture; listed with the roots' cells).
 kappa_lo = min over corners c in {0, 1} of (R - D) / (R + D), with both sides' pin arcs into the steer LUT included."""
 import json, re, sys, collections
-M, STEER, COND, LAUNCH = sys.argv[1:5]
+M, STEER, COND, LAUNCH = sys.argv[1:5]; CLS = sys.argv[sys.argv.index("--classes") + 1] if "--classes" in sys.argv else None
 N = json.load(open(M + "/net.json")); G = N["gates"]; names = N["nodes"]
 BB = json.load(open(M + "/bnd.json")); idx = {n: i for i, n in enumerate(names)}
 env = {idx[v] if isinstance(v, str) else v for v in BB["env"]}
@@ -58,6 +58,7 @@ steer = [(gi, g) for gi, g in enumerate(G) if g["kind"] in ("lut5", "lut6") and 
 launch = {g["out"] for g in G if g["kind"] in ("lut5", "lut6") and g["out"] in storage and re.search(LAUNCH, cellof(g))}
 if not steer or not launch: sys.exit("steer %d gates, launch %d storage nodes: nothing to do" % (len(steer), len(launch)))
 PREM = set()
+WALK = set()
 def req_bound(u0, c):
     memo, onst = {}, set()
     def R(u):   # -> best (largest) sum of min delays from a LAUNCH node to u, or None
@@ -75,7 +76,9 @@ def req_bound(u0, c):
             if fb: PREM.add("storage %s is 0 at A (hold_mem)" % cellof(g).replace("bridge_i.udut.", ""))
             t = r + lerp(g["arcs"][q]["fmin"], g["arcs"][q]["smin"], c)
             if best is None or t > best: best = t
-        onst.discard(u); memo[u] = best; return best
+        onst.discard(u); memo[u] = best
+        if best is not None: WALK.add(u)
+        return best
     return R(u0)
 def cone(u0):
     isl, roots, st = set(), set(), [u0]
@@ -103,7 +106,7 @@ def data_bound(u0, order, roots, c):
         t[u] = max(((0 if v in roots else t[v]) + lerp(g["arcs"][p]["fmax"], g["arcs"][p]["smax"], c) for p, v in enumerate(g["ins"])), default=0)
     return 0 if u0 in roots else t[u0]
 print("launch %s; steer gates %d" % (sorted(ncell(u).replace("bridge_i.udut.", "") for u in launch), len(steer)))
-worst = None
+worst = None; SC, SA, FA = set(), [], []
 for gi, g in steer:
     src = [through(u) for u in g["ins"]]
     cp = [p for p, s in enumerate(src) if re.search(COND, ncell(s))]
@@ -114,6 +117,7 @@ for gi, g in steer:
         rk = collections.Counter(("env" if r in env else "storage" if r in storage else "other") for r in roots)
         rc = sorted(set(re.sub(r"\[\d+\]", "[]", ncell(r).replace("bridge_i.udut.", "")) for r in roots))
         if not acyc: print("%s pin %d: condition cone cyclic -- no bound" % (cellof(g), q)); continue
+        SC |= isl; SA.append([names[g["out"]], q]); FA.extend([names[g["out"]], p] for p in rp)
         for p in rp:
             for c in (0, 1):
                 Rv = req_bound(g["ins"][p], c); D = data_bound(g["ins"][q], order, roots, c)
@@ -127,3 +131,7 @@ for gi, g in steer:
         print("  condition cone roots (premise: settled at A): %s" % rc[:8])
 if PREM: print("premises: %s" % sorted(PREM))
 if worst: print("kappa_lo %.3f (%s, corner %d)" % worst)
+if CLS:   # the bound's own delay assignment as simx classes: condition cone + its steer pins slow, request walk fast
+    FN = sorted(names[u] for u in WALK - SC)
+    json.dump({"S": sorted(names[u] for u in SC) + SA, "F": FN + FA}, open(CLS, "w"))
+    print("classes -> %s: S %d nodes + %d pins, F %d nodes + %d pins (overlap dropped from F: %d)" % (CLS, len(SC), len(SA), len(FN), len(FA), len(WALK & SC)))
