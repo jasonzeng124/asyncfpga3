@@ -5029,3 +5029,7 @@ fasm2frames / xc7frames2bit, read back, decode, the same draws on the trimmed bi
   NEGATIVE CONTROL: countloop with research's 6 lines all at 1 element: still 16 + 16 PASS -- the draws cannot tell
   research's trim from a much harsher one here, so "trimmed passes" is no margin evidence yet. Running every sized
   line (79 macros) at 1 to see whether the draws can fail at all on this kernel.
+- 07:47: countloop s2, every trimmable chain at 1 (trim_lines --partial: 14 chains; the rest are not delay lines it can
+  trim): 0 / 32 PASS (28 RESULT MISMATCH, 4 undecided). So the draws CAN fail on this route; research's own 6 lines at 1
+  pass 32 / 32, so in research's draw model those six lines have no correctness role at all and the critical lines are
+  among the other 8 chains. lfsrfind's 5 record lines at 1: running.
