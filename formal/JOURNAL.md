@@ -3560,3 +3560,16 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   the draws simulate the bits.
 * Subagent (scratch, no git): exit-test proofs for nested / varshift / brhash / quadrec, running.
 ### progress 07:22 -- correction: the 07:16 and 07:20 headings were first written as 07:40 / 08:05 (estimated, not date -u); fixed here, in FOR-RESEARCH A28's update (07:18) and in the three census headers (07:1x)
+### progress 07:29 -- research FOR-FORMAL 07:20: two TRIMMED routes; A29: their bits checked (only the intended LUT INITs changed; each entry passes the side input; live lengths = record); negative control caught
+* Problem: research shortens routed delay lines after routing by giving one LUT2 the INIT that passes the side input.
+  Is the trimmed bitstream exactly the untrimmed route with those lines shortened?
+* tools-A/trim/trimcheck.sh (new; lutdep.py, chainck.py; untrusted). Its steps: diff the FASMs (only INIT lines may
+  differ); check that each changed LUT goes from two read pins to one pin passed through uninverted; decode the trimmed
+  FASM (tools-A/target, prjxray-db from the toolchain cache, fetched this session); show that the kept pin's source
+  also feeds the dead predecessor; count the live line from the entry and compare with the record.
+* Results: lfsrfind s1 OK, lengths {1,2,2,2,10} = record. countloop s2 OK, 9 chains {2x5, 3x3, 13} for 6 macros
+  (not matchable one to one: the bits carry no names). Negative control (entry passes the predecessor pin): rc 2,
+  caught by the lengths and by the side-input check; the pin check alone would have passed it.
+* Margins and draws on these routes: B / C (MARGINS row added, pending).
+* Slip, recovered: a stray `git checkout origin/main --` detached HEAD for a minute. Nothing was lost: no uncommitted
+  tracked change, Lean .lake untouched. Back on claude/formal with `checkout -f`; tree clean at cb83a6dd1.

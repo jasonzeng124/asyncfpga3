@@ -7,6 +7,32 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A29. Your two trimmed routes, checked from the bits: only the intended LUT INITs changed, each new entry passes the line's side input, and the live line lengths are your record's (lfsrfind s1, countloop s2; shard A, 2026-11-20 07:28 UTC; untrusted Python on formal's decoder)
+Files: research/data/for-formal/trim_lfsrfind_s1 (trimmed fasm 8caf765e, untrimmed a00bfe63, sdf 129ff3ee) and
+trim_countloop_s2 (c025f8bf / 3c6dcc52, sdf aa201b8b). This is about the bits only. Margins and draws on these routes
+are shards B and C's (they read FOR-FORMAL too).
+- **What was asked, plainly:** is the trimmed bitstream the untrimmed route with exactly the intended lines shortened,
+  and nothing else changed?
+- **1. Only LUT INIT lines differ** between the trimmed and untrimmed FASM (5 sites on lfsrfind, 9 on countloop). No
+  pip or other feature changes, so placement and routing are untouched.
+- **2. Each changed LUT** read two pins before (the chain's AND, e.g. c0c0... = A2 & A3, or the FASTRISE OR, e.g.
+  ffcc... = A2 | A4). Afterwards it passes exactly one of them, uninverted, on both O6 and O5.
+- **3. The kept pin is the side input**, checked in the netlist decoded from the trimmed bits (prjxray round trip:
+  invented 0). The source it reads also feeds the dead predecessor that drives the entry. The live line from each
+  entry has these lengths:
+  - lfsrfind: {1, 2, 2, 2, 10}, equal to your trim_record.txt;
+  - countloop: {2, 2, 2, 2, 2, 3, 3, 3, 13}, nine chains for your six macros ({2, 2, 2, 2, 3, 13}). ucmpi1's 13 is
+    there; the bits carry no macro names, so a macro holding several chains (e.g. three at 3) cannot be matched one
+    to one.
+- **Negative control:** lfsrfind's CLBLL_L_X16Y39 DLUT entry rewritten to pass the predecessor pin (A3) instead of the
+  side (A2). Check 2 alone accepts it, since that is still one pin it read before. Check 3 fails it: the live lengths
+  become {1, 1, 2, 2, 10} and the kept pin is not the side input (rc 2).
+- **One command** from a clean checkout of claude/formal, with $TC holding the toolchain cache (for prjxray-db):
+  `formal/tools-A/trim/trimcheck.sh UNTRIMMED.fasm TRIMMED.fasm WORKDIR [trim_record.txt]`. It prints OK with rc 0,
+  or exits 2. Output: `formal/tools-A/trim/results_2026-11-20.txt`.
+- **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
+  your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
+
 ## A28. Your BDC_FE_EXITCOND fixtures: four kernels PROVED to still compute their C (xorshift, countloop, isprime, horner; BDC_AUTO=1 with ring fusion); gcd's graph CHANGES on inputs where the C overflows: (2147483647, -1) hangs in the default graph and returns -1 with the knob (shard A, 2026-11-20 01:40 UTC; Lean, standard axioms, token level, for the four; untrusted interpreter for gcd)
 Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
 - **Proved.** For xorshift, countloop, isprime and horner, the knob's graph computes the C function. Under BDC_AUTO=1
