@@ -22,7 +22,8 @@ path of maximum delays, every root counted as settled at A (PREMISE: the compare
 to the capture; listed with the roots' cells).
 kappa_lo = min over corners c in {0, 1} of (R - D) / (R + D), with both sides' pin arcs into the steer LUT included."""
 import json, re, sys, collections
-M, STEER, COND, LAUNCH = sys.argv[1:5]; CLS = sys.argv[sys.argv.index("--classes") + 1] if "--classes" in sys.argv else None
+AUTO = "--auto" in sys.argv
+M, STEER, COND, LAUNCH = (sys.argv[1], r"ucond_br\d+\.u\$LUT[56]", None, None) if AUTO else sys.argv[1:5]; CLS = sys.argv[sys.argv.index("--classes") + 1] if "--classes" in sys.argv else None
 N = json.load(open(M + "/net.json")); G = N["gates"]; names = N["nodes"]
 BB = json.load(open(M + "/bnd.json")); idx = {n: i for i, n in enumerate(names)}
 env = {idx[v] if isinstance(v, str) else v for v in BB["env"]}
@@ -55,8 +56,8 @@ def forces0(g, q, fbpins=()):
         return all(v is None or ((ad >> i) & 1) == v for i, v in fix.items())
     return all(not ((init >> ad) & 1) for ad in range(1 << k) if ok(ad))
 steer = [(gi, g) for gi, g in enumerate(G) if g["kind"] in ("lut5", "lut6") and re.search(STEER, cellof(g))]
-launch = {g["out"] for g in G if g["kind"] in ("lut5", "lut6") and g["out"] in storage and re.search(LAUNCH, cellof(g))}
-if not steer or not launch: sys.exit("steer %d gates, launch %d storage nodes: nothing to do" % (len(steer), len(launch)))
+launch = set() if AUTO else {g["out"] for g in G if g["kind"] in ("lut5", "lut6") and g["out"] in storage and re.search(LAUNCH, cellof(g))}
+if not AUTO and (not steer or not launch): sys.exit("steer %d gates, launch %d storage nodes: nothing to do" % (len(steer), len(launch)))
 PREM = set()
 WALK = set()
 def req_bound(u0, c):
@@ -80,14 +81,20 @@ def req_bound(u0, c):
         if best is not None: WALK.add(u)
         return best
     return R(u0)
-def cone(u0):
+def fbpins(u):
+    gi = drv.get(u); g = G[gi]
+    return {i for i, w in enumerate(g["ins"]) if g["kind"] in ("lut5", "lut6") and through(w) == u}
+def cone(u0, opened=frozenset()):
+    """backward cone of u0 stopped at storage / env (roots), except storage nodes in `opened`, which are expanded
+    with their feedback pins left out (a latch whose output is the condition)."""
     isl, roots, st = set(), set(), [u0]
     while st:
         u = st.pop()
         if u in isl or u in roots: continue
         gi = drv.get(u)
-        if gi is None or u in storage or u in env: roots.add(u); continue
-        isl.add(u); st.extend(G[gi]["ins"])
+        if gi is None or (u in storage and u not in opened) or u in env: roots.add(u); continue
+        isl.add(u); fb = fbpins(u) if u in opened else set()
+        st.extend(w for i, w in enumerate(G[gi]["ins"]) if i not in fb)
     order, state = [], {}
     def visit(u):
         if u in roots: return True
@@ -95,16 +102,86 @@ def cone(u0):
         if s == 1: return False
         if s == 2: return True
         state[u] = 1
-        for v in G[drv[u]]["ins"]:
+        fb = fbpins(u) if u in opened else set()
+        for i, v in enumerate(G[drv[u]]["ins"]):
+            if i in fb: continue
             if not visit(v): return False
         state[u] = 2; order.append(u); return True
     return isl, roots, order, visit(u0)
-def data_bound(u0, order, roots, c):
+def data_bound(u0, order, roots, c, opened=frozenset()):
     t = {}
     for u in order:
-        g = G[drv[u]]
-        t[u] = max(((0 if v in roots else t[v]) + lerp(g["arcs"][p]["fmax"], g["arcs"][p]["smax"], c) for p, v in enumerate(g["ins"])), default=0)
+        g = G[drv[u]]; fb = fbpins(u) if u in opened else set()
+        t[u] = max(((0 if v in roots else t[v]) + lerp(g["arcs"][p]["fmax"], g["arcs"][p]["smax"], c) for p, v in enumerate(g["ins"]) if p not in fb), default=0)
     return 0 if u0 in roots else t[u0]
+def auto():
+    """every steer of the route: condition from a compare's output (launch = its .ujoin) or from a link latch (launch =
+    that stage's .ctl, the latch expanded in the condition cone without its feedback pin)."""
+    global launch
+    rows = []
+    for gi, g in enumerate(G):
+        if g["kind"] not in ("lut5", "lut6") or not re.search(STEER, cellof(g)): continue
+        if ONLY and not re.search(ONLY, cellof(g)): continue
+        src = [through(u) for u in g["ins"]]
+        rp = [p for p, s in enumerate(src) if re.search(r"_j\.", ncell(s))]
+        cp = [p for p, s in enumerate(src) if p not in rp and constval(g["ins"][p]) is None and drv.get(s) is not None]
+        name = cellof(g).replace("bridge_i.udut.", "")
+        if len(rp) != 1 or len(cp) != 1: rows.append((None, name, "request pins %s condition pins %s: skipped" % (rp, cp))); continue
+        p, q = rp[0], cp[0]; cs = src[q]; cc = ncell(cs)
+        m1 = re.match(r"^(.*)\.uz_n\d+$", cc); m2 = re.match(r"^(.*)\.lat\.[a-z]+(\[\d+\])?\.u(\$LUT[56])?$", cc)
+        if m1: lre, opened, kind = re.escape(m1.group(1)) + r"\.ujoin", frozenset(), "compare"
+        elif m2 and cs in storage: lre, opened, kind = None, frozenset([cs]), "latch"
+        else: rows.append((None, name, "condition from %s: kind not handled" % cc)); continue
+        isl, roots, order, acyc = cone(g["ins"][q], opened)
+        if not acyc: rows.append((None, name, "condition cone cyclic")); continue
+        if lre is None:   # a transparent link latch holds the condition: launch = the join of the compute that feeds it
+            own = m2.group(1).replace("bridge_i.udut.", "")
+            inst = sorted({mm.group(1) for u in isl for mm in [re.match(r"^bridge_i\.udut\.([A-Za-z0-9_]+)\.", ncell(u))] if mm} - {own})
+            if not inst: rows.append((None, name, "latch condition: no compute instance in its cone")); continue
+            lre = r"bridge_i\.udut\.(%s)\.ujoin" % "|".join(re.escape(i) for i in inst)
+        launch = {G[j]["out"] for j in range(len(G)) if G[j]["kind"] in ("lut5", "lut6") and G[j]["out"] in storage and re.search(lre, cellof(G[j]))}
+        if not launch: rows.append((None, name, "no launch node for %s" % lre)); continue
+        def side(lset, rset, c):
+            """request >= A + R (walk to lset), condition <= A + D (longest path from the roots in rset only)"""
+            global launch
+            launch = lset; Rv = req_bound(g["ins"][p], c)
+            if Rv is None: return None
+            t = {}
+            for u in order:
+                gg = G[drv[u]]; fb = fbpins(u) if u in opened else set()
+                vals = [None if i in fb else ((0 if v in rset else None) if v in roots else t[v]) for i, v in enumerate(gg["ins"])]
+                t[u] = max((x + lerp(gg["arcs"][i]["fmax"], gg["arcs"][i]["smax"], c) for i, x in enumerate(vals) if i not in fb and x is not None), default=None)
+            D = t.get(g["ins"][q])
+            return (Rv + lerp(g["arcs"][p]["fmin"], g["arcs"][p]["smin"], c), None if D is None else D + lerp(g["arcs"][q]["fmax"], g["arcs"][q]["smax"], c))
+        if kind == "compare": parts = [("join", launch, roots)]
+        else:   # transparent while ctl is high: (1) from ctl's rise: the enable path through the latch; (2) from the compute's join: the data
+            ctl = {r for r in roots if re.search(r"\.ctl\.", ncell(r))}
+            parts = [("ctl", ctl, ctl), ("join", launch, roots - ctl)]
+        res, txt = [], []
+        for nm_, ls, rs in parts:
+            rr = [side(ls, rs, c) for c in (0, 1)]
+            if any(x is None for x in rr): txt.append("%s: no forcing request path" % nm_); res = None; break
+            if any(x[1] is None for x in rr): txt.append("%s: no condition path" % nm_); continue
+            kk_ = min((R - D) / (R + D) for R, D in rr); res.append(kk_)
+            txt.append("%s-launched slack %+.0f / %+.0f ps (kappa_lo %.3f)" % (nm_, rr[0][0] - rr[0][1], rr[1][0] - rr[1][1], kk_))
+        if not res: rows.append((None, name, "%s, condition %s: %s" % (kind, cc.replace("bridge_i.udut.", ""), "; ".join(txt)))); continue
+        k = min(res)
+        if CLS: SC.update(isl); SA.append([names[g["out"]], q]); FA.append([names[g["out"]], p])
+        rows.append((k, name, "%s, condition %s (cone %d), launch %s: %s at kappa 0 (corner 0 / 1); kappa_lo %.3f"
+                     % (kind, cc.replace("bridge_i.udut.", ""), len(isl), lre.replace("\\", "").replace("bridge_i.udut.", ""), "; ".join(txt), k)))
+    for k, n, t in sorted(rows, key=lambda r: (r[0] is None, r[0] if r[0] is not None else 0)): print("%-28s %s" % (n, t))
+    ks = [r[0] for r in rows if r[0] is not None]
+    print("steers %d, bounded %d, min kappa_lo %s" % (len(rows), len(ks), "%.3f" % min(ks) if ks else "-"))
+    if PREM: print("premises: join / storage 0 at A for %d nodes (hold_mem); condition-cone roots settled at A" % len(PREM))
+ONLY = sys.argv[sys.argv.index("--only") + 1] if "--only" in sys.argv else None
+SC, SA, FA = set(), [], []
+if AUTO:
+    auto()
+    if CLS:
+        FN = sorted(names[u] for u in WALK - SC)
+        json.dump({"S": sorted(names[u] for u in SC) + SA, "F": FN + FA}, open(CLS, "w"))
+        print("classes -> %s: S %d nodes + %d pins, F %d nodes + %d pins" % (CLS, len(SC), len(SA), len(FN), len(FA)))
+    sys.exit(0)
 print("launch %s; steer gates %d" % (sorted(ncell(u).replace("bridge_i.udut.", "") for u in launch), len(steer)))
 worst = None; SC, SA, FA = set(), [], []
 for gi, g in steer:

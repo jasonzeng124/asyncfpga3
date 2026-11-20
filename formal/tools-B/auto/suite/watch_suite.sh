@@ -21,8 +21,9 @@ while [ $(date +%s) -lt $END ]; do
     sm=$(grep -o 'sdf [0-9a-f]* ([^)]*) [A-Z]*' $O/summary.txt 2>/dev/null); dr=$(grep -o 'PASS [0-9]* FAIL [0-9]*' $O/summary.txt 2>/dev/null | tr '\n' ' ')
     nm=$(cat $O/d1*/draws.txt 2>/dev/null | grep -o 'nearmiss [0-9]*' | awk '{s+=$2} END{print s+0}')
     ks=""; [ -f $O/w/m/net.json ] && ks=$(timeout 2400 python3 $P/outsafe.py $O/w/m 2>/dev/null | grep -o 'kappa_lo -\?[0-9.]*' | awk '{print $2}' | sort -g | head -1)
+    ss=""; [ -f $O/w/m/net.json ] && ss=$(timeout 2400 python3 $P/steersafe.py $O/w/m --auto 2>/dev/null | grep -o "^steers.*")
     other=$(grep -o 'SKIP\|NO-ORACLE\|DECODE FAILED\|BUILD FAILED' $O/summary.txt 2>/dev/null | head -1)
-    echo "T$t $K $S env[$EV] research:$(echo $l | grep -o 'status=[A-Z]*' ) $(echo $l | grep -o 'draws=[0-9/]*') | $sm | $dr| pulses $nm | kappa_lo ${ks:-none} $other" >> $OUTF
+    echo "T$t $K $S env[$EV] research:$(echo $l | grep -o 'status=[A-Z]*' ) $(echo $l | grep -o 'draws=[0-9/]*') | $sm | $dr| pulses $nm | kappa_lo ${ks:-none} | ${ss:-steers -} $other" >> $OUTF
     rm -rf $O/d1*/simx $O/d1*/net.simx
   done
   n=$(ls -d /home/user/clu/results/$SU/*/ 2>/dev/null | wc -l); p=$(wc -l < $OUTF); [ $p -ge $NEXP ] && break

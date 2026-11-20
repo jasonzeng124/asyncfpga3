@@ -5187,3 +5187,13 @@ research: P 15.18 ns, 4 / 4 draws, then 5 rule rows short (E ucond_br5 / br2 -20
 - Attribution: step 1 minus the ucmpi0 trim: kappa_lo 0.075, 0 pulses at kappa 0 both corners; ucmpi0 8 -> 7 alone:
   kappa_lo none, 565 pulses at corner 1.
 - Lean setup.sh's Mathlib build was OOM-killing simx runs (07:3x): stopped; to be restarted when the machine is idle.
+### progress 08:10 -- B21: steersafe --auto (every steer of a route; compare- and latch-fed conditions); the latch-fed (ctl-launched) steer race fails inside the band on exit1 varshift s1
+- steersafe.py --auto: per steer LUT, request pin = the join's, condition = the other live pin; a compare's uz (launch =
+  its .ujoin) or a link latch (transparent while ctl HIGH, INIT checked on one route): two launches -- ctl (enable path
+  through the latch vs request through rdly + the steer join) and the feeding compute's .ujoin (data through the open
+  latch). A first version treated the latch's ctl as a root settled at A (unsound) and then checked the latch's capture
+  at ctl's rise (wrong polarity); both replaced before any number was reported.
+- 17 exit1 routes: kappa_lo 0.012-0.198 on 13; none on varshift s1 (ctl slack -21 ps) and brhash s2 (-4 ps).
+- ctlrace.py (the race's own 32 nodes; S = ctl -> latch -> steer, F = rdly -> join -> steer): varshift s1 corner 0 kappa 0
+  MISMATCH (deadlock at 779 ns after 2 right answers); controls (all mid, swapped) pass; brhash s2 MAXEV at 0.03,
+  twoloops s2 at 0.06, fold64 s1 MISMATCH at 0.06. 64 / 64 research-model draws pass on varshift s1.

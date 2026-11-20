@@ -33,6 +33,84 @@ are shards B and C's (they read FOR-FORMAL too).
 - **Does NOT show:** anything about timing (whether the shorter lines are long enough), or that the edited routed JSON
   your rule reads matches the bits. fasm_equiv's bel-by-bel LUT-function comparison covers that second point.
 
+## B21. A race your rule calls clean is the weakest one on several exit1 routes: a steer whose condition comes from a link latch that opens when ctl rises. On varshift seed 1 (exit1 task 12, sdf 00324c96, rule CLEAN, your draws 4 / 4, formal's 8 + 8 and 64 / 64) formal finds a delay assignment inside the prjxray fast-corner interval (kappa 0) where the kernel hangs after its second answer. The same race fails at kappa 0.03-0.06 on brhash s2, twoloops s2 and fold64 s1 (shard B, 2026-11-20 08:10 UTC; untrusted simulation + a bound whose logic is in Lean, extraction untrusted)
+**The race, named** (varshift s1, steer ucond_br11). The steer's condition pin reads ulink_n41_folink.lat.odd: a link
+latch, transparent while its ctl is HIGH (INIT 0xff00aaaaff00aaaa: output = data when ctl = 1, else the feedback). The
+steer's request pin reads ucond_br11_j. That join's last input is the same link's request, ulink_n41_folink.rdly g[0],
+whose BD_SZ_..._ULINK_N41_FOLINK = 1 (your rule: "floor 1", 10 constraints, clean). Both paths start at the rise of
+ulink_n41_folink.ctl.u.u:
+
+| path from ctl's rise to the steer LUT pin (ucond_br11.u$LUT6) | LUTs | cells: FAST_MIN / FAST_MAX / SLOW_MIN / SLOW_MAX | routing, same four | total, same four |
+|---|---|---|---|---|
+| condition: ctl -> latch enable -> latch -> steer | 2 | 312 / 389 / 739 / 916 ps | 651 / 751 / 1289 / 1524 | 963 / **1140** / 2028 / 2440 |
+| request: ctl -> rdly g[0] -> ucond_br11_j -> steer | 3 | 368 / 458 / 920 / 1140 ps | 752 / 869 / 1551 / 1834 | **1120** / 1327 / 2471 / 2974 |
+
+- The request leads by one LUT (the rdly element) minus the routing difference.
+- At the fast corner the slowest condition (1140 ps) arrives 20 ps after the fastest request (1120). At mid-interval the
+  request leads by 172 ps. At the slow corner the margin is +31 ps.
+- In simulation at uniform bands the gap is 234 / 245 / 264 ps (chains / rest / carry 0.20/0.20/1.0, 0.20/0.31/1.0,
+  0.31/0.20/0.2), and the condition never moves under a request.
+- Scaled by the measured error: the paths are about 1.1 ns long. 8.5 % of that is about 95 ps, so the race has about 2.5
+  measured errors of margin at mid-band.
+
+**The failure.** formal/tools-B/auto/ctlrace.py moves only the race's own 32 nodes:
+- slow (FAST_MAX): the routing ctl -> latch, the latch LUT, and the routing latch -> steer;
+- fast (FAST_MIN): the rdly element, the join, and their routing;
+- every other arc stays at the middle of the fast interval;
+- simx gate model: transport, 20 ps runt filter.
+
+Result at kappa 0, corner 0: **RESULT MISMATCH**. 3 pairs are accepted and 2 answers come back (right), then the
+circuit stops at t = 779 ns (deadlock), with 1667 storage-output pulses under 200 ps before it stops.
+
+Controls on the same route and corner:
+- every arc at mid-interval: 10 / 10 answers;
+- the same 32 nodes with slow and fast swapped: 10 / 10 answers, 0 pulses;
+- corner 1 (slow) at kappa 0: 10 / 10.
+
+**Your draws do not reach it:** 64 / 64 pass (K 20101-20164, formal's simx). Per-pip scatter does not line up 15 slow arcs
+against 17 fast ones.
+
+**The same race elsewhere.** steersafe.py --auto bounds every steer of a route. It handles two kinds:
+- the condition comes from a compare (launch = the compare's join);
+- the condition comes from a link latch, as here (two launches: ctl, and the join of the compute that feeds the latch).
+
+On the 17 exit1 routes formal has judged:
+
+| route (exit1) | weakest steer | structural slack at kappa 0, corner 0 / 1 | kappa_lo | ctl-race adversary: first failure |
+|---|---|---|---|---|
+| varshift s1 | ucond_br11 (latch, ctl) | -21 / +25 ps | none | **kappa 0** (deadlock, corner 0) |
+| brhash s2 | ucond_br12 (latch, ctl) | -4 / +60 ps | none | 0.03 (oscillation, no verdict, both corners) |
+| twoloops s2 | ucond_br17 (latch, ctl) | +42 / +115 ps | 0.015 | 0.06 (oscillation) |
+| fold64 s1 | ucond_br4 (latch, ctl) | +66 / +202 ps | 0.035 | 0.06 (corner 1: MISMATCH) |
+| nested s1, xorshift s2, horner s2, brhash s1 | compare steers | +82 .. +263 ps | 0.012 .. 0.042 | not run |
+| the other 9 routes | -- | -- | 0.075 .. 0.198 | not run |
+
+8 of brhash's 24 steers and 2 of horner s2 / s4's 18 are not bounded: their condition comes from a compare (ucmpi1) whose join
+has another name. For comparison, the binding race of gcd_ps fails at kappa 0.36, and the trimmed xorshift of B20 at 0.08.
+
+**What it suggests** (yours to decide):
+- A link whose latch output is a steer's condition has only its rdly between the latch and the steer's request. At
+  floor 1 that is one LUT of margin against the latch's own LUT.
+- Either the floor for such a link is 2, or your rule E covers this pair of paths at the interval's min / max. Today
+  the rule calls it clean with your guards.
+- A second element adds one LUT plus its routing to the request side, about 120-230 ps at the fast corner on this route.
+
+**Does not show.**
+- That the chip can put these two 1.1 ns paths at opposite ends of prjxray's fast interval. What has been measured is a
+  median 8.5 % error with long routes slow.
+- A failure in your draws or in your GLS.
+- That the deadlock happens on the board.
+- One deadlocked run per route, on the kernel's own vectors.
+
+Reproduce:
+
+    steersafe.py MDIR --auto
+    ctlrace.py MDIR 'ucond_br11\.u' ctl.json
+    simx MDIR/net.simx ... --corner 0 --kappa 0 --classes ctl.json --cdefault M
+
+MDIR is the decoded route (formal/tools-B/auto/suite/task.sh on the exit1 route; RS at 7d814a69e with the
+frontend_exitcond MLIR).
+
 ## B20. Your post-route trim on xorshift's exit1 route: the single trim ucmpi0 8 -> 7 is what loses the loop-exit steer race. Within the prjxray band (kappa 0, slow corner) formal finds a delay assignment where the steer ucond_br5 puts a 27 ps runt into the control merge ucontrol_merge1 (answers still right); the other 13 trims of your step 1 leave the race as it was (proved-structure kappa_lo 0.075). Your draws and formal's draws all pass on the trimmed route (shard B, 2026-11-20 07:55 UTC; untrusted simulation + a bound whose logic is in Lean, extraction untrusted)
 Route: your exit1 task 1 = xorshift seed 1, BDC_FE_EXITCOND fixture, shipped it 9, sdf d947adff. Formal rebuilt it at
 your 7d814a69e and got the same sdf (nextpnr 7c3bfb9c684a2551). Then formal applied your trims with your
