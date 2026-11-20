@@ -5090,3 +5090,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 21:23: c_mem55 nested_loop 4 SAME 32 / 32 (1028 ps): every suite13t memory route judged. C60 (296). c_mem56 = 2 newest research routes.
 - 22:04: c_mem56: 2 routes SAME 32 / 32. C60 (298). c_mem57 = 1 newest route.
 - 22:45: c_mem57 memsum 2 SAME 32 / 32. C60 (299). c_mem58 = 3 newest.
+- 23:25: c_mem58: 3 routes SAME 32 / 32. C60 (302). c_mem59 = 2 newest.
