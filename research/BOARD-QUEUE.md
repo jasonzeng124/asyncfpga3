@@ -325,6 +325,11 @@ A / A' / E at nominal (uniform 0.288) and at the gate's worst corner, measured-r
    PULSE k=3 counts an edge every trial), and the judge prints `=== PASS: ... ===`, exit 0 (a capture threshold w* can
    be named). The answer is in the lines after: `=== RUNT CIRCULATES ===` (any TEST cell with >= 2 rising edges in a
    trial) or not, and w* - loop. RIG FAIL means the rig, not the fabric, and nothing else is read.
+   **What it decides now (2026-11-20):** the races our routes lose in simulation put 19-60 ps pulses into C-elements
+   (formal B21 replayed here: 271 pulses of 19 ps; formal C68's spmv route: 72-420 pulses of >= 56 ps in 4 of 8 of our
+   draws). Our GLS absorbs them and answers right; formal's simulator lets them through and hangs. A capture threshold
+   w* below ~60 ps means such routes hang on silicon. Every route counted as passing has none (research/data/fifteen/
+   README.md top), so the answer changes no claim, only which simulator is the board's.
 3. **The fastest gcd the sim accepts**: #5 below (gcd_hw R5 sizes x0.75 + link fast fall, PROGRAM item 3): the
    combined worst-case gate (matched-delay chains 0.21, CARRY4/F7F8/FF SLOW_MAX, the rest 0.288, + the measured residual
    as scatter) 8/8 routes, and SLOW_MAX and FAST_MIN 16/16 runs, every run 16/16 errs=0 (research/data/item3/
