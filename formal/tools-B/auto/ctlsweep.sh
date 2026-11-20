@@ -5,6 +5,7 @@
 # until the first non-OK. One line: route, steer, slack, first failure.
 set -uo pipefail
 D=$1; K=$2; H=$(cd "$(dirname "$0")" && pwd); M=$D/w/m
+[ -f $M/net.simx ] || python3 $H/../../tools/margin/simx_conv.py $M/net.json $M/bnd.json $M/net.simx > /dev/null 2>&1   # draws.py may not have left one
 [ -f $D/steersafe.txt ] || python3 $H/steersafe.py $M --auto > $D/steersafe.txt 2>&1
 row=$(grep "latch, condition" $D/steersafe.txt | grep -o '^[^ ]*\|ctl-launched slack [-+0-9]* / [-+0-9]*' | paste - - | awk '{print $4+0, $1, $4, $6}' | sort -g | head -1)
 [ -n "$row" ] || { echo "$D: no latch-fed steer"; exit 0; }

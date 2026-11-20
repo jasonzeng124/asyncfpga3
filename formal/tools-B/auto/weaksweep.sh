@@ -4,6 +4,7 @@
 # simx kappa 0, 0.03, 0.06, 0.10, 0.15, 0.20 at corners 0 / 1 until the first wrong answer / run with no verdict.
 set -uo pipefail
 D=$1; K=$2; H=$(cd "$(dirname "$0")" && pwd); M=$D/w/m
+[ -f $M/net.simx ] || python3 $H/../../tools/margin/simx_conv.py $M/net.json $M/bnd.json $M/net.simx > /dev/null 2>&1   # draws.py may not have left one
 [ -f $D/steersafe.txt ] || python3 $H/steersafe.py $M --auto > $D/steersafe.txt 2>&1
 row=$(head -1 $D/steersafe.txt); ST=$(echo "$row" | awk '{print $1}'); re=$(echo $ST | sed 's/\$LUT[56]$//; s/\./\\./g')
 python3 $H/steersafe.py $M --auto --only "$re" --classes $D/weak_adv.json > /dev/null 2>&1
