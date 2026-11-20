@@ -403,7 +403,9 @@ race_check() {  # race_check I (AUTO_RACE_Z): the latch-fed steer races of route
   PYTHONPATH=$tc/openxc7-src/prjxray python3 "$R/cells/gls/fid/xray_delay.py" --routed "$HW/${D}_routed.json" \
     --sdf "$HW/$D.sdf" --out "$RC/xray.sdf" --arcs "$RC/arcs.tsv" > "$RC/xray.log" 2>&1 || { echo "race: it $i: xray_delay FAILED" >> "$O/log.txt"; return 0; }
   python3 "$R/research/tools/race_find.py" "$HW/${D}_routed.json" "$RC/arcs.tsv" "$RC/specs" 20000 > "$O/race_$i.txt" 2>&1
-  local s; s=$(python3 "$T/race_pad.py" "$O/race_$i.txt" "$AUTO_RACE_Z" "$O/sizes_$i.vh" "$CA/rule/sizes.vh" "$CA/rule/negative_sized.tsv")
+  # the sizes route I was built with: sizes_I.vh, or the second argument (an AUTO_FINISH_SEEDS alternate route IsJ is
+  # built from sizes_I.vh and has no sizes file of its own)
+  local s; s=$(python3 "$T/race_pad.py" "$O/race_$i.txt" "$AUTO_RACE_Z" "${2:-$O/sizes_$i.vh}" "$CA/rule/sizes.vh" "$CA/rule/negative_sized.tsv")
   echo "it $i $s" >> "$O/log.txt"
   echo "$s" | grep -o 'BD_SZ_[A-Z0-9_]* [0-9]*->' | awk '{print $1}' >> "$O/race_padded.txt"
   cp "$CA/rule/sizes.vh" "$O/rule_$i.vh"; cp "$CA/rule/negative_sized.tsv" "$O/neg_$i.txt"   # as rule() keeps them
@@ -558,6 +560,9 @@ finish_draws() {  # finish_draws I (AUTO_FINISH_SEEDS, finish phase): route I no
         echo "alt it $i seed $s: no route ($(cat "$O/it_${i}s$k.txt" 2>/dev/null))" >> "$O/log.txt"; continue; fi
       rule "${i}s$k" "$O/sizes_$i.vh" || { echo "alt it $i seed $s: RULE FAILED" >> "$O/log.txt"; continue; }
       n=$(nneg "$RUNS/ca/${N}_${i}s$k/rule")
+      # AUTO_RACE_Z: an alternate route the rule finds clean passes the same latch-fed race check before it can be
+      # adopted (a race below Z adds its row, so the route is not clean; the loop's own sizes do not take its pad)
+      if [ "$n" = 0 ] && [ -n "${AUTO_RACE_Z:-}" ]; then race_check "${i}s$k" "$O/sizes_$i.vh"; n=$(nneg "$RUNS/ca/${N}_${i}s$k/rule"); fi
       echo "alt it $i seed $s $(cat "$O/it_${i}s$k.txt") | negative $n" >> "$O/log.txt"
       if [ "$n" = 0 ]; then adopt "$i" "$k" "$s"; return 0; fi
     done

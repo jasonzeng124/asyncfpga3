@@ -8605,3 +8605,23 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
 - suite13t's own timeouts sent their state back only through git (~1 MB per task): resuming them needs it committed
   here (research/data/suite/resume/, as suite10d did). Deferred: v10 is the run the headline will move to, and it is
   the one that can now resume cheaply.
+### progress 15:23 (formal A31: the collatz eq2 route's graph is proved equal to the fixture, its bits are the recorded trims; xorshift plain + sibling 4 / 4 at 16.29 ns; finish seeds now pass the race check too)
+- **Formal A31** (15:15, on the 15:08 package): trimcheck OK (6 LUT INITs differ, each passes the side input, live
+  lengths = trim_record.txt's); eq2_pass on our fixture writes research/data/autorw/collatz.mlir byte for byte and Lean
+  proves it equal to the fixture; fuse_check proves bdc's plan for this build (with structure.env's link knobs) equal
+  to the unfused graph. So the chain from the C to this build's token graph is proved. Not covered: timing (shard B's
+  steer screen and capture bound, shard C's draws). Formal C70: BDC_SIBLING_FUSE keeps every default fixture live.
+- **xorshift s1, plain move + BDC_SIBLING_FUSE** (sib): PASS 4 / 4 (19 / 19 each, no pulse under 1 ns), P 16289 ps
+  (untrimmed 19365, trims 5), rule CLEAN. The plain move alone (arw2): 16350 trimmed after the search phase, draws 3 / 3
+  so far. One seed: the sibling cell is worth nothing measurable on xorshift (-0.4 %); suite13t's xorshift s1: 17588.
+- **Finish seeds + race check** (auto_size.sh): with AUTO_FINISH_SEEDS (alternate placer seeds for a finish route that
+  is not clean; finseeds1 cleaned 5 of 7 such loops under flow v8) an adopted alternate route skipped AUTO_RACE_Z's
+  latch-fed race check. Now an alternate route the rule calls clean runs race_check too (race_pad.py gets the sizes it
+  was built from; a race below Z makes it not clean). Unset either knob: no change (v10 and rwa unaffected).
+- suite13t's consistently NOT CLEAN kernels (every seed back so far): cmpchain 3 / 3, factorial 3 / 3, twoloops 3 / 3,
+  nested 2 / 2, quadrec 2 / 2, spmv 2 / 2; each finish phase ends 13-1081 ps short over 1-6 constraints (re-route churn).
+  **Started locally: v10's environment + AUTO_FINISH_SEEDS=3 AUTO_FINISH_JOBS=2** on factorial s1 and cmpchain s1
+  (SUITE_TAG=fs), a candidate for flow v11 now that a task can resume past 240 min. PREDICTION (now): each loop
+  retraces v10's routes up to its first finish route that is not clean; at least one of the two ships an adopted
+  alternate route, rule-CLEAN with every latch-fed race >= 4.5 sd, 4 / 4 draws; wall time +30-60 % over the loop
+  without the knob.
