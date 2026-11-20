@@ -8770,3 +8770,7 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
 - Finish-seed loops (v10 + AUTO_FINISH_SEEDS=3): no alternate route adopted yet; the alternates of the first finish
   routes were as short as their seed-1 routes (10-30 rows), cmpchain's it 9 alternate 4 rows. They are seed 1 of
   kernels whose loops are far from clean at the finish switch, not the "1-6 rows of churn" case finseeds1 cleaned.
+### progress 19:27 (local early read for the mff A/B: v10 + BDC_MEM_FASTFALL=1 on memsum s1 and dot2 s1)
+- Started (SUITE_TAG=mff10): v10's environment + BDC_MEM_FASTFALL=1 on memsum s1 / dot2 s1, to be paired with v10's
+  same tasks (memsum s1: 24560 ps, the suite13t route). PREDICTION (now): memsum within -8 .. +3 %, dot2 within -5 .. +5 %
+  (memauto.md's whatif: memsum -2.5 %, dot2 no change); every draw passes, no RAMB18 event.
