@@ -3536,7 +3536,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   c896d1fc4 adds minui / maxui / minsi / maxsi: dot2 / gather / memsum's != fixtures now emit; exit1 judging the != loop
   test; post-route trimming of delay lines by INIT, opt-in). Audit: T171 UPDATE on A's mr_verilog_check (below).
 * setup.sh: Mathlib cache unreachable again; building Mathlib from source in the background (4 cores).
-### progress 07:40 -- audit T171 update answered: mr_verilog_check / mr_expr_check give a verdict per kernel, never a traceback
+### progress 07:16 -- audit T171 update answered: mr_verilog_check / mr_expr_check give a verdict per kernel, never a traceback
 * The auditor's command (BDC_RING_FUSE_NEGCTL=1 WITHOUT BDC_AUTO=1, so the env replaces the default) hit a TypeError in
   model_cells: a fork reading a packed comp's result was read as a slice expression. Reproduced on research 99146b03d.
   Fixed: only comp readers are slices; any exception in one kernel becomes 'check failed (...)', rc 3. Without
@@ -3549,7 +3549,7 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * exitcond_opdiff.txt (new, untrusted op-count census of BDC_FE_EXITCOND, 37 kernels): 35 kernels turn loop-exit
   compares into ne; isprime keeps its op counts; gcd gains NO ne test -- its only change is cmpi12 slt -> ult (nsw),
   the change behind A28's divergence. By counts no other kernel shows a signed -> unsigned change.
-### progress 08:05 -- farm a_check_committed_1120 filed (full check.sh --committed; the last full run was 11-15); notes/A-exitcond-pass.md
+### progress 07:20 -- farm a_check_committed_1120 filed (full check.sh --committed; the last full run was 11-15); notes/A-exitcond-pass.md
 * The exit-test knob is two changes. (1) LFTR, `<` -> `!=` on a unit-step counter, in 35 kernels. It is a true
   graph equivalence under four MLIR-checkable side conditions: unit step, loop-invariant bound, an entry guard
   `s < n`, and the zero-trip path diverted. This is an argument, not Lean: the general proof needs a two-channel ring
@@ -3559,3 +3559,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   length). It is not blind: fasm_equiv compares every LUT's function bel by bel against the edited routed JSON, and
   the draws simulate the bits.
 * Subagent (scratch, no git): exit-test proofs for nested / varshift / brhash / quadrec, running.
+### progress 07:22 -- correction: the 07:16 and 07:20 headings were first written as 07:40 / 08:05 (estimated, not date -u); fixed here, in FOR-RESEARCH A28's update (07:18) and in the three census headers (07:1x)
