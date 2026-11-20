@@ -8205,3 +8205,29 @@ Farm: exit1 running (21 of 140 back at 06:20); suite13 (240 tasks) waits for roo
 - cluster: this node is shared (load 130-155); my jobs hold 51 GB of the 64 GB allowance and ~17 cores; about 20 gate
   simulations run at once, so draws take 20-30 min each. The capfix1 trim queue is paused (memory kernels: the trims
   there were 0-4 %, the simulations the longest).
+### progress 08:00 (trim step: every trimmed route judged so far passes its draws; suite13 replaced by suite13t = v9 + the trim step)
+- **Trim step on farm routes, paired on the same route and the farm's own draw points** (trim_farm.sh; nextpnr
+  6e5d224472232d5d; flow v9 rule with CA_BENCHCAP=1):
+
+  | route (request task) | P farm -> trimmed (ps) | dP | lines moved | draws trimmed | rule |
+  |---|---|---|---|---|---|
+  | exit1 countloop s2 (39) | 22368 -> 20167 | -9.8 % | ucmpi1 18->13, umux3 6->2, umux1 5->2, ucontrol_merge0 4->2, 2 UACK | 4 / 4 (10/10) | NOT CLEAN, same H row |
+  | exit1 xorshift s1 (1) | 18088 -> 16738 | -7.5 % | (record in the run) | 2 / 4 so far (19/19) | NOT CLEAN, same H -30 |
+  | exit1 horner s1 (10) | 21088 -> 20424 | -3.1 % | 20 lines at step 1 | 2 / 4 so far (11/11) | clean |
+  | exit1 lfsrfind s1 (8) | 27880 -> 27062 | -2.9 % | ucmpi0 11->10, ulink_n22__1 7->1, umux0/1 -> 2, ... | 4 / 4 (10/10) | clean |
+  | exit1 mul_example s2 (60) | 61750 -> 60989 | -1.2 % | 1 line | 4 / 4 | clean |
+  | capfix1 mul_example s2 (17) | 60990 -> 58451 | -4.2 % | | running | clean |
+  | exit1 test_stdint s1 (27) | 52701 -> 52701 | 0 | none (the rule's trim mode moves nothing) | 4 / 4 | clean |
+
+  Every rebuilt route matched its farm sdf md5. **Distance to the first failing trim** (trim_shrink.sh: EVERY trimmable
+  line K elements below the rule's choice, the same four draws): K = 1 passes 4 / 4 on lfsrfind s1 (10 lines) and on
+  countloop s2 (14 lines); K = 2, 3, 5, 8 running.
+- **suite13 -> suite13t** (de5ecef22): suite13 had not started (it waits for exit1 to drain, ~10-11 UTC); suite13t
+  runs the same v9 loops and adds AUTO_TRIM=1 at the end, recording the untrimmed route's own stack (P_untrimmed: the
+  v9 figure, the same route as suite13 would have judged) and the critical cycle's composition before and after. The
+  draws judge the trimmed route (none on the untrimmed one: that is the cost of folding it in). Prediction in the
+  request (written 08:01 UTC). Cost: ~15-30 more minutes per task; more 240-min timeouts expected on memory kernels.
+- Overbuild: xorshift s1 (suite12) shipped CLEAN after the trim step at **18276 ps** (untrimmed 20279) -- clean where the
+  farm's v8 finish phase never was, but slower than the farm's NOT CLEAN least-short route (17808), which the trim step
+  alone would likely take lower still (exit1's xorshift s1, the other fixture, went 18088 -> 16738). countloop s1 / s2,
+  iterative_division s1: their first finish routes stay short after the trims (E at mux joins, one I row); loops go on.
