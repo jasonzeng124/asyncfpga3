@@ -17,12 +17,12 @@ room = float(os.environ.get("BD_REGION_ROOM", "2.0"))
 with open(src) as f:
     d = json.load(f)
 top = [m for m in d["modules"].values() if any("NEXTPNR_BEL" in c.get("attributes", {}) for c in m.get("cells", {}).values())][0]
-locs = []
+RE_SL = re.compile(r"^SLICE_X(\d+)Y(\d+)/")
+locs = []                             # SLICE coordinates (this Python API has no getBelLocation; regions take bel names)
 for n, c in top["cells"].items():
-    b = c.get("attributes", {}).get("NEXTPNR_BEL")
-    if b and rx.search(n) and b.startswith("SLICE_"):
-        loc = ctx.getBelLocation(b)
-        locs.append((loc.x, loc.y))
+    m = RE_SL.match(c.get("attributes", {}).get("NEXTPNR_BEL", ""))
+    if m and rx.search(n):
+        locs.append((int(m.group(1)), int(m.group(2))))
 cells = [(nm, c) for nm, c in ctx.cells if rx.search(nm) and c.type in ("SLICE_LUTX", "SLICE_FFX", "CARRY4", "SELMUX2_1")]
 if not locs or not cells:
     print("region: nothing to confine (%d previous cells, %d now)" % (len(locs), len(cells)))
@@ -30,23 +30,24 @@ else:
     xs = sorted(x for x, _ in locs)
     ys = sorted(y for _, y in locs)
     cx, cy = xs[len(xs) // 2], ys[len(ys) // 2]
-    hw, hh = max(1, (xs[-1] - xs[0]) * shrink / 2), max(1, (ys[-1] - ys[0]) * shrink / 2)
-    need = room * len([1 for _, c in cells if c.type == "SLICE_LUTX"]) / 8.0   # 8 LUT bels per slice (A..D, 5 and 6)
-    # grid tiles hold one or two slices; count slices in the box from the bels themselves
-    def slices_in(x0, y0, x1, y1):
-        s = set()
-        for b in ctx.getBels():
-            loc = ctx.getBelLocation(b)
-            if x0 <= loc.x <= x1 and y0 <= loc.y <= y1 and str(b).startswith("SLICE_") and str(b).endswith("/A6LUT"):
-                s.add(str(b).split("/")[0])
-        return len(s)
+    hw, hh = max(1.0, (xs[-1] - xs[0]) * shrink / 2), max(1.0, (ys[-1] - ys[0]) * shrink / 2)
+    need = room * len([1 for _, c in cells if c.type == "SLICE_LUTX"]) / 8.0   # 8 LUT bels per slice
+    slice_bels = {}
+    for b in ctx.getBels():
+        m = RE_SL.match(str(b))
+        if m:
+            slice_bels.setdefault((int(m.group(1)), int(m.group(2))), []).append(str(b))
     while True:
         x0, x1, y0, y1 = int(cx - hw), int(cx + hw), int(cy - hh), int(cy + hh)
-        if slices_in(x0, y0, x1, y1) >= need or hw > 200:
+        inside = [k for k in slice_bels if x0 <= k[0] <= x1 and y0 <= k[1] <= y1]
+        if len(inside) >= need or hw > 200:
             break
         hw, hh = hw * 1.15 + 1, hh * 1.15 + 1
-    ctx.createRectangularRegion("bd_ring", x0, y0, x1, y1)
+    ctx.createRectangularRegion("bd_ring", 1, 1, 0, 0)          # empty rectangle; the bels are added by name
+    for k in inside:
+        for b in slice_bels[k]:
+            ctx.addBelToRegion("bd_ring", b)
     for nm, c in cells:
         ctx.constrainCellToRegion(nm, "bd_ring")
-    print("region: %d cells in %d..%d x %d..%d (grid), %d slices for %.0f needed, from %d previous cells (box %d..%d x %d..%d)"
-          % (len(cells), x0, x1, y0, y1, slices_in(x0, y0, x1, y1), need, len(locs), xs[0], xs[-1], ys[0], ys[-1]))
+    print("region: %d cells in SLICE_X%d..%d Y%d..%d, %d slices for %.0f needed, from %d previous cells (X%d..%d Y%d..%d)"
+          % (len(cells), x0, x1, y0, y1, len(inside), need, len(locs), xs[0], xs[-1], ys[0], ys[-1]))
