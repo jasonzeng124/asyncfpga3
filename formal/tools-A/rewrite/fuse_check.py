@@ -40,6 +40,9 @@ MR_NEW = """            if fu is not None and i in fu.anchor_region and getattr(
                     e = self.region_expr(reg, mi)
                     t = ("bin", "shli", W, e, ("lit", lo)) if lo else e
                     pack = t if pack is None else ("bin", "addi", W, pack, t)
+                if os.environ.get("FA_MR_LOG"):   # side record for mr_verilog_check (no effect on the rules)
+                    with open(os.environ["FA_MR_LOG"], "a") as _f:
+                        _f.write(repr((i, [(lo, w, v, mi) for v, mi, lo, w in parts])) + "\\n")
                 z = "__mr_%d" % i
                 comp(list(reg.ext_inputs), z, pack, "fused multi-result cell")
                 zs = ["__mr_%d_%d" % (i, k) for k in range(len(parts))]

@@ -6,7 +6,8 @@
 #   - dfimport models bdc's multi-result cell as bdc builds it: one cell whose value packs every result (first in the
 #     low bits), a fork, one slice per result (the same patch fuse_check.py applies);
 #   - autoproof --combined keeps the caller's BDC_* environment for the graph it writes (it drops it by design).
-# bdc and kernels/ come from RESEARCH_CHECKOUT. Writes OUTDIR/Auto<K>RF.lean; check each with
+# bdc and kernels/ come from RESEARCH_CHECKOUT; the graphs from RESEARCH_CHECKOUT/cloud/fixtures/${FIXDIR:-frontend}
+# (FIXDIR=frontend_exitcond: research's BDC_FE_EXITCOND fixtures). Writes OUTDIR/Auto<K>RF.lean; check each with
 #   cd formal/lean && lake env lean OUTDIR/Auto<K>RF.lean     (Core Lean; prints the axioms of auto_computes)
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/../../.." && pwd)"
@@ -16,11 +17,11 @@ T=$(mktemp -d); mkdir -p $T/formal/tools
 cp -r "$ROOT/formal/tools/autoproof" "$ROOT/formal/tools/dfimport" $T/formal/tools/
 ln -s "$RS/bdc" $T/bdc; ln -s "$RS/kernels" $T/kernels
 python3 "$HERE/ringfuse_patch.py" $T/formal/tools
-declare -A VEC=([xorshift]="-1831433054,4 1,1" [collatz]="6 7 27" [ipow]="3,7 2,10 -3,5" [countloop]="3,5 0,7 10,0 -4,3"
+declare -A VEC=([gcd]="12,18 7,0 0,5 -6,4" [brhash]="5,3 0,0 -1,-2" [quadrec]="3,4 0,0 -2,3" [horner]="2,3 0,0" [varshift]="5,3 0,1" [lfsrfind]="7,9 1,1" [twoloops]="3,4 0,0 -1,2" [nested]="3,2 0,1" [fold64]="5 0" [xorshift]="-1831433054,4 1,1" [collatz]="6 7 27" [ipow]="3,7 2,10 -3,5" [countloop]="3,5 0,7 10,0 -4,3"
                [isprime]="97 91 2 1 7919")
 for k in "${KS[@]}"; do
-  N="$(tr '[:lower:]' '[:upper:]' <<< ${k:0:1})${k:1}RF"
-  (cd $T && python3 formal/tools/autoproof/autoproof.py "$RS/cloud/fixtures/frontend/$k/comp/handshake_transformed.mlir" \
+  N="$(tr '[:lower:]' '[:upper:]' <<< ${k:0:1})${k:1}${NSUF:-RF}"
+  (cd $T && python3 formal/tools/autoproof/autoproof.py "$RS/cloud/fixtures/${FIXDIR:-frontend}/$k/comp/handshake_transformed.mlir" \
      "kernels/$k/$k.c" "$k" --name "$N" --graph-ns "Formal.Net.${N}Hw" --combined "$OUT/Auto$N.lean" \
      --dfargs "--ns Formal.Net.${N}Hw --graph-module Formal.Net.${N}Hw --label ${k}_ringfuse --short $k" \
      --vecs "${VEC[$k]:-1}" 2>&1 | grep -v '^emit\|^auto:' | tail -1 | sed "s/^/$k: /") || echo "$k: autoproof failed"

@@ -1,8 +1,15 @@
 mr_verilog_check.py census: fuse_check's packed-cell model (MR_NEW) vs the Verilog research's bdc emits, BDC_AUTO=1.
-Research 7827dac5d (bdc + 111 fixtures), 2026-11-19 ~21:30 UTC, shard A. Layout only: part offsets / widths, slice windows, and which
-result (bdc SSA name) reads which window. NOT covered: the parts' Verilog expressions vs the model's (general trust in
-bdc's region Verilog). Control: --ctl swap (first cell's first two slices exchanged) -> MISMATCH rc 2 on gcd and xorshift.
-'emit failed' / 'import failed': memory kernels (no --host-mem; dfimport cannot read them).
+Research f538cb518 (bdc + fixtures), 2026-11-20 ~01:45 UTC, shard A. Re-run after audit T171 (OVERSTATED: the old parser
+missed nested concatenations, so research's BDC_RING_FUSE_NEGCTL=1 cell printed "no multi-result cell" and exited 0).
+Checked now: part offsets / widths (nested concatenations, replications and sized literals parsed); every part is a
+plain wire, no wire packed twice; slice windows; which result (bdc SSA name) reads which window; and WHICH REGION MEMBER
+(bdc's w_n<i>) is packed at each window, against the importer's record of the member each model part computes; a
+kernel whose model has packed cells but whose Verilog has none (or an unparsed one) is a MISMATCH.
+NOT covered: that each part's Verilog expression computes the model's expression (general trust in bdc's region
+Verilog). rc: 2 any MISMATCH; 3 some kernel not checked (emit / import failed: memory kernels); 0 all checked OK.
+Controls: BDC_RING_FUSE_NEGCTL=1 -> MISMATCH on all 22 multi-result kernels (rc 2, census below the line);
+--ctl swap -> MISMATCH (xorshift).
+== default (BDC_AUTO=1) ==
 atax                         emit failed
 bicg                         emit failed
 binary_search                import failed
@@ -114,3 +121,28 @@ while_loop_2                 emit failed
 while_loop_3                 import failed
 wrap_if                      emit failed
 xorshift                     OK (1 cell(s))
+rc=3
+== BDC_AUTO=1,BDC_RING_FUSE_NEGCTL=1 (control) ==
+brhash                       MISMATCH: ucmpi2: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n98'), (1, 1, 'w_n98'), (2, 31, None)]; ucmpi2: a wire packed twice: [(0, 1, 'w_n98
+collatz                      MISMATCH: ucmpi2: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n35'), (1, 1, 'w_n35'), (2, 31, None)]; ucmpi2: a wire packed twice: [(0, 1, 'w_n35
+collatz64                    MISMATCH: ucmpi2: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n37'), (1, 1, 'w_n37'), (2, 63, None)]; ucmpi2: a wire packed twice: [(0, 1, 'w_n37
+countloop                    MISMATCH: ucmpi1: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n30'), (1, 1, 'w_n30'), (2, 31, None)]; ucmpi1: a wire packed twice: [(0, 1, 'w_n30
+factorial                    MISMATCH: ucmpi2: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n45'), (1, 1, 'w_n45'), (2, 31, None)]; ucmpi2: a wire packed twice: [(0, 1, 'w_n45
+fold64                       MISMATCH: ucmpi0: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n8'), (1, 1, 'w_n8'), (2, 7, None)]; ucmpi0: a wire packed twice: [(0, 1, 'w_n8'), 
+gcd                          MISMATCH: uori1: a wire packed twice: [(0, 32, 'w_n60'), (32, 32, 'w_n60'), (64, 32, 'w_n60')]; model [(96, (0, 32, 64), ((0, 32, 'n43', 'w_n60'), (32, 32, 'n39__0', 'w_n5
+horner                       MISMATCH: ucmpi1: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n33'), (1, 1, 'w_n33'), (2, 31, None)]; ucmpi1: a wire packed twice: [(0, 1, 'w_n33
+ipow                         MISMATCH: ucmpi2: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n39'), (1, 1, 'w_n39'), (2, 31, None)]; ucmpi2: a wire packed twice: [(0, 1, 'w_n39
+isprime                      MISMATCH: ucmpi6: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n116'), (1, 1, 'w_n116'), (2, 31, None)]; ucmpi6: a wire packed twice: [(0, 1, 'w_n
+iterative_division           MISMATCH: ucmpi3: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n35'), (1, 1, 'w_n35'), (2, 31, None), (33, 1, 'w_n35'), (34, 31, None)]; ucmpi3: a
+iterative_sqrt               MISMATCH: ucmpi1: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n26'), (1, 1, 'w_n26'), (2, 31, None)]; ucmpi1: a wire packed twice: [(0, 1, 'w_n26
+lfsrfind                     MISMATCH: ucmpi2: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n63'), (1, 1, 'w_n63'), (2, 8, None)]; ucmpi2: a wire packed twice: [(0, 1, 'w_n63'
+nest3                        MISMATCH: ucmpi2: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n55'), (1, 1, 'w_n55'), (2, 1, None)]; ucmpi2: a wire packed twice: [(0, 1, 'w_n55'
+nested                       MISMATCH: ucmpi2: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n59'), (1, 1, 'w_n59'), (2, 31, None)]; ucmpi2: a wire packed twice: [(0, 1, 'w_n59
+quadrec                      MISMATCH: ucmpi1: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n49'), (1, 1, 'w_n49'), (2, 31, None)]; ucmpi1: a wire packed twice: [(0, 1, 'w_n49
+sqrtsub                      MISMATCH: ucmpi1: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n31'), (1, 1, 'w_n31'), (2, 31, None), (33, 1, 'w_n31'), (34, 31, None)]; ucmpi1: a
+straight                     MISMATCH: uandi0: a wire packed twice: [(0, 32, 'w_n19'), (32, 32, 'w_n19')]; model [(64, (0, 32), ((0, 32, 'n19', 'w_n19'), (32, 32, 'n26', 'w_n26')))] != verilog [(64, (
+sum3                         MISMATCH: ucmpi1: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n30'), (1, 1, 'w_n30'), (2, 31, None)]; ucmpi1: a wire packed twice: [(0, 1, 'w_n30
+twoloops                     MISMATCH: ucmpi1: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n30'), (1, 1, 'w_n30'), (2, 31, None)]; ucmpi1: a wire packed twice: [(0, 1, 'w_n30
+varshift                     MISMATCH: ucmpi1: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n50'), (1, 1, 'w_n50'), (2, 31, None)]; ucmpi1: a wire packed twice: [(0, 1, 'w_n50
+xorshift                     MISMATCH: ucmpi1: a part is not a wire (literal / replication / expression): [(0, 1, 'w_n38'), (1, 1, 'w_n38'), (2, 31, None)]; ucmpi1: a wire packed twice: [(0, 1, 'w_n38
+rc=2
