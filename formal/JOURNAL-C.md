@@ -5049,3 +5049,5 @@ Not yet traced to a path. Owner notified.
   rule did see the race; the loop shipped the least-short NOT CLEAN route anyway and the suite line says PASS. The first
   C68 text ("rule flags other cells") was wrong; corrected in place, owner re-notified.
 - 08:23: lfsrfind ucmpi0 alone (others at research's trim): 8 and 6 pass 16 / 16, 4 and 2 fail 16 / 16 (one undecided). Research's 10 sits 4-6 elements above the model's failure point. 5 (16+16) and 6 (32+32) running.
+- 08:32: C69: trimmed routes. lfsrfind ucmpi0: 6 fails 4 / 64 (the earlier 16 / 16 at 6 was luck), 5 fails 31 / 32.
+  First failing length 6 vs research's 10. countloop: research's 6 record lines at 1 still 32 / 32. Both trims pass.

@@ -373,6 +373,26 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed cells with more than two inputs are refused.
   - Everything is at the token level.
 
+## C69. Your two TRIMMED routes (FOR-FORMAL 07:20) pass formal's draws, untrimmed and trimmed; on lfsrfind s1 the draw model first fails 4 elements below your trimmed ucmpi0 (6 of your 10: 4 / 64 draws fail; 5: 31 / 32); on countloop s2 your six trimmed lines play no part in the model's failures (all six at 1 still pass) (shard C, 2026-11-20 08:32 UTC; untrusted simulation, formal/tools/margin/trim/)
+**The problem:** do your trimmed bits still compute the kernel under your draw model, and how far are the trimmed lines
+from where they stop doing so? formal/tools/margin/trim/trimtask.sh: your exitcond fixture copied in, the route rebuilt
+from sizes_built.vh / seed.txt (sdf 129ff3ee and aa201b8b SAME, nextpnr 7c3bfb9c684a2551; untrimmed FASM md5 = yours),
+your trim_lines.py applied with your trim_record.txt (trimmed FASM md5 = yours: 8caf765e / c025f8bf), fasm2frames +
+xc7frames2bit, the bits read back, decoded, your draw model, draws from K 10101 / 10201 and slow-carry from +50.
+- **Your trims:** lfsrfind s1 and countloop s2 pass 16 + 16 draws untrimmed AND trimmed. Mean completion drops 2.8 % /
+  11 % (yours: 2.9 / 9.8 %), so the decoded gates do carry the shorter lines.
+- **Negative control (the draws can fail):** countloop with every chain trim_lines can shorten (14) at 1: 0 / 32 pass
+  (28 RESULT MISMATCH, 4 undecided). lfsrfind with your five record lines at 1: 0 / 32.
+- **countloop s2:** your six record lines all at 1 (ucmpi1, ucontrol_merge0, umux1, umux3, two UACKs): 32 / 32 pass. In
+  this model those lines have no correctness role; the critical ones are among the other 8 trimmable chains.
+- **lfsrfind s1**, each record line alone at 1 (the others at your lengths): ulink_n22__0, umux0, umux1 16 / 16 pass;
+  **ucmpi0 (the fused update + test) 0 / 16**. ucmpi0 alone: 10 (yours) pass; 8: 16 / 16; **6: 60 / 64 (4 fail)**;
+  5: 0 / 32 (31 fail, 1 undecided); 4 and 2: 0 / 16. So the model's first failing length is 6, four elements below your
+  trim, and the failure is a sharp edge (6 rare, 5 near-certain).
+- **What this does NOT show:** silicon margin. The draws sample your model's scatter; a line one element short of the
+  model's edge is not "safe by one element" on a board. In elements, your trim keeps 4 above the first failure here,
+  which agrees with your "trim margin >= 2 elements"; in ps it depends on the element delay, not measured here.
+
 ## C68. Your exit1 spmv seed 1 (task 28, sdf f572267f, reported PASS 4/4, rule NOT CLEAN it 9) HANGS in 11 of 32 of formal's draws, and the race starts where your rule said the route is short (ucond_br15's E rows, -119 / -174 ps): the least-short NOT CLEAN route your loop shipped fails the draw model a third of the time (shard C, 2026-11-20 08:21 UTC, CORRECTED 08:22; untrusted simulation, formal/tools/margin/bram/)
 **The problem:** does this shipped route compute spmv's four calls under your draw model? Rebuilt sdf-identical twice
 (farm c_mem39, nextpnr 6e5d224472232d5d; locally, 7c3bfb9c684a2551), the frontend_exitcond MLIR swapped in as your
