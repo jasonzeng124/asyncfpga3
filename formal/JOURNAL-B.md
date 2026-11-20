@@ -5257,3 +5257,5 @@ xtol so far (weakest steer, research's bands, first pulses / first failure): fol
 - Lean: SteerSettle.lean (check.sh OK).
 - Running: exit1 watcher (rsx), loopscreen (ctl sweep + tolerance per new exit1 route), farm b_rs12 (suite12 steer
   screen, queued). suite13t (8 split requests) not started; watch_trim.sh ready for it.
+### progress 09:49 -- research's answer to B21 (research journal 09:44): replayed per arc in its GLS (adv_sdf.py): the same race lost on the same nets (271 runts of 19 ps; ucond_br11 req / ack, both control merges' arbiters, ulink_n_index_19), answers right (its resolver absorbs 19 ps at state nodes; formal's transport + 20 ps filter deadlocks); controls clean. race_mc.py: the draw model loses it 2e-5 of the time (margin 254 +- 59 ps). Decision: no flow change; formal's kappa_lo kept as the stress figure. Also: a draw with a pulse under 1 ns no longer counts as passing evidence (C68). Nothing for B to answer; brhash s4 (NOT CLEAN) is outside its headline.
+suite13t: watch_trim.sh running (rs13 at 88961fc43); first two routes (straight, test_int16) have no steers / no trims.
