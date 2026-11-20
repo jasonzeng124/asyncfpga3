@@ -30,6 +30,10 @@ mkdir -p "$O/v"
   || { say "$K $S NO-ORACLE $(head -1 "$O/oracle.err")"; exit 0; }
 T=${TREE:-$O/tree}
 if [ ! -d "$T/cells" ]; then mkdir -p "$T/build"; cp -r "$RS/cells" "$RS/bdc" "$T/"; cp -r "$RS/cloud/fixtures/frontend" "$T/build/"; fi
+# FIXTURES=<dir under cloud/fixtures> (research's exit1: frontend_exitcond, made with BDC_FE_EXITCOND=1): its kernel MLIR
+# replaces the default one, as the request does; always re-copied, so a reused tree never keeps another flow's MLIR
+cp "$RS/cloud/fixtures/${FIXTURES:-frontend}/$K/comp/"*.mlir "$T/build/frontend/$K/comp/" \
+  || { say "$K $S NO FIXTURE ${FIXTURES:-frontend}/$K"; exit 0; }
 FL=(); [ "${FLOW:-auto}" = auto ] && FL=(BDC_AUTO=1)
 # REUSE=1: keep a build already in the tree (same K) and only redo the decode and draws
 [ "${REUSE:-0}" = 1 ] && [ -f "$T/cells/build/hw/${K}_bench_gen/${K}_bench_gen.bit" ] || \
@@ -38,7 +42,7 @@ FL=(); [ "${FLOW:-auto}" = auto ] && FL=(BDC_AUTO=1)
   || { say "$K $S BUILD FAILED: $(grep -m1 -iE 'error|fail' "$O/build.log" | cut -c1-120)"; exit 0; }
 BD=$T/cells/build/hw/${K}_bench_gen; N=${K}_bench_gen
 md=$(md5sum "$BD/$N.sdf" | cut -c1-8)
-say "$K $S flow ${FLOW:-auto} sizes $(basename "$Z") sdf $md (research $M8) $([ "$md" = "$M8" ] && echo SAME || echo DIFFERENT) nextpnr $(sha256sum "$TC/openxc7/bin/nextpnr-xilinx" | cut -c1-16)"
+say "$K $S flow ${FLOW:-auto}${FIXTURES:+ fixtures $FIXTURES} sizes $(basename "$Z") sdf $md (research $M8) $([ "$md" = "$M8" ] && echo SAME || echo DIFFERENT) nextpnr $(sha256sum "$TC/openxc7/bin/nextpnr-xilinx" | cut -c1-16)"
 [ "$md" = "$M8" ] || [ "$M8" = - ] || exit 0
 W=$O/w; mkdir -p "$W/m"; PRJ=$TC/openxc7-src/prjxray; DB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7
 PYTHONPATH="$PRJ:$PRJ/third_party/fasm:$TC/openxc7/lib/python" python3 -W ignore "$PRJ/utils/bit2fasm.py" --db-root "$DB" \

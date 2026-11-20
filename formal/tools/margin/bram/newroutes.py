@@ -38,7 +38,9 @@ def rf0(req):
             sys.exit("newroutes: research commit %s (request %s) not in %s: git fetch there first" % (c, req, a.rs))
         old = c and "_RING_FUSE_DEFAULT" not in em
         sc = rg(["show", "%s:research/cluster/requests/%s.sh" % (c, req)]) if c else ""
-        _rf[req] = " BDC_RING_FUSE=0" if (old or re.search(r"\bBDC_RING_FUSE=0\b", sc)) else ""
+        fx = re.search(r"cloud/fixtures/(\w+)/\$K/comp", sc)   # exit1: the request swaps in another fixture's MLIR
+        _rf[req] = (" BDC_RING_FUSE=0" if (old or re.search(r"\bBDC_RING_FUSE=0\b", sc)) else "") + \
+                   (" FIXTURES=" + fx.group(1) if fx and fx.group(1) != "frontend" else "")
     return _rf[req]
 rows = {}
 for p in sorted(files, key=lambda p: (p.split("/")[1], int(p.split("/")[2]))):
