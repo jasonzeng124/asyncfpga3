@@ -1,0 +1,37 @@
+corner_audit /tmp/task/runs/ca/su_if_convert_2_5/seed1
+  corner: corner_sdf: /tmp/task/runs/ca/su_if_convert_2_5/seed1/pnr/soak_xray.sdf -> /tmp/task/runs/ca/su_if_convert_2_5/rule_0.31/soak.sdf
+            band 0.31, cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, 142 instance(s) listed (0.2), all in the SDF
+            INTERCONNECT default (0.31)                       26744 arcs
+            INTERCONNECT into listed instance (0.2)             190 arcs
+            IOPATH CARRY4 (1)                                  2292 arcs
+            IOPATH SELMUX2_1 (1)                                825 arcs
+            IOPATH SLICE_FFX (1)                               1955 arcs
+            IOPATH default (0.31)                             52740 arcs
+            IOPATH listed instance (0.2)                        190 arcs
+            SETUPHOLD (FAST_MIN, as gen.py)                    9622 arcs
+  nextpnr: UNSTAMPED
+  guards: rule E/J 0.970*req vs 1.030*sel; rule A/F/H/I/K/L guard max(0.030*t_data, 50 ps); slack 0
+  rule A data launches from constant drivers: DROPPED (a constant never transitions)
+  audits exit: tighten 1, skew 0, arb_fork 0
+  per-link cost at this corner: c_lo 179 ps (cheapest link-to-link step on the route), lut_lo 61 ps; chain mean steps 247-477 ps
+  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band 0.31, CARRY4/F7F8/FF at --cell; shortened lines priced at own mean step; selects sized by E/M; floor file none
+  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the select's own channel request is bounded by that request (research/data/sizerule/steerE.md)
+  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); research/data/muxsel/)
+  join-aware: CA_JOINAWARE=1: 1 operator(s) sized at their data's captures (A'j: latch data vs its enable, select vs its gate's request; C-elements wait for their last input; join credit), their A' rows reported as 'a'; 0 kept on A' (rows 'j' say why)
+  bench capture: CA_BENCHCAP=1: in A'j, a D / CE pin of a flip-flop on a BUFG clock is captured by that clock >= 19000 ps after the operator's request first reaches a flop on it (gen_bench.py's 2-flop synchronisers at <= 100 MHz, less 1 ns); an input of the operator's own join is not data
+negative at this corner: 2
+  a   -1327  bridge_i.udut.ucmpi1   40 links  14464 ps   req 15990  peak 16852  guard  465  margin  -1327   PAD to 44 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCMPI1
+  B     -54  bridge_i.udut.umem_controller3_uport.umem1.uram: clk 4743 ps, latest payload DIADI0 3660 ps, t_su 1137 -> margin -54 ps  VIOLATION
+            depends on: BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM1_USETUP
+proposal: 9 line(s) changed, kernel links 139 -> 121; verify: 0 sized constraint(s) below slack
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER2_UMEM0_USETUP   7 ->   5   bound by B bridge_i.udut.umem_controller2_uport.umem0.uram (227 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER2_UMEM0_UCO  11 ->   8   bound by C bridge_i.udut.umem_controller2_uport.umem0.uco (53 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER2_UMEM1_USETUP   9 ->   5   bound by B bridge_i.udut.umem_controller2_uport.umem1.uram (154 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM0_USETUP   6 ->   3   bound by B bridge_i.udut.umem_controller3_uport.umem0.uram (95 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM1_USETUP   5 ->   6   PAD 5->6 for B bridge_i.udut.umem_controller3_uport.umem1.uram (-54 ps)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM1_UCO  10 ->   9   bound by C bridge_i.udut.umem_controller3_uport.umem1.uco (254 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMUX0                  5 ->   3   bound by A'm bridge_i.udut.umux0 (100 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0        3 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_TRUERESULT_UACK   3 ->   1   floor 1
+wrote /tmp/task/runs/ca/su_if_convert_2_5/rule_0.31/{report.txt, lines.tsv, sizes.vh, verify.txt, soak.sdf}
