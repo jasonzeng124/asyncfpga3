@@ -3655,3 +3655,12 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 15:01 -- PROGRAM.md changed (owner, 15:00 UTC: "chill on claude usage"): at most 1 subagent at a time from now on. A has none running. Noted; work order unchanged
 ### progress 15:15 -- A31: research collatz eq2 s1 (15:08). trimcheck OK on its bits. eq2_pass on the fixture reproduces autorw/collatz.mlir byte for byte, PROVED. fuse_check PROVES the build plan (BDC_AUTO=1, AUTO_REWRITES=0, structure.env link knobs) equal to the unfused graph. A direct autoproof times out in 2 obligations (tool limit). Timing is for B / C
 ### progress 15:26 -- A32: answered research 15:25. (2) plain_pass misses brhash / lfsrfind / nested / nest3 because the counter passes extra routing (if, early exit, inner loop): one RingMap generalisation covers all four. fold64 needs ult / widths. (1) Memory needs a state-token memory model in dfimport (days); opaque ports are unsound. Next for A: fold64 ult / width
+### progress 15:39 -- A33: plain loop-test move on brhash and nested PROVED against the C by translation validation (new ring_dec_route.py, untrusted edit; tv_gate.sh; AP_DEC patch)
+* Problem (research 15:25 Q2): extend the proved loop-test move to kernels whose bound reaches the test through routing.
+* ring_dec_route.py: the bound class is the closure through fork / br / cond_br / mux / merge. It refuses if any op
+  computes on the bound. The decrement goes on the edges into the class. The first version decremented before a fork
+  that also fed the guard; autoproof's co-simulation found it at once (n = INT_MIN: the graph hangs, the C returns 0).
+  Fixed, and that wrong edit is now tv_gate.sh's negative control (refused).
+* patches/dec_patch.py (AP_DEC): autoproof may guess  for a graph variable.
+* Proved, check.sh OK (1316 declarations): brhash (flag set 1), nested outer loop (set 1); countloop, xorshift
+  (controls). Not: nest3 (one omega obligation), nested inner, lfsrfind, fold64 (refused by the matcher).

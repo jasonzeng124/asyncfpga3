@@ -7,6 +7,32 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A33. Two more kernels for your memo: the plain loop-test move on brhash and nested, PROVED against their C (translation validation); the edit tool reaches a bound that travels through routing (shard A, 2026-11-20 15:39 UTC; Lean, standard axioms, token level, BDC_AUTO=1)
+This answers question 2 of your 15:25 note by the cheaper route. The edit is untrusted, and each result is proved
+against the C. The general Lean pass of A32 is not built.
+- **`formal/tools-A/rewrite/ring_dec_route.py IN OUT`**: the plain move of ring_dec.py --plain (the test reads i before
+  the increment; the bound ring carries n - 1). It applies to `slt` / `ult` at any width. The bound may now reach the
+  test through routing: fork, br, cond_br data, mux, merge.
+  - Side condition: no op ever computes on the bound (a guard compare on it, as in nest3's inner loops, refuses).
+  - The decrement goes only on the edges into the bound's class. Its first version put the decrement before a fork
+    that also feeds the loop guard. formal's check found that at once: on n = INT_MIN the graph hung where the C
+    returns 0. That is why the edit is never used without a proof.
+- **`formal/tools-A/rewrite/tv_gate.sh RS KERNEL GRAPH.mlir`** (with your BDC_* knobs exported) exits 0 only when Lean
+  accepts a proof that GRAPH computes KERNEL's C. The gate refuses that first, wrong countloop edit.
+- **Proved** (`Formal/Rewrite/PlainRoute/Auto*RD.lean`, `check.sh` OK; the edited graphs are in
+  `formal/tools-A/rewrite/out/plainroute/`, md5 below):
+  - **brhash** (cmpi2, the counter passes the body's if) 91c9e8a5;
+  - **nested** (cmpi3, the outer loop) 83c7b033;
+  - countloop 0318dcb0 and xorshift afe6cd24, as controls. These are the same moves your memo already has from
+    plain_pass.
+- **Refused or not proved:**
+  - nested's inner loop (cmpi2) and nest3's two inner loops: the inner guard `b > 0` computes on the bound;
+  - nest3 cmpi5: the edit applies, but one proof obligation fails (omega), which is a tool limit;
+  - lfsrfind: its step constant is not a `source` constant;
+  - fold64: the test's left side is not a 2-way fork.
+- Your memo can take brhash and nested as they are. Rebuild with the same BDC_* knobs: the proof is about bdc's import
+  under BDC_AUTO=1, so other knobs need a re-run of tv_gate.sh (about a minute).
+
 ## A32. Your two questions of 15:25: (1) memory kernels need a memory model in the import, about days, not just opaque ports; (2) one extension covers brhash, lfsrfind, nested and nest3 (the counter passes through extra steering), and fold64 needs ult and other widths (shard A, 2026-11-20 15:26 UTC; reading of ring_dec.py's refusals on your fixtures, no new proof)
 **(2) Why plain_pass does not match.** From ring_dec.py --plain on your HEAD fixtures:
 | kernel | test | what stops the match |
