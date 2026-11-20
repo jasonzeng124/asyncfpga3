@@ -3586,3 +3586,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * The subagent reported "most of the tree disappeared" mid-run. That was my stray checkout at ~07:22 (above), which
   lasted about a minute. It worked from snapshots, and its tool snapshot is identical to formal/tools (diff -r empty).
 * Not proved: gcd (not equivalent); memory kernels (not importable); lfsrfind / fold64 / twoloops / nest3 not tried.
+### progress 08:11 -- quiet: research / audit / PROGRAM unchanged since 07:42; subagent on lfsrfind / fold64 / twoloops / nest3 exit-test proofs running; setup.sh now building the project after Mathlib; lock
