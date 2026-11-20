@@ -363,6 +363,16 @@ PY
     if [ -s "$O/race_padded.txt" ] && [ -n "$t" ]; then
       t=$(for x in $t; do grep -qxF "${x%%=*}" "$O/race_padded.txt" || echo "$x"; done | tr '\n' ' ' | sed 's/ $//')
     fi
+    # AUTO_RACE_KEEP=1 (opt-in, 2026-11-20; unset, nothing changes): no latch-fed steer race's request line is ever
+    # shortened by a trim (a pad within its built length stays allowed).  Why: race_check measures the race on the route
+    # as built, and research/tools/race_find.py prices the link's request line from its first element, so a trim of
+    # that line (entered later) would ship a race nobody measured.  race_lines.txt: every race link race_check found.
+    if [ "${AUTO_RACE_KEEP:-0}" = 1 ] && [ -s "$O/race_lines.txt" ] && [ -n "$t" ]; then
+      t=$(for x in $t; do m=${x%%=*}; v=${x##*=}
+            c=$(awk -v m="$m" '$1 == "`define" && $2 == m {print $3}' "$cur")
+            if grep -qxF "$m" "$O/race_lines.txt" && [ -n "$c" ] && [ "$v" -lt "$c" ]; then continue; fi; echo "$x"
+          done | tr '\n' ' ' | sed 's/ $//')
+    fi
     [ -n "$t" ] || { echo "trim: it $i step $k: the rule moves no line$([ -n "${TRIM_ALLOW:-}" ] && echo ' on the critical cycle') ($(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"; break; }
     cp "$H/${D}_routed.json" "$H/${D}_routed.prev.json"; cp "$H/$D.fasm" "$H/$D.prev.fasm"; cp "$H/$D.bit" "$H/$D.prev.bit"
     cp "$cur" "$O/sizes_${i}_trim.prev.vh"; cp "$O/trim_$i.txt" "$O/trim_${i}.prev.txt"
@@ -408,6 +418,11 @@ race_check() {  # race_check I (AUTO_RACE_Z): the latch-fed steer races of route
   local s; s=$(python3 "$T/race_pad.py" "$O/race_$i.txt" "$AUTO_RACE_Z" "${2:-$O/sizes_$i.vh}" "$CA/rule/sizes.vh" "$CA/rule/negative_sized.tsv")
   echo "it $i $s" >> "$O/log.txt"
   echo "$s" | grep -o 'BD_SZ_[A-Z0-9_]* [0-9]*->' | awk '{print $1}' >> "$O/race_padded.txt"
+  if [ "${AUTO_RACE_KEEP:-0}" = 1 ]; then   # every race link's request line, short or not (trim_route leaves them alone)
+    { cat "$O/race_lines.txt" 2>/dev/null
+      grep -oE ' link [A-Za-z0-9_]+:' "$O/race_$i.txt" | awk '{sub(":", "", $2); print "BD_SZ_BRIDGE_I_UDUT_" toupper($2)}'
+    } | sort -u > "$O/race_lines.new" && mv "$O/race_lines.new" "$O/race_lines.txt"
+  fi
   cp "$CA/rule/sizes.vh" "$O/rule_$i.vh"; cp "$CA/rule/negative_sized.tsv" "$O/neg_$i.txt"   # as rule() keeps them
   rm -f "$RC/xray.sdf"
 }
@@ -701,7 +716,10 @@ while [ -z "$STOP" ]; do
   rule "$i" "$O/sizes_$i.vh" || { echo "RULE FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
   # AUTO_RACE_Z=Z (opt-in, 2026-11-20; formal B21 / B28): a route the rule finds clean is also checked for the latch-fed
   # steer races (race_find.py: the draw model's margin per race); one below Z sd pads its link and the route is not clean
-  [ -n "${AUTO_RACE_Z:-}" ] && [ "$(nneg "$RUNS/ca/${N}_$i/rule")" = 0 ] && race_check "$i"
+  # With AUTO_OVERBUILD and AUTO_RACE_KEEP (opt-in) a finish route is race-checked even when the rule finds it short as
+  # built: the trim step may make it clean (below), and its races are then the as-built ones (their lines kept).
+  [ -n "${AUTO_RACE_Z:-}" ] && { [ "$(nneg "$RUNS/ca/${N}_$i/rule")" = 0 ] || { [ "$ph" = 2 ] && [ -n "${AUTO_OVERBUILD:-}" ] \
+    && [ "${AUTO_RACE_KEEP:-0}" = 1 ]; }; } && race_check "$i"
   # AUTO_FINISH_SEEDS (opt-in): a finish route that is not clean is drawn again on more seeds; a clean one is adopted
   [ "$ph" = 2 ] && [ "${AUTO_FINISH_SEEDS:-1}" -gt 1 ] && finish_draws "$i"
   # phase 2 raises with one element of headroom: each re-route moves the small margins by a few hundred ps (local v4
@@ -717,7 +735,9 @@ while [ -z "$STOP" ]; do
   read -r _ nr _ _ _ neg _ nl _ _ <<< "$(echo "$st" | head -1)"
   # AUTO_OVERBUILD (opt-in; needs AUTO_TRIM=1 to ship the trims): a finish route the rule finds short as built is clean
   # if the trim step alone makes it so (the trims are recorded; final() applies them to the route it ships)
-  if [ "$neg" != 0 ] && [ "$ph" = 2 ] && [ -n "${AUTO_OVERBUILD:-}" ] && trim_check "$i"; then
+  # A route with a latch-fed race below AUTO_RACE_Z (an "R" row, race_pad.py) is not clean, whatever the trims do.
+  if [ "$neg" != 0 ] && [ "$ph" = 2 ] && [ -n "${AUTO_OVERBUILD:-}" ] \
+     && ! grep -q '^R	' "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" 2>/dev/null && trim_check "$i"; then
     neg=0; echo "it $i clean after the trim step (AUTO_OVERBUILD)" >> "$O/log.txt"
   fi
   brk=""
