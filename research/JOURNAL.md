@@ -8535,3 +8535,16 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   plain_pass proved fixture -> plain) and against the C for countloop, horner, varshift, ipow, nested, twoloops,
   branchloop; and a timing caveat for the default fixtures: a merged cell makes every part wait for every input (on
   countloop the loop test now waits for the accumulator's s and a). The farm's set B measures what that costs.
+### progress 14:09 (one seed each, draws pending: collatz s1 with the proved eq2 rewrite at 14.81 ns (suite13t 22.75, Dynamatic 14.05); xorshift s1 with the plain move + sibling fusion at 16.36 ns (suite13t 17.59))
+- **collatz s1, eq2_pass's MLIR (Lean-proved), flow v9 + scoped trim** (arw2): it 8 CLEAN, untrimmed 20315 -> trimmed 19503
+  ps; then the flow's own search phase (event graph, all sites) picked BDC_LINK_DEPTHS=ulink_n10__3=2,ulink_n11=2
+  BDC_FORK_OUT_LINK=n17__0,n31__0 -> it 9 CLEAN, **untrimmed 15832, after the first trim round 14812 ps**; later rounds
+  and the draws running. suite13t collatz s1 (no rewrite, the same search phase): 24676 / 22751. The hand recipe's best
+  collatz: 21.50 ns; Dynamatic's measured: 14.05. One seed; farm suite13t_s5b_sib set A has collatz x 4 seeds.
+- **xorshift s1, the plain move + BDC_SIBLING_FUSE, flow v9 + scoped trim** (sib): it 8 CLEAN, untrimmed 19365 ps (suite13t
+  18319); the scoped trim's rounds: 17533 (round 1's lines), **16357 (round 2's)**, round 3's 8 lines being timed. The
+  rounds keep paying here because the cycle lines are trimmed first and use the slack the unscoped step had spent on
+  other lines (suite13t's one-pass trim: 17588). The plain move alone (arw2 xorshift): it 9 20941 -> 19710 trimmed; the
+  search phase's it 11 untrimmed 17123, trimming running.
+- So far the proved rewrites pay most through what they let the rest of the flow do (the search phase's storage on
+  collatz; the trim rounds on xorshift), not in the untrimmed period of the route the loop first settles on.
