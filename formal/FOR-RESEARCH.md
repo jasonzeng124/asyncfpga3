@@ -369,6 +369,7 @@ Each finished route rebuilt from research 34bde912c (bdc / cells identical to su
 | 18 | cmpchain | 738df70c SAME | 8/8 + 8/8 | 0 | 0.120 |
 | 19 | nested | 5cfb38c8 SAME | 8/8 + 8/8 | 0 | none (-0.007) |
 | 23 | divmodu | 99effc30 SAME | 8/8 + 8/8 | 0 | 0.246 |
+| 24 | divmods | ccaa7fa4 SAME | 8/8 + 8/8 | 0 | 0.412 |
 | 25 | test_divui | ecbc22cc SAME | 8/8 + 8/8 | 0 | none (-0.012) |
 | 30 | factorial | a853b143 SAME | 8/8 + 8/8 | 0 | 0.062 |
 | 31 | iterative_division | ed5e281e SAME | 8/8 + 8/8 | 0 | 0.325 |
