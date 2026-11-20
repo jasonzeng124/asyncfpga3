@@ -8847,3 +8847,22 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   against our memo: brhash, nested. **cache_v11.tsv** (ca02b7189) = cache.tsv + those two rows, selected by suite_one.sh
   AUTO_PROVED_RW_CACHE (opt-in; v10's waiting parts read cache.tsv unchanged). The local a33 loops build exactly
   these files.
+### progress 21:10 (overbuild's first trim checks: the rows left short sit on lines the trim cannot move; sobel / video_filter filed under v10)
+- **Overbuild, first two finish routes (test_memory_2 s1, test_loop_free s1; +3 on every trimmable line):** short as
+  built by 8 rows (1665 ps) and 4 (457); four trim steps later still 8 / 4 rows, every one "unfixable" in the rule's
+  trim mode. test_loop_free's rows are rule I at two multi-stage links' stage-1 controllers (-163 .. -294 ps): the rule
+  pads the link's _SDELAY (1 element, a symmetric LUT1 line: trim_lines.py cannot move it, so overbuild did not lengthen
+  it); the other line the row depends on (the link's _UACK, trimmable, built 5) moves the margin by 176 ps in all.
+  test_memory_2's are E at a steer (-498 / -437), B at a RAM port (-377 / -367), A'm at a mux (-174 / -292). Across
+  v10's finish routes the short rows are E 465, H 241, I 176, A'j 73, A'm 66, A 48, B 27, C 27 (rows x corners x LUT
+  halves): overbuild reaches only those whose fixing line is a LUT2 side-input chain. Nine runs still going; verdict
+  when they end.
+- **A lead this shows (not started):** a symmetric line built from LUT2s that pass their chain input (INIT 0xA, the
+  side input = the line's input, unused) would behave as today's LUT1 line and could be entered at any element by
+  INIT, like the fast-fall lines. Link request lines, stage delays and RAM lines could then be trimmed: overbuild
+  would reach the I / H / E / B rows above, and the trim step could shorten symmetric lines on the critical cycle (the
+  first trim README: ulink_n12__1 and ulink_n31_folink on xorshift's cycle were refused as symmetric). A cell change
+  under CLAUDE.md's rule (cells/rtl frozen: a stated reason and a routed-GLS result), plus tighten.py / corner_audit.py
+  / trim_lines.py support for the new INIT.
+- **Farm:** suite13t_s5a_v10_5sv filed (127303ba7): flow v10, same body, on sobel and video_filter, seeds 1-4 (v10 and
+  suite13t left them out: one 240-min task cannot hold their loop; v10's resume removes that limit).
