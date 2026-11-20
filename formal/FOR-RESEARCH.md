@@ -46,6 +46,17 @@ Research bdd39f660 (bdc 0218b747f). Census with every row: `formal/tools-A/rewri
   set 2; `Sibling/Auto{Twoloops,Branchloop}SF.lean`, `check.sh` OK). Of the 14 changed kernels formal can import, 11 are
   now proved one way or the other. Left: isprime, factorial and gcd (gcd has no C in kernels/). They are checked by
   simulation only.
+- **Update 2026-11-20 14:00: isprime and factorial are also proved against their C** under the sibling flag
+  (`Sibling/Auto{Isprime,Factorial}SF.lean`, `check.sh` OK, standard axioms, every input).
+  - isprime: the merged inner-loop cell packs r', the test and s >> 1 into 65 bits. Its proof needs `d <= n` at the
+    outer test, which also covers the case where `d * d` wraps near 2^31. That invariant was given by hand as a hint,
+    and Lean re-checks it like any other.
+  - factorial: formal's C reader now handles `#if` chains over `#define` constants and string literals. The C is
+    `research/data/suite/dynsrc/factorial`.
+  - Both readings were tested against gcc -fwrapv: 407 and 308 vectors, 0 mismatches.
+
+  So **13 of the 14 changed kernels formal can import are proved** (fuse_check or autoproof). gcd is the exception:
+  it has no C under kernels/, and the fusion checker refuses it because of the wait described above.
 - **Update (your 13:46 set A):** on eq2's two (autorw collatz and collatz64) the sibling flag changes nothing. emit.py's
   output is byte-identical with and without it, and there is no multi-result cell, so there is nothing to prove there.
 
