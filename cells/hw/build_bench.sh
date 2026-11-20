@@ -444,6 +444,13 @@ while [ "$attempt" -lt "$PNR_TRIES" ]; do
         [ -f "$BD_PLACE_FROM" ] || { echo "BD_PLACE_FROM=$BD_PLACE_FROM: no such file" >&2; exit 1; }
         export BD_PLACE_FROM; PREPLACE="--pre-place $(cd "$(dirname "$0")" && pwd)/place_from.py"
     fi
+    # BD_REGION_RX=REGEX with BD_REGION_FROM=ROUTED_JSON (opt-in; unset, nothing changes): hw/region.py confines the
+    # matching cells to one rectangle shrunk from where that route had them (BD_REGION_SHRINK, BD_REGION_ROOM).
+    if [ -n "${BD_REGION_RX:-}" ]; then
+        [ -z "$PREPLACE" ] || { echo "BD_REGION_RX and BD_PLACE_FROM together: not supported" >&2; exit 1; }
+        [ -f "${BD_REGION_FROM:-}" ] || { echo "BD_REGION_FROM=${BD_REGION_FROM:-}: no such file" >&2; exit 1; }
+        export BD_REGION_RX BD_REGION_FROM; PREPLACE="--pre-place $(cd "$(dirname "$0")" && pwd)/region.py"
+    fi
     # shellcheck disable=SC2086
     if ! timeout "${PNR_TIMEOUT:-420}" "$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $TRYSEED \
                $PREPLACE --freq "$TARGET_MHZ" --timing-allow-fail \
@@ -475,7 +482,7 @@ while [ "$attempt" -lt "$PNR_TRIES" ]; do
         exit 1
     fi
 
-    if [ -n "$PREPLACE" ]; then grep -h '^place_from:' "$OUT/pnr.log" || true; fi   # BD_PLACE_FROM: cells kept
+    if [ -n "$PREPLACE" ]; then grep -h '^place_from:\|^region:' "$OUT/pnr.log" || true; fi   # what the pre-place script did
     ACHIEVED=$(grep -oP "(?<=Max frequency for clock 'fclk0_bufg': )[0-9.]+" "$OUT/pnr.log" | tail -1)
     if [ -z "$ACHIEVED" ]; then
         echo "TIMING: no Fmax for fclk0_bufg in $OUT/pnr.log -- cannot certify this build" >&2
