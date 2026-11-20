@@ -5066,7 +5066,7 @@ Not yet traced to a path. Owner notified.
 - 13:07: c_mem45: 8 suite13t routes (7 trimmed) SAME 32 / 32, min 490 ps; share_test_2 1 not drawn. C60 (233; 17 trimmed).
 - 13:26: c_mem46: 4 trimmed suite13t routes SAME 32 / 32, min 1289 ps; share_test_2 2 not drawn. C60 (237).
 
-### progress 13:55 -- DSP48E1 D pre-adder (USE_DPORT) modelled: share_test_2 drawable
+### progress 13:51 -- DSP48E1 D pre-adder (USE_DPORT) modelled: share_test_2 drawable
 share_test_2's routes were refused at decode (USE_DPORT). Now: dspmodel.dsp_p / simx dsp48_p take D and the pre-adder
 (cells_sim.v 443-460: D' = INMODE[2] ? D : 0, AD = INMODE[3] ? D' - A' : D' + A', 25-bit; simx carries USE_DPORT as inmode
 bit 5); simx --dsptest vs dspmodel: 50 000 random cases, 13 893 configurations, 0 mismatches. decode_dsp accepts
