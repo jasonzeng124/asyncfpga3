@@ -88,6 +88,27 @@ On the 17 exit1 routes formal has judged:
 8 of brhash's 24 steers and 2 of horner s2 / s4's 18 are not bounded: their condition comes from a compare (ucmpi1) whose join
 has another name. For comparison, the binding race of gcd_ps fails at kappa 0.36, and the trimmed xorshift of B20 at 0.08.
 
+**Update 08:50 UTC: every judged exit1 route, and the default flow beside it.** formal/tools-B/auto/ctlsweep.sh runs
+the race-only adversary on each route's latch-fed steer with the smallest ctl-launched slack. It raises kappa through
+0, 0.03, 0.06, 0.10, 0.15, 0.20 at both corners and stops at the first wrong answer or run with no verdict.
+
+| ctl-launched structural slack at kappa 0, corner 0 | routes (exit1) | first failure |
+|---|---|---|
+| -21 ps | varshift s1 | kappa 0 |
+| -4 ps | brhash s2 | 0.03 (oscillation) |
+| +42 / +66 / +78 ps | twoloops s2, fold64 s1, twoloops s3 | 0.06 |
+| +181 .. +427 ps | nested s1, horner s1 / s4, lfsrfind s3 | 0.15 - 0.20 |
+| +218 .. +9763 ps | brhash s1, countloop s1-s4, fold64 s2, horner s2, lfsrfind s2, twoloops s1, xorshift s2 | none up to 0.20 |
+
+- The structural slack ranks the adversary's failures with no exception on these 21 routes. It is a fast screen: one
+  python run per route, no simulation.
+- **The default flow sizes this race.** suite12's varshift s1 (sdf b4b04cdb, rebuilt SAME at your 1b47b72a7) has
+  ULINK_N41_FOLINK = 4 ("// was 1": your rule raised it). There its latch-fed steers keep +1.2 ns.
+- On exit1's varshift s1 the same link is at its floor of 1 and the rule calls it clean. So your rule does see this
+  race, and on this route its guarded verdict and prjxray's own fast-interval spread disagree by about 20 ps.
+- suite12 seed-1 routes of the other three kernels, all steers: brhash 0.093, twoloops 0.122, fold64 0.042 (proved
+  structure), varshift 0.002 (a compare steer, +14 ps; its adversary passes to kappa 0.10).
+
 **What it suggests** (yours to decide):
 - A link whose latch output is a steer's condition has only its rdly between the latch and the steer's request. At
   floor 1 that is one LUT of margin against the latch's own LUT.

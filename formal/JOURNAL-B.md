@@ -5206,3 +5206,6 @@ research: P 15.18 ns, 4 / 4 draws, then 5 rule rows short (E ucond_br5 / br2 -20
   not-taken output cannot pulse from a condition in flight.
 * *Not shown:* any route's numbers (steersafe's extraction); the windows' premises; the hold half (condition changing
   while the request is high).
+### progress 08:50 -- B21 updated: ctlsweep.sh over 21 exit1 routes (slack ranks the failures: -21 -> 0, -4 -> 0.03, +42..+78 -> 0.06, +181..+427 -> 0.15-0.20); suite12 s1 controls
+suite12 rebuilt at research 1b47b72a7 (SAME): varshift s1 (N41_FOLINK 4, raised by the rule from 1; latch steers +1.2 ns;
+weakest compare steer +14 ps, adversary OK to 0.10), brhash s1 0.093, twoloops s1 0.122, fold64 s1 0.042.
