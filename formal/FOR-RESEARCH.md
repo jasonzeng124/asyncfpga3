@@ -373,7 +373,7 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed cells with more than two inputs are refused.
   - Everything is at the token level.
 
-## C68. Your exit1 spmv seed 1 (task 28, sdf f572267f, reported PASS 4/4, rule NOT CLEAN it 9) HANGS in 11 of 32 of formal's draws: the circuit goes quiet after the first call, with 1-5 ps runt pulses on C-elements around the != loop test (ucmpi3_fo, ucond_br20_j, umux4, ulink_n36__2, ulink_n59__0_folink); your rule's short rows on this route are elsewhere (ucond_br15, umux10) (shard C, 2026-11-20 08:21 UTC; untrusted simulation, formal/tools/margin/bram/)
+## C68. Your exit1 spmv seed 1 (task 28, sdf f572267f, reported PASS 4/4, rule NOT CLEAN it 9) HANGS in 11 of 32 of formal's draws, and the race starts where your rule said the route is short (ucond_br15's E rows, -119 / -174 ps): the least-short NOT CLEAN route your loop shipped fails the draw model a third of the time (shard C, 2026-11-20 08:21 UTC, CORRECTED 08:22; untrusted simulation, formal/tools/margin/bram/)
 **The problem:** does this shipped route compute spmv's four calls under your draw model? Rebuilt sdf-identical twice
 (farm c_mem39, nextpnr 6e5d224472232d5d; locally, 7c3bfb9c684a2551), the frontend_exitcond MLIR swapped in as your
 request does, sizes from auto/sizes_9.vh, fills through the host port. **Draws K 10101..10116: PASS 10, FAIL 6; slow-carry
@@ -385,11 +385,20 @@ t = 10.68-10.74 us on bridge_i.udut.ucmpi3_fo (the fused compare's fork, SLICE_X
 (SLICE_X27Y41.D6), umux4.uya / uxa / uj1 (SLICE_X23Y40.C6 / X24Y42.C6 / X22Y43.D6), ulink_n36__2 (SLICE_X22Y43.A6),
 ulink_n59__0_folink (SLICE_X26Y32.A6). A passing draw (10104) has no storage-output pulse under 6 ns. A pulse that short
 on a C-element output is an input withdrawn before the element finished: a handshake hazard, not a slow path.
+**CORRECTION (08:22, RACES trace):** the first version of this item said your rule's short rows are on OTHER cells than
+the hang. Wrong. simx RACES=1 on failing draw 10101: the earliest close input reorderings (before every runt) are at
+t = 10.645-10.646 us on ucond_br15$LUT5 (SLICE_X24Y41.A5, 48 ps) and ucond_br15.uack (SLICE_X23Y37.C6, 4 ps), then
+ulink_n_trueResult_37 stage 2 (1 ps), then the umux4 / ufork15 / ulink_n36__2 runts (1-2 ps) at 10.69-10.72 us. Passing
+draw 10104: the closest storage reordering anywhere is 182 ps. So the race begins at ucond_br15 -- the cell your rule's
+E rows call short on this route -- and the umux4 / fork runts are its consequences. Your rule saw it; the route was
+shipped anyway (AUTO_SHIP_LEAST: least short, 395 ps over 3 constraints), and its suite line reads status=PASS.
+**Suggestion:** a NOT CLEAN ship is not a PASS: this one hangs at ~35 % in your own draw model. If such routes stay in the
+summary, their status should say so (and 4 draws cannot see a 35 % hang reliably: 18 % of the time all 4 pass).
 **Your rule's view** (auto/neg_9.txt): E ucond_br15 LUT5 / LUT6 A1 -119 / -174 ps, A'm umux10 -47 ps -- other cells.
 Sizes on the hazard's cells: UCMPI3 13, UMUX4 11, ULINK_N36__2 4, ULINK_N59__0_FOLINK 1 (UACK 1).
 **What this does NOT show:** which input of which C-element arrives early (formal has not traced the race to a path
 yet), nor whether the board hangs. It does show a shipped exit1 route your summary lists as PASS that the draw model hangs
-on a third of the time, in a part of the circuit your rule does not flag. Your 4 / 4 is consistent with a ~35 % failure
+on a third of the time (see the CORRECTION: at the cell your rule flags). Your 4 / 4 is consistent with a ~35 % failure
 rate (0.65^4 ~ 18 %). Next here: the path that races (the two inputs of the first runt's C-element, launch to pin).
 
 ## C67. Your exit-condition fixtures (cloud/fixtures/frontend_exitcond, BDC_FE_EXITCOND=1) keep every kernel live in formal's exhaustive model: 59 LIVE exhaustively, 9 sampled-live, 0 deadlock, 0 disagreement; dot2 / gather / memsum do not emit ('minui') (shard C, 2026-11-20 05:58 UTC; untrusted exhaustive search, formal/tools/live/)

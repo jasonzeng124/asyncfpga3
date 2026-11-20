@@ -5043,3 +5043,8 @@ f572267f: 21 / 32 (10 / 16 + 11 / 16), reproduced locally identically. Failures:
 0 outputs, 0 RAM violations; 1-5 ps runts on C-elements at ucmpi3_fo / ucond_br20_j / umux4 / ulink_n36__2 /
 ulink_n59__0_folink just before; passing draws none under 6 ns. Research's rule rows on this route: ucond_br15, umux10.
 Not yet traced to a path. Owner notified.
+- 08:22: C68 CORRECTED. RACES=1 on failing draw 10101: the earliest close reorderings are at 10.645 us on ucond_br15
+  LUT5 (48 ps) / uack (4 ps) -- the cell research's rule E rows call short (-119 / -174 ps) -- then ulink_n_trueResult_37
+  (1 ps), then the umux4 / ufork15 / ulink_n36__2 runts. Passing draw 10104: closest storage reordering 182 ps. So the
+  rule did see the race; the loop shipped the least-short NOT CLEAN route anyway and the suite line says PASS. The first
+  C68 text ("rule flags other cells") was wrong; corrected in place, owner re-notified.
