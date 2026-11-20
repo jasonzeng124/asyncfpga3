@@ -21,7 +21,8 @@ attribute is 0 / FALSE):
   optional  A_INPUT[0] / B_INPUT[0] (operand from ACIN / BCIN), ZIS_{ALUMODE,INMODE,OPMODE}_INVERTED[i],
             ZIS_CARRYIN_INVERTED (input inverters; absent = inverted), ZIS_CLK_INVERTED (no register: no effect),
             MASK / PATTERN (pattern detector only; its outputs must be unread)
-  refused   AREG_2, BREG_2, USE_DPORT, USE_SIMD_*, AUTORESET_*, SEL_MASK_*, any missing required bit, anything else.
+  optional  USE_DPORT[0] (the D pre-adder, combinational: ZADREG / ZDREG are required off like every register)
+  refused   AREG_2, BREG_2, USE_SIMD_*, AUTORESET_*, SEL_MASK_*, any missing required bit, anything else.
   USE_MULT has no bit in prjxray-db (the fuzzer found none): the multiplier is taken as present.
 Control pins (OPMODE, ALUMODE, INMODE, CARRYINSEL, CARRYIN) must decode to constants. A pin driven through the
 interconnect is the walked constant XOR its IS_*_INVERTED bit. A pin driven by the DSP tile's own DSP_GND/DSP_VCC pip
@@ -69,6 +70,35 @@ def source_pin(self, node):
 
 DBm.Extract3.source_pin = source_pin
 
+# A DSP tile's input muxes into the site pins (e.g. DSP_R.DSP_FAN3_0->DSP_1_D0) carry no configuration bits and are not in
+# prjxray's ppips_dsp_*.db: the mux takes its routed input unless a tie bit (DSP_GND / DSP_VCC, which have segbits) is set.
+# decode_base's walker only follows bit-less pips listed as ppips, so it saw these pins as floating (share_test_2's D port,
+# fed from another DSP's P through INT FAN wires). Here: in DSP_L / DSP_R, every pip with neither segbits nor a ppips entry
+# is implicit (taken when no active pip drives the wire; a set tie bit is an active pip and wins first).
+_orig_tt = DBm.Fabric3.tt
+
+
+def _tt(self, ttype):
+    fresh = ttype not in self._tt
+    j = _orig_tt(self, ttype)
+    if fresh and re.match(r"^DSP_[LR]$", ttype):
+        seg, pp = set(), set()
+        for fn, into in (("segbits_%s.db", seg), ("ppips_%s.db", pp)):
+            f_ = os.path.join(F2.DB, fn % ttype.lower())
+            if os.path.exists(f_):
+                for line in open(f_):
+                    w = line.split()
+                    if w:
+                        into.add(w[0])
+        for p_ in j["pips"].values():
+            key = "%s.%s.%s" % (ttype, p_["dst_wire"], p_["src_wire"])
+            if key not in seg and key not in pp and re.match(r"^DSP_[01]_", p_["dst_wire"]):
+                j["_implicit"].add((p_["dst_wire"], p_["src_wire"]))
+    return j
+
+
+DBm.Fabric3.tt = _tt
+
 
 def die(m):
     print("decode_dsp: " + m, file=sys.stderr)
@@ -78,10 +108,10 @@ def die(m):
 REQUIRED = ["AREG_0", "BREG_0", "ZAREG_2_ACASCREG_1", "ZBREG_2_BCASCREG_1"] + \
     ["Z%sREG[0]" % r for r in ("AD", "ALUMODE", "CARRYIN", "CARRYINSEL", "C", "D", "INMODE", "M", "OPMODE", "P")]
 OPTIONAL = re.compile(r"^(A_INPUT\[0\]|B_INPUT\[0\]|ZIS_(ALUMODE|INMODE|OPMODE)_INVERTED\[\d\]|ZIS_CARRYIN_INVERTED|"
-                      r"ZIS_CLK_INVERTED)$")
+                      r"ZIS_CLK_INVERTED|USE_DPORT\[0\])$")   # USE_DPORT: the pre-adder (dspmodel.py; ADREG = DREG = 0 required)
 CTRL = {"OPMODE": 7, "ALUMODE": 4, "INMODE": 5, "CARRYINSEL": 3, "CARRYIN": 1}
 INV = {"OPMODE", "ALUMODE", "INMODE", "CARRYIN"}          # pins with a site inverter (IS_*_INVERTED)
-WIDTH = {"A": 30, "B": 18, "C": 48, "PCIN": 48, "CARRYIN": 1, "ACIN": 30, "BCIN": 18}
+WIDTH = {"A": 30, "B": 18, "C": 48, "PCIN": 48, "CARRYIN": 1, "ACIN": 30, "BCIN": 18, "D": 25}
 
 
 def nname(fab, node):
@@ -236,6 +266,7 @@ def main():
         if bad:
             die("%s (%s.%s): DSP configuration not modelled (refused): %s" % (sn, tile, dk, bad))
         a_casc, b_casc = "A_INPUT[0]" in fs, "B_INPUT[0]" in fs
+        dport = "USE_DPORT[0]" in fs
         inv = {p: [0 if ("ZIS_%s_INVERTED[%d]" % (p, i)) in fs else 1 for i in range(CTRL[p])] for p in ("OPMODE", "ALUMODE", "INMODE")}
         inv["CARRYIN"] = [0 if "ZIS_CARRYIN_INVERTED" in fs else 1]
         conn, val, how = {}, {}, {}
@@ -258,9 +289,9 @@ def main():
             dspmodel.check_cfg(*cfgv)
         except dspmodel.Refused as e:
             die("%s: %s (refused)" % (sn, e))
-        used = dspmodel.used_ports(*cfgv)
+        used = dspmodel.used_ports(*cfgv, dport=dport)
         data = {}
-        for port in ("A", "B", "C", "PCIN"):
+        for port in ("A", "B", "C", "PCIN", "D"):
             if port not in used:
                 continue
             pp = {"A": "ACIN" if a_casc else "A", "B": "BCIN" if b_casc else "B"}.get(port, port)
@@ -276,7 +307,7 @@ def main():
                 "outs": {}, "features": sorted(fs) + vec_ok[(tile, dk)],
                 "dsp": {"tile": tile, "tiletype": fab.ttype(tile), "opmode": val["OPMODE"], "alumode": val["ALUMODE"],
                         "inmode": val["INMODE"], "carryinsel": val["CARRYINSEL"], "carryin": val["CARRYIN"],
-                        "a_cascade": a_casc, "b_cascade": b_casc, "ports": data, "pin_source": how,
+                        "a_cascade": a_casc, "b_cascade": b_casc, "use_dport": dport, "ports": data, "pin_source": how,
                         "is_inverted": inv}}
         sites.append((cell, tile, dk, fs, data, conn, val, how, inv, a_casc, b_casc))
     for c_ in sites:
@@ -306,7 +337,7 @@ def main():
                 if pint(r_, 1) != 0:
                     die("%s: json %s = %s, decoded 0" % (sn, r_, P.get(r_)))
             for k_, want in (("A_INPUT", "CASCADE" if a_casc else "DIRECT"), ("B_INPUT", "CASCADE" if b_casc else "DIRECT"),
-                             ("USE_DPORT", "FALSE"), ("USE_SIMD", "ONE48")):
+                             ("USE_DPORT", "TRUE" if cell["dsp"]["use_dport"] else "FALSE"), ("USE_SIMD", "ONE48")):
                 if P.get(k_, {"USE_DPORT": "FALSE", "USE_SIMD": "ONE48"}.get(k_)) != want:
                     die("%s: json %s = %s, decoded %s" % (sn, k_, P.get(k_), want))
             vccp = set(c["attributes"].get("DSP_VCC_PINS", "").split())

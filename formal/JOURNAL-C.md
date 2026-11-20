@@ -5065,3 +5065,14 @@ Not yet traced to a path. Owner notified.
 - 13:04: C70: BDC_SIBLING_FUSE liveness: default fixtures 60 LIVE / 5 sampled / 0 deadlock (20 of 21 named fixtures emit a different graph with it, all LIVE both ways); autorw six LIVE with and without.
 - 13:07: c_mem45: 8 suite13t routes (7 trimmed) SAME 32 / 32, min 490 ps; share_test_2 1 not drawn. C60 (233; 17 trimmed).
 - 13:26: c_mem46: 4 trimmed suite13t routes SAME 32 / 32, min 1289 ps; share_test_2 2 not drawn. C60 (237).
+
+### progress 13:55 -- DSP48E1 D pre-adder (USE_DPORT) modelled: share_test_2 drawable
+share_test_2's routes were refused at decode (USE_DPORT). Now: dspmodel.dsp_p / simx dsp48_p take D and the pre-adder
+(cells_sim.v 443-460: D' = INMODE[2] ? D : 0, AD = INMODE[3] ? D' - A' : D' + A', 25-bit; simx carries USE_DPORT as inmode
+bit 5); simx --dsptest vs dspmodel: 50 000 random cases, 13 893 configurations, 0 mismatches. decode_dsp accepts
+USE_DPORT[0] and walks D; a DSP tile's bit-less input muxes (e.g. DSP_R.DSP_FAN3_0 -> DSP_1_D0: no segbits, no ppips
+entry) are now implicit pips (decode_base saw D as floating; it stays unedited). Regression: spmv 4's decode identical
+except the new use_dport field. dsp_gates: D arcs from prjxray's ADREG_0_DREG_0_..._USE_DPORT_TRUE cell types, the A arc
+from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites agree with routed.json, product check
+0 mismatches, 8 + 8 draws PASS, 600 memory words right. NEGATIVE CONTROL: the D-port DSP's pre-adder flipped to subtract
+(INMODE[3]) in net.json: 0 / 8 pass, 297 / 600 memory words wrong. The other share_test_2 routes go to the farm.

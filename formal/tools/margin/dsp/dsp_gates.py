@@ -30,8 +30,8 @@ _spec = importlib.util.spec_from_file_location("build_net", os.path.join(HERE, "
 BN = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(BN)
 
-PORTS = ["A", "B", "C", "PCIN"]
-CODE = {"A": 0, "B": 1, "C": 2, "PCIN": 3}
+PORTS = ["A", "B", "C", "PCIN", "D"]
+CODE = {"A": 0, "B": 1, "C": 2, "PCIN": 3, "D": 4}   # D: USE_DPORT (simx inmode bit 5)
 
 
 def die(m):
@@ -39,7 +39,12 @@ def die(m):
     sys.exit(1)
 
 
-def celltypes(port, casc):
+def celltypes(port, casc, dport=False):
+    if port == "A" and dport:   # the A -> P arc through the pre-adder (prjxray's ADREG_0 / USE_DPORT_TRUE types)
+        return ["DSP48E1_ADREG_0_AREG_0_A_INPUT_%s_MREG_0_PREG_0_USE_DPORT_TRUE_USE_MULT_%s" % ("CASCADE" if casc else "DIRECT", m)
+                for m in ("MULTIPLY", "DYNAMIC")]
+    if port == "D":             # prjxray's combinational D -> P / PCOUT cell type (ADREG = DREG = MREG = PREG = 0)
+        return ["DSP48E1_ADREG_0_DREG_0_MREG_0_PREG_0_USE_DPORT_TRUE_USE_MULT_%s" % m for m in ("MULTIPLY", "DYNAMIC")]
     if port == "A":
         return ["DSP48E1_AREG_0_A_INPUT_%s_MREG_0_PREG_0_USE_DPORT_FALSE_USE_MULT_%s" % ("CASCADE" if casc else "DIRECT", m)
                 for m in ("MULTIPLY", "DYNAMIC")]
@@ -101,7 +106,8 @@ def main():
         d = c["dsp"]; sn = c["name"]; tt = d["tiletype"]
         cfg = (d["opmode"], d["alumode"], d["inmode"], d["carryinsel"])
         casc = {"A": d["a_cascade"], "B": d["b_cascade"]}
-        base = [0, 0, 0, 0]
+        dport = bool(d.get("use_dport"))
+        base = [0, 0, 0, 0] + ([0] if dport else [])
         ins, roles, pins = [], [], []
         for port in PORTS:
             for pin in d["ports"].get(port, []):
@@ -117,7 +123,7 @@ def main():
         cin = d["carryin"] if "CARRYIN" in d["ports"] else 0
         def arc(port, pin, v, outp):
             ip = {"A": "ACIN" if casc["A"] else "A", "B": "BCIN" if casc["B"] else "B"}.get(port, port)
-            io = BN.iopath(tt, "DSP48E1", None, ip, outp, celltypes=celltypes(port, casc.get(port, False)))
+            io = BN.iopath(tt, "DSP48E1", None, ip, outp, celltypes=celltypes(port, casc.get(port, False), dport))
             if io is None:
                 die("%s: no prjxray IOPATH %s %s in %s.sdf" % (sn, ip, outp, tt))
             sp = v["_route"]["sinkwire"]
@@ -141,7 +147,7 @@ def main():
                 g = {"name": "%s.%s" % (sn, o), "kind": "dsp", "k": len(ins), "init": 0, "ins": list(ins),
                      "arcs": [arc(p, pn, v, kind) for p, pn, v in pins], "out": idx[on],
                      "prov": {"site": sn, "tile": d["tile"], "pin": o},
-                     "dsp": {"obit": bit, "opmode": cfg[0], "alumode": cfg[1], "inmode": cfg[2], "carryinsel": cfg[3],
+                     "dsp": {"obit": bit, "opmode": cfg[0], "alumode": cfg[1], "inmode": cfg[2] | (32 if dport else 0), "carryinsel": cfg[3],
                              "carryin": cin, "base": base, "roles": list(roles)}}
             else:
                 port = "A" if kind == "ACOUT" else "B"
@@ -308,7 +314,8 @@ def check(D, N, routed, n):
                         dd = g["dsp"]; pv_ = list(dd["base"])
                         for i_, ro in zip(g["ins"], dd["roles"]):
                             pv_[ro // 64] |= val(i_) << (ro % 64)
-                        p = dspmodel.dsp_p(dd["opmode"], dd["alumode"], dd["inmode"], dd["carryinsel"], pv_[0], pv_[1], pv_[2], pv_[3], dd["carryin"])
+                        p = dspmodel.dsp_p(dd["opmode"], dd["alumode"], dd["inmode"] & 31, dd["carryinsel"], pv_[0], pv_[1], pv_[2], pv_[3],
+                                           dd["carryin"], D=pv_[4] if len(pv_) > 4 else 0, dport=bool(dd["inmode"] & 32))
                         v = (p >> dd["obit"]) & 1
                     else: die("check: %s driven by a %s gate inside the DSP network" % (nm, g["kind"]))
                 memo[ni] = v; return v
