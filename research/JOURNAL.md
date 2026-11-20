@@ -8866,3 +8866,21 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   / trim_lines.py support for the new INIT.
 - **Farm:** suite13t_s5a_v10_5sv filed (127303ba7): flow v10, same body, on sobel and video_filter, seeds 1-4 (v10 and
   suite13t left them out: one 240-min task cannot hold their loop; v10's resume removes that limit).
+### progress 21:18 (symmetric lines made trimmable, opt-in: BD_SYMTRIM; two full loops with it + overbuild started, prediction)
+- **c0f2bab80:** cells/rtl/bd_latch.v `BD_SYMTRIM (opt-in define): a symmetric bd_delay is built as g[0] LUT1 +
+  g[1..N-1] LUT2 with INIT 1010 (O = the chain input; the side input = the line's input, unused), the same instance
+  names; trim_lines.py treats INIT 1010 elements as trimmable (entry = INIT 1100, as for the AND / OR lines; under the
+  define a 1-element line is trimmable once built longer); corner_audit.py's trim mode accepts them. Default build:
+  yosys on bd_delay N=4 sym / FASTFALL / FASTRISE gives the same 14 cells and INITs as before; trim_lines --list on a
+  default route unchanged. The rule needs no change: false_arcs() cuts the unused side pin's LUT arc from the INIT, so
+  both edges walk the chain as on a LUT1 line. Regression check running: v10's straight s1 route (sdf 3aee4aab)
+  rebuilt at this head.
+- **CLAUDE.md's condition for a cells/rtl change (a routed-GLS result) is not met yet; nothing in any flow sets the
+  define.** The evidence being made: two full loops, flow v10 + BD_DEFINES=-DBD_SYMTRIM + AUTO_OVERBUILD=3 +
+  AUTO_RACE_KEEP=1 (SUITE_TAG=sym), on test_loop_free s1 and factorial s1 (both NOT CLEAN in v10 after six finish
+  routes): their trimmed final routes go through the full stack (bits EQUIVALENT, ffmux, the event graph's check) and
+  4 draws each; a negative control (a symmetric line trimmed below the rule's need) follows on one of their routes.
+- **PREDICTION (written 21:18, before any result):** both loops reach the finish phase as in v10; the first overbuilt
+  finish route of each is made rule-clean by the trim step alone (its rows are on lines that are now trimmable), or the
+  second is; every draw passes with no pulse under 1 ns; on factorial the trimmed P within +-8 % of v10's NOT CLEAN
+  route's slope figure (25.35 ns, suite13t).
