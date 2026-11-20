@@ -5197,3 +5197,12 @@ research: P 15.18 ns, 4 / 4 draws, then 5 rule rows short (E ucond_br5 / br2 -20
 - ctlrace.py (the race's own 32 nodes; S = ctl -> latch -> steer, F = rdly -> join -> steer): varshift s1 corner 0 kappa 0
   MISMATCH (deadlock at 779 ns after 2 right answers); controls (all mid, swapped) pass; brhash s2 MAXEV at 0.03,
   twoloops s2 at 0.06, fold64 s1 MISMATCH at 0.06. 64 / 64 research-model draws pass on varshift s1.
+### progress 08:35 -- CHECKED: Formal/Cells/SteerSettle.lean (check.sh OK, 328 declarations, standard axioms)
+* *Problem:* the step from steersafe.py's two windows to the property: does the steer read the settled condition?
+* *Proved:* `steer_reads_settled`: request source false on [S0, A + R], condition source v on [A + D, E], pin bands
+  [Lp, Up] / [Lq, Uq], D + Uq <= R + Lp => at every t (S0 + Up <= t <= E + Lq) at which the gate reads its request pin
+  true, it reads its condition pin as v (Spec CGateOK, every delay in the band). `steer_out_forced`: with an INIT fact
+  (request true, condition v, tied pins at their constants => bit w), the output is w at every such t: a steer's
+  not-taken output cannot pulse from a condition in flight.
+* *Not shown:* any route's numbers (steersafe's extraction); the windows' premises; the hold half (condition changing
+  while the request is high).

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """tools-B/auto/steersafe.py MDIR STEER COND LAUNCH  (shard B, 2026-11-20; UNTRUSTED extraction + arithmetic; logic = Lean
+SteerSettle.steer_reads_settled / steer_out_forced (the two windows -> the steer reads the settled condition),
 SettleAll.settle_all for the condition side, ChainHold.chain_hold (v = 0) and CtlChain.hold_mem (a C-element that is 0
 and has a pin at 0 stays 0) for the request side): a lower bound (kappa_lo) for the STEER SETTLE race of a decoded route
 -- research's rule E: a steer's condition must have settled at the steer LUT before the steer's request reaches it.
