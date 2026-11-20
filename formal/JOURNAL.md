@@ -3599,3 +3599,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * cfront's new readings vs gcc -fwrapv: 210-214 vectors per kernel, 0 mismatches (exitcond_cfront_cdiff_w64.py).
 * Default fixtures with the same flags: fold64 and twoloops prove. lfsrfind (the 8-bit packed i+1 wraps at the exit)
   and nest3 (an extui needs k < 4, which is dropped) do not: tool limits, no mismatch in co-simulation.
+### progress 09:09 -- tools-A/rewrite/exitcond_gate.sh: one-command translation-validation gate for the exit-test knob (exit 0 iff the Lean proof checks with standard axioms); xorshift 0, nest3 0, gcd 1 (control); FOR-RESEARCH A28 points to it
