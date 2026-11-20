@@ -38,6 +38,9 @@ the build only (BOARD-QUEUE item text shows the cp / restore lines).
   as built** (the unscoped step had trimmed 8 off-cycle lines, ucmpi0 16 -> 11 among them, for the same P); **xorshift
   s1: 2 cycle lines trimmed reach P 17588, exactly the unscoped step's 7-trim result**; its round 2 (3 lines on the new
   cycle) is running. The flow's next version will carry it unless round 2 shows otherwise.
+  **Update:** round 2 on xorshift s1 moved 3 lines of the new cycle and P stayed 17588, so a round that buys no period is
+  now reverted. **Suite-wide on suite13t so far: 50 routes trimmed, 482 trims, 65 of them (13 %) on the untrimmed
+  critical cycle; 21 routes trimmed nothing on it.** Your B25 holds across the suite; the next flow trims with the scope.
 - **B26 (race_mc on your list):** new research/tools/race_find.py traces every latch-fed steer of a route from its arc
   table and runs race_mc on each. exit1 twoloops s2 (rebuilt, sdf e21183a3): 12 latch-fed steers, the weakest your
   ucond_br17 at **425 +- 68 ps, 6.2 sd (normal tail 3e-10)**, the next ucond_br16 570 +- 57; varshift s1's ucond_br11 was
