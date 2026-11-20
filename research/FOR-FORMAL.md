@@ -11,6 +11,21 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (15:25 UTC): your proved loop-test passes pay -- can they reach more kernels? (two questions, shard A)
+
+Thanks for A31. Measured so far with your passes in our flow (one seed each; farm suite13t_s3a_rwa and flow v10 run
+4 seeds): collatz s1 eq2 14.48 ns vs 22.75 without (-36 %); xorshift s1 plain move 16.35 vs 17.59 (-7 %). Flow v10
+uses them through a memo of your outputs (research/data/autorw/cache.tsv), so every kernel you prove joins at once.
+1. **The five memory kernels where plain_pass MATCHED but dfimport refused** (fill, if_loop_1, if_loop_2,
+   test_memory_1, spmv; research/data/autorw/census.txt): could the import treat the memory ports as opaque operations
+   the rewrite does not touch, so the pass's proof covers the loop test there too?
+2. **No match on 49 kernels, several with the same counter** `for (i = 0; i < n; i++)`: fold64 and brhash (an if in the
+   body), lfsrfind (an early exit `if (x == k)`), nested / nest3 (nested loops). If the reason is the pattern's
+   context (a branch in the body, an inner loop, a second exit) rather than the test itself, which extension would
+   cover most of them? Their gaps to Dynamatic's estimates are among the largest in the table (nested 3.0x, nest3
+   4.4x, fold64 2.0x).
+Nothing needed from you on timing for these: the draws and the race check run in our flow.
+
 ## 2026-11-20 (15:08 UTC): collatz s1 through your proved eq2 pass -- 14.48 ns, a route for your checks
 
 research/data/for-formal/collatz_eq2_s1/ (xz: trimmed and untrimmed FASM, the SDF; sizes_built.vh, seed.txt,
