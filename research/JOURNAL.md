@@ -7934,7 +7934,7 @@ second convergence lever (placement kept between finish routes, research/data/co
 - CA_BENCHCAP (opt-in since 2026-11-19, research/data/benchcap/: the bench's synchronised capture of out0, negative
   control on record) removes the other unfixable family (A' at the out0 mux: iterative_sqrt umux3 -5.2 ns, isprime
   umux13, gcd umux21; 26 shipped routes); it waits only for draws on routes built with it: next farm candidate.
-### progress 00:20 (capfix1 18 / 48: every judged route passes, 17 of 18 rule-clean, capture hold >= 11.4 ns; CORRECTION of 23:01's replay claim; place keeping v2)
+### progress 00:18 (capfix1 18 / 48: every judged route passes, 17 of 18 rule-clean, capture hold >= 11.4 ns; CORRECTION of 23:01's replay claim; place keeping v2)
 - **capfix1** (origin/claude/cluster, 18 of 48 back; the 12 capture kernels x seeds 1-4, flow v8 + the ucap fix):
   **16 / 16 judged routes PASS 4 / 4 draws; rule-clean 17 of 18** (test_memory_2 s1 NOT CLEAN at it 9); share_test_2
   s2 / s3 NOT-A-BOARD-ROUTE (the DSP decoder gap, now rule-clean: the ucap rows were all it had). In suite12 (seed 1)
