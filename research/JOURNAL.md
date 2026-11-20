@@ -8518,3 +8518,20 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   trimmed. Inside the prediction (15-25 % below). Critical cycle: uaddi0 10 elements (3989 ps), ulink_n_falseResult_9
   5 (1886), uselect0 2 (964); wire between cells 10726 ps of 20315 (53 %). The trim step and the draws are next.
   One seed: the farm's suite13t_s5b_sib (set A) has collatz / collatz64 x 4 seeds.
+### progress 13:46 (formal B28 confirmed in our own model on a headline route: suite13t xorshift s1's latch-fed race at ucond_br9 is lost 0.2 % of the time; AUTO_RACE_Z pads such links in the loop)
+- **race_find on suite13t routes** (rebuilt SAME; untrimmed: the trims do not touch these races): xorshift s1 (rule
+  CLEAN, P 17.59, 4 / 4 draws) **ucond_br9 140 +- 48 ps, 2.9 sd, 98-121 of 50 000 model points below 0 (0.2 %)**, ucond_br8
+  184 +- 47 (3.9 sd); xorshift s2 13.4 sd; collatz s1 18.9 sd; countloop s1 13.1 sd. Formal's B28 (negative slack at
+  both prjxray corners, xsweep failing at +-8 % opposite error) is our own model's 0.2 %: the rule's 3 % guard on this
+  pair is about one sd of the draw model's scatter, and the link sits at its floor of 1. A placement outlier, not the
+  common case -- but it is a headline route.
+- **Fix, opt-in for the next flow: auto_size.sh AUTO_RACE_Z=4.5** (bc91db673): on every route the rule calls clean (main
+  loop and search phase), xray_delay --arcs + race_find.py; research/tools/auto/race_pad.py raises the link of any
+  latch-fed steer race below 4.5 sd (normal tail 3e-6) by one element in the rule's proposal and adds a negative row,
+  so the loop builds another route with it longer; the trim step never shortens a race-padded line. On xorshift s1's
+  race lines it pads ULINK_N31_FOLINK 1 -> 2 (+~150-250 ps on the request side only: ~7 sd). Test loop running:
+  xorshift s1, v9 + scoped trim + AUTO_RACE_Z=4.5 (SUITE_TAG=rz); it should retrace suite13t's routes to it 8.
+- **BDC_SIBLING_FUSE, formal A30:** PROVED for the six plain-move kernels (fuse_check: sibling-fused = unfused, after
+  plain_pass proved fixture -> plain) and against the C for countloop, horner, varshift, ipow, nested, twoloops,
+  branchloop; and a timing caveat for the default fixtures: a merged cell makes every part wait for every input (on
+  countloop the loop test now waits for the accumulator's s and a). The farm's set B measures what that costs.
