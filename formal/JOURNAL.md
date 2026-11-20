@@ -3494,3 +3494,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Result on research f538cb518, BDC_AUTO=1: 22 / 22 kernels OK (35 cells), incl. iterative_division / iterative_sqrt /
   nest3. Controls: NEGCTL 22 / 22 MISMATCH; --ctl flipbit MISMATCH. Untrusted (finite vectors, iverilog).
 * Subagent (worktree) on the k-input ForkComm / join extension for iterative_division, iterative_sqrt, nest3: running.
+### progress 01:53 -- EXITCOND also proved under the default flow (BDC_AUTO unset) on the same four kernels (Auto*ECD.lean, check.sh OK); nested fails as under BDC_AUTO (tool limit). Draft PR #3 summary updated

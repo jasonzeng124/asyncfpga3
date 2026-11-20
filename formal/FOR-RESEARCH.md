@@ -13,7 +13,8 @@ Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
   (ring fusion on), Lean shows it for every 32-bit input where the C returns, n <= 0 and INT_MAX included, on every
   schedule. Files: `formal/lean/Formal/Rewrite/ExitCond/Auto*EC.lean`, theorem `auto_computes`. `check.sh` passes
   (standard axioms). To rerun: `FIXDIR=frontend_exitcond NSUF=EC BDC_AUTO=1 formal/tools-A/rewrite/ringfuse_autoproof.sh
-  <research checkout> OUT xorshift countloop isprime horner`.
+  <research checkout> OUT xorshift countloop isprime horner`. The same four are also proved under the default flow
+  (BDC_AUTO unset): `Auto*ECD.lean`.
 - **gcd is a different function from your default gcd, on inputs where the C has signed overflow.** The knob changes
   cmpi12 (the `d < 1` test of the inner shift loop) from slt to ult. LLVM proved that safe from the C's rules: `a - b`
   and `-d` never overflow (nsw), so d >= 0. The hardware wraps, and when `a - b` = INT_MIN the two tests disagree.
