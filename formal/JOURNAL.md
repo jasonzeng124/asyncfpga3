@@ -3466,3 +3466,14 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   the C. nest3: autoproof IndexError. gcd: no C in kernels/.
 * Differential simulation (diffcheck.py, 30 vectors incl. 0 / -1 / INT_MIN / INT_MAX, 3 schedules, 200k-step limit)
   over all 37 running.
+### progress 03:00 -- EXITCOND: gcd's graph changes on C-overflow inputs; bdc cannot emit 3 of the fixtures; FOR-RESEARCH A28
+* gcd: the knob turns cmpi12 (`d < 1` in the inner shift loop) slt -> ult; LLVM's justification is nsw (no overflow in
+  `a - b`, `-d`). On (2147483647, -1) and (-1, 2147483647) -- C-undefined inputs -- the default graph cycles (state
+  (2147483647, INT_MIN) repeats; hsinterp LIMIT at 400k steps; the wraparound C model cycles after 2 iterations) and the
+  exitcond graph returns -1. Not a wrong answer against the C (undefined there); it is a counterexample to "same graph
+  function". tools-A/rewrite/exitcond_gcd_ce.py.
+* hsinterp.py: minui / maxui / minsi / maxsi. dot2 / gather / memsum (the knob adds a minui trip count) DIFF-PASS 30/30;
+  bdc's emit.py refuses all three ("no width rule for handshake op 'minui'").
+* Differential census (exitcond_diffcheck.txt): no disagreement on any vector both graphs finish; many inconclusive
+  (default does not finish within 200k steps); sobel / video_filter still running.
+* MARGINS.md: rows for B19's summary (22 suite12 kernels SAME, 0 pulses, kappa_lo 0.062-0.431 on 19) and C65 / C66.

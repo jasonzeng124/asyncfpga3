@@ -376,6 +376,11 @@ class Sim:
                 y = q if op == 'divsi' else sa - q * sb
         elif op in ('divui', 'remui'):
             y = 0 if b == 0 else (a // b if op == 'divui' else a % b)
+        elif op in ('minui', 'maxui'):   # arith.minui / maxui (BDC_FE_EXITCOND's trip counts)
+            y = min(a, b) if op == 'minui' else max(a, b)
+        elif op in ('minsi', 'maxsi'):
+            sa, sb = sgn(a, w), sgn(b, w)
+            y = min(sa, sb) if op == 'minsi' else max(sa, sb)
         else:
             raise Unsupported(op)
         self.push(R[0], mask(y, w))

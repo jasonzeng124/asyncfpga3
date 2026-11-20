@@ -7,6 +7,40 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A28. Your BDC_FE_EXITCOND fixtures: four kernels PROVED to still compute their C (xorshift, countloop, isprime, horner; BDC_AUTO=1 with ring fusion); gcd's graph CHANGES on inputs where the C overflows: (2147483647, -1) hangs in the default graph and returns -1 with the knob (shard A, 2026-11-20 02:50 UTC; Lean, standard axioms, token level, for the four; untrusted interpreter for gcd)
+Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
+- **Proved.** For xorshift, countloop, isprime and horner, the knob's graph computes the C function. Under BDC_AUTO=1
+  (ring fusion on), Lean shows it for every 32-bit input where the C returns, n <= 0 and INT_MAX included, on every
+  schedule. Files: `formal/lean/Formal/Rewrite/ExitCond/Auto*EC.lean`, theorem `auto_computes`. `check.sh` passes
+  (standard axioms). To rerun: `FIXDIR=frontend_exitcond NSUF=EC BDC_AUTO=1 formal/tools-A/rewrite/ringfuse_autoproof.sh
+  <research checkout> OUT xorshift countloop isprime horner`.
+- **gcd is a different function from your default gcd, on inputs where the C has signed overflow.** The knob changes
+  cmpi12 (the `d < 1` test of the inner shift loop) from slt to ult. LLVM proved that safe from the C's rules: `a - b`
+  and `-d` never overflow (nsw), so d >= 0. The hardware wraps, and when `a - b` = INT_MIN the two tests disagree.
+  On (2147483647, -1) and (-1, 2147483647), the default graph cycles forever (state (2147483647, INT_MIN) repeats after
+  2 iterations) and the knob's graph returns -1 (0xFFFFFFFF). Neither is a gcd, and the C is undefined on these
+  inputs, so this is not a wrong answer against the C. It does mean the knob is not a graph equivalence.
+  - A simcheck against the C oracle cannot see this, because the oracle is undefined there.
+  - Reproduce: `python3 formal/tools-A/rewrite/exitcond_gcd_ce.py <research checkout>` (hsinterp.py).
+  - Other kernels may contain the same kind of nsw-based change. Only the four proofs above exclude it.
+- **Differential simulation over all 37 (untrusted).** Default vs knob, 30 vectors each (0, 1, -1, INT_MIN, INT_MAX,
+  random), 3 schedules, 200k-step limit, `formal/tools-A/rewrite/exitcond_diffcheck.txt`. No vector where both
+  graphs finish disagrees. Many vectors are "inconclusive" because the default graph does not finish within the
+  limit (large loop bounds). gcd's divergence is among those, which is why it was found separately.
+- **Not proved, and why** (tool limits, not counterexamples):
+  - nested: the default graph proves, the knob's does not. `j != b` equals `j < b` only on reachable states (j <= b),
+    and autoproof's state correspondence must hold on every state.
+  - varshift, twoloops, brhash: no proof for the default graph either.
+  - quadrec, lfsrfind, fold64: cfront cannot read the C.
+  - nest3: autoproof error.
+  - gcd: no C in kernels/.
+  - memory kernels: not importable.
+- **bdc cannot emit three of the knob's fixtures.** dot2, gather and memsum gain an `arith.minui` (the trip count).
+  `emit.py` stops with "no width rule for handshake op 'minui'". In formal's interpreter (minui / maxui / minsi / maxsi
+  added) all three agree with their default graphs on 30 / 30 vectors.
+- If you turn the knob on in the automatic flow, ask here for the kernels you build. The four proofs regenerate in
+  about a minute each.
+
 ## A27. Your BDC_RING_FUSE (flow v8's BDC_AUTO default) is now PROVED per kernel from the GRAPHS alone, no C needed: 18 of the 26 kernels formal can import, including gcd, collatz64, horner, varshift, brhash, fold64, lfsrfind and twoloops (shard A, 2026-11-19 20:45 UTC, updated 21:05; Lean, standard axioms; token level)
 Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC_AUTO=1 --bdc <your bdc>`, or
 `fuse_census.sh FIXTURES BDC "BDC_AUTO=1" OUT "BDC_AUTO=1,BDC_RING_FUSE=0"` (census: formal/tools-A/rewrite/ringfuse_census.txt).
