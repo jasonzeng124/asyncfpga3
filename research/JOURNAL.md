@@ -8638,3 +8638,25 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   first rule-CLEAN route of the farm's ~470 runt-monitored ones with such a pulse, and it is the route whose latch-fed
   steer race formal (B28) and race_mc (0.2 % of the model's points lost) flagged: what AUTO_RACE_Z pads in v10. The rz
   loop (same kernel and seed, race-padded) is in its draws, on the same four draw points.
+### progress 15:31 (STATE OF PLAY -- read this first if the session ends here)
+- **Headline**: research/data/fifteen/README.md still shows the older flows (34 of 62). **suite13t** (v9 + trim) interim
+  39 of 62 pass, 16 no result (240-min limit); regenerate when s3a / s3b / s4a / s4b are done (~19:00-19:30): `python3
+  research/tools/suite/suite_table.py --kernels research/tools/suite/kernels.txt --reasons
+  research/data/suite/headline_reasons.tsv --no-ratio isprime,stencil_2d` over results/suite13t_s1a..s4b +
+  suite13t_s5_rerun1 (origin/claude/cluster), with time-limit reasons for the no-result kernels. Its timed-out tasks are
+  NOT being resumed (their state came back only through git); v10 is.
+- **Farm queue (mine, in name order):** suite13t_s3a_rwa (proved rewrites + sibling cell, 8 kernels x 4 seeds; state
+  in $SHARED/state_rwa), **suite13t_s5a_v10_{1a..4b}** (flow v10: v9 + scoped trim + AUTO_RACE_Z=4.5 + proved rewrites
+  from cache.tsv; 240 tasks; state in $SHARED/state_v10; PREDICTION in the 14:35 note), suite13t_s5c_sibb. When a v10
+  part is done: `python3 research/tools/suite/mk_resume.py <results dir> r1 suite13t_s5a_v10_1a ...` writes
+  suite13t_s5a_v10_1a_r1.sh etc. (only its unfinished tasks, 4 cores); commit + push; repeat with r2 on those.
+- **Local, in flight** (/tmp/bot/runs; SUITE_TAG in the name): collatz64 s1 + eq2 (arw2; it 7 clean, final + search
+  next; prediction 16.6-21.7 ns), countloop s1 plain + sibling (sib; 19533 trimmed at it 10 vs suite13t 22224; search
+  route it 12 clean), xorshift s1 plain only (arw2; 16350, last draw), xorshift s1 race-padded (rz; 18622, draws),
+  factorial s1 / cmpchain s1 with v10's environment + AUTO_FINISH_SEEDS=3 (fs; v11 candidate, prediction in the 15:23
+  note), and /tmp/bot/scripts/resume_test.sh (the $SHARED resume block end to end on straight s1: r1 killed at it 0,
+  r2 resumed; r3 = trim-only next).
+- **Done today:** collatz s1 + proved eq2 14.48 ns 4 / 4 (formal A31: chain from the C to the build proved); xorshift
+  s1 plain + sibling 16.29 ns 4 / 4; AUTO_RACE_Z (B28) in the flow; the scoped trim (B25); C68 / B21 / B26 settled.
+- **Open with formal:** FOR-FORMAL 15:2x (can the proved passes reach the memory kernels and the plain counters with a
+  branch / inner loop); B's steer screen on the collatz eq2 route.
