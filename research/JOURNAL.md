@@ -8937,3 +8937,11 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   low. So the headline's estimated ratios for such kernels made us look worse than we are (countloop: ours 19.12 / 8.36
   = 2.29 against the estimate, 19.12 / 11.74 = 1.63 against the route). The tables are rewritten when the run ends
   (dyn_apply.py; a preview over v10's interim results: measured-ratio geometric mean 1.22 over n = 6).
+### progress 22:05 (overbuild alone: 0 of 5 trim checks clean -- not for a flow by itself)
+- Trim checks of overbuilt finish routes (H = 3, v10's environment): brhash s1 it 5 2 rows short after 48 trims; test_memory_2
+  s1 it 5 8 short; test_loop_free s1 it 5 / 6 / 7: 4 / 4 / 2 short. Every row left is "unfixable" in the rule's trim
+  mode, on lines it cannot move (link request lines, _SDELAY, RAM usetup; journal 21:10). Runs left going to their end:
+  brhash, factorial, test_loop_free (for the paired comparison with the BD_SYMTRIM loops on the same kernels); the
+  other four NOT CLEAN runs and the four controls were stopped to give the node to the BD_SYMTRIM loops.
+- **Decision:** AUTO_OVERBUILD stays opt-in and out of the next flow unless the BD_SYMTRIM loops (sym test_loop_free,
+  factorial, ipow, sqrtsub; phase 1 still) show the combination converging.
