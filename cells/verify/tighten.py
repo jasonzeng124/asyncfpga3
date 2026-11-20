@@ -308,6 +308,18 @@ def chain_side_arcs(edges):
     """Every arc into a chain stage past the first that does not come from
     the stage before it: the input-side tap of a FASTFALL or FASTRISE
     bd_delay, which carries one transition only.  -> {(src, dst): base}"""
+    # A stage with NO live arc from the stage before it is a line's entry after a trim
+    # (research/tools/auto/trim_lines.py: its INIT passes the side input, so false_arcs() cut the chain input):
+    # its side arc carries both transitions, like a first stage's input, and is not a side tap.  Untrimmed, every
+    # stage past the first has that arc, and nothing changes.
+    fed = set()
+    for src, links in edges.items():
+        src_inst = pin_split(src)[0]
+        for dst, _ in links:
+            match = RE_LINK.match(pin_split(dst)[0])
+            if match and not is_output(dst) and int(match.group("i")) >= 1 and src_inst == (
+                    f"{match.group('base')}.chain.g[{int(match.group('i')) - 1}].u"):
+                fed.add(pin_split(dst)[0])
     side = {}
     for src, links in edges.items():
         src_inst = pin_split(src)[0]
@@ -316,6 +328,8 @@ def chain_side_arcs(edges):
             if not match or int(match.group("i")) < 1:
                 continue
             if is_output(dst):
+                continue
+            if pin_split(dst)[0] not in fed:
                 continue
             previous = (f"{match.group('base')}.chain.g["
                         f"{int(match.group('i')) - 1}].u")

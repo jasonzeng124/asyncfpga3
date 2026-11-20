@@ -944,8 +944,19 @@ def chain_geometry(T, sdf):
             for d, w in lst:
                 if T.pin_split(d)[0] == si and T.is_output(d):
                     lut[si][s] = min(lut[si].get(s, 10 ** 9), w)
+    # a line trimmed after routing (research/tools/auto/trim_lines.py) starts at its entry stage, the one whose INIT
+    # passes its side input: the stages before it are placed but out of the line
+    entry = {}
+    jpath = pathlib.Path(sdf).with_name(pathlib.Path(sdf).stem + "_routed.json")
+    if jpath.exists():
+        for n, c in _routed_cells(jpath).items():
+            m = RE_LINK.match(n)
+            if m and c.get("parameters", {}).get("INIT") == "1100" and \
+                    c.get("attributes", {}).get("X_ORIG_TYPE") == "LUT2":
+                entry[m.group("base")] = max(entry.get(m.group("base"), 0), int(m.group("i")))
     geo = {}
     for base, links in chains.items():
+        links = links[entry.get(base, 0):]
         arr, prev, steps, ok = None, None, [], True
         for i, inst in enumerate(links):
             best, bstep = None, None
