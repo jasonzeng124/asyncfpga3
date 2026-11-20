@@ -3529,3 +3529,23 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   simulation, mr_expr_check). (3) gcd theorem: S4 / S6 unchanged; Mathlib not built in this sandbox (cache host
   unreachable), so Target work waits for a session with it.
 * Background loops ended at their 2 h limit; lock refreshed by hand at each commit.
+
+## Session 2026-11-20 (A, from 07:10 UTC)
+### progress 07:12 -- lock taken (03:54 lock, 3 h 16 min old, no commit by its session since)
+* Read: PROGRAM.md unchanged; research FOR-FORMAL unchanged since 2026-11-19 21:57; research HEAD 99146b03d (bdc
+  c896d1fc4 adds minui / maxui / minsi / maxsi: dot2 / gather / memsum's != fixtures now emit; exit1 judging the != loop
+  test; post-route trimming of delay lines by INIT, opt-in). Audit: T171 UPDATE on A's mr_verilog_check (below).
+* setup.sh: Mathlib cache unreachable again; building Mathlib from source in the background (4 cores).
+### progress 07:40 -- audit T171 update answered: mr_verilog_check / mr_expr_check give a verdict per kernel, never a traceback
+* The auditor's command (BDC_RING_FUSE_NEGCTL=1 WITHOUT BDC_AUTO=1, so the env replaces the default) hit a TypeError in
+  model_cells: a fork reading a packed comp's result was read as a slice expression. Reproduced on research 99146b03d.
+  Fixed: only comp readers are slices; any exception in one kernel becomes 'check failed (...)', rc 3. Without
+  BDC_AUTO, bdc fuses no ring (no packed cell in xorshift's Verilog, read by hand), so 'no multi-result cell' is the
+  right verdict there; with BDC_AUTO=1,BDC_RING_FUSE_NEGCTL=1 xorshift is MISMATCH rc 2. The doc says K=V replaces
+  the default env. mr_expr_check: the same per-kernel guard, and a clear rc 1 when iverilog is missing (this fresh
+  container had none; the first run died with FileNotFoundError).
+* Censuses re-run on research 99146b03d (bdc changed since f538cb518): mr_verilog default 22 OK, NEGCTL (with
+  BDC_AUTO) 22 MISMATCH, NEGCTL alone no cell (rc 3); mr_expr default 22 OK. Same rows as before.
+* exitcond_opdiff.txt (new, untrusted op-count census of BDC_FE_EXITCOND, 37 kernels): 35 kernels turn loop-exit
+  compares into ne; isprime keeps its op counts; gcd gains NO ne test -- its only change is cmpi12 slt -> ult (nsw),
+  the change behind A28's divergence. By counts no other kernel shows a signed -> unsigned change.

@@ -174,11 +174,16 @@ def main():
     if len(args) < 2: print(__doc__); return 1
     fx, bdc = args[0], os.path.abspath(args[1])
     env = F.parse_env(args[2]) if len(args) > 2 else {'BDC_AUTO': '1'}
+    import shutil
+    if not shutil.which('iverilog'): print('mr_expr_check: iverilog not on PATH (apt-get install -y iverilog)'); return 1
     rc = 0
     for k in sorted(os.listdir(fx)):
         m = os.path.join(fx, k, 'comp', 'handshake_transformed.mlir')
         if not os.path.exists(m): continue
-        r = check(m, bdc, env, nvec)
+        try:
+            r = check(m, bdc, env, nvec)
+        except Exception as ex:   # a verdict per kernel, never a traceback (as mr_verilog_check, audit T171)
+            r = f'check failed ({type(ex).__name__}: {ex})'
         if r.startswith('MISMATCH'): rc = 2
         elif ('failed' in r) and rc == 0: rc = 3
         print(f'{k:28s} {r}', flush=True)

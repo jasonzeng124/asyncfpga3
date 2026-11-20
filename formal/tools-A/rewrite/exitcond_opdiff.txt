@@ -1,0 +1,47 @@
+exitcond_opdiff.txt -- what BDC_FE_EXITCOND changes in each fixture, by op counts (untrusted census, shard A,
+2026-11-20 07:3x UTC; research 99146b03d, cloud/fixtures/frontend vs cloud/fixtures/frontend_exitcond).
+Per kernel: exitcond count minus default count, for every op except fork / buffer / sink / source / constant / join /
+ext / trunc (constants listed by their value where they change). Only counts: an operand change with the same ops
+(isprime) shows as an empty row.
+Reading: in 35 of the 37 kernels the knob turns loop-exit compares into `ne` (slt / ult -> ne); isprime keeps its op
+counts (a compare reads a different fork output; proved in A28); dot2 / gather / memsum also gain a minui trip count with a guard. gcd is the exception: it gains NO `ne` test; its one change is
+cmpi12 slt -> ult (the inner shift loop's `d < 1`), which LLVM derived from nsw (no signed overflow). That is the
+change that makes gcd's knob graph a different function on (2147483647, -1) (FOR-RESEARCH A28). By counts, no other kernel shows
+a signed -> unsigned compare change (counts cannot exclude one hidden behind a matching ult -> ne).
+brhash               cmpi:ne+1 cmpi:slt-1
+countloop            cmpi:ne+1 cmpi:slt-1
+dot2                 1+1 2-1 3+1 31+1 addi+2 andi-1 br+3 cmpi:ne+1 cmpi:slt-1 cmpi:ult-1 control_merge+1 merge+1 minui+1
+fill                 cmpi:ne+1 cmpi:slt-1
+fir                  cmpi:ne+1 cmpi:ult-1
+fold64               cmpi:ne+1 cmpi:ult-1
+gather               2-1 3+1 31+1 addi+2 andi-1 br+3 cmpi:ne+1 cmpi:slt-1 cmpi:ult-1 control_merge+1 merge+1 minui+1
+gcd                  cmpi:slt-1 cmpi:ult+1
+horner               cmpi:ne+1 cmpi:slt-1
+if_loop_1            cmpi:ne+1 cmpi:slt-1
+if_loop_2            cmpi:ne+1 cmpi:slt-1
+iir                  cmpi:ne+1 cmpi:ult-1
+image_resize         cmpi:ne+2 cmpi:ult-2
+isprime              
+lfsrfind             1-1 256+1 cmpi:ne+1 cmpi:ult-1
+memsum               2-1 3+1 31+1 addi+2 andi-1 br+3 cmpi:ne+1 cmpi:slt-1 cmpi:ult-1 control_merge+1 merge+1 minui+1
+mul_example          cmpi:ne+1 cmpi:ult-1
+nest3                1-1 cmpi:ne+3 cmpi:slt-2 cmpi:ult-1
+nested               cmpi:ne+2 cmpi:slt-2
+nested_loop          2+1 cmpi:ne+1 cmpi:ult-1
+quadrec              cmpi:ne+1 cmpi:slt-1
+share_test_1         cmpi:ne+2 cmpi:ult-2
+share_test_2         cmpi:ne+1 cmpi:ult-1
+sobel                cmpi:ne+4 cmpi:slt-3 cmpi:ult-1
+spmv                 cmpi:ne+2 cmpi:slt-2
+stencil_2d           cmpi:ne+3 cmpi:ult-3
+sumi3_mem            cmpi:ne+1 cmpi:ult-1
+test_bitint          cmpi:ne+1 cmpi:ult-1
+test_flatten_array   16+1 4+1 8+1 cmpi:ne+3 cmpi:ult-3
+test_memory_1        cmpi:ne+1 cmpi:slt-1
+test_memory_2        cmpi:ne+1 cmpi:slt-1
+test_stdint          cmpi:ne+1 cmpi:ult-1
+twoloops             cmpi:ne+2 cmpi:slt-1 cmpi:ult-1
+varshift             cmpi:ne+1 cmpi:slt-1
+vector_rescale       cmpi:ne+1 cmpi:ult-1
+video_filter         cmpi:ne+2 cmpi:ult-2
+xorshift             cmpi:ne+1 cmpi:slt-1

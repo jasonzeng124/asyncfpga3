@@ -16,7 +16,8 @@ For every kernel FIXTURES_DIR/<k>/comp/handshake_transformed.mlir (env default B
      region member the model's part computes (importer side record, FA_MR_LOG). Model cells with no parsed Verilog
      cell, or a Verilog cell that cannot be laid out, is a MISMATCH (audit T171).
 Prints one line per kernel: OK (cells checked) / MISMATCH (what) / no multi-result cell / import or emit failed.
-Exit 2 on any MISMATCH, else 3 if some kernel was not checked, else 0. Controls: BDC_RING_FUSE_NEGCTL=1 env; --ctl swap.
+Exit 2 on any MISMATCH, else 3 if some kernel was not checked (emit / import / check failed), else 0.
+K=V,... REPLACES the default env (BDC_AUTO=1): pass BDC_AUTO=1 with any extra knob you want on the automatic flow. Controls: BDC_RING_FUSE_NEGCTL=1 env; --ctl swap.
 NOT covered: that each part's Verilog expression computes the model's expression (the general trust in bdc's region
 Verilog, compute.py / emit.py, the same as for every fused cell); anything below the netlist.
 """
@@ -125,8 +126,9 @@ def model_cells(R, names, log):
         wins = set()
         for z in R[rd[0]][2]:
             for ls in Q.readers(R, z):
+                if R[ls][0] != 'comp': continue   # a fork / steer / sink reading a result is not a slice (audit T171 update)
                 s = R[ls][3]
-                if (s[0] == 'un' and s[1] == ('trunci',) and s[3][0] == 'bin' and s[3][1] == ('shrui',)
+                if (isinstance(s, tuple) and s[0] == 'un' and s[1] == ('trunci',) and s[3][0] == 'bin' and s[3][1] == ('shrui',)
                         and s[3][2] == W and s[3][3] == ('var', 0) and s[3][4][0] == 'lit'):
                     lo = s[3][4][1]
                     wins.add((lo, s[2], vname_of(names[R[ls][2]]) if R[ls][2] < len(names) else '?', part.get(lo, '?')))
@@ -194,7 +196,10 @@ def main():
     for k in sorted(os.listdir(fx)):
         m = os.path.join(fx, k, 'comp', 'handshake_transformed.mlir')
         if not os.path.exists(m): continue
-        r = check(m, bdc, env)
+        try:
+            r = check(m, bdc, env)
+        except Exception as ex:   # fail closed with a verdict, never a traceback (audit T171 update)
+            r = f'check failed ({type(ex).__name__}: {ex})'
         if r.startswith('MISMATCH'): rc = 2
         elif r.endswith('failed') and rc == 0: rc = 3   # not checked
         print(f'{k:28s} {r}')
