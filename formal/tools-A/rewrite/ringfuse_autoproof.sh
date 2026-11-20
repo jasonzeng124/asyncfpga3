@@ -14,9 +14,19 @@ HERE="$(cd "$(dirname "$0")" && pwd)"; ROOT="$(cd "$HERE/../../.." && pwd)"
 RS=$(cd "$1" && pwd); OUT=$(mkdir -p "$2" && cd "$2" && pwd); shift 2
 KS=("${@:-xorshift collatz ipow countloop isprime}"); KS=(${KS[@]})
 T=$(mktemp -d); mkdir -p $T/formal/tools
-cp -r "$ROOT/formal/tools/autoproof" "$ROOT/formal/tools/dfimport" $T/formal/tools/
+cp -r "${TOOLS:-$ROOT/formal/tools}/autoproof" "${TOOLS:-$ROOT/formal/tools}/dfimport" $T/formal/tools/
 ln -s "$RS/bdc" $T/bdc; ln -s "$RS/kernels" $T/kernels
 python3 "$HERE/ringfuse_patch.py" $T/formal/tools
+# 2026-11-20 (exit-test proofs of nested / varshift / brhash / quadrec): opt-in patches to the COPY, each gated by env:
+#   AP_INEQ=1    autoproof infers inequality invariants (cmpi slt / sle x y = 1), kept only if true on every observation
+#                and inductive along the pairing (the reachability fact `i < n` that a `!=` exit test needs);
+#   AP_OPSX=1    generated files get a local auto_ops2 tactic (literal folding, masks, xor mod 2^32; lemmas proved in file);
+#   CF_IFTEST=1  every C `if` is a test point in cfront (brhash's graph tests `h & 1` in its own segment);
+#   CF_MULTIDECL=1 cfront reads `unsigned a = .., b = ..;` as sequential declarations (quadrec).
+[ "${AP_INEQ:-}" = 1 ] && python3 "$HERE/patches/ineq_patch.py" $T/formal/tools
+[ "${AP_OPSX:-}" = 1 ] && python3 "$HERE/patches/opsx_patch.py" $T/formal/tools
+[ "${CF_IFTEST:-}" = 1 ] && python3 "$HERE/patches/iftest_patch.py" $T/formal/tools
+[ "${CF_MULTIDECL:-}" = 1 ] && python3 "$HERE/patches/multidecl_patch.py" $T/formal/tools
 declare -A VEC=([gcd]="12,18 7,0 0,5 -6,4" [brhash]="5,3 0,0 -1,-2" [quadrec]="3,4 0,0 -2,3" [horner]="2,3 0,0" [varshift]="5,3 0,1" [lfsrfind]="7,9 1,1" [twoloops]="3,4 0,0 -1,2" [nested]="3,2 0,1" [fold64]="5 0" [xorshift]="-1831433054,4 1,1" [collatz]="6 7 27" [ipow]="3,7 2,10 -3,5" [countloop]="3,5 0,7 10,0 -4,3"
                [isprime]="97 91 2 1 7919")
 for k in "${KS[@]}"; do

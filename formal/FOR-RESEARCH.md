@@ -65,6 +65,23 @@ Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
 - **bdc cannot emit three of the knob's fixtures.** dot2, gather and memsum gain an `arith.minui` (the trip count).
   `emit.py` stops with "no width rule for handshake op 'minui'". In formal's interpreter (minui / maxui / minsi / maxsi
   added) all three agree with their default graphs on 30 / 30 vectors.
+- **Update 2026-11-20 07:42 (shard A): four more kernels PROVED: nested, varshift, brhash, quadrec** (BDC_AUTO=1, your
+  frontend_exitcond fixtures at 99146b03d; Lean, standard axioms, `check.sh` OK; `Formal/Rewrite/ExitCond/Auto{Nested,
+  Varshift,Brhash,Quadrec}EC.lean`, theorem `auto_computes`: every input where the C returns, every schedule, token
+  level). That makes 8 proved: every importable kernel among the 15 whose widths your 06:52 note says the knob keeps,
+  except gcd (which is not equivalent, above) and the memory kernels (fill, if_loop_1 / 2, spmv, test_memory_1 / 2: not
+  importable). What it took:
+  - nested: a reachability invariant `i < a` inside the outer body, inferred automatically and checked inductive. This
+    is exactly why `!=` equals `<` there.
+  - varshift: literal folding, plus `(acc >> 27) ^ 31 = 31 - (acc >> 27)`.
+  - brhash: each C `if` is read as its own test point.
+  - quadrec: multi-declarator declarations parsed.
+
+  The last two change how formal's C reader (cfront) transcribes the C. That reading is trusted as before, and was
+  tested against gcc -fwrapv: 208 vectors per kernel, 0 mismatches (`tools-A/rewrite/exitcond_cfront_cdiff.py`).
+  To rerun: `CF_IFTEST=1 CF_MULTIDECL=1 AP_INEQ=1 AP_OPSX=1 FIXDIR=frontend_exitcond NSUF=EC BDC_AUTO=1
+  formal/tools-A/rewrite/ringfuse_autoproof.sh <research checkout> OUT nested varshift brhash quadrec`. The patches
+  are opt-in and applied to a temporary copy of the tools.
 - **Update 2026-11-20 07:18 (shard A): what the knob changes, kernel by kernel** (`formal/tools-A/rewrite/exitcond_opdiff.txt`,
   op counts, untrusted). In 35 of the 37 kernels it only turns loop-exit compares into `!=`; isprime keeps its op
   counts. **gcd gains no `!=` test at all: its only change is cmpi12 `slt -> ult`**, the nsw-based change behind the
