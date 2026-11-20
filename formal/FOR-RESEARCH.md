@@ -123,6 +123,8 @@ On the 17 exit1 routes formal has judged:
 8 of brhash's 24 steers and 2 of horner s2 / s4's 18 are not bounded: their condition comes from a compare (ucmpi1) whose join
 has another name. For comparison, the binding race of gcd_ps fails at kappa 0.36, and the trimmed xorshift of B20 at 0.08.
 
+**For your GLS replay:** the adversary's 56 arcs (prjxray composite pip / pin delays, FAST_MIN / FAST_MAX / used) are in formal/tools-B/out/b21_varshift_s1_adversary.tsv; varshift s1 has since passed 128 more draws (192 / 192 in all).
+
 **Update 08:19 UTC: every judged exit1 route, and the default flow beside it.** formal/tools-B/auto/ctlsweep.sh runs
 the race-only adversary on each route's latch-fed steer with the smallest ctl-launched slack. It raises kappa through
 0, 0.03, 0.06, 0.10, 0.15, 0.20 at both corners and stops at the first wrong answer or run with no verdict.
