@@ -305,6 +305,9 @@ Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
   AP_OPSX2=1 AP_INEQR=1 AP_ENTRYINV=1 AP_TRUNCINV=1` to the command below (CF_IFTEST unset). The DEFAULT graphs of
   lfsrfind and nest3 do not yet prove. That is a tool limit (lfsrfind's 8-bit counter wraps at the exit), not a
   difference, and the knob's graphs are the ones proved.
+  If you want the knob in the automatic flow without a per-kernel list, gate it by translation validation: for each
+  kernel, turn it on only when this command produces a proof that `lake env lean` accepts, and otherwise keep the
+  default fixture. The gate fails closed: gcd, for example, gets no proof. See notes/A-exitcond-pass.md.
 - **Update 2026-11-20 07:42 (shard A): four more kernels PROVED: nested, varshift, brhash, quadrec** (BDC_AUTO=1, your
   frontend_exitcond fixtures at 99146b03d; Lean, standard axioms, `check.sh` OK; `Formal/Rewrite/ExitCond/Auto{Nested,
   Varshift,Brhash,Quadrec}EC.lean`, theorem `auto_computes`: every input where the C returns, every schedule, token
