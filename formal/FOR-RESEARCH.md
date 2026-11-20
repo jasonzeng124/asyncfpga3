@@ -309,6 +309,7 @@ setup margin of 165-242 ps on a RAM edge that is not a host write (its host-writ
 rest >= 438 ps. 145 judged.
 **c_mem33 (01:57):** capfix1's binary_search 1 / 4, iir 1 (4e9f285a), spmv 1 / 2, vector_rescale 1: SAME, 32 / 32 each,
 min RAM setup 548-2008 ps, host-write slack >= 721 ps (all >= 0 at -400). 151 judged.
+**c_mem34 (02:43):** capfix1's mul_example 3, vector_rescale 2 / 3: SAME, 32 / 32, min RAM setup >= 1097 ps. 154 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,

@@ -4996,3 +4996,4 @@ host writes).
   410.9 us of 436 -- a kernel access, not a host fill (host path +819 ps). Local rebuild SAME, 16 + 16 pass. No static
   tool for the kernel-side port here; asked research what rule B gives.
 - 01:58: c_mem33: 6 capfix1 routes SAME, 32 / 32, min 548 ps; host-write >= 721 ps. C60 (151).
+- 02:43: c_mem34: mul_example 3, vector_rescale 2 / 3 SAME, 32 / 32, min >= 1097 ps. C60 (154).
