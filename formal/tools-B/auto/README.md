@@ -52,3 +52,12 @@ Suite kernels (any kernel with research's `kernels/K/vec.hex` and `research/tool
 - `divchain.py MDIR`: the divider's enable-chain floor (sum of FAST_MIN over 256 hops) and the request chain's ceiling
   (sum of SLOW_MAX joined -> out0_req), the numbers for Lean's ChainHold.chain_hold_const / chain_hold_side.
 - `../select/muxn_rows.py NET ROUTED OUT.lean NS`: decode LUTs of a route as Lean forcing facts (MuxNRowsCmp.lean).
+
+## Research's post-route trims (2026-11-20)
+    RSTRIM=<research checkout with research/tools/auto/trim_lines.py> RS=<research checkout at the route's commit> \
+      bash formal/tools-B/auto/trim/trimtask.sh UNTRIMMED_DIR K SEED OUT NDRAWS MACRO=LEN ...
+UNTRIMMED_DIR: a build dir (`K_bench_gen.{json,_routed.json,fasm}` + `gen/` with that build's generated Verilog). Applies
+research's INIT-only trims to a copy, makes the bitstream as research's trim_shrink.sh does, and judges it with
+`suite/task.sh PREBUILT=DIR` (bits read back, decoded, draws). `steersafe.py MDIR STEER COND LAUNCH`: a structural
+kappa_lo for a steer's settle race (condition settled before the request; SettleAll + ChainHold + CtlChain.hold_mem),
+as `outsafe.py` is for the output capture.
