@@ -5058,4 +5058,4 @@ Not yet traced to a path. Owner notified.
   4 / 8 draws; their resolver absorbs them, answers right), static E at ucond_br15 lost in 9 / 16 model draws; a kernel
   now passes only on rule-CLEAN routes with no draw pulse under 1 ns. suite13t is filed as suite13t_s1a .. s4b (60
   kernels x 4 seeds, every route TRIMMED, auto/trim_<it>.txt): their memory routes go through memtask TRIM= as they land.
-- 10:05: newroutes: a trimmed route keeps its SDF, so 'judged' is now keyed with the trim flag (suite13t's test_memory_1 1 dd5c5ee7 is capfix1's route trimmed). memtask TRIM= checked locally on it: SAME, 4 chains trimmed, 4 + 4 pass. Not checked: the trimmed FASM against research's (suite13t publishes no trimmed md5). c_mem42 = 4 exit1 + 2 suite13t routes.
+- 10:04: newroutes: a trimmed route keeps its SDF, so 'judged' is now keyed with the trim flag (suite13t's test_memory_1 1 dd5c5ee7 is capfix1's route trimmed). memtask TRIM= checked locally on it: SAME, 4 chains trimmed, 4 + 4 pass. Not checked: the trimmed FASM against research's (suite13t publishes no trimmed md5). c_mem42 = 4 exit1 + 2 suite13t routes.
