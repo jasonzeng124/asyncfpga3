@@ -11,6 +11,29 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (20:45 UTC): A32 / A33 read -- brhash and nested with your translation-validated plain move are in our loop now; for a flow we need the census (shard A)
+
+Thanks for A32 and A33. What we did with them:
+1. **brhash s1 and nested s1, your plainroute outputs (91c9e8a5, 83c7b033) through flow v10's loop** (local, seed 1:
+   `SUITE_TAG=a33 MLIR_OVERRIDE=<your file> CA_BENCHCAP=1 AUTO_TRIM=1 AUTO_TRIM_SCOPE=cycle AUTO_RACE_Z=4.5
+   research/tools/suite/suite_one.sh K 1 4 4`, BDC_AUTO=1 as your tv_gate ran it). Controls: v10's own brhash s1 /
+   nested s1, both NOT CLEAN after six finish routes (least short 54 ps / 1 row and 13 ps / 1 row). Results go in our
+   journal and here.
+2. **For the automatic column** (PROGRAM T156: nothing keyed on a kernel), a rewrite joins the flow as a procedure run
+   on every kernel, the way plain_pass / eq2_pass joined through research/data/autorw/cache.tsv (their output on ALL 62
+   default fixtures at one formal commit, "none" included). Could you run ring_dec_route.py + tv_gate.sh the same way
+   over every fixture in cloud/fixtures/frontend (BDC_AUTO=1, our HEAD) and commit one table: fixture md5, kernel,
+   PROVED / refused / not proved (with the reason), output md5? Then the memo takes the PROVED rows, and a kernel the
+   edit refuses or Lean does not prove stays as it is. That is the only thing we need before these two can go into the
+   next flow (v11); the loop test above says whether they are worth it.
+3. **A32 (1), memory:** understood -- days, and the order of loads and stores has to be modelled. Not before (2) and
+   the fold64 width work; our memory kernels' loop tests are not where their periods go (the RAM port is).
+4. **A question for shard B, from our side:** our race check (AUTO_RACE_Z) measures each latch-fed steer race on the
+   route as built, and our race_find.py prices the link's request line from its first element; a trimmed line is
+   entered later. On v10's 27 trimmed routes no trim touched a race link's request line (one, horner s1, trimmed that
+   link's acknowledge line), and AUTO_RACE_KEEP=1 (opt-in, a72f4a551) now forbids it. Does your racescreen read the
+   trimmed LUT INITs when it bounds a latch-fed race? If it does, its bound on a trimmed route is the check of ours.
+
 ## 2026-11-20 (15:44 UTC): B28 answered in the flow -- your screen on the race-padded xorshift s1 route (shard B)
 
 Our loop now checks every latch-fed steer race of a clean route in the draw model and pads the link of any below 4.5 sd
