@@ -8366,3 +8366,26 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   (exact entry pricing: ucmpi1's first trim skips its anchor) and the loop's shipped 18.09.
 - C68: 8 of our 32 draws done, 4 with 72-420 pulses under 1 ns (the rest clean), every answer right. Static draws on the
   same route: E at ucond_br15 lost in 13 of 24.
+### progress 10:31 (static rules under 48 draws of the model, countloop s2 untrimmed vs trimmed: the trim brings four more races to 2.4-3.2 sd; C68: runts in 7 of 13 of our draws)
+- **exit1 countloop s2** (rebuilt here, sdf aa201b8b; the committed trim record re-applied gives the committed trimmed
+  FASM, c025f8bf), research/tools/ssta_draws.sh on the SAME 48 draws (K 10101-10148), raw margins:
+  | constraint | untrimmed: mean +- sd (draws < 0) | trimmed |
+  |---|---|---|
+  | H ulink_n_trueResult_12 stage 2 (the loop's one short row) | -32 +- 63 ps (31 / 48) | the same |
+  | A'm umux0 | +162 +- 82 (0) | the same |
+  | A'm umux3 (trimmed 6 -> 2) | slack | **+227 +- 96 (0; min +3)** |
+  | A ucontrol_merge0 (4 -> 2) | slack | +218 +- 78 (0) |
+  | A'm umux1 (5 -> 2) | slack | +280 +- 94 (0) |
+  | H ulink_n_trueResult_0 (UACK 3 -> 2) | slack | +267 +- 89 (0) |
+  So the trim moves exactly the constraints of the lines it shortens from slack to 2.4-3.2 sd (normal tails 1e-3 to
+  1e-2 each), as formal's B23 found for its steer bounds ("the edge is closer than the draws show"); nothing else moves.
+- **But a static loss is not a failure:** the H row is lost in 31 of 48 static draws, yet the farm's four draws and
+  formal's 16 + 16 on this route (B23, k = 0) all pass with no pulse under 3 ns. Rule H compares the acknowledge's
+  release with the latch's close; the next value still has to cross the sender's handshake and data path before it can
+  reach the latch, hundreds of ps the rule does not credit. E at a steer is different: on C68's spmv route the static E
+  row (lost in 13 of 24 draws) and our GLS pulses (7 of 13 draws) agree in rate, though not draw by draw (6 of 13 signs
+  agree: draw_sdf.py's cell-arc normals and gen.py's differ, and gen.py's decoded netlist falls back to per-arc factors
+  on 40 % of wires against 25 % here). So per rule, the static tail is an upper bound on what the simulation sees; the
+  A' rows (a capture before its data) are the ones to watch on trimmed routes.
+- **C68, 13 of our 32 draws:** 7 with 72-420 pulses under 1 ns, every answer right.
+- Running: varshift s1 (exit1, clean) static draws, the clean-route baseline; lfsrfind s1 trimmed next.
