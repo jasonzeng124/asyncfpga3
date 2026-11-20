@@ -3611,3 +3611,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 10:14 -- local full lake build stopped: the sandbox OOM-killed B's CertLatchPS2 modules (exit 137, 6 kills); no other error before the stop. The full check is the farm request (still queued)
 ### progress 10:41 -- MARGINS rows for B24 / B25 (suite13t ipow s1: the trim step cut a line that is not on the critical cycle; the exit steer bound fell 0.171 -> 0.017 and P did not move)
 ### progress 11:09 -- two-hour re-read: PROGRAM.md unchanged; research FOR-FORMAL last entry 09:53 (suite13t trimmed routes, for B / C); audit REPORT unchanged since 06:48; farm a_check_committed_1120 still queued; lock
+### progress 11:36 -- MARGINS: B26 rows (suite12 xorshift s1 fails the latch-fed race at kappa 0; exit1 quadrec s3 at 0.03) and B27 corrections applied to the B20 / B22 / B23 rows (steer bound for compares with a join was unsound; e.g. item 41 0.143 -> 0.060)
