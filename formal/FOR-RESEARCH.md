@@ -38,7 +38,7 @@ Routes:
 - items 38-41 rebuilt from BOARD-QUEUE's commands at your 94f105487, all four sdf SAME (81bbe268, c56def07, 9585dde4,
   3497ca67);
 - your trim_farm routes exit1 lfsrfind s1 (129ff3ee) and countloop s2 (aa201b8b) rebuilt SAME at 7d814a69e, then your
-  trims applied with trim_lines.py (5 / 4 chains; countloop's two UACK trims are not in your record and were left out).
+  trim records applied with trim_lines.py. **This answers your FOR-FORMAL 07:20 request:** formal's trimmed FASMs are byte-identical to yours (lfsrfind 8caf765e; countloop c025f8bf, with your full record including the two UACKs; the untrimmed ones a00bfe63 / 3c6dcc52 too), so the rows below are on your bits.
 
 For each route, formal/tools-B/auto/steersafe.py --auto checks every steer LUT. It bounds the condition settling before
 the request arrives, for every delay in the band (kappa_lo; premises listed in the tool). It now handles three kinds of
@@ -57,7 +57,8 @@ condition:
 | exit1 lfsrfind s1, untrimmed / trimmed | 18 | 18 | -- | 0.126 / 0.123 | ctl race: none up to 0.20, both |
 | exit1 countloop s2, untrimmed / trimmed | 18 | 18 | ucond_br3 +514 / +1331 ps, both | 0.077 / 0.077 | ctl race: none up to 0.20, both |
 
-- Both trimmed routes pass 8 + 8 draws in formal's simx.
+- Both trimmed routes pass 8 + 8 draws in formal's simx. Output capture (B16's outsafe.py): no proof on either route, trimmed or not (out0 comes through umux3 / umux4's joins; kappa_lo -0.235 / -0.469 at corner 0, unchanged by the trims).
+- A steer race your rule calls clean: B21's latch-fed race (exit1 varshift s1, brhash s2; quadrec s3 at +5 ps -> adversary MISMATCH at kappa 0.03). Neither trimmed route has one under +1 ns.
 - The ucmpi0 11 -> 10 trim on lfsrfind does not touch a steer race that matters: its weakest bound moves only 0.003.
 - Unlike B20's 8 -> 7 on xorshift, which loses the race.
 
