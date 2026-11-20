@@ -42,7 +42,9 @@ MR_NEW = """            if fu is not None and i in fu.anchor_region and getattr(
                     pack = t if pack is None else ("bin", "addi", W, pack, t)
                 if os.environ.get("FA_MR_LOG"):   # side record for mr_verilog_check (no effect on the rules)
                     with open(os.environ["FA_MR_LOG"], "a") as _f:
-                        _f.write(repr((i, [(lo, w, v, mi) for v, mi, lo, w in parts])) + "\\n")
+                        _f.write(repr((i, [(lo, w, v, mi) for v, mi, lo, w in parts],
+                                       [eternal.get(A(x), "live") if A(x) in eternal else "live"
+                                        for x in reg.ext_inputs])) + "\\n")
                 z = "__mr_%d" % i
                 comp(list(reg.ext_inputs), z, pack, "fused multi-result cell")
                 zs = ["__mr_%d_%d" % (i, k) for k in range(len(parts))]

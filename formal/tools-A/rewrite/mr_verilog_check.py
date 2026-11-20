@@ -160,7 +160,7 @@ def check(mlir, bdc, env):
             return 'import failed'
         log = {}
         for line in open(lf):
-            i, parts = eval(line); log[i] = parts
+            rec = eval(line); log[rec[0]] = rec[1]
     cells, slices, unparsed = verilog_cells(v)
     ms = model_cells(R, names, log)
     if not cells and not ms and not unparsed: return 'no multi-result cell'

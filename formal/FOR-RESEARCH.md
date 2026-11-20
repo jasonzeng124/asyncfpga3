@@ -87,6 +87,16 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   iterative_sqrt (cells with 3 / 4 inputs) and nest3 (a 3-input cell whose third input, a block control token, is only
   waited on). Those three need a k-input fork-commute and join extension in Lean, which is not done. No regression.
   Controls on sqrtsub (every slice reads the low part; `n - odd + 1`) are refused.
+- **Update 2026-11-20 01:50: the packed cells' VALUES checked against your Verilog (audit T170's remaining caveat).**
+  `mr_expr_check.py FIXTURES BDC [K=V]` simulates each fused multi-result module bdc emits, with iverilog (handshake
+  cells stubbed, LUT1 by its INIT, the datapath as emitted), and compares z_data with the model expression evaluated
+  with the Lean Ops semantics. 200 vectors per cell: edge-value combinations of each live input, then random.
+  Constant inputs are literals in the model but still joined in your Verilog (gcd's cell waits on 4 inputs and reads
+  2), so they are driven with their value.
+  - Your f538cb518, BDC_AUTO=1: **OK on all 22 kernels with packed cells** (35 cells), including iterative_division,
+    iterative_sqrt and nest3, which fuse_check cannot prove yet.
+  - With BDC_RING_FUSE_NEGCTL=1: MISMATCH on 22 / 22. Bit 0 of z_data inverted: MISMATCH.
+  - Untrusted: finitely many vectors, and iverilog's reading of the Verilog. Census: `mr_expr_census.txt`.
 - **Correction 2026-11-20 01:27 (audit T171, OVERSTATED):** the 21:30 version passed your own corrupted cell. With
   BDC_RING_FUSE_NEGCTL=1 it printed "no multi-result cell" and exited 0, because its parser did not read nested
   concatenations and a model cell with no Verilog cell to compare was not an error. Fixed: nested concatenations,

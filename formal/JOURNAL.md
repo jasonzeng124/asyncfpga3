@@ -3485,3 +3485,12 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   refused (iterative_division, iterative_sqrt: 3 / 4-input cells; nest3: 3-input cell with a wait-only control input),
   no regression. Controls on sqrtsub: slice_low, part_plus1 (new) REFUSED rc 2.
 * Open (Lean, hours): k-input ForkComm and a join extension where the update waits on inputs it does not read.
+### progress 01:50 -- packed cells' Verilog VALUES vs the model: 22 / 22 OK, NEGCTL 22 / 22 MISMATCH (mr_expr_check.py; T170's open caveat)
+* iverilog installed (apt). Each fused multi-result module: handshake cells stubbed, LUT1 by INIT, datapath as emitted;
+  z_data vs the model expression under the Lean Ops semantics (Python transcription of GcdHwLib's Ops), 200 vectors
+  per cell. Found on the way: bdc joins on constant inputs the importer folds to literals (gcd's cell: 4 Verilog inputs,
+  2 model inputs) -- not a defect (eternal constants), but the importer's side record now lists each region input as
+  live or its constant, and the constants are driven with their value.
+* Result on research f538cb518, BDC_AUTO=1: 22 / 22 kernels OK (35 cells), incl. iterative_division / iterative_sqrt /
+  nest3. Controls: NEGCTL 22 / 22 MISMATCH; --ctl flipbit MISMATCH. Untrusted (finite vectors, iverilog).
+* Subagent (worktree) on the k-input ForkComm / join extension for iterative_division, iterative_sqrt, nest3: running.
