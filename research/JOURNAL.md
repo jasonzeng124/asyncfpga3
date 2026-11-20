@@ -8789,3 +8789,27 @@ Toolchain: patches.sha 0d42657914fc25d3, nextpnr 6e5d224472232d5d (cells/verify/
 Audit: T172 in progress (own rebuild of the trimmed lfsrfind s1 = ours; trim INIT-only; its GLS running); no new
 REFUTED / OVERSTATED row for research. Formal: A32 / A33 (15:26 / 15:39) not yet answered here -- see below.
 Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which tasks do not run): v10 is one flow.
+### progress 20:32 (overbuild on v10's seven NOT CLEAN seed-1 loops, local, with a prediction)
+- **Why:** suite13t's headline has 7 UNFINISHED kernels (every judged route NOT CLEAN) and v10 repeats it so far: of
+  v10's 38 seed-1 routes back, 7 are NOT CLEAN (brhash, cmpchain, nested, factorial, test_loop_free, test_memory_2,
+  spmv), each after phase 1 plus six raise-only finish routes (least short: 13 ps / 1 row on nested .. 1081 ps / 6 on
+  cmpchain). research/data/converge/notes.txt measured why: a re-route moves every margin by ~0.5 ns sd, so the finish
+  phase chases fresh rows. The one lever left open there is AUTO_OVERBUILD=H (opt-in since 2026-11-20 06:47: at the
+  switch every trimmable line built H longer, a finish route counts as clean when the trim step -- LUT INIT only, the
+  route unchanged -- makes it so). Its only test (xorshift s1 clean as built; countloop s1 / s2 6 -> 2 / 12 -> 8 rows
+  after trim steps) was lost in the 09:02 requeue before it finished.
+- **Running (local, research/tools/auto/overbuild_farm.sh, H = 3):** each of the 7 loops from v10's own phase 1 (its it 4
+  rebuilt here from the farm's sizes and seed, sdf md5 checked), then the finish phase with AUTO_OVERBUILD=3 under v10's
+  environment (CA_BENCHCAP, AUTO_TRIM, AUTO_TRIM_SCOPE=cycle, AUTO_RACE_Z=4.5, AUTO_PROVED_RW=cache), AUTO_SEARCH=0,
+  the full stack and suite_one.sh's 4 draws on the farm's own draw points. Control: v10's own finish phase on the same
+  phase-1 state (NOT CLEAN on all 7).
+- **PREDICTION (written 20:32, before any result):** at least 4 of the 7 end rule-CLEAN after the trim step, most at their
+  first or second finish route; every draw passes; where both have a P, the trimmed P within -5 .. +8 % of v10's NOT
+  CLEAN route (the overbuilt lines are cut back by bits, but the placement is the overbuilt one's).
+- **A gap this run does not close, found reading the code:** auto_size.sh runs the latch-fed race check (AUTO_RACE_Z)
+  only on a route the rule finds clean AS BUILT, and research/tools/race_find.py prices a link's request line as built
+  (entry at g[0]); a trimmed line is entered later. So a trim that shortened a race link's request line would ship
+  unchecked. On v10 / rwa so far it has not happened: on all 27 trimmed routes back, no trimmed macro is a race link's
+  request line (one, horner s1, trimmed a race link's acknowledge line, which is on neither side of the race). An
+  overbuilt route made clean by the trim step skips the race check altogether. Both need closing before overbuild can
+  join a flow (next note).
