@@ -90,7 +90,11 @@ print(n)
 PY
 )
 lat=$(grep BENCHRES "$RD/run.log" 2>/dev/null | grep -o 'latmax=[0-9]*' | cut -d= -f2 | sort -n | tail -1)
-base="P=${P:-NA} lat_max_cyc=${lat:-NA} luts=$luts sdf=$md5 rule=$RULE it=$IT bits=$eq $ff"
+# AUTO_TRIM=1 (auto_size.sh): the route judged below is the trimmed one; its untrimmed P and the trim count are added
+# to the line (absent otherwise, so the default line is unchanged)
+P0=$(grep -o 'P=[0-9A-Z]*' "$RUNS/auto/$N/it_${IT}_untrimmed.txt" 2>/dev/null | head -1 | cut -d= -f2)
+TR=""; [ -n "$P0" ] && TR=" P_untrimmed=$P0 trims=$(cat "$RUNS/auto/$N/trim_$IT.txt" 2>/dev/null | grep -c .)"
+base="P=${P:-NA}$TR lat_max_cyc=${lat:-NA} luts=$luts sdf=$md5 rule=$RULE it=$IT bits=$eq $ff"
 if [ "$eq" != EQUIVALENT ] || [ "$ff" != ffmux-clean ]; then fin "status=NOT-A-BOARD-ROUTE $base"; fi
 # DRAW_JOBS draws at a time (default 1); each draw has its own work directory and draw file
 # GATE_RUNTS=1 by default (report only: the verdict line gains a "runts" field, a pass stays a pass; subagent steerrunt,

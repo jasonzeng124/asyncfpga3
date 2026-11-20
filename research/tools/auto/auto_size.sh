@@ -370,7 +370,16 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
     local got; got=$(awk '{print $2}' "$O/it_$i.txt")
     echo "resume: route ${N}_$i rebuilt, sdf $got (earlier run: ${want:-?})$([ -n "$want" ] && [ "$want" != "$got" ] && echo ' -- DIFFERENT ROUTE')" >> "$O/log.txt"
   fi
-  [ "${AUTO_TRIM:-0}" = 1 ] && trim_route "$i"
+  if [ "${AUTO_TRIM:-0}" = 1 ]; then
+    # AUTO_TRIM_P0 (default 1 when AUTO_TRIM=1): the untrimmed route's own full stack first (it_I_untrimmed.txt: its P,
+    # its bits verdict), so every trimmed route carries its own paired before / after.  AUTO_TRIM_ONLY has the loop's.
+    if [ ! -f "$O/it_${i}_untrimmed.txt" ] && [ "${AUTO_TRIM_P0:-1}" = 1 ]; then
+      "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_untrimmed.log" 2>&1
+      tail -1 "$O/final_${i}_untrimmed.log" > "$O/it_${i}_untrimmed.txt"
+      echo "final it $i untrimmed $(cat "$O/it_${i}_untrimmed.txt")" >> "$O/log.txt"
+    fi
+    trim_route "$i"
+  fi
   "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_$i.log" 2>&1
   tail -1 "$O/final_$i.log" > "$O/it_$i.txt"
   echo "final it $i $(cat "$O/it_$i.txt")" >> "$O/log.txt"
