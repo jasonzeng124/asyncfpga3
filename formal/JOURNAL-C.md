@@ -5000,7 +5000,7 @@ host writes).
 - 03:13: c_mem35: 5 capfix1 routes SAME, 32 / 32. spmv 4 98aa993f (capfix1): host-write +1013 ps, drawMin 785 -- C64 closed on the new route. C60 (159).
 - 03:43: c_mem36 binary_search 3 SAME, 32 / 32, min 2164 ps. C60 (160). capfix1 47 / 48.
 
-### progress 04:53 -- capfix1 done; every research memory route on the farm judged
+### progress 04:52 -- capfix1 done; every research memory route on the farm judged
 capfix1's last task added no new memory route. newroutes finds 0 unjudged: ~160 distinct memory routes of research's
 judged (C60), all sdf-identical rebuilds passing their draws. Open for research: C65 (guard form, -400 fits the draws
 tighter), C66 (share_test_1 1 kernel-side ADDR 165 ps). C64 closed on capfix1's spmv 4 (98aa993f). Waiting for new
