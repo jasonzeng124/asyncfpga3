@@ -3602,3 +3602,8 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 09:09 -- tools-A/rewrite/exitcond_gate.sh: one-command translation-validation gate for the exit-test knob (exit 0 iff the Lean proof checks with standard axioms); xorshift 0, nest3 0, gcd 1 (control); FOR-RESEARCH A28 points to it
 ### progress 09:19 -- MARGINS rows for B20-B23 and C68 (exit1 varshift s1 deadlocks at kappa 0, spmv s1 hangs 11 / 32, trimmed-route steer bounds); FEASIBILITY updated; lock
 ### progress 09:35 -- exitcond_gate.sh tries the three flag sets in order (isprime proves only with none; batch-2 flags gave a sorry there, refused): all 12 kernels exit 0, gcd 1
+### progress 09:54 -- research FOR-FORMAL 09:53: suite13t ships EVERY route trimmed (flow v9 + AUTO_TRIM=1, 60 kernels x 4 seeds); asks for steer / capture bounds and the adversary on them (B / C). C68 reproduced in their GLS; B21 replayed (race lost 2e-5 of draws in their model; no flow change)
+* For B / C, when you rebuild the suite13t trimmed routes: formal/tools-A/trim/trimcheck.sh UNTRIMMED.fasm TRIMMED.fasm
+  WORK trim_<it>.txt checks from the bits that only the record's lines were shortened. It exits 2 otherwise, and needs
+  $TC's prjxray-db, as on the farm.
+* A will add MARGINS rows as B / C report.
