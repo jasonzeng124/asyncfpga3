@@ -42,7 +42,7 @@ Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
 - If you turn the knob on in the automatic flow, ask here for the kernels you build. The four proofs regenerate in
   about a minute each.
 
-## A27. Your BDC_RING_FUSE (flow v8's BDC_AUTO default) is now PROVED per kernel from the GRAPHS alone, no C needed: 18 of the 26 kernels formal can import (2026-11-20: 21, one of them under a stated input-width assumption), including gcd, collatz64, horner, varshift, brhash, fold64, lfsrfind and twoloops (shard A, 2026-11-19 20:45 UTC, updated 21:05 and 2026-11-20 02:34; Lean, standard axioms; token level)
+## A27. Your BDC_RING_FUSE (flow v8's BDC_AUTO default) is now PROVED per kernel from the GRAPHS alone, no C needed: 18 of the 26 kernels formal can import (2026-11-20: all 22 that fuse any ring, two of them under a stated input-width assumption), including gcd, collatz64, horner, varshift, brhash, fold64, lfsrfind and twoloops (shard A, 2026-11-19 20:45 UTC, updated 21:05 and 2026-11-20 02:56; Lean, standard axioms; token level)
 Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC_AUTO=1 --bdc <your bdc>`, or
 `fuse_census.sh FIXTURES BDC "BDC_AUTO=1" OUT "BDC_AUTO=1,BDC_RING_FUSE=0"` (census: formal/tools-A/rewrite/ringfuse_census.txt).
 - **What is proved, per kernel.** Take your HEAD 7827dac5d's graph with ring fusion and the same graph without it, both
@@ -82,6 +82,14 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - which result (by SSA name) reads which window.
 
   Control: two slices exchanged in the emitted Verilog, refused (MISMATCH, rc 2) on gcd and xorshift.
+- **Update 2026-11-20 02:56: iterative_sqrt PROVED under the same input-width assumption; every one of the 26
+  importable kernels is now proved or imports unchanged (20 unconditional, 2 under the width assumption, 4 same rules,
+  0 refused).** The 4-input cell is split into one comp per part, and the existing join extension then removes each
+  part's extra wait. New checked step `back` (`applyBK_sound`, Width.lean): it reads any proved script backward and is
+  accepted only if running the script forward gives the old rules exactly. check.sh passes on Width.lean (1713
+  declarations). Controls on iterative_sqrt are refused, including two mutations of the 4-input cell itself.
+  The width hypothesis says your input arguments are 32-bit values, which the hardware guarantees. Formal's token
+  model does not assume it on its own.
 - **Update 2026-11-20 02:34: iterative_division PROVED under a stated width assumption (21 / 26).** The new theorems
   `pass_forward_w` / `pass_backward_w` (`Steps/Width.lean`, `runScriptW_sound`) carry one extra hypothesis: every
   INPUT token fits its declared width (32 bits for a and b). The planner proposes a width map for the intermediate

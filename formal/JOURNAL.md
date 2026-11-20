@@ -3512,3 +3512,9 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   ASSUMPTION"; xorshift / nest3 still PROVED unconditionally; controls slice_low / part_plus1 REFUSED rc 2.
 * iterative_sqrt still refused (test reads both packed parts; each part waits on an input it does not read -- a join
   extension through another update). notes/A-kinput.md has a route. Not started.
+### progress 02:56 -- ring fusion: no importable kernel refused (20 unconditional + iterative_division, iterative_sqrt under the input-width assumption; 4 same rules)
+* Subagent 2 (worktree, commit cherry-picked): Width.lean adds StepW.back / applyBK_sound (any proved StepRF script read
+  backward, checked by running it forward to the exact old rules); planner rf_ext / rf_extsplit split iterative_sqrt's
+  4-input cell into one comp per part so JoinExt's unjoin applies. Re-verified here: check.sh OK on Width.lean (1713
+  decls, std axioms); iterative_sqrt / iterative_division PROVED UNDER THE WIDTH ASSUMPTION; xorshift, nest3, sqrtsub
+  PROVED; iterative_sqrt controls slice_low / part_plus1 REFUSED rc 2. Census (subagent): 22 PROVED, 4 same, 0 refused.
