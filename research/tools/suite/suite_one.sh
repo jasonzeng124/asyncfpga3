@@ -43,6 +43,28 @@ fin() { echo "$K $S $*" | tee "$O/result.txt"; exit 0; }
 # compiler refuses stays in the suite with the reason)
 FX=$R/build/frontend/$K/comp/handshake_transformed.mlir
 [ -f "$FX" ] || fin "status=DOES-NOT-COMPILE (frontend: no handshake fixture)"
+# AUTO_PROVED_RW=1 (opt-in, 2026-11-20; research/data/autorw/): formal's proved loop-test passes on this kernel's
+# handshake MLIR (FORMAL_DIR/formal/tools-A/rewrite/auto_rewrites.sh: plain_pass, then eq2_pass), matched by structure
+# (no kernel names, no hashes), each kept only when Lean proves the rewritten graph equal to its input (token level,
+# every schedule).  FORMAL_DIR = a claude/formal checkout whose modules Formal.Rewrite.PlainPass, .Steps.ScriptSound and
+# .Rename are built (lake build), Lean on PATH (default $HOME/.elan/bin).  The import runs with BDC_RING_FUSE=0: the
+# proof is about the graph before ring fusion, which bdc applies to the emitted graph afterwards (formal's passes
+# refuse the fused import: "0 matches of the pattern").  Where a pass proves, every build of the loop reads the
+# rewritten MLIR (lane2.sh MLIR_OVERRIDE) and the result line says rw=<passes>; elsewhere rw=none and the build is as
+# before.  Unset: nothing here runs and the line is unchanged.
+RW=""
+if [ "${AUTO_PROVED_RW:-0}" = 1 ]; then
+  FD=${FORMAL_DIR:?AUTO_PROVED_RW=1 needs FORMAL_DIR}
+  mkdir -p "$R/build/autorw"; RWF=build/autorw/$K.mlir; rm -f "$R/$RWF"
+  ( PATH=${LEAN_BIN:-$HOME/.elan/bin}:$PATH BDC_AUTO=1 BDC_RING_FUSE=0 \
+      bash "$FD/formal/tools-A/rewrite/auto_rewrites.sh" "$FX" "$R/$RWF" --bdc "$R/bdc" ) > "$O/autorw.log" 2>&1
+  pv=$(grep -oE '^(plain_pass|eq2_pass): PROVED' "$O/autorw.log" | cut -d: -f1 | paste -sd+)
+  if [ -n "$pv" ] && [ -s "$R/$RWF" ] && ! cmp -s "$FX" "$R/$RWF"; then
+    export MLIR_OVERRIDE=$RWF; FX=$R/$RWF; RW=" rw=$pv"
+  else
+    RW=" rw=none"
+  fi
+fi
 CE=$O/compile; mkdir -p "$CE"
 python3 "$R/bdc/auto.py" "$FX" "$CE/auto.mlir" > "$CE/log" 2>&1 && BDC_AUTO=1 python3 "$R/bdc/emit.py" "$CE/auto.mlir" --no-top \
   -o "$CE/kernel.v" >> "$CE/log" 2>&1 || fin "status=DOES-NOT-COMPILE (bdc: $(grep -E 'Error' "$CE/log" | tail -1 | cut -c1-140))"
@@ -94,7 +116,7 @@ lat=$(grep BENCHRES "$RD/run.log" 2>/dev/null | grep -o 'latmax=[0-9]*' | cut -d
 # to the line (absent otherwise, so the default line is unchanged)
 P0=$(grep -o 'P=[0-9A-Z]*' "$RUNS/auto/$N/it_${IT}_untrimmed.txt" 2>/dev/null | head -1 | cut -d= -f2)
 TR=""; [ -n "$P0" ] && TR=" P_untrimmed=$P0 trims=$(cat "$RUNS/auto/$N/trim_$IT.txt" 2>/dev/null | grep -c .)"
-base="P=${P:-NA}$TR lat_max_cyc=${lat:-NA} luts=$luts sdf=$md5 rule=$RULE it=$IT bits=$eq $ff"
+base="P=${P:-NA}$TR lat_max_cyc=${lat:-NA} luts=$luts sdf=$md5 rule=$RULE it=$IT bits=$eq $ff$RW"
 if [ "$eq" != EQUIVALENT ] || [ "$ff" != ffmux-clean ]; then fin "status=NOT-A-BOARD-ROUTE $base"; fi
 # DRAW_JOBS draws at a time (default 1); each draw has its own work directory and draw file
 # GATE_RUNTS=1 by default (report only: the verdict line gains a "runts" field, a pass stays a pass; subagent steerrunt,
