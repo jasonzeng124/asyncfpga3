@@ -206,6 +206,91 @@ build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); f
   done
   return 1
 }
+mkbit() {  # mkbit HWDIR: the bitstream from HWDIR/D.fasm, as cells/hw/build_bench.sh makes it
+  local P=xc7z010clg400-1 DB=${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7/share/nextpnr/prjxray-db/zynq7
+  local PX=${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7-src/prjxray
+  PYTHONPATH="$PX:${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7/lib/python${PYTHONPATH:+:$PYTHONPATH}" \
+    python3 "$PX/utils/fasm2frames.py" --db-root "$DB" --part "$P" "$1/$D.fasm" > "$1/$D.frames" 2> "$1/frames.log" &&
+  "${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7/bin/xc7frames2bit" --part_file "$DB/$P/part.yaml" --part_name "$P" \
+    --frm_file "$1/$D.frames" --output_file "$1/$D.bit" > "$1/bit.log" 2>&1
+}
+neg_keys() {  # neg_keys FILE: "key worst" per short constraint (a rule's neg file), the worst corner's margin
+  awk -F'\t' 'NR > 1 && NF >= 3 { if (!($3 in m) || $2 < m[$3]) m[$3] = $2 } END { for (k in m) print k "\t" m[k] }' "$1" 2>/dev/null | sort
+}
+trim_route() {  # trim_route I (AUTO_TRIM=1): the shipped route's lines shortened to what THIS route needs, by LUT INIT only
+  # research/data/trim/README.md: a line of LUT2 elements can be made any length 1..N after routing (trim_lines.py),
+  # so the rule's proposal on the route itself is applied with no re-place and no re-route, and checked on the same
+  # route (the rule reads trimmed lines). Each step: rule -> proposal -> trim every line it moves (shorter, or longer
+  # within the line's built length) -> bits -> rule; a step whose short constraints include one the route did not have
+  # before, or whose total miss is larger, is reverted and ends the step loop. AUTO_TRIM_MAX steps (default 4).
+  # $O/trim_I.txt records the final MACRO=LEN; a rebuild of route I (resume, a board item) re-applies it.
+  local i=$1 H=$RUNS/hw/${N}_$1 k Z cur prev_keys prev_tot keys tot t
+  [ -f "$H/${D}_routed.json" ] || return 0
+  if [ ! -f "$H/${D}_routed.untrimmed.json" ]; then
+    cp "$H/${D}_routed.json" "$H/${D}_routed.untrimmed.json"; cp "$H/$D.fasm" "$H/$D.untrimmed.fasm"; cp "$H/$D.bit" "$H/$D.untrimmed.bit"
+  fi
+  if [ -f "$O/trim_$i.txt" ] && [ -s "$O/trim_$i.txt" ]; then   # a rebuild: re-apply the recorded trims
+    python3 "$T/trim_lines.py" --partial "$H/${D}_routed.untrimmed.json" "$H/$D.untrimmed.fasm" "$H/${D}_routed.json" "$H/$D.fasm" \
+      $(cat "$O/trim_$i.txt") > "$O/trim_${i}_reapply.log" 2>&1 && mkbit "$H"
+    echo "trim: it $i re-applied $(wc -l < "$O/trim_$i.txt") recorded trim(s)" >> "$O/log.txt"; return 0
+  fi
+  cur=$O/sizes_${i}_trim.vh; cp "$O/sizes_$i.vh" "$cur"; : > "$O/trim_$i.txt"
+  prev_keys=""; prev_tot=""
+  for k in $(seq 1 $(( ${AUTO_TRIM_MAX:-4} + 1 ))); do   # the last pass only checks the step before it
+    rm -rf "$RUNS/hw/${N}_${i}t$k" "$RUNS/r/${N}_${i}t$k"
+    ln -s "$H" "$RUNS/hw/${N}_${i}t$k"; ln -s "$RUNS/r/${N}_$i" "$RUNS/r/${N}_${i}t$k"
+    rule "${i}t$k" "$cur" || { echo "trim: it $i step $k: RULE FAILED" >> "$O/log.txt"; break; }
+    keys=$(neg_keys "$O/neg_${i}t$k.txt" | cut -f1); tot=$(neg_keys "$O/neg_${i}t$k.txt" | awk -F'\t' '{s -= $2} END {print s + 0}')
+    if [ -n "$prev_tot" ]; then   # the step before was applied: did it open anything?
+      if [ -n "$(comm -13 <(echo "$prev_keys") <(echo "$keys") | grep .)" ] || [ "$tot" -gt "$prev_tot" ]; then
+        cp "$H/${D}_routed.prev.json" "$H/${D}_routed.json"; cp "$H/$D.prev.fasm" "$H/$D.fasm"; cp "$H/$D.prev.bit" "$H/$D.bit"
+        cp "$O/sizes_${i}_trim.prev.vh" "$cur"; cp "$O/trim_${i}.prev.txt" "$O/trim_$i.txt"
+        echo "trim: it $i step $((k - 1)) reverted (short: $(echo $keys | wc -w) constraint(s), $tot ps; before: $prev_tot ps)" >> "$O/log.txt"
+        break
+      fi
+    fi
+    prev_keys=$keys; prev_tot=$tot
+    [ "$k" -gt "${AUTO_TRIM_MAX:-4}" ] && { echo "trim: it $i: $(echo $keys | wc -w) short, $tot ps after the last step" >> "$O/log.txt"; break; }
+    t=$(python3 - "$cur" "$O/rule_${i}t$k.vh" <<'PY'
+import re, sys
+rd = lambda p: {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(p)) if m}
+a, b = rd(sys.argv[1]), rd(sys.argv[2])
+print(" ".join("%s=%d" % (k, v) for k, v in sorted(b.items()) if k in a and v != a[k]))
+PY
+)
+    [ -n "$t" ] || { echo "trim: it $i step $k: the rule moves no line ($(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"; break; }
+    cp "$H/${D}_routed.json" "$H/${D}_routed.prev.json"; cp "$H/$D.fasm" "$H/$D.prev.fasm"; cp "$H/$D.bit" "$H/$D.prev.bit"
+    cp "$cur" "$O/sizes_${i}_trim.prev.vh"; cp "$O/trim_$i.txt" "$O/trim_${i}.prev.txt"
+    python3 "$T/trim_lines.py" --partial "$H/${D}_routed.prev.json" "$H/$D.prev.fasm" "$H/${D}_routed.json" "$H/$D.fasm" $t \
+      > "$O/trim_${i}_$k.log" 2>&1 || { echo "trim: it $i step $k: trim_lines FAILED" >> "$O/log.txt"; break; }
+    mkbit "$H" || { echo "trim: it $i step $k: bitstream FAILED" >> "$O/log.txt"
+      cp "$H/${D}_routed.prev.json" "$H/${D}_routed.json"; cp "$H/$D.prev.fasm" "$H/$D.fasm"; cp "$H/$D.prev.bit" "$H/$D.bit"; break; }
+    python3 - "$cur" "$O/trim_$i.txt" "$O/trim_${i}_$k.log" <<'PY'
+import re, sys
+cur, rec, log = sys.argv[1:4]
+got = {}
+for l in open(log):
+    m = re.match(r"trim (\S+) \S+: (\d+) -> (\d+)", l)
+    if m:
+        got.setdefault(m.group(1), set()).add(int(m.group(3)))
+refused = {m.group(1) for m in (re.match(r"REFUSED (\S+?):", l) for l in open(log)) if m}
+new = {k: v.pop() for k, v in got.items() if len(v) == 1 and k not in refused}
+lines = open(cur).read().splitlines()
+out = []
+for l in lines:
+    m = re.match(r"`define\s+(\S+)\s+(\d+)", l)
+    out.append("`define %s %d" % (m.group(1), new[m.group(1)]) if m and m.group(1) in new else l)
+open(cur, "w").write("\n".join(out) + "\n")
+r = {}
+for l in open(rec).read().split():
+    a, b = l.split("="); r[a] = b
+for k, v in new.items():
+    r[k] = str(v)
+open(rec, "w").write("".join("%s=%s\n" % kv for kv in sorted(r.items())))
+PY
+    echo "trim: it $i step $k: $(grep -c '^trim ' "$O/trim_${i}_$k.log") chain(s) moved, $(grep -c '^REFUSED' "$O/trim_${i}_$k.log") refused (before: $(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"
+  done
+}
 final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run, event-graph P) on the route the loop keeps
   local i=$1
   if [ ! -f "$RUNS/r/${N}_$i/xray.sdf" ]; then   # AUTO_RESUME: the route was built by an earlier run; rebuild it
@@ -215,6 +300,7 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
     local got; got=$(awk '{print $2}' "$O/it_$i.txt")
     echo "resume: route ${N}_$i rebuilt, sdf $got (earlier run: ${want:-?})$([ -n "$want" ] && [ "$want" != "$got" ] && echo ' -- DIFFERENT ROUTE')" >> "$O/log.txt"
   fi
+  [ "${AUTO_TRIM:-0}" = 1 ] && trim_route "$i"
   "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_$i.log" 2>&1
   tail -1 "$O/final_$i.log" > "$O/it_$i.txt"
   echo "final it $i $(cat "$O/it_$i.txt")" >> "$O/log.txt"
