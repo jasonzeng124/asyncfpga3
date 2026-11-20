@@ -8827,3 +8827,23 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   against suite13t), 17 kernels the flag changes that carry no proved rewrite, seeds 1-2 (34 tasks; was 84), with the
   $SHARED resume block; suite13t_s5b_mff_3 / _4 withdrawn (mff = seeds 1-2, 60 routes). Why: each A/B now differs from
   v10 in one flag, and the farm's time after v10 goes to flow v11 (named to run after sibb).
+### progress 20:58 (Dynamatic's own circuit can be routed here again: our export-rtl, checked cycle for cycle; formal A34's census gives a v11 memo with brhash and nested)
+- **Why:** the headline's ratio to Dynamatic rests on 3 periods routed in 2026-08 (one route each, default seed) and 29
+  ESTIMATES (Dynamatic's timing model x one factor fitted on those 3; worst leave-one-out 15.8 %). The owner's
+  Dynamatic build on the cluster has dynamatic-opt (with --lower-handshake-to-hw) and the Verilog library, but no
+  export-rtl, so nothing could be routed since August.
+- **New (ec909a42a):** research/tools/suite/dyn_export.py (export-rtl for the integer subset: config entries matched by
+  their own parameter constraints, generic files copied, cmpi / constant generated from Dynamatic's templates as its
+  generators do, anything else needing a generator refused), dyn_vsim.py (iverilog on dynamatic_est.py's calls:
+  results and cycles), dyn_route.sh (dyn_baseline.sh's I/O-bound wrapper, --freq 250, a placer seed per route),
+  dyn_all.sh (the four over a kernel list).
+- **xorshift (current fixture, on-merges buffers):** 19 / 19 calls, results = the C and cycles = the estimator's model
+  in every call; negative controls (a compare inverted, two constants with a bit flipped, the loop test inverted)
+  caught on 19 / 16 / 1 / 16 of 19 calls. **Routed: period 11.48 ns mean over seeds 1-4 (11.11-11.72)**, nextpnr
+  6e5d224472232d5d; August's one route: 12.73 (older fixture, nextpnr and seed); the estimate for this fixture 11.92.
+  dyn_all.sh is running over all 62 suite kernels (one at a time, 4 seeds each); the memory kernels need the memory
+  controller ports, which dyn_vsim does not drive yet.
+- **Formal A34** (20:48, my 20:45 ask): ring_dec_route + tv_gate on all 111 fixtures: 9 PROVED, no counterexample; new
+  against our memo: brhash, nested. **cache_v11.tsv** (ca02b7189) = cache.tsv + those two rows, selected by suite_one.sh
+  AUTO_PROVED_RW_CACHE (opt-in; v10's waiting parts read cache.tsv unchanged). The local a33 loops build exactly
+  these files.
