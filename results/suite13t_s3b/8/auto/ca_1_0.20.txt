@@ -1,0 +1,74 @@
+corner_audit /tmp/task/runs/ca/su_if_loop_2_3_1/seed1
+  corner: corner_sdf: /tmp/task/runs/ca/su_if_loop_2_3_1/seed1/pnr/soak_xray.sdf -> /tmp/task/runs/ca/su_if_loop_2_3_1/rule_0.20/soak.sdf
+            band 0.2, cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, 137 instance(s) listed (0.2), all in the SDF
+            INTERCONNECT default (0.2)                        31218 arcs
+            INTERCONNECT into listed instance (0.2)             165 arcs
+            IOPATH CARRY4 (1)                                  2330 arcs
+            IOPATH SELMUX2_1 (1)                                873 arcs
+            IOPATH SLICE_FFX (1)                               2081 arcs
+            IOPATH default (0.2)                              18033 arcs
+            IOPATH listed instance (0.2)                        165 arcs
+            SETUPHOLD (FAST_MIN, as gen.py)                   10168 arcs
+  nextpnr: UNSTAMPED
+  guards: rule E/J 0.970*req vs 1.030*sel; rule A/F/H/I/K/L guard max(0.030*t_data, 50 ps); slack 0
+  rule A data launches from constant drivers: DROPPED (a constant never transitions)
+  audits exit: tighten 1, skew 1, arb_fork 0
+  per-link cost at this corner: c_lo 179 ps (cheapest link-to-link step on the route), lut_lo 61 ps; chain mean steps 250-610 ps
+  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band 0.2, CARRY4/F7F8/FF at --cell; shortened lines priced at own mean step; selects sized by E/M; floor file none
+  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the select's own channel request is bounded by that request (research/data/sizerule/steerE.md)
+  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); research/data/muxsel/)
+  join-aware: CA_JOINAWARE=1: 4 operator(s) sized at their data's captures (A'j: latch data vs its enable, select vs its gate's request; C-elements wait for their last input; join credit), their A' rows reported as 'a'; 0 kept on A' (rows 'j' say why)
+  bench capture: CA_BENCHCAP=1: in A'j, a D / CE pin of a flip-flop on a BUFG clock is captured by that clock >= 19000 ps after the operator's request first reaches a flop on it (gen_bench.py's 2-flop synchronisers at <= 100 MHz, less 1 ns); an input of the operator's own join is not data
+  WARNING chain(s) ['bridge_i.ua_end_snk'] map to BD_SZ_BRIDGE_I_UA_END_SNK, which sizes.vh does not set (kept, measured)
+  WARNING chain(s) ['bridge_i.upsnk'] map to BD_SZ_BRIDGE_I_UPSNK, which sizes.vh does not set (kept, measured)
+negative at this corner: 19
+  D   -3193  bridge_i.udut.ucond_br4 (bd_steer) req   334  sel  3425  guard  102  margin  -3193   PAD by 9 bd_delay element(s) (367 ps ea) -- VIOLATION
+  D   -3173  bridge_i.udut.ucond_br3 (bd_steer) req   244  sel  3318  guard   99  margin  -3173   PAD by 9 bd_delay element(s) (367 ps ea) -- VIOLATION
+  a   -2909  bridge_i.udut.uselect0  4 links   1004 ps   req  1858  peak  4660  guard  107  margin  -2909   PAD to 14 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_USELECT0
+  D   -2704  bridge_i.udut.ucond_br2 (bd_steer) req   615  sel  3223  guard   96  margin  -2704   PAD by 8 bd_delay element(s) (367 ps ea) -- VIOLATION
+  a   -2197  bridge_i.udut.umux3     1 links     61 ps   req  1078  peak  3220  guard   55  margin  -2197   PAD to 10 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UMUX3
+  a   -2022  bridge_i.udut.uselect0 4 links  from bridge_i.udut.ulink_n_dataResult.many.stage[1].u.ctl.u.u/O6: req 2477 (1x)  data 4368 (1x, bridge_i.udut.uselect0
+            depends on: BRIDGE_I_UDUT_USELECT0
+  a   -1451  bridge_i.udut.ucmpi2   13 links   4014 ps   req  5034  peak  6343  guard  142  margin  -1451   PAD to 18 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCMPI2
+  B    -512  bridge_i.udut.umem_controller1_uport.umem0.uram: clk 4284 ps, latest payload DIADI10 3659 ps, t_su 1137 -> margin -512 ps  VIOLATION
+            depends on: BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM0_USETUP
+  a    -457  bridge_i.udut.ucmpi0    7 links   1973 ps   req  2875  peak  3259  guard   73  margin   -457   PAD to 9 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  A    -399  bridge_i.udut.uselect0 4 links joined: 64 capture(s); worst latch ulink_n_trueResult_6.many.stage[0].u.lat.pair[22].u$LUT6  launch ulink_n_dataResult.
+            depends on: BRIDGE_I_UDUT_USELECT0
+  a    -337  bridge_i.udut.umux3 1 links  from bridge_i.udut.ulink_n_falseResult_7.many.stage[1].u.ctl.u.u/O6: req 1674 (1x)  data 1953 (1x, bridge_i.udut.umux3.ud
+            depends on: BRIDGE_I_UDUT_UMUX3
+  A    -309  bridge_i.udut.ucontrol_merge1  1 links     61 ps   req   737  peak   996  guard   50  margin   -309   PAD to 3 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCONTROL_MERGE1
+  B    -184  bridge_i.udut.umem_controller1_uport.umem1.uram: clk 4523 ps, latest payload WEA0 3775 ps, t_su 932 -> margin -184 ps  VIOLATION
+            depends on: BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM1_USETUP
+  D    -145  bridge_i.udut.ucond_br7 (bd_steer) req   334  sel   429  guard   50  margin   -145   PAD by 1 bd_delay element(s) (367 ps ea) -- VIOLATION
+  D    -123  bridge_i.udut.ucond_br5 (bd_steer) req   547  sel   620  guard   50  margin   -123   PAD by 1 bd_delay element(s) (367 ps ea) -- VIOLATION
+  D    -121  bridge_i.udut.ucond_br8 (bd_steer) req   330  sel   401  guard   50  margin   -121   PAD by 1 bd_delay element(s) (367 ps ea) -- VIOLATION
+  I      -9  bridge_i.udut.ulink_n_falseResult_7.many.stage[1].u.ctl.u.u  1 links   close  2475  data  2412  guard   72  margin     -9   PAD to 2 -- VIOLATION  [fr
+            depends on: BRIDGE_I_UDUT_ULINK_N_FALSERESULT_7_SDELAY, BRIDGE_I_UDUT_ULINK_N_FALSERESULT_7_UACK
+  E      -5  bd_mux bridge_i.udut.umux1 req bridge_i.udut.umux1.uj1/A3 2401 ps (1 x) sel bridge_i.udut.umux1.uj1/A4 2266 ps (2 x) launch bridge_i.udut.ulink_n12.ct
+            depends on: BRIDGE_I_UDUT_ULINK_N16__1
+  A      -3  bridge_i.udut.ucontrol_merge0  1 links     61 ps   req  1027  peak   980  guard   50  margin     -3   PAD to 2 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCONTROL_MERGE0
+proposal: 16 line(s) changed, kernel links 115 -> 115; verify: 0 sized constraint(s) below slack
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM0_USETUP   1 ->   4   PAD 1->4 for B bridge_i.udut.umem_controller1_uport.umem0.uram (-512 ps)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM0_UCO  11 ->  10   bound by C bridge_i.udut.umem_controller1_uport.umem0.uco (114 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM1_USETUP   1 ->   3   PAD 1->3 for B bridge_i.udut.umem_controller1_uport.umem1.uram (-184 ps)
+  BD_SZ_BRIDGE_I_UDUT_UCMPI0                 7 ->   6   bound by E bridge_i.udut.ucond_br4.u$LUT5/A3 (103 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N15__0_FOLINK    4 ->   3   bound by E bridge_i.udut.ucond_br7.u$LUT5/A3 (26 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0        1 ->   2   PAD 1->2 for A bridge_i.udut.ucontrol_merge0 (-3 ps)
+  BD_SZ_BRIDGE_I_UDUT_USELECT0               4 ->   7   PAD 4->7 for A'j bridge_i.udut.uselect0 (-399 ps)
+  BD_SZ_BRIDGE_I_UDUT_UCMPI2                13 ->  11   bound by A'j bridge_i.udut.ucmpi2 (28 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N26__0_FOLINK    5 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE1        1 ->   3   PAD 1->3 for A bridge_i.udut.ucontrol_merge1 (-309 ps)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N12_UACK         2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N16__1           2 ->   3   PAD 2->3 for E bridge_i.udut.umux1.uj1/A3 (-5 ps)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_7_SDELAY   1 ->   2   PAD 1->2 for I bridge_i.udut.ulink_n_falseResult_7.many.stage[1].u.ctl.u.u (-9 ps)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_INDEX_13       2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_TRUERESULT_8_UACK   3 ->   2   bound by H bridge_i.udut.ulink_n_trueResult_8.many.stage[1].u.ctl.u.u (229 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_TRUERESULT_8_SDELAY   2 ->   1   floor 1
+wrote /tmp/task/runs/ca/su_if_loop_2_3_1/rule_0.20/{report.txt, lines.tsv, sizes.vh, verify.txt, soak.sdf}
