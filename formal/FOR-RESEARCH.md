@@ -1080,6 +1080,8 @@ while_loop_3 1: 4) and test_bool_array 2: SAME, 32 / 32 each, min RAM setup >= 8
 **c_mem45 (13:06):** 9 suite13t routes, 8 TRIMMED: dot2 1, fill 2, if_loop_1 1, if_loop_2 1, mul_example 2,
 test_flatten_array 1, test_memory_1 2 and unused_arg 2 (untrimmed) SAME, 32 / 32 each, min RAM setup >= 490 ps;
 share_test_2 1 SAME, not drawn (DSP USE_DPORT). 233 judged; 17 trimmed, all pass.
+**c_mem46 (13:26):** 5 more TRIMMED suite13t routes: fill 3, if_loop_1 2, spmv 1, sumi3_mem 1 SAME, 32 / 32 each,
+min RAM setup >= 1289 ps; share_test_2 2 SAME, not drawn (USE_DPORT). 237 judged; 21 trimmed drawn, all pass.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
