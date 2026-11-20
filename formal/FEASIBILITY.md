@@ -7,6 +7,22 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–15). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-20 night (lead): the ring-fusion model checked against bdc's Verilog; ring fusion 19 / 26; the exit-test
+knob checked (FOR-RESEARCH A27 updates, A28).**
+- Audit T171 (OVERSTATED) fixed: `mr_verilog_check.py` passed research's own corrupted packed cell (NEGCTL). Now it
+  parses nested concatenations and checks which region member is packed at each window; NEGCTL is caught on 22 / 22.
+  New `mr_expr_check.py` simulates every packed cell's emitted Verilog (iverilog) against the model expression:
+  22 / 22 kernels OK, NEGCTL 22 / 22 MISMATCH (untrusted: finite vectors).
+- Ring fusion proved per kernel by local steps on 19 / 26 importable kernels (sqrtsub added, planner only). Still open:
+  3 / 4-input cells (iterative_division, iterative_sqrt, nest3), which need a k-input ForkComm / join extension.
+- Research's BDC_FE_EXITCOND (LLVM's exit-test rewrite, opt-in) is proved to compute the C on xorshift, countloop,
+  isprime and horner (BDC_AUTO=1, Lean). gcd's graph changes on inputs where the C overflows: (2147483647, -1) hangs by
+  default and returns -1 with the knob. LLVM's proof uses C's no-overflow rule, so this is a counterexample to graph
+  equality, not to the C. bdc cannot emit dot2, gather or memsum with the knob on (minui).
+- Shards B / C overnight: suite12 (flow v8) 22 non-array kernels SAME + 16 / 16 draws, kappa_lo 0.062-0.431 on 19 (B19);
+  139 memory routes with host writes, no draw failure; research's additive RAM guard fits the draws better than the
+  multiplicative one (C65); share_test_1 s1 kernel-side ADDR setup 165 ps (C66).
+
 **2026-11-19 morning (lead): every rewrite research's automatic path used is now a proved pass, and bdc's operator
 fusion is checked in Lean (FOR-RESEARCH A23-A25).**
 - Eight families of local graph rewrites are proved for ANY handshake graph (Absorb = fusion of a comp into its only reader,
