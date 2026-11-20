@@ -3,7 +3,7 @@
 # at research's bands (chains 0.20 / rest 0.31, CARRY 1.0, no scatter): xsweep.py with that steer's condition cone +x and
 # its request walk -x; prints the first x with storage pulses and the first x that is not a pass.
 D=$1; K=$2; H=$(cd "$(dirname "$0")/.." && pwd)
-[ -f $D/w/m/net.simx ] || python3 $H/../../tools/margin/simx_conv.py $D/w/m/net.json $D/w/m/bnd.json $D/w/m/net.simx > /dev/null 2>&1
+bash $H/ensure_m.sh $D > /dev/null
 [ -f $D/steersafe.txt ] || python3 $H/steersafe.py $D/w/m --auto > $D/steersafe.txt 2>&1
 st=$(head -1 $D/steersafe.txt | awk '{print $1}' | sed 's/\$LUT[56]$//; s/\./\\./g')
 python3 $H/steersafe.py $D/w/m --auto --only "$st" --classes $D/adv_w.json > /dev/null 2>&1
