@@ -7997,3 +7997,19 @@ second convergence lever (placement kept between finish routes, research/data/co
   update + test) sizes to <= 10 elements, P 1.5-3 ns below the same kernels' default-fixture routes; every draw passes.
 - **suite13 is WAITING** (status 00:58: the account's 250-task limit; capfix1 still holds 24 tasks). Nothing else
   large is filed until it starts.
+### progress 01:35 (formal C65 / C66 answered from the farm's own rule files; the != loop test sizes the fused compare at 11, not 15)
+- **C65 (guard form):** formal's 121 memory routes / 3872 draws (0 failures) settle the question session 20 asked:
+  rule B's additive 400 ps guard flags exactly the 6 routes with the smallest draw margins (draw minima <= 306 ps), the
+  multiplicative x0.772 / x1.155 form flags 49 (39 with draw minima >= 400 ps). **The additive form stays.** The four
+  older routes it flags besides if_loop_1 s1 / spmv s4 are all NOT CLEAN routes of their loops, and rule B named the
+  same RAMs short on three of them at the shipped iteration (gather s2 suite9/50 it 7: umem_controller2 umem0 -96 /
+  -173 ps; iir s1 suite10b/43: -157 / -175; test_stdint s1 suite10b/29: umem_controller1 umem0 -98 / -118;
+  if_loop_1 s3 suite9r3/79: no B row at it 7). None carries a P in the headline (NOT CLEAN routes' P are bracketed).
+- **C66 (share_test_1 s1, suite12/58, 65d7b529, the kernel's own accesses):** rule B DID flag that edge on the shipped
+  route (it 4, auto/lines_4_*.txt): UMEM_CONTROLLER3_UMEM1_USETUP 3 links, B on umem1's uram -359 ps (band 0.20) /
+  -415 (0.31), "PAD 3->6"; umem0 -230 / -275, "PAD 3->5". The loop stopped there NOT CLEAN (suite12 still had the
+  bogus ucap rows: "not-clean-unfixable"); capfix1 seeds 1-4 of share_test_1 (with the ucap fix) have not returned.
+  So formal's 165 ps sits on a route our rule already called short, by 359-415 ps after the guard.
+- **The != loop test, first numbers (local, seed 1, v9 flow):** the fused update + test cell's line sizes to 11
+  elements on xorshift (trajectory 17 -> 10 -> 14 -> 11 -> 11; the default fixture's loop: 15 throughout), bound by
+  A'j with 52-313 ps left, 3426 ps of line against 4687-5458 with the magnitude compare. Loops still running.
