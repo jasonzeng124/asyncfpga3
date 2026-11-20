@@ -8692,3 +8692,9 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   check is the only other use and does not touch the builds), plus BDC_SIBLING_FUSE=1. So rwa vs v10, same (kernel,
   seed), is the paired test of the sibling cell, and rwa's collatz / collatz64 routes (the flag changes nothing there,
   formal A30) are v10's own, early. Revised prediction in the request header (15:50).
+### progress 15:54 (v10's first part is running; the flow code is frozen for it)
+- suite13t_s5a_v10_1a **submitted** at 7874b6123 (seed 1, kernels 1-30), ahead of rwa (rwa's 32 tasks need 64 cores;
+  the runner placed the 60-core part first). suite13t_s3a done; s3b 12 / 30, s4a 9 / 30, s4b 4 / 30, rerun1 6 / 8.
+- **Rule until every v10 part and its resume parts are submitted:** no change to what auto_size.sh, suite_one.sh,
+  lane2.sh, bdc or cells do under v10's environment (each part checks out the branch head when it is submitted, so a
+  change would split v10 into two flows). Only opt-in knobs v10 does not set (AUTO_FINISH_SEEDS, BDC_MEM_FASTFALL, ...).
