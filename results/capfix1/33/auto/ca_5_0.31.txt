@@ -1,0 +1,59 @@
+corner_audit /tmp/task/runs/ca/su_image_resize_3_5/seed1
+  corner: corner_sdf: /tmp/task/runs/ca/su_image_resize_3_5/seed1/pnr/soak_xray.sdf -> /tmp/task/runs/ca/su_image_resize_3_5/rule_0.31/soak.sdf
+            band 0.31, cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, 248 instance(s) listed (0.2), all in the SDF
+            INTERCONNECT default (0.31)                       34397 arcs
+            INTERCONNECT into listed instance (0.2)             308 arcs
+            IOPATH CARRY4 (1)                                  2276 arcs
+            IOPATH SELMUX2_1 (1)                                963 arcs
+            IOPATH SLICE_FFX (1)                               1952 arcs
+            IOPATH default (0.31)                             20996 arcs
+            IOPATH listed instance (0.2)                        308 arcs
+            SETUPHOLD (FAST_MIN, as gen.py)                    9458 arcs
+  nextpnr: UNSTAMPED
+  guards: rule E/J 0.970*req vs 1.030*sel; rule A/F/H/I/K/L guard max(0.030*t_data, 50 ps); slack 0
+  rule A data launches from constant drivers: DROPPED (a constant never transitions)
+  audits exit: tighten 1, skew 1, arb_fork 0
+  per-link cost at this corner: c_lo 179 ps (cheapest link-to-link step on the route), lut_lo 61 ps; chain mean steps 257-527 ps
+  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band 0.31, CARRY4/F7F8/FF at --cell; shortened lines priced at own mean step; selects sized by E/M; floor file none
+  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the select's own channel request is bounded by that request (research/data/sizerule/steerE.md)
+  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); research/data/muxsel/)
+  join-aware: CA_JOINAWARE=1: 2 operator(s) sized at their data's captures (A'j: latch data vs its enable, select vs its gate's request; C-elements wait for their last input; join credit), their A' rows reported as 'a'; 3 kept on A' (rows 'j' say why)
+negative at this corner: 11
+  D    -589  bridge_i.udut.ucond_br7 (bd_steer) req   267  sel   806  guard   50  margin   -589   PAD by 2 bd_delay element(s) (375 ps ea) -- VIOLATION
+  D    -525  bridge_i.udut.ucond_br5 (bd_steer) req   603  sel  1078  guard   50  margin   -525   PAD by 2 bd_delay element(s) (375 ps ea) -- VIOLATION
+  D    -481  bridge_i.udut.ucond_br6 (bd_steer) req   283  sel   714  guard   50  margin   -481   PAD by 2 bd_delay element(s) (375 ps ea) -- VIOLATION
+  E    -435  bd_mux bridge_i.udut.umux6 req bridge_i.udut.umux6.uj0/A2 825 ps (0 x) sel bridge_i.udut.umux6.uj0/A3 1200 ps (1 x) launch bridge_i.udut.ulink_n36__1.
+            depends on: BRIDGE_I_UDUT_ULINK_N36__1
+  D    -403  bridge_i.udut.ucond_br4 (bd_steer) req   483  sel   836  guard   50  margin   -403   PAD by 2 bd_delay element(s) (375 ps ea) -- VIOLATION
+  D    -328  bridge_i.udut.ucond_br3 (bd_steer) req   330  sel   608  guard   50  margin   -328   PAD by 1 bd_delay element(s) (375 ps ea) -- VIOLATION
+  D    -315  bridge_i.udut.ucond_br9 (bd_steer) req   479  sel   744  guard   50  margin   -315   PAD by 1 bd_delay element(s) (375 ps ea) -- VIOLATION
+  a    -258  bridge_i.udut.ucmpi0    8 links   2806 ps   req  3741  peak  3903  guard   96  margin   -258   PAD to 9 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  E    -256  bd_mux bridge_i.udut.umux6 req bridge_i.udut.umux6.uj1/A4 994 ps (0 x) sel bridge_i.udut.umux6.uj1/A3 1185 ps (1 x) launch bridge_i.udut.ulink_n36__1.
+            depends on: BRIDGE_I_UDUT_ULINK_N36__1
+  D    -127  bridge_i.udut.ucond_br8 (bd_steer) req   274  sel   351  guard   50  margin   -127   PAD by 1 bd_delay element(s) (375 ps ea) -- VIOLATION
+  a     -97  bridge_i.udut.ucmpi0 8 links  from bridge_i.udut.ulink_n23.ctl.u.u/O6: req 3741 (0x)  data 3727 (1x, bridge_i.udut.ucmpi0.uz_n87)  guard 111  margin -
+            depends on: BRIDGE_I_UDUT_UCMPI0
+proposal: 21 line(s) changed, kernel links 229 -> 179; verify: 0 sized constraint(s) below slack
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM0_USETUP  10 ->   6   bound by B bridge_i.udut.umem_controller1_uport.umem0.uram (284 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM0_UCO  15 ->  10   bound by C bridge_i.udut.umem_controller1_uport.umem0.uco (8 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER1_UMEM1_UCO  13 ->   8   bound by C bridge_i.udut.umem_controller1_uport.umem1.uco (188 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMUX0                  2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UMUX1                  7 ->   5   bound by A'm bridge_i.udut.umux1 (60 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMUX2                  2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UMUX3                  9 ->   3   bound by A'm bridge_i.udut.umux3 (384 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMUX4                  2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UMUX5                  4 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE1_OLINK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UADDI0                12 ->   8   bound by A' bridge_i.udut.uaddi0 (140 ps left)
+  BD_SZ_BRIDGE_I_UDUT_USUBI0                 8 ->   6   bound by A' bridge_i.udut.usubi0 (317 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UADDI1                11 ->   6   bound by A' bridge_i.udut.uaddi1 (7 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N82_FOLINK       2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UCMPI1                 7 ->   5   bound by A'j bridge_i.udut.ucmpi1 (200 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N14_UACK         4 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N36__1           1 ->   4   PAD 1->4 for E bridge_i.udut.umux6.uj0/A2 (-435 ps)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N36__2           2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N36__3           3 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N36__4           4 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N9__0            2 ->   1   floor 1
+wrote /tmp/task/runs/ca/su_image_resize_3_5/rule_0.31/{report.txt, lines.tsv, sizes.vh, verify.txt, soak.sdf}
