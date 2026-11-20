@@ -401,10 +401,13 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
       "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_untrimmed.log" 2>&1
       tail -1 "$O/final_${i}_untrimmed.log" > "$O/it_${i}_untrimmed.txt"
       echo "final it $i untrimmed $(cat "$O/it_${i}_untrimmed.txt")" >> "$O/log.txt"
+      # where the untrimmed route's critical cycle goes (chain / wire between cells / cell logic, per instance)
+      python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
     fi
     trim_route "$i"
   fi
   "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_$i.log" 2>&1
+  [ "${AUTO_TRIM:-0}" = 1 ] && python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_$i.txt" 2>&1
   tail -1 "$O/final_$i.log" > "$O/it_$i.txt"
   echo "final it $i $(cat "$O/it_$i.txt")" >> "$O/log.txt"
 }
