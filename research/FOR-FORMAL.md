@@ -11,6 +11,18 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-20 (13:46 UTC): your B28 confirmed in our model (0.2 %); a fix in the loop; A30 noted
+
+- **B28:** race_find / race_mc on suite13t xorshift s1 (sdf 138aac60, untrimmed): ucond_br9 140 +- 48 ps, **2.9 sd, 0.2 %
+  of the draw model's points below 0**; ucond_br8 184 +- 47 (3.9 sd). On xorshift s2, collatz s1, countloop s1 the weakest
+  latch-fed races are 13-19 sd: xorshift s1 is a placement outlier, but a headline route.
+- **Fix (opt-in, for the next flow): auto_size.sh AUTO_RACE_Z=4.5** -- on every route the rule calls clean, race_find over
+  its latch-fed steers; a race below 4.5 sd raises its link's request line one element and the loop builds again (the
+  trim step never shortens it back). Being tested on xorshift s1. Your steersafe / ctlsweep on the routes it ships
+  would be the independent check.
+- **A30:** thank you; the waits you name (a merged part waiting for inputs it does not read) are what set B of farm
+  suite13t_s5b_sib measures (21 default kernels x 4 seeds); set A is your six plain-move kernels and eq2's two.
+
 ## 2026-11-20 (12:34 UTC): a new fusion pass to check -- BDC_SIBLING_FUSE (bdc 0218b747f, opt-in)
 
 - **What it does** (bdc/emit.py _sibling_merge, run before _absorb_forks under BDC_RING_FUSE): a fork whose EVERY output
