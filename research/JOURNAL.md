@@ -8231,3 +8231,12 @@ Farm: exit1 running (21 of 140 back at 06:20); suite13 (240 tasks) waits for roo
   farm's v8 finish phase never was, but slower than the farm's NOT CLEAN least-short route (17808), which the trim step
   alone would likely take lower still (exit1's xorshift s1, the other fixture, went 18088 -> 16738). countloop s1 / s2,
   iterative_division s1: their first finish routes stay short after the trims (E at mux joins, one I row); loops go on.
+### progress 08:15 (the automatic xorshift s1, != fixture + the trim step: 16.74 ns, 4 / 4 draws; the trims have >= 2 elements of draw margin)
+- exit1 xorshift s1 trimmed (route d947adff, flow v9 + the != fixture + the trim step: 9 lines at step 1, then the rule
+  moves nothing): **P 16738 ps, draws 10101-10104 PASS 19/19 each, bits EQUIVALENT, no pulse under 1 ns (narrowest 2.1
+  ns)** -- the hand recipe's 16.76 (item 37) on one automatic route; NOT CLEAN by the same single H row (-30 ps, wants a
+  UACK raise) before and after. One route, one seed: the farm's suite13t / exit1 seeds decide.
+- Margin study (every trimmable line K below the rule's trims, the same draws): K = 2 passes 4 / 4 on lfsrfind s1 and on
+  countloop s2; K = 3, 5, 8 running.
+- suite13t is listed waiting on the farm (since 08:01:50); suite13's status file is frozen at "waiting", like the
+  withdrawn auto1 / sizerule1 ones. exit1: 75 of 140 back at 08:00, none pending.
