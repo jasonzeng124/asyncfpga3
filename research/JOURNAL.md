@@ -8013,3 +8013,15 @@ second convergence lever (placement kept between finish routes, research/data/co
 - **The != loop test, first numbers (local, seed 1, v9 flow):** the fused update + test cell's line sizes to 11
   elements on xorshift (trajectory 17 -> 10 -> 14 -> 11 -> 11; the default fixture's loop: 15 throughout), bound by
   A'j with 52-313 ps left, 3426 ps of line against 4687-5458 with the magnitude compare. Loops still running.
+### progress 02:44 (a hard region on the critical ring: worse on 3 of 4 seeds; the != structure at fixed sizes ~16.3 ns)
+- **Region lever** (cells/hw/region.py, build_bench.sh BD_REGION_RX, opt-in; the box in SLICE coordinates because
+  this nextpnr's Python has no getBelLocation): the 160 cells of the critical cycle's instances of ex_xorshift_1_5
+  (the != fixture, it 5 sizes) confined to SLICE_X19..26 Y50..69 (shrunk 0.6 per axis from their X18..29 Y41..74),
+  same sizes, seeds 1-4. P (EQUIVALENT, ffmux-clean on all 8): **boxed 15.87 / 16.87 / 17.85 / 18.91 against
+  unconstrained 17.22 / 15.94 / 16.28 / 16.37: paired -1.35 / +0.93 / +1.58 / +2.54 ns, worse on 3 of 4.** Seed 1's
+  cycle lost half its inter-cell wire (6.81 -> 3.54 ns), but on seeds 2-4 other cycles (through umux0 / ulink_n7,
+  ucond_br8 / ufork4) became critical with the rest of the loop spread around the box. Boxing one route's critical
+  cycle is a negative result; the whole kernel boxed (shrink 0.7) is running as the last variant.
+- **The != loop test at fixed sizes:** the same four unconstrained routes (it 5's sizes, != fixture) give P 15.94 -
+  17.22 ns (median ~16.3); the default fixture's suite12 / pk routes ran 17.8-18.1. Not a comparison yet (it 5 is
+  not a finished, clean route); exit1 on the farm is the paired test.
