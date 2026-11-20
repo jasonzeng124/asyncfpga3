@@ -337,6 +337,7 @@ def rf_prefactor(p, lc, sls, branch_data):
 def rf_unpack(p):
     """Fused side (BDC_RING_FUSE): a one- or two-input packed cell, its fork and its two or three slices become the
     test and the updates as separate comps; an update stops waiting for the input it does not read (unjoin).
+    A three-input cell with two slices is first factored into a two-input one (rf_prefactor: unabsorb).
     Returns the number of cells done."""
     R = p.rs; done = 0; skip = set()
     def branch_data(ch):

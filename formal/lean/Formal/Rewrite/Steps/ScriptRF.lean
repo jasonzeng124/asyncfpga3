@@ -22,9 +22,16 @@ steps, if `runScriptRF rs ss = some (rs', pre, chg)` then `Sound rs rs' pre chg`
 * `forkmerge lf`: the fork at `lf` whose first output feeds the last rule, a fork, takes over its outputs (`ForkSplit`
   read backward; checked by running `ForkSplit` on the result);
 * `unjoin lx ln lc lk lb lu`: the update `comp [x2, n2] u F` that also waits for its own copy `n2` of the loop bound,
-  with `F` not reading `n2`, waits for `x2` only, and `n2` leaves the bound's fork (`JoinExtSim`, read backward).
+  with `F` not reading `n2`, waits for `x2` only, and `n2` leaves the bound's fork (`JoinExtSim`, read backward);
+* `unabsorb lq bs as p f g` (2026-11-20): the comp at `lq` reading `bs ++ as` becomes `comp (bs ++ [p]) q g` there
+  and `comp as p f` appended on the fresh channel `p` (`Absorb` read backward; checked by absorbing it back and
+  dropping the sink, which must give the old rules exactly, `applyUA_sound`). A three-input packed cell is so
+  factored into a two-input one, and `forkcomm2` / `unjoin` apply with the folded input `p`.
 
-**Not covered:** token level only; more than two inputs to a fused cell; a packed cell forked to more than two slices (the planner refuses it).
+**Not covered:** token level only. A fused cell with four or more inputs, or one whose inputs cannot be folded so
+that every part keeps a syntactic width bound (`bwp`), is refused by the planner: e.g. a part that passes an input
+through (`sel c x y`) is equal to its slice of the packed word only if the token fits the slice's width, which the
+token model (unbounded `Nat` tokens) does not give.
 -/
 
 namespace Formal.Rewrite.Steps

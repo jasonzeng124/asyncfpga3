@@ -1,36 +1,39 @@
 fuse_check.py census, ring fusion: A = BDC_AUTO=1,BDC_RING_FUSE=0 vs B = BDC_AUTO=1 (flow v8 default, ring fusion on).
-Research origin/claude/research f538cb518 (bdc unchanged since 7827dac5d): its bdc and its cloud/fixtures/frontend; 2026-11-20 01:46 UTC, shard A.
-Tool: fuse_check.py with the ScriptRF steps (forkcomm2 / unpack / unjoin / permute / forkmerge); since 2026-11-20 the
-unfused side's planner also splits a TWO-input update (forkcomm2) and flattens the fork trees above its inputs (sqrtsub).
-Summary: 26 import (85 dfimport cannot read). 19 PROVED, 4 same rules (no ring fused), 3 REFUSED (normal forms differ):
-iterative_division, iterative_sqrt: cells with 3 / 4 inputs; nest3: a 3-input cell whose third input (a block control
-token) is a wait only -- needs a k-input fork-commute and join extension (Lean, not done).
+Research origin/claude/research f538cb518 (bdc unchanged since 7827dac5d): its bdc and its cloud/fixtures/frontend; 2026-11-20 02:01 UTC, shard A.
+Tool: fuse_check.py with the ScriptRF steps (forkcomm2 / unpack / unjoin / permute / forkmerge / unabsorb); since 2026-11-20
+02:00 a three-input packed cell is first factored into a two-input one (unabsorb = Absorb read backward, checked by
+re-absorbing), then the two-input steps apply (notes/A-kinput.md).
+Summary: 26 import (85 dfimport cannot read). 20 PROVED (nest3 new), 4 same rules (no ring fused), 2 REFUSED (normal forms differ):
+iterative_sqrt: a 4-input cell packing sel(c, mid+1, lo) and sel(c, hi, mid-1); iterative_division: a 3-input cell packing
+|a| and |b| (sel(x >s -1, x, 0 - x)). Parts that pass an input through equal their 32-bit slice only if tokens fit 32 bits:
+the token model has no width invariant, so no local step proves these (not a missing fork/join step).
 PROVED = Lean pass_forward/pass_backward, axioms propext/Classical.choice/Quot.sound; dfimport (trusted Python) and
 the multi-result model of bdc's packed cell (fuse_check MR_NEW, layout checked by mr_verilog_check.py) are not covered.
 Controls on sqrtsub: --ctl slice_low REFUSED rc 2; --ctl part_plus1 (n - odd + 1) REFUSED rc 2.
+Controls on nest3: --ctl slice_low REFUSED rc 2; --ctl part_plus1 REFUSED rc 2.
 branchloop                   fuse_check: A and B import to the same rules
-brhash                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/brhash/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fi
+brhash                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/brhash/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
 cmpchain                     fuse_check: A and B import to the same rules
-collatz                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/collatz/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
-collatz64                    fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/collatz64/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
-countloop                    fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/countloop/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
-factorial                    fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/factorial/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
-fold64                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/fold64/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fi
-gcd                          fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/gcd/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fixtu
-horner                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/horner/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fi
-ipow                         fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/ipow/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fixt
-isprime                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/isprime/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
+collatz                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/collatz/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
+collatz64                    fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/collatz64/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/clou
+countloop                    fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/countloop/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/clou
+factorial                    fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/factorial/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/clou
+fold64                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/fold64/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
+gcd                          fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/gcd/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fixt
+horner                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/horner/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
+ipow                         fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/ipow/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fix
+isprime                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/isprime/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
 iterative_division           fuse_check: REFUSED -- normal forms differ: rules: 68 vs 69
-iterative_sqrt               fuse_check: REFUSED -- normal forms differ: rules: 55 vs 55
-lfsrfind                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/lfsrfind/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
-nest3                        fuse_check: REFUSED -- normal forms differ: rules: 136 vs 138
-nested                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/nested/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fi
-quadrec                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/quadrec/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
-sqrtsub                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/sqrtsub/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
-straight                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/straight/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
-sum3                         fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/sum3/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fixt
+iterative_sqrt               fuse_check: REFUSED -- normal forms differ: rules: 54 vs 53
+lfsrfind                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/lfsrfind/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
+nest3                        fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/nest3/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fi
+nested                       fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/nested/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/f
+quadrec                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/quadrec/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
+sqrtsub                      fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/sqrtsub/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
+straight                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/straight/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
+sum3                         fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/sum3/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/fix
 test_int16                   fuse_check: A and B import to the same rules
 test_loop_free               fuse_check: A and B import to the same rules
-twoloops                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/twoloops/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
-varshift                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/varshift/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
-xorshift                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/xorshift/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud/
+twoloops                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/twoloops/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
+varshift                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/varshift/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
+xorshift                     fuse_check: PROVED -- /root/wt-r/cloud/fixtures/frontend/xorshift/comp/handshake_transformed.mlir [BDC_AUTO=1] is equal to /root/wt-r/cloud
