@@ -8338,3 +8338,18 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   region hashes exactly; cell-arc normals same distribution) written as a one-value-per-arc SDF, every constraint
   measured raw (no guard). First 4 draws on C68's spmv route: **E at ucond_br15 (the steer formal's trace starts at)
   -14 +- 30 ps raw, below 0 in 2 of 4 draws**; next A'm umux10 +120 +- 118. 64 draws running.
+### progress 09:53 (C68 reproduced three ways on exit1 spmv s1: runts at formal's hang nets in 4 of 8 of our draws, the flagged steer race lost in 9 of 16 static draws; B21's slow-corner control clean)
+- **C68, our GLS** (route rebuilt here, sdf f572267f = the farm's; draws K 10101-10108 so far, GATE_RUNTS=1): answers right
+  in all 8 (our resolver), but **4 of 8 draws carry 72-420 pulses under 1 ns** (narrowest 56 ps) on ucond_br15 / ucond_br9
+  ack, ulink_n36__2, ulink_n_trueResult_37's stages -- the nets of formal's hang. Our draw 10102 reproduces the farm's own
+  10102 exactly (72 / 96 / 96 pulses), which the farm reported as PASS. Formal's simx: 11 of 32 draws hang.
+- **C68, the static rules under the same model** (research/tools/ssta_draws.sh, 16 draws, raw margins): **E at
+  ucond_br15 -25 +- 73 ps, below 0 in 9 of 16 draws** (the row the rule had at -119 / -174 guarded); A'm umux10 +155 +- 138
+  (3 of 16). Per draw the static sign and the GLS pulses agree only loosely (10107: +23 ps static, 396 pulses; 10104:
+  -60 ps, none): draw_sdf.py has gen.py's bands, pip and region factors but its own per-arc cell normals, and gen.py's
+  decoded netlist leaves more arcs without a route branch (40 % against 25 %). The rates agree: this route loses the race
+  in a third to a half of the model's draws, which 4 draws report as PASS 4 / 4 (18 % of the time with no pulse at all).
+- **B21's last control:** the adversary at the SLOW corner: PASS 10 / 10, no pulse under 6 ns (formal: 10 / 10 there too).
+- Running: C68 draws 10109-10116 and the 16 slow-carry draws; the static draws to 64; the trimmed-vs-untrimmed static
+  draws on exit1 countloop s2 (the route formal B23 judged); the mff loops (fill s1, gather s1: BDC_MEM_FASTFALL through
+  the v9 loop + trim; PREDICTION written before results: P 5-12 % below suite13t's same routes, every draw passing).
