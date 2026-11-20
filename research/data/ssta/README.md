@@ -46,12 +46,14 @@ no guard, and repeat over many draws.
 | exit1 spmv s1 (C68) | NOT CLEAN | 64 | (E at ucond_br15 alone: 34) | E ucond_br15 -11 +- 74; A'm umux10 +142 +- 123 |
 | exit1 countloop s2, untrimmed | NOT CLEAN (one H row) | 48 | 31 (all the H row) | H ulink_n_trueResult_12 stage 2 -32 +- 63; A'm umux0 +162 +- 82 |
 | exit1 countloop s2, trimmed (the committed record) | NOT CLEAN (the same row) | 48 | 31 (the same) | + A'm umux3 +227 +- 96 (min +3), A ucontrol_merge0 +218 +- 78, A'm umux1 +280 +- 94, H trueResult_0 +267 +- 89 |
-| exit1 varshift s1 | CLEAN | 28 (of 48) | 0 | I +297 +- 138, I +272 +- 112, H +214 +- 64, E umux0 +228 +- 67, E ucond_br11 (B21) +257 +- 71 |
+| exit1 varshift s1 | CLEAN | 48 | 0 | I +275 +- 142 (min +4), I +284 +- 113, E umux0 +217 +- 70, H +211 +- 68 |
+| exit1 lfsrfind s1, untrimmed | CLEAN | 48 | 0 | A ucontrol_merge2 +152 +- 44, A'j uselect0 +350 +- 92, A ucontrol_merge0 +193 +- 51 |
+| exit1 lfsrfind s1, trimmed (the committed record) | CLEAN | 48 | 0 | + A'm umux1 +318 +- 104 (3.1 sd), A'm umux0 +222 +- 63 (3.5 sd); ucmpi0's A'j 2239 -> 1444 |
 
 - A static loss is an upper bound on a failure, by rule. countloop s2's H row is lost in 31 of 48 static draws, and
   every simulated draw on that route passes with no pulse under 3 ns (the farm's 4, formal's 16 + 16): rule H compares
   the acknowledge's release with the latch's close and does not credit the sender's handshake and data path that the
   next value must still cross. E at a steer (C68) is the kind that shows in the simulation as pulses.
-- The trim step moves the constraints of the lines it shortens from slack to the rule's own guard, 2.4-3.2 sd in the
-  model, and nothing else (countloop s2); the loop's own sized lines sit at the same distance (A'm umux0 untrimmed, 2.0
+- The trim step moves the constraints of the lines it shortens from slack to the rule's own guard, 2.4-3.5 sd in the
+  model, and nothing else (countloop s2, lfsrfind s1); the loop's own sized lines sit at the same distance (A'm umux0 untrimmed, 2.0
   sd). Formal's B23 says the same of its steer bounds.
