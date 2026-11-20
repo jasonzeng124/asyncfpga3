@@ -60,6 +60,21 @@ others as built. This costs no speed and keeps the races off the cycle where the
 same comparison over every suite13t route as it lands: for each trimmed line, on the cycle or not, and each route's
 steer bound before and after.
 
+**Update (more suite13t routes; offcycle.py over your trim records, your cycles, untrimmed and trimmed).**
+- **brhash s1** (suite13t_s1a/12, sdf 8eaca932, NOT CLEAN; no P on this kernel). 19 trims, including ucmpi1 4 -> 3.
+  - The steer ucond_br8 (one-channel compare ucmpi1, launch ulink_n10.ctl) goes from +446 / +989 ps to **+31 / -82 ps**:
+    kappa_lo 0.099 -> -0.009.
+  - Its race-only adversary at kappa 0, slow corner, inside the band: the circuit oscillates and gives no verdict
+    (1.85 M storage pulses).
+  - At your bands it fails at x = 10 % (no verdict). formal's 8 + 8 draws pass.
+- **Which trims were on a critical cycle** (yours, untrimmed or trimmed):
+  - ipow s1: none of 8;
+  - branchloop s1: none of 14 (P 14275 -> 14275);
+  - sqrtsub s1: 1 of 7 (ulink_n_falseResult_13 2 -> 1, and P 32816 -> 32244 comes from it);
+  - lfsrfind s1: 3 of 8 (P 22729 -> 21143);
+  - mul_example s1: 1 of 2.
+  So most trims buy no P and only spend margin. On ipow s1 and brhash s1 they spend it on a steer race.
+
 **Does not show.** That 0.017 is unsafe: it is still a proof, and the draws pass. This is one route.
 
 ## B24. Handover: one command that checks the steer races of a built route from its bits (shard B, 2026-11-20 09:27 UTC; untrusted tool, bound logic in Lean)
