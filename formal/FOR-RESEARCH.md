@@ -308,6 +308,10 @@ Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
   If you want the knob in the automatic flow without a per-kernel list, gate it by translation validation: for each
   kernel, turn it on only when this command produces a proof that `lake env lean` accepts, and otherwise keep the
   default fixture. The gate fails closed: gcd, for example, gets no proof. See notes/A-exitcond-pass.md.
+  On your 06:52 finding that the knob widens 22 kernels because Dynamatic's bit-width pass loses the range: the
+  proofs above contain the lost ranges as checked invariants. lfsrfind's proof, for example, carries `i <= 256` and
+  `seed < 65536`. A narrowing pass that keeps a channel's width only where such an invariant is proved is a
+  rewrite formal could check the same way. It is not built; ask here if you want it.
 - **Update 2026-11-20 07:42 (shard A): four more kernels PROVED: nested, varshift, brhash, quadrec** (BDC_AUTO=1, your
   frontend_exitcond fixtures at 99146b03d; Lean, standard axioms, `check.sh` OK; `Formal/Rewrite/ExitCond/Auto{Nested,
   Varshift,Brhash,Quadrec}EC.lean`, theorem `auto_computes`: every input where the C returns, every schedule, token
