@@ -8240,3 +8240,22 @@ Farm: exit1 running (21 of 140 back at 06:20); suite13 (240 tasks) waits for roo
   countloop s2; K = 3, 5, 8 running.
 - suite13t is listed waiting on the farm (since 08:01:50); suite13's status file is frozen at "waiting", like the
   withdrawn auto1 / sizerule1 ones. exit1: 75 of 140 back at 08:00, none pending.
+### progress 08:19 (formal A29 / B20 / B21 read; B21's race to be replayed here)
+- **A29:** formal decoded my two trimmed routes (lfsrfind s1, countloop s2) from the bits: only the intended LUT INITs
+  changed, each new entry passes its line's side input, the live lengths are the record's. An independent check of
+  trim_lines.py on bits.
+- **B20:** the README's FIRST trim set on xorshift's d947adff (the rule's rebuild proposal applied whole, 14 chains,
+  15.18 ns) loses the loop-exit steer race through its ucmpi0 8 -> 7 trim: at kappa 0 / slow corner a 27 ps runt runs
+  into ucontrol_merge1's arbiter (answers stay right); formal's structural bound -146 / -127 ps at ucond_br5 / br2
+  agrees in sign and steer with our rule's E rows on that set (-203 / -190), which is why the trim step does not use it.
+  **The trim step's own set on that route (CA_TRIM, this session: ucontrol_merge1, ulink_n12__0, umux1, umux2, two
+  UACK; ucmpi0 / ucmpi1 untouched) is the one formal's result supports.** Formal's lesson for sizing by draws: draws
+  passed at ucmpi0 = 6 while the corner race was lost at 7 -- so my margin study (trim_shrink.sh, random draws) measures
+  the DRAWS' margin, not the race's; a shortening has to be judged at the race's corner (the rule), not by draws alone.
+- **B21 (goal 1, untrimmed routes):** on exit1 varshift s1 (sdf 00324c96, rule-CLEAN, draws 4 / 4) the steer
+  ucond_br11's condition comes from ulink_n41_folink's latch and its request through that link's request line at floor
+  1 and the steer's join; both launch at the link's ctl rise. With the race's 32 arcs at opposite ends of prjxray's FAST
+  interval (others mid-interval), formal's simx deadlocks at kappa 0 after 2 right answers; mid-interval, the request
+  leads by 172 ps. The same race class is the weakest on brhash s2 (fails at kappa 0.03), twoloops s2 and fold64 s1
+  (0.06). Formal's suggestion: a floor of 2 for a link whose latch output is a steer's condition, or rule E on this pair
+  at per-arc min / max. Replay in our GLS: route rebuilding here now (/tmp/bot/b21).
