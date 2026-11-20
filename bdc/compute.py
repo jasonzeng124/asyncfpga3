@@ -83,7 +83,16 @@ BINARY = {
     "shli":  "{a} << {b}",
     "shrui": "{a} >> {b}",
     "shrsi": "$signed({a}) >>> {b}",
+    # min / max (arith.minui / maxui / minsi / maxsi; LLVM's umin / umax / smin / smax intrinsics lower to them --
+    # the != loop-test fixtures, bdc/frontend.sh BDC_FE_EXITCOND=1, compute a loop's bound as umin(n, ...) once before
+    # memsum's, dot2's and gather's loops).  One compare (a carry chain) and a 2:1 select of the operands.  The
+    # condition of `?:` is self-determined, so `$signed(..) < $signed(..)` is a signed compare whatever the arms are.
+    "minui": "(({a}) < ({b})) ? ({a}) : ({b})",
+    "maxui": "(({a}) > ({b})) ? ({a}) : ({b})",
+    "minsi": "($signed({a}) < $signed({b})) ? ({a}) : ({b})",
+    "maxsi": "($signed({a}) > $signed({b})) ? ({a}) : ({b})",
 }
+MINMAX = {"minui", "maxui", "minsi", "maxsi"}
 
 # cmpi carries its predicate as a bare keyword argument (`cmpi sgt, %a, %b`),
 # which the reader stores as a LiteralArg rather than an attribute.
@@ -445,7 +454,9 @@ def default_delay(op, width):
         # exactly why quoting that margin as headroom for this change was
         # wrong.  Double the worst observed shortfall, for the same reason
         # CELL_DELAY above is 12 and not 6.
-        if op == "cmpi":
+        # min / max: the compare's carry out drives a 2:1 select LUT on every result bit -- one LUT after the
+        # chain, as the comparator's kept LUT1 is, so the same +6.
+        if op == "cmpi" or op in MINMAX:
             n += 6
         return n
     return FLOOR
@@ -502,7 +513,7 @@ def _depth_class(op):
         return "div"
     if op == "muli":
         return "mul"
-    if op in ("addi", "subi", "cmpi"):
+    if op in ("addi", "subi", "cmpi") or op in MINMAX:
         return "carry"
     if op in ("shli", "shrui", "shrsi"):
         return "shift"

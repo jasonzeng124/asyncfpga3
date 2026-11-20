@@ -60,6 +60,10 @@ BINARY_REF = {
     "addi": "a + b", "subi": "a - b", "muli": "a * b",
     "andi": "a & b", "ori": "a | b", "xori": "a ^ b",
     "shli": "a << b", "shrui": "a >> b", "shrsi": "$signed(a) >>> b",
+    # min / max written the other way round from compute.BINARY (b against a, <= / >=), so a swapped arm or an
+    # unsigned compare in a signed op disagrees on some vector (the edges straddle the sign boundary)
+    "minui": "(b <= a) ? b : a", "maxui": "(b >= a) ? b : a",
+    "minsi": "($signed(b) <= $signed(a)) ? b : a", "maxsi": "($signed(b) >= $signed(a)) ? b : a",
 }
 
 # The dividers (compute.DIV) against Verilog's `/` and `%`, which truncate toward zero and give the remainder the

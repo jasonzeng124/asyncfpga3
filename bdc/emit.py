@@ -343,7 +343,7 @@ def result_channels(node, operand_ch):
     if op == "cmpi":
         return [(1, False)]
     if op in ("addi", "subi", "muli", "andi", "ori", "xori",
-              "shli", "shrsi", "shrui"):
+              "shli", "shrsi", "shrui") or op in compute.MINMAX:
         return [operand_ch[0]]
     if op in compute.DIV:
         # divui / divsi / remsi (and remui, which Dynamatic's dialect lacks): the dividend's width, as for the
@@ -729,7 +729,7 @@ endmodule
 DELAY_BEARING = {
     "addi", "subi", "muli", "cmpi", "andi", "ori", "xori",
     "shli", "shrsi", "shrui", "select", "mux",
-} | set(compute.DIV)
+} | set(compute.DIV) | compute.MINMAX
 
 
 # ---------------------------------------------------------------------------
@@ -2353,7 +2353,7 @@ def _apply_link_depths(func, linked, depth, floor):
 CALL_JOIN = os.environ.get("BDC_CALL_JOIN", "1") != "0"
 _CJ_FIRST = ("constant", "fork", "lazy_fork", "br", "buffer", "trunci", "extui", "extsi", "load")
 _CJ_ALL = ("join", "cond_br", "select", "cmpi", "addi", "subi", "muli", "andi", "ori", "xori", "shli", "shrsi",
-           "shrui", "divsi", "divui", "remsi", "remui", "store", "mem_controller")
+           "shrui", "divsi", "divui", "remsi", "remui", "minui", "maxui", "minsi", "maxsi", "store", "mem_controller")
 _CJ_ANY = ("merge", "control_merge")
 
 
@@ -4191,7 +4191,7 @@ def _bind_compute(op):
 
 
 for _op in ("addi", "subi", "muli", "cmpi", "andi", "ori", "xori",
-            "shli", "shrsi", "shrui", "select") + tuple(sorted(compute.DIV)):
+            "shli", "shrsi", "shrui", "select") + tuple(sorted(compute.DIV)) + tuple(sorted(compute.MINMAX)):
     setattr(Emitter, f"_op_{_op}", _bind_compute(_op))
 
 
