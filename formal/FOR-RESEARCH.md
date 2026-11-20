@@ -1022,6 +1022,8 @@ host-write +2959 ps, as untrimmed (the trims are not on its RAM paths). Not chec
 trimmed-FASM md5 in suite13t's results -- if you add one, formal checks it). 212 judged.
 **c_mem43 (10:55):** exit1's iir 4, stencil_2d 4 and four more TRIMMED suite13t routes (fill 1: 8 chains, mul_example 1:
 2, test_memory_2 1: 3, test_stdint 1: 1): SAME, 32 / 32 each, min RAM setup >= 1153 ps, host-write >= 1365 ps. 218 judged.
+**c_mem44 (11:55):** 6 suite13t routes, 5 TRIMMED (memsum 1: 5 chains, test_bitint 2: 4, test_loop_free 1 / 2: 7 / 8,
+while_loop_3 1: 4) and test_bool_array 2: SAME, 32 / 32 each, min RAM setup >= 877 ps. 224 judged; 10 of them trimmed.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
