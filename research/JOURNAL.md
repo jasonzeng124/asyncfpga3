@@ -8184,3 +8184,13 @@ Farm: exit1 running (21 of 140 back at 06:20); suite13 (240 tasks) waits for roo
   06:48: every draw compile of this session waited on one lock till then. Now 4 again.
 - The trimmed lfsrfind s1 cycle (cycdecomp): P 27062 = delay chains 12641 + wire between cells 11966 + cell logic
   2455 ps over 12 handshake hops (~1 ns of wire each: two compares in series, each behind a join and a steer).
+### progress 07:05 (trimmed routes pass their draws so far; overbuild: xorshift s1's first finish route CLEAN as built)
+- Draws on trimmed routes, the farm's own draw points: lfsrfind s1 3 / 3 so far, countloop s2 2 / 2 (PASS 10/10 each,
+  no pulse under 1 ns on lfsrfind's: narrowest 4.0 ns).
+- **Overbuild (+3 on 31 trimmable lines), suite12 xorshift s1:** its first finish route (it 5, b4d71e3d) is CLEAN as
+  built -- no short row at all, where the farm's six finish routes (no overbuild) never were; untrimmed P 20279 ps
+  (the farm shipped it 9 NOT CLEAN at 17808). The trim step on it is running: the prediction stands to be checked
+  against 17.81. countloop s1 / s2: their first finish routes are short on 6 / 10 rows as built; trim checks running.
+- Next, beside these: BDC_MEM_FASTFALL (cells/rtl/optin/bd_mem_ff.v, the port's two lines fall in one element;
+  research/data/suite/memauto.md: -6.0 / -8.0 / -12.7 % on gather s1 / s2, fill s2, single routes, never through the
+  sizing loop) through the loop locally with AUTO_TRIM, as a candidate for the next flow.
