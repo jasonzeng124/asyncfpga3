@@ -8556,3 +8556,18 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   25557 trimmed; Dynamatic measured 17.84). PREDICTION (now, before any result): trimmed P 16.6-21.7 ns (15-35 % below).
 - Farm: the proved-rewrite + sibling set moved ahead of suite13t's seeds 3-4 (suite13t_s3a_rwa, 32 tasks); set B of
   sibling fusion alone as suite13t_s5c_sibb (84); suite13t_s5b_sib withdrawn before it ran (79f15698f, 38bfa983b).
+### progress 14:35 (the race check works in the loop; flow v10 filed on the farm with its prediction)
+- **AUTO_RACE_Z in a real loop** (local, xorshift s1, v9 + scoped trim + AUTO_RACE_Z=4.5, SUITE_TAG=rz): the loop retraced
+  suite13t's routes exactly (sdf it 0-3 = the farm's), reached its clean it 8 (sdf 138aac60 = suite13t's shipped
+  route), and the race check said: 8 latch-fed steer races, weakest ucond_br9 2.85 sd, 4 below 4.5 sd -> padded
+  ULINK_N31_FOLINK 1 -> 2, the route not clean; it 9 is being built with the link at 2.
+- **Flow v10 filed** (suite13t_s5a_v10_{1a..4b}: 60 kernels x 4 seeds as suite13t, named to run after suite13t and its
+  rerun): v9 + the trim step, with AUTO_TRIM_SCOPE=cycle, AUTO_RACE_Z=4.5 and AUTO_PROVED_RW=cache. Not in it:
+  BDC_SIBLING_FUSE (on the default fixtures it couples a merged cell's parts, formal A30; its own test is
+  suite13t_s5c_sibb), the != loop test (exit1 against suite13t: no gain on the kernels whose widths it keeps, +7 %
+  on the ones it widens). **PREDICTION (written now, before any v10 result), against suite13t's same (kernel, seed):**
+  collatz / collatz64 P 15-35 % lower (the proved eq2 + the search phase: collatz s1 locally 14.48 ns vs 22.75);
+  xorshift and the other plain-move kernels (countloop, twoloops, quadrec, horner, varshift) 0-10 % lower; every other
+  kernel within route scatter of suite13t's trimmed P (median -2 .. +2 %), some routes up to one element slower where
+  a latch-fed link is padded; fewer trims (about the cycle's 13 %); every draw passes on every judged route; the
+  rule-clean share within 5 points of suite13t's; no route with a latch-fed steer race below 4.5 sd.
