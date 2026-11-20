@@ -24,7 +24,7 @@ def run(bc,br,x):
     r=subprocess.run([M+'/simx',M+'/net.simx','--periodic','--maxev','300000000','--kernel',K,'--want',W,'--pairs',*pairs,
         '--corner','0','--data0','--full','--R','400000','--su','1000','--datachange','broad','--nextreq','seq','--tmax','400000000',
         '--hostdelay','12000','--draw','1','--gclass',M+'/gclass.txt','--bands','%g,%g,1.0'%(bc,br),'--sreg','0','--sarc','0','--w','20',
-        '--classes',d+'/inj.json'],capture_output=True,text=True)
+        '--classes',d+'/inj.json']+(['--dout',__import__('os').environ['DRAW_DOUT']] if __import__('os').environ.get('DRAW_DOUT') else []),capture_output=True,text=True)
     o=r.stdout+r.stderr
     res=next((l.split(':')[0] for l in o.splitlines() if l.startswith('RESULT')),'MAXEV' if 'MAXEV' in o else 'NONE')
     pul=next((l.split(':')[1].split(';')[0].strip() for l in o.splitlines() if l.startswith('NEARMISS')),'?')

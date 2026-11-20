@@ -17,7 +17,7 @@ for k in 0 0.03 0.06 0.10 0.15 0.20; do r=""
   for c in 0 1; do
     KDEN=100 timeout 1500 $M/simx $M/net.simx --periodic --maxev 300000000 --kernel $K --want $W --pairs $P --corner $c --kappa $k \
       --classes $D/ctl_adv.json --cdefault M --data0 --full --R 400000 --su 1000 --datachange broad --nextreq seq --tmax 400000000 \
-      --hostdelay 12000 --w 20 > $D/ctl_o.txt 2>&1
+      --hostdelay 12000 --w 20 ${DRAW_DOUT:+--dout $DRAW_DOUT} > $D/ctl_o.txt 2>&1
     v=$(grep -o 'RESULT [A-Z]*\|MAXEV cap' $D/ctl_o.txt | head -1 | sed 's/RESULT //; s/MAXEV cap/NO-VERDICT/'); r="$r c$c:${v:-NONE}/$(grep -o 'pulses < 200 ps: [0-9]*' $D/ctl_o.txt | grep -o '[0-9]*$')"
   done
   case "$r" in *MISMATCH*|*NO-VERDICT*|*NONE*|*HANG*|*FAIL*) first="kappa $k ($r)"; break;; esac
