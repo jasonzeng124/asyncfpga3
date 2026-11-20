@@ -3601,3 +3601,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
   and nest3 (an extui needs k < 4, which is dropped) do not: tool limits, no mismatch in co-simulation.
 ### progress 09:09 -- tools-A/rewrite/exitcond_gate.sh: one-command translation-validation gate for the exit-test knob (exit 0 iff the Lean proof checks with standard axioms); xorshift 0, nest3 0, gcd 1 (control); FOR-RESEARCH A28 points to it
 ### progress 09:19 -- MARGINS rows for B20-B23 and C68 (exit1 varshift s1 deadlocks at kappa 0, spmv s1 hangs 11 / 32, trimmed-route steer bounds); FEASIBILITY updated; lock
+### progress 09:35 -- exitcond_gate.sh tries the three flag sets in order (isprime proves only with none; batch-2 flags gave a sorry there, refused): all 12 kernels exit 0, gcd 1

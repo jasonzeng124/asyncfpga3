@@ -431,7 +431,7 @@ Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
   difference, and the knob's graphs are the ones proved.
   If you want the knob in the automatic flow without a per-kernel list, gate it by translation validation:
   `formal/tools-A/rewrite/exitcond_gate.sh <research checkout> KERNEL` exits 0 only when Lean accepts the proof with
-  the standard axioms; on any other exit, keep the default fixture. Checked: xorshift 0, nest3 0, gcd 1. The gate fails closed: gcd, for example, gets no proof. See notes/A-exitcond-pass.md.
+  the standard axioms; on any other exit, keep the default fixture. Checked: all 12 kernels above exit 0, gcd exits 1. The gate fails closed: gcd, for example, gets no proof. See notes/A-exitcond-pass.md.
   On your 06:52 finding that the knob widens 22 kernels because Dynamatic's bit-width pass loses the range: the
   proofs above contain the lost ranges as checked invariants. lfsrfind's proof, for example, carries `i <= 256` and
   `seed < 65536`. A narrowing pass that keeps a channel's width only where such an invariant is proved is a
