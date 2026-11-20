@@ -3451,3 +3451,18 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 * Research since yesterday: BDC_FE_EXITCOND (LLVM indvars exit-test rewrite, e.g. `i + 1 < n` -> `!=`) fixtures for 37
   kernels (13d3547ce), predicted 1.5-3 ns on xorshift-like loops; still opt-in. Next for A: check it (differential
   sim over all 37, then autoproof against the C where cfront reads the kernel).
+### progress 02:35 -- BDC_FE_EXITCOND graphs proved against the C (BDC_AUTO=1): xorshift, countloop, isprime, horner
+* Problem: research's frontend knob BDC_FE_EXITCOND=1 (LLVM indvars rewrites a loop's exit test, e.g. `i + 1 < n` ->
+  `i + 1 != n`, and on gcd `slt` -> `ult`) changes 37 fixtures (cloud/fixtures/frontend_exitcond, 13d3547ce). Is each
+  new graph still the C function, for every input (n <= 0, INT_MAX included)?
+* ringfuse_autoproof.sh (shard C's autoproof on a patched copy; FIXDIR / NSUF / TAILN knobs added) on the exitcond
+  fixtures, BDC_AUTO=1 (ring fusion on), research f538cb518: Formal/Rewrite/ExitCond/Auto{Xorshift,Countloop,Isprime,
+  Horner}EC.lean, `auto_computes` (every input where the C returns, every schedule; token level). check.sh OK on the
+  four files (1422 declarations, standard axioms).
+* Not proved, and why: nested -- its DEFAULT graph proves, the exitcond one does not: autoproof's guessed state
+  correspondence must hold on every C state, and `j != b` equals `j < b` only on reachable ones (j <= b). A tool limit,
+  not a counterexample (needs a reachability invariant). varshift, twoloops: the generated proofs fail (omega) or the
+  guess fails on the default graph too. brhash: guess fails on both. quadrec / lfsrfind / fold64: cfront cannot read
+  the C. nest3: autoproof IndexError. gcd: no C in kernels/.
+* Differential simulation (diffcheck.py, 30 vectors incl. 0 / -1 / INT_MIN / INT_MAX, 3 schedules, 200k-step limit)
+  over all 37 running.
