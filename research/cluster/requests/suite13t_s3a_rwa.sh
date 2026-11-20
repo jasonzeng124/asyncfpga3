@@ -14,12 +14,20 @@
 # 10-25 % on collatz / collatz64 (eq2; the md5-keyed version gave -24 / -26 % before ring fusion); set B within route
 # scatter overall (median -3 .. +3 %), some kernels worse (a merged cell makes a short branch wait for the longest
 # one's line); every draw passes everywhere; rule-clean share as suite13t's.
+# CHANGE 2026-11-20 15:50 UTC, before this request started: AUTO_RACE_Z=4.5 added (formal B28's latch-fed race check,
+# on in flow v10). With it this set A is exactly flow v10 + BDC_SIBLING_FUSE=1 on the eight proved kernels (v10 reads
+# the same proved MLIRs through AUTO_PROVED_RW=cache), so suite13t_s5a_v10_*'s same (kernel, seed) is its paired
+# control for the sibling cell; on collatz / collatz64 the flag changes nothing (formal A30: emit is byte-identical), so
+# those 8 routes are v10's own, early. PREDICTION for the change (15:50): against v10's same kernel and seed, the six
+# plain-move kernels within -10 .. +5 % (local seed 1: xorshift -0.4 %), collatz / collatz64 identical routes (sdf
+# md5 equal); against suite13t, the 12:55 prediction above stands with the race check's cost (up to one element on a
+# padded link) on top.
 set -uo pipefail
 A=(xorshift countloop twoloops quadrec horner varshift collatz collatz64)
 B=(ipow gcd isprime straight countloop sqrtsub twoloops horner varshift nested branchloop fill factorial iterative_division iterative_sqrt if_loop_1 if_convert test_flatten_array image_resize stencil_2d nested_loop)
 if [ "$TASK" -le 32 ]; then K=${A[$(( (TASK - 1) % 8 ))]}; S=$(( (TASK - 1) / 8 + 1 )); export MLIR_OVERRIDE=research/data/autorw/$K.mlir; SET=A
 else T2=$((TASK - 33)); K=${B[$(( T2 % 21 ))]}; S=$(( T2 / 21 + 1 )); SET=B; fi
-export CA_JOBS=2 DRAW_JOBS=2 PNR_TIMEOUT=3600 BDC_AUTO_REWRITES=0 CA_BENCHCAP=1 AUTO_TRIM=1 AUTO_TRIM_SCOPE=cycle BDC_SIBLING_FUSE=1
+export CA_JOBS=2 DRAW_JOBS=2 PNR_TIMEOUT=3600 BDC_AUTO_REWRITES=0 CA_BENCHCAP=1 AUTO_TRIM=1 AUTO_TRIM_SCOPE=cycle BDC_SIBLING_FUSE=1 AUTO_RACE_Z=4.5
 echo "suite13t_s3a_rwa set $SET kernel $K seed $S ${MLIR_OVERRIDE:+(MLIR_OVERRIDE=$MLIR_OVERRIDE)}" > "$OUT/task.txt"
 mkdir -p "$OUT/auto"
 # $SHARED state (added 2026-11-20 15:45 UTC, before this request started; the flow is unchanged): suite13t lost ~30 % of

@@ -8686,3 +8686,9 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
     files ucmpi2 as a compare with a join on this steer and as joinless on br5 / br6; asked formal (FOR-FORMAL).
   - Both: output capture kappa_lo negative (-0.28 / -0.31) at formal's 3 ns sampling point; CA_BENCHCAP sizes out0 for
     the PS bench's capture ~24 ns after the request (formal's B28 re-run at --dout 23000 made the same distinction).
+### progress 15:44 (rwa gets the race check before it starts: it becomes v10 + the sibling cell on the eight proved kernels)
+- suite13t_s3a_rwa (still waiting) now also sets AUTO_RACE_Z=4.5. Its builds then equal flow v10's on the same MLIRs
+  (v10 reads research/data/autorw/K.mlir through AUTO_PROVED_RW=cache, rwa through MLIR_OVERRIDE; suite_one's compile
+  check is the only other use and does not touch the builds), plus BDC_SIBLING_FUSE=1. So rwa vs v10, same (kernel,
+  seed), is the paired test of the sibling cell, and rwa's collatz / collatz64 routes (the flag changes nothing there,
+  formal A30) are v10's own, early. Revised prediction in the request header (15:50).
