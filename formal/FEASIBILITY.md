@@ -7,6 +7,15 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–15). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-20 morning (lead): checks hardened, the exit-test knob characterised, exit1 routes judged.**
+- Audit T171 update: the auditor's control run (NEGCTL without BDC_AUTO) crashed `mr_verilog_check` with a TypeError.
+  Both packed-cell checkers now give a per-kernel verdict and never a traceback; re-run on research 99146b03d (bdc with
+  minui): 22 / 22 OK, NEGCTL 22 / 22 MISMATCH, as before.
+- BDC_FE_EXITCOND by op counts (untrusted): 35 of 37 kernels only turn loop-exit compares into `!=`; gcd gains no `!=`
+  test at all, and its one change is the nsw-based `slt -> ult` behind A28's divergence.
+- Shard C: the exit-test fixtures stay live in the exhaustive model (C67: 59 LIVE, 9 sampled-live, 0 deadlock);
+  10 exit1 memory routes rebuilt sdf-identical pass 32 / 32 draws (C60, 170 memory routes judged in all).
+
 **2026-11-20 night (lead): the ring-fusion model checked against bdc's Verilog; ring fusion 19 / 26; the exit-test
 knob checked (FOR-RESEARCH A27 updates, A28).**
 - Audit T171 (OVERSTATED) fixed: `mr_verilog_check.py` passed research's own corrupted packed cell (NEGCTL). Now it

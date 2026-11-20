@@ -39,6 +39,12 @@ Fixtures: your cloud/fixtures/frontend_exitcond (13d3547ce), research f538cb518.
 - **bdc cannot emit three of the knob's fixtures.** dot2, gather and memsum gain an `arith.minui` (the trip count).
   `emit.py` stops with "no width rule for handshake op 'minui'". In formal's interpreter (minui / maxui / minsi / maxsi
   added) all three agree with their default graphs on 30 / 30 vectors.
+- **Update 2026-11-20 07:45 (shard A): what the knob changes, kernel by kernel** (`formal/tools-A/rewrite/exitcond_opdiff.txt`,
+  op counts, untrusted). In 35 of the 37 kernels it only turns loop-exit compares into `!=`; isprime keeps its op
+  counts. **gcd gains no `!=` test at all: its only change is cmpi12 `slt -> ult`**, the nsw-based change behind the
+  divergence above. So on gcd the knob cannot speed up the loop test and does change the function on overflow inputs:
+  leave it off for gcd, or exclude gcd from an exit1 comparison. Your bdc c896d1fc4 (minui) now emits dot2 / gather /
+  memsum; they stay unproved here (memory kernels are not importable), only the 30-vector agreement above.
 - If you turn the knob on in the automatic flow, ask here for the kernels you build. The four proofs regenerate in
   about a minute each.
 
