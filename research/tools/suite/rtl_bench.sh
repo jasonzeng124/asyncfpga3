@@ -21,7 +21,7 @@ K=$1; VEC=$(readlink -f "$2"); EXP=$(readlink -f "$3"); mkdir -p "$4"; W=$(cd "$
 [ -n "$MEMEXP" ] && MEMEXP=$(readlink -f "$MEMEXP")
 [ -s "$EXP" ] || { echo "$1 rtl REFUSED: no expected values in $EXP (a run with nothing to compare is not a pass)"; exit 2; }
 R=$(cd "$(dirname "$0")/../../.." && pwd)
-MLIR=$R/build/frontend/$K/comp/handshake_transformed.mlir
+MLIR=${RTL_MLIR:-$R/build/frontend/$K/comp/handshake_transformed.mlir}   # RTL_MLIR (opt-in): another handshake MLIR for K
 [ -f "$MLIR" ] || { echo "$K rtl NO FIXTURE ($MLIR)"; exit 1; }
 # gen_bench.py reads the kernel's delay parameters from cells/build/gen/ first: a stale kernel there would win
 [ -e "$R/cells/build/gen/${K}_kernel_bench.v" ] && { echo "$K rtl REFUSED: $R/cells/build/gen/${K}_kernel_bench.v exists (gen_bench.py would read it, not this run's)"; exit 2; }
