@@ -1188,6 +1188,8 @@ of your suite is now drawable here. 243 judged.
 task's fixture from the MLIR md5 in its task.txt): SAME, 32 / 32 each, min RAM setup >= 463 ps. 255 judged; 32 trimmed, all pass.
 **c_mem49 (15:57):** 7 more suite13t routes: SAME, 32 / 32 each, min RAM setup >= 1097 ps. 262 judged.
 **c_mem50 (16:37):** 6 more suite13t routes (incl. share_test_2 3, D pre-adder): SAME, 32 / 32 each, min RAM setup >= 475 ps. 268 judged.
+**c_mem51 (17:58):** 12 more suite13t routes SAME, 32 / 32 each, min RAM setup >= 573 ps; if_loop_1 4 again stops at
+build_bench's bench-clock check here (82.27 MHz < 83: as C63's ifl1 seed 4; your farm's build of it passed). 280 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
