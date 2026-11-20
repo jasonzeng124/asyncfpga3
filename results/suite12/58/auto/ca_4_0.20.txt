@@ -1,0 +1,242 @@
+corner_audit /tmp/task/runs/ca/su_share_test_1_1_4/seed1
+  corner: corner_sdf: /tmp/task/runs/ca/su_share_test_1_1_4/seed1/pnr/soak_xray.sdf -> /tmp/task/runs/ca/su_share_test_1_1_4/rule_0.20/soak.sdf
+            band 0.2, cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, 237 instance(s) listed (0.2), all in the SDF
+            INTERCONNECT default (0.2)                        33118 arcs
+            INTERCONNECT into listed instance (0.2)             326 arcs
+            IOPATH CARRY4 (1)                                  2492 arcs
+            IOPATH SELMUX2_1 (1)                                954 arcs
+            IOPATH SLICE_FFX (1)                               2084 arcs
+            IOPATH default (0.2)                              95934 arcs
+            IOPATH listed instance (0.2)                        326 arcs
+            SETUPHOLD (FAST_MIN, as gen.py)                   10332 arcs
+  nextpnr: UNSTAMPED
+  guards: rule E/J 0.970*req vs 1.030*sel; rule A/F/H/I/K/L guard max(0.030*t_data, 50 ps); slack 0
+  rule A data launches from constant drivers: DROPPED (a constant never transitions)
+  audits exit: tighten 1, skew 0, arb_fork 0
+  per-link cost at this corner: c_lo 179 ps (cheapest link-to-link step on the route), lut_lo 61 ps; chain mean steps 179-555 ps
+  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band 0.2, CARRY4/F7F8/FF at --cell; shortened lines priced at own mean step; selects sized by E/M; floor file none
+  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the select's own channel request is bounded by that request (research/data/sizerule/steerE.md)
+  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); research/data/muxsel/)
+  join-aware: CA_JOINAWARE=1: 3 operator(s) sized at their data's captures (A'j: latch data vs its enable, select vs its gate's request; C-elements wait for their last input; join credit), their A' rows reported as 'a'; 3 kept on A' (rows 'j' say why)
+  WARNING chain(s) ['bridge_i.ua_end_snk'] map to BD_SZ_BRIDGE_I_UA_END_SNK, which sizes.vh does not set (kept, measured)
+  WARNING chain(s) ['bridge_i.ub_end_snk'] map to BD_SZ_BRIDGE_I_UB_END_SNK, which sizes.vh does not set (kept, measured)
+  WARNING chain(s) ['bridge_i.upsnk'] map to BD_SZ_BRIDGE_I_UPSNK, which sizes.vh does not set (kept, measured)
+negative at this corner: 103
+  H    -486  bridge_i.udut.uload2.ucap.pair[24].u$LUT5  0 links   enable   581  data   145 (outside)  guard   50  margin   -486   VIOLATION -- no DACK line here to
+  H    -481  bridge_i.udut.uload0.ucap.pair[28].u$LUT5  0 links   enable   641  data   210 (outside)  guard   50  margin   -481   VIOLATION -- no DACK line here to
+  H    -477  bridge_i.udut.uload3.ucap.pair[4].u$LUT5  0 links   enable   570  data   143 (outside)  guard   50  margin   -477   VIOLATION -- no DACK line here to 
+  H    -476  bridge_i.udut.uload2.ucap.pair[30].u$LUT5  0 links   enable   568  data   142 (outside)  guard   50  margin   -476   VIOLATION -- no DACK line here to
+  H    -472  bridge_i.udut.uload1.ucap.pair[14].u$LUT5  0 links   enable   565  data   143 (outside)  guard   50  margin   -472   VIOLATION -- no DACK line here to
+  H    -420  bridge_i.udut.uload1.ucap.pair[18].u$LUT5  0 links   enable   584  data   214 (outside)  guard   50  margin   -420   VIOLATION -- no DACK line here to
+  H    -414  bridge_i.udut.uload1.ucap.pair[0].u$LUT6  0 links   enable   530  data   166 (outside)  guard   50  margin   -414   VIOLATION -- no DACK line here to 
+  H    -411  bridge_i.udut.uload3.ucap.pair[22].u$LUT5  0 links   enable   570  data   209 (outside)  guard   50  margin   -411   VIOLATION -- no DACK line here to
+  H    -408  bridge_i.udut.uload1.ucap.pair[8].u$LUT5  0 links   enable   651  data   293 (outside)  guard   50  margin   -408   VIOLATION -- no DACK line here to 
+  H    -397  bridge_i.udut.uload3.ucap.pair[0].u$LUT5  0 links   enable   574  data   227 (outside)  guard   50  margin   -397   VIOLATION -- no DACK line here to 
+  H    -391  bridge_i.udut.uload3.ucap.pair[20].u$LUT5  0 links   enable   565  data   224 (outside)  guard   50  margin   -391   VIOLATION -- no DACK line here to
+  H    -391  bridge_i.udut.uload3.ucap.pair[24].u$LUT5  0 links   enable   633  data   292 (outside)  guard   50  margin   -391   VIOLATION -- no DACK line here to
+  H    -387  bridge_i.udut.uload2.ucap.pair[4].u$LUT5  0 links   enable   539  data   202 (outside)  guard   50  margin   -387   VIOLATION -- no DACK line here to 
+  H    -384  bridge_i.udut.uload0.ucap.pair[30].u$LUT5  0 links   enable   657  data   323 (outside)  guard   50  margin   -384   VIOLATION -- no DACK line here to
+  H    -380  bridge_i.udut.uload1.ucap.pair[12].u$LUT5  0 links   enable   548  data   218 (outside)  guard   50  margin   -380   VIOLATION -- no DACK line here to
+  H    -367  bridge_i.udut.uload0.ucap.pair[2].u$LUT5  0 links   enable   706  data   389 (outside)  guard   50  margin   -367   VIOLATION -- no DACK line here to 
+  H    -364  bridge_i.udut.uload1.ucap.pair[0].u$LUT5  0 links   enable   480  data   166 (outside)  guard   50  margin   -364   VIOLATION -- no DACK line here to 
+  B    -359  bridge_i.udut.umem_controller3_uport.umem1.uram: clk 3495 ps, latest payload ADDRARDADDR12 2888 ps, t_su 966 -> margin -359 ps  VIOLATION
+            depends on: BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM1_USETUP
+  H    -358  bridge_i.udut.uload2.ucap.pair[12].u$LUT5  0 links   enable   613  data   305 (outside)  guard   50  margin   -358   VIOLATION -- no DACK line here to
+  H    -342  bridge_i.udut.uload3.ucap.pair[28].u$LUT5  0 links   enable   505  data   213 (outside)  guard   50  margin   -342   VIOLATION -- no DACK line here to
+  H    -337  bridge_i.udut.uload3.ucap.pair[14].u$LUT5  0 links   enable   503  data   216 (outside)  guard   50  margin   -337   VIOLATION -- no DACK line here to
+  H    -333  bridge_i.udut.uload0.ucap.pair[12].u$LUT5  0 links   enable   506  data   223 (outside)  guard   50  margin   -333   VIOLATION -- no DACK line here to
+  H    -331  bridge_i.udut.uload0.ucap.pair[16].u$LUT5  0 links   enable   574  data   293 (outside)  guard   50  margin   -331   VIOLATION -- no DACK line here to
+  H    -330  bridge_i.udut.uload0.ucap.pair[18].u$LUT5  0 links   enable   571  data   291 (outside)  guard   50  margin   -330   VIOLATION -- no DACK line here to
+  H    -330  bridge_i.udut.uload1.ucap.pair[16].u$LUT5  0 links   enable   487  data   207 (outside)  guard   50  margin   -330   VIOLATION -- no DACK line here to
+  H    -330  bridge_i.udut.uload1.ucap.pair[26].u$LUT5  0 links   enable   668  data   388 (outside)  guard   50  margin   -330   VIOLATION -- no DACK line here to
+  H    -330  bridge_i.udut.uload3.ucap.pair[6].u$LUT5  0 links   enable   561  data   281 (outside)  guard   50  margin   -330   VIOLATION -- no DACK line here to 
+  H    -315  bridge_i.udut.uload2.ucap.pair[6].u$LUT5  0 links   enable   576  data   311 (outside)  guard   50  margin   -315   VIOLATION -- no DACK line here to 
+  H    -313  bridge_i.udut.uload2.ucap.pair[28].u$LUT5  0 links   enable   465  data   202 (outside)  guard   50  margin   -313   VIOLATION -- no DACK line here to
+  H    -304  bridge_i.udut.uload2.ucap.pair[8].u$LUT5  0 links   enable   543  data   289 (outside)  guard   50  margin   -304   VIOLATION -- no DACK line here to 
+  H    -300  bridge_i.udut.uload3.ucap.pair[16].u$LUT5  0 links   enable   633  data   383 (outside)  guard   50  margin   -300   VIOLATION -- no DACK line here to
+  H    -290  bridge_i.udut.uload3.ucap.pair[10].u$LUT5  0 links   enable   634  data   394 (outside)  guard   50  margin   -290   VIOLATION -- no DACK line here to
+  H    -270  bridge_i.udut.uload2.ucap.pair[18].u$LUT6  0 links   enable   472  data   252 (outside)  guard   50  margin   -270   VIOLATION -- no DACK line here to
+  H    -263  bridge_i.udut.uload0.ucap.pair[8].u$LUT6  0 links   enable   462  data   249 (outside)  guard   50  margin   -263   VIOLATION -- no DACK line here to 
+  H    -252  bridge_i.udut.uload0.ucap.pair[26].u$LUT6  0 links   enable   444  data   242 (outside)  guard   50  margin   -252   VIOLATION -- no DACK line here to
+  H    -252  bridge_i.udut.uload3.ucap.pair[26].u$LUT6  0 links   enable   444  data   242 (outside)  guard   50  margin   -252   VIOLATION -- no DACK line here to
+  H    -251  bridge_i.udut.uload1.ucap.pair[28].u$LUT5  0 links   enable   525  data   324 (outside)  guard   50  margin   -251   VIOLATION -- no DACK line here to
+  H    -239  bridge_i.udut.uload0.ucap.pair[4].u$LUT5  0 links   enable   586  data   397 (outside)  guard   50  margin   -239   VIOLATION -- no DACK line here to 
+  H    -238  bridge_i.udut.uload1.ucap.pair[2].u$LUT5  0 links   enable   659  data   471 (outside)  guard   50  margin   -238   VIOLATION -- no DACK line here to 
+  H    -234  bridge_i.udut.uload1.ucap.pair[30].u$LUT5  0 links   enable   531  data   347 (outside)  guard   50  margin   -234   VIOLATION -- no DACK line here to
+  H    -233  bridge_i.udut.uload0.ucap.pair[24].u$LUT5  0 links   enable   486  data   303 (outside)  guard   50  margin   -233   VIOLATION -- no DACK line here to
+  H    -231  bridge_i.udut.uload2.ucap.pair[20].u$LUT5  0 links   enable   575  data   394 (outside)  guard   50  margin   -231   VIOLATION -- no DACK line here to
+  B    -230  bridge_i.udut.umem_controller3_uport.umem0.uram: clk 3765 ps, latest payload DIADI2 2858 ps, t_su 1137 -> margin -230 ps  VIOLATION
+            depends on: BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM0_USETUP
+  D    -222  bridge_i.udut.ucond_br2 (bd_steer) req   516  sel   688  guard   50  margin   -222   PAD by 1 bd_delay element(s) (372 ps ea) -- VIOLATION
+  H    -217  bridge_i.udut.uload1.ucap.pair[6].u$LUT5  0 links   enable   622  data   455 (outside)  guard   50  margin   -217   VIOLATION -- no DACK line here to 
+  H    -213  bridge_i.udut.uload0.ucap.pair[14].u$LUT5  0 links   enable   572  data   409 (outside)  guard   50  margin   -213   VIOLATION -- no DACK line here to
+  H    -213  bridge_i.udut.uload3.ucap.pair[18].u$LUT5  0 links   enable   566  data   403 (outside)  guard   50  margin   -213   VIOLATION -- no DACK line here to
+  H    -212  bridge_i.udut.uload2.ucap.pair[10].u$LUT6  0 links   enable   550  data   388 (outside)  guard   50  margin   -212   VIOLATION -- no DACK line here to
+  H    -211  bridge_i.udut.uload1.ucap.pair[30].u$LUT6  0 links   enable   508  data   347 (outside)  guard   50  margin   -211   VIOLATION -- no DACK line here to
+  H    -211  bridge_i.udut.uload2.ucap.pair[14].u$LUT5  0 links   enable   554  data   393 (outside)  guard   50  margin   -211   VIOLATION -- no DACK line here to
+  H    -209  bridge_i.udut.uload3.ucap.pair[8].u$LUT5  0 links   enable   562  data   403 (outside)  guard   50  margin   -209   VIOLATION -- no DACK line here to 
+  H    -206  bridge_i.udut.uload2.ucap.pair[22].u$LUT6  0 links   enable   467  data   311 (outside)  guard   50  margin   -206   VIOLATION -- no DACK line here to
+  H    -205  bridge_i.udut.uload1.ucap.pair[20].u$LUT5  0 links   enable   525  data   370 (outside)  guard   50  margin   -205   VIOLATION -- no DACK line here to
+  H    -205  bridge_i.udut.uload3.ucap.pair[12].u$LUT5  0 links   enable   462  data   307 (outside)  guard   50  margin   -205   VIOLATION -- no DACK line here to
+  H    -200  bridge_i.udut.uload2.ucap.pair[2].u$LUT5  0 links   enable   538  data   388 (outside)  guard   50  margin   -200   VIOLATION -- no DACK line here to 
+  H    -199  bridge_i.udut.uload0.ucap.pair[6].u$LUT5  0 links   enable   572  data   423 (outside)  guard   50  margin   -199   VIOLATION -- no DACK line here to 
+  H    -197  bridge_i.udut.uload0.ucap.pair[22].u$LUT6  0 links   enable   457  data   310 (outside)  guard   50  margin   -197   VIOLATION -- no DACK line here to
+  H    -196  bridge_i.udut.uload3.ucap.pair[12].u$LUT6  0 links   enable   453  data   307 (outside)  guard   50  margin   -196   VIOLATION -- no DACK line here to
+  H    -186  bridge_i.udut.uload1.ucap.pair[22].u$LUT5  0 links   enable   605  data   469 (outside)  guard   50  margin   -186   VIOLATION -- no DACK line here to
+  D    -181  bridge_i.udut.ucond_br8 (bd_steer) req   366  sel   497  guard   50  margin   -181   PAD by 1 bd_delay element(s) (372 ps ea) -- VIOLATION
+  H    -178  bridge_i.udut.uload2.ucap.pair[12].u$LUT6  0 links   enable   433  data   305 (outside)  guard   50  margin   -178   VIOLATION -- no DACK line here to
+  D    -167  bridge_i.udut.ucond_br6 (bd_steer) req   560  sel   677  guard   50  margin   -167   PAD by 1 bd_delay element(s) (372 ps ea) -- VIOLATION
+  H    -163  bridge_i.udut.uload1.ucap.pair[10].u$LUT5  0 links   enable   383  data   270 (outside)  guard   50  margin   -163   VIOLATION -- no DACK line here to
+  H    -143  bridge_i.udut.uload3.ucap.pair[2].u$LUT6  0 links   enable   605  data   512 (outside)  guard   50  margin   -143   VIOLATION -- no DACK line here to 
+  H    -137  bridge_i.udut.uload2.ucap.pair[16].u$LUT5  0 links   enable   483  data   396 (outside)  guard   50  margin   -137   VIOLATION -- no DACK line here to
+  D    -135  bridge_i.udut.ucond_br3 (bd_steer) req   459  sel   544  guard   50  margin   -135   PAD by 1 bd_delay element(s) (372 ps ea) -- VIOLATION
+  H    -132  bridge_i.udut.uload2.ucap.pair[10].u$LUT5  0 links   enable   470  data   388 (outside)  guard   50  margin   -132   VIOLATION -- no DACK line here to
+  H    -130  bridge_i.udut.uload0.ucap.pair[10].u$LUT6  0 links   enable   548  data   468 (outside)  guard   50  margin   -130   VIOLATION -- no DACK line here to
+  H    -130  bridge_i.udut.uload1.ucap.pair[4].u$LUT6  0 links   enable   383  data   303 (outside)  guard   50  margin   -130   VIOLATION -- no DACK line here to 
+  H    -129  bridge_i.udut.uload1.ucap.pair[24].u$LUT6  0 links   enable   546  data   467 (outside)  guard   50  margin   -129   VIOLATION -- no DACK line here to
+  H    -125  bridge_i.udut.uload2.ucap.pair[26].u$LUT6  0 links   enable   388  data   313 (outside)  guard   50  margin   -125   VIOLATION -- no DACK line here to
+  H    -122  bridge_i.udut.uload3.ucap.pair[30].u$LUT6  0 links   enable   384  data   312 (outside)  guard   50  margin   -122   VIOLATION -- no DACK line here to
+  H    -119  bridge_i.udut.uload2.ucap.pair[0].u$LUT6  0 links   enable   378  data   309 (outside)  guard   50  margin   -119   VIOLATION -- no DACK line here to 
+  H    -117  bridge_i.udut.uload0.ucap.pair[20].u$LUT5  0 links   enable   459  data   392 (outside)  guard   50  margin   -117   VIOLATION -- no DACK line here to
+  H    -113  bridge_i.udut.uload0.ucap.pair[0].u$LUT6  0 links   enable   443  data   380 (outside)  guard   50  margin   -113   VIOLATION -- no DACK line here to 
+  H    -111  bridge_i.udut.uload0.ucap.pair[0].u$LUT5  0 links   enable   443  data   382 (outside)  guard   50  margin   -111   VIOLATION -- no DACK line here to 
+  H    -107  bridge_i.udut.uload0.ucap.pair[20].u$LUT6  0 links   enable   453  data   396 (outside)  guard   50  margin   -107   VIOLATION -- no DACK line here to
+  H    -106  bridge_i.udut.uload2.ucap.pair[26].u$LUT5  0 links   enable   383  data   327 (outside)  guard   50  margin   -106   VIOLATION -- no DACK line here to
+  H    -105  bridge_i.udut.uload2.ucap.pair[0].u$LUT5  0 links   enable   372  data   317 (outside)  guard   50  margin   -105   VIOLATION -- no DACK line here to 
+  H    -101  bridge_i.udut.uload3.ucap.pair[30].u$LUT5  0 links   enable   374  data   323 (outside)  guard   50  margin   -101   VIOLATION -- no DACK line here to
+  D    -100  bridge_i.udut.ucond_br4 (bd_steer) req   306  sel   356  guard   50  margin   -100   PAD by 1 bd_delay element(s) (372 ps ea) -- VIOLATION
+  H     -99  bridge_i.udut.uload0.ucap.pair[10].u$LUT5  0 links   enable   535  data   486 (outside)  guard   50  margin    -99   VIOLATION -- no DACK line here to
+  H     -97  bridge_i.udut.uload1.ucap.pair[24].u$LUT5  0 links   enable   532  data   485 (outside)  guard   50  margin    -97   VIOLATION -- no DACK line here to
+  H     -96  bridge_i.udut.uload1.ucap.pair[4].u$LUT5  0 links   enable   368  data   322 (outside)  guard   50  margin    -96   VIOLATION -- no DACK line here to 
+  H     -92  bridge_i.udut.uload2.ucap.pair[16].u$LUT6  0 links   enable   457  data   415 (outside)  guard   50  margin    -92   VIOLATION -- no DACK line here to
+  H     -85  bridge_i.udut.uload3.ucap.pair[2].u$LUT5  0 links   enable   579  data   544 (outside)  guard   50  margin    -85   VIOLATION -- no DACK line here to 
+  D     -84  bridge_i.udut.ucond_br7 (bd_steer) req   322  sel   356  guard   50  margin    -84   PAD by 1 bd_delay element(s) (372 ps ea) -- VIOLATION
+  D     -68  bridge_i.udut.ucond_br5 (bd_steer) req   570  sel   588  guard   50  margin    -68   PAD by 1 bd_delay element(s) (372 ps ea) -- VIOLATION
+  H     -61  bridge_i.udut.uload1.ucap.pair[10].u$LUT6  0 links   enable   331  data   320 (outside)  guard   50  margin    -61   VIOLATION -- no DACK line here to
+  A     -40  bridge_i.udut.umux0 [peers no common source reaches: 32] 2 links  from bridge_i.udut.ulink_n4.ctl.u.u/O6: req 1767 (1x)  data 1755 (1x, bridge_i.udut.
+            depends on: BRIDGE_I_UDUT_UMUX0
+  H     -39  bridge_i.udut.uload1.ucap.pair[22].u$LUT6  0 links   enable   530  data   541 (outside)  guard   50  margin    -39   VIOLATION -- no DACK line here to
+  H     -31  bridge_i.udut.uload0.ucap.pair[22].u$LUT5  0 links   enable   377  data   396 (outside)  guard   50  margin    -31   VIOLATION -- no DACK line here to
+  H     -26  bridge_i.udut.uload0.ucap.pair[6].u$LUT6  0 links   enable   484  data   508 (outside)  guard   50  margin    -26   VIOLATION -- no DACK line here to 
+  H     -24  bridge_i.udut.uload1.ucap.pair[20].u$LUT6  0 links   enable   431  data   457 (outside)  guard   50  margin    -24   VIOLATION -- no DACK line here to
+  H     -24  bridge_i.udut.uload2.ucap.pair[2].u$LUT6  0 links   enable   449  data   475 (outside)  guard   50  margin    -24   VIOLATION -- no DACK line here to 
+  H     -17  bridge_i.udut.uload2.ucap.pair[22].u$LUT5  0 links   enable   373  data   406 (outside)  guard   50  margin    -17   VIOLATION -- no DACK line here to
+  H     -16  bridge_i.udut.uload3.ucap.pair[8].u$LUT6  0 links   enable   464  data   498 (outside)  guard   50  margin    -16   VIOLATION -- no DACK line here to 
+  H     -15  bridge_i.udut.uload2.ucap.pair[14].u$LUT6  0 links   enable   454  data   489 (outside)  guard   50  margin    -15   VIOLATION -- no DACK line here to
+  H     -14  bridge_i.udut.uload0.ucap.pair[14].u$LUT6  0 links   enable   470  data   506 (outside)  guard   50  margin    -14   VIOLATION -- no DACK line here to
+  H     -14  bridge_i.udut.uload3.ucap.pair[18].u$LUT6  0 links   enable   464  data   500 (outside)  guard   50  margin    -14   VIOLATION -- no DACK line here to
+  H      -9  bridge_i.udut.uload1.ucap.pair[6].u$LUT6  0 links   enable   516  data   557 (outside)  guard   50  margin     -9   VIOLATION -- no DACK line here to 
+  H      -6  bridge_i.udut.uload1.ucap.pair[2].u$LUT6  0 links   enable   532  data   576 (outside)  guard   50  margin     -6   VIOLATION -- no DACK line here to 
+  H      -3  bridge_i.udut.uload2.ucap.pair[6].u$LUT6  0 links   enable   372  data   419 (outside)  guard   50  margin     -3   VIOLATION -- no DACK line here to 
+proposal: 17 line(s) changed, kernel links 215 -> 189; verify: 93 sized constraint(s) below slack
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER2_UMEM0_USETUP   5 ->   4   bound by B bridge_i.udut.umem_controller2_uport.umem0.uram (318 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER2_UMEM1_USETUP   5 ->   4   bound by B bridge_i.udut.umem_controller2_uport.umem1.uram (80 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER2_UMEM1_UCO  11 ->   9   bound by C bridge_i.udut.umem_controller2_uport.umem1.uco (132 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM0_USETUP   3 ->   5   PAD 3->5 for B bridge_i.udut.umem_controller3_uport.umem0.uram (-230 ps)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM1_USETUP   3 ->   6   PAD 3->6 for B bridge_i.udut.umem_controller3_uport.umem1.uram (-359 ps)
+  BD_SZ_BRIDGE_I_UDUT_UMUX0                  2 ->   3   PAD 2->3 for A'm bridge_i.udut.umux0 (-40 ps)
+  BD_SZ_BRIDGE_I_UDUT_UMUX1                  2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0        2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UADDI0                25 ->  21   bound by A'j bridge_i.udut.uaddi0 (255 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UCMPI0                11 ->   8   bound by A'j bridge_i.udut.ucmpi0 (240 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMUX2                  5 ->   4   bound by A'm bridge_i.udut.umux2 (369 ps left)
+  BD_SZ_BRIDGE_I_UDUT_USUBI1                 9 ->   4   bound by A' bridge_i.udut.usubi1 (5 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UADDI2                24 ->  20   bound by A' bridge_i.udut.uaddi2 (12 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UCMPI1                12 ->   7   bound by A'j bridge_i.udut.ucmpi1 (283 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N39__0           2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_FALSERESULT_UACK   3 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N_TRUERESULT_16_UACK   2 ->   1   floor 1
+  STILL SHORT   -486 H bridge_i.udut.uload2.ucap.pair[24].u$LUT5
+  STILL SHORT   -481 H bridge_i.udut.uload0.ucap.pair[28].u$LUT5
+  STILL SHORT   -477 H bridge_i.udut.uload3.ucap.pair[4].u$LUT5
+  STILL SHORT   -476 H bridge_i.udut.uload2.ucap.pair[30].u$LUT5
+  STILL SHORT   -472 H bridge_i.udut.uload1.ucap.pair[14].u$LUT5
+  STILL SHORT   -420 H bridge_i.udut.uload1.ucap.pair[18].u$LUT5
+  STILL SHORT   -414 H bridge_i.udut.uload1.ucap.pair[0].u$LUT6
+  STILL SHORT   -411 H bridge_i.udut.uload3.ucap.pair[22].u$LUT5
+  STILL SHORT   -408 H bridge_i.udut.uload1.ucap.pair[8].u$LUT5
+  STILL SHORT   -397 H bridge_i.udut.uload3.ucap.pair[0].u$LUT5
+  STILL SHORT   -391 H bridge_i.udut.uload3.ucap.pair[20].u$LUT5
+  STILL SHORT   -391 H bridge_i.udut.uload3.ucap.pair[24].u$LUT5
+  STILL SHORT   -387 H bridge_i.udut.uload2.ucap.pair[4].u$LUT5
+  STILL SHORT   -384 H bridge_i.udut.uload0.ucap.pair[30].u$LUT5
+  STILL SHORT   -380 H bridge_i.udut.uload1.ucap.pair[12].u$LUT5
+  STILL SHORT   -367 H bridge_i.udut.uload0.ucap.pair[2].u$LUT5
+  STILL SHORT   -364 H bridge_i.udut.uload1.ucap.pair[0].u$LUT5
+  STILL SHORT   -358 H bridge_i.udut.uload2.ucap.pair[12].u$LUT5
+  STILL SHORT   -342 H bridge_i.udut.uload3.ucap.pair[28].u$LUT5
+  STILL SHORT   -337 H bridge_i.udut.uload3.ucap.pair[14].u$LUT5
+  STILL SHORT   -333 H bridge_i.udut.uload0.ucap.pair[12].u$LUT5
+  STILL SHORT   -331 H bridge_i.udut.uload0.ucap.pair[16].u$LUT5
+  STILL SHORT   -330 H bridge_i.udut.uload0.ucap.pair[18].u$LUT5
+  STILL SHORT   -330 H bridge_i.udut.uload1.ucap.pair[16].u$LUT5
+  STILL SHORT   -330 H bridge_i.udut.uload1.ucap.pair[26].u$LUT5
+  STILL SHORT   -330 H bridge_i.udut.uload3.ucap.pair[6].u$LUT5
+  STILL SHORT   -315 H bridge_i.udut.uload2.ucap.pair[6].u$LUT5
+  STILL SHORT   -313 H bridge_i.udut.uload2.ucap.pair[28].u$LUT5
+  STILL SHORT   -304 H bridge_i.udut.uload2.ucap.pair[8].u$LUT5
+  STILL SHORT   -300 H bridge_i.udut.uload3.ucap.pair[16].u$LUT5
+  STILL SHORT   -290 H bridge_i.udut.uload3.ucap.pair[10].u$LUT5
+  STILL SHORT   -270 H bridge_i.udut.uload2.ucap.pair[18].u$LUT6
+  STILL SHORT   -263 H bridge_i.udut.uload0.ucap.pair[8].u$LUT6
+  STILL SHORT   -252 H bridge_i.udut.uload0.ucap.pair[26].u$LUT6
+  STILL SHORT   -252 H bridge_i.udut.uload3.ucap.pair[26].u$LUT6
+  STILL SHORT   -251 H bridge_i.udut.uload1.ucap.pair[28].u$LUT5
+  STILL SHORT   -239 H bridge_i.udut.uload0.ucap.pair[4].u$LUT5
+  STILL SHORT   -238 H bridge_i.udut.uload1.ucap.pair[2].u$LUT5
+  STILL SHORT   -234 H bridge_i.udut.uload1.ucap.pair[30].u$LUT5
+  STILL SHORT   -233 H bridge_i.udut.uload0.ucap.pair[24].u$LUT5
+  STILL SHORT   -231 H bridge_i.udut.uload2.ucap.pair[20].u$LUT5
+  STILL SHORT   -217 H bridge_i.udut.uload1.ucap.pair[6].u$LUT5
+  STILL SHORT   -213 H bridge_i.udut.uload0.ucap.pair[14].u$LUT5
+  STILL SHORT   -213 H bridge_i.udut.uload3.ucap.pair[18].u$LUT5
+  STILL SHORT   -212 H bridge_i.udut.uload2.ucap.pair[10].u$LUT6
+  STILL SHORT   -211 H bridge_i.udut.uload1.ucap.pair[30].u$LUT6
+  STILL SHORT   -211 H bridge_i.udut.uload2.ucap.pair[14].u$LUT5
+  STILL SHORT   -209 H bridge_i.udut.uload3.ucap.pair[8].u$LUT5
+  STILL SHORT   -206 H bridge_i.udut.uload2.ucap.pair[22].u$LUT6
+  STILL SHORT   -205 H bridge_i.udut.uload1.ucap.pair[20].u$LUT5
+  STILL SHORT   -205 H bridge_i.udut.uload3.ucap.pair[12].u$LUT5
+  STILL SHORT   -200 H bridge_i.udut.uload2.ucap.pair[2].u$LUT5
+  STILL SHORT   -199 H bridge_i.udut.uload0.ucap.pair[6].u$LUT5
+  STILL SHORT   -197 H bridge_i.udut.uload0.ucap.pair[22].u$LUT6
+  STILL SHORT   -196 H bridge_i.udut.uload3.ucap.pair[12].u$LUT6
+  STILL SHORT   -186 H bridge_i.udut.uload1.ucap.pair[22].u$LUT5
+  STILL SHORT   -178 H bridge_i.udut.uload2.ucap.pair[12].u$LUT6
+  STILL SHORT   -163 H bridge_i.udut.uload1.ucap.pair[10].u$LUT5
+  STILL SHORT   -143 H bridge_i.udut.uload3.ucap.pair[2].u$LUT6
+  STILL SHORT   -137 H bridge_i.udut.uload2.ucap.pair[16].u$LUT5
+  STILL SHORT   -132 H bridge_i.udut.uload2.ucap.pair[10].u$LUT5
+  STILL SHORT   -130 H bridge_i.udut.uload0.ucap.pair[10].u$LUT6
+  STILL SHORT   -130 H bridge_i.udut.uload1.ucap.pair[4].u$LUT6
+  STILL SHORT   -129 H bridge_i.udut.uload1.ucap.pair[24].u$LUT6
+  STILL SHORT   -125 H bridge_i.udut.uload2.ucap.pair[26].u$LUT6
+  STILL SHORT   -122 H bridge_i.udut.uload3.ucap.pair[30].u$LUT6
+  STILL SHORT   -119 H bridge_i.udut.uload2.ucap.pair[0].u$LUT6
+  STILL SHORT   -117 H bridge_i.udut.uload0.ucap.pair[20].u$LUT5
+  STILL SHORT   -113 H bridge_i.udut.uload0.ucap.pair[0].u$LUT6
+  STILL SHORT   -111 H bridge_i.udut.uload0.ucap.pair[0].u$LUT5
+  STILL SHORT   -107 H bridge_i.udut.uload0.ucap.pair[20].u$LUT6
+  STILL SHORT   -106 H bridge_i.udut.uload2.ucap.pair[26].u$LUT5
+  STILL SHORT   -105 H bridge_i.udut.uload2.ucap.pair[0].u$LUT5
+  STILL SHORT   -101 H bridge_i.udut.uload3.ucap.pair[30].u$LUT5
+  STILL SHORT    -99 H bridge_i.udut.uload0.ucap.pair[10].u$LUT5
+  STILL SHORT    -97 H bridge_i.udut.uload1.ucap.pair[24].u$LUT5
+  STILL SHORT    -96 H bridge_i.udut.uload1.ucap.pair[4].u$LUT5
+  STILL SHORT    -92 H bridge_i.udut.uload2.ucap.pair[16].u$LUT6
+  STILL SHORT    -85 H bridge_i.udut.uload3.ucap.pair[2].u$LUT5
+  STILL SHORT    -61 H bridge_i.udut.uload1.ucap.pair[10].u$LUT6
+  STILL SHORT    -39 H bridge_i.udut.uload1.ucap.pair[22].u$LUT6
+  STILL SHORT    -31 H bridge_i.udut.uload0.ucap.pair[22].u$LUT5
+  STILL SHORT    -26 H bridge_i.udut.uload0.ucap.pair[6].u$LUT6
+  STILL SHORT    -24 H bridge_i.udut.uload1.ucap.pair[20].u$LUT6
+  STILL SHORT    -24 H bridge_i.udut.uload2.ucap.pair[2].u$LUT6
+  STILL SHORT    -17 H bridge_i.udut.uload2.ucap.pair[22].u$LUT5
+  STILL SHORT    -16 H bridge_i.udut.uload3.ucap.pair[8].u$LUT6
+  STILL SHORT    -15 H bridge_i.udut.uload2.ucap.pair[14].u$LUT6
+  STILL SHORT    -14 H bridge_i.udut.uload0.ucap.pair[14].u$LUT6
+  STILL SHORT    -14 H bridge_i.udut.uload3.ucap.pair[18].u$LUT6
+  STILL SHORT     -9 H bridge_i.udut.uload1.ucap.pair[6].u$LUT6
+  STILL SHORT     -6 H bridge_i.udut.uload1.ucap.pair[2].u$LUT6
+  STILL SHORT     -3 H bridge_i.udut.uload2.ucap.pair[6].u$LUT6
+wrote /tmp/task/runs/ca/su_share_test_1_1_4/rule_0.20/{report.txt, lines.tsv, sizes.vh, verify.txt, soak.sdf}
