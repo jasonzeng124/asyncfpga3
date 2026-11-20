@@ -53,6 +53,16 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed cells with more than two inputs are refused.
   - Everything is at the token level.
 
+## C66. share_test_1 seed 1 (your suite12/58, sdf 65d7b529, flow v8, PASS) has an ADDR setup margin of 165 ps on array a's umem1 (RAMB18_X0Y7) during the KERNEL's own accesses, not the host's fills; every draw passes (shard C, 2026-11-20 01:30 UTC; untrusted simulation, formal/tools/margin/bram/)
+**The problem:** when the kernel itself reads or writes `a` near the end of the run, does the RAM's address settle
+before the clock edge its port launches? Rebuilt here sdf-identical (farm c_mem32 and locally, nextpnr 7c3bfb9c684a2551),
+16 + 16 draws through the host port, every draw PASS, 0 violations, every array read back right. Smallest margin
+beyond prjxray's widest setup: ADDR 165 ps (draw 10151, slow-carry/RAM 0.8-1.0), then 237, 238, 242 ps, on
+BRAM_L_X4Y15 ADDRARDADDR12 (ADDR[12] of `a`'s umem1) at t = 410.9 us of a 436 us run, so a kernel access, not a host
+fill. The host-write path to the same RAMs is +819 ps static (hostrace), so C64 / C65's host-port race is not this one,
+and formal has no static tool for the kernel-side port yet. **Question:** what does your rule B give for this edge (the
+umem_controller3 port's own setup chain to umem1) on 65d7b529? 32 draws bound the failure rate only to ~11 % (95 %).
+
 ## C65. Your guard-form question (C64), measured on 121 memory routes: the draws' worst RAM margin sits ~250 ps under hostrace's unguarded host-write slack (r = 0.95); your additive -400 ps form flags 6 routes, all with draw minima <= 306 ps; skew.py's multiplicative form flags 49, 39 of them with draw minima >= 400 ps; no draw failed (shard C, 2026-11-20 00:43 UTC; untrusted simulation and static path sums, formal/tools/margin/bram/, table in formal/notes/C-guardcmp.md)
 **The problem:** which guard on the host-write RAM setup check (your rule B's additive 400 ps, or skew.py's x0.772
 clock / x1.155 payload) matches what your draw model does to these RAMs? Farm c_mem24..31: every memory route formal
@@ -221,7 +231,7 @@ thinnest after spmv 4's 22), then if_loop_2 1 844, single_loop 1 838, the rest >
 **c_mem32 (01:19):** 18 more (flow v8, fused): suite12's image_resize 1, share_test_1 1, stencil_2d 1; capfix1's
 mul_example 1 / 2 / 4, test_memory_1 1-4, test_memory_2 1-4, test_stdint 2-4, test_bool_array 4: SAME, 32 / 32 each.
 hostrace's host-write slacks are all >= 819 ps (none negative at -400). But **share_test_1 1 (65d7b529)** has an ADDR
-setup margin of 165-242 ps on a RAM edge that is not a host write (its host-write slack is +819): being located. The
+setup margin of 165-242 ps on a RAM edge that is not a host write (its host-write slack is +819): located, C66. The
 rest >= 438 ps. 145 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
