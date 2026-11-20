@@ -8587,3 +8587,21 @@ route our 4 draws passed, hangs in 11 of 32 of formal's draws of our model**).
   14.05 ns: 1.03 (was 1.62); the hand recipe's best collatz: 21.50. One seed: suite13t_s3a_rwa and v10 decide.
 - Route packaged for formal (research/data/for-formal/collatz_eq2_s1/, FOR-FORMAL entry). xorshift s1 plain + sibling:
   2 / 2 draws so far at 16.29 ns.
+### progress 15:18 (suite13t loses ~30 % of its tasks to the 240-min limit; v10 and rwa now keep their state in $SHARED and can be resumed)
+- **Farm timeouts, suite13t so far** (s1a / s1b / s2a / s2b done, s3a 21 / 30): TIMEOUT on 8 / 12 / 5 / 9 tasks of 30, plus
+  4 + 4 node-c1 FAILED. 13 kernels time out on every seed run so far (gcd, isprime, digitsum, digitdiv, divmods, fir,
+  iir, image_resize, stencil_2d, share_test_1, single_loop, loop_path, nested_loop); binary_search, gather, if_convert,
+  quadrec, sumi3_mem, vector_rescale, nest3 on some (completed runs of them 177-238 min). Most had shipped their route:
+  iir s1 (it 10 after the search phase, both trims done) ran out before its draws started. Earlier flows lost fewer
+  (suite12 9 / 62, capfix1 10 / 48, exit1 29 / 140): v9's two trims and full stacks per route (the loop's route and the
+  search phase's) are what pushed these over. Without a fix the headline would miss a third of the suite, the heavy
+  third, and v10 (three trim rounds, the race check's extra routes) would lose more.
+- **Fix, before they start** (both still waiting): suite13t_s5a_v10_{1a..4b} and suite13t_s3a_rwa copy their auto/ files
+  to $SHARED/state_v10 (state_rwa)/K_S every 5 min; a later request with the same body resumes from there: AUTO_RESUME
+  (the loop from its last ratchet step) or, when the loop had finished, AUTO_TRIM_ONLY (the shipped route rebuilt from
+  sizes + seed + structure, sdf md5 checked, trimmed and timed again), then the draws. The flow is unchanged (same
+  environment, same routes); only what survives the limit. Stub-tested (partial -> resume, finished -> trim-only,
+  done -> state removed). The resume parts get filed with the tasks that ran out, after v10's 8 parts.
+- suite13t's own timeouts sent their state back only through git (~1 MB per task): resuming them needs it committed
+  here (research/data/suite/resume/, as suite10d did). Deferred: v10 is the run the headline will move to, and it is
+  the one that can now resume cheaply.
