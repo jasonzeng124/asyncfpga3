@@ -42,7 +42,7 @@ Found by formal's own adversary. On suite12 lfsrfind s1, the steer ucond_br2 fai
 0.106, and the pin log showed it was a setup failure. The operand latch ulink_n18__1.lat flipped 787 ps after
 ucmpi0.ujoin rose.
 
-**The fix** (steersafe.py, pushed 12:0x): one term per input link of the join. Each term:
+**The fix** (steersafe.py, pushed 11:1x UTC): one term per input link of the join. Each term:
 - its launch is that link's ctl;
 - that link's latches are opened in the condition cone, their data pins counted as settled (the link's own bundling);
 - the other links' latches are left to their own terms.

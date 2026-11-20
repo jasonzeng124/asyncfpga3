@@ -201,7 +201,7 @@ def auto():
             D = t.get(g["ins"][q])
             return (Rv + lerp(g["arcs"][p]["fmin"], g["arcs"][p]["smin"], c), None if D is None else D + lerp(g["arcs"][q]["fmax"], g["arcs"][q]["smax"], c))
         if kind == "compare":
-            # FIX 2026-11-20 12:00: a compare's operand latches are transparent while their link's ctl is HIGH, so they
+            # FIX 2026-11-20 11:15 UTC: a compare's operand latches are transparent while their link's ctl is HIGH, so they
             # change AFTER the ctl rise that the compare's join waits for; "operands settled at the join's rise" was false
             # (exit1-style suite12 lfsrfind s1: an operand latch flipped 787 ps after the join). One term per input link:
             # launch = that link's ctl (read by the join), its latches opened, their data pins cut (the link's bundling),
