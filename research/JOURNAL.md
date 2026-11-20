@@ -8958,3 +8958,18 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   critical cycle, to max(the rule's need on this route, its size - 3) (trim_route TRIM_FLOOR), the trim step's own
   checks unchanged. The running sym loops started on the earlier script; their shipped routes get it by
   AUTO_TRIM_ONLY afterwards (same route, md5-checked, trimmed again).
+### progress 23:09 (BD_SYMTRIM + overbuild: 2 of 3 first finish routes rule-CLEAN as built; test_loop_free s1 PASS 4 / 4; digitsum = digitdiv after the frontend)
+- **sym test_loop_free s1: PASS 4 / 4 draws** (10 / 10 each, no pulse under 1 ns, narrowest 4.56 ns), rule CLEAN it 5, bits
+  EQUIVALENT, ffmux-clean, latency per call median 72 ns (v10's NOT CLEAN route: 72): the first routed-GLS result for
+  BD_SYMTRIM lines (untrimmed on this route). Its re-final with the trim-back (AUTO_TRIM_ONLY, same route 4cae65c5) is
+  running: the trims of its 25 lines, symmetric ones included, then the stack and the draws again.
+- **sym sqrtsub s2: it 5 rule-CLEAN as built** (v10 on the same kernel and seed: 9, 7, 4, 0 rows over it 5-8), latch-fed
+  races all >= 15.2 sd; final running. **sym ipow s1: it 5 2 rows short (68 ps)**, its trim check running. factorial in
+  phase 1 (it 3).
+- **digitsum and digitdiv are the same kernel after the frontend:** their fixtures are identical but for the name
+  (LLVM turns v % b into v - (v / b) * b), so their Dynamatic circuits route identically (11.91 ns, the same four
+  periods), and our flow builds the same graph for both. They stay two rows (their C differs), but they are one data
+  point; noted for kernels/SUITE.md.
+- Dynamatic routing: 33 kernels done; divmods failed synthesis (Dynamatic's config omits divsi's oehb_dataless
+  dependency; dyn_export.py now closes the file set over what the Verilog instantiates, 12a67c1b5); twoloops seed 2
+  and lfsrfind seed 3 hit nextpnr's "post-placement validity check failed for Bel ..A5FF" -- seed 5 replaces them.
