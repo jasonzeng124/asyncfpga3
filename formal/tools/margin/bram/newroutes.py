@@ -5,7 +5,7 @@ results/suite*/N/{result.txt,auto/result.txt,auto/sizes_<it>.vh} on the cluster 
 (K SEED SIZES SDF8 NDRAWS HOSTPORT=1 [the search's env]), sizes copied to margin/bram/sizes/K_SEED_<sdf8>.vh. The latest
 request per (kernel, seed, sdf) wins. Routes the farm did not build (no sdf=) are skipped. Feed OUT_ROUTES to a c_mem
 request (c_mem5.sh shows the form)."""
-import argparse, glob, os, re, subprocess, sys
+import argparse, glob, hashlib, os, re, subprocess, sys
 ap = argparse.ArgumentParser(); ap.add_argument("rs"); ap.add_argument("out")
 ap.add_argument("--ref", default="origin/claude/cluster"); ap.add_argument("--nd", type=int, default=16); a = ap.parse_args()
 H = os.path.dirname(os.path.abspath(__file__)); R = os.path.abspath(os.path.join(H, "..", "..", "..", ".."))
@@ -61,13 +61,25 @@ for p in sorted(files, key=lambda p: (p.split("/")[1], int(p.split("/")[2]))):
     env = re.search(r"; search ([^)]*)\)", ar[-1])
     # an alternate-seed finish (finseeds DA arm: "alt it N seed X su_.. <sdf8>") placed with seed X, not SEED
     alt = re.search(r"^alt it \d+ seed (\d+) \S+ %s\b" % m.group(1), git("show", "%s:%s/task.txt" % (a.ref, d)), re.M)
+    # which fixture the task built from: task.txt's md5 of build/frontend/K/comp/handshake_transformed.mlir (exit1,
+    # suite13t, mixed reruns) against each cloud/fixtures/<dir>/K copy in RS -- per task, not per request
+    fxt = None
+    mt = re.search(r"\b([0-9a-f]{32})\s+build/frontend/%s/comp/handshake_transformed\.mlir" % re.escape(k),
+                   git("show", "%s:%s/task.txt" % (a.ref, d)))
+    if mt:
+        for fd in sorted(glob.glob(os.path.join(a.rs, "cloud", "fixtures", "*", k, "comp", "handshake_transformed.mlir"))):
+            if hashlib.md5(open(fd, "rb").read()).hexdigest() == mt.group(1):
+                fxt = fd.split(os.sep)[-4]; break
     # AUTO_TRIM (research's suite13t on): auto/trim_<it>.txt is the shipped route's MACRO=LEN record; the SDF does not change
     tr = git("show", "%s:%s/auto/trim_%s.txt" % (a.ref, d, it)).strip()
     trf = ""
     if tr:
         trf = os.path.join(H, "trims", "%s_%s_%s.txt" % (k, s, m.group(1))); os.makedirs(os.path.dirname(trf), exist_ok=True)
         open(trf, "w").write(tr + "\n"); trf = " TRIM=" + os.path.relpath(trf, R)
-    rows[(k, s, m.group(1))] = (d, it, (env.group(1).strip() if env else "") + rf0(d.split("/")[1])
+    rq = rf0(d.split("/")[1])
+    if fxt is not None:   # the task's own md5 decides FIXTURES (the request-level guess is dropped)
+        rq = re.sub(r" FIXTURES=\S+", "", rq) + (" FIXTURES=" + fxt if fxt != "frontend" else "")
+    rows[(k, s, m.group(1))] = (d, it, (env.group(1).strip() if env else "") + rq
                                 + (" PNR_SEED=" + alt.group(1) if alt else "") + trf, re.search(r"status=(\S+)", r[-1]).group(1) if "status=" in r[-1] else "?")
 out = ["# K SEED SIZES SDF8 NDRAWS [ENV...]  (newroutes.py from %s: memory routes no routes_mem*.txt has judged)" % a.ref]
 for (k, s, sdf), (d, it, env, st) in sorted(rows.items()):
