@@ -7967,3 +7967,12 @@ second convergence lever (placement kept between finish routes, research/data/co
 - Decision: AUTO_PLACE_KEEP stays opt-in and out of the next flow. The fix is at synthesis (deterministic names for a
   whole loop; yosys autoname makes all 5545 xorshift harness names match across the two routes): next time this is
   taken up. The convergence lever left for now: the rule fixes that remove unfixable rows (ucap, CA_BENCHCAP).
+### progress 01:09 (place keeping stopped: autoname does not stabilise gather's harness; v9 on the farm without it)
+- BD_AUTONAME (opt-in, 207ecffdf: yosys autoname before write_json; AUTO_PLACE_KEEP turns it on): on gather s1 it 6 ->
+  it 7 the harness's netlist itself changes with the kernel (5104 of ~7500 names common even with autoname; its
+  generated names carry shifting disambiguation counters), the kept build timed out (1478 of 8360 cells new), and
+  keeping the kernel alone left 2 constant sinks unroutable. The lever needs the harness synthesized apart from the
+  kernel, and nextpnr changes for constant-tie pins and routes: both larger than this session's budget for it. Stopped;
+  research/data/placekeep/README.md has the state. Everything added stays opt-in (unset: byte-identical builds).
+- Waiting on: capfix1 (19 / 48 at 00:31), suite12's last task (if_loop_1), suite13 (v9: v8 + ucap fix + CA_BENCHCAP,
+  240 tasks, submitted 00:58), the DSP subagent (share_test_2), the local CA_BENCHCAP smoke (iterative_sqrt s1).

@@ -41,6 +41,18 @@ incremental placement keeping the previous route's cells". Status: **opt-in, NOT
   1575 of 8141 xorshift nets lockable; the binary's --fixed-routes loader segfaults even replaying a route on its own
   netlist (xs5.fr, 130 445 pips). The router re-routes every net, which is where the ~100-300 ps left comes from.
 
+## BD_AUTONAME (yosys autoname, 207ecffdf) does not settle it (gather s1, it 6 -> it 7, 2026-11-20 01:00-01:09 UTC)
+- With autoname on both builds, gather's netlists still share only 5104 cell names (of 7446 / 7531): the harness is
+  synthesized together with the kernel, and its synthesized STRUCTURE changes when the kernel's delay lines do
+  (autoname's disambiguation counters shift: rdata_LUT6_O_1_I0_MUXF7_O_I0_...); xorshift's harness had matched 5545 of
+  5545, gather's does not. Kept placement from it 6 (autonamed): 1478 of 8360 cells new, the build hit the 420 s
+  per-seed limit. The kernel alone kept (BD_PLACE_ONLY=^bridge_i\.udut\.): 2 constant sinks unroutable (a packer VCC
+  tie beside a kept LUT on one shared pin), build refused.
+- So two things block the lever, both larger than a script: the harness has to be synthesized apart from the kernel
+  (a blackbox DUT in the harness run, the kernel synthesized alone) for its netlist to be the same on every route; and
+  the constant ties' pins next to kept LUTs need nextpnr's constant router to permute them (a C++ change, i.e. a new
+  patch under patches/ with its fingerprint), as do routes (pip names).
+
 ## Next, if taken up again
 Make names deterministic at the source for a whole loop (an opt-in yosys `autoname` after synthesis: on xorshift it 5
 vs it 6 all 5545 harness cell names then match, 5544 with identical type and parameters, against 1831 now), so the
