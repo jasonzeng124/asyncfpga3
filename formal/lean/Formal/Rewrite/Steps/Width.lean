@@ -25,7 +25,9 @@ control tokens). Nothing else is assumed.
 * `applyUW_sound` (step `unpackw l W`): the comp at `l` gets its slices narrowed by `unsliceNW` with its inputs' widths
   from `W`; checked: every rule of the graph passes `safeB W`. `applyUD_sound` (step `undedupe`): `Dedupe` read
   backward (a comp reads one more copy of a forked channel), checked by deduping back to the old rules.
-* `runScriptW_sound`: for ANY rules and script over `StepW` (every `StepRF` step, `unpackw`, `undedupe`), if
+  `applyBK_sound` (step `back ed app ss`): any `StepRF` script read backward; the new rules are the old ones with some
+  labels replaced and some rules appended, checked by running `ss` forward on them and getting the old rules exactly.
+* `runScriptW_sound`: for ANY rules and script over `StepW` (every `StepRF` step, `unpackw`, `undedupe`, `back`), if
   `runScriptW NA Wi rs ss = some (rs', pre, chg)` then from every initial store satisfying `InP NA Wi` with `pre`
   empty, complete runs of `rs` and `rs'` correspond with the same store outside `chg` (`SoundP`). Each `unpackw`'s map
   must agree with `Wi` on the inputs (`agreeB`: no wider bound than declared is ever assumed).
@@ -451,6 +453,33 @@ theorem applyUD_sound {rs : List Rule} {lf lc a b : Nat} {os' ins' : List Nat} {
     next => cases h
   next => cases h
 
+/-! ## Any checked script read backward -/
+
+/-- `rs` with the rule at each listed label replaced, in order. -/
+def setAll : List Rule → List (Nat × Rule) → List Rule
+  | rs, [] => rs
+  | rs, (l, r) :: ed => setAll (rs.set l r) ed
+
+/-- The rules become `setAll rs ed ++ app`; checked, not trusted: running the `StepRF` script `ss` forward on the new
+rules must give `rs` exactly (e.g. `ed`/`app` insert a one-output fork, and `ss = [wire, drop]` removes it again). -/
+def applyBK (rs : List Rule) (ed : List (Nat × Rule)) (app : List Rule) (ss : List StepRF) : Option Res :=
+  match runScriptRF (setAll rs ed ++ app) ss with
+  | some (rs2, pre, chg) => if rs2 = rs then some (setAll rs ed ++ app, pre, chg) else none
+  | none => none
+
+theorem applyBK_sound {rs : List Rule} {ed : List (Nat × Rule)} {app : List Rule} {ss : List StepRF} {res : Res}
+    (h : applyBK rs ed app ss = some res) : Sound rs res.1 res.2.1 res.2.2 := by
+  unfold applyBK at h
+  split at h
+  next rs2 pre chg hr =>
+    split at h
+    next he =>
+      subst he
+      obtain rfl := (Option.some.inj h).symm
+      exact (runScriptRF_sound hr).symm
+    next => cases h
+  next => cases h
+
 /-! ## Scripts under the width assumption -/
 
 /-- **The width assumption on an initial store**: every channel from `NA` on is empty (only the `NA` inputs hold
@@ -483,12 +512,14 @@ inductive StepW
   | rf (s : StepRF)
   | unpackw (l : Nat) (W : List Nat)
   | undedupe (lf lc a b : Nat) (os ins : List Nat) (F : E)
+  | back (ed : List (Nat × Rule)) (app : List Rule) (ss : List StepRF)
   deriving Repr
 
 def applyStepW (NA : Nat) (Wi : List Nat) (rs : List Rule) : StepW → Option Res
   | .rf s => applyStepRF rs s
   | .unpackw l W => if agreeB NA Wi W = true then applyUW rs l W else none
   | .undedupe lf lc a b os ins F => applyUD rs lf lc a b os ins F
+  | .back ed app ss => applyBK rs ed app ss
 
 def runScriptW (NA : Nat) (Wi : List Nat) : List Rule → List StepW → Option Res
   | rs, [] => some (rs, [], [])
@@ -510,6 +541,7 @@ theorem applyStepW_sound {NA : Nat} {Wi : List Nat} {rs : List Rule} {s : StepW}
     next hag => exact (applyUW_sound h).mono (fun _ hP => inP_inv hag hP)
     next => cases h
   | undedupe lf lc a b os ins F => exact (applyUD_sound h).toP _
+  | back ed app ss => exact (applyBK_sound h).toP _
 
 /-- **The pass theorem under the width assumption.** A script `runScriptW NA Wi` accepts preserves complete runs
 from every initial store satisfying `InP NA Wi` (inputs only, each input token within its declared width). -/

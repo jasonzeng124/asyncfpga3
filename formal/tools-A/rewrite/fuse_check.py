@@ -147,6 +147,14 @@ class FPlan(Q.Plan):
             assert Q.subst(F2, [('var', Q.pos(list(rs[lc][1]), a if c == b else c)) for c in ins2]) == rs[lc][3], st
             rs[lf] = ('fork', rs[lf][1], list(os2)); rs[lc] = ('comp', list(ins2), rs[lc][2], F2)
             self.pre += [a, b]; self.chg += [b]; self.steps.append(st)
+        elif k == 'back':       # Lean: applyBK (a StepRF script read backward, checked by running it forward)
+            _, ed, app, ss = st; old = list(rs)
+            for l, r in ed: rs[l] = r
+            rs.extend(app)
+            sub = FPlan(list(rs))
+            for s in ss: sub.do(s)
+            assert sub.rs == old, st
+            self.pre += sub.pre; self.chg += sub.chg; self.steps.append(st)
         elif k == 'constdata':
             _, lc, i, v, C = st; rc = rs[lc]; n = len(rc[1])
             F2 = Q.subst(rc[3], [('lit', v) if j == i else ('var', j) for j in range(n)])
@@ -516,6 +524,143 @@ def rf_gate(p, lc, sls, branch_data):
     if R[lc][1] != [x, y]: p.do(('reorder', lc, [x, y]))
     return [(x, [kch, ins[D[0]]]), (y, [k2, ins[D[1]]])]
 
+def comps_first(p, lfk):
+    """Order the fork at `lfk`: outputs read by comps first, then the others (both stable)."""
+    R = p.rs; os_ = list(R[lfk][2])
+    isc = lambda o: any(R[l][0] == 'comp' for l in Q.readers(R, o))
+    want = [o for o in os_ if isc(o)] + [o for o in os_ if not isc(o)]
+    if want != os_: p.do(('forder', lfk, want))
+
+def ext_shape(R, lc, sls, branch_data):
+    """The shape of a packed cell with an external test (iterative_sqrt's `comp [mid, n, lo, hi]`): two slices, the
+    output of each forked into [the data of a branch, a copy read by one test comp T], the same T for both. Returns
+    (T's label, [(slice output's fork label, data copy, test copy)] per slice) or None."""
+    if len(sls) != 2: return None
+    T = None; per = []
+    for s in sls:
+        rd = Q.readers(R, R[s][2])
+        if len(rd) != 1 or R[rd[0]][0] != 'fork' or len(R[rd[0]][2]) != 2: return None
+        lfo = rd[0]; d = t_ = None
+        for o in R[lfo][2]:
+            a = Q.readers(R, o)
+            if len(a) != 1: return None
+            if branch_data(o) is not None: d = o
+            elif R[a[0]][0] == 'comp': t_ = o; T = a[0] if T is None else (T if T == a[0] else -1)
+        if d is None or t_ is None: return None
+        per.append((lfo, d, t_))
+    if T is None or T < 0 or len(R[T][1]) != 2: return None
+    tf = Q.readers(R, R[T][2])
+    if len(tf) != 1 or R[tf[0]][0] != 'fork': return None
+    return T, per
+
+def rf_ext(p, lc, lf, sls, branch_data):
+    """A k-input packed cell (k >= 3) with an external test (`ext_shape`). Its expression `pack(A, B)` is split into
+    `comp [X, Y] pack(v0, v1)` with `X = comp as_A A`, `Y = comp as_B B` (an input both parts read gets a second copy:
+    `back` inserts a one-output fork when it has none, then `undedupe`; then two `unabsorb`s). Then: forkcomm2 and
+    absorb/unpack the slices (each becomes a copy of X or Y), forkcomm2 each slice before its fork, the test absorbs
+    its copies (flatten, dedupe: it reads one copy of X and one of Y), and each data copy stops waiting for the other
+    part (unjoin; JoinExt). Returns True if done (False: nothing changed)."""
+    R = p.rs; r = R[lc]; ins = list(r[1]); H = r[3]
+    if len(ins) < 3 or p.Wi is None: return False
+    sh = ext_shape(R, lc, sls, branch_data)
+    if sh is None: return False
+    if not (H[0] == 'bin' and H[1] == ('addi',) and H[4][0] == 'bin' and H[4][1] == ('shli',) and H[4][4][0] == 'lit'):
+        return False
+    WW = H[2]; A = H[3]; B = H[4][3]; w0 = H[4][4][1]
+    vA, vB = vars_of(A), vars_of(B)
+    if not vA or not vB or (vA | vB) != set(range(len(ins))): return False
+    # the slices must unpack to A and B (one each) on the cell's own inputs (Lean checks them again on X and Y)
+    W = infer_W(R, p.Wi, p.NA); ws = [wOf(W, c) for c in ins]
+    got = [unslice_nw(ws, 8, Q.subst(R[s][3], [H])) for s in sls]
+    if sorted(map(repr, got)) != sorted(map(repr, [A, B])): return False
+    shared = sorted(vA & vB)
+    for i in shared:   # every shared input must come from a fork the cell alone reads from (or have no other reader)
+        ch = ins[i]; Wc = Q.writers(R, ch)
+        if Q.readers(R, ch) != [lc]: return False
+        if not (len(Wc) == 1 and R[Wc[0]][0] == 'fork'):
+            if ch < p.NA: return False
+    # 1. a second copy of each shared input, read by B
+    Bv = B
+    for i in shared:
+        ch = R[lc][1][i]; Wc = Q.writers(R, ch)
+        if not (len(Wc) == 1 and R[Wc[0]][0] == 'fork'):
+            a = fresh(R); L = len(R); rc = R[lc]
+            p.do(('back', [(lc, ('comp', [a if c == ch else c for c in rc[1]], rc[2], rc[3]))], [('fork', ch, [a])],
+                  [('wire', L, lc), ('drop', L)]))
+            ch = a; Wc = [L]
+        lfk = Wc[0]; b = fresh(R); cur = list(R[lc][1]); nb = len(cur)
+        Bv = Q.subst(Bv, [('var', nb) if j == i else ('var', j) for j in range(nb)])
+        F2 = ('bin', ('addi',), WW, A, ('bin', ('shli',), WW, Bv, ('lit', w0)))
+        p.do(('undedupe', lfk, lc, ch, b, list(R[lfk][2]) + [b], cur + [b], F2))
+        comps_first(p, lfk)
+    # 2. Y = comp as_B B, X = comp as_A A, the cell reads [X, Y]
+    cur = list(R[lc][1]); F = R[lc][3]
+    aA = [cur[i] for i in sorted(vars_of(F[3]))]; aB = [cur[i] for i in sorted(vars_of(F[4][3]))]
+    if set(aA) & set(aB) or set(aA) | set(aB) != set(cur): return False   # (cannot happen after step 1)
+    ins2 = aA + aB
+    if ins2 != cur: p.do(('reorder', lc, ins2))
+    H2 = R[lc][3]; nb, na = len(aA), len(aB)
+    fB = Q.subst(H2[4][3], [('lit', 0)] * nb + [('var', j) for j in range(na)])
+    g = ('bin', ('addi',), WW, H2[3], ('bin', ('shli',), WW, ('var', nb), ('lit', w0)))
+    pY = fresh(R); p.do(('unabsorb', lc, aA, aB, pY, fB, g))
+    p.do(('reorder', lc, [pY] + aA))
+    H3 = R[lc][3]
+    fA = Q.subst(H3[3], [('lit', 0)] + [('var', j) for j in range(nb)])
+    g2 = ('bin', ('addi',), WW, ('var', 1), ('bin', ('shli',), WW, ('var', 0), ('lit', w0)))
+    pX = fresh(R); p.do(('unabsorb', lc, [pY], aA, pX, fA, g2))
+    p.do(('reorder', lc, [pX, pY]))
+    # 3. forkcomm2 of the packed cell; each slice absorbs its copy and unpacks to v0 / v1
+    for s in sls:
+        if not unpacks(p, R[s][3], R[lc][3], R[lc][1]): raise AssertionError('rf_ext: a slice does not unpack')
+    L0 = len(R); e = fresh(R)
+    p.do(('forkcomm2', lc, lf, e + 1, e + 2, e + 3, e + 4))
+    lX, lY = lc, lf    # fork pX [..], fork pY [..]
+    part = []
+    for k, s in enumerate(sls):
+        p.do(('absorb', L0 + k, s)); do_unpack(p, s)
+        if R[s][3] not in (('var', 0), ('var', 1)): raise AssertionError('rf_ext: slice %d unpacked to %r' % (k, R[s][3]))
+        part.append(R[s][3][1])
+    if sorted(part) != [0, 1]: raise AssertionError('rf_ext: slices %r' % part)
+    # 4. forkcomm2 of each slice before its fork: one comp for the data copy, one for the test's
+    T, per = sh
+    dl = []
+    for k, s in enumerate(sls):
+        lfo, d, t_ = per[k]; os_ = list(R[lfo][2])
+        L1 = len(R); e = fresh(R)
+        p.do(('forkcomm2', s, lfo, e + 1, e + 2, e + 3, e + 4))
+        ld = L1 + os_.index(d); lt = L1 + os_.index(t_)
+        # the test absorbs its copy
+        it = list(R[T][1]); oc = R[lt][2]
+        if it[-1] != oc: p.do(('reorder', T, [c for c in it if c != oc] + [oc]))
+        p.do(('absorb', lt, T))
+        dl.append(ld)
+    # 5. flatten the copies of X and Y into one fork each; the test reads one copy of each (dedupe)
+    cT = R[T][2]; dch = [R[ld][2] for ld in dl]
+    rf_flatten(p, [pX, pY])
+    T = Q.writers(R, cT)[0]; dl = [Q.writers(R, c)[0] for c in dch]
+    for pc in (pX, pY):
+        lfp = [l for l in Q.readers(R, pc) if R[l][0] == 'fork'][0]
+        tin = [c for c in R[T][1] if c in R[lfp][2]]
+        while len(tin) > 1:
+            p.do(('dedupe', lfp, T, tin[0], tin[1])); tin = [c for c in R[T][1] if c in R[lfp][2]]
+    lX = [l for l in Q.readers(R, pX) if R[l][0] == 'fork'][0]
+    lY = [l for l in Q.readers(R, pY) if R[l][0] == 'fork'][0]
+    # 6. each data copy stops waiting for the other part (unjoin)
+    lk = Q.readers(R, R[T][2])[0]
+    for k, ld in enumerate(dl):
+        ax, an = (lX, lY) if part[k] == 0 else (lY, lX)
+        ins_d = list(R[ld][1])
+        x2 = [c for c in ins_d if c in R[ax][2]][0]; n2 = [c for c in ins_d if c in R[an][2]][0]
+        if ins_d != [x2, n2]: p.do(('reorder', ld, [x2, n2]))
+        it = list(R[T][1]); x1 = [c for c in it if c in R[ax][2]][0]; n1 = [c for c in it if c in R[an][2]][0]
+        if it != [x1, n1]: p.do(('reorder', T, [x1, n1]))
+        os_ = list(R[an][2])
+        if os_[0] != n2: p.do(('forder', an, [n2] + [c for c in os_ if c != n2]))
+        lb = branch_data(R[ld][2])
+        p.do(('unjoin', ax, an, T, lk, lb, ld))
+    p.ext = getattr(p, 'ext', 0) + 1
+    return True
+
 def rf_unpack(p):
     """Fused side (BDC_RING_FUSE): a one- or two-input packed cell, its fork and its two or three slices become the
     test and the updates as separate comps; an update stops waiting for the input it does not read (unjoin).
@@ -527,7 +672,7 @@ def rf_unpack(p):
     while True:
         hit = None
         for lc, r in enumerate(R):
-            if r[0] != 'comp' or len(r[1]) not in (1, 2, 3) or lc in skip: continue
+            if r[0] != 'comp' or len(r[1]) < 1 or lc in skip: continue
             Wf = Q.readers(R, r[2])
             if len(Wf) != 1 or R[Wf[0]][0] != 'fork' or len(R[Wf[0]][2]) not in (2, 3): continue
             lf = Wf[0]; sl = [Q.readers(R, z) for z in R[lf][2]]
@@ -536,6 +681,11 @@ def rf_unpack(p):
             hit = (lc, lf, [a[0] for a in sl]); break
         if hit is None: return done
         lc, lf, sls = hit; fac = None
+        if len(R[lc][1]) >= 3 and ext_shape(R, lc, sls, branch_data) is not None:   # an external test (rf_ext)
+            if rf_ext(p, lc, lf, sls, branch_data): done += 1
+            else: skip.add(lc)
+            continue
+        if len(R[lc][1]) > 3: skip.add(lc); continue
         pins2 = []   # (two-input cells) the forks above the inputs, flattened at the end as rf_split does
         if len(R[lc][1]) == 2 and len(sls) == 2 and p.Wi is not None:
             for c in R[lc][1]:
@@ -660,6 +810,76 @@ def rf_split(p):
     rf_order(p, pins)     # canonical order, as on the fused side: the updates' copies first, the test's last
     return done
 
+def rf_extsplit(p):
+    """Unfused side of `rf_ext`: a two-input comp `c` forked to two updates U0, U1, each forked to [the data of a
+    branch, a copy read by one two-input test T] (the same T). `c` moves after its fork (forkcomm2) and each copy is
+    absorbed into its update (then the updates read one copy of each input: flatten, dedupe). Each update
+    `comp ins X F` is then factored as `comp [p] X v0` after `comp ins p F` (unabsorb), and moves after its fork
+    (forkcomm): the branch reads a copy through `comp [p0] Xd v0` and the test absorbs its copy, as on the fused side.
+    Returns the number of comps `c` done."""
+    R = p.rs; done = 0
+    def shape(lc):
+        r = R[lc]
+        if r[0] != 'comp' or len(r[1]) != 2 or len(set(r[1])) != 2: return None
+        rd = Q.readers(R, r[2])
+        if len(rd) != 1 or R[rd[0]][0] != 'fork' or len(R[rd[0]][2]) != 2: return None
+        lf = rd[0]; T = None
+        for o in R[lf][2]:
+            a = Q.readers(R, o)
+            if len(a) != 1 or R[a[0]][0] != 'comp' or len(R[a[0]][1]) < 2 or list(R[a[0]][1]).count(o) != 1: return None
+            b = Q.readers(R, R[a[0]][2])
+            if len(b) != 1 or R[b[0]][0] != 'fork' or len(R[b[0]][2]) != 2: return None
+            kinds = []
+            for z in R[b[0]][2]:
+                q = Q.readers(R, z)
+                if len(q) != 1: return None
+                if R[q[0]][0] == 'branch' and R[q[0]][2] == z: kinds.append('d')
+                elif R[q[0]][0] == 'comp' and len(R[q[0]][1]) == 2:
+                    kinds.append('t'); T = q[0] if T in (None, q[0]) else -1
+                else: return None
+            if sorted(kinds) != ['d', 't']: return None
+        if T is None or T < 0: return None
+        return lf, T
+    while True:
+        hit = next(((lc, sh) for lc in range(len(R)) for sh in [shape(lc)] if sh is not None), None)
+        if hit is None: return done
+        lc, (lf, T) = hit
+        cT = R[T][2]; ucs = [R[Q.readers(R, o)[0]][2] for o in R[lf][2]]   # the updates' output channels
+        pins = []
+        for c in R[lc][1]:
+            W = Q.writers(R, c)
+            if len(W) == 1 and R[W[0]][0] == 'fork' and R[W[0]][1] not in pins: pins.append(R[W[0]][1])
+        L0 = len(R); e = fresh(R)
+        p.do(('forkcomm2', lc, lf, e + 1, e + 2, e + 3, e + 4))
+        for k in range(2):
+            lu = Q.readers(R, R[L0 + k][2])[0]; ins = list(R[lu][1]); o = R[L0 + k][2]
+            if ins[-1] != o: p.do(('reorder', lu, [c for c in ins if c != o] + [o]))
+            p.do(('absorb', L0 + k, lu))
+        rf_flatten(p, pins)
+        for pin in pins:
+            for lfk in [l for l in Q.readers(R, pin) if R[l][0] == 'fork']: comps_first(p, lfk)
+        for uc in ucs:   # each update reads one copy of each input
+            while True:
+                lu = Q.writers(R, uc)[0]; hitd = None
+                for lfk in range(len(R)):
+                    if R[lfk][0] != 'fork': continue
+                    cs = [c for c in R[lu][1] if c in R[lfk][2]]
+                    if len(cs) >= 2: hitd = (lfk, cs); break
+                if hitd is None: break
+                p.do(('dedupe', hitd[0], lu, hitd[1][0], hitd[1][1]))
+        for uc in ucs:
+            lu = Q.writers(R, uc)[0]; ins = list(R[lu][1]); F = R[lu][3]
+            pc = fresh(R)
+            p.do(('unabsorb', lu, [], ins, pc, F, ('var', 0)))
+            lfu = Q.readers(R, uc)[0]; L1 = len(R); e = fresh(R); os_ = list(R[lfu][2])
+            p.do(('forkcomm', lu, lfu, e + 1, e + 2))      # lu: fork pc [..]; lfu: comp -> os_[0]; L1: comp -> os_[1]
+            T = Q.writers(R, cT)[0]
+            lt = lfu if Q.readers(R, os_[0]) == [T] else L1
+            oc = R[lt][2]; it = list(R[T][1])
+            if it[-1] != oc: p.do(('reorder', T, [c for c in it if c != oc] + [oc]))
+            p.do(('absorb', lt, T))
+        done += 1
+
 def rf_litpush(p):
     """A literal comp `comp [k] o (lit v)` whose fork feeds comps that only wait on it (BDC_CONST_DATA already put
     the literal in their expressions): one literal comp per copy (forksplit / forkcomm), each then absorbed into its
@@ -721,7 +941,7 @@ def rf_canon_forks(p):
         for slot, j in zip(pos, order): new[slot] = os_[pos[j]]
         if new != os_: p.do(('forder', lf, new))
 
-def normal_form(rs, rf=None, wi=None):
+def normal_form(rs, rf=None, wi=None, ext=0):
     p = FPlan(rs); R = p.rs
     if wi is not None: p.Wi, p.NA = wi
     # BDC_CONST_DATA's move, on both sides: a comp reads a constant-only channel as the literal
@@ -766,7 +986,9 @@ def normal_form(rs, rf=None, wi=None):
     fuse_loop()
     # BDC_RING_FUSE: after maximal fusion (a packed cell's inputs are then those of its region)
     if rf == 'unpack': p.rf = rf_unpack(p)
-    elif rf == 'split': p.rf = rf_split(p)
+    elif rf == 'split':
+        if ext and p.Wi is not None: p.rf = rf_extsplit(p)   # the other side unpacked a cell with an external test
+        p.rf += rf_split(p)
     lp = rf_litpush(p) if (rf and p.Wi is not None) else 0
     if p.rf or lp: fuse_loop()
     if rf == 'unpack':   # slices left inside a fused expression (no fork between the cell and its readers)
@@ -826,13 +1048,17 @@ TEMPLATE_RF = (Q.TEMPLATE.replace('import Formal.Rewrite.Steps.ScriptSound', 'im
                .replace('runScript_sound', 'runScriptRF_sound'))
 assert TEMPLATE_RF.count('runScriptRF_sound') == 4 and TEMPLATE_RF.count('List StepRF') == 2
 
-W_STEPS = ('unpackw', 'undedupe')
+W_STEPS = ('unpackw', 'undedupe', 'back')
 
 def ser_step_w(st):
     if st[0] == 'unpackw': return f'.unpackw {st[1]} {PP.ser(list(st[2]))}'
     if st[0] == 'undedupe':
         _, lf, lc, a, b, os2, ins2, F2 = st
         return f'.undedupe {lf} {lc} {a} {b} {PP.ser(list(os2))} {PP.ser(list(ins2))} {PP.ser(F2)}'
+    if st[0] == 'back':
+        _, ed, app, ss = st
+        return (f'.back [' + ', '.join(f'({l}, {PP.ser(r)})' for l, r in ed) + '] ' + PP.ser(list(app)) +
+                ' [' + ', '.join(ser_step_rf(s) for s in ss) + ']')
     return '.rf (' + ser_step_rf(st) + ')'
 
 # Under the width assumption (Formal.Rewrite.Steps.Width): the scripts run in runScriptW, and the pass theorems carry
@@ -924,9 +1150,13 @@ def run(fa, fb, ea, eb, tmp):
     n1, n2 = os.path.join(tmp, 'nf1.lean'), os.path.join(tmp, 'nf2.lean')
     mp = os.path.join(tmp, 'maps.json')
     for w in ([None, wi] if wi is not None else [None]):
-        pa, pb = normal_form(Ra, 'unpack', w), normal_form(Rb, 'unpack', w)
-        if pb.rf and not pa.rf: pa = normal_form(Ra, 'split', w)
-        elif pa.rf and not pb.rf: pb = normal_form(Rb, 'split', w)
+        try:
+            pa, pb = normal_form(Ra, 'unpack', w), normal_form(Rb, 'unpack', w)
+            if pb.rf and not pa.rf: pa = normal_form(Ra, 'split', w, getattr(pb, 'ext', 0))
+            elif pa.rf and not pb.rf: pb = normal_form(Rb, 'split', w, getattr(pa, 'ext', 0))
+        except AssertionError as ex:   # a planner step did not apply: no plan from this pass
+            if w is wi or wi is None: return refuse('planner: %s' % ex)
+            continue
         open(n1, 'w').write('def rules : List Rule := ' + PP.ser_rules(pa.rs) + '\n')
         open(n2, 'w').write('def rules : List Rule := ' + PP.ser_rules(pb.rs) + '\n')
         ri = subprocess.run([sys.executable, os.path.join(HERE, 'rules_iso.py'), n1, n2, mp], capture_output=True, text=True)

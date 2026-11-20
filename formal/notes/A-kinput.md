@@ -103,4 +103,47 @@ a sibling copy of `hi`. That is a join extension through another update. A route
 both outputs, so that the test absorbs copies of both parts and reads copies of mid, n, lo, hi directly. Then pack the
 other inputs into one word (needs a width-checked rewrite step that introduces slices, i.e. `unpackw` read backward)
 so that `unjoin`'s 2-input shape applies to each part. This also needs ForkComm2 read backward, so that the packed
-word is one forked channel shared by the test and the part. Not done.
+word is one forked channel shared by the test and the part. Not done. (Closed by the update below, by another route.)
+
+# Update (2026-11-20): iterative_sqrt PROVED under the width assumption
+
+## Route: split the fused cell into two parts, then JoinExt in its own shape
+The candidate route above (pack the other inputs into one word, ForkComm2 read backward) was not needed. The 4-input
+cell is split on the fused side into one comp per part, and the unfused side is brought to the same shape. No new
+simulation lemma: the only new Lean is one checked step (below), whose soundness is `Sound.symm` of the existing
+runner's theorem.
+
+Fused side (`rf_ext`, for a packed cell with k >= 3 inputs whose two slices each feed a 2-way fork into [the data of
+a branch, a copy read by ONE test comp T]; pass 2 only):
+1. Each input both parts read (mid, n) gets a second copy, read by the high part: `undedupe` on its fork. `mid` has
+   no fork (a branch writes it, the cell alone reads it), so `back` first inserts a one-output fork on it.
+2. Two `unabsorb`s: the cell becomes `comp [X, Y] pack(v0, v1)` with `X = comp [mid, n, lo] lo'` and
+   `Y = comp [mid', n', hi] hi'`.
+3. forkcomm2 of the cell; each slice absorbs its copy and `unpackw` narrows it to `v0` / `v1`. This is where the
+   width assumption is used (`hi` starts as the 32-bit input and can pass through unchanged).
+4. forkcomm2 of each slice before its fork; the test absorbs its two copies, the forks of X and Y are flattened, and
+   the test dedupes to `comp [X1, Y1] sgt(v0, v1)`.
+5. `unjoin` (JoinExt) on each data copy: `comp [Xd, Yd] v0` stops waiting for Y, the other stops waiting for X. The
+   test now reads X and Y directly, so this is JoinExt's own shape: the "join extension through another update" is
+   gone, because each part is now its own channel read by the test.
+Unfused side (`rf_extsplit`, only when the fused side did `rf_ext`): the shared `c = slt(mid*mid, n)` moves after its
+fork (forkcomm2), each copy is absorbed into its update (flatten, dedupe), so the updates read [mid, n, lo] and
+[mid, n, hi]. Each update `comp ins X F` is factored as `comp [p] X v0` after `comp ins p F` (unabsorb), the identity
+moves after X's fork (forkcomm), and the test absorbs its copy. Both sides then have `comp [mid, n, lo] p lo'`,
+`fork p [p0, p1]`, `comp [p0] d v0` feeding the branch, and the test reading `p1` (and the same for hi).
+The forks of the shared inputs list their comp readers first (`comps_first`); `rf_canon_forks` orders those.
+
+## Lean (`Steps/Width.lean`)
+* `applyBK` / `applyBK_sound`, step `back ed app ss` of `StepW`: any `StepRF` script read backward. The new rules are
+  the old ones with the labels in `ed` replaced and the rules `app` appended; Lean runs `ss` forward on them and
+  requires the old rules back exactly; soundness is `(runScriptRF_sound _).symm`. Wired into `applyStepW_sound`, so
+  into `runScriptW_sound`. Used once here, with `ss = [wire, drop]`: a one-output fork inserted on `mid`.
+
+## Results
+* iterative_sqrt: PROVED UNDER THE WIDTH ASSUMPTION, Wi = [32, 0] (pass_forward_w / pass_backward_w; axioms propext,
+  Classical.choice, Quot.sound).
+* Controls on iterative_sqrt: `--ctl slice_low` REFUSED rc 2; `--ctl part_plus1` REFUSED rc 2 (it mutates the first
+  packed cell, the 3-input mid cell). Two ad-hoc mutations of the 4-input cell itself (high part + 1; the low part's
+  select arms swapped) are also REFUSED rc 2. The generated certificate with `Wi` changed to [64, 0] is rejected by the
+  kernel at h2.
+* A planner step that does not apply is now a refusal (rc 2), not a Python traceback (`run`: AssertionError in a pass).
