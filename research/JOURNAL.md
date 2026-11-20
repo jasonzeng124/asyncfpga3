@@ -8194,3 +8194,14 @@ Farm: exit1 running (21 of 140 back at 06:20); suite13 (240 tasks) waits for roo
 - Next, beside these: BDC_MEM_FASTFALL (cells/rtl/optin/bd_mem_ff.v, the port's two lines fall in one element;
   research/data/suite/memauto.md: -6.0 / -8.0 / -12.7 % on gather s1 / s2, fill s2, single routes, never through the
   sizing loop) through the loop locally with AUTO_TRIM, as a candidate for the next flow.
+### progress 07:31 (overbuild: the trims fix the E rows the extra length opened; the node is the limit)
+- **Overbuild loops, first finish route (+3 on every trimmable line):** xorshift s1 CLEAN as built; countloop s1 short
+  by 6 rows (1214 ps) as built -- E at umux1's join (select later than the request: lines on the select side got
+  longer too) -- and by 2 (202 ps) after the first trim step, the trims having shortened those lines back; countloop s2
+  (exit1) 12 rows 2054 ps -> 8 rows 476 ps after two steps. The rule marks such E rows "unfixable" in trim mode (it
+  fixes a short row by padding, never by shortening a line on the other side), yet trimming other lines fixes them.
+- exit1 xorshift s1 (d947adff) after the trim step: **18088 -> 16738 ps** (bits EQUIVALENT; its one old H row of
+  -30 ps unchanged); capfix1 mul_example s2 60990 -> 58451. Draws on both running.
+- cluster: this node is shared (load 130-155); my jobs hold 51 GB of the 64 GB allowance and ~17 cores; about 20 gate
+  simulations run at once, so draws take 20-30 min each. The capfix1 trim queue is paused (memory kernels: the trims
+  there were 0-4 %, the simulations the longest).
