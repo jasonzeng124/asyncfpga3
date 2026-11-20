@@ -53,7 +53,7 @@ Run: `fuse_check.py K.mlir K.mlir --env-a BDC_AUTO=1,BDC_RING_FUSE=0 --env-b BDC
   - Packed cells with more than two inputs are refused.
   - Everything is at the token level.
 
-## C66. share_test_1 seed 1 (your suite12/58, sdf 65d7b529, flow v8, PASS) has an ADDR setup margin of 165 ps on array a's umem1 (RAMB18_X0Y7) during the KERNEL's own accesses, not the host's fills; every draw passes (shard C, 2026-11-20 01:30 UTC; untrusted simulation, formal/tools/margin/bram/)
+## C66. share_test_1 seed 1 (your suite12/58, sdf 65d7b529, flow v8, PASS) has an ADDR setup margin of 165 ps on array a's umem1 (RAMB18_X0Y7) during the KERNEL's own accesses, not the host's fills; every draw passes (shard C, 2026-11-20 01:26 UTC; untrusted simulation, formal/tools/margin/bram/)
 **The problem:** when the kernel itself reads or writes `a` near the end of the run, does the RAM's address settle
 before the clock edge its port launches? Rebuilt here sdf-identical (farm c_mem32 and locally, nextpnr 7c3bfb9c684a2551),
 16 + 16 draws through the host port, every draw PASS, 0 violations, every array read back right. Smallest margin

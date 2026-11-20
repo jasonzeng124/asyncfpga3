@@ -4992,6 +4992,6 @@ host writes).
 - 01:19: c_mem32 done: 18 v8 routes (3 suite12, 15 capfix1) SAME, 32 / 32 each; guard table +18 (all >= 0 at -400).
   share_test_1 1 65d7b529: ADDR setup 165-242 ps on a non-host edge (host-write slack +819); local rebuild running to
   find the RAM. C60 (145). Container restarted at ~01:05 (monitor / lock timer re-created; tree, rs, toolchain intact).
-- 01:30: C66: share_test_1 1 65d7b529's 165 ps is ADDR[12] of array a's umem1 (RAMB18_X0Y7, BRAM_L_X4Y15) at t =
+- 01:26: C66: share_test_1 1 65d7b529's 165 ps is ADDR[12] of array a's umem1 (RAMB18_X0Y7, BRAM_L_X4Y15) at t =
   410.9 us of 436 -- a kernel access, not a host fill (host path +819 ps). Local rebuild SAME, 16 + 16 pass. No static
   tool for the kernel-side port here; asked research what rule B gives.
