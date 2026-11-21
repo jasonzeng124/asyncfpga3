@@ -176,10 +176,10 @@ varies by build (its header carries a path), so the check is on the fasm. nextpn
    15.83), EQUIVALENT, ffmux-clean. The fastest of its four seeds (seed 1 is the one formal proved). **Strict gate here
    (GATE_RUNTS=fail, any x / RAMB18 event fails): worst, SLOW_MAX, FAST_MIN 17/17 each and 32 / 32 draws (K
    42101-42132, col18): 35 / 35 PASS, 0 pulses under 1 ns on any kernel handshake net, narrowest 1.9 ns.** Formal's
-   B24 steer screen (claude/formal 36ba04ea34, run here; research/data/suite/board/screen_v10/): 12 steers, 10 bounded,
-   min kappa_lo 0.061, no latch-fed race, no pulses up to a path error of x = 0.25 (first failure at 0.25); the two
-   unbounded steer LUTs (ucond_br7, "no launch node for ucmpi2.ujoin") are a tool limit asked of formal (FOR-FORMAL
-   2026-11-20 15:40, 2026-11-21 04:00). From the repo root:
+   B24 steer screen (claude/formal 36ba04ea34, run here; research/data/suite/board/screen_v10/): no latch-fed race, no
+   pulses up to a path error of x = 0.25 (first failure at 0.25); **formal B29 (07:27): all 12 steers bounded** (their
+   tool fixed for ucond_br7's latch-fed condition: kappa_lo 0.110; the weakest stays ucond_br6 at 0.061), and **formal
+   rebuilt this route with board_rebuild.sh independently: the same sdf, trimmed fasm and bit**. From the repo root:
 
        cells/verify/toolchain.sh    # must pass (sha256 6e5d224472232d5d)
        research/tools/suite/board_rebuild.sh research/data/suite/board/collatz_v10_s1.spec; echo "exit $?"   # must be 0

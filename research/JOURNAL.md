@@ -9347,3 +9347,11 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   factorial, isprime, iterative_division, nest3, nested, spmv, stencil_2d).
 - v10 interim table (not published; parts still resuming): 48 of 62 pass (suite13t: 42), 8 UNFINISHED, 6 NO RESULT
   pending resumes; ratio to Dynamatic on-merges 0.93 over 34 kernels.
+### progress 07:40 (formal B29: item 42's route rebuilt independently with board_rebuild.sh -- same sdf / fasm / bit; all 12 of its steers now bounded; what x is)
+- B29 (claude/formal 582fe2897, 07:27): formal rebuilt collatz_v10_s1 with research/tools/suite/board_rebuild.sh at our
+  c4fdc9d23 -- **sdf 0f050078, trimmed fasm 6ef8e077, bit 7ad2d1d0, the same on all three** (the first independent
+  run of the board rebuild path); ucond_br7 bounded after a steersafe fix (kappa_lo 0.110; adversary first failure at
+  kappa 0.20), so all 12 steers are bounded, min 0.061 (ucond_br6). BOARD-QUEUE item 42 updated.
+- On x: a fully correlated adversarial path error (+x on the whole condition cone, -x on the whole request walk), no
+  within-die model; formal's 0.10 line is a judgement. Only "first failure" is a hazard ("first pulses" includes benign
+  latch glitches): by that, the census's thin routes are sqrtsub 0.10, lfsrfind 0.12, collatz64 0.15.

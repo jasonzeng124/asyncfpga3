@@ -29,3 +29,9 @@ passed its draws (4 / 4) and the rule's own 3 % guard. Whether 3 % is enough on 
 Other findings: twoloops' latch-fed race (ucond_br17, +222 / +577 ps) fails formal's race-only adversary at kappa 0.15;
 divmodu: formal's own draws give wrong results on all 4 (garbage, not near misses) where our GLS passes the same bits
 -- most likely its divider in formal's model; asked (FOR-FORMAL); test_int16 crashed the screen (no steers).
+
+**Formal B29 (2026-11-21, on this census's x):** xtol puts +x on every arc of the condition cone and -x on every arc of
+the request walk -- a fully correlated, adversarial path error, with no within-die model in it; formal's 0.10 line is
+a judgement. "First pulses" counts benign transparent-latch glitches; only "first failure" measures a hazard. By first
+failure the thin routes are sqrtsub (x = 0.10), lfsrfind (0.12), collatz64 (0.15); then branchloop (0.20), collatz
+(0.25); divmodu's 0.00 is formal's model of its divider (asked). B29 also bounds collatz's ucond_br7 (0.110).
