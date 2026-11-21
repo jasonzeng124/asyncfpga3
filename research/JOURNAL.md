@@ -9662,7 +9662,7 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   The headline's wrong-answer list says so.
 ### progress 17:57 (waiting: video_filter s1's draws (local, ~1 h in), digitsum / digitdiv s2 trims, v12 previews; v11 2a 29 / 31)
 ### progress 18:32 (waiting: local v10 completions (video_filter s1 draws; digitsum s2 search; digitdiv s2 after its final), v12 previews (memsum s1 trims, dot2 s1 search); v11 2a 30 / 31, 2b / 3a / 3b running)
-### progress 18:53 (v12 previews, seed 1: memsum PASS 4 / 4 rule-CLEAN at 30.19 ns, dot2 clean at 30.47 (draws running) -- both slower than v10 (24.56 / 27.43) AND v11 (28.19 / 29.26): v12's prediction "P no worse than v10's where v10's search rescued" fails on both)
+### progress 18:52 (v12 previews, seed 1: memsum PASS 4 / 4 rule-CLEAN at 30.19 ns, dot2 clean at 30.47 (draws running) -- both slower than v10 (24.56 / 27.43) AND v11 (28.19 / 29.26): v12's prediction "P no worse than v10's where v10's search rescued" fails on both)
 - Local, v12's exact environment (/tmp/bot/scripts/v12_launch.sh; SUITE_TAG only renames, so the farm's v12 tasks
   should ship these same routes). memsum s1: phase 1-2 clean at it 8, P 32.97 (v10: it 6, 26.63); the search from it 8
   took one stage (BDC_FORK_OUT_LINK=n11__0,n18__0) to 30.19, where v10's found three links (+n35__3) to 24.56; the search's
@@ -9673,7 +9673,7 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   no cost figure; but the prediction was per (kernel, seed) and these two already miss it. v12's 4-seed farm results
   decide the cost; recorded here before any of them.
 - v11_2a finished 17:57 (17 PASS, 14 TIMEOUT); suite13t_s5a_v11_2a_r1 filed (12 tasks, 32G, digit kernels left out).
-### progress 18:55 (formal B32-B36: the latch-fed steer race is the class v12's guard misses -- formal's split-corner bound is now an opt-in check, AUTO_RACE_KAPPA; first local test running)
+### progress 18:52 (formal B32-B36: the latch-fed steer race is the class v12's guard misses -- formal's split-corner bound is now an opt-in check, AUTO_RACE_KAPPA; first local test running)
 - B32 / B36: over flow v10 / v11 routes, the thinnest steer races are latch-fed (sized by AUTO_RACE_Z in our draw model,
   untouched by rule E): v10 sqrtsub s4 +55 ps and v11 test_flatten_array s2 +1 ps lose formal's race-only adversary at
   kappa 0.03; formal's ctl-term kappa_lo <= 0.125 predicted 9 of its 10 failures inside 0.20 (1 of 22 above 0.129).
