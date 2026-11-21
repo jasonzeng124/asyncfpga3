@@ -11,8 +11,10 @@
 | lfsrfind_s3 |  | 0.028 (18 / 18) | ucond_br4 | kappa 0.15 | x=0.25: RESULT | +54 / +130 ps; none up to 0.20 |
 | test_bitint_s1 | MEM | 0.028 (6 / 6) | ucond_br1 | kappa 0.10 | - | - |
 | collatz_s3 |  | 0.032 (12 / 12) | ucond_br5 | kappa 0.10 | x=0.12: RESULT | none |
+| gather_s4 | MEM | 0.032 (14 / 14) | ucond_br5 | none up to 0.20 | - | - |
 | countloop_s3 |  | 0.034 (18 / 18) | ucond_br3 | kappa 0.20 | x=0.25: MAXEV | none |
 | collatz64_s4 |  | 0.036 (12 / 12) | ucond_br3 | kappa 0.20 | x=0.25: RESULT | none |
+| factorial_s4 |  | 0.036 (24 / 24) | ucond_br7 | kappa 0.06 | x=0.12: RESULT | +1108 / +2810 ps; none up to 0.20 |
 | countloop_s1 |  | 0.039 (18 / 18) | ucond_br4 | kappa 0.15 | x=0.20: RESULT | none |
 | xorshift_s2 |  | 0.039 (16 / 16) | ucond_br6 | none up to 0.20 | none to 0.25 | +366 / +887 ps; none up to 0.20 |
 | test_memory_1_s3 | MEM | 0.041 (12 / 12) | ucond_br4 | kappa 0.10 | - | - |
@@ -33,15 +35,18 @@
 | memsum_s3 | MEM | 0.058 (14 / 14) | ucond_br8 | none up to 0.20 | - | - |
 | collatz_s1 |  | 0.061 (12 / 12) | ucond_br6 | kappa 0.20 | x=0.25: RESULT | +179 / +470 ps; kappa 0.15 ( c0:MISMATCH/107 c1:OK/0) |
 | test_loop_free_s3 | MEM | 0.062 (10 / 10) | ucond_br1 | kappa 0.15 | - | - |
+| dot2_s4 | MEM | 0.064 (14 / 14) | ucond_br3 | kappa 0.20 | - | - |
 | countloop_s2 |  | 0.065 (18 / 18) | ucond_br9 | kappa 0.20 | x=0.25: RESULT | none |
 | brhash_s4 |  | 0.070 (24 / 24) | ucond_br4 | kappa 0.10 | x=0.15: RESULT | none |
 | nested_s1 |  | 0.073 (44 / 44) | ucond_br11 | kappa 0.15 | x=0.20: RESULT | +581 / +1324 ps; kappa 0.20 ( c0:NO-VERDICT/6281613 c1:NO-VERDICT/5771244) |
+| horner_s4 |  | 0.074 (18 / 18) | ucond_br5 | none up to 0.20 | none to 0.25 | +476 / +1128 ps; none up to 0.20 |
 | collatz64_s2 |  | 0.078 (12 / 12) | ucond_br4 | kappa 0.15 | x=0.20: RESULT | none |
 | varshift_s1 |  | 0.081 (20 / 20) | ucond_br11 | none up to 0.20 | none to 0.25 | none |
 | test_flatten_array_s3 | MEM | 0.082 (30 / 30) | ucond_br4 | kappa 0.10 | - | - |
 | lfsrfind_s2 |  | 0.083 (18 / 18) | ucond_br6 | kappa 0.15 | none to 0.25 | +152 / +451 ps; kappa 0.20 ( c0:OK/5414 c1:MISMATCH/1900000) |
 | nested_s3 |  | 0.084 (44 / 44) | ucond_br24 | none up to 0.20 | x=0.25: RESULT | +998 / +2400 ps; none up to 0.20 |
 | branchloop_s4 |  | 0.086 (30 / 30) | ucond_br5 | kappa 0.15 | x=0.20: RESULT | none |
+| cmpchain_s4 |  | 0.087 (32 / 32) | ucond_br5 | none up to 0.20 | x=0.20: RESULT | none |
 | xorshift_s1 |  | 0.091 (16 / 16) | ucond_br6 | none up to 0.20 | none to 0.25 | +597 / +1492 ps; none up to 0.20 |
 | memsum_s1 | MEM | 0.092 (14 / 14) | ucond_br8 | none up to 0.20 | - | - |
 | if_convert_s1 | MEM | 0.094 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
@@ -67,6 +72,7 @@
 | collatz_s2 |  | 0.128 (12 / 12) | ucond_br6 | kappa 0.20 | x=0.25: RESULT | none |
 | mul_example_s3 | MEM | 0.129 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | horner_s3 |  | 0.130 (18 / 18) | ucond_br10 | none up to 0.20 | none to 0.25 | +178 / +513 ps; none up to 0.20 |
+| fill_s4 | MEM | 0.131 (22 / 22) | ucond_br6 | none up to 0.20 | - | - |
 | fill_s2 | MEM | 0.140 (22 / 22) | ucond_br6 | none up to 0.20 | - | - |
 | while_loop_3_s3 | MEM | 0.141 (8 / 8) | ucond_br3 | none up to 0.20 | - | - |
 | test_flatten_array_s1 | MEM | 0.150 (30 / 30) | ucond_br6 | kappa 0.20 | - | - |
