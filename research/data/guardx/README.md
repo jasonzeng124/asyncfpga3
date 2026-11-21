@@ -36,3 +36,15 @@ the race-only adversary on the weakest steer); v10's routes from formal B30 (sam
 2x in P (sqrtsub 17.2-32.2), so the P column is churn, not cost; research/cluster/requests/suite13t_s5g_g10.sh pairs 4
 seeds. What the table does show: on all three, the guard moves formal's weakest-steer measures out of the range where
 its adversary fails at kappa <= 0.10, without a large period cost.
+
+## What the guard would cost each of item 44's 46 routes, on the route itself (static; 2026-11-21)
+research/tools/guard_est.py over the rule at the 10 % guard on every route as built (guard_est.sh; the rule's own
+inputs from research/data/suite/board/screen_v10's census), against the route as SHIPPED (built sizes + its trim
+record): a line grows by max(0, the guard's proposal - its shipped length), priced at its own element delay where it
+is on the route's critical cycle (the farm's cyc_I.txt). No re-route, so none of the churn that swamps single-seed A/Bs
+-- and blind to a grown off-cycle line becoming critical. guard_est_table.md:
+- 20 of 45 routes need some line to grow (+1 .. +11 elements); on the critical cycle only lfsrfind (ucmpi0 +3, +5.8 %),
+  collatz (umux1 +1, +4.1 %), quadrec (+2.9 %), varshift (+2.2 %).
+- The thin routes' growth (collatz64 +6, sqrtsub +4, fill +11, dot2 +4, twoloops +10 elements) is all OFF the cycle.
+- **Geometric mean of (P + dP) / P over the 32 routes with a P: 1.005** -- about half a percent of period, for every
+  select gate at x >= 0.10 by the rule's own arrivals.

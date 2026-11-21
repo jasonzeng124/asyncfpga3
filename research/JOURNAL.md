@@ -9410,3 +9410,12 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - **For the next flow (a flow change, so after v11's parts are all submitted):** keep final()'s progress across a resume
   -- the untrimmed final's result and the trim record when the rebuilt route's sdf matches -- so a resume continues at
   the draws. Until then digitsum / digitdiv stay NO RESULT ("final + trim exceed the farm's limit"), as in suite13t.
+### progress 09:42 (the 10 % steer guard's static cost on all of item 44's routes: +0.5 % period (geomean), at most ~6 %; the thin routes' extra elements are off the critical cycle)
+- research/data/guardx/guard_est_table.md (research/tools/guard_est.py, new): the rule at 0.90 / 1.10 on every suite_v10
+  route as built vs the route as shipped (trims applied); growth priced on the route's own critical cycle. 20 / 45
+  routes grow (+1 .. +11 elements), 4 of them on the cycle (lfsrfind +5.8 %, collatz +4.1 %, quadrec +2.9 %, varshift
+  +2.2 %); geomean (P + dP) / P **1.005** over 32. Blind to churn and to new critical cycles; the farm pairs
+  (suite13t_s5g_g10) measure the real thing.
+- So the guard looks cheap where it matters least to formal and costs a few % only where a loop test is itself on the
+  cycle. Together with formal B30 (the 3 % guard did not cover three routes) and the local guarded routes (formal-clean
+  or much better), it is the strongest goal-1 change available for the next flow, at about half a percent of speed.
