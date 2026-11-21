@@ -48,3 +48,15 @@ is on the route's critical cycle (the farm's cyc_I.txt). No re-route, so none of
 - The thin routes' growth (collatz64 +6, sqrtsub +4, fill +11, dot2 +4, twoloops +10 elements) is all OFF the cycle.
 - **Geometric mean of (P + dP) / P over the 32 routes with a P: 1.005** -- about half a percent of period, for every
   select gate at x >= 0.10 by the rule's own arrivals.
+
+## The paired farm test (suite13t_s5g_g10, complete 2026-11-21)
+Flow v10 + AUTO_GUARD_E=0.90,1.10 on the seven thinnest kernels x seeds 1-4, against flow v10's same (kernel, seed);
+22 of 28 tasks finished (6 timeouts on the slow memory kernels and twoloops s3). gate/g10_farm_results.txt.
+- **Speed: no cost.** P ratio geomean 1.003 (0.62-1.48: churn) and latency-sum ratio 1.006 over the 18 pairs clean in
+  both -- as the static estimate (+0.5 %) said.
+- **Convergence: a cost.** fill s4 and sqrtsub s2 were clean under v10 and end NOT CLEAN; sqrtsub s2's route (one rule H
+  row short by 140 ps) FAILS a draw 7 / 13 -- the rule flagged it, so the policy keeps it out, but the kernel would show
+  as FAIL. twoloops s2 goes the other way (NOT CLEAN -> clean).
+- So the guard is not a flow by itself: it needs flow v11's late phase behind it, which cleans a finish phase's
+  leftovers. Local test of exactly that (v11 + AUTO_LATE_AFTER_SEARCH + the guard) on sqrtsub s2: rule-CLEAN at its
+  first late route (journal 2026-11-21 15:05).
