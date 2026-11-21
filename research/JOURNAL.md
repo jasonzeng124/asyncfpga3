@@ -9537,3 +9537,9 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   cmpchain s1 in its finish phase. Local v10 completions (digitsum / digitdiv s2, video_filter s1) in their finals.
 - The farm's guarded seed-1 routes ship exactly the local ones' P (sqrtsub 20.117, lfsrfind 21.045): item 45's routes
   reproduce there too. Local guarded seed-2 runs stopped (the farm's test has them).
+### progress 13:38 (a candidate next flow under local test: v11 + AUTO_LATE_AFTER_SEARCH + the 10 % guard, on the guard's failing case sqrtsub s2)
+- Why: the guard alone loses convergence on some seeds (sqrtsub s2 shipped NOT CLEAN and a draw failed); the late
+  phase exists to clean a finish phase's leftovers, and after the search it should not cost the search's rescues.
+- PREDICTION: pass A (v10's way + the guard) ends NOT CLEAN at it 8 like the farm's g10 run (same route, sdf 9c11825a);
+  the search does not clean it; "late-after-search:" then the late phase cleans it; PASS 4 / 4 on a rule-CLEAN route.
+  (/tmp/bot/runs/v12c, /tmp/bot/scripts/v12_launch.sh.)
