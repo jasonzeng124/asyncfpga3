@@ -9543,3 +9543,4 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - PREDICTION: pass A (v10's way + the guard) ends NOT CLEAN at it 8 like the farm's g10 run (same route, sdf 9c11825a);
   the search does not clean it; "late-after-search:" then the late phase cleans it; PASS 4 / 4 on a rule-CLEAN route.
   (/tmp/bot/runs/v12c, /tmp/bot/scripts/v12_launch.sh.)
+### progress 14:17 (waiting: late-after-search countloop s1 in its draws -- its search route reproduced v10's exactly, P 19.116 untrimmed; cmpchain s1 past its finish phase; candidate-flow sqrtsub s2 in its loop)
