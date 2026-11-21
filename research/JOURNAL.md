@@ -9023,3 +9023,15 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   13 / 13 per draw, no pulse under 1 ns (narrowest 3.97 ns); v10's same kernel and seed: P 21661, clean at it 8 (four
   finish routes), 1338 LUTs. **-7.1 % P, -5.6 % summed call latency, +10 % LUTs** (the extra elements stay placed),
   three routes fewer. One seed: route scatter is ~5 %, so the P difference alone is not a result; the convergence is.
+### progress 00:45 (BD_SYMTRIM + overbuild: 5 of 5 first finish routes clean as built; ipow showed the trim-back had to come first -- reordered)
+- **First overbuilt finish route, clean as built:** test_loop_free s1, sqrtsub s2, test_memory_2 s1, brhash s1, ipow s1 (5 of
+  5; v10 needed 4 finish routes on ipow / sqrtsub and never got the other three clean in 6). cmpchain / nested just
+  switched; factorial / spmv in phase 1.
+- **sym2 ipow s1 exposed an ordering fault:** clean as built at P 25.7 ns untrimmed (every line +3), the cycle-scoped
+  trim's one step moved its 7 overbuilt cycle lines at once, opened 2 constraints (137 ps) and was undone, so the cycle
+  kept its +3 (v10: 19.9 ns). **266be9d16:** the overbuild trim-back now runs FIRST on every overbuilt line (cycle
+  included) to max(the rule's need, size - 3), the route is re-timed, and the usual trim starts from that route and its
+  own critical cycle. ipow s1 re-finaled with it (AUTO_TRIM_ONLY, same route 6836ab2f). The sym2 loops still in their
+  loop run the earlier script; their shipped routes get the same re-final.
+- Dynamatic re-runs: 8 of 9 memory kernels exact (test_memory_1 / 2, mul_example, share_test_2, image_resize,
+  vector_rescale, iir, video_filter); test_stdint's estimator gave no call line (next).
