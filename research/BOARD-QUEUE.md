@@ -44,7 +44,7 @@ rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh
    here, with its hand-item partner passing, is the most informative result this list can return.
 3b. **Items 42 / 43** (2026-11-21: collatz 14.48 / xorshift 16.35 ns in simulation, flow v10 with formal's proved
    rewrites and the trim): each right after item 39 / 41, its judge's base.
-3c. **Item 44** (2026-11-21: the whole automatic suite, 46 kernels, one self-judging loop; unattended, hours of
+3c. **Item 44** (2026-11-21: the whole automatic suite, 50 kernels, one self-judging loop; unattended, hours of
    rebuilds and minutes of board time): any time after item 36.
 3c'. **Item 45** (the steer guard's silicon test: three guarded routes beside their unguarded partners in item 44):
    with or right after item 44.
@@ -123,8 +123,8 @@ byte: the run's sdf and its trimmed fasm).
     0.003 / 0.045 / -0.008 and kappa 0.10 / 0.10 / 0.06). P, ns: collatz64 21.97 (unguarded 21.53), sqrtsub 20.12
     (32.24), lfsrfind 21.05 (21.14); one seed each, local runs (research/data/guardx/README.md).
 
-## 2026-11-21: item 44 -- the automatic flow's whole suite on the board: 46 kernels, one route each, one self-judging loop
-Flow v10 (BDC_AUTO=1, nothing set per kernel) judged 46 of the 62 suite kernels (so far: some of its tasks are still resuming) PASS on rule-CLEAN routes in
+## 2026-11-21: item 44 -- the automatic flow's whole suite on the board: 50 kernels, one route each, one self-judging loop
+Flow v10 (BDC_AUTO=1, nothing set per kernel) judged 50 of the 62 suite kernels PASS on rule-CLEAN routes in
 simulation (draws of the delay model, the runt monitor, the C's answers). This item puts one route of each of those
 kernels on the board, with the SAME vectors and the SAME judging rules as the simulation gate: a silicon check of the
 whole automatic column at once. research/data/suite/board/suite_v10/ holds one spec per kernel (its lowest-seed clean
@@ -142,15 +142,15 @@ gate's rules: every call's result = the C's, the runs agreed, every run complete
         cells/verify/toolchain.sh    # must pass (sha256 6e5d224472232d5d)
         research/tools/suite/board_suite.sh research/data/suite/board/suite_v10 2>&1 | tee ~/board_suite_v10.log; echo "exit $?"
 
-    Pass: the last line `board_suite: 46 of 46 kernels PASS`, exit 0. Each kernel's line says PASS k/n, FAIL (which call,
+    Pass: the last line `board_suite: 50 of 50 kernels PASS`, exit 0. Each kernel's line says PASS k/n, FAIL (which call,
     what the C says against what the board said), or NOT RUN (why: a rebuild that did not reproduce the route, an
-    oracle that did not run). Please send ~/board_suite_v10.log and ~/runs/bq_suite/*/board.log back. Prediction: 46 of 46
+    oracle that did not run). Please send ~/board_suite_v10.log and ~/runs/bq_suite/*/board.log back. Prediction: 50 of 50
     PASS. Two routes to watch: collatz64 (formal's steer screen puts its loop-exit steer's tolerance at a path error of
     8 %: research/data/suite/board/screen_v10/), and the memory kernels' RAM setup lines (formal C's draws pass them
     all, min RAM setup >= 442 ps). xsdb_bench_vec.tcl has run against a mock bench only (cells/hw/test_bench_vec.sh): an
     ERROR line, a LAYOUT MISMATCH or "NOTHING TO JUDGE" on every kernel is the script's failure, not the kernels' --
     stop and send the first log. Dry run here without a board (BQ_MOCK=1 BQ_SKIP_REBUILD=1: the mock bench answers with
-    the C's own results and arrays): 46 of 46 PASS -- every kernel's vector file (both formats, 0-2 operand words, 8- and
+    the C's own results and arrays): 50 of 50 PASS -- every kernel's vector file (both formats, 0-2 operand words, 8- and
     32-bit arrays), its C oracle and the judge work end to end; the same run with one result corrupted, or with an
     array-writing kernel left unchanged, FAILS.
     **What a failure would mean:** the routes span a steer path-error tolerance of x = 0.045-0.42 (research/data/suite/
