@@ -41,3 +41,7 @@ default; our bench samples >= ~24 ns), so a "first failure" here may read low --
 race-only adversary on the weakest steer: wrong answer at kappa 0.06 (lfsrfind), 0.10 (collatz64, sqrtsub), 0.15
 (if_loop_2), none to 0.20 (fill, whose structural bound 0.171 is fine although rule E calls it thinnest); dot2's
 structural bound 0.032 is the lowest of the memory kernels.
+
+**Item 44's four later routes (added 2026-11-21, rule E's measure only; three are memory kernels formal's screen does
+not take):** isprime s4 0.093 (ucond_br20), share_test_1 s3 0.102 (ucond_br7), image_resize s3 0.326, fir s2 0.368 --
+isprime joins the 0.07-0.10 group, the rest are well above it.
