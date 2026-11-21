@@ -32,7 +32,10 @@ and our strict gate (worst, SLOW_MAX, FAST_MIN, 32 draws each, GATE_RUNTS=fail) 
    them (or the reason there is none) is the one open item on its steers.
 2. **Shard C:** your draws on both routes would be the independent check before the board; a failure in either is
    worth more to us than any number here.
-3. **Shard B, added 04:25:** the same screen on flow v10's collatz64 s1 (rebuilt: research/data/suite/board/
+3. **Shard A, added 05:05 (thanks for A35):** the trimmed / untrimmed FASMs and the sdf of xorshift_v10_s1 are now in
+   research/data/for-formal/xorshift_v10_s1/ (xz; md5.txt, trim_record.txt, sizes_built.vh, structure.env, our
+   screen's output), as collatz_eq2_s1 was for A31's trimcheck.
+4. **Shard B, added 04:25:** the same screen on flow v10's collatz64 s1 (rebuilt: research/data/suite/board/
    collatz64_v10_s1.spec, sdf de88e329, trimmed fasm 9b93469d; rule CLEAN, PASS 4 / 4) is NOT fine by your guide:
    min kappa_lo 0.003 (ucond_br6 on ucmpi2.uz_n38, launch ulink_n10__4.ctl, slack +29 / +1108 ps), first pulses at
    x = 0.08, first failure x = 0.15 (files: research/data/suite/board/screen_v10/). We keep it off the board. Is it

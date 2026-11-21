@@ -9241,3 +9241,12 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   route goes through formal's screen. If it is fine by B24 at a small cost, it is a candidate for the next flow --
   a policy change (the guard), so it goes to the owner as a measured option, not as a default.
 - Gate: collatz 35 / 35 done (item 42); xorshift 2 / 35 PASS so far.
+### progress 05:02 (formal A35: the xorshift board candidate's exact graph is proved to compute the C, one theorem; its FASMs handed over for trimcheck)
+- A35 (claude/formal, 03:54): research/data/autorw/xorshift.mlir under the spec's knobs (BDC_AUTO=1
+  BDC_AUTO_REWRITES=0 BDC_FORK_OUT_LINK=n11__0,n32__2) computes xorshift's C, every input where the C returns, every
+  schedule (Lean, standard axioms). collatz_v10_s1's chain is A31's. Formal also notes plain_pass at today's HEAD no
+  longer reproduces the memo's xorshift.mlir (it refuses); the memo's file is the proved one and is md5-checked at
+  use, so nothing in the flow changes.
+- research/data/for-formal/xorshift_v10_s1/: sdf fd959b30, trimmed fasm 78aa6ac3, untrimmed 2178cbe4 (xz) + the
+  trim record, sizes, structure, our screen's output -- what A31's trimcheck read for collatz.
+- Gate: xorshift 8 / 35 PASS so far; g10 (collatz64 + 10 % E guard) at it 1.
