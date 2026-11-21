@@ -9593,3 +9593,12 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   the late phase, rule-CLEAN at it 11) is in its draws.
 - **v10's farm parts are done**: table 50 PASS / 8 UNFINISHED / 4 NO RESULT (digitsum, digitdiv, sobel, video_filter);
   gcd s4 PASS on a NOT CLEAN route, fold64 s4 PASS clean. Publishing waits only for the three local completions.
+### progress 15:07 (HEADLINE: flow v10 -- 50 of 62 kernels pass (suite13t: 42), 8 UNFINISHED, 4 NO RESULT; ours / Dynamatic on-merges 0.98 over 35, at its recurrence bound 2.11)
+- research/data/fifteen/README.md top: flow v10's table (all farm parts and resumes, nest3 s4 corrected). Newly passing
+  vs suite13t: divmods, fir, iir, image_resize, isprime, loop_path, quadrec, share_test_1, single_loop; lost:
+  stencil_2d. Same-kernel P ratio 0.99 over 30 (formal's rewrites: collatz 0.71, collatz64 0.76, xorshift 0.90).
+  Ours / Dynamatic: on-merges 0.98 (n 35); bound 2.11 (1.70 without the five largest terms, 1.65 on the 10
+  one-cycle-per-iteration kernels). UNFINISHED: cmpchain, factorial, gcd, iterative_division, nest3, nested, spmv,
+  stencil_2d (v11's target). NO RESULT: digitsum, digitdiv, sobel, video_filter (the 240-min resume loop; three being
+  finished locally -- the table gets them when they land).
+- Does NOT show: the board's view of any of it (items 42-45 queued); v11; the guard's effect on the whole suite.
