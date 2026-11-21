@@ -60,7 +60,9 @@ proc mwr {args} {
                 set j $::NSTART; incr ::NSTART
                 puts $::LOG "START $j"; set ::POST $j
                 set n [expr {[info exists ::R(20)] ? $::R(20) : 0}]
-                set o [expr {"0x[lindex $::EXPW $j]" & 0xFFFFFFFF}]
+                set e [lindex $::EXPW $j]
+                # a `void` call (the kernel returns nothing): the bench's ODATA reads 0 (oracle_mem.sh, bench_gate.sh)
+                set o [expr {$e eq "void" ? 0 : ("0x$e" & 0xFFFFFFFF)}]
                 if {$j == $::CORRUPT} { set o [expr {$o ^ 1}] }
                 set ::R(16) $o; set ::R(56) $o; set ::R(60) 2
                 set ::R(24) [expr {100 + $j}]; set ::R(28) 3; set ::R(40) 40; set ::R(44) 44

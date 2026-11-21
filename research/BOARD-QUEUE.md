@@ -44,15 +44,15 @@ rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh
    here, with its hand-item partner passing, is the most informative result this list can return.
 3b. **Items 42 / 43** (2026-11-21: collatz 14.48 / xorshift 16.35 ns in simulation, flow v10 with formal's proved
    rewrites and the trim): each right after item 39 / 41, its judge's base.
+3c. **Item 44** (2026-11-21: the whole automatic suite, 46 kernels, one self-judging loop; unattended, hours of
+   rebuilds and minutes of board time): any time after item 36.
 4. Then the list "Board list, in order" further down (older items; several superseded by the ones above).
 The simulation runs ~8 % slower per iteration than the August board (research/SIM-VS-BOARD.md), so expect each ns
 figure above about 8 % lower on the board.
 
 **Coming, not items yet (updated 2026-11-21 06:06 UTC):** collatz and xorshift with formal's proved rewrites are now
 **items 42 and 43**. collatz64 v10 seed 1 (21.53 ns) is NOT coming: formal's screen puts pulses at a path error of
-x = 0.08 on its loop-exit steer (research/JOURNAL.md 2026-11-21 04:17). Next: **the whole suite on the board in one
-self-judging loop** (research/tools/suite/board_suite.sh over research/data/suite/board/suite_v10/: one route per
-kernel, the gate's vectors and rules) once every spec's route is rebuilt here. Items 38-41 are unaffected by the
+x = 0.08 on its loop-exit steer (research/JOURNAL.md 2026-11-21 04:17). The whole suite on the board is **item 44**. Items 38-41 are unaffected by the
 latch-fed steer race formal found on a later automatic xorshift route (B28): formal B22 cleared all four of it.
 
 ## 2026-11-17 (evening): item 36 -- the CARRY4 / MUXF7 band; the most useful board run now
@@ -83,6 +83,37 @@ negative control fails). Run it before the speed items.
    measured.tsv + raw/) back. Simulated: C32 is 11.1 ns at y = 0.2 and 15.5 ns at y = 1.0 (x 0.288), F16 16.2 / 21.3
    ns; at 1% ring scatter the fit resolves y to +-0.01-0.02. The two routes must agree with each other within their
    sigmas; if they do not, that is the finding.
+
+## 2026-11-21: item 44 -- the automatic flow's whole suite on the board: 46 kernels, one route each, one self-judging loop
+Flow v10 (BDC_AUTO=1, nothing set per kernel) judged 46 of the 62 suite kernels (so far: some of its tasks are still resuming) PASS on rule-CLEAN routes in
+simulation (draws of the delay model, the runt monitor, the C's answers). This item puts one route of each of those
+kernels on the board, with the SAME vectors and the SAME judging rules as the simulation gate: a silicon check of the
+whole automatic column at once. research/data/suite/board/suite_v10/ holds one spec per kernel (its lowest-seed clean
+route; every spec's route rebuilt here byte for byte: the farm's sdf reproduced, the trimmed fasm pinned).
+research/tools/suite/board_suite.sh runs, per kernel: board_rebuild.sh (exit 1 on any mismatch) -> the expected
+results from the C exactly as suite_one.sh derives them for the gate (its own vector / oracle choice, read from
+suite_one.sh) -> cells/hw/xsdb_bench_vec.tcl (the gate's host program, register for register: FIXED mode, 2 runs per
+call, FCLK0 83.33 MHz, arrays filled through the host port and read back after each call) -> board_vec_judge.py (the
+gate's rules: every call's result = the C's, the runs agreed, every run completed, every array = the C's).
+
+44. **The suite on the board** -- unattended: the rebuilds take ~5-10 min per kernel (several hours in all, no board
+    needed); the board is locked (hw/board.sh) only for each kernel's vector run (seconds to a few minutes: memory
+    kernels fill their arrays word by word over JTAG). From the repo root:
+
+        cells/verify/toolchain.sh    # must pass (sha256 6e5d224472232d5d)
+        research/tools/suite/board_suite.sh research/data/suite/board/suite_v10 2>&1 | tee ~/board_suite_v10.log; echo "exit $?"
+
+    Pass: the last line `board_suite: 46 of 46 kernels PASS`, exit 0. Each kernel's line says PASS k/n, FAIL (which call,
+    what the C says against what the board said), or NOT RUN (why: a rebuild that did not reproduce the route, an
+    oracle that did not run). Please send ~/board_suite_v10.log and ~/runs/bq_suite/*/board.log back. Prediction: 46 of 46
+    PASS. Two routes to watch: collatz64 (formal's steer screen puts its loop-exit steer's tolerance at a path error of
+    8 %: research/data/suite/board/screen_v10/), and the memory kernels' RAM setup lines (formal C's draws pass them
+    all, min RAM setup >= 442 ps). xsdb_bench_vec.tcl has run against a mock bench only (cells/hw/test_bench_vec.sh): an
+    ERROR line, a LAYOUT MISMATCH or "NOTHING TO JUDGE" on every kernel is the script's failure, not the kernels' --
+    stop and send the first log. Dry run here without a board (BQ_MOCK=1 BQ_SKIP_REBUILD=1: the mock bench answers with
+    the C's own results and arrays): 46 of 46 PASS -- every kernel's vector file (both formats, 0-2 operand words, 8- and
+    32-bit arrays), its C oracle and the judge work end to end; the same run with one result corrupted, or with an
+    array-writing kernel left unchanged, FAILS.
 
 ## 2026-11-21: item 43 -- flow v10's xorshift (formal's proved plain loop-test move, the post-route trim): 16.35 ns, one command to rebuild
 Flow v10 on 4 seeds, every route rule-CLEAN and PASS 4 / 4 draws: **xorshift P 16.35 / 15.22 / 16.36 / 15.07 ns (seeds

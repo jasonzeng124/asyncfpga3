@@ -9277,3 +9277,17 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - Predictions committed in the items: 42 ~13.3 ns, 43 ~15.0 ns on the board (sim 14.48 / 16.35, ~8 % slow).
 - Board suite: research/data/suite/board/suite_v10/ specs rebuilt so far: 30 + 3 by hand, every one reproducing its
   farm sdf; the rest still rebuilding (4 workers).
+### progress 06:16 (BOARD-QUEUE item 44: the automatic suite on the board -- 46 kernels, one route each, the gate's own vectors and rules, one self-judging loop; dry run 46 / 46 against a mock bench)
+- research/data/suite/board/suite_v10/: one spec per kernel flow v10 passed on a clean route (its lowest such seed),
+  written by mk_board_specs.py from the farm saves and **every one rebuilt here: 46 / 46 routes reproduce the farm's
+  sdf** (43 by four workers, 3 by hand), trimmed fasm pinned.
+- research/tools/suite/board_suite.sh: per kernel board_rebuild.sh -> the C oracle exactly as suite_one.sh (its own case
+  block, read and evaluated) -> cells/hw/xsdb_bench_vec.tcl -> board_vec_judge.py; last line "board_suite: P of N
+  kernels PASS". **Dry run (BQ_MOCK=1 BQ_SKIP_REBUILD=1): 46 / 46 PASS** after fixing the mock for void kernels (13
+  kernels whose answer is their arrays: the first dry run stopped them all at the mock's "0xvoid" -- the mock's bug,
+  found because the dry run covered every kernel). Negative controls: a corrupted result FAILS (16/17), an
+  array-writing kernel left unchanged FAILS (array oracle), a missing spec is NOT RUN.
+- Does NOT show: anything on a real board -- the mock stands in for xsdb and the bench; the board steps are
+  hw/xsdb_bench_gen.tcl's (which has run on the board).
+- The guarded collatz64 run (g10): clean at it 7, untrimmed P 28.27 ns vs v10's 24.71 at its it 7 (+14 %, one route,
+  before trim / search); draws pending.
