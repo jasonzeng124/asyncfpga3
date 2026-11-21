@@ -9074,3 +9074,15 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - **Test running (lateob.sh):** v10's own cmpchain s1 state (NOT CLEAN after 6 finish routes) resumed with
   AUTO_OVERBUILD=3 AUTO_OVERBUILD_LATE=4: the resume found phase 2 ended and switched -- "phase 3 (late overbuild +3 on
   76 lines, BD_SYMTRIM) from it 11". PREDICTION: route 11 clean as built or after its trim check; final + 4 draws pass.
+### progress 01:56 (flow v11 filed; the late phase's first route on v10's cmpchain s1 is rule-CLEAN as built)
+- **lateob cmpchain s1** (v10's own state, NOT CLEAN after six finish routes, resumed with AUTO_OVERBUILD=3
+  AUTO_OVERBUILD_LATE=4): phase 3's first route it 11 is a BD_SYMTRIM build (158 LUT2-1010 elements: the symmetric
+  lines as pass chains), no latch-fed race, **rule-CLEAN as built**. Its final (trim-back, then the stack) and draws
+  running.
+- **Flow v11 filed (d4a6a3a4a7):** suite13t_s5a_v11_1a..4b, 62 kernels x seeds 1-4 (31 tasks per part), named after v10's
+  parts and resumes, before mff / sibb. v10 + AUTO_OVERBUILD=3 AUTO_OVERBUILD_LATE=4 + TRIM_STAGEFIX=1 + AUTO_RACE_KEEP=1
+  + cache_v11 (brhash / nested); sobel / video_filter in. PREDICTION (in the headers, 02:00): routes equal to v10's
+  wherever v10 shipped clean from phases 1-2 and no _SDELAY trim or race-kept line differs; >= 80 % of the loops v10
+  left NOT CLEAN reach a rule-CLEAN route in the late phase; every draw passes; most of v10's UNFINISHED kernels PASS.
+- **Flow code freeze for v11** from the moment its first part is submitted: until all its parts and resumes are in,
+  only opt-in knobs v11 does not set.
