@@ -9329,3 +9329,11 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   **Prediction (in its header):** no status worse than v10's; P on pairs clean in both within +5 % (median); every
   shipped route's weakest select gate at x >= 0.10 by steer_tol.py. If it holds, AUTO_GUARD_E=0.90,1.10 goes to the
   owner as a measured option for the next flow (it is a guard policy, not mine to set alone).
+### progress 07:12 (the 10 % steer guard on collatz64 s1: formal's screen goes from pulses at x = 0.08 to none to 0.25, for +2 % P -- one seed)
+- g10 collatz64 s1 (flow v10 + AUTO_GUARD_E=0.90,1.10; shipped it 9, sdf 68789cdc, trimmed): rule E's weakest select gate
+  x = 0.163 (v10's route: 0.047); **formal's B24 screen: 12 / 12 steers bounded (v10's: 10 -- even ucond_br7 now has a
+  bound), min kappa_lo 0.139 (0.003), no latch-fed race, no pulses and no failure to x = 0.25** (v10's: pulses 0.08,
+  RESULT at 0.15). **P 21.97 ns vs v10's 21.53 (+2 %)**. Draws still running. research/data/guardx/
+  collatz64_g10_s1_*.txt.
+- One seed: the farm's suite13t_s5g_g10 (7 kernels x 4 seeds, paired with v10) is the measurement; local samples on
+  sqrtsub / lfsrfind / fill s1 started.
