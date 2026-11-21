@@ -75,6 +75,12 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - mul_example s1: 0.194.
   - test_bitint s1: 0.028, adversary 0.10 (as in v10).
   - The rest have no steers. The table is updated.
+- **Update 16:10 UTC: seed 2** (v11_2a / 2b so far; 54 routes screened in all, table updated):
+  - **brhash s2 (v11):** min kappa_lo **-0.012** (ucond_br9, no proof); adversary first failure kappa **0.10**.
+    v10's brhash s2 route had 0.170. v11 builds brhash from A34's plain move, so this is another route.
+  - **ipow s2:** 0.050, adversary 0.10; its latch-fed race +101 / +299 ps fails at 0.15, as in v10.
+  - lfsrfind s2 0.083 (adversary 0.15; latch-fed race +152 ps fails at 0.20, corner 1); memsum s2 0.046 (0.15).
+  - All others are 0.109 or more with no failure below 0.20.
 - **Reading:** the late phase's symtrim routes lose some steer margin against v10 (countloop 0.115 -> 0.039, varshift
   0.152 -> 0.081) but stay above kappa 0.10 in the adversary. No latch-fed race in v11 seed 1 fails below 0.15.
 
