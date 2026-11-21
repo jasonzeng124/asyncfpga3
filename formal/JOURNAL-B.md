@@ -5287,3 +5287,28 @@ DISK FULL incident (~11:35-11:45): /home/user/b reached 17 GB (decoded nets ~180
 ### progress 13:50 -- B28 CONFIRMED at dout 23 ns: xorshift s1 ctl adversary corner 0 MISMATCH at kappa 0 / 0.03 / 0.06 (13863 / 551 / 2 pulses), corner 1 no verdict; control (empty classes) OK both corners, 0 pulses. xtol at research's bands re-running with DRAW_DOUT. quadrec s2 re-run DISCARDED: its rebuild came out sdf bd6e79cc vs research 30a35ebc (DIFFERENT; likely the watcher sharing rs13's build dir), so its -0.075 / MISMATCH describe another route. The watcher's own SAME row (bound -0.015, c1 wrong out0 at 3 ns) still needs a dout-23 re-run on research's route.
 ### progress 13:58 -- B28 research-band row at dout 23 ns: pulses x = 8 %, first failure x = 10 % (was 8 % at 3 ns). FOR-RESEARCH B28 updated.
 ### progress 14:05 -- suite13t race rows being redone at dout 23 ns: loop13d.sh (DRAW_DOUT=23000) -> /home/user/b/xtol13d.txt; cleanup2d keeps decodes until the new row exists. The old xtol13.txt rows (3 ns) are superseded once redone; routes already cleaned (sqrtsub s1, branchloop s1, ...) need a rebuild to recheck. exit1 screen rows (out/exit1_steer_screen.tsv) remain at 3 ns: UNCONFIRMED; most exit1 decodes are deleted, only the KEEP list can be redone.
+
+## Session 2026-11-21 07:10 UTC (shard B, session_01HC49FyBs9ssZpfiqAXxHNC)
+Lock: LOCK-B last refreshed 2026-11-20 13:40 by session_01HC49FxDJT4HGTj6FwqgGr5 (17.5 h old), taken. Read: CLAUDE.md,
+PROGRAM (top: owner 2026-11-20 15:00 "chill on claude usage": at most 1 subagent at a time; work order unchanged), JOURNAL-B
+tail, JOURNAL-C / A tails, research FOR-FORMAL (newest 07:07 UTC: B24 screen on flow v10's 46 routes), audit REPORT (no open
+row on B's files).
+Open for B, in research's words: (04:00 #1) collatz_v10_s1 (board candidate) ucond_br7 "no launch node for ucmpi2.ujoin":
+the one open item on its steers; (04:00 #4) collatz64 v10 thin -- one route or a pattern?; (07:07 #1) does x carry a
+within-die allowance?; (02:20 #1, 20:45 #4) does the screen read trimmed INITs (1100 entries in 1010 chains)?
+Setup: formal/setup.sh running (Mathlib from source, nice 15). FPGA toolchain from toolchain-cache/02809f42 (python
+zstandard; the cache's export.sh names /root/audit-tc2, symlinked; libtcl8.6 + boost 1.83 from apt; prjxray pip deps; the
+prjxray-db at ~/dev2/lib/xray symlinked to the toolchain's): toolchain.sh every patch ok, nextpnr 7c3bfb9c684a2551.
+Research checkout /home/user/rs at c4fdc9d23, build/frontend = cloud/fixtures/frontend.
+### progress 07:58 -- B29: collatz_v10_s1 (board candidate) rebuilt SAME (board_rebuild.sh: sdf 0f050078, trimmed fasm 6ef8e077, bit 7ad2d1d0); decoded from the bits, 2 + 2 draws PASS. ucond_br7 now bounded
+- Cause of "no launch node": ucond_br7's condition is a link latch (ulink_n31__0_folink.lat.odd) fed by ucmpi2, and ucmpi2
+  is a JOINLESS compare (no .ujoin; ucond_br5 / 6 read it directly as "compare*"). The latch case looked only for the
+  feeding compute's .ujoin.
+- steersafe.py: the latch case with a joinless feeder now takes the feeder's input link ctl (the ctl pins its .uor reads)
+  as the data launch, opens that link's operand latches (transparent while their ctl is high: the B27 lesson) with their
+  data pins cut as roots (the input link's bundling premise), and keeps the condition latch expanded through every pin
+  (new CUTONLY: the cut applies to the operand latches only). Two terms as for every latch-fed steer: the condition
+  latch's own ctl (enable path) and the feeder's ctl (data through both latches).
+- collatz_v10_s1: ucond_br7 LUT5 / LUT6 kappa_lo 0.110 / 0.111 (ctl term +179 / +470 ps, feeder term +913 / +2278 ps at
+  kappa 0, corners 0 / 1). The route's other ten steers unchanged (min 0.061, ucond_br6, as research's screen). All 12
+  steers bounded; min kappa_lo 0.061. Race-only adversary on ucond_br7 running (bound must sit below its first failure).

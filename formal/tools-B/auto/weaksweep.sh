@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# tools-B/auto/weaksweep.sh RUNDIR K  (shard B, UNTRUSTED simulation): the race-only adversary of a route's WEAKEST steer
+# tools-B/auto/weaksweep.sh RUNDIR K [STEER]  (shard B, UNTRUSTED simulation): the race-only adversary of a route's WEAKEST steer
 # (any kind: steersafe.py --auto's first row): its condition cone slow, its request walk fast (steersafe --classes),
 # simx kappa 0, 0.03, 0.06, 0.10, 0.15, 0.20 at corners 0 / 1 until the first wrong answer / run with no verdict.
 set -uo pipefail
 D=$1; K=$2; H=$(cd "$(dirname "$0")" && pwd); M=$D/w/m
 bash $H/ensure_m.sh $D > /dev/null   # simx, net.simx, gclass.txt where draws.py left none
 [ -f $D/steersafe.txt ] || python3 $H/steersafe.py $M --auto > $D/steersafe.txt 2>&1
-row=$(head -1 $D/steersafe.txt); ST=$(echo "$row" | awk '{print $1}'); re=$(echo $ST | sed 's/\$LUT[56]$//; s/\./\\./g')
+row=$(if [ -n "${3:-}" ]; then grep "^$3" $D/steersafe.txt | sort -t_ -k1 | head -1; else head -1 $D/steersafe.txt; fi)   # 3rd arg (2026-11-21): a named steer
+ ST=$(echo "$row" | awk '{print $1}'); re=$(echo $ST | sed 's/\$LUT[56]$//; s/\./\\./g')
 python3 $H/steersafe.py $M --auto --only "$re" --classes $D/weak_adv.json > /dev/null 2>&1
 P=$(cat $D/pairs.txt); W=$(python3 -c "print(','.join(str(int(l.split()[0],16)) for l in open('$D/exp.txt') if l.strip() and not l.startswith('//')))")
 first="none up to 0.20"
