@@ -9688,7 +9688,7 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - Test: v10's environment + AUTO_RACE_KAPPA=0.13 on sqrtsub s4 (/tmp/bot/runs/rk, started 18:51; the working tree
   was 63de0e0569's content, its log names the head before that commit). Control: v10's farm route (sdf 89fc043c). Next:
   v11's + K on test_flatten_array s2 when cores free (all 16 busy). FOR-FORMAL 19:00 asks formal to screen what ships.
-### progress 19:12 (the memory fast-fall A/B (mff_1 / mff_2: v10 + BDC_MEM_FASTFALL=1, seeds 1-2), read at last: P ratio 0.953 over 12 clean pairs (0.74-1.11), 1 newly clean, 3 lost; 23 tasks unfinished -> resumes filed)
+### progress 19:02 (the memory fast-fall A/B (mff_1 / mff_2: v10 + BDC_MEM_FASTFALL=1, seeds 1-2), read at last: P ratio 0.953 over 12 clean pairs (0.74-1.11), 1 newly clean, 3 lost; 23 tasks unfinished -> resumes filed)
 - research/tools/suite/cmp_flows.py, mff vs v10 (parts + resumes + corrections): 37 of 60 tasks back; 12 same route;
   18 clean in both on different routes -- with a P: gather s1 0.74, dot2 s2 0.85, if_convert s2 / s1 0.90 / 0.92,
   while_loop_3 s1 0.91, if_loop_2 s1 0.94, dot2 s1 0.95, memsum s1 1.02, while_loop_3 s2 1.02, fill s1 1.03, if_loop_1 s1
