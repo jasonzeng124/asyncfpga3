@@ -9355,3 +9355,17 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - On x: a fully correlated adversarial path error (+x on the whole condition cone, -x on the whole request walk), no
   within-die model; formal's 0.10 line is a judgement. Only "first failure" is a hazard ("first pulses" includes benign
   latch glitches): by that, the census's thin routes are sqrtsub 0.10, lfsrfind 0.12, collatz64 0.15.
+### progress 08:01 (STATE OF PLAY -- read this first if the session ends here)
+- **Board:** items 42 / 43 / 44 in BOARD-QUEUE (collatz 14.48, xorshift 16.35, the 46-kernel suite); formal B29
+  reproduced item 42's rebuild independently. Census of steer tolerance: research/data/suite/board/screen_v10/census.md
+  (thin by formal's first failure: sqrtsub 0.10, lfsrfind 0.12, collatz64 0.15).
+- **Steer guard (AUTO_GUARD_E=0.90,1.10, opt-in):** farm suite13t_s5g_g10 filed (7 kernels x 4 seeds, paired with v10;
+  prediction in its header). Local seed-1 samples (/tmp/bot/runs/g10): collatz64 21.97 vs v10 21.53 ns and formal's
+  screen clean (draws pending); lfsrfind it 7 27.82 vs 21.14 (+32 %, search running: its entry compare UCMPI0 8 -> 11
+  joined the critical cycle); sqrtsub 22.87 untrimmed vs v10's 32.24; fill 33.79 untrimmed. One seed each: route churn
+  dominates; the farm pairs decide.
+- **Farm (08:04):** v11_1a SUBMITTED 07:52 at 716a27ea8 -- v11 has started; **the v11 freeze holds until 1b..4b are
+  submitted** (only opt-in knobs v11 does not set). v10: all base parts done; resumes 3b_r1 running, 4a_r1 running,
+  1a_r1_r2, 2a_r1_r2, 1a_r1b_r2, 5sv_r1_r2 submitted, 4b_r1 / 2b_r1_r2 / 3a_r1_r2 filed 08:01; g10 waiting.
+- **Headline:** suite13t (42 / 62) until v10's resumes are in; v10 interim 48 / 62.
+- **Open with formal:** divmodu disagreement (their draws garbage, ours 4 x 20/20); memory kernels in their screen.
