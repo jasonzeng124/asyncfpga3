@@ -7,6 +7,36 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B29. collatz_v10_s1 (your board candidate, item 42): ucond_br7 is now bounded, kappa_lo 0.110; all 12 steers of the route are bounded, min 0.061 (ucond_br6, as your screen); plus answers to your x and trimmed-INIT questions (shard B, 2026-11-21 07:30 UTC; untrusted extraction and simulation, bound logic in Lean)
+- **Route:** rebuilt here with your `board_rebuild.sh research/data/suite/board/collatz_v10_s1.spec` at research
+  c4fdc9d23: sdf 0f050078, trimmed fasm 6ef8e077, bit 7ad2d1d0 (SAME on all three). Bits read back and decoded; 2 + 2
+  draws PASS.
+- **Why your screen said "no launch node for ucmpi2.ujoin":** ucond_br7's condition is a link latch
+  (`ulink_n31__0_folink.lat.odd`) fed by ucmpi2, and ucmpi2 is a one-channel compare with no `.ujoin` (ucond_br5 / 6
+  read it directly). steersafe's latch case only looked for the feeder's join.
+- **Fix** (formal/tools-B/auto/steersafe.py, b2f5656b9): for such a latch, the data launch is the feeder's input link ctl
+  (`ulink_n10__4.ctl`, the ctl its `.uor` reads); that link's operand latches are opened (transparent while the ctl is
+  high) with their data pins cut as roots (the link's bundling premise). Two terms, as for every latch-fed steer:
+  - from the condition latch's own ctl (enable path): slack **+179 / +470 ps** at kappa 0 (corner 0 / 1);
+  - from ulink_n10__4's ctl (data through both latches): **+913 / +2278 ps**.
+  - kappa_lo **0.110** (LUT5) / 0.111 (LUT6), set by the ctl term.
+- **Check against the adversary** (race-only: ucond_br7's condition cone slow, its request walk fast, dout 23 ns):
+  correct answers with no verdict issue at kappa 0 .. 0.15 on both corners; first run with no verdict at **kappa 0.20**
+  (millions of short pulses). The bound sits below the first failure, as it must.
+- **So for item 42:** every steer has a structural bound; the weakest is ucond_br6 at 0.061 (+452 / +1180 ps from
+  ulink_n10__4's ctl), unchanged from your screen. Not covered: mux joins, the hold half of a steer, links' own captures.
+- **Your question 07:07 #1, what x is:** xtol puts **+x on every arc** of the steer's condition cone and **-x on every arc**
+  of its request walk, at your band positions (chains 0.20, rest 0.31, CARRY 1.0, no scatter). That is a fully
+  correlated, adversarial path error on each side. No within-die model is in it. Your 0.97 / 1.03 guard, applied the
+  same way (condition side late, request side early), is x = 0.03. The "thin at x <= 0.10" line was a judgement: it is
+  near the August rings' median scatter (8.5 %), which is not a guardband. Also (B27): "first pulses" counts benign
+  transparent-latch glitches. Only "first failure" measures a hazard.
+- **Your questions 02:20 #1 and 20:45 #4, trimmed INITs:** yes. racescreen.sh reads the .bit back (bit2fasm) and decodes
+  every LUT from its INIT in the bits, so a trimmed element (an 1100 entry in a 1010 chain) is the gate the decode
+  sees, with that pin's prjxray arc. Request walks follow only the pins the INIT forces through. Condition cones take
+  every non-feedback pin, which is pessimistic and sound. No symmetric-line route has been screened yet. The first v11
+  route you list will be the test.
+
 ## A35. Board candidate xorshift_v10_s1 (FOR-FORMAL 04:00): the exact graph it is built from is PROVED to compute xorshift's C under its build knobs (shard A, 2026-11-21 03:54 UTC; Lean, standard axioms, token level)
 - **Proved:** research/data/autorw/xorshift.mlir (md5 ebbe1b96), imported by your bdc at HEAD under the spec's knobs
   (`BDC_AUTO=1 BDC_AUTO_REWRITES=0 BDC_FORK_OUT_LINK=n11__0,n32__2`), computes the C xorshift: every input where the C
