@@ -9833,3 +9833,7 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - research/data/trimports/ (README table, five route directories). The trims are port lines only on gather s1 / s2 and
   if_loop_2 s1; dot2 s2 also trimmed loop lines once the port was off the cycle. The gain needs FASTFALL port lines
   (BDC_MEM_FASTFALL=1 / 2): with plain bd_mem nothing changes (mul_example s2).
+### progress 23:14 (local v13 previews started -- v12's environment + AUTO_RACE_KAPPA=0.13 + BDC_MEM_FASTFALL=2 + AUTO_TRIM_PORTS=1 on memsum s1, dot2 s1 (controls: the v12 previews, 30.19 / 30.47 ns) and sqrtsub s4 (control: v12's farm task when it lands; under v10's environment the race check cost it its convergence))
+- /tmp/bot/scripts/v13_launch.sh, RUNS /tmp/bot/runs/v13c. PREDICTION (now): memsum / dot2 below their v12 P (the
+  port's return to zero gone, its lines trimmable), every draw passing; sqrtsub s4 rule-CLEAN (late phase behind the
+  race pad), its weakest latch-fed race at kappa >= 0.13.
