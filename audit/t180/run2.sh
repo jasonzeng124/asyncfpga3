@@ -9,7 +9,7 @@
 set -u
 A=/home/user/asyncfpga3/audit; RC=97c98a411e; K=$1; TASKN=$2; SDFX=$3; W=/root/wt-t180; L=/root/t180_$K.log; T=${K}_bench_gen; H=v10loc_${K}_s${SEEDTAG:-2}
 TC=/root/audit-tc2; PDB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7; PART=xc7z010clg400-1
-CP=results/${PART:-suite13t_s5a_v10_2a_r1_r2}/$TASKN/auto; IT=${IT:-7}
+CP=results/${FPART:-suite13t_s5a_v10_2a_r1_r2}/$TASKN/auto; IT=${IT:-7}
 echo "T180 $K $(date -u)" > $L
 [ -d $W ] || git -C /home/user/asyncfpga3 worktree add -q --detach $W $RC
 rm -rf $W/build $W/cells/build/hw/$T; mkdir -p $W/build; cp -r $W/cloud/fixtures/frontend $W/build/
