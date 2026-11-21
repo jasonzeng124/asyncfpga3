@@ -9609,3 +9609,4 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 | cmpchain | NOT CLEAN, lat sum 1644 | CLEAN, 1752 (late route, sdf 153e27be) | **CLEAN, 1752, sdf 153e27be** (v11's route) |
 - Both PASS 4 / 4. The knob takes the better of v10 and v11 per kernel on these two. Next: the candidate v12 test
   (+ the guard) on sqrtsub s2, in its final trims.
+### progress 16:09 (waiting: candidate v12 sqrtsub s2 in its trim rounds; v10 local completions in their trims; v11 1a 30 / 31, 1b / 2a / 2b running)
