@@ -9762,3 +9762,19 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - So AUTO_RACE_KAPPA, like AUTO_GUARD_E, converts some clean finishes into one more re-route at the end of a fixed budget.
   v11's late phase (and v12's late-after-search) is what absorbs that; the test under v11's environment
   (test_flatten_array s2, B36's +1 ps route; started 19:53) is the one that decides whether the knob goes in a flow.
+### progress 20:32 (formal B38: which race class breaks where -- compare 11, latch ctl 7, feeder 1 of the weakest-steer adversary failures at kappa <= 0.10; the feeder check is deferred, with its validation set written down)
+- B38 over B32-B36 + g10 (weakest steer per route, failures at kappa <= 0.10): compare-bound 11 (branchloop s3 v11,
+  lfsrfind s1, binary_search s1, collatz64 s1, collatz s3, memsum s4, sqrtsub s1, test_memory_1 s3, brhash s1 / s2 v11,
+  cmpchain s1 v11) -> rule E, v12's guard; latch ctl-bound 7 (sqrtsub s4, test_flatten_array s2 v11 / s3, test_stdint
+  s1, fill s3, ipow s2, sumi3_mem s2) -> AUTO_RACE_KAPPA; feeder-bound 1 (test_bitint s1). Aimed at feeder-bound steers
+  that are not the weakest, the adversary also breaks collatz64 s1 ucond_br7 (feeder 0.010) and lfsrfind s1 ucond_br4
+  (0.031) at 0.10 -- both item 44 routes (BOARD-QUEUE item 44 now names all three).
+- The feeder pair (test_bitint s1 ucond_br1): the compare's data through the condition link's latch D -> Q (n24) against
+  the request through a SIBLING link (n21__0) that the steer's join also waits for; rule A compares each link with its
+  own request, the ctl term n24's ctl with n24's rdly, rule E stops at the latch -- nothing of ours compares this pair.
+- Deferred, not dropped: a sound feeder bound needs gate-level forcing semantics (which pins hold a C-element / chain
+  element low: formal's steersafe, Lean-backed) and a trimmed-line entry walk; its fix pads the compute's matched line,
+  which sits on the critical cycle (a P cost the ctl-term pads mostly avoid). With 1 of 19 failures and the board item
+  carrying the three steers, the board's answer comes first. Validation set for whoever builds it: test_bitint s1
+  ucond_br1 +243 / +412 ps (kappa 0.028), collatz64 s1 ucond_br7 0.010, lfsrfind s1 ucond_br4 0.031 (formal B37 / B38);
+  routes rebuilt here (/tmp/bot/runs/bsuite/hw, bq10c64/hw; arcs in /tmp/bot/feeder).
