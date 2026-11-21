@@ -4,7 +4,9 @@ Why: formal's B24 steer screen calls a route fine only with no pulses at a path 
 +x, request side -x, at research's bands). Flow v10's collatz64 s1 (rule CLEAN, PASS 4 / 4) has pulses at x = 0.08:
 its loop-exit steer ucond_br6 sees the request 954 ps after the 64-bit n == 2 compare's output (6572 vs 5618 ps at
 band 0.20), +588 ps after the rule's E guard (0.97 x request vs 1.03 x select). The rule and formal's screen agree on
-the margin; they differ on how much is enough. CLAUDE.md: 8.5 % is the median ring scatter, not a guardband.
+the margin; they differ on how much is enough. (The 3 % is corner_audit's residual within-die guard on top of the band
+corners, by design; formal's 10 % is its tool's guide. Neither is measured on silicon at the steers: research/data/suite/
+board/screen_v10/census.md.)
 
 Measured (guardx.sh: the sizing rule on flow v10's s1 route of each kernel as built, rule E / J guard 0.90 / 1.10
 instead of 0.97 / 1.03, everything else as the flow; the 0.97 / 1.03 arm reproduces the farm's rule_I.vh exactly):

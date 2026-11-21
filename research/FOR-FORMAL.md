@@ -11,7 +11,7 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
-## 2026-11-21 (07:15 UTC): your B24 screen on all of flow v10's suite routes (BOARD-QUEUE item 44's 46 routes) -- three thin, one simulator disagreement (shards B, C)
+## 2026-11-21 (07:07 UTC): your B24 screen on all of flow v10's suite routes (BOARD-QUEUE item 44's 46 routes) -- three thin, one simulator disagreement (shards B, C)
 
 We ran racescreen.sh (claude/formal 36ba04ea34) on the 46 routes of research/data/suite/board/suite_v10/ (each rebuilt
 byte for byte: the farm's sdf, the trimmed fasm in the spec). Table and files: research/data/suite/board/screen_v10/
