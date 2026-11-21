@@ -25,7 +25,7 @@ if [ "$(get MEM)" = 1 ]; then   # a memory kernel (benchvec vectors): shard C's 
     timeout 3000 python3 "$H/steersafe.py" "$O/mt/w/m" --auto > "$O/steersafe.txt" 2>&1
     ss=$(grep -o '^steers.*' "$O/steersafe.txt"); w=$(head -1 "$O/steersafe.txt" | cut -c1-28 | tr -s ' ')
     # the weakest steer's race-only adversary on the memory boundary (simx --mem, as C's draws)
-    ln -sf v/pairs.txt "$O/mt/pairs.txt"; ln -sf v/exp.txt "$O/mt/exp.txt"; cp "$O/steersafe.txt" "$O/mt/steersafe.txt"
+    ln -sf v/pairs.txt "$O/mt/pairs.txt"; ln -sf v/exp_num.txt "$O/mt/exp.txt"; cp "$O/steersafe.txt" "$O/mt/steersafe.txt"
     bash "$H/ensure_m.sh" "$O/mt" > /dev/null 2>&1
     ws=$(SIMX_EXTRA="--mem $O/mt/v/mem.txt --tmax 1900000000" timeout 3000 bash "$H/weaksweep.sh" "$O/mt" "$K" 2>&1 | grep -o 'adversary first failure.*')
   fi
