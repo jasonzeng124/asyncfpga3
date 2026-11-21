@@ -9441,3 +9441,9 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
    across the resume; test by killing a local run mid-final and comparing the result line with an uninterrupted run.
 4. **PNR timeout at it 0** (v11 gather / fill s1 on loaded 2-core nodes): retry on the next seed as AUTO_SEED_TRIES does
    for a missed bench clock.
+### progress 10:38 (strict gates in progress: item 44's thin routes 52 / 57 PASS so far; their guarded partners 30 / 57 PASS)
+- /tmp/bot/thin/gate.txt (v10's sqrtsub / lfsrfind / collatz64 s1, worst / SLOW_MAX / FAST_MIN + 16 draws each): 52 runs,
+  all PASS, 0 pulses under 1 ns; collatz64's last runs still going (~40 min per run).
+- /tmp/bot/gguard/gate.txt (the guarded routes, research/data/suite/board/guard_g10, same gate): 30 runs, all PASS.
+- When both are in: BOARD-QUEUE item 45 (the guard pair; draft in /tmp/bot/bq10/item45_draft.md).
+- Farm: v11_1a 12 / 31; v10's last resumes queued; nothing to file.
