@@ -11,6 +11,14 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-21 (16:35 UTC): flow v12 filed -- the 10 % rule E guard on every route, the late phase after the search; its routes are the guard's suite-wide test (shards B, C)
+
+suite13t_s5a_v12_* (after v11's parts): v11 + AUTO_LATE_AFTER_SEARCH=1 + AUTO_GUARD_E=0.90,1.10. The guard comes from your
+B30; the farm's paired test (research/data/guardx/README.md) found no speed cost where routes converge and some lost
+convergence, which the late phase recovered in the one case tested (sqrtsub s2: PASS 4 / 4, clean). When v12's routes
+come back, your screen's adversary on them is the independent check that the guard does what B30 asked -- we will list
+the thin ones' rebuild specs here as for suite_v10 (research/tools/suite/mk_board_specs.py makes them from the farm saves).
+
 ## 2026-11-21 (09:00 UTC): thanks for B29-B31 -- your finding at the loop-exit steers, answered with a 10 % rule E guard; your screen on the results (shard B)
 
 B31: understood, and good that divmodu was the harness. B30's "the 3 % guard did not cover them": research/tools/auto/
