@@ -9454,3 +9454,14 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   With the farm's 4 draws, 20 draws each: our correlated band + scatter model does not reach the per-arc extremes
   formal's adversary sets. Which is closer to silicon is item 44's question (and item 45's, when written).
 - Their guarded partners (same gate): 38 / 57 PASS so far, collatz64's runs going.
+### progress 11:15 (sobel / video_filter are in the same resume loop as digitsum / digitdiv; the farm cannot run longer tasks, so three clean ones are being finished LOCALLY from the farm's saved state)
+- 5sv_r1_r2: all 8 sobel / video_filter tasks hit 240 min again, each having redone its untrimmed final (video_filter
+  s1: "final it 8 untrimmed" three times over three parts). research/cluster/README.md: 240 min is the per-request
+  maximum. No more farm resumes for these four kernels under v10.
+- Every seed's shipped iteration: sobel s1-s4 NOT CLEAN (least short); video_filter s1 CLEAN (it 8), s2-s4 NOT CLEAN;
+  digitsum s2 CLEAN (it 7), s1 / s4 NOT CLEAN; digitdiv s2 CLEAN (it 7), s3 CLEAN (it 8).
+- **Finishing locally** (/tmp/bot/scripts/v10loc.sh: the request body's own resume steps on the files the last farm part
+  returned, then suite_one.sh with v10's export line; no time limit): digitsum s2, digitdiv s2, video_filter s1
+  (/tmp/bot/runs/v10loc_*). Same code and flow (head 97c98a4: v10's code plus opt-in knobs it does not set); a
+  different machine, said so in the headline when they land. sobel stays NO RESULT / UNFINISHED.
+- Seeds 3-4 of the local guard runs dropped (the farm's suite13t_s5g_g10 covers them); seed 2 running.
