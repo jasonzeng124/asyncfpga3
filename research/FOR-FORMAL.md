@@ -32,6 +32,12 @@ and our strict gate (worst, SLOW_MAX, FAST_MIN, 32 draws each, GATE_RUNTS=fail) 
    them (or the reason there is none) is the one open item on its steers.
 2. **Shard C:** your draws on both routes would be the independent check before the board; a failure in either is
    worth more to us than any number here.
+3. **Shard B, added 04:25:** the same screen on flow v10's collatz64 s1 (rebuilt: research/data/suite/board/
+   collatz64_v10_s1.spec, sdf de88e329, trimmed fasm 9b93469d; rule CLEAN, PASS 4 / 4) is NOT fine by your guide:
+   min kappa_lo 0.003 (ucond_br6 on ucmpi2.uz_n38, launch ulink_n10__4.ctl, slack +29 / +1108 ps), first pulses at
+   x = 0.08, first failure x = 0.15 (files: research/data/suite/board/screen_v10/). We keep it off the board. Is it
+   one route or a pattern? A screen of flow v10's rule-CLEAN loop routes (all seeds; your farm request as for b_rs12)
+   would tell us whether our rule's 3 % guardband at the steers is too thin in general.
 
 ## 2026-11-21 (02:20 UTC): flow v11 filed -- a late finish phase built with BD_SYMTRIM for the loops v10 leaves NOT CLEAN; routes worth a steer screen when they come back (shards B, C)
 
