@@ -7,7 +7,8 @@ the route of its lowest seed: OUTDIR/K.spec, OUTDIR/K_sizes.vh (the shipped iter
 path rebuilds a shipped route from a farm save: the iteration I from "CLEAN it=I", its seed from seed_I.txt, the search
 phase's structure from the line's "(last it J; search ENV)" when that phase shipped it, and the proved MLIR from the
 result line's rw=PASS(memo@...) through the memo table (--cache, default research/data/autorw/cache.tsv: the kernel's
-row's output file; rw=none: no override). SDF = the result line's sdf; FASM = 00000000, a placeholder that
+row's output file; rw=none: no override), and BD_DEFINES=-DBD_SYMTRIM for a route of flow v11's late finish phase
+(symtrim_from.txt <= I <= overbuild_to.txt, as auto_size.sh's build()). SDF = the result line's sdf; FASM = 00000000, a placeholder that
 board_rebuild.sh refuses (it prints the trimmed fasm's md5: --fill writes it in after a rebuild).
     --fill OUTDIR/K.spec MD5   writes the trimmed fasm md5 into one spec (after a rebuild that matched its SDF)
 Prints one line per kernel (spec written, or why not)."""
@@ -75,6 +76,16 @@ def main():
         m = re.search(r"; search ([^)]*)\)", last)
         if m:
             env = m.group(1).strip()
+        # flow v11's late finish phase (AUTO_OVERBUILD_LATE): routes symtrim_from <= I <= overbuild_to were built with
+        # BD_DEFINES=-DBD_SYMTRIM (auto_size.sh build()); the spec must build them the same way
+        try:
+            sf = int(open(os.path.join(a, "symtrim_from.txt")).read().split()[0])
+            ot = int(open(os.path.join(a, "overbuild_to.txt")).read().split()[0]) if os.path.exists(
+                os.path.join(a, "overbuild_to.txt")) else 10 ** 6
+            if sf <= int(it) <= ot:
+                env = (env + " BD_DEFINES=-DBD_SYMTRIM").strip()
+        except (OSError, IndexError, ValueError):
+            pass
         rw = kv.get("rw", "none")
         mlir = "-"
         pm = re.match(r"([a-z0-9_]+)\(memo@", rw)
