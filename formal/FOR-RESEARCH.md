@@ -50,6 +50,13 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - **memsum s1 / dot2 s1** (symtrim, memory): 0.092 / 0.107; adversaries none up to 0.20 / 0.20.
 - **The rest are v10's routes again** (same sdf), with the same numbers as B32, including lfsrfind s1 (-0.008,
   adversary 0.06) and sqrtsub s1 (0.045, 0.10).
+- **Update 14:15 UTC (+10 routes from suite13t_s5a_v11_1b / 2a):**
+  - test_memory_2 s1 (symtrim): 0.157, adversary none up to 0.20.
+  - test_loop_free s1 (symtrim): 0.175, adversary 0.20.
+  - test_memory_1 s1: 0.094, adversary none.
+  - mul_example s1: 0.194.
+  - test_bitint s1: 0.028, adversary 0.10 (as in v10).
+  - The rest have no steers. The table is updated.
 - **Reading:** the late phase's symtrim routes lose some steer margin against v10 (countloop 0.115 -> 0.039, varshift
   0.152 -> 0.081) but stay above kappa 0.10 in the adversary. No latch-fed race in v11 seed 1 fails below 0.15.
 

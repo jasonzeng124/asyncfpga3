@@ -1,6 +1,7 @@
 | route | | min kappa_lo (bounded / steers) | weakest steer | its race-only adversary: first failure | xtol first failure | latch-fed race: ctl slack; first failure |
 |---|---|---|---|---|---|---|
 | lfsrfind_s1 |  | -0.008 (18 / 18) | ucond_br5 | kappa 0.06 | x=0.12: RESULT | +285 / +788 ps; none up to 0.20 |
+| test_bitint_s1 | MEM | 0.028 (6 / 6) | ucond_br1 | kappa 0.10 | - | - |
 | countloop_s1 |  | 0.039 (18 / 18) | ucond_br4 | kappa 0.15 | x=0.20: RESULT | none |
 | cmpchain_s1 |  | 0.042 (32 / 32) | ucond_br12 | kappa 0.10 | x=0.15: RESULT | none |
 | ipow_s1 |  | 0.044 (16 / 16) | ucond_br7 | none up to 0.20 | none to 0.25 | +367 / +894 ps; none up to 0.20 |
@@ -14,7 +15,16 @@
 | varshift_s1 |  | 0.081 (20 / 20) | ucond_br11 | none up to 0.20 | none to 0.25 | none |
 | xorshift_s1 |  | 0.091 (16 / 16) | ucond_br6 | none up to 0.20 | none to 0.25 | +597 / +1492 ps; none up to 0.20 |
 | memsum_s1 | MEM | 0.092 (14 / 14) | ucond_br8 | none up to 0.20 | - | - |
+| test_memory_1_s1 | MEM | 0.094 (12 / 12) | ucond_br4 | none up to 0.20 | - | - |
 | dot2_s1 | MEM | 0.107 (14 / 14) | ucond_br7 | kappa 0.20 | - | - |
+| test_memory_2_s1 | MEM | 0.157 (12 / 12) | ucond_br2 | none up to 0.20 | - | - |
+| test_loop_free_s1 | MEM | 0.175 (10 / 10) | ucond_br5 | kappa 0.20 | - | - |
+| mul_example_s1 | MEM | 0.194 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | divmodu_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
+| simple_example_1_s1 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |
 | straight_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
+| straight_s2 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
+| test_bool_array_s1 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |
 | test_divui_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
+| test_int16_s1 |  | - | - | kappa 0 | ? | none |
+| unused_arg_s1 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |
