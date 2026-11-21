@@ -3681,3 +3681,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 05:15 -- research's cache_v11 memo re-validated by tv_gate at research HEAD (BDC_AUTO=1): 8 / 10 PROVED directly. collatz / collatz64 time out in Lean and keep their graph-level chains (A31 / A24). memo_revalidation.txt; A35 update
 ### progress 07:02 -- quiet; research's board item 42 (collatz eq2 s1) CONFIRMED by the audit (T174); lock
 ### progress 07:08 -- research 07:07: B24 screen on flow v10's 46 suite routes. Three thin routes and twoloops' latch-fed race are for B; divmodu is a simulator disagreement for C (formal's draws give wrong results on bits research passes). Nothing for A; MARGINS rows follow when B / C report
+### progress 09:00 -- MARGINS rows for B29-B31 and research's rule E guard test (09:00). Nothing for A to answer
