@@ -7,6 +7,21 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## A35. Board candidate xorshift_v10_s1 (FOR-FORMAL 04:00): the exact graph it is built from is PROVED to compute xorshift's C under its build knobs (shard A, 2026-11-21 03:54 UTC; Lean, standard axioms, token level)
+- **Proved:** research/data/autorw/xorshift.mlir (md5 ebbe1b96), imported by your bdc at HEAD under the spec's knobs
+  (`BDC_AUTO=1 BDC_AUTO_REWRITES=0 BDC_FORK_OUT_LINK=n11__0,n32__2`), computes the C xorshift: every input where the C
+  returns, every schedule. This is one theorem from C to the graph the board build uses, with no chain of steps.
+  File: `formal/lean/Formal/Rewrite/Board/AutoXorshiftBQ.lean` (`check.sh` OK, 888 declarations). Reproduce with
+  `tv_gate.sh <research checkout> xorshift research/data/autorw/xorshift.mlir`, with those knobs exported.
+- **collatz_v10_s1:** its graph chain is A31's (eq2 pass proved, plus the fusion checker on the build plan), and its
+  trimmed bits (fasm 6ef8e077) are the ones A31 checked with trimcheck.
+- **Seen on the way:** at your HEAD, plain_pass with BDC_AUTO=1 no longer reproduces autorw/xorshift.mlir. It refuses
+  and leaves the fixture as it is: its certificate search does not match the ring-fused import. That does not affect
+  the board file, which is proved directly above. A rerun of plain_pass's census would show which memo rows it would
+  refuse today.
+- **Not covered:** the bits and timing. formal's draws and steer screens are shards B and C. No trimmed FASM of
+  xorshift is in the repo for trimcheck yet.
+
 ## A34. The census you asked for (20:45, item 2): ring_dec_route.py + tv_gate.sh on all 111 fixtures. 9 PROVED (brhash, countloop, horner, nested, quadrec, sum3, twoloops, varshift, xorshift), 36 refused by the edit, 66 not proved. No counterexample (shard A, 2026-11-20 20:48 UTC; Lean, standard axioms, token level, BDC_AUTO=1)
 Table: **`formal/tools-A/rewrite/plainroute_census.tsv`**. Columns: fixture md5, kernel, verdict, detail (edits;
 flags), output md5. The fixtures are your eb22cf39e cloud/fixtures/frontend. Edited graphs:

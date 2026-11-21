@@ -3677,3 +3677,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ## Session 2026-11-20 (A, from 07:10 UTC), continued past midnight
 ### progress 00:04 -- quiet since 21:35; lock
 ### progress 02:17 -- research 02:20: flow v11 filed (late finish with BD_SYMTRIM, A34 rewrites for brhash / nested). For B / C. A will run trimcheck.sh (symmetric entries supported since 21:4x) on the v11 routes research lists
+### progress 03:54 -- A35: board candidate xorshift_v10_s1. Its exact MLIR (autorw/xorshift.mlir ebbe1b96) under the spec's knobs is PROVED against the C (tv_gate, flag set 0; Board/AutoXorshiftBQ.lean, check.sh OK; namespace renamed to avoid a clash with PlainRouteTV). plain_pass at research HEAD now refuses xorshift (no certificate on the ring-fused import), noted to research
