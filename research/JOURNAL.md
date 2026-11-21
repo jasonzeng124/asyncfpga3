@@ -9602,3 +9602,10 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   stencil_2d (v11's target). NO RESULT: digitsum, digitdiv, sobel, video_filter (the 240-min resume loop; three being
   finished locally -- the table gets them when they land).
 - Does NOT show: the board's view of any of it (items 42-45 queued); v11; the guard's effect on the whole suite.
+### progress 15:49 (AUTO_LATE_AFTER_SEARCH verified end to end on both kinds of kernel)
+| kernel s1 | v10 | v11 (late phase first) | v11 + AUTO_LATE_AFTER_SEARCH |
+|---|---|---|---|
+| countloop | CLEAN, P 19.116, lat sum 7950 (search route) | CLEAN, P 23.17, 9474 (late route) | **CLEAN, P 19.116, 7950** (v10's route) |
+| cmpchain | NOT CLEAN, lat sum 1644 | CLEAN, 1752 (late route, sdf 153e27be) | **CLEAN, 1752, sdf 153e27be** (v11's route) |
+- Both PASS 4 / 4. The knob takes the better of v10 and v11 per kernel on these two. Next: the candidate v12 test
+  (+ the guard) on sqrtsub s2, in its final trims.
