@@ -9582,3 +9582,14 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   did not clean it, "late-after-search:", then **phase 3 from it 11: rule-CLEAN as built** (raised 0, negative 0;
   latch-fed races >= 22.99 sd). Trim-back, final and draws next. If it passes, the guard's convergence loss is
   absorbed by the late phase as intended, and the guard goes into v12.
+### progress 15:06 (the guard's paired farm test is complete: no speed cost (P ratio 1.003 over 18 clean pairs), convergence 1 lost + 1 gained + 1 lost with a failing draw; v10's farm parts are done)
+- suite13t_s5g_g10 (flow v10 + AUTO_GUARD_E=0.90,1.10; 7 thinnest kernels x seeds 1-4) vs v10, same (kernel, seed): 22 of
+  28 tasks finished (6 timeouts on dot2 / if_loop_2 / fill / twoloops, not resumed -- v12 runs the guard on the whole
+  suite with the late phase). Transitions: 18 clean -> clean; fill s4 clean -> NOT CLEAN; **sqrtsub s2 clean -> NOT CLEAN
+  with a failing draw (7/13)**; twoloops s2 NOT CLEAN -> clean; twoloops s4 NOT CLEAN both. **P ratio geomean 1.003**
+  (0.62-1.48) and latency-sum ratio 1.006 over the 18 pairs clean in both. Results: research/data/guardx/gate/
+  g10_farm_results.txt. Verdict on the prediction in the request's header: P part held, status part FALSIFIED.
+- The guard alone is therefore not a flow: it needs the late phase behind it. The candidate v12 test (sqrtsub s2 through
+  the late phase, rule-CLEAN at it 11) is in its draws.
+- **v10's farm parts are done**: table 50 PASS / 8 UNFINISHED / 4 NO RESULT (digitsum, digitdiv, sobel, video_filter);
+  gcd s4 PASS on a NOT CLEAN route, fold64 s4 PASS clean. Publishing waits only for the three local completions.
