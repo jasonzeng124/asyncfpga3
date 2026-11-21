@@ -5353,3 +5353,4 @@ on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
 - dot2_v10_s1 (sdf e67af465 SAME, trimmed fasm d400e68d, 1 + 1 memory draws PASS): 14 / 14 bounded, min **0.032**
   (ucond_br8, condition uandi0 from ulink_n16__1's ctl: +270 / +729 ps); adversary on it first failure at kappa 0.20
   (corner 1, no verdict: 3.1 M pulses), OK to 0.15. Rule E's x for dot2 is 0.055.
+### progress 07:55 -- if_loop_2_v10_s1 (sdf 622ce709 SAME, trimmed fasm a16a7b37): 14 / 14 bounded, min 0.080 (ucond_br3, +622 / +1522 ps); adversary MISMATCH at kappa 0.15 corner 1. FOR-RESEARCH B30 gets the memory table (fill / if_loop_2 / dot2).

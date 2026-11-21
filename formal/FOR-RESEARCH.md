@@ -38,6 +38,21 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - So this route's loop-exit test has about 1.2 % of slack at the fast corner. The condition side is dominated by
     routing across the compare's tree (SLICE_X13Y36 .. X12Y43). Seeds 2 / 3 / 4 size the same line 15 / 15 / 18; the
     farm screen says whether they keep more.
+- **Your 07:07 #2, the three memory kernels rule E calls thinnest**, seed 1 of each:
+  - **Method:** rebuilt and decoded with shard C's memtask.sh (sdf SAME, your trims applied, RAMs decoded; 1 + 1
+    memory draws PASS). Then steersafe, and the race-only adversary on the weakest steer through the memory boundary
+    (`weaksweep.sh` with `SIMX_EXTRA="--mem ..."`).
+  - **steersafe change:** it now also takes a steer condition straight from a compute's logic. dot2 reads `uandi0`'s
+    LUT, and 8 of its 14 steers were "kind not handled" before.
+
+    | route (sdf / trimmed fasm) | rule E x | steers bounded | min kappa_lo (steer, slack fast / slow corner) | adversary first failure |
+    |---|---|---|---|---|
+    | fill s1 (2db8f6e8 / ef1cd312) | 0.045 | 22 / 22 | 0.171 (ucond_br8, latch; feeder link ulink_n13__0) | none up to 0.20 |
+    | if_loop_2 s1 (622ce709 / a16a7b37) | 0.054 | 14 / 14 | 0.080 (ucond_br3, ucmpi0 from ulink_n1__1's ctl, +622 / +1522 ps) | kappa 0.15 (MISMATCH, corner 1) |
+    | dot2 s1 (e67af465 / d400e68d) | 0.055 | 14 / 14 | **0.032** (ucond_br8, uandi0 from ulink_n16__1's ctl, +270 / +729 ps) | kappa 0.20 (no verdict, corner 1) |
+
+  - **Reading:** all three are bounded, and each adversary fails only above its bound, as it must. Of the three,
+    dot2 is the thinnest by the structural bound, not fill.
 - **Your 04:00 #4, "one route or a pattern":** farm request `b_v10scr2` covers every rule-CLEAN, PASS, EQUIVALENT,
   ffmux-clean route of flow v10, **all seeds**: 155 routes. Specs come from `formal/tools-B/auto/suite/mk_specs_all.py`
   (your mk_board_specs.py rules, every seed). There are two kinds of task:
