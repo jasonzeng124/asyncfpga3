@@ -572,7 +572,14 @@ PY
         python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
       fi
       local cyc0=$O/cyc_${i}_untrimmed.txt; [ -n "$TB" ] && [ -s "$O/cyc_${i}_tb.txt" ] && cyc0=$O/cyc_${i}_tb.txt
-      python3 "$T/cycle_macros.py" "$cyc0" "$O/sizes_$i.vh" > "$O/trim_allow_$i.txt"
+      # AUTO_TRIM_PORTS=1 (opt-in, 2026-11-21; unset, nothing changes): a memory port on the cycle brings its own lines
+      # (umemN's usetup / uco: no "_UPORT" in their macro names), those trim_lines.py can shorten (cycle_macros.py --ports)
+      local PT=""
+      if [ "${AUTO_TRIM_PORTS:-0}" = 1 ]; then
+        python3 "$T/trim_lines.py" --list "$RUNS/hw/${N}_$i/${D}_routed.json" > "$O/trimlist_$i.txt" 2>/dev/null \
+          && PT="--ports $O/trimlist_$i.txt"
+      fi
+      python3 "$T/cycle_macros.py" "$cyc0" "$O/sizes_$i.vh" $PT > "$O/trim_allow_$i.txt"
       echo "trim: it $i scope cycle, round 1: $(grep -c . "$O/trim_allow_$i.txt") line(s) on the untrimmed cycle" >> "$O/log.txt"
       # Each round is kept only if the period it leaves is lower than the one before it (re-timed by the next round's
       # full stack); a round that buys nothing is reverted, its trims undone (xorshift s1: round 2 moved 3 lines of its
@@ -598,7 +605,7 @@ PY
         fi
         pprev=$pnow
         [ "$r" -le "${AUTO_TRIM_ROUNDS:-3}" ] || break
-        rr=$(python3 "$T/cycle_macros.py" "$O/cyc_${i}_r$r.txt" "$O/sizes_$i.vh" | grep -vxF -f "$O/trim_allow_$i.txt")
+        rr=$(python3 "$T/cycle_macros.py" "$O/cyc_${i}_r$r.txt" "$O/sizes_$i.vh" $PT | grep -vxF -f "$O/trim_allow_$i.txt")
         [ -n "$rr" ] || { echo "trim: it $i round $r: the cycle brings no new line" >> "$O/log.txt"; break; }
         echo "$rr" >> "$O/trim_allow_$i.txt"
         echo "trim: it $i round $r: $(echo "$rr" | grep -c .) new line(s) on the cycle" >> "$O/log.txt"
