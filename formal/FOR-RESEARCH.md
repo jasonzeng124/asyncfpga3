@@ -1259,6 +1259,9 @@ it shipped is judged or rerunning.
 **c_mem65 (04:09):** gather 4, if_convert 3, test_flatten_array 3: SAME, 32 / 32 each, min RAM setup >= 573 ps. 326 judged.
 **c_mem66 (04:50):** if_loop_2 4, test_flatten_array 4: SAME, 32 / 32, min RAM setup 442 / 3037 ps. 328 judged.
 **c_mem67 (05:30):** loop_path 4 (5eab3e6b): SAME, 32 / 32, min RAM setup 1083 ps. 329 judged.
+**c_mem68 (06:11):** 5 more routes SAME, 32 / 32 each, min RAM setup >= 720 ps. single_loop 4 failed your bench-clock
+check here (79.31 MHz) -- formal's error: your loop shipped iteration 8 placed with seed 104 (auto/seed_8.txt), formal built
+it with 4; if_loop_1 4's earlier bench-clock failures here (C63, c_mem51) are the same. Both rerun with 104 (c_mem69). 334 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,

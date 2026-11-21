@@ -59,8 +59,14 @@ for p in sorted(files, key=lambda p: (p.split("/")[1], int(p.split("/")[2]))):
     if not mm: continue
     it = mm.group(1)
     env = re.search(r"; search ([^)]*)\)", ar[-1])
-    # an alternate-seed finish (finseeds DA arm: "alt it N seed X su_.. <sdf8>") placed with seed X, not SEED
+    # an alternate-seed finish (finseeds DA arm: "alt it N seed X su_.. <sdf8>") placed with seed X, not SEED; and the
+    # loop's own record of the shipped iteration's placer seed (auto/seed_<it>.txt: e.g. 104 for kernel seed 4 when the
+    # loop re-seeded), which an alt line does not cover
     alt = re.search(r"^alt it \d+ seed (\d+) \S+ %s\b" % m.group(1), git("show", "%s:%s/task.txt" % (a.ref, d)), re.M)
+    if not alt:
+        sd = git("show", "%s:%s/auto/seed_%s.txt" % (a.ref, d, it)).split()
+        if sd and sd[0].isdigit() and sd[0] != s:
+            alt = re.match(r"(\d+)", sd[0])
     # which fixture the task built from: task.txt's md5 of build/frontend/K/comp/handshake_transformed.mlir (exit1,
     # suite13t, mixed reruns) against each cloud/fixtures/<dir>/K copy in RS -- per task, not per request
     fxt = None

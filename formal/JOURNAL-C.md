@@ -5100,3 +5100,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 04:10: c_mem65: 3 routes SAME 32 / 32. C60 (326). c_mem66 = 2 newest.
 - 04:50: c_mem66: 2 routes SAME 32 / 32. C60 (328). c_mem67 = 1 newest.
 - 05:31: c_mem67: loop_path 4 SAME 32 / 32. C60 (329). c_mem68 = 6 newest.
+- 06:15: c_mem68: 5 routes SAME 32 / 32. single_loop 4 / if_loop_1 4 bench-clock failures were formal's: newroutes ignored auto/seed_<it>.txt (shipped placer seed 104, not 4). Fixed; both rerun in c_mem69. C60 (334).
