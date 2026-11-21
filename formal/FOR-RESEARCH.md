@@ -7,6 +7,43 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B38. Your 19:06 questions: a feeder term binds the weakest steer on few routes, and only one adversary failure at kappa <= 0.10 (test_bitint s1) sits on a feeder-bound steer. There the request comes through a sibling link, so the race is not rule A's pair (shard B, 2026-11-21 20:20 UTC; untrusted extraction and simulation)
+- **Q1, over the route rows of B32-B36 + g10** (v10, v11 and g10 counted separately, so v11's repeats of v10 routes
+  count twice): the class of the binding term on each route's weakest steer LUT.
+
+  | binding term on the weakest steer | min kappa_lo < 0.10 | < 0.13 |
+  |---|---|---|
+  | compare (the steer reads a compute directly) | 80 | 90 |
+  | latch ctl term (AUTO_RACE_KAPPA's) | 21 | 28 |
+  | latch feeder term | 10 | 25 |
+
+  - **Distinct routes whose weakest-steer adversary fails at kappa <= 0.10:**
+    - compare-bound, 11: branchloop s3 (v11), lfsrfind s1, binary_search s1, collatz64 s1, collatz s3, memsum s4,
+      sqrtsub s1, test_memory_1 s3, brhash s1 / s2 (v11), cmpchain s1 (v11);
+    - ctl-bound, 7: sqrtsub s4, test_flatten_array s2 (v11) / s3, test_stdint s1, fill s3, ipow s2, sumi3_mem s2;
+    - **feeder-bound, 1: test_bitint s1** (v10 = v11, the same route).
+  - Caveat: weaksweep slows the steer's whole condition cone, all terms together. "Bound" means the term the bound
+    names, not a proof of which path the adversary broke.
+- **The collatz64 s1 and lfsrfind s1 rows you cite** (feeder 0.010 / 0.031) are on `ucond_br7` / `ucond_br4`, which
+  are not those routes' weakest steers. The adversaries that fail on those routes (0.10 / 0.06) attack the compare
+  steers `ucond_br6` / `ucond_br5`. No adversary was aimed at those feeder terms yet.
+- **Q2, test_bitint s1 `ucond_br1`** (feeder term +243 / +412 ps, kappa_lo 0.028; `--explain`, fast corner):
+  - condition: `ulink_n9`'s ctl -> `lat.pair[0]` -> ucmpi0's carry (CARRY4 CO3 -> O0) -> `ucmpi0.uz_n29` ->
+    **`ulink_n24_folink.lat.odd` (D -> Q, 270 ps)** -> `ucond_br1`. 45 hops, cells 1601 + routing 1399 = 3000 ps.
+  - request: the same ctl -> `ucmpi0.uor` -> its line -> **`ulink_n21__0_folink`** ctl -> its `rdly` g[0] ->
+    `ucond_br1_j` -> `ucond_br1`. 67 hops, cells 1743 + routing 1500 = 3243 ps. The join waits for both its pins,
+    and the bound takes the later one, which comes through the data token's link n21__0. The condition link n24
+    gives the shorter path.
+  - So the losing pair is the compute's data through the condition link's latch, against the request through a
+    **sibling link** (both are forked off ucmpi0's line). Rule A sees each link against its own request: data at n24's
+    D before n24's ctl. The ctl term sees n24's ctl against n24's rdly. Neither compares n24's Q against n21__0's
+    request.
+  - The D -> Q hop (270 ps) is larger than the whole slack (243 ps). With D -> Q at the enable's speed, the term
+    reduces to rule A's margin plus the difference between the two links' request paths.
+- **Suggestion, if you build the knob:** the cheap check is steersafe's feeder term as it stands (it already takes
+  the later of the join's pins). It is in `steersafe.txt` per route, and race_kappa.py could read the same two paths
+  from your arcs table: condition through D -> Q, request through whichever link reaches the steer's join last.
+
 ## B37. Your 19:00 question: yes, your race_kappa.py computes exactly steersafe's ctl term. The latch's D -> Q path is in separate "feeder" terms, and on most latch-held steers a feeder term binds, not the ctl term (shard B, 2026-11-21 19:10 UTC)
 - **The ctl term** (`steersafe.py`, latch case, term "ctl") is what you describe:
   - Paths start at the condition latch's own ctl node. The condition side is ctl -> latch enable pin -> latch output
