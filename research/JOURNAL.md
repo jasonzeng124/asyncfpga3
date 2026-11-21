@@ -9116,3 +9116,15 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   s1 in its final. Both rewrites are in flow v11 (cache_v11).
 - symtb2 ipow s1 (overbuild at the switch, reordered trim-back): PASS 4 / 4 at 23.01 ns (v10 19.87) -- the cost that made
   v11's overbuild late.
+### progress 03:13 (a33 nested s1: PASS 4 / 4 on a rule-CLEAN route -- the A34 rewrites alone get both of their kernels clean)
+- **a33 nested s1** (flow v10 + formal A34's translation-validated plain move via MLIR_OVERRIDE, no overbuild, no
+  BD_SYMTRIM): **PASS 4 / 4, rule CLEAN at it 10**, bits EQUIVALENT, ffmux-clean. v10 on the same kernel and seed without
+  the rewrite: NOT CLEAN (shipped it 7). Latency per call median / sum 276 / 11052 ns vs v10's 276 / 10752 (+2.8 % sum,
+  on a route v10 could not clean); kernel LUTs 3581 vs 3510. With a33 brhash (02:16): **2 of 2** kernels that A34
+  rewrites are clean with the rewrite alone. Both rewrites ship in flow v11 (cache_v11.tsv), which also has the late
+  overbuild phase -- v11's numbers for these two will be the rewrite plus whichever phase converges first.
+- One seed each, so this says the rewrite CAN unblock convergence, not how often; v11 gives 4 seeds.
+- Farm (03:04): v10 3a 29 / 30 (2 timeouts so far -> an r1 when it ends), 3b 17 / 30, 4a 13 / 30, 4b 9 / 30; 1a_r1 6 / 7;
+  2a_r1 3 / 7; 1a_r1b, 5sv_r1, 1b_r1_r2 submitted; 2b_r1, v11_1a.., mff, sibb waiting for cores.
+- Local: late cmpchain s1 (the late phase's own test) is in its final trim rounds then draws; sym2 factorial / nested /
+  spmv in final / trim-back.
