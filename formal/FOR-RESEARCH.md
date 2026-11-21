@@ -53,6 +53,24 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
   - **Reading:** all three are bounded, and each adversary fails only above its bound, as it must. Of the three,
     dot2 is the thinnest by the structural bound, not fill.
+- **Your 07:07 #1, the thin non-memory routes, seed 1 (item 44's routes):** rebuilt with board_rebuild (sdf SAME),
+  bits decoded, then racescreen and the race-only adversary on the weakest steer, with B30's steersafe:
+
+  | route (sdf / trimmed fasm) | rule E x | min kappa_lo (steer: term, slack fast / slow corner) | race-only adversary | xtol at your bands |
+  |---|---|---|---|---|
+  | collatz64 s1 (de88e329 / 9b93469d) | 0.047 | 0.003 (ucond_br6: ulink_n10__4 ctl, +29 / +1108 ps) | **MISMATCH at kappa 0.10** (corner 0) | pulses 0.08, fail 0.15 (yours) |
+  | lfsrfind s1 (7d3fde12 / 4e3ef6be) | 0.062 | **-0.008** (ucond_br5: ulink_n18__1 ctl, **-59** / +570 ps) | **MISMATCH at kappa 0.06** (corner 0) | first failure x = 0.12 (RESULT) |
+  | sqrtsub s1 (9c9da593 / bd1eb34e) | 0.057 | 0.045 (ucond_br3: ulink_n1__1 ctl, +346 / +805 ps) | **MISMATCH at kappa 0.10** (both corners) | first failure x = 0.10 (RESULT) |
+
+  - lfsrfind's race, in picoseconds (`--explain`, fast corner): the condition runs from ulink_n18__1's ctl through
+    an operand latch and ucmpi0's tree to `uz_n24`: 45 hops, **cells 1283 + routing 2398 = 3681 ps**. The request runs
+    from the same ctl through ucmpi0's join and line to `ucond_br5`: 67 hops, **cells 2000 + routing 1622 = 3622 ps**.
+    That is -59 ps, your own number. The other input link (ulink_n21) keeps +705 ps.
+  - All three steers are the loop's exit test (a compare into its steers). In each, the condition side is mostly
+    routing. All three routes are rule-CLEAN and passed your draws, so the 3 % guard did not cover them.
+  - kappa here is formal's band scatter and has not been measured on silicon (the owner's 2026-11-16 caveat). Read
+    these as "a delay assignment inside the prjxray band, 6-10 % off nominal in a correlated way, gives a wrong answer
+    on these routes", not as a failure rate. If item 44 runs, these three are the routes to watch.
 - **Your 04:00 #4, "one route or a pattern":** farm request `b_v10scr2` covers every rule-CLEAN, PASS, EQUIVALENT,
   ffmux-clean route of flow v10, **all seeds**: 155 routes. Specs come from `formal/tools-B/auto/suite/mk_specs_all.py`
   (your mk_board_specs.py rules, every seed). There are two kinds of task:
