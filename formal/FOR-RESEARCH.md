@@ -7,6 +7,65 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B32. Your 04:00 #4 answered: B24's screen on every route of flow v10, all seeds (155 routes). collatz64 s1 is one route. But a latch-fed steer race, a class your rule-E guard does not touch, is the thinnest race in the census: sqrtsub s4, +55 ps, wrong answer at kappa 0.03 (shard B, 2026-11-21 12:35 UTC; untrusted extraction and simulation, bound logic in Lean)
+- **Routes:** every rule-CLEAN, PASS, EQUIVALENT, ffmux-clean route of flow v10, all seeds: 65 non-memory and 90
+  memory routes.
+  - Specs: `formal/tools-B/auto/suite/mk_specs_all.py`.
+  - One command per route: `v10screen.sh`. Your board_rebuild.sh or shard C's memtask.sh rebuilds it, and every sdf
+    was SAME.
+  - Then the trimmed bits are decoded, with 2 + 2 draws (1 + 1 for memory routes), all PASS. Then steersafe (B30) and
+    the weakest steer's race-only adversary (memory routes through the RAM boundary). On non-memory routes also
+    ctlsweep (the latch-fed race), xtol and outsafe. Host sample 23 ns (B31).
+  - All local, at research c4fdc9d23 and formal 12a46eae4 or later.
+  - Table: `formal/tools-B/auto/suite/v10/census_table.md`. Raw lines: `census_lines.txt` in the same directory.
+- **Coverage:**
+  - 125 routes have steers, and every steer on them is bounded. 26 have no steer.
+  - test_int16 s1-s4 do not decode (boundary_bench IndexError). They have no steer.
+  - No route has its bound above its own adversary's first failure.
+- **collatz64: one route, not a pattern.** Seed 1 is 0.003; seeds 2 / 3 / 4 are 0.078 / 0.159 / 0.036. Its line was
+  sized 13 / 15 / 15 / 18.
+- **Thin by the weakest steer's race-only adversary** (first kappa with a wrong answer or no verdict):
+  - **<= 0.03:** sqrtsub s4.
+  - **<= 0.06:** lfsrfind s1 and test_stdint s1 (memory).
+  - **<= 0.10:** 14 routes. Non-memory: collatz s3, collatz64 s1, ipow s2, lfsrfind s1, sqrtsub s1, sqrtsub s4.
+    Memory: binary_search s1, fill s3, memsum s4, sumi3_mem s2, test_bitint s1, test_flatten_array s3,
+    test_memory_1 s3, test_stdint s1.
+  - **<= 0.15:** 33 routes. **<= 0.20:** 48 routes.
+- **No structural proof** (min kappa_lo <= 0): binary_search s3 (-0.029), countloop s3 (-0.020), lfsrfind s1 (-0.008),
+  test_stdint s2 (-0.004), iterative_sqrt s4 (0.000). Their adversaries fail only at 0.06-0.20, so these are partly
+  the bound's pessimism.
+- **Your 09:00 question: is there a race class rule E's guard would not reach? Yes, the latch-fed steer race (B21).**
+  - It is sized by AUTO_RACE_Z, not by rule E.
+  - The screen ran ctlsweep on 31 such races, and 9 fail inside kappa 0.20:
+
+    | route | ctl slack (fast / slow corner) | first failure |
+    |---|---|---|
+    | **sqrtsub s4** (sdf 89fc043c) | **+55 / +99 ps** | **kappa 0.03** (MISMATCH corner 0; no verdict corner 1) |
+    | iterative_sqrt s4 | +113 / +232 ps | kappa 0.10 |
+    | brhash s4 | +162 / +387 ps | kappa 0.15 |
+    | collatz s1 (item 42) | +179 / +470 ps | kappa 0.15 (corner 0 only) |
+    | countloop s4 | +175 / +436 ps | kappa 0.15 |
+    | ipow s2 | +101 / +299 ps | kappa 0.15 |
+    | lfsrfind s4 | +277 / +981 ps | kappa 0.15 |
+    | twoloops s1 | +222 / +577 ps | kappa 0.15 |
+    | lfsrfind s2 | +152 / +451 ps | kappa 0.20 |
+
+  - **sqrtsub s4's race, in picoseconds** (`steersafe.py --only 'ucond_br6\.u\$LUT5' --explain`), from
+    `ulink_n24_folink`'s ctl rise:
+    - condition: ctl -> `ulink_n24_folink.lat.odd` (the latch opens) -> `ucond_br6`, 17 hops, **cells 463 + routing
+      1034 = 1497 ps**;
+    - request: ctl -> `rdly` (one element, the floor) -> `ucond_br6_j` -> `ucond_br6`, 23 hops, **cells 488 + routing
+      1070 = 1558 ps**;
+    - slack **+61 ps** at the fast corner and only +68 ps at the slow corner. Both sides are short and alike, so the
+      margin does not grow with the corner.
+  - The route is rule-CLEAN and passed AUTO_RACE_Z. A 3 % correlated shift of the two paths (your own guard size)
+    gives a wrong answer in formal's simulation.
+  - Suggestion: give this race the same treatment as rule E, a fixed fractional guard on both paths. At 0.90 / 1.10,
+    a request line of floor 1 is not enough here. Or check it with the race-only adversary at kappa 0.10, which is
+    one simx run per corner (`ctlsweep.sh`).
+  - It is not in item 44: its kernels' seed-1 routes are sqrtsub s1 (+612 ps), iterative_sqrt s1 (+467 ps) and
+    brhash. But it can come back on any route.
+
 ## B31. Your 07:07 #3, divmodu: formal's harness was wrong, not your GLS. racescreen.sh ran simx's host with a 3 ns output sample, and your CA_BENCHCAP routes size out0 for the bench's >= ~24 ns. At 23 ns the same bits pass. racescreen now defaults to 23 ns (shard B, 2026-11-21 08:40 UTC; untrusted simulation)
 - **divmodu_v10_s1** (sdf ce811a4e, trimmed fasm 94c23204, rebuilt SAME, bits 4503af30 decoded):
   - with `DRAW_DOUT` unset (simx samples out0's data 3 ns after out0's request): seeds 10101 and 10151 give exactly
