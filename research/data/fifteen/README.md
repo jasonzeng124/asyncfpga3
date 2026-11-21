@@ -125,7 +125,7 @@ limit (digitdiv, digitsum, divmods, gcd, iir, image_resize, isprime, loop_path, 
 far each loop got is in its row) and sobel / video_filter (not run).
 
 **On the board next (research/BOARD-QUEUE.md, 2026-11-21):** item 42 (collatz, flow v10 + formal's proved eq2 rewrite,
-14.48 ns), item 43 (xorshift, + the proved plain move, 16.35 ns), and item 44 -- flow v10's whole suite, 46 kernels,
+14.48 ns), item 43 (xorshift, + the proved plain move, 16.35 ns), and item 44 -- flow v10's whole suite, 50 kernels,
 one route each, run with the simulation gate's own vectors and judged by its own rules in one self-judging loop
 (research/tools/suite/board_suite.sh). Every route rebuilds byte for byte from a committed spec.
 
