@@ -46,6 +46,8 @@ rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh
    rewrites and the trim): each right after item 39 / 41, its judge's base.
 3c. **Item 44** (2026-11-21: the whole automatic suite, 46 kernels, one self-judging loop; unattended, hours of
    rebuilds and minutes of board time): any time after item 36.
+3c'. **Item 45** (the steer guard's silicon test: three guarded routes beside their unguarded partners in item 44):
+   with or right after item 44.
 3d. **Optional for items 37-41 (2026-11-21, ~1 min each):** right after an item's build, before its loop_cost
    run, the same full-vector check items 42 / 43 have -- the kernel's own gate vectors through the gate's host program,
    judged by the gate's rules against the C. From cells/, with K and V = ipow / ipow17 (item 38), collatz / col18 (39),
@@ -93,6 +95,33 @@ negative control fails). Run it before the speed items.
    measured.tsv + raw/) back. Simulated: C32 is 11.1 ns at y = 0.2 and 15.5 ns at y = 1.0 (x 0.288), F16 16.2 / 21.3
    ns; at 1% ring scatter the fit resolves y to +-0.01-0.02. The two routes must agree with each other within their
    sigmas; if they do not, that is the finding.
+
+## 2026-11-21: item 45 -- the steer guard on silicon: three guarded routes whose unguarded partners are in item 44
+Formal B30 found that three of flow v10's rule-CLEAN routes -- collatz64, sqrtsub, lfsrfind, seed 1 each, all in item 44
+-- fail its race-only adversary at kappa 0.06-0.10 at the loop's exit steer, where our draw model and GLS pass them.
+The same three kernels and seeds rebuilt with rule E's guard at 10 % (research/tools/auto/auto_size.sh
+AUTO_GUARD_E=0.90,1.10, otherwise flow v10) are clean by formal's own screen (research/data/guardx/README.md). Run with
+item 44, this is a paired silicon test of the guard: each unguarded route next to its guarded partner, same kernel,
+same vectors, same judge. research/data/suite/board/guard_g10/ holds the three specs (each route rebuilt here byte for
+byte: the run's sdf and its trimmed fasm).
+
+45. **The guard pair** -- after (or with) item 44; three rebuilds (~5-10 min each) and three short board runs. From the
+    repo root:
+
+        cells/verify/toolchain.sh    # must pass (sha256 6e5d224472232d5d)
+        BQ_RUNS=~/runs/bq_guard_routes BQ_OUT=~/runs/bq_guard research/tools/suite/board_suite.sh research/data/suite/board/guard_g10 2>&1 | tee ~/board_guard.log; echo "exit $?"
+
+    Pass: `board_suite: 3 of 3 kernels PASS`, exit 0. **Reading it with item 44:** item 44's collatz64 / sqrtsub /
+    lfsrfind lines are the unguarded partners. Both pass: the 3 % guard sufficed on this die and the adversary's corner
+    was not reached (no evidence for the wider guard from this board). Unguarded FAIL, guarded PASS: the strongest
+    evidence for AUTO_GUARD_E this project can get. A guarded FAIL: a defect the guard does not address -- send the log.
+    Strict gate here (GATE_RUNTS=fail, worst / SLOW_MAX / FAST_MIN + 16 draws each, the kernels' own suite vectors):
+    **57 / 57 PASS** (sqrtsub, lfsrfind, collatz64: 19 / 19 each), 0 pulses under 1 ns, narrowest 2.2 ns
+    (research/data/guardx/gate/guarded_gate.txt). The unguarded partners (item 44's routes), same gate: also 57 / 57, narrowest 2.2 ns
+    (thin_v10_gate.txt) -- our GLS separates neither pair; only formal's adversary and the board do. Formal's screen on
+    the guarded routes: min kappa_lo 0.139 / 0.171 / 0.070, race-only adversary none / none / kappa 0.15 (unguarded:
+    0.003 / 0.045 / -0.008 and kappa 0.10 / 0.10 / 0.06). P, ns: collatz64 21.97 (unguarded 21.53), sqrtsub 20.12
+    (32.24), lfsrfind 21.05 (21.14); one seed each, local runs (research/data/guardx/README.md).
 
 ## 2026-11-21: item 44 -- the automatic flow's whole suite on the board: 46 kernels, one route each, one self-judging loop
 Flow v10 (BDC_AUTO=1, nothing set per kernel) judged 46 of the 62 suite kernels (so far: some of its tasks are still resuming) PASS on rule-CLEAN routes in

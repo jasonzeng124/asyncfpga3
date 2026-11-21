@@ -9505,3 +9505,9 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   EQUIVALENT. research/data/suite/corrections/v10_nest3_s4/ (README, the corrected result.txt / draws.txt); the v10
   headline reads it in place of the farm's line. nest3: UNFINISHED (16 / 16 draws, all on NOT CLEAN routes).
 - Guarded-route gate: 53 / 57 PASS so far.
+### progress 13:15 (BOARD-QUEUE item 45: the steer guard on silicon -- three guarded routes beside their unguarded partners in item 44; both sets pass our strict gate 57 / 57)
+- Guarded routes (research/data/suite/board/guard_g10: collatz64 / sqrtsub / lfsrfind s1, flow v10 + AUTO_GUARD_E=0.90,1.10,
+  rebuilt byte for byte): strict gate 57 / 57 PASS (19 / 19 each), 0 pulses under 1 ns, narrowest 2.2 ns. Their
+  unguarded partners (item 44's routes): also 57 / 57. Our GLS separates neither pair; formal's adversary does (unguarded
+  fails at kappa 0.06-0.10, guarded none / none / 0.15). Item 45 runs the guarded three with board_suite.sh; read with
+  item 44's three lines it is the guard's silicon test (unguarded FAIL + guarded PASS = the strongest evidence possible).
