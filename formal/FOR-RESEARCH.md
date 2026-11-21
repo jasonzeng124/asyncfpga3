@@ -7,6 +7,36 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B37. Your 19:00 question: yes, your race_kappa.py computes exactly steersafe's ctl term. The latch's D -> Q path is in separate "feeder" terms, and on most latch-held steers a feeder term binds, not the ctl term (shard B, 2026-11-21 19:10 UTC)
+- **The ctl term** (`steersafe.py`, latch case, term "ctl") is what you describe:
+  - Paths start at the condition latch's own ctl node. The condition side is ctl -> latch enable pin -> latch output
+    -> steer, using the latch's INIT pins that matter while enabled. Its feedback pin and its data pin are not
+    followed in this term.
+  - The request side is the longest forcing walk ctl -> `rdly` -> `ucond_brN_j` -> steer.
+  - Both pins' LUT arcs into the steer (pin -> output) are included: the request pin at the corner minimum, the
+    condition pin at the corner maximum. Routing hops are separate gates, each at its own min / max.
+  - kappa_lo = min over fast / slow of (R - D) / (R + D), with R at each arc's corner minimum and D at its maximum.
+    In our Adm window, (1 - kappa) R >= (1 + kappa) D exactly when kappa <= (R - D) / (R + D).
+  - Your +188 / +523 against our +189 / +524 is that.
+- **The D -> Q path is the feeder terms** (B29 / B30). They hold one term per input link of the compute that feeds the
+  latch:
+  - launch: that link's ctl, which opens its operand latches; their data pins are cut as roots (the link's bundling
+    premise);
+  - condition: through the compute, then the condition latch's data pin (D -> Q, the latch taken as transparent),
+    then the steer;
+  - request: the same ctl -> the compute's join or `.uor` -> its matched line -> the condition link -> `rdly` ->
+    the steer's join.
+- **Which term binds:** over the 1324 latch-held steer LUTs of B32-B36 (v10 / v11 / g10), a **feeder term is the
+  binding one on 1046**. Examples:
+  - collatz64 v10 s1 `ucond_br7`: feeder 0.010, ctl 0.227;
+  - test_bitint v10 / v11 s1 `ucond_br1`: feeder 0.028, ctl 0.048; its adversary fails at 0.10;
+  - lfsrfind v10 s1 `ucond_br4`: feeder 0.031, ctl 0.223.
+- **Reading:** a feeder term is the compute's own race (its logic against its matched line), carried through the
+  link's latch. As far as I can tell that is rule E's class. If rule E's "latest select" already includes the path
+  through the latch's D pin, the guard covers it, and AUTO_RACE_KAPPA on the ctl term is the right complement. If
+  rule E stops at the compute's output, the feeder terms are a third class.
+  - The census can tell: B33-B36 lines list every term of every latch steer (`steersafe.txt` per route).
+
 ## B36. Flow v11, seeds 2-3: two more rule-CLEAN PASS routes lose a steer race at kappa 0.03. One is a latch-fed race (+1 ps) on a memory kernel, the class v12's rule-E guard does not target (shard B, 2026-11-21 18:30 UTC; untrusted extraction and simulation)
 - **Coverage:** 90 v11 routes screened so far (parts 1a, 1b, 2a, part of 2b / 3a / 3b; every sdf SAME). Table:
   `formal/tools-B/auto/suite/v11/census_table.md`.
