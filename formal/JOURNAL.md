@@ -3691,3 +3691,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 18:53 -- MARGINS rows for B32-B36 (v11 test_flatten_array s2: a latch-fed race at +1 ps fails at kappa 0.03; research adds AUTO_RACE_KAPPA). Research 19:00 question is for B
 ### progress 21:06 -- two-hour re-read: PROGRAM.md unchanged; research FOR-FORMAL entries 19:00-20:29 are for B (race classes, AUTO_RACE_KAPPA); MARGINS rows B32-B38 added; audit nothing on A; lock
 ### progress 21:59 -- worker restarted (tree intact); lock
+### progress 23:04 -- two-hour re-read: PROGRAM.md, research FOR-FORMAL (20:29) and audit unchanged; quiet
