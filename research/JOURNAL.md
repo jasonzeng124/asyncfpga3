@@ -9337,3 +9337,13 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   collatz64_g10_s1_*.txt.
 - One seed: the farm's suite13t_s5g_g10 (7 kernels x 4 seeds, paired with v10) is the measurement; local samples on
   sqrtsub / lfsrfind / fill s1 started.
+### progress 07:20 (sym2 spmv s1 PASS 4 / 4 on a rule-CLEAN route: overbuild + BD_SYMTRIM has now cleaned every kernel it was tried on)
+- spmv s1 (overbuild at the switch + BD_SYMTRIM, local): rule CLEAN at it 6 after the trim-back (134 trims), PASS 4 / 4,
+  EQUIVALENT, ffmux-clean; latency per call median / sum 1092 / 3768 ns vs v10's NOT CLEAN route 1014 / 3516 (+7 %),
+  kernel LUTs 4410 vs 3925 (+12 %).
+- Tally of the overbuild + BD_SYMTRIM runs (one seed each, local): brhash, cmpchain, test_memory_2, factorial, nested,
+  spmv (sym2), test_loop_free, sqrtsub (sym), ipow (symtb2) -- **9 of 9 clean and PASS 4 / 4**; plus the late phase's
+  own test (cmpchain s1). Flow v11 runs the late variant on every kernel v10 leaves NOT CLEAN (8 now: cmpchain,
+  factorial, isprime, iterative_division, nest3, nested, spmv, stencil_2d).
+- v10 interim table (not published; parts still resuming): 48 of 62 pass (suite13t: 42), 8 UNFINISHED, 6 NO RESULT
+  pending resumes; ratio to Dynamatic on-merges 0.93 over 34 kernels.
