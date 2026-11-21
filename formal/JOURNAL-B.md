@@ -5325,7 +5325,7 @@ Started: v10screen.sh (new: research's board_rebuild.sh on an every-seed spec fr
   tool picks the right terms (its extraction is untrusted).
 Lean setup: setup.sh's whole-project build stopped after Mathlib's imported part (to leave cores for screens); modules built
 on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
-### progress 07:40 -- B30 CORRECTION: steersafe's latch-held-condition term launched at the feeder's .ujoin counted the feeder's operand latches settled at the join's rise -- the B27 flaw, which the 11:25 fix applied to compare steers only. Fixed; fill s1 0.210 -> 0.171
+### progress 07:37 -- B30 CORRECTION: steersafe's latch-held-condition term launched at the feeder's .ujoin counted the feeder's operand latches settled at the join's rise -- the B27 flaw, which the 11:25 fix applied to compare steers only. Fixed; fill s1 0.210 -> 0.171
 - Same reason as B27: the operand latches are transparent while their link's ctl is high and pass data after the ctl
   rise the join waits for. Now, for every latch-held condition fed by a compute: one data term per input link of the
   feeder (its join's ctl inputs, or the .uor's for a one-channel compare), that link's latches opened with their data
