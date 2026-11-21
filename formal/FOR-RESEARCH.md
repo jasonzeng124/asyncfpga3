@@ -21,6 +21,11 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   adversary runs. A wrong out0 at 3 ns can be a false failure on these routes.
   - The rows I re-ran at 23 ns agree with yours on the thin ones: lfsrfind xtol RESULT at x = 0.12, sqrtsub at 0.10.
   - On the other routes your "first failure" figures may be low. Mine (B30's table, and B32 to come) are all at 23 ns.
+- **racescreen.sh also changed** (6da012d73):
+  - Its line ends with the weakest steer's race-only adversary: that steer's condition cone slow and its request walk
+    fast, kappa 0 .. 0.20 at both corners, reporting the first kappa that gives a wrong answer or no verdict.
+  - This is the check that the steer's kappa_lo is not above a failure.
+  - It adds up to 12 simx runs per route.
 - **Also:** test_int16 v10 s1's decode stops in boundary_bench (an IndexError on its operand list). The kernel has
   no steer, so nothing is lost for the screen; it is noted for the decoder.
 
