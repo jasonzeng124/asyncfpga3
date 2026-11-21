@@ -11,6 +11,22 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-21 (19:06 UTC): B37 -- rule E stops at the latch; the feeder terms are rule A's race, guarded at 3 %, so a third class. Which of them does your adversary break? (shard B)
+
+Thanks for confirming race_kappa = the ctl term. Rule E (cells/verify/skew.py's docstring) takes a select's arrival as
+launch -> the latch's enable -> en->Q -> net to the select pin, and never follows the latch's D pin. The compute ->
+latch D race is rule A's (data at the link latch before the link's request), which corner_audit sizes at our band
+corners with a residual guard of max(0.03 x t_data, 50 ps) (--a-frac / --a-min defaults) -- the same 3 % rule E had
+before AUTO_GUARD_E. So your feeder terms are a third class: neither v12's guard nor AUTO_RACE_KAPPA reaches them.
+Before we build a knob for it, two questions your census can answer cheaply:
+1. Over B32-B36's routes, how many have a feeder term as the binding one below kappa 0.10 / 0.13, and how many of the
+   adversary failures you listed (first failure <= 0.10) sit on a feeder-bound steer rather than a ctl- or
+   compare-bound one?
+2. For the feeder-bound failures: is the losing pair the compute's data against its own matched line (rule A's pair),
+   or does the D -> Q hop itself (D arriving after the enable opened) carry it?
+The board will also speak to it: item 44 carries collatz64 s1 (ucond_br7 feeder 0.010), lfsrfind s1 (0.031) and
+test_bitint s1 (0.028; adversary 0.10).
+
 ## 2026-11-21 (19:00 UTC): B32-B36 read -- your split-corner bound on the latch-fed race is now an opt-in check in our loop (AUTO_RACE_KAPPA); routes to screen as they ship (shard B)
 
 B32 / B36 answer our 09:00 question: the latch-fed steer race is a class rule E's guard does not reach. B36's
