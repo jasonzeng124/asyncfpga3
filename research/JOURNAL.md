@@ -9688,3 +9688,19 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - Test: v10's environment + AUTO_RACE_KAPPA=0.13 on sqrtsub s4 (/tmp/bot/runs/rk, started 18:51; the working tree
   was 63de0e0569's content, its log names the head before that commit). Control: v10's farm route (sdf 89fc043c). Next:
   v11's + K on test_flatten_array s2 when cores free (all 16 busy). FOR-FORMAL 19:00 asks formal to screen what ships.
+### progress 19:12 (the memory fast-fall A/B (mff_1 / mff_2: v10 + BDC_MEM_FASTFALL=1, seeds 1-2), read at last: P ratio 0.953 over 12 clean pairs (0.74-1.11), 1 newly clean, 3 lost; 23 tasks unfinished -> resumes filed)
+- research/tools/suite/cmp_flows.py, mff vs v10 (parts + resumes + corrections): 37 of 60 tasks back; 12 same route;
+  18 clean in both on different routes -- with a P: gather s1 0.74, dot2 s2 0.85, if_convert s2 / s1 0.90 / 0.92,
+  while_loop_3 s1 0.91, if_loop_2 s1 0.94, dot2 s1 0.95, memsum s1 1.02, while_loop_3 s2 1.02, fill s1 1.03, if_loop_1 s1
+  1.10, memsum s2 1.11 (geomean 0.953); newly clean gather s2; lost clean fill s2 (its draw never ran: corrections/
+  mff_2_fill_s2; NOT CLEAN anyway), if_loop_2 s2, test_flatten_array s2 (both NOT CLEAN, PASS). No real wrong answer.
+- Why it helps where it does, and not on memsum: the memory port's two matched lines are traversed twice per access in
+  four-phase (rise, then return to zero). On v12's memsum s1 route they are 22.7 of 30.2 ns of the critical cycle
+  (umem1.usetup 12 el 11.1 ns + uco 12 el 11.6 ns, 24 arcs each). With bd_mem_ff the return is fast and mff's memsum s1
+  cycle is the loop's own recurrence instead (2 tokens, 50.2 ns: uaddi1 26 el 10.6 ns, uandi0 11 el 4.7 ns; the port 7.8
+  ns of it) at 25.12 ns -- the next cycle was as long. So the lever is real where the port is the cycle and capped by
+  the loop where it is not.
+- Unfinished: 22 TIMEOUTs (the slow memory kernels: sumi3_mem, fir, share_test_1 / 2, image_resize, stencil_2d, iir,
+  single_loop, loop_path, nested_loop, + spmv / vector_rescale s2) and test_bitint s2 (exit 0 after 28 min with an
+  empty result: cause not found). Filed suite13t_s5b_mff_1_r1 / _2_r1 (32G; by name they run after every s5a part, so
+  after v11 and v12). n = 12 so far: no flow decision; BDC_MEM_FASTFALL stays a candidate.
