@@ -9035,3 +9035,14 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   loop run the earlier script; their shipped routes get the same re-final.
 - Dynamatic re-runs: 8 of 9 memory kernels exact (test_memory_1 / 2, mul_example, share_test_2, image_resize,
   vector_rescale, iir, video_filter); test_stdint's estimator gave no call line (next).
+### progress 00:49 (HEADLINE: the Dynamatic column is now routed for 60 of 62 kernels -- ours / Dynamatic on-merges 0.93, ours / Dynamatic at its recurrence bound 2.00)
+- research/data/fifteen/README.md top regenerated (suite13t's own results unchanged: 42 of 62 pass) with
+  research/tools/suite/dynamatic_ref.tsv / dynamatic_lat.tsv rewritten from the routed run (d65543df9; per-kernel records
+  and the method in research/data/suite/dynamatic/routed/). Over the 28 passing kernels with a P:
+  **geometric mean of ours / Dynamatic's on-merges circuit 0.93** (was 1.50 over the 3 August routes, 1.02 with the
+  estimates); **against Dynamatic at its loop-recurrence bound 2.00** (the routed period x the fewest cycles per
+  iteration any buffer placement could give; Dynamatic's solver placement needs Gurobi, absent here, so this is an
+  optimistic bound for Dynamatic, not a measurement). Where it runs one cycle per iteration we are 1.5-2.4x slower
+  (xorshift 1.53, collatz 1.61, countloop 1.65, varshift 2.40, fill 2.43); the 0.93 comes from kernels where on-merges
+  waits 4-10 cycles (memory kernels, ipow, horner), which a solver placement would not.
+- Does NOT show: Dynamatic with its MILP placement (not buildable here); a board run of either side.
