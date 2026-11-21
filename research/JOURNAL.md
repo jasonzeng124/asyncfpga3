@@ -9369,3 +9369,11 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   1a_r1_r2, 2a_r1_r2, 1a_r1b_r2, 5sv_r1_r2 submitted, 4b_r1 / 2b_r1_r2 / 3a_r1_r2 filed 08:01; g10 waiting.
 - **Headline:** suite13t (42 / 62) until v10's resumes are in; v10 interim 48 / 62.
 - **Open with formal:** divmodu disagreement (their draws garbage, ours 4 x 20/20); memory kernels in their screen.
+### progress 08:07 (the 10 % steer guard on collatz64 s1: PASS 4 / 4 on a rule-CLEAN route, P +2 %, latency +1.6 %, LUTs +2 %; formal's screen clean)
+- g10 collatz64 s1 final: **PASS 4 / 4**, rule CLEAN it 9, EQUIVALENT, ffmux-clean; P 21.97 ns (v10 21.53), latency per
+  call median / sum 3216 / 91710 ns (v10 3165 / 90300: +1.6 %), kernel LUTs 1818 (1775). With formal's screen (12 / 12
+  steers bounded, no pulses to x = 0.25) this is the route a board item would want for collatz64 -- after the farm
+  pairs show the cost holds on 4 seeds.
+- Running locally: g10 sqrtsub / lfsrfind / fill s1 (finals / search); the strict gate (worst / max / min + 16 draws)
+  on item 44's three thinnest routes (sqrtsub, lfsrfind, collatz64: /tmp/bot/thin/gate.txt) -- 4 draws can miss a
+  1-in-3 failure 18 % of the time (formal C68).
