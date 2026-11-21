@@ -12,15 +12,28 @@
 //   CLBLL_L.sdf  SLICEL/A6LUT   A1..A6 -> O6   (0.045::0.056)(0.100::0.124)
 //   CLBLL_L.sdf  SLICEL/A5LUT   A1..A5 -> O5   (0.044::0.055)(0.122::0.152)
 //                                              per pin, see the table below
+//                                              (FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX)
 //   BRAM_L.sdf   CLKARDCLK -> DOADO, unregistered      max 2.454 ns
 //                DIADI setup                           max 0.737 ns
 //                ADDRARDADDR setup                     max 0.566 ns
 //                WEA setup                             max 0.532 ns
 //
-// The LUT figures are the 117-152 ps raw arc the sizing table quotes.  Rise
-// and fall differ by more than a factor of two on this fabric, so they are
-// modelled separately; a uniform per-cell delay would hide every asymmetric
-// hazard in the library.
+// Each SDF triple pair is (FAST_MIN::FAST_MAX)(SLOW_MIN::SLOW_MAX) -- the
+// fast-corner and slow-corner bounds of ONE arc.  prjxray utils/makesdf.py
+// writes the fast corner into SDF's rise slot and the slow corner into its
+// fall slot, so the file LOOKS like rise/fall and is not.  An earlier version
+// of this file read 56/124 as rise/fall, which mixed two corners in one
+// simulation and made every falling edge 2.2x slower than every rising one.
+// There is no characterised rise/fall split here, so both edges take the
+// same number, at ONE corner:
+//
+//   default         slow max   O6 124      O5 per pin 152 152 150 150 118
+//   -DBD_FAST_MIN   fast min   O6  45      O5 per pin  44  44  42  46  48
+//
+// (SLICEL/A5LUT, A6LUT; the other BELs and CLBLM differ by a few ps.)  The
+// slow max is the 117-152 ps raw arc the sizing table quotes.  The corners
+// never mix, so an edge race can only come from DIFFERENT arcs (e.g. O5 vs
+// O6, or path depth), never from a fast-corner edge racing a slow-corner one.
 //
 // -- what these arcs are NOT ------------------------------------------------
 //
@@ -52,21 +65,41 @@
  `define BD_ROUTE_PS 0
 `endif
 
-// Slowest cell arc in the library, for testbench settle times.
+// Testbench settle unit: the slow-max 6LUT arc.  Held at 124 at BOTH corners
+// (at -DBD_FAST_MIN that is merely generous); the O5 arcs can reach 152.
 `define BD_HOP_PS  (124 + `BD_ROUTE_PS)
 
-// 6LUT: every pin has the same arc.  Rise and fall differ by 2.2x on this
-// fabric, so they are modelled separately.
-`define BD_T_RISE  (56 + `BD_ROUTE_PS)
-`define BD_T_FALL  (124 + `BD_ROUTE_PS)
+// One corner per run.  See the header: the old 56/124 and 55/152 "rise/fall"
+// pairs were fast-min / slow-max bounds of the same arc.
+`ifdef BD_FAST_MIN
+ `define BD_LUT6_PS  45
+ `define BD_LUT5_A1  44
+ `define BD_LUT5_A2  44
+ `define BD_LUT5_A3  42
+ `define BD_LUT5_A4  46
+ `define BD_LUT5_A5  48
+`else
+ `define BD_LUT6_PS  124
+ `define BD_LUT5_A1  152
+ `define BD_LUT5_A2  152
+ `define BD_LUT5_A3  150
+ `define BD_LUT5_A4  150
+ `define BD_LUT5_A5  118
+`endif
+
+// 6LUT: every pin has the same arc.  BD_T_RISE / BD_T_FALL are kept as names
+// (testbenches size from them) and are now EQUAL: prjxray gives no rise/fall
+// split for a LUT arc.
+`define BD_T_RISE  (`BD_LUT6_PS + `BD_ROUTE_PS)
+`define BD_T_FALL  (`BD_LUT6_PS + `BD_ROUTE_PS)
 `define BD_T6      `BD_T_RISE, `BD_T_FALL
 
-// 5LUT: per pin, A1..A5.
-`define BD_T5_0    (55 + `BD_ROUTE_PS), (152 + `BD_ROUTE_PS)
-`define BD_T5_1    (55 + `BD_ROUTE_PS), (152 + `BD_ROUTE_PS)
-`define BD_T5_2    (52 + `BD_ROUTE_PS), (150 + `BD_ROUTE_PS)
-`define BD_T5_3    (57 + `BD_ROUTE_PS), (150 + `BD_ROUTE_PS)
-`define BD_T5_4    (60 + `BD_ROUTE_PS), (118 + `BD_ROUTE_PS)
+// 5LUT: per pin, A1..A5, same number on both edges.
+`define BD_T5_0    (`BD_LUT5_A1 + `BD_ROUTE_PS), (`BD_LUT5_A1 + `BD_ROUTE_PS)
+`define BD_T5_1    (`BD_LUT5_A2 + `BD_ROUTE_PS), (`BD_LUT5_A2 + `BD_ROUTE_PS)
+`define BD_T5_2    (`BD_LUT5_A3 + `BD_ROUTE_PS), (`BD_LUT5_A3 + `BD_ROUTE_PS)
+`define BD_T5_3    (`BD_LUT5_A4 + `BD_ROUTE_PS), (`BD_LUT5_A4 + `BD_ROUTE_PS)
+`define BD_T5_4    (`BD_LUT5_A5 + `BD_ROUTE_PS), (`BD_LUT5_A5 + `BD_ROUTE_PS)
 
 // prjxray BRAM_L.sdf, max corner.  Exported so a testbench can size a matched
 // delay from the vendor number rather than from a hand-copied constant --
@@ -87,6 +120,39 @@
 `define BD_RAM_THOLD_DI   667
 `define BD_RAM_THOLD_WE   197
 
+// -- opt-in: a per-instance scatter of every LUT arc (BD_JITTER) -------------
+// OFF unless -DBD_JITTER: without it nothing below changes the model.  With it,
+// each LUT output gets ONE delay drawn per instance, (arc + BD_ROUTE_PS) times
+// (1 + u), u uniform in [-JPCT, +JPCT] percent (plusarg +JPCT=<n>, default 30),
+// the draw a hash of the instance path and +JSEED=<n> (default 1), so a seed is
+// a reproducible delay assignment.  arc = 124 (O6) / 150 (O5), one draw per
+// instance for both outputs (O5 and O6 are one site: bd_arbiter's grants rely on
+// their delta staying small).  The assignment is inertial, as the specify paths
+// it replaces (left out under BD_JITTER).
+// What it is for: a protocol whose order holds only because some paths happen
+// to be faster than others at the nominal arcs fails under some seed; one whose
+// order holds by construction passes every seed.  What it is NOT: the matched
+// delays are LUT chains and scatter too, so a bundling constraint can break --
+// read a failure (which signal, which edge) before blaming the protocol.
+`ifdef BD_JITTER
+`define BD_JITTER_DECL \
+    integer jd6 = 124 + `BD_ROUTE_PS, jd5 = 150 + `BD_ROUTE_PS; \
+    reg [8*160-1:0] jnm; integer jh, jk, jc, jseed, jpct; \
+    initial begin \
+        $sformat(jnm, "%m"); jh = 5381; \
+        for (jk = 0; jk < 160; jk = jk + 1) begin \
+            jc = (jnm >> (8 * jk)) & 255; if (jc != 0) jh = (jh * 33 + jc) & 32'h7fffffff; end \
+        if (!$value$plusargs("JSEED=%d", jseed)) jseed = 1; \
+        if (!$value$plusargs("JPCT=%d", jpct)) jpct = 30; \
+        jh = (jh ^ ((jseed * 32'h9e3779b1) & 32'h7fffffff)) & 32'h7fffffff; \
+        jh = (jh * 1103515245 + 12345) & 32'h7fffffff; \
+        jh = (jh * 1103515245 + 12345) & 32'h7fffffff; \
+        jh = 1000 + (jh % (20 * jpct + 1)) - 10 * jpct; \
+        jd6 = ((124 + `BD_ROUTE_PS) * jh) / 1000; \
+        jd5 = ((150 + `BD_ROUTE_PS) * jh) / 1000; \
+    end
+`endif
+
 // ---------------------------------------------------------------------------
 // Each LUT is a mux tree, not an indexed lookup, and the difference matters
 // here more than anywhere else.  Every feedback loop in this library powers up
@@ -101,24 +167,39 @@
 
 module LUT1 (output O, input I0);
     parameter [1:0] INIT = 2'h0;
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? INIT[1] : INIT[0];
+`else
     assign O = I0 ? INIT[1] : INIT[0];
     specify (I0 => O) = (`BD_T6); endspecify
+`endif
 endmodule
 
 module LUT2 (output O, input I0, I1);
     parameter [3:0] INIT = 4'h0;
     wire [1:0] s1 = I1 ? INIT[3:2] : INIT[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? s1[1] : s1[0];
+`else
     assign O = I0 ? s1[1] : s1[0];
     specify (I0 => O) = (`BD_T6); (I1 => O) = (`BD_T6); endspecify
+`endif
 endmodule
 
 module LUT3 (output O, input I0, I1, I2);
     parameter [7:0] INIT = 8'h0;
     wire [3:0] s2 = I2 ? INIT[7:4] : INIT[3:0];
     wire [1:0] s1 = I1 ?   s2[3:2] :   s2[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? s1[1] : s1[0];
+`else
     assign O = I0 ? s1[1] : s1[0];
     specify (I0 => O) = (`BD_T6); (I1 => O) = (`BD_T6); (I2 => O) = (`BD_T6);
     endspecify
+`endif
 endmodule
 
 module LUT4 (output O, input I0, I1, I2, I3);
@@ -126,10 +207,15 @@ module LUT4 (output O, input I0, I1, I2, I3);
     wire [7:0] s3 = I3 ? INIT[15:8] : INIT[7:0];
     wire [3:0] s2 = I2 ?   s3[7:4]  :   s3[3:0];
     wire [1:0] s1 = I1 ?   s2[3:2]  :   s2[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? s1[1] : s1[0];
+`else
     assign O = I0 ? s1[1] : s1[0];
     specify (I0 => O) = (`BD_T6); (I1 => O) = (`BD_T6);
             (I2 => O) = (`BD_T6); (I3 => O) = (`BD_T6);
     endspecify
+`endif
 endmodule
 
 module LUT5 (output O, input I0, I1, I2, I3, I4);
@@ -138,11 +224,16 @@ module LUT5 (output O, input I0, I1, I2, I3, I4);
     wire [7:0]  s3 = I3 ?   s4[15:8]  :   s4[7:0];
     wire [3:0]  s2 = I2 ?   s3[7:4]   :   s3[3:0];
     wire [1:0]  s1 = I1 ?   s2[3:2]   :   s2[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? s1[1] : s1[0];
+`else
     assign O = I0 ? s1[1] : s1[0];
     specify (I0 => O) = (`BD_T5_0); (I1 => O) = (`BD_T5_1);
             (I2 => O) = (`BD_T5_2); (I3 => O) = (`BD_T5_3);
             (I4 => O) = (`BD_T5_4);
     endspecify
+`endif
 endmodule
 
 module LUT6 (output O, input I0, I1, I2, I3, I4, I5);
@@ -152,10 +243,15 @@ module LUT6 (output O, input I0, I1, I2, I3, I4, I5);
     wire [7:0]  s3 = I3 ?   s4[15:8]  :   s4[7:0];
     wire [3:0]  s2 = I2 ?   s3[7:4]   :   s3[3:0];
     wire [1:0]  s1 = I1 ?   s2[3:2]   :   s2[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O = I0 ? s1[1] : s1[0];
+`else
     assign O = I0 ? s1[1] : s1[0];
     specify (I0 => O) = (`BD_T6); (I1 => O) = (`BD_T6); (I2 => O) = (`BD_T6);
             (I3 => O) = (`BD_T6); (I4 => O) = (`BD_T6); (I5 => O) = (`BD_T6);
     endspecify
+`endif
 endmodule
 
 // O6 sees all six pins and carries the 6LUT arc; O5 is a tap on the lower half
@@ -172,12 +268,20 @@ module LUT6_2 (output O6, output O5, input I0, I1, I2, I3, I4, I5);
     wire [7:0]  s3 = I3 ?   s4[15:8]  :   s4[7:0];
     wire [3:0]  s2 = I2 ?   s3[7:4]   :   s3[3:0];
     wire [1:0]  s1 = I1 ?   s2[3:2]   :   s2[1:0];
+`ifdef BD_JITTER
+    `BD_JITTER_DECL
+    assign #(jd6) O6 = I0 ? s1[1] : s1[0];
+`else
     assign O6 = I0 ? s1[1] : s1[0];
+`endif
 
     wire [15:0] t4 = I4 ? INIT[31:16] : INIT[15:0];
     wire [7:0]  t3 = I3 ?   t4[15:8]  :   t4[7:0];
     wire [3:0]  t2 = I2 ?   t3[7:4]   :   t3[3:0];
     wire [1:0]  t1 = I1 ?   t2[3:2]   :   t2[1:0];
+`ifdef BD_JITTER
+    assign #(jd5) O5 = I0 ? t1[1] : t1[0];
+`else
     assign O5 = I0 ? t1[1] : t1[0];
 
     specify
@@ -187,6 +291,7 @@ module LUT6_2 (output O6, output O5, input I0, I1, I2, I3, I4, I5);
         (I2 => O5) = (`BD_T5_2); (I3 => O5) = (`BD_T5_3);
         (I4 => O5) = (`BD_T5_4);
     endspecify
+`endif
 endmodule
 
 module BUFG (output O, input I);

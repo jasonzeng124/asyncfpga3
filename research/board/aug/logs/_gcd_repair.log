@@ -1,0 +1,23 @@
+== resuming from 51 accumulated size(s) ==
+== iteration 0: build with the sizes above (or none) ==
+BUILD FAILED
+           fix: 1 more bd_delay element(s) on ulink_n85__3 (274 ps ea, derated to 211)
+  VIOLATED bd_steer bridge_i.udut.ucond_br31
+           fix: 1 more bd_delay element(s) on ulink_n85__3 (274 ps ea, derated to 211)
+
+  NOT CONVERGING: {ulink_n85__3} measured short again AFTER this loop
+  had already padded it.  The padding is changing the route as fast
+  as it is fixing it.
+
+  This is not a tuning failure, it is the wrong knob.  The margins
+  in question are 76-400 ps and the build-to-build routing noise on
+  this fabric is larger than that, so NO per-channel constant taken
+  from build N is still valid on build N+1.  Do not raise the cap
+  and do not raise MAX.
+
+  The term to remove is measured: on gcd a bd_link's C node reaches
+  its OWN latch across a median 1920 ps of routing (p90 3405, max
+  4275), while the same C node reaches its own delay chain in 639.
+  Two LUTs of one cell, two nanoseconds apart, on the critical path
+  of every transfer in the design.  Fix that and the select margin
+  stops being a search.

@@ -298,6 +298,22 @@
     {
       "op": "shrui",  "kind": "compute", "seen": 0,  "why": "Stage 3, logical right shift. Absent from the kernels." },
     {
+      "op": "divui",  "kind": "compute", "seen": 0,  "why": "A restoring division array (compute.py div_datapath): W stages of subtract and select, one matched delay. digitdiv, test_divui." },
+    {
+      "op": "divsi",  "kind": "compute", "seen": 0,  "why": "divui's array on the magnitudes, the quotient negated when the signs differ (C: truncation toward zero)." },
+    {
+      "op": "remsi",  "kind": "compute", "seen": 0,  "why": "divsi's array, the remainder output, negated when the dividend is negative (C: the dividend's sign)." },
+    {
+      "op": "remui",  "kind": "compute", "seen": 0,  "why": "Not in Dynamatic's handshake dialect (its frontend stops at C's unsigned %, see bdc/frontend.sh BDC_FE_UREM); built anyway: divui's array, the remainder output." },
+    {
+      "op": "minui",  "kind": "compute", "seen": 0,  "why": "One unsigned compare (a carry chain) and a 2:1 select of the operands (compute.BINARY). LLVM's umin; the != loop-test fixtures (bdc/frontend.sh BDC_FE_EXITCOND=1) compute memsum's, dot2's and gather's loop bound with it." },
+    {
+      "op": "maxui",  "kind": "compute", "seen": 0,  "why": "minui with the other arm: unsigned compare and select. LLVM's umax." },
+    {
+      "op": "minsi",  "kind": "compute", "seen": 0,  "why": "Signed compare and select. LLVM's smin." },
+    {
+      "op": "maxsi",  "kind": "compute", "seen": 0,  "why": "Signed compare and select. LLVM's smax (indvars' smax(n, 0) trip count, when it is not folded)." },
+    {
       "op": "select", "kind": "compute", "seen": 3,  "why": [
         "Stage 3, NOT bd_mux. handshake.select is a DATA operation: all three",
         "operands arrive, one result leaves, and the unchosen input is still",
@@ -320,7 +336,11 @@
 
     {
       "op": "load",           "kind": "cells", "seen": 4, "why": [
-        "bdc/mem.py's bdc_load_<AW>_<DW>[_seq] station, emit.py's _op_load.",
+        "bdc/mem.py's bdc_load[_cap]_<AW>_<DW>[_seq] station, emit.py's _op_load.",
+        "_cap (every load on an arbitrated port): the word latched at done, so",
+        "the other station's RAM edge cannot change it under its consumer; a",
+        "load first on its port forks its z into the second accessor's token",
+        "when both are in one block (research/data/suite/dyn/README.md).",
         "addressResult is absorbed into the owning mem_controller (the",
         "station's own p_addr/p_rdata round trip) and gets no net -- this",
         "table entry is coarse and cannot see that, so it says buildable for",
@@ -330,11 +350,13 @@
     {
       "op": "store",          "kind": "cells", "seen": 1, "why": [
         "bdc/mem.py's bdc_store_<AW>_<DW>[_seq] station, emit.py's _op_store.",
-        "addressResult/dataResult are absorbed the same way load's is. A lone",
-        "store's completion (z) is tied off like bd_snk; the first store of a",
-        "2-way arbitrated chain instead becomes the second accessor's",
-        "program-order token. See mem_controller's caveat: this table cannot",
-        "see whether a store's OWN controller is one this backend will",
+        "addressResult/dataResult are absorbed the same way load's is. Its",
+        "completion (z: the RAM answered) is a third result that",
+        "emit.py's store_completion_rewrite adds and joins into its block's",
+        "outgoing control token (research/data/suite/stores.md). A store",
+        "chained before a load on a 2-way arbitrated port is refused (its z",
+        "would need a fork to both). See mem_controller's caveat: this table",
+        "cannot see whether a store's OWN controller is one this backend will",
         "actually emit."
       ]
     },
@@ -347,8 +369,10 @@
         "emit.py's _op_mem_controller. 1 accessor -> plain port; 2 ->",
         "arbitrated port + bd_arbiter + program-order token chain (only the",
         "SECOND accessor is the :seq station -- see bdc/mem.py's own note that",
-        "a store's z IS the next access's c, no new cell); >2 raises by name,",
-        "no N-way arbiter tree exists.",
+        "a store's z IS the next access's c, no new cell; a LOAD first forks",
+        "its z, and the chain is built only within one block); >2 raises by",
+        "name, no N-way arbiter tree exists. --host-mem on an arbitrated port:",
+        "the host slot outside bd_arbiter (bdc_memport_arb_host_*).",
         "",
         "The guard is what separates this from the store-having entry below,",
         "and it is not arbitrary. A controller owning only loads has one",
@@ -378,26 +402,25 @@
       ]
     },
     {
-      "op": "mem_controller", "kind": "todo", "seen": 1, "why": [
-        "A controller that owns a STORE, and this backend does not build it.",
+      "op": "mem_controller", "kind": "cells", "seen": 1,
+      "cells": ["bd_mem", "bd_join", "bd_snk"],
+      "why": [
+        "A controller that owns a STORE (research/data/suite/stores.md).",
         "dynamatic's mem_controller_loadless.v gates memEnd on remainingStores",
         "== 0 -- an up/down counter incremented by each block's store-count",
-        "token and decremented per completed store. That counter is real",
-        "state, it is not a handshake, and there is no clock here to run it",
-        "on.",
+        "token and decremented per completed store. There is no clock to run",
+        "a counter on, and an asynchronous one would race ctrlEnd. emit.py's",
+        "store_completion_rewrite instead joins each store's completion into",
+        "its block's outgoing control token (the exit block: into its",
+        "controller's ctrlEnd), so ctrlEnd arrives after every store of the",
+        "call by construction and memEnd is the load-only join, unchanged.",
+        "The count tokens are checked (one per block, equal to its stores on",
+        "this controller) and sunk with bd_snk. _op_end joins the data",
+        "results with every such memEnd, so a caller never sees out0 before",
+        "the stores have landed.",
         "",
-        "emit.py's _op_mem_controller RAISES by name on this rather than",
-        "wiring memEnd without it. Firing memEnd while a store is still in",
-        "flight would be a completion signal that reports done early, which",
-        "is the same defect class as a null control that fakes its ack --",
-        "already paid for once in this project, and it hid real deadlocks",
-        "until it was removed.",
-        "",
-        "This entry exists so map.py's verdict matches what emit.py will",
-        "actually do. It previously said 'cells' for every controller, which",
-        "made --report call single_loop buildable while the emitter refused",
-        "it; a status line that reads buildable is believed, and no one reads",
-        "the caveat underneath it."
+        "The same caveat as the load-only entry: bd_link (the memStart hold)",
+        "stays out of the cells list, for the reason given there."
       ]
     },
     {

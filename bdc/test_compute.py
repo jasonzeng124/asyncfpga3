@@ -60,7 +60,28 @@ BINARY_REF = {
     "addi": "a + b", "subi": "a - b", "muli": "a * b",
     "andi": "a & b", "ori": "a | b", "xori": "a ^ b",
     "shli": "a << b", "shrui": "a >> b", "shrsi": "$signed(a) >>> b",
+    # min / max written the other way round from compute.BINARY (b against a, <= / >=), so a swapped arm or an
+    # unsigned compare in a signed op disagrees on some vector (the edges straddle the sign boundary)
+    "minui": "(b <= a) ? b : a", "maxui": "(b >= a) ? b : a",
+    "minsi": "($signed(b) <= $signed(a)) ? b : a", "maxsi": "($signed(b) >= $signed(a)) ? b : a",
 }
+
+# The dividers (compute.DIV) against Verilog's `/` and `%`, which truncate toward zero and give the remainder the
+# dividend's sign, as C does -- wherever C has an answer.  Where it has none, Verilog's is x (a / 0) or a wrap
+# (INT_MIN / -1), and the unit's is fixed by its structure (compute.py's DIV note): the reference there is that
+# documented value, written out here, so a change to what the hardware returns at x / 0 cannot pass silently.
+# `m` is all ones at the width, `smin` the sign bit alone.
+DIV_REF = {
+    "divui": "(b == 0) ? m : a / b",
+    "remui": "(b == 0) ? a : a % b",
+    "divsi": "(b == 0) ? (a[W1] ? one : m) : (a == smin && b == m) ? smin : sdiv",
+    "remsi": "(b == 0) ? a : (a == smin && b == m) ? zero : srem",
+}
+# sdiv / srem are wires of their own: inside a ?: whose other arm is unsigned, `$signed(a) / $signed(b)` would be
+# evaluated UNSIGNED (Verilog sizes and signs an operator by its context), and the reference would be wrong.
+# A divider is up to W stages of primitives the simulation model gives arc delays (bd_prims_sim.v, ~124 ps a LUT):
+# 1 ns settles a single-op unit, not a 32-stage array.
+DIV_SETTLE_PS = 200000
 
 
 def vectors(width):
@@ -101,9 +122,16 @@ def build_tb(op, width, pred, vecs):
         # at one value while the datapath is checked.
         ref = "a[0] ? a : b"
         out_w, third = width, "        .s_req(1'b0), .s_ack(s_ack), .s_data(a[0]),\n"
+    elif op in compute.DIV:
+        ref = DIV_REF[op].replace("W1", str(width - 1))
+        out_w, third = width, ""
     else:
         ref = BINARY_REF[op]
         out_w, third = width, ""
+    settle = DIV_SETTLE_PS if op in compute.DIV else 1000
+    # A divider's stages are gated by an enable chain that starts at its join (compute.div_datapath), so its
+    # requests are held high: the join fires once, every enable opens, and the datapath is then combinational.
+    req = "1'b1" if op in compute.DIV else "1'b0"
 
     # Every data input is driven, never left dangling: an unconnected input is
     # x in Verilog, x propagates through the tree, and !== against a real value
@@ -122,7 +150,7 @@ def build_tb(op, width, pred, vecs):
     # spare and still costs nothing.
     label = f"{op}{'.' + pred if pred else ''}"
     body = "\n".join(
-        f"        a = {width}'d{a}; b = {width}'d{b}; #1000;\n"
+        f"        a = {width}'d{a}; b = {width}'d{b}; #{settle};\n"
         f"        want = {ref};\n"
         f"        if (z_data !== want) begin\n"
         f"            $display(\"MISMATCH w={width} {label} a=%0d b=%0d "
@@ -140,11 +168,14 @@ module tb;
     wire [{out_w - 1}:0] z_data;
     reg  [{out_w - 1}:0] want;
     integer fails = 0;
+    wire [{width - 1}:0] m = {{{width}{{1'b1}}}}, one = {width}'d1, zero = {width}'d0;
+    wire [{width - 1}:0] smin = {width}'d1 << {width - 1};
+    wire signed [{width - 1}:0] sdiv = $signed(a) / $signed(b), srem = $signed(a) % $signed(b);
 
     {name} uut (
         .rst(rst),
-        .a_req(1'b0), .a_ack(a_ack), .a_data(a),
-        .b_req(1'b0), .b_ack(b_ack), .b_data(b),
+        .a_req({req}), .a_ack(a_ack), .a_data(a),
+        .b_req({req}), .b_ack(b_ack), .b_data(b),
 {third}        .z_req(z_req), .z_ack(1'b0), .z_data(z_data));
 
     initial begin
@@ -199,6 +230,7 @@ def main():
     cases = [("cmpi", p) for p in PREDS]
     cases += [(op, None) for op in sorted(BINARY_REF)]
     cases += [("select", None)]
+    cases += [(op, None) for op in sorted(compute.DIV)]
 
     workdir = tempfile.mkdtemp(prefix="bdc_compute_")
     passed, failed = 0, []

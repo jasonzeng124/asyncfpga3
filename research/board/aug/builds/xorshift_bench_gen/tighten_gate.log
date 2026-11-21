@@ -1,0 +1,145 @@
+false arcs   1709 pin-to-output arcs cut -- pins the INIT proves the function ignores (755 loops, unchanged)
+toolchain    nextpnr d216cb36a370f78a  /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+routed SDF   20824 cell arcs, 27937 routed nets
+state nodes  755 LUT feedback loops -- start and stop points
+delay lines  17
+
+A. the request is the last thing its cell emits
+------------------------------------------------------------------------------
+  bridge_i.udut.uaddi0   11 links   3684 ps   req  4768  peak  3660  guard  732  margin    376   tighten to 10
+                         latest peer: bridge_i.udut.uaddi0.$auto$alumacc.cc:512:replace_alu$4736.genblk1.slice[7].genblk1.carry4
+                         paired as one bundled channel (no common source):
+                           request from bridge_i.udut.ulink_n7.ctl.u.u/O6
+                           data    from bridge_i.udut.ulink_n7.lat.pair[0].u$LUT5/O5
+  bridge_i.udut.ucmpi0   19 links   7521 ps   req  8650  peak  5664  guard 1132  margin   1854   tighten to 15
+                         latest peer: bridge_i.udut.ucmpi0.uz_n3
+                         paired as one bundled channel (no common source):
+                           request from bridge_i.udut.ucmpi0.ujoin.u.genblk1.g2.u.u/O6
+                           data    from $PACKER_GND_DRV/Y
+  bridge_i.udut.ucmpi1    9 links   3654 ps   req  4078  peak  4684  guard  936  margin  -1542   PAD to 13 -- VIOLATION
+                         latest peer: bridge_i.udut.ucmpi1.uz_n38
+                         paired as one bundled channel (no common source):
+                           request from bridge_i.udut.ucmpi1.ujoin.u.genblk1.g2.u.u/O6
+                           data    from bridge_i.udut.ulink_n11__1.lat.pair[8].u$LUT5/O5
+  bridge_i.udut.ucontrol_merge0  3 links   1347 ps   req  1924  peak   963  guard  200  margin    761   tighten to 2
+                         latest peer: bridge_i.udut.ucontrol_merge0.uarb1.ua1.u
+                         paired by common source: bridge_i.udut.ucontrol_merge0.uarb1.ustate$LUT6/O6
+  bridge_i.udut.ucontrol_merge1  2 links    398 ps   req  1262  peak  1144  guard  228  margin   -110   PAD to 3 -- VIOLATION
+                         latest peer: bridge_i.udut.ucontrol_merge1.uarb1.ua1.u
+                         paired by common source: bridge_i.udut.ucontrol_merge1.uarb1.ustate$LUT6/O6
+  bridge_i.udut.umux0     2 links    543 ps   req  1402  peak   709  guard  200  margin    493   tighten to 1
+                         latest peer: bridge_i.udut.umux0.uya.u
+                         paired by common source: bridge_i.udut.umux0.uj1/O6
+  bridge_i.udut.umux1     2 links    826 ps   req  1910  peak  1444  guard  288  margin    178   already exact
+                         latest peer: bridge_i.udut.umux1.uya.u
+                         paired by common source: bridge_i.udut.umux1.uj1/O6
+  bridge_i.udut.umux2     2 links    923 ps   req  1631  peak   844  guard  200  margin    587   tighten to 1
+                         latest peer: bridge_i.udut.umux2.uxa.u
+                         paired by common source: bridge_i.udut.umux2.uj0/O6
+  bridge_i.udut.umux3     5 links   2205 ps   req  3559  peak  1654  guard  330  margin   1575   tighten to 2
+                         latest peer: bridge_i.udut.umux3.udat.pair[8].u$LUT6
+                         paired as one bundled channel (no common source):
+                           request from bridge_i.udut.umux3.uj0/O6
+                           data    from bridge_i.udut.ulink_n_falseResult_1.lat.pair[8].u$LUT6/O6
+  bridge_i.udut.uxori0    7 links   2293 ps   req  3632  peak  1294  guard  258  margin   2080   tighten to 1
+                         latest peer: bridge_i.udut.uxori0.$abc$20529$auto$blifparse.cc:557:parse_blif$20532
+                         paired as one bundled channel (no common source):
+                           request from bridge_i.udut.uxori0.ujoin.u.genblk1.g2.u.u/O6
+                           data    from bridge_i.udut.ulink_n9__1.lat.pair[2].u$LUT5/O5
+  bridge_i.udut.uxori1    6 links   1974 ps   req  2688  peak  1249  guard  249  margin   1190   tighten to 3
+                         latest peer: bridge_i.udut.uxori1.$abc$20549$auto$blifparse.cc:557:parse_blif$20557
+                         paired as one bundled channel (no common source):
+                           request from bridge_i.udut.uxori1.ujoin.u.genblk1.g2.u.u/O6
+                           data    from bridge_i.udut.ulink_n23__0.lat.pair[6].u$LUT6/O6
+  bridge_i.udut.uxori2   10 links   3730 ps   req  4154  peak  1534  guard  306  margin   2314   tighten to 4
+                         latest peer: bridge_i.udut.uxori2.$abc$20565$auto$blifparse.cc:557:parse_blif$20571
+                         paired as one bundled channel (no common source):
+                           request from bridge_i.udut.uxori2.ujoin.u.genblk1.g2.u.u/O6
+                           data    from bridge_i.udut.ulink_n26__1.lat.pair[4].u$LUT6/O6
+  bridge_i.udut.ulink_n12__0.rdly  4 links   not an outgoing request -- see rule B or C
+  bridge_i.udut.ulink_n12__1.rdly  4 links   not an outgoing request -- see rule B or C
+  bridge_i.udut.ulink_n12__2.rdly  4 links   not an outgoing request -- see rule B or C
+  bridge_i.udut.ulink_n_index_15.rdly  4 links   not an outgoing request -- see rule B or C
+  bridge_i.upsnk          2 links   not an outgoing request -- see rule B or C
+
+B. the RAM boundary, against the vendor's own setup windows
+------------------------------------------------------------------------------
+  no RAM in this design
+
+C. clock-to-out: the acknowledge must trail the read data
+------------------------------------------------------------------------------
+  no clock-to-out line in this design
+
+D. the select is stable before the request edge that samples it
+------------------------------------------------------------------------------
+  element cost: 274 ps per bd_delay link, measured off this route's own chains (median LUT arc + median hop)
+  bridge_i.udut.ucond_br2 (bd_steer) req   150  sel  5229  guard 1045  margin  -6124   PAD by 23 bd_delay element(s) (274 ps ea) -- VIOLATION
+                                   latest select pin: bridge_i.udut.ucond_br2.u$LUT6/A4
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ucond_br2_j.u.genblk1.g2.u.u/O6
+                                     select  from bridge_i.udut.ulink_n1__1.lat.pair[8].u$LUT6/O6
+  bridge_i.udut.ucond_br3 (bd_steer) req   630  sel  4509  guard  901  margin  -4780   PAD by 18 bd_delay element(s) (274 ps ea) -- VIOLATION
+                                   latest select pin: bridge_i.udut.ucond_br3.u$LUT5/A2
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ucond_br3_j.u.genblk1.g2.u.u/O6
+                                     select  from bridge_i.udut.ulink_n1__1.lat.pair[8].u$LUT6/O6
+  bridge_i.udut.ucond_br4 (bd_steer) req   150  sel  4834  guard  966  margin  -5650   PAD by 21 bd_delay element(s) (274 ps ea) -- VIOLATION
+                                   latest select pin: bridge_i.udut.ucond_br4.u$LUT6/A1
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ucond_br4_j.u.genblk1.g2.u.u/O6
+                                     select  from bridge_i.udut.ulink_n1__1.lat.pair[8].u$LUT6/O6
+  bridge_i.udut.ucond_br5 (bd_steer) req   150  sel  4839  guard  967  margin  -5656   PAD by 21 bd_delay element(s) (274 ps ea) -- VIOLATION
+                                   latest select pin: bridge_i.udut.ucond_br5.u$LUT6/A2
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ucond_br5_j.u.genblk1.g2.u.u/O6
+                                     select  from bridge_i.udut.ulink_n1__1.lat.pair[8].u$LUT6/O6
+  bridge_i.udut.ucond_br6 (bd_steer) req   630  sel  6184  guard 1236  margin  -6790   PAD by 25 bd_delay element(s) (274 ps ea) -- VIOLATION
+                                   latest select pin: bridge_i.udut.ucond_br6.u$LUT5/A5
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ucond_br6_j.u.genblk1.g2.u.u/O6
+                                     select  from bridge_i.udut.ulink_n11__1.lat.pair[8].u$LUT5/O5
+  bridge_i.udut.ucond_br7 (bd_steer) req   835  sel  5809  guard 1161  margin  -6135   PAD by 23 bd_delay element(s) (274 ps ea) -- VIOLATION
+                                   latest select pin: bridge_i.udut.ucond_br7.u$LUT6/A3
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ucond_br7_j.u.genblk1.g2.u.u/O6
+                                     select  from bridge_i.udut.ulink_n11__1.lat.pair[8].u$LUT5/O5
+  bridge_i.udut.ucond_br8 (bd_steer) req   675  sel  5912  guard 1182  margin  -6419   PAD by 24 bd_delay element(s) (274 ps ea) -- VIOLATION
+                                   latest select pin: bridge_i.udut.ucond_br8.u$LUT6/A1
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ucond_br8_j.u.genblk1.g2.u.u/O6
+                                     select  from bridge_i.udut.ulink_n11__1.lat.pair[8].u$LUT5/O5
+  bridge_i.udut.ucond_br9 (bd_steer) req   295  sel  6649  guard 1329  margin  -7683   PAD by 29 bd_delay element(s) (274 ps ea) -- VIOLATION
+                                   latest select pin: bridge_i.udut.ucond_br9.u$LUT6/A4
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ucond_br9_j.u.genblk1.g2.u.u/O6
+                                     select  from bridge_i.udut.ulink_n11__1.lat.pair[8].u$LUT5/O5
+  bridge_i.udut.umux0 (bd_mux)     req  2336  sel   150  guard  200  margin   1986   7 bd_delay element(s) (274 ps ea) of slack
+                                   latest select pin: bridge_i.udut.umux0.uj0/A5
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ulink_n12__0.ctl.u.u/O6
+                                     select  from bridge_i.udut.ulink_n12__0.lat.odd.u/O6
+  bridge_i.udut.umux1 (bd_mux)     req  1921  sel   150  guard  200  margin   1571   5 bd_delay element(s) (274 ps ea) of slack
+                                   latest select pin: bridge_i.udut.umux1.uj0/A5
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ulink_n12__1.ctl.u.u/O6
+                                     select  from bridge_i.udut.ulink_n12__1.lat.odd.u/O6
+  bridge_i.udut.umux2 (bd_mux)     req  2446  sel   150  guard  200  margin   2096   7 bd_delay element(s) (274 ps ea) of slack
+                                   latest select pin: bridge_i.udut.umux2.uj0/A5
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ulink_n12__2.ctl.u.u/O6
+                                     select  from bridge_i.udut.ulink_n12__2.lat.odd.u/O6
+  bridge_i.udut.umux3 (bd_mux)     req  3393  sel   150  guard  200  margin   3043   11 bd_delay element(s) (274 ps ea) of slack
+                                   latest select pin: bridge_i.udut.umux3.uj0/A5
+                                   paired as one bundled channel (no common source):
+                                     request from bridge_i.udut.ulink_n_index_15.ctl.u.u/O6
+                                     select  from bridge_i.udut.ulink_n_index_15.lat.odd.u/O6
+  worst case would need SELECT_PAD (bdc/emit.py) >= 29 to clear this SCREEN on this route
+  -- but this rule is a SCREEN, not a measurement.  It is one-sided by construction
+     (check_bundled: earliest request vs latest select, every input assumed to
+     launch at t=0), so it cannot see matched delay already in the request path.
+     Confirm against rule A on the upstream cell before changing any length:
+     on gcd, rule A passes every comparator with +2.0 to +11.1 ns and says TIGHTEN.
+
+10 boundary/boundaries do not meet their constraint as routed.
+That is not a sizing result.  Re-place, or shorten the datapath;
+padding a delay line is the last resort, never the first.

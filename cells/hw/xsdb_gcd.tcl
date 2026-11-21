@@ -1,5 +1,5 @@
 # xsdb driver for gcd_ps_top's AXI3 milestone on the EBAZ4205.
-# Usage: xsdb cells/hw/xsdb_gcd.tcl [bitfile]
+# Usage: xsdb cells/hw/xsdb_gcd.tcl [bitfile [vecfile]]
 # (Vivado Lab 2026.1 ships xsdb; hw_server at tcp:localhost:3121.)
 #
 # Ported near-verbatim from hw-docs/ref/zynq/xsct_knapsack.tcl (the script
@@ -76,6 +76,24 @@ set vectors {
     {1      1000001  1}
     {12     60       12}
     {256    768      256}
+}
+
+# Optional 2nd argument: a vector file, one "a b expected" per line in 8-digit
+# hex (cells/gls/ps/gen_vectors.py: operands outside these 16, expected from
+# bdc/simcheck.py's ref_gcd -- the C transcription -- never from a run).  It
+# replaces the golden list above.
+set vecfile [lindex $argv 1]
+if {$vecfile ne ""} {
+    set vectors {}
+    set fh [open $vecfile r]
+    foreach line [split [read $fh] "\n"] {
+        if {[string trim $line] eq ""} continue
+        lassign $line ha hb he
+        scan $ha %x a; scan $hb %x b; scan $he %x e
+        lappend vectors [list $a $b $e]
+    }
+    close $fh
+    puts "vectors: [llength $vectors] from $vecfile"
 }
 
 proc poll_status {mask want tag} {

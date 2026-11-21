@@ -21,9 +21,12 @@ of the toolchain already imposes:
   delay chain instead was tried and was wrong, because bd_delay #(.N(0)) is a
   bare wire, so a cell with NO delay -- the case that most needs auditing --
   left nothing in the netlist to find and was skipped silently.  A generated
-  unit without a `uor` would be skipped the same way.  It costs nothing: a
-  pass-through LUT1 in front of a LUT1 delay chain is just one more element
-  of that chain, so DELAY is one shorter to compensate.
+  unit without a `uor` would be skipped the same way.  Its rise costs
+  nothing: a pass-through LUT1 in front of a LUT1 delay chain is just one
+  more element of that chain, so DELAY is one shorter to compensate.  Its
+  FALL is not inside any matched length, so the chain behind it is a
+  bd_delay_gated whose fast side is tapped from the anchor's input
+  (request_delay below): the request falls one LUT after the join, not two.
 
   The `BD_SZ_*` key, and WHERE it lives.  verify/teeth.sh and verify/resize.sh
   drive a design only by overriding `define BD_SZ_*` through BD_SIZES, and
@@ -55,6 +58,17 @@ import argparse
 import os
 import sys
 
+BDC_FASTFALL = os.environ.get("BDC_FASTFALL", "1") == "1"
+
+
+def request_delay(gate):
+    """The `udly` instance behind the `uor` anchor, as Verilog text.  `gate`
+    is the anchor's own input, which is where the fall is taken from."""
+    if BDC_FASTFALL:
+        return ("bd_delay_gated #(.N(DELAY)) udly "
+                f"(.a(either), .gate({gate}), .z(z_req));")
+    return "bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));"
+
 # Operations whose result is the full operand width, and the Verilog
 # expression that computes them.  `trunci`, `extui` and `extsi` are absent on
 # purpose: they are bus slices and concatenations, i.e. wires, and belong in
@@ -69,7 +83,16 @@ BINARY = {
     "shli":  "{a} << {b}",
     "shrui": "{a} >> {b}",
     "shrsi": "$signed({a}) >>> {b}",
+    # min / max (arith.minui / maxui / minsi / maxsi; LLVM's umin / umax / smin / smax intrinsics lower to them --
+    # the != loop-test fixtures, bdc/frontend.sh BDC_FE_EXITCOND=1, compute a loop's bound as umin(n, ...) once before
+    # memsum's, dot2's and gather's loops).  One compare (a carry chain) and a 2:1 select of the operands.  The
+    # condition of `?:` is self-determined, so `$signed(..) < $signed(..)` is a signed compare whatever the arms are.
+    "minui": "(({a}) < ({b})) ? ({a}) : ({b})",
+    "maxui": "(({a}) > ({b})) ? ({a}) : ({b})",
+    "minsi": "($signed({a}) < $signed({b})) ? ({a}) : ({b})",
+    "maxsi": "($signed({a}) > $signed({b})) ? ({a}) : ({b})",
 }
+MINMAX = {"minui", "maxui", "minsi", "maxsi"}
 
 # cmpi carries its predicate as a bare keyword argument (`cmpi sgt, %a, %b`),
 # which the reader stores as a LiteralArg rather than an attribute.
@@ -89,6 +112,156 @@ CMPI = {
 }
 CMPI.update({"s" + k[1:]: v for k, v in CMPI.items() if k.startswith("u")})
 SIGNED_CMPI = {"slt", "sle", "sgt", "sge"}
+
+# DIVISION AND REMAINDER (research/PROGRAM.md 2026-11-18, lead 4): op -> (signed, the result it returns).
+#
+# Dynamatic's handshake dialect has divsi, remsi and divui; it has no remui, so C's unsigned `%` never reaches bdc
+# from Dynamatic's own frontend (bdc/frontend.sh BDC_FE_UREM=1 rewrites it into divui / muli / subi first).  remui is
+# built here all the same: it is the same array with the other output.
+#
+# NOT Verilog's `/`.  yosys maps `/` onto techmap.v's $__div_mod_u, which compares every stage against the divisor
+# shifted to 2W-1 bits: 640 CARRY4, ~3600 LUTs and 1460 MUXF7 for 32 bits (yosys 0.62, synth_xilinx as flow.sh runs
+# it); and iverilog makes x / 0 an x, so the simulated unit and the built one would disagree on what they return
+# there.  div_datapath() below is a restoring array written out: W stages, stage s deciding quotient bit W-1-s,
+# each an (s+2)-bit subtract and an (s+1)-bit select -- 151 CARRY4, ~1100 LUTs, no MUXF7 for 32 bits.
+#
+# Semantics are C's: the quotient truncates toward zero and the remainder takes the dividend's sign.  Where C has no
+# answer (x / 0, INT_MIN / -1) the array still returns one, fixed by its structure (test_compute.py checks it):
+#     divui x, 0 = all ones     remui x, 0 = x
+#     divsi x, 0 = x < 0 ? 1 : -1      remsi x, 0 = x
+#     divsi INT_MIN, -1 = INT_MIN      remsi INT_MIN, -1 = 0
+DIV = {"divui": (False, "q"), "remui": (False, "r"), "divsi": (True, "q"), "remsi": (True, "r")}
+
+
+def _or_lut(inst, ins, out):
+    """One kept LUT primitive: out = OR of `ins` (1..6 nets)."""
+    n = len(ins)
+    pins = ", ".join(f".I{k}({x})" for k, x in enumerate(ins))
+    return f"    (* keep *) LUT{n} #(.INIT({1 << n}'h{(1 << (1 << n)) - 2:x})) {inst} ({pins}, .O({out}));"
+
+
+def _prefix_or(sigs, lines, tag):
+    """[o_0 .. o_{n-1}] with o_k = sigs[0] | ... | sigs[k], from kept LUT primitives of at most six inputs.
+
+    Written out rather than left to ABC: given the whole scan as `~|ub[W-1:s+1]` per stage, ABC maps parts of it
+    onto MUXF7 / MUXF8 with constant inputs (`MUXF7 (.I0(1'h0), .I1(1'h0), ...)` on a 32-bit array): the GND-buffer
+    F7 class fasm_equiv calls NOT EQUIVALENT, and the cell whose constant select nextpnr once left unrouted (an ipow
+    route computed wrong answers from it: research/JOURNAL.md, session of 2026-10-29, "progress 21:18").  Groups of
+    six, the groups' own prefix recursively, one LUT2 to combine: three levels at 32 bits, all of it on the divisor,
+    which arrives with the dividend."""
+    if len(sigs) <= 1:
+        return list(sigs)
+    groups = [sigs[i:i + 6] for i in range(0, len(sigs), 6)]
+    within = []
+    for g, grp in enumerate(groups):
+        w = [grp[0]]
+        for k in range(1, len(grp)):
+            name = f"{tag}_{g}_{k}"
+            lines.append(f"    wire {name};")
+            lines.append(_or_lut(f"u{name}", grp[:k + 1], name))
+            w.append(name)
+        within.append(w)
+    if len(groups) == 1:
+        return within[0]
+    upper = _prefix_or([w[-1] for w in within[:-1]], lines, tag + "u")
+    out = list(within[0])
+    for g in range(1, len(within)):
+        for k, x in enumerate(within[g]):
+            name = f"{tag}_{g}_{k}c"
+            lines.append(f"    wire {name};")
+            lines.append(_or_lut(f"u{name}", [x, upper[g - 1]], name))
+            out.append(name)
+    return out
+
+
+# Links of the divider's enable chain per stage (div_datapath): stage s opens DIV_TAP * (s + 1) links after the
+# request boundary (one stage more for a signed op, whose magnitudes come first).  The routed array of digitdiv
+# seed 1 (nextpnr 6e5d224472232d5d) settled 92.0 ns after its join at the full stack's worst corner (52.3 FAST_MIN,
+# 138.7 SLOW_MAX): 2.9 ns a stage on average (1.6 / 4.3), and a link of this route's delay chains cost 396 ps there
+# (282 / 830), so 8 links is about 1.2x (1.4x / 1.5x) an average stage.
+DIV_TAP = 8
+
+
+def div_datapath(op, width, a="a_data", b="b_data", join="joined", ack="z_ack"):
+    """The divider's combinational datapath: (Verilog lines, the expression that is the result).
+
+    Unsigned core, restoring division over ua / ub.  Before stage s the partial remainder is below both ub and
+    2^s, so stage s works on s + 1 bits only: t = {r(s-1), ua[W-1-s]}, d = {0, t} - {0, ub[s:0]} (its top bit is
+    the borrow), and t >= ub exactly when ub has no bit above s (hi[s+1] = 0) and the subtract does not borrow.
+    That bit is quotient bit W-1-s, and the stage passes on d or t.  The select is one kept LUT5 per bit (LUT4 in
+    the last stage, where nothing is above), so ABC cannot merge stages into functions wider than a LUT6 (the MUXF7
+    note in _prefix_or); the subtracts are left to yosys (carry chains).  The last stage's select is built only for
+    a remainder.  Signed ops divide magnitudes (INT_MIN's is 2^(W-1), as unsigned) and negate the quotient when the
+    signs differ, the remainder when the dividend is negative: C's truncation toward zero.
+
+    EACH STAGE IS GATED BY AN ENABLE, en(s) = the enable chain's tap DIV_TAP * (s + 1 [+ 1 signed]): a stage's
+    outputs (its select LUTs and its quotient bit) are 0 until en(s) rises.  Not for correctness: the result is the
+    same function once every enable is up, and the one matched delay (udly, sized by the rules like any operator's)
+    is what makes it safe -- rule A's data peak runs through the enable chain too, since the chain starts at the
+    request boundary.  It is for the GLITCHES.  The bench's full-stack GLS keeps every pulse (cells/gls/prims.v:
+    wires and LUT pins are transport delays, "silicon-like glitches"), and a ripple of W subtract-and-select stages
+    multiplies them: each of a stage's s + 1 inputs arrives as its own wave, each wave can toggle the borrow and so
+    every select, and the next stage receives all of them, about (s + 1) times as many events as this one.  The
+    ungated 32-bit array on digitdiv's route (seed 2) did not get through ONE divide in 20 minutes of simulation
+    (the zero-trip vector, no divide, took 51 s).  With the enable, a stage whose inputs settled before its tap
+    passes one wave on.  The chain is kept LUT2s, tap(j) = tap(j-1) & hold, from hold = join | ack: it rises one
+    link at a time from the join's rise and falls all at once when the acknowledge falls.  NOT with the join, as the
+    udly line does: this library's bundling contract holds data from req-rise until ACK-FALL (cells/rtl/bd_ctl.v,
+    bd_steer), and a first version that closed the stages with the join zeroed z_data while a steer downstream was
+    still reading it (simcheck digitdiv: vector 0 wrong, then a deadlock).  join | ack covers exactly that window:
+    the join falls only after the acknowledge rose, the acknowledge rises only after the request, so hold is one
+    clean pulse per transaction.  Its cells are not named `.chain.g[k].u`, so the rule tools read them as datapath,
+    which is what they are; rule A's data peak runs through them from the join."""
+    signed, want = DIV[op]
+    W = width
+    L = []
+    if signed:
+        L.append(f"    wire na = {a}[{W - 1}];")
+        L.append(f"    wire nb = {b}[{W - 1}];")
+        L.append(f"    wire [{W - 1}:0] ua = na ? -{a} : {a};")
+        L.append(f"    wire [{W - 1}:0] ub = nb ? -{b} : {b};")
+    else:
+        L.append(f"    wire [{W - 1}:0] ua = {a};")
+        L.append(f"    wire [{W - 1}:0] ub = {b};")
+    L.append(f"    wire [{W - 1}:0] uq;")
+    pre = 1 if signed else 0
+    ntap = DIV_TAP * (W + pre)
+    L.append(f"    // the enable chain: {ntap} kept LUT2s, en(s) = tp[{DIV_TAP} * (s + 1{' + 1' if signed else ''})]")
+    L.append(f"    wire [{ntap}:0] tp;")
+    L.append(f"    (* keep *) LUT2 #(.INIT(4'he)) uhold (.I0({join}), .I1({ack}), .O(tp[0]));")
+    L.append("    genvar i;")
+    L.append(f"    generate for (i = 1; i <= {ntap}; i = i + 1) begin : dtap")
+    L.append(f"        (* keep *) LUT2 #(.INIT(4'h8)) u (.I0(tp[i - 1]), .I1(tp[0]), .O(tp[i]));")
+    L.append("    end endgenerate")
+    # hi[j] = |ub[W-1:j], j = 1 .. W-1: the divisor has a bit above stage j - 1.
+    hi = dict(zip(range(W - 1, 0, -1), _prefix_or([f"ub[{j}]" for j in range(W - 1, 0, -1)], L, "hi")))
+    for s in range(W):
+        last = s == W - 1
+        en = f"tp[{DIV_TAP * (s + 1 + pre)}]"
+        if s == 0:
+            L.append(f"    wire [0:0] t0 = ua[{W - 1}];")
+        else:
+            L.append(f"    wire [{s}:0] t{s} = {{r{s - 1}, ua[{W - 1 - s}]}};")
+        L.append(f"    wire [{s + 1}:0] d{s} = {{1'b0, t{s}}} - {{1'b0, ub[{s}:0]}};")
+        if not last:
+            L.append(f"    assign uq[{W - 1 - s}] = {en} & ~{hi[s + 1]} & ~d{s}[{s + 1}];")
+            mux = (f"LUT5 #(.INIT(32'haaac0000)) u (.I0(t{s}[i]), .I1(d{s}[i]), .I2(d{s}[{s + 1}]), "
+                   f".I3({hi[s + 1]}), .I4({en}), .O(r{s}[i]))")
+        else:
+            L.append(f"    assign uq[0] = {en} & ~d{s}[{s + 1}];")
+            mux = (f"LUT4 #(.INIT(16'hac00)) u (.I0(t{s}[i]), .I1(d{s}[i]), .I2(d{s}[{s + 1}]), .I3({en}), "
+                   f".O(r{s}[i]))")
+        if not last or want == "r":
+            L.append(f"    wire [{s}:0] r{s};")
+            L.append(f"    generate for (i = 0; i <= {s}; i = i + 1) begin : rm{s}")
+            L.append(f"        (* keep *) {mux};")
+            L.append("    end endgenerate")
+    ur = f"r{W - 1}"
+    if want == "q":
+        expr = "(na ^ nb) ? -uq : uq" if signed else "uq"
+    else:
+        expr = f"na ? -{ur} : {ur}" if signed else ur
+    return L, expr
 
 # Placeholder length, in bd_delay links, for a BARE LIBRARY CELL -- a bd_mux
 # or the generated arbitrated merge, whose data path is a single datamux LUT
@@ -244,6 +417,13 @@ def default_delay(op, width):
         that only fails at temperature.
     """
     cls = _depth_class(op)
+    if cls == "div":
+        # A DIVIDER's result settles about when its enable chain's last tap opens the last stage (div_datapath:
+        # DIV_TAP links a stage, sized at ~1.2-1.5x an average stage), so the placeholder is twice the chain:
+        # 2 * DIV_TAP * (W + 1) links, 528 at 32 bits -- the two-fold headroom CELL_DELAY's note argues for.
+        # Measured (research/data/suite/divmod.md): the ungated 32-bit array settled in 92.0 ns at the full stack's
+        # worst corner on digitdiv seed 1, where 512 links of that route's chains were 204.9 ns.
+        return max(FLOOR, 2 * DIV_TAP * (width + 1))
     if cls == "mul":
         # BD_MUL_SCALE is a DIAGNOSTIC knob and nothing else.  When a routed
         # design gives wrong ANSWERS, the first question is whether the
@@ -274,7 +454,9 @@ def default_delay(op, width):
         # exactly why quoting that margin as headroom for this change was
         # wrong.  Double the worst observed shortfall, for the same reason
         # CELL_DELAY above is 12 and not 6.
-        if op == "cmpi":
+        # min / max: the compare's carry out drives a 2:1 select LUT on every result bit -- one LUT after the
+        # chain, as the comparator's kept LUT1 is, so the same +6.
+        if op == "cmpi" or op in MINMAX:
             n += 6
         return n
     return FLOOR
@@ -327,9 +509,11 @@ def cmp_pair(pred):
 
 
 def _depth_class(op):
+    if op in DIV:
+        return "div"
     if op == "muli":
         return "mul"
-    if op in ("addi", "subi", "cmpi"):
+    if op in ("addi", "subi", "cmpi") or op in MINMAX:
         return "carry"
     if op in ("shli", "shrui", "shrsi"):
         return "shift"
@@ -374,6 +558,9 @@ def emit_unit(op, width, pred=None):
         out_w, nin = width, 3
     elif op in BINARY:
         expr = BINARY[op].format(a="a_data", b="b_data")
+        out_w, nin = width, 2
+    elif op in DIV:
+        extra, expr = div_datapath(op, width, join="joined", ack="z_ack")
         out_w, nin = width, 2
     else:
         raise ValueError(f"no compute unit for {op!r}")
@@ -483,7 +670,7 @@ module {name} #(parameter DELAY = {default})
     // avoid.  It is also just the first link of the delay line.
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(joined), .O(either));
-    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+    {request_delay("joined")}
 
     // The datapath.  yosys picks the implementation; the matched delay is
     // what makes whatever it picks safe.

@@ -1,0 +1,34 @@
+corner_audit /tmp/bot/sa/muxsel/runs/ca/ms_cmpchain_2_1/seed1
+  corner: corner_sdf: /tmp/bot/sa/muxsel/runs/ca/ms_cmpchain_2_1/seed1/pnr/soak_xray.sdf -> ca/cmp21_un_0.20/soak.sdf
+            band 0.2, cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, 219 instance(s) listed (0.2), all in the SDF
+            INTERCONNECT default (0.2)                        37437 arcs
+            INTERCONNECT into listed instance (0.2)             319 arcs
+            IOPATH CARRY4 (1)                                  1892 arcs
+            IOPATH SELMUX2_1 (1)                               1806 arcs
+            IOPATH SLICE_FFX (1)                               1956 arcs
+            IOPATH default (0.2)                              23400 arcs
+            IOPATH listed instance (0.2)                        319 arcs
+            SETUPHOLD (FAST_MIN, as gen.py)                    9346 arcs
+  nextpnr: UNSTAMPED
+  guards: rule E/J 0.970*req vs 1.030*sel; rule A/F/H/I/K/L guard max(0.030*t_data, 50 ps); slack 0
+  rule A data launches from constant drivers: DROPPED (a constant never transitions)
+  audits exit: tighten 1, skew 0, arb_fork 0
+  per-link cost at this corner: c_lo 179 ps (cheapest link-to-link step on the route), lut_lo 61 ps; chain mean steps 194-544 ps
+  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band 0.2, CARRY4/F7F8/FF at --cell; shortened lines priced at own mean step; selects sized by E/M; floor file none
+  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the select's own channel request is bounded by that request (research/data/sizerule/steerE.md)
+  join-aware: CA_JOINAWARE=1: 6 operator(s) sized at their data's captures (A'j: latch data vs its enable, select vs its gate's request; C-elements wait for their last input; join credit), their A' rows reported as 'a'; 1 kept on A' (rows 'j' say why)
+  WARNING chain(s) ['bridge_i.upsnk'] map to BD_SZ_BRIDGE_I_UPSNK, which sizes.vh does not set (kept, measured)
+
+NEGATIVE at this corner (29; rule D is a screen, listed but not gated):
+  A     +35  bridge_i.udut.umux0 [peers no common source reaches: 222] 3 links  from bridge_i.udut.ulink_n6.many.stage[1].u.ctl.u.u/O6: req 2498 (1x)  data 2392 (1x, bridge_i.udut.umux0.$abc$23145$auto$blifparse.cc:557:parse_blif$23168.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux8)  guard 71  margin 35
+             depends on: BRIDGE_I_UDUT_ULINK_N63__0(-21), BRIDGE_I_UDUT_UMUX0(-933)
+  A    +890  bridge_i.udut.umux2 [peers no common source reaches: 229] 7 links  from bridge_i.udut.ulink_n_trueResult_20.many.stage[1].u.ctl.u.u/O6: req 3917 (1x)  data 2939 (1x, bridge_i.udut.umux2.$abc$23222$auto$blifparse.cc:557:parse_blif$23235.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mux8)  guard 88  margin 890
+             depends on: BRIDGE_I_UDUT_ULINK_N63__2_UACK(-61)
+             depends on: BRIDGE_I_UDUT_ULINK_N63__1_UACK(-61)
+             depends on: BRIDGE_I_UDUT_ULINK_N63__1_SDELAY(-122), BRIDGE_I_UDUT_ULINK_N63__1_UACK(-61)
+             depends on: BRIDGE_I_UDUT_ULINK_N63__0_SDELAY(-122), BRIDGE_I_UDUT_ULINK_N63__0_UACK(-82)
+  A   +1594  bridge_i.udut.umux0     3 links    933 ps   req  2110  peak   466  guard   50  margin   1594   0 links -- the request already trails without help
+             depends on: BRIDGE_I_UDUT_ULINK_N63__2_SDELAY(-122), BRIDGE_I_UDUT_ULINK_N63__2_UACK(-61)
+             depends on: BRIDGE_I_UDUT_ULINK_N63__0_UACK(-531)
+             depends on: BRIDGE_I_UDUT_ULINK_N63__0_UACK(-445)
+  A   +2930  bridge_i.udut.umux2     7 links   2350 ps   req  3541  peak   561  guard   50  margin   2930   0 links -- the request already trails without help

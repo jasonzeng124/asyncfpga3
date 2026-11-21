@@ -1,0 +1,59 @@
+# ipow_bench_gen (the board's top) on the full stack: netlist from each .bit (fasm2net --ps7), prjxray SDF, GLS_MODEL=fid, ps7_bench.v +FCLK_PS=12000 (83.3 MHz) +MODE=1 +NRUNS=2 +VECFILE (17 vectors: loop_cost.sh's 3^(2^i-1), i=1..31 subset, + 6 fusion_bench vectors; expected from bdc/simcheck.py ref_ipow). Sizes research/data/ipow_dsp1_sizes_T9{,s75}_bench.vh, BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 (rule A informational), nextpnr 9c732bc6303458df. cyc31 = batch cycle total of the 31-iteration vector (2 runs, 12 ns cycles). base seed 7 and x0.75 seed 9: their bits leave an F7 mux select (ushrsi0) unrouted, so the die reads 1 instead of the constant 0 (nextpnr gap, JOURNAL 2026-11-08/09); wrong answers, excluded from the pairing. Seeds 5-9 added 2026-11-09 (8 good routes per build).
+cfg	seed	col	bit	equiv	gate	verdict	ruleA_viol	cyc31
+s75	1	max	25d2b8b8	EQUIVALENT	clean	PASS 17/17	16	580
+s75	1	min	25d2b8b8	EQUIVALENT	clean	PASS 17/17	16	220
+s75	1	worst	25d2b8b8	EQUIVALENT	clean	PASS 17/17	16	298
+s75	2	max	9adc48d9	EQUIVALENT	clean	PASS 17/17	14	550
+s75	2	min	9adc48d9	EQUIVALENT	clean	PASS 17/17	14	206
+s75	2	worst	9adc48d9	EQUIVALENT	clean	PASS 17/17	14	288
+s75	3	max	6d1cd86d	EQUIVALENT	clean	PASS 17/17	14	578
+s75	3	min	6d1cd86d	EQUIVALENT	clean	PASS 17/17	14	212
+s75	3	worst	6d1cd86d	EQUIVALENT	clean	PASS 17/17	14	296
+s75	4	max	02af0e28	NOT_EQUIVALENT	clean	PASS 17/17	11	570
+s75	4	min	02af0e28	NOT_EQUIVALENT	clean	PASS 17/17	11	216
+s75	4	worst	02af0e28	NOT_EQUIVALENT	clean	PASS 17/17	11	292
+s75	5	max	7bbe44fb	EQUIVALENT	clean	PASS 17/17	17	570
+s75	5	min	7bbe44fb	EQUIVALENT	clean	PASS 17/17	17	212
+s75	5	worst	7bbe44fb	EQUIVALENT	clean	PASS 17/17	17	294
+s75	6	max	588139da	NOT_EQUIVALENT	clean	PASS 17/17	16	540
+s75	6	min	588139da	EQUIVALENT	clean	PASS 17/17	16	200
+s75	6	worst	588139da	EQUIVALENT	clean	PASS 17/17	16	272
+s75	7	max	52444a70	EQUIVALENT	clean	PASS 17/17	15	568
+s75	7	min	52444a70	EQUIVALENT	clean	PASS 17/17	15	214
+s75	7	worst	52444a70	EQUIVALENT	clean	PASS 17/17	15	294
+s75	8	max	2a8afac8	EQUIVALENT	clean	PASS 17/17	12	552
+s75	8	min	2a8afac8	EQUIVALENT	clean	PASS 17/17	12	204
+s75	8	worst	2a8afac8	EQUIVALENT	clean	PASS 17/17	12	288
+s75	9	max	826f0dbb	NOT_EQUIVALENT(F7 select unrouted)	clean	FAIL 12/17	12	-
+s75	9	min	826f0dbb	NOT_EQUIVALENT(F7 select unrouted)	clean	FAIL 12/17	12	-
+s75	9	worst	826f0dbb	NOT_EQUIVALENT(F7 select unrouted)	clean	FAIL 12/17	12	-
+base	1	max	fc17479d	EQUIVALENT	clean	PASS 17/17	15	654
+base	1	min	fc17479d	EQUIVALENT	clean	PASS 17/17	15	238
+base	1	worst	fc17479d	EQUIVALENT	clean	PASS 17/17	15	324
+base	2	max	9fef6569	NOT_EQUIVALENT	clean	PASS 17/17	8	676
+base	2	min	9fef6569	NOT_EQUIVALENT	clean	PASS 17/17	8	250
+base	2	worst	9fef6569	NOT_EQUIVALENT	clean	PASS 17/17	8	342
+base	3	max	6285f1a1	EQUIVALENT	clean	PASS 17/17	10	662
+base	3	min	6285f1a1	EQUIVALENT	clean	PASS 17/17	10	244
+base	3	worst	6285f1a1	EQUIVALENT	clean	PASS 17/17	10	338
+base	4	max	22581ec0	EQUIVALENT	clean	PASS 17/17	7	676
+base	4	min	22581ec0	EQUIVALENT	clean	PASS 17/17	7	246
+base	4	worst	22581ec0	EQUIVALENT	clean	PASS 17/17	7	344
+base	5	max	e156244e	EQUIVALENT	clean	PASS 17/17	8	640
+base	5	min	e156244e	EQUIVALENT	clean	PASS 17/17	8	234
+base	5	worst	e156244e	EQUIVALENT	clean	PASS 17/17	8	326
+base	6	max	058c43d8	EQUIVALENT	clean	PASS 17/17	11	676
+base	6	min	058c43d8	EQUIVALENT	clean	PASS 17/17	11	246
+base	6	worst	058c43d8	EQUIVALENT	clean	PASS 17/17	11	342
+base	7	max	fae5328d	NOT_EQUIVALENT(F7 select unrouted)	clean	FAIL 11/17	10	-
+base	7	min	fae5328d	NOT_EQUIVALENT(F7 select unrouted)	clean	FAIL 11/17	10	-
+base	7	worst	fae5328d	NOT_EQUIVALENT(F7 select unrouted)	clean	FAIL 11/17	10	-
+base	8	max	8ad05069	EQUIVALENT	clean	PASS 17/17	6	662
+base	8	min	8ad05069	EQUIVALENT	clean	PASS 17/17	6	244
+base	8	worst	8ad05069	EQUIVALENT	clean	PASS 17/17	6	334
+base	9	max	3e2f0a34	EQUIVALENT	clean	PASS 17/17	9	686
+base	9	min	3e2f0a34	EQUIVALENT	clean	PASS 17/17	9	254
+base	9	worst	3e2f0a34	EQUIVALENT	clean	PASS 17/17	9	352
+# paired base/x0.75 cyc31 ratio over seeds 1-6,8 (7 pairs): max 7 mean 1.180 min 1.123 max 1.252
+# paired base/x0.75 cyc31 ratio over seeds 1-6,8 (7 pairs): min 7 mean 1.159 min 1.082 max 1.230
+# paired base/x0.75 cyc31 ratio over seeds 1-6,8 (7 pairs): worst 7 mean 1.160 min 1.087 max 1.257

@@ -1,0 +1,30 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 0000608c (attempt 0, poll 0)
+programming build/hw/ipow_bench_gen/ipow_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00022020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (ipow): op0=12 op1=18 -> ODATA=0 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=5 op1=11, N=200 ===
+  completed=200 latmin=27 latmax=28 cyc  prepcyc=3200  odata=48828125 sig=0xa6a2b14a mism_st=2
+  NOTE: latmin != latmax on identical inputs -- real silicon jitter (not necessarily a bug; report the spread, do not assert equality the way sim did)
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0xa6a2b14a matches the expected result fold)
+
+=== (r) repeat the SAME batch 6 times, no reprogramming ===
+rep	cycles	prepcyc	latmin	latmax	sig
+0	6600	3200	27	28	0xa6a2b14a
+1	6600	3200	27	28	0xa6a2b14a
+2	6600	3200	27	28	0xa6a2b14a
+3	6600	3200	27	28	0xa6a2b14a
+4	6600	3200	27	28	0xa6a2b14a
+5	6600	3200	27	28	0xa6a2b14a
+=== (r) done: 6 batches, oracle asserted on each ===

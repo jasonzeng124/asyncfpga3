@@ -1,0 +1,220 @@
+#!/usr/bin/env python3
+"""search.py GRAPHDIR SIZES_VH [--steps N] -- PROGRAM.md FIRST item step 4: the smallest set of BUILDABLE edits that
+brings the predicted period toward the floor, greedy, from one base graph.
+
+Candidates are only edits bdc can already build, each with the parameters the build would get:
+  depth:LINK:SD:0        BDC_LINK_DEPTHS=LINK=d+1 (new stage at the input; SD = the pipe's SDELAY from SIZES_VH if the
+                         link is already a pipe, else bdc's STAGE_PAD 3)
+  stage:Z_REQ:Z_ACK:4:6:fastrise   BDC_MERGE_OUT_LINK=MERGE (a bd_link with SELECT_PAD 4 / ACK_PAD 6) per bdc_amerge
+  fastfall:BDC           BDC_LINK_FASTFALL=1 (single-stage links' rdly and 2-input muxes' udly fall in one element)
+Each step takes the candidate with the lowest predicted period; it stops when no candidate gains 300 ps (a third of
+the ~1 ns seed scatter) or after --steps.  Prints each step's period, cycle and polarity changes, and the floor.
+--depth-only: only the depth candidates (BDC_LINK_DEPTHS), for a graph of a BDC_AUTO=1 route (research/tools/auto/
+auto_size.sh AUTO_SEARCH=1): the automatic structure already has fast fall and rule M's merge links, and an env knob
+naming a merge would REPLACE rule M's set (bdc/emit.py _auto_apply reads the env first); fast fall is refused on
+memory kernels by rule, which a fastfall candidate would override.
+"""
+import sys, os, re
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from whatif import G, polarity_floor  # noqa: E402
+
+
+NEW = "--new-knobs" in sys.argv
+DEPTH_ONLY = "--depth-only" in sys.argv
+
+
+def candidates(g, sizes):
+    if ALL:
+        return all_candidates(g, sizes)
+    sz = open(sizes).read()
+    out = []
+    for inst, (t, par, ports) in g.verilog().items():
+        if t in ("bd_link", "bd_pipe") and inst.startswith("ulink_"):
+            sd = 3
+            if t == "bd_pipe":
+                m = re.search(r"BD_SZ_BRIDGE_I_UDUT_%s_SDELAY\s+(\d+)" % inst.upper(), sz)
+                if m: sd = int(m.group(1))
+            out.append("depth:%s:%d:0" % (inst, sd))
+        if t.startswith("bdc_amerge"):
+            out.append("stage:%s:%s:4:6:fastrise" % (ports["z_req"][0], ports["z_ack"][0]))
+        if NEW and t == "bd_fork":
+            # BDC_FORK_OUT_LINK / BDC_MERGE_RES_LINK (research/data/fifteen): a latch on one fork output
+            for rq, ak in zip(ports.get("req_out", []), ports.get("ack_in", [])):
+                out.append("stage:%s:%s:3:6:fastrise" % (rq, ak))
+    if DEPTH_ONLY:
+        # a rule-F fork-output link (ulink_<v>_folink) is not a channel link: BDC_LINK_DEPTHS cannot name it
+        return [c for c in out if c.startswith("depth:") and not c.split(":")[1].endswith("_folink")]
+    out.append("fastfall:BDC")
+    return out
+
+
+def apply(g, ed):
+    if ed == "fastfall:BDC":
+        # BDC_LINK_FASTFALL=1: RFAST on every single-stage bd_link's rdly (not a bd_pipe's stages, so not a link this
+        # edit set deepened, and not the merge-output link) and FASTFALL on every 2-input bd_mux's udly
+        deep = getattr(g, "deepened", set())
+        insts = {n["inst"] for n in g.nodes if (n["inst"].startswith("ulink_") and ".rdly.chain" in n.get("cell", "")
+                 and "many.stage" not in n.get("cell", "") and n["inst"] not in deep)
+                 or (n["inst"].startswith("umux") and ".udly.chain" in n.get("cell", ""))}
+        for i in insts: g.fastfall(i, strict=False)
+        return g
+    return g.apply(ed)
+
+
+def predict(base, eds):
+    g = base.copy()
+    for e in sorted(eds, key=lambda e: e.startswith("fastfall")):    # the knob acts on the final structure
+        apply(g, e)
+    return g.period(), g
+
+
+def main():
+    d, sizes = sys.argv[1], sys.argv[2]
+    steps = int(sys.argv[sys.argv.index("--steps") + 1]) if "--steps" in sys.argv else 4
+    g = G(d)
+    if ALL:
+        g.use_aliases = True; g.stage_wire = WIRE
+    (lam0, cyc0), _ = predict(g, [])
+    fl = polarity_floor(g)
+    print("base %.0f ps; floor (no polarity change) R %.0f F %.0f" % (lam0, fl["R"][0], fl["F"][0]))
+    chosen, cur = [], lam0
+    cands = candidates(g, sizes)
+    for step in range(steps):
+        res = []
+        for c in cands:
+            if c in chosen: continue
+            try:
+                (lam, cyc), g2 = predict(g, chosen + [c])
+            except ValueError as x:
+                continue
+            res.append((lam, c, g2, cyc))
+        if not res: break
+        res.sort(key=lambda r: r[0])
+        if ALL and step == 0:
+            print("all sites: %d candidates, %d modelled (the rest have no periodic net: off the loop)" % (len(cands), len(res)))
+            for lam, c, g2, cyc in res[:TOP]:
+                print("  single: %-62s %.0f ps (%+.0f) %s" % (c, lam, lam - cur, knob_of(g, c)))
+        lam, c, g2, cyc = res[0]
+        print("step %d: best %-60s %.0f ps (%+.0f); runner-up %s %.0f" % (step + 1, c, lam, lam - cur,
+              res[1][1] if len(res) > 1 else "-", res[1][0] if len(res) > 1 else 0))
+        if cur - lam < 300:
+            print("  stop: < 300 ps gain"); break
+        by, flips = g2.describe(cyc)
+        print("  cycle: %s; polarity changes %d" % (", ".join(by), len(flips)))
+        if ALL:
+            f2 = polarity_floor(g2); l2, _ = g2.copy().nofall().period()
+            print("  knob: %s; floor R %.0f; two-phase bound %.0f" % (knob_of(g, c), f2["R"][0], l2))
+        chosen.append(c); cur = lam
+    print("chosen: %s -> %.0f ps (%.3fx)" % (" ".join(chosen) or "-", cur, lam0 / cur))
+    print("ENV " + " ".join(to_env(g, chosen)))
+
+
+def to_env(g, chosen):
+    """the bdc knobs that build the chosen edits"""
+    if ALL:
+        return all_env(g, chosen)
+    depths, mo, ff = [], [], False
+    out_res, out_fork = [], []
+    for c in chosen:
+        p = c.split(":")
+        if p[0] == "depth":
+            t, par, ports = g.verilog()[p[1]]
+            n = int(re.search(r"\.N\((\d+)\)", par).group(1)) if t == "bd_pipe" else 1
+            depths.append("%s=%d" % (p[1], n + 1))
+        elif p[0] == "stage":
+            m = [i for i, (t, par, ports) in g.verilog().items() if t.startswith("bdc_amerge") and ports["z_req"][0] == p[1]]
+            mo += m
+            if not m:
+                f = [(i, ports) for i, (t, par, ports) in g.verilog().items() if t == "bd_fork" and p[1] in ports.get("req_out", [])]
+                if f and f[0][0].endswith("_f"):
+                    out_res.append(f[0][0][:-2])          # a merge's output fork: its result branch
+                else:
+                    out_fork.append(re.sub(r"_req$", "", p[1]))
+        elif c == "fastfall:BDC":
+            ff = True
+    out = []
+    if depths: out.append("BDC_LINK_DEPTHS=" + ",".join(depths))
+    if mo: out.append("BDC_MERGE_OUT_LINK=" + ",".join(mo))
+    if ff: out.append("BDC_LINK_FASTFALL=1")
+    if out_res: out.append("BDC_MERGE_RES_LINK=" + ",".join(out_res))
+    if out_fork: out.append("BDC_FORK_OUT_LINK=" + ",".join(out_fork))
+    return out
+
+
+# --all-sites (PROGRAM "General first" idea 6b; subagent graphsearch): a storage stage on EVERY bare handshake channel of
+# the kernel (whatif.py G.channels(): fork outputs, merge outputs and result branches, and the outputs of muxes, steers
+# and fused compute cells, which no bdc knob builds today) and +1 depth on every channel link (a stage on its input
+# channel: bd_pipe adds the new stage there), resolved through the netlist's wires (G.use_aliases: a fused cell's
+# acknowledge is its inputs', a join's ack_out its ack, a mux's select ack its output ack, constants' and extui's
+# assigns).  A new link gets --sd / --dack elements (default 1 / 1: what flow v6's sizing gave rule F's fork-output
+# link) and a fast acknowledge rise; a new pipe stage the pipe's SDELAY (from SIZES_VH, else --sd) and no ack delay.
+# --wire PS charges PS of wire on every input arc of every inserted stage (G.stage_wire: the graph under-charges a new
+# stage 1-3 ns; research/data/eventgraph/search_all.md); --top N prints the N best single edits; each step prints the
+# knob that builds it (NEEDS-BDC:<site> when none does), the rising-only floor and the two-phase bound.
+# --buildable-only keeps only the edits bdc can build.  ENV is then COMPLETE for each knob it names: a fork-output or
+# merge link the route already has (rules F / M, read off kernel.v) is in the list too, because a knob set in the
+# environment replaces what BDC_AUTO would choose (bdc/emit.py _auto_apply); so ENV can be passed to a BDC_AUTO=1 build
+# as it is (research/tools/auto/auto_size.sh's search phase passes search.py's ENV line to every later build).
+ALL = "--all-sites" in sys.argv
+
+
+def _arg(name, default):
+    return type(default)(sys.argv[sys.argv.index(name) + 1]) if name in sys.argv else default
+
+
+SD, DACK, WIRE, TOP = _arg("--sd", 1), _arg("--dack", 1), _arg("--wire", 0), _arg("--top", 0)
+KNOB = {}          # edit -> (knob or None, site)
+
+
+def all_candidates(g, sizes):
+    sz = open(sizes).read() if sizes not in ("-", "") and os.path.exists(sizes) else ""
+    out = []
+    for b, req, ack, site, knob in g.channels():
+        if knob is None and "--buildable-only" in sys.argv:
+            continue
+        e = "stage:%s:%s:%d:%d:fastrise" % (req, ack, SD, DACK)
+        KNOB[e] = (knob, site)
+        out.append(e)
+    for inst, (t, par, ports) in g.verilog().items():
+        if t not in ("bd_link", "bd_pipe") or not inst.startswith("ulink_") or inst.endswith("_folink"):
+            continue
+        n = int(re.search(r"\.N\((\d+)\)", par).group(1)) if t == "bd_pipe" else 1
+        sd = SD
+        m = re.search(r"BD_SZ_BRIDGE_I_UDUT_%s_SDELAY\s+(\d+)" % inst.upper(), sz) if t == "bd_pipe" else None
+        if m: sd = int(m.group(1))
+        e = "stage:%s:%s:%d:0" % (ports["req_in"][0], ports["ack_in"][0], sd)
+        KNOB[e] = ("BDC_LINK_DEPTHS=%s=%d" % (inst, n + 1), "depth+1 %s" % inst)
+        out.append(e)
+    return out
+
+
+def knob_of(g, c):
+    k, site = KNOB.get(c, (None, "?"))
+    return k or "NEEDS-BDC:" + site
+
+
+def all_env(g, chosen):
+    have = {"BDC_FORK_OUT_LINK": [], "BDC_MERGE_OUT_LINK": [], "BDC_MERGE_RES_LINK": []}
+    for inst in g.verilog():         # what the route already has (rules F and M), so that each env knob is complete
+        m = re.match(r"ulink_(\w+)_folink$", inst) or re.match(r"(u\w+)_olink$", inst) or re.match(r"(u\w+)_rlink$", inst)
+        if m:
+            k = ("BDC_FORK_OUT_LINK" if inst.endswith("_folink") else
+                 "BDC_MERGE_OUT_LINK" if inst.endswith("_olink") else "BDC_MERGE_RES_LINK")
+            have[k].append(m.group(1))
+    new, depths, need = {k: [] for k in have}, [], []
+    for c in chosen:
+        k, site = KNOB.get(c, (None, c))
+        if k is None: need.append(site); continue
+        k, _, v = k.partition("=")
+        if k == "BDC_LINK_DEPTHS": depths.append(v)
+        else: new[k].append(v)
+    out = []
+    if depths: out.append("BDC_LINK_DEPTHS=" + ",".join(depths))
+    for k in ("BDC_MERGE_OUT_LINK", "BDC_MERGE_RES_LINK", "BDC_FORK_OUT_LINK"):
+        if new[k]: out.append("%s=%s" % (k, ",".join(sorted(set(have[k]) | set(new[k])))))
+    if need: out.append("NEEDS-BDC:" + ",".join(need))
+    return out
+
+
+if __name__ == "__main__":
+    main()

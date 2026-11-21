@@ -441,4 +441,18 @@ module tb_gcd_bench_gen;
         $finish;
     end
 
+    // -- the bundled-data contract, enforced on the kernel's output --------
+    // out0_data is promised from out0_req rising until out0_ack rises, and
+    // not one moment longer: after the acknowledge the sender may change it.
+    // The RTL kernel happens to hold its bus, so a harness that reads the
+    // result late passes here and fails on silicon -- which is exactly what
+    // isprime did for a year (hw/README.md, "isprime read 0x80000000"):
+    // SIG and ODATA came from a mirror read in S_NEXT, after bench_o_ack.
+    // Outside the window the bus is X, so a late read folds X into SIG and
+    // section 3 fails.  verify/bench_window.sh re-applies that August read
+    // and checks that it does.
+    always @(dut.o_req_pl or dut.o_ack_pl)
+        if (dut.o_req_pl && !dut.o_ack_pl) release dut.o_data_pl;
+        else                               force   dut.o_data_pl = 32'hxxxxxxxx;
+
 endmodule

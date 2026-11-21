@@ -1,0 +1,11 @@
+Written 2026-11-17 (UTC, before the build), gcd_itercost subagent.
+Build: candidate (gcd_bench_gen, R5s75 bench sizes, BDC_SELECT_PADS=hw/gcd_hw_pads.json, BDC_LINK_FASTFALL=1, BD_RLOC v2
+default) + BDC_MERGE_OUT_LINK=ucontrol_merge10 (the ctz loop's arbitrated merge), NEXTPNR_SEED=2; full stack as itercost,
+vector (a, b) = (2^31-1, 1): one main iteration + one inner shift per period.
+Base (same seed, no knob): 81.03 ns.
+The event graph cannot predict this edit: ucontrol_merge10's nets have two phases per period (the ctz ring runs twice per
+main iteration) and whatif.stage() refuses multi-phase channels (search.py skips them silently).
+Reasoned prediction: the ctz ring's own fall pass (9.9 ns, rows 32-42 of split) and part of the post-exit falls leave the
+cycle; the olink adds a C-element + 4-element select line (~2.5 ns) on each of the two rising passes of the ctz ring.
+Predicted period 77 ns (range 72-81); the cycle keeps the outer ring (ucmpi10 / ucontrol_merge9) and loses at most 2 of
+its 4 polarity changes.  A result at or above 81 means the merge10 polarity changes are not the arbiter-output coupling.

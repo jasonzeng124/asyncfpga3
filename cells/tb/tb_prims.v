@@ -174,8 +174,10 @@ module tb_prims;
         rst = 0;         #T; chk("latch_rst stays clear", rq, 1'b0);
 
         // ---- delay line: four hops, no more and no less --------------------
-        // Rise and fall are different arcs on this fabric (56 vs 124 ps), so
-        // the chain is asymmetric and both directions are checked.  These are
+        // Both directions are checked.  The model now gives rise and fall the
+        // same arc (one prjxray corner per run; the old 56/124 "rise/fall"
+        // was the fast and slow bound of one arc), but the bench keeps both
+        // macros so a future rise/fall split is still checked.  These are
         // CELL arcs only: on silicon each hop also carries ~354 ps of routing,
         // which is why no matched delay may ever be sized from this number.
         dly_in = 1;

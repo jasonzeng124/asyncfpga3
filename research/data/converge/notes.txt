@@ -1,0 +1,152 @@
+converge: why the sizing loop's finish phase ends NOT CLEAN, and more draws per finish step (AUTO_FINISH_SEEDS)
+Subagent converge, 2026-11-19 (UTC). Clone of claude/research at d06269d27; the knob is a95cf35dc. Every route here:
+nextpnr 6e5d224472232d5d (cells/verify/toolchain.sh passed before the first build), the loop's own seed S or S + 1000 j.
+
+1. THE ROWS THAT STAY SHORT (the farm's returned loop files)
+Data: origin/claude/cluster (fe004755d) results/{suite6 suite9 suite9r3 suite9r4 norw1 norw1r2 gifast1 nsearch1 suite10b
+muxn1 divsize1 split1 split1r2 conv1}/*/auto/; tools/farm_parse.py then tools/finish_misses.py -> farm_misses.txt.
+- 363 loop directories, 252 loops (a resumed request's copy of the same route sequence dropped), 231 with a finish phase;
+  the per-iteration rule files (neg_I, lines_I_C, ca_I_C) exist for 197 of them (suite6 predates them).
+- Finish routes clean (loops with no unfixable row): step 1 (it 5) 13 / 190 = 7 %, step 2 19 / 176 = 11 %,
+  step 3 33 / 156 = 21 %.
+- 2367 line-fixable short rows on finish routes (one constraint on one route, worst corner): E 827, H 445, I 390,
+  A'j 219, A'm 212, A 109, C 57, A' 55, B 53. Size: median 172 ps, p75 328, p90 606 (E 204 / 345 / 708,
+  H 144 / 259 / 414, I 172 / 361 / 552).
+- 2255 of them (95.3 %) are on constraints AND lines no earlier finish route had short (it P2-1 .. I-1); 64 (2.7 %) are
+  the same constraint again after its raise with one element of headroom; 48 (2.0 %) a line raised for another one.
+- Per route: of 383 finish routes with short rows and no unfixable row, 2 had every short row a recurrence and 0 had
+  every row a recurrence within one element of its line. The last finish route of 147 NOT CLEAN loops: median 3 short
+  constraints (1-28), worst row median 289 ps (9-3887); worst < 100 ps on 24 loops, < 200 on 45, < 300 on 76.
+- The line that pads a new row was, on the route before: at its floor ("floor 1" in lines.tsv: NO margin printed) for
+  1014, "bound by .. (x ps left)" at its own size for 418, proposed shorter (the margin printed is at the shorter size)
+  for 329, unknown 494. By line: compare lines (UCMPI, rule E at a steer select) 22 %, link acknowledge UACK (H) 21 %,
+  link DELAY (E at a mux join) 15 %, multi-stage SDELAY (I) 15 %, mux lines (A'm) 10 %, control_merge (A) 4 %; the
+  UACK / DELAY / SDELAY ones mostly 1-element lines at their floor. This is why AUTO_NEAR_PS (conv1) saw 0-2 lines: it
+  reads "ps left", which a floor line never prints. 43 % of the new rows are within one element (the line's mean step).
+
+2. HOW FAR A RE-ROUTE MOVES A MARGIN (local loops that kept every route's corner_audit report)
+Data: every $RUNS/ca/<loop>_<I>/rule_<C>/report.txt of /tmp/bot/runs and the subagents' runs: 24 loops, 97 pairs of
+consecutive routes, 14958 constraint-corner pairs; tools/rescatter.py -> rescatter.txt. A model statement is marked so.
+- Constraints none of whose lines changed size between the two routes (n 11877): the margin moves by sd 483 ps,
+  median |d| 283 ps (p5 -792, p10 -580, p90 +574). By rule: H sd 412, F 491, A 508, E 534, I 616.
+- Raise-only pairs (56 routes, 112 route-corners): 1.54 new short rows per route and corner. They had 0-2162 ps
+  (median 474) on the route before and moved by -52 .. -2651 ps (median -596); 9 of the 172 had one of their own lines
+  raised. P(short on the next route | margin now): 0.07 in [0,100), 0.13 [100,200), 0.08 [200,300), 0.07 [300,500),
+  0.04 [500,1000), 0.004 above; a route and corner holds 1.2 / 2.0 / 2.2 / 4.4 / 13.6 / 53 such constraints.
+- Persistence (3 consecutive routes, no line of the constraint changed, n 3841): corr(|d1|, |d2|) = 0.31; |d2| median
+  414 ps after |d1| > 500, 238 ps after |d1| < 150. Some constraints are jumpier than others, not by much.
+- At identical sizes (run A below: the seed-S route and two more seeds per finish step) the short sets barely overlap:
+  collatz64 s3 it 5: 10 distinct short constraints over 3 draws, none short on two; ipow s3 it 5: 13, none; xorshift s1
+  it 5: 12, one (A'm umux1) short on all three; sqrtsub s2 it 6: 2, ucontrol_merge1's A on all three.
+So a finish route is a fresh draw of a few hundred constraints' margins, each moving by ~0.5 ns; what goes short is
+mostly not what was short, nor what was near (the rows came from a median 474 ps).
+
+3. WHAT EACH CHANGE COULD REACH
+(a) More finish routes: the clean rate per raise-only step rises, 7 -> 11 -> 21 %: each step pads what it found short.
+    Beyond step 3 the farm has no data; tested locally (run B).
+(b) Headroom 2 instead of 1: it acts on lines raised in the finish phase only: 112 of 2367 rows (4.7 %) are on such
+    lines, and on 0 of 383 routes would it have removed every row (every row a recurrence within one element: 0).
+(c) Headroom proportional to a line's measured movement: on raised lines, the same 112 rows; on EVERY line it is a
+    slack. Model on the raise-only pairs (a constraint at a < X padded to X shifts its next margin by X - a): new short
+    rows per route and corner 1.54 (X 0) -> 1.50 (100), 1.34 (300), 1.04 (500), 0.63 (700), 0.36 (1000). Its cost,
+    measured on one route (su_xorshift_1_5 at corner 0.31: corner_audit --slack X, then ratchet.py --raise-only
+    --headroom 1 from sizes_5): kernel delay elements 100 -> 108 at slack 0 (the loop as is), 134 at 500, 186 at 1000.
+    A per-step slack pays ~1 % fewer new rows per added element; the plain raise-only step ~2.5 % (+8 elements for a
+    step from ~2.7 to ~2.2 expected rows). Not tested routed.
+(d) More draws per finish step (AUTO_FINISH_SEEDS, implemented): no padding at all; each extra route is a fresh draw at
+    the same sizes, and the loop ships the first one the rule finds clean. Tested locally (runs A, A2, B).
+
+4. LOCAL TEST: FARM LOOPS RESUMED AT THEIR FINISH PHASE (predictions with UTC times: predictions.txt)
+Protocol: a NOT CLEAN farm loop's files cut back to the start of its finish phase (research/tools/suite/finish_state.sh:
+up to it 4 and sizes_5), auto_size.sh AUTO_RESUME at clone HEAD a95cf35dc, AUTO_SEARCH=0 (as the original loops ran),
+CA_JOBS 1, the request's own env (BDC_AUTO_REWRITES=0; split1: BDC_SPLIT_SOURCES=1), at most 4 CPUs (taskset).
+  run A  (d) AUTO_FINISH_SEEDS=3 (two more seeds per finish step, it 5-7);
+  run B  run A's NOT CLEAN loops continued from their own state with AUTO_FINISH=6 (it 8-10) and the same draws;
+  run C  (a) alone: the farm's own state after it 7 continued with AUTO_FINISH=6, no extra seeds (routes sc_K_S_I).
+Control: every resumed seed-S route 5 had the farm's sdf md5 and byte-identical rule rows (neg_5) -- xorshift s1,
+collatz s7, collatz64 s3, sqrtsub s2, ipow s3, branchloop s1, varshift s4 (md5 and rows), iterative_division s2 (md5)
+-- so each run replays the farm loop exactly and adds only what the knob adds; a loop's re-run final stack on the
+farm's own it-7 route gave the farm's P to the ps (collatz s7 22791, sqrtsub s2 24360, ipow s3 18549).
+
+5. SHIP THE LEAST SHORT ROUTE, NOT THE LAST (asked by the research bot after farm ringfuse1 task 31)
+ringfuse1/31 (ipow s7, BDC_RING_FUSE=2, flow v7): it 6's route had 2 short constraints (-84, -18 ps), it 7's 9 (E rows
+at cond_br2-5 to -1019 ps, A'j ucmpi0 -863); the loop shipped it 7, which fails draw 10707 (hang, 12 runts under 1 ns).
+On the farm's 135 NOT CLEAN loops with per-route rows (tools/least_short.py -> least_short.txt; total miss = per short
+constraint its worst corner's deficit, summed): an earlier finish route was less short than the last on 64 (from it 1:
+69); on those the last route's total miss median 1081 ps (worst row median 476), the least short's 343 ps (251); the
+last's worst row >= 500 ps where the least short's < 200 ps on 7 (ringfuse1/31 is a further one). Expected, if every
+finish route is a fresh draw: the last is one sample, the least short the minimum of 3-4.
+Implemented: auto_size.sh AUTO_SHIP_LEAST=1 (opt-in): with no clean route, ship the route with the smallest total
+miss (then fewer constraints, then the later), final() rebuilding it if this run did not build it; result.txt
+"shipped it=X ..." which suite_one.sh now reads (unset: neither script changes behaviour). Only two farm NOT CLEAN
+routes failed draws at all (suite9/77 if_loop_1 s1, a RAM setup race the rule did not measure at that commit, since
+fixed by BD_RAM_GUARD_PS; and ringfuse1/31), so the draws can test the rule on one case here.
+
+4b. RESULTS (per loop: farm task; the farm's own 3 finish routes NOT CLEAN; what each lever added; one route each)
+                   farm it 7 (NOT CLEAN)  (d) 2 draws per step, it 5-7     (a) seed-S it 8.. (more steps)   shipped clean route
+  xorshift s1      norw1/1    20550 ps    CLEAN it 7, 6th draw (s 2001)    CLEAN it 8 (run C)               d 20194 (-0.36) / a 20678 (+0.13)
+  collatz s7       norw1/15   22791       6 draws, none clean              CLEAN it 8 (run B)               a 22799 (+0.01)
+  collatz64 s3     norw1/19   32125       CLEAN it 6, 3rd draw (s 1003)    it 8 / 9 / 10: 1 / 2 / 1 rows    d 33328 (+1.20); a none (it 10 32526)
+  sqrtsub s2       suite9r3/2 24360       6 draws, none clean              CLEAN it 8 (run B)               a 24108 (-0.25)
+  ipow s3          split1/19  18549       6 draws, none clean              CLEAN it 8 (run B)               a 19518 (+0.97)
+(d) alone: 2 of 5 CLEAN within the three finish steps, after 6 and 3 extra routes; 3 of 5 not after 6 extra routes each.
+(a) alone: 4 of 5 CLEAN on the first extra route (it 8); collatz64 s3 not after 3 (rows of 20-219 ps that move).
+(d) then (a) (arm DA of finseeds1): 5 of 5 CLEAN. Delay elements of the shipped route against the farm's it 7: (a) +2 / +3
+/ +3 / +2 (one more raise step); (d) +0 / -4 (adopted at it 7 / it 6). P against the farm's NOT CLEAN route: median
++0.07 ns over the 6 clean routes, range -0.36 .. +1.20: the size of P's route-to-route scatter (xorshift s1's two clean
+routes: 20.19 vs 20.68 ns), not the padding. Rows per draw at identical sizes (it 5): xorshift 4 / 3 / 7, collatz s7 2 / 3
+/ 5, collatz64 1 / 3 / 6, sqrtsub 2 / 3 / 2, ipow 3 / 1 / 9 constraints (seed S / S+1000 / S+2000).
+
+4c. WHY ONE MORE SEED-S STEP BEATS DRAWS ON NEW SEEDS (runs A / A2 reports; seed-S vs S+1000 j at the same sizes)
+- Margin scatter per constraint is the same for a new seed at the same sizes (sd 487 ps, n 6646) as for the next
+  iteration on the same seed with none of the constraint's lines changed (sd 482, n 2677): no seed "family" in sd.
+- But the lower tail differs: constraints short on the seed-S route 1.97 % vs 3.20 % on the other seeds (ratio 1.63;
+  below 200 / 500 / 1000 ps the ratio is only 1.13 / 1.16 / 1.05). Rows: 74 over 19 seed-S routes (3.9 each) vs 297
+  over 34 alternates (8.7 each). The raise-only steps pad what went short on that seed's own routes; another seed's
+  short rows are mostly others, not yet padded.
+- Outcome: 2 of 40 alternate draws CLEAN (5 %: runs A 2 / 27, A2 0 / 13), against 4 of 5 loops CLEAN on their first
+  extra seed-S step (run B / C). A2 (draws, it 5-7) was stopped at the 2 h job limit after 13 draws, none clean:
+  branchloop s1 9 / 14, 24 / 10, 10 rows; varshift s4 19 / 10, 27 / 6; iterative_division s2 13 / 20 (seed-S routes 6,
+  11 / 4, 10 / 1 rows).
+So the cheapest lever is AUTO_FINISH (more raise-only steps on the loop's own seed); AUTO_FINISH_SEEDS is a fallback
+that sometimes finds a clean route earlier (xorshift s1, collatz64 s3) at ~20 extra routes per clean one.
+
+4d. THE HIGH-ROW LOOPS (run C2: (a) alone on run A2's three loops, the farm's state after it 7, AUTO_FINISH=6)
+  branchloop s1 (suite9r3/37)          it 8 / 9 / 10: 19 / 3 / 20 rows: NOT CLEAN after 10 (P 15755, farm it 7 14222)
+  varshift s4 (suite9r3/28)            it 8 / 9 / 10: 1 / 4 / 3 rows: NOT CLEAN after 10 (P 37350, farm it 7 37417)
+  iterative_division s2 (suite9r3/62)  it 8 / 9 / 10: 14 / 7 / 20 rows: NOT CLEAN after 10 (P 26396, farm it 7 24972)
+Neither lever converges loops that carry 4-14 short rows per route within three more steps or 13 draws; their rows
+move (branchloop's it 9 had 3, its it 10 20), and the three steps added 29 / 12 / 11 delay elements (branchloop s1,
+varshift s4, collatz64 s3 against the farm's it 7: 218 -> 247, 203 -> 215, 149 -> 160). What AUTO_SHIP_LEAST would ship on the local NOT CLEAN loops (total miss
+over short constraints): collatz64 s3 it 5 (61 ps / 1) instead of it 10 (219 / 1); branchloop s1 it 7 (45 / 3) instead
+of it 10 (4783 / 10); varshift s4 it 8 (175 / 1) instead of it 10 (310 / 2); iterative_division s2 it 5 (330 / 1)
+instead of it 9 (893 / 4).
+
+5b. RINGFUSE1/31 JUDGED HERE (nextpnr 6e5d224472232d5d, seed 7, BDC_RING_FUSE=2, BDC_AUTO_REWRITES=0)
+Rebuilt: it 6 7b4b4384, it 7 01894137 -- the farm's md5s. Draws (bench_gate, GATE_RUNTS=1, the suite's draw points,
+expected values from kernel_oracle.sh ipow): it 6 PASS 17/17 on all eight, 10701-10708, with no pulse under 1 ns on
+any (the farm's it 7: 10707 FAIL, a hang with 12 pulses under 1 ns; x pulses on 10701 / 10705 / 10708). Control,
+the same harness here on the rebuilt it 7, draw 10707: FAIL 16/17, cycles 100869, pulses under 150 / 500 / 1000 ps
+5 / 12 / 12, x on 29 of 189 nets, narrowest 85 ps -- the farm's result exactly. So on this loop the least short
+route is the one that passes. AUTO_SHIP_LEAST end to end (auto_size.sh at the
+side branch, resumed from the farm's final state): picked it 6 (102 ps over 2 constraints vs 6393 over 9), rebuilt it
+(md5 7b4b4384, as the farm's), full stack P 21052 ps EQUIVALENT ffmux-clean (the farm's it 7: 20128), result.txt
+"shipped it=6"; suite_one.sh SUITE_SKIP_AUTO=1 judged it=6.
+
+6. CONCLUSIONS, AND WHAT THIS DOES NOT SHOW
+- Why NOT CLEAN: a re-route moves every margin by ~0.5 ns (sd), the finish phase pads only what was short on the
+  route before, and what goes short next is mostly what had 0.2-0.8 ns. Headroom on the raised lines (b, c) cannot
+  reach it; a slack over every line can, at +34 / +86 % delay elements for slack 0.5 / 1 ns (one route).
+- Cheapest lever on loops with few rows: more raise-only steps on the loop's own seed (AUTO_FINISH, an existing knob):
+  4 of 5 CLEAN on the first extra route, +2..+3 elements, P within route scatter. On loops with 4-14 rows per route it
+  did not converge in three more steps (0 of 3) and added 11-29 elements.
+- AUTO_FINISH_SEEDS (implemented; draws on new seeds): 2 of 40 draws CLEAN; it rescued 2 of 8 loops early (one that
+  more steps did not, collatz64 s3) at 3-6 extra routes; new seeds carry about twice the seed-S rows.
+- AUTO_SHIP_LEAST (implemented): on about half of the NOT CLEAN loops a less short route was built than the one
+  shipped, and on ringfuse1/31 that route passes all eight draws where the shipped one fails one. Cheap, general.
+- Suggested default after farm finseeds1: AUTO_FINISH=6 with AUTO_SHIP_LEAST=1; AUTO_FINISH_SEEDS as an opt-in.
+Not shown: n is small (8 loops, 8 kernels; one route per loop and lever), and P differences are within route scatter;
+the clean routes of runs B / C were not judged with draws here (full stack EQUIVALENT and ffmux-clean only; xorshift s1's
+adopted route passed 2 of 2 draws); whether least-short routes fail fewer draws in general rests on one case (only 2 of
+the farm's NOT CLEAN routes failed any draw); the slack variant was not routed; nothing here reduces the scatter itself
+(an incremental placement keeping the previous route's cells where they were would, and is the open lead).

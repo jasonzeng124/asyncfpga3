@@ -1,0 +1,416 @@
+diff --git a/xilinx/arch.cc b/xilinx/arch.cc
+index 6f5de6a4..74f2c839 100644
+--- a/xilinx/arch.cc
++++ b/xilinx/arch.cc
+@@ -1005,6 +1005,391 @@ void Arch::routeVcc()
+     }
+ }
+ 
++// Constant sinks that routeVcc() left unrouted.
++//
++// routeVcc() runs AFTER the main router, as a fill: it may use only the wires
++// the signal nets left free, and a sink its BFS has not reached within 50000
++// wires is skipped -- "left to main router", but in the router2 flow no router
++// runs after it, so the sink stays unrouted and nothing else says so.  The
++// BFS walks uphill through every free wire, general interconnect included,
++// so near a congested tile (both GFANs, the tile's GND_WIRE taps, held by
++// signals) the bound is spent before it reaches a constant source that is
++// further away: a neighbour's GFAN through bounce wires, or an empty slice's
++// A-LUT output (the chipdb's CONST_DRIVER pip; an unconfigured LUT is INIT 0)
++// over ordinary wires.  On the die an IMUX or BYP_ALT with no pip set reads
++// VCC through its default ppip, and a slice FF's D input mux with no bit set
++// selects nothing.
++//
++// For an ordinary LUT input on GND that is harmless: fixupRouting() drops the
++// X_ORIG_PORT mapping of a pin that no permutation pip reached (in any tile
++// where some permutation pip is used), so get_lut_init() evaluates the INIT
++// with that logical input at 0, GND's value.  Likewise a FF's SR on GND or CE
++// on VCC (SRUSEDMUX / CEUSEDMUX off), a CARRY4 CIN / CYINIT (PRECYINIT.C0 /
++// C1), an F7/F8 select on VCC (the BYP default) and the CLK / CE / RST of a
++// DSP48E1 with no register on need no route.  Every other
++// constant pin needs its constant physically there: an F7/F8 select tied to
++// GND reads 1 and passes the other input; a GND-D flop latches whatever its
++// unconfigured FFMUX gives.  Those are routed here, in two steps:
++//   1. routeVcc()'s own search (free wires, ending on a wire of the constant
++//      net or a fabric pseudo-constant wire) without its 50k-wire bound;
++//   2. failing that, the path with the fewest wires that signal nets hold
++//      (router2's STRENGTH_WEAK wires; never a net's root wire, a LOCKED /
++//      FIXED / clock wire or the other constant).  Those nets' branches through
++//      the path are ripped up, the constant is bound, and every sink the
++//      rip-up disconnected is re-routed through free wires (least pip delay to
++//      the net's remaining tree).  If one cannot be, everything is restored, the
++//      sink is reported, and the pass ends in log_error (no bitstream).
++// Nothing here moves a cell, and step 1 touches no signal net.  A design with
++// no such holdout is not touched at all: its routing, SDF and FASM are
++// byte-identical to a build without this pass.
++static bool const_sink_needs_route(Context *ctx, const NetInfo *net, const PortRef &usr,
++                                   const std::unordered_set<int> &perm_tiles)
++{
++    const CellInfo *ci = usr.cell;
++    const std::string port = usr.port.str(ctx);
++    bool vcc = (net->name == ctx->id("$PACKER_VCC_NET"));
++    if (ci->type == ctx->id("SLICE_LUTX")) {
++        std::string t = str_or_default(ci->attrs, ctx->id("X_ORIG_TYPE"), "");
++        bool plain_lut = boost::starts_with(t, "LUT");
++        bool lut_pin = port.size() == 2 && port[0] == 'A' && port[1] >= '1' && port[1] <= '6';
++        if (!(plain_lut && lut_pin))
++            return true;
++        // fixupRouting() drops the X_ORIG_PORT of a pin no permutation pip reached -- but only in a tile where some
++        // permutation pip is used; get_lut_init() then reads that logical input as 0.  Elsewhere the mapping stays
++        // and the INIT reads the pin, which on the die is the IMUX default, 1.  So an unrouted GND pin is right iff
++        // its tile has a permutation pip, an unrouted VCC pin iff it has none.
++        return perm_tiles.count(ci->bel.tile) ? vcc : !vcc;
++    }
++    if (ci->type == ctx->id("SELMUX2_1") && port == "S0" && vcc)
++        return false; // an F7/F8 select is a BYP pin: with no pip set it reads VCC through BYP_ALT's default ppip
++    if (ci->type == ctx->id("SLICE_FFX")) {
++        if (port == "SR" && !vcc)
++            return false;
++        if (port == "CE" && vcc)
++            return false;
++        return true;
++    }
++    if (ci->type == ctx->id("CARRY4") && (port == "CIN" || port == "CYINIT"))
++        return false;
++    if (ci->type == ctx->id("DSP48E1_DSP48E1") &&
++        (port == "CLK" || boost::starts_with(port, "CE") || boost::starts_with(port, "RST"))) {
++        // A DSP48E1 with every register off reads neither its CLK nor its CE* / RST*: an unrouted constant there
++        // (a combinational multiply's CLK on GND, say) changes nothing.  A register parameter the netlist does not
++        // set is on (1), as write_dsp_cell() reads it.
++        for (const char *r : {"AREG", "ACASCREG", "BREG", "BCASCREG", "CREG", "DREG", "ADREG", "MREG", "PREG",
++                              "INMODEREG", "OPMODEREG", "ALUMODEREG", "CARRYINREG", "CARRYINSELREG"})
++            if (int_or_default(ci->params, ctx->id(r), 1) != 0)
++                return true;
++        return false;
++    }
++    return true;
++}
++
++void Arch::repairConstSinks()
++{
++    int n_holdout = 0, n_folded = 0, n_free = 0, n_ripped = 0, n_failed = 0;
++    const int max_visit = 5000000;
++    const delay_t rip_cost = 1000000;
++    // Test only: NEXTPNR_CONST_REPAIR_TEST=ripup skips step 1 and makes step 2 PREFER signal wires (a free hop costs
++    // what a ripped one normally does), so the rip-up / re-route / restore machinery runs on any holdout.
++    const bool test_ripup = getenv("NEXTPNR_CONST_REPAIR_TEST") && std::string(getenv("NEXTPNR_CONST_REPAIR_TEST")) == "ripup";
++    std::unordered_set<int> perm_tiles; // tiles with a bound LUT permutation pip (as fixupRouting() finds them)
++    bool have_perm_tiles = false;
++    for (auto cn : {id("$PACKER_GND_NET"), id("$PACKER_VCC_NET")}) {
++        if (!nets.count(cn))
++            continue;
++        NetInfo *net = nets.at(cn).get();
++        int pseudo = (cn == id("$PACKER_VCC_NET")) ? ID_PSEUDO_VCC : ID_PSEUDO_GND;
++        auto is_src = [&](WireId w) {
++            if (getBoundWireNet(w) == net)
++                return true;
++            if (wireIntent(w) != pseudo)
++                return false;
++            // a pseudo-constant SITEWIRE would make a route of site pips only, which the FASM never emits
++            return !boost::starts_with(getWireName(w).str(this), "SITEWIRE");
++        };
++        auto usable = [&](PipId uh) {
++            return !usp_pip_hard_unavail(uh) && locInfo(uh).pip_data[uh.index].flags != PIP_LUT_ROUTETHRU;
++        };
++        // A wire a signal net may give up: bound by router2 (WEAK), driven by a pip (not the net's source wire),
++        // not a constant net.
++        auto rippable = [&](WireId w) -> NetInfo * {
++            NetInfo *o = getBoundWireNet(w);
++            if (o == nullptr || o == net || o->name == id("$PACKER_GND_NET") || o->name == id("$PACKER_VCC_NET"))
++                return nullptr;
++            auto &pm = o->wires.at(w);
++            if (pm.pip == PipId() || pm.strength != STRENGTH_WEAK)
++                return nullptr;
++            return o;
++        };
++        for (auto &usr : net->users) {
++            WireId sink = getCtx()->getNetinfoSinkWire(net, usr);
++            if (sink == WireId() || getBoundWireNet(sink) == net)
++                continue;
++            ++n_holdout;
++            if (!have_perm_tiles) {
++                for (auto &np : nets)
++                    for (auto &nw : np.second->wires)
++                        if (nw.second.pip != PipId() &&
++                            locInfo(nw.second.pip).pip_data[nw.second.pip.index].flags == PIP_LUT_PERMUTATION)
++                            perm_tiles.insert(nw.second.pip.tile);
++                have_perm_tiles = true;
++            }
++            if (!const_sink_needs_route(getCtx(), net, usr, perm_tiles)) {
++                ++n_folded;
++                continue;
++            }
++            // 1. free wires only, routeVcc()'s rules, no 50k bound
++            std::unordered_map<WireId, PipId> back; // wire -> the pip towards the sink
++            std::queue<WireId> q;
++            WireId found;
++            q.push(sink);
++            back[sink] = PipId();
++            int visits = 0;
++            if (getBoundWireNet(sink) == nullptr && !test_ripup) {
++                while (!q.empty() && visits++ < max_visit) {
++                    WireId w = q.front();
++                    q.pop();
++                    if (w != sink && is_src(w)) {
++                        found = w;
++                        break;
++                    }
++                    if (getBoundWireNet(w) != nullptr && w != sink)
++                        continue;
++                    for (auto uh : getPipsUphill(w)) {
++                        if (!usable(uh) || !checkPipAvail(uh))
++                            continue;
++                        WireId s = getPipSrcWire(uh);
++                        if (back.count(s))
++                            continue;
++                        if (!checkWireAvail(s) && getBoundWireNet(s) != net)
++                            continue;
++                        back[s] = uh;
++                        q.push(s);
++                    }
++                }
++            }
++            if (found != WireId()) {
++                for (WireId w = found; back.at(w) != PipId();) {
++                    PipId p = back.at(w);
++                    w = getPipDstWire(p);
++                    bindPip(p, net, STRENGTH_STRONG);
++                }
++                ++n_free;
++                log_info("    %s sink %s.%s (bel %s): routed through free wires\n", cn.c_str(this),
++                         nameOf(usr.cell), usr.port.c_str(this), nameOfBel(usr.cell->bel));
++                continue;
++            }
++            // 2. fewest signal-held wires: Dijkstra, a free hop costs 1, a hop onto a rippable wire rip_cost
++            struct QE
++            {
++                delay_t cost;
++                int seq;
++                WireId w;
++                bool operator<(const QE &o) const { return cost != o.cost ? cost > o.cost : seq > o.seq; }
++            };
++            std::priority_queue<QE> pq;
++            std::unordered_map<WireId, std::pair<delay_t, PipId>> best;
++            int seq = 0;
++            best[sink] = {0, PipId()};
++            pq.push({0, seq++, sink});
++            visits = 0;
++            while (!pq.empty() && visits++ < max_visit) {
++                QE e = pq.top();
++                pq.pop();
++                if (e.cost != best.at(e.w).first)
++                    continue;
++                if (e.w != sink && is_src(e.w)) {
++                    found = e.w;
++                    break;
++                }
++                for (auto uh : getPipsUphill(e.w)) {
++                    if (!usable(uh))
++                        continue;
++                    NetInfo *pn = getBoundPipNet(uh);
++                    if (pn != nullptr && !(pn == getBoundWireNet(e.w) && rippable(e.w) == pn))
++                        continue;
++                    WireId s = getPipSrcWire(uh);
++                    delay_t c = e.cost + 1;
++                    bool rip = false;
++                    if (!checkWireAvail(s) && getBoundWireNet(s) != net) {
++                        if (rippable(s) == nullptr)
++                            continue;
++                        rip = true;
++                    }
++                    if (rip != test_ripup)
++                        c += rip_cost;
++                    auto it = best.find(s);
++                    if (it != best.end() && it->second.first <= c)
++                        continue;
++                    best[s] = {c, uh};
++                    pq.push({c, seq++, s});
++                }
++            }
++            if (found == WireId()) {
++                ++n_failed;
++                log_warning("%s sink %s.%s (bel %s, wire %s): no path to a constant source even with rip-up; the "
++                            "pin reads its interconnect default on the die\n",
++                            cn.c_str(this), nameOf(usr.cell), usr.port.c_str(this), nameOfBel(usr.cell->bel),
++                            nameOfWire(sink));
++                continue;
++            }
++            std::vector<PipId> path; // source side first
++            for (WireId w = found; best.at(w).second != PipId();) {
++                PipId p = best.at(w).second;
++                path.push_back(p);
++                w = getPipDstWire(p);
++            }
++            // the signal nets holding wires of the path, and the branch of each below those wires
++            std::vector<NetInfo *> victims;
++            std::unordered_map<NetInfo *, std::vector<WireId>> conflict;
++            for (PipId p : path)
++                for (WireId w : {getPipSrcWire(p), getPipDstWire(p)}) {
++                    NetInfo *o = rippable(w);
++                    if (o == nullptr)
++                        continue;
++                    if (!conflict.count(o))
++                        victims.push_back(o);
++                    if (std::find(conflict[o].begin(), conflict[o].end(), w) == conflict[o].end())
++                        conflict[o].push_back(w);
++                }
++            size_t conflict_wires = 0;
++            for (auto &cw : conflict)
++                conflict_wires += cw.second.size();
++            struct Saved
++            {
++                NetInfo *n;
++                WireId w;
++                PipMap pm;
++            };
++            std::vector<Saved> saved;
++            std::vector<std::pair<NetInfo *, PortRef>> lost;
++            for (NetInfo *o : victims) {
++                std::unordered_map<WireId, std::vector<WireId>> below;
++                for (auto &nw : o->wires)
++                    if (nw.second.pip != PipId())
++                        below[getPipSrcWire(nw.second.pip)].push_back(nw.first);
++                std::unordered_set<WireId> branch;
++                std::vector<WireId> todo = conflict.at(o);
++                while (!todo.empty()) {
++                    WireId w = todo.back();
++                    todo.pop_back();
++                    if (!branch.insert(w).second)
++                        continue;
++                    if (below.count(w))
++                        for (WireId x : below.at(w))
++                            todo.push_back(x);
++                }
++                for (auto &u : o->users) {
++                    WireId uw = getCtx()->getNetinfoSinkWire(o, u);
++                    if (uw != WireId() && branch.count(uw))
++                        lost.emplace_back(o, u);
++                }
++                std::vector<WireId> order(branch.begin(), branch.end());
++                std::sort(order.begin(), order.end(), [](const WireId &a, const WireId &b) {
++                    return a.tile != b.tile ? a.tile < b.tile : a.index < b.index;
++                });
++                for (WireId w : order) {
++                    saved.push_back({o, w, o->wires.at(w)});
++                    unbindWire(w);
++                }
++            }
++            std::vector<PipId> bound_const, bound_sig;
++            for (PipId p : path) {
++                bindPip(p, net, STRENGTH_STRONG);
++                bound_const.push_back(p);
++            }
++            bool ok = true;
++            for (auto &l : lost) {
++                NetInfo *o = l.first;
++                WireId uw = getCtx()->getNetinfoSinkWire(o, l.second);
++                if (getBoundWireNet(uw) == o)
++                    continue; // re-joined by an earlier sink's new branch
++                if (!checkWireAvail(uw)) {
++                    ok = false;
++                    break;
++                }
++                std::priority_queue<QE> rq;
++                std::unordered_map<WireId, std::pair<delay_t, PipId>> rb;
++                WireId hit;
++                rb[uw] = {0, PipId()};
++                rq.push({0, seq++, uw});
++                int rv = 0;
++                while (!rq.empty() && rv++ < max_visit) {
++                    QE e = rq.top();
++                    rq.pop();
++                    if (e.cost != rb.at(e.w).first)
++                        continue;
++                    if (e.w != uw && getBoundWireNet(e.w) == o) {
++                        hit = e.w;
++                        break;
++                    }
++                    for (auto uh : getPipsUphill(e.w)) {
++                        if (!usable(uh) || !checkPipAvail(uh))
++                            continue;
++                        WireId s = getPipSrcWire(uh);
++                        if (!checkWireAvail(s) && getBoundWireNet(s) != o)
++                            continue;
++                        delay_t c = e.cost + getPipDelay(uh).maxDelay() + 1;
++                        auto it = rb.find(s);
++                        if (it != rb.end() && it->second.first <= c)
++                            continue;
++                        rb[s] = {c, uh};
++                        rq.push({c, seq++, s});
++                    }
++                }
++                if (hit == WireId()) {
++                    ok = false;
++                    break;
++                }
++                for (WireId w = hit; rb.at(w).second != PipId();) {
++                    PipId p = rb.at(w).second;
++                    w = getPipDstWire(p);
++                    bindPip(p, o, STRENGTH_WEAK);
++                    bound_sig.push_back(p);
++                }
++            }
++            if (!ok) {
++                for (PipId p : bound_sig)
++                    unbindWire(getPipDstWire(p));
++                for (PipId p : bound_const)
++                    if (getBoundPipNet(p) == net)
++                        unbindWire(getPipDstWire(p));
++                for (auto &s : saved) {
++                    if (s.pm.pip != PipId())
++                        bindPip(s.pm.pip, s.n, s.pm.strength);
++                    else
++                        bindWire(s.w, s.n, s.pm.strength);
++                }
++                ++n_failed;
++                log_warning("%s sink %s.%s (bel %s): a constant path needs %d signal wire(s), and a disconnected "
++                            "sink could not be re-routed; left unrouted, the pin reads its interconnect default on "
++                            "the die\n",
++                            cn.c_str(this), nameOf(usr.cell), usr.port.c_str(this), nameOfBel(usr.cell->bel),
++                            int(saved.size()));
++                continue;
++            }
++            ++n_ripped;
++            std::string who;
++            for (NetInfo *o : victims)
++                who += std::string(who.empty() ? "" : ", ") + nameOf(o);
++            log_info("    %s sink %s.%s (bel %s): %d hop(s) through %d signal wire(s); ripped %d wire(s) of [%s], "
++                     "re-routed %d sink(s)\n",
++                     cn.c_str(this), nameOf(usr.cell), usr.port.c_str(this), nameOfBel(usr.cell->bel),
++                     int(path.size()), int(conflict_wires), int(saved.size()), who.c_str(),
++                     int(lost.size()));
++        }
++    }
++    log_info("Constant sinks routeVcc left unrouted: %d (%d where the FASM encodes the constant without a route: "
++             "LUT input / FF SR=GND, CE=VCC / CARRY4 carry-in / F7F8 select=VCC / unregistered DSP CLK,CE,RST), %d "
++             "routed through free wires, %d with rip-up, %d left unrouted\n",
++             n_holdout, n_folded, n_free, n_ripped, n_failed);
++    if (n_failed)
++        log_error("%d constant sink(s) could not be routed (warnings above); a bitstream written now would hold "
++                  "those pins at their interconnect default, not at the constant the netlist ties them to\n",
++                  n_failed);
++}
++
+ // BODGE: template a GT-clock -> BUFG route from the known-good Vivado path.
+ // The chipdb graph has no edge from the GT clock spine into the CLK_HROW
+ // CK_IN_R inputs, so no router can find this route; but the pips along
+@@ -2155,6 +2540,7 @@ bool Arch::route()
+     // address-path FF arcs (e.g. mem_addr O5->AFFMUX), so const-routed builds
+     // exited 255; as a post-router fill it only consumes leftover resources.
+     routeVcc();
++    repairConstSinks();
+     fixupRouting();
+     // router1 runs its own final timing analysis; the router2 flow
+     // historically ended without one, so the last "Max frequency" lines the
+diff --git a/xilinx/arch.h b/xilinx/arch.h
+index f6179376..6ddb3dff 100644
+--- a/xilinx/arch.h
++++ b/xilinx/arch.h
+@@ -1666,6 +1666,7 @@ struct Arch : BaseCtx
+     void fixupRouting();
+ 
+     void routeVcc();
++    void repairConstSinks();
+     void routeClock();
+     void applyFixedRoutes(const std::string &filename);
+     void writeFixedRoutes(const std::string &filename) const;

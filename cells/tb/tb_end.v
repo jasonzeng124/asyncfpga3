@@ -77,8 +77,9 @@ module tb_end;
     end
 
     // One turn of the ring is the inverter's rising arc plus its falling arc.
-    // Both come from sim/bd_prims_sim.v, which takes them from prjxray.
-    localparam integer PERIOD = (56 + `BD_ROUTE_PS) + (124 + `BD_ROUTE_PS);
+    // Both come from sim/bd_prims_sim.v (prjxray, one corner per run), so the
+    // expectation is derived from the same macros rather than a constant.
+    localparam integer PERIOD = `BD_T_RISE + `BD_T_FALL;
 
     initial begin
         $display("tb_end");
@@ -136,7 +137,7 @@ module tb_end;
             $display("  FAIL ring period %0d ps, model says %0d ps",
                      t_now - t_prev, PERIOD);
         end else
-            $display("  ring period %0d ps over %0d turns, matching the modelled arcs (%0d + %0d)", t_now - t_prev, nedge, 56 + `BD_ROUTE_PS, 124 + `BD_ROUTE_PS);
+            $display("  ring period %0d ps over %0d turns, matching the modelled arcs (%0d + %0d)", t_now - t_prev, nedge, `BD_T_RISE, `BD_T_FALL);
 
         errors = errors + ma.errors;
         if (errors == 0) $display("tb_end PASS");

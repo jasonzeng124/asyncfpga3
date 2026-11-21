@@ -1,0 +1,40 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 00006088 (attempt 0, poll 0)
+programming build/hw/ipow_null_bench_gen/ipow_null_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00022020 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (ipow_null): op0=12 op1=18 -> ODATA=30 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=3 op1=7, N=200 ===
+  completed=200 latmin=5 latmax=5 cyc  prepcyc=3200  odata=4 sig=0x000003fc mism_st=2
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x000003fc matches the expected result fold)
+
+=== (b) deliberate corruption: prove the mismatch path fires on hardware ===
+  corruption chosen: (3,7)->4  vs  (3,8)->11  (run-captured, not post-batch ODATA)
+  attempt gap=20000 n=2000: write landed at run 563 of 2000 (mid-batch=1) -> MISM_ST=3 MISM_IDX=324 MISM_VAL=11 MISM_REF=4
+deliberate-corruption exercise PASS: mismatch path fires on real silicon (idx=324 val=11 ref=4)
+
+=== (c) UNIFORM-mode batch: op0 seed=0xACE12345, N=2000 ===
+  completed=2000 cycles=20000 prepcyc=32000 latmin=5 latmax=5 cyc  mism_st=2
+UNIFORM SIG oracle PASS (0xf6dfce4c over 2000 distinct inputs)
+  histogram sum = 2000 (expect 2000)
+
+  latency (cycles): min=5 p50~=5 p90~=5 p99~=5 max=5 mean=10.0
+  latency (ns, @100.0MHz nominal): min=50.0 p50~=50.0 p90~=50.0 p99~=50.0 max=50.0 mean=100.0
+  throughput (this harness, 1 txn in flight -- NOT pipelined peak): 10000000.0 tx/s
+
+Histogram (bucket: count  approx-cycles):
+  bucket  9: count=2000   ~5 cyc
+
+==========================================================================
+ipow_null bench PASS
+==========================================================================

@@ -27,11 +27,12 @@ KERNEL=${1:-}
 NULL=0
 if [ "${2:-}" = "--null" ]; then NULL=1; fi
 
-case "$KERNEL" in
-    gcd|ipow|collatz|collatz64|isprime|xorshift) ;;
-    *) echo "usage: hw/build_bench.sh <gcd|ipow|collatz|collatz64|isprime|xorshift> [--null]"
-       exit 2 ;;
-esac
+# Any kernel with a frontend fixture builds (the compiler benchmark suite, PROGRAM 2026-11-17: nothing in the flow is
+# set for a kernel by name). The six original kernels are still the ones gen_bench.py has input-domain notes for.
+if [ -z "$KERNEL" ] || [ ! -f "../build/frontend/$KERNEL/comp/handshake_transformed.mlir" ]; then
+    echo "usage: hw/build_bench.sh <kernel with build/frontend/<kernel>/comp/handshake_transformed.mlir> [--null]"
+    exit 2
+fi
 
 # TOP is deliberately "_bench_gen"/"_null_bench_gen", NOT "_bench": build_hw.sh
 # (owned by someone else, off limits) already has a "gcd_bench" case that
@@ -168,7 +169,15 @@ MLIR="../build/frontend/$KERNEL/comp/handshake_transformed.mlir"
 [ -e "$MLIR" ] || { echo "missing: $MLIR (kernel not compiled to handshake IR yet)"; exit 2; }
 
 mkdir -p build/gen
-python3 ../bdc/emit.py "$MLIR" --no-top -o "build/gen/${KERNEL}_kernel_bench.v"
+# BDC_AUTO=1 (off by default; unset, this block does nothing): every MLIR rewrite with a proof (bdc/auto.py PROVEN:
+# formal A6) applied where it applies, before bdc/emit.py.  The storage rules run inside emit.py itself.
+if [ "${BDC_AUTO:-0}" = 1 ]; then
+    python3 ../bdc/auto.py "$MLIR" "build/gen/${KERNEL}_auto.mlir" || exit 2
+    MLIR="build/gen/${KERNEL}_auto.mlir"
+fi
+# --host-mem: every memory gets a host port (bdc/emit.py HOST_MEM), which gen_bench.py drives through its MEM*
+# registers.  A no-op for a kernel without a memref argument: its emitted Verilog is byte-identical either way.
+python3 ../bdc/emit.py "$MLIR" --no-top --host-mem -o "build/gen/${KERNEL}_kernel_bench.v"
 
 # TOP itself was computed above, before the default-tighten dispatch; this is
 # just the gen_bench.py call the dispatch had no reason to duplicate.
@@ -202,7 +211,30 @@ if [ -n "${BD_SIZES:-}" ] && [ "${BD_SIZES}" != "none" ] \
     SIZES="${BD_SIZES}"
 fi
 SRCS="rtl/*.v build/gen/${KERNEL}_kernel_bench.v build/gen/${TOP}.v"
+# rtl/optin/: cells read only by a kernel that instantiates them (bdc/mem.py BDC_MEM_FASTFALL=1 -> bd_mem_ff).  Not
+# under rtl/*.v on purpose: a module merely read moves yosys's auto-name counter and so every other build's route
+# (rtl/optin/bd_mem_ff.v's header has the measurement).
+for _o in rtl/optin/*.v; do
+    _m=$(basename "$_o" .v)
+    grep -q "^ *${_m} " "build/gen/${KERNEL}_kernel_bench.v" 2>/dev/null && SRCS="$_o $SRCS"
+done
 if [ "${BD_SIZES:-auto}" != "none" ] && [ -e "$SIZES" ]; then
+    # A sizes file is keyed by instance path.  One measured on another top (fusion_bench's
+    # soak harness names the kernel uut., giving BD_SZ_UUT_*; this bench names it
+    # bridge_i.udut., giving BD_SZ_BRIDGE_I_UDUT_*) matches nothing here, and every chain
+    # silently builds at emit.py's estimate while the line below still says "applying N".
+    # That happened (2026-11-07): refuse when nothing matches, warn when only part does.
+    _nd=0; _nm=0
+    for _d in $(sed -n 's/^`define \([A-Za-z0-9_]*\).*/\1/p' "$SIZES"); do
+        _nd=$((_nd + 1))
+        grep -qw "$_d" "build/gen/${KERNEL}_kernel_bench.v" "build/gen/${TOP}.v" && _nm=$((_nm + 1))
+    done
+    if [ "$_nd" -gt 0 ] && [ "$_nm" -eq 0 ]; then
+        echo "build_bench.sh: none of the $_nd sizes in $SIZES is used by $TOP (sizes keyed to another" \
+             "top? e.g. BD_SZ_UUT_* from a fusion_bench route; this bench uses BD_SZ_BRIDGE_I_UDUT_*)" >&2
+        exit 1
+    fi
+    [ "$_nm" -lt "$_nd" ] && echo "build_bench.sh: WARNING: only $_nm of the $_nd sizes in $SIZES are used by $TOP" >&2
     SRCS="$SIZES $SRCS"
     echo "build_bench.sh: applying $(grep -c '^`define' "$SIZES") measured " \
          "delay size(s) from $SIZES" >&2
@@ -211,7 +243,7 @@ else
          "bdc/emit.py's unmeasured estimate" >&2
 fi
 
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 YOSYS=$TC/openxc7/bin/yosys
 NEXTPNR=$TC/openxc7/bin/nextpnr-xilinx
 CHIPDB=$TC/openxc7/xc7z010clg400.bin
@@ -284,6 +316,14 @@ echo "== synthesis ($TOP) =="
 # multiply, ipow first.  Whichever setting a bitstream was built with, the
 # host report stamps it, per the harness spec's "stamp results with the
 # BD_DSP setting used" requirement.
+# BD_AUTONAME=1 (opt-in; unset, the yosys script is the same text): yosys `autoname` before write_json gives every
+# private ($-prefixed) cell and wire a name derived from the public nets it touches.  Why: yosys numbers its cells from
+# one counter, so a kernel whose delay lines change length renames the harness's cells (xorshift s1 it 5 -> 6: abc +4,
+# 104 of 1910 flops renumbered, numbers reused for other cells), and a later route cannot be matched to the one before
+# cell by cell (research/data/placekeep/README.md; cells/hw/place_from.py).  With it, all 5545 harness cell names of
+# that pair match.  It changes every cell name, so a route built with it is not the route built without it.
+AUTONAME=""; [ "${BD_AUTONAME:-0}" = 1 ] && AUTONAME="autoname
+"
 DSPOPT="-nodsp"
 [ "${BD_DSP:-1}" = "1" ] && DSPOPT=""
 
@@ -299,7 +339,7 @@ techmap -map +/xilinx/ff_map.v
 techmap -map +/xilinx/lut_map.v -map +/xilinx/cells_map.v -D LUT_WIDTH=6
 opt_lut_ins -tech xilinx
 synth_xilinx -family xc7 -flatten $DSPOPT -nosrl -nolutram -nobram -noclkbuf -top $TOP -run finalize:
-write_json $OUT/$TOP.json
+${AUTONAME}write_json $OUT/$TOP.json
 stat
 " > "$OUT/synth.log" 2>&1 || { echo "SYNTH FAILED"; tail -40 "$OUT/synth.log"; exit 1; }
 
@@ -333,9 +373,14 @@ if [ "$NULL" = "1" ]; then
 else
     BD_RLOC=${BD_RLOC:-v2}
 fi
+# BD_PLACE_WEIGHT_CELLS=REGEX (with BD_PLACE_WEIGHT): weight only those stages' handshake nets (rloc_stamp.py).
+# BD_PLACE_WEIGHT=K / BD_COLUMN_ROWS=N: passed to rloc_stamp.py only when set (as build_hw.sh / flow.sh; unset, the
+# command line and the build are what they were).  research/data/fifteen uses them with the spine variants (v5+).
 if [ "$BD_RLOC" != none ]; then
     python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
-        --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
+        --variant "$BD_RLOC" ${BD_PLACE_WEIGHT:+--place-weight "$BD_PLACE_WEIGHT"} \
+        ${BD_PLACE_WEIGHT_CELLS:+--place-weight-cells "$BD_PLACE_WEIGHT_CELLS"} \
+        ${BD_COLUMN_ROWS:+--column-rows "$BD_COLUMN_ROWS"} --report > "$OUT/rloc.log" 2>&1 || {
             echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
     mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
     grep -E "group|link" "$OUT/rloc.log" | tail -3
@@ -391,9 +436,24 @@ while [ "$attempt" -lt "$PNR_TRIES" ]; do
     # seconds on one seed and produced nothing, where every other null finished
     # in 35-60.  A seed that has not converged in PNR_TIMEOUT is not close, so
     # spend the time on the next seed instead of on this one.
+    # BD_PLACE_FROM=ROUTED_JSON (opt-in; unset, the command line is what it was): keep that route's placement for
+    # every cell it has (hw/place_from.py, a --pre-place script); only new cells are placed.  BD_PLACE_FREE=REGEX
+    # leaves the matching cells free too.  research/tools/auto/auto_size.sh uses it between finish routes.
+    PREPLACE=""
+    if [ -n "${BD_PLACE_FROM:-}" ]; then
+        [ -f "$BD_PLACE_FROM" ] || { echo "BD_PLACE_FROM=$BD_PLACE_FROM: no such file" >&2; exit 1; }
+        export BD_PLACE_FROM; PREPLACE="--pre-place $(cd "$(dirname "$0")" && pwd)/place_from.py"
+    fi
+    # BD_REGION_RX=REGEX with BD_REGION_FROM=ROUTED_JSON (opt-in; unset, nothing changes): hw/region.py confines the
+    # matching cells to one rectangle shrunk from where that route had them (BD_REGION_SHRINK, BD_REGION_ROOM).
+    if [ -n "${BD_REGION_RX:-}" ]; then
+        [ -z "$PREPLACE" ] || { echo "BD_REGION_RX and BD_PLACE_FROM together: not supported" >&2; exit 1; }
+        [ -f "${BD_REGION_FROM:-}" ] || { echo "BD_REGION_FROM=${BD_REGION_FROM:-}: no such file" >&2; exit 1; }
+        export BD_REGION_RX BD_REGION_FROM; PREPLACE="--pre-place $(cd "$(dirname "$0")" && pwd)/region.py"
+    fi
     # shellcheck disable=SC2086
     if ! timeout "${PNR_TIMEOUT:-420}" "$NEXTPNR" --chipdb "$CHIPDB" --xdc "$OUT/$TOP.xdc" --ignore-loops $TRYSEED \
-               --freq "$TARGET_MHZ" --timing-allow-fail \
+               $PREPLACE --freq "$TARGET_MHZ" --timing-allow-fail \
                --json "$OUT/$TOP.json" --write "$OUT/${TOP}_routed.json" \
                --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
                > "$OUT/pnr.log" 2>&1; then
@@ -422,6 +482,7 @@ while [ "$attempt" -lt "$PNR_TRIES" ]; do
         exit 1
     fi
 
+    if [ -n "$PREPLACE" ]; then grep -h '^place_from:\|^region:' "$OUT/pnr.log" || true; fi   # what the pre-place script did
     ACHIEVED=$(grep -oP "(?<=Max frequency for clock 'fclk0_bufg': )[0-9.]+" "$OUT/pnr.log" | tail -1)
     if [ -z "$ACHIEVED" ]; then
         echo "TIMING: no Fmax for fclk0_bufg in $OUT/pnr.log -- cannot certify this build" >&2

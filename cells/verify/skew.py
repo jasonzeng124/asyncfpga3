@@ -81,10 +81,21 @@ the route that produced the measurement, and measured on gcd it does not even
 converge.
 """
 
-import json, math, sys, pathlib
+import json, math, os, re, sys, pathlib
+
+# A bd_pipe stage instance: <link>.many.stage[i].u
+RE_PIPE_STAGE = re.compile(r"^(.*?)\.many\.stage\[(\d+)\]\.u(?:\.|$)")
+# A node on a link's REQUEST side: its rdly chain, or the C node that drives
+# req_out -- of a bare link, or of one bd_pipe stage.
+RE_REQ_SIDE = re.compile(r"^(.*?)(?:\.many\.stage\[(\d+)\]\.u)?\.(?:rdly|ctl)\.")
+# A latch output of a bd_link (or of one bd_pipe stage): <link>.lat.<...>.
+# Its controller's C node is <link>.ctl.u.u/O6.
+RE_LATCH_OUT = re.compile(r"^(.*?)\.lat\.")
 
 _raw = sys.argv[1:]
 VERBOSE = "-v" in _raw
+if "--and-join" in _raw:
+    _raw.remove("--and-join")
 # --select-pads <path> writes, as JSON, the ADDITIONAL bd_delay elements each
 # violating site's own link needs: {"ulink_n151__0": 3, ...}.  That is the
 # shape bdc/emit.py's BDC_SELECT_PADS already reads.
@@ -126,6 +137,58 @@ while "--osc" in _raw:
     OSC.append(_raw[_i + 1])
     del _raw[_i:_i + 2]
 PADS = None
+# --slack <ps>: also attribute and price a fix for gates whose guarded margin
+# is positive but at most <ps> (flagged "SLACK", padded to reach <ps>), so a
+# sizing loop can buy headroom against the next route instead of chasing one
+# short link per route.  The verdict and the exit status still count only
+# guarded margins <= 0.  Default 0: unchanged.
+SLACK = 0
+if "--slack" in _raw:
+    _i = _raw.index("--slack")
+    SLACK = int(_raw[_i + 1])
+    del _raw[_i:_i + 2]
+# --own-gate-laps-off-strict: at a gate where (3) below adds a link's C node as
+# a launch, the REQUEST walks launched from that same link's LATCH OUTPUTS may
+# not pass through the gate being checked.  Every other launch, and every gate
+# where (3) adds nothing, is walked exactly as without the flag.  Opt-in until
+# reviewed; see (4) below for what it removes and why that is a lap.
+STRICT_LAPS = "--own-gate-laps-off-strict" in _raw
+if STRICT_LAPS:
+    _raw.remove("--own-gate-laps-off-strict")
+# --steer-self (or BD_SKEW_STEER_SELF=1): at a select gate whose request is a
+# positive C-element (a bd_join's bd_ctree) with the select's OWN channel
+# request among its inputs, a launch at a latch output of the select's source
+# link is checked against that request -- the join cannot fire before it.
+# See (5) below and self_request_floor().  Opt-in until reviewed; unset, every
+# output of this file is byte-identical.
+STEER_SELF = (os.environ.get("BD_SKEW_STEER_SELF") == "1"
+              or "--steer-self" in _raw)
+if "--steer-self" in _raw:
+    _raw.remove("--steer-self")
+# --e-join (or BD_SKEW_E_JOIN=1): a launch at a HANDSHAKE node X (a link
+# controller, a C-tree, a mux join -- not a latch output) is checked case by
+# case on what made X fire: for each handshake node L whose transition can be
+# the last one enabling X (a request into it, or the acknowledge releasing a
+# link controller), every positive C-element J on the request side is credited
+# with its other inputs' arrivals from L (minus the longest L -> X), and the
+# request is the EARLIEST over those cases.  See (6) below and ej_cases().
+# BD_SKEW_E_JOIN_DEPTH (default 1) is how many causes back the cases go
+# through requests (an acknowledge cause always ends a case).  Opt-in until
+# reviewed; unset, every output of this file is byte-identical.
+E_JOIN = os.environ.get("BD_SKEW_E_JOIN") == "1" or "--e-join" in _raw
+if "--e-join" in _raw:
+    _raw.remove("--e-join")
+E_JOIN_DEPTH = int(os.environ.get("BD_SKEW_E_JOIN_DEPTH", "1"))
+EJ_DEBUG = os.environ.get("BD_SKEW_E_JOIN_DEBUG", "")      # diagnosis only: print every case at a request pin
+# --muxn (or BD_SKEW_MUXN=1): also check the select gates of every bdc_muxnN
+# (bdc/emit.py's N > 2 input mux), which select_consumers() does not find: its
+# decode LUTs sel[k] = ctl_req & (s == k), the request pin against each index
+# pin on the same LUT (tighten.py muxn_decode_sites()).  One row per decode
+# LUT, its worst index pin, kind "bdc_muxn".  Opt-in until reviewed; unset,
+# every output of this file is byte-identical.
+MUXN = os.environ.get("BD_SKEW_MUXN") == "1" or "--muxn" in _raw
+if "--muxn" in _raw:
+    _raw.remove("--muxn")
 if "--select-pads" in _raw:
     _i = _raw.index("--select-pads")
     PADS = pathlib.Path(_raw[_i + 1])
@@ -152,6 +215,13 @@ class CombinationalCycle(Exception):
     which is what --osc exists to declare.
     """
 
+
+# Positive C-element nodes (bd_ctree's bd_c2 / bd_c3 / bd_c4: no inverted
+# input) that walk() seeds with their LATEST reached input on the earliest walk.
+# Empty unless BD_SKEW_AND_JOIN=1 or --and-join; main() fills it.
+AND_NODES = set()
+AND_JOIN = os.environ.get("BD_SKEW_AND_JOIN") == "1" or "--and-join" in sys.argv[1:]
+RE_CTREE_C = re.compile(r"\.g[234]\.u\.u/O[56]$")
 
 K = 6          # storage crossings a path may make before it is a lap, not a path
 
@@ -213,6 +283,353 @@ GUARD_LO = 0.772          # request may run this fraction of its predicted delay
 GUARD_HI = 1.155          # select may run this multiple of its predicted delay
 
 
+def walk(walked_edges, stops, binc, feed, launch, longest, term=None,
+         floor=None, fhit=None):
+    """Arrival tables from `launch`, ONE PER CROSSING COUNT.  Levels are
+    kept apart deliberately.  Take the extremal over all of them and a
+    longest path granted six crossings simply goes round the handshake
+    loop and comes back -- measured, it reported 44 ns of arrival at a pin
+    two cells away.  Inside one transaction each storage cell fires once,
+    so the signal's real path is the one with the FEWEST crossings and the
+    deeper levels are laps.
+
+    `floor` ((6) --e-join only; None everywhere else): {AND node: (t, src)},
+    a lower bound on that C-element's firing relative to the launch from an
+    input this walk does not reach.  On the earliest walk its seed becomes
+    max(the reached inputs, t); the predecessor stays the reached input, and
+    where the floor is the later, fhit[(level, node)] = src."""
+    better = (lambda a, b: a > b) if longest else (lambda a, b: a < b)
+    # Bellman-Ford's bound.  A shortest-path relaxation over positive
+    # weights settles on its own, but a LONGEST-path one does not: on a
+    # cycle whose arcs are all positive, every lap improves every node and
+    # the loop below never runs out of frontier.  Traversal stops at
+    # storage nodes, so any cycle containing one is safe -- which is every
+    # handshake in the library.  A cycle that stores NOTHING has nothing to
+    # stop it, and that is what a free-running ring oscillator is.
+    #
+    # Measured, before this cap existed: verify/soak_top.v has exactly one
+    # such ring (line 130, "the one loop in this design that stores
+    # nothing") and rule E ran for five minutes on a 535-arc design with
+    # two select gates and had to be killed.  It was not slow, it was not
+    # terminating, and as a gate in check.sh it would have hung the whole
+    # check rather than failing it.
+    #
+    # No path can improve more than |pins| times without revisiting a node,
+    # so exceeding that bound IS a positive cycle.  Say which pin, and say
+    # what to do about it -- a hang teaches nothing.
+    # `pred` is kept alongside `out`, ONE PER LEVEL, so the exact walk a
+    # pin's arrival took can be replayed rather than guessed at.  A node's
+    # predecessor is (level, node) -- almost always the same level, except
+    # a stop `o` seeded at the top of a new level, whose predecessor is
+    # the enable pin `ip` back in the PREVIOUS level's table (the single
+    # deliberate hop this docstring describes).  The launch's own entry
+    # at level 0 has predecessor None; nothing else does, since every
+    # other node was relaxed from something.
+    # `term`, when given, is an instance prefix the walk may ARRIVE at but
+    # never leave: a pin under it is recorded and not expanded, and a
+    # storage node under it is never seeded as a crossing.  Only (4)'s
+    # strict request walks pass one; every other walk has term None and
+    # is exactly the walk this function always did.
+    cap = len(walked_edges) + 1
+    out, pred_out = [], []
+    seeds, seed_pred = {launch: 0}, {launch: None}
+    for lvl in range(K + 1):
+        tab, pred = dict(seeds), dict(seed_pred)
+        seeded = set(seeds)
+        frontier = list(seeds)
+        passes = 0
+        while frontier:
+            passes += 1
+            if passes > cap:
+                raise CombinationalCycle(sorted(frontier)[0])
+            nxt = []
+            for pn in frontier:
+                tv = tab[pn]
+                for d, w in walked_edges.get(pn, ()):
+                    if (pn, d) in feed:
+                        continue
+                    # A node SEEDED at this level -- a storage output entered
+                    # by one deliberate crossing, or the launch itself at level
+                    # 0 -- is never relaxed again inside the level.  Reaching
+                    # it here means arriving through its own cell arc, which IS
+                    # a storage crossing, and the next level's seeding already
+                    # counts that one from the same tab[ip] + arc. Relaxing it
+                    # here used to OVERWRITE the seed's tab and pred after the
+                    # seed had been expanded (a stop is never re-expanded), so
+                    # every pin downstream kept the seed's arrival while
+                    # path_to() replayed a chain through the overwriting
+                    # arrival -- a chain that did not produce it. divergence()
+                    # and req_knob() read that chain.  No arrival but the
+                    # seeded stop's own entry changes: nothing was ever
+                    # expanded from the overwritten value.  test_skew_walk.py
+                    # has the minimal case.
+                    if d in seeded:
+                        continue
+                    if d not in tab or better(tv + w, tab[d]):
+                        tab[d] = tv + w
+                        pred[d] = (lvl, pn)
+                        # Record an arrival back at the launch, but never EXPAND
+                        # from it.  (At level 0 the launch is a seed, so the
+                        # check above already skips it there; this is what
+                        # keeps it from being expanded at deeper levels.)  The old condition was "d not in stops or
+                        # d == launch", and that second clause is a lap: it lets
+                        # the walk leave the launch, go round the launch's own
+                        # handshake loop, and set off again with a larger number,
+                        # forever, because every arc is positive and this is a
+                        # LONGEST-path relaxation.  Levels are kept apart precisely
+                        # so laps land at a deeper crossing count instead; the
+                        # clause quietly readmitted them at level 0.
+                        #
+                        # Measured: rule E on verify/soak_top.v -- 535 arcs, two
+                        # select gates -- ran five minutes and had to be killed.
+                        # Not slow: not terminating.  As a gate in check.sh that
+                        # would have hung the check rather than failing it.
+                        if d not in stops and not (term and d.startswith(term)):
+                            nxt.append(d)
+            frontier = nxt
+        out.append(tab)
+        pred_out.append(pred)
+        seeds, seed_pred = {}, {}
+        for o in stops:
+            if o == launch or (term and o.startswith(term)):
+                continue
+            if not longest and o in AND_NODES:
+                # A positive C-element (bd_ctree: bd_c2/c3/c4) moves only
+                # when EVERY input has moved, so on the EARLIEST walk its
+                # output is no earlier than the LATEST of its inputs' earliest
+                # arrivals.  Only inputs reached at THIS level count: they are
+                # combinational descendants of the launch's own transition
+                # (the walk crosses no storage inside a level), so each is a
+                # lower bound on that input's transition for this token, and
+                # the max over any subset of a C-element's inputs is a lower
+                # bound on its firing.  Opt-in (BD_SKEW_AND_JOIN=1 / --and-join);
+                # off, every storage node is seeded with its earliest input
+                # (OR), as always.  Audit T93: the OR seed made ucond_br6_j
+                # fire on its first request on item 18's route.
+                best_v = None
+                for ip, arc in binc.get(o, ()):
+                    if (o, ip) in feed or ip not in tab:
+                        continue
+                    v = tab[ip] + arc
+                    if best_v is None or v > best_v[0]:
+                        best_v = (v, ip)
+                if best_v is not None:
+                    seeds[o] = best_v[0]
+                    seed_pred[o] = (lvl, best_v[1])
+                    if floor and o in floor and floor[o][0] > best_v[0]:
+                        seeds[o] = floor[o][0]
+                        fhit[(lvl + 1, o)] = floor[o][1]
+                continue
+            for ip, arc in binc.get(o, ()):
+                if (o, ip) in feed or ip not in tab:
+                    continue
+                v = tab[ip] + arc
+                if o not in seeds or better(v, seeds[o]):
+                    seeds[o] = v
+                    seed_pred[o] = (lvl, ip)
+        if not seeds:
+            break
+    return out, pred_out
+
+
+def self_request_floor(c_early, c_early_pred, c_late, J, X, binc, feed, stops,
+                       inside, joins_ok, via=None):
+    """(5) --steer-self: a lower bound, relative to the launch X, on when the
+    request C-element J of a select gate can fire, from the request of the
+    select's OWN channel.
+
+    X is a latch output of link L, and C is L's C node.  The latch is
+    transparent while C is high and its sender holds d until the latch has
+    closed (rule H), so X moves only when C opens it: X <= C + l(C -> X), the
+    latest arrival of X on C's own walk at level 0 (the enable net and the
+    EN -> Q arc).  The select's channel request is launched by the same C (its
+    request side, the producer's operand join, the producer's matched delay):
+    an input ip of J that C's EARLIEST walk reaches along that path rises no
+    earlier than C + s(C -> ip).  J is a positive C-element, so it fires after
+    every input:
+
+        J >= s(C -> ip) + arc(ip -> J) - l(C -> X)      relative to X.
+
+    Only a chain that IS the channel's request counts, checked on the chain
+    C's earliest walk actually recorded (path_to): every pin on it is inside
+    `inside` (L's and the producer's own instances; a fork's request fan-out
+    is wiring), every storage node it crosses is a positive C-element in
+    `joins_ok` (the producer's operand join), and it passes `via` (the
+    producer's request output) when given.  A chain through anything else --
+    another link's controller, a merge's OR, a steer, the gate itself -- is a
+    lap or a different token's request and gives no bound; the gate is then
+    checked exactly as without the flag.
+
+    -> (floor, l_cx, ip, level of ip on C's walk, chain to ip) or None."""
+    lx = None
+    for k, tab in enumerate(c_late):
+        if X in tab:
+            lx = (tab[X], k)
+            break
+    if lx is None or lx[1] != 0:
+        return None
+    best = None
+    for ip, arc in binc.get(J, ()):
+        if (J, ip) in feed:
+            continue
+        r = None
+        for k, tab in enumerate(c_early):
+            if ip in tab:
+                r = (tab[ip], k)
+                break
+        if r is None:
+            continue
+        chain = path_to(c_early_pred, r[1], ip)
+        if not chain or len(chain) < 2:
+            continue
+        nodes = [n for _, n in chain]
+        if via is not None and via not in nodes:
+            continue
+        ok = True
+        for n in nodes[1:-1]:
+            inst = n.rsplit("/", 1)[0]
+            if not any(inst.startswith(p) for p in inside):
+                ok = False
+                break
+            if n in stops and not (n in joins_ok and n != J):
+                ok = False
+                break
+        if ok and (best is None or r[0] + arc > best[0]):
+            best = (r[0] + arc, ip, r[1], chain)
+    if best is None:
+        return None
+    return best[0] - lx[0], lx[0], best[1], best[2], best[3]
+
+
+def e_join_credit(L, kind, X, early_edges, stops, feed, entry, blocked):
+    """(6) --e-join: {pin: earliest arrival from L} over the paths that carry
+    L's transition as a REQUEST -- Dijkstra over (pin, storage crossings).
+    kind 'fwd': L rises (a request); every storage node crossed must accept
+    it as one (entry(node, pin, 'fwd'): a link controller by req_in, a C-tree,
+    a mux join).  kind 'ack': L falls (an acknowledge); its first crossing
+    must be a link controller entered by c_next (entry(..., 'ack')), which
+    that fall releases, and only pins past it count.  blocked(instance): a
+    latch (data, not a handshake), the gate being checked, a steer (a token
+    past a steer is another branch or the next iteration).  X is recorded,
+    never expanded (what lies past X is X's own walk).  At most K crossings."""
+    import heapq
+    best, dist = {(L, 0): 0}, {}
+    heap = [(0, L, 0)]
+    while heap:
+        t, p, c = heapq.heappop(heap)
+        if best.get((p, c), t) < t:
+            continue
+        # an acknowledge's fall is a request only past its first crossing
+        if p != L and (kind == "fwd" or c > 0) and (p not in dist or t < dist[p]):
+            dist[p] = t
+        if p == X:
+            continue
+        for d, w in early_edges.get(p, ()):
+            if (p, d) in feed or d == L or blocked(d.rsplit("/", 1)[0]):
+                continue
+            nc = c
+            if d in stops and d != X:
+                if not entry(d, p, kind if c == 0 else "fwd"):
+                    continue
+                nc = c + 1
+                if nc > K:
+                    continue
+            nt = t + w
+            if nt < best.get((d, nc), nt + 1):
+                best[(d, nc)] = nt
+                heapq.heappush(heap, (nt, d, nc))
+    return dist
+
+
+def e_join_chains(X, causes, depth):
+    """(6) --e-join: every chain of LAST causes back from X, as lists of
+    (L, kind, l(L -> X)) nearest first.  causes(node) -> [(L, kind, l(L ->
+    node))].  A request cause ('fwd') is followed back while `depth` allows;
+    an acknowledge cause ('ack') ends its chain (its own causes belong to the
+    previous phase); a node with no cause ends the chain where it is (X with
+    none: [[]], no case gives a bound)."""
+    out = []
+
+    def rec(chain, node, ltot, d):
+        cs = causes(node) if d > 0 else []
+        if not cs:
+            out.append(chain)
+            return
+        for L, kind, lL in cs:
+            nxt = chain + [(L, kind, ltot + lL)]
+            if kind == "ack":
+                out.append(nxt)
+            else:
+                rec(nxt, L, ltot + lL, d - 1)
+    rec([], X, 0, depth)
+    return out
+
+
+def back_reach(pin, srcs_of, feed, binc, stops):
+    """Pins that reach `pin`, and how many storage crossings away.  (main()'s
+    back(); a function of the graph's topology alone, so
+    research/tools/ca_fast.py can reuse it.)"""
+    seen, cur = {pin: 0}, {pin}
+    for k in range(K + 1):
+        frontier, lvl = list(cur), set(cur)
+        while frontier:
+            nxt = []
+            for pn in frontier:
+                for s in srcs_of.get(pn, ()):
+                    if (s, pn) in feed or s in seen:
+                        continue
+                    seen[s] = k
+                    lvl.add(s)
+                    if s not in stops:
+                        nxt.append(s)
+            frontier = nxt
+        cur = set()
+        for o in [x for x in lvl if x in stops]:
+            for ip, _ in binc.get(o, ()):
+                if (o, ip) in feed or ip in seen:
+                    continue
+                seen[ip] = k + 1
+                cur.add(ip)
+        if not cur:
+            break
+    return seen
+
+
+def path_to(pred_out, level, node):
+    """The exact walk from `launch` to `node` at `level`, as a list of
+    (level, node) pairs, launch first.  Reconstructed from `fwd`'s own
+    predecessor pointers -- not a proxy over what is merely backward-
+    reachable, the concrete route that pin's arrival time came from."""
+    chain = [(level, node)]
+    seen = {(level, node)}
+    p = pred_out[level].get(node)
+    while p is not None:
+        # A predecessor CYCLE is possible and must be caught here.  The
+        # longest-path relaxation is bounded by Bellman-Ford's cap, not by
+        # acyclicity, so on a loop that stores nothing -- a free-running
+        # ring -- the pointers it leaves behind can close on themselves.
+        # A pipeline cannot do this (soak_top.v has exactly one such ring;
+        # gcd has none), which is why this walked fine on every compiled
+        # design and hung only on soak: unguarded, the loop below appends
+        # forever.  Measured, it reached 10.4 GB in under seven minutes
+        # against 15.8 MB and 1.2 s for the same design before divergence
+        # tracking existed.
+        #
+        # Report NO usable prefix rather than a guess.  The caller then
+        # takes t_c = 0, which guards the whole launch-to-pin span -- the
+        # conservative direction, and exactly what this check did before
+        # divergent-tail guarding was added.  Degrading to the stricter
+        # behaviour is safe; inventing a prefix here would not be.
+        if p in seen:
+            return None
+        seen.add(p)
+        chain.append(p)
+        lvl, nd = p
+        p = pred_out[lvl].get(nd)
+    chain.reverse()
+    return chain
+
+
 def main():
     if not SDF.exists():
         print(f"no routed SDF at {SDF} -- run ./flow.sh first", file=sys.stderr)
@@ -262,6 +679,17 @@ def main():
         return 2
 
     stops = T.storage_nodes(edges)
+    AND_NODES.clear()
+    if AND_JOIN:
+        AND_NODES.update(o for o in stops if RE_CTREE_C.search(o))
+        print(f"             --and-join: {len(AND_NODES)} positive C-element node(s) "
+              f"wait for their last reached input on the request walk")
+    side_arcs = T.fastfall_side_arcs(edges)
+    early_edges = {
+        src: [(dst, delay) for dst, delay in links
+              if (src, dst) not in side_arcs]
+        for src, links in edges.items()
+    }
     binc, srcs_of = defaultdict(list), defaultdict(set)
     for s, lst in edges.items():
         for d, w in lst:
@@ -276,128 +704,56 @@ def main():
     feed = {(o, ip) for o in stops
             for ip, _ in binc.get(o, ()) if o in srcs_of[ip]}
 
-    def fwd(launch, longest):
-        """Arrival tables from `launch`, ONE PER CROSSING COUNT.  Levels are
-        kept apart deliberately.  Take the extremal over all of them and a
-        longest path granted six crossings simply goes round the handshake
-        loop and comes back -- measured, it reported 44 ns of arrival at a pin
-        two cells away.  Inside one transaction each storage cell fires once,
-        so the signal's real path is the one with the FEWEST crossings and the
-        deeper levels are laps."""
-        better = (lambda a, b: a > b) if longest else (lambda a, b: a < b)
-        # Bellman-Ford's bound.  A shortest-path relaxation over positive
-        # weights settles on its own, but a LONGEST-path one does not: on a
-        # cycle whose arcs are all positive, every lap improves every node and
-        # the loop below never runs out of frontier.  Traversal stops at
-        # storage nodes, so any cycle containing one is safe -- which is every
-        # handshake in the library.  A cycle that stores NOTHING has nothing to
-        # stop it, and that is what a free-running ring oscillator is.
-        #
-        # Measured, before this cap existed: verify/soak_top.v has exactly one
-        # such ring (line 130, "the one loop in this design that stores
-        # nothing") and rule E ran for five minutes on a 535-arc design with
-        # two select gates and had to be killed.  It was not slow, it was not
-        # terminating, and as a gate in check.sh it would have hung the whole
-        # check rather than failing it.
-        #
-        # No path can improve more than |pins| times without revisiting a node,
-        # so exceeding that bound IS a positive cycle.  Say which pin, and say
-        # what to do about it -- a hang teaches nothing.
-        # `pred` is kept alongside `out`, ONE PER LEVEL, so the exact walk a
-        # pin's arrival took can be replayed rather than guessed at.  A node's
-        # predecessor is (level, node) -- almost always the same level, except
-        # a stop `o` seeded at the top of a new level, whose predecessor is
-        # the enable pin `ip` back in the PREVIOUS level's table (the single
-        # deliberate hop this docstring describes).  The launch's own entry
-        # at level 0 has predecessor None; nothing else does, since every
-        # other node was relaxed from something.
-        cap = len(edges) + 1
-        out, pred_out = [], []
-        seeds, seed_pred = {launch: 0}, {launch: None}
-        for lvl in range(K + 1):
-            tab, pred = dict(seeds), dict(seed_pred)
-            frontier = list(seeds)
-            passes = 0
-            while frontier:
-                passes += 1
-                if passes > cap:
-                    raise CombinationalCycle(sorted(frontier)[0])
-                nxt = []
-                for pn in frontier:
-                    tv = tab[pn]
-                    for d, w in edges.get(pn, ()):
-                        if (pn, d) in feed:
-                            continue
-                        if d not in tab or better(tv + w, tab[d]):
-                            tab[d] = tv + w
-                            pred[d] = (lvl, pn)
-                            # Record an arrival back at the launch, but never EXPAND
-                            # from it.  The old condition was "d not in stops or
-                            # d == launch", and that second clause is a lap: it lets
-                            # the walk leave the launch, go round the launch's own
-                            # handshake loop, and set off again with a larger number,
-                            # forever, because every arc is positive and this is a
-                            # LONGEST-path relaxation.  Levels are kept apart precisely
-                            # so laps land at a deeper crossing count instead; the
-                            # clause quietly readmitted them at level 0.
-                            #
-                            # Measured: rule E on verify/soak_top.v -- 535 arcs, two
-                            # select gates -- ran five minutes and had to be killed.
-                            # Not slow: not terminating.  As a gate in check.sh that
-                            # would have hung the check rather than failing it.
-                            if d not in stops:
-                                nxt.append(d)
-                frontier = nxt
-            out.append(tab)
-            pred_out.append(pred)
-            seeds, seed_pred = {}, {}
-            for o in stops:
-                if o == launch:
-                    continue
-                for ip, arc in binc.get(o, ()):
-                    if (o, ip) in feed or ip not in tab:
-                        continue
-                    v = tab[ip] + arc
-                    if o not in seeds or better(v, seeds[o]):
-                        seeds[o] = v
-                        seed_pred[o] = (lvl, ip)
-            if not seeds:
-                break
-        return out, pred_out
+    def fwd(launch, longest, term=None):
+        """walk() over this design's graph: every arc for the select's LONGEST
+        walk, the fast-fall-side-pruned arcs for the request's shortest."""
+        return walk(edges if longest else early_edges, stops, binc, feed,
+                    launch, longest, term)
 
-    def path_to(pred_out, level, node):
-        """The exact walk from `launch` to `node` at `level`, as a list of
-        (level, node) pairs, launch first.  Reconstructed from `fwd`'s own
-        predecessor pointers -- not a proxy over what is merely backward-
-        reachable, the concrete route that pin's arrival time came from."""
-        chain = [(level, node)]
-        seen = {(level, node)}
-        p = pred_out[level].get(node)
-        while p is not None:
-            # A predecessor CYCLE is possible and must be caught here.  The
-            # longest-path relaxation is bounded by Bellman-Ford's cap, not by
-            # acyclicity, so on a loop that stores nothing -- a free-running
-            # ring -- the pointers it leaves behind can close on themselves.
-            # A pipeline cannot do this (soak_top.v has exactly one such ring;
-            # gcd has none), which is why this walked fine on every compiled
-            # design and hung only on soak: unguarded, the loop below appends
-            # forever.  Measured, it reached 10.4 GB in under seven minutes
-            # against 15.8 MB and 1.2 s for the same design before divergence
-            # tracking existed.
-            #
-            # Report NO usable prefix rather than a guess.  The caller then
-            # takes t_c = 0, which guards the whole launch-to-pin span -- the
-            # conservative direction, and exactly what this check did before
-            # divergent-tail guarding was added.  Degrading to the stricter
-            # behaviour is safe; inventing a prefix here would not be.
-            if p in seen:
-                return None
-            seen.add(p)
-            chain.append(p)
-            lvl, nd = p
-            p = pred_out[lvl].get(nd)
-        chain.reverse()
-        return chain
+    # (5) --steer-self: the cells that can PRODUCE a select with a request of
+    # their own -- tighten's request sites (a `.uor` anchor) whose `.uor` has
+    # exactly ONE input, the operand join's output.  bd_merge's `.uor` ORs two
+    # requests and either one raises it, so a merge's request bounds nothing.
+    # -> {producer instance: its request output (chain tail, or the OR)}.
+    ops, ctree_nodes = {}, set()
+    if STEER_SELF:
+        ctree_nodes = {o for o in stops if RE_CTREE_C.search(o)}
+        outs_of = defaultdict(list)
+        for q in binc:
+            if T.is_output(q):
+                outs_of[T.pin_split(q)[0]].append(q)
+        for p, _head, tail, _links in T.request_sites(edges, srcs_of,
+                                                      T.find_chains(edges)):
+            ins = {ip for q in outs_of.get(p + ".uor", ())
+                   for ip, _ in binc[q] if (q, ip) not in feed}
+            if len(ins) == 1:
+                ops[p] = tail
+
+    def steer_self_site(rp, sp):
+        """(5): (J, arc J -> rp, producer, its request output) when the gate's
+        request pin is driven by a positive C-element J and its select comes
+        from a producer with a request (or straight from a link's latch:
+        producer None); else None -- the gate is checked as without the flag."""
+        drv = srcs_of.get(rp, set())
+        if len(drv) != 1:
+            return None
+        J = next(iter(drv))
+        if J not in ctree_nodes:
+            return None
+        wj = [w for d, w in early_edges.get(J, ()) if d == rp]
+        sd = srcs_of.get(sp, set())
+        if not wj or len(sd) != 1:
+            return None
+        dinst = T.pin_split(next(iter(sd)))[0]
+        P = max((p for p in ops if dinst.startswith(p + ".")), key=len,
+                default=None)
+        if P is not None:
+            return J, min(wj), P, ops[P]
+        if RE_LATCH_OUT.match(dinst):
+            return J, min(wj), None, None
+        return None
+
+    ss_stats = [0, 0, 0]        # (5): gates it applies to, launches floored, binding
 
     def divergence(out_f, pred_f, e, rp, out_t, pred_t, l, sp):
         """X, the last (level, node) the two MEASURED walks -- the shortest
@@ -423,31 +779,7 @@ def main():
         return out_f[xlvl][xnode]
 
     def back(pin):
-        """Pins that reach `pin`, and how many storage crossings away."""
-        seen, cur = {pin: 0}, {pin}
-        for k in range(K + 1):
-            frontier, lvl = list(cur), set(cur)
-            while frontier:
-                nxt = []
-                for pn in frontier:
-                    for s in srcs_of.get(pn, ()):
-                        if (s, pn) in feed or s in seen:
-                            continue
-                        seen[s] = k
-                        lvl.add(s)
-                        if s not in stops:
-                            nxt.append(s)
-                frontier = nxt
-            cur = set()
-            for o in [x for x in lvl if x in stops]:
-                for ip, _ in binc.get(o, ()):
-                    if (o, ip) in feed or ip in seen:
-                        continue
-                    seen[ip] = k + 1
-                    cur.add(ip)
-            if not cur:
-                break
-        return seen
+        return back_reach(pin, srcs_of, feed, binc, stops)
 
     def at(levels, pin):
         for k, tab in enumerate(levels):
@@ -469,6 +801,17 @@ def main():
         for cell, d in sorted(by_cell.items()):
             if "req" in d and "sel" in d:
                 checks.append((kind, parent, cell, d["req"], d["sel"]))
+    # --muxn: a bdc_muxnN's decode LUT has ONE request pin and several index
+    # pins.  Each (request, index) pair is checked exactly as a bd_mux join's
+    # (ctl_req, s), under a cell label of its own (the per-cell notes below are
+    # keyed by it), and the LUT keeps its worst pair after the loop.
+    muxn_sites, muxn_notes, muxn_pairs = [], [], 0
+    if MUXN:
+        muxn_sites, muxn_notes = T.muxn_decode_sites(jpath) or ([], [])
+        for parent, cell, rp, sps in muxn_sites:
+            for sp in sps:
+                checks.append(("bdc_muxn", parent, f"{cell}|{T.pin_split(sp)[1]}", rp, sp))
+                muxn_pairs += 1
 
     # Bounded cache.  fwd() returns arrival tables AND predecessor tables, one
     # per crossing level, and rule E walks up to four candidate launches per
@@ -479,6 +822,213 @@ def main():
     # footprint.  Evict oldest-first.
     CACHE_MAX = 64
     cache, rows, orphan = OrderedDict(), [], []
+    floored = {}                # (5): (parent, cell) -> the binding launch's bound
+
+    # (6) --e-join.  The request walk from a launch X seeds a positive
+    # C-element J (BD_SKEW_AND_JOIN) with the inputs X's OWN transition
+    # reaches, and nothing else: J's other inputs -- an operand join's other
+    # operand, a steer join's steered token -- carry a token X never sees, so
+    # J is credited as firing on X's input alone.  What bounds them is what
+    # made X fire.  X fires on its LAST enabling transition, from some
+    # handshake node L (ej_causes): a request into it ('fwd': L rises; a
+    # link controller's req_in, any input of a C-tree or a mux join) or the
+    # acknowledge that releases a link controller ('ack': L falls; c_next).
+    # In the case "L was last", t_X <= t_L + l(L -> X), and L's SAME
+    # transition reaches an input ip of J no earlier than t_L + s(L -> ip),
+    # along a path that carries that transition as a request (ej_credit):
+    # it crosses only C-trees, mux joins and link controllers entered by
+    # req_in (an 'ack' L: its first crossing is a link controller entered by
+    # c_next, L's fall releasing it as it released X), never a latch (data),
+    # never X, never a steer (a token past a steer is another branch or the
+    # next iteration) and never the gate being checked.  So in that case
+    #
+    #     J >= s(L -> ip) + arc(ip -> J) - l(L -> X)      relative to X,
+    #
+    # every such floor at once (with BD_SKEW_E_JOIN_DEPTH > 1, also those of
+    # L's own last request cause, l summed along the chain), and the row is
+    # the WORST over the cases: a case with no floor is the walk as without
+    # the flag, so the flag moves a row only when EVERY way X can have fired
+    # bounds the request.  Where a floor sets the request, the race is from
+    # L: request through the credited input, select through X, both legs
+    # guarded from L (divergence point -l(L -> X)).  A case's margin is never
+    # taken below the row without the flag (that walk's bound holds in every
+    # case too), so the flag can only raise a row.
+    ej_stats = [0, 0, 0]        # (6): launches analysed, raised, rows bound
+    ej_rows = {}                # (6): (parent, cell) -> the binding case's note
+    if E_JOIN:
+        RE_LINK_CN = re.compile(r"\.ctl\.u\.u/O6$")       # bd_link_ctl: C(req_in, ~c_next)
+        RE_MUX_J = re.compile(r"\.uj[01]/O6$")             # bd_mux join: C(x/y_req, ctl_req . s)
+        ej_jcells = list(json.loads(jpath.read_text())["modules"].values())[0].get("cells", {})
+        ej_and = {o for o in stops if RE_CTREE_C.search(o)}
+        ej_steers = tuple(p + "." for k, p, _, _ in sites if k == "bd_steer")
+        # a bd_merge's request OR (`uor` beside `uxa`, no mux joins): either input
+        # raises it, so a credit path through it bounds nothing
+        _insts = {T.pin_split(q)[0] for q in srcs_of} | {T.pin_split(q)[0] for q in edges}
+        ej_merge_or = {i for i in _insts if i.endswith(".uor") and i[:-4] + ".uxa" in _insts
+                       and i[:-4] + ".uj0" not in _insts and i[:-4] + ".uj1" not in _insts}
+        ej_pins_c, ej_ctl_c, ej_cause_c, ej_cred_c = {}, {}, {}, {}
+        ej_cache = OrderedDict()
+
+        def ej_fwd(launch, longest):
+            key = (launch, longest)
+            if key in ej_cache:
+                ej_cache.move_to_end(key)
+            else:
+                ej_cache[key] = fwd(launch, longest)
+                while len(ej_cache) > CACHE_MAX:
+                    ej_cache.popitem(last=False)
+            return ej_cache[key]
+
+        def ej_link_pins(node):
+            """A link controller's physical (req_in, c_next) pins (bd_c2n a, b =
+            logical I0, I1), or None."""
+            if node not in ej_pins_c:
+                inst = T.pin_split(node)[0]
+                ports = T.orig_ports(ej_jcells[inst]) if inst in ej_jcells else {}
+                ej_pins_c[node] = (tuple("%s/%s" % (inst, ports[i]) for i in ("I0", "I1"))
+                                   if RE_LINK_CN.search(node) and "I0" in ports and "I1" in ports
+                                   else None)
+            return ej_pins_c[node]
+
+        def ej_muxctl(node):
+            """A bd_mux join's ctl_req pin (uj0 / uj1 logical I1), or None."""
+            if node not in ej_ctl_c:
+                inst = T.pin_split(node)[0]
+                ports = T.orig_ports(ej_jcells[inst]) if inst in ej_jcells else {}
+                ej_ctl_c[node] = "%s/%s" % (inst, ports["I1"]) if "I1" in ports else None
+            return ej_ctl_c[node]
+
+        def ej_entry(node, ip, kind):
+            """May a credit path carrying a `kind` transition cross storage node
+            `node` entering by pin `ip`?  Only where the node's own firing NEEDS
+            that input for this token: a link controller by req_in (or, for an
+            acknowledge's fall, by c_next), a C-tree by any input, a mux join by
+            ctl_req -- both joins need it, and the mux's output needs one of
+            them; by x_req / y_req the other join can fire the output without it."""
+            lp = ej_link_pins(node)
+            if lp is not None:
+                return ip == (lp[0] if kind == "fwd" else lp[1])
+            if kind != "fwd":
+                return False
+            if node in ej_and:
+                return True
+            return bool(RE_MUX_J.search(node)) and ip == ej_muxctl(node)
+
+        def ej_sources(pin):
+            """Handshake nodes driving `pin` through combinational logic only:
+            storage, not a latch (data), not a constant."""
+            seen, work, out = {pin}, [pin], set()
+            while work:
+                p = work.pop()
+                for s in srcs_of.get(p, ()):
+                    if (s, p) in feed or s in seen or T.is_const(s):
+                        continue
+                    seen.add(s)
+                    if s in stops:
+                        if not RE_LATCH_OUT.match(T.pin_split(s)[0]):
+                            out.add(s)
+                    else:
+                        work.append(s)
+            return sorted(out)
+
+        def ej_causes(node):
+            """[(L, kind, l(L -> node))]: the handshake transitions that can be
+            the last to enable `node`'s firing; [] for a node of another kind
+            (an arbiter, a merge's acknowledge C-element: no case split)."""
+            if node in ej_cause_c:
+                return ej_cause_c[node]
+            lp = ej_link_pins(node)
+            if lp is None and node not in ej_and and not RE_MUX_J.search(node):
+                ej_cause_c[node] = []
+                return []
+            out = []
+            for ip, _ in binc.get(node, ()):
+                if (node, ip) in feed:
+                    continue
+                kind = ("fwd" if lp is None else
+                        "fwd" if ip == lp[0] else "ack" if ip == lp[1] else None)
+                if kind is None:
+                    continue
+                for L in ej_sources(ip):
+                    if L == node:
+                        continue
+                    lt = ej_fwd(L, True)[0]
+                    if lt and node in lt[0]:
+                        out.append((L, kind, lt[0][node]))
+            ej_cause_c[node] = out
+            return out
+
+        def ej_credit(L, kind, X, own):
+            key = (L, kind, X, own)
+            if key not in ej_cred_c:
+                ej_cred_c[key] = e_join_credit(
+                    L, kind, X, early_edges, stops, feed, ej_entry,
+                    lambda inst: (inst.startswith(own) or inst.startswith(ej_steers)
+                                  or bool(RE_LATCH_OUT.match(inst)) or inst in ej_merge_or))
+            return ej_cred_c[key]
+
+        def ej_floors(chain, X, own, jset):
+            """{J: (floor, (L, ip, kind, l(L -> X)))} from every node of `chain`."""
+            fl = {}
+            for L, kind, ltot in chain:
+                cr = ej_credit(L, kind, X, own)
+                for J in jset:
+                    for ip, arc in binc.get(J, ()):
+                        if (J, ip) in feed or ip not in cr:
+                            continue
+                        v = cr[ip] + arc - ltot
+                        if J not in fl or v > fl[J][0]:
+                            fl[J] = (v, (L, ip, kind, ltot))
+            return fl
+
+        def ej_cases(X):
+            return e_join_chains(X, ej_causes, E_JOIN_DEPTH)
+
+        def ej_raise(X, own, rp, l, g0, out_f):
+            """(6): the row from launch X with the join credit, or None when some
+            case of X's firing gives the request no later bound than the walk
+            without it.  -> (e, tc, guarded, request path, (L, ip, kind,
+            l(L -> X), J), the case's chain)."""
+            jset = {n for tab in out_f for n in tab if n in ej_and}
+            worst_case, unbounded = None, False
+            for chain in ej_cases(X):
+                best = None
+                for p in range(1, len(chain) + 1):
+                    fl = ej_floors(chain[:p], X, own, jset)
+                    if not fl:
+                        continue
+                    fhit = {}
+                    of, pf = walk(early_edges, stops, binc, feed, X, False,
+                                  None, fl, fhit)
+                    e = at(of, rp)
+                    if e is None:
+                        continue
+                    pr = path_to(pf, e[1], rp) or []
+                    src = None
+                    for lv, n in reversed(pr):
+                        if (lv, n) in fhit:
+                            src = fhit[(lv, n)] + (n,)
+                            break
+                    if src is None:     # no floor on the request's own path
+                        continue
+                    tc = -src[3]
+                    g = GUARD_LO * (e[0] - tc) - GUARD_HI * (l[0] - tc)
+                    if best is None or g > best[2]:
+                        best = (e, tc, g, pr, src, chain[:p])
+                if EJ_DEBUG and EJ_DEBUG in rp:
+                    print("EJDBG %s %s chain %s -> %s" % (rp, X, " < ".join(
+                        "%s(%s,%d)" % (c[0].split(".udut.")[-1], c[1], c[2]) for c in reversed(chain)),
+                        "none" if best is None else "g %d (g0 %d) e %d tc %d src %s" % (
+                            best[2], g0, best[0][0], best[1], best[4][0].split(".udut.")[-1])), file=sys.stderr)
+                if best is None or best[2] <= g0:
+                    if not (EJ_DEBUG and EJ_DEBUG in rp):
+                        return None
+                    unbounded = True        # diagnosis: print the other cases too
+                    continue
+                if worst_case is None or best[2] < worst_case[2]:
+                    worst_case = best
+            return None if unbounded else worst_case
+
     for kind, parent, cell, rp, sp in checks:
         br, bs = back(rp), back(sp)
         # The launch is where the request and the select DIVERGE, and the
@@ -532,15 +1082,77 @@ def main():
         # did over-credit (usteer got t_c=417 where the true value is 0).
         #
         # Worst is chosen by the GUARDED margin, since that is the verdict.
-        worst = None
-        for _, _, launch in cand[:4]:
+        # (3) Plus the C node of every link whose LATCH is a nearest-storage
+        # launch of the select.  cand is ordered by select crossings, so a
+        # 32-bit latch bank fills cand[:4] with its own outputs (64 of them,
+        # O5 and O6 per bit) and that link's C node -- where the request
+        # and the select really diverge, per (1) -- can sit at index 96 and
+        # never be evaluated (isprime ucond_br16, 2026-10-26).  It is ADDED,
+        # never substituted: the verdict is still the MIN over every launch
+        # evaluated, so an extra launch can only find a violation, never hide
+        # one.  (It does not clear ucond_br16: the lap launches stay binding.)
+        names = {q for _, _, q in cand}
+        launches = [q for _, _, q in cand[:4]]
+        added = set()           # links whose C node (3) added at this gate
+        if cand:
+            k0 = cand[0][0]
+            for ks, _, q in cand:
+                if ks != k0:
+                    break
+                m = RE_LATCH_OUT.match(T.pin_split(q)[0])
+                cnode = m and m.group(1) + ".ctl.u.u/O6"
+                if cnode and cnode in names and cnode not in launches:
+                    launches.append(cnode)
+                    added.add(m.group(1))
+        # (4) --own-gate-laps-off-strict.  Once (3) has added link L's C node,
+        # L's real divergence point is being measured directly.  A launch at
+        # one of L's LATCH OUTPUTS reaches the select through the latch (that
+        # is why it is a candidate at all), but it reaches the REQUEST pin
+        # only by going round the handshake: through this very gate, out to
+        # its acknowledge, back through L's controller and request chain --
+        # the NEXT token's request, not the one this select is bundled with.
+        # So for exactly those launches, and only on the request (shortest)
+        # walk, the walk may not pass through this gate.  The select walk, the
+        # C-node launch, every other cand[:4] launch, and every gate where (3)
+        # added nothing are untouched, so a row can change only if its binding
+        # launch was such a latch output and its request walk ran through its
+        # own gate.  A latch launch whose request then has no path is simply
+        # not evaluated; the verdict is the MIN over what is.
+        # (5) --steer-self.  A launch at a LATCH OUTPUT X of link L reaches the
+        # select through the latch, but a positive C-element join on the
+        # request side is seeded only from the inputs X's own walk reaches at a
+        # level, and X does not reach the select's own channel request at all:
+        # that request starts at L's C node, which X cannot reach.  What X's
+        # walk does reach is a lap -- measured at xorshift's loop steers
+        # (research/data/sizerule/steerE.md): the select through this gate's
+        # own LUT to its acknowledge, a SIBLING input link's controller entered
+        # on its acknowledge, that link's next request into the join, and the
+        # join credited as firing on it alone.  When the join has the select's
+        # own channel request among its inputs, the request from X is the later
+        # of what the walk found and self_request_floor()'s bound; where the
+        # bound is the later, the row is the race from L's C node (request
+        # through the channel's request, select through X), and the divergence
+        # point is that C node, l(C -> X) BEFORE the launch, so both legs are
+        # guarded from it.  Every other launch, and every gate whose request is
+        # not such a join, is untouched; the bound only ever moves a request
+        # later, and C's own launch, evaluated by (3), keeps its row as it was.
+        ss = steer_self_site(rp, sp) if STEER_SELF else None
+        if ss is not None:
+            ss_stats[0] += 1
+        own = parent + "."
+        worst, wnote = None, None
+        wjn = None                  # (6): the binding launch's join-credit case
+        for launch in launches:
+            m = RE_LATCH_OUT.match(T.pin_split(launch)[0])
+            lap = STRICT_LAPS and m is not None and m.group(1) in added
             for d, lng in ((0, False), (1, True)):
-                key = (launch, lng)
+                term = own if (lap and not lng) else None
+                key = (launch, lng, term)
                 if key in cache:
                     cache.move_to_end(key)
                 else:
                     try:
-                        cache[key] = fwd(launch, lng)
+                        cache[key] = fwd(launch, lng, term)
                         while len(cache) > CACHE_MAX:
                             cache.popitem(last=False)
                     except CombinationalCycle as e:
@@ -559,11 +1171,49 @@ def main():
                         print( "         genuinely runs free end to end.")
                         print( "         Rule E did not run.  This is a gap, not a pass.")
                         return 2
-            out_f, pred_f = cache[(launch, False)]
-            out_t, pred_t = cache[(launch, True)]
+            out_f, pred_f = cache[(launch, False, own if lap else None)]
+            out_t, pred_t = cache[(launch, True, None)]
             e = at(out_f, rp)
             l = at(out_t, sp)
             if e is None or l is None:
+                continue
+            note = None
+            if ss is not None:
+                mx = RE_LATCH_OUT.match(T.pin_split(launch)[0])
+                cn = mx and mx.group(1) + ".ctl.u.u/O6"
+                if cn and cn in stops:
+                    J, wj, P, via = ss
+                    inside = (mx.group(1) + ".",) + ((P + ".",) if P else ())
+                    joins = {n for n in ctree_nodes
+                             if P and T.pin_split(n)[0].startswith(P + ".ujoin.")}
+                    try:
+                        for lng in (False, True):
+                            if (cn, lng, None) in cache:
+                                cache.move_to_end((cn, lng, None))
+                            else:
+                                cache[(cn, lng, None)] = fwd(cn, lng)
+                                while len(cache) > CACHE_MAX:
+                                    cache.popitem(last=False)
+                        ce, cl = cache[(cn, False, None)], cache[(cn, True, None)]
+                        fl = self_request_floor(ce[0], ce[1], cl[0], J, launch,
+                                                binc, feed, stops, inside,
+                                                joins, via)
+                    except CombinationalCycle:
+                        fl = None
+                    if fl is not None and fl[0] + wj > e[0]:
+                        ss_stats[1] += 1
+                        floor, l_cx, ip, lvl, chain = fl
+                        e = (floor + wj, lvl + 1)
+                        note = (J, ip, cn, floor + l_cx, l_cx,
+                                chain + [(lvl + 1, J), (lvl + 1, rp)])
+            if note is not None:
+                tc = -note[4]
+                g = GUARD_LO * (e[0] - tc) - GUARD_HI * (l[0] - tc)
+                if worst is None or g < worst[0]:
+                    worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc,
+                             note[5])
+                    wnote = note
+                    wjn = None
                 continue
             # X, the DIVERGENCE POINT: the last node the two walks that
             # actually set req's and sel's arrival still agree on, found by
@@ -577,12 +1227,29 @@ def main():
             tc = min(divergence(out_f, pred_f, e, rp, out_t, pred_t, l, sp),
                      e[0], l[0])
             g = GUARD_LO * (e[0] - tc) - GUARD_HI * (l[0] - tc)
+            jn = None
+            if (E_JOIN and AND_JOIN and launch in stops
+                    and not RE_LATCH_OUT.match(T.pin_split(launch)[0])):
+                ej_stats[0] += 1
+                jn = ej_raise(launch, own, rp, l, g, out_f)
+                if jn is not None:
+                    ej_stats[1] += 1
+                    e, tc, g = jn[0], jn[1], jn[2]
             if worst is None or g < worst[0]:
-                worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc)
+                worst = (g, e[0] - l[0], launch, e[0], e[1], l[0], l[1], tc,
+                         (jn[3] if jn is not None else path_to(pred_f, e[1], rp)) or [])
+                wnote = None
+                wjn = jn
         if worst is None:
             orphan.append((kind, parent, cell))
             continue
         rows.append((worst[1], kind, parent, cell, rp, sp) + worst[2:])
+        if wnote is not None:
+            floored[(parent, cell)] = wnote
+            ss_stats[2] += 1
+        elif E_JOIN and wjn is not None:
+            ej_rows[(parent, cell)] = wjn
+            ej_stats[2] += 1
 
     # Guarded margin, and the raw one kept alongside it so the guardband can
     # always be seen doing its work rather than being folded into the verdict.
@@ -602,8 +1269,15 @@ def main():
         return int(GUARD_LO * (t_req - t_c) - GUARD_HI * (t_sel - t_c))
 
     rows = [(guarded(r[7], r[9], r[11]),) + r for r in rows]
+    if MUXN:                    # one row per decode LUT (its request pin): the worst index pin
+        worst_pair = {}
+        for r in rows:
+            if r[2] == "bdc_muxn" and (r[5] not in worst_pair or r[:2] < worst_pair[r[5]][:2]):
+                worst_pair[r[5]] = r
+        rows = [r for r in rows if r[2] != "bdc_muxn"] + list(worst_pair.values())
     rows.sort()
     bad = [r for r in rows if r[0] <= 0]
+    short = [r for r in rows if r[0] <= SLACK]
 
     t_elem = T.measure_delay_element(SDF.read_text())
     if t_elem is None:
@@ -614,29 +1288,91 @@ def main():
         elem_src = (f"{t_elem} ps per bd_delay link, measured off this route's "
                     f"own chains")
 
-    print(f"             {len(checks)} select gates, {len(rows)} measured, "
+    print(f"             {len(checks) - muxn_pairs + len(muxn_sites)} select gates, {len(rows)} measured, "
           f"{len(bad)} violated")
+    if MUXN:
+        print(f"             --muxn: {len(muxn_sites)} bdc_muxnN decode LUT(s) in "
+              f"{len({s[0] for s in muxn_sites})} mux(es), {muxn_pairs} (request, index) "
+              f"pin pair(s); a LUT's row is its worst pair")
+        for note in muxn_notes:
+            print(f"             {note}")
     print(f"             guardband {GUARD_LO:.3f}*req vs {GUARD_HI:.3f}*sel, "
           f"from hw/README.md's five measured rings")
     print(f"             element cost: {elem_src}")
     if orphan:
         print(f"             {len(orphan)} gate(s) share no launch with their "
               f"own select within {K} crossings -- not checked")
+    if STEER_SELF:
+        print(f"             --steer-self: {ss_stats[0]} gate(s) whose request "
+              f"C-element can carry the select's own channel request; "
+              f"{ss_stats[1]} latch launch(es) bounded by it, binding at "
+              f"{ss_stats[2]} gate(s)")
+    if E_JOIN:
+        print(f"             --e-join (depth {E_JOIN_DEPTH}): {ej_stats[0]} handshake "
+              f"launch(es) split by the cause of their firing; {ej_stats[1]} raised "
+              f"by a join credit in every case, binding at {ej_stats[2]} gate(s)"
+              + ("" if AND_JOIN else "; NOT APPLIED: needs BD_SKEW_AND_JOIN=1"))
+
+    # The last stage of every bd_pipe, for req_knob() below.
+    last_stage = {}
+    for name in set(T.pin_split(n)[0] for n in srcs_of):
+        mp = RE_PIPE_STAGE.match(name)
+        if mp:
+            last_stage[mp.group(1)] = max(last_stage.get(mp.group(1), 0), int(mp.group(2)))
+
+    def req_knob(req_path):
+        """The link whose DELAY really sits on the measured request path: the
+        storage crossing nearest the request pin, and only if the path leaves
+        it through its request side (its rdly chain or the C node that drives
+        req_out), in the stage DELAY pads (a bd_pipe's last).  None when the
+        crossing nearest the pin is not such a node -- a latch, an inner pipe
+        stage, an acknowledge."""
+        for _, node in reversed(req_path):
+            inst = T.pin_split(node)[0]
+            mk = RE_REQ_SIDE.match(inst)
+            if mk is None:
+                if T.RE_SEL_LINK.search(inst) or T.RE_SEL_LINK_STRUCT.search(inst):
+                    return None
+                continue
+            link, stage = mk.group(1), mk.group(2)
+            if stage is not None and int(stage) != last_stage.get(link, int(stage)):
+                return None
+            return link.rpartition(".")[2] if "." in link else link
+        return None
 
     pads, unattributed = {}, []
     for (gm, margin, kind, parent, cell, rp, sp,
-         launch, t_req, k_req, t_sel, k_sel, t_c) in (rows if VERBOSE else bad):
-        flag = "VIOLATED" if gm <= 0 else "ok      "
+         launch, t_req, k_req, t_sel, k_sel, t_c, req_path) in (rows if VERBOSE else short):
+        flag = "VIOLATED" if gm <= 0 else ("SLACK   " if gm <= SLACK else "ok      ")
         print(f"\n  {flag} {kind} {parent}")
         print(f"           launch {launch}")
-        print(f"           divergence point {t_c} ps in (shared, not guarded)")
+        fn = floored.get((parent, cell))
+        jw = ej_rows.get((parent, cell))
+        if jw is not None:
+            L, ip, jk, l_lx, J = jw[4]
+            print(f"           divergence point {t_c} ps in (the binding case's cause, "
+                  f"before the launch: both legs guarded from it)")
+            print(f"           join credit (--e-join): {J} waits for {ip}, reached from "
+                  f"{L} ({'its request' if jk == 'fwd' else 'its acknowledge falling'});")
+            print(f"                worst of {len(ej_cases(launch))} case(s) of the launch's firing, "
+                  f"this one: " + " < ".join(x[0] for x in reversed(jw[5])) + " < launch; "
+                  f"the launch follows its cause by at most {l_lx} ps")
+        elif fn is None:
+            print(f"           divergence point {t_c} ps in (shared, not guarded)")
+        else:
+            print(f"           divergence point {t_c} ps in (the select source's "
+                  f"C node, before the launch: both legs guarded from it)")
+            print(f"           request bound (--steer-self): {fn[0]} waits for the "
+                  f"select's own channel request {fn[1]},")
+            print(f"                {fn[3]} ps after {fn[2]}; the launch "
+                  f"follows that C node by at most {fn[4]} ps")
         print(f"           req  {rp}")
         print(f"                earliest {t_req} ps, {k_req} storage crossing(s)")
         print(f"           sel  {sp}")
         print(f"                latest   {t_sel} ps, {k_sel} storage crossing(s)")
         print(f"           margin {margin:+d} ps raw, {gm:+d} ps guarded"
               + ("   the request beats its own select" if gm <= 0 else ""))
-        if gm > 0:
+        if gm > SLACK:
             continue
         # WHICH link's knob moves this edge.  The launch is the storage node
         # that released the select, and for every violation seen so far that
@@ -646,28 +1382,33 @@ def main():
         # launch moves the request later and does not drag the select along
         # with it.  Anything else is not attributable from this measurement and
         # is reported rather than guessed at.
-        m = T.RE_SEL_LINK.search(launch)
-        if not m:
-            # Fall back to the structural form, which finds the same knob on an
-            # instance that is not named ulink_* -- see RE_SEL_LINK_STRUCT.
-            m = T.RE_SEL_LINK_STRUCT.search(launch)
-        if not m:
+        #
+        # That premise fails when the launch is a bd_pipe stage or an
+        # acknowledge: on gcd_hw (2026-10-25) umux20's launch is its OUTPUT
+        # pipe's stage[0] C node, both legs run back upstream from there, and
+        # padding that pipe's DELAY (its last stage's req_out) moved the
+        # request by reroute noise only -- +609 ps for six elements -- so
+        # converge.sh padded it forever.  The knob is therefore taken from the
+        # measured request path itself (req_knob) and only used if it is
+        # really on it.
+        knob = req_knob(req_path)
+        if knob is None:
             unattributed.append((parent, launch))
             continue
         # The elements being added sit in the request path, so they are subject
         # to the same GUARD_LO scatter as the rest of it.
-        need = math.ceil(-gm / (t_elem * GUARD_LO))
-        pads[m.group(1)] = max(pads.get(m.group(1), 0), need)
+        need = math.ceil((SLACK - gm) / (t_elem * GUARD_LO))
+        pads[knob] = max(pads.get(knob, 0), need)
         print(f"           fix: {need} more bd_delay element(s) on "
-              f"{m.group(1)} ({t_elem} ps ea, derated to "
+              f"{knob} ({t_elem} ps ea, derated to "
               f"{int(t_elem * GUARD_LO)})")
 
     if unattributed:
         print()
         for parent, launch in unattributed:
-            print(f"  {parent}: launch {launch} is not a bd_link C node, so no "
-                  f"DELAY knob\n    is attributable to it -- reported, not "
-                  f"padded")
+            print(f"  {parent}: launch {launch}: no link's DELAY is on the "
+                  f"measured request path,\n    so no knob is attributable -- "
+                  f"reported, not padded")
     if PADS is not None:
         PADS.write_text(json.dumps(dict(sorted(pads.items())), indent=1) + "\n")
         print(f"\n  wrote {len(pads)} per-link requirement(s) to {PADS} "

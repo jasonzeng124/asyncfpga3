@@ -1,0 +1,57 @@
+build_bench.sh: MODE=BD_NO_TIGHTEN -- building gcd_bench_gen directly, select channels at bdc/emit.py's unmeasured SELECT_PAD estimate
+wrote build/gen/gcd_kernel_bench.v: module bdc_gcd, 165 matched delay(s)
+wrote build/gen/gcd_bench_gen.v: module gcd_bench_gen (real DUT for gcd)
+build_bench.sh: applying 51 measured  delay size(s) from build/gen/gcd_bench_gen_sizes.vh
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  binary  /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+  sha256  d216cb36a370f78a
+== synthesis (gcd_bench_gen) ==
+             1573 latch LUT(s) across those banks, 114 of them grouped (7.2%)
+             21 group(s) also hold their select consumer's LUTs
+             19 fractured cpair controller(s) each drive two pipeline stages from one LUT6_2; only one stage's latch can share its SLICE, so 19 stage(s) are left out of any group by construction, not by omission
+        1   BUFG
+       64   CARRY4
+      864   FDCE
+       42   FDPE
+     1044   FDRE
+        2   LUT1
+      509   LUT2
+      241   LUT3
+      314   LUT4
+       96   LUT5
+     1031   LUT6
+        2   OBUF
+        1   BUFG
+      102   CARRY4
+      864   FDCE
+       42   FDPE
+     1044   FDRE
+      746   LUT1
+      787   LUT2
+      468   LUT3
+      663   LUT4
+      187   LUT5
+     2065   LUT6
+     2060   LUT6_2
+        2   OBUF
+
+== place and route ==
+routed. (attempt 1/6: 91.58 MHz)
+TIMING: fclk0_bufg closes at 91.58 MHz (target 83 MHz)
+FASM:  9181 occupied LUT sites, 42 global buffer lines
+
+== bitstream ==
+2083874 bytes -> build/hw/gcd_bench_gen/gcd_bench_gen.bit
+routed SDF -> build/hw/gcd_bench_gen/gcd_bench_gen.sdf
+
+== measured sizes: re-checking rule A on the route this build got ==
+SIZES REJECTED: 2 cell(s) whose request does not trail their
+    bridge_i.udut.umux9     3 links    817 ps   req  1386  peak  1414  guard  282  margin   -310   PAD to 5 -- VIOLATION
+    bridge_i.udut.uori4    16 links   5285 ps   req  6774  peak  5894  guard 1178  margin   -298   PAD to 17 -- VIOLATION
+  own datapath ON THIS ROUTE.  build/gen/gcd_bench_gen_sizes.vh was measured somewhere else.
+  Re-derive it here:  hw/tighten_loop.sh gcd
+  or build without it: BD_SIZES=none hw/build_bench.sh gcd
+  No bitstream written.

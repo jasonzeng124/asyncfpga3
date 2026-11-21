@@ -1,0 +1,2431 @@
+
+ /----------------------------------------------------------------------------\
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
+ \----------------------------------------------------------------------------/
+ Yosys 0.62 (git sha1 7326bb7d6, g++ 11.4.0-1ubuntu1~22.04 -fPIC -O3)
+
+-- Running command `
+read_verilog -lib -specify /home/jayjay/dev2/lib/fpgatoolchain/openxc7/share/yosys/xilinx/cells_sim.v
+read_verilog -lib /home/jayjay/dev2/lib/fpgatoolchain/openxc7/share/yosys/xilinx/cells_xtra.v
+# BD_DEFINES passes -D flags through to the design sources only (not the
+# vendor cell models).  Used by hw/mult2_ps.v's BD_KEEP_OPERANDS.
+read_verilog  rtl/*.v hw/mult_ps.v
+synth_xilinx -family xc7 -flatten  -nosrl -nolutram -nobram -noclkbuf -top mult_ps -run begin:map_luts
+opt_expr -mux_undef -noclkinv
+abc -luts 2:2,3,6:5,10,20
+clean
+techmap -map +/xilinx/ff_map.v
+techmap -map +/xilinx/lut_map.v -map +/xilinx/cells_map.v -D LUT_WIDTH=6
+opt_lut_ins -tech xilinx
+synth_xilinx -family xc7 -flatten  -nosrl -nolutram -nobram -noclkbuf -top mult_ps -run finalize:
+write_json build/hw/mult_ps/mult_ps.json
+stat
+' --
+
+1. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/share/yosys/xilinx/cells_sim.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/share/yosys/xilinx/cells_sim.v' to AST representation.
+Generating RTLIL representation for module `\VCC'.
+Generating RTLIL representation for module `\GND'.
+Generating RTLIL representation for module `\IBUF'.
+Generating RTLIL representation for module `\IBUFG'.
+Generating RTLIL representation for module `\OBUF'.
+Generating RTLIL representation for module `\IOBUF'.
+Generating RTLIL representation for module `\OBUFT'.
+Generating RTLIL representation for module `\BUFG'.
+Generating RTLIL representation for module `\BUFGCTRL'.
+Generating RTLIL representation for module `\BUFHCE'.
+Generating RTLIL representation for module `\INV'.
+Generating RTLIL representation for module `\LUT1'.
+Generating RTLIL representation for module `\LUT2'.
+Generating RTLIL representation for module `\LUT3'.
+Generating RTLIL representation for module `\LUT4'.
+Generating RTLIL representation for module `\LUT5'.
+Generating RTLIL representation for module `\LUT6'.
+Generating RTLIL representation for module `\LUT6_2'.
+Generating RTLIL representation for module `\$__ABC9_LUT7'.
+Generating RTLIL representation for module `\$__ABC9_LUT8'.
+Generating RTLIL representation for module `\MUXCY'.
+Generating RTLIL representation for module `\MUXF5'.
+Generating RTLIL representation for module `\MUXF6'.
+Generating RTLIL representation for module `\MUXF7'.
+Generating RTLIL representation for module `\MUXF8'.
+Generating RTLIL representation for module `\MUXF9'.
+Generating RTLIL representation for module `\XORCY'.
+Generating RTLIL representation for module `\CARRY4'.
+Generating RTLIL representation for module `\CARRY8'.
+Generating RTLIL representation for module `\ORCY'.
+Generating RTLIL representation for module `\MULT_AND'.
+Generating RTLIL representation for module `\FDRE'.
+Generating RTLIL representation for module `\FDRE_1'.
+Generating RTLIL representation for module `\FDSE'.
+Generating RTLIL representation for module `\FDSE_1'.
+Generating RTLIL representation for module `\FDRSE'.
+Generating RTLIL representation for module `\FDRSE_1'.
+Generating RTLIL representation for module `\FDCE'.
+Generating RTLIL representation for module `\FDCE_1'.
+Generating RTLIL representation for module `\FDPE'.
+Generating RTLIL representation for module `\FDPE_1'.
+Generating RTLIL representation for module `\FDCPE'.
+Generating RTLIL representation for module `\FDCPE_1'.
+Generating RTLIL representation for module `\LDCE'.
+Generating RTLIL representation for module `\LDPE'.
+Generating RTLIL representation for module `\LDCPE'.
+Generating RTLIL representation for module `\AND2B1L'.
+Generating RTLIL representation for module `\OR2L'.
+Generating RTLIL representation for module `\RAM16X1S'.
+Generating RTLIL representation for module `\RAM16X1S_1'.
+Generating RTLIL representation for module `\RAM32X1S'.
+Generating RTLIL representation for module `\RAM32X1S_1'.
+Generating RTLIL representation for module `\RAM64X1S'.
+Generating RTLIL representation for module `\RAM64X1S_1'.
+Generating RTLIL representation for module `\RAM128X1S'.
+Generating RTLIL representation for module `\RAM128X1S_1'.
+Generating RTLIL representation for module `\RAM256X1S'.
+Generating RTLIL representation for module `\RAM512X1S'.
+Generating RTLIL representation for module `\RAM16X2S'.
+Generating RTLIL representation for module `\RAM32X2S'.
+Generating RTLIL representation for module `\RAM64X2S'.
+Generating RTLIL representation for module `\RAM16X4S'.
+Generating RTLIL representation for module `\RAM32X4S'.
+Generating RTLIL representation for module `\RAM16X8S'.
+Generating RTLIL representation for module `\RAM32X8S'.
+Generating RTLIL representation for module `\RAM16X1D'.
+Generating RTLIL representation for module `\RAM16X1D_1'.
+Generating RTLIL representation for module `\RAM32X1D'.
+Generating RTLIL representation for module `\RAM32X1D_1'.
+Generating RTLIL representation for module `\RAM64X1D'.
+Generating RTLIL representation for module `\RAM64X1D_1'.
+Generating RTLIL representation for module `\RAM128X1D'.
+Generating RTLIL representation for module `\RAM256X1D'.
+Generating RTLIL representation for module `\RAM32M'.
+Generating RTLIL representation for module `\RAM32M16'.
+Generating RTLIL representation for module `\RAM64M'.
+Generating RTLIL representation for module `\RAM64M8'.
+Generating RTLIL representation for module `\RAM32X16DR8'.
+Generating RTLIL representation for module `\RAM64X8SW'.
+Generating RTLIL representation for module `\ROM16X1'.
+Generating RTLIL representation for module `\ROM32X1'.
+Generating RTLIL representation for module `\ROM64X1'.
+Generating RTLIL representation for module `\ROM128X1'.
+Generating RTLIL representation for module `\ROM256X1'.
+Generating RTLIL representation for module `\SRL16'.
+Generating RTLIL representation for module `\SRL16E'.
+Generating RTLIL representation for module `\SRLC16'.
+Generating RTLIL representation for module `\SRLC16E'.
+Generating RTLIL representation for module `\SRLC32E'.
+Generating RTLIL representation for module `\CFGLUT5'.
+Generating RTLIL representation for module `\MULT18X18'.
+Generating RTLIL representation for module `\MULT18X18S'.
+Generating RTLIL representation for module `\MULT18X18SIO'.
+Generating RTLIL representation for module `\DSP48A'.
+Generating RTLIL representation for module `\DSP48A1'.
+Generating RTLIL representation for module `\DSP48'.
+Generating RTLIL representation for module `\DSP48E1'.
+Generating RTLIL representation for module `\RAMB18E1'.
+Generating RTLIL representation for module `\RAMB36E1'.
+Successfully finished Verilog frontend.
+
+2. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/share/yosys/xilinx/cells_xtra.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/share/yosys/xilinx/cells_xtra.v' to AST representation.
+Generating RTLIL representation for module `\RAMB4_S1'.
+Generating RTLIL representation for module `\RAMB4_S2'.
+Generating RTLIL representation for module `\RAMB4_S4'.
+Generating RTLIL representation for module `\RAMB4_S8'.
+Generating RTLIL representation for module `\RAMB4_S16'.
+Generating RTLIL representation for module `\RAMB4_S1_S1'.
+Generating RTLIL representation for module `\RAMB4_S1_S2'.
+Generating RTLIL representation for module `\RAMB4_S1_S4'.
+Generating RTLIL representation for module `\RAMB4_S1_S8'.
+Generating RTLIL representation for module `\RAMB4_S1_S16'.
+Generating RTLIL representation for module `\RAMB4_S2_S2'.
+Generating RTLIL representation for module `\RAMB4_S2_S4'.
+Generating RTLIL representation for module `\RAMB4_S2_S8'.
+Generating RTLIL representation for module `\RAMB4_S2_S16'.
+Generating RTLIL representation for module `\RAMB4_S4_S4'.
+Generating RTLIL representation for module `\RAMB4_S4_S8'.
+Generating RTLIL representation for module `\RAMB4_S4_S16'.
+Generating RTLIL representation for module `\RAMB4_S8_S8'.
+Generating RTLIL representation for module `\RAMB4_S8_S16'.
+Generating RTLIL representation for module `\RAMB4_S16_S16'.
+Generating RTLIL representation for module `\RAMB16_S1'.
+Generating RTLIL representation for module `\RAMB16_S2'.
+Generating RTLIL representation for module `\RAMB16_S4'.
+Generating RTLIL representation for module `\RAMB16_S9'.
+Generating RTLIL representation for module `\RAMB16_S18'.
+Generating RTLIL representation for module `\RAMB16_S36'.
+Generating RTLIL representation for module `\RAMB16_S1_S1'.
+Generating RTLIL representation for module `\RAMB16_S1_S2'.
+Generating RTLIL representation for module `\RAMB16_S1_S4'.
+Generating RTLIL representation for module `\RAMB16_S1_S9'.
+Generating RTLIL representation for module `\RAMB16_S1_S18'.
+Generating RTLIL representation for module `\RAMB16_S1_S36'.
+Generating RTLIL representation for module `\RAMB16_S2_S2'.
+Generating RTLIL representation for module `\RAMB16_S2_S4'.
+Generating RTLIL representation for module `\RAMB16_S2_S9'.
+Generating RTLIL representation for module `\RAMB16_S2_S18'.
+Generating RTLIL representation for module `\RAMB16_S2_S36'.
+Generating RTLIL representation for module `\RAMB16_S4_S4'.
+Generating RTLIL representation for module `\RAMB16_S4_S9'.
+Generating RTLIL representation for module `\RAMB16_S4_S18'.
+Generating RTLIL representation for module `\RAMB16_S4_S36'.
+Generating RTLIL representation for module `\RAMB16_S9_S9'.
+Generating RTLIL representation for module `\RAMB16_S9_S18'.
+Generating RTLIL representation for module `\RAMB16_S9_S36'.
+Generating RTLIL representation for module `\RAMB16_S18_S18'.
+Generating RTLIL representation for module `\RAMB16_S18_S36'.
+Generating RTLIL representation for module `\RAMB16_S36_S36'.
+Generating RTLIL representation for module `\RAMB16BWE_S18'.
+Generating RTLIL representation for module `\RAMB16BWE_S36'.
+Generating RTLIL representation for module `\RAMB16BWE_S18_S9'.
+Generating RTLIL representation for module `\RAMB16BWE_S18_S18'.
+Generating RTLIL representation for module `\RAMB16BWE_S36_S9'.
+Generating RTLIL representation for module `\RAMB16BWE_S36_S18'.
+Generating RTLIL representation for module `\RAMB16BWE_S36_S36'.
+Generating RTLIL representation for module `\RAMB16BWER'.
+Generating RTLIL representation for module `\RAMB8BWER'.
+Generating RTLIL representation for module `\FIFO16'.
+Generating RTLIL representation for module `\RAMB16'.
+Generating RTLIL representation for module `\RAMB32_S64_ECC'.
+Generating RTLIL representation for module `\FIFO18'.
+Generating RTLIL representation for module `\FIFO18_36'.
+Generating RTLIL representation for module `\FIFO36'.
+Generating RTLIL representation for module `\FIFO36_72'.
+Generating RTLIL representation for module `\RAMB18'.
+Generating RTLIL representation for module `\RAMB36'.
+Generating RTLIL representation for module `\RAMB18SDP'.
+Generating RTLIL representation for module `\RAMB36SDP'.
+Generating RTLIL representation for module `\FIFO18E1'.
+Generating RTLIL representation for module `\FIFO36E1'.
+Generating RTLIL representation for module `\FIFO18E2'.
+Generating RTLIL representation for module `\FIFO36E2'.
+Generating RTLIL representation for module `\RAMB18E2'.
+Generating RTLIL representation for module `\RAMB36E2'.
+Generating RTLIL representation for module `\URAM288'.
+Generating RTLIL representation for module `\URAM288_BASE'.
+Generating RTLIL representation for module `\DSP48E'.
+Generating RTLIL representation for module `\DSP48E2'.
+Generating RTLIL representation for module `\FDDRCPE'.
+Generating RTLIL representation for module `\FDDRRSE'.
+Generating RTLIL representation for module `\IFDDRCPE'.
+Generating RTLIL representation for module `\IFDDRRSE'.
+Generating RTLIL representation for module `\OFDDRCPE'.
+Generating RTLIL representation for module `\OFDDRRSE'.
+Generating RTLIL representation for module `\OFDDRTCPE'.
+Generating RTLIL representation for module `\OFDDRTRSE'.
+Generating RTLIL representation for module `\IDDR2'.
+Generating RTLIL representation for module `\ODDR2'.
+Generating RTLIL representation for module `\IDDR'.
+Generating RTLIL representation for module `\IDDR_2CLK'.
+Generating RTLIL representation for module `\ODDR'.
+Generating RTLIL representation for module `\IDELAYCTRL'.
+Generating RTLIL representation for module `\IDELAY'.
+Generating RTLIL representation for module `\ISERDES'.
+Generating RTLIL representation for module `\OSERDES'.
+Generating RTLIL representation for module `\IODELAY'.
+Generating RTLIL representation for module `\ISERDES_NODELAY'.
+Generating RTLIL representation for module `\IODELAYE1'.
+Generating RTLIL representation for module `\ISERDESE1'.
+Generating RTLIL representation for module `\OSERDESE1'.
+Generating RTLIL representation for module `\IDELAYE2'.
+Generating RTLIL representation for module `\ODELAYE2'.
+Generating RTLIL representation for module `\ISERDESE2'.
+Generating RTLIL representation for module `\OSERDESE2'.
+Generating RTLIL representation for module `\PHASER_IN'.
+Generating RTLIL representation for module `\PHASER_IN_PHY'.
+Generating RTLIL representation for module `\PHASER_OUT'.
+Generating RTLIL representation for module `\PHASER_OUT_PHY'.
+Generating RTLIL representation for module `\PHASER_REF'.
+Generating RTLIL representation for module `\PHY_CONTROL'.
+Generating RTLIL representation for module `\IDDRE1'.
+Generating RTLIL representation for module `\ODDRE1'.
+Generating RTLIL representation for module `\IDELAYE3'.
+Generating RTLIL representation for module `\ODELAYE3'.
+Generating RTLIL representation for module `\ISERDESE3'.
+Generating RTLIL representation for module `\OSERDESE3'.
+Generating RTLIL representation for module `\BITSLICE_CONTROL'.
+Generating RTLIL representation for module `\RIU_OR'.
+Generating RTLIL representation for module `\RX_BITSLICE'.
+Generating RTLIL representation for module `\RXTX_BITSLICE'.
+Generating RTLIL representation for module `\TX_BITSLICE'.
+Generating RTLIL representation for module `\TX_BITSLICE_TRI'.
+Generating RTLIL representation for module `\IODELAY2'.
+Generating RTLIL representation for module `\IODRP2'.
+Generating RTLIL representation for module `\IODRP2_MCB'.
+Generating RTLIL representation for module `\ISERDES2'.
+Generating RTLIL representation for module `\OSERDES2'.
+Generating RTLIL representation for module `\IBUF_DLY_ADJ'.
+Generating RTLIL representation for module `\IBUF_IBUFDISABLE'.
+Generating RTLIL representation for module `\IBUF_INTERMDISABLE'.
+Generating RTLIL representation for module `\IBUF_ANALOG'.
+Generating RTLIL representation for module `\IBUFE3'.
+Generating RTLIL representation for module `\IBUFDS'.
+Generating RTLIL representation for module `\IBUFDS_DLY_ADJ'.
+Generating RTLIL representation for module `\IBUFDS_IBUFDISABLE'.
+Generating RTLIL representation for module `\IBUFDS_INTERMDISABLE'.
+Generating RTLIL representation for module `\IBUFDS_DIFF_OUT'.
+Generating RTLIL representation for module `\IBUFDS_DIFF_OUT_IBUFDISABLE'.
+Generating RTLIL representation for module `\IBUFDS_DIFF_OUT_INTERMDISABLE'.
+Generating RTLIL representation for module `\IBUFDSE3'.
+Generating RTLIL representation for module `\IBUFDS_DPHY'.
+Generating RTLIL representation for module `\IBUFGDS'.
+Generating RTLIL representation for module `\IBUFGDS_DIFF_OUT'.
+Generating RTLIL representation for module `\IOBUF_DCIEN'.
+Generating RTLIL representation for module `\IOBUF_INTERMDISABLE'.
+Generating RTLIL representation for module `\IOBUFE3'.
+Generating RTLIL representation for module `\IOBUFDS'.
+Generating RTLIL representation for module `\IOBUFDS_DCIEN'.
+Generating RTLIL representation for module `\IOBUFDS_INTERMDISABLE'.
+Generating RTLIL representation for module `\IOBUFDS_DIFF_OUT'.
+Generating RTLIL representation for module `\IOBUFDS_DIFF_OUT_DCIEN'.
+Generating RTLIL representation for module `\IOBUFDS_DIFF_OUT_INTERMDISABLE'.
+Generating RTLIL representation for module `\IOBUFDSE3'.
+Generating RTLIL representation for module `\OBUFDS'.
+Generating RTLIL representation for module `\OBUFDS_DPHY'.
+Generating RTLIL representation for module `\OBUFTDS'.
+Generating RTLIL representation for module `\KEEPER'.
+Generating RTLIL representation for module `\PULLDOWN'.
+Generating RTLIL representation for module `\PULLUP'.
+Generating RTLIL representation for module `\DCIRESET'.
+Generating RTLIL representation for module `\HPIO_VREF'.
+Generating RTLIL representation for module `\BUFGCE'.
+Generating RTLIL representation for module `\BUFGCE_1'.
+Generating RTLIL representation for module `\BUFGMUX'.
+Generating RTLIL representation for module `\BUFGMUX_1'.
+Generating RTLIL representation for module `\BUFGMUX_CTRL'.
+Generating RTLIL representation for module `\BUFGMUX_VIRTEX4'.
+Generating RTLIL representation for module `\BUFG_GT'.
+Generating RTLIL representation for module `\BUFG_GT_SYNC'.
+Generating RTLIL representation for module `\BUFG_PS'.
+Generating RTLIL representation for module `\BUFGCE_DIV'.
+Generating RTLIL representation for module `\BUFH'.
+Generating RTLIL representation for module `\BUFIO2'.
+Generating RTLIL representation for module `\BUFIO2_2CLK'.
+Generating RTLIL representation for module `\BUFIO2FB'.
+Generating RTLIL representation for module `\BUFPLL'.
+Generating RTLIL representation for module `\BUFPLL_MCB'.
+Generating RTLIL representation for module `\BUFIO'.
+Generating RTLIL representation for module `\BUFIODQS'.
+Generating RTLIL representation for module `\BUFR'.
+Generating RTLIL representation for module `\BUFMR'.
+Generating RTLIL representation for module `\BUFMRCE'.
+Generating RTLIL representation for module `\DCM'.
+Generating RTLIL representation for module `\DCM_SP'.
+Generating RTLIL representation for module `\DCM_CLKGEN'.
+Generating RTLIL representation for module `\DCM_ADV'.
+Generating RTLIL representation for module `\DCM_BASE'.
+Generating RTLIL representation for module `\DCM_PS'.
+Generating RTLIL representation for module `\PMCD'.
+Generating RTLIL representation for module `\PLL_ADV'.
+Generating RTLIL representation for module `\PLL_BASE'.
+Generating RTLIL representation for module `\MMCM_ADV'.
+Generating RTLIL representation for module `\MMCM_BASE'.
+Generating RTLIL representation for module `\MMCME2_ADV'.
+Generating RTLIL representation for module `\MMCME2_BASE'.
+Generating RTLIL representation for module `\PLLE2_ADV'.
+Generating RTLIL representation for module `\PLLE2_BASE'.
+Generating RTLIL representation for module `\MMCME3_ADV'.
+Generating RTLIL representation for module `\MMCME3_BASE'.
+Generating RTLIL representation for module `\PLLE3_ADV'.
+Generating RTLIL representation for module `\PLLE3_BASE'.
+Generating RTLIL representation for module `\MMCME4_ADV'.
+Generating RTLIL representation for module `\MMCME4_BASE'.
+Generating RTLIL representation for module `\PLLE4_ADV'.
+Generating RTLIL representation for module `\PLLE4_BASE'.
+Generating RTLIL representation for module `\BUFT'.
+Generating RTLIL representation for module `\IN_FIFO'.
+Generating RTLIL representation for module `\OUT_FIFO'.
+Generating RTLIL representation for module `\HARD_SYNC'.
+Generating RTLIL representation for module `\STARTUP_SPARTAN3'.
+Generating RTLIL representation for module `\STARTUP_SPARTAN3E'.
+Generating RTLIL representation for module `\STARTUP_SPARTAN3A'.
+Generating RTLIL representation for module `\STARTUP_SPARTAN6'.
+Generating RTLIL representation for module `\STARTUP_VIRTEX4'.
+Generating RTLIL representation for module `\STARTUP_VIRTEX5'.
+Generating RTLIL representation for module `\STARTUP_VIRTEX6'.
+Generating RTLIL representation for module `\STARTUPE2'.
+Generating RTLIL representation for module `\STARTUPE3'.
+Generating RTLIL representation for module `\CAPTURE_SPARTAN3'.
+Generating RTLIL representation for module `\CAPTURE_SPARTAN3A'.
+Generating RTLIL representation for module `\CAPTURE_VIRTEX4'.
+Generating RTLIL representation for module `\CAPTURE_VIRTEX5'.
+Generating RTLIL representation for module `\CAPTURE_VIRTEX6'.
+Generating RTLIL representation for module `\CAPTUREE2'.
+Generating RTLIL representation for module `\ICAP_SPARTAN3A'.
+Generating RTLIL representation for module `\ICAP_SPARTAN6'.
+Generating RTLIL representation for module `\ICAP_VIRTEX4'.
+Generating RTLIL representation for module `\ICAP_VIRTEX5'.
+Generating RTLIL representation for module `\ICAP_VIRTEX6'.
+Generating RTLIL representation for module `\ICAPE2'.
+Generating RTLIL representation for module `\ICAPE3'.
+Generating RTLIL representation for module `\BSCAN_SPARTAN3'.
+Generating RTLIL representation for module `\BSCAN_SPARTAN3A'.
+Generating RTLIL representation for module `\BSCAN_SPARTAN6'.
+Generating RTLIL representation for module `\BSCAN_VIRTEX4'.
+Generating RTLIL representation for module `\BSCAN_VIRTEX5'.
+Generating RTLIL representation for module `\BSCAN_VIRTEX6'.
+Generating RTLIL representation for module `\BSCANE2'.
+Generating RTLIL representation for module `\DNA_PORT'.
+Generating RTLIL representation for module `\DNA_PORTE2'.
+Generating RTLIL representation for module `\FRAME_ECC_VIRTEX4'.
+Generating RTLIL representation for module `\FRAME_ECC_VIRTEX5'.
+Generating RTLIL representation for module `\FRAME_ECC_VIRTEX6'.
+Generating RTLIL representation for module `\FRAME_ECCE2'.
+Generating RTLIL representation for module `\FRAME_ECCE3'.
+Generating RTLIL representation for module `\FRAME_ECCE4'.
+Generating RTLIL representation for module `\USR_ACCESS_VIRTEX4'.
+Generating RTLIL representation for module `\USR_ACCESS_VIRTEX5'.
+Generating RTLIL representation for module `\USR_ACCESS_VIRTEX6'.
+Generating RTLIL representation for module `\USR_ACCESSE2'.
+Generating RTLIL representation for module `\POST_CRC_INTERNAL'.
+Generating RTLIL representation for module `\SUSPEND_SYNC'.
+Generating RTLIL representation for module `\KEY_CLEAR'.
+Generating RTLIL representation for module `\MASTER_JTAG'.
+Generating RTLIL representation for module `\SPI_ACCESS'.
+Generating RTLIL representation for module `\EFUSE_USR'.
+Generating RTLIL representation for module `\SYSMON'.
+Generating RTLIL representation for module `\XADC'.
+Generating RTLIL representation for module `\SYSMONE1'.
+Generating RTLIL representation for module `\SYSMONE4'.
+Generating RTLIL representation for module `\GTPA1_DUAL'.
+Generating RTLIL representation for module `\GT11_CUSTOM'.
+Generating RTLIL representation for module `\GT11_DUAL'.
+Generating RTLIL representation for module `\GT11CLK'.
+Generating RTLIL representation for module `\GT11CLK_MGT'.
+Generating RTLIL representation for module `\GTP_DUAL'.
+Generating RTLIL representation for module `\GTX_DUAL'.
+Generating RTLIL representation for module `\CRC32'.
+Generating RTLIL representation for module `\CRC64'.
+Generating RTLIL representation for module `\GTHE1_QUAD'.
+Generating RTLIL representation for module `\GTXE1'.
+Generating RTLIL representation for module `\IBUFDS_GTXE1'.
+Generating RTLIL representation for module `\IBUFDS_GTHE1'.
+Generating RTLIL representation for module `\GTHE2_CHANNEL'.
+Generating RTLIL representation for module `\GTHE2_COMMON'.
+Generating RTLIL representation for module `\GTPE2_CHANNEL'.
+Generating RTLIL representation for module `\GTPE2_COMMON'.
+Generating RTLIL representation for module `\GTXE2_CHANNEL'.
+Generating RTLIL representation for module `\GTXE2_COMMON'.
+Generating RTLIL representation for module `\IBUFDS_GTE2'.
+Generating RTLIL representation for module `\GTHE3_CHANNEL'.
+Generating RTLIL representation for module `\GTHE3_COMMON'.
+Generating RTLIL representation for module `\GTYE3_CHANNEL'.
+Generating RTLIL representation for module `\GTYE3_COMMON'.
+Generating RTLIL representation for module `\IBUFDS_GTE3'.
+Generating RTLIL representation for module `\OBUFDS_GTE3'.
+Generating RTLIL representation for module `\OBUFDS_GTE3_ADV'.
+Generating RTLIL representation for module `\GTHE4_CHANNEL'.
+Generating RTLIL representation for module `\GTHE4_COMMON'.
+Generating RTLIL representation for module `\GTYE4_CHANNEL'.
+Generating RTLIL representation for module `\GTYE4_COMMON'.
+Generating RTLIL representation for module `\IBUFDS_GTE4'.
+Generating RTLIL representation for module `\OBUFDS_GTE4'.
+Generating RTLIL representation for module `\OBUFDS_GTE4_ADV'.
+Generating RTLIL representation for module `\GTM_DUAL'.
+Generating RTLIL representation for module `\IBUFDS_GTM'.
+Generating RTLIL representation for module `\OBUFDS_GTM'.
+Generating RTLIL representation for module `\OBUFDS_GTM_ADV'.
+Generating RTLIL representation for module `\HSDAC'.
+Generating RTLIL representation for module `\HSADC'.
+Generating RTLIL representation for module `\RFDAC'.
+Generating RTLIL representation for module `\RFADC'.
+Generating RTLIL representation for module `\PCIE_A1'.
+Generating RTLIL representation for module `\PCIE_EP'.
+Generating RTLIL representation for module `\PCIE_2_0'.
+Generating RTLIL representation for module `\PCIE_2_1'.
+Generating RTLIL representation for module `\PCIE_3_0'.
+Generating RTLIL representation for module `\PCIE_3_1'.
+Generating RTLIL representation for module `\PCIE40E4'.
+Generating RTLIL representation for module `\PCIE4CE4'.
+Generating RTLIL representation for module `\EMAC'.
+Generating RTLIL representation for module `\TEMAC'.
+Generating RTLIL representation for module `\TEMAC_SINGLE'.
+Generating RTLIL representation for module `\CMAC'.
+Generating RTLIL representation for module `\CMACE4'.
+Generating RTLIL representation for module `\MCB'.
+Generating RTLIL representation for module `\HBM_REF_CLK'.
+Generating RTLIL representation for module `\HBM_SNGLBLI_INTF_APB'.
+Generating RTLIL representation for module `\HBM_SNGLBLI_INTF_AXI'.
+Generating RTLIL representation for module `\HBM_ONE_STACK_INTF'.
+Generating RTLIL representation for module `\HBM_TWO_STACK_INTF'.
+Generating RTLIL representation for module `\PPC405_ADV'.
+Generating RTLIL representation for module `\PPC440'.
+Generating RTLIL representation for module `\PS7'.
+Generating RTLIL representation for module `\PS8'.
+Generating RTLIL representation for module `\ILKN'.
+Generating RTLIL representation for module `\ILKNE4'.
+Generating RTLIL representation for module `\VCU'.
+Generating RTLIL representation for module `\FE'.
+Successfully finished Verilog frontend.
+
+3. Executing Verilog-2005 frontend: rtl/bd_arb.v
+Parsing Verilog input from `rtl/bd_arb.v' to AST representation.
+Generating RTLIL representation for module `\bd_arbcell'.
+Generating RTLIL representation for module `\bd_arbiter'.
+Successfully finished Verilog frontend.
+
+4. Executing Verilog-2005 frontend: rtl/bd_ce.v
+Parsing Verilog input from `rtl/bd_ce.v' to AST representation.
+Generating RTLIL representation for module `\bd_c2'.
+Generating RTLIL representation for module `\bd_c2_set'.
+Generating RTLIL representation for module `\bd_c2n'.
+Generating RTLIL representation for module `\bd_c2n_set'.
+Generating RTLIL representation for module `\bd_c3'.
+Generating RTLIL representation for module `\bd_c4'.
+Generating RTLIL representation for module `\bd_c2_norst'.
+Generating RTLIL representation for module `\bd_c3_norst'.
+Generating RTLIL representation for module `\bd_ctree'.
+Successfully finished Verilog frontend.
+
+5. Executing Verilog-2005 frontend: rtl/bd_ctl.v
+Parsing Verilog input from `rtl/bd_ctl.v' to AST representation.
+Generating RTLIL representation for module `\bd_fork'.
+Generating RTLIL representation for module `\bd_join'.
+Generating RTLIL representation for module `\bd_steer'.
+Generating RTLIL representation for module `\bd_bd2dr'.
+Generating RTLIL representation for module `\bd_dr2bd'.
+Successfully finished Verilog frontend.
+
+6. Executing Verilog-2005 frontend: rtl/bd_end.v
+Parsing Verilog input from `rtl/bd_end.v' to AST representation.
+Generating RTLIL representation for module `\bd_src'.
+Generating RTLIL representation for module `\bd_snk'.
+Successfully finished Verilog frontend.
+
+7. Executing Verilog-2005 frontend: rtl/bd_latch.v
+Parsing Verilog input from `rtl/bd_latch.v' to AST representation.
+Generating RTLIL representation for module `\bd_latch'.
+Generating RTLIL representation for module `\bd_latch_rst'.
+Generating RTLIL representation for module `\bd_delay'.
+Generating RTLIL representation for module `\bd_datamux'.
+Successfully finished Verilog frontend.
+
+8. Executing Verilog-2005 frontend: rtl/bd_link.v
+Parsing Verilog input from `rtl/bd_link.v' to AST representation.
+Generating RTLIL representation for module `\bd_link_ctl'.
+Generating RTLIL representation for module `\bd_link_pair'.
+Generating RTLIL representation for module `\bd_link'.
+Generating RTLIL representation for module `\bd_pipe'.
+Successfully finished Verilog frontend.
+
+9. Executing Verilog-2005 frontend: rtl/bd_mem.v
+Parsing Verilog input from `rtl/bd_mem.v' to AST representation.
+Generating RTLIL representation for module `\bd_mem'.
+Successfully finished Verilog frontend.
+
+10. Executing Verilog-2005 frontend: rtl/bd_merge.v
+Parsing Verilog input from `rtl/bd_merge.v' to AST representation.
+Generating RTLIL representation for module `\bd_merge'.
+Successfully finished Verilog frontend.
+
+11. Executing Verilog-2005 frontend: rtl/bd_mux.v
+Parsing Verilog input from `rtl/bd_mux.v' to AST representation.
+Generating RTLIL representation for module `\bd_mux'.
+Successfully finished Verilog frontend.
+
+12. Executing Verilog-2005 frontend: hw/mult_ps.v
+Parsing Verilog input from `hw/mult_ps.v' to AST representation.
+Generating RTLIL representation for module `\mult_ps'.
+Generating RTLIL representation for module `\mult_ps_bridge'.
+Successfully finished Verilog frontend.
+
+13. Executing SYNTH_XILINX pass.
+
+13.1. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v' to AST representation.
+Replacing existing blackbox module `\VCC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:24.1-26.10.
+Generating RTLIL representation for module `\VCC'.
+Replacing existing blackbox module `\GND' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:28.1-30.10.
+Generating RTLIL representation for module `\GND'.
+Replacing existing blackbox module `\IBUF' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:32.1-46.10.
+Generating RTLIL representation for module `\IBUF'.
+Replacing existing blackbox module `\IBUFG' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:48.1-57.10.
+Generating RTLIL representation for module `\IBUFG'.
+Replacing existing blackbox module `\OBUF' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:59.1-71.10.
+Generating RTLIL representation for module `\OBUF'.
+Replacing existing blackbox module `\IOBUF' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:73.1-90.10.
+Generating RTLIL representation for module `\IOBUF'.
+Replacing existing blackbox module `\OBUFT' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:92.1-106.10.
+Generating RTLIL representation for module `\OBUFT'.
+Replacing existing blackbox module `\BUFG' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:108.1-117.10.
+Generating RTLIL representation for module `\BUFG'.
+Replacing existing blackbox module `\BUFGCTRL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:119.1-153.10.
+Generating RTLIL representation for module `\BUFGCTRL'.
+Replacing existing blackbox module `\BUFHCE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:155.1-168.10.
+Generating RTLIL representation for module `\BUFHCE'.
+Replacing existing blackbox module `\INV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:178.1-187.10.
+Generating RTLIL representation for module `\INV'.
+Replacing existing blackbox module `\LUT1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:190.1-196.10.
+Generating RTLIL representation for module `\LUT1'.
+Replacing existing blackbox module `\LUT2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:199.1-207.10.
+Generating RTLIL representation for module `\LUT2'.
+Replacing existing blackbox module `\LUT3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:210.1-220.10.
+Generating RTLIL representation for module `\LUT3'.
+Replacing existing blackbox module `\LUT4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:223.1-235.10.
+Generating RTLIL representation for module `\LUT4'.
+Replacing existing blackbox module `\LUT5' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:238.1-252.10.
+Generating RTLIL representation for module `\LUT5'.
+Replacing existing blackbox module `\LUT6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:258.1-274.10.
+Generating RTLIL representation for module `\LUT6'.
+Replacing existing blackbox module `\LUT6_2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:276.1-290.10.
+Generating RTLIL representation for module `\LUT6_2'.
+Replacing existing blackbox module `\$__ABC9_LUT7' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:295.1-308.10.
+Generating RTLIL representation for module `\$__ABC9_LUT7'.
+Replacing existing blackbox module `\$__ABC9_LUT8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:313.1-327.10.
+Generating RTLIL representation for module `\$__ABC9_LUT8'.
+Replacing existing blackbox module `\MUXCY' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:329.1-331.10.
+Generating RTLIL representation for module `\MUXCY'.
+Replacing existing blackbox module `\MUXF5' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:333.1-335.10.
+Generating RTLIL representation for module `\MUXF5'.
+Replacing existing blackbox module `\MUXF6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:337.1-339.10.
+Generating RTLIL representation for module `\MUXF6'.
+Replacing existing module `\MUXF7' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:342.1-350.10.
+Generating RTLIL representation for module `\MUXF7'.
+Replacing existing module `\MUXF8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:353.1-361.10.
+Generating RTLIL representation for module `\MUXF8'.
+Replacing existing blackbox module `\MUXF9' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:363.1-365.10.
+Generating RTLIL representation for module `\MUXF9'.
+Replacing existing blackbox module `\XORCY' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:367.1-369.10.
+Generating RTLIL representation for module `\XORCY'.
+Replacing existing module `\CARRY4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:372.1-441.10.
+Generating RTLIL representation for module `\CARRY4'.
+Replacing existing blackbox module `\CARRY8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:443.1-461.10.
+Generating RTLIL representation for module `\CARRY8'.
+Replacing existing blackbox module `\ORCY' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:463.1-465.10.
+Generating RTLIL representation for module `\ORCY'.
+Replacing existing blackbox module `\MULT_AND' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:467.1-469.10.
+Generating RTLIL representation for module `\MULT_AND'.
+Replacing existing module `\FDRE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:476.1-514.10.
+Generating RTLIL representation for module `\FDRE'.
+Replacing existing module `\FDRE_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:517.1-538.10.
+Generating RTLIL representation for module `\FDRE_1'.
+Replacing existing module `\FDSE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:541.1-579.10.
+Generating RTLIL representation for module `\FDSE'.
+Replacing existing module `\FDSE_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:582.1-604.10.
+Generating RTLIL representation for module `\FDSE_1'.
+Replacing existing blackbox module `\FDRSE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:606.1-639.10.
+Generating RTLIL representation for module `\FDRSE'.
+Replacing existing blackbox module `\FDRSE_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:641.1-674.10.
+Generating RTLIL representation for module `\FDRSE_1'.
+Replacing existing module `\FDCE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:677.1-723.10.
+Generating RTLIL representation for module `\FDCE'.
+Replacing existing module `\FDCE_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:726.1-754.10.
+Generating RTLIL representation for module `\FDCE_1'.
+Replacing existing module `\FDPE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:757.1-802.10.
+Generating RTLIL representation for module `\FDPE'.
+Replacing existing module `\FDPE_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:805.1-833.10.
+Generating RTLIL representation for module `\FDPE_1'.
+Replacing existing blackbox module `\FDCPE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:835.1-878.10.
+Generating RTLIL representation for module `\FDCPE'.
+Replacing existing blackbox module `\FDCPE_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:880.1-923.10.
+Generating RTLIL representation for module `\FDCPE_1'.
+Replacing existing blackbox module `\LDCE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:925.1-945.10.
+Generating RTLIL representation for module `\LDCE'.
+Replacing existing blackbox module `\LDPE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:947.1-967.10.
+Generating RTLIL representation for module `\LDPE'.
+Replacing existing blackbox module `\LDCPE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:969.1-998.10.
+Generating RTLIL representation for module `\LDCPE'.
+Replacing existing blackbox module `\AND2B1L' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1000.1-1008.10.
+Generating RTLIL representation for module `\AND2B1L'.
+Replacing existing blackbox module `\OR2L' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1010.1-1018.10.
+Generating RTLIL representation for module `\OR2L'.
+Replacing existing blackbox module `\RAM16X1S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1024.1-1040.10.
+Generating RTLIL representation for module `\RAM16X1S'.
+Replacing existing blackbox module `\RAM16X1S_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1042.1-1058.10.
+Generating RTLIL representation for module `\RAM16X1S_1'.
+Replacing existing blackbox module `\RAM32X1S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1060.1-1076.10.
+Generating RTLIL representation for module `\RAM32X1S'.
+Replacing existing blackbox module `\RAM32X1S_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1078.1-1094.10.
+Generating RTLIL representation for module `\RAM32X1S_1'.
+Replacing existing blackbox module `\RAM64X1S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1096.1-1112.10.
+Generating RTLIL representation for module `\RAM64X1S'.
+Replacing existing blackbox module `\RAM64X1S_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1114.1-1130.10.
+Generating RTLIL representation for module `\RAM64X1S_1'.
+Replacing existing blackbox module `\RAM128X1S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1132.1-1148.10.
+Generating RTLIL representation for module `\RAM128X1S'.
+Replacing existing blackbox module `\RAM128X1S_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1150.1-1166.10.
+Generating RTLIL representation for module `\RAM128X1S_1'.
+Replacing existing blackbox module `\RAM256X1S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1168.1-1183.10.
+Generating RTLIL representation for module `\RAM256X1S'.
+Replacing existing blackbox module `\RAM512X1S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1185.1-1200.10.
+Generating RTLIL representation for module `\RAM512X1S'.
+Replacing existing blackbox module `\RAM16X2S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1204.1-1227.10.
+Generating RTLIL representation for module `\RAM16X2S'.
+Replacing existing blackbox module `\RAM32X2S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1229.1-1252.10.
+Generating RTLIL representation for module `\RAM32X2S'.
+Replacing existing blackbox module `\RAM64X2S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1254.1-1277.10.
+Generating RTLIL representation for module `\RAM64X2S'.
+Replacing existing blackbox module `\RAM16X4S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1279.1-1310.10.
+Generating RTLIL representation for module `\RAM16X4S'.
+Replacing existing blackbox module `\RAM32X4S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1312.1-1343.10.
+Generating RTLIL representation for module `\RAM32X4S'.
+Replacing existing blackbox module `\RAM16X8S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1345.1-1392.10.
+Generating RTLIL representation for module `\RAM16X8S'.
+Replacing existing blackbox module `\RAM32X8S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1394.1-1441.10.
+Generating RTLIL representation for module `\RAM32X8S'.
+Replacing existing blackbox module `\RAM16X1D' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1445.1-1464.10.
+Generating RTLIL representation for module `\RAM16X1D'.
+Replacing existing blackbox module `\RAM16X1D_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1466.1-1485.10.
+Generating RTLIL representation for module `\RAM16X1D_1'.
+Replacing existing module `\RAM32X1D' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1488.1-1540.10.
+Generating RTLIL representation for module `\RAM32X1D'.
+Replacing existing module `\RAM32X1D_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1543.1-1590.10.
+Generating RTLIL representation for module `\RAM32X1D_1'.
+Replacing existing module `\RAM64X1D' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1593.1-1649.10.
+Generating RTLIL representation for module `\RAM64X1D'.
+Replacing existing blackbox module `\RAM64X1D_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1651.1-1697.10.
+Generating RTLIL representation for module `\RAM64X1D_1'.
+Replacing existing module `\RAM128X1D' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1700.1-1759.10.
+Generating RTLIL representation for module `\RAM128X1D'.
+Replacing existing blackbox module `\RAM256X1D' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1761.1-1777.10.
+Generating RTLIL representation for module `\RAM256X1D'.
+Replacing existing module `\RAM32M' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1782.1-1884.10.
+Generating RTLIL representation for module `\RAM32M'.
+Replacing existing blackbox module `\RAM32M16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1886.1-1953.10.
+Generating RTLIL representation for module `\RAM32M16'.
+Replacing existing module `\RAM64M' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:1956.1-2040.10.
+Generating RTLIL representation for module `\RAM64M'.
+Replacing existing blackbox module `\RAM64M8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2042.1-2109.10.
+Generating RTLIL representation for module `\RAM64M8'.
+Replacing existing blackbox module `\RAM32X16DR8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2111.1-2157.10.
+Generating RTLIL representation for module `\RAM32X16DR8'.
+Replacing existing blackbox module `\RAM64X8SW' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2159.1-2208.10.
+Generating RTLIL representation for module `\RAM64X8SW'.
+Replacing existing blackbox module `\ROM16X1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2212.1-2218.10.
+Generating RTLIL representation for module `\ROM16X1'.
+Replacing existing blackbox module `\ROM32X1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2220.1-2226.10.
+Generating RTLIL representation for module `\ROM32X1'.
+Replacing existing blackbox module `\ROM64X1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2228.1-2234.10.
+Generating RTLIL representation for module `\ROM64X1'.
+Replacing existing blackbox module `\ROM128X1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2236.1-2242.10.
+Generating RTLIL representation for module `\ROM128X1'.
+Replacing existing blackbox module `\ROM256X1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2244.1-2250.10.
+Generating RTLIL representation for module `\ROM256X1'.
+Replacing existing module `\SRL16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2255.1-2278.10.
+Generating RTLIL representation for module `\SRL16'.
+Replacing existing module `\SRL16E' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2281.1-2316.10.
+Generating RTLIL representation for module `\SRL16E'.
+Replacing existing module `\SRLC16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2319.1-2346.10.
+Generating RTLIL representation for module `\SRLC16'.
+Replacing existing module `\SRLC16E' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2349.1-2389.10.
+Generating RTLIL representation for module `\SRLC16E'.
+Replacing existing module `\SRLC32E' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2392.1-2434.10.
+Generating RTLIL representation for module `\SRLC32E'.
+Replacing existing blackbox module `\CFGLUT5' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2436.1-2459.10.
+Generating RTLIL representation for module `\CFGLUT5'.
+Replacing existing blackbox module `\MULT18X18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2467.1-2475.10.
+Generating RTLIL representation for module `\MULT18X18'.
+Replacing existing blackbox module `\MULT18X18S' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2479.1-2495.10.
+Generating RTLIL representation for module `\MULT18X18S'.
+Replacing existing blackbox module `\MULT18X18SIO' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2499.1-2566.10.
+Generating RTLIL representation for module `\MULT18X18SIO'.
+Replacing existing blackbox module `\DSP48A' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2570.1-2666.10.
+Generating RTLIL representation for module `\DSP48A'.
+Replacing existing blackbox module `\DSP48A1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2670.1-2964.10.
+Generating RTLIL representation for module `\DSP48A1'.
+Replacing existing blackbox module `\DSP48' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:2966.1-3194.10.
+Generating RTLIL representation for module `\DSP48'.
+Replacing existing blackbox module `\DSP48E1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:3208.1-3951.10.
+Generating RTLIL representation for module `\DSP48E1'.
+Replacing existing blackbox module `\RAMB18E1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:3957.1-4133.10.
+Generating RTLIL representation for module `\RAMB18E1'.
+Replacing existing blackbox module `\RAMB36E1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_sim.v:4135.1-4397.10.
+Generating RTLIL representation for module `\RAMB36E1'.
+Successfully finished Verilog frontend.
+
+13.2. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v' to AST representation.
+Replacing existing blackbox module `\RAMB4_S1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3.1-28.10.
+Generating RTLIL representation for module `\RAMB4_S1'.
+Replacing existing blackbox module `\RAMB4_S2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:30.1-55.10.
+Generating RTLIL representation for module `\RAMB4_S2'.
+Replacing existing blackbox module `\RAMB4_S4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:57.1-82.10.
+Generating RTLIL representation for module `\RAMB4_S4'.
+Replacing existing blackbox module `\RAMB4_S8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:84.1-109.10.
+Generating RTLIL representation for module `\RAMB4_S8'.
+Replacing existing blackbox module `\RAMB4_S16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:111.1-136.10.
+Generating RTLIL representation for module `\RAMB4_S16'.
+Replacing existing blackbox module `\RAMB4_S1_S1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:138.1-172.10.
+Generating RTLIL representation for module `\RAMB4_S1_S1'.
+Replacing existing blackbox module `\RAMB4_S1_S2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:174.1-208.10.
+Generating RTLIL representation for module `\RAMB4_S1_S2'.
+Replacing existing blackbox module `\RAMB4_S1_S4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:210.1-244.10.
+Generating RTLIL representation for module `\RAMB4_S1_S4'.
+Replacing existing blackbox module `\RAMB4_S1_S8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:246.1-280.10.
+Generating RTLIL representation for module `\RAMB4_S1_S8'.
+Replacing existing blackbox module `\RAMB4_S1_S16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:282.1-316.10.
+Generating RTLIL representation for module `\RAMB4_S1_S16'.
+Replacing existing blackbox module `\RAMB4_S2_S2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:318.1-352.10.
+Generating RTLIL representation for module `\RAMB4_S2_S2'.
+Replacing existing blackbox module `\RAMB4_S2_S4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:354.1-388.10.
+Generating RTLIL representation for module `\RAMB4_S2_S4'.
+Replacing existing blackbox module `\RAMB4_S2_S8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:390.1-424.10.
+Generating RTLIL representation for module `\RAMB4_S2_S8'.
+Replacing existing blackbox module `\RAMB4_S2_S16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:426.1-460.10.
+Generating RTLIL representation for module `\RAMB4_S2_S16'.
+Replacing existing blackbox module `\RAMB4_S4_S4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:462.1-496.10.
+Generating RTLIL representation for module `\RAMB4_S4_S4'.
+Replacing existing blackbox module `\RAMB4_S4_S8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:498.1-532.10.
+Generating RTLIL representation for module `\RAMB4_S4_S8'.
+Replacing existing blackbox module `\RAMB4_S4_S16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:534.1-568.10.
+Generating RTLIL representation for module `\RAMB4_S4_S16'.
+Replacing existing blackbox module `\RAMB4_S8_S8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:570.1-604.10.
+Generating RTLIL representation for module `\RAMB4_S8_S8'.
+Replacing existing blackbox module `\RAMB4_S8_S16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:606.1-640.10.
+Generating RTLIL representation for module `\RAMB4_S8_S16'.
+Replacing existing blackbox module `\RAMB4_S16_S16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:642.1-676.10.
+Generating RTLIL representation for module `\RAMB4_S16_S16'.
+Replacing existing blackbox module `\RAMB16_S1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:678.1-754.10.
+Generating RTLIL representation for module `\RAMB16_S1'.
+Replacing existing blackbox module `\RAMB16_S2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:756.1-832.10.
+Generating RTLIL representation for module `\RAMB16_S2'.
+Replacing existing blackbox module `\RAMB16_S4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:834.1-910.10.
+Generating RTLIL representation for module `\RAMB16_S4'.
+Replacing existing blackbox module `\RAMB16_S9' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:912.1-998.10.
+Generating RTLIL representation for module `\RAMB16_S9'.
+Replacing existing blackbox module `\RAMB16_S18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1000.1-1086.10.
+Generating RTLIL representation for module `\RAMB16_S18'.
+Replacing existing blackbox module `\RAMB16_S36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1088.1-1174.10.
+Generating RTLIL representation for module `\RAMB16_S36'.
+Replacing existing blackbox module `\RAMB16_S1_S1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1176.1-1264.10.
+Generating RTLIL representation for module `\RAMB16_S1_S1'.
+Replacing existing blackbox module `\RAMB16_S1_S2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1266.1-1354.10.
+Generating RTLIL representation for module `\RAMB16_S1_S2'.
+Replacing existing blackbox module `\RAMB16_S1_S4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1356.1-1444.10.
+Generating RTLIL representation for module `\RAMB16_S1_S4'.
+Replacing existing blackbox module `\RAMB16_S1_S9' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1446.1-1544.10.
+Generating RTLIL representation for module `\RAMB16_S1_S9'.
+Replacing existing blackbox module `\RAMB16_S1_S18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1546.1-1644.10.
+Generating RTLIL representation for module `\RAMB16_S1_S18'.
+Replacing existing blackbox module `\RAMB16_S1_S36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1646.1-1744.10.
+Generating RTLIL representation for module `\RAMB16_S1_S36'.
+Replacing existing blackbox module `\RAMB16_S2_S2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1746.1-1834.10.
+Generating RTLIL representation for module `\RAMB16_S2_S2'.
+Replacing existing blackbox module `\RAMB16_S2_S4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1836.1-1924.10.
+Generating RTLIL representation for module `\RAMB16_S2_S4'.
+Replacing existing blackbox module `\RAMB16_S2_S9' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:1926.1-2024.10.
+Generating RTLIL representation for module `\RAMB16_S2_S9'.
+Replacing existing blackbox module `\RAMB16_S2_S18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:2026.1-2124.10.
+Generating RTLIL representation for module `\RAMB16_S2_S18'.
+Replacing existing blackbox module `\RAMB16_S2_S36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:2126.1-2224.10.
+Generating RTLIL representation for module `\RAMB16_S2_S36'.
+Replacing existing blackbox module `\RAMB16_S4_S4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:2226.1-2314.10.
+Generating RTLIL representation for module `\RAMB16_S4_S4'.
+Replacing existing blackbox module `\RAMB16_S4_S9' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:2316.1-2414.10.
+Generating RTLIL representation for module `\RAMB16_S4_S9'.
+Replacing existing blackbox module `\RAMB16_S4_S18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:2416.1-2514.10.
+Generating RTLIL representation for module `\RAMB16_S4_S18'.
+Replacing existing blackbox module `\RAMB16_S4_S36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:2516.1-2614.10.
+Generating RTLIL representation for module `\RAMB16_S4_S36'.
+Replacing existing blackbox module `\RAMB16_S9_S9' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:2616.1-2716.10.
+Generating RTLIL representation for module `\RAMB16_S9_S9'.
+Replacing existing blackbox module `\RAMB16_S9_S18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:2718.1-2818.10.
+Generating RTLIL representation for module `\RAMB16_S9_S18'.
+Replacing existing blackbox module `\RAMB16_S9_S36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:2820.1-2920.10.
+Generating RTLIL representation for module `\RAMB16_S9_S36'.
+Replacing existing blackbox module `\RAMB16_S18_S18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:2922.1-3022.10.
+Generating RTLIL representation for module `\RAMB16_S18_S18'.
+Replacing existing blackbox module `\RAMB16_S18_S36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3024.1-3124.10.
+Generating RTLIL representation for module `\RAMB16_S18_S36'.
+Replacing existing blackbox module `\RAMB16_S36_S36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3126.1-3226.10.
+Generating RTLIL representation for module `\RAMB16_S36_S36'.
+Replacing existing blackbox module `\RAMB16BWE_S18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3228.1-3314.10.
+Generating RTLIL representation for module `\RAMB16BWE_S18'.
+Replacing existing blackbox module `\RAMB16BWE_S36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3316.1-3402.10.
+Generating RTLIL representation for module `\RAMB16BWE_S36'.
+Replacing existing blackbox module `\RAMB16BWE_S18_S9' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3404.1-3504.10.
+Generating RTLIL representation for module `\RAMB16BWE_S18_S9'.
+Replacing existing blackbox module `\RAMB16BWE_S18_S18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3506.1-3606.10.
+Generating RTLIL representation for module `\RAMB16BWE_S18_S18'.
+Replacing existing blackbox module `\RAMB16BWE_S36_S9' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3608.1-3708.10.
+Generating RTLIL representation for module `\RAMB16BWE_S36_S9'.
+Replacing existing blackbox module `\RAMB16BWE_S36_S18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3710.1-3810.10.
+Generating RTLIL representation for module `\RAMB16BWE_S36_S18'.
+Replacing existing blackbox module `\RAMB16BWE_S36_S36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3812.1-3912.10.
+Generating RTLIL representation for module `\RAMB16BWE_S36_S36'.
+Replacing existing blackbox module `\RAMB16BWER' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:3914.1-4029.10.
+Generating RTLIL representation for module `\RAMB16BWER'.
+Replacing existing blackbox module `\RAMB8BWER' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4031.1-4110.10.
+Generating RTLIL representation for module `\RAMB8BWER'.
+Replacing existing blackbox module `\FIFO16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4112.1-4136.10.
+Generating RTLIL representation for module `\FIFO16'.
+Replacing existing blackbox module `\RAMB16' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4138.1-4256.10.
+Generating RTLIL representation for module `\RAMB16'.
+Replacing existing blackbox module `\RAMB32_S64_ECC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4258.1-4273.10.
+Generating RTLIL representation for module `\RAMB32_S64_ECC'.
+Replacing existing blackbox module `\FIFO18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4275.1-4302.10.
+Generating RTLIL representation for module `\FIFO18'.
+Replacing existing blackbox module `\FIFO18_36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4304.1-4330.10.
+Generating RTLIL representation for module `\FIFO18_36'.
+Replacing existing blackbox module `\FIFO36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4332.1-4359.10.
+Generating RTLIL representation for module `\FIFO36'.
+Replacing existing blackbox module `\FIFO36_72' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4361.1-4392.10.
+Generating RTLIL representation for module `\FIFO36_72'.
+Replacing existing blackbox module `\RAMB18' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4394.1-4504.10.
+Generating RTLIL representation for module `\RAMB18'.
+Replacing existing blackbox module `\RAMB36' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4506.1-4699.10.
+Generating RTLIL representation for module `\RAMB36'.
+Replacing existing blackbox module `\RAMB18SDP' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4701.1-4795.10.
+Generating RTLIL representation for module `\RAMB18SDP'.
+Replacing existing blackbox module `\RAMB36SDP' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4797.1-4969.10.
+Generating RTLIL representation for module `\RAMB36SDP'.
+Replacing existing blackbox module `\FIFO18E1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:4971.1-5015.10.
+Generating RTLIL representation for module `\FIFO18E1'.
+Replacing existing blackbox module `\FIFO36E1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:5017.1-5069.10.
+Generating RTLIL representation for module `\FIFO36E1'.
+Replacing existing blackbox module `\FIFO18E2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:5071.1-5135.10.
+Generating RTLIL representation for module `\FIFO18E2'.
+Replacing existing blackbox module `\FIFO36E2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:5137.1-5209.10.
+Generating RTLIL representation for module `\FIFO36E2'.
+Replacing existing blackbox module `\RAMB18E2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:5211.1-5371.10.
+Generating RTLIL representation for module `\RAMB18E2'.
+Replacing existing blackbox module `\RAMB36E2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:5373.1-5619.10.
+Generating RTLIL representation for module `\RAMB36E2'.
+Replacing existing blackbox module `\URAM288' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:5621.1-5737.10.
+Generating RTLIL representation for module `\URAM288'.
+Replacing existing blackbox module `\URAM288_BASE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:5739.1-5803.10.
+Generating RTLIL representation for module `\URAM288_BASE'.
+Replacing existing blackbox module `\DSP48E' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:5805.1-5877.10.
+Generating RTLIL representation for module `\DSP48E'.
+Replacing existing blackbox module `\DSP48E2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:5879.1-5994.10.
+Generating RTLIL representation for module `\DSP48E2'.
+Replacing existing blackbox module `\FDDRCPE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:5996.1-6008.10.
+Generating RTLIL representation for module `\FDDRCPE'.
+Replacing existing blackbox module `\FDDRRSE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6010.1-6022.10.
+Generating RTLIL representation for module `\FDDRRSE'.
+Replacing existing blackbox module `\IFDDRCPE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6024.1-6036.10.
+Generating RTLIL representation for module `\IFDDRCPE'.
+Replacing existing blackbox module `\IFDDRRSE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6038.1-6050.10.
+Generating RTLIL representation for module `\IFDDRRSE'.
+Replacing existing blackbox module `\OFDDRCPE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6052.1-6064.10.
+Generating RTLIL representation for module `\OFDDRCPE'.
+Replacing existing blackbox module `\OFDDRRSE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6066.1-6078.10.
+Generating RTLIL representation for module `\OFDDRRSE'.
+Replacing existing blackbox module `\OFDDRTCPE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6080.1-6093.10.
+Generating RTLIL representation for module `\OFDDRTCPE'.
+Replacing existing blackbox module `\OFDDRTRSE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6095.1-6108.10.
+Generating RTLIL representation for module `\OFDDRTRSE'.
+Replacing existing blackbox module `\IDDR2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6110.1-6125.10.
+Generating RTLIL representation for module `\IDDR2'.
+Replacing existing blackbox module `\ODDR2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6127.1-6141.10.
+Generating RTLIL representation for module `\ODDR2'.
+Replacing existing blackbox module `\IDDR' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6143.1-6162.10.
+Generating RTLIL representation for module `\IDDR'.
+Replacing existing blackbox module `\IDDR_2CLK' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6164.1-6185.10.
+Generating RTLIL representation for module `\IDDR_2CLK'.
+Replacing existing blackbox module `\ODDR' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6187.1-6207.10.
+Generating RTLIL representation for module `\ODDR'.
+Replacing existing blackbox module `\IDELAYCTRL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6210.1-6216.10.
+Generating RTLIL representation for module `\IDELAYCTRL'.
+Replacing existing blackbox module `\IDELAY' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6218.1-6228.10.
+Generating RTLIL representation for module `\IDELAY'.
+Replacing existing blackbox module `\ISERDES' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6230.1-6278.10.
+Generating RTLIL representation for module `\ISERDES'.
+Replacing existing blackbox module `\OSERDES' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6280.1-6315.10.
+Generating RTLIL representation for module `\OSERDES'.
+Replacing existing blackbox module `\IODELAY' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6317.1-6335.10.
+Generating RTLIL representation for module `\IODELAY'.
+Replacing existing blackbox module `\ISERDES_NODELAY' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6337.1-6371.10.
+Generating RTLIL representation for module `\ISERDES_NODELAY'.
+Replacing existing blackbox module `\IODELAYE1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6373.1-6397.10.
+Generating RTLIL representation for module `\IODELAYE1'.
+Replacing existing blackbox module `\ISERDESE1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6399.1-6446.10.
+Generating RTLIL representation for module `\ISERDESE1'.
+Replacing existing blackbox module `\OSERDESE1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6448.1-6492.10.
+Generating RTLIL representation for module `\OSERDESE1'.
+Replacing existing blackbox module `\IDELAYE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6494.1-6523.10.
+Generating RTLIL representation for module `\IDELAYE2'.
+Replacing existing blackbox module `\ODELAYE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6525.1-6552.10.
+Generating RTLIL representation for module `\ODELAYE2'.
+Replacing existing blackbox module `\ISERDESE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6554.1-6621.10.
+Generating RTLIL representation for module `\ISERDESE2'.
+Replacing existing blackbox module `\OSERDESE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6623.1-6693.10.
+Generating RTLIL representation for module `\OSERDESE2'.
+Replacing existing blackbox module `\PHASER_IN' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6696.1-6730.10.
+Generating RTLIL representation for module `\PHASER_IN'.
+Replacing existing blackbox module `\PHASER_IN_PHY' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6733.1-6776.10.
+Generating RTLIL representation for module `\PHASER_IN_PHY'.
+Replacing existing blackbox module `\PHASER_OUT' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6779.1-6819.10.
+Generating RTLIL representation for module `\PHASER_OUT'.
+Replacing existing blackbox module `\PHASER_OUT_PHY' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6822.1-6867.10.
+Generating RTLIL representation for module `\PHASER_OUT_PHY'.
+Replacing existing blackbox module `\PHASER_REF' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6870.1-6879.10.
+Generating RTLIL representation for module `\PHASER_REF'.
+Replacing existing blackbox module `\PHY_CONTROL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6882.1-6941.10.
+Generating RTLIL representation for module `\PHY_CONTROL'.
+Replacing existing blackbox module `\IDDRE1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6943.1-6957.10.
+Generating RTLIL representation for module `\IDDRE1'.
+Replacing existing blackbox module `\ODDRE1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6959.1-6974.10.
+Generating RTLIL representation for module `\ODDRE1'.
+Replacing existing blackbox module `\IDELAYE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:6976.1-7006.10.
+Generating RTLIL representation for module `\IDELAYE3'.
+Replacing existing blackbox module `\ODELAYE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7008.1-7035.10.
+Generating RTLIL representation for module `\ODELAYE3'.
+Replacing existing blackbox module `\ISERDESE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7037.1-7065.10.
+Generating RTLIL representation for module `\ISERDESE3'.
+Replacing existing blackbox module `\OSERDESE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7067.1-7090.10.
+Generating RTLIL representation for module `\OSERDESE3'.
+Replacing existing blackbox module `\BITSLICE_CONTROL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7093.1-7177.10.
+Generating RTLIL representation for module `\BITSLICE_CONTROL'.
+Replacing existing blackbox module `\RIU_OR' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7180.1-7189.10.
+Generating RTLIL representation for module `\RIU_OR'.
+Replacing existing blackbox module `\RX_BITSLICE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7191.1-7243.10.
+Generating RTLIL representation for module `\RX_BITSLICE'.
+Replacing existing blackbox module `\RXTX_BITSLICE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7245.1-7314.10.
+Generating RTLIL representation for module `\RXTX_BITSLICE'.
+Replacing existing blackbox module `\TX_BITSLICE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7316.1-7354.10.
+Generating RTLIL representation for module `\TX_BITSLICE'.
+Replacing existing blackbox module `\TX_BITSLICE_TRI' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7356.1-7386.10.
+Generating RTLIL representation for module `\TX_BITSLICE_TRI'.
+Replacing existing blackbox module `\IODELAY2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7388.1-7417.10.
+Generating RTLIL representation for module `\IODELAY2'.
+Replacing existing blackbox module `\IODRP2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7419.1-7440.10.
+Generating RTLIL representation for module `\IODRP2'.
+Replacing existing blackbox module `\IODRP2_MCB' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7442.1-7474.10.
+Generating RTLIL representation for module `\IODRP2_MCB'.
+Replacing existing blackbox module `\ISERDES2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7476.1-7505.10.
+Generating RTLIL representation for module `\ISERDES2'.
+Replacing existing blackbox module `\OSERDES2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7507.1-7545.10.
+Generating RTLIL representation for module `\OSERDES2'.
+Replacing existing blackbox module `\IBUF_DLY_ADJ' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7547.1-7554.10.
+Generating RTLIL representation for module `\IBUF_DLY_ADJ'.
+Replacing existing blackbox module `\IBUF_IBUFDISABLE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7556.1-7565.10.
+Generating RTLIL representation for module `\IBUF_IBUFDISABLE'.
+Replacing existing blackbox module `\IBUF_INTERMDISABLE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7567.1-7577.10.
+Generating RTLIL representation for module `\IBUF_INTERMDISABLE'.
+Replacing existing blackbox module `\IBUF_ANALOG' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7579.1-7583.10.
+Generating RTLIL representation for module `\IBUF_ANALOG'.
+Replacing existing blackbox module `\IBUFE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7585.1-7599.10.
+Generating RTLIL representation for module `\IBUFE3'.
+Replacing existing blackbox module `\IBUFDS' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7601.1-7614.10.
+Generating RTLIL representation for module `\IBUFDS'.
+Replacing existing blackbox module `\IBUFDS_DLY_ADJ' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7616.1-7626.10.
+Generating RTLIL representation for module `\IBUFDS_DLY_ADJ'.
+Replacing existing blackbox module `\IBUFDS_IBUFDISABLE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7628.1-7641.10.
+Generating RTLIL representation for module `\IBUFDS_IBUFDISABLE'.
+Replacing existing blackbox module `\IBUFDS_INTERMDISABLE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7643.1-7657.10.
+Generating RTLIL representation for module `\IBUFDS_INTERMDISABLE'.
+Replacing existing blackbox module `\IBUFDS_DIFF_OUT' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7659.1-7670.10.
+Generating RTLIL representation for module `\IBUFDS_DIFF_OUT'.
+Replacing existing blackbox module `\IBUFDS_DIFF_OUT_IBUFDISABLE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7672.1-7686.10.
+Generating RTLIL representation for module `\IBUFDS_DIFF_OUT_IBUFDISABLE'.
+Replacing existing blackbox module `\IBUFDS_DIFF_OUT_INTERMDISABLE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7688.1-7703.10.
+Generating RTLIL representation for module `\IBUFDS_DIFF_OUT_INTERMDISABLE'.
+Replacing existing blackbox module `\IBUFDSE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7705.1-7720.10.
+Generating RTLIL representation for module `\IBUFDSE3'.
+Replacing existing blackbox module `\IBUFDS_DPHY' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7722.1-7734.10.
+Generating RTLIL representation for module `\IBUFDS_DPHY'.
+Replacing existing blackbox module `\IBUFGDS' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7736.1-7747.10.
+Generating RTLIL representation for module `\IBUFGDS'.
+Replacing existing blackbox module `\IBUFGDS_DIFF_OUT' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7749.1-7760.10.
+Generating RTLIL representation for module `\IBUFGDS_DIFF_OUT'.
+Replacing existing blackbox module `\IOBUF_DCIEN' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7762.1-7776.10.
+Generating RTLIL representation for module `\IOBUF_DCIEN'.
+Replacing existing blackbox module `\IOBUF_INTERMDISABLE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7778.1-7792.10.
+Generating RTLIL representation for module `\IOBUF_INTERMDISABLE'.
+Replacing existing blackbox module `\IOBUFE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7794.1-7811.10.
+Generating RTLIL representation for module `\IOBUFE3'.
+Replacing existing blackbox module `\IOBUFDS' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7813.1-7826.10.
+Generating RTLIL representation for module `\IOBUFDS'.
+Replacing existing blackbox module `\IOBUFDS_DCIEN' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7828.1-7845.10.
+Generating RTLIL representation for module `\IOBUFDS_DCIEN'.
+Replacing existing blackbox module `\IOBUFDS_INTERMDISABLE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7847.1-7864.10.
+Generating RTLIL representation for module `\IOBUFDS_INTERMDISABLE'.
+Replacing existing blackbox module `\IOBUFDS_DIFF_OUT' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7866.1-7880.10.
+Generating RTLIL representation for module `\IOBUFDS_DIFF_OUT'.
+Replacing existing blackbox module `\IOBUFDS_DIFF_OUT_DCIEN' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7882.1-7900.10.
+Generating RTLIL representation for module `\IOBUFDS_DIFF_OUT_DCIEN'.
+Replacing existing blackbox module `\IOBUFDS_DIFF_OUT_INTERMDISABLE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7902.1-7920.10.
+Generating RTLIL representation for module `\IOBUFDS_DIFF_OUT_INTERMDISABLE'.
+Replacing existing blackbox module `\IOBUFDSE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7922.1-7940.10.
+Generating RTLIL representation for module `\IOBUFDSE3'.
+Replacing existing blackbox module `\OBUFDS' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7942.1-7951.10.
+Generating RTLIL representation for module `\OBUFDS'.
+Replacing existing blackbox module `\OBUFDS_DPHY' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7953.1-7964.10.
+Generating RTLIL representation for module `\OBUFDS_DPHY'.
+Replacing existing blackbox module `\OBUFTDS' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7966.1-7976.10.
+Generating RTLIL representation for module `\OBUFTDS'.
+Replacing existing blackbox module `\KEEPER' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7978.1-7980.10.
+Generating RTLIL representation for module `\KEEPER'.
+Replacing existing blackbox module `\PULLDOWN' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7982.1-7984.10.
+Generating RTLIL representation for module `\PULLDOWN'.
+Replacing existing blackbox module `\PULLUP' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7986.1-7988.10.
+Generating RTLIL representation for module `\PULLUP'.
+Replacing existing blackbox module `\DCIRESET' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7991.1-7994.10.
+Generating RTLIL representation for module `\DCIRESET'.
+Replacing existing blackbox module `\HPIO_VREF' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:7997.1-8001.10.
+Generating RTLIL representation for module `\HPIO_VREF'.
+Replacing existing blackbox module `\BUFGCE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8003.1-8015.10.
+Generating RTLIL representation for module `\BUFGCE'.
+Replacing existing blackbox module `\BUFGCE_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8017.1-8022.10.
+Generating RTLIL representation for module `\BUFGCE_1'.
+Replacing existing blackbox module `\BUFGMUX' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8024.1-8031.10.
+Generating RTLIL representation for module `\BUFGMUX'.
+Replacing existing blackbox module `\BUFGMUX_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8033.1-8040.10.
+Generating RTLIL representation for module `\BUFGMUX_1'.
+Replacing existing blackbox module `\BUFGMUX_CTRL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8042.1-8048.10.
+Generating RTLIL representation for module `\BUFGMUX_CTRL'.
+Replacing existing blackbox module `\BUFGMUX_VIRTEX4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8050.1-8056.10.
+Generating RTLIL representation for module `\BUFGMUX_VIRTEX4'.
+Replacing existing blackbox module `\BUFG_GT' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8058.1-8069.10.
+Generating RTLIL representation for module `\BUFG_GT'.
+Replacing existing blackbox module `\BUFG_GT_SYNC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8071.1-8077.10.
+Generating RTLIL representation for module `\BUFG_GT_SYNC'.
+Replacing existing blackbox module `\BUFG_PS' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8079.1-8085.10.
+Generating RTLIL representation for module `\BUFG_PS'.
+Replacing existing blackbox module `\BUFGCE_DIV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8087.1-8104.10.
+Generating RTLIL representation for module `\BUFGCE_DIV'.
+Replacing existing blackbox module `\BUFH' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8106.1-8110.10.
+Generating RTLIL representation for module `\BUFH'.
+Replacing existing blackbox module `\BUFIO2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8112.1-8123.10.
+Generating RTLIL representation for module `\BUFIO2'.
+Replacing existing blackbox module `\BUFIO2_2CLK' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8125.1-8134.10.
+Generating RTLIL representation for module `\BUFIO2_2CLK'.
+Replacing existing blackbox module `\BUFIO2FB' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8136.1-8141.10.
+Generating RTLIL representation for module `\BUFIO2FB'.
+Replacing existing blackbox module `\BUFPLL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8143.1-8153.10.
+Generating RTLIL representation for module `\BUFPLL'.
+Replacing existing blackbox module `\BUFPLL_MCB' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8155.1-8169.10.
+Generating RTLIL representation for module `\BUFPLL_MCB'.
+Replacing existing blackbox module `\BUFIO' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8171.1-8175.10.
+Generating RTLIL representation for module `\BUFIO'.
+Replacing existing blackbox module `\BUFIODQS' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8177.1-8183.10.
+Generating RTLIL representation for module `\BUFIODQS'.
+Replacing existing blackbox module `\BUFR' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8185.1-8193.10.
+Generating RTLIL representation for module `\BUFR'.
+Replacing existing blackbox module `\BUFMR' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8195.1-8199.10.
+Generating RTLIL representation for module `\BUFMR'.
+Replacing existing blackbox module `\BUFMRCE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8201.1-8210.10.
+Generating RTLIL representation for module `\BUFMRCE'.
+Replacing existing blackbox module `\DCM' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8212.1-8248.10.
+Generating RTLIL representation for module `\DCM'.
+Replacing existing blackbox module `\DCM_SP' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8250.1-8285.10.
+Generating RTLIL representation for module `\DCM_SP'.
+Replacing existing blackbox module `\DCM_CLKGEN' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8287.1-8307.10.
+Generating RTLIL representation for module `\DCM_CLKGEN'.
+Replacing existing blackbox module `\DCM_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8309.1-8352.10.
+Generating RTLIL representation for module `\DCM_ADV'.
+Replacing existing blackbox module `\DCM_BASE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8354.1-8384.10.
+Generating RTLIL representation for module `\DCM_BASE'.
+Replacing existing blackbox module `\DCM_PS' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8386.1-8421.10.
+Generating RTLIL representation for module `\DCM_PS'.
+Replacing existing blackbox module `\PMCD' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8423.1-8439.10.
+Generating RTLIL representation for module `\PMCD'.
+Replacing existing blackbox module `\PLL_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8441.1-8516.10.
+Generating RTLIL representation for module `\PLL_ADV'.
+Replacing existing blackbox module `\PLL_BASE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8518.1-8557.10.
+Generating RTLIL representation for module `\PLL_BASE'.
+Replacing existing blackbox module `\MMCM_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8559.1-8641.10.
+Generating RTLIL representation for module `\MMCM_ADV'.
+Replacing existing blackbox module `\MMCM_BASE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8643.1-8692.10.
+Generating RTLIL representation for module `\MMCM_BASE'.
+Replacing existing blackbox module `\MMCME2_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8694.1-8788.10.
+Generating RTLIL representation for module `\MMCME2_ADV'.
+Replacing existing blackbox module `\MMCME2_BASE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8790.1-8838.10.
+Generating RTLIL representation for module `\MMCME2_BASE'.
+Replacing existing blackbox module `\PLLE2_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8840.1-8903.10.
+Generating RTLIL representation for module `\PLLE2_ADV'.
+Replacing existing blackbox module `\PLLE2_BASE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8905.1-8943.10.
+Generating RTLIL representation for module `\PLLE2_BASE'.
+Replacing existing blackbox module `\MMCME3_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:8945.1-9047.10.
+Generating RTLIL representation for module `\MMCME3_ADV'.
+Replacing existing blackbox module `\MMCME3_BASE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9049.1-9105.10.
+Generating RTLIL representation for module `\MMCME3_BASE'.
+Replacing existing blackbox module `\PLLE3_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9107.1-9155.10.
+Generating RTLIL representation for module `\PLLE3_ADV'.
+Replacing existing blackbox module `\PLLE3_BASE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9157.1-9191.10.
+Generating RTLIL representation for module `\PLLE3_BASE'.
+Replacing existing blackbox module `\MMCME4_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9193.1-9295.10.
+Generating RTLIL representation for module `\MMCME4_ADV'.
+Replacing existing blackbox module `\MMCME4_BASE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9297.1-9353.10.
+Generating RTLIL representation for module `\MMCME4_BASE'.
+Replacing existing blackbox module `\PLLE4_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9355.1-9403.10.
+Generating RTLIL representation for module `\PLLE4_ADV'.
+Replacing existing blackbox module `\PLLE4_BASE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9405.1-9439.10.
+Generating RTLIL representation for module `\PLLE4_BASE'.
+Replacing existing blackbox module `\BUFT' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9441.1-9445.10.
+Generating RTLIL representation for module `\BUFT'.
+Replacing existing blackbox module `\IN_FIFO' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9447.1-9484.10.
+Generating RTLIL representation for module `\IN_FIFO'.
+Replacing existing blackbox module `\OUT_FIFO' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9486.1-9524.10.
+Generating RTLIL representation for module `\OUT_FIFO'.
+Replacing existing blackbox module `\HARD_SYNC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9526.1-9535.10.
+Generating RTLIL representation for module `\HARD_SYNC'.
+Replacing existing blackbox module `\STARTUP_SPARTAN3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9538.1-9542.10.
+Generating RTLIL representation for module `\STARTUP_SPARTAN3'.
+Replacing existing blackbox module `\STARTUP_SPARTAN3E' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9545.1-9550.10.
+Generating RTLIL representation for module `\STARTUP_SPARTAN3E'.
+Replacing existing blackbox module `\STARTUP_SPARTAN3A' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9553.1-9557.10.
+Generating RTLIL representation for module `\STARTUP_SPARTAN3A'.
+Replacing existing blackbox module `\STARTUP_SPARTAN6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9560.1-9568.10.
+Generating RTLIL representation for module `\STARTUP_SPARTAN6'.
+Replacing existing blackbox module `\STARTUP_VIRTEX4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9571.1-9580.10.
+Generating RTLIL representation for module `\STARTUP_VIRTEX4'.
+Replacing existing blackbox module `\STARTUP_VIRTEX5' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9583.1-9596.10.
+Generating RTLIL representation for module `\STARTUP_VIRTEX5'.
+Replacing existing blackbox module `\STARTUP_VIRTEX6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9599.1-9616.10.
+Generating RTLIL representation for module `\STARTUP_VIRTEX6'.
+Replacing existing blackbox module `\STARTUPE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9619.1-9635.10.
+Generating RTLIL representation for module `\STARTUPE2'.
+Replacing existing blackbox module `\STARTUPE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9638.1-9658.10.
+Generating RTLIL representation for module `\STARTUPE3'.
+Replacing existing blackbox module `\CAPTURE_SPARTAN3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9661.1-9665.10.
+Generating RTLIL representation for module `\CAPTURE_SPARTAN3'.
+Replacing existing blackbox module `\CAPTURE_SPARTAN3A' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9668.1-9672.10.
+Generating RTLIL representation for module `\CAPTURE_SPARTAN3A'.
+Replacing existing blackbox module `\CAPTURE_VIRTEX4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9675.1-9679.10.
+Generating RTLIL representation for module `\CAPTURE_VIRTEX4'.
+Replacing existing blackbox module `\CAPTURE_VIRTEX5' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9682.1-9686.10.
+Generating RTLIL representation for module `\CAPTURE_VIRTEX5'.
+Replacing existing blackbox module `\CAPTURE_VIRTEX6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9689.1-9693.10.
+Generating RTLIL representation for module `\CAPTURE_VIRTEX6'.
+Replacing existing blackbox module `\CAPTUREE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9696.1-9700.10.
+Generating RTLIL representation for module `\CAPTUREE2'.
+Replacing existing blackbox module `\ICAP_SPARTAN3A' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9703.1-9710.10.
+Generating RTLIL representation for module `\ICAP_SPARTAN3A'.
+Replacing existing blackbox module `\ICAP_SPARTAN6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9713.1-9722.10.
+Generating RTLIL representation for module `\ICAP_SPARTAN6'.
+Replacing existing blackbox module `\ICAP_VIRTEX4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9725.1-9733.10.
+Generating RTLIL representation for module `\ICAP_VIRTEX4'.
+Replacing existing blackbox module `\ICAP_VIRTEX5' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9736.1-9744.10.
+Generating RTLIL representation for module `\ICAP_VIRTEX5'.
+Replacing existing blackbox module `\ICAP_VIRTEX6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9747.1-9757.10.
+Generating RTLIL representation for module `\ICAP_VIRTEX6'.
+Replacing existing blackbox module `\ICAPE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9760.1-9769.10.
+Generating RTLIL representation for module `\ICAPE2'.
+Replacing existing blackbox module `\ICAPE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9772.1-9784.10.
+Generating RTLIL representation for module `\ICAPE3'.
+Replacing existing blackbox module `\BSCAN_SPARTAN3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9787.1-9799.10.
+Generating RTLIL representation for module `\BSCAN_SPARTAN3'.
+Replacing existing blackbox module `\BSCAN_SPARTAN3A' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9802.1-9816.10.
+Generating RTLIL representation for module `\BSCAN_SPARTAN3A'.
+Replacing existing blackbox module `\BSCAN_SPARTAN6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9819.1-9832.10.
+Generating RTLIL representation for module `\BSCAN_SPARTAN6'.
+Replacing existing blackbox module `\BSCAN_VIRTEX4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9835.1-9845.10.
+Generating RTLIL representation for module `\BSCAN_VIRTEX4'.
+Replacing existing blackbox module `\BSCAN_VIRTEX5' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9848.1-9858.10.
+Generating RTLIL representation for module `\BSCAN_VIRTEX5'.
+Replacing existing blackbox module `\BSCAN_VIRTEX6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9861.1-9875.10.
+Generating RTLIL representation for module `\BSCAN_VIRTEX6'.
+Replacing existing blackbox module `\BSCANE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9878.1-9892.10.
+Generating RTLIL representation for module `\BSCANE2'.
+Replacing existing blackbox module `\DNA_PORT' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9894.1-9901.10.
+Generating RTLIL representation for module `\DNA_PORT'.
+Replacing existing blackbox module `\DNA_PORTE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9903.1-9910.10.
+Generating RTLIL representation for module `\DNA_PORTE2'.
+Replacing existing blackbox module `\FRAME_ECC_VIRTEX4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9912.1-9916.10.
+Generating RTLIL representation for module `\FRAME_ECC_VIRTEX4'.
+Replacing existing blackbox module `\FRAME_ECC_VIRTEX5' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9918.1-9923.10.
+Generating RTLIL representation for module `\FRAME_ECC_VIRTEX5'.
+Replacing existing blackbox module `\FRAME_ECC_VIRTEX6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9925.1-9936.10.
+Generating RTLIL representation for module `\FRAME_ECC_VIRTEX6'.
+Replacing existing blackbox module `\FRAME_ECCE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9938.1-9949.10.
+Generating RTLIL representation for module `\FRAME_ECCE2'.
+Replacing existing blackbox module `\FRAME_ECCE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9951.1-9961.10.
+Generating RTLIL representation for module `\FRAME_ECCE3'.
+Replacing existing blackbox module `\FRAME_ECCE4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9963.1-9973.10.
+Generating RTLIL representation for module `\FRAME_ECCE4'.
+Replacing existing blackbox module `\USR_ACCESS_VIRTEX4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9975.1-9978.10.
+Generating RTLIL representation for module `\USR_ACCESS_VIRTEX4'.
+Replacing existing blackbox module `\USR_ACCESS_VIRTEX5' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9980.1-9984.10.
+Generating RTLIL representation for module `\USR_ACCESS_VIRTEX5'.
+Replacing existing blackbox module `\USR_ACCESS_VIRTEX6' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9986.1-9990.10.
+Generating RTLIL representation for module `\USR_ACCESS_VIRTEX6'.
+Replacing existing blackbox module `\USR_ACCESSE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9992.1-9996.10.
+Generating RTLIL representation for module `\USR_ACCESSE2'.
+Replacing existing blackbox module `\POST_CRC_INTERNAL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:9998.1-10000.10.
+Generating RTLIL representation for module `\POST_CRC_INTERNAL'.
+Replacing existing blackbox module `\SUSPEND_SYNC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10003.1-10007.10.
+Generating RTLIL representation for module `\SUSPEND_SYNC'.
+Replacing existing blackbox module `\KEY_CLEAR' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10010.1-10012.10.
+Generating RTLIL representation for module `\KEY_CLEAR'.
+Replacing existing blackbox module `\MASTER_JTAG' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10015.1-10020.10.
+Generating RTLIL representation for module `\MASTER_JTAG'.
+Replacing existing blackbox module `\SPI_ACCESS' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10023.1-10033.10.
+Generating RTLIL representation for module `\SPI_ACCESS'.
+Replacing existing blackbox module `\EFUSE_USR' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10035.1-10038.10.
+Generating RTLIL representation for module `\EFUSE_USR'.
+Replacing existing blackbox module `\SYSMON' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10041.1-10092.10.
+Generating RTLIL representation for module `\SYSMON'.
+Replacing existing blackbox module `\XADC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10095.1-10159.10.
+Generating RTLIL representation for module `\XADC'.
+Replacing existing blackbox module `\SYSMONE1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10162.1-10269.10.
+Generating RTLIL representation for module `\SYSMONE1'.
+Replacing existing blackbox module `\SYSMONE4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10272.1-10383.10.
+Generating RTLIL representation for module `\SYSMONE4'.
+Replacing existing blackbox module `\GTPA1_DUAL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10385.1-10845.10.
+Generating RTLIL representation for module `\GTPA1_DUAL'.
+Replacing existing blackbox module `\GT11_CUSTOM' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:10847.1-11121.10.
+Generating RTLIL representation for module `\GT11_CUSTOM'.
+Replacing existing blackbox module `\GT11_DUAL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:11123.1-11671.10.
+Generating RTLIL representation for module `\GT11_DUAL'.
+Replacing existing blackbox module `\GT11CLK' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:11673.1-11685.10.
+Generating RTLIL representation for module `\GT11CLK'.
+Replacing existing blackbox module `\GT11CLK_MGT' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:11687.1-11694.10.
+Generating RTLIL representation for module `\GT11CLK_MGT'.
+Replacing existing blackbox module `\GTP_DUAL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:11696.1-12059.10.
+Generating RTLIL representation for module `\GTP_DUAL'.
+Replacing existing blackbox module `\GTX_DUAL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:12061.1-12505.10.
+Generating RTLIL representation for module `\GTX_DUAL'.
+Replacing existing blackbox module `\CRC32' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:12507.1-12516.10.
+Generating RTLIL representation for module `\CRC32'.
+Replacing existing blackbox module `\CRC64' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:12518.1-12527.10.
+Generating RTLIL representation for module `\CRC64'.
+Replacing existing blackbox module `\GTHE1_QUAD' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:12529.1-13003.10.
+Generating RTLIL representation for module `\GTHE1_QUAD'.
+Replacing existing blackbox module `\GTXE1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:13005.1-13363.10.
+Generating RTLIL representation for module `\GTXE1'.
+Replacing existing blackbox module `\IBUFDS_GTXE1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:13365.1-13376.10.
+Generating RTLIL representation for module `\IBUFDS_GTXE1'.
+Replacing existing blackbox module `\IBUFDS_GTHE1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:13378.1-13384.10.
+Generating RTLIL representation for module `\IBUFDS_GTHE1'.
+Replacing existing blackbox module `\GTHE2_CHANNEL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:13386.1-13960.10.
+Generating RTLIL representation for module `\GTHE2_CHANNEL'.
+Replacing existing blackbox module `\GTHE2_COMMON' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:13962.1-14031.10.
+Generating RTLIL representation for module `\GTHE2_COMMON'.
+Replacing existing blackbox module `\GTPE2_CHANNEL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:14033.1-14523.10.
+Generating RTLIL representation for module `\GTPE2_CHANNEL'.
+Replacing existing blackbox module `\GTPE2_COMMON' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:14525.1-14609.10.
+Generating RTLIL representation for module `\GTPE2_COMMON'.
+Replacing existing blackbox module `\GTXE2_CHANNEL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:14611.1-15067.10.
+Generating RTLIL representation for module `\GTXE2_CHANNEL'.
+Replacing existing blackbox module `\GTXE2_COMMON' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:15069.1-15131.10.
+Generating RTLIL representation for module `\GTXE2_COMMON'.
+Replacing existing blackbox module `\IBUFDS_GTE2' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:15133.1-15144.10.
+Generating RTLIL representation for module `\IBUFDS_GTE2'.
+Replacing existing blackbox module `\GTHE3_CHANNEL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:15146.1-15879.10.
+Generating RTLIL representation for module `\GTHE3_CHANNEL'.
+Replacing existing blackbox module `\GTHE3_COMMON' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:15881.1-16024.10.
+Generating RTLIL representation for module `\GTHE3_COMMON'.
+Replacing existing blackbox module `\GTYE3_CHANNEL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:16026.1-16840.10.
+Generating RTLIL representation for module `\GTYE3_CHANNEL'.
+Replacing existing blackbox module `\GTYE3_COMMON' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:16842.1-16991.10.
+Generating RTLIL representation for module `\GTYE3_COMMON'.
+Replacing existing blackbox module `\IBUFDS_GTE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:16993.1-17004.10.
+Generating RTLIL representation for module `\IBUFDS_GTE3'.
+Replacing existing blackbox module `\OBUFDS_GTE3' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:17006.1-17015.10.
+Generating RTLIL representation for module `\OBUFDS_GTE3'.
+Replacing existing blackbox module `\OBUFDS_GTE3_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:17017.1-17027.10.
+Generating RTLIL representation for module `\OBUFDS_GTE3_ADV'.
+Replacing existing blackbox module `\GTHE4_CHANNEL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:17029.1-17891.10.
+Generating RTLIL representation for module `\GTHE4_CHANNEL'.
+Replacing existing blackbox module `\GTHE4_COMMON' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:17893.1-18067.10.
+Generating RTLIL representation for module `\GTHE4_COMMON'.
+Replacing existing blackbox module `\GTYE4_CHANNEL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:18069.1-18908.10.
+Generating RTLIL representation for module `\GTYE4_CHANNEL'.
+Replacing existing blackbox module `\GTYE4_COMMON' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:18910.1-19108.10.
+Generating RTLIL representation for module `\GTYE4_COMMON'.
+Replacing existing blackbox module `\IBUFDS_GTE4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:19110.1-19121.10.
+Generating RTLIL representation for module `\IBUFDS_GTE4'.
+Replacing existing blackbox module `\OBUFDS_GTE4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:19123.1-19132.10.
+Generating RTLIL representation for module `\OBUFDS_GTE4'.
+Replacing existing blackbox module `\OBUFDS_GTE4_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:19134.1-19144.10.
+Generating RTLIL representation for module `\OBUFDS_GTE4_ADV'.
+Replacing existing blackbox module `\GTM_DUAL' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:19146.1-19804.10.
+Generating RTLIL representation for module `\GTM_DUAL'.
+Replacing existing blackbox module `\IBUFDS_GTM' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:19806.1-19817.10.
+Generating RTLIL representation for module `\IBUFDS_GTM'.
+Replacing existing blackbox module `\OBUFDS_GTM' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:19819.1-19828.10.
+Generating RTLIL representation for module `\OBUFDS_GTM'.
+Replacing existing blackbox module `\OBUFDS_GTM_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:19830.1-19840.10.
+Generating RTLIL representation for module `\OBUFDS_GTM_ADV'.
+Replacing existing blackbox module `\HSDAC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:19842.1-19896.10.
+Generating RTLIL representation for module `\HSDAC'.
+Replacing existing blackbox module `\HSADC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:19898.1-19956.10.
+Generating RTLIL representation for module `\HSADC'.
+Replacing existing blackbox module `\RFDAC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:19958.1-20022.10.
+Generating RTLIL representation for module `\RFDAC'.
+Replacing existing blackbox module `\RFADC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:20024.1-20093.10.
+Generating RTLIL representation for module `\RFADC'.
+Replacing existing blackbox module `\PCIE_A1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:20095.1-20343.10.
+Generating RTLIL representation for module `\PCIE_A1'.
+Replacing existing blackbox module `\PCIE_EP' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:20345.1-20797.10.
+Generating RTLIL representation for module `\PCIE_EP'.
+Replacing existing blackbox module `\PCIE_2_0' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:20799.1-21408.10.
+Generating RTLIL representation for module `\PCIE_2_0'.
+Replacing existing blackbox module `\PCIE_2_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:21410.1-22122.10.
+Generating RTLIL representation for module `\PCIE_2_1'.
+Replacing existing blackbox module `\PCIE_3_0' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:22124.1-23050.10.
+Generating RTLIL representation for module `\PCIE_3_0'.
+Replacing existing blackbox module `\PCIE_3_1' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:23052.1-24344.10.
+Generating RTLIL representation for module `\PCIE_3_1'.
+Replacing existing blackbox module `\PCIE40E4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:24346.1-25606.10.
+Generating RTLIL representation for module `\PCIE40E4'.
+Replacing existing blackbox module `\PCIE4CE4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:25608.1-26946.10.
+Generating RTLIL representation for module `\PCIE4CE4'.
+Replacing existing blackbox module `\EMAC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:26948.1-27125.10.
+Generating RTLIL representation for module `\EMAC'.
+Replacing existing blackbox module `\TEMAC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:27127.1-27378.10.
+Generating RTLIL representation for module `\TEMAC'.
+Replacing existing blackbox module `\TEMAC_SINGLE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:27380.1-27513.10.
+Generating RTLIL representation for module `\TEMAC_SINGLE'.
+Replacing existing blackbox module `\CMAC' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:27515.1-27975.10.
+Generating RTLIL representation for module `\CMAC'.
+Replacing existing blackbox module `\CMACE4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:27977.1-28494.10.
+Generating RTLIL representation for module `\CMACE4'.
+Replacing existing blackbox module `\MCB' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:28496.1-28766.10.
+Generating RTLIL representation for module `\MCB'.
+Replacing existing blackbox module `\HBM_REF_CLK' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:28769.1-28771.10.
+Generating RTLIL representation for module `\HBM_REF_CLK'.
+Replacing existing blackbox module `\HBM_SNGLBLI_INTF_APB' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:28774.1-28796.10.
+Generating RTLIL representation for module `\HBM_SNGLBLI_INTF_APB'.
+Replacing existing blackbox module `\HBM_SNGLBLI_INTF_AXI' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:28799.1-28866.10.
+Generating RTLIL representation for module `\HBM_SNGLBLI_INTF_AXI'.
+Replacing existing blackbox module `\HBM_ONE_STACK_INTF' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:28869.1-29804.10.
+Generating RTLIL representation for module `\HBM_ONE_STACK_INTF'.
+Replacing existing blackbox module `\HBM_TWO_STACK_INTF' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:29807.1-31673.10.
+Generating RTLIL representation for module `\HBM_TWO_STACK_INTF'.
+Replacing existing blackbox module `\PPC405_ADV' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:31675.1-31888.10.
+Generating RTLIL representation for module `\PPC405_ADV'.
+Replacing existing blackbox module `\PPC440' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:31890.1-32292.10.
+Generating RTLIL representation for module `\PPC440'.
+Replacing existing blackbox module `\PS7' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:32295.1-32945.10.
+Generating RTLIL representation for module `\PS7'.
+Replacing existing blackbox module `\PS8' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:32948.1-34012.10.
+Generating RTLIL representation for module `\PS8'.
+Replacing existing blackbox module `\ILKN' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:34014.1-34267.10.
+Generating RTLIL representation for module `\ILKN'.
+Replacing existing blackbox module `\ILKNE4' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:34269.1-34522.10.
+Generating RTLIL representation for module `\ILKNE4'.
+Replacing existing blackbox module `\VCU' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:34525.1-34765.10.
+Generating RTLIL representation for module `\VCU'.
+Replacing existing blackbox module `\FE' at /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_xtra.v:34767.1-34828.10.
+Generating RTLIL representation for module `\FE'.
+Successfully finished Verilog frontend.
+
+13.3. Executing HIERARCHY pass (managing design hierarchy).
+
+13.3.1. Analyzing design hierarchy..
+Top module:  \mult_ps
+Used module:     \mult_ps_bridge
+
+13.3.2. Analyzing design hierarchy..
+Top module:  \mult_ps
+Used module:     \mult_ps_bridge
+Removing unused module `\bd_mux'.
+Removing unused module `\bd_merge'.
+Removing unused module `\bd_mem'.
+Removing unused module `\bd_pipe'.
+Removing unused module `\bd_link'.
+Removing unused module `\bd_link_pair'.
+Removing unused module `\bd_link_ctl'.
+Removing unused module `\bd_datamux'.
+Removing unused module `\bd_delay'.
+Removing unused module `\bd_latch_rst'.
+Removing unused module `\bd_latch'.
+Removing unused module `\bd_snk'.
+Removing unused module `\bd_src'.
+Removing unused module `\bd_dr2bd'.
+Removing unused module `\bd_bd2dr'.
+Removing unused module `\bd_steer'.
+Removing unused module `\bd_join'.
+Removing unused module `\bd_fork'.
+Removing unused module `\bd_ctree'.
+Removing unused module `\bd_c3_norst'.
+Removing unused module `\bd_c2_norst'.
+Removing unused module `\bd_c4'.
+Removing unused module `\bd_c3'.
+Removing unused module `\bd_c2n_set'.
+Removing unused module `\bd_c2n'.
+Removing unused module `\bd_c2_set'.
+Removing unused module `\bd_c2'.
+Removing unused module `\bd_arbiter'.
+Removing unused module `\bd_arbcell'.
+Removed 29 unused modules.
+
+13.4. Executing PROC pass (convert processes to netlists).
+
+13.4.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+13.4.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 1 switch rules as full_case in process $proc$hw/mult_ps.v:368$1120 in module mult_ps_bridge.
+Marked 5 switch rules as full_case in process $proc$hw/mult_ps.v:293$1104 in module mult_ps_bridge.
+Marked 2 switch rules as full_case in process $proc$hw/mult_ps.v:271$1100 in module mult_ps_bridge.
+Removed a total of 0 dead cases.
+
+13.4.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 6 redundant assignments.
+Promoted 1 assignment to connection.
+
+13.4.4. Executing PROC_INIT pass (extract init attributes).
+
+13.4.5. Executing PROC_ARST pass (detect async resets in processes).
+Found async reset \aresetn in `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+Found async reset \aresetn in `\mult_ps_bridge.$proc$hw/mult_ps.v:271$1100'.
+
+13.4.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~14 debug messages>
+
+13.4.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\mult_ps_bridge.$proc$hw/mult_ps.v:368$1120'.
+     1/1: $1\rdata_r[31:0]
+Creating decoders for process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+     1/18: $0\axi_arready[0:0]
+     2/18: $0\axi_wready[0:0]
+     3/18: $0\axi_awready[0:0]
+     4/18: $0\o_data_capture[31:0]
+     5/18: $0\sync_o_req[1:0]
+     6/18: $0\sync_i_ack[1:0]
+     7/18: $0\b_data_reg[31:0]
+     8/18: $0\a_data_reg[31:0]
+     9/18: $0\ctrl_rst[0:0]
+    10/18: $0\ctrl_o_ack[0:0]
+    11/18: $0\ctrl_i_req[0:0]
+    12/18: $0\aw_en[0:0]
+    13/18: $0\axi_rid[11:0]
+    14/18: $0\axi_bid[11:0]
+    15/18: $0\axi_araddr[3:0]
+    16/18: $0\axi_awaddr[3:0]
+    17/18: $0\axi_rvalid[0:0]
+    18/18: $0\axi_bvalid[0:0]
+Creating decoders for process `\mult_ps_bridge.$proc$hw/mult_ps.v:271$1100'.
+     1/2: $0\resp[0:0]
+     2/2: $0\seen[0:0]
+
+13.4.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\mult_ps_bridge.\rdata_r' from process `\mult_ps_bridge.$proc$hw/mult_ps.v:368$1120'.
+
+13.4.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\mult_ps_bridge.\axi_awready' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2306' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\axi_wready' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2311' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\axi_bvalid' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2316' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\axi_arready' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2321' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\axi_rvalid' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2326' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\axi_awaddr' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $dff cell `$procdff$2333' with positive edge clock.
+Creating register for signal `\mult_ps_bridge.\axi_araddr' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $dff cell `$procdff$2340' with positive edge clock.
+Creating register for signal `\mult_ps_bridge.\axi_bid' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2345' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\axi_rid' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2350' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\aw_en' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2355' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\ctrl_i_req' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2360' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\ctrl_o_ack' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2365' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\ctrl_rst' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2370' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\a_data_reg' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $dff cell `$procdff$2377' with positive edge clock.
+Creating register for signal `\mult_ps_bridge.\b_data_reg' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $dff cell `$procdff$2384' with positive edge clock.
+Creating register for signal `\mult_ps_bridge.\sync_i_ack' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2389' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\sync_o_req' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2394' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\o_data_capture' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+  created $adff cell `$procdff$2399' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\seen' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:271$1100'.
+  created $adff cell `$procdff$2404' with positive edge clock and positive level reset.
+Creating register for signal `\mult_ps_bridge.\resp' using process `\mult_ps_bridge.$proc$hw/mult_ps.v:271$1100'.
+  created $adff cell `$procdff$2409' with positive edge clock and positive level reset.
+
+13.4.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+13.4.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 1 empty switch in `\mult_ps_bridge.$proc$hw/mult_ps.v:368$1120'.
+Removing empty process `mult_ps_bridge.$proc$hw/mult_ps.v:368$1120'.
+Found and cleaned up 9 empty switches in `\mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+Removing empty process `mult_ps_bridge.$proc$hw/mult_ps.v:293$1104'.
+Found and cleaned up 4 empty switches in `\mult_ps_bridge.$proc$hw/mult_ps.v:271$1100'.
+Removing empty process `mult_ps_bridge.$proc$hw/mult_ps.v:271$1100'.
+Cleaned up 14 empty switches.
+
+13.4.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+Optimizing module mult_ps_bridge.
+<suppressed ~44 debug messages>
+
+13.5. Executing FLATTEN pass (flatten design).
+Deleting now unused module mult_ps_bridge.
+<suppressed ~1 debug messages>
+
+13.6. Executing TRIBUF pass.
+
+13.7. Executing DEMINOUT pass (demote inout ports to input or output).
+
+13.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+Removed 22 unused cells and 92 unused wires.
+<suppressed ~24 debug messages>
+
+13.10. Executing CHECK pass (checking for obvious problems).
+Checking module mult_ps...
+Found and reported 0 problems.
+
+13.11. Executing OPT pass (performing simple optimizations).
+
+13.11.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.11.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 87 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Computing hashes of 84 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+<suppressed ~9 debug messages>
+Removed a total of 3 cells.
+
+13.11.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \mult_ps..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~52 debug messages>
+
+13.11.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \mult_ps.
+Performed a total of 0 changes.
+
+13.11.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 84 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Computing hashes of 83 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Computing hashes of 82 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+<suppressed ~6 debug messages>
+Removed a total of 2 cells.
+
+13.11.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+13.11.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+Removed 0 unused cells and 4 unused wires.
+<suppressed ~1 debug messages>
+
+13.11.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.11.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+13.11.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \mult_ps..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~50 debug messages>
+
+13.11.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \mult_ps.
+Performed a total of 0 changes.
+
+13.11.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 82 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Removed a total of 0 cells.
+
+13.11.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+13.11.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+
+13.11.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.11.16. Finished fast OPT passes. (There is nothing left to do.)
+
+13.12. Executing FSM pass (extract and optimize FSM).
+
+13.12.1. Executing FSM_DETECT pass (finding FSMs in design).
+
+13.12.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+
+13.12.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+13.12.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+
+13.12.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+13.12.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+
+13.12.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+
+13.12.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+
+13.13. Executing OPT pass (performing simple optimizations).
+
+13.13.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.13.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 82 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Removed a total of 0 cells.
+
+13.13.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \mult_ps..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~50 debug messages>
+
+13.13.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \mult_ps.
+Performed a total of 0 changes.
+
+13.13.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 82 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Removed a total of 0 cells.
+
+13.13.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding EN signal on $flatten\bridge_i.$procdff$2409 ($adff) from module mult_ps (D = $flatten\bridge_i.$0\resp[0:0], Q = \bridge_i.resp).
+Adding EN signal on $flatten\bridge_i.$procdff$2404 ($adff) from module mult_ps (D = $flatten\bridge_i.$0\seen[0:0], Q = \bridge_i.seen).
+Adding EN signal on $flatten\bridge_i.$procdff$2384 ($dff) from module mult_ps (D = \bridge_i.wdata, Q = \bridge_i.b_data_reg).
+Adding EN signal on $flatten\bridge_i.$procdff$2377 ($dff) from module mult_ps (D = \bridge_i.wdata, Q = \bridge_i.a_data_reg).
+Adding EN signal on $flatten\bridge_i.$procdff$2370 ($adff) from module mult_ps (D = \bridge_i.wdata [2], Q = \bridge_i.ctrl_rst).
+Adding EN signal on $flatten\bridge_i.$procdff$2365 ($adff) from module mult_ps (D = \bridge_i.wdata [1], Q = \bridge_i.ctrl_o_ack).
+Adding EN signal on $flatten\bridge_i.$procdff$2360 ($adff) from module mult_ps (D = \bridge_i.wdata [0], Q = \bridge_i.ctrl_i_req).
+Adding EN signal on $flatten\bridge_i.$procdff$2355 ($adff) from module mult_ps (D = $flatten\bridge_i.$0\aw_en[0:0], Q = \bridge_i.aw_en).
+Adding EN signal on $flatten\bridge_i.$procdff$2350 ($adff) from module mult_ps (D = \arid, Q = \bridge_i.axi_rid).
+Adding EN signal on $flatten\bridge_i.$procdff$2345 ($adff) from module mult_ps (D = \awid, Q = \bridge_i.axi_bid).
+Adding EN signal on $flatten\bridge_i.$procdff$2340 ($dff) from module mult_ps (D = \araddr [5:2], Q = \bridge_i.axi_araddr).
+Adding EN signal on $flatten\bridge_i.$procdff$2333 ($dff) from module mult_ps (D = \awaddr [5:2], Q = \bridge_i.axi_awaddr).
+Adding EN signal on $flatten\bridge_i.$procdff$2326 ($adff) from module mult_ps (D = $flatten\bridge_i.$0\axi_rvalid[0:0], Q = \bridge_i.axi_rvalid).
+Adding EN signal on $flatten\bridge_i.$procdff$2316 ($adff) from module mult_ps (D = $flatten\bridge_i.$0\axi_bvalid[0:0], Q = \bridge_i.axi_bvalid).
+
+13.13.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+Removed 18 unused cells and 18 unused wires.
+<suppressed ~19 debug messages>
+
+13.13.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+<suppressed ~5 debug messages>
+
+13.13.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+13.13.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \mult_ps..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~23 debug messages>
+
+13.13.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \mult_ps.
+Performed a total of 0 changes.
+
+13.13.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 76 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Computing hashes of 74 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+<suppressed ~6 debug messages>
+Removed a total of 2 cells.
+
+13.13.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+13.13.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+Removed 0 unused cells and 2 unused wires.
+<suppressed ~1 debug messages>
+
+13.13.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.13.16. Rerunning OPT passes. (Maybe there is more to do..)
+
+13.13.17. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \mult_ps..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~23 debug messages>
+
+13.13.18. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \mult_ps.
+Performed a total of 0 changes.
+
+13.13.19. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 74 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Removed a total of 0 cells.
+
+13.13.20. Executing OPT_DFF pass (perform DFF optimizations).
+
+13.13.21. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+
+13.13.22. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.13.23. Finished fast OPT passes. (There is nothing left to do.)
+
+13.14. Executing WREDUCE pass (reducing word size of cells).
+Removed top 2 bits (of 4) from port B of cell mult_ps.$flatten\bridge_i.$procmux$2240_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell mult_ps.$flatten\bridge_i.$procmux$2235_CMP0 ($eq).
+Removed top 3 bits (of 4) from port B of cell mult_ps.$flatten\bridge_i.$procmux$2223_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell mult_ps.$flatten\bridge_i.$procmux$2222_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell mult_ps.$flatten\bridge_i.$procmux$2221_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell mult_ps.$flatten\bridge_i.$procmux$2220_CMP0 ($eq).
+
+13.15. Executing PEEPOPT pass (run peephole optimizers).
+
+13.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+
+13.17. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+13.18. Executing TECHMAP pass (map to technology primitives).
+
+13.18.1. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v' to AST representation.
+Generating RTLIL representation for module `\_80_mul'.
+Generating RTLIL representation for module `\_90_soft_mul'.
+Successfully finished Verilog frontend.
+
+13.18.2. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/xc7_dsp_map.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/xc7_dsp_map.v' to AST representation.
+Generating RTLIL representation for module `$__MUL25X18'.
+Successfully finished Verilog frontend.
+
+13.18.3. Continuing TECHMAP pass.
+Using template $paramod$a6723094dea62072dba32ab67b56b3cb58dc0d5a\_80_mul for cells of type $mul.
+Using template $paramod$395213c3917c8eeb1e1c3f3ae1e4925be9b6a279\_80_mul for cells of type $mul.
+Using template $paramod$f0959df10ae1505b2ef291b098c3c46396c2eac6\_80_mul for cells of type $__mul.
+Using template $paramod$0ca0a2beabfb02adcfc3d390a7383e9d741a383c\_80_mul for cells of type $__mul.
+Using template $paramod$602e0e7361d660412e3c0104fc9be56fc132949a\_80_mul for cells of type $__mul.
+Using template $paramod$cfb4b1dd2da69458d213ec6be14a680b5f99155d\_80_mul for cells of type $__mul.
+Using template $paramod$b326ef45623603cb0c298ae1eaab5028a2154cf7\_80_mul for cells of type $__mul.
+Using template $paramod$f972920bca387dff277a14b66740df03199c53c0\_80_mul for cells of type $__mul.
+Using template $paramod$9aaf69a32d544a8319d193bef0e4e628b501c242$__MUL25X18 for cells of type $__MUL25X18.
+Using template $paramod$730e32f1699b3bb5ffc197cfe581372099362ff3$__MUL25X18 for cells of type $__MUL25X18.
+No more expansions possible.
+<suppressed ~660 debug messages>
+
+13.19. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+<suppressed ~3 debug messages>
+
+13.20. Executing WREDUCE pass (reducing word size of cells).
+Removed top 15 bits (of 32) from port B of cell mult_ps.$techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA.last.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:230$2461 ($add).
+Removed top 17 bits (of 32) from port Y of cell mult_ps.$techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA.last.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:230$2461 ($add).
+Removed top 17 bits (of 32) from port A of cell mult_ps.$techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA.last.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:230$2461 ($add).
+Removed top 2 bits (of 17) from port B of cell mult_ps.$techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA.last.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:230$2461 ($add).
+Removed top 2 bits (of 17) from port Y of cell mult_ps.$techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA[0].mul.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:230$2457 ($add).
+Removed top 2 bits (of 17) from port A of cell mult_ps.$techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA[0].mul.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:230$2457 ($add).
+Removed top 17 bits (of 32) from port Y of cell mult_ps.$techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:173$2453 ($add).
+Removed top 17 bits (of 32) from port A of cell mult_ps.$techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:173$2453 ($add).
+Removed cell mult_ps.$techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA.last.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:230$2461 ($add).
+
+13.21. Executing XILINX_DSP pass (pack resources into DSPs).
+Analysing mult_ps.$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA[0].mul.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.mul_sliceB_last for Xilinx DSP packing.
+  postadder $techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA[0].mul.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:230$2457 ($add)
+  clock: \bridge_i.aclk (posedge) ffA2:$auto$ff.cc:337:slice$2420 ffB2:$auto$ff.cc:337:slice$2417
+Analysing mult_ps.$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA[0].mul.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceB[0].mul for Xilinx DSP packing.
+  clock: \bridge_i.aclk (posedge) ffA2:$auto$ff.cc:337:slice$2420 ffB2:$auto$ff.cc:337:slice$2417
+Analysing mult_ps.$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceA.last.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.genblk1.sliceB[0].mul for Xilinx DSP packing.
+  postadder $techmap$flatten\bridge_i.$mul$hw/mult_ps.v:389$1121.$add$/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/mul2dsp.v:173$2453 ($add)
+  clock: \bridge_i.aclk (posedge) ffA2:$auto$ff.cc:337:slice$2420 ffB2:$auto$ff.cc:337:slice$2417
+<suppressed ~41 debug messages>
+
+13.22. Executing TECHMAP pass (map to technology primitives).
+
+13.22.1. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/cmp2lut.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/cmp2lut.v' to AST representation.
+Generating RTLIL representation for module `\_90_lut_cmp_'.
+Successfully finished Verilog frontend.
+
+13.22.2. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/cmp2lcu.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/cmp2lcu.v' to AST representation.
+Generating RTLIL representation for module `\_80_lcu_cmp_'.
+Generating RTLIL representation for module `$__CMP2LCU'.
+Successfully finished Verilog frontend.
+
+13.22.3. Continuing TECHMAP pass.
+No more expansions possible.
+<suppressed ~7 debug messages>
+
+13.23. Executing ALUMACC pass (create $alu and $macc cells).
+Extracting $alu and $macc cells in module mult_ps:
+  created 0 $alu and 0 $macc cells.
+
+13.24. Executing SHARE pass (SAT-based resource sharing).
+
+13.25. Executing OPT pass (performing simple optimizations).
+
+13.25.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.25.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 77 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Removed a total of 0 cells.
+
+13.25.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \mult_ps..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~23 debug messages>
+
+13.25.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \mult_ps.
+Performed a total of 0 changes.
+
+13.25.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 77 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Removed a total of 0 cells.
+
+13.25.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+13.25.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+Removed 1 unused cells and 67 unused wires.
+<suppressed ~2 debug messages>
+
+13.25.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.25.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+13.25.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \mult_ps..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~23 debug messages>
+
+13.25.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \mult_ps.
+Performed a total of 0 changes.
+
+13.25.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 76 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Removed a total of 0 cells.
+
+13.25.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+13.25.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+
+13.25.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.25.16. Finished fast OPT passes. (There is nothing left to do.)
+
+13.26. Executing MEMORY pass.
+
+13.26.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+13.26.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+13.26.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+13.26.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+13.26.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+13.26.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+
+13.26.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+13.26.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+13.26.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+
+13.26.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+13.27. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+
+13.28. Executing MEMORY_LIBMAP pass (mapping memories to cells).
+
+13.29. Executing TECHMAP pass (map to technology primitives).
+
+13.29.1. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/lutrams_xc5v_map.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/lutrams_xc5v_map.v' to AST representation.
+Generating RTLIL representation for module `$__XILINX_LUTRAM_SP_'.
+Generating RTLIL representation for module `$__XILINX_LUTRAM_DP_'.
+Generating RTLIL representation for module `$__XILINX_LUTRAM_QP_'.
+Generating RTLIL representation for module `$__XILINX_LUTRAM_OP_'.
+Generating RTLIL representation for module `$__XILINX_LUTRAM_SDP_'.
+Generating RTLIL representation for module `$__XILINX_LUTRAM_64X8SW_'.
+Generating RTLIL representation for module `$__XILINX_LUTRAM_32X16DR8_'.
+Successfully finished Verilog frontend.
+
+13.29.2. Continuing TECHMAP pass.
+No more expansions possible.
+<suppressed ~9 debug messages>
+
+13.30. Executing TECHMAP pass (map to technology primitives).
+
+13.30.1. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/brams_xc6v_map.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/brams_xc6v_map.v' to AST representation.
+Generating RTLIL representation for module `$__XILINX_BLOCKRAM_TDP_'.
+Generating RTLIL representation for module `$__XILINX_BLOCKRAM_SDP_'.
+Successfully finished Verilog frontend.
+
+13.30.2. Continuing TECHMAP pass.
+No more expansions possible.
+<suppressed ~4 debug messages>
+
+13.31. Executing OPT pass (performing simple optimizations).
+
+13.31.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+<suppressed ~11 debug messages>
+
+13.31.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 67 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Computing hashes of 66 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Computing hashes of 65 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+<suppressed ~6 debug messages>
+Removed a total of 2 cells.
+
+13.31.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+13.31.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+Removed 0 unused cells and 11 unused wires.
+<suppressed ~1 debug messages>
+
+13.31.5. Finished fast OPT passes.
+
+13.32. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+13.33. Executing OPT pass (performing simple optimizations).
+
+13.33.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+<suppressed ~2 debug messages>
+
+13.33.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 65 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Removed a total of 0 cells.
+
+13.33.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \mult_ps..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~4 debug messages>
+
+13.33.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \mult_ps.
+Performed a total of 0 changes.
+
+13.33.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 65 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Removed a total of 0 cells.
+
+13.33.6. Executing OPT_SHARE pass.
+
+13.33.7. Executing OPT_DFF pass (perform DFF optimizations).
+
+13.33.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+
+13.33.9. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+13.33.10. Finished fast OPT passes. (There is nothing left to do.)
+
+13.34. Executing TECHMAP pass (map to technology primitives).
+
+13.34.1. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/techmap.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/techmap.v' to AST representation.
+Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
+Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
+Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
+Generating RTLIL representation for module `\_90_simplemap_compare_ops'.
+Generating RTLIL representation for module `\_90_simplemap_various'.
+Generating RTLIL representation for module `\_90_simplemap_registers'.
+Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
+Generating RTLIL representation for module `\_90_shift_shiftx'.
+Generating RTLIL representation for module `\_90_fa'.
+Generating RTLIL representation for module `\_90_lcu_brent_kung'.
+Generating RTLIL representation for module `\_90_alu'.
+Generating RTLIL representation for module `\_90_macc'.
+Generating RTLIL representation for module `\_90_alumacc'.
+Generating RTLIL representation for module `$__div_mod_u'.
+Generating RTLIL representation for module `$__div_mod_trunc'.
+Generating RTLIL representation for module `\_90_div'.
+Generating RTLIL representation for module `\_90_mod'.
+Generating RTLIL representation for module `$__div_mod_floor'.
+Generating RTLIL representation for module `\_90_divfloor'.
+Generating RTLIL representation for module `\_90_modfloor'.
+Generating RTLIL representation for module `\_90_pow'.
+Generating RTLIL representation for module `\_90_pmux'.
+Generating RTLIL representation for module `\_90_demux'.
+Generating RTLIL representation for module `\_90_lut'.
+Generating RTLIL representation for module `$connect'.
+Generating RTLIL representation for module `$input_port'.
+Successfully finished Verilog frontend.
+
+13.34.2. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/arith_map.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/arith_map.v' to AST representation.
+Generating RTLIL representation for module `\_80_xilinx_lcu'.
+Generating RTLIL representation for module `\_80_xilinx_alu'.
+Successfully finished Verilog frontend.
+
+13.34.3. Continuing TECHMAP pass.
+Using extmapper simplemap for cells of type $reduce_bool.
+Using extmapper simplemap for cells of type $adffe.
+Using extmapper simplemap for cells of type $reduce_and.
+Using extmapper simplemap for cells of type $dffe.
+Using extmapper simplemap for cells of type $adff.
+Using extmapper simplemap for cells of type $mux.
+Using extmapper simplemap for cells of type $not.
+Using extmapper simplemap for cells of type $logic_not.
+Using extmapper simplemap for cells of type $eq.
+Using template $paramod$59b03ae2620a41577de8da5f5c97b2919e82362b\_90_pmux for cells of type $pmux.
+Using extmapper simplemap for cells of type $logic_and.
+Using extmapper simplemap for cells of type $reduce_or.
+Using extmapper simplemap for cells of type $and.
+No more expansions possible.
+<suppressed ~188 debug messages>
+
+13.35. Executing OPT pass (performing simple optimizations).
+
+13.35.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+<suppressed ~142 debug messages>
+
+13.35.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\mult_ps'.
+Computing hashes of 429 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+Computing hashes of 420 cells of `\mult_ps'.
+Finding duplicate cells in `\mult_ps'.
+<suppressed ~27 debug messages>
+Removed a total of 9 cells.
+
+13.35.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+13.35.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \mult_ps..
+Removed 0 unused cells and 166 unused wires.
+<suppressed ~1 debug messages>
+
+13.35.5. Finished fast OPT passes.
+
+13.36. Executing IOPADMAP pass (mapping inputs/outputs to IO-PAD cells).
+Mapping port mult_ps.led_green using OBUF.
+Mapping port mult_ps.led_red using OBUF.
+
+13.37. Executing TECHMAP pass (map to technology primitives).
+
+13.37.1. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/techmap.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/techmap.v' to AST representation.
+Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
+Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
+Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
+Generating RTLIL representation for module `\_90_simplemap_compare_ops'.
+Generating RTLIL representation for module `\_90_simplemap_various'.
+Generating RTLIL representation for module `\_90_simplemap_registers'.
+Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
+Generating RTLIL representation for module `\_90_shift_shiftx'.
+Generating RTLIL representation for module `\_90_fa'.
+Generating RTLIL representation for module `\_90_lcu_brent_kung'.
+Generating RTLIL representation for module `\_90_alu'.
+Generating RTLIL representation for module `\_90_macc'.
+Generating RTLIL representation for module `\_90_alumacc'.
+Generating RTLIL representation for module `$__div_mod_u'.
+Generating RTLIL representation for module `$__div_mod_trunc'.
+Generating RTLIL representation for module `\_90_div'.
+Generating RTLIL representation for module `\_90_mod'.
+Generating RTLIL representation for module `$__div_mod_floor'.
+Generating RTLIL representation for module `\_90_divfloor'.
+Generating RTLIL representation for module `\_90_modfloor'.
+Generating RTLIL representation for module `\_90_pow'.
+Generating RTLIL representation for module `\_90_pmux'.
+Generating RTLIL representation for module `\_90_demux'.
+Generating RTLIL representation for module `\_90_lut'.
+Generating RTLIL representation for module `$connect'.
+Generating RTLIL representation for module `$input_port'.
+Successfully finished Verilog frontend.
+
+13.37.2. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_map.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_map.v' to AST representation.
+Generating RTLIL representation for module `$__SHREG_'.
+Generating RTLIL representation for module `$__XILINX_SHREG_'.
+Generating RTLIL representation for module `$__XILINX_MUXF78'.
+Successfully finished Verilog frontend.
+
+13.37.3. Continuing TECHMAP pass.
+No more expansions possible.
+<suppressed ~80 debug messages>
+Removed 0 unused cells and 2 unused wires.
+
+13.38. Executing DFFLEGALIZE pass (convert FFs to types supported by the target).
+
+14. Executing OPT_EXPR pass (perform const folding).
+Optimizing module mult_ps.
+
+15. Executing ABC pass (technology mapping using ABC).
+
+15.1. Extracting gate netlist of module `\mult_ps' to `<abc-temp-dir>/input.blif'..
+
+15.1.1. Executed ABC.
+Extracted 342 gates and 464 wires to a netlist network with 121 inputs and 118 outputs.
+Running ABC script: <abc-temp-dir>/abc.script
+ABC: UC Berkeley, ABC 1.01 (compiled Jul 14 2026 22:15:15)
+ABC: abc 01> empty
+ABC: abc 01> source <abc-temp-dir>/abc.script
+ABC: + read_blif <abc-temp-dir>/input.blif 
+ABC: + read_lut /tmp/yosys-abc-kY8SyE/lutdefs.txt 
+ABC: + strash 
+ABC: + &get -n 
+ABC: + &fraig -x 
+ABC: + &put 
+ABC: + scorr 
+ABC: Warning: The network is combinational (run "fraig" or "fraig_sweep").
+ABC: + dc2 
+ABC: + dretime 
+ABC: + strash 
+ABC: + dch -f 
+ABC: + if 
+ABC: + mfs2 
+ABC: + write_blif <abc-temp-dir>/output.blif 
+ABC: 
+ABC: YOSYS_ABC_DONE 
+
+15.1.2. Re-integrating ABC results.
+ABC RESULTS:              $lut cells:      156
+ABC RESULTS:        internal signals:      225
+ABC RESULTS:           input signals:      121
+ABC RESULTS:          output signals:      118
+Removing temp directory.
+Removing global temp directory.
+Removed 0 unused cells and 322 unused wires.
+
+16. Executing TECHMAP pass (map to technology primitives).
+
+16.1. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/ff_map.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/ff_map.v' to AST representation.
+Generating RTLIL representation for module `$_DFFE_NP0P_'.
+Generating RTLIL representation for module `$_DFFE_PP0P_'.
+Generating RTLIL representation for module `$_DFFE_NP1P_'.
+Generating RTLIL representation for module `$_DFFE_PP1P_'.
+Generating RTLIL representation for module `$_DFFSRE_NPPP_'.
+Generating RTLIL representation for module `$_DFFSRE_PPPP_'.
+Generating RTLIL representation for module `$_SDFFE_NP0P_'.
+Generating RTLIL representation for module `$_SDFFE_PP0P_'.
+Generating RTLIL representation for module `$_SDFFE_NP1P_'.
+Generating RTLIL representation for module `$_SDFFE_PP1P_'.
+Generating RTLIL representation for module `$_DLATCH_NP0_'.
+Generating RTLIL representation for module `$_DLATCH_PP0_'.
+Generating RTLIL representation for module `$_DLATCH_NP1_'.
+Generating RTLIL representation for module `$_DLATCH_PP1_'.
+Generating RTLIL representation for module `$_DLATCH_NPP_'.
+Generating RTLIL representation for module `$_DLATCH_PPP_'.
+Successfully finished Verilog frontend.
+
+16.2. Continuing TECHMAP pass.
+Using template $paramod$_DFFE_PP0P_\_TECHMAP_WIREINIT_Q_=1'x for cells of type $_DFFE_PP0P_.
+Using template $paramod$_SDFFE_PP0P_\_TECHMAP_WIREINIT_Q_=1'x for cells of type $_SDFFE_PP0P_.
+Using template $paramod$_DFFE_PP1P_\_TECHMAP_WIREINIT_Q_=1'x for cells of type $_DFFE_PP1P_.
+No more expansions possible.
+<suppressed ~193 debug messages>
+
+17. Executing TECHMAP pass (map to technology primitives).
+
+17.1. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/lut_map.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/lut_map.v' to AST representation.
+Generating RTLIL representation for module `$lut'.
+Successfully finished Verilog frontend.
+
+17.2. Executing Verilog-2005 frontend: /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_map.v
+Parsing Verilog input from `/home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/../share/yosys/xilinx/cells_map.v' to AST representation.
+Generating RTLIL representation for module `$__SHREG_'.
+Generating RTLIL representation for module `$__XILINX_SHREG_'.
+Generating RTLIL representation for module `$__XILINX_MUXF78'.
+Successfully finished Verilog frontend.
+
+17.3. Continuing TECHMAP pass.
+Using template $paramod$lut\WIDTH=32'00000000000000000000000000000010\LUT=4'1000 for cells of type $lut.
+Using template $paramod$lut\WIDTH=32'00000000000000000000000000000011\LUT=8'01000000 for cells of type $lut.
+Using template $paramod$e0bde73e598487237493c8a43ca52c95a3727354$lut for cells of type $lut.
+Using template $paramod$lut\WIDTH=32'00000000000000000000000000000011\LUT=8'11111000 for cells of type $lut.
+Using template $paramod$6d6beead1425af15cf78b27fd9b11b41b5d4bce8$lut for cells of type $lut.
+Using template $paramod$lut\WIDTH=32'00000000000000000000000000000010\LUT=4'0100 for cells of type $lut.
+Using template $paramod$73bbff9804d791be5cfd09c0116d6c083b3293af$lut for cells of type $lut.
+Using template $paramod$lut\WIDTH=32'00000000000000000000000000000010\LUT=4'0001 for cells of type $lut.
+Using template $paramod$9bdc414229f06e785dc8fd97a243faa9336e164a$lut for cells of type $lut.
+Using template $paramod$a7dad16c080c08c1647c7e1b9706a59a123d8bcd$lut for cells of type $lut.
+Using template $paramod$33e58adf67c6b686a154c9ce8ebbc4b04b8cabc5$lut for cells of type $lut.
+Using template $paramod$lut\WIDTH=32'00000000000000000000000000000010\LUT=4'1011 for cells of type $lut.
+Using template $paramod$lut\WIDTH=32'00000000000000000000000000000011\LUT=8'01001111 for cells of type $lut.
+Using template $paramod$272652f6c6fbe9a75eff76e45cc7e2788835518b$lut for cells of type $lut.
+Using template $paramod$6e238df02989b317f10820a22773676e71120644$lut for cells of type $lut.
+Using template $paramod$cf652acbfbf67d2248e3045cd0f09c58ca55886c$lut for cells of type $lut.
+Using template $paramod$e05daf752ebc4e4bd291565ba38235b76a24842e$lut for cells of type $lut.
+Using template $paramod$4e8c3360630781ccc9a6ba83c7f395440ca12486$lut for cells of type $lut.
+Using template $paramod$126c776b0f5e5eef0fff11eb6abcf95b4d1189d2$lut for cells of type $lut.
+Using template $paramod$78d58365f788e360219c170cfc7e25d75da6e74d$lut for cells of type $lut.
+Using template $paramod$lut\WIDTH=32'00000000000000000000000000000011\LUT=8'10001111 for cells of type $lut.
+Using template $paramod$lut\WIDTH=32'00000000000000000000000000000001\LUT=2'01 for cells of type $lut.
+Using template $paramod$lut\WIDTH=32'00000000000000000000000000000011\LUT=8'10111111 for cells of type $lut.
+No more expansions possible.
+<suppressed ~461 debug messages>
+
+18. Executing OPT_LUT_INS pass (discard unused LUT inputs).
+Optimizing LUTs in mult_ps.
+
+19. Executing SYNTH_XILINX pass.
+Removed 0 unused cells and 1168 unused wires.
+
+19.1. Executing HIERARCHY pass (managing design hierarchy).
+Attribute `top' found on module `mult_ps'. Setting top module to mult_ps.
+
+19.1.1. Analyzing design hierarchy..
+Top module:  \mult_ps
+
+19.1.2. Analyzing design hierarchy..
+Top module:  \mult_ps
+Removed 0 unused modules.
+
+19.2. Printing statistics.
+
+=== mult_ps ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      210 wires
+     1061 wire bits
+       83 public wires
+      617 public wire bits
+        2 ports
+        2 port bits
+      164 cells
+        1   $scopeinfo
+        1   BUFG
+        3   DSP48E1
+       70   INV
+        6   LUT2
+       35   LUT3
+        4   LUT4
+        5   LUT5
+       36   LUT6
+        2   OBUF
+        1   PS7
+      142 submodules
+       68   FDCE
+        2   FDPE
+       72   FDRE
+
+   Estimated number of LCs:         80
+
+=== design hierarchy ===
+
+        +----------Count including submodules.
+        | 
+      164 mult_ps
+
+        +----------Count including submodules.
+        | 
+      210 wires
+     1061 wire bits
+       83 public wires
+      617 public wire bits
+        2 ports
+        2 port bits
+        - memories
+        - memory bits
+        - processes
+      164 cells
+        1   $scopeinfo
+        1   BUFG
+        3   DSP48E1
+       70   INV
+        6   LUT2
+       35   LUT3
+        4   LUT4
+        5   LUT5
+       36   LUT6
+        2   OBUF
+        1   PS7
+      142 submodules
+       68   FDCE
+        2   FDPE
+       72   FDRE
+
+   Estimated number of LCs:         80
+
+19.3. Executing CHECK pass (checking for obvious problems).
+Checking module mult_ps...
+Found and reported 0 problems.
+
+20. Executing JSON backend.
+
+21. Printing statistics.
+
+=== mult_ps ===
+
+        +----------Local Count, excluding submodules.
+        | 
+      210 wires
+     1061 wire bits
+       83 public wires
+      617 public wire bits
+        2 ports
+        2 port bits
+      306 cells
+        1   $scopeinfo
+        1   BUFG
+        3   DSP48E1
+       68   FDCE
+        2   FDPE
+       72   FDRE
+       70   INV
+        6   LUT2
+       35   LUT3
+        4   LUT4
+        5   LUT5
+       36   LUT6
+        2   OBUF
+        1   PS7
+
+End of script. Logfile hash: a03c7e2049, CPU: user 3.01s system 0.26s, MEM: 120.81 MB peak
+Yosys 0.62 (git sha1 7326bb7d6, g++ 11.4.0-1ubuntu1~22.04 -fPIC -O3)
+Time spent: 71% 32x read_verilog (2 sec), 5% 16x opt_clean (0 sec), ...

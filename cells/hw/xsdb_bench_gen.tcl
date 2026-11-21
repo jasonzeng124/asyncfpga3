@@ -49,6 +49,16 @@
 #   0x48 MISM_REF RO
 #   0x4C META     RO {nargs[31:16], arg0_width[15:8], argN_width[7:0]}
 #   0x100-0x1FC   RO hist[0..63], 4 bytes/word
+# Only in a bench whose kernel needs them (gen_bench.py; absent registers read 0; research/data/suite/bench/README.md):
+#   0x60-0x7C OP2..OP9 RW operand words 2..9 (a kernel with more than two operand words)
+#   0x80 MEMADDR  RW [15:0] element index, [23:16] memory (memref arguments in signature order)
+#   0x84 MEMWDATA W  mem[MEMADDR] <= data, index += 1 (response held until the RAM write is done); R: MEMRDATA
+#   0x88 MEMCMD   W  [0]=1: MEMRDATA <= mem[MEMADDR], index += 1 (response held until done)
+#   0x8C MEMSTAT  RO [0]=busy [1]=refused (batch running / kernel in reset) [2]=timeout [31:16]=accesses; W: clear
+#   0x90 MEMRDATA RO
+#   0xA0 LAYOUT   RO {nmem[31:24], nwords[23:16], 16'hB5C2}
+#   0xC0+4m MEMINFO[m] RO {depth[31:16], element width[15:8], address width[7:0]}
+# Fill memories only between batches with CTRL.rst = 0 (MEMSTAT[1] says when an access was refused).
 #
 # Clock: FCLK0 nominal 100 MHz (IO PLL 1000 MHz / 10). Same ~2% systematic
 # uncertainty caveat as xsdb_gcd_bench.tcl -- not independently calibrated

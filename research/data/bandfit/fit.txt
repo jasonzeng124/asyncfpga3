@@ -1,0 +1,219 @@
+# research/data/bandfit/fit.txt -- the outputs of bandfit.py and table.py on logs/ (2026-11-17)
+
+## table.py (x from the corner runs of research/data/aug_kernels, aug_gcd)
+| kernel | metric | vectors | board | FAST_MIN | SLOW_MAX | x (board) | x_loo | at x_loo | at 0.288 | draw range x 0.20-0.31 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| collatz | ns/iter | 20 | 92.73 | 65.16 | 188.76 | 0.2231 | 0.2219 | 92.59 (-0.1%) | 100.76 (+8.7%) | 89.88-103.48 |
+| collatz64 | ns/iter | 12 | 117.89 | 83.04 | 237.37 | 0.2258 | 0.2213 | 117.19 (-0.6%) | 127.49 (+8.1%) | 113.91-130.88 |
+| ipow | ns/iter | 17 | 60.46 | 42.20 | 122.53 | 0.2272 | 0.2209 | 59.95 (-0.8%) | 65.34 (+8.1%) | 58.27-67.11 |
+| gcd | ns/main iter | 24 | 156.50 | 112.77 | 318.50 (from 0.288) | 0.2125 | 0.2246 | 158.97 (+1.6%) | 172.02 (+9.9%) | 153.92-176.55 |
+| gcd long pair | ns, (2^31-1, 2^31-2) - (1, 1) | 2 | 11630.00 | 8410.00 | 23618.33 (from 0.288) | 0.2117 | 0.2246 | 11825.30 (+1.7%) | 12790.00 (+10.0%) | 11451.67-13124.58 |
+| isprime | ns, n 97 - n 2 | 2 | 8050.00 | 5750.00 | 16100.00 | 0.2222 | 0.2221 | 8049.23 (-0.0%) | 8730.80 (+8.5%) | 7820.00-8958.50 |
+x over the five kernels: mean 0.2222, sd 0.0057, range 0.2125-0.2272
+
+## collatz at x 0.222: fit (bandfit.py collatz 0.222 logs...)
+collatz y=0.2: 8 vectors, 8 right, 0 wrong/hung   [run1.sh collatz x=0.222 y=0.2 vec=collatz.hex build 1794945459-1794945379s run 657s]
+   ns/iter board 92.76 sim 92.68 (-0.09%) | refit x: slope 0.2227, per-vector median 0.2206 (0.2137-0.2225, 8 vec >= 50 cyc; slope on 8 vec with both corners: FAST_MIN 65.14 SLOW_MAX 188.76)
+   summed latmin over the 8 right vectors: sim / board = 3918 / 3914 (+0.10%)
+   iters/board/sim: 6:57/57 10:94/95 14:131/132 25:233/234 40:372/373 69:641/641 104:965/966 153:1421/1420
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=94545943
+collatz y=1.0: 8 vectors, 8 right, 0 wrong/hung   [run1.sh collatz x=0.222 y=1.0 vec=collatz.hex build 1794946331-1794946133s run 680s]
+   ns/iter board 92.76 sim 92.68 (-0.09%) | refit x: slope 0.2227, per-vector median 0.2206 (0.2137-0.2225, 8 vec >= 50 cyc; slope on 8 vec with both corners: FAST_MIN 65.14 SLOW_MAX 188.76)
+   summed latmin over the 8 right vectors: sim / board = 3918 / 3914 (+0.10%)
+   iters/board/sim: 6:57/57 10:94/95 14:131/132 25:233/234 40:372/373 69:641/641 104:965/966 153:1421/1420
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=94545943
+collatz y=2.0: 8 vectors, 8 right, 0 wrong/hung   [run1.sh collatz x=0.222 y=2.0 vec=collatz.hex fclk_ps=10000 build 77s run 490s host node3627]
+   ns/iter board 92.76 sim 92.66 (-0.11%) | refit x: slope 0.2228, per-vector median 0.2194 (0.2081-0.2225, 8 vec >= 50 cyc; slope on 8 vec with both corners: FAST_MIN 65.14 SLOW_MAX 188.76)
+   summed latmin over the 8 right vectors: sim / board = 3920 / 3914 (+0.15%)
+   iters/board/sim: 6:57/58 10:94/95 14:131/132 25:233/234 40:372/373 69:641/642 104:965/966 153:1421/1420
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=94545943
+collatz y=3.0: 8 vectors, 8 right, 0 wrong/hung   [run1.sh collatz x=0.222 y=3.0 vec=collatz.hex build 63s run 680s host node3627]
+   ns/iter board 92.76 sim 92.66 (-0.11%) | refit x: slope 0.2228, per-vector median 0.2194 (0.2081-0.2225, 8 vec >= 50 cyc; slope on 8 vec with both corners: FAST_MIN 65.14 SLOW_MAX 188.76)
+   summed latmin over the 8 right vectors: sim / board = 3920 / 3914 (+0.15%)
+   iters/board/sim: 6:57/58 10:94/95 14:131/132 25:233/234 40:372/373 69:641/642 104:965/966 153:1421/1420
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=94545943
+
+## collatz: per-vector latmin side by side (--cmp)
+op0,op1                 board  y=0.2                     y=1.0                     y=2.0                     y=3.0                   
+40,0                       57  57-57 ok                  57-57 ok                  58-58 ok                  58-58 ok                
+400,0                      94  95-95 ok                  95-95 ok                  95-95 ok                  95-95 ok                
+4000,0                    131  132-132 ok                132-132 ok                132-132 ok                132-132 ok              
+e00,0                     233  234-234 ok                234-234 ok                234-234 ok                234-234 ok              
+3900,0                    372  373-373 ok                373-373 ok                373-373 ok                373-373 ok              
+6f,0                      641  641-641 ok                641-641 ok                642-642 ok                642-642 ok              
+dcb0,0                    965  966-966 ok                966-966 ok                966-966 ok                966-966 ok              
+cbef,0                   1421  1420-1420 ok              1420-1420 ok              1420-1420 ok              1420-1420 ok            
+latmin identical in every log for every vector: False
+
+## collatz: per-call kernel latency in ps (--lat; runs with lat_mon.py)
+op0,op1                y=2.0 lat_ps (d vs y=2.0) 
+40,0                   537186/537180 (+0/+0)     
+400,0                  907972/907972 (+0/+0)     
+4000,0                 1278764/1278764 (+0/+0)   
+e00,0                  2298442/2298442 (+0/+0)   
+3900,0                 3688912/3688912 (+0/+0)   
+6f,0                   6377154/6377154 (+0/+0)   
+dcb0,0                 9621584/9621584 (+0/+0)   
+cbef,0                 14163786/14163786 (+0/+0) 
+   y=2.0: ns/iter from the first call's lat_ps, 8 vectors: 92.698
+
+## collatz64 at x 0.224: fit (bandfit.py collatz64 0.224 logs...)
+collatz64 y=0.2: 8 vectors, 8 right, 0 wrong/hung   [run1.sh collatz64 x=0.224 y=0.2 vec=collatz64.hex build 1794947473-1794947052s run 739s]
+   ns/iter board 118.04 sim 117.61 (-0.36%) | refit x: slope 0.2270, per-vector median 0.2240 (0.2156-0.2240, 4 vec >= 50 cyc; slope on 4 vec with both corners: FAST_MIN 82.92 SLOW_MAX 237.67)
+   summed latmin over the 8 right vectors: sim / board = 5039 / 5048 (-0.18%)
+   iters/board/sim: 8:94/95 12:142/142 17:200/200 25:295/295 40:471/471 69:813/812 104:1227/1224 153:1806/1800
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=117095945
+collatz64 y=1.0: 8 vectors, 8 right, 0 wrong/hung   [run1.sh collatz64 x=0.224 y=1.0 vec=collatz64.hex build 1794948495-1794948213s run 1030s]
+   ns/iter board 118.04 sim 117.59 (-0.38%) | refit x: slope 0.2264, per-vector median 0.2221 (0.2156-0.2240, 4 vec >= 50 cyc; slope on 4 vec with both corners: FAST_MIN 82.92 SLOW_MAX 237.67)
+   summed latmin over the 8 right vectors: sim / board = 5040 / 5048 (-0.16%)
+   iters/board/sim: 8:94/95 12:142/142 17:200/201 25:295/295 40:471/471 69:813/812 104:1227/1224 153:1806/1800
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=117095945
+collatz64 y=2.0: 8 vectors, 8 right, 0 wrong/hung   [run1.sh collatz64 x=0.224 y=2.0 vec=collatz64.hex fclk_ps=10000 build 208s run 1346s host node3627]
+   ns/iter board 118.04 sim 117.59 (-0.38%) | refit x: slope 0.2264, per-vector median 0.2221 (0.2156-0.2240, 4 vec >= 50 cyc; slope on 4 vec with both corners: FAST_MIN 82.92 SLOW_MAX 237.67)
+   summed latmin over the 8 right vectors: sim / board = 5040 / 5048 (-0.16%)
+   iters/board/sim: 8:94/95 12:142/142 17:200/201 25:295/295 40:471/471 69:813/812 104:1227/1224 153:1806/1800
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=117095945
+collatz64 y=3.0: 8 vectors, 8 right, 0 wrong/hung   [run1.sh collatz64 x=0.224 y=3.0 vec=collatz64.hex fclk_ps=10000 build 119s run 625s host node3627]
+   ns/iter board 118.04 sim 117.59 (-0.38%) | refit x: slope 0.2264, per-vector median 0.2221 (0.2156-0.2240, 4 vec >= 50 cyc; slope on 4 vec with both corners: FAST_MIN 82.92 SLOW_MAX 237.67)
+   summed latmin over the 8 right vectors: sim / board = 5040 / 5048 (-0.16%)
+   iters/board/sim: 8:94/95 12:142/142 17:200/201 25:295/295 40:471/471 69:813/812 104:1227/1224 153:1806/1800
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=117095945
+
+## collatz64: per-vector latmin side by side (--cmp)
+op0,op1                 board  y=0.2                     y=1.0                     y=2.0                     y=3.0                   
+100,0                      94  95-95 ok                  95-95 ok                  95-95 ok                  95-95 ok                
+1000,0                    142  142-142 ok                142-142 ok                142-142 ok                142-142 ok              
+5000,0                    200  200-200 ok                201-201 ok                201-201 ok                201-201 ok              
+e00,0                     295  295-295 ok                295-295 ok                295-295 ok                295-295 ok              
+3900,0                    471  471-471 ok                471-471 ok                471-471 ok                471-471 ok              
+6f,0                      813  812-812 ok                812-812 ok                812-812 ok                812-812 ok              
+dcb0,0                   1227  1224-1224 ok              1224-1224 ok              1224-1224 ok              1224-1224 ok            
+cbef,0                   1806  1800-1800 ok              1800-1800 ok              1800-1800 ok              1800-1800 ok            
+latmin identical in every log for every vector: False
+
+## collatz64: per-call kernel latency in ps (--lat; runs with lat_mon.py)
+op0,op1                y=2.0 lat_ps (d vs y=2.0)   y=3.0 lat_ps (d vs y=2.0) 
+100,0                  909536/909269 (+0/+0)       909740/909473 (+204/+204) 
+1000,0                 1379709/1379709 (+0/+0)     1379913/1379913 (+204/+204)
+5000,0                 1967759/1967759 (+0/+0)     1967963/1967963 (+204/+204)
+e00,0                  2908639/2908639 (+0/+0)     2908843/2908843 (+204/+204)
+3900,0                 4672789/4672789 (+0/+0)     4672993/4672993 (+204/+204)
+6f,0                   8083479/8083479 (+0/+0)     8083683/8083683 (+204/+204)
+dcb0,0                 12199829/12199829 (+0/+0)   12200033/12200033 (+204/+204)
+cbef,0                 17962719/17962719 (+0/+0)   17962923/17962923 (+204/+204)
+   y=2.0: ns/iter from the first call's lat_ps, 8 vectors: 117.609
+   y=3.0: ns/iter from the first call's lat_ps, 8 vectors: 117.609
+
+## ipow at x 0.225: fit (bandfit.py ipow 0.225 logs...)
+ipow y=0.2: 8 vectors, 8 right, 0 wrong/hung   [run1.sh ipow x=0.225 y=0.2 vec=ipow.hex build 63s run 146s host node3627]
+   ns/iter board 60.43 sim 60.43 (+0.00%) | refit x: slope 0.2250, per-vector median 0.2250 (0.2250-0.2250, 6 vec >= 50 cyc; slope on 8 vec with both corners: FAST_MIN 42.20 SLOW_MAX 122.34)
+   summed latmin over the 8 right vectors: sim / board = 749 / 749 (+0.00%)
+   iters/board/sim: 3:21/21 6:39/39 8:51/51 12:76/76 16:100/100 20:124/124 24:148/148 31:190/190
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=31845946
+ipow y=0.2: 8 vectors, 8 right, 0 wrong/hung   [run1.sh ipow x=0.225 y=0.2 vec=ipow.hex fclk_ps=10000 build 183s run 360s host node3627]
+   ns/iter board 60.43 sim 60.43 (+0.00%) | refit x: slope 0.2250, per-vector median 0.2250 (0.2250-0.2250, 6 vec >= 50 cyc; slope on 8 vec with both corners: FAST_MIN 42.20 SLOW_MAX 122.34)
+   summed latmin over the 8 right vectors: sim / board = 749 / 749 (+0.00%)
+   iters/board/sim: 3:21/21 6:39/39 8:51/51 12:76/76 16:100/100 20:124/124 24:148/148 31:190/190
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=31845946
+ipow y=1.0: 8 vectors, 8 right, 0 wrong/hung   [run1.sh ipow x=0.225 y=1.0 vec=ipow.hex build 63s run 144s host node3627]
+   ns/iter board 60.43 sim 60.33 (-0.18%) | refit x: slope 0.2264, per-vector median 0.2250 (0.2094-0.2250, 6 vec >= 50 cyc; slope on 8 vec with both corners: FAST_MIN 42.20 SLOW_MAX 122.34)
+   summed latmin over the 8 right vectors: sim / board = 750 / 749 (+0.13%)
+   iters/board/sim: 3:21/21 6:39/39 8:51/52 12:76/76 16:100/100 20:124/124 24:148/148 31:190/190
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=31845946
+ipow y=1.0: 8 vectors, 8 right, 0 wrong/hung   [run1.sh ipow x=0.225 y=1.0 vec=ipow.hex fclk_ps=10000 build 97s run 225s host node3627]
+   ns/iter board 60.43 sim 60.33 (-0.18%) | refit x: slope 0.2264, per-vector median 0.2250 (0.2094-0.2250, 6 vec >= 50 cyc; slope on 8 vec with both corners: FAST_MIN 42.20 SLOW_MAX 122.34)
+   summed latmin over the 8 right vectors: sim / board = 750 / 749 (+0.13%)
+   iters/board/sim: 3:21/21 6:39/39 8:51/52 12:76/76 16:100/100 20:124/124 24:148/148 31:190/190
+    BENCHSUMMARY batches=8 hang=0 id_mismatch=0 t_end=31845946
+Traceback (most recent call last):
+  File "/tmp/bot/sa/bandfit/repo/research/data/bandfit/bandfit.py", line 255, in <module>
+    fit(sys.argv[1], float(sys.argv[2]), sys.argv[3:])
+  File "/tmp/bot/sa/bandfit/repo/research/data/bandfit/bandfit.py", line 115, in fit
+    y = re.search(r"y=(\S+)", hdr).group(1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'group'
+
+## ipow: per-vector latmin side by side (--cmp)
+Traceback (most recent call last):
+  File "/tmp/bot/sa/bandfit/repo/research/data/bandfit/bandfit.py", line 251, in <module>
+    cmp(sys.argv[2], sys.argv[3:])
+  File "/tmp/bot/sa/bandfit/repo/research/data/bandfit/bandfit.py", line 152, in cmp
+    R = [(re.search(r"y=(\S+)", open(lg).readline()).group(1), bench(lg), oracle(lg)) for lg in logs]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'group'
+
+## ipow: per-call kernel latency in ps (--lat; runs with lat_mon.py)
+Traceback (most recent call last):
+  File "/tmp/bot/sa/bandfit/repo/research/data/bandfit/bandfit.py", line 253, in <module>
+    lat(sys.argv[2], sys.argv[3:])
+  File "/tmp/bot/sa/bandfit/repo/research/data/bandfit/bandfit.py", line 187, in lat
+    y = re.search(r"y=(\S+)", open(lg).readline()).group(1)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'group'
+
+## gcd at x 0.211: fit (bandfit.py gcd 0.211 logs...)
+gcd y=0.2: 10 vectors, 10 right, 0 wrong/hung   [run1.sh gcd x=0.211 y=0.2 vec=gcd10.hex fclk_ps=10000 build 230s run 958s host node3627]
+   ns/iter board 157.31 sim 159.51 (+1.40%) | refit x: slope 0.2288, per-vector median 0.2110 (0.2110-0.2161, 6 vec >= 50 cyc; slope on 6 vec with both corners: FAST_MIN 148.25 SLOW_MAX 437.18)
+   summed latmin over the 10 right vectors: sim / board = 3939 / 3943 (-0.10%)
+   iters/board/sim: 1-1-2-1:101/101 0-0-3-2:104/105 1-3-2-1:122/122 15-1-1-0:243/242 18-0-2-1:305/303 0-1-8-13:318/318 24-0-3-2:408/405 0-0-11-21:445/445 0-0-20-31:698/699 0-1-31-59:1199/1199
+    BENCHSUMMARY batches=10 hang=0 id_mismatch=0 t_end=101025927
+gcd y=3.0: 10 vectors, 10 right, 0 wrong/hung   [run1.sh gcd x=0.211 y=3.0 vec=gcd10.hex fclk_ps=10000 build 301s run 784s host node3627]
+   ns/iter board 157.31 sim 159.94 (+1.68%) | refit x: slope 0.2288, per-vector median 0.2110 (0.2110-0.2161, 6 vec >= 50 cyc; slope on 6 vec with both corners: FAST_MIN 148.25 SLOW_MAX 437.18)
+   summed latmin over the 10 right vectors: sim / board = 3940 / 3943 (-0.08%)
+   iters/board/sim: 1-1-2-1:101/101 0-0-3-2:104/105 1-3-2-1:122/122 15-1-1-0:243/242 18-0-2-1:305/303 0-1-8-13:318/318 24-0-3-2:408/406 0-0-11-21:445/445 0-0-20-31:698/699 0-1-31-59:1199/1199
+    BENCHSUMMARY batches=10 hang=0 id_mismatch=0 t_end=101025927
+
+## gcd: per-vector latmin side by side (--cmp)
+op0,op1                 board  y=0.2                     y=3.0                   
+c,12                      101  101-101 ok                101-101 ok              
+55555555,33333333         104  105-105 ok                105-105 ok              
+30,12                     122  122-122 ok                122-122 ok              
+10000,8000                243  242-242 ok                242-242 ok              
+c0000,40000               305  303-303 ok                303-303 ok              
+ff,fe                     318  318-318 ok                318-318 ok              
+3000000,5000000           408  405-405 ok                406-406 ok              
+f422f,f422b               445  445-445 ok                445-445 ok              
+75bcd15,3ade68b1          698  699-699 ok                699-699 ok              
+7fffffff,7ffffffe        1199  1199-1199 ok              1199-1199 ok            
+latmin identical in every log for every vector: False
+
+## gcd: per-call kernel latency in ps (--lat; runs with lat_mon.py)
+op0,op1                y=0.2 lat_ps (d vs y=0.2)   y=3.0 lat_ps (d vs y=0.2) 
+c,12                   969913/969386 (+0/+0)       970484/969957 (+571/+571) 
+55555555,33333333      1009031/1009031 (+0/+0)     1009602/1009602 (+571/+571)
+30,12                  1184286/1184286 (+0/+0)     1184857/1184857 (+571/+571)
+10000,8000             2381446/2381249 (+0/+0)     2382017/2381820 (+571/+571)
+c0000,40000            2994436/2994633 (+0/+0)     2995007/2995204 (+571/+571)
+ff,fe                  3145562/3145764 (+0/+0)     3146133/3146335 (+571/+571)
+3000000,5000000        4016232/4016276 (+0/+0)     4016803/4016847 (+571/+571)
+f422f,f422b            4415047/4414845 (+0/+0)     4415618/4415416 (+571/+571)
+75bcd15,3ade68b1       6950251/6950250 (+0/+0)     6950822/6950821 (+571/+571)
+7fffffff,7ffffffe      11954493/11954695 (+0/+0)   11955064/11955266 (+571/+571)
+
+## xorshift: the archived bit against the August board tables (--xor)
+   rounds   0: sim latmin    7 latmax    7  right (C oracle)
+   rounds   1: sim latmin    9 latmax    9  right (C oracle)
+   rounds   2: sim latmin   14 latmax   15  right (C oracle)
+   rounds   3: sim latmin   19 latmax   19  right (C oracle)
+   rounds   4: sim latmin   24 latmax   24  right (C oracle)
+   rounds   6: sim latmin   34 latmax   34  right (C oracle)
+   rounds   8: sim latmin   44 latmax   44  right (C oracle)
+   rounds  12: sim latmin   64 latmax   64  right (C oracle)
+   rounds  16: sim latmin   84 latmax   84  right (C oracle)
+   rounds  24: sim latmin  124 latmax  124  right (C oracle)
+   rounds  32: sim latmin  164 latmax  164  right (C oracle)
+   rounds  48: sim latmin  243 latmax  243  right (C oracle)
+   rounds  64: sim latmin  323 latmax  323  right (C oracle)
+   rounds  96: sim latmin  482 latmax  482  right (C oracle)
+   rounds 128: sim latmin  641 latmax  641  right (C oracle)
+   rounds 192: sim latmin  959 latmax  959  right (C oracle)
+   rounds 256: sim latmin 1277 latmax 1277  right (C oracle)
+sim (xorshift_x0222_y02_cost.log): 17 right of 17; ns/round 49.71 by latmin; 49.718 by LATMON ps
+   xorshift_cost_skipE2.tsv                         ns/round 49.98; sim / board 0.995; latmin sim - board on 17 common rounds: 0:+1 1:+0 2:+0 3:+0 4:+0 6:+0 8:+0 12:+0 16:+0 24:+0 32:+0 48:-1 64:-1 96:-2 128:-3 192:-4 256:-7
+   xorshift_cost_skipE1.tsv                         ns/round 49.99; sim / board 0.994; latmin sim - board on 17 common rounds: 0:+1 1:+0 2:+0 3:+0 4:+0 6:+0 8:+0 12:+0 16:+0 24:+0 32:+0 48:-1 64:-1 96:-2 128:-2 192:-5 256:-7
+   xorshift_cost_results.tsv                        ns/round 49.60; sim / board 1.002; latmin sim - board on 17 common rounds: 0:+1 1:+0 2:+0 3:+0 4:+0 6:+0 8:+0 12:+1 16:+1 24:+1 32:+1 48:+1 64:+2 96:+2 128:+3 192:+3 256:+3
+   xorshift_cost_seed13_tightened.tsv               ns/round 45.52; sim / board 1.092; latmin sim - board on 17 common rounds: 0:+0 1:+0 2:+0 3:+1 4:+1 6:+2 8:+3 12:+5 16:+7 24:+10 32:+14 48:+20 64:+27 96:+41 128:+54 192:+81 256:+107
+   xorshift_cost_seed11_untightened.tsv             ns/round 96.99; sim / board 0.513; latmin sim - board on 17 common rounds: 0:+0 1:-4 2:-9 3:-14 4:-18 6:-28 8:-37 12:-56 16:-74 24:-111 32:-149 48:-224 64:-299 96:-449 128:-601 192:-904 256:-1211
+   xorshift_cost_route1.tsv                         ns/round 99.66; sim / board 0.499; latmin sim - board on 17 common rounds: 0:+0 1:-5 2:-10 3:-15 4:-20 6:-29 8:-39 12:-59 16:-79 24:-118 32:-157 48:-237 64:-316 96:-475 128:-635 192:-956 256:-1279
+   xorshift_cost_route2.tsv                         ns/round 99.64; sim / board 0.499; latmin sim - board on 17 common rounds: 0:+0 1:-5 2:-10 3:-15 4:-20 6:-30 8:-39 12:-59 16:-79 24:-118 32:-158 48:-237 64:-316 96:-476 128:-635 192:-955 256:-1279
+   xorshift_cost_route3.tsv                         ns/round 99.65; sim / board 0.499; latmin sim - board on 17 common rounds: 0:+0 1:-5 2:-10 3:-15 4:-20 6:-30 8:-39 12:-59 16:-79 24:-118 32:-158 48:-237 64:-316 96:-475 128:-634 192:-956 256:-1279

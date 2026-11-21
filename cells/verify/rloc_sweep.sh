@@ -26,7 +26,7 @@
 set -u
 cd "$(dirname "$0")/.." || exit 2
 
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 NEXTPNR=${NEXTPNR:-$TC/openxc7-src/nextpnr-xilinx/build/nextpnr-xilinx}
 CHIPDB=${CHIPDB:-$TC/openxc7/xc7z010clg400.bin}
 OUT=${OUT:-build/rloc}
