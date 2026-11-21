@@ -9485,3 +9485,11 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   route. **v12 candidate 2 is now measured, not hypothetical:** late phase only after the search has failed.
 - v11 continues as filed (it measures the late phase as designed: gains where the search cannot clean, losses where
   it could); its headline will show both columns.
+### progress 11:59 (AUTO_LATE_AFTER_SEARCH=1 committed (opt-in, 97169dac9) and under test locally; PREDICTION written before any result)
+- The knob: v11's late overbuild phase only after the search phase has failed too -- this run goes v10's way first
+  and, on a NOT CLEAN result, re-enters itself on its own state with the late phase on. v11's parts do not set it.
+- Tests (/tmp/bot/runs/las, v11's export line + the knob): **countloop s1** -- predicted: no late phase; the search
+  ships v10's search route (sdf as v10's, P ~19.1 ns, not v11's 23.17). **cmpchain s1** -- predicted: the search does
+  not clean it (v10 shipped NOT CLEAN), "late-after-search:" in the log, the late phase from it 11, a CLEAN late route
+  like v11's (latency sum ~1752 ns).
+- Guarded-route gate 47 / 57 PASS so far.
