@@ -1233,6 +1233,7 @@ it shipped is judged or rerunning.
 **c_mem60 (00:46):** 7 more suite13t_s5a_v10 routes: SAME, 32 / 32 each, min RAM setup >= 562 ps. 311 judged.
 **c_mem61 (01:27):** test_bitint 3, test_stdint 3: SAME, 32 / 32, min RAM setup 947 / 1975 ps. 313 judged.
 **c_mem62 (02:07):** dot2 3, gather 3: SAME, 32 / 32, min RAM setup 2536 / 1274 ps. 315 judged.
+**c_mem63 (02:48):** share_test_1 1, single_loop 1: SAME, 32 / 32, min RAM setup 1628 / 838 ps. 317 judged.
 **First results with the FIXED arc (farm c_mem8, 13:18 UTC; your newest memory routes, all sdf-identical, host port,
 16 + 16 draws):** fir 1 / 2 / 3 / 4 (01a9e080 / b95f54ea / 42e919b6 / 4060231b), sumi3_mem 1-4 (448634ea / 26f31958 /
 77e26098 / 9d874530), memsum 1 (95dfac83), image_resize 1 (1e81bd80), nested_loop 2 (4f755025): **every draw passes,
