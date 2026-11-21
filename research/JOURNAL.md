@@ -9046,3 +9046,17 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   (xorshift 1.53, collatz 1.61, countloop 1.65, varshift 2.40, fill 2.43); the 0.93 comes from kernels where on-merges
   waits 4-10 cycles (memory kernels, ipow, horner), which a solver placement would not.
 - Does NOT show: Dynamatic with its MILP placement (not buildable here); a board run of either side.
+### progress 01:02 (BD_SYMTRIM's routed-GLS evidence complete: as built, trimmed, and a negative control that fails; test_memory_2 and cmpchain clean at their first finish route)
+- **sym2 test_memory_2 s1** (UNFINISHED in v10 and suite13t): `status=PASS draws=4/4 trims=35 rule=clean it=5
+  bits=EQUIVALENT ffmux-clean`, 7 / 7 calls per draw with every array checked against the C, no pulse under 1 ns.
+  Its 35 trims include the RAM lines (umem0 usetup 9 -> 6, uco 12 -> 11; umem1 usetup 6 -> 3, uco 16 -> 13) and link
+  lines, all symmetric under the define.
+- **Negative control on that route (fails, as it must):** only the two RAM setup lines, symmetric, trimmed below the
+  rule's need (usetup 9 -> 1 and 6 -> 1; /tmp/bot/scripts/symneg2.sh): **FAIL 0 / 7 on both draws, every call's arrays
+  wrong, 245 / 265 RAMB18 timing events.** The same lines at the rule's need (6 / 3) pass 4 / 4. So a trim of a
+  BD_SYMTRIM line changes the circuit as the rule prices it, and the bits-decoded GLS sees a trim that goes too far.
+  With sym test_loop_free (untrimmed 4 / 4, trimmed 4 / 4), sym sqrtsub (4 / 4) and this, **CLAUDE.md's condition for the
+  cells/rtl change (a stated reason and a routed-GLS result) is met** for BD_SYMTRIM as an opt-in define.
+- **sym2 cmpchain s1** (UNFINISHED in v10 / suite13t): it 5 rule-CLEAN as built. **First overbuilt finish route clean as
+  built: 6 of 6** (test_loop_free, sqrtsub, test_memory_2, brhash, ipow, cmpchain). nested switched; factorial / spmv in
+  phase 1; ipow re-finaling with the reordered trim-back.
