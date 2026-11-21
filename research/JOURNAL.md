@@ -9250,3 +9250,21 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - research/data/for-formal/xorshift_v10_s1/: sdf fd959b30, trimmed fasm 78aa6ac3, untrimmed 2178cbe4 (xz) + the
   trim record, sizes, structure, our screen's output -- what A31's trimcheck read for collatz.
 - Gate: xorshift 8 / 35 PASS so far; g10 (collatz64 + 10 % E guard) at it 1.
+### progress 05:28 (the board can now run any suite kernel's vectors and judge them as the GLS gate does: cells/hw/xsdb_bench_vec.tcl + board_vec_judge.py; tested against a mock bench, negative controls fail)
+- Why: only 4 kernels had a board command with a self-reporting pass criterion (hw/loop_cost.sh's sweeps); the other
+  ~40 passing suite kernels reached the top of the simulation ladder with no way onto BOARD-QUEUE.
+- **cells/hw/xsdb_bench_vec.tcl BIT VECFILE [nruns] [clk] [memdump] [memcheck]**: hw/xsdb_bench_gen.tcl's board
+  steps, then the GLS host's per-call program (cells/gls/ps/gen_ps7.py BENCH_PROG) register for register -- v1 and v2
+  vector files (operand words, every memory word through the host port, LAYOUT / MEMINFO checked), FIXED mode, NRUNS
+  per call -- printing the same BENCHRES / BENCHMEM lines. **research/tools/suite/board_vec_judge.py EXP LOG [MEMEXP]**:
+  bench_gate.sh's rules (result = the C's, runs agreed, all completed, no x, arrays = the C's), PASS / FAIL / nothing
+  to judge (exit 0 / 1 / 2).
+- **cells/hw/test_bench_vec.sh** (tclsh + cells/hw/mock_xsdb_vec.tcl, no board): 9 / 9 -- col18's 17 calls started
+  once each with the file's operands; binary_search's 7 v2 calls with the operand and all 101 array words, read back
+  and dumped as written; the judge passes right runs and FAILS one wrong result, one hung call, and refuses a run that
+  stopped early and a bench whose LAYOUT disagrees. Mutation check: a copy writing OP0 into OP1 is caught on 17 / 17
+  calls. The judge on a real GLS run.log (item 42's worst corner) gives bench_gate's own PASS 17/17; with one result
+  flipped, one call's runs disagreeing, one call hung: FAIL 14 / 17 naming each.
+- Does NOT show: the script on a real board (xsdb's own command behaviour is the one thing the mock assumes; the
+  board steps are copied from hw/xsdb_bench_gen.tcl, which has run on the board).
+- Gate: xorshift 20 / 35 PASS so far.
