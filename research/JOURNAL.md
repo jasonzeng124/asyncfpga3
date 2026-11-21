@@ -9544,3 +9544,12 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   the search does not clean it; "late-after-search:" then the late phase cleans it; PASS 4 / 4 on a rule-CLEAN route.
   (/tmp/bot/runs/v12c, /tmp/bot/scripts/v12_launch.sh.)
 ### progress 14:17 (waiting: late-after-search countloop s1 in its draws -- its search route reproduced v10's exactly, P 19.116 untrimmed; cmpchain s1 past its finish phase; candidate-flow sqrtsub s2 in its loop)
+### progress 14:17 (AUTO_LATE_AFTER_SEARCH behaves as designed on both tests (results pending their draws))
+- **countloop s1:** finish phase NOT CLEAN at it 8 (P 21.269 untrimmed, v10's route), the search's structure
+  (BDC_FORK_OUT_LINK=n13__0,n15__0) clean at it 11 with **P 19.116 untrimmed -- v10's search route exactly**; no late
+  phase (v11 shipped 23.17 here).
+- **cmpchain s1:** finish phase NOT CLEAN, the search had nothing to search (no loop: no event graph), then
+  "late-after-search:" and the re-entry: RESUMED from its own state, phase 3 from it 11, **it 11 rule-CLEAN as built,
+  sdf 153e27be -- the same route as v11's and as the late phase's own local test**.
+- So the knob gives v10's route where the search rescues and v11's where it cannot. Draws next; then it is the late
+  phase's form for the next flow.
