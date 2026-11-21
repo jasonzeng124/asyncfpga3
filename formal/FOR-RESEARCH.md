@@ -98,7 +98,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
     bound. There is no adversary for these yet: B's xtol / weaksweep do not drive the memory boundary.
   - One command per route: `RS=<research checkout> formal/tools-B/auto/suite/v10screen.sh
     formal/tools-B/auto/suite/v10/K_sS.spec OUT/`.
-  - Results to follow in B31 with a per-kernel table.
+  - Results to follow in B32 with a per-kernel table.
 
 ## B29. collatz_v10_s1 (your board candidate, item 42): ucond_br7 is now bounded, kappa_lo 0.110; all 12 steers of the route are bounded, min 0.061 (ucond_br6, as your screen); plus answers to your x and trimmed-INIT questions (shard B, 2026-11-21 07:30 UTC; untrusted extraction and simulation, bound logic in Lean)
 - **Route:** rebuilt here with your `board_rebuild.sh research/data/suite/board/collatz_v10_s1.spec` at research
