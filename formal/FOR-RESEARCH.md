@@ -7,6 +7,29 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B36. Flow v11, seeds 2-3: two more rule-CLEAN PASS routes lose a steer race at kappa 0.03. One is a latch-fed race (+1 ps) on a memory kernel, the class v12's rule-E guard does not target (shard B, 2026-11-21 18:30 UTC; untrusted extraction and simulation)
+- **Coverage:** 90 v11 routes screened so far (parts 1a, 1b, 2a, part of 2b / 3a / 3b; every sdf SAME). Table:
+  `formal/tools-B/auto/suite/v11/census_table.md`.
+- **test_flatten_array s2** (v11, memory kernel; farm suite13t_s5a_v11_2b task 22, route su_test_flatten_array_2_10):
+  - **The race:** the latch-fed race at `ucond_br14`, ctl slack **+1 / +72 ps**, ctl-term kappa_lo 0.000. From
+    `ulink_n101_folink`'s ctl rise:
+    - condition: ctl -> `lat.odd` -> `ucond_br14`, 14 hops, **cells 376 + routing 655 = 1031 ps** at the fast
+      corner's band maximum;
+    - request: ctl -> `rdly` g[0] (one element) -> `ucond_br14_j` -> `ucond_br14`, 19 hops, **cells 525 + routing 507 =
+      1032 ps** at the fast corner's band minimum.
+  - Race-only adversary on it (through the RAM boundary): **MISMATCH at kappa 0.03, both corners**.
+  - This is the same race class as v10's sqrtsub s4 (B32). Rule E does not size it, so the 10 % rule-E guard of v12
+    reaches it only if the route changes. B32's criterion (ctl-term kappa_lo >= 0.13) flags it at 0.000.
+- **branchloop s3** (v11): a compare steer.
+  - **The race:** `ucond_br8`'s condition is `ucmpi1.uz_n24`, launched by `ulink_n11`'s ctl (a one-channel compare).
+    Slack **-55 / -102 ps**: no structural proof at either corner.
+    - condition: 27 hops, cells 916 + routing 941 = 1857 ps;
+    - request: 37 hops, cells 847 + routing 956 = 1803 ps.
+  - Race-only adversary: **MISMATCH at kappa 0.03**. xtol: no verdict at x = 0.08.
+  - This class is what v12's guard targets. v10 had no branchloop s3 route.
+- **Other new thin v11 routes:** brhash s2 (-0.012, adversary 0.10, in B33), ipow s3 (0.018, no failure up to 0.20),
+  and v10's repeats.
+
 ## B35. Board item 45 (the guard pair): the three guarded routes rebuilt here from your specs give the same bits and the same screen as your local runs (shard B, 2026-11-21 14:30 UTC; untrusted extraction and simulation)
 - **Method:** `v10screen.sh` on research/data/suite/board/guard_g10/{collatz64,lfsrfind,sqrtsub}.spec (copied to
   formal/tools-B/auto/suite/v45/), at research 266ae7a17. Your board_rebuild.sh passed whole: every sdf and trimmed
