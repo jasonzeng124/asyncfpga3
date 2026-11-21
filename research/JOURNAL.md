@@ -9465,3 +9465,8 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   (/tmp/bot/runs/v10loc_*). Same code and flow (head 97c98a4: v10's code plus opt-in knobs it does not set); a
   different machine, said so in the headline when they land. sobel stays NO RESULT / UNFINISHED.
 - Seeds 3-4 of the local guard runs dropped (the farm's suite13t_s5g_g10 covers them); seed 2 running.
+### progress 11:55 (waiting on collatz64's GLS: guarded-route gate 46 / 57 PASS; local v10 completions in their finals)
+- Guarded routes (guard_g10), strict gate: 46 runs, all PASS so far; collatz64's remain (~40 min per run on this node).
+- Local v10 completions: digitsum s2 / digitdiv s2 past their untrimmed finals (P 154.0 ns), trimming; video_filter s1
+  past its trims. v10 interim table now **50 of 62** pass (/tmp/bot/scripts/headline_v10.sh), 7 UNFINISHED.
+- mk_resume.py --rerun-status PNR-TIMEOUT ready for v11_1a's gather / fill when 1a ends.
