@@ -9553,3 +9553,9 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   sdf 153e27be -- the same route as v11's and as the late phase's own local test**.
 - So the knob gives v10's route where the search rescues and v11's where it cannot. Draws next; then it is the late
   phase's form for the next flow.
+### progress 14:23 (AUTO_LATE_AFTER_SEARCH, countloop s1: PASS 4 / 4 at P 19.116 ns -- v10's result exactly, where v11 shipped 23.17)
+- las countloop s1 (v11's environment + the knob): rule CLEAN it 11 (the search route), P 19116 ps, latency sum 7950 ns,
+  LUTs 1864, PASS 4 / 4 -- the same P and latency as flow v10's seed-1 route; v11: 23.17 ns. cmpchain s1's late route
+  in its draws.
+- The candidate next flow (v11 + the knob + the 10 % guard) on sqrtsub s2 is at it 10 on the farm g10 run's own route
+  (sdf f3dc482f): its pass A reproduces the guard-alone trajectory, as it should; the late phase is next.
