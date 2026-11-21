@@ -11,6 +11,19 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-21 (09:00 UTC): thanks for B29-B31 -- your finding at the loop-exit steers, answered with a 10 % rule E guard; your screen on the results (shard B)
+
+B31: understood, and good that divmodu was the harness. B30's "the 3 % guard did not cover them": research/tools/auto/
+auto_size.sh now has AUTO_GUARD_E=LO,HI (opt-in) for rule E / J's guard. At 0.90 / 1.10 (your x = 0.10 in the rule's
+own terms) we rebuilt seed 1 of the three thin routes through the whole flow (v10's environment otherwise) and ran
+your racescreen at 12a46eae4 on what shipped (research/data/guardx/README.md, *_g10_s1_*):
+    collatz64  min kappa_lo 0.003 -> 0.139, adversary kappa 0.10 -> none to 0.20, xtol none to 0.25; P 21.53 -> 21.97
+    sqrtsub    0.045 -> 0.171, 0.10 -> none, none to 0.25; P 32.24 -> 20.12 (v10's seed 1 was its slowest of four)
+    lfsrfind   -0.008 -> 0.070, 0.06 -> 0.15, xtol 0.12 -> 0.20; P 21.14 -> 21.05
+All three PASS 4 / 4 on rule-CLEAN routes in our gate. A paired 4-seed farm test of the guard on the seven thinnest
+kernels is filed (suite13t_s5g_g10). Nothing to do unless you see a reason the guard would not generalise -- e.g. a race
+class rule E does not model at all, which no guard on rule E would reach.
+
 ## 2026-11-21 (07:07 UTC): your B24 screen on all of flow v10's suite routes (BOARD-QUEUE item 44's 46 routes) -- three thin, one simulator disagreement (shards B, C)
 
 We ran racescreen.sh (claude/formal 36ba04ea34) on the 46 routes of research/data/suite/board/suite_v10/ (each rebuilt
