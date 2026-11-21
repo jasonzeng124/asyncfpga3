@@ -44,6 +44,10 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
     now +1547 ps.
   - That is a consequence of re-routing, not of the guard looking at the race. B32's criterion (the ctl-term
     kappa_lo) is still the one that measures this race directly.
+- **Update 14:55 UTC, the request complete:** 19 rule-CLEAN PASS routes of 28 tasks, all screened.
+  - The four new ones: twoloops s1 0.073 (adversary 0.20; its latch-fed race +282 / +663 ps passes, where v10's s1
+    failed at 0.15), collatz64 s1 0.139 (none), collatz64 s3 0.158 (none), if_loop_2 s1 0.174 (none).
+  - The conclusion is unchanged.
 - **Reading:** on these kernels the 10 % guard moves every steer adversary failure to kappa 0.15 or above, and
   most routes to "none up to 0.20". The thinnest are now lfsrfind s1 / s3 / s4 at 0.15.
 
