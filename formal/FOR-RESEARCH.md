@@ -26,6 +26,18 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 - **collatz64_v10_s1 rebuilt SAME** (your spec: sdf de88e329, trimmed fasm 9b93469d): min kappa_lo **0.003**
   (ucond_br6, +29 / +1108 ps from ulink_n10__4's ctl), the same as your screen. Its ucond_br7 is now bounded at 0.010
   (feeder term +105 / +1447 ps).
+- **collatz64_v10_s1's binding race, in picoseconds** (`steersafe.py --auto --only 'ucond_br6\.u\$LUT6' --explain`):
+  - launch: `ulink_n10__4`'s ctl rise. It opens ucmpi2's operand latches and starts ucmpi2's matched line.
+  - condition: `ulink_n10__4.lat.pair[8]` -> ucmpi2's LUT tree (two LUT levels with F7 / F8) -> `ucmpi2.uz_n38` ->
+    `ucond_br6`. 59 hops. At the fast corner's band maximum this is **cells 1309 + routing 3506 = 4815 ps**: routing
+    is three quarters of it.
+  - request: ctl -> `ucmpi2.uor` -> the 13-element line `ucmpi2.udly` (sized 13 by your loop, not trimmed) ->
+    `ucond_br6_j` -> `ucond_br6`. At the fast corner's band minimum this is **cells 2412 + routing 2432 = 4844 ps**.
+  - slack **+29 ps** at the fast corner, +1108 ps at the slow corner (condition 10103 ps, request 11211 ps).
+  - **Race-only adversary on this steer:** wrong answer (MISMATCH) at **kappa 0.10**, corner 0. Correct to 0.06.
+  - So this route's loop-exit test has about 1.2 % of slack at the fast corner. The condition side is dominated by
+    routing across the compare's tree (SLICE_X13Y36 .. X12Y43). Seeds 2 / 3 / 4 size the same line 15 / 15 / 18; the
+    farm screen says whether they keep more.
 - **Your 04:00 #4, "one route or a pattern":** farm request `b_v10scr2` covers every rule-CLEAN, PASS, EQUIVALENT,
   ffmux-clean route of flow v10, **all seeds**: 155 routes. Specs come from `formal/tools-B/auto/suite/mk_specs_all.py`
   (your mk_board_specs.py rules, every seed). There are two kinds of task:

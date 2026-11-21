@@ -135,6 +135,52 @@ def data_bound(u0, order, roots, c, opened=frozenset()):
         g = G[drv[u]]; fb = fbpins(u) if u in opened else set()
         t[u] = max(((0 if v in roots else t[v]) + lerp(g["arcs"][p]["fmax"], g["arcs"][p]["smax"], c) for p, v in enumerate(g["ins"]) if p not in fb), default=0)
     return 0 if u0 in roots else t[u0]
+EXPLAIN = "--explain" in sys.argv   # 2026-11-21: print both paths of each term hop by hop (cells vs routing), with --only
+def _hop(gg, i, c, mx):
+    a = gg["arcs"][i]; d = lerp(a["fmax"], a["smax"], c) if mx else lerp(a["fmin"], a["smin"], c)
+    return d, ("route" if gg["kind"] in ("pip", "hop") else "cell")
+def explain(g, p, q, c, t, order, roots, rset, opened):
+    """the condition's longest path (max arcs) and the request's forcing walk (min arcs) behind one term, corner c."""
+    # condition: follow the argmax input back from the steer's condition pin
+    hops, u = [], g["ins"][q]; d0, k0 = _hop(g, q, c, True); hops.append((cellof(g), k0, d0))
+    while u not in roots and u in t:
+        gg = G[drv[u]]; fb = fbpins(u) if u in opened else set(); best = None
+        for i, v in enumerate(gg["ins"]):
+            if i in fb: continue
+            x = (0 if v in rset else None) if v in roots else t.get(v)
+            if x is None: continue
+            d, kd = _hop(gg, i, c, True)
+            if best is None or x + d > best[0]: best = (x + d, v, d, kd)
+        if best is None: break
+        hops.append((cellof(gg), best[3], best[2])); u = best[1]
+    cs_ = sum(h[2] for h in hops if h[1] == "cell"); rt_ = sum(h[2] for h in hops if h[1] == "route")
+    print("  EXPLAIN corner %d condition path from %s: %d hops, cells %.0f ps + routing %.0f ps = %.0f ps" % (c, ncell(u).replace("bridge_i.udut.", ""), len(hops), cs_, rt_, cs_ + rt_))
+    for h in reversed(hops):
+        if h[1] == "cell": print("    cond  %-60s %6.0f ps" % (h[0].replace("bridge_i.udut.", ""), h[2]))
+    # request: re-walk the forcing paths (min arcs), largest sum
+    memo = {}
+    def RR(u, seen):
+        if u in launch: return (0.0, [])
+        if u in memo: return memo[u]
+        gi = drv.get(u)
+        if gi is None or u in env or u in seen: return None
+        gg = G[gi]; best = None; seen = seen | {u}
+        fb = [i for i, w in enumerate(gg["ins"]) if gg["kind"] in ("lut5", "lut6") and through(w) == u]
+        for i in range(len(gg["ins"])):
+            if i in fb or constval(gg["ins"][i]) is not None: continue
+            if not (gg["kind"] in ("pip", "hop") or forces0(gg, i, fb)): continue
+            r = RR(gg["ins"][i], seen)
+            if r is None: continue
+            d, kd = _hop(gg, i, c, False)
+            if best is None or r[0] + d > best[0]: best = (r[0] + d, r[1] + [(cellof(gg), kd, d)])
+        memo[u] = best; return best
+    r = RR(g["ins"][p], frozenset())
+    if r:
+        d0, k0 = _hop(g, p, c, False); hp = r[1] + [(cellof(g), k0, d0)]
+        cs_ = sum(h[2] for h in hp if h[1] == "cell"); rt_ = sum(h[2] for h in hp if h[1] == "route")
+        print("  EXPLAIN corner %d request walk: %d hops, cells %.0f ps + routing %.0f ps = %.0f ps" % (c, len(hp), cs_, rt_, cs_ + rt_))
+        for h in hp:
+            if h[1] == "cell": print("    req   %-60s %6.0f ps" % (h[0].replace("bridge_i.udut.", ""), h[2]))
 def auto():
     """every steer of the route: condition from a compare's output (launch = its .ujoin) or from a link latch (launch =
     that stage's .ctl, the latch expanded in the condition cone without its feedback pin)."""
@@ -234,6 +280,7 @@ def auto():
                 vals = [None if i in fb else ((0 if v in rset else None) if v in roots else t[v]) for i, v in enumerate(gg["ins"])]
                 t[u] = max((x + lerp(gg["arcs"][i]["fmax"], gg["arcs"][i]["smax"], c) for i, x in enumerate(vals) if i not in fb and x is not None), default=None)
             D = t.get(g["ins"][q])
+            if EXPLAIN and D is not None: explain(g, p, q, c, t, order, roots, rset, opened)
             return (Rv + lerp(g["arcs"][p]["fmin"], g["arcs"][p]["smin"], c), None if D is None else D + lerp(g["arcs"][q]["fmax"], g["arcs"][q]["smax"], c))
         if kind == "compare":
             # FIX 2026-11-20 11:15 UTC: a compare's operand latches are transparent while their link's ctl is HIGH, so they
