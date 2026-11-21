@@ -9804,3 +9804,7 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   circuit (the frontend's % rewrite); their s2 SDFs are identical with the kernel name masked, so the Dynamatic mean
   counts it twice at 0.30 -- 0.92 over 38 as tabled, ~0.95 counted once; the 35 kernels of the 15:07 table: 0.98.
 - Also back: mul_example s2's same-route port trim PASS 4 / 4 at the farm's P (no trimmable port line, as found).
+### progress 22:06 (AUTO_TRIM_PORTS, second same-route test, mff gather s2: P 43.36 -> 37.69 ns (-13.1 %), latency median 1488 -> 1284 ns, PASS 4 / 4 rule-CLEAN)
+- All 8 shipped trims are port lines (controllers 2 and 3); no pulse under 1 ns (narrowest 4359 ps). Two of two
+  FASTFALL-port routes gain (-10.1 / -13.1 %), the plain-port one (mul_example s2) is unchanged, as it must be.
+  research/data/trimports/ updated (mff_gather_s2/, mff_mul_example_s2/). gather s1, if_loop_2 s1 running.

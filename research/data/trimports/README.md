@@ -31,9 +31,20 @@ and 4 draws). Control: the farm's result on the same route (farm_result_control.
 The port trims alone moved P by 1.2 %, but they moved the critical cycle off the port, and the next rounds could then
 trim the loop's own lines (the farm's run never got there: its first round bought nothing and was reverted).
 
+**Second route, mff's gather s2** (mff_gather_s2/, same method; sdf b08c7387 = the farm's): 14 lines on the untrimmed
+cycle, 10 chains moved in round 1, all 8 shipped trims port lines (controller 2's usetup 1 / 2, uco 8 / 7; controller
+3's usetup 12 / 11, uco 11 / 10). **P 43.36 -> 37.69 ns (-13.1 %), call latency median 1488 -> 1284 ns (-13.7 %), sum
+9180 -> 7944 ns**; PASS 4 / 4 (9 / 9 calls each), no pulse under 1 ns (narrowest 4359 ps), rule CLEAN, EQUIVALENT.
+
+| route (mff, same sdf) | P farm -> port trims | latency median | draws |
+|---|---|---|---|
+| dot2 s2 | 27.73 -> 24.92 ns (-10.1 %) | 957 -> 864 ns | 4 / 4 |
+| gather s2 | 43.36 -> 37.69 ns (-13.1 %) | 1488 -> 1284 ns | 4 / 4 |
+| mul_example s2 | 58.45 -> 58.45 (no trimmable port line) | = | 4 / 4 |
+
 **Where it does nothing.** mul_example s2: its port's lines are LUT1 symmetric lines even under BDC_MEM_FASTFALL=1 --
 bdc/mem.py's arbitrated host port (a load and a store on one memory) emitted plain bd_mem unconditionally, so the mff A/B
 never treated binary_search, mul_example, test_bool_array, test_memory_1 / 2, test_stdint (byte-identical routes to
 v10's). BDC_MEM_FASTFALL=2 (opt-in, e0a4b59f0d) adds that port; its GLS runs are in research/JOURNAL.md.
 
-Not shown yet: more than one route (gather s2 running), and any flow-level effect (a farm A/B).
+Not shown yet: a flow-level effect (a farm A/B) -- two routes with a FASTFALL port, one without; gather s1 and if_loop_2 s1 running.
