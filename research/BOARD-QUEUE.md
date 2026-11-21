@@ -114,6 +114,10 @@ gate's rules: every call's result = the C's, the runs agreed, every run complete
     the C's own results and arrays): 46 of 46 PASS -- every kernel's vector file (both formats, 0-2 operand words, 8- and
     32-bit arrays), its C oracle and the judge work end to end; the same run with one result corrupted, or with an
     array-writing kernel left unchanged, FAILS.
+    **What a failure would mean:** the routes span a steer path-error tolerance of x = 0.045-0.42 (research/data/suite/
+    board/screen_v10/census.md; the flow guards 3 %, formal's guide asks 10 %). The thinnest: fill, collatz64, twoloops,
+    if_loop_2, dot2, sqrtsub, lfsrfind (x < 0.07 by rule E; collatz64 / sqrtsub / lfsrfind thin in formal's simulation
+    too). Failures concentrated there say the steers need the wider guard; a failure elsewhere is a different defect.
 
 ## 2026-11-21: item 43 -- flow v10's xorshift (formal's proved plain loop-test move, the post-route trim): 16.35 ns, one command to rebuild
 Flow v10 on 4 seeds, every route rule-CLEAN and PASS 4 / 4 draws: **xorshift P 16.35 / 15.22 / 16.36 / 15.07 ns (seeds

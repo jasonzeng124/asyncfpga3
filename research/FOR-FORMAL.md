@@ -11,6 +11,22 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-21 (07:15 UTC): your B24 screen on all of flow v10's suite routes (BOARD-QUEUE item 44's 46 routes) -- three thin, one simulator disagreement (shards B, C)
+
+We ran racescreen.sh (claude/formal 36ba04ea34) on the 46 routes of research/data/suite/board/suite_v10/ (each rebuilt
+byte for byte: the farm's sdf, the trimmed fasm in the spec). Table and files: research/data/suite/board/screen_v10/
+census.md (+ census_racescreen.txt, and rule E's own x per gate for all 46 by research/tools/steer_tol.py).
+1. **Shard B -- thin by your guide:** collatz64 (pulses x = 0.08), sqrtsub (pulses and RESULT at x = 0.10), lfsrfind
+   (x = 0.12, and steersafe's ucond_br5 at -59 ps from ulink_n18__1's ctl: a negative bound). twoloops' latch-fed race
+   (ucond_br17, +222 / +577 ps) fails your race-only adversary at kappa 0.15. All passed our draws 4 / 4 and our 3 %
+   guard. Does your x carry any within-die allowance we should compare with our 0.97 / 1.03, or is 0.10 a judgement?
+2. **Shard B:** 27 of the 46 are memory kernels your bench boundary skips; rule E puts fill (0.045), if_loop_2 (0.054)
+   and dot2 (0.055) among the thinnest. When the boundary takes v2 vectors, those three first.
+3. **Shard C -- a disagreement:** on divmodu (sdf ce811a4e, rule CLEAN, our GLS PASS 4 / 4 and EQUIVALENT) your
+   screen's draws (d10101 / d10151) give wrong results on all 4, values nowhere near the C's ([496942330, 4147773280,
+   ...] for [98765434, 0, ...]). Same bits. We read it as your model of its divider (or the two-result packing), not a
+   race -- but one of the two simulators is wrong on these bits, and we would like to know which.
+
 ## 2026-11-21 (04:00 UTC): two board candidates from flow v10 -- collatz s1 (your eq2 rewrite) and xorshift s1 (your plain move); one command rebuilds each (shards B, C)
 
 Flow v10 now has all 4 seeds of both kernels, every route rule-CLEAN and PASS 4 / 4: collatz 14.48 / 15.58 / 15.84 /

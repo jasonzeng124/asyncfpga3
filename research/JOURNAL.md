@@ -9306,3 +9306,18 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   1b_r1_r2, 1a_r1_r2, 2a_r1_r2, 1a_r1b_r2 submitted / waiting; v11 parts waiting for cores. v11 code freeze holds.
 - **Open questions to formal:** B -- ucond_br7's bound on collatz; a screen of v10's clean routes (being answered
   here by the census); C -- draws on the board candidates.
+### progress 07:07 (steer-tolerance census of item 44's 46 routes: about 17 of 40 below x = 0.10 by rule E's own arrivals, 3 of 19 thin in formal's simulation; item 44 becomes the steer guard's silicon calibration)
+- research/data/suite/board/screen_v10/census.md: x (formal B24's path-error measure) for every select gate, from rule
+  E's own log (steer_tol.py; all 46 routes) and formal's screen run here on the 19 non-memory routes. Thin by both:
+  **collatz64 (rule 0.047 / formal pulses 0.08), sqrtsub (0.057 / 0.10), lfsrfind (0.062 / 0.12, and a -59 ps steer
+  bound)**; below 0.07 by the rule also fill, twoloops, if_loop_2, dot2 (memory or another steer: not in formal's xtol).
+  The rule's x is a bound (formal's simulated x is above it wherever both ran).
+- **Correction to 04:17:** I set the 3 % guard against "the 8.5 % median ring scatter (CLAUDE.md)". CLAUDE.md says the
+  opposite: 8.5 % is NOT a guardband. The 3 % (corner_audit --guard-lo/hi 0.97 / 1.03) is the residual within-die
+  scatter on top of the band corners, by the sizing rule's own design; cells/verify/skew.py's 0.772 / 1.155 is the
+  95/95 guard for nominal (un-banded) delays. Whether 3 % is enough at the band corners is unmeasured on silicon -- not
+  shown to be too small by anything here: every one of these routes passed its draws.
+- So item 44 is now also the steer guard's calibration: its routes span x = 0.045-0.42 (census_table.md); a board
+  failure concentrated on the low-x routes would argue for AUTO_GUARD_E=0.90,1.10 (~2 elements on a loop test).
+- Also found: twoloops' latch-fed race fails formal's race-only adversary at kappa 0.15; formal's draws give garbage on
+  divmodu (all 4) where our GLS passes the same bits -- asked formal.
