@@ -68,7 +68,24 @@
 # Writes $RUNS/auto/NAME/{sizes_I.vh, it_I.txt, ca_I.txt, result.txt}.  result.txt: "CLEAN it=I route=NAME_I P=.."
 # or "NOT CLEAN after MAXIT".  The shipped route's files are $RUNS/hw/NAME_I, $RUNS/r/NAME_I (lane2.sh).
 set -uo pipefail
+ARGS=("$@")
 L=$1; N=$2; K=$3; S=$4; VEC=$5; MAXIT=${6:-4}
+# AUTO_LATE_AFTER_SEARCH=1 (opt-in, 2026-11-21; with AUTO_OVERBUILD_LATE / AUTO_OVERBUILD; unset, nothing changes): the late
+# overbuild phase only when the SEARCH phase has not made the route clean either.  This run first goes v10's way (the
+# finish phase, final, the search) with the late phase held back; a NOT CLEAN result (RC 2: the finish phase exhausted)
+# re-enters this script on its own state (AUTO_RESUME=its dir) with the late phase on, which then starts where flow v11's
+# would have (the resume path's late_switch).  Why: v11 runs the late phase before the search and skips the search for
+# its route, so on the kernels v10's search rescued it ships a slower route (seed 1: countloop 19.12 -> 23.17 ns, memsum
+# 24.56 -> 28.19, dot2 27.43 -> 29.26; research/JOURNAL.md 2026-11-21 11:56).  A resumed task whose log already says
+# "late-after-search:" goes straight to the late phase.
+LATE_OB=""; LATE_M=""
+if [ "${AUTO_LATE_AFTER_SEARCH:-0}" = 1 ] && [ -n "${AUTO_OVERBUILD_LATE:-}" ] && [ -z "${AUTO_LATE_PASS:-}" ]; then
+  if grep -q '^late-after-search:' "${AUTO_RESUME:-/nonexistent}/log.txt" 2>/dev/null; then
+    AUTO_LATE_PASS=1
+  else
+    LATE_OB=${AUTO_OVERBUILD:-}; LATE_M=$AUTO_OVERBUILD_LATE; unset AUTO_OVERBUILD AUTO_OVERBUILD_LATE
+  fi
+fi
 R=$(cd "$(dirname "$0")/../../.." && pwd); RUNS=${RUNS:-/home/user/runs}; export RUNS
 LANE=$R/research/tools/fifteen/lane2.sh; T=$R/research/tools/auto
 O=$RUNS/auto/$N; mkdir -p "$O"
@@ -962,6 +979,11 @@ if [ -n "${AUTO_OVERBUILD_LATE:-}" ] && [ -n "${OB:-}" ] && [ "$X" -ge "$OB" ]; 
   echo "search: skipped (the shipped route it $X is from the late overbuild phase)" >> "$O/log.txt"
 else
   [ "${AUTO_SEARCH:-1}" = 1 ] && search_phase
+fi
+if [ -n "$LATE_M" ] && [ "$RC" = 2 ]; then
+  echo "late-after-search: NOT CLEAN after the finish phase and the search (shipped it $X); the late phase from it $i" >> "$O/log.txt"
+  export AUTO_LATE_PASS=1 AUTO_RESUME="$O" AUTO_OVERBUILD="$LATE_OB" AUTO_OVERBUILD_LATE="$LATE_M"
+  exec bash "$0" "${ARGS[@]}"
 fi
 echo "$RES3" | tee -a "$O/result.txt"
 exit "$RC"
