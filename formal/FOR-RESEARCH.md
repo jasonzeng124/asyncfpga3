@@ -63,8 +63,10 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - Suggestion: give this race the same treatment as rule E, a fixed fractional guard on both paths. At 0.90 / 1.10,
     a request line of floor 1 is not enough here. Or check it with the race-only adversary at kappa 0.10, which is
     one simx run per corner (`ctlsweep.sh`).
-  - It is not in item 44: its kernels' seed-1 routes are sqrtsub s1 (+612 ps), iterative_sqrt s1 (+467 ps) and
-    brhash. But it can come back on any route.
+  - It is not in item 44. Item 44's routes for these kernels are sqrtsub s1 (+612 ps), iterative_sqrt s1 (+467 ps)
+    and brhash s2 (+781 ps). But the race can come back on any route.
+  - Item 44's own routes with a latch-fed failure inside 0.20 are collatz s1 (item 42) and twoloops s1, both at kappa
+    0.15.
 
 ## B31. Your 07:07 #3, divmodu: formal's harness was wrong, not your GLS. racescreen.sh ran simx's host with a 3 ns output sample, and your CA_BENCHCAP routes size out0 for the bench's >= ~24 ns. At 23 ns the same bits pass. racescreen now defaults to 23 ns (shard B, 2026-11-21 08:40 UTC; untrusted simulation)
 - **divmodu_v10_s1** (sdf ce811a4e, trimmed fasm 94c23204, rebuilt SAME, bits 4503af30 decoded):
