@@ -40,7 +40,7 @@ def main():
         m = re.match(r"\s*call\s+(.*?)\s+cycles\s+(\d+)\s+result\s+(\S+)\s+C\s+(\S+)\s+ok\s*$", ln)
         if m:
             args = dict((a, int(v, 0)) for a, v in re.findall(r"(\w+)=(0x[0-9a-fA-F]+|\d+)", m.group(1)))
-            calls.append((args, int(m.group(2)), int(m.group(3), 16)))
+            calls.append((args, int(m.group(2)), None if m.group(3) == "-" else int(m.group(3), 16)))   # "-": void
     if not calls:
         sys.exit("dyn_vsim: no ok call lines in %s" % est)
     data_in = [n for n in chin if n in widths]
@@ -166,7 +166,7 @@ def main():
     wout = min(widths[data_out[0]], 32 if mems else 64) if data_out else 0
     for j, ((a, cyc, res), (gc, gr)) in enumerate(zip(calls, got)):
         gr_i = int(gr, 16) if "x" not in gr else None
-        okr = (not data_out) or (gr_i is not None and gr_i & ((1 << wout) - 1) == res & ((1 << wout) - 1))
+        okr = (not data_out) or (res is not None and gr_i is not None and gr_i & ((1 << wout) - 1) == res & ((1 << wout) - 1))
         okc = int(gc) == cyc
         okm, why = True, ""
         for m in mems:
@@ -180,8 +180,8 @@ def main():
                 okm, why = False, why + " array %s differs" % m
         if not (okr and okc and okm):
             bad += 1
-        print("  %-40s est cycles %6d result %08x | verilog cycles %6s result %s %s%s" % (
-            " ".join("%s=%#x" % kv for kv in a.items()), cyc, res, gc, gr,
+        print("  %-40s est cycles %6d result %8s | verilog cycles %6s result %s %s%s" % (
+            " ".join("%s=%#x" % kv for kv in a.items()), cyc, "-" if res is None else "%08x" % res, gc, gr,
             "ok" if okr and okc and okm else ("RESULT DIFFERS" if not okr else ("CYCLES DIFFER" if not okc else "")), why))
     print("dyn_vsim %s: %d calls, %d differ (results%s and cycles against dynamatic_est.py, which checked results "
           "against the C)" % (k, len(calls), bad, ", arrays (the C's)" if mems else ""))

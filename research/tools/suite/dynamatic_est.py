@@ -1457,7 +1457,7 @@ def oracle_mem(k, path, cir):
                            cwd=REPO)
         if p.returncode != 0:
             raise RuntimeError("oracle_mem.sh: " + (p.stderr.strip().splitlines() or ["exit %d" % p.returncode])[0])
-        rets = [int(x, 16) for x in p.stdout.split()]
+        rets = [None if x == "void" else int(x, 16) for x in p.stdout.split()]   # a void kernel: no result, arrays only
         out = [(r, {}) for r in rets]
         for line in open(mo):
             mm = re.match(r"call=(\d+) mem=(\d+) data=(\S*)", line.strip())

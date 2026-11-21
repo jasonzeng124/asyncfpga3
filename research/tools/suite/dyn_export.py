@@ -243,6 +243,17 @@ def main():
             if k in c:
                 byname.setdefault(c[k], c)
     files, todo = {}, []
+    # every module the library defines -> its file (a dependency named by module, e.g. mem_controller_loadless, which
+    # the config holds only as a generic file of another entry)
+    defs = {}
+    for root, _, fs in os.walk(os.path.join(dyn, "data", "verilog")):
+        if "flopoco" in root or "vivado" in root:
+            continue
+        for fn in sorted(fs):
+            if fn.endswith(".v"):
+                p_ = os.path.join(root, fn)
+                for m_ in re.findall(r"^\s*module\s+(\w+)", open(p_).read(), re.M):
+                    defs.setdefault(m_, p_)
 
     def gfile(c):
         return c["generic"].replace("$DYNAMATIC", dyn)
@@ -250,10 +261,12 @@ def main():
     def add_deps(c):
         for d in c.get("dependencies", []):
             dc = byname.get(d)
-            if dc is None:      # a support file named by its module (logic, eager_fork_register_block)
+            if dc is None:      # a library file named by its module (logic, eager_fork_register_block, ...)
                 f = os.path.join(dyn, "data", "verilog", "support", d + ".v")
                 if not os.path.exists(f):
-                    raise SystemExit("dyn_export: dependency %s not in the config nor data/verilog/support" % d)
+                    f = defs.get(d)
+                if not f:
+                    raise SystemExit("dyn_export: dependency %s: no config entry and no library module" % d)
                 files[f] = True
                 continue
             if "generic" not in dc:
@@ -315,15 +328,6 @@ def main():
     # the config's dependency lists are incomplete for some units (handshake.divsi lists join_type and delay_buffer, its
     # Verilog also instantiates oehb_dataless): close the file set over the modules the copied Verilog instantiates,
     # each found in the one library file that defines it
-    defs = {}
-    for root, _, fs in os.walk(os.path.join(dyn, "data", "verilog")):
-        if "flopoco" in root or "vivado" in root:
-            continue
-        for fn in fs:
-            if fn.endswith(".v"):
-                p = os.path.join(root, fn)
-                for m in re.findall(r"^\s*module\s+(\w+)", open(p).read(), re.M):
-                    defs.setdefault(m, p)
     vkw = {"module", "begin", "end", "if", "else", "for", "assign", "always", "wire", "reg", "input", "output", "case",
            "generate", "endgenerate", "genvar", "localparam", "parameter", "integer", "initial", "function", "task"}
     while True:
