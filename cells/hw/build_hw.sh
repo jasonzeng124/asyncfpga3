@@ -86,10 +86,52 @@ gcd_hw)
     # to regenerate -- so the build regenerates it and the two cannot drift.
     # BDC_PROBE names channels as they appear in the emitted Verilog; see the
     # probe-port block in bdc/emit.py, and gcd_rig.v's header for why %138.
+    # Op fusion (the emitter default) folds ucmpi11 and %135#2 into a fused
+    # cell, so only the abs probe exists then; the cmp probes need
+    # BDC_OP_FUSION=0 and gcd_rig.v's GCD_RIG_CMP_PROBE.
+    GCD_PROBES=n138
+    if [ "${BDC_OP_FUSION:-${BDC_CONST_FOLD:-1}}" != 1 ]; then
+        GCD_PROBES=n138,n136_u,n135__2
+        BD_DEFINES="${BD_DEFINES:-} -DGCD_RIG_CMP_PROBE"
+    fi
     mkdir -p ../build/gen
     ( cd .. && python3 bdc/emit.py \
         build/frontend/gcd/comp/handshake_transformed.mlir \
-        --no-top --probe n138,n136_u,n135__2 -o build/gen/gcd_kernel.v )
+        --no-top --probe $GCD_PROBES -o build/gen/gcd_kernel.v )
+    # BD_SIZES: per-cell matched-delay sizes, as for the benches
+    # (build_bench.sh), so that hw/tighten_loop.sh gcd_hw can size the one
+    # kernel that has a routed GLS rig.  The macros are tighten.py's names for
+    # urig.udut.<inst> (BD_SZ_URIG_UDUT_<INST>); every DELAY_<INST> the kernel
+    # declares gets a default equal to its own, so a sizes file only has to
+    # name what it changes.  OFF unless BD_SIZES is set (a path, or "auto" for
+    # build/gen/gcd_hw_sizes.vh if it exists): unlike the bench, nothing here
+    # gates a sizes file on rule A, so a stale one must never be picked up by a
+    # plain build.  Unset, the sources and the netlist are what they were.
+    if [ -n "${BD_SIZES:-}" ] && [ "$BD_SIZES" != none ]; then
+        HW_SIZES=build/gen/gcd_hw_sizes.vh
+        [ "$BD_SIZES" != auto ] && HW_SIZES=$BD_SIZES
+        if [ -e "$HW_SIZES" ]; then
+            mkdir -p build/gen
+            python3 - "$KERNEL" build/gen/gcd_hw_dut_params.vh <<'PY'
+import re, sys
+src, out = sys.argv[1:3]
+ps = re.findall(r"parameter\s+DELAY_(\w+)\s*=\s*(\d+)", open(src).read())
+if not ps:
+    sys.exit(f"{src}: no DELAY_ parameters -- nothing to size")
+m = lambda i: "BD_SZ_URIG_UDUT_" + i.upper()
+lines = [f"`ifndef {m(i)}\n `define {m(i)} {d}\n`endif" for i, d in ps]
+lines.append("`define GCD_DUT_PARAMS " + ", ".join(f".DELAY_{i}(`{m(i)})" for i, _ in ps))
+open(out, "w").write("\n".join(lines) + "\n")
+PY
+            SRCS="rtl/*.v $KERNEL $HW_SIZES build/gen/gcd_hw_dut_params.vh hw/gcd_rig.v hw/$TOP.v"
+            echo "build_hw.sh: applying $(grep -c '^`define' "$HW_SIZES") measured" \
+                 "delay size(s) from $HW_SIZES" >&2
+        else
+            echo "build_hw.sh: BD_SIZES=$BD_SIZES but $HW_SIZES does not exist --" \
+                 "every chain at bdc/emit.py's estimate" >&2
+            [ "$BD_SIZES" = auto ] || exit 2
+        fi
+    fi
     ;;
 multn_ps)
     # Eight independent one-DSP multiplies; see hw/multn_ps.v.
@@ -140,7 +182,7 @@ gcd_ps|gcd_bench)
     ;;
 esac
 
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 YOSYS=$TC/openxc7/bin/yosys
 NEXTPNR=${NEXTPNR:-$TC/openxc7/bin/nextpnr-xilinx}
 CHIPDB=$TC/openxc7/xc7z010clg400.bin
@@ -247,18 +289,34 @@ write_json $OUT/$TOP.json
 stat
 " > "$OUT/synth.log" 2>&1 || { echo "SYNTH FAILED"; tail -40 "$OUT/synth.log"; exit 1; }
 
-# Relative placement.  BD_RLOC=v2 (default) stamps an RLOC_GROUP attribute on
-# the post-synthesis netlist so nextpnr keeps each bd_link's C node in the same
-# SLICE as its own latch -- see hw/rloc_stamp.py and patches/README.md.  The
-# cluster floats; nothing is pinned.  BD_RLOC=none turns it off, and that is
-# the ONLY way to reproduce a pre-2026-08-21 route: routed placement is stable
-# per binary but not across binaries, so numbers from the two are not
-# comparable.  An unpatched nextpnr ignores the attribute silently, which is
-# what verify/toolchain.sh above is for.
-BD_RLOC=${BD_RLOC:-v2}
+# Relative placement.  BD_RLOC=v8 (default) stamps RLOC_GROUP/RLOC_SLOT/
+# RLOC_COL attributes on the post-synthesis netlist so nextpnr lays every
+# handshake cycle out along one control spine -- each stage's controller in
+# a row of its own with its delay chains, its latch bank in the rows above and
+# below, the stage's datapath LUTs in the columns beside -- see
+# hw/rloc_stamp.py and patches/README.md.  The clusters float; nothing is
+# pinned.  BD_RLOC=v4 is the 2026-09-19 variant (bank and chain columns, no
+# spine); BD_RLOC=v2 is the 2026-08-21 variant
+# (C node beside ONE latch LUT) every board number on record was built with;
+# BD_RLOC=none turns it off, and that is the ONLY way to reproduce a
+# pre-2026-08-21 route: routed placement is stable per binary but not across
+# binaries, so numbers from the two are not comparable.  An unpatched nextpnr
+# ignores the attribute silently, which is what verify/toolchain.sh above is
+# for.
+# BD_PLACE_WEIGHT=K (default 1 = off) weights every handshake net K-fold in
+# the placer's wirelength objective; see flow.sh for why it stays off.
+# BD_COLUMN_ROWS=N is the tallest spine segment / side column stamped, in
+# tiles; the patched nextpnr takes groups as tall as the device's tallest
+# unbroken logic column (25 on xc7z010).  See flow.sh.
+BD_RLOC=${BD_RLOC:-v8}
+BD_PLACE_WEIGHT=${BD_PLACE_WEIGHT:-1}
+BD_COLUMN_ROWS=${BD_COLUMN_ROWS:-9}
+# BD_RLOC_ARB=1: also put each bd_arbiter's four LUT sites in one SLICE
+# (rloc_stamp.py --arb-groups; verify/arb_fork.py is the check it serves).
 if [ "$BD_RLOC" != none ]; then
     python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
-        --variant "$BD_RLOC" --report > "$OUT/rloc.log" 2>&1 || {
+        --variant "$BD_RLOC" --place-weight "$BD_PLACE_WEIGHT" \
+        --column-rows "$BD_COLUMN_ROWS" ${BD_RLOC_ARB:+--arb-groups} --report > "$OUT/rloc.log" 2>&1 || {
             echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
     mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
     grep -E "group|link" "$OUT/rloc.log" | tail -3
@@ -394,11 +452,27 @@ FREQOPT=""
            --sdf "$OUT/$TOP.sdf" --fasm "$OUT/$TOP.fasm" \
            > "$OUT/pnr.log" 2>&1 \
     || { echo "PNR FAILED"; tail -40 "$OUT/pnr.log"; exit 1; }
+# A group the packer dropped (too tall for the device, a slot clash) leaves
+# the design measured as something other than what rloc_stamp.py described.
+if [ "$BD_RLOC" != none ]; then
+    dropped=$(grep -oE "[0-9]+ group\(s\) dropped" "$OUT/pnr.log" | awk '{print $1}')
+    if [ -n "$dropped" ] && [ "$dropped" != 0 ]; then
+        echo "PNR DROPPED $dropped RLOC GROUP(S)"
+        grep -iE "RLOC|dropped|reject" "$OUT/pnr.log" | head -20
+        exit 1
+    fi
+    grep -E "group\(s\) dropped" "$OUT/pnr.log" | sed 's/^Info: *//'
+fi
 echo "routed."
 
 lut_sites=$(grep -c "LUT\.INIT" "$OUT/$TOP.fasm" || true)
 bufgs=$(grep -c "BUFGCTRL" "$OUT/$TOP.fasm" || true)
 echo "FASM:  $lut_sites occupied LUT sites, $bufgs global buffer lines"
+# Read the FASM back against the netlist before it becomes a bitstream: the
+# lut-pinmap bug wrote 131 of gcd_hw's LUTs as another function, and nothing
+# but the die saw it (verify/fasm_audit.py, verify/fasm/check.sh).
+python3 verify/fasm_audit.py "$OUT/${TOP}_routed.json" "$OUT/$TOP.fasm" --synth "$OUT/$TOP.json" \
+    || { echo "FASM AUDIT FAILED -- the bitstream would not be the netlist"; exit 1; }
 
 echo
 echo "== bitstream =="

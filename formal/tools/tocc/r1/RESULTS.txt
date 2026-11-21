@@ -1,0 +1,43 @@
+R1 study, shard C helper, 2026-11-09 (UNTRUSTED Python; one operand pair (12,18); tools copied from formal/tools/tocc,
+paths rewritten to /tmp/claude-0/r1; net.json/bnd.json from formal/tools/cview/lean2json.py on lean/Formal/Target/NetPS).
+
+1. Reproduction: sim.py -> data.py -> datal.py.  c=1: 46/264 guards fail (journal said 46).  c=0: 82 (provisional, same as journal).
+   r1an_c{0,1}.txt: per failing guard, claim.B and root end events (m8-style).  At c=1, 30 guards end at SLICE_X22Y87.A6(0)@862155,
+   212-219 ns BEFORE E, so the claim builder truncated them.  Only 3 guards have a root end after E (SLICE_X30Y76.A6(2), +32 ns).
+2. Model-level hazard pairs (r1c.py, r1c_c{0,1}.txt/.pkl).  For each failing guard, walk z's data cone over the read window
+   [S,E].  At a transparent latch, use its close as the deadline.  A pair is (deadline, the first re-open of a closed latch).
+   R1 means the re-open is NOT causally after the deadline (VCP).
+   c=1: 12 guards, all with z = SLICE_X37Y68.B6 and readers X31Y87.B5/B6, X34Y45.A5/A6, X36Y59.A5/A6, X38Y30.A5/A6.  E is round 1, about 900 ns.
+     Y1 = SLICE_X30Y76.A6(2)@933518 re-opens the register bank X30-31,Y75-77 (incl. latch X31Y76.A5).  It feeds z through latch
+          SLICE_X34Y65.A5, which is open during the guard and closes at SLICE_X34Y66.A6(1)@897888.  Gap after E: +31.4..+33.5 ns.
+     Y2 = SLICE_X36Y69.A6(4)@927504 re-opens latch SLICE_X36Y69.B6.  Gap +25.4..+26.9 ns.  ARB0 grant SLICE_X38Y51.B6(1)@917309 is in Y2's past only.
+   c=0: 42 guards (z = X38Y78.A6 x30, X37Y68.B6 x12).
+     Y = SLICE_X30Y76.A6(2)@403827: +11.8..16.8 ns; 18 of these deadlines are latch closes SLICE_X36Y71.A6(3) / SLICE_X36Y78.A6(3).
+     Y = SLICE_X36Y69.A6(4)@402599: +10.7..13.6 ns.
+     Y = SLICE_X36Y69.A6(2)@336379: +5.0..5.9 ns.
+     A further 18 guards have a re-open INSIDE the window (SLICE_X32Y91.A6(0), SLICE_X12Y33.A6(2), SLICE_X12Y68.A6(2)).  Masked:
+     an unselected mux input (journal 12:21).  z is unchanged in every run.
+   The 34 (c=1) / 40 (c=0) other failing guards have no unordered re-open.  Their first re-open is causally after E, with
+   Sep23(E->re-open) of 1.7-81.6 ns against a need of at most 0.24 ns, or nothing re-opens before the run ends.  So they are
+   claim-builder end-choice artefacts (R2/R3), not orderings.
+   "exact-inside" (13 guards at c=1, 49 at c=0) is the OR hand-over SLICE_X39Y53.B6 = SLICE_X38Y53.A6 | SLICE_X38Y51.A6 (next to
+   the arbiter-0 grant).  The rise is causally before the fall: Sep23 1362 ps (c=1) / 573 ps (c=0) against a need of -237 / -109 ps.  Masked.
+3. Why no Up (r1an, r1d, r1e).  Non-common pasts (events below one side only): 200-275 events on each side, 55-96 of them OR,
+   and ZERO environment events on either side, at either corner.  ARB0 events (SLICE_X38Y51.B6) appear only on the re-open side.
+   The env events rst, req rise, pend_ack rise and req fall@318986 are common ancestors.  pend_ack fall is below neither side.
+   Up(e0->E) fails for all 150 newest common ancestors and for 40 samples back to t=42 ns.  Blockers: a cause concurrent with e0
+   (neither >= e0 nor Sep-before e0), or an unbounded previous event.  The first blocker from the meet
+   SLICE_X27Y80.A6(2)@866660 is SLICE_X39Y41.C6(2), whose only alternative needs SLICE_X39Y42.B6(2)@867579[OR2] and
+   SLICE_X39Y31.B6(2)@866156[OR2], both concurrent with e0.  No blocker is an env event.
+4. Adversarial runs (simenv.py = simx.py + per-move env delay; envchk.py; skewrun.py).
+   sweep_12_18.txt (150 runs): 2 corners x {mid, all lo, all hi} x {each of req_rise, req_fall, pack_rise, pack_fall, oack_rise,
+   oack_fall, rst, all} x D in {5, 50, 500 ns}, plus D = 0.  Every run: gcd 6, 0 data-driven control changes (hazchk), exact-node
+   event counts equal to the reference, z unchanged inside every failing guard's window, no first re-open before E.
+   The c=1 R1 gaps do not depend on the env at all: 32.9/32.2 ns mid, 36.0/35.3 ns lo, 29.8/29.2 ns hi.
+   Path skew (adv/skew_*.json): the gates below E-side only are set to hi, the gates below re-open-side only to lo, the rest at mid,
+   each also with env all/req_fall/pack_fall stalled.  Gaps shrink to c=1 >= 19.5 ns, c=0 >= 3.9 ns (Y=X36Y69.A6(2)).
+   Still: gcd right, 0 hazards, same control trace, z unchanged.
+   other_pairs.txt: (17,5), (8,12), (7,7), (1071,462) x 2 corners x 5 env stalls: gcd right, 0 hazards.
+Verdict: the R1 orderings are ordered in the circuit by bounded gate delays from a deep common past.  They are neither env- nor
+arbiter-dependent, and the order did not flip in any run.  Not proved: the margin in a worst case is not computed (only simulated
+skews), and only one pair was analysed structurally.

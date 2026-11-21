@@ -1,0 +1,45 @@
+Window study, shard C helper, 2026-11-09 (UNTRUSTED Python).
+Question: is THE target's one-run AO certificate a concatenation of shift-identical windows of the same kind?
+Answer: yes for main-loop iterations 2 onward, with one kind-pair dependence in L. Iterations 0 and 1 are special. Inner-loop
+windows also need the position in the iteration as part of the kind.
+
+Pipeline: sim.py -> datafast.py -> ao.py c 1 (final configuration, 1 RT round) ->
+win.py (windows, identity), xpair.py (across pairs), reach.py, pdep.py.
+Changes from r1: VC int16; ao.py also saves VCP and the lowered L (OVER).
+datafast.py chooses each guard as the latest stable interval (no margins), so 3-11 EnE failures remain at one node per run.
+Runs: c=1 (17,5), (1071,462), (65535,4097), (603,445); c=0 (17,5), (1071,462), (603,445).
+Outputs: win_c1_4pairs.txt, win_c0_3pairs.txt, xpair_c1.txt, reach_c1.txt, pdep_c{0,1}_603_445.txt.
+
+1. Heads, from event counts fitted against the token loops (tok.py, GcdHw graph):
+   - 388 nodes fire 2*L9 times (main loop, cm9). Head: SLICE_X39Y21.C5.
+   - 271 nodes fire 2*L10 times (inner shift loop, cm10). Head: SLICE_X38Y51.B5.
+   Window j = the events e with floor((VCP[e,head]-1)/2) = j. Per node the windows are contiguous in every run.
+2. Main-loop kinds: m (number of inner iterations) >= 2 with the loop continuing, or m = 1 with exit (always the last one).
+   - Iterations per pair: (17,5) 3,2,2,1. (1071,462) 4,2,2,2,1. (65535,4097) 2 x11, then 1. (603,445) 2,2,4,2,3,4,3,1.
+   - Window size (events): 2234 + 818(m-2) for a continuing iteration; 2446 for the exit iteration.
+   - Inner windows: first-shift 823, next-shift 818, next-exit 1411, final 1476.
+3. Shift identity:
+   - Iteration 0 differs. The cm9 entry path fires (SLICE_X27Y81.A6 and X31Y59.B6 instead of X25Y82.D6 and X31Y59.A6). A
+     one-shot node, SLICE_X39Y21.C6, fires once. The window is up to 880 ps (c=1) / 354 ps (c=0) slower, and it absorbs the
+     prefix tail.
+   - Iteration 1 has equal counts and times, but 10-11 events have extra rst causes (their first event after reset; the
+     don't-care placement appends every candidate there).
+   - From iteration 2 on, in all runs, every same-kind pair has equal per-node counts, 0 odd-parity shifts, identical
+     alternatives and RT edges, and dt = 0 at every event.
+   - The same holds across pairs: (17,5) vs (1071,462), on main windows of m = 2 and the exit window, and on inner windows.
+   - c=0 (3 pairs) gives the same sizes, identities and L exception.
+   - L exception: 2 entries at 5 events per window (reader X26Y65.A6, b = X31Y65.D6; reader X26Y85.A6, b = X31Y88.A6). The
+     shifted L is -1 after an m = 2 window and 0 after m >= 3: an RT edge from the previous window raises VC above VCP. So
+     the window certificate depends on (previous kind, kind).
+4. Inner windows: the head's alternative contains the ARB0 grant SLICE_X38Y51.B6 only in the first two inner windows of
+   an iteration. So the inner kind must be (first | second | later) x (shift | exit). With that, inner windows are identical
+   apart from the same L entries.
+5. Reach back, main granularity:
+   - All causes and RT sources on active nodes reach at most 1 window back.
+   - Two kinds reach further. rst: 39-40 events, at a node's first post-reset event. RT edges from nodes that went quiet
+     after iteration 0 (the cause is their last event: SLICE_X27Y81.A6, X31Y59.B6, X37Y21.A6, X38Y21.B6): 4 per window.
+     Their reach grows with j, but their shifted index is constant (-1). Two-window checks need a rule for "the last
+     event of a node quiet since iteration 0 or reset".
+   - At inner granularity, reach is up to m+1 windows (the previous iteration).
+Not covered: delay variation (corner-midpoint runs only, so dt = 0 is for one delay assignment), the other arbiter outcome,
+and data guards.

@@ -1,0 +1,13 @@
+Measured August bitstreams, decoded (DSP48E1 path for both: C's margin/dsp, product check 2007 vectors 0 mismatches).
+isprime boundary: o_data_pl has 1 of 32 bits in the routed JSON (0/1 result); aug_synth pads with constant 0; bnd.json const0 -> a GND tie node.
+ipow (board loop_cost_ipow.tsv, LSQ of (latmin+latmax)/2 over iters 1..31: 60.85 ns/iter):
+3,1 iters 1 F 24.6 S 77.3; 3,255 8: 255.2 / 803.8; 3,65535 16: 513.2 / 1617.2; 3,2147483647 31: 997.0 / 3142.2
+per-iteration F 32.4 S 102.1 -> b = 0.409
+two-band (CARRY 0.4): t0 32.41, aL 46.56 (LUT), aR 23.19 (routing incl. DSP); LUT share 0.667
+DSP band alone (B_DSP 0 vs 1, rest 0.4): 60.31 / 60.31 ns per iteration -> DSP not on the per-iteration path; not placed
+isprime (board _isprime_cost_<n>.log latmin/latmax, 10 ns cycles; differences against n = 2, 100 ns):
+n    want  sim F    sim S     board   b of the difference
+2    1     31.3     98.5      100     -
+4    0     237.3    747.3     475     0.382
+97   1     4442.2   13999.8   8200    0.389
+1009 1     22003.3  69348.0   40435   0.388

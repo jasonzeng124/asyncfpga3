@@ -1,0 +1,49 @@
+w=20: kappa_hi = 0.27  race SLICE_X18Y52.C5 pin 1 from SLICE_X18Y38.C6 (run at w=20) RESULT MISMATCH: want [111, 170, 350] got [111, 170, 206]
+witness   (route slow): RESULT MISMATCH: want [111, 170, 350] got [111, 170, 206]
+reference (all fast)  : RESULT OK: want [111, 170, 350] got [111, 170, 350]
+first nodes to diverge (any gate): CLBLL_R_X13Y38/CLBLL_NE4BEG2(pip)@408028*, INT_L_X14Y42/WR1END3(pip)@408054*, CLBLM_L_X14Y42/CLBLM_IMUX7(pip)@408082, CLBLM_L_X14Y42/CLBLM_M_A1(pip)@408082, BRKH_INT_X14Y49/BRKH_INT_LVB_L8(pip)@408133*, INT_L_X14Y54/NN6BEG2(pip)@408184*   (* = an adversary arc)
+  diverges: SLICE_X20Y42.A5        at 417782 ps
+  diverges: SLICE_X20Y42.A6        at 488203 ps
+  diverges: SLICE_X18Y52.B5        at 1062013 ps
+  diverges: SLICE_X18Y52.B6        at 1182734 ps
+  diverges: SLICE_X18Y53.A5        at 1748644 ps
+  diverges: SLICE_X18Y53.A6        at 1788884 ps
+  diverges: SLICE_X18Y56.B5        at 1808982 ps
+  diverges: SLICE_X18Y56.B6        at 2291863 ps
+
+CAPTURE: SLICE_X18Y52.C5 (SLICE_X18Y52.CLUT.O5) first differs at 3529660 ps
+RACE at SLICE_X18Y52.C5: pin 1 (delayed 1077 ps by the adversary: reference arrival 3528756, witness 3529833) against pin 4 (arrival 3529660)
+  trigger chains meet 23 / 55 flips back
+SPLIT (common launch): CLBLL_R_X13Y37/CLBLL_LOGIC_OUTS9 flips at 3527842 ps; driven by the cell SLICE_X19Y37.B6 bridge_i.udut.ucond_br7.uack
+
+PATH A (must arrive FIRST; the adversary slowed it): split -> SLICE_X18Y52.C5 pin 1
+  path A: 24 arcs (2 cells, 22 routing)
+    SLICE_X18Y38.C6              pin 0  lut6  fast [218, 271]  slow [517, 641]  bridge_i.udut.ulink_n10__3.ctl.u.u
+    SLICE_X18Y52.C5              pin 1  lut5  fast [214, 266]  slow [533, 661]  bridge_i.udut.ulink_n10__3.lat.pair[20].u$LUT5
+    cell  total: fast [432, 537] mid 484   slow [1050, 1302] mid 1176
+    route total: fast [805, 1261] mid 1033   slow [2120, 2844] mid 2482
+PATH B (overtook it in the witness): split -> SLICE_X18Y52.C5 pin 4
+  path B: 56 arcs (8 cells, 48 routing)
+    SLICE_X18Y28.D6              pin 2  lut6  fast [154, 192]  slow [379, 470]  bridge_i.udut.ufork8.u.genblk1.genblk1.g3.u.u
+    SLICE_X18Y40.A6              pin 4  lut6  fast [78, 98]  slow [191, 236]  bridge_i.udut.ulink_n10__4.ctl.u.u
+    SLICE_X14Y36.D6              pin 1  lut6  fast [216, 269]  slow [510, 633]  bridge_i.udut.ufork3.u.genblk1.genblk1.genblk1.gt.utop.genblk1.g2.u.u
+    SLICE_X17Y36.A6              pin 0  lut6  fast [217, 270]  slow [516, 640]  bridge_i.udut.umux0.uya.u
+    SLICE_X16Y37.A6              pin 1  lut6  fast [219, 272]  slow [513, 636]  bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u.ctl.u.u
+    SLICE_X15Y49.A5              pin 3  lut5  fast [132, 164]  slow [350, 434]  bridge_i.udut.ulink_n_falseResult_9.many.stage[1].u.lat.pair[20].u$LUT5
+    SLICE_X14Y49.B5              pin 4  lut5  fast [83, 104]  slow [189, 235]  bridge_i.udut.umux0.udat.pair[20].u$LUT5
+    SLICE_X18Y52.C5              pin 4  lut5  fast [84, 105]  slow [189, 234]  bridge_i.udut.ulink_n10__3.lat.pair[20].u$LUT5
+    cell  total: fast [1183, 1474] mid 1328   slow [2837, 3518] mid 3178
+    route total: fast [1285, 1919] mid 1602   slow [3221, 4249] mid 3735
+
+CLASS: KERNEL race -- both paths stay inside the circuit
+
+SLACK (path B - path A; positive = the required order holds):
+  fast-corner band midpoint                A    1518  B    2930  slack   +1413 ps = +5.67 x median error (8.5 % of 2930) = +1.03 x worst short-ring error (47 %)
+  slow-corner band midpoint                A    3658  B    6912  slack   +3254 ps = +5.54 x median error (8.5 % of 6912) = +1.00 x worst short-ring error (47 %)
+  worst in-band (A fast max, B fast min)   A    1798  B    2468  slack    +670 ps = +3.19 x median error (8.5 % of 2468) = +0.58 x worst short-ring error (47 %)
+NEXTPNR SDF (nominal; from the cell driving the split):
+  path A: cells 278 + routing 3059 = 3337 ps
+  path B: cells 1009 + routing 5364 = 6373 ps
+  slack +3036 ps = +5.60 x median error (8.5 % of 6373 ps) = +1.01 x worst short-ring error (47 %)
+  (the ring data also fit measured = 0.938 x SDF + 988 ps per ring period: a ~1 ns constant the SDF does not charge;
+   whether it falls on one of these two paths and not the other is not known)

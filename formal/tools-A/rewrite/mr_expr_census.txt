@@ -1,0 +1,233 @@
+mr_expr_check.py census: does each BDC_RING_FUSE packed cell's emitted Verilog compute what fuse_check's model computes?
+Re-run 2026-11-20 07:1x UTC on research 99146b03d (bdc c896d1fc4), BDC_AUTO=1, shard A (first run: f538cb518, same rows).
+iverilog 12.0 (apt, this container; handshake cells stubbed, LUT1 by INIT, datapath as emitted) vs the model expression under the Lean Ops semantics; 200 vectors per cell (edge-value
+combinations of 0 / 1 / 2 / -1 / INT_MIN / INT_MAX per live input, then random); constant inputs (literals in the
+model, still joined in bdc's Verilog) driven with their value. Untrusted: finitely many vectors, iverilog semantics.
+Controls: BDC_RING_FUSE_NEGCTL=1 -> MISMATCH on 22 / 22 (below); --ctl flipbit (z_data bit 0 inverted) -> MISMATCH.
+rc 3 below = memory kernels not checked (emit / import failed), no MISMATCH.
+== default (BDC_AUTO=1) ==
+atax                         emit failed
+bicg                         emit failed
+binary_search                import failed
+branchloop                   no multi-result cell
+brhash                       OK (1 cell(s), 200 vectors)
+cmpchain                     no multi-result cell
+cnn                          emit failed
+collatz                      OK (1 cell(s), 200 vectors)
+collatz64                    OK (1 cell(s), 200 vectors)
+countloop                    OK (1 cell(s), 200 vectors)
+covariance                   emit failed
+digitdiv                     import failed
+digitsum                     import failed
+divergent_paths              emit failed
+divmods                      import failed
+divmodu                      import failed
+dot2                         import failed
+factorial                    OK (2 cell(s), 400 vectors)
+fill                         import failed
+fir                          import failed
+fold64                       OK (2 cell(s), 400 vectors)
+gather                       import failed
+gaussian                     emit failed
+gcd                          OK (1 cell(s), 200 vectors)
+gemver                       emit failed
+horner                       OK (1 cell(s), 200 vectors)
+if_convert                   import failed
+if_loop_1                    import failed
+if_loop_2                    import failed
+if_loop_3                    import failed
+iir                          import failed
+image_resize                 import failed
+insertion_sort               emit failed
+ipow                         OK (1 cell(s), 200 vectors)
+isprime                      OK (1 cell(s), 200 vectors)
+iterative_division           OK (2 cell(s), 400 vectors)
+iterative_sqrt               OK (2 cell(s), 400 vectors)
+jacobi_1d_imper              emit failed
+kernel_2mm                   emit failed
+kernel_3mm                   emit failed
+kmp                          emit failed
+lfsrfind                     OK (1 cell(s), 200 vectors)
+loop_array                   emit failed
+loop_path                    import failed
+matrix                       import failed
+matrix_power                 emit failed
+matvec                       emit failed
+memsum                       import failed
+mul_example                  import failed
+nest3                        OK (4 cell(s), 800 vectors)
+nested                       OK (2 cell(s), 400 vectors)
+nested_conditionals_1        emit failed
+nested_conditionals_2        emit failed
+nested_loop                  import failed
+path_profiling               emit failed
+pivot                        emit failed
+polyn_mult                   emit failed
+quadrec                      OK (1 cell(s), 200 vectors)
+share_test_1                 import failed
+share_test_2                 import failed
+simple_example_1             import failed
+single_loop                  import failed
+sobel                        import failed
+spmv                         import failed
+sqrtsub                      OK (1 cell(s), 200 vectors)
+stencil_2d                   import failed
+straight                     OK (1 cell(s), 200 vectors)
+sum3                         OK (1 cell(s), 200 vectors)
+sumi3_mem                    import failed
+test_bitint                  import failed
+test_bool_array              import failed
+test_constant_array          emit failed
+test_divui                   import failed
+test_flatten_array           import failed
+test_int16                   no multi-result cell
+test_internal_array          emit failed
+test_loop_free               no multi-result cell
+test_memory_1                import failed
+test_memory_10               emit failed
+test_memory_11               emit failed
+test_memory_12               emit failed
+test_memory_13               emit failed
+test_memory_14               emit failed
+test_memory_15               emit failed
+test_memory_16               emit failed
+test_memory_17               emit failed
+test_memory_18               emit failed
+test_memory_2                import failed
+test_memory_3                emit failed
+test_memory_4                emit failed
+test_memory_5                emit failed
+test_memory_6                emit failed
+test_memory_7                emit failed
+test_memory_8                emit failed
+test_memory_9                emit failed
+test_smallbound              emit failed
+test_stdint                  import failed
+test_unroll                  emit failed
+threshold                    emit failed
+triangular                   emit failed
+trisolv                      emit failed
+twoloops                     OK (3 cell(s), 600 vectors)
+unused_arg                   import failed
+varshift                     OK (1 cell(s), 200 vectors)
+vector_rescale               import failed
+video_filter                 import failed
+while_loop_1                 emit failed
+while_loop_2                 emit failed
+while_loop_3                 import failed
+wrap_if                      emit failed
+xorshift                     OK (1 cell(s), 200 vectors)
+rc=3
+== BDC_AUTO=1,BDC_RING_FUSE_NEGCTL=1 ==
+atax                         emit failed
+bicg                         emit failed
+binary_search                import failed
+branchloop                   no multi-result cell
+brhash                       MISMATCH: unpaired cells: model [['w_n96', 'w_n98']] verilog [['w_n98']]
+cmpchain                     no multi-result cell
+cnn                          emit failed
+collatz                      MISMATCH: unpaired cells: model [['w_n32', 'w_n35']] verilog [['w_n35']]
+collatz64                    MISMATCH: unpaired cells: model [['w_n34', 'w_n37']] verilog [['w_n37']]
+countloop                    MISMATCH: unpaired cells: model [['w_n28', 'w_n30']] verilog [['w_n30']]
+covariance                   emit failed
+digitdiv                     import failed
+digitsum                     import failed
+divergent_paths              emit failed
+divmods                      import failed
+divmodu                      import failed
+dot2                         import failed
+factorial                    MISMATCH: unpaired cells: model [['w_n43', 'w_n45'], ['w_n60', 'w_n62']] verilog [['w_n45'], ['w_n62']]
+fill                         import failed
+fir                          import failed
+fold64                       MISMATCH: unpaired cells: model [['w_n5', 'w_n8'], ['w_n52', 'w_n55']] verilog [['w_n55'], ['w_n8']]
+gather                       import failed
+gaussian                     emit failed
+gcd                          MISMATCH: unpaired cells: model [['w_n55', 'w_n57', 'w_n60']] verilog [['w_n60']]
+gemver                       emit failed
+horner                       MISMATCH: unpaired cells: model [['w_n31', 'w_n33']] verilog [['w_n33']]
+if_convert                   import failed
+if_loop_1                    import failed
+if_loop_2                    import failed
+if_loop_3                    import failed
+iir                          import failed
+image_resize                 import failed
+insertion_sort               emit failed
+ipow                         MISMATCH: unpaired cells: model [['w_n37', 'w_n39']] verilog [['w_n39']]
+isprime                      MISMATCH: unpaired cells: model [['w_n114', 'w_n116']] verilog [['w_n116']]
+iterative_division           MISMATCH: unpaired cells: model [['w_n29', 'w_n33', 'w_n35'], ['w_n58', 'w_n61']] verilog [['w_n35'], ['w_n61']]
+iterative_sqrt               MISMATCH: unpaired cells: model [['w_n23', 'w_n26'], ['w_n53', 'w_n55']] verilog [['w_n26'], ['w_n53']]
+jacobi_1d_imper              emit failed
+kernel_2mm                   emit failed
+kernel_3mm                   emit failed
+kmp                          emit failed
+lfsrfind                     MISMATCH: unpaired cells: model [['w_n59', 'w_n63']] verilog [['w_n63']]
+loop_array                   emit failed
+loop_path                    import failed
+matrix                       import failed
+matrix_power                 emit failed
+matvec                       emit failed
+memsum                       import failed
+mul_example                  import failed
+nest3                        MISMATCH: unpaired cells: model [['w_n104', 'w_n107'], ['w_n129', 'w_n131'], ['w_n149', 'w_n151'], ['w_n52', 'w_n55']] verilog [['w_n107'], ['w_n131'], ['w_n151'], ['w_n55']]
+nested                       MISMATCH: unpaired cells: model [['w_n57', 'w_n59'], ['w_n77', 'w_n79']] verilog [['w_n59'], ['w_n79']]
+nested_conditionals_1        emit failed
+nested_conditionals_2        emit failed
+nested_loop                  import failed
+path_profiling               emit failed
+pivot                        emit failed
+polyn_mult                   emit failed
+quadrec                      MISMATCH: unpaired cells: model [['w_n47', 'w_n49']] verilog [['w_n49']]
+share_test_1                 import failed
+share_test_2                 import failed
+simple_example_1             import failed
+single_loop                  import failed
+sobel                        import failed
+spmv                         import failed
+sqrtsub                      MISMATCH: unpaired cells: model [['w_n26', 'w_n28', 'w_n31']] verilog [['w_n31']]
+stencil_2d                   import failed
+straight                     MISMATCH: unpaired cells: model [['w_n19', 'w_n26']] verilog [['w_n19']]
+sum3                         MISMATCH: unpaired cells: model [['w_n28', 'w_n30']] verilog [['w_n30']]
+sumi3_mem                    import failed
+test_bitint                  import failed
+test_bool_array              import failed
+test_constant_array          emit failed
+test_divui                   import failed
+test_flatten_array           import failed
+test_int16                   no multi-result cell
+test_internal_array          emit failed
+test_loop_free               no multi-result cell
+test_memory_1                import failed
+test_memory_10               emit failed
+test_memory_11               emit failed
+test_memory_12               emit failed
+test_memory_13               emit failed
+test_memory_14               emit failed
+test_memory_15               emit failed
+test_memory_16               emit failed
+test_memory_17               emit failed
+test_memory_18               emit failed
+test_memory_2                import failed
+test_memory_3                emit failed
+test_memory_4                emit failed
+test_memory_5                emit failed
+test_memory_6                emit failed
+test_memory_7                emit failed
+test_memory_8                emit failed
+test_memory_9                emit failed
+test_smallbound              emit failed
+test_stdint                  import failed
+test_unroll                  emit failed
+threshold                    emit failed
+triangular                   emit failed
+trisolv                      emit failed
+twoloops                     MISMATCH: unpaired cells: model [['w_n28', 'w_n30'], ['w_n45', 'w_n48'], ['w_n76', 'w_n79']] verilog [['w_n30'], ['w_n48'], ['w_n79']]
+unused_arg                   import failed
+varshift                     MISMATCH: unpaired cells: model [['w_n48', 'w_n50']] verilog [['w_n50']]
+vector_rescale               import failed
+video_filter                 import failed
+while_loop_1                 emit failed
+while_loop_2                 emit failed
+while_loop_3                 import failed
+wrap_if                      emit failed
+xorshift                     MISMATCH: unpaired cells: model [['w_n36', 'w_n38']] verilog [['w_n38']]
+rc=2

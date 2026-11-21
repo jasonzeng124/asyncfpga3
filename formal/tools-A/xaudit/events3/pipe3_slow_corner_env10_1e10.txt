@@ -1,0 +1,34 @@
+xevents2: ../tools-A/xaudit/designs/pipe3.json top pipe3: 47 wires, 40 gates
+bands: 1 step = 10 ps; environment answer band [1, 1000000000] steps = [10, 10000000000] ps
+  storage LUT outside the control domain: stage[0].u.lat.pair[0].u/O6: I5 has no driving arc (constant?): not a C-element reset pin
+  storage LUT outside the control domain: stage[1].u.lat.pair[0].u/O6: I5 has no driving arc (constant?): not a C-element reset pin
+  storage LUT outside the control domain: stage[2].u.lat.pair[0].u/O6: I5 has no driving arc (constant?): not a C-element reset pin
+3 C-element stages recognised (InitOK on the bd_ce.v layout)
+  stage 0 stage[0].u.ctl.u/O (wire 10 'stage[0].u.c'): 2-input C-element, reset value 0, bubbles on [I1], INIT 0xb200b200b200b2; LUT [90,130] ps, own feedback [270,330] ps
+    I0 <- port req_in (environment: inverting channel from this stage, [10,10000000000] ps); channel [370,10000000440] ps, token 1
+      Back: walk empty walk (the pin closes on this stage); tokens 1 (need <= 1), fastest return 370 ps vs own feedback max 330 ps: margin 40 ps
+      BOUNDARY: margin = 30 ps (port route vs own feedback) + the environment's minimum answer time (10 ps assumed)
+    I1 <- stage 1 through 1 gate(s); channel [360,440] ps, token 1
+      Back: walk stage 1.I0; tokens 1 (need <= 1), fastest return 1260 ps vs own feedback max 330 ps: margin 930 ps
+  stage 1 stage[1].u.ctl.u/O (wire 8 'stage[1].u.c'): 2-input C-element, reset value 0, bubbles on [I1], INIT 0xb200b200b200b2; LUT [90,130] ps, own feedback [270,330] ps
+    I0 <- stage 0 through 3 gate(s); channel [810,1010] ps, token 0
+      Back: walk stage 0.I1; tokens 1 (need <= 1), fastest return 1260 ps vs own feedback max 330 ps: margin 930 ps
+    I1 <- stage 2 through 1 gate(s); channel [360,440] ps, token 1
+      Back: walk stage 2.I0; tokens 1 (need <= 1), fastest return 1260 ps vs own feedback max 330 ps: margin 930 ps
+  stage 2 stage[2].u.ctl.u/O (wire 23 'stage[2].u.c'): 2-input C-element, reset value 0, bubbles on [I1], INIT 0xb200b200b200b2; LUT [90,130] ps, own feedback [270,330] ps
+    I0 <- stage 1 through 3 gate(s); channel [810,1010] ps, token 0
+      Back: walk stage 1.I1; tokens 1 (need <= 1), fastest return 1260 ps vs own feedback max 330 ps: margin 930 ps
+    I1 <- port ack_out (environment: buffering channel from this stage, [10,10000000000] ps); channel [370,10000000440] ps, token 1
+      Back: walk empty walk (the pin closes on this stage); tokens 1 (need <= 1), fastest return 370 ps vs own feedback max 330 ps: margin 40 ps
+      BOUNDARY: margin = 30 ps (port route vs own feedback) + the environment's minimum answer time (10 ps assumed)
+Recog2 on the netlist closed by 2 environment gate(s) (proved-decidable): true
+Back (every pin, proved-decidable): true
+EnvOK (environment gates are 1-input buffers/inverters): true
+counter graph: 4 simple cycles, 0 token-free
+per-window upper bounds (Events2Time.cycle_le, via `sound`; walk re-checked with walkOK):
+  stage 0: at most 1 event(s) in every window of 1350 ps (walk 0.I1 -> 1.I0, checked true)
+  stage 1: at most 1 event(s) in every window of 1350 ps (walk 1.I1 -> 2.I0, checked true)
+  stage 2: at most 1 event(s) in every window of 1350 ps (walk 2.I0 -> 1.I1, checked true)
+  long-run UPPER rate (Events2Time.rate_upper via `sound`): 135·M t j ≤ 1·t + ρ_j + 135 steps, ρ = [180, 90, 0]: at most 1 event(s) per 1350 ps per stage = critical cycle 1350.0 ps/token; certificate checked true
+  long-run LOWER rate (liveness, Events2Time.rate_lower via `sound`): 1·t ≤ 1000000057·M t j + π_j + 1·(T_rst + 44 + 1000000057) steps, π = [0, 114, 228]: at least 1 event(s) per 10000000570 ps per stage = max cycle ratio 10000000570.0 ps/token; certificate checked true
+VERDICT: CLEAN FOREVER (Events2Main.sound): every behaviour of the parsed netlist (every delay in the bands, any power-up, reset released once), with every handshake port answered by its stage within [10, 10000000000] ps (HYPOTHESIS: environment = [env:req_in, env:ack_out]), has every C-element output = reset value flipped M t j times at every time: no X, no glitch, for all time. Period bounds above hold for the same M (certificates: upper true, lower true).

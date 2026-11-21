@@ -1,0 +1,13 @@
+# isprime, research default fixture built with BDC_AUTO=1 BDC_SIBLING_FUSE=1 (templates as autoproof numbers them).
+# Why: the sibling cell packs the inner loop's r' = (r >= s ? r - s : r) with the test and s >> 1 into one 65-bit
+# value; r starts as the raw input n (a Nat, unbounded in the theorem), so the slices are right only if that select
+# never passes a raw n through: n >= s on the first inner trip (T4, T8) and r < 2^32 afterwards (T7). n >= s needs
+# d <= n at the outer test, which needs: when d = n the inner loops leave r = 0 (so the outer loop returns).
+T2@1: sle(2, n)
+T9@1: sle(2, n); sle(2, d); sle(d, n)
+T3@2: sle(2, n); sle(2, d); sle(d, n); half = shrsi(n, 1)
+T5@2: sle(2, n); sle(2, d); sle(d, half); slt(0, s); sle(s, n); half = shrsi(n, 1)
+T4@3: sle(2, n); sle(2, d); sle(d, n)
+T8@3: sle(2, n); sle(2, d); slt(d, n); sle(s, n)
+T7@3: sle(2, n); sle(2, d); trunc(r); sel(slt(d, n), 1, sel(eq(r, 0), slt(s, d), 0))
+T6@4: sle(2, n); sle(2, d); sel(slt(d, n), 1, eq(r, 0))

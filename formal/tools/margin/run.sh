@@ -1,0 +1,182 @@
+#!/usr/bin/env bash
+# formal/tools/margin/run.sh BUILD.fasm OUT/   (shard C, v0, UNTRUSTED search; method in margin.py, races.py, rank.py)
+#
+# The kappa margin of a routed build at g = 1, corner 0, with H_RUNT(20) (and without, W0=1): every single-pin
+# race of a control storage node that the adversary sweep can make fail, its failing kappa, kappa* and a witness.
+# BUILD.fasm: the read-back (fromBit) FASM, plain/.xz/.gz. Next to it (or via env) the build's XDC, yosys JSON and
+# nextpnr routed JSON (for the boundary names): XDC=, SYNTH=, ROUTED=. v0 knows only the gcd_ps kernel boundary.
+# Knobs (env): JOBS (8), TOP (0 = every active candidate), KHI (0.45), KLO (0.20), W0 (1: also without H_RUNT),
+#   ONLY (file of node:pin keys: sweep only these), SHARD (K/N: every N-th candidate from K, for farm tasks), PAIRS ("0x49e9c618,0x35bf992e 1071,462"), LATCH (0; 1 = also latch-like storage nodes), W0FULL (1: sweep every candidate at w = 0 too, not only those failing at w = 20), CONES (0; 1 = also capture races per latch group, cones.py; only = those alone), TC (prjxray-db root), MINIMIZE (1: for each reported cone/steer race, minimize.py then explain + verify the minimal row), TCUT (1: for each reported cone/steer race, tcut.py: when the damage is done and where), EXPLAIN_ALL (1: explain every failing row, not only the reported races), HOSTDELAY (ps: the host moves input data at least this long after the acknowledge; default 1 = the most adversarial host Spec.Env allows; a clocked host is ns).
+set -euo pipefail
+B=$1; O=$2; mkdir -p "$O"; O=$(cd "$O" && pwd)
+H=$(cd "$(dirname "$0")" && pwd); F=$(cd "$H/../.." && pwd); R=$(cd "$F/.." && pwd)
+JOBS=${JOBS:-8}; TOP=${TOP:-0}; KHI=${KHI:-0.45}; KLO=${KLO:-0.20}; W0=${W0:-1}; LATCH=${LATCH:-0}
+PAIRS=${PAIRS:-"0x49e9c618,0x35bf992e 1071,462"}; KERNEL=${KERNEL:-gcd}
+log() { echo "$(date +%H:%M:%S) $*" | tee -a "$O/run.log"; }
+cat_any() { case "$1" in *.xz) xz -dc "$1";; *.gz) gzip -dc "$1";; *) cat "$1";; esac; }
+pick() { for f in "$@"; do [ -f "$f" ] && { echo "$f"; return; }; done; echo ""; }
+base=${B%.xz}; base=${base%.gz}; base=${base%.fasm}; base=${base%.fromBit}
+XDC=${XDC:-$(pick "$base.xdc")}; SYNTH=${SYNTH:-$(pick "$base.json" "$base.json.xz")}
+ROUTED=${ROUTED:-$(pick "$base.routed.json" "$base.routed.json.xz")}
+# Bench builds (research's kernel benches): give BND= (tools-A/target boundary_bench.py + mk_bnd_sim.py output) and
+# KERNEL= (collatz | collatz64 | xorshift; vectors in PAIRS as "a,b", one-operand kernels "n,n"); XDC/SYNTH/ROUTED unused.
+# Or, for a bench build straight from research's build tree: KV= (build/gen/K_kernel_bench.v), BV= (build/gen/K_bench_gen.v),
+# SYNTH= and ROUTED= (build/hw/K_bench_gen/K_bench_gen{,_routed}.json): the boundary is made by tools-A boundary_bench.py.
+if [ -z "${BND:-}" ] && [ -n "${KV:-}" ]; then
+  [ -n "$SYNTH" ] && [ -n "$ROUTED" ] && [ -n "${BV:-}" ] || { echo "bench mode needs KV, BV, SYNTH, ROUTED" >&2; exit 1; }
+  BENCH=1
+fi
+if [ -z "${BND:-}" ] && [ -z "${BENCH:-}" ]; then
+  [ -n "$XDC" ] && [ -n "$SYNTH" ] && [ -n "$ROUTED" ] || { echo "need XDC, SYNTH, ROUTED next to $B or in env (or BND=)" >&2; exit 1; }
+fi
+
+# prjxray-db: $TC, else unpack zynq7 from the repo's toolchain-cache branch (read-only git: cat-file only)
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
+if [ ! -d "$TC/openxc7/share/nextpnr/prjxray-db/zynq7" ]; then
+  TC=${MARGIN_TC:-/tmp/margin-tc}
+  if [ ! -d "$TC/openxc7/share/nextpnr/prjxray-db/zynq7" ]; then
+    KEY=$(bash "$R/cloud/toolchain-cache.sh" key); ref=origin/toolchain-cache/$KEY
+    log "prjxray-db: unpacking zynq7 from $ref into $TC"
+    mkdir -p "$TC"
+    for p in $(git -C "$R" ls-tree --name-only "$ref" | grep '^part-' | sort); do git -C "$R" cat-file blob "$ref:$p"; done |
+      $(for p in python3 python3.13 /usr/local/bin/python3 /usr/bin/python3; do $p -c 'import zstandard' 2>/dev/null && { echo $p; break; }; done || echo python3) -c '
+import sys, tarfile
+try:
+    import zstandard; d = zstandard.ZstdDecompressor().stream_reader(sys.stdin.buffer)
+except ImportError:
+    import subprocess; d = subprocess.Popen(["zstd", "-dc"], stdin=sys.stdin.buffer, stdout=subprocess.PIPE).stdout
+t = tarfile.open(fileobj=d, mode="r|")
+for m in t:
+    if "prjxray-db/zynq7" in m.name: t.extract(m, sys.argv[1])
+' "$TC"
+  fi
+fi
+export TC
+
+# 1. decode (reused if OUT/net.json exists)
+A=$F/tools-A/target
+# RC_TREE (build_net.py, A18): 1 = arcs with the RC tree, matching research's xray.sdf ~1 ps per net; 0 = the older arcs
+# (~20 % fast, used by every margin before 2026-11-17 22:30 UTC; FOR-RESEARCH C48). Default 1 since then.
+export RC_TREE=${RC_TREE:-1}
+# decode_net XDC: A's decode_base.py + build_net.py -> d0.json, net.json. A FASM with DSP48E1 site configuration goes
+# through margin/dsp/ instead (decode_base.py refuses DSP features): decode_dsp.py (decode_base + combinational DSP48E1
+# sites, checked against ROUTED when given), build_net.py, dsp_gates.py (the DSP's gates; --check: the decoded multiply
+# network against x * y mod 2^32 on 2000 random operand pairs). Knobs: DSP_CORRUPT="SITE:opmode|alumode|inmode:BIT ..."
+# (negative control: flip decoded DSP bits), DSP_SDF=nextpnr SDF (widen DSP arcs' SLOW_MAX to it where larger).
+decode_net() {
+  if grep -qE '^DSP_[LR]_X[0-9]+Y[0-9]+\.DSP48\.' "$O/fromBit.fasm"; then
+    local rt=""; [ -n "$ROUTED" ] && { cat_any "$ROUTED" > "$O/routed.json"; rt="$O/routed.json"; }
+    log "decode: DSP48E1 sites present (margin/dsp/decode_dsp.py)"
+    python3 "$H/dsp/decode_dsp.py" "$O/fromBit.fasm" "$1" --json "$O/d0.json" ${rt:+--routed "$rt"} \
+      $(for c in ${DSP_CORRUPT:-}; do echo --corrupt "$c"; done) 2>&1 | grep -E "^(decode_dsp|fasm2lean3: \{)" | tee -a "$O/run.log"
+    python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net0.json" > /dev/null
+    python3 "$H/dsp/dsp_gates.py" "$O/d0.json" "$O/net0.json" "$O/net.json" ${rt:+--routed "$rt" --check 2000} \
+      ${DSP_SDF:+--sdf "$DSP_SDF"} 2>&1 | tee -a "$O/run.log"
+    rm -f "$O/net0.json"
+  else
+    python3 "$A/decode_base.py" "$O/fromBit.fasm" "$1" --json "$O/d0.json" 2>&1 | tail -1 | tee -a "$O/run.log"
+    python3 "$A/build_net.py" "$O/d0.json" "$O/fromBit.fasm" - "$O/net.json" > /dev/null
+  fi
+}
+if [ ! -f "$O/net.json" ]; then
+  log "decode"
+  cat_any "$B" > "$O/fromBit.fasm"
+  [ -z "${BND:-}" ] && [ -z "${BENCH:-}" ] && { cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"; }
+  if [ -n "${BENCH:-}" ]; then
+    : > "$O/empty.xdc"
+    decode_net "$O/empty.xdc"
+    cat_any "$SYNTH" > "$O/synth.json"; cat_any "$ROUTED" > "$O/routed.json"
+    python3 "$H/boundary_bench.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$KV" "$BV" "$O/bnd_bench.json" | tail -1 | tee -a "$O/run.log"
+    python3 "$A/mk_bnd_sim.py" "$O/bnd_bench.json" "$O/bnd.json" | tee -a "$O/run.log"
+    python3 "$A/arbs.py" "$O/routed.json" "$O/d0.json" "$O/net.json" "$O/arbs.json" 2>&1 | head -1 | tee -a "$O/run.log" ||
+      echo "[]" > "$O/arbs.json"
+    [ -s "$O/arbs.json" ] || echo "[]" > "$O/arbs.json"
+  elif [ -n "${BND:-}" ]; then
+    : > "$O/empty.xdc"
+    decode_net "$O/empty.xdc"
+    cp "$BND" "$O/bnd.json"; echo "[]" > "$O/arbs.json"   # bench arbiters not named yet: no ArbOK flag
+  else
+    decode_net "$XDC"
+    python3 "$A/boundary_ps.py" "$O/synth.json" "$O/routed.json" "$O/net.json" "$O/bnd.json" | tail -1 | tee -a "$O/run.log"
+    python3 "$A/arbs.py" "$O/routed.json" "$O/d0.json" "$O/net.json" "$O/arbs.json" | head -1 | tee -a "$O/run.log"
+  fi
+fi
+(cd "$O" && md5sum fromBit.fasm net.json bnd.json arbs.json 2>/dev/null) | tee "$O/md5.txt" || true
+# DRAWS=N: the board approximator instead of the adversary (draws.py: N random delay draws, no adversary; knobs
+#   DRAW_W (20), HOSTDELAY (12000), DRAW_SEED0 (1), DRAW_MODEL (research = research's draw K; fid = one band),
+#   DRAW_BAND/DRAW_SREG/DRAW_SARC)
+if [ -n "${DRAWS:-}" ]; then
+  log "draws $DRAWS"
+  python3 "$H/draws.py" "$O/net.json" "$O/bnd.json" "$O" --kernel "$KERNEL" --pairs $PAIRS --draws "$DRAWS" --jobs "$JOBS" \
+    --w "${DRAW_W:-20}" --hostdelay "${HOSTDELAY:-12000}" --seed0 "${DRAW_SEED0:-1}" --tmax "${TFULL:-25000000}" --maxev "${SIMX_MAXEV:-1000000000}" \
+    $([ -n "${DRAW_BAND:-}" ] && echo --band $DRAW_BAND) $([ -n "${DRAW_SREG:-}" ] && echo --sreg $DRAW_SREG) \
+    $([ -n "${DRAW_SARC:-}" ] && echo --sarc $DRAW_SARC) --model "${DRAW_MODEL:-research}" $([ -n "${DRAW_INJECT:-}" ] && echo --inject "$DRAW_INJECT") \
+    $([ -f "$O/routed.json" ] && echo --routed "$O/routed.json") 2>&1 | tee -a "$O/run.log"
+  log "done: $O/draws_summary.txt $O/draws.txt"; exit 0
+fi
+
+# 2. candidates (storage gate x live pin), 3. reference run at KHI (dump) and dynamic rank
+log "candidates"
+python3 "$H/races.py" "$O/net.json" "$O/bnd.json" "$O/races.json" $([ "$LATCH" = 1 ] && echo --latch) 2>&1 | tee -a "$O/run.log"
+if [ ! -f "$O/ref_dump.json" ]; then
+  log "reference run kappa $KHI"
+  echo '{"S": [], "F": []}' > "$O/empty.json"
+  KDEN=100 python3 "$F/tools/huff/simadv.py" "$O/net.json" "$O/bnd.json" --pairs $PAIRS --kernel "$KERNEL" --corner 0 --kappa "$KHI" \
+    --classes "$O/empty.json" --cdefault F --data0 --full --R 400000 --su 1000 --datachange broad --nextreq seq \
+    --tmax "${TFULL:-5000000}" --w 20 --dump "$O/ref_dump.json" 2>&1 | grep -E "RESULT|events" | tee -a "$O/run.log"
+fi
+python3 "$H/rank.py" "$O/net.json" "$O/races.json" "$KHI" "$O/ranked.json" "$O/ref_dump.json"
+# CONES=1: also the capture (setup/arrival) races, one per latch group (cones.py: the whole data cone slow, mux selects
+# included); CONES=only: those alone. Rows have pin 99. STEER=1 adds steer cones (cones.py --steer; pin 100+i).
+if [ "${CONES:-0}" != 0 ]; then
+  python3 "$H/cones.py" "$O/net.json" "$O/bnd.json" "$O/cones.json" $([ "${STEER:-0}" = 1 ] && echo --steer) 2>&1 | tee -a "$O/run.log"
+  python3 -c 'import json,sys; c=json.load(open(sys.argv[1])); r=[] if sys.argv[3]=="only" else json.load(open(sys.argv[2])); json.dump(c+r, open(sys.argv[2],"w"), indent=0)' "$O/cones.json" "$O/ranked.json" "$CONES"
+fi
+# 4. sweep + bisection + report
+log "sweep"
+python3 "$H/margin.py" "$O/net.json" "$O/bnd.json" "$O/ranked.json" "$O" --jobs "$JOBS" --top "$TOP" --khi "$KHI" \
+  --klo "$KLO" --tfull "${TFULL:-5000000}" --pairs $PAIRS --kernel "$KERNEL" --w 20 $([ "$W0" = 1 ] && echo --w0) $([ "${W0FULL:-0}" = 1 ] && echo --w0full) --arbs "$O/arbs.json" $([ -n "${ONLY:-}" ] && echo --only $(cat "$ONLY")) $([ -n "${SHARD:-}" ] && echo --shard "$SHARD")
+log "check every failing row"; python3 "$H/checkrows.py" "$O" > /dev/null 2>&1 || true
+[ -f "$O/routed.json" ] && python3 "$H/names.py" "$O" > /dev/null 2>&1 || true
+[ -f "$O/routed.json" ] && [ -f "$O/cones.json" ] && python3 "$H/conenames.py" "$O" > /dev/null 2>&1 || true
+# 5. the picosecond form of every reported race (explain.py: capture, split, both paths, slack, x the measured error;
+#    SDF= nextpnr's SDF of the build adds the slack at the nominal SDF)
+log "explain the reported races"
+python3 - "$O" "$H" <<'PYEOF' || true
+import re, subprocess, sys, os
+O, H = sys.argv[1], sys.argv[2]
+seen = set()
+lines = list(open(os.path.join(O, "kappa_hi.txt"))) if os.path.exists(os.path.join(O, "kappa_hi.txt")) else []
+if os.environ.get("EXPLAIN_ALL") == "1":   # every failing row of margins.txt (its first failing kappa), not only the reported ones
+    for l in open(os.path.join(O, "margins.txt")):
+        f = l.split()
+        if len(f) > 6 and not l.startswith("#") and re.match(r"^[0-9.]+$", f[4]):
+            lines.append("%s: kappa %s  race %s pin %s from %s (run at w=%s) [margins row]\n" % (f[0], f[4], f[1], f[2], f[3], f[0].split("=")[1]))
+for l in lines:
+    m = re.search(r"kappa(?:_hi)? (?:= )?([0-9.]+)\s+race (\S+) pin (\d+) from \S+ \(run at w=(\d+)\)", l)
+    if not m or (m.group(2), m.group(3), m.group(1), m.group(4)) in seen: continue
+    seen.add((m.group(2), m.group(3), m.group(1), m.group(4)))
+    k, node, pin, w = m.group(1), m.group(2), m.group(3), m.group(4)
+    cmd = ["python3", os.path.join(H, "explain.py"), O, node, pin, k, "--w", w]
+    if os.path.exists(os.path.join(O, "routed.json")): cmd += ["--routed", os.path.join(O, "routed.json")]
+    if os.path.exists(os.path.join(O, "routed.json")) and os.environ.get("SDF") and os.path.exists(os.environ["SDF"]): cmd += ["--sdf", os.environ["SDF"]]
+    if os.environ.get("EXPLAIN_VERIFY") == "1": cmd += ["--verify-path"]
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+    with open(os.path.join(O, "explain_%s_%s_k%s_w%s.txt" % (node, pin, k, w)), "w") as f: f.write(l + r.stdout + r.stderr[-2000:])
+    if os.environ.get("MINIMIZE") == "1" and 99 <= int(pin) < 200:
+        # a cone / steer row: shrink its slow set (ddmin), then explain and verify the minimal row (pin + 200)
+        m = subprocess.run(["python3", os.path.join(H, "minimize.py"), O, node, pin, k, "--w", w, "--budget", "300"], capture_output=True, text=True, timeout=7200)
+        c2 = ["python3", os.path.join(H, "explain.py"), O, node, str(int(pin) + 200), k, "--w", w, "--verify-path"] + cmd[cmd.index("--w") + 2:] if "--w" in cmd else []
+        c2 = [x for x in c2 if x != "--verify-path"] + ["--verify-path"]
+        r2 = subprocess.run(c2, capture_output=True, text=True, timeout=1800) if m.returncode == 0 else None
+        with open(os.path.join(O, "explain_%s_%s_k%s_w%s_min.txt" % (node, pin, k, w)), "w") as f:
+            f.write(l + m.stdout + m.stderr[-1000:] + ((r2.stdout + r2.stderr[-1000:]) if r2 else ""))
+    if os.environ.get("TCUT") == "1" and int(pin) >= 99:
+        # a cone / steer row: WHEN the slow arcs do the damage (bisection on simx --tcut) and the storage LUT that decides it
+        c3 = ["python3", os.path.join(H, "tcut.py"), O, node, pin, k, "--w", w] + (["--routed", os.path.join(O, "routed.json")] if os.path.exists(os.path.join(O, "routed.json")) else [])
+        r3 = subprocess.run(c3, capture_output=True, text=True, timeout=3600)
+        with open(os.path.join(O, "tcut_%s_%s_k%s_w%s.txt" % (node, pin, k, w)), "w") as f: f.write(l + r3.stdout + r3.stderr[-1500:])
+PYEOF
+# 6. static screen of every feedback race at nextpnr's SDF (fbslack.py; needs SDF=)
+[ -n "${SDF:-}" ] && [ -f "$SDF" ] && { python3 "$H/fbslack.py" "$SDF" --top 60 > "$O/fbslack.txt"; python3 "$H/fbslack.py" "$SDF" --top 30 --grep .ctl. > "$O/fbslack_ctl.txt"; } || true
+log "done: $O/names.txt $O/kappa_hi.txt $O/checked.txt $O/margins.txt $O/explain_*.txt"

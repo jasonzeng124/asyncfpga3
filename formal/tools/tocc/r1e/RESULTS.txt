@@ -1,0 +1,61 @@
+R1e, shard C helper, 2026-11-09.  UNTRUSTED Python.  Pair (12,18).  Copy of /tmp/claude-0/r1d (paths rewritten;
+r1d results kept as RESULTS_r1d.txt).  Flags as r1d FINAL: ARTFIX=1 ARTFIX2=1 REL=1 RELD=99 RELK=16 RELTRY=64 SEPIV1=1
+NPASS=12.  FINAL: `<flags> TAG=_final python3 rundatal.py <c>` -> datal_c<c>_final.{log,pkl}.  Roots: anal2.py c pkl.
+
+New in datal.py (env switches; all default ON except OPTLOOP):
+  VERIFY    verify_chain(): after a latch chain is final (after truncation) EVERY phase claim is re-checked as a
+            TimedOccU.GateProof: 0 <= a, and TimedOccX.CovTime start AND end for every covered pin of every phase:
+            T (enable .ex + D covers), U (D covers, incl. pins covered only in U), H (enable .ex), U' (D covers),
+            hInit H (enable .ex).  Each is an obligation; a failure makes the claim bad (propagated to dependants).
+  FIXU      (gap a) U's start: u_start() keeps U.A = T.A and raises U.a until CovTime start holds for every U-only D
+            cover; else picks a start among pin starts / joins.  The T->U ChainOK step uses the new (A, a).
+            Also: a U' "decided by the feedback alone" (939 c=1 / 1013 c=0) had B = none, which no GateProof allows
+            (its feedback cover has a finite end); it now ends with the next phase (U'->T then checked: 0 failures).
+  FBCOV     (found doing a; NOT checked before r1e) the latch FEEDBACK pin in U/H/U' is covered by a union claim; its
+            CovTime start was never checked.  Cover = union of chain[j..p], j < p (ChainOK steps already checked;
+            end = the phase's own end, so only the start is non-trivial): hi_fb + chain[j].a <= p.a + Sep(chain[j].A -> p.A).
+  FBRAISE   if that fails but a Sep exists, raise p.a (next ChainOK step re-checked).  Needed once at c=0 without
+            LGTOPOFF: X26Y76.C5 U' (margin -332), which made 31471 claims / 78 guards depend on a failing obligation.
+  PREVCHK   (gap b) every cover that used a previous-pass window is registered in PEND and its CovTime (start and end)
+            re-checked against the FINAL window after the last pass; the verdict no longer relies on convergence.
+  HRFREE    HOLDRETRY no longer requires U.A = T.A; u_start sets U's start (Seps must exist).  (No effect on counts.)
+  LGTOPOFF  B's fix, copied from /tmp/claude-0/arbh/dl/datal_lg.py: GTOP off inside latch claims.
+  OPTLOOP   (task 2; default OFF, see below).
+
+Failing guards of 264 (all checks on):                    c=1                      c=0
+  r1d FINAL (reference)                                    4                        46
+  _v     VERIFY/FIXU/FBCOV/PREVCHK, no LGTOPOFF, no FBRAISE 4 (0 obligation fails)  46 + 1 fb-CovTime fail -> 78 guards dep. on it
+  _nolg  + FBRAISE, no LGTOPOFF                            -                        46 at pass 5 (OOM-killed, cgroup; trajectory = _v)
+  _final + FBRAISE + HRFREE + LGTOPOFF                     0  (converged pass 2)    78 (converged pass 9)
+  _fin2  as _final + OPTLOOP                               0  (no restarts at c=1)  killed: see task 2
+FINAL obligation counts: every kind 0 failures (c=1 and c=0), incl. 34.3k (c=1) / 32.0k (c=0) re-verified latch-phase CovTimes and
+  20.9k / 20.3k feedback-cover CovTimes; loop covers re-checked against final windows: 835 (c=1) / 36238 (c=0), 0 fail.
+  "guards whose claim depends on a failing obligation": 0 / 0.  So the counts are pure GuardTime-end failures.
+lchk FINAL: upFormB 0 / sepFormB 0; claim-building Seps 859 (c=1) / 862 (c=0), needbad 0; GuardTime recomputed from the
+  emitted tables agrees 264/264.  Up 277 / 299, Sep 56445 / 56433.
+
+What still fails (FINAL):
+  c=1  nothing (0/264).  (With LGTOPOFF the 4 arbiter-area U->H failures go, as B found.)
+  c=0  78 (guards at X38Y78.A6 x54, X37Y68.B6 x24, the same consumers as r1d's 42-class), all "no Sep E -> claim.B,
+       claim.B = X34Y92.A6(0)@321592".  Root (anal2): latches X35Y91.B6 (48) and X34Y91.C5 (30) truncated at U->H:
+       U.B = X34Y92.A6(0)@321592 = the latch's OWN enable's open event, H.A = its close X34Y92.A6(1)@331299; i.e. D's
+       claim ends at the open that starts this transparent phase.  HOLDRETRY tried 5268x, accepted 0; RESTART tried
+       114499x, accepted 0.  With LGTOPOFF the r1d root (bank latches X30Y75.C6/X31Y76.A5 U'->T, rb end X39Y65.B6) no
+       longer shows on the binding paths; pass 0 has 42 failing, the new root appears from pass 1 (60) / pass 3 (78)
+       when previous-pass windows feed the loop.  Not diagnosed further.
+
+Task 2 (OPTLOOP, implemented, does not help): inside a RESTART trial, an in-progress claim OUTSIDE the trial (the loop
+  closing through the restart's cone) gets an optimistic window (A = the restart's truncation event, a = 0, B = none);
+  passes iterate; every such cover is re-checked against the final windows; restarts whose optimistic covers fail are
+  banned and the whole fixpoint redone.  c=0 (with LGTOPOFF): outer 0: 243 optimistic covers in 102 restarts, 241 fail
+  their final CovTime (the loop claims' real ends are finite and early) -> 102 banned; outer 1: 51/51 fail, 27 banned,
+  and the passes oscillated (31020 windows changing every pass, not converged at pass 9); guards 60 throughout.  Killed.
+  OPTLOOP is sound by construction (only verified covers survive) but found no consistent optimistic fixpoint.
+
+Python checks without a Lean hypothesis: none known; every recorded obligation is an instance of GateProof (0<=a,
+  CovTime), ChainOK, GuardTime, or a Sep/Up table entry checked by lchk's DecT transcription.  Conversely, Lean
+  hypotheses NOT checked by the Python: hInit for claims with A = none (value before t0 is taken from the simulation);
+  constant pins (k = 0 gates) are fixed in ValOK but no cover is emitted for them (a Cov.cl to the constant's claim with
+  A = B = none makes CovTime trivial; that claim's GateProof is trivial); dead (non-live) pins are fixed to 0 in ValOK
+  (checked: LUTs never depend on them, 24587 pins); the union claims chain[j..p] used as feedback covers and the
+  segment claims must be emitted into cl (not done: no Lean emitter).

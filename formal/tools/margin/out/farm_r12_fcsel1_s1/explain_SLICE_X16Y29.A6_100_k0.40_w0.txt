@@ -1,0 +1,18 @@
+w=0: physical (NOT a Spec counterexample: partial-ack deadlock, Spec.Env vacuous): kappa 0.40  race SLICE_X16Y29.A6 pin 100 from SLICE_X16Y31.B5 (run at w=0) RESULT MISMATCH: want [111, 170, 350] got [106]
+witness   (route slow): RESULT MISMATCH: want [111, 170, 350] got [106]
+reference (all fast)  : RESULT OK: want [111, 170, 350] got [111, 170, 350]
+first nodes to diverge (any gate): INT_L_X12Y50/SW2END3(pip)@20*, INT_L_X12Y50/WL1END2(pip)@21*, BRKH_INT_X10Y49/BRKH_INT_SW6END3(pip)@39*, CLBLL_R_X11Y50/CLBLL_WL1END2(pip)@41*, CLBLL_R_X11Y50/CLBLL_WL1END1(pip)@42*, BRKH_INT_X10Y49/BRKH_INT_ER1BEG_S0(pip)@61*   (* = an adversary arc)
+  diverges: SLICE_X16Y29.A6        at 408827 ps  <- the row's storage LUT
+  diverges: SLICE_X16Y28.C6        at 409078 ps
+  diverges: SLICE_X16Y29.C6        at 409096 ps
+  diverges: SLICE_X17Y27.C6        at 409229 ps
+  diverges: SLICE_X16Y28.A6        at 409349 ps
+  diverges: SLICE_X16Y26.B6        at 409533 ps
+  diverges: SLICE_X16Y25.A6        at 410139 ps
+  diverges: SLICE_X16Y25.B6        at 410215 ps
+
+CAPTURE: SLICE_X16Y29.A6 (SLICE_X16Y29.ALUT.O6) first differs at 408827 ps
+RACE at SLICE_X16Y29.A6: pin 0 (delayed 671 ps by the adversary: reference arrival 426441, witness 427112) against pin 2 (arrival 422548)
+  trigger chains meet 216 / 41 flips back
+
+UNRELIABLE: path A revisits gates (217 arcs): the two arrivals are separated by whole trips around a loop, so this is not a race between two paths from one launch (typical of a steer cone, whose slowed cone shifts a whole handshake cycle). No slack is reported for this row.

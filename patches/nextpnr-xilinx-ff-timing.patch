@@ -1,0 +1,163 @@
+diff --git a/xilinx/arch.cc b/xilinx/arch.cc
+index 313bcd74..6f5de6a4 100644
+--- a/xilinx/arch.cc
++++ b/xilinx/arch.cc
+@@ -2509,6 +2509,31 @@ TimingClockingInfo Arch::getPortClockingInfo(const CellInfo *cell, IdString port
+     info.clockToQ = getDelayFromNS(0.1);
+     info.clock_port = xc7 ? id_CK : id_CLK;
+     info.edge = RISING_EDGE;
++    if (xc7 && cell->type == id_SLICE_FFX && cell->bel != BelId()) {
++        // Slice flop timing from the prjxray CLB model. The main FFs
++        // (AFF..DFF, BEL_FF) are the REG_INIT_FF variant, the 5FFs
++        // (BEL_FF2) the FF_INIT variant; both are keyed on the slice
++        // instance. Ports there are CLK/DIN/CE/Q; ours CK/D/CE/Q.
++        int tt_id = locInfo(cell->bel).timing_index;
++        int inst_id = locInfo(cell->bel).bel_data[cell->bel.index].timing_inst;
++        int z = locInfo(cell->bel).bel_data[cell->bel.index].z;
++        IdString variant = ((z & 0xF) == BEL_FF2) ? id("FF_INIT") : id("REG_INIT_FF");
++        IdString clk = id("CLK");
++        DelayInfo d;
++        if (xc7_cell_timing_lookup(tt_id, inst_id, variant, clk, id_Q, d))
++            info.clockToQ = d;
++        IdString sig;
++        if (port == id_D)
++            sig = id("DIN");
++        else if (port == id_CE)
++            sig = id_CE;
++        if (sig != IdString()) {
++            if (xc7_cell_check_lookup(tt_id, inst_id, variant, TIMING_CHECK_SETUP, sig, clk, d))
++                info.setup = d;
++            if (xc7_cell_check_lookup(tt_id, inst_id, variant, TIMING_CHECK_HOLD, sig, clk, d))
++                info.hold = d;
++        }
++    }
+     return info;
+ }
+ 
+@@ -2597,6 +2622,30 @@ bool Arch::xc7_cell_timing_lookup(int tt_id, int inst_id, IdString variant, IdSt
+     return true;
+ }
+ 
++bool Arch::xc7_cell_check_lookup(int tt_id, int inst_id, IdString variant, TimingCheckType type, IdString sig_port,
++                                 IdString clock_port, DelayInfo &value) const
++{
++    if (tt_id == -1 || inst_id == -1)
++        return false;
++    const InstanceTimingPOD &inst = chip_info->timing_data->tile_cell_timings[tt_id].instances[inst_id];
++    auto found_var = db_binary_search(
++            inst.celltypes.get(), inst.num_celltypes, [](const CellTimingPOD &ct) { return ct.variant_name; },
++            variant.index);
++    if (!found_var)
++        return false;
++    const CellTimingPOD &ct = *found_var;
++    // Checks are sorted by (sig_port, clock_port) only; setup and hold for
++    // the same pin pair are adjacent, so scan the run.
++    for (int i = 0; i < ct.num_checks; i++) {
++        const CellTimingCheckPOD &chk = ct.checks[i];
++        if (chk.sig_port == sig_port.index && chk.clock_port == clock_port.index && chk.check_type == type) {
++            value.delay = chk.max_value;
++            return true;
++        }
++    }
++    return false;
++}
++
+ #ifdef WITH_HEAP
+ const std::string Arch::defaultPlacer = "heap";
+ #else
+diff --git a/xilinx/arch.h b/xilinx/arch.h
+index 49b1daf2..f6179376 100644
+--- a/xilinx/arch.h
++++ b/xilinx/arch.h
+@@ -1569,6 +1569,8 @@ struct Arch : BaseCtx
+ 
+     bool xc7_cell_timing_lookup(int tt_id, int inst_id, IdString variant, IdString from_port, IdString to_port,
+                                 DelayInfo &delay) const;
++    bool xc7_cell_check_lookup(int tt_id, int inst_id, IdString variant, TimingCheckType type, IdString sig_port,
++                               IdString clock_port, DelayInfo &value) const;
+ 
+     // Whether or not a given cell can be placed at a given Bel
+     // This is not intended for Bel type checks, but finer-grained constraints
+diff --git a/xilinx/python/nextpnr_structs.py b/xilinx/python/nextpnr_structs.py
+index ca20062b..a3d8215a 100644
+--- a/xilinx/python/nextpnr_structs.py
++++ b/xilinx/python/nextpnr_structs.py
+@@ -158,9 +158,14 @@ class NextpnrTimingCheck:
+ 				sh.hold.minv, sh.hold.maxv),
+ 		]
+ 	@staticmethod
++	def from_sdf_single(c):
++		chktype = (NextpnrTmgChkType.TIMING_CHECK_SETUP if c.kind == "SETUP"
++				else NextpnrTmgChkType.TIMING_CHECK_HOLD)
++		return [NextpnrTimingCheck(chktype, c.pin, c.clock, c.value.minv, c.value.maxv)]
++	@staticmethod
+ 	def from_sdf_width(w):
+-		NextpnrTimingCheck(NextpnrTmgChkType.TIMING_CHECK_WIDTH, sh.clock, sh.clock,
+-				w.width.minv, w.width.maxv)
++		return [NextpnrTimingCheck(NextpnrTmgChkType.TIMING_CHECK_WIDTH, w.clock, w.clock,
++				w.width.minv, w.width.maxv)]
+ 
+ class NextpnrCellTiming:
+ 	def __init__(self, variant_name):
+@@ -179,9 +184,11 @@ class NextpnrCellTiming:
+ 			if isinstance(entry, parse_sdf.IOPath):
+ 				cell.delays.append(NextpnrPropDelay.from_sdf_iopath(entry))
+ 			elif isinstance(entry, parse_sdf.SetupHoldCheck):
+-				cell.checks.append(NextpnrTimingCheck.from_sdf_setuphold(entry))
++				cell.checks.extend(NextpnrTimingCheck.from_sdf_setuphold(entry))
++			elif isinstance(entry, parse_sdf.SingleCheck):
++				cell.checks.extend(NextpnrTimingCheck.from_sdf_single(entry))
+ 			elif isinstance(entry, parse_sdf.WidthCheck):
+-				cell.checks.append(NextpnrTimingCheck.from_sdf_width(entry))
++				cell.checks.extend(NextpnrTimingCheck.from_sdf_width(entry))
+ 			else:
+ 				assert False, "unknown SDF entry type"
+ 		for interconn in sorted(sdfc.interconnect.values(), key=lambda ic: (ic.to_net, ic.from_net)):
+diff --git a/xilinx/python/parse_sdf.py b/xilinx/python/parse_sdf.py
+index 2eea49ec..1b7d09d1 100644
+--- a/xilinx/python/parse_sdf.py
++++ b/xilinx/python/parse_sdf.py
+@@ -31,6 +31,15 @@ class SetupHoldCheck:
+         self.hold = hold
+ 
+ 
++class SingleCheck:
++    # A lone (SETUP ...) or (HOLD ...) record, as prjxray emits them
++    def __init__(self, kind, pin, clock, value):
++        self.kind = kind
++        self.pin = pin
++        self.clock = clock
++        self.value = value
++
++
+ class WidthCheck:
+     def __init__(self, clock, width):
+         self.clock = clock
+@@ -97,6 +106,11 @@ def parse_delay(delay):
+     return Delay(sp[0], sp[1], sp[2])
+ 
+ 
++def port_name(p):
++    # (posedge CLK) -> CLK
++    return p[-1] if isinstance(p, list) else p
++
++
+ def parse_sdf_file(filename):
+     sdata = parse_sexpr_file(filename)
+     assert sdata[0] == "DELAYFILE"
+@@ -127,8 +141,13 @@ def parse_sdf_file(filename):
+                 for check in subentry[1:]:
+                     if check[0] == "SETUPHOLD":
+                         cell.entries.append(
+-                            SetupHoldCheck(check[1], check[2], parse_delay(check[3][0]), parse_delay(check[4][0])))
++                            SetupHoldCheck(check[1], port_name(check[2]), parse_delay(check[3][0]),
++                                           parse_delay(check[4][0])))
++                    elif check[0] in ("SETUP", "HOLD"):
++                        cell.entries.append(
++                            SingleCheck(check[0], port_name(check[1]), port_name(check[2]),
++                                        parse_delay(check[3][0])))
+                     elif check[0] == "WIDTH":
+-                        cell.entries.append(WidthCheck(check[1], parse_delay(check[2][0])))
++                        cell.entries.append(WidthCheck(port_name(check[1]), parse_delay(check[2][0])))
+         sdf.cells[(celltype, inst)] = cell
+     return sdf

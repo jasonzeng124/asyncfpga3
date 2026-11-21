@@ -1,0 +1,21 @@
+# bare bd_arbcell, bd_prims_sim.v semantics: route lumped into the inertial
+# LUT arc (BD_ROUTE_PS), fixed max arcs, r1/r2 straight from registers.
+# header claim: overlap iff route < 16 ps (124 vs 56+52); tb_arb_overlap: 89 at 0, 0 at 354
+  tick=4ps route=  0ps mutex: cex@28                 [72 bits, 31.0s]
+     t          01234567890123456789012345678
+     r1         _1111111111111111111111111111
+     r2         1____________________________
+     q          _______________11111111111111
+     qR         _______________11111111111111
+     g1         ____________________________1
+     g2         11111111111111111111111111111
+     ov         .............................
+    max overlap run (bounded, depth 80): 4 ticks = 16 ps
+  tick=4ps route=  8ps mutex: cex@32                 [74 bits, 4.5s]
+  tick=4ps route= 12ps mutex: cex@34                 [74 bits, 5.6s]
+  tick=4ps route= 16ps mutex: proved (k=42)          [74 bits, 109.8s]
+  tick=4ps route= 20ps mutex: proved (k=43)          [74 bits, 114.9s]
+  tick=8ps route= 16ps mutex: cex@18                 [69 bits, 2.1s]
+  tick=8ps route= 24ps mutex: proved (k=22)          [69 bits, 8.1s]
+  tick=8ps route= 48ps mutex: proved (k=25)          [69 bits, 14.2s]
+section tb: 1217.8s

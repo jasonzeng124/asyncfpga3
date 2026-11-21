@@ -1,0 +1,21 @@
+R1g, shard C helper, 2026-11-09 (UNTRUSTED Python).  Pair (12,18).  Workspace = copy of r1f (paths -> r1g).
+Merge: r1f/datal.py == r1e/datal.py + r1f_fix.diff exactly (diffed; no conflicts), so datal.py = r1f's file with paths
+rewritten and CTXAFTER/UPMOVE now default ON (all r1e switches already default ON; OPTLOOP stays OFF).
+Run: run.sh <c>  (ARTFIX=1 ARTFIX2=1 REL=1 RELD=99 RELK=16 RELTRY=64 SEPIV1=1 NPASS=12 CTXAFTER=1 UPMOVE=1 TAG=_g)
+ -> datal_c<c>_g.{log,pkl}.
+
+Failing guards of 264:   c=1 0 (converged pass 2; no regression)    c=0 42 (converged pass 8; trajectory identical to r1f _ctxb)
+Both: every obligation kind 0 failures; guards depending on a failing obligation 0; claims failing 0.
+lchk: upFormB/sepFormB 0/0; claim-building Seps 859 (c=1) / 899 (c=0), failing 0; GuardTime recomputed from emitted
+tables 0 / 42 failing, mismatch 0.  Up 277/296, Sep 56445/59741.
+
+c=0 residue (42): 40 "no Sep E -> claim.B = X27Y80.A6(2)@377006" (consumers X37Y68.B6 24 / X38Y78.A6 16), 2 comb root X37Y59.B6.
+Root of the 40 (r1g1.py / r1g2.py on the pkl): NOT the start.  X25Y76.B6's D cover X22Y81.B6 already starts at the join
+J = X27Y80.D6(0)@378321 (JOINTIME); it fails on its END, B = X27Y80.A6(2) + 13435.  That end is inherited from a datapath
+loop: the post-B claim of mux X23Y81.A6 (A = B+604) covers X23Y86.C6, whose loop-cover end is B+18998, and the loop latches
+(X27Y84.C6, X26Y65.B5/B6/D6, X27Y65.B5, X26Y77.C5, X27Y77.B5/B6, X27Y76.C6, X26Y91.A6, X22Y87.D6) all carry U'.B = B
+(+17-20 ns) and truncate at U'->T / T->U because the next phase starts at an open after B (Sep(open -> B) = none, though
+numerically B+b is ~10-15 ns later).  The fixpoint starts from, and keeps, these B-relative ends (same mechanism as r1d's
+rb class).  A restart at J cannot help (claim starts already at J); needs either an optimistic post-join loop window
+(r1e OPTLOOP: no consistent fixpoint found) or re-expressing a "B + b" end relative to a later event via a bounded Up(B -> x).
+Not a small fix; not attempted.

@@ -1,0 +1,32 @@
+# ternary bare cell (lutK, kwin channels [1,2] per LUT, route 1, env free, P=6)
+  mutex11  (never g1 = g2 = definite 1): PROVED (k-induction, k=1) [1.1s]
+  no_1x    (a definite 1 grant never meets an X on the other): PROVED (k-induction, k=2) [1.7s]
+  no_xx    (X never on both grants): CEX at depth 11 [14.4s]
+     t          012345678901
+     rst        11111111____
+     r1         111_______11
+     r2         ________1111
+     q          _X1111111X_X
+     qR         __X1111111X_
+     g1         ___XX______X
+     g2         ___________X
+  q_def    (q never X after reset): CEX at depth 9 [10.0s]
+     t          0123456789
+     rst        11111111__
+     r1         11111_____
+     r2         _______111
+     q          X11111111X
+     qR         _X11111111
+     g1         __XX11X___
+     g2         __________
+  X on q survives 10 ticks of a stable tie r1 = r2 = 1: REACHABLE (depth 18)
+  X on q survives 30 ticks of a stable tie r1 = r2 = 1: REACHABLE (depth 38)
+     t          012345678901234567890123456789012345678
+     rst        11111111_______________________________
+     r1         111______111111111111111111111111111111
+     r2         1_______1111111111111111111111111111111
+     q          _11111111XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+     qR         __11111111XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+     g1         ___XX_____XXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+     g2         _XX________XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+section kleene: 78.5s

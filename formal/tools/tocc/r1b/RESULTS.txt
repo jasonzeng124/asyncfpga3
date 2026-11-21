@@ -1,0 +1,46 @@
+R1b, shard C helper, 2026-11-09.  UNTRUSTED Python.  Pair (12,18).  Tools copied from /tmp/claude-0/r1 and paths rewritten.
+New files: relup.py (Up/Sep builder with UpOKA's relative clause, plus emitters), lchk.py (emits the Sep/Up entries behind
+each GuardTime and re-checks them against a transcription of DecT upFormB/upRelB/sepFormB), rundatal.py (large-stack runner),
+prof.py/diag*.py/trunc.py/cls.py (diagnostics).  datal.py now has the env switches REL, RELD, RELK, RELTRY, SEPIV1, ARTFIX,
+ARTFIX2 and UNIONREL.
+
+Builder.  Up(e0 -> e) is AND-OR as in UpOKA.  Each cause or previous event uses the first clause that holds:
+  (U) Up e0 p + hi', (S) a Sep23 entry p -> e0 gives hi', or (R) min over anchors a of Up(a -> p) - Sep23(a -> e0) + hi'.
+  The anchors a are the 64 newest per-node common ancestors of p and e0.  The best 16 that have a Sep23 to e0 are tried.
+  Up(a -> p) is computed recursively with no depth limit.  This terminates because tm(a) < tm(e0).
+  Every value keeps its justification.  The emitter keeps the smallest value per Up key and the largest per Sep key.
+  These lookups are monotone, so one value per key is enough.
+  The relative clause is used only for guard-end Seps that fail without it (cost: about 40 min per corner).
+  Every emitted table passed the checker: 0 upFormB failures and 0 sepFormB failures.  GuardTime recomputed from the emitted
+  tables agrees with datal on all 264 guards at both corners.
+
+Soundness bug in the old sepAny.  It accepted a form-iv Sep with d <= 0, but SepOKA requires 1 <= d.  SEPIV1=1 fixes this.
+
+Failing guards out of 264:                   c=1    c=0
+  old pipeline (SEPIV1=0, no relative)        46     82   (reproduced)
+  sound baseline (SEPIV1=1, no relative)      64     82   (claim choices moved: the X22Y87 ends became X30Y76.A6(0))
+  + relative clause (RELD=99,K=16,TRY=64)     61     82
+  + RELD=2, RELK=8 (first attempt)            64      -
+  + ARTFIX / ARTFIX2 (end-choice fixes)       64     82   (no change)
+
+Classes after the relative clause (cls.py):
+  c=1, R1 (E and B unordered, B = re-open X30Y76.A6(2)@933518 after E): 3 failing -> 0.
+      Readers X34Y45.A5 and X34Y45.A6 (z = X37Y68.B6).  Sep(E -> B) = 21.1 ns by form iv; GuardTime end margin about 26 ns.
+      Up table: 2871 entries (77 base events; 730 use the relative clause) and 47414 Sep entries for all guards.
+      The baseline needs 38 Up entries, so about 2830 are needed for R1.
+      With RELD=2/RELK=8 the bound exists but is 1.7 ns short.  A stale cause (X37Y55.C6(2), 98 ns before e0) got a
+      118 ns bound through a poorly chosen anchor.
+  c=1, claim end causally BEFORE E: 61 failing (48 X30Y76.A6(0)@667837, 13 single-node early ends).  No Sep E -> B exists,
+      so no Up rule can help.
+  c=0: all 82 failing are claim end causally before E (60 X30Y76.A6(0)@295914, 18 X34Y92.A6(0), 4 others).
+      The 42 model-level R1 guards never reach the Sep check.
+Why the early ends (trunc.py): latch chains are truncated.
+  (a) Bank latches X30-31,Y75-77 fail ChainOK H->U' at their opening.  With Sep(open -> open) = 0, they need
+      U'.a <= H.b; this is short by 1.35 ns (k=0) and 1.45 ns (k=2).  The new-D window starts after the open is read.
+  (b) This truncated claim ends at X30Y76.A6(0).  It becomes U'.B of about 300 downstream latches (X36-37Y70-72,
+      X34-35Y65-66, ...).  Their U'->T union then needs Sep(T.A -> U'.B), where T.A is their own open, causally after.
+      No Sep can do that.
+  ARTFIX2 prefers latch-phase ends causally after the next phase's start.  ARTFIX does the same with the guard's E.
+  Neither changed anything: the truncation comes from (a), not from the choice of end.
+Not done: datal's other Sep queries (CovTime, ChainOK) are not emitted or re-checked; only GuardTime's are.
+c=0 windows had not converged after 4 passes (also in the old pipeline).

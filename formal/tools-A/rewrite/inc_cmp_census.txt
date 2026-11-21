@@ -1,0 +1,219 @@
+inc_cmp census: formal/tools-A/rewrite/inc_cmp.py over the 108 fixtures cloud/fixtures/frontend/*/comp/handshake_transformed.mlir
+(origin/claude/research @ 7197d85c2; copies in /tmp/claude-0/fx).  Generated 2026-11-18 from the tool's --log output.
+Kernels: 108; with >= 1 rewrite: 53; rewrites applied: 119 (bound constant fired by a source: 117, fired by a control token: 2; all 119 changed in place, 0 needed a new constant); matches skipped: 49.
+Kernels not listed: no `cmpi P, (addi x, constant) via forks, b` at all; their OUT is byte-identical to IN.
+Skip reasons (count):
+   30  slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+    8  predicate sgt (only ult/ule/eq/ne handled)
+    5  bound is not a constant (it is extui)
+    3  predicate slt (only ult/ule/eq/ne handled)
+    2  subi counter (subiN)
+    1  bound is not a constant (it is extsi)
+
+kernel                   applied  src  ctl skipped  skipped matches (cmp name, predicate: reason)
+atax                           3    3    0       0  -
+bicg                           2    2    0       0  -
+binary_search                  2    2    0       0  -
+brhash                         0    0    0       1  cmpi2 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+cnn                           13   13    0       0  -
+countloop                      0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+covariance                     7    6    1       0  -
+divergent_paths                1    1    0       0  -
+dot2                           1    1    0       0  -
+factorial                      0    0    0       2  cmpi2 sgt: predicate sgt (only ult/ule/eq/ne handled); cmpi3 sgt: predicate sgt (only ult/ule/eq/ne handled)
+fill                           0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+fir                            1    1    0       0  -
+fold64                         0    0    0       1  cmpi2 ult: bound is not a constant (it is extui)
+gather                         1    1    0       0  -
+gaussian                       4    4    0       0  -
+gemver                         7    7    0       0  -
+horner                         0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+if_loop_1                      0    0    0       1  cmpi2 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+if_loop_2                      0    0    0       1  cmpi2 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+if_loop_3                      0    0    0       1  cmpi2 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+iir                            1    1    0       0  -
+image_resize                   2    2    0       0  -
+insertion_sort                 0    0    0       2  cmpi2 sgt: predicate sgt (only ult/ule/eq/ne handled); cmpi3 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+jacobi_1d_imper                3    3    0       0  -
+kernel_2mm                     6    6    0       0  -
+kernel_3mm                     9    9    0       0  -
+kmp                            2    2    0       0  -
+lfsrfind                       1    0    1       0  -
+loop_array                     0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+loop_path                      0    0    0       1  cmpi0 sgt: subi counter (subi0)
+matrix                         3    3    0       0  -
+matrix_power                   2    2    0       0  -
+matvec                         2    2    0       0  -
+memsum                         1    1    0       0  -
+mul_example                    1    1    0       0  -
+nest3                          0    0    0       3  cmpi3 ult: bound is not a constant (it is extui); cmpi4 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead); cmpi5 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+nested                         0    0    0       2  cmpi2 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead); cmpi3 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+nested_conditionals_1          1    1    0       0  -
+nested_conditionals_2          1    1    0       0  -
+nested_loop                    1    1    0       0  -
+path_profiling                 1    1    0       0  -
+polyn_mult                     1    1    0       3  cmpi0 ugt: subi counter (subi0); cmpi1 ult: bound is not a constant (it is extsi); cmpi2 ult: bound is not a constant (it is extui)
+quadrec                        0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+share_test_1                   2    2    0       0  -
+share_test_2                   1    1    0       0  -
+sobel                          2    2    0       2  cmpi3 slt: predicate slt (only ult/ule/eq/ne handled); cmpi4 slt: predicate slt (only ult/ule/eq/ne handled)
+spmv                           0    0    0       2  cmpi2 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead); cmpi3 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+sqrtsub                        0    0    0       1  cmpi1 slt: predicate slt (only ult/ule/eq/ne handled)
+stencil_2d                     3    3    0       0  -
+sum3                           0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+sumi3_mem                      1    1    0       0  -
+test_bitint                    1    1    0       0  -
+test_constant_array            2    2    0       0  -
+test_flatten_array             3    3    0       0  -
+test_internal_array            4    4    0       0  -
+test_memory_1                  0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+test_memory_10                 0    0    0       2  cmpi0 sgt: predicate sgt (only ult/ule/eq/ne handled); cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+test_memory_11                 2    2    0       0  -
+test_memory_12                 1    1    0       0  -
+test_memory_13                 1    1    0       0  -
+test_memory_14                 1    1    0       0  -
+test_memory_15                 1    1    0       0  -
+test_memory_16                 1    1    0       0  -
+test_memory_17                 1    1    0       0  -
+test_memory_18                 1    1    0       0  -
+test_memory_2                  0    0    0       2  cmpi0 sgt: predicate sgt (only ult/ule/eq/ne handled); cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+test_memory_3                  0    0    0       1  cmpi2 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+test_memory_4                  0    0    0       2  cmpi0 sgt: predicate sgt (only ult/ule/eq/ne handled); cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+test_memory_5                  0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+test_memory_6                  0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+test_memory_7                  0    0    0       1  cmpi2 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+test_memory_8                  0    0    0       1  cmpi2 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+test_memory_9                  0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+test_smallbound                2    2    0       0  -
+test_stdint                    1    1    0       0  -
+test_unroll                    2    2    0       0  -
+threshold                      1    1    0       0  -
+triangular                     0    0    0       2  cmpi2 sgt: predicate sgt (only ult/ule/eq/ne handled); cmpi3 sgt: predicate sgt (only ult/ule/eq/ne handled)
+trisolv                        1    1    0       1  cmpi1 ult: bound is not a constant (it is extui)
+twoloops                       0    0    0       2  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead); cmpi3 ult: bound is not a constant (it is extui)
+varshift                       0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+vector_rescale                 1    1    0       0  -
+video_filter                   2    2    0       0  -
+wrap_if                        1    1    0       0  -
+xorshift                       0    0    0       1  cmpi1 slt: slt (addi i, 1) vs a ring value (mux): needs a loop invariant, OUT OF SCOPE (lead)
+
+Applied rewrites (tool log lines):
+  atax: APPLY cmpi0: cmpi ult (addi addi2 +1, i6), %43#1 -> %forkinc0#1 [%20 before the add]; constant18 value 20 -> 19 in place [bound fired by source]
+  atax: APPLY cmpi1: cmpi ult (addi addi5 +1, i6), %88#1 -> %forkinc1#1 [%62 before the add]; constant21 value 20 -> 19 in place [bound fired by source]
+  atax: APPLY cmpi2: cmpi ult (addi addi6 +1, i6), %103#1 -> %forkinc2#1 [%95 before the add]; constant23 value 20 -> 19 in place [bound fired by source]
+  bicg: APPLY cmpi0: cmpi ult (addi addi3 +1, i6), %60#1 -> %forkinc0#1 [%20 before the add]; constant6 value 30 -> 29 in place [bound fired by source]
+  bicg: APPLY cmpi1: cmpi ult (addi addi4 +1, i6), %76#1 -> %forkinc1#1 [%69 before the add]; constant17 value 30 -> 29 in place [bound fired by source]
+  binary_search: APPLY cmpi1: cmpi ult (addi addi0 +2, i8), %22#1 -> %forkinc0#1 [%16 before the add]; constant3 value 101 -> 99 in place [bound fired by source]
+  binary_search: APPLY cmpi3: cmpi ult (addi addi1 +2, i8), %57#1 -> %forkinc1#1 [%51 before the add]; constant15 value 101 -> 99 in place [bound fired by source]
+  cnn: APPLY cmpi0: cmpi ult (addi addi3 +1, i2), %86#1 -> %forkinc0#1 [%60 before the add]; constant56 value -2 -> 1 in place [bound fired by source]
+  cnn: APPLY cmpi1: cmpi ult (addi addi4 +1, i5), %101#1 -> %forkinc1#1 [%96 before the add]; constant58 value 10 -> 9 in place [bound fired by source]
+  cnn: APPLY cmpi2: cmpi ult (addi addi5 +1, i5), %115#1 -> %forkinc2#1 [%109 before the add]; constant60 value 10 -> 9 in place [bound fired by source]
+  cnn: APPLY cmpi3: cmpi ult (addi addi17 +1, i3), %295#1 -> %forkinc3#1 [%262 before the add]; constant68 value -4 -> 3 in place [bound fired by source]
+  cnn: APPLY cmpi4: cmpi ult (addi addi18 +1, i3), %316#1 -> %forkinc4#1 [%311 before the add]; constant70 value -4 -> 3 in place [bound fired by source]
+  cnn: APPLY cmpi5: cmpi ult (addi addi19 +1, i2), %333#1 -> %forkinc5#1 [%328 before the add]; constant72 value -2 -> 1 in place [bound fired by source]
+  cnn: APPLY cmpi6: cmpi ult (addi addi20 +1, i5), %349#1 -> %forkinc6#1 [%344 before the add]; constant74 value 10 -> 9 in place [bound fired by source]
+  cnn: APPLY cmpi7: cmpi ult (addi addi21 +1, i5), %362#1 -> %forkinc7#1 [%357 before the add]; constant76 value 10 -> 9 in place [bound fired by source]
+  cnn: APPLY cmpi8: cmpi ult (addi addi22 +1, i5), %374#1 -> %forkinc8#1 [%369 before the add]; constant78 value 10 -> 9 in place [bound fired by source]
+  cnn: APPLY cmpi10: cmpi ult (addi addi27 +1, i2), %483#1 -> %forkinc9#1 [%449 before the add]; constant83 value -2 -> 1 in place [bound fired by source]
+  cnn: APPLY cmpi11: cmpi ult (addi addi28 +1, i5), %499#1 -> %forkinc10#1 [%494 before the add]; constant85 value 10 -> 9 in place [bound fired by source]
+  cnn: APPLY cmpi12: cmpi ult (addi addi29 +1, i5), %512#1 -> %forkinc11#1 [%507 before the add]; constant87 value 10 -> 9 in place [bound fired by source]
+  cnn: APPLY cmpi13: cmpi ult (addi addi30 +1, i4), %523#1 -> %forkinc12#1 [%518 before the add]; constant89 value 5 -> 4 in place [bound fired by source]
+  covariance: APPLY cmpi0: cmpi ult (addi addi2 +1, i6), %56#1 -> %forkinc0#1 [%22 before the add]; constant6 value 30 -> 29 in place [bound fired by source]
+  covariance: APPLY cmpi1: cmpi ult (addi addi3 +1, i6), %73#1 -> %forkinc1#1 [%64 before the add]; constant43 value 30 -> 29 in place [bound fired by control]
+  covariance: APPLY cmpi2: cmpi ult (addi addi5 +1, i6), %128#1 -> %forkinc2#1 [%92 before the add]; constant47 value 30 -> 29 in place [bound fired by source]
+  covariance: APPLY cmpi3: cmpi ult (addi addi6 +1, i6), %140#1 -> %forkinc3#1 [%134 before the add]; constant49 value 30 -> 29 in place [bound fired by source]
+  covariance: APPLY cmpi4: cmpi ult (addi addi10 +1, i6), %227#1 -> %forkinc4#1 [%170 before the add]; constant53 value 30 -> 29 in place [bound fired by source]
+  covariance: APPLY cmpi5: cmpi ult (addi addi13 +1, i6), %286#1 -> %forkinc5#1 [%240 before the add]; constant55 value 30 -> 29 in place [bound fired by source]
+  covariance: APPLY cmpi6: cmpi ult (addi addi14 +1, i6), %297#1 -> %forkinc6#1 [%292 before the add]; constant57 value 30 -> 29 in place [bound fired by source]
+  divergent_paths: APPLY cmpi0: cmpi ult (addi addi1 +1, i8), %26#1 -> %forkinc0#1 [%8 before the add]; constant5 value 100 -> 99 in place [bound fired by source]
+  dot2: APPLY cmpi2: cmpi ult (addi addi1 +1, i6), %23#1 -> %forkinc0#1 [%12 before the add]; constant5 value -32 -> 31 in place [bound fired by source]
+  fir: APPLY cmpi0: cmpi ult (addi addi1 +1, i11), %21#1 -> %forkinc0#1 [%9 before the add]; constant7 value 1000 -> 999 in place [bound fired by source]
+  gather: APPLY cmpi2: cmpi ult (addi addi2 +1, i6), %29#1 -> %forkinc0#1 [%12 before the add]; constant6 value -32 -> 31 in place [bound fired by source]
+  gaussian: APPLY cmpi0: cmpi ult (addi addi0 +1, i6), %13#1 -> %forkinc0#1 [%8 before the add]; constant3 value 19 -> 18 in place [bound fired by source]
+  gaussian: APPLY cmpi1: cmpi ult (addi addi1 +1, i6), %25#1 -> %forkinc1#1 [%20 before the add]; constant5 value 19 -> 18 in place [bound fired by source]
+  gaussian: APPLY cmpi2: cmpi ult (addi addi5 +1, i6), %100#1 -> %forkinc2#1 [%51 before the add]; constant20 value 20 -> 19 in place [bound fired by source]
+  gaussian: APPLY cmpi3: cmpi ult (addi addi6 +1, i6), %111#1 -> %forkinc3#1 [%106 before the add]; constant22 value 19 -> 18 in place [bound fired by source]
+  gemver: APPLY cmpi0: cmpi ult (addi addi4 +1, i6), %93#1 -> %forkinc0#1 [%30 before the add]; constant40 value 30 -> 29 in place [bound fired by source]
+  gemver: APPLY cmpi1: cmpi ult (addi addi5 +1, i6), %107#1 -> %forkinc1#1 [%101 before the add]; constant42 value 30 -> 29 in place [bound fired by source]
+  gemver: APPLY cmpi2: cmpi ult (addi addi8 +1, i6), %171#1 -> %forkinc2#1 [%131 before the add]; constant46 value 30 -> 29 in place [bound fired by source]
+  gemver: APPLY cmpi3: cmpi ult (addi addi9 +1, i6), %187#1 -> %forkinc3#1 [%181 before the add]; constant48 value 30 -> 29 in place [bound fired by source]
+  gemver: APPLY cmpi4: cmpi ult (addi addi11 +1, i6), %205#1 -> %forkinc4#1 [%196 before the add]; constant51 value 30 -> 29 in place [bound fired by source]
+  gemver: APPLY cmpi5: cmpi ult (addi addi14 +1, i6), %266#1 -> %forkinc5#1 [%228 before the add]; constant55 value 30 -> 29 in place [bound fired by source]
+  gemver: APPLY cmpi6: cmpi ult (addi addi15 +1, i6), %282#1 -> %forkinc6#1 [%275 before the add]; constant57 value 30 -> 29 in place [bound fired by source]
+  iir: APPLY cmpi0: cmpi ult (addi addi1 +1, i11), %28#1 -> %forkinc0#1 [%11 before the add]; constant9 value 1000 -> 999 in place [bound fired by source]
+  image_resize: APPLY cmpi0: cmpi ult (addi addi2 +1, i6), %79#1 -> %forkinc0#1 [%23 before the add]; constant6 value 30 -> 29 in place [bound fired by source]
+  image_resize: APPLY cmpi1: cmpi ult (addi addi3 +1, i6), %91#1 -> %forkinc1#1 [%86 before the add]; constant17 value 30 -> 29 in place [bound fired by source]
+  jacobi_1d_imper: APPLY cmpi0: cmpi ult (addi addi4 +1, i8), %35#1 -> %forkinc0#1 [%16 before the add]; constant14 value 99 -> 98 in place [bound fired by source]
+  jacobi_1d_imper: APPLY cmpi1: cmpi ult (addi addi5 +1, i8), %52#1 -> %forkinc1#1 [%44 before the add]; constant17 value 99 -> 98 in place [bound fired by source]
+  jacobi_1d_imper: APPLY cmpi2: cmpi ult (addi addi6 +1, i3), %63#1 -> %forkinc2#1 [%58 before the add]; constant19 value 3 -> 2 in place [bound fired by source]
+  kernel_2mm: APPLY cmpi0: cmpi ult (addi addi3 +1, i5), %91#1 -> %forkinc0#1 [%48 before the add]; constant34 value 10 -> 9 in place [bound fired by source]
+  kernel_2mm: APPLY cmpi1: cmpi ult (addi addi5 +1, i5), %124#1 -> %forkinc1#1 [%108 before the add]; constant36 value 10 -> 9 in place [bound fired by source]
+  kernel_2mm: APPLY cmpi2: cmpi ult (addi addi6 +1, i5), %138#1 -> %forkinc2#1 [%132 before the add]; constant38 value 10 -> 9 in place [bound fired by source]
+  kernel_2mm: APPLY cmpi3: cmpi ult (addi addi11 +1, i5), %241#1 -> %forkinc3#1 [%199 before the add]; constant43 value 10 -> 9 in place [bound fired by source]
+  kernel_2mm: APPLY cmpi4: cmpi ult (addi addi13 +1, i5), %275#1 -> %forkinc4#1 [%258 before the add]; constant45 value 10 -> 9 in place [bound fired by source]
+  kernel_2mm: APPLY cmpi5: cmpi ult (addi addi14 +1, i5), %287#1 -> %forkinc5#1 [%282 before the add]; constant47 value 10 -> 9 in place [bound fired by source]
+  kernel_3mm: APPLY cmpi0: cmpi ult (addi addi3 +1, i5), %77#1 -> %forkinc0#1 [%39 before the add]; constant45 value 10 -> 9 in place [bound fired by source]
+  kernel_3mm: APPLY cmpi1: cmpi ult (addi addi5 +1, i5), %108#1 -> %forkinc1#1 [%92 before the add]; constant47 value 10 -> 9 in place [bound fired by source]
+  kernel_3mm: APPLY cmpi2: cmpi ult (addi addi6 +1, i5), %120#1 -> %forkinc2#1 [%114 before the add]; constant49 value 10 -> 9 in place [bound fired by source]
+  kernel_3mm: APPLY cmpi3: cmpi ult (addi addi10 +1, i5), %197#1 -> %forkinc3#1 [%158 before the add]; constant54 value 10 -> 9 in place [bound fired by source]
+  kernel_3mm: APPLY cmpi4: cmpi ult (addi addi12 +1, i5), %228#1 -> %forkinc4#1 [%212 before the add]; constant56 value 10 -> 9 in place [bound fired by source]
+  kernel_3mm: APPLY cmpi5: cmpi ult (addi addi13 +1, i5), %240#1 -> %forkinc5#1 [%234 before the add]; constant58 value 10 -> 9 in place [bound fired by source]
+  kernel_3mm: APPLY cmpi6: cmpi ult (addi addi17 +1, i5), %318#1 -> %forkinc6#1 [%278 before the add]; constant63 value 10 -> 9 in place [bound fired by source]
+  kernel_3mm: APPLY cmpi7: cmpi ult (addi addi19 +1, i5), %350#1 -> %forkinc7#1 [%333 before the add]; constant65 value 10 -> 9 in place [bound fired by source]
+  kernel_3mm: APPLY cmpi8: cmpi ult (addi addi20 +1, i5), %361#1 -> %forkinc8#1 [%356 before the add]; constant67 value 10 -> 9 in place [bound fired by source]
+  kmp: APPLY cmpi4: cmpi ult (addi addi1 +1, i3), %58#1 -> %forkinc0#1 [%44 before the add]; constant20 value -4 -> 3 in place [bound fired by source]
+  kmp: APPLY cmpi10: cmpi ult (addi addi5 +1, i11), %140#1 -> %forkinc1#1 [%134 before the add]; constant24 value 1000 -> 999 in place [bound fired by source]
+  lfsrfind: APPLY cmpi2: cmpi ult (addi addi0 +1, i9), %51#1 -> %forkinc0#1 [%28 before the add]; constant14 value -256 -> 255 in place [bound fired by control]
+  matrix: APPLY cmpi0: cmpi ult (addi addi3 +1, i6), %93#1 -> %forkinc0#1 [%36 before the add]; constant7 value 30 -> 29 in place [bound fired by source]
+  matrix: APPLY cmpi1: cmpi ult (addi addi5 +1, i6), %135#1 -> %forkinc1#1 [%108 before the add]; constant25 value 30 -> 29 in place [bound fired by source]
+  matrix: APPLY cmpi2: cmpi ult (addi addi6 +1, i6), %146#1 -> %forkinc2#1 [%141 before the add]; constant27 value 30 -> 29 in place [bound fired by source]
+  matrix_power: APPLY cmpi0: cmpi ult (addi addi4 +1, i6), %62#1 -> %forkinc0#1 [%22 before the add]; constant5 value 20 -> 19 in place [bound fired by source]
+  matrix_power: APPLY cmpi1: cmpi ult (addi addi5 +1, i6), %73#1 -> %forkinc1#1 [%68 before the add]; constant15 value 20 -> 19 in place [bound fired by source]
+  matvec: APPLY cmpi0: cmpi ult (addi addi2 +1, i8), %48#1 -> %forkinc0#1 [%19 before the add]; constant6 value 100 -> 99 in place [bound fired by source]
+  matvec: APPLY cmpi1: cmpi ult (addi addi3 +1, i8), %64#1 -> %forkinc1#1 [%57 before the add]; constant16 value 100 -> 99 in place [bound fired by source]
+  memsum: APPLY cmpi2: cmpi ult (addi addi2 +1, i6), %28#1 -> %forkinc0#1 [%12 before the add]; constant6 value -32 -> 31 in place [bound fired by source]
+  mul_example: APPLY cmpi0: cmpi ult (addi addi0 +1, i8), %17#1 -> %forkinc0#1 [%7 before the add]; constant7 value 100 -> 99 in place [bound fired by source]
+  nested_conditionals_1: APPLY cmpi3: cmpi ult (addi addi4 +1, i8), %68#1 -> %forkinc0#1 [%58 before the add]; constant3 value 100 -> 99 in place [bound fired by source]
+  nested_conditionals_2: APPLY cmpi2: cmpi ult (addi addi3 +1, i8), %74#1 -> %forkinc0#1 [%64 before the add]; constant4 value 100 -> 99 in place [bound fired by source]
+  nested_loop: APPLY cmpi1: cmpi ult (addi addi2 +1, i2), %54#1 -> %forkinc0#1 [%49 before the add]; constant6 value -2 -> 1 in place [bound fired by source]
+  path_profiling: APPLY cmpi2: cmpi ult (addi addi0 +1, i6), %56#1 -> %forkinc0#1 [%51 before the add]; constant15 value 20 -> 19 in place [bound fired by source]
+  polyn_mult: APPLY cmpi3: cmpi ult (addi addi7 +1, i8), %90#1 -> %forkinc0#1 [%84 before the add]; constant20 value 100 -> 99 in place [bound fired by source]
+  share_test_1: APPLY cmpi0: cmpi ult (addi addi1 +1, i11), %27#1 -> %forkinc0#1 [%10 before the add]; constant4 value 1000 -> 999 in place [bound fired by source]
+  share_test_1: APPLY cmpi1: cmpi ult (addi addi3 +1, i11), %48#1 -> %forkinc1#1 [%37 before the add]; constant16 value 1000 -> 999 in place [bound fired by source]
+  share_test_2: APPLY cmpi0: cmpi ult (addi addi4 +1, i8), %86#1 -> %forkinc0#1 [%9 before the add]; constant5 value 100 -> 99 in place [bound fired by source]
+  sobel: APPLY cmpi9: cmpi ult (addi addi11 +1, i5), %212#1 -> %forkinc0#1 [%196 before the add]; constant36 value 15 -> 14 in place [bound fired by source]
+  sobel: APPLY cmpi10: cmpi ult (addi addi12 +1, i5), %224#1 -> %forkinc1#1 [%219 before the add]; constant38 value 15 -> 14 in place [bound fired by source]
+  stencil_2d: APPLY cmpi0: cmpi ult (addi addi4 +1, i3), %75#1 -> %forkinc0#1 [%56 before the add]; constant19 value 3 -> 2 in place [bound fired by source]
+  stencil_2d: APPLY cmpi1: cmpi ult (addi addi5 +1, i3), %88#1 -> %forkinc1#1 [%83 before the add]; constant21 value 3 -> 2 in place [bound fired by source]
+  stencil_2d: APPLY cmpi2: cmpi ult (addi addi6 +1, i6), %105#1 -> %forkinc2#1 [%97 before the add]; constant23 value 28 -> 27 in place [bound fired by source]
+  sumi3_mem: APPLY cmpi0: cmpi ult (addi addi1 +1, i11), %20#1 -> %forkinc0#1 [%9 before the add]; constant5 value 1000 -> 999 in place [bound fired by source]
+  test_bitint: APPLY cmpi0: cmpi ult (addi addi1 +1, i5), %21#1 -> %forkinc0#1 [%9 before the add]; constant5 value 10 -> 9 in place [bound fired by source]
+  test_constant_array: APPLY cmpi0: cmpi ult (addi addi5 +1, i3), %54#1 -> %forkinc0#1 [%25 before the add]; constant4 value 3 -> 2 in place [bound fired by source]
+  test_constant_array: APPLY cmpi1: cmpi ult (addi addi6 +1, i3), %66#1 -> %forkinc1#1 [%61 before the add]; constant12 value 3 -> 2 in place [bound fired by source]
+  test_flatten_array: APPLY cmpi0: cmpi ult (addi addi4 +1, i5), %84#1 -> %forkinc0#1 [%39 before the add]; constant21 value -16 -> 15 in place [bound fired by source]
+  test_flatten_array: APPLY cmpi1: cmpi ult (addi addi5 +1, i4), %98#1 -> %forkinc1#1 [%93 before the add]; constant23 value -8 -> 7 in place [bound fired by source]
+  test_flatten_array: APPLY cmpi2: cmpi ult (addi addi6 +1, i3), %109#1 -> %forkinc2#1 [%104 before the add]; constant25 value -4 -> 3 in place [bound fired by source]
+  test_internal_array: APPLY cmpi0: cmpi ult (addi addi4 +1, i6), %53#1 -> %forkinc0#1 [%23 before the add]; constant19 value -32 -> 31 in place [bound fired by source]
+  test_internal_array: APPLY cmpi1: cmpi ult (addi addi5 +1, i6), %65#1 -> %forkinc1#1 [%59 before the add]; constant21 value 20 -> 19 in place [bound fired by source]
+  test_internal_array: APPLY cmpi2: cmpi ult (addi addi10 +1, i6), %119#1 -> %forkinc2#1 [%88 before the add]; constant25 value -32 -> 31 in place [bound fired by source]
+  test_internal_array: APPLY cmpi3: cmpi ult (addi addi11 +1, i6), %130#1 -> %forkinc3#1 [%125 before the add]; constant27 value 20 -> 19 in place [bound fired by source]
+  test_memory_11: APPLY cmpi0: cmpi ult (addi addi2 +1, i3), %18#1 -> %forkinc0#1 [%8 before the add]; constant10 value -4 -> 3 in place [bound fired by source]
+  test_memory_11: APPLY cmpi1: cmpi ult (addi addi4 +1, i3), %36#1 -> %forkinc1#1 [%27 before the add]; constant14 value -4 -> 3 in place [bound fired by source]
+  test_memory_12: APPLY cmpi1: cmpi ult (addi addi0 +1, i3), %35#1 -> %forkinc0#1 [%30 before the add]; constant24 value -4 -> 3 in place [bound fired by source]
+  test_memory_13: APPLY cmpi1: cmpi ult (addi addi0 +1, i3), %34#1 -> %forkinc0#1 [%27 before the add]; constant8 value -4 -> 3 in place [bound fired by source]
+  test_memory_14: APPLY cmpi1: cmpi ult (addi addi1 +1, i3), %35#1 -> %forkinc0#1 [%28 before the add]; constant3 value -4 -> 3 in place [bound fired by source]
+  test_memory_15: APPLY cmpi1: cmpi ult (addi addi2 +1, i3), %43#1 -> %forkinc0#1 [%36 before the add]; constant3 value -4 -> 3 in place [bound fired by source]
+  test_memory_16: APPLY cmpi1: cmpi ult (addi addi1 +1, i3), %43#1 -> %forkinc0#1 [%36 before the add]; constant4 value -4 -> 3 in place [bound fired by source]
+  test_memory_17: APPLY cmpi1: cmpi ult (addi addi0 +1, i3), %35#1 -> %forkinc0#1 [%27 before the add]; constant12 value -4 -> 3 in place [bound fired by source]
+  test_memory_18: APPLY cmpi0: cmpi ult (addi addi1 +1, i3), %17#1 -> %forkinc0#1 [%7 before the add]; constant9 value -4 -> 3 in place [bound fired by source]
+  test_smallbound: APPLY cmpi0: cmpi ult (addi addi2 +1, i2), %37#1 -> %forkinc0#1 [%17 before the add]; constant12 value -2 -> 1 in place [bound fired by source]
+  test_smallbound: APPLY cmpi1: cmpi ult (addi addi3 +1, i2), %48#1 -> %forkinc1#1 [%43 before the add]; constant14 value -2 -> 1 in place [bound fired by source]
+  test_stdint: APPLY cmpi0: cmpi ult (addi addi1 +1, i8), %22#1 -> %forkinc0#1 [%8 before the add]; constant7 value 100 -> 99 in place [bound fired by source]
+  test_unroll: APPLY cmpi0: cmpi ult (addi addi1 +1, i6), %16#1 -> %forkinc0#1 [%9 before the add]; constant10 value 20 -> 19 in place [bound fired by source]
+  test_unroll: APPLY cmpi1: cmpi ult (addi addi3 +1, i6), %33#1 -> %forkinc1#1 [%25 before the add]; constant13 value 20 -> 19 in place [bound fired by source]
+  threshold: APPLY cmpi1: cmpi ult (addi addi2 +1, i11), %36#1 -> %forkinc0#1 [%30 before the add]; constant6 value 1000 -> 999 in place [bound fired by source]
+  trisolv: APPLY cmpi2: cmpi ult (addi addi3 +1, i11), %109#1 -> %forkinc0#1 [%70 before the add]; constant6 value 1000 -> 999 in place [bound fired by source]
+  vector_rescale: APPLY cmpi0: cmpi ult (addi addi0 +1, i11), %19#1 -> %forkinc0#1 [%8 before the add]; constant7 value 1000 -> 999 in place [bound fired by source]
+  video_filter: APPLY cmpi0: cmpi ult (addi addi6 +1, i6), %169#1 -> %forkinc0#1 [%34 before the add]; constant20 value 30 -> 29 in place [bound fired by source]
+  video_filter: APPLY cmpi1: cmpi ult (addi addi7 +1, i6), %182#1 -> %forkinc1#1 [%177 before the add]; constant22 value 30 -> 29 in place [bound fired by source]
+  wrap_if: APPLY cmpi1: cmpi ult (addi addi1 +1, i8), %64#1 -> %forkinc0#1 [%47 before the add]; constant5 value 100 -> 99 in place [bound fired by source]

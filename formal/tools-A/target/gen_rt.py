@@ -1,0 +1,274 @@
+#!/usr/bin/env python3
+"""gen_rt.py (shard A, THE goal, S1): the Lean round trip of the decoder, as data for Formal/Target/RoundTrip.lean.
+
+    python3 gen_rt.py NET.json FROMBIT.FASM OUTDIR [--chunk 2500]
+
+NET.json is the decoded netlist (decode_base.py/build_net.py; gate order = Formal/Target/Net's `gates`).
+FROMBIT.FASM is the target's read-back FASM (bit2fasm of formal/target/*.bit). Writes, under namespace
+Formal.Target.RT.Data (modules Formal.Target.RT.*):
+  F00..F63  subtrees of the target's feature tree (every set bit of the FASM, one feature each, sorted),
+  Top       `T`, `tf` (= the target's features), `N`, the site-prefix table `siteT`/`pre`, `hidx`,
+  C000..    per gate chunk: every feature the chunk re-encodes (RoundTrip.feats) is in `T`, and the sorted
+            list of their indices `s<c>`,
+  All       the leftover indices `lft`, the merge check, and `roundtrip`.
+What is untrusted here: the FASM parsing below (`features`, the same as roundtrip.py) and the site-prefix table
+(prjxray tilegrid). Everything else is recomputed by the kernel from the Lean gates.
+"""
+import json
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import roundtrip as RT  # noqa: E402  (features(), and the tilegrid lookup)
+
+net = json.load(open(sys.argv[1]))
+FT = sorted(RT.features(sys.argv[2]))
+OUT = sys.argv[3]
+CH = int(sys.argv[sys.argv.index("--chunk") + 1]) if "--chunk" in sys.argv else 2500
+NS = sys.argv[sys.argv.index("--ns") + 1] if "--ns" in sys.argv else "Formal.Target.RT.Data"
+MP = sys.argv[sys.argv.index("--mp") + 1] if "--mp" in sys.argv else "FormalWit.RT"
+NETMP = sys.argv[sys.argv.index("--netmp") + 1] if "--netmp" in sys.argv else "Formal.Target.Net"   # the netlist modules
+NETNS = sys.argv[sys.argv.index("--netns") + 1] if "--netns" in sys.argv else "Formal.Target.Decoded"   # the netlist namespace
+os.makedirs(OUT, exist_ok=True)
+N = len(FT)
+pos = {f: i for i, f in enumerate(FT)}
+
+# ---- the site-prefix table (as roundtrip.py's pre())
+tiles = json.load(open(os.path.join(RT.DB, "xc7z010", "tilegrid.json")))
+import importlib.util  # noqa: E402
+spec = importlib.util.spec_from_file_location("db", os.path.join(HERE, "decode_base.py"))
+DBm = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(DBm)
+fab = DBm.Fabric3()
+site_pre = {}
+for t, g in tiles.items():
+    if not g["type"].startswith("CLBL"):
+        continue
+    for s in fab.tt(g["type"])["sites"]:
+        site_pre[fab.site_name(t, s)] = "%s.%s_X%d" % (t, s["type"], s["x_coord"])
+
+
+def lean_name(g):
+    return ("~" + g["name"]) if g["kind"] == "pip" and g["prov"].get("pseudo") else g["name"]
+
+
+def feats(g):
+    """Python mirror of RoundTrip.feats."""
+    nm, k = lean_name(g), len(g["ins"])
+    if k == 1 and not nm.startswith("~") and not nm.startswith("hop "):
+        return [nm]
+    if k == 6 and nm.endswith(".O6"):
+        p = nm.split(".")
+        if len(p) == 3:
+            return ["%s.%s.INIT[%d]" % (site_pre.get(p[0], ""), p[1], b) for b in range(64) if g["init"] >> b & 1]
+    return []
+
+
+gs = net["gates"]
+nG = len(gs)
+nC = (nG + CH - 1) // CH
+used_sites = sorted({lean_name(g).split(".")[0] for g in gs if len(g["ins"]) == 6 and lean_name(g).endswith(".O6")})
+S = []
+GI = []   # per chunk, per gate: the indices of its features, in feature order (the certificate)
+hit = [0] * N
+for c in range(nC):
+    idx = []
+    gi = []
+    for g in gs[c * CH:(c + 1) * CH]:
+        one = []
+        for f in feats(g):
+            if f not in pos:
+                sys.exit("gen_rt: gate %s produces %s, not in the target" % (g["name"], f))
+            one.append(pos[f])
+            hit[pos[f]] += 1
+        idx += one
+        gi.append(one)
+    S.append(sorted(idx))
+    GI.append(gi)
+dup = sum(1 for h in hit if h > 1)
+if dup:
+    sys.exit("gen_rt: %d target features produced more than once" % dup)
+LFT = [i for i in range(N) if hit[i] == 0]
+print("gen_rt: %d target features, %d produced (%d gates), %d left; %d LUT sites" %
+      (N, N - len(LFT), sum(1 for g in gs if feats(g)), len(LFT), len(used_sites)))
+
+
+def q(s):
+    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def itree(lo, hi):
+    """ITree over the target features FT[lo:hi], keyed by index."""
+    if hi <= lo:
+        return ".nil"
+    if hi - lo == 1:
+        return "(.leaf %s %d)" % (q(FT[lo]), lo)
+    mid = (lo + hi) // 2
+    return "(.node %d %s %s)" % (mid, itree(lo, mid), itree(mid, hi))
+
+
+def tree(keys, vals, lo, hi):
+    """STree over keys[lo:hi] (sorted), leaf values vals[i] (Lean terms)."""
+    if hi <= lo:
+        return ".nil"
+    if hi - lo == 1:
+        return "(.leaf %s %s)" % (q(keys[lo]), vals[lo])
+    mid = (lo + hi) // 2
+    return "(.node %s %s %s)" % (q(keys[mid]), tree(keys, vals, lo, mid), tree(keys, vals, mid, hi))
+
+
+DOC = """/-!
+# THE round trip of the decoder (S1): the Lean netlist re-encodes to the target's FASM
+
+GENERATED by formal/tools-A/target/gen_rt.py.
+
+**Plainly.** `tf` is the list of the target's read-back FASM features (every set bit, one feature each; %d of
+them). `RoundTrip.feats` re-encodes every gate of `Decoded.gates` from its own fields: a pip gate is the feature
+`TILE.DST.SRC`, a LUT6 output is one `INIT[b]` feature per set bit of its INIT. `roundtrip`: those re-encoded
+features, plus the %d leftover target features `lft` lists, are exactly `tf`, each once. So no pip or LUT INIT bit
+is invented or duplicated by the decoder, and every target feature that is not re-encoded is in `lft`.
+
+**Not shown.** (1) That a pip's two nodes are the right electrical nodes (the wire-to-node merge is prjxray's
+tile connection data, used by the decoder and not re-checked here; the independent nextpnr cross-check covers
+the LUT/MUXF/CARRY4 pins). (2) That `tf` is the FASM of the target: the FASM text is parsed in Python (gen_rt.py,
+as roundtrip.py) from bit2fasm's output, and the `.bit` -> FASM step is prjxray's. (3) That nothing in `lft`
+carries meaning: it is listed, not explained, in Lean; roundtrip.py classes it (FF, clock-enable, IO and
+clock-buffer configuration, carry and output-mux selects, LUT DI routing); its output-mux and carry selects are
+re-encoded by roundtrip.py only. (4) The site-prefix table `siteT` is prjxray data. (5) LUT5 (O5) gates and the
+MUXF/CARRY4/constant gates are not re-encoded (they have no INIT feature of their own).
+-/
+
+"""
+hdr = "import Formal.Target.RoundTrip\n\n/-! GENERATED by formal/tools-A/target/gen_rt.py. Do not edit. -/\n\n"
+OPEN = "namespace %s\nopen Formal.Target Formal.Target.RT\n\n" % NS
+OPEND = "namespace %s\nopen Formal.Target Formal.Target.RT %s\n\n" % (NS, NETNS)
+NT = 64
+step = (N + NT - 1) // NT
+bounds = [(k * step, min(N, (k + 1) * step)) for k in range(NT)]
+lens = [hi - lo for lo, hi in bounds]
+FUEL = max(lens) + 1
+for k, (lo, hi) in enumerate(bounds):
+    with open(os.path.join(OUT, "F%02d.lean" % k), "w") as f:
+        f.write(hdr + OPEN)
+        f.write("set_option maxRecDepth 100000 in\ndef f%02d : ITree := %s\n\n" % (k, itree(lo, hi)))
+        f.write("theorem hf%02d : f%02d.leaves.map Prod.snd = List.range' %d %d := by decide +kernel\n\nend %s\n" % (k, k, lo, hi - lo, NS))
+
+
+def top(ks):
+    if len(ks) == 1:
+        return "f%02d" % ks[0]
+    m = len(ks) // 2
+    return "(.node %d %s %s)" % (bounds[ks[m]][0], top(ks[:m]), top(ks[m:]))
+
+
+with open(os.path.join(OUT, "Top.lean"), "w") as f:
+    f.write("\n".join("import %s.F%02d" % (MP, k) for k in range(NT)) + "\n\n")
+    f.write("/-! GENERATED by formal/tools-A/target/gen_rt.py: the target's read-back features and the site table. -/\n\n" + OPEN)
+    f.write("/-- Every set bit of the target's read-back FASM, one feature each, sorted (leaf index = position). -/\n")
+    f.write("def T : ITree := %s\n\n" % top(list(range(NT))))
+    f.write("/-- The target's features. -/\ndef tf : List String := T.leaves.map Prod.fst\n\n")
+    f.write("def N : Nat := %d\n\n/-- The index blocks (one per subtree). -/\ndef lens : List Nat := [%s]\n\n" % (N, ", ".join(map(str, lens))))
+    f.write("theorem hlens : lens.sum = N := by decide\n\n")
+    f.write("set_option maxRecDepth 100000 in\ntheorem hidx : T.leaves.map Prod.snd = List.range N := by\n"
+            "  rw [List.range_eq_range', ← hlens, ← blocks_flatten]\n"
+            "  simp only [T, ITree.leaves, List.map_append, %s, lens, blocks, List.flatten_cons, List.flatten_nil,\n"
+            "    List.append_nil, List.append_assoc, Nat.reduceAdd]\n\n" % ", ".join("hf%02d" % k for k in range(NT)))
+    f.write("set_option maxRecDepth 100000 in\n/-- The FASM prefix `TILE.SLICEx_Xn` of each LUT site (prjxray tilegrid; untrusted data). -/\n")
+    f.write("def siteT : STree String := %s\n\n" %
+            tree(used_sites, [q(site_pre.get(s, "")) for s in used_sites], 0, len(used_sites)))
+    f.write("def pre (s : String) : String := (siteT.find s).getD \"\"\n\n")
+    f.write("theorem tf_length : tf.length = N := by\n  have := congrArg List.length hidx\n  simpa [tf] using this\n\n")
+    f.write("/-- The target feature at index `j`. -/\ndef get (j : Nat) : String := tf.getD j \"\"\n\nend %s\n" % NS)
+
+
+def cut(lst):
+    """lst sorted -> one list per block."""
+    out = [[] for _ in range(NT)]
+    for x in lst:
+        out[x // step].append(x)
+    return out
+
+
+def rowterm(lst):
+    return "[%s]" % ", ".join("[%s]" % ", ".join(map(str, b)) for b in cut(lst))
+
+
+SLB = int(sys.argv[sys.argv.index("--slice") + 1]) if "--slice" in sys.argv else 400
+nslices = []
+for c in range(nC):
+    with open(os.path.join(OUT, "D%03d.lean" % c), "w") as f:
+        f.write(hdr + OPEN + "set_option maxRecDepth 100000 in\ndef row%03d : List (List Nat) := %s\n\nend %s\n" % (c, rowterm(S[c]), NS))
+    with open(os.path.join(OUT, "C%03d.lean" % c), "w") as f:
+        f.write("import %s.Top\nimport %s.D%03d\nimport %s.G%03d\n\n/-! GENERATED by formal/tools-A/target/gen_rt.py. -/\n\n" % (MP, MP, c, NETMP, c) + OPEND)
+        gi = GI[c]
+        sl = []
+        i = 0
+        while i < len(gi):
+            j, acc = i, 0
+            while j < len(gi) and (j == i or acc + len(gi[j]) <= SLB):
+                acc += len(gi[j]); j += 1
+            sl.append((i, j - i)); i = j
+        for k_, (a_, n_) in enumerate(sl):
+            cert = [x for gg in gi[a_:a_ + n_] for x in gg]
+            f.write("def i%03d_%d : List Nat := [%s]\n\n" % (c, k_, ", ".join(map(str, cert))))
+            f.write("theorem e%03d_%d : ((g%03d.drop %d).take %d).flatMap (feats pre) = i%03d_%d.map get :=\n"
+                    "  chkI_sound T hidx _ _ (by decide +kernel)\n\n" % (c, k_, c, a_, n_, c, k_))
+        f.write("def ic%03d : List Nat := %s\n\n" % (c, " ++ (".join("i%03d_%d" % (c, k_) for k_ in range(len(sl))) + " ++ []" + ")" * (len(sl) - 1)))
+        term = "fm_drop_len (feats pre) g%03d %d (Nat.le_of_eq g%03d_len)" % (c, len(gi), c)
+        for k_ in reversed(range(len(sl))):
+            a_, n_ = sl[k_]
+            term = "fm_drop_take (feats pre) g%03d %d %d e%03d_%d (%s)" % (c, a_, n_, c, k_, term)
+        f.write("set_option maxRecDepth 100000 in\ntheorem e%03d : g%03d.flatMap (feats pre) = ic%03d.map get := by\n"
+                "  have h := %s\n  rw [List.drop_zero] at h\n  rw [h, ic%03d]\n  simp only [List.map_append, List.map_nil]\n\n" % (c, c, c, term, c))
+        f.write("theorem r%03d : msortF 64 ic%03d = row%03d.flatten := by decide +kernel\n\n" % (c, c, c))
+        f.write("theorem p%03d : ic%03d.Perm row%03d.flatten := by\n"
+                "  have h := msortF_perm 64 ic%03d\n  rw [r%03d] at h\n  exact h.symm\n\nend %s\n" % (c, c, c, c, c, NS))
+        nslices.append(len(sl))
+rowsL = ", ".join("row%03d" % c for c in range(nC)) + ", rowL"
+with open(os.path.join(OUT, "Rows.lean"), "w") as f:
+    f.write("\n".join("import %s.D%03d" % (MP, c) for c in range(nC)) + "\nimport %s.Top\n\n" % MP)
+    f.write("/-! GENERATED by formal/tools-A/target/gen_rt.py: the index rows (one per gate chunk, and the leftovers). -/\n\n" + OPEN)
+    f.write("set_option maxRecDepth 100000 in\n/-- The leftover target features' indices, by block. -/\ndef rowL : List (List Nat) := %s\n\n" % rowterm(LFT))
+    f.write("def lft : List Nat := rowL.flatten\n\n")
+    f.write("set_option maxRecDepth 100000 in\ndef rows : List (List (List Nat)) := [%s]\n\n" % rowsL)
+    f.write("theorem hrow : ∀ r ∈ rows, r.length = lens.length := by decide +kernel\n\nend %s\n" % NS)
+for k in range(NT):
+    with open(os.path.join(OUT, "B%02d.lean" % k), "w") as f:
+        f.write("import %s.Rows\n\n/-! GENERATED by formal/tools-A/target/gen_rt.py. -/\n\n" % MP + OPEN)
+        f.write("theorem b%02d : mergeAll %d 10 ((List.range rows.length).map fun c => (rows.getD c []).getD %d []) =\n"
+                "    (blocks 0 lens).getD %d [] := by decide +kernel\n\nend %s\n" % (k, FUEL, k, k, NS))
+
+
+def pnest(cs):
+    t = "List.Perm.refl lft"
+    for c in reversed(cs):
+        t = "List.Perm.append p%03d (%s)" % (c, t)
+    return t
+
+
+fnest = "r%03d.1" % (nC - 1)
+for c in reversed(range(nC - 1)):
+    fnest = "List.forall_mem_append.2 ⟨r%03d.1, %s⟩" % (c, fnest)
+with open(os.path.join(OUT, "All.lean"), "w") as f:
+    f.write("\n".join("import %s.C%03d" % (MP, c) for c in range(nC)) + "\n")
+    f.write("\n".join("import %s.B%02d" % (MP, k) for k in range(NT)) + "\nimport %s.All\nimport Mathlib.Tactic.IntervalCases\n\n" % NETMP)
+    f.write(DOC % (N, len(LFT)) + OPEND)
+    f.write("theorem hb : ∀ k, k < lens.length →\n"
+            "    mergeAll %d 10 ((List.range rows.length).map fun c => (rows.getD c []).getD k []) = (blocks 0 lens).getD k [] := by\n"
+            "  intro k hk\n  have hk' : k < %d := by simpa [lens] using hk\n  interval_cases k\n%s\n\n" %
+            (FUEL, NT, "\n".join("  · exact b%02d" % k for k in range(NT))))
+    f.write("def iAll : List Nat := %s\n\n" % (" ++ (".join("ic%03d" % c for c in range(nC)) + ")" * (nC - 1)))
+    f.write("set_option maxRecDepth 100000 in\ntheorem hcover : gates.flatMap (feats pre) = iAll.map get := by\n"
+            "  simp only [gates, List.flatMap_append, %s, iAll, List.map_append]\n\n" % ", ".join("e%03d" % c for c in range(nC)))
+    f.write("set_option maxRecDepth 100000 in\ntheorem hperm : (iAll ++ lft).Perm (List.range N) := by\n"
+            "  have hpb := perm_blocks %d 10 rows lens hrow hb\n"
+            "  rw [hlens, ← List.range_eq_range'] at hpb\n"
+            "  simp only [rows, List.map_cons, List.map_nil, List.flatten_cons, List.flatten_nil, List.append_nil] at hpb\n"
+            "  simp only [iAll, List.append_assoc]\n"
+            "  exact (%s).trans hpb\n\n" % (FUEL, pnest(list(range(nC)))))
+    f.write("/-- **The round trip**: the re-encoded gates plus the leftover features are the target's features, each once. -/\n"
+            "theorem roundtrip : ((gates.flatMap (feats pre)) ++ lft.map get).Perm tf := by\n"
+            "  rw [hcover, ← List.map_append]\n"
+            "  exact perm_map_getD tf _ (by rw [tf_length]; exact hperm)\n\nend %s\n" % NS)
+print("gen_rt: wrote %s (%d chunks, %d slices, %d blocks)" % (OUT, nC, sum(nslices), NT))
