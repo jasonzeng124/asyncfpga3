@@ -9717,3 +9717,19 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   sdf checked), trimmed with the port lines allowed, timed, 4 draws. Control: the farm's result on that same route
   (P 27.73 ns, trims 0). PREDICTION (now, before it runs): P 25-27 ns (umem1 usetup 9 -> 4 / uco 11 -> 8 if on the
   cycle; FASTFALL lines are walked once), every draw passes.
+### progress 19:15 (state of play -- what is running, what is next; the 16:50 summary still holds, plus this)
+- **New since 16:50:** (a) flow v11 interim vs v10 (research/tools/suite/cmp_flows.py, 102 results): 78 same route, 10
+  newly clean, 11 clean in both on other routes (P ratio 1.21: the late phase pre-empting v10's search), no FAIL.
+  (b) v12 previews memsum / dot2 s1 slower than v10 and v11 (30.19 / 30.47 ns), inside v10's own seed range: churn, but
+  the per-(kernel, seed) prediction misses. (c) the memory fast-fall A/B read: P 0.953 over 12 pairs. (d) formal
+  B32-B37 -> AUTO_RACE_KAPPA (opt-in; research/data/racek/README.md); B37's feeder terms (rule A's race through the
+  condition latch) are a class neither knob reaches -- asked formal for numbers. (e) AUTO_TRIM_PORTS (opt-in): the
+  cycle-scoped trim never reached a memory port's own lines.
+- **Running locally:** v10 + AUTO_RACE_KAPPA=0.13 on sqrtsub s4 (/tmp/bot/runs/rk); the trim-ports A/B on mff's dot2 s2
+  route (/tmp/bot/runs/tp1_dot2_2; route rebuilt byte for byte, sdf 0f16dbc4); v12 dot2 s1's draws; v10 completions
+  (video_filter s1 draws; digitsum / digitdiv s2 in their search phase, 8 h in).
+- **Farm:** v11 2b / 3a / 3b running, 4a submitted, 4b waiting; resumes 1a_r1 / 1b_r1 running, 2a_r1 / 2b_r1 filed;
+  v12 (8 parts) waiting; then mff resumes; sibb last. Every filed part's flow is frozen (opt-in knobs only).
+- **Next:** read both local tests; if they hold, test_flatten_array s2 under v11 + AUTO_RACE_KAPPA (B36's +1 ps route)
+  and a board pair for the latch-fed race; v11 headline when it completes; v12 vs v11 / v10 as it lands; a v13
+  candidate (v12 + AUTO_RACE_KAPPA + BDC_MEM_FASTFALL + AUTO_TRIM_PORTS) filed after v12's parts are submitted.
