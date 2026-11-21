@@ -9622,3 +9622,21 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   adversary (three of v10's routes), costs nothing where routes converge (P ratio 1.003), and its convergence loss is
   what the late phase absorbs. v12's full-suite numbers against v11 and v10 will say what it costs.
 ### progress 16:35 (local v12 previews started on memsum s1 and dot2 s1 -- the other two kernels v11's late phase slowed (v10 24.56 / 27.43, v11 28.19 / 29.26); /tmp/bot/runs/v12c)
+### progress 16:50 (SESSION SUMMARY so far -- the session's result in PROGRAM's format; updated at the end)
+Toolchain: nextpnr 6e5d224472232d5d (cells/verify/toolchain.sh passing before every build)   Seeds: 1-4 per kernel (farm);
+local tests seed 1 / 2 as stated.
+Did: (1) **board**: BOARD-QUEUE items 42 (collatz v10 s1), 43 (xorshift v10 s1), 44 (flow v10's suite, 50 kernels, one
+self-judging loop) and 45 (the steer guard's silicon test); new tooling cells/hw/xsdb_bench_vec.tcl (+ mock, test
+9 / 9), research/tools/suite/{board_rebuild.sh, board_vec_judge.py, board_suite.sh, mk_board_specs.py}; every route
+rebuilt byte for byte here, formal reproduced item 42's independently (B29). (2) **headline**: flow v10 published --
+50 of 62 pass (suite13t 42), 8 UNFINISHED, 4 NO RESULT; Dynamatic wording fixed for audit T173 (+ all 248 nextpnr logs).
+(3) **steer races**: census of item 44's routes (rule E's x for 46, formal's screen for 19), formal B30's adversary
+failures on three of them, the 10 %% guard (AUTO_GUARD_E) measured (static +0.5 %%; paired farm test P 1.003 but a
+convergence cost) and its silicon pair (item 45). (4) **flow**: AUTO_LATE_AFTER_SEARCH (v11's late phase only after the
+search; verified on countloop / cmpchain); flow v11 running; **flow v12 filed** (v11 + both knobs). (5) negatives /
+corrections: carry-tracking delay lines (<= 1 element on the cycle); nest3 s4's farm FAIL was an OOM kill (re-run PASS);
+the 240-min resume loop on four big kernels (three finished locally).
+Measured: see the progress notes; key numbers -- v10 50 / 62; ours / Dynamatic on-merges 0.98 (n 35); collatz 14.48 /
+xorshift 16.35 ns (items 42 / 43, strict gate 35 / 35 each); guard P ratio 1.003 (18 pairs).
+Does NOT show: anything on silicon (items 42-45 queued); v11's or v12's suite-wide effect (running / queued).
+Next: v10 table + the three local completions; v11 results -> headline and its resumes; v12 when it runs; the board.
