@@ -35,3 +35,9 @@ the request walk -- a fully correlated, adversarial path error, with no within-d
 a judgement. "First pulses" counts benign transparent-latch glitches; only "first failure" measures a hazard. By first
 failure the thin routes are sqrtsub (x = 0.10), lfsrfind (0.12), collatz64 (0.15); then branchloop (0.20), collatz
 (0.25); divmodu's 0.00 is formal's model of its divider (asked). B29 also bounds collatz's ucond_br7 (0.110).
+**Formal B30 / B31 (2026-11-21):** this census's racescreen runs sampled out0 3 ns after its request (formal's old
+default; our bench samples >= ~24 ns), so a "first failure" here may read low -- formal re-ran the thin routes at 23 ns
+(unchanged: lfsrfind 0.12, sqrtsub 0.10) and divmodu's 0.00 vanished (2 + 2 PASS). With steersafe corrected (B30), the
+race-only adversary on the weakest steer: wrong answer at kappa 0.06 (lfsrfind), 0.10 (collatz64, sqrtsub), 0.15
+(if_loop_2), none to 0.20 (fill, whose structural bound 0.171 is fine although rule E calls it thinnest); dot2's
+structural bound 0.032 is the lowest of the memory kernels.
