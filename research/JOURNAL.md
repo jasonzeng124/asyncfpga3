@@ -9532,3 +9532,8 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   (no pass on a NOT CLEAN route) keeps it out; under that policy sqrtsub would be FAIL in this test.
 - So: the guard's period cost is nil on average, but it costs convergence on some seeds; with v11's late phase (which
   cleans the finish phase's leftovers) it might not. Full 28 pending; the next-flow decision waits for it.
+### progress 13:18 (local work in flight; lock refresh)
+- Late-after-search tests: countloop s1 at the end of its finish phase (it 10, 2 short) -> its final and search next;
+  cmpchain s1 in its finish phase. Local v10 completions (digitsum / digitdiv s2, video_filter s1) in their finals.
+- The farm's guarded seed-1 routes ship exactly the local ones' P (sqrtsub 20.117, lfsrfind 21.045): item 45's routes
+  reproduce there too. Local guarded seed-2 runs stopped (the farm's test has them).
