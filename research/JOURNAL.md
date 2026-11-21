@@ -9102,3 +9102,17 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   failing negative control); overbuild alone measured (0 of 7 trim checks clean); overbuild + BD_SYMTRIM (6 of 6 first
   finish routes clean, but +16 % P on ipow) -> AUTO_OVERBUILD_LATE; trim_lines _SDELAY naming fix (opt-in); race-keep;
   cache_v11 (formal A34).
+### progress 02:16 (BD_SYMTRIM + overbuild: brhash, cmpchain, test_memory_2 PASS 4 / 4 on rule-CLEAN routes -- all three UNFINISHED in v10; factorial clean too; the A34 rewrite alone gets brhash s1 clean)
+- **sym2 (overbuild at the switch + BD_SYMTRIM, seed 1), against v10's same kernel and seed (both NOT CLEAN in v10):**
+  | kernel | status | rule | it | latency per call: median / sum, ns | kernel LUTs | v10 (NOT CLEAN) median / sum, LUTs |
+  |---|---|---|---|---|---|---|
+  | brhash | PASS 4 / 4 | CLEAN | 5 | 273 / 13380 | 2325 | 294 / 14610, 2110 |
+  | cmpchain | PASS 4 / 4 | CLEAN | 5 | 108 / 1680 | 3298 | 108 / 1644, 2952 |
+  | test_memory_2 | PASS 4 / 4 | CLEAN | 5 | 132 / 1338 | 1315 | - |
+  factorial s1: clean at it 5 as well (final + draws running); nested s1 and spmv s1: 2 rows short at their first
+  finish route, trim checks running. Overbuilt-first-finish-route-clean count: **7 of 9** so far.
+- **a33 brhash s1** (flow v10 + formal A34's translation-validated plain move, no overbuild): **PASS 4 / 4, rule CLEAN at
+  it 8** (v10 without the rewrite: NOT CLEAN after 6 finish routes); latency sum 12648 ns vs 14610 (-13 %). a33 nested
+  s1 in its final. Both rewrites are in flow v11 (cache_v11).
+- symtb2 ipow s1 (overbuild at the switch, reordered trim-back): PASS 4 / 4 at 23.01 ns (v10 19.87) -- the cost that made
+  v11's overbuild late.
