@@ -5300,7 +5300,7 @@ Setup: formal/setup.sh running (Mathlib from source, nice 15). FPGA toolchain fr
 zstandard; the cache's export.sh names /root/audit-tc2, symlinked; libtcl8.6 + boost 1.83 from apt; prjxray pip deps; the
 prjxray-db at ~/dev2/lib/xray symlinked to the toolchain's): toolchain.sh every patch ok, nextpnr 7c3bfb9c684a2551.
 Research checkout /home/user/rs at c4fdc9d23, build/frontend = cloud/fixtures/frontend.
-### progress 07:58 -- B29: collatz_v10_s1 (board candidate) rebuilt SAME (board_rebuild.sh: sdf 0f050078, trimmed fasm 6ef8e077, bit 7ad2d1d0); decoded from the bits, 2 + 2 draws PASS. ucond_br7 now bounded
+### progress 07:24 -- B29: collatz_v10_s1 (board candidate) rebuilt SAME (board_rebuild.sh: sdf 0f050078, trimmed fasm 6ef8e077, bit 7ad2d1d0); decoded from the bits, 2 + 2 draws PASS. ucond_br7 now bounded
 - Cause of "no launch node": ucond_br7's condition is a link latch (ulink_n31__0_folink.lat.odd) fed by ucmpi2, and ucmpi2
   is a JOINLESS compare (no .ujoin; ucond_br5 / 6 read it directly as "compare*"). The latch case looked only for the
   feeding compute's .ujoin.
