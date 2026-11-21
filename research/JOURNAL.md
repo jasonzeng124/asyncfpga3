@@ -9500,3 +9500,8 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - The route rebuilt here byte for byte (sdf 8651fc19, from the farm's sizes_10.vh / seed 4); draw 10404 re-running on it
   with the farm's exp.txt (/tmp/bot/nest3rj). Its verdict goes into the headline's note for nest3 (UNFINISHED either way:
   the route is NOT CLEAN). Later resume parts with large kernels get mem=32G (4a_r1_r2 filed so).
+### progress 12:42 (nest3 s4's OOM-killed draw re-run on the byte-identical route: PASS 12 / 12 -- nest3 is UNFINISHED, not FAIL; the correction is in the repo with its provenance)
+- Draw 10404 on su_nest3_4_10 (sdf 8651fc19, rebuilt here): PASS 12/12, 0 pulses under 1 ns, narrowest 4.06 ns,
+  EQUIVALENT. research/data/suite/corrections/v10_nest3_s4/ (README, the corrected result.txt / draws.txt); the v10
+  headline reads it in place of the farm's line. nest3: UNFINISHED (16 / 16 draws, all on NOT CLEAN routes).
+- Guarded-route gate: 53 / 57 PASS so far.
