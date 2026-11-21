@@ -481,9 +481,19 @@ race_check() {  # race_check I (AUTO_RACE_Z): the latch-fed steer races of route
   PYTHONPATH=$tc/openxc7-src/prjxray python3 "$R/cells/gls/fid/xray_delay.py" --routed "$HW/${D}_routed.json" \
     --sdf "$HW/$D.sdf" --out "$RC/xray.sdf" --arcs "$RC/arcs.tsv" > "$RC/xray.log" 2>&1 || { echo "race: it $i: xray_delay FAILED" >> "$O/log.txt"; return 0; }
   python3 "$R/research/tools/race_find.py" "$HW/${D}_routed.json" "$RC/arcs.tsv" "$RC/specs" 20000 > "$O/race_$i.txt" 2>&1
+  # AUTO_RACE_KAPPA=K (opt-in, 2026-11-21; formal B32 / B36; with AUTO_RACE_Z): the same races at formal's split corners
+  # (research/tools/race_kappa.py: the request at its arcs' minima, the condition at their maxima, one prjxray corner at
+  # a time); one below K pads its link by race_kappa's element estimate (>= 1) and adds an R row, as a race below Z does.
+  # Unset: nothing changes.
+  local KP=""
+  if [ -n "${AUTO_RACE_KAPPA:-}" ]; then
+    python3 "$R/research/tools/race_kappa.py" "$RC/arcs.tsv" "$RC/specs" "$AUTO_RACE_KAPPA" > "$O/racek_$i.txt" 2>&1 \
+      || echo "race: it $i: race_kappa FAILED" >> "$O/log.txt"
+    KP="--kappa $O/racek_$i.txt $AUTO_RACE_KAPPA"
+  fi
   # the sizes route I was built with: sizes_I.vh, or the second argument (an AUTO_FINISH_SEEDS alternate route IsJ is
   # built from sizes_I.vh and has no sizes file of its own)
-  local s; s=$(python3 "$T/race_pad.py" "$O/race_$i.txt" "$AUTO_RACE_Z" "${2:-$O/sizes_$i.vh}" "$CA/rule/sizes.vh" "$CA/rule/negative_sized.tsv")
+  local s; s=$(python3 "$T/race_pad.py" "$O/race_$i.txt" "$AUTO_RACE_Z" "${2:-$O/sizes_$i.vh}" "$CA/rule/sizes.vh" "$CA/rule/negative_sized.tsv" $KP)
   echo "it $i $s" >> "$O/log.txt"
   echo "$s" | grep -o 'BD_SZ_[A-Z0-9_]* [0-9]*->' | awk '{print $1}' >> "$O/race_padded.txt"
   if [ "${AUTO_RACE_KEEP:-0}" = 1 ]; then   # every race link's request line, short or not (trim_route leaves them alone)
