@@ -9017,3 +9017,9 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   refuses it). 16 kernels re-running after three tool fixes (c680372fa): void memory kernels (the estimator crashed on
   oracle_mem.sh's 'void'), and mem_controller_loadless (a dependency the config names only as a module).
 - Farm: suite13t_s5a_v10_2a done -> suite13t_s5a_v10_2a_r1 filed (7 tasks).
+### progress 00:23 (sym sqrtsub s2: PASS 4 / 4, P 20.13 ns vs v10's 21.66 on the same seed, clean at it 5 vs it 8)
+- **sym sqrtsub s2** (BD_SYMTRIM + AUTO_OVERBUILD=3, the earlier script: no trim-back, the mislabelled overbuild):
+  `status=PASS draws=4/4 P=20128 P_untrimmed=23916 trims=10 luts=1470 rule=clean it=5 bits=EQUIVALENT ffmux-clean`,
+  13 / 13 per draw, no pulse under 1 ns (narrowest 3.97 ns); v10's same kernel and seed: P 21661, clean at it 8 (four
+  finish routes), 1338 LUTs. **-7.1 % P, -5.6 % summed call latency, +10 % LUTs** (the extra elements stay placed),
+  three routes fewer. One seed: route scatter is ~5 %, so the P difference alone is not a result; the convergence is.
