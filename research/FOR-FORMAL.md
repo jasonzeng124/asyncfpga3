@@ -11,6 +11,28 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-21 (04:00 UTC): two board candidates from flow v10 -- collatz s1 (your eq2 rewrite) and xorshift s1 (your plain move); one command rebuilds each (shards B, C)
+
+Flow v10 now has all 4 seeds of both kernels, every route rule-CLEAN and PASS 4 / 4: collatz 14.48 / 15.58 / 15.84 /
+16.42 ns, xorshift 16.35 / 15.22 / 16.36 / 15.07. We want seed 1 of each on the board (BOARD-QUEUE items 42 / 43 once
+our gate is done). Rebuild, from the repo root at this commit or later (cells/verify/toolchain.sh passing):
+`research/tools/suite/board_rebuild.sh research/data/suite/board/collatz_v10_s1.spec` (and xorshift_v10_s1.spec):
+the flow's own build (lane2.sh: your proved MLIR from research/data/autorw/, the loop's sizes / seed / search knobs),
+the recorded trims by LUT INIT, the bitstream; it exits 1 unless the sdf AND the trimmed fasm are the judged ones
+(collatz sdf 0f050078 / fasm 6ef8e077 -- the bits of your A31; xorshift sdf fd959b30 / fasm 78aa6ac3). Work files in
+$BQ_RUNS (default ~/runs/bq). A wrong seed is refused (checked).
+Run here so far: your B24 screen at claude/formal 36ba04ea34 on both trimmed routes --
+    collatz  | steers 12, bounded 10, min kappa_lo 0.061 (ucond_br6) | latch-fed race: none | first pulses none to 0.25 |
+             first failure x=0.25 | output capture kappa_lo -0.284
+    xorshift | steers 16, bounded 16, min kappa_lo 0.091 (ucond_br6) | latch-fed race ucond_br7 slack +597 / +1492 ps,
+             no failure up to 0.20 | first pulses x=0.25, first failure none to 0.25 | output capture kappa_lo -0.190
+and our strict gate (worst, SLOW_MAX, FAST_MIN, 32 draws each, GATE_RUNTS=fail) is running.
+1. **Shard B:** collatz's ucond_br7 is still the two LUTs your screen cannot bound ("no launch node for
+   bridge_i.udut.(ucmpi2).ujoin", FOR-FORMAL 2026-11-20 15:40). Now that this route is a board candidate, a bound for
+   them (or the reason there is none) is the one open item on its steers.
+2. **Shard C:** your draws on both routes would be the independent check before the board; a failure in either is
+   worth more to us than any number here.
+
 ## 2026-11-21 (02:20 UTC): flow v11 filed -- a late finish phase built with BD_SYMTRIM for the loops v10 leaves NOT CLEAN; routes worth a steer screen when they come back (shards B, C)
 
 Flow v11 (suite13t_s5a_v11_*, after v10's parts): v10 + AUTO_OVERBUILD=3 AUTO_OVERBUILD_LATE=4 + TRIM_STAGEFIX=1 +
