@@ -9798,3 +9798,9 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 ### progress 21:06 (AUTO_TRIM_PORTS, same route (mff dot2 s2): PASS 4 / 4, rule-CLEAN, P 27.73 -> 24.92 ns (-10.1 %), call latency median 957 -> 864 ns -- prediction met)
 - research/data/trimports/ (README + the run's files + the farm's control line). Every draw 8 / 8, no pulse under 1 ns
   (narrowest 4447 ps), bits EQUIVALENT, ffmux-clean; 10 trims shipped (7 port lines). One route: no flow-level claim.
+### progress 21:32 (flow v10 headline: 53 of 62 pass -- digitsum s2, digitdiv s2, video_filter s1 finished locally from the farm's saved state, each PASS 4 / 4 rule-CLEAN; ours / Dynamatic 0.92 over 38, ~0.95 counting the digit circuit once)
+- research/data/fifteen/README.md top table regenerated (21:29, cluster 61ebe31582): 53 PASS, 8 UNFINISHED, 1 NO
+  RESULT (sobel). Files: research/data/suite/local_v10/ (result lines, draws, provenance). digitsum and digitdiv are one
+  circuit (the frontend's % rewrite); their s2 SDFs are identical with the kernel name masked, so the Dynamatic mean
+  counts it twice at 0.30 -- 0.92 over 38 as tabled, ~0.95 counted once; the 35 kernels of the 15:07 table: 0.98.
+- Also back: mul_example s2's same-route port trim PASS 4 / 4 at the farm's P (no trimmable port line, as found).
