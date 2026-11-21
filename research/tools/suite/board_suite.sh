@@ -49,7 +49,7 @@ for K in "${KS[@]}"; do
       lay=$(( (m << 24) | (w << 16) | 0xB5C2 ))
       mi=$(sed -n '2s/.*memories \(.*\); seed.*/\1/p' "$R/$V" | grep -o '\[[0-9]*\] [iu][0-9]*' | sed 's/\[\([0-9]*\)\] [iu]\([0-9]*\)/\1:\2/' | paste -sd,)
     fi
-    ( cd "$R/cells" && MOCK_EXP="$O/exp.txt" MOCK_LAYOUT=$lay MOCK_MEMINFO="$mi" \
+    ( cd "$R/cells" && MOCK_EXP="$O/exp.txt" MOCK_LAYOUT=$lay MOCK_MEMINFO="$mi" MOCK_MEMEXP="$O/memexp.txt" \
         tclsh hw/mock_xsdb_vec.tcl hw/xsdb_bench_vec.tcl "$BIT" "$R/$V" 2 0x00100C00 "$MEMV" 0 ) > "$O/board.log" 2>&1
   else
     ( cd "$R/cells" && hw/board.sh "$XSDB" hw/xsdb_bench_vec.tcl "$BIT" "$R/$V" 2 0x00100C00 "$MEMV" 0 ) > "$O/board.log" 2>&1

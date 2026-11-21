@@ -6,4 +6,4 @@ TRIMS=research/data/suite/board/suite_v10/quadrec_trims.txt
 MLIR=research/data/autorw/quadrec.mlir
 ENV=BDC_FORK_OUT_LINK=n20__0,n23__0,n25__0,n27__0
 SDF=d2adc7c6
-FASM=00000000
+FASM=5bfe6294

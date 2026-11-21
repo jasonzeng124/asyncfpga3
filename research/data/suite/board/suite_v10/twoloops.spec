@@ -6,4 +6,4 @@ TRIMS=research/data/suite/board/suite_v10/twoloops_trims.txt
 MLIR=research/data/autorw/twoloops.mlir
 ENV=
 SDF=d4d19bb6
-FASM=00000000
+FASM=72d361c9

@@ -6,4 +6,4 @@ TRIMS=research/data/suite/board/suite_v10/while_loop_3_trims.txt
 MLIR=-
 ENV=
 SDF=a732a489
-FASM=00000000
+FASM=4d73af14

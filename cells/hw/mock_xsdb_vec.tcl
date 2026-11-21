@@ -20,6 +20,19 @@ set ::MINFO {}
 if {[info exists ::env(MOCK_MEMINFO)] && $::env(MOCK_MEMINFO) ne ""} {
     foreach dw [split $::env(MOCK_MEMINFO) ,] { lassign [split $dw :] d wd; lappend ::MINFO [list $d $wd] }
 }
+# MOCK_MEMEXP=FILE (oracle_mem.sh's ORACLE_MEMOUT: "call=J mem=M ... data=w,w,..."): after call J, until the next
+# bench_rst, a read through the host port returns the C's array (a "perfect kernel" for array-writing kernels)
+array set ::MX {}
+if {[info exists ::env(MOCK_MEMEXP)] && $::env(MOCK_MEMEXP) ne "" && [file exists $::env(MOCK_MEMEXP)]} {
+    set fd [open $::env(MOCK_MEMEXP) r]
+    foreach ln [split [read $fd] "\n"] {
+        if {[regexp {call=(\d+)} $ln -> cj] && [regexp {mem=(\d+)} $ln -> cm] && [regexp {data=(\S+)} $ln -> cd]} {
+            set ::MX($cj,$cm) [split $cd ,]
+        }
+    }
+    close $fd
+}
+set ::POST -1
 array set ::R {}
 set ::NSTART 0; set ::MSEL 0; set ::WIDX 0; set ::RIDX 0; set ::MCOUNT 0; set ::RDVAL 0
 array set ::MEM {}
@@ -42,10 +55,10 @@ proc mwr {args} {
         32 {
             set prev [expr {[info exists ::R(32)] ? $::R(32) : 0}]
             set ::R(32) $v
-            if {($v & 2)} { set ::R(36) 0 }
+            if {($v & 2)} { set ::R(36) 0; set ::POST -1 }
             if {!($prev & 1) && ($v & 1)} {
                 set j $::NSTART; incr ::NSTART
-                puts $::LOG "START $j"
+                puts $::LOG "START $j"; set ::POST $j
                 set n [expr {[info exists ::R(20)] ? $::R(20) : 0}]
                 set o [expr {"0x[lindex $::EXPW $j]" & 0xFFFFFFFF}]
                 if {$j == $::CORRUPT} { set o [expr {$o ^ 1}] }
@@ -57,7 +70,14 @@ proc mwr {args} {
         }
         128 { set ::MSEL [expr {$v >> 16}]; set ::WIDX 0; set ::RIDX 0 }
         132 { set ::MEM($::MSEL,$::WIDX) $v; incr ::WIDX; incr ::MCOUNT }
-        136 { set ::RDVAL [expr {[info exists ::MEM($::MSEL,$::RIDX)] ? $::MEM($::MSEL,$::RIDX) : 0}]; incr ::RIDX; incr ::MCOUNT }
+        136 {
+            if {$::POST >= 0 && [info exists ::MX($::POST,$::MSEL)]} {
+                set ::RDVAL [expr {"0x[lindex $::MX($::POST,$::MSEL) $::RIDX]" & 0xFFFFFFFF}]
+            } else {
+                set ::RDVAL [expr {[info exists ::MEM($::MSEL,$::RIDX)] ? $::MEM($::MSEL,$::RIDX) : 0}]
+            }
+            incr ::RIDX; incr ::MCOUNT
+        }
         140 { set ::MCOUNT 0 }
         default { set ::R($off) $v }
     }
