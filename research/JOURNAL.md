@@ -9493,3 +9493,10 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   not clean it (v10 shipped NOT CLEAN), "late-after-search:" in the log, the late phase from it 11, a CLEAN late route
   like v11's (latency sum ~1752 ns).
 - Guarded-route gate 47 / 57 PASS so far.
+### progress 12:17 (nest3 s4's "status=FAIL draws=3/4" is an out-of-memory kill on the farm, not a wrong answer: its 4th draw never ran; re-run locally)
+- suite13t_s5a_v10_4a_r1 task 10 (nest3 s4, rule NOT CLEAN, shipped it 10): draws 10401-10403 PASS 12 / 12; draw 10404
+  "FAIL 0/12 cycles 0 ... runts: NO MONITOR OUTPUT" and the farm's log: "Detected 1 oom_kill event" -- four GLS runs of a
+  5449-LUT kernel at once (DRAW_JOBS=4, the resume parts' setting) in 16G. Nothing was simulated.
+- The route rebuilt here byte for byte (sdf 8651fc19, from the farm's sizes_10.vh / seed 4); draw 10404 re-running on it
+  with the farm's exp.txt (/tmp/bot/nest3rj). Its verdict goes into the headline's note for nest3 (UNFINISHED either way:
+  the route is NOT CLEAN). Later resume parts with large kernels get mem=32G (4a_r1_r2 filed so).
