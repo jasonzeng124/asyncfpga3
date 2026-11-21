@@ -9190,3 +9190,13 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   which the LUT elements already track. Not pursued.
 - Gate (strict, board prep): 18 / 18 collatz runs PASS so far, xorshift's next; collatz64 v10 s1 rebuilt byte for byte
   (sdf de88e329) as a third candidate, its steer screen running.
+### progress 04:17 (collatz64 flow v10 s1 is NOT a board candidate: formal's steer screen puts pulses at a path error of 8 %, a wrong result at 15 %)
+- Formal's B24 screen (claude/formal 36ba04ea34) on the rebuilt, trimmed collatz64 v10 s1 route (sdf de88e329, fasm
+  9b93469d; rule CLEAN, PASS 4 / 4): steers 12, bounded 10, **min kappa_lo 0.003** (ucond_br6, reading the 64-bit
+  n == 2 compare ucmpi2.uz_n38, launched by ulink_n10__4's ctl: slack **+29** / +1108 ps at kappa 0); no latch-fed race;
+  at our bands **first pulses at x = 0.08, first failure (RESULT) at x = 0.15**. B24's guide calls a route fine only with
+  no pulses at x <= 0.10; board item 40 (collatz64, flow v3 s5) had none to 0.25. Our rule passes it with the 3 %
+  guardband each side -- below the 8.5 % median ring scatter (CLAUDE.md), so this route is kept off the board.
+  collatz s1 / xorshift s1: no pulses below x = 0.25 (research/data/suite/board/screen_v10/).
+- Does NOT show whether collatz64's other v10 seeds (19.90-23.61 ns) are thin too, or what in v10 made it so (its
+  trims, UMUX0 -> 6 and a falseResult ack line, are not on ucmpi2's request path; the route was built that way).
