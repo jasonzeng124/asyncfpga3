@@ -238,7 +238,14 @@ if NEG_STORE not in ("", "addr", "data"):
 # (hold waits for p_ack to fall) puts that fall on the critical cycle
 # (research/data/suite/memauto.md: gather's port, 16.4 ns rise and 16.4 ns fall
 # of a 55.2 ns cycle).
-MEM_FASTFALL = os.environ.get("BDC_MEM_FASTFALL", "0") == "1"
+MEM_FASTFALL = os.environ.get("BDC_MEM_FASTFALL", "0") in ("1", "2")
+# BDC_MEM_FASTFALL=2 (opt-in, 2026-11-21): as 1, and the arbitrated port with a host slot (_emit_port_arb_host, a
+# load and a store on one memory) too.  That port was added after the knob (b0c6a1d194, 44 min after ebdb252cef) and
+# kept plain bd_mem, so under =1 the six suite kernels that use it (binary_search, mul_example, test_bool_array,
+# test_memory_1 / 2, test_stdint) built byte-identical routes to v10's (farm mff A/B, research/JOURNAL.md 2026-11-21).
+# bd_mem_ff's argument (its header) is about the RAM's own edges and the station's release, which this port shares.
+# =1 is left as it was: the mff A/B's resume parts still run under it.
+MEM_FASTFALL_ARB = os.environ.get("BDC_MEM_FASTFALL", "0") == "2"
 
 # One RAMB18E1 in x18 mode: 1024 words of 16 data bits (plus 2 parity, unused).
 RAM_WORDS = 1024
@@ -707,7 +714,7 @@ def _emit_port_arb_host(aw, dw):
             rams.append(f"    wire [{RAM_DW - hi - 1}:0] rd_hi{i};")
             rd = f"{{rd_hi{i}, p_rdata[{lo + hi - 1}:{lo}]}}"
         rams += [
-            f"    bd_mem #(.AW({aw}), .DW({RAM_DW}),",
+            f"    {'bd_mem_ff' if MEM_FASTFALL_ARB else 'bd_mem'} #(.AW({aw}), .DW({RAM_DW}),",
             f"             .DSETUP(DSETUP_{i}), .DCO(DCO_{i}), .USE_BUFG(0)) umem{i} (",
             f"        .req(m_req), .ack(ram_ack[{i}]),",
             f"        .addr(m_addr), .wdata({wd}), .we(m_we),",
