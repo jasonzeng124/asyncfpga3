@@ -9209,4 +9209,24 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   Prediction committed in the item: ratio over item 39 ~1.31; ~13.3 ns on the board.
 - It is the fastest of collatz's four v10 seeds (mean 15.58): chosen because formal proved that build's token graph from
   the C; the board number should be read against 14.48, not as the flow's mean.
-- xorshift s1 (item 43 when its gate is in): 35 runs at 7 at a time, started ~04:35.
+- xorshift s1 (item 43 when its gate is in): 35 runs at 7 at a time, the first started 04:25 (its work dir's time).
+### progress 04:41 (STATE OF PLAY -- read this first if the session ends here)
+- **Board:** item 42 (collatz flow v10 s1, 14.48 ns) is in BOARD-QUEUE (run order 3b). Item 43 (xorshift flow v10 s1,
+  16.35 ns) waits only for its strict gate (/tmp/bot/bq10/gate.txt: 35 xorshift lines when done; script
+  /tmp/bot/scripts/bq10_gate2.sh); its steer screen is clean. If /tmp is lost: rebuild with board_rebuild.sh
+  research/data/suite/board/xorshift_v10_s1.spec, then GATE_RUNTS=fail bench_gate.sh at worst / max / min and draws
+  K 42201-42232 on research/data/eventgraph/gate/xor19 (as research/data/suite/board/rejudge_2026-11-19_gate_strict.sh).
+  collatz64 v10 s1 is off the board (formal's screen: pulses at x = 0.08).
+- **Headline** (research/data/fifteen/README.md): suite13t (v9 + trim) 42 of 62; Dynamatic wording fixed for audit
+  T173. **Next headline: flow v10** -- a partial table already gives 46 of 62 (10 UNFINISHED, 6 NO RESULT pending
+  resumes). Regenerate when 4a / 4b and the resumes are in: `suite_table.py --kernels research/tools/suite/kernels.txt
+  --no-ratio isprime,stencil_2d results/suite13t_s5a_v10_*` (+ a reasons file for the NO RESULT rows).
+- **Farm (mine, 04:16):** v10 4a 22 / 30, 4b 14 / 30 running; resumes 1a_r1 6 / 7, 2a_r1 6 / 7, 2b_r1 1 / 14 running;
+  1a_r1b, 1b_r1_r2, 3a_r1, 3b_r1 (filed 04:18), 5sv_r1 submitted / waiting; v11_1a..4b waiting for cores. As each v10 /
+  v11 part ends: mk_resume.py --running-ok <results> r1 <part> (r2 on r1 parts). v11's code freeze holds (only opt-in
+  knobs v11 does not set).
+- **Done this session since 01:56:** a33 nested clean (A34 rewrite alone); late overbuild phase passes its own test
+  (cmpchain s1); sym2 factorial / nested clean; board_rebuild.sh; item 42; T173 answered (+ 248 nextpnr logs);
+  carryx NEGATIVE (a carry-tracking delay line buys <= 1 element on the cycle).
+- **Next:** item 43; v10 headline; v11 results -> headline; FOR-FORMAL answers (B: ucond_br7 bound, v10 screen
+  census; C: draws on the board candidates).
