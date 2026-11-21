@@ -8,4 +8,4 @@ Per kernel: result.txt (the line the suite table reads), draw_*.txt, task.txt (t
 run used), log_tail.txt (the loop's final / search / trim lines). The suite table (research/data/fifteen/README.md)
 counts these as flow v10 results; digitsum and digitdiv build the same circuit (bdc's frontend rewrites digitsum's
 `%` into digitdiv's v - (v / b) * b), hence the same P to the picosecond: their s2 SDFs are identical line for line once the kernel name is masked
-(checked 2026-11-21 21:32).
+(checked 2026-11-21 21:30).
