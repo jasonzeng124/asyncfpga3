@@ -49,6 +49,7 @@ W=$O/hw; mkdir -p "$W/gen"; WT=$BQ_RUNS/wt/${BQ_LANE:-bq}/cells/build
 cp "$HB/$D.bit" "$HB/$D.fasm" "$HB/$D.sdf" "$HB/${D}_routed.json" "$W/"; cp "$WT/hw/$D/$D.json" "$W/"
 cp "$WT/gen/$D.v" "$WT/gen/${K}_kernel_bench.v" "$W/gen/"
 rs=$(bash "$H/racescreen.sh" "$K" "$W" "$O/rs" 2>&1 | tail -1)
-ws=$( [ -f "$O/rs/j/w/m/net.json" ] && timeout 3000 bash "$H/weaksweep.sh" "$O/rs/j" "$K" 2>&1 | grep -o 'adversary first failure.*')
+ws=$(grep -o "race-only adversary: first failure.*" "$O/rs/racescreen.txt" 2>/dev/null | sed 's/race-only adversary: /adversary /')   # racescreen runs weaksweep since 2026-11-21 08:45
+[ -n "$ws" ] || ws=$( [ -f "$O/rs/j/w/m/net.json" ] && timeout 3000 bash "$H/weaksweep.sh" "$O/rs/j" "$K" 2>&1 | grep -o 'adversary first failure.*')
 echo "$NM | sdf $sdf trimmed fasm $fa | $rs | weakest-steer $ws" | tee "$O/screen.txt"
 cp "$O/rs/j/steersafe.txt" "$O/" 2>/dev/null; exit 0

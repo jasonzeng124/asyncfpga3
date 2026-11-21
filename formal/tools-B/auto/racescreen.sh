@@ -11,6 +11,8 @@
 #   3. ctlsweep.sh: the latch-fed steer race of B21 (link latch opening on ctl's rise vs the request through the link's
 #      rdly and the steer's join): its race-only adversary, kappa 0 .. 0.20, both corners;
 #   5. outsafe.py: the output capture's kappa_lo (B16).
+#   6. weaksweep.sh (2026-11-21): the weakest steer's race-only adversary (its condition cone slow, its request walk
+#      fast), kappa 0 .. 0.20, both corners: the first kappa with a wrong answer or no verdict (the bound must sit below).
 #   4. trim/xtol.sh: the weakest steer's path-error tolerance at research's bands (chains 0.20, rest 0.31, CARRY 1.0):
 #      condition side +x, request side -x, the first x with storage pulses and the first that fails.
 # Needs: $TC (the toolchain, cells/verify/toolchain.sh passing), $RS (a research checkout: vectors, oracles; and
@@ -34,4 +36,5 @@ cs=$(bash "$H/ctlsweep.sh" "$O/j" "$K" 2>&1 | grep -o 'steer .*')
 xt=$(bash "$H/trim/xtol.sh" "$O/j" "$K" 2>&1 | grep -o 'first pulses.*')
 dr=$(grep -o 'PASS [0-9]* FAIL [0-9]*' "$O/j/summary.txt" | tr '\n' ' ')
 oc=$(timeout 2400 python3 "$H/outsafe.py" "$O/j/w/m" 2>&1 | tee "$O/j/outsafe.txt" | grep -o 'kappa_lo -\?[0-9.]*' | awk '{print $2}' | sort -g | head -1)
-echo "$K | draws $dr| $ss (weakest $w) | latch-fed race: ${cs:-none} | weakest steer at research's bands: $xt | output capture kappa_lo ${oc:-none}" | tee "$O/racescreen.txt"
+ws=$(timeout 3000 bash "$H/weaksweep.sh" "$O/j" "$K" 2>&1 | grep -o 'adversary first failure.*' | sed 's/adversary first failure: //')
+echo "$K | draws $dr| $ss (weakest $w) | latch-fed race: ${cs:-none} | weakest steer at research's bands: $xt | output capture kappa_lo ${oc:-none} | weakest steer's race-only adversary: first failure ${ws:-not run}" | tee "$O/racescreen.txt"
