@@ -9086,3 +9086,19 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   left NOT CLEAN reach a rule-CLEAN route in the late phase; every draw passes; most of v10's UNFINISHED kernels PASS.
 - **Flow code freeze for v11** from the moment its first part is submitted: until all its parts and resumes are in,
   only opt-in knobs v11 does not set.
+### progress 01:56 (STATE OF PLAY -- read this first if the session ends here)
+- **Headline** (research/data/fifteen/README.md): suite13t (v9 + trim) 42 of 62 pass; the Dynamatic column is ROUTED now
+  (60 of 62 kernels): ours / on-merges 0.93, ours / Dynamatic at its recurrence bound 2.00. Next headline: **flow v10**
+  when its parts and resumes are in (regenerate with suite_table.py over suite13t_s5a_v10_* and the r1 / r1b / r2 parts
+  and 5sv), then **flow v11** (filed 02:00; runs after v10's parts).
+- **Farm queue (mine):** v10 3a / 3b running, 4a submitted, 4b waiting; resumes 1a_r1, 1a_r1b (gcd s1), 1b_r1, 2a_r1; 5sv
+  (sobel / video_filter); then v11_1a..4b; then mff_1 / mff_2, sibb. As each v10 / v11 part ends: `python3
+  research/tools/suite/mk_resume.py --running-ok <results> r1 <part>` (then r2 on the r1 parts). A task restarted by the
+  farm and missed by its r1 needs its own part (as 1a_r1b).
+- **Local (/tmp/bot/runs):** late/ (cmpchain s1, the late phase's test: final + draws), sym2/ (overbuild at the switch:
+  nested / factorial / spmv still in their loops; brhash / cmpchain / test_memory_2 finished), symtb2/ ipow (re-final),
+  a33/ (brhash / nested with the A34 rewrites, niced). If /tmp is lost, nothing here is needed by the farm runs.
+- **Done this session:** Dynamatic routed (60 / 62) and the headline's ratio column; BD_SYMTRIM (opt-in, GLS evidence with a
+  failing negative control); overbuild alone measured (0 of 7 trim checks clean); overbuild + BD_SYMTRIM (6 of 6 first
+  finish routes clean, but +16 % P on ipow) -> AUTO_OVERBUILD_LATE; trim_lines _SDELAY naming fix (opt-in); race-keep;
+  cache_v11 (formal A34).
