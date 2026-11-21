@@ -46,6 +46,14 @@ rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh
    rewrites and the trim): each right after item 39 / 41, its judge's base.
 3c. **Item 44** (2026-11-21: the whole automatic suite, 46 kernels, one self-judging loop; unattended, hours of
    rebuilds and minutes of board time): any time after item 36.
+   **Added 2026-11-21 for items 37-41 too (optional, ~1 min each):** right after an item's build, before its loop_cost
+   run, the same full-vector check items 42 / 43 have -- the kernel's own gate vectors through the gate's host program,
+   judged by the gate's rules against the C. From cells/, with K and V = ipow / ipow17 (item 38), collatz / col18 (39),
+   collatz64 / c6419 (40), xorshift / xor19 (37, 41):
+       hw/board.sh ${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb} hw/xsdb_bench_vec.tcl \
+         build/hw/${K}_bench_gen/${K}_bench_gen.bit ../research/data/eventgraph/gate/$V.hex > build/hw/vec_$K.log 2>&1
+       python3 ../research/tools/suite/board_vec_judge.py ../research/data/eventgraph/gate/$V.exp build/hw/vec_$K.log; echo "exit $?"
+   Pass: `PASS n/n`, exit 0. (The GLS ran exactly these vectors on each of these routes: 35+ runs each, all PASS.)
 4. Then the list "Board list, in order" further down (older items; several superseded by the ones above).
 The simulation runs ~8 % slower per iteration than the August board (research/SIM-VS-BOARD.md), so expect each ns
 figure above about 8 % lower on the board.
