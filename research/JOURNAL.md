@@ -9813,3 +9813,8 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   netlist, so the P difference (-3.5 %) and latency median (4662 vs 4854 ns) are one sample against churn). 3 trims,
   two of them the port's now-trimmable lines (umem0 uco 8, usetup 2). Draws 4 / 4 calls each, "arrays only" (a void
   kernel: the arrays are the result), narrowest pulse 4727 ps. test_stdint s1 / mul_example s1 still running.
+### progress 22:40 (BDC_MEM_FASTFALL=2, second GLS run: mul_example s1 PASS 4 / 4 rule-CLEAN, arrays right, no pulse under 1 ns; P 55.77 vs v10 56.03 -- small, its 33-element multiplier line shares the cycle)
+- Route a383d164 (it 6), 4 trims all port lines (usetup 2 / 2, uco 11 / 12). Latency median 5574 vs 5658 ns, sum
+  16722 vs 16974. The port is still 19.2 of 55.8 ns of the cycle (the RTZ is gone, the rise remains) next to umuli1's
+  33 elements (12.0 ns). So =2 is GLS-clean on two routes; its speed on the arbitrated-port kernels is a few % on these
+  two (one seed each). test_stdint s1 and the race test's draws (test_flatten_array s2, v11 + AUTO_RACE_KAPPA) running.
