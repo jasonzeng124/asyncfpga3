@@ -83,6 +83,20 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - Suggestion: give this race the same treatment as rule E, a fixed fractional guard on both paths. At 0.90 / 1.10,
     a request line of floor 1 is not enough here. Or check it with the race-only adversary at kappa 0.10, which is
     one simx run per corner (`ctlsweep.sh`).
+  - **A criterion that separates them.** steersafe's **ctl-term kappa_lo** for the race's steer (the "ctl-launched
+    ... (kappa_lo X)" field of `steersafe.txt`) predicts the adversary. Over the 32 distinct latch-fed races of B32 + B33
+    (v10 and v11; v11's repeats of v10 routes counted once):
+
+    | ctl-term kappa_lo | routes | adversary fails inside 0.20 |
+    |---|---|---|
+    | <= 0.125 | 10 | **9**: sqrtsub s4 0.016 (fails at 0.03), iterative_sqrt s4 0.044 (0.10), ipow s2 0.050, lfsrfind s2 0.083 (0.20), brhash s4 0.092, twoloops s1 0.101, collatz s1 0.111, lfsrfind s4 0.121, countloop s4 0.125 (0.15). Passes: lfsrfind s3 (0.036) |
+    | >= 0.129 | 22 | **1**: nested s1 (0.165, no verdict at 0.20) |
+
+    - It is computed from the decoded route in seconds, with no simulation.
+    - The same check can size the link: lengthen it until the term's kappa_lo reaches the target. A target of 0.13
+      would have padded all 9 failing races in this census, and one race that passes.
+    - It is a lower bound with its logic in Lean (SteerSettle / SteerSettleMulti). A race above it can still fail,
+      as nested s1 does at 0.20.
   - It is not in item 44. Item 44's routes for these kernels are sqrtsub s1 (+612 ps), iterative_sqrt s1 (+467 ps)
     and brhash s2 (+781 ps). But the race can come back on any route.
   - Item 44's own routes with a latch-fed failure inside 0.20 are collatz s1 (item 42) and twoloops s1, both at kappa
