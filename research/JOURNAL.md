@@ -9662,3 +9662,29 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   The headline's wrong-answer list says so.
 ### progress 17:57 (waiting: video_filter s1's draws (local, ~1 h in), digitsum / digitdiv s2 trims, v12 previews; v11 2a 29 / 31)
 ### progress 18:32 (waiting: local v10 completions (video_filter s1 draws; digitsum s2 search; digitdiv s2 after its final), v12 previews (memsum s1 trims, dot2 s1 search); v11 2a 30 / 31, 2b / 3a / 3b running)
+### progress 18:53 (v12 previews, seed 1: memsum PASS 4 / 4 rule-CLEAN at 30.19 ns, dot2 clean at 30.47 (draws running) -- both slower than v10 (24.56 / 27.43) AND v11 (28.19 / 29.26): v12's prediction "P no worse than v10's where v10's search rescued" fails on both)
+- Local, v12's exact environment (/tmp/bot/scripts/v12_launch.sh; SUITE_TAG only renames, so the farm's v12 tasks
+  should ship these same routes). memsum s1: phase 1-2 clean at it 8, P 32.97 (v10: it 6, 26.63); the search from it 8
+  took one stage (BDC_FORK_OUT_LINK=n11__0,n18__0) to 30.19, where v10's found three links (+n35__3) to 24.56; the search's
+  no-polarity floor was 21.7 ns here, 16.7 in v10. dot2 s1: it 8 32.96, search to 30.47.
+- Not the guard's static cost: guard_est priced memsum's and dot2's growth (+2 / +4 elements) all OFF their v10 routes'
+  cycles (+0 %). The guard changes the sizes, so the placement and the route, and the search then starts from a
+  different route -- churn plus the search's path dependence. One seed each (the g10 pairs spanned 0.62-1.48 in P), so
+  no cost figure; but the prediction was per (kernel, seed) and these two already miss it. v12's 4-seed farm results
+  decide the cost; recorded here before any of them.
+- v11_2a finished 17:57 (17 PASS, 14 TIMEOUT); suite13t_s5a_v11_2a_r1 filed (12 tasks, 32G, digit kernels left out).
+### progress 18:55 (formal B32-B36: the latch-fed steer race is the class v12's guard misses -- formal's split-corner bound is now an opt-in check, AUTO_RACE_KAPPA; first local test running)
+- B32 / B36: over flow v10 / v11 routes, the thinnest steer races are latch-fed (sized by AUTO_RACE_Z in our draw model,
+  untouched by rule E): v10 sqrtsub s4 +55 ps and v11 test_flatten_array s2 +1 ps lose formal's race-only adversary at
+  kappa 0.03; formal's ctl-term kappa_lo <= 0.125 predicted 9 of its 10 failures inside 0.20 (1 of 22 above 0.129).
+  Our model rates test_flatten_array s2's race 263 +- 56 ps (z 4.72): its two sides' routing share one band; formal's
+  bound lets each sit anywhere in its range. The ring median model error is 8.5 % -- a failure at 3 % is inside what
+  our model cannot exclude, so we take the longer number.
+- research/tools/race_kappa.py: the same bound from our arcs table (request at corner minima, condition at maxima, min
+  over fast / slow of (F - S) / (F + S)); matches formal's published split slacks within 10 ps (B35's g10 lfsrfind s1
+  +188 / +523 vs +189 / +524). race_pad.py --kappa + auto_size.sh AUTO_RACE_KAPPA=K (opt-in): a race below K pads its
+  link by the estimated elements (>= 1) and the route is not clean. Without it: byte-identical outputs on 33 saved race
+  checks (63de0e0569).
+- Test: v10's environment + AUTO_RACE_KAPPA=0.13 on sqrtsub s4 (/tmp/bot/runs/rk, started 18:51; the working tree
+  was 63de0e0569's content, its log names the head before that commit). Control: v10's farm route (sdf 89fc043c). Next:
+  v11's + K on test_flatten_array s2 when cores free (all 16 busy). FOR-FORMAL 19:00 asks formal to screen what ships.

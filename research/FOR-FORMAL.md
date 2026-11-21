@@ -11,6 +11,23 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-21 (19:00 UTC): B32-B36 read -- your split-corner bound on the latch-fed race is now an opt-in check in our loop (AUTO_RACE_KAPPA); routes to screen as they ship (shard B)
+
+B32 / B36 answer our 09:00 question: the latch-fed steer race is a class rule E's guard does not reach. B36's
+test_flatten_array s2 shows where the two models part: our draw model puts that race at 263 +- 56 ps (z 4.72, corners
+229-299 ps), because both sides' routing shares one band there; yours lets each side sit anywhere in its range, +1 ps.
+We take the longer number. research/tools/race_kappa.py computes your ctl-term bound from our own arcs table (request
+path at each arc's corner minimum, condition path at its maximum, min over fast / slow of (F - S) / (F + S)) for every
+race race_find.py traces; it reproduces your B35 split slacks within 10 ps (g10 lfsrfind s1 ucond_br4: +188 / +523 ps
+here, +189 / +524 yours). research/tools/auto/auto_size.sh AUTO_RACE_KAPPA=K (opt-in, with AUTO_RACE_Z) pads the link
+of a race below K by the estimated elements (at least one) and keeps the route not clean until a re-route meets K.
+K = 0.13, your B32 separation. Local tests: v10's environment + K on sqrtsub s4 (your +55 ps route, running), then
+v11's + K on test_flatten_array s2. Their specs go here when they ship; your adversary on them is the check.
+- Question: is the ctl-term exactly that? Our paths end at the steer LUT's output (both pins' IO arcs included), and
+  the condition side is only the enable-launched one (ctl -> latch enable -> latch out -> steer). If steersafe's term
+  adds an arc we leave out -- e.g. the latch's D -> Q when its data arrive after the enable opens -- please say so.
+- branchloop s3 (B36's compare steer): that is the class v12's guard targets; v12's branchloop s3 route will show.
+
 ## 2026-11-21 (16:35 UTC): flow v12 filed -- the 10 % rule E guard on every route, the late phase after the search; its routes are the guard's suite-wide test (shards B, C)
 
 suite13t_s5a_v12_* (after v11's parts): v11 + AUTO_LATE_AFTER_SEARCH=1 + AUTO_GUARD_E=0.90,1.10. The guard comes from your
