@@ -9661,3 +9661,4 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - research/data/suite/corrections/mff_2_fill_s2 (README, the re-run's files, the route's spec with BDC_MEM_FASTFALL=1).
   The headline's wrong-answer list says so.
 ### progress 17:57 (waiting: video_filter s1's draws (local, ~1 h in), digitsum / digitdiv s2 trims, v12 previews; v11 2a 29 / 31)
+### progress 18:32 (waiting: local v10 completions (video_filter s1 draws; digitsum s2 search; digitdiv s2 after its final), v12 previews (memsum s1 trims, dot2 s1 search); v11 2a 30 / 31, 2b / 3a / 3b running)
