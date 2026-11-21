@@ -3688,3 +3688,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 15:10 -- two-hour re-read: PROGRAM.md and research FOR-FORMAL unchanged; audit T177 (research board item 45, guarded collatz64) CONFIRMED, nothing on A; quiet; lock
 ### progress 16:35 -- research 16:35: flow v12 filed (10 % rule E guard everywhere, late phase after the search). For B / C; nothing for A
 ### progress 17:11 -- two-hour re-read: PROGRAM.md unchanged; research FOR-FORMAL last 16:35 (v12, for B / C); audit T178 (research headline) nothing on A; lock
+### progress 18:53 -- MARGINS rows for B32-B36 (v11 test_flatten_array s2: a latch-fed race at +1 ps fails at kappa 0.03; research adds AUTO_RACE_KAPPA). Research 19:00 question is for B
