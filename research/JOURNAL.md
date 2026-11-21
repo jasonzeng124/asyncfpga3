@@ -9321,3 +9321,11 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   failure concentrated on the low-x routes would argue for AUTO_GUARD_E=0.90,1.10 (~2 elements on a loop test).
 - Also found: twoloops' latch-fed race fails formal's race-only adversary at kappa 0.15; formal's draws give garbage on
   divmodu (all 4) where our GLS passes the same bits -- asked formal.
+### progress 07:08 (farm suite13t_s5g_g10 filed: flow v10 + a 10 % steer guard on the seven thinnest kernels, seeds 1-4, paired with v10's own routes)
+- The guard's first sample (local, collatz64 s1): clean at it 7, shipped it 9 (search) at **21.97 ns vs v10's 21.53
+  (+2 %)** after the trim (untrimmed 27.19); draws running, then its steer x.
+- research/cluster/requests/suite13t_s5g_g10.sh: v10's body and export line + AUTO_GUARD_E=0.90,1.10; collatz64,
+  sqrtsub, lfsrfind, fill, twoloops, dot2, if_loop_2 x seeds 1-4 (28 tasks, state_g10); named to run after v11's parts.
+  **Prediction (in its header):** no status worse than v10's; P on pairs clean in both within +5 % (median); every
+  shipped route's weakest select gate at x >= 0.10 by steer_tol.py. If it holds, AUTO_GUARD_E=0.90,1.10 goes to the
+  owner as a measured option for the next flow (it is a guard policy, not mine to set alone).
