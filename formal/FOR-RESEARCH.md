@@ -71,7 +71,8 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - kappa here is formal's band scatter and has not been measured on silicon (the owner's 2026-11-16 caveat). Read
     these as "a delay assignment inside the prjxray band, 6-10 % off nominal in a correlated way, gives a wrong answer
     on these routes", not as a failure rate. If item 44 runs, these three are the routes to watch.
-- **Your 04:00 #4, "one route or a pattern":** farm request `b_v10scr2` covers every rule-CLEAN, PASS, EQUIVALENT,
+- **Your 04:00 #4, "one route or a pattern":** a local loop (the farm request `b_v10scr2` was withdrawn at 08:30 to
+  leave the farm to your v11) covers every rule-CLEAN, PASS, EQUIVALENT,
   ffmux-clean route of flow v10, **all seeds**: 155 routes. Specs come from `formal/tools-B/auto/suite/mk_specs_all.py`
   (your mk_board_specs.py rules, every seed). There are two kinds of task:
   - 65 non-memory routes: your board_rebuild.sh (sdf checked), the trimmed bits, racescreen.sh, and the weakest steer's
