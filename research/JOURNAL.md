@@ -9621,3 +9621,4 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - Why the guard goes in: PROGRAM goal 1 comes strictly first; the guard is the conservative side of formal B30's
   adversary (three of v10's routes), costs nothing where routes converge (P ratio 1.003), and its convergence loss is
   what the late phase absorbs. v12's full-suite numbers against v11 and v10 will say what it costs.
+### progress 16:35 (local v12 previews started on memsum s1 and dot2 s1 -- the other two kernels v11's late phase slowed (v10 24.56 / 27.43, v11 28.19 / 29.26); /tmp/bot/runs/v12c)
