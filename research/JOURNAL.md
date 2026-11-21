@@ -9641,3 +9641,9 @@ xorshift 16.35 ns (items 42 / 43, strict gate 35 / 35 each); guard P ratio 1.003
 Does NOT show: anything on silicon (items 42-45 queued); v11's or v12's suite-wide effect (running / queued).
 Next: v10 table + the three local completions; v11 results -> headline and its resumes; v12 when it runs; the board.
 ### progress 17:14 (waiting: video_filter s1 (local v10 completion) in its draws; digitsum / digitdiv s2 in trim round 2; v12 previews early; v11 1b 30 / 31, 2a / 2b / 3a running)
+### progress 17:15 (flow v11 interim, 82 results vs v10 same (kernel, seed): 63 identical routes, 8 newly CLEAN, 6 slower (+22 %), 4 PNR timeouts)
+- Newly CLEAN (v10 NOT CLEAN or none): brhash s1, cmpchain s1, fold64 s2, gather s2, nested s1, test_loop_free s1,
+  test_memory_2 s1, vector_rescale s1. Clean in both but on a different route: P ratio 1.22 over 6 (countloop s1 1.21,
+  varshift s1 1.26, fill s2 1.28, collatz s2 1.38) -- the late phase pre-empting v10's search, the cost v12's
+  AUTO_LATE_AFTER_SEARCH removes. PNR-TIMEOUT at it 0: fill / gather / spmv / test_stdint s1 (reruns filed).
+- So far v11 trades ~20 % P on a handful of kernels for 8 newly clean (kernel, seed); v12 is filed to keep both.
