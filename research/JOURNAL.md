@@ -9660,3 +9660,4 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 ### progress 17:48 (mff_2's fill s2 "FAIL" was also a draw that never ran: re-run on the byte-identical route PASS 5 / 5 -- the only real wrong answer since T169 is the guarded sqrtsub s2 on its NOT CLEAN route)
 - research/data/suite/corrections/mff_2_fill_s2 (README, the re-run's files, the route's spec with BDC_MEM_FASTFALL=1).
   The headline's wrong-answer list says so.
+### progress 17:57 (waiting: video_filter s1's draws (local, ~1 h in), digitsum / digitdiv s2 trims, v12 previews; v11 2a 29 / 31)
