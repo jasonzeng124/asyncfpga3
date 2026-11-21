@@ -3673,3 +3673,6 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 21:08 -- two-hour re-read: PROGRAM.md unchanged; research FOR-FORMAL last entry 20:45 (answered by A34); audit added T172 (research trimmed lfsrfind, CONFIRMED; nothing on A); lock
 ### progress 21:29 -- research 21:35: cache_v11 takes brhash / nested (A34); BD_SYMTRIM symmetric lines (opt-in). trimcheck.sh / lutdep.py / chainck.py accept a symmetric-line entry (1010 -> 1100, the other pin, must be the side net). Regression and negative control unchanged. Not tested on a real symmetric trim yet
 ### progress 23:01 -- quiet since 21:35; day summary sent to the owner; lock
+
+## Session 2026-11-20 (A, from 07:10 UTC), continued past midnight
+### progress 00:04 -- quiet since 21:35; lock
