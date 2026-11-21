@@ -1,0 +1,72 @@
+corner_audit /tmp/task/runs/ca/su_nested_loop_3_4/seed1
+  corner: corner_sdf: /tmp/task/runs/ca/su_nested_loop_3_4/seed1/pnr/soak_xray.sdf -> /tmp/task/runs/ca/su_nested_loop_3_4/rule_0.31/soak.sdf
+            band 0.31, cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, 208 instance(s) listed (0.2), all in the SDF
+            INTERCONNECT default (0.31)                       29167 arcs
+            INTERCONNECT into listed instance (0.2)             250 arcs
+            IOPATH CARRY4 (1)                                  2476 arcs
+            IOPATH SELMUX2_1 (1)                                879 arcs
+            IOPATH SLICE_FFX (1)                               1958 arcs
+            IOPATH default (0.31)                             54649 arcs
+            IOPATH listed instance (0.2)                        250 arcs
+            SETUPHOLD (FAST_MIN, as gen.py)                    9786 arcs
+  nextpnr: UNSTAMPED
+  guards: rule E/J 0.970*req vs 1.030*sel; rule A/F/H/I/K/L guard max(0.030*t_data, 50 ps); slack 0
+  rule A data launches from constant drivers: DROPPED (a constant never transitions)
+  audits exit: tighten 1, skew 0, arb_fork 0
+  per-link cost at this corner: c_lo 179 ps (cheapest link-to-link step on the route), lut_lo 61 ps; chain mean steps 291-457 ps
+  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band 0.31, CARRY4/F7F8/FF at --cell; shortened lines priced at own mean step; selects sized by E/M; floor file none
+  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the select's own channel request is bounded by that request (research/data/sizerule/steerE.md)
+  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); research/data/muxsel/)
+  join-aware: CA_JOINAWARE=1: 5 operator(s) sized at their data's captures (A'j: latch data vs its enable, select vs its gate's request; C-elements wait for their last input; join credit), their A' rows reported as 'a'; 1 kept on A' (rows 'j' say why)
+  bench capture: CA_BENCHCAP=1: in A'j, a D / CE pin of a flip-flop on a BUFG clock is captured by that clock >= 19000 ps after the operator's request first reaches a flop on it (gen_bench.py's 2-flop synchronisers at <= 100 MHz, less 1 ns); an input of the operator's own join is not data
+negative at this corner: 16
+  a   -1401  bridge_i.udut.uaddi3    4 links   1245 ps   req  1840  peak  3180  guard   61  margin  -1401   PAD to 8 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UADDI3
+  a   -1369  bridge_i.udut.uaddi4    4 links   1302 ps   req  2101  peak  3404  guard   66  margin  -1369   PAD to 8 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UADDI4
+  a   -1105  bridge_i.udut.uaddi1    4 links   1165 ps   req  2248  peak  3282  guard   71  margin  -1105   PAD to 8 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UADDI1
+  a    -830  bridge_i.udut.uaddi1 4 links  from bridge_i.udut.ulink_n27__3.ctl.u.u/O6: req 2248 (0x)  data 2989 (1x, bridge_i.udut.uaddi1.$auto$alumacc.cc:512:repl
+            depends on: BRIDGE_I_UDUT_UADDI1
+  a    -730  bridge_i.udut.uaddi0    3 links    790 ps   req  1641  peak  2321  guard   50  margin   -730   PAD to 6 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UADDI0
+  D    -556  bridge_i.udut.ucond_br3 (bd_steer) req   537  sel  1043  guard   50  margin   -556   PAD by 2 bd_delay element(s) (376 ps ea) -- VIOLATION
+  a    -534  bridge_i.udut.uaddi4 4 links  from bridge_i.udut.ulink_n7__0.ctl.u.u/O6: req 2625 (1x)  data 3067 (1x, bridge_i.udut.uaddi4.$auto$alumacc.cc:512:repla
+            depends on: BRIDGE_I_UDUT_UADDI4
+  D    -497  bridge_i.udut.ucond_br4 (bd_steer) req   237  sel   684  guard   50  margin   -497   PAD by 2 bd_delay element(s) (376 ps ea) -- VIOLATION
+  a    -484  bridge_i.udut.ucmpi0   26 links  10283 ps   req 12162  peak 12317  guard  329  margin   -484   PAD to 28 -- VIOLATION
+            depends on: BRIDGE_I_UDUT_UCMPI0
+  A    -476  bridge_i.udut.umux1 [peers no common source reaches: 32] 3 links  from bridge_i.udut.ulink_n22.ctl.u.u/O6: req 1851 (1x)  data 2260 (1x, bridge_i.udut
+            depends on: BRIDGE_I_UDUT_UMUX1
+  D    -475  bridge_i.udut.ucond_br5 (bd_steer) req   282  sel   707  guard   50  margin   -475   PAD by 2 bd_delay element(s) (376 ps ea) -- VIOLATION
+  B    -308  bridge_i.udut.umem_controller5_uport.umem1.uram: clk 4288 ps, latest payload DIADI8 3459 ps, t_su 1137 -> margin -308 ps  VIOLATION
+            depends on: BRIDGE_I_UDUT_UMEM_CONTROLLER5_UMEM1_USETUP
+  B    -210  bridge_i.udut.umem_controller5_uport.umem0.uram: clk 4424 ps, latest payload DIADI6 3497 ps, t_su 1137 -> margin -210 ps  VIOLATION
+            depends on: BRIDGE_I_UDUT_UMEM_CONTROLLER5_UMEM0_USETUP
+  B    -169  bridge_i.udut.umem_controller3_uport.umem1.uram: clk 4313 ps, latest payload DIADI13 3345 ps, t_su 1137 -> margin -169 ps  VIOLATION
+            depends on: BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM1_USETUP
+  A     -71  bridge_i.udut.uaddi0 3 links  from bridge_i.udut.ulink_n34.ctl.u.u/O6: req 2198 (1x)  data 2203 (1x, bridge_i.udut.uaddi0.$auto$alumacc.cc:512:replace
+            depends on: BRIDGE_I_UDUT_UADDI0
+  j     -71  bridge_i.udut.uaddi0 joined: not applied, keeps A': its data reaches 20 input(s) that are not a latch's data or a select (umem_controller3_uport.umem0
+            depends on: BRIDGE_I_UDUT_UADDI0
+proposal: 19 line(s) changed, kernel links 201 -> 179; verify: 0 sized constraint(s) below slack
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM0_USETUP   7 ->   4   bound by B bridge_i.udut.umem_controller3_uport.umem0.uram (325 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM0_UCO  10 ->   9   bound by C bridge_i.udut.umem_controller3_uport.umem0.uco (273 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM1_USETUP   4 ->   5   PAD 4->5 for B bridge_i.udut.umem_controller3_uport.umem1.uram (-169 ps)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER3_UMEM1_UCO  11 ->   8   bound by C bridge_i.udut.umem_controller3_uport.umem1.uco (74 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER4_UMEM0_USETUP   5 ->   3   bound by B bridge_i.udut.umem_controller4_uport.umem0.uram (114 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER4_UMEM0_UCO  11 ->   8   bound by C bridge_i.udut.umem_controller4_uport.umem0.uco (176 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER4_UMEM1_USETUP   6 ->   4   bound by B bridge_i.udut.umem_controller4_uport.umem1.uram (243 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER4_UMEM1_UCO  11 ->   9   bound by C bridge_i.udut.umem_controller4_uport.umem1.uco (255 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER5_UMEM0_USETUP   3 ->   5   PAD 3->5 for B bridge_i.udut.umem_controller5_uport.umem0.uram (-210 ps)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER5_UMEM0_UCO  11 ->   9   bound by C bridge_i.udut.umem_controller5_uport.umem0.uco (277 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER5_UMEM1_USETUP   3 ->   5   PAD 3->5 for B bridge_i.udut.umem_controller5_uport.umem1.uram (-308 ps)
+  BD_SZ_BRIDGE_I_UDUT_UMEM_CONTROLLER5_UMEM1_UCO  10 ->   8   bound by C bridge_i.udut.umem_controller5_uport.umem1.uco (364 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UCONTROL_MERGE0_OLINK   2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UMUX1                  3 ->   6   PAD 3->6 for A'm bridge_i.udut.umux1 (-476 ps)
+  BD_SZ_BRIDGE_I_UDUT_UMUX2                  2 ->   1   floor 1
+  BD_SZ_BRIDGE_I_UDUT_UADDI0                 3 ->   4   PAD 3->4 for A' bridge_i.udut.uaddi0 (-71 ps)
+  BD_SZ_BRIDGE_I_UDUT_UCMPI0                26 ->  22   bound by A'j bridge_i.udut.ucmpi0 (222 ps left)
+  BD_SZ_BRIDGE_I_UDUT_UCMPI1                 5 ->   2   bound by A'j bridge_i.udut.ucmpi1 (129 ps left)
+  BD_SZ_BRIDGE_I_UDUT_ULINK_N35__2           3 ->   1   floor 1
+wrote /tmp/task/runs/ca/su_nested_loop_3_4/rule_0.31/{report.txt, lines.tsv, sizes.vh, verify.txt, soak.sdf}
