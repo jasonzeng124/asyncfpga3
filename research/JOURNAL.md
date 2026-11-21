@@ -9520,3 +9520,15 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - **The paired guard test suite13t_s5g_g10 is already running: 19 / 28 tasks finished** (the farm took it before most
   of v11). v11: 1a 30 / 31, 1b running, 2a submitted.
 - The v10 headline goes up when 4a_r1_r2 and the three local completions are in.
+### progress 13:17 (the guard's paired farm test, 19 / 28 tasks: no measurable period cost, but two (kernel, seed) pairs lose convergence -- one of them with a real wrong answer on its NOT CLEAN route; my "no status worse" prediction is FALSIFIED)
+- suite13t_s5g_g10 vs flow v10, same (kernel, seed): 15 pairs clean in both, **geomean P ratio 0.991** (range 0.62-1.21,
+  churn) and latency-sum ratio 0.992 -- the guard costs no measurable speed, as the static estimate (+0.5 %) said.
+- **Convergence:** sqrtsub s2 (v10 CLEAN 21.66 ns) and fill s4 (v10 CLEAN) end NOT CLEAN under the guard; twoloops s2
+  goes the other way (NOT CLEAN -> CLEAN, but at 35.26 ns vs 15.99). The guard adds constraints, and on some seeds the
+  finish phase's 6 raise-only routes do not satisfy them all.
+- **sqrtsub s2 (guarded, NOT CLEAN, least short it 8: one rule-H row, ulink_n_falseResult_7's stage[1] capture, -133 /
+  -140 ps): draw 10204 FAILS 7 / 13** (ran fully: 1100 cycles, monitor output, no OOM; draws 10201-10203 PASS). The rule
+  flagged exactly this route as short and a draw found the failure -- the rule did its job, and the headline policy
+  (no pass on a NOT CLEAN route) keeps it out; under that policy sqrtsub would be FAIL in this test.
+- So: the guard's period cost is nil on average, but it costs convergence on some seeds; with v11's late phase (which
+  cleans the finish phase's leftovers) it might not. Full 28 pending; the next-flow decision waits for it.
