@@ -195,10 +195,16 @@ build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); f
     echo "it $i: the kept placement failed ($(grep -m1 -E 'ERROR|FAILED' "$HWI/build.log" 2>/dev/null | cut -c1-120)); built fresh" >> "$O/log.txt"
     rm -f "$O/placefrom_$i.txt"; rm -rf "$HWI" "$RUNS/r/${N}_$i"
   fi
+  # AUTO_OVERBUILD_LATE (opt-in): the late finish phase's routes are built with BD_SYMTRIM (symtrim_from.txt: its first)
+  local SYMD=""
+  if [ -f "$O/symtrim_from.txt" ] && [ "$i" -ge "$(cat "$O/symtrim_from.txt")" ] \
+     && { [ ! -f "$O/overbuild_to.txt" ] || [ "$i" -le "$(cat "$O/overbuild_to.txt")" ]; }; then
+    SYMD="BD_DEFINES=${BD_DEFINES:+$BD_DEFINES }-DBD_SYMTRIM"
+  fi
   for a in $(seq 0 $(( ${AUTO_SEED_TRIES:-3} - 1 ))); do
     s=$s0; [ "$a" -gt 0 ] && s=$((S + 100 * a)); [ "$a" -gt 0 ] && [ "$s" = "$s0" ] && s=$((S + 100 * (a + 1)))
     [ "$a" -gt 0 ] && rm -rf "$HWI" "$RUNS/r/${N}_$i"
-    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s" "$VEC" BDC_AUTO=1 ${XENV:-} ${ANENV} > "$O/it_$i.log" 2>&1
+    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s" "$VEC" BDC_AUTO=1 ${XENV:-} ${ANENV} ${SYMD:+"$SYMD"} > "$O/it_$i.log" 2>&1
     tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
     if [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$HWI/${D}_routed.json" ]; then
       echo "$s" > "$O/seed_$i.txt"; [ "${AUTO_PLACE_KEEP:-0}" = 1 ] && place_dump "$i"
@@ -418,8 +424,31 @@ trim_check() {  # trim_check I (AUTO_OVERBUILD, finish phase): 0 if route I is m
 overbuild_args() {  # overbuild_args I: AUTO_OVERBUILD=H (opt-in): at the switch to the finish phase every trimmable line
   # of route I (trim_lines.py --list) is built H elements longer than max(sizes, proposal); see ratchet.py --overbuild
   [ -n "${AUTO_OVERBUILD:-}" ] || return 0
+  [ -n "${AUTO_OVERBUILD_LATE:-}" ] && return 0   # late mode: the overbuild comes after v10's finish phase (late_switch)
   python3 "$T/trim_lines.py" --list "$RUNS/hw/${N}_$1/${D}_routed.json" > "$O/trimmable_$1.txt" 2>/dev/null || return 0
   echo "--overbuild $AUTO_OVERBUILD $O/trimmable_$1.txt"
+}
+late_switch() {  # late_switch I RULE_VH NEG_TSV (AUTO_OVERBUILD_LATE=M, opt-in; AUTO_OVERBUILD=H): v10's finish phase ended at
+  # route I not clean; M more finish routes follow, built with BD_SYMTRIM (every delay line trimmable, the symmetric ones
+  # included) and every line of route I's sizes with a length (>= 1) built H longer -- the latch-fed race links
+  # race_check found excepted (race_lines.txt: their request lines keep raise-only sizing, measured on every route) --
+  # a route counting clean when the trim step alone makes it so, the shipped one trimmed back first (final()).
+  # Why late: loops that converge in v10's own finish phase keep v10's routes and periods exactly; only the loops v10
+  # leaves NOT CLEAN take the overbuild (sym2 ipow s1: overbuild from the switch cost +16 % P where v10 converged).
+  local i=$1
+  python3 - "$O/sizes_$i.vh" "$O/race_lines.txt" > "$O/trimmable_$i.txt" <<'PY'
+import os, re, sys
+race = set(l.strip() for l in open(sys.argv[2]) if l.strip()) if os.path.exists(sys.argv[2]) else set()
+for l in open(sys.argv[1]):
+    m = re.match(r"`define\s+(\S+)\s+(\d+)", l)
+    if m and int(m.group(2)) >= 1 and m.group(1) not in race:
+        print("%s\ttrimmable\t%s" % (m.group(1), m.group(2)))
+PY
+  python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$2" "$3" "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only \
+    --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") --overbuild "$AUTO_OVERBUILD" "$O/trimmable_$i.txt" > /dev/null
+  echo "$((i + 1))" > "$O/overbuild_from.txt"; echo "$((i + 1))" > "$O/symtrim_from.txt"
+  OB=$((i + 1)); IMAX=$((i + AUTO_OVERBUILD_LATE)); echo "$IMAX" > "$O/overbuild_to.txt"
+  echo "phase 3 (late overbuild +$AUTO_OVERBUILD on $(grep -c . "$O/trimmable_$i.txt") line(s), BD_SYMTRIM) from it $((i + 1)), at most $AUTO_OVERBUILD_LATE route(s)" >> "$O/log.txt"
 }
 race_check() {  # race_check I (AUTO_RACE_Z): the latch-fed steer races of route I in the draw model (research/tools/
   # race_find.py over xray_delay.py's corner table, 20 000 points per race); research/tools/auto/race_pad.py raises the
@@ -474,9 +503,10 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
     local TB=""
     if [ -n "${AUTO_OVERBUILD:-}" ] && [ "${AUTO_OVERBUILD_TRIMBACK:-1}" = 1 ] && [ ! -s "$O/trim_$i.txt" ]; then
       local sw ob
-      sw=$(grep -oP '^phase 2 \(raise-only\) from it \K[0-9]+' "$O/log.txt" | tail -1)
+      sw=$(cat "$O/overbuild_from.txt" 2>/dev/null || grep -oP '^phase 2 \(raise-only\) from it \K[0-9]+' "$O/log.txt" | tail -1)
       ob=$O/trimmable_$((sw - 1)).txt
-      if [ -n "$sw" ] && [ "$i" -ge "$sw" ] && [ -s "$ob" ]; then
+      if [ -n "$sw" ] && [ "$i" -ge "$sw" ] && [ -s "$ob" ] \
+         && { [ ! -f "$O/overbuild_to.txt" ] || [ "$i" -le "$(cat "$O/overbuild_to.txt")" ]; }; then
         awk -F'\t' '$2 == "trimmable" {print $1}' "$ob" > "$O/trimback_allow_$i.txt"
         python3 - "$O/sizes_$i.vh" "$AUTO_OVERBUILD" "$O/trimback_allow_$i.txt" > "$O/trimback_floor_$i.txt" <<'PY'
 import re, sys
@@ -739,6 +769,8 @@ if [ -n "$RES" ]; then
   for f in "$O"/ratchet_*.txt; do [ -f "$f" ] || continue; k=${f##*/ratchet_}; k=${k%.txt}
     case $k in *[!0-9]*) continue;; esac; [ "$k" -gt "$i" ] && i=$k; done
   grep -q '^phase 2 (raise-only) from it' "$O/log.txt" && { ph=2; IMAX=$((MAXIT + FIN)); }
+  [ -f "$O/overbuild_from.txt" ] && OB=$(cat "$O/overbuild_from.txt")
+  if [ -n "${OB:-}" ] && [ -f "$O/overbuild_to.txt" ]; then IMAX=$(cat "$O/overbuild_to.txt"); fi
   for k in $(seq 1 "$i"); do
     [ -f "$O/ratchet_$k.txt" ] || continue
     read -r _ _ _ _ _ ng _ _ _ _ <<< "$(head -1 "$O/ratchet_$k.txt")"; [ "$ng" = 0 ] && LC=$k
@@ -758,9 +790,15 @@ if [ -n "$RES" ]; then
         ph=2; IMAX=$((MAXIT + FIN))
         python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$O/rule_$i.vh" "$O/neg_$i.txt" \
            "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") $(overbuild_args "$i") > /dev/null
-        echo "phase 2 (raise-only) from it $((i + 1))" >> "$O/log.txt"
+        obs=""; [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${AUTO_OVERBUILD_LATE:-}" ] && obs=" (overbuild +$AUTO_OVERBUILD on trimmable lines)"
+        echo "phase 2 (raise-only) from it $((i + 1))$obs" >> "$O/log.txt"
+        [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${AUTO_OVERBUILD_LATE:-}" ] && { OB=$((i + 1)); echo "$OB" > "$O/overbuild_from.txt"; }
       fi
-    elif [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then STOP=1; fi
+    elif [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then
+      if [ -n "${AUTO_OVERBUILD_LATE:-}" ] && [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${OB:-}" ] && [ -f "$O/rule_$i.vh" ]; then
+        late_switch "$i" "$O/rule_$i.vh" "$O/neg_$i.txt"
+      else STOP=1; fi
+    fi
   fi
   [ -f "$O/sizes_$((i + 1)).vh" ] || STOP=1
 fi
@@ -772,7 +810,7 @@ while [ -z "$STOP" ]; do
   # steer races (race_find.py: the draw model's margin per race); one below Z sd pads its link and the route is not clean
   # With AUTO_OVERBUILD and AUTO_RACE_KEEP (opt-in) a finish route is race-checked even when the rule finds it short as
   # built: the trim step may make it clean (below), and its races are then the as-built ones (their lines kept).
-  [ -n "${AUTO_RACE_Z:-}" ] && { [ "$(nneg "$RUNS/ca/${N}_$i/rule")" = 0 ] || { [ "$ph" = 2 ] && [ -n "${AUTO_OVERBUILD:-}" ] \
+  [ -n "${AUTO_RACE_Z:-}" ] && { [ "$(nneg "$RUNS/ca/${N}_$i/rule")" = 0 ] || { [ -n "${OB:-}" ] && [ "$i" -ge "$OB" ] \
     && [ "${AUTO_RACE_KEEP:-0}" = 1 ]; }; } && race_check "$i"
   # AUTO_FINISH_SEEDS (opt-in): a finish route that is not clean is drawn again on more seeds; a clean one is adopted
   [ "$ph" = 2 ] && [ "${AUTO_FINISH_SEEDS:-1}" -gt 1 ] && finish_draws "$i"
@@ -790,7 +828,7 @@ while [ -z "$STOP" ]; do
   # AUTO_OVERBUILD (opt-in; needs AUTO_TRIM=1 to ship the trims): a finish route the rule finds short as built is clean
   # if the trim step alone makes it so (the trims are recorded; final() applies them to the route it ships)
   # A route with a latch-fed race below AUTO_RACE_Z (an "R" row, race_pad.py) is not clean, whatever the trims do.
-  if [ "$neg" != 0 ] && [ "$ph" = 2 ] && [ -n "${AUTO_OVERBUILD:-}" ] \
+  if [ "$neg" != 0 ] && [ -n "${OB:-}" ] && [ "$i" -ge "$OB" ] \
      && ! grep -q '^R	' "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" 2>/dev/null && trim_check "$i"; then
     neg=0; echo "it $i clean after the trim step (AUTO_OVERBUILD)" >> "$O/log.txt"
   fi
@@ -804,9 +842,15 @@ while [ -z "$STOP" ]; do
       # the next sizes without the lowering phase 1's last ratchet did
       python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
          "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") $(overbuild_args "$i") > /dev/null
-      echo "phase 2 (raise-only) from it $((i + 1))${AUTO_OVERBUILD:+ (overbuild +$AUTO_OVERBUILD on trimmable lines)}" >> "$O/log.txt"
+      obs=""; [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${AUTO_OVERBUILD_LATE:-}" ] && obs=" (overbuild +$AUTO_OVERBUILD on trimmable lines)"
+      echo "phase 2 (raise-only) from it $((i + 1))$obs" >> "$O/log.txt"
+      [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${AUTO_OVERBUILD_LATE:-}" ] && { OB=$((i + 1)); echo "$OB" > "$O/overbuild_from.txt"; }
     fi
-  elif [ -z "$brk" ] && [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then brk=1; fi
+  elif [ -z "$brk" ] && [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then
+    if [ -n "${AUTO_OVERBUILD_LATE:-}" ] && [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${OB:-}" ]; then
+      late_switch "$i" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv"
+    else brk=1; fi
+  fi
   # ratchet_I.txt LAST: its presence says iteration I is complete (sizes_I+1, the pins, a phase switch) for AUTO_RESUME
   cp "$O/pinned.txt" "$O/pinned_$i.txt" 2>/dev/null || : > "$O/pinned_$i.txt"
   echo "$st" > "$O/ratchet_$i.txt"
@@ -909,6 +953,10 @@ fi
 # loop's own; otherwise the loop's route ships unchanged. Farm nsearch1 (no-list flow, 18 finished loops): countloop
 # 26.60 -> 20.92, 22.15 -> 21.37, 25.80 -> 20.45 ns (s4 unchanged); xorshift / collatz unchanged (their cycles sit at
 # the rising-only floor, which storage cannot move); every draw passing.
-[ "${AUTO_SEARCH:-1}" = 1 ] && search_phase
+if [ -n "${AUTO_OVERBUILD_LATE:-}" ] && [ -n "${OB:-}" ] && [ "$X" -ge "$OB" ]; then
+  echo "search: skipped (the shipped route it $X is from the late overbuild phase)" >> "$O/log.txt"
+else
+  [ "${AUTO_SEARCH:-1}" = 1 ] && search_phase
+fi
 echo "$RES3" | tee -a "$O/result.txt"
 exit "$RC"
