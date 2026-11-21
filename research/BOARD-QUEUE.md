@@ -109,12 +109,19 @@ varies by build (its header carries a path), so the check is on the fasm. nextpn
 
        cells/verify/toolchain.sh    # must pass (sha256 6e5d224472232d5d)
        research/tools/suite/board_rebuild.sh research/data/suite/board/collatz_v10_s1.spec; echo "exit $?"   # must be 0
-       cd cells && CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_col_v10.tsv
+       cd cells
+       hw/board.sh ${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb} hw/xsdb_bench_vec.tcl \
+         build/hw/collatz_bench_gen/collatz_bench_gen.bit ../research/data/eventgraph/gate/col18.hex > build/hw/vec_col_v10.log 2>&1
+       python3 ../research/tools/suite/board_vec_judge.py ../research/data/eventgraph/gate/col18.exp build/hw/vec_col_v10.log; echo "exit $?"
+       CLK=0x00100C00 hw/loop_cost.sh collatz && cp build/hw/loop_cost_collatz.tsv build/hw/lc_col_v10.tsv
        (item 39's commands for build/hw/lc_col_auto.tsv, if not already run; run them AFTER the line above has been
         copied aside: item 39's build_bench.sh writes the same cells/build/hw/collatz_bench_gen/)
        python3 ../research/tools/loop_cost_judge.py collatz build/hw/lc_col_v10.tsv build/hw/lc_col_auto.tsv; echo "exit $?"
 
-   Pass: `=== PASS ... ===`, exit 0 (every point's oracle derived from the C, on both builds). Predicted ratio over item
+   Pass: board_vec_judge.py `PASS 17/17`, exit 0 (the gate's own 17 vectors, judged by the gate's rules against the
+   C: the same stimulus the 35 simulated runs above passed; added 05:28 with cells/hw/xsdb_bench_vec.tcl, tested on a
+   mock bench only -- an ERROR line or exit 2 from it is the script's failure, not the kernel's: send the log) AND
+   loop_cost_judge.py `=== PASS ... ===`, exit 0 (every point's oracle derived from the C, on both builds). Predicted ratio over item
    39 ~1.31 (18.99 -> 14.48 ns in simulation); the simulation runs ~8 % slow per iteration against the August board
    (research/SIM-VS-BOARD.md), so expect ~13.3 ns. A FAIL with item 39 passing is the first silicon counterexample to
    the proved-rewrite + trim flow: send both logs and build/hw/_loop_collatz_*.log.
