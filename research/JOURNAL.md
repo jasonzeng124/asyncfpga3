@@ -9128,3 +9128,20 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   2a_r1 3 / 7; 1a_r1b, 5sv_r1, 1b_r1_r2 submitted; 2b_r1, v11_1a.., mff, sibb waiting for cores.
 - Local: late cmpchain s1 (the late phase's own test) is in its final trim rounds then draws; sym2 factorial / nested /
   spmv in final / trim-back.
+### progress 03:32 (board prep: flow v10's collatz eq2 and xorshift plain-move routes rebuild byte for byte from one command; strict gate and steer screen running)
+- With v10 3a / 4a in, both kernels have their **4 seeds** under flow v10 (formal's proved loop-test rewrites, trim,
+  race check), all PASS 4 / 4 on rule-CLEAN routes: **collatz (eq2)** P 14.48 / 15.58 / 15.84 / 16.42 ns (s1-s4; mean
+  15.58), **xorshift (plain move)** 16.35 / 15.22 / 16.36 / 15.07 (mean 15.75). Board items 39 / 41 (flow v3) are 18.99 /
+  20.11 ns; the hand xorshift (item 37) 16.49.
+- **research/tools/suite/board_rebuild.sh SPEC** (new): the flow's own build (lane2.sh LANE_NORUN=1: the proved MLIR,
+  the loop's sizes / seed / search structure), the recorded trims by LUT INIT, the bitstream; exits 1 unless the
+  route's sdf AND the trimmed fasm are the ones SPEC names, then puts the bit where cells/hw/loop_cost.sh reads it.
+  Specs: research/data/suite/board/{collatz,xorshift}_v10_s1.spec (+ sizes / trims). Checked here: xorshift s1 ->
+  sdf fd959b30, trimmed fasm 78aa6ac3 (the farm's route); collatz s1 -> sdf 0f050078, trimmed fasm 6ef8e077 (the bits
+  formal's A31 checked). **Negative control:** the xorshift spec with SEED=2 is refused (sdf 5997994a, exit 1). The
+  .bit's md5 differs between two builds of the same fasm (identical frames; the header carries the path), so the
+  check is on the fasm, not the bit.
+- Seed 1 for both: collatz s1 is the fastest of its four (the one formal's A31 proves from the C to the token graph);
+  xorshift s1 is the slower of the middle two. Running: the strict gate (GATE_RUNTS=fail, x / RAMB18 fail) at worst /
+  SLOW_MAX / FAST_MIN + 32 draws each (K 42101-42132 / 42201-42232), and formal's B24 steer screen (claude/formal
+  36ba04ea34) on both trimmed routes. Items get written when these are in.
