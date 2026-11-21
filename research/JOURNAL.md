@@ -9829,3 +9829,7 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - Race pair for the board: the unpadded half (v11 test_flatten_array s2, formal's +1 ps race) rebuilt byte for byte from
   research/data/suite/board/race_pair/unpadded/ (sdf e82284b6, fasm 77d4a54c); the padded half waits for the local
   run's draws.
+### progress 23:13 (AUTO_TRIM_PORTS, fourth same-route test, mff if_loop_2 s1: P 29.79 -> 25.49 ns (-14.4 %), latency median 2997 -> 2562 ns, PASS 4 / 4 rule-CLEAN -- over the four FASTFALL-port routes: P ratio 0.89 geomean, 16 / 16 draws)
+- research/data/trimports/ (README table, five route directories). The trims are port lines only on gather s1 / s2 and
+  if_loop_2 s1; dot2 s2 also trimmed loop lines once the port was off the cycle. The gain needs FASTFALL port lines
+  (BDC_MEM_FASTFALL=1 / 2): with plain bd_mem nothing changes (mul_example s2).

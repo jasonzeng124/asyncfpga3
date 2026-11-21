@@ -41,11 +41,16 @@ cycle, 10 chains moved in round 1, all 8 shipped trims port lines (controller 2'
 | dot2 s2 | 27.73 -> 24.92 ns (-10.1 %) | 957 -> 864 ns | 4 / 4 |
 | gather s2 | 43.36 -> 37.69 ns (-13.1 %) | 1488 -> 1284 ns | 4 / 4 |
 | gather s1 | 40.29 -> 37.72 ns (-6.4 %) | 1344 -> 1254 ns | 4 / 4 |
+| if_loop_2 s1 | 29.79 -> 25.49 ns (-14.4 %) | 2997 -> 2562 ns | 4 / 4 |
 | mul_example s2 | 58.45 -> 58.45 (no trimmable port line) | = | 4 / 4 |
+
+Over the four routes with a FASTFALL port: P ratio geometric mean **0.89** (0.856-0.936), latency median ratio 0.89;
+16 of 16 draws pass, no pulse under 1 ns (narrowest 3752 ps), every route rule-CLEAN and EQUIVALENT after its trims.
 
 **Where it does nothing.** mul_example s2: its port's lines are LUT1 symmetric lines even under BDC_MEM_FASTFALL=1 --
 bdc/mem.py's arbitrated host port (a load and a store on one memory) emitted plain bd_mem unconditionally, so the mff A/B
 never treated binary_search, mul_example, test_bool_array, test_memory_1 / 2, test_stdint (byte-identical routes to
 v10's). BDC_MEM_FASTFALL=2 (opt-in, e0a4b59f0d) adds that port; its GLS runs are in research/JOURNAL.md.
 
-Not shown yet: a flow-level effect (a farm A/B) -- three routes with a FASTFALL port, one without; if_loop_2 s1 running.
+Not shown yet: a flow-level effect (a farm A/B); the routes are mff's (BDC_MEM_FASTFALL=1), so the gain needs that knob
+(or =2) in the flow.
