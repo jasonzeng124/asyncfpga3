@@ -9470,3 +9470,18 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - Local v10 completions: digitsum s2 / digitdiv s2 past their untrimmed finals (P 154.0 ns), trimming; video_filter s1
   past its trims. v10 interim table now **50 of 62** pass (/tmp/bot/scripts/headline_v10.sh), 7 UNFINISHED.
 - mk_resume.py --rerun-status PNR-TIMEOUT ready for v11_1a's gather / fill when 1a ends.
+### progress 11:56 (v11 vs v10, first 20 tasks (seed 1, kernels 1-31): 11 identical routes, 3 newly CLEAN, 3 slower where the late phase pre-empted v10's search, 2 PNR timeouts)
+| kernel s1 | v10 | v11 | why |
+|---|---|---|---|
+| brhash | NOT CLEAN, lat sum 14610 | CLEAN, 12648 | formal A34's rewrite (cache_v11) |
+| nested | NOT CLEAN, 10752 | CLEAN, 11052 | A34's rewrite |
+| cmpchain | NOT CLEAN, 1644 | CLEAN, 1752 | the late phase (as its local test) |
+| countloop | CLEAN P 19.12 (search route) | CLEAN P 23.17 (+21 %) | late phase pre-empted the search |
+| memsum | CLEAN 24.56 (search) | CLEAN 28.19 (+15 %) | same |
+| dot2 | CLEAN 27.43 (search) | CLEAN 29.26 (+7 %) | same |
+| fill / gather | CLEAN | PNR-TIMEOUT at it 0 | load; rerun part when 1a ends |
+- Mechanism (countloop s1, both flows): the finish phase ends NOT CLEAN; v10's search phase then found a clean, faster
+  structure (19.12 vs the finish phase's best 21.27); v11 builds the late phase first and skips the search for its
+  route. **v12 candidate 2 is now measured, not hypothetical:** late phase only after the search has failed.
+- v11 continues as filed (it measures the late phase as designed: gains where the search cannot clean, losses where
+  it could); its headline will show both columns.
