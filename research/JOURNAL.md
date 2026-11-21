@@ -9795,3 +9795,6 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - Started (/tmp/bot/scripts/ff2_launch.sh: mff's environment with =2 + AUTO_TRIM_PORTS=1): test_stdint s1 / s2,
   mul_example s1. Controls: v10 = mff (identical routes): 53.27 / 47.89 / 56.03 ns. PREDICTION (now): every draw passes;
   P lower on at least 2 of 3 (the port is 54-65 % of their v10 cycles, and FASTFALL walks its lines once).
+### progress 21:06 (AUTO_TRIM_PORTS, same route (mff dot2 s2): PASS 4 / 4, rule-CLEAN, P 27.73 -> 24.92 ns (-10.1 %), call latency median 957 -> 864 ns -- prediction met)
+- research/data/trimports/ (README + the run's files + the farm's control line). Every draw 8 / 8, no pulse under 1 ns
+  (narrowest 4447 ps), bits EQUIVALENT, ffmux-clean; 10 trims shipped (7 port lines). One route: no flow-level claim.
