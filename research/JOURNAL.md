@@ -9419,3 +9419,13 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - So the guard looks cheap where it matters least to formal and costs a few % only where a loop test is itself on the
   cycle. Together with formal B30 (the 3 % guard did not cover three routes) and the local guarded routes (formal-clean
   or much better), it is the strongest goal-1 change available for the next flow, at about half a percent of speed.
+### progress 09:53 (flow v11's first results: converged kernels give v10's identical routes; memsum shows the late phase pre-empting v10's search; two PNR timeouts at it 0)
+- suite13t_s5a_v11_1a (9 / 31 at 09:52): collatz, ipow, sqrtsub, branchloop, straight, test_divui s1 -- v10's results
+  exactly (same sdf where v10 converged: the late phase never triggers there), as designed.
+- **memsum s1: the late phase ran (v11's finish phase ended NOT CLEAN), shipped it 11 at P 28.19 ns, rule CLEAN, PASS
+  4 / 4 -- v10 got 24.56 on the same seed from its SEARCH phase**, which v11 skips when the shipped route is from the
+  late phase. So the late phase can cost speed on a kernel v10's search would have rescued (+15 % here). To measure in
+  the v11 headline: every (kernel, seed) where v10 shipped a search route and v11 a late-phase one. Not fixable under
+  the v11 freeze; a candidate for the next flow (late phase only after the search, or the search on the late route).
+- gather s1 and fill s1: status=PNR-TIMEOUT at it 0 (nextpnr over 3600 s on 2 cores; v10 routed both). Load, not the
+  flow; they get a fresh rerun part when 1a ends (mk_resume.py skips them: they have a result line).
