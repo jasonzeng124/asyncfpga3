@@ -9402,3 +9402,11 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - If the farm's paired 4-seed test agrees (suite13t_s5g_g10, after v11's parts), the guard is the measured option to put
   to the owner for the next flow: it closes the gap formal's B30 found at the loop-exit steers, at small cost.
 - Thin-route strict gate (/tmp/bot/thin): 35 runs PASS so far, none failed.
+### progress 09:01 (digitsum / digitdiv cannot finish under v10 on the farm: every resume redoes the final stack and the trim, which alone exceed 240 min -- no r3 filed)
+- 1a_r1_r2 (digitsum / digitdiv seed 1): both reached "final it 7" and the trim rounds again, then the limit. A task that
+  dies inside final() leaves no CLEAN / NOT CLEAN line, so the next part resumes the loop (AUTO_RESUME), which runs
+  final() -- the untrimmed full stack and the trim rounds, ~4 h for a 140 ns-per-iteration kernel -- from the start:
+  the draws are never reached. Their 2a / 3a resumes already submitted will do the same; no r3 filed for seed 1.
+- **For the next flow (a flow change, so after v11's parts are all submitted):** keep final()'s progress across a resume
+  -- the untrimmed final's result and the trim record when the rebuilt route's sdf matches -- so a resume continues at
+  the draws. Until then digitsum / digitdiv stay NO RESULT ("final + trim exceed the farm's limit"), as in suite13t.
