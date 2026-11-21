@@ -123,12 +123,17 @@ rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built w
   # BD_SKEW_MUXN=1 (default ON in this loop since 2026-11-19 05:47 UTC; BD_SKEW_MUXN= turns it off; research/data/muxsel/notes.txt): rule E also checks every bdc_muxnN's select decode
   # sel[k] = ctl_req & (s == k) (its ctl_req pin against each index pin), which no rule measured, so the select link's DELAY
   # that guards it was "on no measured constraint: kept" (cmpchain: shrunk to 1, runts on the decode outputs in GLS).
+  # AUTO_GUARD_E=LO,HI (opt-in, 2026-11-21; unset: corner_audit's own 0.97 / 1.03, the rule byte-identical): rule E / J's
+  # guard (the request x LO against the select x HI at every steer / select gate). Why: formal's B24 steer screen calls a
+  # route fine only with no pulses at a path error of x <= 0.10; flow v10's collatz64 s1 (rule CLEAN) had them at 0.08
+  # (research/JOURNAL.md 2026-11-21 04:17). 0.90,1.10 makes the rule check that tolerance itself, on its own bands.
+  local GE=""; [ -n "${AUTO_GUARD_E:-}" ] && GE="--guard-lo ${AUTO_GUARD_E%,*} --guard-hi ${AUTO_GUARD_E#*,}"
   local c; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
     BD_SKEW_MUXN=${BD_SKEW_MUXN-1} BD_SKEW_E_JOIN=${BD_SKEW_E_JOIN:-} BD_SKEW_E_JOIN_DEPTH=${BD_SKEW_E_JOIN_DEPTH:-1} \
     PYTHONHASHSEED=${PYTHONHASHSEED:-1} CA_FAST=${CA_FAST:-1} BD_RAM_GUARD_PS=${BD_RAM_GUARD_PS:-400} \
     BD_SKEW_STEER_SELF=${BD_SKEW_STEER_SELF:-1} CA_JOINAWARE=${CA_JOINAWARE:-1} BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 \
       python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
-        --band "$c" --inst-rx '\.chain\.g\[\d+\]\.u$:0.20' --out "$CA/rule_$c" > "$O/ca_${i}_$c.txt" 2>&1 &
+        --band "$c" --inst-rx '\.chain\.g\[\d+\]\.u$:0.20' $GE --out "$CA/rule_$c" > "$O/ca_${i}_$c.txt" 2>&1 &
   done; wait
   local dirs=(); for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
     [ -f "$CA/rule_$c/sizes.vh" ] && [ -f "$CA/rule_$c/negative_sized.tsv" ] || return 1; dirs+=("$CA/rule_$c"); done
