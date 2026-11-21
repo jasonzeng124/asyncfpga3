@@ -9200,3 +9200,13 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   collatz s1 / xorshift s1: no pulses below x = 0.25 (research/data/suite/board/screen_v10/).
 - Does NOT show whether collatz64's other v10 seeds (19.90-23.61 ns) are thin too, or what in v10 made it so (its
   trims, UMUX0 -> 6 and a falseResult ack line, are not on ucmpi2's request path; the route was built that way).
+### progress 04:41 (BOARD-QUEUE item 42: flow v10's collatz s1, 14.48 ns, strict gate 35 / 35, formal's screen clean; one command rebuilds it)
+- **Item 42 written** (research/BOARD-QUEUE.md, run order 3b, right after item 39 = its judge's base): collatz flow v10
+  seed 1 (formal's proved eq2 rewrite + trim), sdf 0f050078, trimmed fasm 6ef8e077 (the bits formal's A31 checked),
+  P 14.48 ns. **Strict gate here: worst, SLOW_MAX, FAST_MIN 17 / 17 each and 32 / 32 draws (K 42101-42132): 35 / 35
+  PASS, 0 pulses under 1 ns, narrowest 1.9 ns, no x.** Formal's B24 screen: no pulses to x = 0.25, no latch-fed race.
+  Rebuild: research/tools/suite/board_rebuild.sh research/data/suite/board/collatz_v10_s1.spec (exit 1 on any mismatch).
+  Prediction committed in the item: ratio over item 39 ~1.31; ~13.3 ns on the board.
+- It is the fastest of collatz's four v10 seeds (mean 15.58): chosen because formal proved that build's token graph from
+  the C; the board number should be read against 14.48, not as the flow's mean.
+- xorshift s1 (item 43 when its gate is in): 35 runs at 7 at a time, started ~04:35.
