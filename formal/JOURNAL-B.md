@@ -5341,3 +5341,4 @@ on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
   0.010 (feeder term +105 / +1447 ps).
 - Farm b_v10scr filed: 155 routes = every rule-CLEAN, PASS, EQUIVALENT, ffmux-clean route of flow v10, all seeds
   (mk_specs_all.py; 65 non-memory: board_rebuild + racescreen + weaksweep; 90 memory: memtask + steersafe only).
+### progress 07:45 -- B30 check on xorshift_v10_s1 (rebuilt SAME: sdf fd959b30, trimmed fasm 78aa6ac3): ucond_br7 latch steer (feeder ucmpi1 with a join, links ulink_n_rd0f__1 / ulink_n11__1) 0.253 -> 0.179 by the per-link terms; race-only adversary on it: no failure up to 0.20 (consistent). FOR-RESEARCH B30 written. b_v10scr rejected by the farm (time > 240): refiled as b_v10scr2.

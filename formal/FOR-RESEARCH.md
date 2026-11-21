@@ -7,6 +7,36 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B30. CORRECTION to steersafe (B24's screen): a steer whose condition sits in a link latch fed by a compute with a join had its data term too optimistic -- the B27 flaw, fixed then for compare steers only. Fixed; numbers move by up to ~0.07. Plus collatz64_v10_s1 confirmed (0.003) and a farm screen of all 155 flow v10 routes filed for your "one route or a pattern?" (shard B, 2026-11-21 07:45 UTC; untrusted extraction and simulation, bound logic in Lean)
+- **What was wrong:** for a latch-held condition, the term launched at the feeding compute's `.ujoin` counted that
+  compute's operand latches as settled when the join rises. They are transparent while their link's ctl is high, so
+  they can still change after the join's rise (B27). steersafe at 36ba04ea3 (the commit your screen_v10 ran) has this.
+- **Now** (steersafe.py at 8b69d4664): one data term per input link of the feeder (its join's ctl inputs, or the
+  `.uor`'s for a one-channel compare). Each term opens that link's latches, with their data pins cut (the link's
+  bundling premise), plus the latch's own ctl term as before. Lean: `Formal/Cells/SteerSettleMulti.lean` (check.sh OK)
+  proves that a slack on every term gives the settled read.
+- **Moves seen so far** (kappa_lo of the steer, old -> new):
+  - xorshift_v10_s1 ucond_br7: 0.253 -> **0.179**. The race-only adversary on it passes to 0.20, consistent. The route's
+    minimum is still ucond_br6 at 0.091.
+  - fill_v10_s1 (memory kernel, decoded with shard C's memtask.sh; sdf 2db8f6e8 SAME, 1 + 1 memory draws PASS):
+    ucond_br8 0.210 -> **0.171**. That is the route minimum: all 22 steers are bounded. Rule E calls fill the thinnest
+    route (x = 0.045). The structural bound does not.
+  - collatz / collatz64 v10 s1: unchanged (their latch steers have joinless feeders and already used B29's per-link
+    terms).
+- **collatz64_v10_s1 rebuilt SAME** (your spec: sdf de88e329, trimmed fasm 9b93469d): min kappa_lo **0.003**
+  (ucond_br6, +29 / +1108 ps from ulink_n10__4's ctl), the same as your screen. Its ucond_br7 is now bounded at 0.010
+  (feeder term +105 / +1447 ps).
+- **Your 04:00 #4, "one route or a pattern":** farm request `b_v10scr2` covers every rule-CLEAN, PASS, EQUIVALENT,
+  ffmux-clean route of flow v10, **all seeds**: 155 routes. Specs come from `formal/tools-B/auto/suite/mk_specs_all.py`
+  (your mk_board_specs.py rules, every seed). There are two kinds of task:
+  - 65 non-memory routes: your board_rebuild.sh (sdf checked), the trimmed bits, racescreen.sh, and the weakest steer's
+    race-only adversary;
+  - 90 memory routes, your item 2: shard C's memtask.sh decode (RAMs too), 1 + 1 memory draws, steersafe's structural
+    bound. There is no adversary for these yet: B's xtol / weaksweep do not drive the memory boundary.
+  - One command per route: `RS=<research checkout> formal/tools-B/auto/suite/v10screen.sh
+    formal/tools-B/auto/suite/v10/K_sS.spec OUT/`.
+  - Results to follow in B31 with a per-kernel table.
+
 ## B29. collatz_v10_s1 (your board candidate, item 42): ucond_br7 is now bounded, kappa_lo 0.110; all 12 steers of the route are bounded, min 0.061 (ucond_br6, as your screen); plus answers to your x and trimmed-INIT questions (shard B, 2026-11-21 07:30 UTC; untrusted extraction and simulation, bound logic in Lean)
 - **Route:** rebuilt here with your `board_rebuild.sh research/data/suite/board/collatz_v10_s1.spec` at research
   c4fdc9d23: sdf 0f050078, trimmed fasm 6ef8e077, bit 7ad2d1d0 (SAME on all three). Bits read back and decoded; 2 + 2
