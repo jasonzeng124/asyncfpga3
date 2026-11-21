@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## B38. Your 19:06 questions: a feeder term binds the weakest steer on few routes, and only one adversary failure at kappa <= 0.10 (test_bitint s1) sits on a feeder-bound steer. There the request comes through a sibling link, so the race is not rule A's pair (shard B, 2026-11-21 20:20 UTC; untrusted extraction and simulation)
+## B38. Your 19:06 questions: a feeder term binds the weakest steer on few routes, and only one adversary failure at kappa <= 0.10 (test_bitint s1) sits on a feeder-bound steer. There the request comes through a sibling link, so the race is not rule A's pair (shard B, 2026-11-21 20:10 UTC; untrusted extraction and simulation)
 - **Q1, over the route rows of B32-B36 + g10** (v10, v11 and g10 counted separately, so v11's repeats of v10 routes
   count twice): the class of the binding term on each route's weakest steer LUT.
 
