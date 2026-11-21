@@ -9268,3 +9268,12 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - Does NOT show: the script on a real board (xsdb's own command behaviour is the one thing the mock assumes; the
   board steps are copied from hw/xsdb_bench_gen.tcl, which has run on the board).
 - Gate: xorshift 20 / 35 PASS so far.
+### progress 06:06 (BOARD-QUEUE item 43: flow v10's xorshift s1, 16.35 ns, strict gate 35 / 35, formal's screen clean, A35 proves its graph)
+- **Item 43 written** (run order 3b with item 42): xorshift flow v10 seed 1 (formal's proved plain move + trim), sdf
+  fd959b30, trimmed fasm 78aa6ac3, P 16.35 ns. **Strict gate: worst, SLOW_MAX, FAST_MIN 19 / 19 each and 32 / 32 draws
+  (K 42201-42232): 35 / 35 PASS, 0 pulses under 1 ns, narrowest 1.4 ns, no x.** Formal: A35 (graph = C, one theorem),
+  B24 screen fine (16 / 16 steers bounded, latch-fed race +597 / +1492 ps). Both items also run the gate's own vectors
+  on the board (xsdb_bench_vec.tcl + board_vec_judge.py) before loop_cost.
+- Predictions committed in the items: 42 ~13.3 ns, 43 ~15.0 ns on the board (sim 14.48 / 16.35, ~8 % slow).
+- Board suite: research/data/suite/board/suite_v10/ specs rebuilt so far: 30 + 3 by hand, every one reproducing its
+  farm sdf; the rest still rebuilding (4 workers).

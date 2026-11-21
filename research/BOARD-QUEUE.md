@@ -42,20 +42,18 @@ rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh
 3. **Items 38 / 39 / 40 / 41** (ipow 22.71, collatz 18.99, collatz64 23.71, xorshift 20.11 ns in simulation): the
    automatic flow (BDC_AUTO=1, its own sizes, nothing set per kernel), each 35 or more judgments passing. A failure
    here, with its hand-item partner passing, is the most informative result this list can return.
-3b. **Item 42** (2026-11-21: collatz, flow v10 with formal's proved rewrite and the trim, 14.48 ns in simulation): right
-   after item 39, which is its judge's base.
+3b. **Items 42 / 43** (2026-11-21: collatz 14.48 / xorshift 16.35 ns in simulation, flow v10 with formal's proved
+   rewrites and the trim): each right after item 39 / 41, its judge's base.
 4. Then the list "Board list, in order" further down (older items; several superseded by the ones above).
 The simulation runs ~8 % slower per iteration than the August board (research/SIM-VS-BOARD.md), so expect each ns
 figure above about 8 % lower on the board.
 
-**Coming, not items yet (updated 2026-11-21 04:41 UTC):** collatz with formal's proved eq2 rewrite is now **item 42**.
-xorshift with the proved plain move (flow v10, 4 seeds: 16.35 / 15.22 / 16.36 / 15.07 ns, all rule-CLEAN, PASS 4 / 4;
-seed 1 rebuilt byte for byte, research/data/suite/board/xorshift_v10_s1.spec) is next: formal's steer screen is clean
-on it (16 / 16 steers bounded, min kappa_lo 0.091; its latch-fed race +597 / +1492 ps, no failure to kappa 0.20; no
-pulses below x = 0.25) and its strict gate is running. collatz64 v10 seed 1 (21.53 ns) is NOT coming: formal's screen
-puts pulses at a path error of x = 0.08 on its loop-exit steer (research/JOURNAL.md 2026-11-21 04:17). Items 38-41 are
-unaffected by the latch-fed steer race formal found on a later automatic xorshift route (B28): formal B22 cleared all
-four of it.
+**Coming, not items yet (updated 2026-11-21 06:06 UTC):** collatz and xorshift with formal's proved rewrites are now
+**items 42 and 43**. collatz64 v10 seed 1 (21.53 ns) is NOT coming: formal's screen puts pulses at a path error of
+x = 0.08 on its loop-exit steer (research/JOURNAL.md 2026-11-21 04:17). Next: **the whole suite on the board in one
+self-judging loop** (research/tools/suite/board_suite.sh over research/data/suite/board/suite_v10/: one route per
+kernel, the gate's vectors and rules) once every spec's route is rebuilt here. Items 38-41 are unaffected by the
+latch-fed steer race formal found on a later automatic xorshift route (B28): formal B22 cleared all four of it.
 
 ## 2026-11-17 (evening): item 36 -- the CARRY4 / MUXF7 band; the most useful board run now
 No August latency can place the CARRY4 / F7 delay band (in bundled data the matched LUT chains set the cycle), yet the
@@ -85,6 +83,37 @@ negative control fails). Run it before the speed items.
    measured.tsv + raw/) back. Simulated: C32 is 11.1 ns at y = 0.2 and 15.5 ns at y = 1.0 (x 0.288), F16 16.2 / 21.3
    ns; at 1% ring scatter the fit resolves y to +-0.01-0.02. The two routes must agree with each other within their
    sigmas; if they do not, that is the finding.
+
+## 2026-11-21: item 43 -- flow v10's xorshift (formal's proved plain loop-test move, the post-route trim): 16.35 ns, one command to rebuild
+Flow v10 on 4 seeds, every route rule-CLEAN and PASS 4 / 4 draws: **xorshift P 16.35 / 15.22 / 16.36 / 15.07 ns (seeds
+1-4, mean 15.75)**; item 41 (flow v3) is 20.11, the hand recipe (item 37) 16.49. Rebuilt as item 42 (board_rebuild.sh,
+see there); nextpnr 6e5d224472232d5d.
+
+43. **xorshift at ~16.4 ns per iteration, flow v10 seed 1 (formal's plain loop-test move; A35: the exact graph this build
+   uses, research/data/autorw/xorshift.mlir under the spec's knobs, is PROVED to compute xorshift's C, one theorem)** --
+   farm suite13t_s5a_v10_1a task 1, rebuilt here byte for byte: sdf fd959b30, trimmed fasm 78aa6ac3, P 16.35 ns
+   (untrimmed 17.12), EQUIVALENT, ffmux-clean; the slower of its two middle seeds. **Strict gate here (GATE_RUNTS=fail,
+   any x / RAMB18 event fails): worst, SLOW_MAX, FAST_MIN 19/19 each and 32 / 32 draws (K 42201-42232, xor19): 35 / 35
+   PASS, 0 pulses under 1 ns, narrowest 1.4 ns.** Formal's B24 steer screen (run here; research/data/suite/board/
+   screen_v10/): 16 / 16 steers bounded, min kappa_lo 0.091; its latch-fed steer race (ucond_br7, the kind B28 found on
+   an earlier xorshift route) at +597 / +1492 ps, the race-only adversary finds no failure to kappa 0.20 (the flow's
+   race check: 17.07 sd); no pulses below a path error of x = 0.25. From the repo root:
+
+       cells/verify/toolchain.sh    # must pass (sha256 6e5d224472232d5d)
+       research/tools/suite/board_rebuild.sh research/data/suite/board/xorshift_v10_s1.spec; echo "exit $?"   # must be 0
+       cd cells
+       hw/board.sh ${XSDB:-/home/jayjay/dev2/lib/vivado/2026.1/Vivado_Lab/bin/xsdb} hw/xsdb_bench_vec.tcl \
+         build/hw/xorshift_bench_gen/xorshift_bench_gen.bit ../research/data/eventgraph/gate/xor19.hex > build/hw/vec_xor_v10.log 2>&1
+       python3 ../research/tools/suite/board_vec_judge.py ../research/data/eventgraph/gate/xor19.exp build/hw/vec_xor_v10.log; echo "exit $?"
+       CLK=0x00100C00 hw/loop_cost.sh xorshift && cp build/hw/loop_cost_xorshift.tsv build/hw/lc_xor_v10.tsv
+       (item 41's commands for build/hw/lc_xor_auto.tsv, if not already run; AFTER the line above: item 41's build_bench.sh
+        writes the same cells/build/hw/xorshift_bench_gen/)
+       python3 ../research/tools/loop_cost_judge.py xorshift build/hw/lc_xor_v10.tsv build/hw/lc_xor_auto.tsv; echo "exit $?"
+
+   Pass: board_vec_judge.py `PASS 19/19`, exit 0 (the gate's own 19 vectors against the C; an ERROR line or exit 2 is the
+   new script's failure, not the kernel's: send the log) AND loop_cost_judge.py `=== PASS ... ===`, exit 0. Predicted
+   ratio over item 41 ~1.23 (20.11 -> 16.35 ns in simulation); expect ~15.0 ns on the board (sim ~8 % slow), about the
+   hand recipe's. A FAIL with item 41 passing: send both logs and build/hw/_loop_xorshift_*.log.
 
 ## 2026-11-21: item 42 -- flow v10's collatz (formal's proved n == 2 exit test, the post-route trim): 14.5 ns, one command to rebuild
 Flow v10 (BDC_AUTO=1, the loop's own sizes, formal's PROVED loop-test rewrites applied from a memo, the post-route trim,
