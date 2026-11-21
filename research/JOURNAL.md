@@ -9808,3 +9808,8 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - All 8 shipped trims are port lines (controllers 2 and 3); no pulse under 1 ns (narrowest 4359 ps). Two of two
   FASTFALL-port routes gain (-10.1 / -13.1 %), the plain-port one (mul_example s2) is unchanged, as it must be.
   research/data/trimports/ updated (mff_gather_s2/, mff_mul_example_s2/). gather s1, if_loop_2 s1 running.
+### progress 22:34 (BDC_MEM_FASTFALL=2, first GLS run: test_stdint s2 with bd_mem_ff on its arbitrated host port -- PASS 4 / 4 rule-CLEAN, arrays right, no pulse under 1 ns; P 46.21 vs v10 47.89 ns)
+- /tmp/bot/runs/ff2 (mff's environment with =2 + AUTO_TRIM_PORTS=1). Route 2e819396 (it 5; v10's was 34a478f7: a new
+  netlist, so the P difference (-3.5 %) and latency median (4662 vs 4854 ns) are one sample against churn). 3 trims,
+  two of them the port's now-trimmable lines (umem0 uco 8, usetup 2). Draws 4 / 4 calls each, "arrays only" (a void
+  kernel: the arrays are the result), narrowest pulse 4727 ps. test_stdint s1 / mul_example s1 still running.
