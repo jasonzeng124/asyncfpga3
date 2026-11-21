@@ -34,6 +34,13 @@ build/frontend/K/comp/handshake_transformed.mlir):
 for the same fixture; the cycles are simulated (Verilog = model, call for call). Not captured: Dynamatic's MILP buffer
 placement (fpga20 / fpl22 need a solver the build lacks; on the memory kernels on-merges waits ~6 cycles per iteration
 where a solver placement could reach 1, so those ratios flatter us); a board run of Dynamatic's circuit.
+Added 2026-11-21 after audit T173 (numbers confirmed, wording overstated): "Verilog = model" means OUR export
+checked against OUR model (dynamatic_est.py), not against Dynamatic's simulator, and 8 kernels have one call; the
+period is nextpnr's static timing with --ignore-loops in an I/O wrapper with no BRAM (memory kernels' BRAMs are
+not in the routed period), while our own column is the simulated event-graph period with draws -- two different
+kinds of measurement. **Every nextpnr log behind a period here:** pnr_logs.tar.xz (248 logs, K/pnr_S.log for each
+kernel and seed in K/route.txt); pnr_logs_manifest.tsv: each log's last "Max frequency for clock 'clk'" agrees with
+route.txt on all 248.
 
 ## Results (2026-11-21 00:55 UTC; nextpnr 6e5d224472232d5d, seeds 1-4; per-kernel records in K/: route.txt, vsim.txt, est_summary.txt, hw_mlir_md5.txt)
 

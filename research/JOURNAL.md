@@ -9163,3 +9163,22 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   pass under the headline policy, so this is the price of a result, not a slowdown. One seed each.
 - sym2 tally (overbuild + BD_SYMTRIM at the phase switch, first finish route clean or clean after trim): brhash,
   cmpchain, test_memory_2, factorial, nested PASS on clean routes; spmv still trimming back (144 chains moved).
+### progress 03:52 (audit T173 answered: the Dynamatic headline's wording corrected, every nextpnr log behind its periods committed)
+- T173 (claude/audit f02fc0fd9): numbers CONFIRMED (0.934 over 28, bound 1.999; its recompute.py run here gives the same),
+  wording OVERSTATED on four points. Fixed in research/data/fifteen/README.md and research/data/suite/dynamatic/routed/
+  README.md: (1) "checked call for call against its cycle model" now says OUR exporter checked against OUR model
+  (dynamatic_est.py), not Dynamatic's simulator, 8 kernels on one call; test_stdint (never checked) keeps an ESTIMATE and
+  its ratio cell now says it is out of the measured mean (suite_table.py). (2) "measured on both sides" replaced: the
+  two sides are different kinds of measurement (ours: simulated event-graph period with draws, ~8 % slow vs the August
+  board; Dynamatic's: routed static timing x simulated cycles), neither on silicon; suite_table.py's latency footer and
+  last line no longer say ESTIMATED / single routes. (3) "2.00 is the honest distance" removed: 2.00 is against a
+  COMPUTED bound times the on-merges period; five memory / multi-cycle kernels dominate it (share_test_2 11.1,
+  mul_example 8.5, vector_rescale 6.4, gather 4.8, binary_search 3.6): **1.55 without them (n = 23), 1.68 on the 9
+  kernels whose on-merges circuit already runs one cycle per iteration**. (4) --ignore-loops and the BRAM-less wrapper
+  stated; **all 248 nextpnr logs** committed (research/data/suite/dynamatic/routed/pnr_logs.tar.xz, 1.5 MB; manifest:
+  every log's last Fmax line agrees with route.txt).
+- The table regenerated from the same result files with the corrected suite_table.py: only the wording cells change,
+  and nested's bracketed NOT CLEAN fit (24.34 -> 24.60 ns; cause not found, not a passing figure).
+- Board prep (journal 03:3x) running: collatz s1 strict gate 5 / 5 so far (worst, SLOW_MAX, FAST_MIN, 2 draws; 0 runts,
+  narrowest pulse 1.9 ns); steer screens done (collatz: as at 15:40; xorshift: 16 / 16 steers bounded, min kappa_lo
+  0.091, latch-fed race ucond_br7 slack +597 / +1492 ps, adversary no failure to kappa 0.20).

@@ -287,7 +287,8 @@ for k in sorted(set(rows) | set(listed)):
         k, status, len(clean), len(nclean), len(rs), _dr(clean), _dr(nclean), pcell,
         ("%d" % max(lat)) if lat else "-", ("%d" % st.median(luts)) if luts else "-",
         ("%.2f (%s)" % dy[:2]) if dy else "-",
-        ("%.2f%s%s" % (ratio, " (fit)" if fit else "", " (not comparable: out of the mean)" if k in NORATIO else ""))
+        ("%.2f%s%s" % (ratio, " (fit)" if fit else "", " (not comparable: out of the mean)" if k in NORATIO else
+                       (" (Dynamatic ESTIMATED: out of the measured mean)" if "ESTIMATE" in dy[1] else "")))
         if ratio else "-",
         ("%.2f" % hd[0]) if hd else "-", lcell, dcell, lrcell))
 notes = sorted({(k, v[2]) for k, v in DY.items() if k in rows})
@@ -302,8 +303,10 @@ if any(k in DL for k in rows):
     print()
     print("Latency per call: ours includes the bench's issue, synchroniser and capture and is quantised to its clock (12 ns; "
           "a kernel that is a constant, test_int16, takes 5 host cycles = 60 ns), Dynamatic's is the kernel alone: "
-          "simulated cycles per call on the same calls x the ESTIMATED period (research/data/suite/dynamatic/README.md); "
-          "a period extrapolated below half the calibrated range is marked and left out of the mean.")
+          "simulated cycles per call on the same calls (dynamatic_est.py's model) x the routed period where the cell says "
+          "'period measured' (research/data/suite/dynamatic/routed/), else x the ESTIMATED period "
+          "(research/data/suite/dynamatic/README.md); a period extrapolated below half the calibrated range is marked "
+          "and left out of the mean.")
 if offP:
     print()
     print("P refused (off its route's own slope of call latency on the most executed loop's trip counts by more than %d %%: "
@@ -324,9 +327,11 @@ print()
 print("%d of %d kernels attempted pass (a kernel passes when it has a judged rule-CLEAN route and every draw on every judged route, clean or not, returned every right answer; ns per iteration, latency and the ratios are over rule-CLEAN routes only, the NOT CLEAN routes' figures in brackets); %d more pass every draw only on routes the sizing loop left NOT CLEAN (UNFINISHED: the rule names a short constraint on each, and such a route can pass 4 draws and fail the model a third of the time, formal C68), not counted; geometric mean of the ratio (ns per iteration / Dynamatic's) over passing kernels with a "
       "MEASURED Dynamatic figure (n = %d): %s; including ESTIMATED figures (n = %d%s): %s. Our ns are the simulation's "
       "(about 8 %% slower per iteration than the August board on the same bitstreams, research/SIM-VS-BOARD.md); "
-      "Dynamatic's measured figures are single nextpnr routes (Fmax), not board runs. Latency per call (ours / "
-      "Dynamatic's, same calls, ESTIMATED except cycles x the routed period for the 3 measured kernels; ours includes "
-      "the bench): geometric mean over passing kernels (n = %d): %s."
+      "Dynamatic's measured figures are routed static timing (nextpnr's Fmax with --ignore-loops, an I/O wrapper "
+      "without BRAM, mean of 4 placer seeds) x dynamatic_est.py's simulated cycles, not board runs: the two sides are "
+      "measured differently. Latency per call (ours / Dynamatic's, same calls; Dynamatic's = simulated cycles x the "
+      "routed period where measured, else x the ESTIMATED period; ours includes the bench): geometric mean over "
+      "passing kernels (n = %d): %s."
       % (npass, nlist, nunf, sum(1 for _, m, _ in ratios if m), ("%.2f" % gm_m) if gm_m else "-",
          len(ratios), ("; %d with our figure from the latency fit" % nfit) if nfit else "", ("%.2f" % gm_a) if gm_a else "-",
          len(lratios), ("%.2f" % gm_l) if gm_l else "-"))
