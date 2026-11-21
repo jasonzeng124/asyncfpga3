@@ -35,7 +35,7 @@ event fails, GATE_RUNTS=fail: any pulse under 1 ns on a kernel handshake net fai
 rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh draws each (K 402xx / 406xx / 405xx /
 408xx) -- every run PASS, 0 pulses under 1 ns, no x; narrowest pulse 2.1-4.1 ns.
 
-## Run order now (2026-11-18 18:00 UTC; each item below judges itself)
+## Run order now (2026-11-18 18:00 UTC; 3b-3d added 2026-11-21; each item below judges itself)
 1. **Item 36** (the CARRY4 / MUXF7 band, research/board/carry/): the one delay band no kernel can pin; every draw model
    below assumes it uniform over [0.20, 1.0].
 2. **Item 37** (xorshift x55a10 seed 21, 16.49 ns in simulation): the fastest xorshift, a hand recipe.
@@ -46,7 +46,7 @@ rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh
    rewrites and the trim): each right after item 39 / 41, its judge's base.
 3c. **Item 44** (2026-11-21: the whole automatic suite, 46 kernels, one self-judging loop; unattended, hours of
    rebuilds and minutes of board time): any time after item 36.
-   **Added 2026-11-21 for items 37-41 too (optional, ~1 min each):** right after an item's build, before its loop_cost
+3d. **Optional for items 37-41 (2026-11-21, ~1 min each):** right after an item's build, before its loop_cost
    run, the same full-vector check items 42 / 43 have -- the kernel's own gate vectors through the gate's host program,
    judged by the gate's rules against the C. From cells/, with K and V = ipow / ipow17 (item 38), collatz / col18 (39),
    collatz64 / c6419 (40), xorshift / xor19 (37, 41):
@@ -60,8 +60,10 @@ figure above about 8 % lower on the board.
 
 **Coming, not items yet (updated 2026-11-21 06:06 UTC):** collatz and xorshift with formal's proved rewrites are now
 **items 42 and 43**. collatz64 v10 seed 1 (21.53 ns) is NOT coming: formal's screen puts pulses at a path error of
-x = 0.08 on its loop-exit steer (research/JOURNAL.md 2026-11-21 04:17). The whole suite on the board is **item 44**. Items 38-41 are unaffected by the
-latch-fed steer race formal found on a later automatic xorshift route (B28): formal B22 cleared all four of it.
+x = 0.08 on its loop-exit steer (research/JOURNAL.md 2026-11-21 04:17); built with a 10 % steer guard the same seed is
+clean by that screen at +2 % P (research/data/guardx/; the farm's paired test, suite13t_s5g_g10, decides). The whole
+suite on the board is **item 44**. Items 38-41 are unaffected by the latch-fed steer race formal found on a later
+automatic xorshift route (B28): formal B22 cleared all four of it.
 
 ## 2026-11-17 (evening): item 36 -- the CARRY4 / MUXF7 band; the most useful board run now
 No August latency can place the CARRY4 / F7 delay band (in bundled data the matched LUT chains set the cycle), yet the
