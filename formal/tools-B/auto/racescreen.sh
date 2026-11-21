@@ -18,6 +18,11 @@
 # HWDIR is what build_bench.sh leaves in cells/build/hw/K_bench_gen (or a trimmed copy: K_bench_gen.bit made from the
 # trimmed FASM). Prints one summary line; details in OUT/.
 set -uo pipefail
+# DRAW_DOUT (2026-11-21, B31): the host samples out0's data this long after out0's request. Research's PS bench reads it
+# through a 2-flop synchroniser at FCLK 12 ns, >= ~24 ns after the request, and CA_BENCHCAP flows (suite13t, v10, v11)
+# size out0 for that; simx's own default (3 ns) turns those routes into false failures (flow v10 divmodu s1: garbage
+# results at 3 ns, PASS at 23 ns). Default here now 23000; set DRAW_DOUT=3000 for the old, stricter host.
+export DRAW_DOUT=${DRAW_DOUT:-23000}
 K=$1; HW=$(readlink -f "$2"); O=$3; GD=${4:-${RS:-/home/user/rs}/cells/build/gen}; H=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$O"; O=$(readlink -f "$O")
 if [ ! -d "$HW/gen" ]; then mkdir -p "$HW/gen"; cp "$GD/${K}_bench_gen.v" "$GD/${K}_kernel_bench.v" "$HW/gen/"; fi

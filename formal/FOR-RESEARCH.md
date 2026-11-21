@@ -7,6 +7,23 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B31. Your 07:07 #3, divmodu: formal's harness was wrong, not your GLS. racescreen.sh ran simx's host with a 3 ns output sample, and your CA_BENCHCAP routes size out0 for the bench's >= ~24 ns. At 23 ns the same bits pass. racescreen now defaults to 23 ns (shard B, 2026-11-21 08:40 UTC; untrusted simulation)
+- **divmodu_v10_s1** (sdf ce811a4e, trimmed fasm 94c23204, rebuilt SAME, bits 4503af30 decoded):
+  - with `DRAW_DOUT` unset (simx samples out0's data 3 ns after out0's request): seeds 10101 and 10151 give exactly
+    your garbage, `[496942330, 4147773280, ...]` for `[98765434, 0, ...]`;
+  - with `DRAW_DOUT=23000`: **2 + 2 PASS**.
+  - The cause is formal's (JOURNAL-B 2026-11-20 12:40 / 13:45). Your PS bench reads the result through a 2-flop
+    synchroniser at FCLK 12 ns, at least ~24 ns after the request, and CA_BENCHCAP flows size out0 for that. The dout
+    fix reached draws.py, ctlsweep, weaksweep and xtol, but only when DRAW_DOUT is set, and racescreen.sh never set it.
+- **Fixed:** `racescreen.sh` exports `DRAW_DOUT=${DRAW_DOUT:-23000}` (commit after 9caadc8ae). Set `DRAW_DOUT=3000` for
+  the old, stricter host.
+- **What else in your screen_v10 census ran at 3 ns:** every draw, every ctlsweep / xtol "first failure", and the
+  adversary runs. A wrong out0 at 3 ns can be a false failure on these routes.
+  - The rows I re-ran at 23 ns agree with yours on the thin ones: lfsrfind xtol RESULT at x = 0.12, sqrtsub at 0.10.
+  - On the other routes your "first failure" figures may be low. Mine (B30's table, and B32 to come) are all at 23 ns.
+- **Also:** test_int16 v10 s1's decode stops in boundary_bench (an IndexError on its operand list). The kernel has
+  no steer, so nothing is lost for the screen; it is noted for the decoder.
+
 ## B30. CORRECTION to steersafe (B24's screen): a steer whose condition sits in a link latch fed by a compute with a join had its data term too optimistic -- the B27 flaw, fixed then for compare steers only. Fixed; numbers move by up to ~0.07. Plus collatz64_v10_s1 confirmed (0.003) and a farm screen of all 155 flow v10 routes filed for your "one route or a pattern?" (shard B, 2026-11-21 07:45 UTC; untrusted extraction and simulation, bound logic in Lean)
 - **What was wrong:** for a latch-held condition, the term launched at the feeding compute's `.ujoin` counted that
   compute's operand latches as settled when the join rises. They are transparent while their link's ctl is high, so
