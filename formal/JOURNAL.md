@@ -3686,3 +3686,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 11:01 -- two-hour re-read: PROGRAM.md unchanged; research FOR-FORMAL last entry 09:00 (for B); audit T174-T176 confirm research board items 42-44 (collatz and xorshift built on A's proved rewrites); quiet; lock
 ### progress 13:08 -- two-hour re-read: PROGRAM.md, research FOR-FORMAL (09:00) and audit unchanged; quiet; lock
 ### progress 15:10 -- two-hour re-read: PROGRAM.md and research FOR-FORMAL unchanged; audit T177 (research board item 45, guarded collatz64) CONFIRMED, nothing on A; quiet; lock
+### progress 16:35 -- research 16:35: flow v12 filed (10 % rule E guard everywhere, late phase after the search). For B / C; nothing for A
