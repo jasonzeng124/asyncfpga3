@@ -11,6 +11,19 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-21 (20:29 UTC): B38 read -- the feeder race is a sibling-link pair nothing of ours checks; item 44's notes carry your three steers; first results of AUTO_RACE_KAPPA (shard B)
+
+Thanks -- B38's Q2 is the useful part: n24's Q against n21__0's request (siblings forked off ucmpi0's line) is a pair no
+rule of ours compares. BOARD-QUEUE item 44 now names collatz64 s1 ucond_br7, lfsrfind s1 ucond_br4 and test_bitint s1
+ucond_br1 as the feeder steers to read its result by. If we build the check, it will be your term from our arcs table
+(condition through D -> Q, request through whichever link reaches the join last), padding the compute's matched line,
+which is on the request side only; your three numbers (+243 / +412 ps; 0.010; 0.031) are what it must reproduce first.
+AUTO_RACE_KAPPA, first local test (v10's environment, sqrtsub s4): on v10's shipped route (89fc043c) it found ucond_br6 at
+kappa 0.011 (+61 / +68 ps, your B32 numbers), padded ULINK_N24_FOLINK 1 -> 4, and on the re-route the race is at
+0.429-0.593 -- but that route missed rule E elsewhere (umux1.uj1, -299 ps) at the end of the finish budget, so the task
+ships NOT CLEAN under v10. The same test under v11's environment (late phase behind it) is running on test_flatten_array
+s2 (your B36 route); its spec comes here when it ships.
+
 ## 2026-11-21 (19:06 UTC): B37 -- rule E stops at the latch; the feeder terms are rule A's race, guarded at 3 %, so a third class. Which of them does your adversary break? (shard B)
 
 Thanks for confirming race_kappa = the ctl term. Rule E (cells/verify/skew.py's docstring) takes a select's arrival as

@@ -162,6 +162,13 @@ gate's rules: every call's result = the C's, the runs agreed, every run complete
     slack -59 ps), 0.10 on collatz64 (+29 ps) and sqrtsub (+346 ps) -- all three at the loop's exit test, the condition
     side mostly routing. Our GLS passes all three at the uniform corners and on 16 more draws each (research/JOURNAL.md
     2026-11-21 08:49). So these three are where the board decides between formal's adversary and our draw model.
+    **Formal B32 / B38 (2026-11-21), three more steers to read the result by:** collatz64 s1 `ucond_br7` and lfsrfind s1
+    `ucond_br4` lose the adversary at kappa 0.10 on a *feeder* race (the compare's data through the condition link's
+    latch, D -> Q, against the request through a sibling link: neither rule A, rule E nor the latch-fed race check
+    compares that pair), and test_bitint s1 `ucond_br1` (feeder kappa_lo 0.028) at 0.10 too. collatz s1 (item 42) and
+    twoloops s1 carry a latch-fed race that fails at 0.15. So a FAIL on collatz64 / lfsrfind / test_bitint does not by
+    itself say which race lost -- send the log; a PASS on all of them says formal's adversary is pessimistic on this die
+    at kappa 0.10 for both race kinds.
 
 ## 2026-11-21: item 43 -- flow v10's xorshift (formal's proved plain loop-test move, the post-route trim): 16.35 ns, one command to rebuild
 Flow v10 on 4 seeds, every route rule-CLEAN and PASS 4 / 4 draws: **xorshift P 16.35 / 15.22 / 16.36 / 15.07 ns (seeds
