@@ -9145,3 +9145,21 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   xorshift s1 is the slower of the middle two. Running: the strict gate (GATE_RUNTS=fail, x / RAMB18 fail) at worst /
   SLOW_MAX / FAST_MIN + 32 draws each (K 42101-42132 / 42201-42232), and formal's B24 steer screen (claude/formal
   36ba04ea34) on both trimmed routes. Items get written when these are in.
+### progress 03:36 (flow v11's late overbuild phase passes its own test: cmpchain s1 PASS 4 / 4 on a rule-CLEAN route, its first late route clean as built; sym2 factorial / nested clean too)
+- **late cmpchain s1** (AUTO_OVERBUILD=3 AUTO_OVERBUILD_LATE=4 TRIM_STAGEFIX=1 AUTO_RACE_KEEP=1, resumed from v10's own
+  state after its finish phase ended NOT CLEAN): phase 3 (+3 on 76 lines, BD_SYMTRIM) from it 11; **it 11 rule-CLEAN as
+  built** (raised 0, negative 0), trim-back, then **PASS 4 / 4**, bits EQUIVALENT, ffmux-clean. This is the exact
+  sequence v11 runs on every kernel v10's finish phase leaves NOT CLEAN.
+- Cost of being clean, against v10's NOT CLEAN route of the same kernel and seed (latency per call median / sum, ns;
+  kernel LUTs):
+  | kernel s1 | how it got clean | it | median / sum | LUTs | v10 (NOT CLEAN) |
+  |---|---|---|---|---|---|
+  | cmpchain | late phase (v11) | 11 | 120 / 1752 | 3451 | 108 / 1644, 2952 |
+  | cmpchain | overbuild at the switch (sym2) | 5 | 108 / 1680 | 3298 | |
+  | factorial | overbuild at the switch (sym2) | 5 | 120 / 1626 | 2909 | 120 / 1530, 2565 |
+  | nested | overbuild at the switch (sym2) | 5 | 288 / 11664 | 3888 | 276 / 10752, 3510 |
+  | nested | A34's rewrite alone (a33) | 10 | 276 / 11052 | 3581 | |
+  So far clean costs +3 to +8 % latency sum and +2 to +17 % LUTs over v10's unclean route; a NOT CLEAN route is not a
+  pass under the headline policy, so this is the price of a result, not a slowdown. One seed each.
+- sym2 tally (overbuild + BD_SYMTRIM at the phase switch, first finish route clean or clean after trim): brhash,
+  cmpchain, test_memory_2, factorial, nested PASS on clean routes; spmv still trimming back (144 chains moved).
