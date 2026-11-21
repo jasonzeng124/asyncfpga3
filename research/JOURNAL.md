@@ -9291,3 +9291,18 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   hw/xsdb_bench_gen.tcl's (which has run on the board).
 - The guarded collatz64 run (g10): clean at it 7, untrimmed P 28.27 ns vs v10's 24.71 at its it 7 (+14 %, one route,
   before trim / search); draws pending.
+### progress 06:22 (STATE OF PLAY -- read this first if the session ends here)
+- **Board (new this session):** items **42** (collatz v10 s1, 14.48 ns), **43** (xorshift v10 s1, 16.35 ns) -- each
+  strict-gated 35 / 35 here, formal's screen fine, formal's proofs of their graphs (A31 / A35) -- and **44** (flow v10's
+  whole suite, 46 kernels, board_suite.sh; routes reproduced 46 / 46, mock dry run 46 / 46). New board tooling:
+  cells/hw/xsdb_bench_vec.tcl (+ mock, test_bench_vec.sh 9 / 9), research/tools/suite/{board_rebuild.sh,
+  board_vec_judge.py, board_suite.sh, mk_board_specs.py}.
+- **Running locally:** formal's steer-screen census on all 46 suite_v10 routes (/tmp/bot/census/K/racescreen.txt;
+  script /tmp/bot/scripts/census_run.sh) -- answers "is collatz64's thin steer one route or a pattern?" for item 44;
+  g10 (collatz64 s1 + AUTO_GUARD_E=0.90,1.10) in its final / draws; sym2 spmv trimming back.
+- **Headline:** still suite13t (v9 + trim), 42 of 62, T173 wording fixed. **Next: flow v10** (partial 46 of 62) when
+  4b and the resumes are in; then v11.
+- **Farm (06:05):** v10 4b 28 / 30; resumes 2b_r1 7 / 14, 3b_r1 5 / 12 running; 3a_r1, 4a_r1 (filed 06:06), 5sv_r1,
+  1b_r1_r2, 1a_r1_r2, 2a_r1_r2, 1a_r1b_r2 submitted / waiting; v11 parts waiting for cores. v11 code freeze holds.
+- **Open questions to formal:** B -- ucond_br7's bound on collatz; a screen of v10's clean routes (being answered
+  here by the census); C -- draws on the board candidates.
