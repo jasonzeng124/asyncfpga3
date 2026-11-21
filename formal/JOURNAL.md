@@ -3676,3 +3676,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 
 ## Session 2026-11-20 (A, from 07:10 UTC), continued past midnight
 ### progress 00:04 -- quiet since 21:35; lock
+### progress 02:17 -- research 02:20: flow v11 filed (late finish with BD_SYMTRIM, A34 rewrites for brhash / nested). For B / C. A will run trimcheck.sh (symmetric entries supported since 21:4x) on the v11 routes research lists
