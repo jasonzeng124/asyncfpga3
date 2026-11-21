@@ -1,6 +1,6 @@
 #!/bin/bash
-#CLUSTER array=1-155 cores=2 mem=16G time=360
-# b_v10scr (shard B, 2026-11-21): research FOR-FORMAL 04:00 #4 -- "is collatz64 one route or a pattern?": B24's steer
+#CLUSTER array=1-155 cores=2 mem=16G time=240
+# b_v10scr2 (b_v10scr was rejected: time > 240) (shard B, 2026-11-21): research FOR-FORMAL 04:00 #4 -- "is collatz64 one route or a pattern?": B24's steer
 # screen on EVERY rule-CLEAN, PASS, EQUIVALENT, ffmux-clean route of flow v10 (all seeds; 155 routes, 90 of them memory kernels: shard C memtask decode + steersafe only;
 # specs from formal/tools-B/auto/suite/mk_specs_all.py over claude/cluster results/suite13t_s5a_v10_*). Each task:
 # research's board_rebuild.sh (sdf checked against the farm's), the trimmed bits, racescreen.sh (decode from the bits,
