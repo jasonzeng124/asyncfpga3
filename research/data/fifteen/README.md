@@ -10,7 +10,25 @@ iterative_division, nest3, nested, spmv, stencil_2d -- flow v11's late overbuild
 **4 NO RESULT**: digitsum, digitdiv, sobel, video_filter -- their final stack, trim and draws exceed the farm's 240-min
 task limit, and a resume redoes the final stack (research/JOURNAL.md 2026-11-21 09:01); three clean ones are being
 finished locally from the farm's saved state. One correction: nest3 seed 4's farm FAIL was an out-of-memory kill of one
-draw, re-run here on the byte-identical route: PASS (research/data/suite/corrections/v10_nest3_s4).
+draw, re-run here on the byte-identical route: PASS (research/data/suite/corrections/v10_nest3_s4, with the re-run's
+own log and the route's rebuild spec).
+
+**Every wrong answer the automatic flow has produced, superseded routes and opt-in variants included** (auditor T169's
+list of 2026-11-19, carried forward and extended 2026-11-21 for T178; rule-CLEAN is not a certificate): test_divui seeds
+1 / 2 (suite10b/9, /10, flow v7, **rule-CLEAN**, FAIL 0 / 4, 3 of 12 vectors wrong; rule A's peers escaped the cell,
+fixed 1daa7efd4); if_loop_1 seed 1 (suite9/77, v6, NOT CLEAN, memory wrong; fixed by rule B's RAM guard); ipow seed 4 in
+flow v1 (NOT CLEAN; rejudge1/3 FAIL 2 / 4); xorshift seed 8 in flow v1 (rejudge1/12 FAIL 7 / 8: the zero-trip call,
+formal B7); ipow seed 7 with ring fusion (ringfuse1/31, v8, NOT CLEAN, FAIL 7 / 8); since then, both in opt-in variants
+of flow v10, not the headline flow: **sqrtsub seed 2 with the 10 % steer guard** (suite13t_s5g_g10/9, NOT CLEAN with one
+rule-H row 140 ps short; draw 10204 got 7 of 13 calls wrong: the rule had flagged that route) and **fill seed 2 with
+BDC_MEM_FASTFALL** (suite13t_s5b_mff_2/4, NOT CLEAN; one draw "FAIL 0/5, MEMORY wrong" with 0 cycles and no monitor
+output -- that simulation did not run, cause unknown, not re-run). Flow v10 itself: no wrong answer on any of its
+routes (nest3 seed 4's FAIL was the out-of-memory kill above).
+
+**Seeds that never finished** (T178): image_resize s1 / s2 / s4, iir s2 / s4, share_test_1 s2 / s4 and vector_rescale s1
+stopped at the farm's 240-min limit and were not resumed (each was in its final stack, trim or search, which a resume
+redoes; research/JOURNAL.md 2026-11-21 09:01). The "routes judged / built" column counts finished routes only, so
+image_resize's ratio to Dynamatic rests on one route.
 
 **Against suite13t (v9 + trim):** 9 kernels newly pass (divmods, fir, iir, image_resize, isprime, loop_path, quadrec,
 share_test_1, single_loop -- most because the resume parts let them finish), stencil_2d no longer does (its v10 routes
@@ -36,10 +54,10 @@ results/suite13t_s5a_v10_* (nest3 s4's replaced by the correction).
 
 | kernel | status | routes judged (rule-clean + NOT CLEAN) / built | draws passing (clean; not clean) | ns per iteration (P) on clean routes, median (range) [on NOT CLEAN routes] | worst latency per call, ns | kernel LUTs | Dynamatic, ns per iteration | ratio | hand recipe's best, ns | latency per call, ns: ours, mean over the calls, median (range) over routes | Dynamatic, latency per call, ns | latency ratio |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| binary_search | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 34.39 (31.61-35.48) [35.66 (35.66-35.66)] | 3864 | 1690 | 30.80 (measured, 4 routes) | 1.12 | - | 2910.86 (2804.57-2928.00) [3080.57 (3080.57-3080.57)] | - | - |
-| branchloop | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | fit 34.95 (31.41-38.50) (slope of call latency on trip count; no event-graph P) [30.05 (30.05-30.05)] | 2376 | 2234 | 28.70 (measured, 4 routes) | 1.22 (fit) | - | 523.93 (482.14-565.71) [488.36 (455.57-521.14)] | 379.37 (cycles simulated, period measured (4 routes)) | 1.38 |
-| brhash | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | fit 35.66 (35.09-36.22) (slope of call latency on trip count; no event-graph P) [fit 34.89 (33.91-35.86)] | 9264 | 2089 | 34.22 (measured, 4 routes) | 1.04 (fit) | - | 1454.10 (1432.20-1476.00) [1424.70 (1388.40-1461.00)] | 1357.25 (cycles simulated, period measured (4 routes)) | 1.07 |
-| cmpchain | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - | 120 | 3092 | - | - | - | 98.82 (96.71-105.18) | 60.79 (cycles simulated, period measured (4 routes)) | 1.63 |
+| binary_search | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 34.39 (31.61-35.48) [35.66 (35.66-35.66)] | 3720 [3864] | 1690 | 30.80 (measured, 4 routes) | 1.12 | - | 2910.86 (2804.57-2928.00) [3080.57 (3080.57-3080.57)] | - | - |
+| branchloop | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | fit 34.95 (31.41-38.50) (slope of call latency on trip count; no event-graph P) [30.05 (30.05-30.05)] | 2376 [2220] | 2234 | 28.70 (measured, 4 routes) | 1.22 (fit) | - | 523.93 (482.14-565.71) [488.36 (455.57-521.14)] | 379.37 (cycles simulated, period measured (4 routes)) | 1.38 |
+| brhash | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | fit 35.66 (35.09-36.22) (slope of call latency on trip count; no event-graph P) [fit 34.89 (33.91-35.86)] | 9084 [9264] | 2089 | 34.22 (measured, 4 routes) | 1.04 (fit) | - | 1454.10 (1432.20-1476.00) [1424.70 (1388.40-1461.00)] | 1357.25 (cycles simulated, period measured (4 routes)) | 1.07 |
+| cmpchain | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - | - [120] | 3092 | - | - | - | - [98.82 (96.71-105.18)] | 60.79 (cycles simulated, period measured (4 routes)) | - |
 | collatz | PASS | 4 + 0 / 4 | 16 / 16; - | 15.71 (14.48-16.42) | 4344 | 1238 | 13.79 (measured, 4 routes) | 1.14 | 21.50 | 1552.24 (1414.24-1592.47) | 1336.75 (cycles simulated, period measured (4 routes)) | 1.16 |
 | collatz64 | PASS | 4 + 0 / 4 | 16 / 16; - | 20.92 (19.90-23.61) | 8316 | 1768 | 16.90 (measured, 4 routes) | 1.24 | 31.40 | 4952.50 (4616.33-5529.67) | 3915.33 (cycles simulated, period measured (4 routes)) | 1.26 |
 | countloop | PASS | 4 + 0 / 4 | 16 / 16; - | 18.21 (16.85-20.00) | 5172 | 1855 | 11.73 (measured, 4 routes) | 1.55 | - | 759.30 (714.00-842.40) | 478.79 (cycles simulated, period measured (4 routes)) | 1.59 |
@@ -48,38 +66,38 @@ results/suite13t_s5a_v10_* (nest3 s4's replaced by the correction).
 | divmods | PASS | 4 + 0 / 4 | 16 / 16; - | 1614.00 (1614.00-1614.00) | 276 | 5615 | - | - | - | 279.25 (270.00-282.00) | - | - |
 | divmodu | PASS | 4 + 0 / 4 | 16 / 16; - | 1614.00 (1614.00-1614.00) | 372 | 2755 | - | - | - | 264.00 (252.00-402.00) | - | - |
 | dot2 | PASS | 4 + 0 / 4 | 16 / 16; - | 29.61 (27.43-32.63) | 1104 | 1475 | 64.03 (measured, 4 routes) | 0.46 | - | 672.38 (622.50-738.75) | 1309.45 (cycles simulated, period measured (4 routes)) | 0.51 |
-| factorial | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [fit 27.71 (26.49-28.72)] | 204 | 2567 | 182.64 (measured, 4 routes) | - | - | 131.00 (127.50-138.00) | 328.98 (cycles simulated, period measured (4 routes)) | 0.40 |
+| factorial | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [fit 27.71 (26.49-28.72)] | - [204] | 2567 | 182.64 (measured, 4 routes) | - | - | - [131.00 (127.50-138.00)] | 328.98 (cycles simulated, period measured (4 routes)) | - |
 | fill | PASS | 4 + 0 / 4 | 16 / 16; - | 30.16 (29.73-32.78) | 1368 | 1942 | 12.40 (measured, 4 routes) | 2.43 | - | 552.00 (547.20-609.60) | 235.51 (cycles simulated, period measured (4 routes)) | 2.34 |
-| fir | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 24.27 (24.20-24.34) [25.85 (25.83-25.87)] | 25932 | 801 | 51.66 (measured, 4 routes) | 0.47 | - | 25089.00 (25026.00-25152.00) [26316.00 (25962.00-26670.00)] | 51717.73 (cycles simulated, period measured (4 routes)) | 0.49 |
-| fold64 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 21.99 (21.35-52.72) [23.26 (23.26-23.26)] | 13464 | 2818 | 16.72 (measured, 4 routes) | 1.32 | - | 858.60 (827.40-2068.20) [927.00 (927.00-927.00)] | 628.83 (cycles simulated, period measured (4 routes)) | 1.37 |
-| gather | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 54.56 (54.19-56.04) [56.42 (56.42-56.42)] | 1860 | 1502 | 80.12 (measured, 4 routes) | 0.68 | - | 1260.67 (1212.00-1304.00) [1304.00 (1304.00-1304.00)] | 1748.90 (cycles simulated, period measured (4 routes)) | 0.72 |
-| gcd | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [fit 26.50 (25.66-28.12)] | 1968 | 7164 | 44.52 (measured, 4 routes) | - | 87.20 | 578.62 (569.25-593.25) | 378.33 (cycles simulated, period measured (4 routes)) | 1.53 |
+| fir | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 24.27 (24.20-24.34) [25.85 (25.83-25.87)] | 24408 [25932] | 801 | 51.66 (measured, 4 routes) | 0.47 | - | 25089.00 (25026.00-25152.00) [26316.00 (25962.00-26670.00)] | 51717.73 (cycles simulated, period measured (4 routes)) | 0.49 |
+| fold64 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 21.99 (21.35-52.72) [23.26 (23.26-23.26)] | 13464 [6000] | 2818 | 16.72 (measured, 4 routes) | 1.32 | - | 858.60 (827.40-2068.20) [927.00 (927.00-927.00)] | 628.83 (cycles simulated, period measured (4 routes)) | 1.37 |
+| gather | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 54.56 (54.19-56.04) [56.42 (56.42-56.42)] | 1848 [1860] | 1502 | 80.12 (measured, 4 routes) | 0.68 | - | 1260.67 (1212.00-1304.00) [1304.00 (1304.00-1304.00)] | 1748.90 (cycles simulated, period measured (4 routes)) | 0.72 |
+| gcd | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [fit 26.50 (25.66-28.12)] | - [1968] | 7164 | 44.52 (measured, 4 routes) | - | 87.20 | - [578.62 (569.25-593.25)] | 378.33 (cycles simulated, period measured (4 routes)) | - |
 | horner | PASS | 4 + 0 / 4 | 16 / 16; - | 20.92 (20.01-21.71) | 5628 | 1845 | 60.24 (measured, 4 routes) | 0.35 | - | 861.82 (836.18-908.18) | 2307.84 (cycles simulated, period measured (4 routes)) | 0.37 |
 | if_convert | PASS | 4 + 0 / 4 | 16 / 16; - | 55.44 (54.97-56.52) | 10956 | 806 | 80.54 (measured, 4 routes) | 0.69 | - | 8062.00 (7822.00-8358.00) | - | - |
-| if_loop_1 | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 26.18 (26.13-26.23) [25.75 (22.93-28.56)] | 2916 | 1873 | 23.34 (measured, 4 routes) | 1.12 | - | 1555.88 (1536.75-1575.00) [1530.38 (1355.25-1705.50)] | 1343.67 (cycles simulated, period measured (4 routes)) | 1.16 |
+| if_loop_1 | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 26.18 (26.13-26.23) [25.75 (22.93-28.56)] | 2688 [2916] | 1873 | 23.34 (measured, 4 routes) | 1.12 | - | 1555.88 (1536.75-1575.00) [1530.38 (1355.25-1705.50)] | 1343.67 (cycles simulated, period measured (4 routes)) | 1.16 |
 | if_loop_2 | PASS | 4 + 0 / 4 | 16 / 16; - | 31.37 (27.56-34.18) | 3468 | 1554 | 22.45 (measured, 4 routes) | 1.40 | - | 2049.00 (1842.75-2255.25) | 1433.09 (cycles simulated, period measured (4 routes)) | 1.43 |
 | iir | PASS | 2 + 0 / 2 | 8 / 8; - | 49.54 (47.70-51.37) | 51360 | 1228 | 55.47 (measured, 4 routes) | 0.89 | - | 49701.00 (47430.00-51972.00) | - | - |
 | image_resize | PASS | 1 + 0 / 1 | 4 / 4; - | 77.38 (77.38-77.38) | 69888 | 2471 | 16.07 (measured, 4 routes) | 4.82 | - | 71532.00 (71532.00-71532.00) | - | - |
-| ipow | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 20.18 (19.87-20.50) [18.85 (18.73-18.96)] | 696 | 1302 | 45.58 (measured, 4 routes) | 0.44 | 36.20 | 263.47 (258.71-268.24) [250.06 (245.65-254.47)] | 468.67 (cycles simulated, period measured (4 routes)) | 0.56 |
-| isprime | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | fit 47.30 (47.30-47.30) (slope of call latency on trip count; no event-graph P) [fit 48.88 (45.33-49.08)] | 15636 | 3914 | 11.74 (measured, 4 routes) | 4.03 (fit) (not comparable: out of the mean) | - | 4195.67 (4195.67-4195.67) [4312.00 (4018.00-4338.00)] | 3170.54 (cycles simulated, period measured (4 routes)) | 1.32 |
-| iterative_division | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [21.13 (19.93-21.76)] | 5676 | 3806 | 15.83 (measured, 4 routes) | - | - | 1588.20 (1502.80-1671.60) | 1166.72 (cycles simulated, period measured (4 routes)) | 1.36 |
+| ipow | PASS | 2 + 2 / 4 | 8 / 8; 8 / 8 | 20.18 (19.87-20.50) [18.85 (18.73-18.96)] | 696 [648] | 1302 | 45.58 (measured, 4 routes) | 0.44 | 36.20 | 263.47 (258.71-268.24) [250.06 (245.65-254.47)] | 468.67 (cycles simulated, period measured (4 routes)) | 0.56 |
+| isprime | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | fit 47.30 (47.30-47.30) (slope of call latency on trip count; no event-graph P) [fit 48.88 (45.33-49.08)] | 14880 [15636] | 3914 | 11.74 (measured, 4 routes) | 4.03 (fit) (not comparable: out of the mean) | - | 4195.67 (4195.67-4195.67) [4312.00 (4018.00-4338.00)] | 3170.54 (cycles simulated, period measured (4 routes)) | 1.32 |
+| iterative_division | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [21.13 (19.93-21.76)] | - [5676] | 3806 | 15.83 (measured, 4 routes) | - | - | - [1588.20 (1502.80-1671.60)] | 1166.72 (cycles simulated, period measured (4 routes)) | - |
 | iterative_sqrt | PASS | 4 + 0 / 4 | 16 / 16; - | 60.09 (60.09-60.09) | 1116 | 2323 | 178.63 (measured, 4 routes) | 0.34 | - | 480.50 (473.50-494.50) | 1221.95 (cycles simulated, period measured (4 routes)) | 0.39 |
 | lfsrfind | PASS | 4 + 0 / 4 | 16 / 16; - | 21.10 (19.70-22.32) | 5772 | 909 | 15.28 (measured, 4 routes) | 1.38 | - | 1015.50 (964.20-1075.80) | 705.29 (cycles simulated, period measured (4 routes)) | 1.44 |
 | loop_path | PASS | 4 + 0 / 4 | 16 / 16; - | 43.32 (42.66-44.47) | 7476 | 956 | 29.63 (measured, 4 routes) | 1.46 | - | 7455.00 (7170.00-7590.00) | - | - |
 | memsum | PASS | 4 + 0 / 4 | 16 / 16; - | 27.38 (23.36-31.15) | 1056 | 1388 | 68.88 (measured, 4 routes) | 0.40 | - | 537.00 (480.00-608.40) | 1199.63 (cycles simulated, period measured (4 routes)) | 0.45 |
 | mul_example | PASS | 4 + 0 / 4 | 16 / 16; - | 61.25 (56.03-66.10) | 6636 | 335 | 71.10 (measured, 4 routes) | 0.86 | - | 6339.00 (5658.00-6612.00) | - | - |
-| nest3 | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [fit 50.32 (46.35-55.24)] | 5328 | 5432 | 12.80 (measured, 4 routes) | - | - | 1026.75 (962.00-1116.50) | 631.68 (cycles simulated, period measured (4 routes)) | 1.63 |
-| nested | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [fit 26.64 (25.17-51.73)] | 12828 | 3519 | 13.76 (measured, 4 routes) | - | - | 997.64 (946.36-1698.00) | 574.21 (cycles simulated, period measured (4 routes)) | 1.74 |
+| nest3 | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [fit 50.32 (46.35-55.24)] | - [5328] | 5432 | 12.80 (measured, 4 routes) | - | - | - [1026.75 (962.00-1116.50)] | 631.68 (cycles simulated, period measured (4 routes)) | - |
+| nested | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [fit 26.64 (25.17-51.73)] | - [12828] | 3519 | 13.76 (measured, 4 routes) | - | - | - [997.64 (946.36-1698.00)] | 574.21 (cycles simulated, period measured (4 routes)) | - |
 | nested_loop | PASS | 4 + 0 / 4 | 16 / 16; - | 48.74 (47.77-50.14) | 20220 | 1313 | 52.01 (measured, 4 routes) | 0.94 | - | 19989.00 (19272.00-20796.00) | - | - |
-| quadrec | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 39.48 (39.37-41.03) [41.52 (41.52-41.52)] | 10656 | 3423 | 11.58 (measured, 4 routes) | 3.41 | - | 1512.00 (1476.00-1542.60) [1561.20 (1561.20-1561.20)] | 449.47 (cycles simulated, period measured (4 routes)) | 3.36 |
-| share_test_1 | PASS | 1 + 1 / 2 | 4 / 4; 4 / 4 | 27.09 (27.09-27.09) [31.86 (31.86-31.86)] | 65616 | 1678 | 62.58 (measured, 4 routes) | 0.43 | - | 60024.00 (60024.00-60024.00) [65658.00 (65658.00-65658.00)] | - | - |
+| quadrec | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | 39.48 (39.37-41.03) [41.52 (41.52-41.52)] | 10560 [10656] | 3423 | 11.58 (measured, 4 routes) | 3.41 | - | 1512.00 (1476.00-1542.60) [1561.20 (1561.20-1561.20)] | 449.47 (cycles simulated, period measured (4 routes)) | 3.36 |
+| share_test_1 | PASS | 1 + 1 / 2 | 4 / 4; 4 / 4 | 27.09 (27.09-27.09) [31.86 (31.86-31.86)] | 59628 [65616] | 1678 | 62.58 (measured, 4 routes) | 0.43 | - | 60024.00 (60024.00-60024.00) [65658.00 (65658.00-65658.00)] | - | - |
 | share_test_2 | PASS | 4 + 0 / 4 | 16 / 16; - | 96.96 (96.30-99.07) | 9936 | 2401 | 77.75 (measured, 4 routes) | 1.25 | - | 9912.00 (9588.00-10188.00) | - | - |
 | simple_example_1 | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 86 | - | - | - | 72.00 (72.00-72.00) | - | - |
 | single_loop | PASS | 4 + 0 / 4 | 16 / 16; - | 48.35 (46.22-50.02) | 25104 | 734 | 51.41 (measured, 4 routes) | 0.94 | - | 24753.00 (24078.00-25296.00) | - | - |
 | sobel | NO RESULT (suite13t_s5a_v10: no result line yet -- 12 task(s) stopped at the farm's 240-min limit (s1: loop at it 10; s1: loop at it 2; s1: loop shipped it 9; s2: loop at it 5; s2: loop shipped it 9; s2: loop shipped it 9; s3: loop at it 10; s3: loop at it 2; s3: loop shipped it 9; s4: loop at it 6; s4: loop shipped it 10; s4: loop shipped it 10)) | 0 / 0 | - | - | - | - | 67.97 (measured, 4 routes) | - | - | - | - | - |
-| spmv | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - | 1548 | 3968 | 96.81 (measured, 4 routes) | - | - | 956.25 (879.00-1002.00) | - | - |
+| spmv | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - | - [1548] | 3968 | 96.81 (measured, 4 routes) | - | - | - [956.25 (879.00-1002.00)] | - | - |
 | sqrtsub | PASS | 4 + 0 / 4 | 16 / 16; - | 20.59 (17.15-32.24) | 8292 | 1338 | 12.11 (measured, 4 routes) | 1.70 | - | 756.69 (632.77-1116.00) | 423.02 (cycles simulated, period measured (4 routes)) | 1.79 |
-| stencil_2d | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [416.23 (400.42-429.20)] | 12060 | 2342 | 37.83 (measured, 4 routes) | - | - | 11940.00 (11208.00-12438.00) | - | - |
+| stencil_2d | UNFINISHED (draws pass on NOT CLEAN routes only) | 0 + 4 / 4 | -; 16 / 16 | - [416.23 (400.42-429.20)] | - [12060] | 2342 | 37.83 (measured, 4 routes) | - | - | - [11940.00 (11208.00-12438.00)] | - | - |
 | straight | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 1022 | - | - | - | 72.00 (72.00-72.00) | 14.66 (cycles simulated, period measured (4 routes)) | 4.91 |
 | sumi3_mem | PASS | 4 + 0 / 4 | 16 / 16; - | 25.61 (22.61-29.30) | 29364 | 619 | 84.60 (measured, 4 routes) | 0.30 | - | 26169.00 (22734.00-30462.00) | 84696.94 (cycles simulated, period measured (4 routes)) | 0.31 |
 | test_bitint | PASS | 4 + 0 / 4 | 16 / 16; - | - | 312 | 644 | 38.52 (measured, 4 routes) | - | - | 294.00 (240.00-323.00) | 438.65 (cycles simulated, period measured (4 routes)) | 0.67 |
@@ -87,11 +105,11 @@ results/suite13t_s5a_v10_* (nest3 s4's replaced by the correction).
 | test_divui | PASS | 4 + 0 / 4 | 16 / 16; - | - | 480 | 2294 | - | - | - | 195.00 (180.00-516.00) | - | - |
 | test_flatten_array | PASS | 4 + 0 / 4 | 16 / 16; - | - | 33744 | 1581 | 14.61 (measured, 4 routes) | - | - | 32175.00 (28614.00-33750.00) | - | - |
 | test_int16 | PASS | 4 + 0 / 4 | 16 / 16; - | - | 60 | 3 | - | - | - | 60.00 (60.00-60.00) | - | - |
-| test_loop_free | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | - | 72 | 994 | - | - | - | 72.00 (72.00-72.00) [72.00 (72.00-72.00)] | 20.43 (cycles simulated, period measured (4 routes)) | 3.52 |
-| test_memory_1 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | - | 288 | 1010 | 20.56 (measured, 4 routes) | - | - | 168.00 (168.00-180.00) [176.00 (176.00-176.00)] | - | - |
-| test_memory_2 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | - | 312 | 1123 | 20.41 (measured, 4 routes) | - | - | 172.29 (169.71-180.86) [164.57 (164.57-164.57)] | - | - |
+| test_loop_free | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | - | 72 [72] | 994 | - | - | - | 72.00 (72.00-72.00) [72.00 (72.00-72.00)] | 20.43 (cycles simulated, period measured (4 routes)) | 3.52 |
+| test_memory_1 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | - | 288 [288] | 1010 | 20.56 (measured, 4 routes) | - | - | 168.00 (168.00-180.00) [176.00 (176.00-176.00)] | - | - |
+| test_memory_2 | PASS | 3 + 1 / 4 | 12 / 12; 4 / 4 | - | 312 [276] | 1123 | 20.41 (measured, 4 routes) | - | - | 172.29 (169.71-180.86) [164.57 (164.57-164.57)] | - | - |
 | test_stdint | PASS | 4 + 0 / 4 | 16 / 16; - | 51.99 (47.89-53.27) | 5364 | 406 | 80.67 (ESTIMATE) | 0.64 (Dynamatic ESTIMATED: out of the measured mean) | - | 5216.25 (4852.50-5382.00) | - | - |
-| twoloops | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 14.71 (14.71-14.71) [14.87 (14.70-15.99)] | 4164 | 2266 | 11.81 (measured, 4 routes) | 1.25 | - | 895.09 (895.09-895.09) [927.82 (921.82-985.09)] | 668.06 (cycles simulated, period measured (4 routes)) | 1.34 |
+| twoloops | PASS | 1 + 3 / 4 | 4 / 4; 12 / 12 | 14.71 (14.71-14.71) [14.87 (14.70-15.99)] | 3840 [4164] | 2266 | 11.81 (measured, 4 routes) | 1.25 | - | 895.09 (895.09-895.09) [927.82 (921.82-985.09)] | 668.06 (cycles simulated, period measured (4 routes)) | 1.34 |
 | unused_arg | PASS | 4 + 0 / 4 | 16 / 16; - | - | 72 | 88 | - | - | - | 72.00 (72.00-72.00) | 6.72 (cycles simulated, period measured (4 routes)) | 10.71 |
 | varshift | PASS | 4 + 0 / 4 | 16 / 16; - | 27.39 (27.02-29.00) | 7488 | 2669 | 12.48 (measured, 4 routes) | 2.19 | - | 1179.30 (1156.20-1226.40) | 520.23 (cycles simulated, period measured (4 routes)) | 2.27 |
 | vector_rescale | PASS | 3 + 0 / 3 | 12 / 12; - | 55.53 (54.33-57.75) | 57780 | 589 | 50.68 (measured, 4 routes) | 1.10 | - | 55602.00 (55308.00-58260.00) | - | - |

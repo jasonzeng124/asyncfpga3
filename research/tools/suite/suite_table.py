@@ -192,6 +192,10 @@ for k in sorted(set(rows) | set(listed)):
     dp = sum(int(r["draws"].split("/")[0]) for r in judged if "draws" in r)
     dn = sum(int(r["draws"].split("/")[1]) for r in judged if "draws" in r)
     lat = [int(r["lat_max_cyc"]) * 12 for r in judged if r.get("lat_max_cyc", "NA").isdigit()]
+    # worst latency per call: clean routes plain, NOT CLEAN routes' in brackets (audit T178: an UNFINISHED row showed its
+    # NOT CLEAN routes' figure unbracketed); a kernel with no clean route reads "- [x]"
+    latc = [int(r["lat_max_cyc"]) * 12 for r in judged if r.get("rule") == "clean" and r.get("lat_max_cyc", "NA").isdigit()]
+    latn = [int(r["lat_max_cyc"]) * 12 for r in judged if r.get("rule") != "clean" and r.get("lat_max_cyc", "NA").isdigit()]
     luts = [int(r["luts"]) for r in judged if r.get("luts", "").isdigit()]
     ok_all = bool(judged) and dp == dn and all(r.get("status") == "PASS" for r in judged)
     # 2026-11-20: a clean route is passing evidence only if its draws also had no pulse under 1 ns on a kernel handshake
@@ -241,7 +245,7 @@ for k in sorted(set(rows) | set(listed)):
             P = None
         if P is not None:
             (Ps if r.get("rule") == "clean" else Pnc).append(P / 1000)
-        LL = Ls if (r.get("rule") == "clean" or not clean) else Lnc   # latency: clean routes where any (as P)
+        LL = Ls if r.get("rule") == "clean" else Lnc   # latency: clean routes plain, NOT CLEAN in brackets (T178)
         if v:
             LL.append(sum(v) / len(v))
         elif r.get("lat_call_sum_ns", "NA").isdigit() and r.get("nvec", "0").isdigit() and int(r["nvec"]):
@@ -260,6 +264,8 @@ for k in sorted(set(rows) | set(listed)):
     lcell, dcell, lrcell = "-", "-", "-"
     if Ls:
         lcell = fmt_range(Ls) + (" [%s]" % fmt_range(Lnc) if Lnc else "")
+    elif Lnc:
+        lcell = "- [%s]" % fmt_range(Lnc)
     if dl:
         dcell = "%.2f (%s%s)" % (dl["mean"], dl["tag"], "; period extrapolated, model path %.2f ns" % dl["cp"] if dl["extrap"] else "")
         # the calls each route's latency is over (routes without any latency data, older result lines, are left out)
@@ -285,7 +291,8 @@ for k in sorted(set(rows) | set(listed)):
         pcell += " [fit %s]" % fmt_range(Fnc)
     print("| %s | %s | %d + %d / %d | %s; %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
         k, status, len(clean), len(nclean), len(rs), _dr(clean), _dr(nclean), pcell,
-        ("%d" % max(lat)) if lat else "-", ("%d" % st.median(luts)) if luts else "-",
+        (("%d" % max(latc)) if latc else "-") + ((" [%d]" % max(latn)) if latn else ""),
+        ("%d" % st.median(luts)) if luts else "-",
         ("%.2f (%s)" % dy[:2]) if dy else "-",
         ("%.2f%s%s" % (ratio, " (fit)" if fit else "", " (not comparable: out of the mean)" if k in NORATIO else
                        (" (Dynamatic ESTIMATED: out of the measured mean)" if "ESTIMATE" in dy[1] else "")))

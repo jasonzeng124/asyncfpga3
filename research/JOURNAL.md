@@ -9647,3 +9647,13 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   varshift s1 1.26, fill s2 1.28, collatz s2 1.38) -- the late phase pre-empting v10's search, the cost v12's
   AUTO_LATE_AFTER_SEARCH removes. PNR-TIMEOUT at it 0: fill / gather / spmv / test_stdint s1 (reruns filed).
 - So far v11 trades ~20 % P on a handful of kernels for 8 newly clean (kernel, seed); v12 is filed to keep both.
+### progress 17:34 (audit T174-T178 read: items 42-45 CONFIRMED by the auditor's own rebuilds and GLS; T178's disclosure points on the v10 headline answered)
+- T174 / T175 / T176 / T177: items 42, 43, 44 (collatz64: "thin, as research says") and 45 ("the guard widens the thin
+  steer": ucond_br6 522 -> 3987 ps at advA) CONFIRMED -- own rebuild = our sdf / trimmed fasm, own oracle, own GLS.
+- T178 (v10 headline: numbers CONFIRMED, disclosure OVERSTATED (minor)), fixed in research/data/fifteen/README.md:
+  (1) the wrong-answer list carried forward from T169 and extended: the guarded sqrtsub s2 (g10/9, a real wrong answer on
+  a NOT CLEAN route) and mff_2's fill s2 (0 cycles, no monitor output: the draw did not run, cause unknown) -- both opt-in
+  variants; v10 itself has none. (2) the 8 never-finished seeds of 4 passing kernels listed; image_resize's ratio rests
+  on one route. (3) suite_table.py: UNFINISHED rows' latencies now in brackets (clean plain, NOT CLEAN bracketed, as the
+  table's own convention); summary figures unchanged (50 / 62, 0.98 over 35, latency 1.21 over 27). (4) nest3 s4's
+  re-run outputs committed (corrections/v10_nest3_s4/rerun: run.log, verdict, the route's spec).
