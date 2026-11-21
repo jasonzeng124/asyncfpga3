@@ -9610,3 +9610,14 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - Both PASS 4 / 4. The knob takes the better of v10 and v11 per kernel on these two. Next: the candidate v12 test
   (+ the guard) on sqrtsub s2, in its final trims.
 ### progress 16:09 (waiting: candidate v12 sqrtsub s2 in its trim rounds; v10 local completions in their trims; v11 1a 30 / 31, 1b / 2a / 2b running)
+### progress 16:35 (flow v12 filed: v11 + AUTO_LATE_AFTER_SEARCH + AUTO_GUARD_E=0.90,1.10; its key local test passed)
+- **v12 test, sqrtsub s2** (the seed the guard alone lost, with a failing draw): pass A = the guard-alone NOT CLEAN route,
+  the search did not clean it, the late phase did -- **PASS 4 / 4 on a rule-CLEAN route** (draw 10204 passes now),
+  P 27.33 ns, latency sum 12768 ns (v10's unguarded route: 21.66 / 10374). Prediction (journal 15:05) held.
+- research/cluster/requests/suite13t_s5a_v12_{1a..4b}.sh (mk_v11.py's generation: v11's body, all 62 kernels, seeds
+  1-4, state_v12; header with the evidence and the PREDICTION: no kernel worse than v11's status, P no worse than v10's
+  where v10's search rescued, every shipped route's weakest select gate at x >= 0.10). Named after v11's parts, so they
+  queue behind them; results likely after this session. **Flow code frozen until v12's last part is submitted.**
+- Why the guard goes in: PROGRAM goal 1 comes strictly first; the guard is the conservative side of formal B30's
+  adversary (three of v10's routes), costs nothing where routes converge (P ratio 1.003), and its convergence loss is
+  what the late phase absorbs. v12's full-suite numbers against v11 and v10 will say what it costs.
