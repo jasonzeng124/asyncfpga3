@@ -9182,3 +9182,11 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - Board prep (journal 03:3x) running: collatz s1 strict gate 5 / 5 so far (worst, SLOW_MAX, FAST_MIN, 2 draws; 0 runts,
   narrowest pulse 1.9 ns); steer screens done (collatz: as at 15:40; xorshift: 16 / 16 steers bounded, min kappa_lo
   0.091, latch-fed race ucond_br7 slack +597 / +1492 ps, adversary no failure to kappa 0.20).
+### progress 04:16 (NEGATIVE, bounded before building: a carry-tracking delay line would buy <= 1 element on the critical cycle -- research/data/carryx/)
+- The rule on v10's shipped xorshift s1 / collatz s1 routes as built, CARRY4 priced as the flow does (control: equals
+  the farm's rule_I.vh on both) vs CARRY4 at the chains' band (an ideal replica): xorshift's cycle line UCMPI1 9 -> 8
+  (~0.4 ns, ~2 %), collatz's cycle unchanged even with F7/F8 tracking too. Over 88 clean v10 routes the cycle is 41 %
+  matched-delay chain, 29 % inter-unit wire, 30 % cells; the chains are sized by their data paths' LUT / wire content,
+  which the LUT elements already track. Not pursued.
+- Gate (strict, board prep): 18 / 18 collatz runs PASS so far, xorshift's next; collatz64 v10 s1 rebuilt byte for byte
+  (sdf de88e329) as a third candidate, its steer screen running.
