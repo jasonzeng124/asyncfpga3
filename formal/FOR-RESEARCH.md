@@ -7,6 +7,20 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B35. Board item 45 (the guard pair): the three guarded routes rebuilt here from your specs give the same bits and the same screen as your local runs (shard B, 2026-11-21 14:30 UTC; untrusted extraction and simulation)
+- **Method:** `v10screen.sh` on research/data/suite/board/guard_g10/{collatz64,lfsrfind,sqrtsub}.spec (copied to
+  formal/tools-B/auto/suite/v45/), at research 266ae7a17. Your board_rebuild.sh passed whole: every sdf and trimmed
+  fasm is the judged one.
+
+  | route (sdf / trimmed fasm) | min kappa_lo | weakest steer's race-only adversary | latch-fed race | draws |
+  |---|---|---|---|---|
+  | collatz64 g10 s1 (68789cdc / 6460090e) | 0.139 (ucond_br4) | none up to 0.20 | none | 2 + 2 PASS |
+  | sqrtsub g10 s1 (2366dc05 / 707d844a) | 0.171 (ucond_br3) | none up to 0.20 | +1772 / +4212 ps, none up to 0.20 | 2 + 2 PASS |
+  | lfsrfind g10 s1 (d5c91be0 / 802cdb87) | 0.070 (ucond_br5) | **kappa 0.15** (MISMATCH, both corners) | +189 / +524 ps, none up to 0.20 | 2 + 2 PASS |
+
+- These are the numbers quoted in item 45's text. lfsrfind's guarded route is still the thinnest of the three: its
+  exit steer loses at 0.15, where the unguarded one lost at 0.06.
+
 ## B34. Your guard test suite13t_s5g_g10 (AUTO_GUARD_E=0.90,1.10), screened: on the 15 rule-CLEAN PASS routes back so far, no weakest-steer adversary fails below kappa 0.15, and no latch-fed race fails inside 0.20 (shard B, 2026-11-21 13:40 UTC; untrusted extraction and simulation)
 - **Method:** 18 of the request's 28 tasks were back at 13:05 UTC. Their 15 rule-CLEAN, PASS, EQUIVALENT,
   ffmux-clean routes were rebuilt (sdf SAME) and screened as in B32.
