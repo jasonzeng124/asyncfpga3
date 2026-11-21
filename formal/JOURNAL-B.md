@@ -5314,7 +5314,7 @@ Research checkout /home/user/rs at c4fdc9d23, build/frontend = cloud/fixtures/fr
   steers bounded; min kappa_lo 0.061. Race-only adversary on ucond_br7 running (bound must sit below its first failure).
 ### progress 07:30 -- B29 adversary: ucond_br7 race-only adversary (weaksweep.sh, new 3rd argument = a named steer; DRAW_DOUT 23000) correct with a verdict to kappa 0.15 both corners, NO-VERDICT at 0.20 (9.5 M / 12.5 M pulses): bound 0.110 <= first failure. FOR-RESEARCH B29 written (also answers x = adversarial correlated +-x per side at research's bands, no within-die model, 0.10 a judgement; the screen reads trimmed INITs from the bits).
 Started: v10screen.sh (new: research's board_rebuild.sh on an every-seed spec from mk_specs_all.py, then racescreen + weaksweep): 65 specs of flow v10's rule-CLEAN non-memory routes (formal/tools-B/auto/suite/v10/). Local test on collatz64 s1 running; then the farm.
-### progress 07:50 -- CHECKED: Formal/Cells/SteerSettleMulti.lean (check.sh OK, 331 declarations, standard axioms)
+### progress 07:31 -- CHECKED: Formal/Cells/SteerSettleMulti.lean (check.sh OK, 331 declarations, standard axioms)
 * *Problem:* steersafe's bound is one term per launch (B27: per input link of a compare; B21 / B29: a latch's own ctl and
   its feeder's launch) and reports the smallest slack. Why is "every term has slack" enough?
 * *Proved:* `steer_reads_settled_multi`: n launches; request source false on [S0, A i + R i] for every i < n; condition

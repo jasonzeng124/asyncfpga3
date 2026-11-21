@@ -16,7 +16,8 @@ sed -e "s#^SIZES=\(formal/.*\)#SIZES=$F/\1#" -e "s#^TRIMS=\(formal/.*\)#TRIMS=$F
 mkdir -p "$RS/build/v10screen"; for x in SIZES TRIMS; do v=$(sed -n "s/^$x=//p" "$O/abs.spec"); [ "$v" = - ] || cp "$v" "$RS/build/v10screen/"; done
 sed -i -e "s#^SIZES=.*/\([^/]*\)#SIZES=build/v10screen/\1#" -e "s#^TRIMS=/.*/\([^/]*\)#TRIMS=build/v10screen/\1#" "$O/abs.spec"
 export BQ_RUNS=${BQ_RUNS:-$O/bq}; D=${K}_bench_gen; HB=$BQ_RUNS/hw/bq_${K}_$S
-( cd "$RS" && bash research/tools/suite/board_rebuild.sh "$O/abs.spec" ) > "$O/rebuild.txt" 2>&1
+XZ=${XRAY_DB:-}; [ -n "$XZ" ] && [ -d "$XZ/zynq7" ] && XZ=$XZ/zynq7   # research's xray_delay.py takes the zynq7 directory itself
+( cd "$RS" && if [ -n "$XZ" ]; then export XRAY_DB=$XZ; fi; bash research/tools/suite/board_rebuild.sh "$O/abs.spec" ) > "$O/rebuild.txt" 2>&1
 if ! grep -q "trimmed fasm .* not 00000000" "$O/rebuild.txt"; then echo "$NM | rebuild: $(tail -1 "$O/rebuild.txt")" | tee "$O/screen.txt"; exit 0; fi
 fa=$(md5sum < "$HB/$D.fasm" | cut -c1-8); sdf=$(md5sum < "$HB/$D.sdf" | cut -c1-8)
 P=xc7z010clg400-1; DB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7; PX=$TC/openxc7-src/prjxray
