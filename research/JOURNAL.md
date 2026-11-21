@@ -9733,3 +9733,13 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - **Next:** read both local tests; if they hold, test_flatten_array s2 under v11 + AUTO_RACE_KAPPA (B36's +1 ps route)
   and a board pair for the latch-fed race; v11 headline when it completes; v12 vs v11 / v10 as it lands; a v13
   candidate (v12 + AUTO_RACE_KAPPA + BDC_MEM_FASTFALL + AUTO_TRIM_PORTS) filed after v12's parts are submitted.
+### progress 19:44 (both local tests past their first decision point: AUTO_RACE_KAPPA padded v10 sqrtsub s4's race link 1 -> 3; AUTO_TRIM_PORTS trimmed mff dot2 s2's port lines)
+- **Race (v10 env + AUTO_RACE_KAPPA=0.13, sqrtsub s4):** routes it 0-9 byte-identical to v10's farm task (sdf per it);
+  at it 9 (v10's shipped route 89fc043c) the z check passed (5.47 sd, as in v10) and the split-corner check did not:
+  ucond_br6 kappa 0.011 (fast F 1554 / S 1493 ps = +61, slow +68: formal B32's +61 / +68 exactly), br7 0.032, br9
+  0.076 -> ULINK_N24_FOLINK padded 1 -> 3 (race_kappa's estimate: 867 ps short at the slow corner, 634 ps / element),
+  route not clean, it 10 being built.
+- **Port trim (mff dot2 s2 route rebuilt, sdf 0f16dbc4 = the farm's):** the cycle trim now lists 10 lines (the farm's
+  run: 6); step 1 moved 5 chains (farm: 2) -- umem0 uco 12 -> 9, umem1 uco 11 -> 8, umem1 usetup 9 -> 5, plus the
+  dataResult uack the farm also moved -- step 2 one more, step 3 nothing; round 2 timing next (the farm's round bought
+  nothing and was reverted: P stayed 27.73 ns).
