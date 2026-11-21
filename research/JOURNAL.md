@@ -9394,3 +9394,11 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   them on silicon. The 10 % guard closes the gap in both models on collatz64 (g10: formal's screen clean).
 - Local guard samples, seed 1: lfsrfind's search route 21.05 ns vs v10's 21.14; collatz64 21.97 vs 21.53; sqrtsub
   20.12 vs v10's 32.24 (v10's own seeds span 17.2-32.2); fill shipped it 7 (search found nothing). Draws pending.
+### progress 09:00 (the 10 % steer guard on the three thinnest routes: formal's adversary moves from kappa 0.06-0.10 to 0.15-none; P within v10's own spread)
+- research/data/guardx/README.md table: collatz64 / sqrtsub / lfsrfind s1 rebuilt by flow v10 + AUTO_GUARD_E=0.90,1.10,
+  all PASS 4 / 4 on rule-CLEAN routes, screened with formal's latest tool: min kappa_lo 0.003 / 0.045 / -0.008 ->
+  **0.139 / 0.171 / 0.070**; race-only adversary first failure kappa 0.10 / 0.10 / 0.06 -> **none / none / 0.15**;
+  P 21.53 / 32.24 / 21.14 -> 21.97 / 20.12 / 21.05 ns (one seed: churn). fill s1 too: PASS 4 / 4, 33.79 vs 30.40.
+- If the farm's paired 4-seed test agrees (suite13t_s5g_g10, after v11's parts), the guard is the measured option to put
+  to the owner for the next flow: it closes the gap formal's B30 found at the loop-exit steers, at small cost.
+- Thin-route strict gate (/tmp/bot/thin): 35 runs PASS so far, none failed.

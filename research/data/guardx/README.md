@@ -20,3 +20,19 @@ instead of 0.97 / 1.03, everything else as the flow; the 0.97 / 1.03 arm reprodu
 So a 10 % steer guard is about two elements on the loop test where it is on the cycle. research/tools/auto/
 auto_size.sh AUTO_GUARD_E=0.90,1.10 (opt-in) makes the flow size with it; the first end-to-end test is collatz64 s1
 (RUNS /tmp/bot/runs/g10), to be screened by formal's tool when it ships a route.
+
+## The guard on item 44's three thinnest routes (local, seed 1; 2026-11-21)
+Flow v10 + AUTO_GUARD_E=0.90,1.10 (/tmp/bot/scripts/g10_launch.sh: suite_one.sh with v10's environment), the shipped
+route screened by formal's racescreen.sh at claude/formal 12a46eae4 (B30's corrected steersafe, out0 sampled at 23 ns,
+the race-only adversary on the weakest steer); v10's routes from formal B30 (same tool corrections).
+
+| kernel s1 | v10: min kappa_lo / adversary first failure / xtol first failure | guarded: same | P v10 -> guarded (ns) | status (guarded) |
+|---|---|---|---|---|
+| collatz64 | 0.003 / kappa 0.10 / x 0.15 | **0.139 / none to 0.20 / none to 0.25** | 21.53 -> 21.97 | PASS 4 / 4, rule CLEAN |
+| sqrtsub | 0.045 / kappa 0.10 / x 0.10 | **0.171 / none to 0.20 / none to 0.25** | 32.24 -> 20.12 | PASS 4 / 4, rule CLEAN |
+| lfsrfind | -0.008 / kappa 0.06 / x 0.12 | 0.070 / kappa 0.15 / x 0.20 | 21.14 -> 21.05 | PASS 4 / 4, rule CLEAN |
+
+(fill s1, the fourth local run: PASS 4 / 4, P 33.79 vs 30.40.) One seed each, and v10's seeds of these kernels span up to
+2x in P (sqrtsub 17.2-32.2), so the P column is churn, not cost; research/cluster/requests/suite13t_s5g_g10.sh pairs 4
+seeds. What the table does show: on all three, the guard moves formal's weakest-steer measures out of the range where
+its adversary fails at kappa <= 0.10, without a large period cost.
