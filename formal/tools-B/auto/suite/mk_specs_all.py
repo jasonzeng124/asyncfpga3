@@ -6,10 +6,12 @@ whose suite vectors formal's bench boundary takes (no '// benchvec' memory vecto
 with MEM=1: v10screen.sh decodes them with shard C's margin/bram/memtask.sh and runs only the structural bound).  Writes OUTDIR/K_s<seed>.spec
 (+ sizes / trims files) with FASM=00000000 (no judged fasm: v10screen.sh reports the md5 instead) and OUTDIR/list.txt."""
 import glob, os, re, shutil, sys
-MEM = "--mem" in sys.argv; argv = [a for a in sys.argv if a != "--mem"]   # --mem: also memory kernels (benchvec vectors)
+MEM = "--mem" in sys.argv; argv = [a for a in sys.argv if a != "--mem"]
+CACHE = "research/data/autorw/cache.tsv"
+if "--cache" in argv: i = argv.index("--cache"); CACHE = argv[i + 1]; del argv[i:i + 2]   # e.g. cache_v11.tsv for flow v11   # --mem: also memory kernels (benchvec vectors)
 RS, out, parts = argv[1], argv[2], argv[3:]
 memo = {}
-for l in open(os.path.join(RS, "research/data/autorw/cache.tsv")):
+for l in open(os.path.join(RS, CACHE)):
     f = l.rstrip("\n").split("\t")
     if not l.startswith("#") and len(f) >= 4 and f[2] != "none": memo[(f[1], f[2])] = f[3]
 def vecfile(k):
@@ -40,6 +42,12 @@ for p in parts:
         sz = os.path.join(a, "sizes_%s.vh" % it)
         if not os.path.exists(sz): print("%s s%d: no sizes" % (k, s)); continue
         mm = re.search(r"; search ([^)]*)\)", last); env = mm.group(1).strip() if mm else ""
+        try:   # flow v11's late finish phase: routes symtrim_from <= I <= overbuild_to were built with BD_SYMTRIM (research's
+            # mk_board_specs.py since 2026-11-21 08:17 UTC, as auto_size.sh's build())
+            sf = int(open(os.path.join(a, "symtrim_from.txt")).read().split()[0])
+            ot = int(open(os.path.join(a, "overbuild_to.txt")).read().split()[0]) if os.path.exists(os.path.join(a, "overbuild_to.txt")) else 10 ** 6
+            if sf <= int(it) <= ot: env = (env + " BD_DEFINES=-DBD_SYMTRIM").strip()
+        except (OSError, IndexError, ValueError): pass
         rw = kv.get("rw", "none"); mlir = "-"; pm = re.match(r"([a-z0-9_]+)\(memo@", rw)
         if pm and pm.group(1) != "none":
             mlir = memo.get((k, pm.group(1)))
