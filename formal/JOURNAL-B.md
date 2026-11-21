@@ -5325,3 +5325,19 @@ Started: v10screen.sh (new: research's board_rebuild.sh on an every-seed spec fr
   tool picks the right terms (its extraction is untrusted).
 Lean setup: setup.sh's whole-project build stopped after Mathlib's imported part (to leave cores for screens); modules built
 on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
+### progress 07:40 -- B30 CORRECTION: steersafe's latch-held-condition term launched at the feeder's .ujoin counted the feeder's operand latches settled at the join's rise -- the B27 flaw, which the 11:25 fix applied to compare steers only. Fixed; fill s1 0.210 -> 0.171
+- Same reason as B27: the operand latches are transparent while their link's ctl is high and pass data after the ctl
+  rise the join waits for. Now, for every latch-held condition fed by a compute: one data term per input link of the
+  feeder (its join's ctl inputs, or the .uor's for a one-channel compare), that link's latches opened with their data
+  pins cut, the condition latch expanded through every pin, other links' latches left out; plus the latch's own ctl
+  term as before. Lean side: SteerSettleMulti (per-term slacks suffice).
+- Effect so far: flow v10 fill s1 (memory kernel; decoded with shard C's memtask.sh, sdf 2db8f6e8 SAME, trimmed fasm
+  ef1cd312, 1 + 1 memory draws PASS): min kappa_lo 0.210 -> 0.171 (ucond_br8, feeder ulink_n13__0 term); collatz_v10_s1
+  and collatz64_v10_s1 unchanged (their latch steers have joinless feeders; B29 already used per-link terms).
+- Earlier numbers that came from a latch steer's join term are affected (B21-B28 report mostly ctl-term slacks and
+  compare rows; the "join-launched" figures are the suspect ones). The farm screen below recomputes every flow v10 route.
+- collatz64_v10_s1 rebuilt SAME (sdf de88e329, trimmed fasm 9b93469d = research's): min kappa_lo 0.003 (ucond_br6,
+  +29 / +1108 ps from ulink_n10__4's ctl), as research's screen; its ucond_br7 (latch, joinless feeder) now bounded,
+  0.010 (feeder term +105 / +1447 ps).
+- Farm b_v10scr filed: 155 routes = every rule-CLEAN, PASS, EQUIVALENT, ffmux-clean route of flow v10, all seeds
+  (mk_specs_all.py; 65 non-memory: board_rebuild + racescreen + weaksweep; 90 memory: memtask + steersafe only).

@@ -1,4 +1,5 @@
 # varshift seed 1, route su_varshift_1_12 (farm suite13t_s5a_v10_1a/17): P=27628; rw=plain_pass(memo@5b4c68912)
+MEM=0
 K=varshift
 SEED=1
 SIZES=formal/tools-B/auto/suite/v10/varshift_s1_sizes.vh

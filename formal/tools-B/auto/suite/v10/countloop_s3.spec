@@ -1,4 +1,5 @@
 # countloop seed 3, route su_countloop_3_12 (farm suite13t_s5a_v10_3a/8): P=17313; rw=plain_pass(memo@5b4c68912)
+MEM=0
 K=countloop
 SEED=3
 SIZES=formal/tools-B/auto/suite/v10/countloop_s3_sizes.vh

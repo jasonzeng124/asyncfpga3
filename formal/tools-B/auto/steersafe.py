@@ -187,27 +187,40 @@ def auto():
                     if opn == set(opened): break
                     opened = frozenset(opn); isl, roots, order, acyc = cone(g["ins"][q], opened)
                 if not acyc: rows.append((None, name, "condition cone cyclic")); continue
-        jl = None   # 2026-11-21: a latch-held condition fed by a JOINLESS compute (one-channel compare, e.g. collatz v10's
-        # ucmpi2 -> ucond_br7): the data launch is that compute's input link's ctl (read by its .uor), whose operand latches
-        # are transparent while it is high (B27): open them, cut their data pins (the input link's bundling premise)
-        if not launch and kind == "latch" and not lre.startswith("(no compute"):
-            l2 = set()
-            for i_ in inst:
-                for gg in G:
-                    if gg["kind"] in ("lut5", "lut6") and cellof(gg) == "bridge_i.udut." + i_ + ".uor":
-                        l2 |= {through(w) for w in gg["ins"] if constval(w) is None and through(w) in storage}
-            if l2:
-                CUT.clear(); CUT.update(l2); op2 = frozenset([cs]); CUTONLY = set()
+        jl = None   # 2026-11-21 (B29 / B30): a latch-held condition fed by a compute. The feeder's operand latches are
+        # transparent while their link's ctl is high (the B27 lesson, until now applied to compare-with-join steers only),
+        # so the data term is one term per input link of the feeder: launch = that link's ctl (read by the feeder's .ujoin,
+        # or by its .uor for a one-channel compare with no join), its latches opened with data pins cut (the link's
+        # bundling premise), the condition latch expanded through every pin (CUTONLY), other links' latches left out
+        # (each is its own term). Before 2026-11-21 08:00 UTC the data term launched at the feeder's join with every
+        # operand latch counted settled there (unsound, as B27).
+        if kind == "latch" and not lre.startswith("(no compute"):
+            if launch:
+                Ls = sorted({through(w) for j in launch for w in G[drv[j]]["ins"] if re.search(r"\.ctl\.", ncell(through(w)))})
+                how = "the feeder join's input links' ctl"
+            else:
+                Ls = set()
+                for i_ in inst:
+                    for gg in G:
+                        if gg["kind"] in ("lut5", "lut6") and cellof(gg) == "bridge_i.udut." + i_ + ".uor":
+                            Ls |= {through(w) for w in gg["ins"] if constval(w) is None and through(w) in storage}
+                Ls = sorted(Ls); how = "a joinless feeder: its input link's ctl"
+            if not Ls: rows.append((None, name, "latch fed by %s: no input link ctl found" % lre)); continue
+            jl = []
+            for Lc in Ls:
+                CUT.clear(); CUT.add(Lc); op2 = frozenset([cs]); CUTONLY = set()
                 for _ in range(4):
                     i2, r2, o2, a2 = cone(g["ins"][q], op2)
                     add = {r for r in r2 if r in storage and re.search(r"\.lat\.", ncell(r)) and r != cs and
-                           any(through(w) in l2 for i, w in enumerate(G[drv[r]]["ins"]) if i not in fbpins(r))}
+                           any(through(w) == Lc for i, w in enumerate(G[drv[r]]["ins"]) if i not in fbpins(r))}
                     if add <= set(op2): break
                     op2 = frozenset(set(op2) | add); CUTONLY = set(op2) - {cs}
                 CUTONLY = set(op2) - {cs}; i2, r2, o2, a2 = cone(g["ins"][q], op2); CUT.clear(); CUTONLY = None
-                if not a2: rows.append((None, name, "condition cone cyclic (joinless feeder)")); continue
-                launch = l2; jl = (i2, r2, o2, op2)
-                lre = "|".join(sorted(ncell(u) for u in l2)) + " (latch fed by a joinless compute: its input link's ctl)"
+                if not a2: jl = None; break
+                jl.append((Lc, i2, r2, o2, op2))
+            if jl is None: rows.append((None, name, "condition cone cyclic (feeder term)")); continue
+            launch = set(Ls)
+            lre = "|".join(ncell(u) for u in Ls) + " (" + how + ")"
         if not launch and kind == "latch" and lre.startswith("(no compute"): launch = {r for r in roots if re.search(r"\.ctl\.", ncell(r))}
         if not launch: rows.append((None, name, "no launch node for %s" % lre)); continue
         def side(lset, rset, c, order=order, roots=roots, opened=opened):
@@ -248,10 +261,11 @@ def auto():
         elif kind == "compare*": parts = [("ctl", launch, roots)]   # roots: the launch ctl at A, other storage settled at A
         else:   # transparent while ctl is high: (1) from ctl's rise: the enable path through the latch; (2) from the compute's join: the data
             ctl = {r for r in roots if re.search(r"\.ctl\.", ncell(r))}
-            if jl is None: parts = [("ctl", ctl, ctl)] + ([] if lre.startswith("(no compute") else [("join", launch, roots - ctl)])
-            else:
-                i2, r2, o2, op2 = jl; isl = isl | i2
-                parts = [("ctl", ctl, ctl), ("feeder-ctl", launch, (r2 - ctl) | set(launch), o2, r2, op2)]
+            parts = [("ctl", ctl, ctl)]
+            for Lc, i2, r2, o2, op2 in (jl or []):
+                isl = isl | i2
+                rs_ = {r for r in r2 if not (r in storage and re.search(r"\.lat\.", ncell(r)))} - ctl
+                parts.append(("feeder " + ncell(Lc).replace(".ctl.u.u", "").replace("bridge_i.udut.", ""), {Lc}, rs_ | {Lc}, o2, r2, op2))
         res, txt = [], []
         for pt in parts:
             nm_, ls, rs = pt[:3]

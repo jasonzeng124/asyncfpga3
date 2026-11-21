@@ -5,12 +5,28 @@
 # trimmed fasm's md5 is reported here and the bit is made with board_rebuild's own fasm2frames / xc7frames2bit lines),
 # then racescreen.sh (decode from the bits, 2 + 2 draws, steersafe --auto, ctlsweep, xtol, outsafe) and weaksweep.sh
 # (race-only adversary of the weakest steer), all with DRAW_DOUT=23000 (CA_BENCHCAP routes: JOURNAL-B 2026-11-20 13:45).
+# MEM=1 specs (mk_specs_all.py --mem): shard C's memtask.sh instead of board_rebuild + racescreen; structural bound only.
 # Needs RS (research checkout with build/frontend), TC.  Writes OUT/screen.txt (one line).
 set -uo pipefail
 SPEC=$(readlink -f "$1"); O=$(mkdir -p "$2" && readlink -f "$2"); H=$(cd "$(dirname "$0")/.." && pwd); F=$(cd "$H/../../.." && pwd)
 RS=${RS:-/home/user/rs}; export TC=${TC:-$HOME/dev2/lib/fpgatoolchain} RS DRAW_DOUT=${DRAW_DOUT:-23000}
 get() { sed -n "s/^$1=//p" "$SPEC" | head -1; }
 K=$(get K); S=$(get SEED); NM=$(basename "$SPEC" .spec)
+if [ "$(get MEM)" = 1 ]; then   # a memory kernel (benchvec vectors): shard C's memtask.sh builds, trims (TRIM=) and decodes
+  # (RAMB18E1 / DSP48E1 too) and runs 1 + 1 of its memory draws; then only steersafe --auto (the race adversaries need
+  # the memory boundary, which B's xtol / weaksweep do not drive)
+  for e in $(get ENV); do export "$e"; done; TRx=$(get TRIMS); Zx=$(get SIZES)
+  case $Zx in formal/*) Zx=$F/$Zx;; esac; case $TRx in formal/*) TRx=$F/$TRx;; esac
+  ( [ "$TRx" = - ] || export TRIM=$TRx; TREE=$O/tree bash "$F/formal/tools/margin/bram/memtask.sh" "$K" "$S" "$Zx" "$(get SDF)" "$O/mt" 1 ) > "$O/memtask.txt" 2>&1
+  BDm=$O/tree/cells/build/hw/${K}_bench_gen
+  fa=$(md5sum < "$BDm/${K}_bench_gen.fasm" 2>/dev/null | cut -c1-8)
+  if [ -f "$O/mt/w/m/net.json" ]; then
+    timeout 3000 python3 "$H/steersafe.py" "$O/mt/w/m" --auto > "$O/steersafe.txt" 2>&1
+    ss=$(grep -o '^steers.*' "$O/steersafe.txt"); w=$(head -1 "$O/steersafe.txt" | cut -c1-28 | tr -s ' ')
+  fi
+  echo "$NM | MEM | $(grep -o 'sdf [0-9a-f]* (research [0-9a-f]*) [A-Z]*' "$O/mt/summary.txt" | head -1) trimmed fasm ${fa:-?} | draws $(grep -o 'PASS [0-9]* FAIL [0-9]*' "$O/mt/summary.txt" | tr '\n' ' ')| ${ss:-no steersafe: $(tail -1 "$O/mt/summary.txt")} (weakest ${w:-})" | tee "$O/screen.txt"
+  exit 0
+fi
 sed -e "s#^SIZES=\(formal/.*\)#SIZES=$F/\1#" -e "s#^TRIMS=\(formal/.*\)#TRIMS=$F/\1#" "$SPEC" > "$O/abs.spec"
 # board_rebuild resolves SIZES / TRIMS against the research checkout: give it paths there
 mkdir -p "$RS/build/v10screen"; for x in SIZES TRIMS; do v=$(sed -n "s/^$x=//p" "$O/abs.spec"); [ "$v" = - ] || cp "$v" "$RS/build/v10screen/"; done

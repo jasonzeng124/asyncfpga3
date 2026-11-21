@@ -1,4 +1,5 @@
 # straight seed 2, route su_straight_2_4 (farm suite13t_s5a_v10_2a/7): P=NA; rw=none(memo@5b4c68912)
+MEM=0
 K=straight
 SEED=2
 SIZES=formal/tools-B/auto/suite/v10/straight_s2_sizes.vh

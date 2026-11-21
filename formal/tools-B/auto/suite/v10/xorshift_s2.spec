@@ -1,4 +1,5 @@
 # xorshift seed 2, route su_xorshift_2_9 (farm suite13t_s5a_v10_2a/1): P=15215; rw=plain_pass(memo@5b4c68912)
+MEM=0
 K=xorshift
 SEED=2
 SIZES=formal/tools-B/auto/suite/v10/xorshift_s2_sizes.vh

@@ -2,10 +2,12 @@
 """mk_specs_all.py RS OUTDIR RESULTS_PART...  (shard B, 2026-11-21) -- research's mk_board_specs.py (claude/research
 research/tools/suite/mk_board_specs.py, same rules: status=PASS, rule=clean, bits=EQUIVALENT, ffmux-clean; the shipped
 iteration's sizes / trims / seed / search ENV / memo MLIR) for EVERY seed, not only the lowest, and only for kernels
-whose suite vectors formal's bench boundary takes (no '// benchvec' memory vectors).  Writes OUTDIR/K_s<seed>.spec
+whose suite vectors formal's bench boundary takes (no '// benchvec' memory vectors), or with --mem also those (written
+with MEM=1: v10screen.sh decodes them with shard C's margin/bram/memtask.sh and runs only the structural bound).  Writes OUTDIR/K_s<seed>.spec
 (+ sizes / trims files) with FASM=00000000 (no judged fasm: v10screen.sh reports the md5 instead) and OUTDIR/list.txt."""
 import glob, os, re, shutil, sys
-RS, out, parts = sys.argv[1], sys.argv[2], sys.argv[3:]
+MEM = "--mem" in sys.argv; argv = [a for a in sys.argv if a != "--mem"]   # --mem: also memory kernels (benchvec vectors)
+RS, out, parts = argv[1], argv[2], argv[3:]
 memo = {}
 for l in open(os.path.join(RS, "research/data/autorw/cache.tsv")):
     f = l.rstrip("\n").split("\t")
@@ -27,7 +29,8 @@ for p in parts:
         k, s, st = m.group(1), int(m.group(2)), m.group(3); kv = dict(re.findall(r"(\w+)=(\S+)", line))
         if st != "PASS" or kv.get("rule") != "clean" or kv.get("bits") != "EQUIVALENT" or "ffmux-clean" not in line: continue
         vf = os.path.join(RS, vecfile(k))
-        if not os.path.exists(vf) or open(vf).readline().startswith("// benchvec"): continue
+        mem = os.path.exists(vf) and open(vf).readline().startswith("// benchvec")
+        if not os.path.exists(vf) or (mem and not MEM): continue
         d = os.path.dirname(rf); a = os.path.join(d, "auto")
         try: last = [l for l in open(os.path.join(a, "result.txt")).read().splitlines() if l.startswith("CLEAN it=")][-1]
         except (OSError, IndexError): print("%s s%d: no CLEAN line" % (k, s)); continue
@@ -47,8 +50,8 @@ for p in parts:
         shutil.copy(sz, os.path.join(out, nm + "_sizes.vh"))
         if has_tr: shutil.copy(tr, os.path.join(out, nm + "_trims.txt"))
         open(os.path.join(out, nm + ".spec"), "w").write(
-            "# %s seed %d, route %s (farm %s): P=%s; rw=%s\nK=%s\nSEED=%s\nSIZES=%s/%s_sizes.vh\nTRIMS=%s\nMLIR=%s\nENV=%s\nSDF=%s\nFASM=00000000\n"
-            % (k, s, re.search(r"route=(\S+)", last).group(1), os.path.relpath(d, os.path.dirname(os.path.dirname(d))), kv.get("P", "NA"), rw,
+            "# %s seed %d, route %s (farm %s): P=%s; rw=%s\nMEM=%d\nK=%s\nSEED=%s\nSIZES=%s/%s_sizes.vh\nTRIMS=%s\nMLIR=%s\nENV=%s\nSDF=%s\nFASM=00000000\n"
+            % (k, s, re.search(r"route=(\S+)", last).group(1), os.path.relpath(d, os.path.dirname(os.path.dirname(d))), kv.get("P", "NA"), rw, int(mem),
                k, seed, rel, nm, ("%s/%s_trims.txt" % (rel, nm)) if has_tr else "-", mlir, env, kv.get("sdf", "")))
         lst.append(nm)
 open(os.path.join(out, "list.txt"), "w").write("\n".join(sorted(set(lst))) + "\n")

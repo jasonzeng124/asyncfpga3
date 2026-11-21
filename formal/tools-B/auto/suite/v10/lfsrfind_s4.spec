@@ -1,4 +1,5 @@
 # lfsrfind seed 4, route su_lfsrfind_4_9 (farm suite13t_s5a_v10_4a/13): P=22325; rw=none(memo@5b4c68912)
+MEM=0
 K=lfsrfind
 SEED=4
 SIZES=formal/tools-B/auto/suite/v10/lfsrfind_s4_sizes.vh

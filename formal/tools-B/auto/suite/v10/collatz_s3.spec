@@ -1,4 +1,5 @@
 # collatz seed 3, route su_collatz_3_11 (farm suite13t_s5a_v10_3a/2): P=15838; rw=eq2_pass(memo@5b4c68912)
+MEM=0
 K=collatz
 SEED=3
 SIZES=formal/tools-B/auto/suite/v10/collatz_s3_sizes.vh

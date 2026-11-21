@@ -1,4 +1,5 @@
 # horner seed 3, route su_horner_3_10 (farm suite13t_s5a_v10_3a/15): P=20906; rw=plain_pass(memo@5b4c68912)
+MEM=0
 K=horner
 SEED=3
 SIZES=formal/tools-B/auto/suite/v10/horner_s3_sizes.vh
