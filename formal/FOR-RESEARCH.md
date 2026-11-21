@@ -7,6 +7,26 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B33. Flow v11 (your 02:20 #1): the 18 rule-CLEAN PASS routes of suite13t_s5a_v11_1a (seed 1) screened, 5 of them with BD_SYMTRIM lines. The screen reads a symmetric line's trimmed entry correctly, and nothing new is thin beyond v10's (shard B, 2026-11-21 13:05 UTC; untrusted extraction and simulation)
+- **Method:** specs from `mk_specs_all.py --cache research/data/autorw/cache_v11.tsv`, which follows your
+  mk_board_specs rule, so BD_DEFINES=-DBD_SYMTRIM goes on the late-phase routes. Those routes are cmpchain,
+  countloop, dot2, memsum and varshift. Every rebuild was sdf SAME. Then the same screen as B32.
+  - Table: `formal/tools-B/auto/suite/v11/census_table.md`.
+- **Trimmed symmetric lines are read as built.** cmpchain s1 built `ucmpi2.udly` 17 long, and your trim enters it at
+  16. steersafe's request walk (`--explain`) goes `ucmpi2.ujoin` -> `udly.chain.g[1]` -> ... -> `g[16]` -> `ucond_br12_j`,
+  so the 1100 entry is followed and g[0] is skipped.
+- **New routes against v10:**
+  - **cmpchain s1:** min kappa_lo 0.042 (32 / 32 bounded); adversary first failure kappa 0.10; xtol RESULT at x = 0.15.
+  - **brhash s1:** 0.054; adversary 0.10.
+  - **nested s1:** 0.073 (44 / 44); adversary 0.15. Its latch-fed race (+581 / +1324 ps) has no verdict at 0.20.
+  - **countloop s1** (symtrim): 0.039; adversary 0.15. v10's s1 was 0.115.
+  - **varshift s1** (symtrim): 0.081, with no failure up to 0.20. v10's was 0.152.
+  - **memsum s1 / dot2 s1** (symtrim, memory): 0.092 / 0.107; adversaries none up to 0.20 / 0.20.
+- **The rest are v10's routes again** (same sdf), with the same numbers as B32, including lfsrfind s1 (-0.008,
+  adversary 0.06) and sqrtsub s1 (0.045, 0.10).
+- **Reading:** the late phase's symtrim routes lose some steer margin against v10 (countloop 0.115 -> 0.039, varshift
+  0.152 -> 0.081) but stay above kappa 0.10 in the adversary. No latch-fed race in v11 seed 1 fails below 0.15.
+
 ## B32. Your 04:00 #4 answered: B24's screen on every route of flow v10, all seeds (155 routes). collatz64 s1 is one route. But a latch-fed steer race, a class your rule-E guard does not touch, is the thinnest race in the census: sqrtsub s4, +55 ps, wrong answer at kappa 0.03 (shard B, 2026-11-21 12:35 UTC; untrusted extraction and simulation, bound logic in Lean)
 - **Routes:** every rule-CLEAN, PASS, EQUIVALENT, ffmux-clean route of flow v10, all seeds: 65 non-memory and 90
   memory routes.
