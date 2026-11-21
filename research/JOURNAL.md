@@ -9753,3 +9753,12 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   round "bought nothing" and was reverted, so rounds 2-3 never ran. The port lines are what unlock the later rounds.
 - Prediction (19:11) was P 25-27 ns: met (24.92, just below the range). Not yet shown: that the trimmed route passes its
   4 draws (running), and how often this happens across the suite (17 mff routes had the port on the cycle).
+### progress 20:27 (AUTO_RACE_KAPPA under v10's environment, sqrtsub s4: the pad fixed the race (kappa 0.011 -> 0.429) but cost the loop its convergence -- it ships NOT CLEAN; same lesson as the steer guard: it needs the late phase behind it)
+- it 9 = v10's shipped route: padded ULINK_N24_FOLINK 1 -> 4 (race_kappa's +2, the finish phase's headroom +1). it 10
+  (d58db4c0): on that route the race is gone -- split kappa 0.429-0.593 on all eight entries (z 19-23; measured here with
+  race_find / race_kappa on it 10's own arcs) -- but the re-route left rule E short at umux1.uj1/A4 by 235 / 299 ps
+  (unrelated to the race), and it 10 was the finish phase's last route: "least short: it 4", which ships NOT CLEAN
+  (P 17.44 ns; v10 shipped it 9 clean at 17.15).
+- So AUTO_RACE_KAPPA, like AUTO_GUARD_E, converts some clean finishes into one more re-route at the end of a fixed budget.
+  v11's late phase (and v12's late-after-search) is what absorbs that; the test under v11's environment
+  (test_flatten_array s2, B36's +1 ps route; started 19:53) is the one that decides whether the knob goes in a flow.
