@@ -9743,3 +9743,13 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   run: 6); step 1 moved 5 chains (farm: 2) -- umem0 uco 12 -> 9, umem1 uco 11 -> 8, umem1 usetup 9 -> 5, plus the
   dataResult uack the farm also moved -- step 2 one more, step 3 nothing; round 2 timing next (the farm's round bought
   nothing and was reverted: P stayed 27.73 ns).
+### progress 20:25 (AUTO_TRIM_PORTS on mff's dot2 s2 route: P 27.73 -> 24.92 ns (-10.1 %) on the SAME route, by LUT INIT only; draws running)
+- Round 1 (10 lines on the cycle, 4 of them the critical port's): P 27730 -> 27404 ps; the critical cycle moved off
+  umem_controller3's port onto the loop (uaddi0 24 el, uandi0 15 el, ..., umem_controller2's port on it too). Round 2
+  (20 new lines, controller 2's port lines among them): 6 chains -> P 24920. Round 3: no new line. Shipped trims (10):
+  uaddi1 -> 6, uandi0 -> 11, dataResult uack -> 1, and seven port lines (controller 2: both uco -> 9, both usetup -> 4;
+  controller 3: uco -> 9 / 8, umem1 usetup -> 5).
+- Why the farm got nothing: without the port lines its round 1 (4 chains) left the port cycle critical at 27730, the
+  round "bought nothing" and was reverted, so rounds 2-3 never ran. The port lines are what unlock the later rounds.
+- Prediction (19:11) was P 25-27 ns: met (24.92, just below the range). Not yet shown: that the trimmed route passes its
+  4 draws (running), and how often this happens across the suite (17 mff routes had the port on the cycle).
