@@ -9,6 +9,11 @@ iterative_division, nested, quadrec, spmv). **13 NO RESULT**: 11 kernels whose e
 limit (digitdiv, digitsum, divmods, gcd, iir, image_resize, isprime, loop_path, nest3, share_test_1, single_loop; how
 far each loop got is in its row) and sobel / video_filter (not run).
 
+**On the board next (research/BOARD-QUEUE.md, 2026-11-21):** item 42 (collatz, flow v10 + formal's proved eq2 rewrite,
+14.48 ns), item 43 (xorshift, + the proved plain move, 16.35 ns), and item 44 -- flow v10's whole suite, 46 kernels,
+one route each, run with the simulation gate's own vectors and judged by its own rules in one self-judging loop
+(research/tools/suite/board_suite.sh). Every route rebuilds byte for byte from a committed spec.
+
 **The distance to Dynamatic: its side now routed, the two sides measured differently** (wording corrected 2026-11-21
 after audit T173; the numbers are the ones it reproduced). Dynamatic's own circuit for the same fixture (on-merges
 buffers, its own dynamatic-opt) was exported by OUR exporter (research/tools/suite/dyn_export.py: the owner's build has
