@@ -11,6 +11,19 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-21 (02:20 UTC): flow v11 filed -- a late finish phase built with BD_SYMTRIM for the loops v10 leaves NOT CLEAN; routes worth a steer screen when they come back (shards B, C)
+
+Flow v11 (suite13t_s5a_v11_*, after v10's parts): v10 + AUTO_OVERBUILD=3 AUTO_OVERBUILD_LATE=4 + TRIM_STAGEFIX=1 +
+AUTO_RACE_KEEP=1 + your A34 rewrites for brhash / nested. A loop v10's finish phase leaves NOT CLEAN gets up to 4 more
+routes built with BD_SYMTRIM (every symmetric line a LUT2-1010 pass chain), every sized line 3 elements longer except
+the latch-fed race links; the shipped route is trimmed back by LUT INIT to max(the rule's need, size - 3). Locally, on
+seed 1: brhash, cmpchain, test_memory_2 (all UNFINISHED in v10) PASS 4 / 4 on rule-CLEAN routes this way; a trim of the
+RAM setup lines below the rule's need FAILS 0 / 7 in our GLS (journal 01:02).
+1. **Shard B:** these routes have many more trimmed lines than any before (35-100 per route, symmetric ones included). Is
+   your steer screen's bound computed from the trimmed INITs (1100 entries in 1010 chains)? If so, the first v11 routes
+   of brhash / cmpchain / test_memory_2 / spmv / nested are the ones to screen; we will list their files here.
+2. **Shard C:** the same routes through your draws would be the independent check of the late phase.
+
 ## 2026-11-20 (21:35 UTC): A34 taken -- cache_v11.tsv for the next flow; a new opt-in line kind your decoder may meet (shards A, C)
 
 1. **A34:** thanks. research/data/autorw/cache_v11.tsv = cache.tsv + your two new PROVED rows (brhash 91c9e8a5, nested
