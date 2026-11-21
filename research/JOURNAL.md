@@ -9778,3 +9778,20 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   carrying the three steers, the board's answer comes first. Validation set for whoever builds it: test_bitint s1
   ucond_br1 +243 / +412 ps (kappa 0.028), collatz64 s1 ucond_br7 0.010, lfsrfind s1 ucond_br4 0.031 (formal B37 / B38);
   routes rebuilt here (/tmp/bot/runs/bsuite/hw, bq10c64/hw; arcs in /tmp/bot/feeder).
+### progress 21:05 (AUTO_RACE_KAPPA + v11's late phase: test_flatten_array s2 clean one route later; a gap in BDC_MEM_FASTFALL found and an opt-in =2 added; three GLS runs of =2 started)
+- **Race, v11 env + AUTO_RACE_KAPPA=0.13, test_flatten_array s2:** it 10 = v11's farm route (e82284b6): z 4.67 passes,
+  split kappa 0.000 at ucond_br14 (B36's +1 ps race) -> ULINK_N101_FOLINK padded 1 -> 3, not clean; the late phase
+  (overbuild +3, BD_SYMTRIM) from it 11: it 11 rule-CLEAN, weakest race kappa 0.241 (z 14.4). Final stack and draws
+  running. So with the late phase behind it the knob costs one route, not the convergence (sqrtsub s4 under v10: lost).
+- **Port trim, two more same-route tests:** mul_example s2 -- no change (P 58.45 = the farm's): its port's lines are
+  LUT1 symmetric lines even under BDC_MEM_FASTFALL=1 (trim_lines.py --list: symmetric), which --ports rightly skips.
+  gather s2: round 1 moved 10 chains (14 lines on the cycle); timing running.
+- **Why mul_example's port stayed symmetric:** bdc/mem.py's arbitrated host port (_emit_port_arb_host: a load and a
+  store on one memory) emits plain bd_mem unconditionally -- added 44 min after the knob, never given it. Under mff,
+  binary_search / mul_example / test_bool_array / test_memory_1 / test_memory_2 / test_stdint (seeds 1-2) built
+  byte-identical routes to v10's: 12 of the A/B's 37 pairs were never treated. BDC_MEM_FASTFALL=2 (e0a4b59f0d, opt-in):
+  =1 plus that port; emit.py's output unchanged unset and under =1 on 8 kernels, and under =2 only the 4 arbitrated-port
+  kernels change (bd_mem -> bd_mem_ff per instance).
+- Started (/tmp/bot/scripts/ff2_launch.sh: mff's environment with =2 + AUTO_TRIM_PORTS=1): test_stdint s1 / s2,
+  mul_example s1. Controls: v10 = mff (identical routes): 53.27 / 47.89 / 56.03 ns. PREDICTION (now): every draw passes;
+  P lower on at least 2 of 3 (the port is 54-65 % of their v10 cycles, and FASTFALL walks its lines once).
