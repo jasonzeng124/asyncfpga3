@@ -9559,3 +9559,21 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   in its draws.
 - The candidate next flow (v11 + the knob + the 10 % guard) on sqrtsub s2 is at it 10 on the farm g10 run's own route
   (sdf f3dc482f): its pass A reproduces the guard-alone trajectory, as it should; the late phase is next.
+### progress 14:43 (STATE OF PLAY -- read this first if the session ends here)
+- **Board (BOARD-QUEUE):** items 42 (collatz v10 s1, 14.48 ns), 43 (xorshift v10 s1, 16.35), 44 (flow v10's suite, 46
+  kernels, one loop: research/tools/suite/board_suite.sh research/data/suite/board/suite_v10), **45** (the steer guard's
+  silicon test: guarded collatz64 / sqrtsub / lfsrfind s1 beside item 44's unguarded ones). All strict-gated here;
+  research/data/suite/board/README.md says what is where.
+- **Headline:** still suite13t (42 / 62). **v10 table ready to publish** (/tmp/bot/scripts/headline_v10.sh; interim
+  50 / 62, 8 UNFINISHED) once 4a_r1_r2 (gcd / fold64 s4) and the three local completions (/tmp/bot/runs/v10loc_*:
+  digitsum s2, digitdiv s2, video_filter s1 -- finished here from the farm's saved state; the farm's 240-min tasks
+  redo final() on every resume) land. Correction in research/data/suite/corrections/v10_nest3_s4 (an OOM-killed draw).
+- **Steer guard (AUTO_GUARD_E, opt-in):** census research/data/suite/board/screen_v10/census.md; formal B30; static cost
+  +0.5 %; farm pairs suite13t_s5g_g10 21 / 28: P ratio 0.991 but 2 seeds lose convergence (guarded sqrtsub s2 NOT
+  CLEAN, a draw FAILS). **Late-after-search (AUTO_LATE_AFTER_SEARCH, opt-in, verified):** countloop s1 back to v10's
+  19.12 (v11 23.17), cmpchain s1 into v11's late route. **Candidate v12 = v11 + both knobs**: header drafted in
+  /tmp/bot/scripts/v12_hdr.txt; its test (guarded sqrtsub s2 through the late phase, /tmp/bot/runs/v12c) decides
+  whether the guard goes in. File v12 with mk_v11.py-style generation once v11's last part is submitted.
+- **Farm (14:30):** v11 1a 30 / 31 (then: mk_resume.py --rerun-status PNR-TIMEOUT for gather / fill), 1b, 2a running,
+  2b.. waiting; v10 4a_r1_r2 running; g10 21 / 28.
+- **Next-flow candidates also logged:** resumable final() (the 240-min resume loop), PNR-timeout retry.
