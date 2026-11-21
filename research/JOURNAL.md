@@ -9060,3 +9060,17 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - **sym2 cmpchain s1** (UNFINISHED in v10 / suite13t): it 5 rule-CLEAN as built. **First overbuilt finish route clean as
   built: 6 of 6** (test_loop_free, sqrtsub, test_memory_2, brhash, ipow, cmpchain). nested switched; factorial / spmv in
   phase 1; ipow re-finaling with the reordered trim-back.
+### progress 01:44 (ipow showed overbuild's period cost on a loop v10 converges; flow v11's overbuild made LATE: only after v10's own finish phase fails)
+- **symtb2 ipow s1** (overbuild at the switch, re-finaled with the reordered trim-back): P after the trim-back **23.01 ns**
+  (untrimmed overbuilt 25.67; v10's route 19.87, clean after 4 finish routes); the cycle-scoped trim then moved no
+  line. Its cycle against v10's: ulink_n32_folink 4 elements (v10: 1) -- a latch-fed race link, which AUTO_RACE_KEEP
+  forbids the trim to shorten, so the +3 of the overbuild stayed on the critical cycle -- and uselect0 26 (v10: 21) on
+  the larger route; chain 14.1 ns vs 10.3, wire 6.5 vs 7.3. So overbuilding loops that converge anyway can cost
+  period (here +16 %; sqrtsub s2 went the other way, -7 %, on one seed).
+- **56740456cf: AUTO_OVERBUILD_LATE=M (opt-in).** v10's finish phase runs unchanged; only a loop still NOT CLEAN after it
+  gets M more routes built with BD_SYMTRIM, every sized line +3 except the latch-fed race links (race_lines.txt),
+  clean when the trim step alone makes it so, the shipped one trimmed back first; no search phase after it. Unset:
+  every condition is the old one (OB never set; the build's define empty; the phase-2 log line byte-identical).
+- **Test running (lateob.sh):** v10's own cmpchain s1 state (NOT CLEAN after 6 finish routes) resumed with
+  AUTO_OVERBUILD=3 AUTO_OVERBUILD_LATE=4: the resume found phase 2 ended and switched -- "phase 3 (late overbuild +3 on
+  76 lines, BD_SYMTRIM) from it 11". PREDICTION: route 11 clean as built or after its trim check; final + 4 draws pass.
