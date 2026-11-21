@@ -9823,3 +9823,9 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   -> 19560 ns. With s2 (-3.5 % P, -4.0 % latency) and mul_example s1 (-0.5 / -1.5 %): every =2 route passes, all three
   faster than v10's same seed, by churn-sized amounts on two. Enough to put =2 in the next flow's candidate; not a cost
   claim (one seed each, different routes).
+### progress 22:59 (AUTO_TRIM_PORTS, third same-route test, mff gather s1: P 40.29 -> 37.72 ns (-6.4 %), latency median 1344 -> 1254 ns, PASS 4 / 4 rule-CLEAN; if_loop_2 s1 timed at 29.79 -> 25.49 ns, draws running)
+- gather s1: 8 trims, all port lines; narrowest pulse 4474 ps. Same-route so far: -10.1 / -13.1 / -6.4 % on the three
+  FASTFALL-port routes, 0 on the plain-port one. research/data/trimports/mff_gather_s1/.
+- Race pair for the board: the unpadded half (v11 test_flatten_array s2, formal's +1 ps race) rebuilt byte for byte from
+  research/data/suite/board/race_pair/unpadded/ (sdf e82284b6, fasm 77d4a54c); the padded half waits for the local
+  run's draws.
