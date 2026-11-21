@@ -9818,3 +9818,8 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   16722 vs 16974. The port is still 19.2 of 55.8 ns of the cycle (the RTZ is gone, the rise remains) next to umuli1's
   33 elements (12.0 ns). So =2 is GLS-clean on two routes; its speed on the arbitrated-port kernels is a few % on these
   two (one seed each). test_stdint s1 and the race test's draws (test_flatten_array s2, v11 + AUTO_RACE_KAPPA) running.
+### progress 22:41 (BDC_MEM_FASTFALL=2: three of three GLS runs PASS 4 / 4 rule-CLEAN -- test_stdint s1 P 53.27 -> 49.21 ns, latency median 5382 -> 4890 ns)
+- test_stdint s1: route 896bda31 (it 7), draws 4 / 4 calls each, arrays right, narrowest pulse 4816 ps; latency sum 21528
+  -> 19560 ns. With s2 (-3.5 % P, -4.0 % latency) and mul_example s1 (-0.5 / -1.5 %): every =2 route passes, all three
+  faster than v10's same seed, by churn-sized amounts on two. Enough to put =2 in the next flow's candidate; not a cost
+  claim (one seed each, different routes).
