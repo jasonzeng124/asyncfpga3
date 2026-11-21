@@ -9005,3 +9005,15 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - Found while doing it: research/tools/auto/trim_shrink.sh linked the route's .frames into its copy and fasm2frames
   wrote through the link onto the original route's .frames (5f28cb177). Each copy's .bit was made from what was just
   written, so the margin studies' verdicts stand.
+### progress 00:09 (BD_SYMTRIM + overbuild: test_memory_2 s1 rule-CLEAN as built at its first finish route -- 3 of 3 so far; Dynamatic's remsi is wrong on negative operands)
+- **sym2 test_memory_2 s1** (fixed trim tool): phase 1 like v10's, **it 5 rule-CLEAN as built** (v10's six finish routes:
+  8 / 10 / 11 / 15 / 16 / 9 rows, never clean, among them B at the RAM (-377 / -367) and E at a steer (-498): overbuild
+  alone left the same 8 rows after its trims). With sym test_loop_free and sym sqrtsub: **3 of 3 first overbuilt finish
+  routes clean as built.** sym sqrtsub s2's final (old script, no trim-back): **P 20128 ps vs v10's 21661 (-7.1 %)**, draws
+  running. sym2 brhash / cmpchain / factorial / ipow / nested / spmv in phase 1.
+- **Dynamatic routed: 42 kernels exact and routed** (summary: /tmp/bot/dynroute/summary2.txt). **divmods: Dynamatic's own
+  circuit is wrong** -- data/verilog/arith/remsi.v wraps an UNSIGNED remainder core (dynamatic_units_urem_...); 15 of
+  24 calls (every one with a negative operand) differ from the C, cycles equal. No figure for it (the check rule
+  refuses it). 16 kernels re-running after three tool fixes (c680372fa): void memory kernels (the estimator crashed on
+  oracle_mem.sh's 'void'), and mem_controller_loadless (a dependency the config names only as a module).
+- Farm: suite13t_s5a_v10_2a done -> suite13t_s5a_v10_2a_r1 filed (7 tasks).
