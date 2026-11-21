@@ -22,7 +22,8 @@ formal B7); ipow seed 7 with ring fusion (ringfuse1/31, v8, NOT CLEAN, FAIL 7 / 
 of flow v10, not the headline flow: **sqrtsub seed 2 with the 10 % steer guard** (suite13t_s5g_g10/9, NOT CLEAN with one
 rule-H row 140 ps short; draw 10204 got 7 of 13 calls wrong: the rule had flagged that route) and **fill seed 2 with
 BDC_MEM_FASTFALL** (suite13t_s5b_mff_2/4, NOT CLEAN; one draw "FAIL 0/5, MEMORY wrong" with 0 cycles and no monitor
-output -- that simulation did not run, cause unknown, not re-run). Flow v10 itself: no wrong answer on any of its
+output -- that simulation did not run; re-run here on the byte-identical route: PASS 5/5, arrays right, so not a wrong
+answer: research/data/suite/corrections/mff_2_fill_s2). Flow v10 itself: no wrong answer on any of its
 routes (nest3 seed 4's FAIL was the out-of-memory kill above).
 
 **Seeds that never finished** (T178): image_resize s1 / s2 / s4, iir s2 / s4, share_test_1 s2 / s4 and vector_rescale s1

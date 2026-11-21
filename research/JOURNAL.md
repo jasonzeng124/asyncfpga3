@@ -9657,3 +9657,6 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   on one route. (3) suite_table.py: UNFINISHED rows' latencies now in brackets (clean plain, NOT CLEAN bracketed, as the
   table's own convention); summary figures unchanged (50 / 62, 0.98 over 35, latency 1.21 over 27). (4) nest3 s4's
   re-run outputs committed (corrections/v10_nest3_s4/rerun: run.log, verdict, the route's spec).
+### progress 17:48 (mff_2's fill s2 "FAIL" was also a draw that never ran: re-run on the byte-identical route PASS 5 / 5 -- the only real wrong answer since T169 is the guarded sqrtsub s2 on its NOT CLEAN route)
+- research/data/suite/corrections/mff_2_fill_s2 (README, the re-run's files, the route's spec with BDC_MEM_FASTFALL=1).
+  The headline's wrong-answer list says so.
