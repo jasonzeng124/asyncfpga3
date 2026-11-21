@@ -9429,3 +9429,15 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   the v11 freeze; a candidate for the next flow (late phase only after the search, or the search on the late route).
 - gather s1 and fill s1: status=PNR-TIMEOUT at it 0 (nextpnr over 3600 s on 2 cores; v10 routed both). Load, not the
   flow; they get a fresh rerun part when 1a ends (mk_resume.py skips them: they have a result line).
+### progress 09:53 (next flow (v12) candidates, each with its evidence -- none filed: the v11 freeze holds until v11's parts are all submitted)
+1. **Steer guard AUTO_GUARD_E=0.90,1.10** (opt-in now): formal B30 -- three rule-CLEAN v10 routes fail its race-only
+   adversary at kappa 0.06-0.10; guarded rebuilds of those three: formal's measures 0.07-0.17, adversary 0.15 / none;
+   static cost over all 46 suite routes +0.5 % P (geomean), max ~6 % (research/data/guardx/). Paired 4-seed farm test
+   filed (suite13t_s5g_g10). A guard policy: for the owner to decide on the measurements.
+2. **Late phase after the search, not before:** v11 memsum s1 shipped a late-phase route at 28.19 ns where v10's search
+   found 24.56 (journal 09:53). Measure on all of v11 first.
+3. **Resumable final():** a task that dies inside final() re-runs it whole on resume (untrimmed stack + trim rounds), so
+   digitsum / digitdiv never reach their draws (journal 09:01). Keep a "loop finished" marker and a finished trim record
+   across the resume; test by killing a local run mid-final and comparing the result line with an uninterrupted run.
+4. **PNR timeout at it 0** (v11 gather / fill s1 on loaded 2-core nodes): retry on the next seed as AUTO_SEED_TRIES does
+   for a missed bench clock.
