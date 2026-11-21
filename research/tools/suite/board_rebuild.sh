@@ -13,7 +13,8 @@
 # cells/hw/build_bench.sh with BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=SIZES, NEXTPNR_SEED=SEED,
 # BDC_AUTO_REWRITES=0, MLIR_OVERRIDE=MLIR), then the trims by LUT INIT only (research/tools/auto/trim_lines.py
 # --partial, as auto_size.sh's trim_route re-applies them) and the bitstream as auto_size.sh's mkbit makes it.
-# Needs $TC with cells/verify/toolchain.sh passing (checked first).  Work files: ${BQ_RUNS:-$HOME/runs/bq}/.
+# Needs $TC with cells/verify/toolchain.sh passing (checked first).  Work files: ${BQ_RUNS:-$HOME/runs/bq}/; the build
+# worktree is lane ${BQ_LANE:-bq} (one worktree, ~250 MB, reused by every rebuild; set BQ_LANE per worker to run several).
 set -uo pipefail
 R=$(cd "$(dirname "$0")/../../.." && pwd); SPEC=$(readlink -f "$1")
 TC=${TC:-$HOME/dev2/lib/fpgatoolchain}; export TC
@@ -25,7 +26,10 @@ export RUNS=${BQ_RUNS:-$HOME/runs/bq}; N=bq_${K}_$S; D=${K}_bench_gen; H=$RUNS/h
 mkdir -p "$RUNS"
 cd "$R"
 if [ "$M" != - ] && [ -n "$M" ]; then export MLIR_OVERRIDE=$M; else unset MLIR_OVERRIDE; fi
-env LANE_NORUN=1 BDC_AUTO_REWRITES=0 research/tools/fifteen/lane2.sh "bq$K" "$N" "$K" "$R/$Z" "$S" "kernels/$K/vec.hex" \
+# lane2.sh resolves its VECFILE argument (readlink -f under set -e) even with LANE_NORUN=1, where it is not used: give it
+# one that exists (a Dynamatic test kernel has no kernels/K/)
+VF=kernels/$K/vec.hex; [ -f "$R/$VF" ] || VF=research/data/suite/vec/$K.hex; [ -f "$R/$VF" ] || VF=$SPEC
+env LANE_NORUN=1 BDC_AUTO_REWRITES=0 research/tools/fifteen/lane2.sh "${BQ_LANE:-bq}" "$N" "$K" "$R/$Z" "$S" "$VF" \
   BDC_AUTO=1 $XE > "$RUNS/$N.build.txt" 2>&1 || { echo "board_rebuild: build FAILED ($(tail -1 "$RUNS/$N.build.txt"))"; exit 1; }
 sdf=$(md5sum < "$H/$D.sdf" | cut -c1-8)
 [ "$sdf" = "$WS" ] || { echo "board_rebuild: sdf $sdf, not $WS: NOT the route judged (do not use it)"; exit 1; }
