@@ -5,7 +5,8 @@
 # trimmed fasm's md5 is reported here and the bit is made with board_rebuild's own fasm2frames / xc7frames2bit lines),
 # then racescreen.sh (decode from the bits, 2 + 2 draws, steersafe --auto, ctlsweep, xtol, outsafe) and weaksweep.sh
 # (race-only adversary of the weakest steer), all with DRAW_DOUT=23000 (CA_BENCHCAP routes: JOURNAL-B 2026-11-20 13:45).
-# MEM=1 specs (mk_specs_all.py --mem): shard C's memtask.sh instead of board_rebuild + racescreen; structural bound only.
+# MEM=1 specs (mk_specs_all.py --mem): shard C's memtask.sh instead of board_rebuild + racescreen; the structural bound
+# and the weakest steer's race-only adversary on the memory boundary (weaksweep.sh with SIMX_EXTRA=--mem).
 # Needs RS (research checkout with build/frontend), TC.  Writes OUT/screen.txt (one line).
 set -uo pipefail
 SPEC=$(readlink -f "$1"); O=$(mkdir -p "$2" && readlink -f "$2"); H=$(cd "$(dirname "$0")/.." && pwd); F=$(cd "$H/../../.." && pwd)
@@ -23,8 +24,12 @@ if [ "$(get MEM)" = 1 ]; then   # a memory kernel (benchvec vectors): shard C's 
   if [ -f "$O/mt/w/m/net.json" ]; then
     timeout 3000 python3 "$H/steersafe.py" "$O/mt/w/m" --auto > "$O/steersafe.txt" 2>&1
     ss=$(grep -o '^steers.*' "$O/steersafe.txt"); w=$(head -1 "$O/steersafe.txt" | cut -c1-28 | tr -s ' ')
+    # the weakest steer's race-only adversary on the memory boundary (simx --mem, as C's draws)
+    ln -sf v/pairs.txt "$O/mt/pairs.txt"; ln -sf v/exp.txt "$O/mt/exp.txt"; cp "$O/steersafe.txt" "$O/mt/steersafe.txt"
+    bash "$H/ensure_m.sh" "$O/mt" > /dev/null 2>&1
+    ws=$(SIMX_EXTRA="--mem $O/mt/v/mem.txt --tmax 1900000000" timeout 3000 bash "$H/weaksweep.sh" "$O/mt" "$K" 2>&1 | grep -o 'adversary first failure.*')
   fi
-  echo "$NM | MEM | $(grep -o 'sdf [0-9a-f]* (research [0-9a-f]*) [A-Z]*' "$O/mt/summary.txt" | head -1) trimmed fasm ${fa:-?} | draws $(grep -o 'PASS [0-9]* FAIL [0-9]*' "$O/mt/summary.txt" | tr '\n' ' ')| ${ss:-no steersafe: $(tail -1 "$O/mt/summary.txt")} (weakest ${w:-})" | tee "$O/screen.txt"
+  echo "$NM | MEM | $(grep -o 'sdf [0-9a-f]* (research [0-9a-f]*) [A-Z]*' "$O/mt/summary.txt" | head -1) trimmed fasm ${fa:-?} | draws $(grep -o 'PASS [0-9]* FAIL [0-9]*' "$O/mt/summary.txt" | tr '\n' ' ')| ${ss:-no steersafe: $(tail -1 "$O/mt/summary.txt")} (weakest ${w:-}) | weakest-steer ${ws:-adversary not run}" | tee "$O/screen.txt"
   exit 0
 fi
 sed -e "s#^SIZES=\(formal/.*\)#SIZES=$F/\1#" -e "s#^TRIMS=\(formal/.*\)#TRIMS=$F/\1#" "$SPEC" > "$O/abs.spec"

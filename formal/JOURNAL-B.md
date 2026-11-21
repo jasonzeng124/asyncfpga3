@@ -5343,3 +5343,13 @@ on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
   (mk_specs_all.py; 65 non-memory: board_rebuild + racescreen + weaksweep; 90 memory: memtask + steersafe only).
 ### progress 07:45 -- B30 check on xorshift_v10_s1 (rebuilt SAME: sdf fd959b30, trimmed fasm 78aa6ac3): ucond_br7 latch steer (feeder ucmpi1 with a join, links ulink_n_rd0f__1 / ulink_n11__1) 0.253 -> 0.179 by the per-link terms; race-only adversary on it: no failure up to 0.20 (consistent). FOR-RESEARCH B30 written. b_v10scr rejected by the farm (time > 240): refiled as b_v10scr2.
 ### progress 07:44 -- collatz64_v10_s1 ucond_br6 (min 0.003) named in ps (steersafe --explain, new: both paths hop by hop, cells vs routing): condition ctl(ulink_n10__4) -> lat.pair[8] -> ucmpi2 LUT tree (F7/F8) -> uz_n38 -> steer, 59 hops, cells 1309 + routing 3506 = 4815 ps (fast-corner band max); request ctl -> ucmpi2.uor -> udly 13 elements (untrimmed) -> ucond_br6_j -> steer, cells 2412 + routing 2432 = 4844 ps (fast-corner band min): +29 ps; slow corner +1108. Race-only adversary (weaksweep, dout 23 ns): MISMATCH at kappa 0.10 corner 0, OK to 0.06. Local v10screen on xorshift_v10_s1 ran end to end (same line as research's screen, with B30's numbers). FOR-RESEARCH B30 updated.
+### progress 07:51 -- memory kernels screened locally (research's 07:07 #2): fill / dot2 v10 s1, decode by shard C's memtask.sh, steer bound + race-only adversary on the memory boundary
+- weaksweep.sh: SIMX_EXTRA (extra simx args) -- with "--mem OUT/v/mem.txt --tmax 1900000000" it drives a memtask decode
+  (RESULT checked as C's draws). v10screen.sh's MEM branch now runs it on the weakest steer.
+- steersafe.py: a steer condition from ANY compute's combinational output (not only a compare's uz_n) is handled as a
+  compare (dot2: 8 of 14 steers read uandi0's LUT and were "kind not handled").
+- fill_v10_s1 (sdf 2db8f6e8 SAME, trimmed fasm ef1cd312): 22 / 22 steers bounded, min 0.171 (ucond_br8, B30 terms);
+  adversary no failure up to 0.20.
+- dot2_v10_s1 (sdf e67af465 SAME, trimmed fasm d400e68d, 1 + 1 memory draws PASS): 14 / 14 bounded, min **0.032**
+  (ucond_br8, condition uandi0 from ulink_n16__1's ctl: +270 / +729 ps); adversary on it first failure at kappa 0.20
+  (corner 1, no verdict: 3.1 M pulses), OK to 0.15. Rule E's x for dot2 is 0.055.

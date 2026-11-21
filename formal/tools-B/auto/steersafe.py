@@ -204,7 +204,9 @@ def auto():
         name = cellof(g).replace("bridge_i.udut.", "")
         if len(rp) != 1 or len(cp) != 1: rows.append((None, name, "request pins %s condition pins %s: skipped" % (rp, cp))); continue
         p, q = rp[0], cp[0]; cs = src[q]; cc = ncell(cs)
-        m1 = re.match(r"^(.*)\.uz_n\d+$", cc); m2 = re.match(r"^(.*)\.lat\.[a-z]+(\[\d+\])?\.u(\$LUT[56])?$", cc)
+        m1 = re.match(r"^(.*)\.uz_n\d+$", cc) or (None if cs in storage else re.match(r"^(bridge_i\.udut\.(?!ulink)[A-Za-z0-9_]+)\.", cc)); m2 = re.match(r"^(.*)\.lat\.[a-z]+(\[\d+\])?\.u(\$LUT[56])?$", cc)
+        # 2026-11-21: any compute's combinational output (not only a compare's uz_n: e.g. dot2's uandi0 LUT) is
+        # handled as a compare: launch = its join's input links' ctls, or its input link's ctl if it has no join
         if m1: lre, opened, kind = re.escape(m1.group(1)) + r"\.ujoin", frozenset(), "compare"
         elif m2 and cs in storage: lre, opened, kind = None, frozenset([cs]), "latch"
         else: rows.append((None, name, "condition from %s: kind not handled" % cc)); continue
