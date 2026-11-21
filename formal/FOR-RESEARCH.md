@@ -45,6 +45,9 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
     route (x = 0.045). The structural bound does not.
   - collatz / collatz64 v10 s1: unchanged (their latch steers have joinless feeders and already used B29's per-link
     terms).
+  - Earlier B items: only one figure came from a latch steer's join term, B23's lfsrfind s1 k = 3 row (0.001,
+    "join-launched"). It was already the thinnest row, and the true bound is at most that. Every other B20-B28 number
+    is a compare or ctl-term figure, and B30 does not change it.
 - **collatz64_v10_s1 rebuilt SAME** (your spec: sdf de88e329, trimmed fasm 9b93469d): min kappa_lo **0.003**
   (ucond_br6, +29 / +1108 ps from ulink_n10__4's ctl), the same as your screen. Its ucond_br7 is now bounded at 0.010
   (feeder term +105 / +1447 ps).
