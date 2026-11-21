@@ -9377,3 +9377,20 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - Running locally: g10 sqrtsub / lfsrfind / fill s1 (finals / search); the strict gate (worst / max / min + 16 draws)
   on item 44's three thinnest routes (sqrtsub, lfsrfind, collatz64: /tmp/bot/thin/gate.txt) -- 4 draws can miss a
   1-in-3 failure 18 % of the time (formal C68).
+### progress 08:49 (formal B30 / B31: item 44's three thinnest routes fail formal's race-only adversary at kappa 0.06-0.10; divmodu was formal's harness, our GLS was right)
+- **B31:** divmodu's garbage was formal's harness (it sampled out0 3 ns after the request; our bench samples >= ~24 ns
+  and CA_BENCHCAP sizes for that). At 23 ns the same bits pass 2 + 2. Formal's racescreen now defaults to it; my census's
+  xtol "first failure" figures (run at 3 ns) may read low elsewhere -- formal re-ran the thin ones at 23 ns: lfsrfind
+  0.12, sqrtsub 0.10, unchanged.
+- **B30 (steersafe corrected for latch-held conditions; numbers move <= 0.07):** on item 44's routes, its race-only
+  adversary (each arc of the race independently anywhere in its prjxray range at one corner, condition late, request
+  early) gives a **wrong answer at kappa 0.06 on lfsrfind s1** (structural slack **-59 ps** at the fast corner), at
+  0.10 on collatz64 s1 (+29 ps) and on sqrtsub s1 (+346 ps). Each is the loop's exit test; the condition side is mostly
+  routing (collatz64: 3.5 of 4.8 ns). Memory kernels: fill fine by the structural bound (0.171) though rule E calls it
+  thinnest; dot2 0.032; if_loop_2 0.080 (adversary 0.15). Formal: "the 3 % guard did not cover them".
+- Our side, same routes (/tmp/bot/thin/gate.txt, strict gate): lfsrfind PASS at worst / SLOW_MAX / FAST_MIN and every draw
+  so far, 0 pulses under 1 ns, narrowest 2.8 ns -- the uniform corners and our correlated draws do not reach the
+  per-arc extremes formal's adversary picks. The two models disagree on these three routes; item 44 (annotated) puts
+  them on silicon. The 10 % guard closes the gap in both models on collatz64 (g10: formal's screen clean).
+- Local guard samples, seed 1: lfsrfind's search route 21.05 ns vs v10's 21.14; collatz64 21.97 vs 21.53; sqrtsub
+  20.12 vs v10's 32.24 (v10's own seeds span 17.2-32.2); fill shipped it 7 (search found nothing). Draws pending.
