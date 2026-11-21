@@ -9704,3 +9704,16 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   single_loop, loop_path, nested_loop, + spmv / vector_rescale s2) and test_bitint s2 (exit 0 after 28 min with an
   empty result: cause not found). Filed suite13t_s5b_mff_1_r1 / _2_r1 (32G; by name they run after every s5a part, so
   after v11 and v12). n = 12 so far: no flow decision; BDC_MEM_FASTFALL stays a candidate.
+### progress 19:11 (speed lead: the cycle-scoped trim never reached a memory port's own lines -- AUTO_TRIM_PORTS (opt-in) added; same-route A/B on mff's dot2 s2 started)
+- Across flow v10's 63 rule-CLEAN memory-kernel routes, the memory port is a median 42 % of the critical cycle (18-89 %;
+  >= 50 % on 24). In plain bd_mem both port lines (usetup, uco) are symmetric, so four-phase walks them twice per access
+  (v12's memsum s1: 22.7 of 30.2 ns), and the trim cannot shorten a symmetric line.
+- With BDC_MEM_FASTFALL (bd_mem_ff) the lines are FASTFALL LUT2s, which the trim CAN shorten -- but cycle_macros.py maps
+  an instance on the cycle to BD_SZ_<instance>, and a port's lines (..._UMEM_CONTROLLERn_UMEMk_USETUP / _UCO) carry no
+  "_UPORT": the cycle-scoped trim never listed them. On all 17 clean mff routes whose port is on the cycle (15-65 % of
+  it) the rule at both bands would remove 4-29 elements of port lines; none was trimmed.
+- cycle_macros.py --ports + auto_size.sh AUTO_TRIM_PORTS=1 (67186968be; without it: identical output on 400 saved
+  cycles). Test: /tmp/bot/scripts/tploc.sh -- mff's dot2 s2 route rebuilt from the farm's saved state (AUTO_TRIM_ONLY,
+  sdf checked), trimmed with the port lines allowed, timed, 4 draws. Control: the farm's result on that same route
+  (P 27.73 ns, trims 0). PREDICTION (now, before it runs): P 25-27 ns (umem1 usetup 9 -> 4 / uco 11 -> 8 if on the
+  cycle; FASTFALL lines are walked once), every draw passes.
