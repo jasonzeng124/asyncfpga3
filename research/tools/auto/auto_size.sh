@@ -462,6 +462,41 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
       # where the untrimmed route's critical cycle goes (chain / wire between cells / cell logic, per instance)
       python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
     fi
+    # AUTO_OVERBUILD (opt-in): an overbuilt finish route gives back its extra length FIRST.  Every line the switch built H
+    # longer (trimmable_<switch>.txt) is trimmed to max(the rule's need on this route, its size minus H) -- the length the
+    # finish phase would have built without overbuild -- and the route is re-timed; the usual trim step (the cycle scope's
+    # rounds, or the whole route) then starts from there and from that route's own critical cycle.  So the extra
+    # elements buy a clean route and nothing else: no latency on a loop-free kernel, no margin kept off the cycle, and
+    # the cycle's lines back where v10 would have them before the cycle's own trims.  The trim step's checks stand.
+    # Not after a trim check (the route was made clean by trims to the rule's need already: trim_I.txt holds them).
+    # Why first, not last: sym2 ipow s1 (2026-11-21 00:40): with the cycle trim first, its one step (7 overbuilt cycle
+    # lines at once) opened 2 constraints and was undone, and the route kept P 25.7 ns, all cycle lines +3 (v10: 19.9).
+    local TB=""
+    if [ -n "${AUTO_OVERBUILD:-}" ] && [ "${AUTO_OVERBUILD_TRIMBACK:-1}" = 1 ] && [ ! -s "$O/trim_$i.txt" ]; then
+      local sw ob
+      sw=$(grep -oP '^phase 2 \(raise-only\) from it \K[0-9]+' "$O/log.txt" | tail -1)
+      ob=$O/trimmable_$((sw - 1)).txt
+      if [ -n "$sw" ] && [ "$i" -ge "$sw" ] && [ -s "$ob" ]; then
+        awk -F'\t' '$2 == "trimmable" {print $1}' "$ob" > "$O/trimback_allow_$i.txt"
+        python3 - "$O/sizes_$i.vh" "$AUTO_OVERBUILD" "$O/trimback_allow_$i.txt" > "$O/trimback_floor_$i.txt" <<'PY'
+import re, sys
+sz = {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(sys.argv[1])) if m}
+h = int(sys.argv[2])
+for mac in (l.strip() for l in open(sys.argv[3]) if l.strip()):
+    if mac in sz:
+        print("%s %d" % (mac, max(1, sz[mac] - h)))
+PY
+        if [ -s "$O/trimback_allow_$i.txt" ]; then
+          echo "trim: it $i overbuild trim-back: $(grep -c . "$O/trimback_allow_$i.txt") line(s), floor = size - $AUTO_OVERBUILD" >> "$O/log.txt"
+          TRIM_ALLOW=$O/trimback_allow_$i.txt TRIM_FLOOR=$O/trimback_floor_$i.txt trim_route "$i"
+          TB=1
+          "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_tb.log" 2>&1
+          tail -1 "$O/final_${i}_tb.log" > "$O/it_${i}_tb.txt"
+          python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_tb.txt" 2>&1
+          echo "final it $i after the trim-back $(cat "$O/it_${i}_tb.txt")" >> "$O/log.txt"
+        fi
+      fi
+    fi
     if [ "${AUTO_TRIM_SCOPE:-all}" = cycle ]; then
       # AUTO_TRIM_SCOPE=cycle (opt-in, 2026-11-20; formal B25): trim only the lines of instances on the critical cycle
       # (cycdecomp of the route as it stands), then re-time the trimmed route and let the NEW critical cycle's lines move
@@ -474,20 +509,22 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
         echo "final it $i untrimmed $(cat "$O/it_${i}_untrimmed.txt")" >> "$O/log.txt"
         python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
       fi
-      python3 "$T/cycle_macros.py" "$O/cyc_${i}_untrimmed.txt" "$O/sizes_$i.vh" > "$O/trim_allow_$i.txt"
+      local cyc0=$O/cyc_${i}_untrimmed.txt; [ -n "$TB" ] && [ -s "$O/cyc_${i}_tb.txt" ] && cyc0=$O/cyc_${i}_tb.txt
+      python3 "$T/cycle_macros.py" "$cyc0" "$O/sizes_$i.vh" > "$O/trim_allow_$i.txt"
       echo "trim: it $i scope cycle, round 1: $(grep -c . "$O/trim_allow_$i.txt") line(s) on the untrimmed cycle" >> "$O/log.txt"
       # Each round is kept only if the period it leaves is lower than the one before it (re-timed by the next round's
       # full stack); a round that buys nothing is reverted, its trims undone (xorshift s1: round 2 moved 3 lines of its
       # new cycle and P stayed 17588 ps).  snap / unsnap hold the bits, the routed JSON and the record before a round.
       local H=$RUNS/hw/${N}_$i pprev pnow
       pprev=$(grep -o 'P=[0-9]*' "$O/it_${i}_untrimmed.txt" | head -1 | cut -d= -f2)
+      [ -n "$TB" ] && pprev=$(grep -o 'P=[0-9]*' "$O/it_${i}_tb.txt" | head -1 | cut -d= -f2)
       snap() { cp "$H/${D}_routed.json" "$O/snap_$i.json"; cp "$H/$D.fasm" "$O/snap_$i.fasm"; cp "$H/$D.bit" "$O/snap_$i.bit"
         cp "$O/trim_$i.txt" "$O/snap_${i}_trim.txt" 2>/dev/null || : > "$O/snap_${i}_trim.txt"
         cp "$O/sizes_${i}_trim.vh" "$O/snap_${i}_sizes.vh" 2>/dev/null || cp "$O/sizes_$i.vh" "$O/snap_${i}_sizes.vh"; }
       unsnap() { cp "$O/snap_$i.json" "$H/${D}_routed.json"; cp "$O/snap_$i.fasm" "$H/$D.fasm"; cp "$O/snap_$i.bit" "$H/$D.bit"
         cp "$O/snap_${i}_trim.txt" "$O/trim_$i.txt"; cp "$O/snap_${i}_sizes.vh" "$O/sizes_${i}_trim.vh"; }
       snap
-      TRIM_ALLOW=$O/trim_allow_$i.txt trim_route "$i"
+      TRIM_ALLOW=$O/trim_allow_$i.txt TRIM_CONTINUE=$TB trim_route "$i"
       for r in $(seq 2 $(( ${AUTO_TRIM_ROUNDS:-3} + 1 ))); do   # the last pass only times the last round
         cmp -s "$O/trim_$i.txt" "$O/snap_${i}_trim.txt" && break   # the round moved nothing: nothing to time
         "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_r$r.log" 2>&1
@@ -507,35 +544,7 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
         TRIM_ALLOW=$O/trim_allow_$i.txt TRIM_CONTINUE=1 trim_route "$i"
       done
     else
-      trim_route "$i"
-    fi
-    # AUTO_OVERBUILD (opt-in): an overbuilt finish route gives back its extra length.  Every line the switch built H
-    # longer (trimmable_<switch>.txt) and the trims above left alone or cut below it is trimmed to max(the rule's need
-    # on this route, its size minus H) -- the length the finish phase would have built without overbuild -- so the
-    # extra elements bought a clean route and nothing else: no latency on a loop-free kernel, no margin spent on lines
-    # off the critical cycle (formal B25's point), the cycle's own trims as they were.  The trim step's own checks
-    # stand (a step that opens a constraint is undone).  Why: sym test_loop_free s1 (BD_SYMTRIM) was clean as built at
-    # its first overbuilt route, and with AUTO_TRIM_SCOPE=cycle a loop-free kernel would have shipped every line +H.
-    if [ -n "${AUTO_OVERBUILD:-}" ] && [ "${AUTO_OVERBUILD_TRIMBACK:-1}" = 1 ]; then
-      local sw ob cyc fl
-      sw=$(grep -oP '^phase 2 \(raise-only\) from it \K[0-9]+' "$O/log.txt" | tail -1)
-      ob=$O/trimmable_$((sw - 1)).txt
-      if [ -n "$sw" ] && [ "$i" -ge "$sw" ] && [ -s "$ob" ]; then
-        cyc=$O/trim_allow_$i.txt; [ -s "$cyc" ] || cyc=/dev/null
-        awk -F'\t' '$2 == "trimmable" {print $1}' "$ob" | grep -vxF -f "$cyc" > "$O/trimback_allow_$i.txt"
-        python3 - "$O/sizes_$i.vh" "$AUTO_OVERBUILD" "$O/trimback_allow_$i.txt" > "$O/trimback_floor_$i.txt" <<'PY'
-import re, sys
-sz = {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(sys.argv[1])) if m}
-h = int(sys.argv[2])
-for mac in (l.strip() for l in open(sys.argv[3]) if l.strip()):
-    if mac in sz:
-        print("%s %d" % (mac, max(1, sz[mac] - h)))
-PY
-        if [ -s "$O/trimback_allow_$i.txt" ]; then
-          echo "trim: it $i overbuild trim-back: $(grep -c . "$O/trimback_allow_$i.txt") line(s) off the cycle, floor = size - $AUTO_OVERBUILD" >> "$O/log.txt"
-          TRIM_ALLOW=$O/trimback_allow_$i.txt TRIM_FLOOR=$O/trimback_floor_$i.txt TRIM_CONTINUE=1 trim_route "$i"
-        fi
-      fi
+      TRIM_CONTINUE=$TB trim_route "$i"
     fi
   fi
   "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_$i.log" 2>&1
