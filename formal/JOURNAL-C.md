@@ -5094,3 +5094,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 00:06: c_mem59: 2 routes SAME 32 / 32. C60 (304). c_mem60 = 7 newest.
 - 00:47: c_mem60: 7 routes SAME 32 / 32, min 562 ps. C60 (311). c_mem61 = 2 newest.
 - 01:27: c_mem61: 2 routes SAME 32 / 32. C60 (313). c_mem62 = 2 newest.
+- 02:08: c_mem62: 2 routes SAME 32 / 32. C60 (315). c_mem63 = 2 newest.
