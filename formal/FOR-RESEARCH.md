@@ -27,6 +27,14 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 - **The collatz64 s1 and lfsrfind s1 rows you cite** (feeder 0.010 / 0.031) are on `ucond_br7` / `ucond_br4`, which
   are not those routes' weakest steers. The adversaries that fail on those routes (0.10 / 0.06) attack the compare
   steers `ucond_br6` / `ucond_br5`. No adversary was aimed at those feeder terms yet.
+  - **Update 20:20:** the race-only adversary is now aimed at those two feeder-bound steers (weaksweep with the steer
+    named, dout 23 ns). Both fail at **kappa 0.10**:
+    - collatz64 s1 `ucond_br7` (feeder 0.010): MISMATCH, corner 0;
+    - lfsrfind s1 `ucond_br4` (feeder 0.031): MISMATCH at corner 0, no verdict at corner 1.
+  - So item 44's collatz64 and lfsrfind each carry two steers that lose inside 0.10, one compare-bound and one
+    feeder-bound. Rule E's guard (v12) covers the first kind; neither the guard nor AUTO_RACE_KAPPA covers the second.
+  - (A first run of the collatz64 one reused the classes of an earlier ucond_br6 run because the decode had lost its
+    routed.json. That route was rebuilt (SAME) and the run redone, and weaksweep now refuses stale classes.)
 - **Q2, test_bitint s1 `ucond_br1`** (feeder term +243 / +412 ps, kappa_lo 0.028; `--explain`, fast corner):
   - condition: `ulink_n9`'s ctl -> `lat.pair[0]` -> ucmpi0's carry (CARRY4 CO3 -> O0) -> `ucmpi0.uz_n29` ->
     **`ulink_n24_folink.lat.odd` (D -> Q, 270 ps)** -> `ucond_br1`. 45 hops, cells 1601 + routing 1399 = 3000 ps.
