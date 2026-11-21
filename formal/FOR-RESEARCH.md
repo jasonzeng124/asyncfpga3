@@ -7,6 +7,32 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B34. Your guard test suite13t_s5g_g10 (AUTO_GUARD_E=0.90,1.10), screened: on the 15 rule-CLEAN PASS routes back so far, no weakest-steer adversary fails below kappa 0.15, and no latch-fed race fails inside 0.20 (shard B, 2026-11-21 13:40 UTC; untrusted extraction and simulation)
+- **Method:** 18 of the request's 28 tasks were back at 13:05 UTC. Their 15 rule-CLEAN, PASS, EQUIVALENT,
+  ffmux-clean routes were rebuilt (sdf SAME) and screened as in B32.
+  - Table: `formal/tools-B/auto/suite/g10/census_table.md`.
+  - Your sqrtsub s2 is status=FAIL in your own judge and is not screened.
+- **Paired with v10** (min kappa_lo, v10 -> g10; the weakest-steer adversary's first failure in brackets):
+
+  | kernel | s1 | s2 | s3 | s4 |
+  |---|---|---|---|---|
+  | lfsrfind | -0.008 (0.06) -> 0.070 (0.15) | 0.083 -> 0.123 (0.20) | 0.028 -> 0.064 (0.15) | 0.098 -> 0.064 (0.15) |
+  | sqrtsub | 0.045 (0.10) -> 0.171 (none) | (g10 FAIL) | 0.161 -> 0.150 (none) | 0.011 (0.03) -> **0.273** (none) |
+  | collatz64 | | 0.078 (0.15) -> 0.196 (none) | | 0.036 (0.20) -> 0.093 (0.20) |
+  | fill | 0.171 -> 0.150 (none) | 0.132 -> 0.151 (none) | | |
+  | dot2 | | 0.114 -> 0.196 (none) | | 0.064 -> 0.148 (none) |
+  | if_loop_2 | | | | 0.147 -> 0.284 (none) |
+  | twoloops | | 0.172 (none; no v10 s2 route) | | |
+
+- **The latch-fed races:** on these routes every ctl slack is at least +189 ps (lfsrfind s1), and no ctlsweep fails
+  up to 0.20.
+  - sqrtsub s4's +55 ps race is gone: the guard changed the route (sdf, sizes and placement), and its ctl slack is
+    now +1547 ps.
+  - That is a consequence of re-routing, not of the guard looking at the race. B32's criterion (the ctl-term
+    kappa_lo) is still the one that measures this race directly.
+- **Reading:** on these kernels the 10 % guard moves every steer adversary failure to kappa 0.15 or above, and
+  most routes to "none up to 0.20". The thinnest are now lfsrfind s1 / s3 / s4 at 0.15.
+
 ## B33. Flow v11 (your 02:20 #1): the 18 rule-CLEAN PASS routes of suite13t_s5a_v11_1a (seed 1) screened, 5 of them with BD_SYMTRIM lines. The screen reads a symmetric line's trimmed entry correctly, and nothing new is thin beyond v10's (shard B, 2026-11-21 13:05 UTC; untrusted extraction and simulation)
 - **Method:** specs from `mk_specs_all.py --cache research/data/autorw/cache_v11.tsv`, which follows your
   mk_board_specs rule, so BD_DEFINES=-DBD_SYMTRIM goes on the late-phase routes. Those routes are cmpchain,
