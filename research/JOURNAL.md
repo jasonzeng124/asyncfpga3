@@ -9511,3 +9511,12 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   unguarded partners (item 44's routes): also 57 / 57. Our GLS separates neither pair; formal's adversary does (unguarded
   fails at kappa 0.06-0.10, guarded none / none / 0.15). Item 45 runs the guarded three with board_suite.sh; read with
   item 44's three lines it is the guard's silicon test (unguarded FAIL + guarded PASS = the strongest evidence possible).
+### progress 13:17 (v10's farm resumes are done except gcd / fold64 s4; six more tasks stopped in final() or the search and are not resumed -- their kernels pass on other seeds)
+- Finished resumes added: iterative_division / if_convert / share_test_2 / spmv / stencil_2d / sumi3_mem s4,
+  test_flatten_array / loop_path s2, gcd s2 / s3, isprime s3 (gcd and spmv on NOT CLEAN routes).
+- Not resumed (each was past its final stack or in its trims / search when the limit hit, as digitsum etc.; the resume
+  would redo final()): image_resize s2 / s4, iir s2 / s4, share_test_1 s2 / s4 -- all three kernels PASS on other
+  seeds. digitsum / digitdiv: two local completions running. Left on the farm: 4a_r1_r2 (gcd s4, fold64 s4).
+- **The paired guard test suite13t_s5g_g10 is already running: 19 / 28 tasks finished** (the farm took it before most
+  of v11). v11: 1a 30 / 31, 1b running, 2a submitted.
+- The v10 headline goes up when 4a_r1_r2 and the three local completions are in.
