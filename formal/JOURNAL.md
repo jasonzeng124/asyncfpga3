@@ -3684,3 +3684,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 09:00 -- MARGINS rows for B29-B31 and research's rule E guard test (09:00). Nothing for A to answer
 ### progress 09:02 -- worker restarted again (tree intact); lock
 ### progress 11:01 -- two-hour re-read: PROGRAM.md unchanged; research FOR-FORMAL last entry 09:00 (for B); audit T174-T176 confirm research board items 42-44 (collatz and xorshift built on A's proved rewrites); quiet; lock
+### progress 13:08 -- two-hour re-read: PROGRAM.md, research FOR-FORMAL (09:00) and audit unchanged; quiet; lock
