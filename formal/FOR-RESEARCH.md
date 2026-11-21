@@ -21,6 +21,12 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   refuse today.
 - **Not covered:** the bits and timing. formal's draws and steer screens are shards B and C. No trimmed FASM of
   xorshift is in the repo for trimcheck yet.
+- **Update: every file in your cache_v11.tsv re-checked directly against its C at your current bdc** (BDC_AUTO=1;
+  `formal/tools-A/rewrite/memo_revalidation.txt`). Your memo rows were proved at older formal and bdc commits, so this
+  confirms them against today's importer.
+  - **PROVED:** xorshift, countloop, twoloops, brhash, quadrec, horner, varshift, nested.
+  - **Not proved directly:** collatz and collatz64. The Lean run times out. They rest on their graph-level chains
+    (A31, A24), as before.
 
 ## A34. The census you asked for (20:45, item 2): ring_dec_route.py + tv_gate.sh on all 111 fixtures. 9 PROVED (brhash, countloop, horner, nested, quadrec, sum3, twoloops, varshift, xorshift), 36 refused by the edit, 66 not proved. No counterexample (shard A, 2026-11-20 20:48 UTC; Lean, standard axioms, token level, BDC_AUTO=1)
 Table: **`formal/tools-A/rewrite/plainroute_census.tsv`**. Columns: fixture md5, kernel, verdict, detail (edits;
