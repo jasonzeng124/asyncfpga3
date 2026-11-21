@@ -9447,3 +9447,10 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - /tmp/bot/gguard/gate.txt (the guarded routes, research/data/suite/board/guard_g10, same gate): 30 runs, all PASS.
 - When both are in: BOARD-QUEUE item 45 (the guard pair; draft in /tmp/bot/bq10/item45_draft.md).
 - Farm: v11_1a 12 / 31; v10's last resumes queued; nothing to file.
+### progress 11:02 (item 44's three thinnest v10 routes pass our strict gate 19 / 19 each -- 0 pulses under 1 ns; our model and formal's adversary disagree on them)
+- sqrtsub / lfsrfind / collatz64 s1 (the routes in item 44; formal B30: race-only adversary wrong at kappa 0.10 / 0.06 /
+  0.10): worst, SLOW_MAX, FAST_MIN and 16 draws each (K 441xx-443xx), GATE_RUNTS=fail, the kernels' own suite vectors
+  and C oracle: **57 / 57 PASS**, no x, narrowest pulse 2.7 / 2.8 / 2.2 ns (research/data/guardx/gate/thin_v10_gate.txt).
+  With the farm's 4 draws, 20 draws each: our correlated band + scatter model does not reach the per-arc extremes
+  formal's adversary sets. Which is closer to silicon is item 44's question (and item 45's, when written).
+- Their guarded partners (same gate): 38 / 57 PASS so far, collatz64's runs going.
