@@ -9577,3 +9577,8 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
 - **Farm (14:30):** v11 1a 30 / 31 (then: mk_resume.py --rerun-status PNR-TIMEOUT for gather / fill), 1b, 2a running,
   2b.. waiting; v10 4a_r1_r2 running; g10 21 / 28.
 - **Next-flow candidates also logged:** resumable final() (the 240-min resume loop), PNR-timeout retry.
+### progress 15:05 (candidate v12 (v11 + late-after-search + the 10 % guard) on sqrtsub s2: the guard's lost seed is CLEAN again after the late phase)
+- v12c sqrtsub s2: pass A = the guard-alone route (least short it 8, the same -140 ps H row, sdf 9c11825a), the search
+  did not clean it, "late-after-search:", then **phase 3 from it 11: rule-CLEAN as built** (raised 0, negative 0;
+  latch-fed races >= 22.99 sd). Trim-back, final and draws next. If it passes, the guard's convergence loss is
+  absorbed by the late phase as intended, and the guard goes into v12.
