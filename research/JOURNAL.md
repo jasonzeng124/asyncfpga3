@@ -9640,3 +9640,4 @@ Measured: see the progress notes; key numbers -- v10 50 / 62; ours / Dynamatic o
 xorshift 16.35 ns (items 42 / 43, strict gate 35 / 35 each); guard P ratio 1.003 (18 pairs).
 Does NOT show: anything on silicon (items 42-45 queued); v11's or v12's suite-wide effect (running / queued).
 Next: v10 table + the three local completions; v11 results -> headline and its resumes; v12 when it runs; the board.
+### progress 17:14 (waiting: video_filter s1 (local v10 completion) in its draws; digitsum / digitdiv s2 in trim round 2; v12 previews early; v11 1b 30 / 31, 2a / 2b / 3a running)
