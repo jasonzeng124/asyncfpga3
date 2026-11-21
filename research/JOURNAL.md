@@ -9230,3 +9230,14 @@ Flow code unchanged since v10_1a's checkout 7874b6123 (only mk_resume.py, which 
   carryx NEGATIVE (a carry-tracking delay line buys <= 1 element on the cycle).
 - **Next:** item 43; v10 headline; v11 results -> headline; FOR-FORMAL answers (B: ucond_br7 bound, v10 screen
   census; C: draws on the board candidates).
+### progress 04:50 (what formal's 10 % steer tolerance would cost: ~2 elements on the loop test, ~+5 % P; opt-in AUTO_GUARD_E)
+- Our rule and formal's screen agree on collatz64 s1's thin steer: rule E has it at +954 ps raw, +588 after the 3 %
+  guard; formal's x-test is the same margin as a relative path error (8 %). The question is only how much is enough.
+- research/data/guardx/: the rule at a 10 % E / J guard on the three v10 s1 routes (control arm = the farm's rule):
+  xorshift UCMPI1 9 -> 11 and collatz UCMPI2 7 -> 9 on their critical cycles (~+0.75 ns, ~+5 %); collatz64 UCMPI2 13
+  -> 18 (not on its cycle). Each kernel: 3 lines grow, all loop / entry tests and one link.
+- auto_size.sh **AUTO_GUARD_E=LO,HI** (opt-in, 57a426160; unset byte-identical, so v11 is unchanged): the rule's E / J
+  guard. End-to-end test running: flow v10 + AUTO_GUARD_E=0.90,1.10 on collatz64 s1 (/tmp/bot/runs/g10); its shipped
+  route goes through formal's screen. If it is fine by B24 at a small cost, it is a candidate for the next flow --
+  a policy change (the guard), so it goes to the owner as a measured option, not as a default.
+- Gate: collatz 35 / 35 done (item 42); xorshift 2 / 35 PASS so far.
