@@ -98,6 +98,14 @@ ANENV=""; [ "${AUTO_AUTONAME:-${AUTO_PLACE_KEEP:-0}}" = 1 ] && ANENV="BD_AUTONAM
 if [ -n "${AUTO_RESUME:-}" ] && [ -f "$AUTO_RESUME/sizes_1.vh" ]; then
   RES=$(cd "$AUTO_RESUME" && pwd)
   [ "$RES" = "$(cd "$O" && pwd)" ] || cp "$RES"/*.txt "$RES"/*.vh "$O/" 2>/dev/null
+  # AUTO_SEARCH_OVERBUILD: a run stopped inside the search's overbuilt routes (search_ob_from.txt, written when they
+  # start; removed when they fail) left the late phase's markers behind. Unless the loop had finished (an AUTO_TRIM_ONLY
+  # resume, which rebuilds the shipped route with them), they go: the loop's replay must not read them, and the search
+  # phase, which a resume runs again, starts from its raise-only routes as before.
+  if [ -f "$O/search_ob_from.txt" ] && ! grep -qE '^(CLEAN|NOT CLEAN)' "$RES/result.txt" 2>/dev/null; then
+    rm -f "$O/overbuild_from.txt" "$O/symtrim_from.txt" "$O/overbuild_to.txt" "$O/search_ob_from.txt"
+    echo "resume: removed the markers of an interrupted AUTO_SEARCH_OVERBUILD" >> "$O/log.txt"
+  fi
 fi
 : > "$O/result.txt"
 D=${K}_bench_gen
@@ -1108,6 +1116,7 @@ PY
     while [ "$jb" -gt "$i" ] && [ ! -s "$O/neg_$jb.txt" ]; do jb=$((jb - 1)); done   # the last route the search ruled
     if [ "$jb" -gt "$i" ] && [ ! -f "$O/overbuild_from.txt" ]; then
       AUTO_OVERBUILD=${AUTO_OVERBUILD:-$LATE_OB} AUTO_OVERBUILD_LATE=$AUTO_SEARCH_OVERBUILD late_switch "$jb" "$O/rule_$jb.vh" "$O/neg_$jb.txt"
+      echo "$((jb + 1))" > "$O/search_ob_from.txt"   # a resume of an unfinished loop removes these markers (top of script)
       echo "search: no clean route in its raise-only routes; the search's structure overbuilt (AUTO_SEARCH_OVERBUILD=$AUTO_SEARCH_OVERBUILD) from it $((jb + 1))" >> "$O/log.txt"
       for kk in $(seq 1 "$AUTO_SEARCH_OVERBUILD"); do
         jj=$((jb + kk))
@@ -1127,7 +1136,7 @@ PY
       done
       if [ -z "$sob" ]; then   # nothing shipped from these routes: leave no marker or trim record behind
         for kk in $(seq $((jb + 1)) "$jj"); do rm -f "$O/trim_$kk.txt" "$O/trim_${kk}_"*.txt "$O/trim_${kk}.prev.txt" "$O/sizes_${kk}_trim"*.vh; done
-        rm -f "$O/overbuild_from.txt" "$O/symtrim_from.txt" "$O/overbuild_to.txt"; OB=""
+        rm -f "$O/overbuild_from.txt" "$O/symtrim_from.txt" "$O/overbuild_to.txt" "$O/search_ob_from.txt"; OB=""
         echo "search: the overbuilt routes found no clean route either" >> "$O/log.txt"
       else
         j=$jj
