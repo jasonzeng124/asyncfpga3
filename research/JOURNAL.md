@@ -9900,3 +9900,39 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   they run at 20-40 us.
 - Verdicts: unchanged, as T182 says (a PASS needs every call's BENCHRES); and no run of any flow can differ between the
   old and the new harness unless it lasts 2 s of simulated time.
+### progress 04:00 (formal B37 / B38's feeder class: no knob now -- by formal's own census a first failure at kappa 0.10 is common; what the feeder term is, in our rules)
+- **Decomposition (split corners, each arc at its own corner min / max, as formal's steersafe):** with launch at an input
+  link's ctl, the feeder slack >= rule A'j's slack at the condition latch + the ctl term's slack + the spread of the
+  latch's ctl -> EN -> Q segment (the two terms price that segment at opposite ends), and a sibling link that the
+  steer's join also waits for only adds to the request side. So a feeder failure with a healthy ctl term is rule A'j's
+  pair (the operator's data against its capture latch's enable) losing at split corners, carried to the steer. Our
+  rule checks A'j at the band corners with the 3 % residual guard; a fix would pad the operator's own matched line,
+  which is on the critical cycle in most loops.
+- **How common a failure at kappa 0.10 is in formal's adversary** (formal/tools-B/auto/suite/{v10,v11,g10}/
+  census_lines.txt at origin/claude/formal 29fcfe5b5, the weakest-steer race-only adversary's first failure): v10, 155
+  routes: none up to 0.20 on 103, 0.20 on 15, 0.15 on 19, **0.10 on 11**, 0.06 on 2, 0.03 on 1, "0" on 4 (all four
+  test_int16 s1-s4, where formal's screen crashed: a Traceback, not a failure). v11, 117: 71 / 13 / 14 / 11 / 2 / 3 / 3
+  (test_int16 again). g10 (the guarded routes), 19: none up to 0.20 on 13, 0.20 on 3, 0.15 on 3.
+- So test_bitint s1's feeder failure at 0.10 is in the bulk of that model, not a defect of one class. The failures at
+  <= 0.06 (sqrtsub s4, test_flatten_array s2: ctl term -> AUTO_RACE_KAPPA, v13; lfsrfind s1, branchloop s3: compare ->
+  the 10 % guard, v12; test_stdint s1 0.06: ctl-bound by B38 -> v13) are in the classes v12 / v13 already target, and
+  the guarded g10 routes have none below 0.15. **Decision: no feeder knob now**; it is the same model question as the
+  rest (formal's per-arc extremes vs our correlated draws), and BOARD-QUEUE items 44 / 45 carry routes with both kinds.
+  Told formal about test_int16's crash (FOR-FORMAL, next note).
+### progress 04:00 (lead: final()'s work across a resume -- AUTO_CKPT, opt-in, under test locally)
+- **Why:** under v11 a part like 2a had 14 of 31 tasks time out (240 min). A resume continues the loop, but a task that
+  died inside final() redoes all of final(): on digitsum s2 (local, 2026-11-21) the untrimmed stack took 17 min and each
+  trim step's rule run 43-73 min, five before round 2 -- so the slow kernels (digitsum, digitdiv, sobel, video_filter)
+  and 8 seeds of image_resize / iir / share_test_1 / vector_rescale never reached their draws on the farm.
+- **What (uncommitted until its regression test passes):** auto_size.sh AUTO_CKPT=1 memoizes by CONTENT, in the loop's
+  directory as *.txt (which the farm's save loop already copies to $SHARED): (1) each full stack (lane2_run.sh) with its
+  cycle decomposition, keyed by the route's FASM, routed JSON, kernel Verilog, SDF, the period vector and the tools' git
+  ids, restoring what later steps read (the event graph's files for the search phase, run.log's BENCHRES, equiv.txt);
+  (2) each trim step's rule run, keyed by routed JSON, SDF, sizes, the CA_ / BD_ / guard environment and the rule's git
+  ids, with the report lines the step's partial retry reads; (3) suite_one.sh: each draw that ran (cycles > 0, monitor
+  output), keyed by the bits, vectors, expected values, draw point and gate settings. A resumed final() re-derives the
+  same trims (deterministic steps) and finds every stack and rule run it already paid for. Unset: the same commands.
+- **Tests running** (/tmp/bot/scripts/ckt.sh; v13's environment; the v13 preview's finished if_loop_2 s1 loop resumed as
+  the request body resumes a finished loop: AUTO_TRIM_ONLY on it 8, whose final has trims and two rounds, P 28916 ->
+  25252 ps, trimmed fasm 5f75eef5; 2 draws): A = knob unset (must reproduce the preview's trims, P and fasm); B = knob
+  on, cold (same, memos written); then C = a fresh node resumed from B's state (same, from memos, fast).
