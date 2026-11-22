@@ -3560,3 +3560,8 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
 ### progress 13:05
 - T185 done (subagent P): BDC_SHIFT_MASK function-preserving (only varshift + gcd change; amounts never reach 32);
   A37 CONFIRMED (own build, standard axioms re-run by me, C side unmasked, mask mutation breaks it). Row added.
+### progress 14:45
+- T182 complete: item 46 both halves right at all 5 uniform corners on own vectors (3 calls, 512-word arrays) with
+  own oracle; unpadded ucond_br14 163-558 ps (its thinnest steer everywhere), padded 1333-4056 ps. Split ladder:
+  unpadded fails only at the extreme 1.0 / 0.0 split (padded passes it, 859 ps). Item 46 is a sound board test as
+  written: both halves pass simulation, and only a die whose two racing paths sit far apart separates them.
