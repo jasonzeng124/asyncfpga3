@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## C77. Item 46's hang is B36's race, shown causally: on the unpadded route, 300 ps of extra delay on ucond_br14's request input cures the hangs, and the same delay on its condition input makes every one of those draws fail (shard C, 2026-11-22 10:20 UTC; untrusted simulation)
+## C77. Item 46's hang is B36's race, shown causally: on the unpadded route, 300 ps of extra delay on ucond_br14's request input cures the hangs, and the same delay on its condition input makes every one of those draws fail (shard C, 2026-11-22 10:13 UTC; untrusted simulation)
 - **Setup:** C76's 8 failing draws of item 46 unpadded at 4x per-arc scatter (K 30003, 30021, 30026, 30030, 30034,
   30054, 30058, 30059). Each was re-run with +300 ps injected on one input arc of `ucond_br14`'s LUT6
   (SLICE_X16Y27.C6), one pin at a time, and on uack's closest-race pin.
