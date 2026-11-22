@@ -75,8 +75,10 @@ iverilog -g2012 -gspecify -Wno-timescale -DBD_ROUTE_PS=${RTL_ROUTE_PS:-0} $DCO_D
     "$R"/cells/rtl/*.v "build/gen/${K}_kernel_bench.v" "build/gen/${K}_bench_gen.v" ps7_rtl.v \
     "$R/cells/gls/ps/ps7_bench.v" "$R/cells/gls/ps/tb_ps.v" > compile.log 2>&1 \
   || { echo "$K rtl COMPILE FAILED: $(grep -m1 -i error compile.log)"; exit 1; }
+# +TEND (ns) is only a backstop: every batch is bounded by TBATCH. 2 s keeps the bound this flow always had in effect:
+# the earlier 3 / 20 / 200 ms values overflowed tb_ps.v's 32-bit product to a negative delay and never fired (audit T182).
 vvp -n rtl.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=${GATE_NRUNS:-2} +VECFILE="$VEC" ${MEMEXP:+"+MEMDUMP=1"} \
-    +TBATCH=${RTL_TBATCH:-400000} +TEND=200000000 ${RTL_PLUSARGS:-} > run.log 2>&1 || true
+    +TBATCH=${RTL_TBATCH:-400000} +TEND=2000000000 ${RTL_PLUSARGS:-} > run.log 2>&1 || true
 rm -f rtl.vvp
 # the gate's verdict, verbatim (bench_gate.sh's inline python, between its `python3 - "$EXP" run.log` line and PY)
 # (the call spans two lines since the runt monitor's arguments were added: everything up to the line with <<'PY' goes)

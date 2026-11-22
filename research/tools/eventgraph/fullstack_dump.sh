@@ -29,7 +29,9 @@ V
 cd "$W"
 "$R/research/tools/compile_slot.sh" iverilog -gspecify -DGLS_TRANSPORT_IC -DGLS_FID -I"$G" -I. -o run.vvp "$G/ps/tb_ps.v" netlist_baked.v "$G/prims.v" \
     "$G/ps/ps7_bench.v" dump.v 2>&1 | grep -v 'procedural continuous' || true
-vvp run.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=1200000 +TEND=3000000 ${GATE_PLUSARGS:-} > run.log 2>&1 || true
+# +TEND (ns) is only a backstop: every batch is bounded by TBATCH. 2 s keeps the bound this flow always had in effect:
+# the earlier 3 / 20 / 200 ms values overflowed tb_ps.v's 32-bit product to a negative delay and never fired (audit T182).
+vvp run.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$VEC" +TBATCH=1200000 +TEND=2000000000 ${GATE_PLUSARGS:-} > run.log 2>&1 || true
 rm -f run.vvp
 grep -o "VERDICT.*" fid/equiv.txt || true
 grep BENCHRES run.log | sed 's/sig=[0-9a-f]* //' | cut -c1-200 || echo "NO BENCHRES"

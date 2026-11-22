@@ -9869,3 +9869,34 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - 8 trims, 7 of them port lines (controllers 2 / 3); draws 8 / 8 calls each, narrowest pulse 3371 ps; no latch-fed race
   on this kernel. With memsum s1 (-14.7 % vs v12): on both memory previews v13 takes back the guard's churn and more
   (v13 / v10: memsum 1.048, dot2 0.912). One seed each; the gather / if_loop_2 pairs are running.
+
+## Session 2026-11-22 03:28 UTC -- cluster-research-29671222-2 (same job as -1; ends 2026-11-22 20:24 UTC; /tmp kept) -- (in progress)
+Lock: cluster-research-29671222-1 at 01:56 (this wrapper's previous session, ended); taken 03:28 UTC.
+cluster: same job, not requeued: /tmp/bot survives, and with it the previous session's four local preview loops (v12 / v13 on
+gather s1 and if_loop_2 s1; /tmp/bot/runs/v12c, v13c), still running.
+Toolchain: patches.sha 0d42657914fc25d3, nextpnr 6e5d224472232d5d (cells/verify/toolchain.sh all ok, 03:30 UTC)   Seeds: per item
+Audit: new REFUTED row T182 (tb_ps.v's +TEND overflow) -- answered below. T179 / T180 / T182 notes: the local runs'
+logs behind video_filter s1 and item 46's padded half are not in the repo (to do). Formal: B39 (02:00) withdraws its
+v11 screen rows on the 17 routes our 00:16 board_rebuild fix concerned; redo running there.
+Farm (03:30): v11 3b_r1 / 4a_r1 / 4b / 2a_r1_r2 running, 3a_r1_r2 submitted; v12_1a running (2 / 31, checked out at
+dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze holds (only opt-in knobs they do not set).
+### progress 03:50 (audit T182 answered: the GLS host's +TEND bound never fired in any flow run -- the product went negative, not to 2.82 ms; fixed, with the flow's effective bound kept)
+- **T182 is right that the bound was broken, and the error is larger than the row says.** cells/gls/ps/tb_ps.v waited
+  `#(tend * 1000)` with `integer tend`: 32-bit signed arithmetic. For the default 5 ms the product wraps to +0.705 ms
+  (the auditor's observation). For every value the flow passes it wraps NEGATIVE -- 3 ms (fullstack_dump.sh,
+  lengthen.sh), 20 ms (bench_gate.sh), 200 ms (rtl_bench.sh) -- and iverilog turns a negative delay into ~1.8e19 ps:
+  checked standalone (/tmp/bot/tendchk: old tb_ps.v with +TEND=20000000 finishes at 18446744072234715136 ps; new at
+  20000000000). So no flow run was ever bounded by TEND; each batch was bounded by the PS model's TBATCH hang check,
+  which is what decided every HANG verdict. The runt monitor's end report (gen_runt_mon.py, `#(tend * 1000 - 1)`) had
+  the same overflow. memport_gate's TMEM is not affected (its comparison is evaluated at 64 bits, context width).
+- **Fix (this commit):** tb_ps.v and gen_runt_mon.py compute the wait in a 64-bit `time` (standalone checks: 5 ms -> 5e9
+  ps, 20 ms -> 2e10 ps; the monitor's end report at TEND - 1 ps). Making the bound real would have changed the frozen
+  flows: sobel's RTL run is 103517 bench cycles for 3 calls (~1.24 ms before routed delays), close to fullstack_dump's
+  3 ms. So the four flow scripts now pass +TEND=2000000000 (2 s), which keeps the bound every flow has actually run with
+  (none but TBATCH per batch; a suite vector file has <= ~40 calls, so <= ~50 ms even if every batch hangs), with a
+  comment saying why. Longest simulated run on the farm over every suite flow: 1.197 ms (fir; 10493 BENCHRES lines);
+  locally video_filter 0.60 ms, digitsum 0.22 ms. The two old data scripts (bandfit/run1.sh, steerrunt/cost.sh) are
+  left as the record of what ran. tb_f3_arbm.v and tb_carry.v have the same form but overflow only above 2147483 ns;
+  they run at 20-40 us.
+- Verdicts: unchanged, as T182 says (a PASS needs every call's BENCHRES); and no run of any flow can differ between the
+  old and the new harness unless it lasts 2 s of simulated time.

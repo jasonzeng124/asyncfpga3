@@ -75,7 +75,9 @@ if [ "${GATE_ANNOTATE:-0}" = 1 ]; then
   ANN=" | annotate $(grep -q ANNOTATE_DONE annotate.log && echo DONE || echo MISSING) sdf-warn/err $(grep -ciE 'SDF (WARNING|ERROR)' annotate.log || true)"
 fi
 rm -f gate.vvp
-vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=${GATE_NRUNS:-2} +VECFILE="$VEC" ${GATE_MEMEXP:+"+MEMDUMP=1"} +TBATCH=${GATE_TBATCH:-1200000} +TEND=20000000 ${GATE_PLUSARGS:-} ${GATE_RUNTS:+"+RUNT_T1=$RT1" "+RUNT_T2=$RT2" "+RUNT_T3=$RT3"} > run.log 2>&1 || true   # GATE_PLUSARGS: e.g. +META_INIT=0; GATE_TBATCH: ns per batch before HANG (default 1200000; preload runs, research/tools/preload)
+# +TEND (ns) is only a backstop: every batch is bounded by TBATCH. 2 s keeps the bound this flow always had in effect:
+# the earlier 3 / 20 / 200 ms values overflowed tb_ps.v's 32-bit product to a negative delay and never fired (audit T182).
+vvp run_baked.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=${GATE_NRUNS:-2} +VECFILE="$VEC" ${GATE_MEMEXP:+"+MEMDUMP=1"} +TBATCH=${GATE_TBATCH:-1200000} +TEND=2000000000 ${GATE_PLUSARGS:-} ${GATE_RUNTS:+"+RUNT_T1=$RT1" "+RUNT_T2=$RT2" "+RUNT_T3=$RT3"} > run.log 2>&1 || true   # GATE_PLUSARGS: e.g. +META_INIT=0; GATE_TBATCH: ns per batch before HANG (default 1200000; preload runs, research/tools/preload)
 rm -f run_baked.vvp
 python3 - "$EXP" run.log "$(grep -o 'VERDICT: [A-Z_ ]*' fid/equiv.txt | head -1)" "${GATE_MEMEXP:-}" "$ANN" \
     ${GATE_RUNTS:+"$GATE_RUNTS" "${GATE_RUNTS_CLASSES:-}"} <<'PY'

@@ -26,6 +26,8 @@ open(O + "/netlist_baked.v", "w").writelines(out)
 PY
 cd "$O"
 iverilog -gspecify -DGLS_TRANSPORT_IC -DGLS_FID -I"$G" -I. -o run.vvp "$G/ps/tb_ps.v" netlist_baked.v "$G/prims.v" "$G/ps/ps7_bench.v" 2>&1 | grep -v 'procedural continuous' || true
-vvp run.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$6" +TBATCH=1200000 +TEND=3000000 > run.log 2>&1 || true
+# +TEND (ns) is only a backstop: every batch is bounded by TBATCH. 2 s keeps the bound this flow always had in effect:
+# the earlier 3 / 20 / 200 ms values overflowed tb_ps.v's 32-bit product to a negative delay and never fired (audit T182).
+vvp run.vvp +FCLK_PS=12000 +MODE=1 +NRUNS=2 +VECFILE="$6" +TBATCH=1200000 +TEND=2000000000 > run.log 2>&1 || true
 rm -f run.vvp
 grep -o "latmin=[0-9]* latmax=[0-9]* .*odata=[0-9a-f]*" run.log | sed 's/sig=[0-9a-f]* //' || echo "NO BENCHRES"

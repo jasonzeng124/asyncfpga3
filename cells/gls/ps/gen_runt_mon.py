@@ -259,7 +259,7 @@ def main():
         L.append('        nm[%d] = "cls=%s inst=%s role=%s net=%s";' % (k, r[0], r[1], r[2], r[3][-80:]))
     L.append("    end")
     L += [
-        "    integer t1, t2, t3, maxl, nl, batch, tend, k0, win;",
+        "    integer t1, t2, t3, maxl, nl, batch, tend, k0, win; time tend_ps;",
         "    time tl [0:NN-1], tf [0:NN-1], mn [0:NN-1];",
         "    reg [1:0] pv [0:NN-1], cv [0:NN-1];",
         "    integer c1 [0:NN-1], c2 [0:NN-1], c3 [0:NN-1], ch [0:NN-1], cl [0:NN-1], cx [0:NN-1];",
@@ -366,7 +366,8 @@ def main():
         "        if (busy_q === 1'b1 && bench_busy === 1'b0) begin report(batch); batch = batch + 1; end",
         "        busy_q = bench_busy;",
         "    end",
-        "    initial if ($value$plusargs(\"TEND=%d\", tend) && tend > 0) begin #(tend * 1000 - 1); report(-1); end",
+        "    // 64-bit (audit T182: tend * 1000 in 32-bit integer arithmetic wrapped at 2^32 ps)",
+        "    initial if ($value$plusargs(\"TEND=%d\", tend) && tend > 0) begin tend_ps = tend; tend_ps = tend_ps * 1000 - 1; #(tend_ps); report(-1); end",
         "endmodule"]
     open(out, "w").write("\n".join(L) + "\n")
     tsv = os.path.join(os.path.dirname(os.path.abspath(out)), "runt_nets.tsv")
