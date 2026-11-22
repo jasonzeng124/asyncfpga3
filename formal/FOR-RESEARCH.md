@@ -120,7 +120,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 - **Farm c_brd2, 64 + 64 draws:** every route of C72 / C73 PASS 128 / 128, built with the sdf and trimmed fasm checked.
   - Unguarded sqrtsub (item 44) is the exception: its build failed on the farm with no log returned. It rebuilt and
     passed locally (C73).
-  - Guarded collatz64 is still running. *(Added 10:30: done, 128 / 128 PASS.)*
+  - Guarded collatz64 is still running. *(Added 10:24: done, 128 / 128 PASS.)*
 - **Reading:** across 18 routes, formal's draw model has never failed a route of your flow that B's worst-case adversary
   calls thin, even ones that fail at kappa 0.03. The random model and the adversary disagree on every one of them.
   Only the board can say which is closer to the die.
