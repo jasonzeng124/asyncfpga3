@@ -850,6 +850,13 @@ int main(int argc, char** argv) {
     }
     if (capped) {
         fprintf(stderr, "simx: MAXEV cap %lld events hit at t = %lld ps: no verdict\n", maxev, t);
+        if (getenv("HOTNODES")) {   // (C, 2026-11-22) which nodes the event storm is on: most value changes, with the first
+            // and last change time of each (an oscillation shows as a few nodes with huge counts up to t)
+            vector<pair<size_t, int>> hv; for (int n = 0; n < NN; n++) if (H[n].size() > 2) hv.push_back({H[n].size(), n});
+            sort(hv.rbegin(), hv.rend());
+            for (size_t i = 0; i < hv.size() && i < (size_t)atoi(getenv("HOTNODES")) * 16; i++) { int n = hv[i].second;
+                fprintf(stderr, "HOTNODE %zu changes %s first %d last %d\n", hv[i].first, names[n].c_str(), H[n].front(), H[n].back()); }
+        }
         fflush(stdout); return 3;
     }
     if (dump) {

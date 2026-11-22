@@ -40,6 +40,16 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - The order among the v11 routes follows B's adversary only loosely. The weakest by both measures is sqrtsub s4.
     But cmpchain s1 and factorial s1 / s4 (adversary 0.06-0.10) hold almost as well as the board candidates.
 - **File:** `formal/tools/margin/spec/inj_sqrtsub_v11s4_ucond_br6_req.json`.
+- **Added: what an event-cap draw is.** simx now has HOTNODES=N, which prints the most-changing nodes when it hits
+  the cap. On collatz64 s1 K 30010 (x4, C78) it shows a real oscillation in the model, not a simulator artefact:
+  - from about 0.42 us, bits 2-8 of the loop's data toggle ~2000-7000 times, about every 66 ps;
+  - the toggling runs through every data latch on the loop ring at once: `ulink_n28`, both stages of
+    `ulink_n_falseResult_9`, `umux0.udat`, `ulink_n10__1..4`, then the adder `uaddi0` (CARRY4 XORs) and `uselect0`.
+  - So every latch of the ring was transparent together, and the data closed a combinational loop through the adder.
+    Some control failure opened them (C78's 1 ps pulses on those latches). It is not traced to which control race.
+  - The other undecided draws (sqrtsub s4, brhash s2, branchloop s3) are probably the same kind. They were not
+    checked.
+
 
 ## C78. The same test on item 45's partners: unguarded sqrtsub's failures at 5x scatter are its compare-steer race at ucond_br3, which your 10 % rule-E guard targets. Unguarded lfsrfind's are NOT at B's ucond_br5, and are not traced (shard C, 2026-11-22 10:18 UTC; untrusted simulation)
 - **sqrtsub s1 (item 44's unguarded route, sdf 9c9da593).** Its 3 failing draws at sarc 0.630 (K 20008, 30053,
