@@ -1,0 +1,42 @@
+1. CELLS  routed JSON 9056 bels, bitstream 9057 bels, common 9056
+2. CONFIG  compared {'BUFGCTRL': 1, 'CARRY4': 122, 'SLICE_FFX': 2087} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+2b. DSP48E1  3 compared: control words (OPMODE/ALUMODE/INMODE/CARRYINSEL/CARRYIN), register/input parameters, drivers of every data pin the modelled function reads
+2c. RAMB18E1  6 compared: configuration (mode, widths, output register, write mode, INIT_A/SRVAL_A, INIT content), effective CLK/EN/RST and port B enable, drivers of every ADDR/DI/DIP/WE pin
+3. CONNECTIVITY  28095 pins with the same driver on both sides
+   driver->sink pairs: json 29804, bits 43235, common 28095
+4. LUT FUNCTIONS  6544 LUTs compared, 6544 identical over every input assignment
+5. ROUTING  10380 nets with identical pip sets, 0 differ (0 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+
+DIFFERENCES (8 kinds):
+       1  BUFGCTRL I1 unconnected in JSON, connected on the board by the mux's all-zero default (deselected)
+            BUFGCTRL_X0Y0/BUFGCTRL/I1 <- ('const', 1)
+       1  HARMLESS: LUT pin on a different constant in the routed JSON than on the board (an IMUX nextpnr tied to GND but never routed reads VCC through its default ppip), and the bits' LUT function does not read that pin
+            SLICE_X13Y41/D/A6 json 0 bits 1 (SLICE_X13Y41/D6LUT)
+   10900  LUT pin unconnected in routed JSON, constant 1 on the board, gen.py ties 0 (harmless iff section 4 finds the function identical)
+            SLICE_X0Y27/D/A2
+            SLICE_X0Y27/D/A3
+            SLICE_X0Y27/D/A4
+            SLICE_X0Y27/D/A5
+    1708  PS7 input tied to a constant in JSON, not modelled (outside ps7_pins.py)
+            PS7_X0Y0/PS7/DMA0ACLK <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DAREADY <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRLAST <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRTYPE0 <- ('const', 0)
+       1  bits-only LUT with a constant function (INIT all 0): a constant source, its loads compared as that constant
+            SLICE_X2Y42/A6LUT
+      30  bits-only always-on ppip the JSON does not list (no bits: a fixed wire)
+            ('DSP48_X0Y21/DSP48E1', 'ACOUT0'): [('DSP_R_X7Y50/DSP_1_ACOUT0', 'DSP_R_X7Y50/DSP_ACOUT0')]
+            ('DSP48_X0Y21/DSP48E1', 'ACOUT1'): [('DSP_R_X7Y50/DSP_1_ACOUT1', 'DSP_R_X7Y50/DSP_ACOUT1')]
+            ('DSP48_X0Y21/DSP48E1', 'ACOUT10'): [('DSP_R_X7Y50/DSP_1_ACOUT10', 'DSP_R_X7Y50/DSP_ACOUT10')]
+            ('DSP48_X0Y21/DSP48E1', 'ACOUT11'): [('DSP_R_X7Y50/DSP_1_ACOUT11', 'DSP_R_X7Y50/DSP_ACOUT11')]
+    1044  pin unconnected in routed JSON, same constant (0) on the board as gen.py's tie
+            SLICE_X0Y21/D5FF/SR
+            SLICE_X0Y22/C5FF/SR
+            SLICE_X0Y22/D5FF/SR
+            SLICE_X0Y23/AFF/SR
+    3194  pin unconnected in routed JSON, same constant (1) on the board as gen.py's tie
+            SLICE_X0Y27/D/A6
+            SLICE_X0Y28/D/A6
+            SLICE_X0Y29/B/A6
+            SLICE_X0Y29/C/A6
+VERDICT: EQUIVALENT (only the benign kinds above)
