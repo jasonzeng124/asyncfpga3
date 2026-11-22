@@ -3497,3 +3497,10 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   theorem is about the unfused import, A26 about the fused one; the missing link was run here and the chain composed in
   own Lean (Chain.build_computes, standard axioms, re-run by me) -- minus bounded runs. Ring fusion does not fire on
   item 42's file; emitted Verilog = C on 50/50. Item 42's function is therefore supported; the formal write-up overstated.
+### progress 03:10
+- T182 GLS: one call of a memory kernel takes ~30 min of wall time per corner (1024-word AXI fill + MEMCHECK + 2
+  runs + dump), so 3 calls ~1.5 h per corner. Unpadded fastmin call 0: input 0/512 bad, output 0/512 bad (own
+  oracle; parser fixed for monitor lines interleaved with the dump). Queue (chain_u.sh): unpadded fastmin -> split
+  replay of formal B36's race (latch side band 1.0, rdly + join band 0.0, no scatter) -> unpadded's other 4 corners.
+  Padded: 5 corners running (gls.sh).
+- T184: SteerSettleMulti.lean statement read (row); its build needs Mathlib (not built here).
