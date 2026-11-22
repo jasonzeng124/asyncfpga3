@@ -3463,3 +3463,25 @@ Dynamatic tests; the automatic table from clean.
 - 22:24 T180: own rebuilds match. digitsum s2 sdf 68342f0d and digitdiv s2 sdf 28124629 equal the result lines; trims are INIT-only (8 lines). digitsum and digitdiv give identical untrimmed fasm e0b693b2 and trimmed 87610a56, and their SDFs differ in 0 lines once the kernel name is masked. The first GLS hit a full disk (run_baked.vvp truncated, 0/26 meaningless). I freed 19 G (old agent dirs, worktrees, GLS work dirs) and am re-running the GLS only.
 - 23:41 T180 GLS rerun: digitsum s2, own oracle 26/26 at all 5 corners, 0 runts, min steer 480 ps. Row added (CONFIRMED; video_filter s1 simulation UNVERIFIED). A video_filter s1 it-8 build-only rebuild is running for its sdf 724b3ba8.
 - 23:46 T180: video_filter s1 it-8 own rebuild gives sdf 724b3ba8 (= result line), no trims. The first attempt had empty inputs: my own PART variable clash, fixed in run2.sh. The watcher hit the 2 h background limit; I now check branches by hand between steps. No board, headline or PROGRAM change since 5efcd77855.
+
+## Session 2026-11-22T02:06Z (session_01HC49FweAQ1oXZLjTGt3WzL)
+Previous lock (23:46Z, session ..FuawsESQ8ttkU3hNn3) stale (2 h 20 min). Fresh container. PROGRAM re-read: at most 1
+subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: research dc1aeb9f64, formal 047f8b8e60.
+### progress 02:20
+- New since the last entry: research 16d893adac (00:16 UTC) -- **BOARD-QUEUE item 46** (latch-fed race pair,
+  test_flatten_array s2: v11 unpadded route sdf e82284b6 / fasm 77d4a54c vs AUTO_RACE_KAPPA padded route sdf 2361eec8 /
+  trimmed fasm 5fcd82f8) and a **board_rebuild.sh defect fix**: the trim step did not see the spec's ENV, so v11+ routes'
+  _SDELAY trims were silently refused (bits never judged); research says items 42-45 (v10) had 0 refusals. formal
+  047f8b8e60 / 17e5a7ec80 B39: v11 screens on _SDELAY-trimmed routes withdrawn pending redo. v13 previews (journal only).
+- Toolchain: research head's key 02809f4230dfd3a7 restored from its cache branch into /root/audit-tc2 with my copy of
+  setup-toolchain.sh with the publish step removed (audit/tools/setup_tc_nopublish.sh); fingerprints ok, nextpnr
+  sha256 7c3bfb9c684a2551 (as before).
+- T181 (subagent N, the one allowed): formal A35 (AutoXorshiftBQ.lean, item 43's graph "proved against the C"):
+  own build, own axioms, statement, C side vs gcc, Lean graph vs the emitted Verilog (T170's plan-vs-Verilog gap),
+  mutations.
+- T182 (me): item 46. Own rebuild of both halves from their specs at 16d893adac (build_bench.sh + spec ENV, not
+  board_rebuild.sh), trims with and without the spec ENV (the defect's control), own bits; then GLS with research
+  head's v2 memory host (+MEMDUMP/+MEMCHECK), own vectors (3 calls, full-range words, sentinel / near-miss output
+  prefill) and own oracle from the C (t182/vec_oracle.py; self-test: a 1-word flip fails 0/3), own steer monitors
+  (ucond_br14 reported separately), 5 corners. My earlier "own GLS can't run memory kernels" (T179) was my gate.sh
+  lacking the v2 plusargs; ps7_bench.v has had them since c6f46890bb.
