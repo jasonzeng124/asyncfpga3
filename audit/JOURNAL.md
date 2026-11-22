@@ -3543,3 +3543,5 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   consistent with own T182. Minor wording mismatch: the loop log pads ULINK_N101_FOLINK 1 -> 3 at it 10, the item's
   README says 1 -> 4; the shipped sizes (padded/test_flatten_array_sizes.vh) say 4 ('was 1'), and the route I simulate
   has 4 rdly elements on that link -- the late phase presumably added one; not a safety question.
+### progress 08:35
+- T182 advA_ns: unpadded 3/3 (br14 219 ps), padded 3/3 (br14 1810 ps, min 1307 ucond_br4). advC_ns running.
