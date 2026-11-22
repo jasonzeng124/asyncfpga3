@@ -245,6 +245,100 @@ mkbit() {  # mkbit HWDIR: the bitstream from HWDIR/D.fasm, as cells/hw/build_ben
   "${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7/bin/xc7frames2bit" --part_file "$DB/$P/part.yaml" --part_name "$P" \
     --frm_file "$1/$D.frames" --output_file "$1/$D.bit" > "$1/bit.log" 2>&1
 }
+# AUTO_CKPT=1 (opt-in, 2026-11-22; unset, l2run / cycd / rule_memo run exactly the commands they stand for): final()'s
+# work survives a resume. A farm task stopped at its 240-min limit inside final() redid all of it when resumed -- the
+# untrimmed stack, every trim step's rule run, every round's stack -- so the slowest kernels never reached their draws
+# (digitsum / digitdiv / sobel / video_filter, research/JOURNAL.md 2026-11-21 09:01; on digitsum s2 one trim step's
+# rule run took 43-73 min, five of them before the second round). With the knob, two kinds of run are memoized by
+# CONTENT in $O, as *.txt files, which a farm task's save loop already copies to $SHARED every 5 min:
+#   * a full stack (lane2_run.sh) and its cycle decomposition -- key: md5 of the route's FASM, routed JSON, kernel
+#     Verilog, prjxray SDF and the period vector (all lane2_run.sh's result depends on; its ENV arguments are only
+#     recorded) and the stack tools' committed git ids; stk_KEY_{line,cyc,bench,equiv}.txt. Only a stack that ended
+#     with a numeric P and a bits verdict is kept (one cut short, e.g. by an out-of-memory kill, runs again);
+#   * a trim step's rule run (rule_memo) -- key: md5 of the routed JSON, the SDF, the sizes it reads, every CA_ / BD_ /
+#     AUTO_GUARD_E / AUTO_RULE_CORNERS / PYTHONHASHSEED variable of the environment and the rule's committed git ids;
+#     rck_KEY_{rule,neg}.txt and rck_KEY_dep_<corner>.txt (the reports' constraint / "depends on" line pairs, all the
+#     step's partial retry reads).
+# research/tools/suite/suite_one.sh does the same for each draw (dck_*.txt). A resumed final() re-derives the same trims
+# (each step is a deterministic function of those inputs) and finds every stack and rule run it already paid for. A
+# memo is written only after its run finished, by rename. The key covers what the run reads, so another route, other
+# sizes or another rule setting misses and runs for real: a memo can make a resume faster, never different. A stack
+# memo also restores what the stack leaves for later steps: the event graph's files (graphs/N_I, which the search
+# phase reads), the BENCHRES lines of r/N_I/run.log (suite_one.sh's latency) and fid/equiv.txt. The git ids (this
+# script's included) are of committed content: a local run with uncommitted changes to those tools must not reuse
+# an older memo, and a commit to any of them between two parts of a farm run makes the later part miss.
+ck_tools() {  # ck_tools PATH...: the committed git object ids of the tools a memo depends on ("?" outside git)
+  local p; for p in "$@"; do git -C "$R" rev-parse "HEAD:$p" 2>/dev/null || echo "?"; done
+}
+ck_put() {  # ck_put SRC DEST: SRC copied to DEST by rename, so a memo is never seen half-written
+  cp "$1" "$2.part.$$" 2>/dev/null && mv -f "$2.part.$$" "$2"
+}
+stk_key() {  # stk_key I: content key of route N_I's full stack
+  local H=$RUNS/hw/${N}_$1
+  { cat "$H/$D.fasm" "$H/${D}_routed.json" "$H/${K}_kernel_bench.v" "$RUNS/r/${N}_$1/xray.sdf" "$VEC" 2>/dev/null
+    ck_tools research/tools/eventgraph research/tools/fifteen/lane2_run.sh research/tools/ffmux_scan.py cells/gls \
+      research/tools/auto/auto_size.sh; } \
+    | md5sum | cut -c1-16
+}
+l2run() {  # l2run I: lane2_run.sh's full stack on route N_I (its own output); AUTO_CKPT=1: memoized (see above)
+  [ "${AUTO_CKPT:-0}" = 1 ] || { "$R/research/tools/fifteen/lane2_run.sh" "${N}_$1" "$K" "$VEC" BDC_AUTO=1 ${XENV:-}; return; }
+  local i=$1 key rc RD=$RUNS/r/${N}_$1 tmp=$O/.l2run.$$; key=$(stk_key "$i")
+  local G=$R/research/data/eventgraph/graphs/${N}_$1 f
+  if [ -s "$O/stk_${key}_line.txt" ]; then
+    mkdir -p "$RD/fid" "$G"; cp "$O/stk_${key}_bench.txt" "$RD/run.log" 2>/dev/null; cp "$O/stk_${key}_equiv.txt" "$RD/fid/equiv.txt" 2>/dev/null
+    # the event graph's files as the stack left them (the search phase reads them: search.py on graphs/N_I)
+    for f in nodes.tsv arcs.tsv check.txt provenance.txt build.txt; do
+      rm -f "$G/$f"; cp "$O/stk_${key}_g_$f.txt" "$G/$f" 2>/dev/null; done
+    cp "$RUNS/hw/${N}_$i/${K}_kernel_bench.v" "$G/kernel.v" 2>/dev/null; sed 's/sig=[0-9a-f]* //' "$RD/run.log" > "$G/benchres.txt" 2>/dev/null
+    echo "ckpt: it $i stack from memo $key" >> "$O/log.txt"
+    echo "auto_size: AUTO_CKPT stack memo $key (route ${N}_$i)"; cat "$O/stk_${key}_line.txt"; return 0
+  fi
+  "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$tmp" 2>&1; rc=$?
+  cat "$tmp"
+  if [ "$rc" = 0 ] && tail -1 "$tmp" | grep -qE ' P=[0-9]+ .*VERDICT: (NOT )?EQUIVALENT'; then
+    python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$tmp.cyc" 2>&1
+    ck_put "$tmp.cyc" "$O/stk_${key}_cyc.txt"
+    grep BENCHRES "$RD/run.log" > "$tmp.bench" 2>/dev/null; ck_put "$tmp.bench" "$O/stk_${key}_bench.txt"
+    [ -f "$RD/fid/equiv.txt" ] && ck_put "$RD/fid/equiv.txt" "$O/stk_${key}_equiv.txt"
+    for f in nodes.tsv arcs.tsv check.txt provenance.txt build.txt; do
+      [ -f "$G/$f" ] && ck_put "$G/$f" "$O/stk_${key}_g_$f.txt"; done
+    tail -1 "$tmp" > "$tmp.line"; ck_put "$tmp.line" "$O/stk_${key}_line.txt"   # last: the memo's mark
+    echo "ckpt: it $i stack memo $key written" >> "$O/log.txt"
+  fi
+  rm -f "$tmp" "$tmp.cyc" "$tmp.bench" "$tmp.line"; return $rc
+}
+cycd() {  # cycd I: cycdecomp.py on route N_I's event graph (its own output); AUTO_CKPT=1: the stack memo's copy
+  if [ "${AUTO_CKPT:-0}" = 1 ]; then
+    local key; key=$(stk_key "$1")
+    if [ -s "$O/stk_${key}_cyc.txt" ]; then cat "$O/stk_${key}_cyc.txt"; return 0; fi
+  fi
+  python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$1"
+}
+rck_key() {  # rck_key I SIZES: content key of a trim step's rule run on route N_I with SIZES
+  local H=$RUNS/hw/${N}_$1
+  { cat "$H/${D}_routed.json" "$RUNS/r/${N}_$1/xray.sdf" "$2" 2>/dev/null
+    env | grep -E '^(CA_|BD_|AUTO_GUARD_E=|AUTO_RULE_CORNERS=|PYTHONHASHSEED=)' | sort
+    ck_tools research/tools/corner_audit.py research/tools/ca_fast.py research/tools/auto/merge_rules.py cells/verify \
+      research/tools/auto/auto_size.sh; } \
+    | md5sum | cut -c1-16
+}
+rule_memo() {  # rule_memo I SIZES: rule() for a trim step; AUTO_CKPT=1: memoized with what the step reads of it
+  [ "${AUTO_CKPT:-0}" = 1 ] || { rule "$@"; return; }
+  local i=$1 key c CA=$RUNS/ca/${N}_$1; key=$(rck_key "$i" "$2")
+  if [ -s "$O/rck_${key}_rule.txt" ] && [ -s "$O/rck_${key}_neg.txt" ]; then
+    cp "$O/rck_${key}_rule.txt" "$O/rule_$i.vh"; cp "$O/rck_${key}_neg.txt" "$O/neg_$i.txt"
+    rm -rf "$CA"; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do mkdir -p "$CA/rule_$c"
+      cp "$O/rck_${key}_dep_$c.txt" "$CA/rule_$c/report.txt" 2>/dev/null; done
+    echo "ckpt: rule $i from memo $key" >> "$O/log.txt"; return 0
+  fi
+  rule "$@" || return 1
+  for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do   # the line pairs the partial retry reads: a row, then its "depends on:"
+    awk 'NR > 1 && /depends on:/ {print prev; print} {prev = $0}' "$CA/rule_$c/report.txt" > "$O/.dep.$$" 2>/dev/null
+    ck_put "$O/.dep.$$" "$O/rck_${key}_dep_$c.txt"; rm -f "$O/.dep.$$"
+  done
+  ck_put "$O/neg_$i.txt" "$O/rck_${key}_neg.txt"
+  ck_put "$O/rule_$i.vh" "$O/rck_${key}_rule.txt"   # last: the memo's mark
+}
 neg_keys() {  # neg_keys FILE: "key worst" per short constraint (a rule's neg file), the worst corner's margin
   awk -F'\t' 'NR > 1 && NF >= 3 { if (!($3 in m) || $2 < m[$3]) m[$3] = $2 } END { for (k in m) print k "\t" m[k] }' "$1" 2>/dev/null | sort
 }
@@ -301,7 +395,7 @@ trim_route() {  # trim_route I (AUTO_TRIM=1): the shipped route's lines shortene
   for k in $(seq 1 $(( ${AUTO_TRIM_MAX:-6} + 2 ))); do   # past AUTO_TRIM_MAX a pass only checks (a partial retry may need one)
     rm -rf "$RUNS/hw/${N}_${i}t$k" "$RUNS/r/${N}_${i}t$k"
     ln -s "$H" "$RUNS/hw/${N}_${i}t$k"; ln -s "$RUNS/r/${N}_$i" "$RUNS/r/${N}_${i}t$k"
-    if [ "${AUTO_TRIM_PLAN:-ca}" = ca ]; then CA_TRIM=1 rule "${i}t$k" "$cur"; else rule "${i}t$k" "$cur"; fi ||
+    if [ "${AUTO_TRIM_PLAN:-ca}" = ca ]; then CA_TRIM=1 rule_memo "${i}t$k" "$cur"; else rule_memo "${i}t$k" "$cur"; fi ||
       { echo "trim: it $i step $k: RULE FAILED" >> "$O/log.txt"; break; }
     CA_LAST=$RUNS/ca/${N}_${i}t$k
     keys=$(neg_keys "$O/neg_${i}t$k.txt" | cut -f1); tot=$(neg_keys "$O/neg_${i}t$k.txt" | awk -F'\t' '{s -= $2} END {print s + 0}')
@@ -517,11 +611,11 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
     # AUTO_TRIM_P0 (default 1 when AUTO_TRIM=1): the untrimmed route's own full stack first (it_I_untrimmed.txt: its P,
     # its bits verdict), so every trimmed route carries its own paired before / after.  AUTO_TRIM_ONLY has the loop's.
     if [ ! -f "$O/it_${i}_untrimmed.txt" ] && [ "${AUTO_TRIM_P0:-1}" = 1 ]; then
-      "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_untrimmed.log" 2>&1
+      l2run "$i" > "$O/final_${i}_untrimmed.log" 2>&1
       tail -1 "$O/final_${i}_untrimmed.log" > "$O/it_${i}_untrimmed.txt"
       echo "final it $i untrimmed $(cat "$O/it_${i}_untrimmed.txt")" >> "$O/log.txt"
       # where the untrimmed route's critical cycle goes (chain / wire between cells / cell logic, per instance)
-      python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
+      cycd "$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
     fi
     # AUTO_OVERBUILD (opt-in): an overbuilt finish route gives back its extra length FIRST.  Every line the switch built H
     # longer (trimmable_<switch>.txt) is trimmed to max(the rule's need on this route, its size minus H) -- the length the
@@ -552,9 +646,9 @@ PY
           echo "trim: it $i overbuild trim-back: $(grep -c . "$O/trimback_allow_$i.txt") line(s), floor = size - $AUTO_OVERBUILD" >> "$O/log.txt"
           TRIM_ALLOW=$O/trimback_allow_$i.txt TRIM_FLOOR=$O/trimback_floor_$i.txt trim_route "$i"
           TB=1
-          "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_tb.log" 2>&1
+          l2run "$i" > "$O/final_${i}_tb.log" 2>&1
           tail -1 "$O/final_${i}_tb.log" > "$O/it_${i}_tb.txt"
-          python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_tb.txt" 2>&1
+          cycd "$i" > "$O/cyc_${i}_tb.txt" 2>&1
           echo "final it $i after the trim-back $(cat "$O/it_${i}_tb.txt")" >> "$O/log.txt"
         fi
       fi
@@ -566,10 +660,10 @@ PY
       # trims expose keeps its built length: shortening it cannot lower the period and spends a race's margin.
       local r rr
       if [ ! -s "$O/cyc_${i}_untrimmed.txt" ]; then   # AUTO_TRIM_ONLY copies the loop's line: time the untrimmed route here
-        "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_untrimmed.log" 2>&1
+        l2run "$i" > "$O/final_${i}_untrimmed.log" 2>&1
         tail -1 "$O/final_${i}_untrimmed.log" > "$O/it_${i}_untrimmed.txt"
         echo "final it $i untrimmed $(cat "$O/it_${i}_untrimmed.txt")" >> "$O/log.txt"
-        python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
+        cycd "$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
       fi
       local cyc0=$O/cyc_${i}_untrimmed.txt; [ -n "$TB" ] && [ -s "$O/cyc_${i}_tb.txt" ] && cyc0=$O/cyc_${i}_tb.txt
       # AUTO_TRIM_PORTS=1 (opt-in, 2026-11-21; unset, nothing changes): a memory port on the cycle brings its own lines
@@ -596,8 +690,8 @@ PY
       TRIM_ALLOW=$O/trim_allow_$i.txt TRIM_CONTINUE=$TB trim_route "$i"
       for r in $(seq 2 $(( ${AUTO_TRIM_ROUNDS:-3} + 1 ))); do   # the last pass only times the last round
         cmp -s "$O/trim_$i.txt" "$O/snap_${i}_trim.txt" && break   # the round moved nothing: nothing to time
-        "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_${i}_r$r.log" 2>&1
-        python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_${i}_r$r.txt" 2>&1
+        l2run "$i" > "$O/final_${i}_r$r.log" 2>&1
+        cycd "$i" > "$O/cyc_${i}_r$r.txt" 2>&1
         pnow=$(tail -1 "$O/final_${i}_r$r.log" | grep -o 'P=[0-9]*' | cut -d= -f2)
         echo "trim: it $i round $r: P=${pnow:-?} (before the round: ${pprev:-?})" >> "$O/log.txt"
         if [ -n "$pnow" ] && [ -n "$pprev" ] && [ "$pnow" -ge "$pprev" ]; then
@@ -616,8 +710,8 @@ PY
       TRIM_CONTINUE=$TB trim_route "$i"
     fi
   fi
-  "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$O/final_$i.log" 2>&1
-  [ "${AUTO_TRIM:-0}" = 1 ] && python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$O/cyc_$i.txt" 2>&1
+  l2run "$i" > "$O/final_$i.log" 2>&1
+  [ "${AUTO_TRIM:-0}" = 1 ] && cycd "$i" > "$O/cyc_$i.txt" 2>&1
   tail -1 "$O/final_$i.log" > "$O/it_$i.txt"
   echo "final it $i $(cat "$O/it_$i.txt")" >> "$O/log.txt"
 }

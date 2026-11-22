@@ -141,11 +141,34 @@ if [ "$eq" != EQUIVALENT ] || [ "$ff" != ffmux-clean ]; then fin "status=NOT-A-B
 # GATE_RUNTS=1 by default (report only: the verdict line gains a "runts" field, a pass stays a pass; subagent steerrunt,
 # research/data/suite/steerrunt/README.md): every draw counts pulses under 150 / 500 / 1000 ps on the kernel's handshake
 # outputs, at no measurable cost; GATE_RUNTS=fail makes such a pulse fail the draw, GATE_RUNTS= (empty) turns it off.
-draw() { local k=$1 g
+# AUTO_CKPT=1 (opt-in, 2026-11-22; research/tools/auto/auto_size.sh's AUTO_CKPT; unset, draw() runs what it ran): a draw
+# that ran (PASS, or FAIL with the monitor's cycles) is kept by content in the loop's own directory ($RUNS/auto/N/
+# dck_KEY_{draw,bench}.txt, which a farm task's save loop copies to $SHARED), so a resumed task judges the same route on
+# the same draw points without running them again. KEY: md5 of the route's FASM, routed JSON and SDF, the vectors, the
+# expected values (and arrays), the draw point, the runt setting, every GATE_ / GLS_ variable and the gate's committed
+# git ids. A draw with no cycles or no monitor output (an out-of-memory kill: research/JOURNAL.md 2026-11-21 12:17) is
+# never kept.
+dck_key() { { cat "$HW/$D.fasm" "$HW/${D}_routed.json" "$RD/xray.sdf" "$R/$V" "$O/exp.txt" "${GATE_MEMEXP:-/dev/null}" 2>/dev/null
+  echo "draw:$1 runts=${GATE_RUNTS-1}"; env | grep -E '^(GATE_|GLS_)' | grep -v '^GATE_MEMEXP=' | sort   # its content is above; its path is not
+  for p in research/tools/eventgraph cells/gls research/tools/band_inst_list.py research/tools/compile_slot.sh \
+           research/tools/suite/suite_one.sh; do git -C "$R" rev-parse "HEAD:$p" 2>/dev/null || echo "?"; done; } \
+  | md5sum | cut -c1-16; }
+draw() { local k=$1 g key="" A=$RUNS/auto/$N
+  if [ "${AUTO_CKPT:-0}" = 1 ]; then
+    key=$(dck_key "$k")
+    if [ -s "$A/dck_${key}_draw.txt" ]; then
+      cp "$A/dck_${key}_draw.txt" "$O/draw_$k.txt"; cp "$A/dck_${key}_bench.txt" "$O/benchres_$k.txt" 2>/dev/null || : > "$O/benchres_$k.txt"
+      echo "ckpt: draw $k from memo $key" >> "$A/log.txt"; return 0
+    fi
+  fi
   g=$(GATE_RUNTS=${GATE_RUNTS-1} "$R/research/tools/eventgraph/bench_gate.sh" "$HW" "$D" "$RUNS/g/$RT/d$k" "$R/$V" "$O/exp.txt" "draw:$k" 2>&1 | tail -1)
   echo "draw $k $(cut -d' ' -f3-8 "$RUNS/g/$RT/d$k/draw_$k.txt" 2>/dev/null) :: ${g:-none}" > "$O/draw_$k.txt"
   grep '^BENCHRES' "$RUNS/g/$RT/d$k/draw_$k/run.log" 2>/dev/null | sed 's/sig=[0-9a-f]* //' > "$O/benchres_$k.txt"
-  rm -rf "$RUNS/g/$RT/d$k/draw_$k" 2>/dev/null; }
+  rm -rf "$RUNS/g/$RT/d$k/draw_$k" 2>/dev/null
+  if [ -n "$key" ] && grep -qE ' cycles [1-9]' "$O/draw_$k.txt" && ! grep -q 'NO MONITOR OUTPUT' "$O/draw_$k.txt"; then
+    cp "$O/benchres_$k.txt" "$A/.dck.$k" && mv -f "$A/.dck.$k" "$A/dck_${key}_bench.txt"
+    cp "$O/draw_$k.txt" "$A/.dck.$k" && mv -f "$A/.dck.$k" "$A/dck_${key}_draw.txt"
+  fi; }
 mkdir -p "$RUNS/g/$RT"; [ -f "$RD/xray.sdf" ] && for j in $(seq 1 "$ND"); do k=$((10000 + 100 * S + j)); mkdir -p "$RUNS/g/$RT/d$k"; cp "$RD/xray.sdf" "$RUNS/g/$RT/d$k/xray.sdf"; done
 for j in $(seq 1 "$ND"); do
   draw $((10000 + 100 * S + j)) &

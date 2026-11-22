@@ -9962,3 +9962,30 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   UNFINISHED row (v10: 8 -- the late phase cleaned them), 8 NO RESULT, every one the 240-min limit (digitdiv, digitsum,
   fir, gcd, isprime, nest3, sobel, video_filter; several after their loop had shipped). No wrong answer. P ratio v11 /
   v10 1.218 over the 14 both-clean pairs on different routes (the late phase pre-empting v10's search; v12 has the fix).
+### progress 06:05 (AUTO_CKPT works on the resume path the farm uses: a resumed final() and its draws replay from content-keyed memos -- 3 min instead of ~70, the same result line, trims, bits and draws; committed opt-in)
+- **Tests** (v13's environment, the v13 preview's finished if_loop_2 s1 loop resumed exactly as the request body resumes a
+  finished loop: *.txt / *.vh copied, it_*_untrimmed -> it_*, trim / snap files removed, AUTO_TRIM_ONLY; fresh RUNS and
+  no event-graph dirs, as on a new node; 2 draws):
+  | test | knob | state from | what ran | result line (all identical) | wall |
+  |---|---|---|---|---|---|
+  | A | unset | preview | everything | PASS 2/2, P 25252 (untrimmed 28916), trims 3, sdf 8bbdeafe, trimmed fasm 5f75eef5 (= the preview's), lat med 2607 | ~86 min |
+  | B | on, cold | preview | everything; 2 rule + 1 stack + 2 draw memos written; the final stack replayed the round-2 stack's memo (same bits) | same | ~67 min |
+  | F | on | B | rebuild; rules and stacks from memos; draws for real (the key fix below) | same | ~33 min |
+  | G | on | F | rebuild; 2 rule runs, 2 stacks, 2 draws from memos | same, draws.txt identical | **3 min** |
+  The route rebuilt in every case is the preview's (sdf 8bbdeafe; routed JSON 2682f941 byte-identical across RUNS
+  directories and route names: yosys records relative source paths), so the keys are portable between nodes.
+- **A key bug found and fixed in the test (C, stopped):** the draw key hashed the environment's GATE_ variables, and
+  GATE_MEMEXP is a path under RUNS -- different on every node -- so a resumed task's draws missed their memos. Its
+  content was already in the key; the path is now left out (F / G above are after the fix).
+- **The search phase after a memo-restored final** (test D / E, countloop s1, v13 environment + the knob): D2 killed at
+  05:12 right after its first search route (it 10); E = D2's state resumed on a fresh RUNS: the loop's whole final(9)
+  from memos (untrimmed stack, three trim-step rule runs, two stacks), P 23987 as before, then the search read the
+  restored event graph and chose the same structure (BDC_FORK_OUT_LINK=n13__0,n15__0) and rebuilt the same it 10 route
+  (sdf 605d7b3b). E and the uninterrupted reference D are both in final(11); their result lines get compared when done.
+- **Committed (this commit):** research/tools/auto/auto_size.sh AUTO_CKPT (l2run / cycd / rule_memo, the memo
+  functions, header) and research/tools/suite/suite_one.sh's draw memo; unset, every call is the command it replaced
+  (test A). Memo keys include the committed git ids of the tools they depend on (auto_size.sh's included), so a commit to
+  one of those between two parts of a farm run makes the later part's memos miss -- slower, never different.
+- **Next:** AUTO_CKPT=1 into the waiting v12 (2a-4b) and v13 parts (results unchanged by construction), and v11 resume
+  parts with it for the tasks no pending resume covers (digitdiv / digitsum s1-s4, fir s1-s2, gcd / isprime / nest3 s1,
+  sobel / video_filter s1-s3).
