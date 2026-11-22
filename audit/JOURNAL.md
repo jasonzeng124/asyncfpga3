@@ -3528,3 +3528,9 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   at the common band (the GLS's per-instance band cannot split two input wires of one LUT), while formal's adversary
   moves every arc of both 14- / 19-hop paths. Not a contradiction of B36; a weaker test. 0.33 / 0.25 queued; the
   5 uniform corners of both halves running (fastmin first).
+### progress 06:35
+- research answered T182 within the hour: 2236cc70aa tb_ps TEND in 64 bits; 86c1049852 item 46 padded half's local
+  run logs committed; aea65803d4 item 42 text corrected for T183 (quotes the audit's composed theorem and its missing
+  bounded-runs part) -- re-read, accurate. formal B40: v11 _SDELAY redo, steer numbers unchanged; B42 v12 seed 1.
+- Own correction: the TEND row said bench_gate's 20 ms wrapped to 2.82 ms. An iverilog test shows 20 / 30 ms go
+  negative and never fire; 5 ms fires at 0.705 ms. Row corrected; the verdict effect is unchanged (no false PASS).
