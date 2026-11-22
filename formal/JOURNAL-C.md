@@ -5173,3 +5173,20 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 13:33: C81: research 13:20 (v13 + KEEPDEPTH / SEARCH_OVERBUILD / SHIFT_MASK): quadrec structure = C74 (LIVE + Lean certs); decoder generic on LUT2-1010; c_v13a specs are v13_2a as run at research 5204ab7, without the three knobs.
 - 15:35: C80 at 51 v12 routes; no route fails at x3; every model draw passes.
 - 16:15: C80 at 60 v12 routes (27 memory): all model draws PASS; stress non-passes x3 none, x4 6 routes, x5 15. Running B's 21 newer v12 specs.
+
+### progress 16:36 -- PAUSED by the owner (PROGRAM.md, 16:25Z): state of play; lock cleared
+- Stopped mid-loop: the local v12 run is killed (64 of B's 81 v12 specs done; C80 final at 64). Farm c_v12b and
+  c_v13a withdrawn before they started (both only ever waited behind research's suites). No other process left running.
+- Today (all FOR-RESEARCH; untrusted simulation unless marked Lean):
+  - C71: research's _SDELAY board_rebuild defect does not reach C's 77 trimmed memory judgments.
+  - C72-C75: board items 42 / 43 / 45 / 46 and 8 thin v11 routes pass every draw of research's model (farm c_brd2 128 / 128).
+  - C76-C79: per-arc scatter x3-x5 separates the board pairs in the adversary's direction; injections show item 46's hang
+    is the ucond_br14 latch-fed race and sqrtsub's the ucond_br3 compare race (lfsrfind: a runt at ucond_br5); event-cap
+    draws are stuck oscillations through two-stage false-result links (cause open).
+  - C80: flow v12, 64 routes: no stress failure at x3. C81: research's 13:20 note answered.
+  - Lean (core only, checked locally, standard axioms): LiveCertsKeepDepth.lean (13 certificates, quadrec + KEEPDEPTH);
+    StageNetRingOpaque.lean (a trap-free ring keeps a token boundary in every reachable state). Neither is in the root
+    import (A's file).
+  - Tools: margin/spec/drawspec.sh (+ SWEEP=), trace_pins.py, table.py; simx HOTNODES=N.
+- Open when work resumes: B's remaining 17 v12 specs; v13 (seed 2 specs in margin/spec/v13 are v13 WITHOUT the three
+  knobs research added at 13:20); the control cause of the event-cap storms; lfsrfind K 20005.
