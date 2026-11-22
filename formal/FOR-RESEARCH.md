@@ -7,6 +7,43 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C80. Flow v12 (your 10 % rule-E guard), the first 14 routes through formal's draws and the scatter stress test: every model draw passes, and none fails below 4x your per-arc sigma. In C79 two v10 / v11 routes fail at 3x (INTERIM; shard C, 2026-11-22 12:20 UTC; untrusted simulation)
+- **Method:** B's v12 specs (`formal/tools-B/auto/suite/v12`, mk_specs_all.py --stagefix), rebuilt locally by your
+  board_rebuild.sh with the sdf checked.
+  - These specs carry no judged fasm, so the trimmed fasm md5 is reported, not checked. Every one so far equals B42's
+    where B lists it (e.g. brhash s1 bd0a1a01).
+  - 16 draws of your model and 16 slow-carry draws per route, then 32 draws at each of 3x / 4x / 5x per-arc sigma
+    (`drawspec.sh` with `SWEEP=`). Routes are ordered by non-passes under stress. "u" counts the non-passes that are
+    hangs or undecided.
+
+  | route | sdf / trimmed fasm | model + slow-carry draws PASS | x3 | x4 | x5 (non-passes of 32) |
+  |---|---|---|---|---|---|
+  | ipow_s1 | 03cf1f8d / 9846b64e | 16+16 / 32 | 0 | 1 | 3 (1u) |
+  | brhash_s1 | cd51fbf6 / bd0a1a01 | 16+16 / 32 | 0 | 1 (1u) | 2 |
+  | if_convert_s1 (memory) | d8bc2924 / 455272f4 | 16+16 / 32 | 0 | 0 | 2 |
+  | cmpchain_s1 | 7c455271 / 8538189c | 16+16 / 32 | 0 | 0 | 1 |
+  | factorial_s1 | 10c35c81 / 9968e547 | 16+16 / 32 | 0 | 0 | 1 |
+  | twoloops_s1 | 595762d9 / 88e52d85 | 16+16 / 32 | 0 | 0 | 1 (1u) |
+  | binary_search_s1 (memory) | 95689086 / 3ae89be7 | 16+16 / 32 | 0 | 0 | 0 |
+  | collatz64_s1 | 68789cdc / 6460090e | 16+16 / 32 | 0 | 0 | 0 |
+  | collatz_s1 | aadb2253 / dc732320 | 16+16 / 32 | 0 | 0 | 0 |
+  | collatz_s2 | 75a7bdf5 / 596f74d1 | 16+16 / 32 | 0 | 0 | 0 |
+  | gather_s2 (memory) | e85c8001 / e954161e | 16+16 / 32 | 0 | 0 | 0 |
+  | lfsrfind_s1 | d5c91be0 / 802cdb87 | 16+16 / 32 | 0 | 0 | 0 |
+  | memsum_s1 (memory) | 3ff5075e / e517a3f2 | 16+16 / 32 | 0 | 0 | 0 |
+  | memsum_s2 (memory) | f4b0278b / 7b13934d | 16+16 / 32 | 0 | 0 | 0 |
+
+- **Reading:**
+  - At your model's own scatter, all 14 pass every draw.
+  - Under stress, no v12 route fails at 3x. Compare C76 / C79: item 46 unpadded fails 4 / 80 at 3x, and v11 sqrtsub
+    s4 fails 2 / 32 at 3x.
+  - The weakest v12 routes by this measure, ipow s1 and brhash s1, are also B42's two thinnest (kappa_lo 0.116 and
+    0.044). brhash s1 is the one whose compare steer still loses B's adversary at kappa 0.10.
+  - collatz64 s1 and lfsrfind s1 in v12 are item 45's guarded routes, the same sdf. Both again show 0 non-passes.
+  - This is a stress ranking, not a board prediction (C76).
+- **Still to come:** the other v12 routes, locally in B's thinness order and on the farm (c_v12b, all 37, 32 + 32
+  draws, queued since 10:25), and v13 seed 2 (c_v13a: 21 routes, queued).
+
 ## C79. Scatter stress test on board items 42 / 43 and on C75's thin v11 routes: 42 and 43 never fail up to 5x your per-arc sigma; sqrtsub s4 (B32's +55 ps latch-fed race) is the weakest route tested, failing from 3x (shard C, 2026-11-22 10:43 UTC; untrusted simulation, a stress test, not a board prediction)
 - **Method:** C76's, with 32 draws (K 30001-30032) per point on the bits decoded in C72 / C75. The cells count draws
   that did not pass: F = wrong answer or hang, U = event cap with no verdict.
