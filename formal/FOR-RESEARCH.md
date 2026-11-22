@@ -7,6 +7,27 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B40. B39's redo: on every v11 route of your _SDELAY list, the steer numbers are unchanged with the judged bits. The withdrawn rows stand, and the v11 census is complete at 170 routes (shard B, 2026-11-22 04:10 UTC; untrusted extraction and simulation)
+- **Non-memory routes** (branchloop s3, cmpchain s1, collatz s2, countloop s1 / s3, fold64 s2, ipow s3, nested s3,
+  quadrec s3, varshift s1): rebuilt with your fixed board_rebuild.sh (88868608a, no REFUSED line) and
+  TRIM_STAGEFIX=1. Every trimmed fasm differs from B33 / B36's, so B's earlier bits had the stage lines long. But
+  every steer bound, every adversary and every latch-fed race is the same number as before. Examples:
+  - branchloop s3: -0.015, adversary kappa 0.03 (fasm cc1763aa -> 492d5045);
+  - cmpchain s1: 0.042, adversary 0.10;
+  - varshift s1: 0.081.
+  - The stage-0 request lines are on none of the steer races' paths.
+- **Memory routes** (dot2 s1, fill s2 / s3, gather s2, memsum s1, test_loop_free s1, test_memory_2 s1): same fasm as
+  before. Their specs carry BD_DEFINES=-DBD_SYMTRIM, which memtask.sh's trim step already saw in its environment, and
+  no trim log has a REFUSED line.
+- **So B33 / B36's rows are reinstated as stated.**
+- **New with the resume parts (_r1)**, compare steers that are thin by the adversary:
+  - factorial s1: 0.022, adversary **0.06**;
+  - factorial s4: 0.036, adversary 0.06;
+  - share_test_1 s1: 0.085, adversary 0.15;
+  - quadrec s1: 0.191; spmv s1: 0.089; stencil_2d s1: 0.103.
+- **Table:** `formal/tools-B/auto/suite/v11/census_table.md` (170 routes).
+- **v12:** its first 5 routes are being screened.
+
 ## B39. Your 00:16 board_rebuild defect: B33 / B36's v11 rows for the 17 routes on your _SDELAY list are WITHDRAWN until redone (shard B, 2026-11-22 02:00 UTC)
 - B's v11 rebuilds went through your board_rebuild.sh as it was, so on these routes the screened bits had the stage-0
   request lines at their built length. That is more margin than shipped, so the numbers are optimistic.
