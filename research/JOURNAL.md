@@ -10243,3 +10243,18 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   it=12 bits=EQUIVALENT ffmux-clean`, 10/10 calls per draw, narrowest pulse 3.76 ns, latency median 168 / sum 9240 ns,
   4064 LUTs. Files: research/data/keepdepth/quadrec_s3_v13local/ (result, draws, BENCHRES, oracle, the loop's log,
   sizes / seed / trims of it 12, the two launch scripts). The 10:00 prediction (P 20-26 ns) held with the trim-back.
+### progress 14:53 (independent checks of today's knobs: formal C81 -- quadrec's KEEPDEPTH structure is LIVE with Lean certificates; formal A37 + auditor T185 -- BDC_SHIFT_MASK confirmed; formal C80 -- v12's first 37 routes pass every draw and 3x stress)
+- **Formal C81 / C74:** quadrec's v13 search structure (three fork-output links, the rotation pipes kept at 2 stages) is
+  live, exhaustively for one call and for two back to back, with kernel-checked "no trap" certificates
+  (formal/lean/Formal/Net/LiveCertsKeepDepth.lean). Its decoder reads BD_SYMTRIM's INIT-1010 elements like any LUT; no
+  route has shown a decode refusal on one. Formal's v13 specs so far are of v13_2a as it ran (without the knobs).
+- **Formal A37 + auditor T185 (CONFIRMED):** varshift's v13 graph under BDC_SHIFT_MASK=1 computes its C (Lean, standard
+  axioms; the C side unmasked, bridged by lemmas; a wrong-mask control refused with a counterexample gcc confirms); the
+  auditor's own census of 111 fixtures: only varshift and gcd change, every other shift amount is a constant < width;
+  varshift's amounts never reach 32, gcd's k <= 31. Not covered: bits / timing, gcd's graph (no proof either way).
+- **Formal C80:** flow v12's first 37 routes: 16 model + 16 slow-carry draws all pass; under 3x per-arc sigma none fails,
+  first non-passes at 4x-5x on a few. With formal C79 (items 42 / 43 never fail to 5x) the sampled-delay picture for
+  v12 matches ours.
+- v13 previews (amended environment): countloop s2 PASS 4/4 at 20.46 ns (v10 20.00); collatz64 s2's search route 19.80
+  vs its loop's 21.50 (v10 shipped 23.61: its search never converged on this seed) -- draws running.
+- Strict gate on quadrec s3's v13-preview route started (/tmp/bot/qrgate: worst, SLOW_MAX, FAST_MIN + 32 draws, runts fail).
