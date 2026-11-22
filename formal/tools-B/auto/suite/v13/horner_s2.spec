@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v13/horner_s2_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v13/horner_s2_trims.txt
 MLIR=research/data/autorw/horner.mlir
-ENV=BDC_FORK_OUT_LINK=n13__0,n15__0,n27__3 TRIM_STAGEFIX=1
+ENV=BDC_FORK_OUT_LINK=n13__0,n15__0,n27__3 TRIM_STAGEFIX=1 BDC_SHIFT_MASK=1 BDC_MEM_FASTFALL=2
 SDF=9c71e56d
 FASM=00000000

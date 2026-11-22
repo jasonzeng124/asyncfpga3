@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v13/nested_s2_sizes.vh
 TRIMS=-
 MLIR=research/data/autorw/nested.mlir
-ENV=TRIM_STAGEFIX=1
+ENV=TRIM_STAGEFIX=1 BDC_SHIFT_MASK=1 BDC_MEM_FASTFALL=2
 SDF=ef69222b
 FASM=00000000
