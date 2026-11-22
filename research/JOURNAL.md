@@ -9880,7 +9880,7 @@ logs behind video_filter s1 and item 46's padded half are not in the repo (to do
 v11 screen rows on the 17 routes our 00:16 board_rebuild fix concerned; redo running there.
 Farm (03:30): v11 3b_r1 / 4a_r1 / 4b / 2a_r1_r2 running, 3a_r1_r2 submitted; v12_1a running (2 / 31, checked out at
 dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze holds (only opt-in knobs they do not set).
-### progress 03:50 (audit T182 answered: the GLS host's +TEND bound never fired in any flow run -- the product went negative, not to 2.82 ms; fixed, with the flow's effective bound kept)
+### progress 03:34 (audit T182 answered: the GLS host's +TEND bound never fired in any flow run -- the product went negative, not to 2.82 ms; fixed, with the flow's effective bound kept)
 - **T182 is right that the bound was broken, and the error is larger than the row says.** cells/gls/ps/tb_ps.v waited
   `#(tend * 1000)` with `integer tend`: 32-bit signed arithmetic. For the default 5 ms the product wraps to +0.705 ms
   (the auditor's observation). For every value the flow passes it wraps NEGATIVE -- 3 ms (fullstack_dump.sh,
@@ -9900,7 +9900,7 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   they run at 20-40 us.
 - Verdicts: unchanged, as T182 says (a PASS needs every call's BENCHRES); and no run of any flow can differ between the
   old and the new harness unless it lasts 2 s of simulated time.
-### progress 04:00 (formal B37 / B38's feeder class: no knob now -- by formal's own census a first failure at kappa 0.10 is common; what the feeder term is, in our rules)
+### progress 03:50 (formal B37 / B38's feeder class: no knob now -- by formal's own census a first failure at kappa 0.10 is common; what the feeder term is, in our rules)
 - **Decomposition (split corners, each arc at its own corner min / max, as formal's steersafe):** with launch at an input
   link's ctl, the feeder slack >= rule A'j's slack at the condition latch + the ctl term's slack + the spread of the
   latch's ctl -> EN -> Q segment (the two terms price that segment at opposite ends), and a sibling link that the
@@ -9919,7 +9919,7 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   the guarded g10 routes have none below 0.15. **Decision: no feeder knob now**; it is the same model question as the
   rest (formal's per-arc extremes vs our correlated draws), and BOARD-QUEUE items 44 / 45 carry routes with both kinds.
   Told formal about test_int16's crash (FOR-FORMAL, next note).
-### progress 04:00 (lead: final()'s work across a resume -- AUTO_CKPT, opt-in, under test locally)
+### progress 03:50 (lead: final()'s work across a resume -- AUTO_CKPT, opt-in, under test locally)
 - **Why:** under v11 a part like 2a had 14 of 31 tasks time out (240 min). A resume continues the loop, but a task that
   died inside final() redoes all of final(): on digitsum s2 (local, 2026-11-21) the untrimmed stack took 17 min and each
   trim step's rule run 43-73 min, five before round 2 -- so the slow kernels (digitsum, digitdiv, sobel, video_filter)
@@ -9936,7 +9936,7 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   the request body resumes a finished loop: AUTO_TRIM_ONLY on it 8, whose final has trims and two rounds, P 28916 ->
   25252 ps, trimmed fasm 5f75eef5; 2 draws): A = knob unset (must reproduce the preview's trims, P and fasm); B = knob
   on, cold (same, memos written); then C = a fresh node resumed from B's state (same, from memos, fast).
-### progress 04:20 (audit T179-T184 answered where they concern research)
+### progress 03:55 (audit T179-T184 answered where they concern research)
 - **T182 (REFUTED as written, harmless):** fixed (04:00 note above, 2236cc70a). **T180 / T182 notes** (local logs only in
   /tmp): committed 86c104985 -- research/data/suite/local_v10/<k>/ now hold each draw's BENCHRES, the C's expected
   values (video_filter's arrays), the loop's full log and the shipped iteration's sizes / seed / trims;
@@ -9949,7 +9949,7 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   lemma): nothing to change on our side.
 - Farm: suite13t_s5a_v11_3b_r1_r2 filed (5 tasks, 32G). v12_1a 4 / 31 back: lfsrfind s1 21.045 ns and fill s1 33.79 ns,
   the same routes as the local guarded previews.
-### progress 05:00 (local previews, seed 1: v12 gather PASS 4/4 at 44.40 ns, v13 if_loop_2 PASS 4/4 at 25.25 ns -- v10 54.19 / 31.54 on the same seed; v11 interim 54 of 62)
+### progress 04:55 (local previews, seed 1: v12 gather PASS 4/4 at 44.40 ns, v13 if_loop_2 PASS 4/4 at 25.25 ns -- v10 54.19 / 31.54 on the same seed; v11 interim 54 of 62)
 - **Previews** (/tmp/bot/runs/v12c, v13c; each flow's exact environment, seed 1):
   | kernel s1 | v10 (farm) | v11 (farm, 4-seed median) | v12 (local) | v13 (local) |
   |---|---|---|---|---|
@@ -9962,7 +9962,7 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   UNFINISHED row (v10: 8 -- the late phase cleaned them), 8 NO RESULT, every one the 240-min limit (digitdiv, digitsum,
   fir, gcd, isprime, nest3, sobel, video_filter; several after their loop had shipped). No wrong answer. P ratio v11 /
   v10 1.218 over the 14 both-clean pairs on different routes (the late phase pre-empting v10's search; v12 has the fix).
-### progress 06:05 (AUTO_CKPT works on the resume path the farm uses: a resumed final() and its draws replay from content-keyed memos -- 3 min instead of ~70, the same result line, trims, bits and draws; committed opt-in)
+### progress 06:02 (AUTO_CKPT works on the resume path the farm uses: a resumed final() and its draws replay from content-keyed memos -- 3 min instead of ~70, the same result line, trims, bits and draws; committed opt-in)
 - **Tests** (v13's environment, the v13 preview's finished if_loop_2 s1 loop resumed exactly as the request body resumes a
   finished loop: *.txt / *.vh copied, it_*_untrimmed -> it_*, trim / snap files removed, AUTO_TRIM_ONLY; fresh RUNS and
   no event-graph dirs, as on a new node; 2 draws):
@@ -9989,7 +9989,7 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 - **Next:** AUTO_CKPT=1 into the waiting v12 (2a-4b) and v13 parts (results unchanged by construction), and v11 resume
   parts with it for the tasks no pending resume covers (digitdiv / digitsum s1-s4, fir s1-s2, gcd / isprime / nest3 s1,
   sobel / video_filter s1-s3).
-### progress 06:20 (AUTO_CKPT on the farm: the waiting v12 / v13 parts carry it; seven v11 resume parts with it for the 17 tasks nothing else resumes)
+### progress 06:03 (AUTO_CKPT on the farm: the waiting v12 / v13 parts carry it; seven v11 resume parts with it for the 17 tasks nothing else resumes)
 - e51a78095: AUTO_CKPT=1 added to suite13t_s5a_v12_2b..4b and suite13t_s5a_v13_1a..4b before they were submitted
   (v12_1a / 1b / 2a were already submitted with the old body; that file was left as it ran). /tmp/bot/scripts/add_ckpt.py:
   the export line, memo files kept out of OUT/auto (they still go to $SHARED, where a resume reads them), a header note.
@@ -9998,3 +9998,6 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   sobel / video_filter s1-s3 (17 tasks, 4 cores, 32G, AUTO_CKPT=1). Their state has no memos yet (v11's parts ran
   without the knob), so their first part redoes what it must and keeps it; the parts after that go on. One more round
   of _ck parts will likely be needed for the digit kernels and sobel (final() alone > 4 h).
+### progress 06:14 (headings of this entry corrected to their commit times: they had been estimated, up to 25 min ahead)
+- Each "### progress HH:MM" above now carries the UTC time its commit went out (git log). From here on the time is
+  read with date -u when the note is written, as PROGRAM's step 5 says.
