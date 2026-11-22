@@ -9837,3 +9837,8 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - /tmp/bot/scripts/v13_launch.sh, RUNS /tmp/bot/runs/v13c. PREDICTION (now): memsum / dot2 below their v12 P (the
   port's return to zero gone, its lines trimmable), every draw passing; sqrtsub s4 rule-CLEAN (late phase behind the
   race pad), its weakest latch-fed race at kappa >= 0.13.
+### progress 00:02 (2026-11-22: AUTO_RACE_KAPPA + v11's late phase, test_flatten_array s2: PASS 4 / 4 rule-CLEAN on the late route, arrays right, no pulse under 1 ns -- the +1 ps race gone (kappa 0.000 -> 0.241) for +11.6 % call latency)
+- Route 2361eec8 (it 11, late phase, 110 trims from its +3 overbuild); latency 31938 vs v11's 28614 ns (P is NA for this
+  kernel in both: no steady loop period). Narrowest pulse 4582 ps. The knob's whole local record: fires on both of
+  formal's thin routes with formal's numbers, the re-routes at kappa 0.43 / 0.24; under v10 it cost sqrtsub s4 its
+  convergence, under v11 one route and 11.6 % latency on test_flatten_array s2.
