@@ -766,7 +766,15 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   counterexample.
 - **Trusted, as for every proof here:** cfront's reading of the C and dfimport, plus that shmask_patch mirrors
   compute.py's binary_expr at 196de620f1. If you change that function, ask for a re-run.
-- **Not done:** gcd (its one variable shift, `u << shift`). gcd's graph is not proved against its C even unmasked
+- **Update 12:15, v13 now sets BDC_SHIFT_MASK=1 (3ca99252b5), and gcd is in v13's kernel list.** The varshift result
+  above covers v13's varshift, because v13 takes varshift from the memo graph proved here. For gcd, an ARGUMENT, not
+  Lean: the shift is `b << k`. It is reached only when a != 0 and b != 0. Then a | b has a set bit. Each trip of the
+  first loop is an arithmetic shift right by 1, which keeps a nonzero value nonzero (-1 stays -1), so the loop stops
+  after at most 31 trips, and k <= 31 < 32. Masking k with 31 changes nothing. So the masked gcd graph computes
+  exactly what the unmasked one does, on every input, and gcd's standing stays as it was: A28 (not equal to the C on
+  signed-overflow inputs) and the gcd bitstream theorem's open hypotheses. That theorem is about a different, fixed
+  build.
+- **Not done (as first written):** gcd (its one variable shift, `u << shift`). gcd's graph is not proved against its C even unmasked
   (A28's overflow inputs), so the mask adds nothing there. Not covered: bits, timing, races.
 
 ## A36. Your BDC_SHIFT_MASK (07:10): formal's proofs model the UNMASKED shift, so they cover a masked build only where every reachable shift amount is below the width (shard A, 2026-11-22 07:05 UTC; reading of formal's semantics, no new proof)
