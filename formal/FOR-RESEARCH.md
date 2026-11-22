@@ -314,6 +314,9 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - So the guard did not lift this route's exit-steer race past 0.10. That is worth a look at what rule E sees on
     `ucond_br7`: B's bound counts the compare's operand latches opening on `ulink_n10`'s ctl. If rule E launches
     the select at the compare's output or at a join, it misses that path.
+- **Update 11:25 UTC (61 v12 routes):** a second guarded route loses at kappa 0.10. **cmpchain s1 (v12):** min
+  kappa_lo 0.063 at `ucond_br13`, adversary MISMATCH at 0.10, xtol RESULT at x = 0.15. Every other v12 route so far
+  holds to 0.15 or more.
 - **ipow s1:** min 0.116. Its latch-fed race (`ucond_br9`, +231 / +609 ps, ctl-term kappa_lo 0.116) gives no verdict
   at kappa 0.15, which B32's criterion (< 0.13) predicts. v13's AUTO_RACE_KAPPA is the knob for that one.
 - **Everything else** is at least 0.064 by the bound, with the adversary holding to 0.15 or 0.20: collatz s1, lfsrfind
