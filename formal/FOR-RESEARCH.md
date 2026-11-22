@@ -47,6 +47,11 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
     `ulink_n_falseResult_9`, `umux0.udat`, `ulink_n10__1..4`, then the adder `uaddi0` (CARRY4 XORs) and `uselect0`.
   - So every latch of the ring was transparent together, and the data closed a combinational loop through the adder.
     Some control failure opened them (C78's 1 ps pulses on those latches). It is not traced to which control race.
+  - **Stuck, not slow:** with the event cap raised to 10^9 (10x), K 30010 reaches 8.49 us with no answer. A passing
+    draw at the same scatter (K 30011) gives its first answer at 3.18 us on 2 x 10^6 events.
+  - **The cause is open:** the ring's latch-enable controllers (`ulink_n10__1..4`, `ulink_n28`,
+    `ulink_n_falseResult_9`, `umux0`) hand over in an orderly way up to 0.445 us, about one handshake per ~14 ns, with no
+    storage pulse under 200 ps. So the trigger is not a runt on those controls. It was not found.
   - The other undecided draws (sqrtsub s4, brhash s2, branchloop s3) are probably the same kind. They were not
     checked.
 
