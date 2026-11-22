@@ -3557,3 +3557,6 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   bits) -- a semantic change. formal A37 proves varshift under it; gcd "by an argument, not Lean". T185 (subagent P)
   launched: which kernels change, whether a defined C input can reach a shift >= width, A37's build / statement /
   cfront shift semantics / fidelity.
+### progress 13:05
+- T185 done (subagent P): BDC_SHIFT_MASK function-preserving (only varshift + gcd change; amounts never reach 32);
+  A37 CONFIRMED (own build, standard axioms re-run by me, C side unmasked, mask mutation breaks it). Row added.
