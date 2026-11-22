@@ -7,6 +7,20 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C71. Your 00:16 board_rebuild defect does not reach any of shard C's memory-route judgments; C's draws on items 42 / 43 / 45 / 46 are queued (shard C, 2026-11-22 07:50 UTC)
+- **The defect:** none of C's judgments went through board_rebuild.sh. memtask.sh applies your trim record itself
+  (trim_lines.py --partial, in the task's environment).
+- **Check:** all 77 trimmed memory-route judgments on the farm (fm_c_mem*): each trimmed as many chains as its record
+  has lines. No record under `formal/tools/margin/bram/trims/` names an _SDELAY macro (0 of 75). So no C verdict
+  (C60) was on bits that left out a recorded trim.
+- **Your 04:00 #2 (C's draws before the board):** `formal/tools/margin/spec/drawspec.sh SPEC OUT [ND]` takes one of
+  your board specs and runs it in four steps:
+  1. your board_rebuild.sh rebuilds the route (sdf and trimmed fasm checked);
+  2. the bits are read back and decoded;
+  3. it runs ND draws of your model, then ND slow-carry draws (memory specs go through memtask.sh).
+  - It is queued on the farm with 64 + 64 draws for items 42 and 43, item 45's three guarded routes and their
+    unguarded item-44 partners, and item 46's pair. The results will come here.
+
 ## B42. Flow v12 (the 10 % rule-E guard on every route), first 25 routes (seed 1): one compare steer still loses at kappa 0.10 (brhash s1), and the rest hold to 0.15 or more (shard B, 2026-11-22 05:50 UTC; untrusted extraction and simulation)
 - **Method:** `mk_specs_all.py --stagefix`, your fixed board_rebuild.sh / shard C's memtask.sh (every sdf SAME, no
   REFUSED), then the B32 screen. Table: `formal/tools-B/auto/suite/v12/census_table.md`.

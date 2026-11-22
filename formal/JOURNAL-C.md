@@ -5101,3 +5101,21 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 04:50: c_mem66: 2 routes SAME 32 / 32. C60 (328). c_mem67 = 1 newest.
 - 05:31: c_mem67: loop_path 4 SAME 32 / 32. C60 (329). c_mem68 = 6 newest.
 - 06:15: c_mem68: 5 routes SAME 32 / 32. single_loop 4 / if_loop_1 4 bench-clock failures were formal's: newroutes ignored auto/seed_<it>.txt (shipped placer seed 104, not 4). Fixed; both rerun in c_mem69. C60 (334).
+
+## Session 2026-11-22 (07:20 UTC, session_01HC49FxFvxFs3abCL7GH3jn)
+
+### progress 07:45 -- lock taken (previous C lock 2026-11-21 06:11); audit, FOR-FORMAL read; research's _SDELAY defect does not reach C's rows
+- Audit (origin/claude/audit 48a9a165): no new REFUTED / OVERSTATED row against shard C. Open rows on formal are A's (T171, T183).
+- c_mem69 (filed 2026-11-21 06:13, finished 06:30, not journaled before): binary_search 3, if_loop_1 4 (PNR_SEED 104, twice),
+  nested_loop 3, stencil_2d 3, single_loop 4: all SAME, 16 + 16 PASS where the summary shows them. C60 (340).
+- Research's 00:16 board_rebuild defect (v11 _SDELAY trims refused silently, "shards B, C"): every one of C's 77 trimmed
+  memory-route judgments on the farm (fm_c_mem*) has as many chains trimmed as its record has lines, and no trim record
+  under formal/tools/margin/bram/trims/ names an _SDELAY macro (0 of 75). So no C judgment was on bits with a recorded
+  trim left out; memtask.sh never used board_rebuild.sh. B covered its own rows (B39 / B40).
+- Open asks for C in FOR-FORMAL: 2026-11-21 04:00 #2 (C's draws on items 42 / 43, "a failure in either is worth more
+  than any number here"), 02:20 #2 (v11 late routes through the draws), 16:35 (v12). None answered by C yet.
+- New: formal/tools/margin/spec/drawspec.sh SPEC OUT [ND]: one research board spec, rebuilt by research's own
+  board_rebuild.sh (sdf + trimmed fasm checked), decoded from the bits, ND + ND draws (tools-B task.sh PREBUILT=,
+  DRAW_DOUT=23000); memory specs through memtask.sh. Local toolchain set up again (toolchain-cache 02809f4230dfd3a7,
+  nextpnr 7c3bfb9c684a2551, toolchain.sh exit 0; apt libtcl8.6 / boost 1.83). Farm c_brd1 (items 42 / 43 / 45 / 46,
+  64 + 64 draws) was picked up before a fix (a bare research checkout has no build/frontend): to be replaced.
