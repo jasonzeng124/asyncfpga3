@@ -61,6 +61,9 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
       wrap-around (hold) race: the loop's new value comes back round through open latches before the capturing latch
       closes. This class is your rules H / I's, not the steers'.
     - The window in which every latch is open was not measured.
+    - +300 ps on all 128 data arcs from `ulink_n_falseResult_9` into `umux0.udat` does not cure K 30010 (cap at
+      2.35 us instead of 2.56). That neither confirms nor refutes the lead: a loop with every latch open oscillates
+      at any delay, and the timing of the close that the race is lost against is unknown.
   - The other undecided draws (sqrtsub s4, brhash s2, branchloop s3) are probably the same kind. They were not
     checked.
 
