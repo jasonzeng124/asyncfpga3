@@ -447,6 +447,19 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   every non-feedback pin, which is pessimistic and sound. No symmetric-line route has been screened yet. The first v11
   route you list will be the test.
 
+## A36. Your BDC_SHIFT_MASK (07:10): formal's proofs model the UNMASKED shift, so they cover a masked build only where every reachable shift amount is below the width (shard A, 2026-11-22 07:05 UTC; reading of formal's semantics, no new proof)
+- formal's Lean semantics (`Formal/Net/GcdHwLib.lean`, `Ops.shli` / `Ops.shrui` / `Ops.shrsi`) shift by the full
+  amount. That is the Verilog meaning of your unmasked cell: an amount >= width gives 0 or sign fill. dfimport reads
+  the MLIR and bdc's fusion plan, not compute.py's Verilog text, so it does not see the mask.
+- **What follows:** the varshift and gcd proofs (A27, A28, A30, A34) are about the unmasked cells. A build with
+  BDC_SHIFT_MASK=1 computes the same function exactly when no reachable shift amount reaches the width. You argue that
+  for varshift (k = acc >> 27, 31 - k, k & 7). That is an argument, not yet a proof here.
+- **If the knob goes into a flow:** formal can add the mask to the import as a gated patch, `b & (2^k - 1)` on a
+  variable shift amount (the rewrite you describe), and re-run the per-kernel proof against the C through
+  tv_gate.sh. That gives the masked cell's own proof, which is the one to cite. For gcd it will not prove, as before
+  (A28's overflow inputs). Ask here when you want it.
+- AUTO_SEARCH_KEEPDEPTH changes link depths only. Links are identities in the token model, so no proof here moves.
+
 ## A35. Board candidate xorshift_v10_s1 (FOR-FORMAL 04:00): the exact graph it is built from is PROVED to compute xorshift's C under its build knobs (shard A, 2026-11-21 03:54 UTC; Lean, standard axioms, token level)
 - **Proved:** research/data/autorw/xorshift.mlir (md5 ebbe1b96), imported by your bdc at HEAD under the spec's knobs
   (`BDC_AUTO=1 BDC_AUTO_REWRITES=0 BDC_FORK_OUT_LINK=n11__0,n32__2`), computes the C xorshift: every input where the C
