@@ -45,3 +45,19 @@ the knob changes quadrec's search builds and nothing else.
 
 The knob in a full loop (local: quadrec s1-s3 under flow v13's environment, research/JOURNAL.md 2026-11-22); whether a
 search on a later flow's routes picks structures elsewhere that bdc would lower.
+
+## In the flow (2026-11-22, local; quadrec_s3_v13local/)
+
+quadrec seed 3 under flow v13's environment + AUTO_SEARCH_KEEPDEPTH=1 + AUTO_SEARCH_OVERBUILD=4 (auto_size.sh), from the
+loop's state at the end of its finish phase (so_launch.sh, AUTO_SEARCH_MAXIT=1 to reach the overbuilt routes quickly),
+then re-finaled as a farm resume would (so2_launch.sh, AUTO_TRIM_ONLY) with final()'s overbuild trim-back: the search's
+pinned structure, its first overbuilt BD_SYMTRIM route (it 12, sdf 20d29647) rule-CLEAN as built; trim-back and cycle
+trim 25.98 -> 22.60 -> 22.43 ns.
+
+| quadrec s3 | P ns | call latency median / sum ns | LUTs | draws |
+|---|---|---|---|---|
+| flow v10 (farm) | 41.03 | 192 / 15426 | 3415 | PASS 4/4 |
+| v13 + KEEPDEPTH, search not converged (the loop's route) | 43.98 | - | - | - |
+| v13 + KEEPDEPTH + SEARCH_OVERBUILD | **22.43** | **168 / 9240** | 4064 | **PASS 4/4**, no pulse under 1 ns |
+
+Dynamatic's on-merges circuit 11.58 ns: ratio 1.94 (v10: 3.54). One seed; flow v13 on the farm carries both knobs.

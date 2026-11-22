@@ -10238,3 +10238,8 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   check + mem fast fall =2 + port trims, against v12's same pairs). suite13t_s5a_v13_2a_k (new) runs the amended flow on
   those 31 pairs, with its own state directory (state_v13k) so 2a's leftover states are not resumed under another flow.
 - Lesson kept: before amending waiting parts, read every part's status file, not one.
+### progress 14:51 (quadrec s3, the route flow v13 would ship: PASS 4/4 on a rule-CLEAN route at 22.43 ns -- v10 41.03 (-45 %), latency sum -40 %; Dynamatic ratio 1.94, was 3.54)
+- so2 (TRIM-ONLY re-final with the trim-back): `status=PASS draws=4/4 P=22433 P_untrimmed=25982 trims=105 rule=clean
+  it=12 bits=EQUIVALENT ffmux-clean`, 10/10 calls per draw, narrowest pulse 3.76 ns, latency median 168 / sum 9240 ns,
+  4064 LUTs. Files: research/data/keepdepth/quadrec_s3_v13local/ (result, draws, BENCHRES, oracle, the loop's log,
+  sizes / seed / trims of it 12, the two launch scripts). The 10:00 prediction (P 20-26 ns) held with the trim-back.
