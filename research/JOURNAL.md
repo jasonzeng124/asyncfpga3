@@ -10075,3 +10075,17 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   with / without BDC_SHIFT_MASK), /tmp/bot/ckt/ckH (AUTO_CKPT key re-check; then ckI from its state).
 - **Decisions waiting on those:** KEEPDEPTH into the waiting v13 parts if quadrec converges clean and passes; SHIFT_MASK
   into v13 / v14 if varshift improves and passes; a flow v14 otherwise (v13 + both + AUTO_CKPT).
+### progress 07:16 (where shipped routes keep time the rule says they need not: link request lines on the critical cycle, which the trim cannot move outside the late phase -- a v14 candidate, measured, not started)
+- sqrtsub s1 (v10 = v11, 32.24 ns; its other seeds 17-22 ns): one fork-output link's request line, 28 elements, is 25.1
+  ns of the cycle (both edges). The rule on that very route proposes 28 -> 1 ("floor 1": nothing needs it); the loop
+  shipped it anyway because it 4 was its last clean route (the routes built from the shorter sizes were not clean), and
+  the trim step cannot shorten it: a link's request line is a symmetric LUT1 chain except under BD_SYMTRIM, which flows
+  v11-v13 use only in the late phase. The line came from it 1's proposal (34) and was shrunk only by re-routes.
+- Over flow v10's 121 rule-CLEAN PASS routes with a cycle decomposition: 25 keep more than 3 % of P in link request
+  lines on the critical cycle that the rule's own proposal on the shipped route would shorten; median 1.1 % of P;
+  sqrtsub s1 75 %, fold64 s1 22 %, sumi3_mem s3 13 %, dot2 s4 10 %, sqrtsub s2 10 %, fir s2 9 %, collatz s1 9 %. An
+  upper bound (the trim prices an entry exactly and may stop earlier).
+- Candidate for v14: every route built with BD_SYMTRIM (BD_DEFINES=-DBD_SYMTRIM in the environment: the build, the
+  trim tool and the rule all read it), so the cycle-scoped trim can shorten link request lines on the shipped route.
+  Changes every route (a different netlist); expected about 1-2 % geomean with large single wins. Not started: it needs
+  the farm's 4-seed A/B, and the queue holds v12 / v13 for the next day.
