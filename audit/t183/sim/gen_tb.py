@@ -1,0 +1,20 @@
+import sys
+vals=[int(x) for x in sys.argv[1].split(',')]
+L=[]
+L.append('`timescale 1ps/1ps\nmodule tb; reg rst=1; reg n_req=0, start_req=0, out0_ack=0, p_end_ack=0; reg [31:0] n_data=0;')
+L.append('wire n_ack,start_ack,out0_req,p_end_req; wire [31:0] out0_data;')
+L.append('bdc_collatz dut(.rst(rst),.n_req(n_req),.n_ack(n_ack),.n_data(n_data),.start_req(start_req),.start_ack(start_ack),.out0_req(out0_req),.out0_ack(out0_ack),.out0_data(out0_data),.p_end_req(p_end_req),.p_end_ack(p_end_ack));')
+L.append('integer i; reg [31:0] V[0:%d];'%(len(vals)-1))
+L.append('initial begin')
+for i,v in enumerate(vals): L.append(' V[%d]=32\'d%d;'%(i,v&0xffffffff))
+L.append(' #20000 rst=0; #20000;')
+L.append(' for (i=0;i<%d;i=i+1) begin'%len(vals))
+L.append('  n_data=V[i]; #1000 n_req=1; start_req=1;')
+L.append('  fork begin wait(n_ack); n_req=0; wait(!n_ack); end begin wait(start_ack); start_req=0; wait(!start_ack); end')
+L.append('   begin wait(out0_req); #500 $display("RES %0d %0d", $signed(V[i]), $signed(out0_data)); out0_ack=1; wait(!out0_req); #500 out0_ack=0; end')
+L.append('   begin wait(p_end_req); #500 p_end_ack=1; wait(!p_end_req); #500 p_end_ack=0; end join')
+L.append('  #2000; end')
+L.append(' $display("DONE"); $finish; end')
+L.append('initial begin #%d; $display("TIMEOUT"); $finish; end'%(2000000000))
+L.append('endmodule')
+print('\n'.join(L))

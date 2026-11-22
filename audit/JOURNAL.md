@@ -3492,3 +3492,8 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
 - T182: item 46 rebuilds CONFIRMED (both sdf / fasm; old-script control 594e53a1 with 4 REFUSED). GLS: unpadded
   fastmin simulating; padded 5 corners running. Next: split-band replay of formal B36's ucond_br14 race (split.sh:
   latch side slow, rdly + join fast).
+### progress 03:05
+- T183 done (subagent O): formal A31 (item 42's basis) OVERSTATED: no composed theorem and no committed Lean; eq2's
+  theorem is about the unfused import, A26 about the fused one; the missing link was run here and the chain composed in
+  own Lean (Chain.build_computes, standard axioms, re-run by me) -- minus bounded runs. Ring fusion does not fire on
+  item 42's file; emitted Verilog = C on 50/50. Item 42's function is therefore supported; the formal write-up overstated.
