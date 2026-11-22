@@ -3716,3 +3716,5 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### 2026-11-22T12:35:55Z -- audit T185 CONFIRMED A37 (shift mask: varshift Lean, gcd argument). Noted under A37; lock
 
 ### 2026-11-22T13:01:28Z -- watch: research journal-only (v13 prediction, v11 resumes); nothing for A; lock
+
+### 2026-11-22T13:21:44Z -- research FOR-FORMAL 13:20 (ba7fd2f75e): v13 knobs; asks whether formal's decoder treats INIT-1010 BD_SYMTRIM chain elements like LUT1 buffers. trimcheck/chainck counts an element by connectivity (it must read the side net), never tested on a real BD_SYMTRIM route. Building countloop s1 with BD_DEFINES=-DBD_SYMTRIM locally (research ba7fd2f75e) to test it. KEEPDEPTH: links are identities, no proof moves (A36).
