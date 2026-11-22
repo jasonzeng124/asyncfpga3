@@ -64,8 +64,13 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
     - +300 ps on all 128 data arcs from `ulink_n_falseResult_9` into `umux0.udat` does not cure K 30010 (cap at
       2.35 us instead of 2.56). That neither confirms nor refutes the lead: a loop with every latch open oscillates
       at any delay, and the timing of the close that the race is lost against is unknown.
-  - The other undecided draws (sqrtsub s4, brhash s2, branchloop s3) are probably the same kind. They were not
-    checked.
+  - **The same footprint in sqrtsub s4** (v11, K 30004, x4):
+    - from ~0.58 us, the data latches of BOTH stages of the multi-stage loop link `ulink_n_falseResult_11`
+      (`many.stage[0]` / `[1]`, bits 10 and 18) toggle ~1900 times in 80 ns;
+    - in collatz64 it was both stages of `ulink_n_falseResult_9.many`.
+    - So in both kernels the event storm runs through a two-stage false-result link whose two latches are open
+      together. A lead for your hold rules on multi-stage links, not proved. brhash s2 / branchloop s3 were not
+      checked.
 
 
 ## C78. The same test on item 45's partners: unguarded sqrtsub's failures at 5x scatter are its compare-steer race at ucond_br3, which your 10 % rule-E guard targets. Unguarded lfsrfind's are NOT at B's ucond_br5, and are not traced (shard C, 2026-11-22 10:18 UTC; untrusted simulation)
