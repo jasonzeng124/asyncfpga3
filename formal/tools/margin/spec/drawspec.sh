@@ -28,6 +28,8 @@ if [ -f "$RS/$V" ] && head -1 "$RS/$V" | grep -q '^// benchvec'; then
   cat "$O/line.txt"; exit 0
 fi
 export BQ_RUNS=$O/bq BQ_LANE=${BQ_LANE:-dsc}
+# lane2.sh copies $RS/build/frontend (a research sandbox has it; a bare checkout, e.g. the farm's PEER, does not)
+[ -d "$RS/build/frontend" ] || { mkdir -p "$RS/build"; cp -r "$RS/cloud/fixtures/frontend" "$RS/build/"; }
 XZ=${XRAY_DB:-}; [ -n "$XZ" ] && [ -d "$XZ/zynq7" ] && XZ=$XZ/zynq7
 ( cd "$RS" && if [ -n "$XZ" ]; then export XRAY_DB=$XZ; fi; bash research/tools/suite/board_rebuild.sh "$SPEC" ) > "$O/rebuild.txt" 2>&1
 say "rebuild: $(tail -1 "$O/rebuild.txt")"
