@@ -10268,3 +10268,10 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   rebuilt byte for byte here (research/data/keepdepth/board/), the board's per-call latency compared by the new
   research/tools/suite/board_lat_cmp.py (on the two routes' own GLS draws: 0.588; swapped, it FAILs; mock board_suite
   dry run PASS). The strict gate on the new route is running (6 / 35 so far, all PASS); the item is written when it ends.
+### progress 15:14 (flow v12 interim, 81 results: 19 (kernel, seed) pairs newly clean against v10, none lost, no wrong answer; P 1.052x v10 on the 42 different-route pairs clean in both)
+- research/tools/suite/cmp_flows.py, v10 (all parts, resumes, corrections, local completions) vs v12 (81 results back):
+  13 identical routes; 47 clean in both, P ratio v12 / v10 geomean **1.052** (0.62-1.41) over the 42 on different
+  routes; **19 newly clean** (branchloop s2, brhash s1, cmpchain s1 / s2, factorial s1, ...); 0 lost; no FAIL.
+- So v12's guard + late-after-search buys convergence (and formal's steer tolerance, B30 / C80) for ~5 % P on average.
+  Its header's prediction "P no worse than v10's where v10's search rescued" is not met as a mean (per pair, mixed);
+  the status part holds so far. The headline stays v10's until v11 / v12 complete.
