@@ -9,6 +9,7 @@
 | iterative_sqrt_s4 |  | 0.000 (24 / 24) | ucond_br13 | kappa 0.20 | x=0.20: RESULT | +113 / +232 ps; kappa 0.10 ( c0:MISMATCH/14011 c1:MISMATCH/7054) |
 | test_flatten_array_s2 | MEM | 0.000 (30 / 30) | ucond_br14 | kappa 0.03 | - | - |
 | collatz64_s1 |  | 0.003 (12 / 12) | ucond_br6 | kappa 0.10 | x=0.15: RESULT | +279 / +778 ps; none up to 0.20 |
+| share_test_1_s3 | MEM | 0.007 (14 / 14) | ucond_br2 | none up to 0.20 | - | - |
 | sqrtsub_s4 |  | 0.011 (16 / 16) | ucond_br6 | kappa 0.03 | x=0.12: RESULT | +55 / +99 ps; kappa 0.03 ( c0:MISMATCH/37140 c1:NO-VERDICT/2770436) |
 | image_resize_s1 | MEM | 0.014 (18 / 18) | ucond_br8 | kappa 0.20 | - | - |
 | memsum_s4 | MEM | 0.017 (14 / 14) | ucond_br2 | kappa 0.10 | - | - |
