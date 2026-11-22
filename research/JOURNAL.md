@@ -9862,3 +9862,6 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - A cost of AUTO_RACE_KAPPA seen here: the search phase's structure (BDC_FORK_OUT_LINK=n18__0,n35__3) met a latch-fed race
   at kappa 0.125 (z 10.1) on its first route, the pad and four more routes found no clean one, and the phase-2 route
   shipped (v10's search shipped a 3-link structure at 24.56). One sample, a race just under the target.
+### progress 01:19 (local v12 / v13 pairs started on gather s1 and if_loop_2 s1 -- memory kernels whose port is on the cycle; v13's farm parts queue behind v12's and will not finish in this session)
+- /tmp/bot/runs/v12c and v13c (same seeds, each flow's exact environment). PREDICTION (now): v13 below v12 on both,
+  every draw passing.
