@@ -2,6 +2,7 @@
 |---|---|---|---|---|---|---|
 | brhash_s1 |  | 0.044 (24 / 24) | ucond_br7 | kappa 0.10 | x=0.15: MAXEV | none |
 | gather_s2 | MEM | 0.059 (14 / 14) | ucond_br4 | kappa 0.15 | - | - |
+| cmpchain_s1 |  | 0.063 (32 / 32) | ucond_br13 | kappa 0.10 | x=0.15: RESULT | none |
 | collatz_s1 |  | 0.064 (12 / 12) | ucond_br6 | kappa 0.15 | x=0.20: RESULT | none |
 | binary_search_s1 | MEM | 0.070 (32 / 32) | ucond_br4 | kappa 0.15 | - | - |
 | lfsrfind_s1 |  | 0.070 (18 / 18) | ucond_br5 | kappa 0.15 | x=0.20: RESULT | +189 / +524 ps; none up to 0.20 |
@@ -49,6 +50,7 @@
 | while_loop_3_s1 | MEM | 0.252 (8 / 8) | ucond_br1 | none up to 0.20 | - | - |
 | test_memory_2_s1 | MEM | 0.256 (12 / 12) | ucond_br4 | none up to 0.20 | - | - |
 | test_flatten_array_s1 | MEM | 0.295 (30 / 30) | ucond_br16 | none up to 0.20 | - | - |
+| divmods_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | divmodu_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | divmodu_s2 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | simple_example_1_s1 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |

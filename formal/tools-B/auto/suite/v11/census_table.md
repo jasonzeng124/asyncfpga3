@@ -87,6 +87,7 @@
 | vector_rescale_s1 | MEM | 0.094 (6 / 6) | ucond_br1 | none up to 0.20 | - | - |
 | xorshift_s3 |  | 0.094 (16 / 16) | ucond_br6 | kappa 0.15 | x=0.25: RESULT | +209 / +549 ps; none up to 0.20 |
 | binary_search_s4 | MEM | 0.096 (32 / 32) | ucond_br17 | kappa 0.15 | - | - |
+| nested_loop_s4 | MEM | 0.097 (12 / 12) | ucond_br7 | none up to 0.20 | - | - |
 | lfsrfind_s4 |  | 0.098 (18 / 18) | ucond_br3 | kappa 0.20 | x=0.25: RESULT | +277 / +981 ps; kappa 0.15 ( c0:NO-VERDICT/4192795 c1:OK/0) |
 | image_resize_s2 | MEM | 0.099 (18 / 18) | ucond_br2 | none up to 0.20 | - | - |
 | sumi3_mem_s4 | MEM | 0.099 (6 / 6) | ucond_br3 | kappa 0.15 | - | - |
@@ -158,6 +159,7 @@
 | fill_s1 | MEM | 0.171 (22 / 22) | ucond_br8 | none up to 0.20 | - | - |
 | twoloops_s4 |  | 0.171 (32 / 32) | ucond_br19 | none up to 0.20 | none to 0.25 | +988 / +2335 ps; none up to 0.20 |
 | test_loop_free_s1 | MEM | 0.175 (10 / 10) | ucond_br5 | kappa 0.20 | - | - |
+| loop_path_s4 | MEM | 0.176 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | twoloops_s3 |  | 0.176 (32 / 32) | ucond_br7 | none up to 0.20 | none to 0.25 | +1057 / +2587 ps; none up to 0.20 |
 | share_test_2_s1 | MEM | 0.177 (6 / 6) | ucond_br2 | none up to 0.20 | - | - |
 | if_loop_2_s2 | MEM | 0.179 (14 / 14) | ucond_br4 | none up to 0.20 | - | - |
@@ -172,8 +174,10 @@
 | while_loop_3_s2 | MEM | 0.208 (8 / 8) | ucond_br3 | none up to 0.20 | - | - |
 | single_loop_s1 | MEM | 0.219 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | sumi3_mem_s1 | MEM | 0.219 (6 / 6) | ucond_br2 | none up to 0.20 | - | - |
+| iir_s4 | MEM | 0.221 (10 / 10) | ucond_br4 | none up to 0.20 | - | - |
 | fold64_s2 |  | 0.233 (20 / 20) | ucond_br8 | none up to 0.20 | none to 0.25 | +1259 / +2886 ps; none up to 0.20 |
 | while_loop_3_s1 | MEM | 0.236 (8 / 8) | ucond_br4 | none up to 0.20 | - | - |
+| single_loop_s4 | MEM | 0.239 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | test_bitint_s4 | MEM | 0.246 (6 / 6) | ucond_br3 | none up to 0.20 | - | - |
 | loop_path_s1 | MEM | 0.289 (4 / 4) | ucond_br1 | none up to 0.20 | - | - |
 | divmods_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
