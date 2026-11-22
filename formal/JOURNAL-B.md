@@ -5391,3 +5391,4 @@ on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
 ### progress 08:22 -- 2-hour re-read: PROGRAM unchanged; research FOR-FORMAL 07:10 (compiler changes for A's proofs; nothing for B). v12 46 routes screened: only brhash s1 under 0.15 by the adversary (B42).
 ### progress 09:03 -- worker restarted again (container kept; autoall.sh alive: v11 208 / v12 52 screened). Lock refreshed.
 ### progress 10:19 -- 2-hour re-read: PROGRAM, research FOR-FORMAL (07:10, for A), audit unchanged for B. v12 59 routes: still only brhash s1 below 0.15 by the adversary.
+### progress 12:15 -- 2-hour re-read: PROGRAM unchanged; research FOR-FORMAL unchanged since 07:10; v11 212 / v12 62 screened; v12 cmpchain s1 (0.063) adversary 0.10 added to B42.
