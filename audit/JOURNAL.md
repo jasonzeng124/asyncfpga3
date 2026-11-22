@@ -3571,3 +3571,5 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   diff empty); formal/target changes since 11-15 are STATUS notes only ("no change to the gcd theorem").
 - New on the branches since 13:00: research farm resumes / v13 knobs / journal previews; formal B / C v12-v13 screens,
   A38 (trimcheck reads BD_SYMTRIM lines). No board item, headline or PROGRAM change.
+### progress 15:05
+- Container restarted (watcher lost; all work was pushed). Watcher restarted.
