@@ -10258,3 +10258,13 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 - v13 previews (amended environment): countloop s2 PASS 4/4 at 20.46 ns (v10 20.00); collatz64 s2's search route 19.80
   vs its loop's 21.50 (v10 shipped 23.61: its search never converged on this seed) -- draws running.
 - Strict gate on quadrec s3's v13-preview route started (/tmp/bot/qrgate: worst, SLOW_MAX, FAST_MIN + 32 draws, runts fail).
+### progress 15:04 (v13s, first 10 tasks: all PASS on clean routes; against v12 on seed 1 the BD_SYMTRIM-everywhere arm is slower on 3 of 4 -- its real partner (amended v13) has not run; item 47 being prepared)
+- suite13t_s5a_v13s_1 / _2 (v13 + BD_DEFINES=-DBD_SYMTRIM on every route): 10 tasks back, every one PASS rule-CLEAN.
+  Seed 1 against v12 (a looser partner: v13's other knobs differ too): sqrtsub 21.79 vs 20.12, collatz 17.79 vs 16.70,
+  countloop 18.40 vs 18.76, xorshift 16.41 vs 15.73 ns -- 3 of 4 slower. sqrtsub s1's route equals the local st run's
+  (21.791 ns): the farm reproduces local routes. The 12:15 prediction (P ratio v13s / v13 <= 0.98) waits for v13's own
+  pairs; on this evidence it leans to falsified.
+- Item 47 in preparation: quadrec s3's v13-preview route (22.43 ns) beside flow v10's same seed (41.03 ns), both specs
+  rebuilt byte for byte here (research/data/keepdepth/board/), the board's per-call latency compared by the new
+  research/tools/suite/board_lat_cmp.py (on the two routes' own GLS draws: 0.588; swapped, it FAILs; mock board_suite
+  dry run PASS). The strict gate on the new route is running (6 / 35 so far, all PASS); the item is written when it ends.
