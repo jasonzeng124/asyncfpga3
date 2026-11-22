@@ -10164,3 +10164,23 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 - PREDICTION of 07:03 ("P drops by 10-25 %"): missed on P (-4.2 %, one seed, inside route scatter), met on the lines.
   Area and latency gains are clear. Changes only varshift and gcd, so it costs nothing elsewhere: a candidate for the
   waiting v13 parts with KEEPDEPTH.
+### progress 12:09 (quadrec s3 with the search's pinned structure, overbuilt: PASS 4/4 on a rule-CLEAN route at 25.98 ns -- flow v10's same seed 41.03; the first overbuilt route clean as built; the three knobs go into the waiting v13 parts)
+- /tmp/bot/runs/so (quadrec s3's state at the end of its finish phase, resumed with v13 + AUTO_SEARCH_KEEPDEPTH +
+  AUTO_SEARCH_OVERBUILD=4 + AUTO_SEARCH_MAXIT=1 + AUTO_CKPT): final(10) replayed from memos (43.98 ns, as before); the
+  search chose the same three fork-output links with the three pipes kept at 2 (predicted 20.33 ns); its raise-only
+  route it 11 (sdf aa362f60, the kd run's own) 5 rows short; **the first overbuilt route it 12 (BD_SYMTRIM, every
+  line +3) rule-CLEAN as built**; final: P 25.98 ns (the cycle trim's step opened 2 constraints and was reverted);
+  shipped over the loop's 43.98. **status=PASS draws=4/4 P=25982 rule=clean it=12 bits=EQUIVALENT ffmux-clean**, 10/10
+  calls per draw, no pulse under 1 ns (narrowest 3.36 ns), latency median 192 / sum 10704 ns, 4064 LUTs.
+  | quadrec s3 | P ns | latency sum ns | LUTs |
+  |---|---|---|---|
+  | flow v10 (farm) | 41.03 | 15426 | 3415 |
+  | v13 + KEEPDEPTH, search failed (kd, local: the loop's route) | 43.98 | - | - |
+  | v13 + KEEPDEPTH + SEARCH_OVERBUILD (local) | **25.98** | **10704** | 4064 |
+  Dynamatic's on-merges circuit: 11.58 ns -> ratio 2.24 (v10: 3.54).
+- PREDICTION of 10:00 (clean within 2 overbuilt routes; P 20-26 ns; every draw passes): held. P sits at the top of the
+  range because this run skipped the overbuild trim-back: final() keyed it on AUTO_OVERBUILD, which
+  AUTO_LATE_AFTER_SEARCH parks during this pass -- fixed (3ad212c07: final() reads ${AUTO_OVERBUILD:-$LATE_OB}; no route
+  without overbuild markers changes). A re-final of this route with the fix is next, for the number v13 would ship.
+- One kernel, one seed: the farm's v13 is the measurement. The two knobs act only where a search picks a structure that
+  bdc would lower (KEEPDEPTH: quadrec on v10's structures) or that does not converge (SEARCH_OVERBUILD: 17 of v10's 132).

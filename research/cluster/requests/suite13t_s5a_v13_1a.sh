@@ -1,5 +1,12 @@
 #!/bin/bash
 #CLUSTER array=1-31 cores=2 mem=16G time=240
+# Added 2026-11-22 (research/JOURNAL.md that day), before this part was submitted: AUTO_SEARCH_KEEPDEPTH=1
+# AUTO_SEARCH_OVERBUILD=4 BDC_SHIFT_MASK=1. KEEPDEPTH builds the search's structure with the base route's link depths
+# (bdc's token floor lowered them, so the search's predictions failed on quadrec only: census of v10's 89 search
+# structures, research/data/keepdepth/). SEARCH_OVERBUILD gives a search structure whose raise-only routes did not converge
+# the late phase's overbuilt BD_SYMTRIM routes (17 of v10's 132 searches never converged). SHIFT_MASK masks a variable
+# shift amount to log2(width) bits (poison above; only varshift and gcd change; research/data/shiftmask/). Local test,
+# quadrec s3: the pinned structure's first overbuilt route rule-CLEAN as built, shipped at 25.98 ns vs the loop's 43.98.
 # AUTO_CKPT=1 added 2026-11-22 before this part was submitted (research/JOURNAL.md 2026-11-22): final()'s full stacks
 # and trim-step rule runs and the draws are memoized by content in the task's auto/ files, so a resume (from $SHARED)
 # no longer redoes them; results are unchanged by construction (a memo is keyed by every input its run reads).
@@ -33,7 +40,7 @@ set -uo pipefail
 KS=(xorshift collatz collatz64 ipow gcd isprime straight countloop sqrtsub nest3 twoloops brhash lfsrfind quadrec horner fold64 varshift cmpchain nested branchloop digitsum digitdiv divmodu divmods test_divui memsum dot2 gather fill factorial iterative_division iterative_sqrt test_loop_free test_int16 test_bitint unused_arg if_loop_1 if_loop_2 sumi3_mem fir simple_example_1 while_loop_3 if_convert test_memory_1 test_memory_2 test_bool_array binary_search mul_example share_test_2 test_stdint spmv sobel test_flatten_array image_resize vector_rescale stencil_2d iir share_test_1 single_loop loop_path nested_loop video_filter)
 NK=${#KS[@]}
 K=${KS[$(( TASK - 1 + 0 ))]}; S=1
-export CA_JOBS=2 DRAW_JOBS=2 PNR_TIMEOUT=3600 BDC_AUTO_REWRITES=0 CA_BENCHCAP=1 AUTO_TRIM=1 AUTO_TRIM_SCOPE=cycle AUTO_RACE_Z=4.5 AUTO_PROVED_RW=cache AUTO_OVERBUILD=3 AUTO_OVERBUILD_LATE=4 TRIM_STAGEFIX=1 AUTO_RACE_KEEP=1 AUTO_PROVED_RW_CACHE=research/data/autorw/cache_v11.tsv AUTO_LATE_AFTER_SEARCH=1 AUTO_GUARD_E=0.90,1.10 AUTO_RACE_KAPPA=0.13 BDC_MEM_FASTFALL=2 AUTO_TRIM_PORTS=1 AUTO_CKPT=1
+export CA_JOBS=2 DRAW_JOBS=2 PNR_TIMEOUT=3600 BDC_AUTO_REWRITES=0 CA_BENCHCAP=1 AUTO_TRIM=1 AUTO_TRIM_SCOPE=cycle AUTO_RACE_Z=4.5 AUTO_PROVED_RW=cache AUTO_OVERBUILD=3 AUTO_OVERBUILD_LATE=4 TRIM_STAGEFIX=1 AUTO_RACE_KEEP=1 AUTO_PROVED_RW_CACHE=research/data/autorw/cache_v11.tsv AUTO_LATE_AFTER_SEARCH=1 AUTO_GUARD_E=0.90,1.10 AUTO_RACE_KAPPA=0.13 BDC_MEM_FASTFALL=2 AUTO_TRIM_PORTS=1 AUTO_CKPT=1 AUTO_SEARCH_KEEPDEPTH=1 AUTO_SEARCH_OVERBUILD=4 BDC_SHIFT_MASK=1
 echo "suite13t_s5a_v13 kernel $K seed $S (flow v13)" > "$OUT/task.txt"
 mkdir -p "$OUT/auto"
 # $SHARED state (added 2026-11-20 15:45 UTC, before this request started; the flow is unchanged): suite13t lost ~30 % of
