@@ -1,0 +1,44 @@
+1. CELLS  routed JSON 7606 bels, bitstream 7606 bels, common 7606
+2. CONFIG  compared {'BUFGCTRL': 1, 'CARRY4': 88, 'SLICE_FFX': 2084} (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)
+2b. DSP48E1  3 compared: control words (OPMODE/ALUMODE/INMODE/CARRYINSEL/CARRYIN), register/input parameters, drivers of every data pin the modelled function reads
+2c. RAMB18E1  4 compared: configuration (mode, widths, output register, write mode, INIT_A/SRVAL_A, INIT content), effective CLK/EN/RST and port B enable, drivers of every ADDR/DI/DIP/WE pin
+3. CONNECTIVITY  23785 pins with the same driver on both sides
+   driver->sink pairs: json 25494, bits 37590, common 23784
+4. LUT FUNCTIONS  5131 LUTs compared, 5131 identical over every input assignment
+5. ROUTING  8662 nets with identical pip sets, 0 differ (0 of the equal ones only after removing pips to dead bels); 2 constant nets compared by sink in 3, not by pip
+
+DIFFERENCES (9 kinds):
+       1  BUFGCTRL I1 unconnected in JSON, connected on the board by the mux's all-zero default (deselected)
+            BUFGCTRL_X0Y0/BUFGCTRL/I1 <- ('const', 1)
+       1  HARMLESS: LUT pin on a different constant in the routed JSON than on the board (an IMUX nextpnr tied to GND but never routed reads VCC through its default ppip), and the bits' LUT function does not read that pin
+            SLICE_X16Y59/A/A1 json 0 bits 1 (SLICE_X16Y59/A6LUT)
+    9664  LUT pin unconnected in routed JSON, constant 1 on the board, gen.py ties 0 (harmless iff section 4 finds the function identical)
+            SLICE_X0Y20/C/A1
+            SLICE_X0Y20/C/A2
+            SLICE_X0Y20/C/A4
+            SLICE_X0Y20/C/A5
+    1708  PS7 input tied to a constant in JSON, not modelled (outside ps7_pins.py)
+            PS7_X0Y0/PS7/DMA0ACLK <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DAREADY <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRLAST <- ('const', 0)
+            PS7_X0Y0/PS7/DMA0DRTYPE0 <- ('const', 0)
+      30  bits-only always-on ppip the JSON does not list (no bits: a fixed wire)
+            ('DSP48_X1Y17/DSP48E1', 'ACOUT0'): [('DSP_L_X22Y40/DSP_1_ACOUT0', 'DSP_L_X22Y40/DSP_ACOUT0')]
+            ('DSP48_X1Y17/DSP48E1', 'ACOUT1'): [('DSP_L_X22Y40/DSP_1_ACOUT1', 'DSP_L_X22Y40/DSP_ACOUT1')]
+            ('DSP48_X1Y17/DSP48E1', 'ACOUT10'): [('DSP_L_X22Y40/DSP_1_ACOUT10', 'DSP_L_X22Y40/DSP_ACOUT10')]
+            ('DSP48_X1Y17/DSP48E1', 'ACOUT11'): [('DSP_L_X22Y40/DSP_1_ACOUT11', 'DSP_L_X22Y40/DSP_ACOUT11')]
+       1  driver is a LUT whose output is constant given the constants on its own pins (nextpnr's $PACKER_GND_NET/VCC feed-through LUT1), compared as that constant
+            SLICE_X16Y59/F7AMUX/1 json SLICE_X16Y59/A6LUT.O6 = 0
+       1  driver is a LUT with a constant function (INIT all 0 or all 1), compared as that constant
+            SLICE_X16Y59/F7AMUX/1 <- SLICE_X16Y59/A6LUT
+    1044  pin unconnected in routed JSON, same constant (0) on the board as gen.py's tie
+            SLICE_X0Y23/AFF/SR
+            SLICE_X0Y24/A5FF/SR
+            SLICE_X0Y25/D5FF/SR
+            SLICE_X0Y26/AFF/SR
+    3095  pin unconnected in routed JSON, same constant (1) on the board as gen.py's tie
+            SLICE_X0Y19/AFF/CE
+            SLICE_X0Y20/AFF/CE
+            SLICE_X0Y20/C/A6
+            SLICE_X0Y27/B/A6
+VERDICT: EQUIVALENT (only the benign kinds above)
