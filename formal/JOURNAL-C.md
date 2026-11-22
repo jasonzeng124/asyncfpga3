@@ -5138,3 +5138,13 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 08:55: v11 thin routes (B's specs), 32 + 32 local draws: branchloop s3 (492d5045 = B40's), factorial s1, factorial s4 PASS; 5 more running. Mathlib local build stopped for good (OOM at 15 GB); Lean goes through the farm.
 - 09:30: C75: 8 thin v11 routes 32 + 32 PASS (brhash s2 rerun after a mid-run edit of drawspec.sh broke it: never edit a script a run is reading); farm c_brd2 9 / 10 back, 128 / 128 each, unguarded sqrtsub's farm build failed (no log; drawspec now keeps it).
 - 09:38: scatter sweep (per-arc sigma x2..x5 of research's 0.126, 16 draws each) on the item 45 / 46 pairs: collatz64 both PASS 16 / 16 at every point so far. Negative control for the knob to follow.
+
+### progress 09:45 -- scatter inflation separates item 46's pair (first look, 16 draws a point)
+- Per-arc sigma (draws.py --sarc; research's model 0.126) at x2 / x3 / x4 / x5, 16 draws, K 20001-20016, local bits of C73:
+  item 46 unpadded 16 / 15 / 12 (+1 und.) / 11 (+3 und.) pass -- failures are hangs ("no out0", ~2570 of 4096 RAM clock
+  edges); padded 16 / 16 / 16 / 14 -- its two x5 failures are host-port RAM setup violations in the fill, not a hang.
+  sqrtsub and lfsrfind unguarded 1 / 16 fail at x5 (RESULT MISMATCH, early stop), guarded 0; collatz64 0 / 0.
+- Hang draw 20015 at x3, simx RACES=1 (window 300 ps, from 200 us): closest storage reorderings umux8.uxa (1 ps,
+  216.80 us), umux8.uya (2 ps, 210.13 us); closest feeding-storage ucond_br14.uack (3 ps, 216.79 us) and ucond_br14 LUT6
+  (78 ps). Closest is not first or causal: not yet traced.
+- 64-draw points running (K 30001-30064): the pair at x2-x4, the item-45 pairs at x4-x5.
