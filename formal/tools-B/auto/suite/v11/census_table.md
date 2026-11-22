@@ -18,6 +18,7 @@
 | ipow_s3 |  | 0.018 (16 / 16) | ucond_br4 | none up to 0.20 | none to 0.25 | +934 / +2271 ps; none up to 0.20 |
 | iterative_division_s3 |  | 0.019 (32 / 32) | ucond_br4 | kappa 0.15 | x=0.25: MAXEV | +581 / +1559 ps; none up to 0.20 |
 | quadrec_s2 |  | 0.020 (28 / 28) | ucond_br14 | kappa 0.20 | x=0.25: RESULT | none |
+| isprime_s3 |  | 0.021 (60 / 60) | ucond_br20 | kappa 0.10 | x=0.10: MAXEV | +536 / +1274 ps; kappa 0.20 ( c0:MISMATCH/123 c1:MISMATCH/99) |
 | factorial_s1 |  | 0.022 (24 / 24) | ucond_br7 | kappa 0.06 | x=0.10: RESULT | +931 / +2211 ps; none up to 0.20 |
 | lfsrfind_s3 |  | 0.028 (18 / 18) | ucond_br4 | kappa 0.15 | x=0.25: RESULT | +54 / +130 ps; none up to 0.20 |
 | test_bitint_s1 | MEM | 0.028 (6 / 6) | ucond_br1 | kappa 0.10 | - | - |
@@ -93,6 +94,7 @@
 | lfsrfind_s4 |  | 0.098 (18 / 18) | ucond_br3 | kappa 0.20 | x=0.25: RESULT | +277 / +981 ps; kappa 0.15 ( c0:NO-VERDICT/4192795 c1:OK/0) |
 | image_resize_s2 | MEM | 0.099 (18 / 18) | ucond_br2 | none up to 0.20 | - | - |
 | sumi3_mem_s4 | MEM | 0.099 (6 / 6) | ucond_br3 | kappa 0.15 | - | - |
+| nest3_s2 |  | 0.101 (76 / 76) | ucond_br10 | none up to 0.20 | x=0.25: RESULT | +1225 / +3106 ps; none up to 0.20 |
 | quadrec_s3 |  | 0.102 (28 / 28) | ucond_br11 | kappa 0.20 | none to 0.25 | none |
 | stencil_2d_s1 | MEM | 0.103 (28 / 28) | ucond_br7 | none up to 0.20 | - | - |
 | share_test_2_s4 | MEM | 0.105 (6 / 6) | ucond_br1 | none up to 0.20 | - | - |
@@ -177,6 +179,7 @@
 | image_resize_s4 | MEM | 0.203 (18 / 18) | ucond_br10 | none up to 0.20 | - | - |
 | sqrtsub_s2 |  | 0.207 (16 / 16) | ucond_br4 | none up to 0.20 | none to 0.25 | +1538 / +3709 ps; none up to 0.20 |
 | while_loop_3_s2 | MEM | 0.208 (8 / 8) | ucond_br3 | none up to 0.20 | - | - |
+| stencil_2d_s4 | MEM | 0.213 (28 / 28) | ucond_br15 | none up to 0.20 | - | - |
 | single_loop_s1 | MEM | 0.219 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | sumi3_mem_s1 | MEM | 0.219 (6 / 6) | ucond_br2 | none up to 0.20 | - | - |
 | iir_s4 | MEM | 0.221 (10 / 10) | ucond_br4 | none up to 0.20 | - | - |
@@ -186,6 +189,7 @@
 | test_bitint_s4 | MEM | 0.246 (6 / 6) | ucond_br3 | none up to 0.20 | - | - |
 | fir_s4 | MEM | 0.285 (6 / 6) | ucond_br1 | none up to 0.20 | - | - |
 | loop_path_s1 | MEM | 0.289 (4 / 4) | ucond_br1 | none up to 0.20 | - | - |
+| fir_s1 | MEM | 0.292 (6 / 6) | ucond_br3 | none up to 0.20 | - | - |
 | divmods_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | divmods_s2 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | divmods_s3 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |

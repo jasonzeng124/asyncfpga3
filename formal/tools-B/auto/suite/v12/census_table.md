@@ -22,6 +22,7 @@
 | ipow_s1 |  | 0.116 (16 / 16) | ucond_br9 | kappa 0.15 | x=0.25: MAXEV | +231 / +603 ps; kappa 0.15 ( c0:NO-VERDICT/13141229 c1:NO-VERDICT/6953114) |
 | iterative_division_s2 |  | 0.116 (32 / 32) | ucond_br8 | none up to 0.20 | none to 0.25 | +1540 / +3714 ps; none up to 0.20 |
 | lfsrfind_s2 |  | 0.123 (18 / 18) | ucond_br5 | kappa 0.20 | x=0.25: RESULT | +342 / +883 ps; none up to 0.20 |
+| nest3_s2 |  | 0.123 (76 / 76) | ucond_br12 | kappa 0.20 | x=0.25: RESULT | +1270 / +2940 ps; none up to 0.20 |
 | factorial_s1 |  | 0.128 (24 / 24) | ucond_br12 | kappa 0.20 | x=0.25: RESULT | +495 / +1297 ps; none up to 0.20 |
 | test_stdint_s1 | MEM | 0.128 (6 / 6) | ucond_br2 | kappa 0.20 | - | - |
 | factorial_s2 |  | 0.129 (24 / 24) | ucond_br5 | kappa 0.20 | x=0.25: RESULT | +1695 / +3974 ps; none up to 0.20 |
