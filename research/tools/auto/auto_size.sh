@@ -264,9 +264,10 @@ mkbit() {  # mkbit HWDIR: the bitstream from HWDIR/D.fasm, as cells/hw/build_ben
 # memo is written only after its run finished, by rename. The key covers what the run reads, so another route, other
 # sizes or another rule setting misses and runs for real: a memo can make a resume faster, never different. A stack
 # memo also restores what the stack leaves for later steps: the event graph's files (graphs/N_I, which the search
-# phase reads), the BENCHRES lines of r/N_I/run.log (suite_one.sh's latency) and fid/equiv.txt. The git ids (this
-# script's included) are of committed content: a local run with uncommitted changes to those tools must not reuse
-# an older memo, and a commit to any of them between two parts of a farm run makes the later part miss.
+# phase reads), the BENCHRES lines of r/N_I/run.log (suite_one.sh's latency) and fid/equiv.txt. The git ids are of
+# committed content: a local run with uncommitted changes to those tools must not reuse an older memo, and a commit
+# to one of them between two parts of a farm run makes the later part miss. This script enters a rule key only as
+# the text of rule() (declare -f), so a commit elsewhere in it does not.
 ck_tools() {  # ck_tools PATH...: the committed git object ids of the tools a memo depends on ("?" outside git)
   local p; for p in "$@"; do git -C "$R" rev-parse "HEAD:$p" 2>/dev/null || echo "?"; done
 }
@@ -276,8 +277,7 @@ ck_put() {  # ck_put SRC DEST: SRC copied to DEST by rename, so a memo is never 
 stk_key() {  # stk_key I: content key of route N_I's full stack
   local H=$RUNS/hw/${N}_$1
   { cat "$H/$D.fasm" "$H/${D}_routed.json" "$H/${K}_kernel_bench.v" "$RUNS/r/${N}_$1/xray.sdf" "$VEC" 2>/dev/null
-    ck_tools research/tools/eventgraph research/tools/fifteen/lane2_run.sh research/tools/ffmux_scan.py cells/gls \
-      research/tools/auto/auto_size.sh; } \
+    ck_tools research/tools/eventgraph research/tools/fifteen/lane2_run.sh research/tools/ffmux_scan.py cells/gls; } \
     | md5sum | cut -c1-16
 }
 l2run() {  # l2run I: lane2_run.sh's full stack on route N_I (its own output); AUTO_CKPT=1: memoized (see above)
@@ -318,8 +318,8 @@ rck_key() {  # rck_key I SIZES: content key of a trim step's rule run on route N
   local H=$RUNS/hw/${N}_$1
   { cat "$H/${D}_routed.json" "$RUNS/r/${N}_$1/xray.sdf" "$2" 2>/dev/null
     env | grep -E '^(CA_|BD_|AUTO_GUARD_E=|AUTO_RULE_CORNERS=|PYTHONHASHSEED=)' | sort
-    ck_tools research/tools/corner_audit.py research/tools/ca_fast.py research/tools/auto/merge_rules.py cells/verify \
-      research/tools/auto/auto_size.sh; } \
+    ck_tools research/tools/corner_audit.py research/tools/ca_fast.py research/tools/auto/merge_rules.py cells/verify
+    declare -f rule; } \
     | md5sum | cut -c1-16
 }
 rule_memo() {  # rule_memo I SIZES: rule() for a trim step; AUTO_CKPT=1: memoized with what the step reads of it
@@ -1027,6 +1027,46 @@ search_phase() {
     && python3 "$T/est_sizes.py" "$EM3/kernel.v" "$K" > "$EM3/est.vh" \
     && python3 "$R/research/tools/shrink_sizes.py" "$EM3/est.vh" "$SC3" "$EM3/start.vh" --only "$ONLY3" > /dev/null \
     || { echo "search: emit with $XENV failed ($(tail -1 "$EM3/log")): skipped" >> "$O/log.txt"; XENV=""; return 0; }
+  # AUTO_SEARCH_KEEPDEPTH=1 (opt-in, 2026-11-22; unset, nothing here runs): the structure built is the one the search
+  # modelled. search.py prices its new links on the base route's graph, every other link at its depth there; bdc then
+  # recomputes the ring floor (bdc/emit.py ring_depths, the token floor) with the new links counted as storage, and may
+  # make other links SHALLOWER -- quadrec: the three 2-stage pipes on its rotation back edges became 1-stage links, so
+  # the build held exactly the floor's storage and the predicted 2x (40 -> 20 ns) came out as nothing (built / predicted
+  # 1.96-2.17 on all three v10 searches; every other kernel 0.88-1.22). With the knob every link the new structure
+  # would make shallower than the base route keeps its base depth (BDC_LINK_DEPTHS, which may only raise a depth above
+  # the floor), merged into the search's ENV, and the structure is emitted again. Rebuilt by hand on v10's quadrec s3
+  # route: untrimmed P 21199 ps against the search's model 20924 (without the pins: 43402).
+  if [ "${AUTO_SEARCH_KEEPDEPTH:-0}" = 1 ]; then
+    local KD
+    KD=$(python3 - "$RUNS/hw/${N}_$X/${K}_kernel_bench.v" "$EM3/kernel.v" "$XENV" <<'PY'
+import re, sys
+def depths(p):
+    v = open(p).read(); out = {}
+    for m in re.finditer(r"\n\s*(bd_link|bd_pipe)\s*(#\((.*?)\))?\s*(ulink_\w+)\s*\(", v, re.S):
+        n = re.search(r"\.N\((\d+)\)", m.group(3) or "") if m.group(1) == "bd_pipe" else None
+        out[m.group(4)] = int(n.group(1)) if n else 1
+    return out
+base, new = depths(sys.argv[1]), depths(sys.argv[2])
+env = dict(x.split("=", 1) for x in sys.argv[3].split() if "=" in x)
+have = dict(y.split("=") for y in env.get("BDC_LINK_DEPTHS", "").split(",") if "=" in y)
+keep = {l: d for l, d in base.items() if l in new and new[l] < d}
+if not keep:
+    sys.exit(0)
+for l, d in keep.items():
+    have[l] = str(max(d, int(have.get(l, 0))))
+env["BDC_LINK_DEPTHS"] = ",".join("%s=%s" % kv for kv in sorted(have.items()))
+print(" ".join("%s=%s" % kv for kv in env.items()) + "\t" + " ".join("%s:%d->%d" % (l, new[l], d) for l, d in sorted(keep.items())))
+PY
+)
+    if [ -n "$KD" ]; then
+      XENV=${KD%%$'\t'*}
+      echo "search: AUTO_SEARCH_KEEPDEPTH: ${KD#*$'\t'} (base depth kept)" >> "$O/log.txt"
+      env $XENV BDC_AUTO=1 python3 "$R/bdc/emit.py" "$EM3/auto.mlir" --no-top -o "$EM3/kernel.v" >> "$EM3/log" 2>&1 \
+        && python3 "$T/est_sizes.py" "$EM3/kernel.v" "$K" > "$EM3/est.vh" \
+        && python3 "$R/research/tools/shrink_sizes.py" "$EM3/est.vh" "$SC3" "$EM3/start.vh" --only "$ONLY3" > /dev/null \
+        || { echo "search: emit with $XENV failed ($(tail -1 "$EM3/log")): skipped" >> "$O/log.txt"; XENV=""; return 0; }
+    fi
+  fi
   j=$((i + 1)); [ -f "$O/sizes_$j.vh" ] && mv "$O/sizes_$j.vh" "$O/sizes_${j}_unbuilt.vh"
   { cat "$O/sizes_$X.vh"
     grep '^`define' "$EM3/start.vh" | while read -r _ m v _; do

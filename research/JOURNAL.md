@@ -10015,3 +10015,25 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   across 27-30 rows (the compare's line end to the steers' joins). With every hop at the adjacent-slice cost the cycle
   would lose at most ~2.4 ns, about 6 % of P -- consistent with the hand placement trials (fifteen levers 4 / 10) being
   mixed by seed.
+### progress 06:54 (quadrec's search miss explained and fixed opt-in: the build lowered the pipes the model kept; with the base depths kept the predicted structure builds at 21.2 ns vs 43.4 -- AUTO_SEARCH_KEEPDEPTH)
+- **The miss:** over every v10 / v11 search route, built / predicted P is 0.88-1.22 except quadrec, 1.96-2.17 on all
+  three seeds (predicted ~20 ns, built 39-41 ns). Rebuilt v10's quadrec s3 base (it 10, sdf 0ed89d69 = the farm's,
+  untrimmed P 42568) and search route (it 11, sdf 961c94c6, untrimmed 43402): the search route's critical cycle still
+  threads all four value rings through the new fork-output links with one token. In its netlist the three 2-stage
+  pipes on quadrec's rotation back edges (ulink_n_trueResult_16 / _18 / _20) are 1-stage links: bdc's token floor
+  (bdc/emit.py ring_depths) counted the new links as storage and lowered them, so the build held exactly the floor's
+  storage. search.py / whatif.py had priced the new links with those pipes at depth 2.
+- **The check:** the same structure with the pipes pinned at their base depth (BDC_LINK_DEPTHS=ulink_n_trueResult_16=2,
+  _18=2, _20=2; BDC_LINK_DEPTHS may only raise a depth above the floor), same sizes and seed: **untrimmed P 21199 ps**
+  (model 20924; base 42568; the search route as the flow built it 43402), EQUIVALENT. One route, not rule-checked, no
+  draws: a measurement of the structure, not a result.
+- **The change (opt-in, this commit):** auto_size.sh AUTO_SEARCH_KEEPDEPTH=1 -- after the search's structure is emitted,
+  every link it would make shallower than on the base route keeps its base depth (merged into the search's
+  BDC_LINK_DEPTHS) and the structure is emitted again; the log names each pin. Checked on the quadrec netlists: it pins
+  exactly those three; on the pinned build it pins nothing. Unset, nothing runs.
+- **Also in this commit:** the AUTO_CKPT keys no longer include auto_size.sh's / suite_one.sh's whole-file git ids
+  (a commit anywhere in them between a farm part and its resume would make every memo miss); they include the text of
+  rule() and draw() (declare -f) instead. Re-checked end to end below (tests H / I).
+- **Running:** quadrec seeds 1-3 under v13's environment + AUTO_SEARCH_KEEPDEPTH=1 (+ AUTO_CKPT=1), local, from scratch.
+  PREDICTION (written now): the search chooses fork-output links again, the log shows the pins, the search route ships
+  rule-CLEAN at 20-26 ns trimmed (v10 39.4-41.5; Dynamatic's on-merges 11.58), every draw passes.

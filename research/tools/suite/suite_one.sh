@@ -145,13 +145,13 @@ if [ "$eq" != EQUIVALENT ] || [ "$ff" != ffmux-clean ]; then fin "status=NOT-A-B
 # that ran (PASS, or FAIL with the monitor's cycles) is kept by content in the loop's own directory ($RUNS/auto/N/
 # dck_KEY_{draw,bench}.txt, which a farm task's save loop copies to $SHARED), so a resumed task judges the same route on
 # the same draw points without running them again. KEY: md5 of the route's FASM, routed JSON and SDF, the vectors, the
-# expected values (and arrays), the draw point, the runt setting, every GATE_ / GLS_ variable and the gate's committed
-# git ids. A draw with no cycles or no monitor output (an out-of-memory kill: research/JOURNAL.md 2026-11-21 12:17) is
+# expected values (and arrays), the draw point, the runt setting, every GATE_ / GLS_ variable, the gate's committed
+# git ids and the text of draw() (not this whole file's id: a commit elsewhere in it must not make a resume miss). A draw with no cycles or no monitor output (an out-of-memory kill: research/JOURNAL.md 2026-11-21 12:17) is
 # never kept.
 dck_key() { { cat "$HW/$D.fasm" "$HW/${D}_routed.json" "$RD/xray.sdf" "$R/$V" "$O/exp.txt" "${GATE_MEMEXP:-/dev/null}" 2>/dev/null
   echo "draw:$1 runts=${GATE_RUNTS-1}"; env | grep -E '^(GATE_|GLS_)' | grep -v '^GATE_MEMEXP=' | sort   # its content is above; its path is not
-  for p in research/tools/eventgraph cells/gls research/tools/band_inst_list.py research/tools/compile_slot.sh \
-           research/tools/suite/suite_one.sh; do git -C "$R" rev-parse "HEAD:$p" 2>/dev/null || echo "?"; done; } \
+  for p in research/tools/eventgraph cells/gls research/tools/band_inst_list.py research/tools/compile_slot.sh; do
+    git -C "$R" rev-parse "HEAD:$p" 2>/dev/null || echo "?"; done; declare -f draw; } \
   | md5sum | cut -c1-16; }
 draw() { local k=$1 g key="" A=$RUNS/auto/$N
   if [ "${AUTO_CKPT:-0}" = 1 ]; then
