@@ -129,6 +129,7 @@
 | fill_s2 | MEM | 0.140 (22 / 22) | ucond_br6 | none up to 0.20 | - | - |
 | mul_example_s4 | MEM | 0.140 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | while_loop_3_s3 | MEM | 0.141 (8 / 8) | ucond_br3 | none up to 0.20 | - | - |
+| spmv_s4 | MEM | 0.143 (40 / 40) | ucond_br6 | none up to 0.20 | - | - |
 | varshift_s4 |  | 0.143 (20 / 20) | ucond_br7 | none up to 0.20 | none to 0.25 | none |
 | if_convert_s4 | MEM | 0.144 (4 / 4) | ucond_br1 | none up to 0.20 | - | - |
 | dot2_s3 | MEM | 0.145 (14 / 14) | ucond_br8 | none up to 0.20 | - | - |
@@ -179,6 +180,7 @@
 | while_loop_3_s1 | MEM | 0.236 (8 / 8) | ucond_br4 | none up to 0.20 | - | - |
 | single_loop_s4 | MEM | 0.239 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | test_bitint_s4 | MEM | 0.246 (6 / 6) | ucond_br3 | none up to 0.20 | - | - |
+| fir_s4 | MEM | 0.285 (6 / 6) | ucond_br1 | none up to 0.20 | - | - |
 | loop_path_s1 | MEM | 0.289 (4 / 4) | ucond_br1 | none up to 0.20 | - | - |
 | divmods_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | divmods_s2 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
