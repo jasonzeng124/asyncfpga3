@@ -9865,3 +9865,7 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 ### progress 01:19 (local v12 / v13 pairs started on gather s1 and if_loop_2 s1 -- memory kernels whose port is on the cycle; v13's farm parts queue behind v12's and will not finish in this session)
 - /tmp/bot/runs/v12c and v13c (same seeds, each flow's exact environment). PREDICTION (now): v13 below v12 on both,
   every draw passing.
+### progress 01:55 (v13 preview, dot2 s1: PASS 4 / 4 rule-CLEAN, P 25.01 ns -- v12's preview 30.47 (-17.9 %), v10 27.43, v11 29.26; latency median 840 vs v12 1020 ns)
+- 8 trims, 7 of them port lines (controllers 2 / 3); draws 8 / 8 calls each, narrowest pulse 3371 ps; no latch-fed race
+  on this kernel. With memsum s1 (-14.7 % vs v12): on both memory previews v13 takes back the guard's churn and more
+  (v13 / v10: memsum 1.048, dot2 0.912). One seed each; the gather / if_loop_2 pairs are running.
