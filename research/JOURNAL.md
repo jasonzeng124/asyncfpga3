@@ -10275,3 +10275,8 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 - So v12's guard + late-after-search buys convergence (and formal's steer tolerance, B30 / C80) for ~5 % P on average.
   Its header's prediction "P no worse than v10's where v10's search rescued" is not met as a mean (per pair, mixed);
   the status part holds so far. The headline stays v10's until v11 / v12 complete.
+### progress 15:24 (v13 previews done: collatz64 s2 PASS 4/4 at 19.80 ns (v10 23.61, -16 %; its v10 search never converged), countloop s2 PASS 4/4 at 20.46 (v10 20.00); strict gate on quadrec's route 12 / 35 PASS)
+- Both with flow v13's amended export line exactly (/tmp/bot/scripts/v13b_launch.sh), so the farm's v13 parts should
+  ship these same routes (collatz64 s2 sdf e6a9ca82, countloop s2 6fe0f2c9) unless a commit to the flow code lands
+  between now and their submission (none is planned: opt-in only). Their searches converged in raise-only routes, so
+  AUTO_SEARCH_OVERBUILD stayed idle on both.
