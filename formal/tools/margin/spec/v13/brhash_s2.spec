@@ -1,0 +1,10 @@
+# brhash seed 2, route su_brhash_2_9 (farm suite13t_s5a_v13_2a/12): P=NA; rw=plain_route_tv(memo@cf2aca89f)
+MEM=0
+K=brhash
+SEED=2
+SIZES=formal/tools/margin/spec/v13/brhash_s2_sizes.vh
+TRIMS=-
+MLIR=research/data/autorw/brhash.mlir
+ENV=TRIM_STAGEFIX=1
+SDF=0e2d902c
+FASM=00000000
