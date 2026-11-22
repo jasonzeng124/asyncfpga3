@@ -9,3 +9,9 @@ run used), log_tail.txt (the loop's final / search / trim lines). The suite tabl
 counts these as flow v10 results; digitsum and digitdiv build the same circuit (bdc's frontend rewrites digitsum's
 `%` into digitdiv's v - (v / b) * b), hence the same P to the picosecond: their s2 SDFs are identical line for line once the kernel name is masked
 (checked 2026-11-21 21:30).
+
+Added 2026-11-22 (auditor T180: the local runs' logs were only in /tmp): per kernel `benchres_*.txt` (each draw's
+BENCHRES lines: operands, results, latencies), `exp.txt` (the C's expected values; video_filter's arrays in
+`memexp.txt`), `draws.txt`, `suite_auto.log`, and `loop/` (the sizing loop's full log, result line, every iteration's
+lane2 line and seed, the shipped iteration's sizes and trim record). With them a draw's answers can be re-checked against
+an oracle of one's own, and the shipped route rebuilt from its sizes / seed / trims.
