@@ -23,10 +23,12 @@
 | fill_s1 | MEM | 0.150 (22 / 22) | ucond_br6 | none up to 0.20 | - | - |
 | xorshift_s1 |  | 0.150 (16 / 16) | ucond_br9 | none up to 0.20 | none to 0.25 | +508 / +1274 ps; none up to 0.20 |
 | fill_s2 | MEM | 0.151 (22 / 22) | ucond_br8 | none up to 0.20 | - | - |
+| branchloop_s2 |  | 0.152 (30 / 30) | ucond_br17 | none up to 0.20 | none to 0.25 | +418 / +1111 ps; none up to 0.20 |
 | fold64_s2 |  | 0.154 (20 / 20) | ucond_br5 | kappa 0.20 | x=0.25: RESULT | +287 / +738 ps; kappa 0.20 ( c0:NO-VERDICT/6853710 c1:OK/0) |
 | test_bitint_s1 | MEM | 0.161 (6 / 6) | ucond_br2 | none up to 0.20 | - | - |
 | fold64_s1 |  | 0.162 (20 / 20) | ucond_br3 | kappa 0.20 | x=0.25: RESULT | +750 / +1838 ps; none up to 0.20 |
 | ipow_s2 |  | 0.163 (16 / 16) | ucond_br9 | none up to 0.20 | none to 0.25 | +676 / +1369 ps; none up to 0.20 |
+| varshift_s2 |  | 0.168 (20 / 20) | ucond_br6 | none up to 0.20 | none to 0.25 | none |
 | sqrtsub_s1 |  | 0.171 (16 / 16) | ucond_br3 | none up to 0.20 | none to 0.25 | +1772 / +4212 ps; none up to 0.20 |
 | twoloops_s2 |  | 0.172 (32 / 32) | ucond_br15 | none up to 0.20 | none to 0.25 | +383 / +988 ps; none up to 0.20 |
 | if_loop_2_s1 | MEM | 0.174 (14 / 14) | ucond_br4 | none up to 0.20 | - | - |
@@ -44,6 +46,7 @@
 | test_memory_2_s1 | MEM | 0.256 (12 / 12) | ucond_br4 | none up to 0.20 | - | - |
 | test_flatten_array_s1 | MEM | 0.295 (30 / 30) | ucond_br16 | none up to 0.20 | - | - |
 | divmodu_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
+| divmodu_s2 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | simple_example_1_s1 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |
 | straight_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | straight_s2 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
