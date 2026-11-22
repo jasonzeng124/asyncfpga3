@@ -3591,3 +3591,16 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   manual AUTO_TRIM_ONLY re-final 'as a farm resume would'), not by the v13 farm run. The BDC_LINK_DEPTHS pins are the
   KEEPDEPTH knob's output (a structural rule; census over v10's 89 search structures: only quadrec's change).
 - 16:45 T186: 4 parallel GLS ran out of memory (one build killed); restarted as queue.sh, 2 at a time.
+### progress 16:35 -- PAUSED by the owner (PROGRAM 16bf8ee500, 16:25 UTC: "can you pause evt for the rest of week")
+State of play:
+- Done this session (rows in REPORT.md): T181 A35 CONFIRMED (token level); T183 A31 OVERSTATED (chain composed by the
+  audit, minus bounded runs); T182 item 46 CONFIRMED (rebuilds, both halves right at 5 corners; formal B36's race
+  reproduced at an extreme split, padded passes); tb_ps TEND overflow (fixed by research 2236cc70aa); T184
+  SteerSettleMulti statement read (build UNVERIFIED, needs Mathlib); T185 BDC_SHIFT_MASK + A37 CONFIRMED; gcd target
+  md5s unchanged.
+- Stopped mid-step: T186 item 47 (quadrec). Rebuilds of both specs match (row); the 5-corner GLS was killed by the
+  pause before any corner finished. To resume: audit/t186/queue.sh (needs /root/audit-tc2, worktrees
+  /root/wt-t186-{v10,v13local} at e454144a54 and build.sh outputs; rerun build.sh first in a fresh container), then
+  compare the summed latmax of both routes for the 0.588 ratio.
+- Open for later: v12 / v13 headline when it lands; SteerSettleMulti build (Mathlib).
+Lock cleared; session ending per PROGRAM.
