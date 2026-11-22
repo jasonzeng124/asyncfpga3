@@ -4,6 +4,13 @@ You are the only agent working on branch `claude/research`. Nobody will answer
 questions: decide, record why in the journal, and keep going. The owner reads
 `research/JOURNAL.md` and `research/BOARD-QUEUE.md` and runs the board.
 
+## PAUSED by the owner, 2026-11-22T16:25Z: "can you pause evt for the rest of week"
+
+**Stop now.** Finish the step you are in (at most 15 minutes), push, write the state of play in
+the journal, CLEAR your lock, and end the session. Start nothing new: no new builds, no farm
+requests, no subagents. A session that starts while this section is here stops at once after
+reading it, without changes. Only the owner (or the session that relays him) removes this section.
+
 ## The automatic path must not carry a list of kernels (auditor T156, 2026-11-18 19:30 UTC)
 
 bdc/auto.py keeps an MLIR rewrite only when its output's md5 is one of three files
