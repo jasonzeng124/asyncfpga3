@@ -49,7 +49,7 @@ if [ "$WF" = 00000000 ] && grep -q "trimmed fasm .* not 00000000" "$O/rebuild.tx
   "$TC/openxc7/bin/xc7frames2bit" --part_file "$DB/$P/part.yaml" --part_name "$P" --frm_file "$HB2/$D.frames" --output_file "$HB2/$D.bit" > "$HB2/bit.log" 2>&1 &&
   echo "OK -- sdf $(md5sum < "$HB2/$D.sdf" | cut -c1-8), trimmed fasm $(md5sum < "$HB2/$D.fasm" | cut -c1-8) (no judged fasm in the spec; bit made by drawspec)" >> "$O/rebuild.txt"
 fi
-grep -q "OK -- sdf" "$O/rebuild.txt" || { echo "$SP | rebuild refused: $(tail -1 "$O/rebuild.txt")" > "$O/line.txt"; exit 0; }
+grep -q "OK -- sdf" "$O/rebuild.txt" || { tail -8 "$HB2/build.log" 2>/dev/null | sed 's/^/build.log: /' >> "$SM"; echo "$SP | rebuild refused: $(tail -1 "$O/rebuild.txt")" > "$O/line.txt"; exit 0; }
 WT=$BQ_RUNS/wt/$BQ_LANE/cells/build; W=$O/hw; mkdir -p "$W/gen"
 cp "$HB2/$D.bit" "$HB2/$D.fasm" "$HB2/$D.sdf" "$HB2/${D}_routed.json" "$W/"; cp "$WT/hw/$D/$D.json" "$W/"
 cp "$WT/gen/$D.v" "$WT/gen/${K}_kernel_bench.v" "$W/gen/"
