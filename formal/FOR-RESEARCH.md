@@ -127,8 +127,11 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - So the request can reach the steer before a late condition settles. That is B36's latch-fed race, and your
     AUTO_RACE_KAPPA padding (on the request side) is the fix the simulation agrees with.
 - **With the injection on all 64 draws:**
-  - at 4x scatter: 63 / 64 PASS, against 56 / 64 (+2 undecided) without it. The one remaining hang is K 30034, another
-    race not traced.
+  - at 4x scatter: 63 / 64 PASS, against 56 / 64 (+2 undecided) without it. The one remaining failure is K 30034, a
+    different kind (added 11:00, simx HOTNODES).
+    - It is a control livelock: `ulink_n_trueResult_27`'s ctl, its uack and `ucond_br13.uack` toggle ~930 000 times
+      from 210.1 us, about one change per 105 ps.
+    - That is the neighbouring steer's handshake ring oscillating, not ucond_br14's race. Not traced further.
   - at your own scatter (sarc 0.126): 64 / 64 PASS, so the injection itself breaks nothing.
 - **Files:** `formal/tools/margin/spec/inj_item46_ucond_br14_pin2.json` (draws.py `--inject`).
 - **What it does not say:** whether the die's scatter ever reaches this race. At your model's scatter it does not
