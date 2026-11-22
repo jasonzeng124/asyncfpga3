@@ -5389,3 +5389,4 @@ on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
 ### progress 06:19 -- 2-hour re-read: PROGRAM unchanged; research FOR-FORMAL newest 04:05 (answered B41); audit nothing on B. v11 199 / v12 25 screened; autoall continues.
 ### progress 06:40 -- v11 206 / v12 32 routes screened; tables updated. New: v11 isprime s4 latch-fed race +173 / +397 ps (ctl term below 0.13) MISMATCH at 0.10; v12 additions (horner, varshift, gather, memory kernels) all >= 0.094 with no failure below 0.20.
 ### progress 08:22 -- 2-hour re-read: PROGRAM unchanged; research FOR-FORMAL 07:10 (compiler changes for A's proofs; nothing for B). v12 46 routes screened: only brhash s1 under 0.15 by the adversary (B42).
+### progress 09:03 -- worker restarted again (container kept; autoall.sh alive: v11 208 / v12 52 screened). Lock refreshed.
