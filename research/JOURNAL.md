@@ -10037,3 +10037,10 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 - **Running:** quadrec seeds 1-3 under v13's environment + AUTO_SEARCH_KEEPDEPTH=1 (+ AUTO_CKPT=1), local, from scratch.
   PREDICTION (written now): the search chooses fork-output links again, the log shows the pins, the search route ships
   rule-CLEAN at 20-26 ns trimmed (v10 39.4-41.5; Dynamatic's on-merges 11.58), every draw passes.
+### progress 06:56 (AUTO_SEARCH_KEEPDEPTH's reach: of v10's 89 search structures only quadrec's four would be pinned -- every other kernel builds exactly as before)
+- research/data/keepdepth/census_v10.tsv (census_run.sh, kd_pins.py): for every (kernel, seed) whose v10 loop reached a
+  search structure, bdc emits the base structure and the search's (its ENV, the memo's MLIR where the kernel has a
+  proved rewrite), and the links the second makes shallower are listed. 85 of 89: none. quadrec s1-s4: the same three
+  pipes (ulink_n_trueResult_16 / _18 / _20, 2 -> 1). So the knob changes quadrec's search builds and nothing else on
+  v10's structures; if the local quadrec runs (v13 + the knob) converge clean and pass, it can join v13 before v13's
+  parts are submitted at no risk to the other kernels.
