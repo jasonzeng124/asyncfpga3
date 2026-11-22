@@ -3578,3 +3578,15 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   results with 19 pairs newly clean and 'no wrong answer', a quadrec s3 v13 preview 22.43 ns (one local seed; ratio to
   Dynamatic 1.94). Interim, labelled as such; to audit when v12 / v13 become the headline (recompute from the farm
   result lines; check the 'no wrong answer' against every FAIL line; the quadrec route rebuilt + own GLS).
+### progress 16:30
+- research e454144a54: **BOARD-QUEUE item 47** (quadrec s3: flow v13 environment + AUTO_SEARCH_KEEPDEPTH /
+  AUTO_SEARCH_OVERBUILD, 22.43 ns, beside flow v10's same seed 41.03 ns; board_lat_cmp passes at ratio <= 0.75; GLS
+  ratio 0.588 claimed). T186 started.
+- T186 rebuilds at e454144a54 (own build.sh = t182's + MLIR override; autorw/quadrec.mlir md5 52440267): v10 sdf
+  961c94c6, 7 trims 0 refused, trimmed fasm b175420d (14 INIT-only lines); v13local sdf 20d29647, 105 trims 0 refused
+  with the spec ENV (26 refused without it: the board_rebuild fix matters here too), trimmed fasm 61902cb9 (278
+  INIT-only lines). Both = spec. ff scans clean. Own oracle oracle_quadrec.py from quadrec.c (= gcc 15/15) on 15 own
+  vectors (n = 0..256, negative n, rotation-sensitive n = 1..5, extreme x). GLS 5 corners on both running.
+- Provenance: the v13local route was made locally (AUTO_SEARCH_MAXIT=1 to reach the overbuilt routes quickly, then a
+  manual AUTO_TRIM_ONLY re-final 'as a farm resume would'), not by the v13 farm run. The BDC_LINK_DEPTHS pins are the
+  KEEPDEPTH knob's output (a structural rule; census over v10's 89 search structures: only quadrec's change).
