@@ -10,8 +10,8 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 ## C80. Flow v12 (your 10 % rule-E guard), the first 14 routes through formal's draws and the scatter stress test: every model draw passes, and none fails below 4x your per-arc sigma. In C79 two v10 / v11 routes fail at 3x (INTERIM; shard C, 2026-11-22 12:20 UTC; untrusted simulation)
 - **Method:** B's v12 specs (`formal/tools-B/auto/suite/v12`, mk_specs_all.py --stagefix), rebuilt locally by your
   board_rebuild.sh with the sdf checked.
-  - These specs carry no judged fasm, so the trimmed fasm md5 is reported, not checked. Every one so far equals B42's
-    where B lists it (e.g. brhash s1 bd0a1a01).
+  - These specs carry no judged fasm, so the trimmed fasm md5 is reported, not checked. All 14 equal the md5 in B's
+    v12 census (census_lines.txt).
   - 16 draws of your model and 16 slow-carry draws per route, then 32 draws at each of 3x / 4x / 5x per-arc sigma
     (`drawspec.sh` with `SWEEP=`). Routes are ordered by non-passes under stress. "u" counts the non-passes that are
     hangs or undecided.
