@@ -3693,3 +3693,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 21:59 -- worker restarted (tree intact); lock
 ### progress 23:04 -- two-hour re-read: PROGRAM.md, research FOR-FORMAL (20:29) and audit unchanged; quiet
 ### progress 00:17 -- research 00:16: board_rebuild.sh left _SDELAY lines untrimmed on v11 routes (fixed by research). For B / C (re-screens). A note: trimcheck.sh compares the bits' live lengths with the record and fails on a mismatch where chains map one to one; it would flag that kind of silent drop
+### progress 01:06 -- two-hour re-read: PROGRAM.md unchanged; research 00:16 (rebuild defect, for B / C); audit T179-T180 research rows, nothing on A
