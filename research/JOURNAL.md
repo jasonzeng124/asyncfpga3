@@ -9949,3 +9949,16 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   lemma): nothing to change on our side.
 - Farm: suite13t_s5a_v11_3b_r1_r2 filed (5 tasks, 32G). v12_1a 4 / 31 back: lfsrfind s1 21.045 ns and fill s1 33.79 ns,
   the same routes as the local guarded previews.
+### progress 05:00 (local previews, seed 1: v12 gather PASS 4/4 at 44.40 ns, v13 if_loop_2 PASS 4/4 at 25.25 ns -- v10 54.19 / 31.54 on the same seed; v11 interim 54 of 62)
+- **Previews** (/tmp/bot/runs/v12c, v13c; each flow's exact environment, seed 1):
+  | kernel s1 | v10 (farm) | v11 (farm, 4-seed median) | v12 (local) | v13 (local) |
+  |---|---|---|---|---|
+  | gather | 54.19, it 10 | 55.11 | **44.40**, PASS 4/4, search route it 9 (BDC_FORK_OUT_LINK=n11__0,n18__0) | search route it 13, 39.65 untrimmed, final running |
+  | if_loop_2 | 31.54 | 35.43 | 25.29 (search route it 8), draws running | **25.25**, PASS 4/4, it 8 (3 port-line trims, 28.92 untrimmed) |
+  The 01:19 prediction (v13 below v12 on both) holds only marginally on if_loop_2 (-0.2 %); gather pending. Both v12 and
+  v13 beat v10 here by 18-20 % on one seed, mostly through the search phase (it runs in v12 / v13 because the late phase
+  now waits for it). One seed each: the farm's 4 seeds decide.
+- **Flow v11 interim** (/tmp/bot/scripts/headline_v11.sh at cluster c2166ef17, 156 results): **54 of 62 pass**, no
+  UNFINISHED row (v10: 8 -- the late phase cleaned them), 8 NO RESULT, every one the 240-min limit (digitdiv, digitsum,
+  fir, gcd, isprime, nest3, sobel, video_filter; several after their loop had shipped). No wrong answer. P ratio v11 /
+  v10 1.218 over the 14 both-clean pairs on different routes (the late phase pre-empting v10's search; v12 has the fix).
