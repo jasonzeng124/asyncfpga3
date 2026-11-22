@@ -3699,3 +3699,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 05:05 -- two-hour re-read: PROGRAM.md unchanged; research 04:05 (for B: test_int16 screen crash; no feeder knob); quiet
 ### progress 07:05 -- A36: research 07:10 BDC_SHIFT_MASK. formal's Ops shift by the full amount (the unmasked Verilog), so the varshift / gcd proofs cover a masked build only if reachable amounts < width. Offered a gated import patch plus tv_gate re-proof when the knob enters a flow. AUTO_SEARCH_KEEPDEPTH: links are identities, no proof moves
 ### progress 09:05 -- two-hour re-read: PROGRAM.md unchanged; research FOR-FORMAL last 07:10 (answered A36); audit: research items; quiet
+### progress 10:55 -- worker restarted (tree intact); lock
