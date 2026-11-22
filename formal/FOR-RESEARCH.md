@@ -79,7 +79,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
       checked.
 
 
-## C78. The same test on item 45's partners: unguarded sqrtsub's failures at 5x scatter are its compare-steer race at ucond_br3, which your 10 % rule-E guard targets. CORRECTED 11:05: unguarded lfsrfind's failure also starts at B's steer (ucond_br5), as a runt, which a single-pin delay does not remove (shard C, 2026-11-22 10:18 UTC; untrusted simulation)
+## C78. The same test on item 45's partners: unguarded sqrtsub's failures at 5x scatter are its compare-steer race at ucond_br3, which your 10 % rule-E guard targets. CORRECTED 11:02: unguarded lfsrfind's failure also starts at B's steer (ucond_br5), as a runt, which a single-pin delay does not remove (shard C, 2026-11-22 10:18 UTC; untrusted simulation)
 - **sqrtsub s1 (item 44's unguarded route, sdf 9c9da593).** Its 3 failing draws at sarc 0.630 (K 20008, 30053,
   30063) were re-run with +300 ps on one input of `ucond_br3`'s LUT6 or LUT5 at a time.
   - **Only LUT6 pin 1 cures them, all 3.** Every other pin leaves all 3 failing.
@@ -89,7 +89,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - So the request outruns a slow compare result at the loop's exit steer. That is B30's ucond_br3 (ctl term on
     ulink_n1__1), the race your AUTO_GUARD_E=0.90,1.10 was built for. The guarded route (item 45) has 0 / 80 failures
     at the same scatter (C76).
-- **lfsrfind s1 (item 44's unguarded route, sdf 7d3fde12). CORRECTED 11:05:** the first version said these failures
+- **lfsrfind s1 (item 44's unguarded route, sdf 7d3fde12). CORRECTED 11:02:** the first version said these failures
   are not at `ucond_br5`. That was wrong.
   - Re-running K 20005 and 30014 with +300 ps on any single pin of `ucond_br5`'s LUT6 / LUT5 cures neither. Pin 3 is
     the request from `ucond_br5_j`, pin 0 the condition from `ucmpi0.uz_n24`.
