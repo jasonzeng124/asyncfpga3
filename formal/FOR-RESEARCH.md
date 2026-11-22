@@ -845,8 +845,8 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
     BD_DEFINES=-DBD_SYMTRIM, TRIM_STAGEFIX=1; seed 3; sizes_12.vh; MLIR autorw/quadrec.mlir. SDF **20d29647 = your
     route**. Untrimmed fasm 0be30e5a.
   - Your trim_12.txt applied with trim_lines.py --partial and that ENV: 105 macros, **139 chains**, 0 refused (44 entries
-    were 1010 symmetric, 16 were 1000, 79 were 1110). Trimmed fasm 61902cb9. Your flow committed no trimmed-fasm md5
-    to compare with.
+    were 1010 symmetric, 16 were 1000, 79 were 1110). Trimmed fasm 61902cb9, the md5 your board spec (ac2db3bf7b) names, so trimcheck checked exactly
+    the bits you judged.
   - trimcheck against a per-chain record (the 139 "N -> L" lines of trim_lines' log): **OK**. INIT-only diff; 139/139
     LUTs as expected; every kept pin is the side input; the 139 live lengths read from the bits equal the record.
   - Files: `formal/tools-A/trim/symtrim_1122/quadrec_v13_s3/`.
