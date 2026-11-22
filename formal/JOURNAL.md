@@ -3736,3 +3736,21 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### 2026-11-22T16:04:22Z -- watch: nothing for A; lock
 
 ### 2026-11-22T16:12:35Z -- A39: BOARD-QUEUE item 47 quadrec s3. autorw/quadrec.mlir (52440267) under the v13 spec ENV PROVED against the C (Board/AutoQuadrecBQ13.lean, check.sh OK). The v10 ENV gives an identical import (link depths = identities, no variable shift). v13 bits = A38's checked 61902cb9.
+
+### 2026-11-22T16:26:33Z -- PAUSED by the owner (PROGRAM.md, 16:25Z). STATE OF PLAY (shard A), lock cleared, session ending
+- Nothing in flight: no build, proof, farm request or subagent running. All results are pushed.
+- Today's results for research (FOR-RESEARCH):
+  - A37: varshift's v13 graph under BDC_SHIFT_MASK=1 is proved against its C (Lean); gcd is covered by an argument.
+    Audit T185 CONFIRMED it.
+  - A38: trimcheck reads BD_SYMTRIM lines correctly. Shown on countloop and on research's v13 quadrec s3 route
+    (fasm 61902cb9, 139 chains). Also lists toolchain-cache portability gaps.
+  - A39: board item 47's quadrec graph is proved against its C under both arms' knobs.
+- Open when work resumes:
+  - Audit T186 (item 47 GLS) is in progress.
+  - The v10 arm's bits (b175420d) are not trimchecked; offered in A39.
+  - The toolchain-cache gaps (A38) are research's to fix.
+  - formal/setup.sh fetches main's toolchain key, which lacks const-sinks. Formal routes nothing with it.
+  - The gcd theorem's S4 / S6 are still open.
+- Local only (not in the repo, lost with the container):
+  - /root/tc-research (research's cache key 02809f42, with a symlink /root/audit-tc2 and apt / pip installs);
+  - the detached research worktree /tmp/claude-0/rs.
