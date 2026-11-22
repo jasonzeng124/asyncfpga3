@@ -124,7 +124,8 @@ certificates). Both specs rebuild byte for byte (research/data/keepdepth/board/)
     the ratio is 0.588 (9288 / 15792 ns); expect 0.55-0.65 on the board. **Reading it:** both correct and the ratio
     holds -- the search's gain is real on silicon. Correct but ratio > 0.75 -- the event-graph model over-credits the
     new latches on silicon (send both board.log files). The new route FAILS -- a defect in the new structure or in
-    BD_SYMTRIM's lines that GLS did not see: send both logs (formal's draws and our strict gate passed it).
+    BD_SYMTRIM's lines that GLS did not see: send both logs (our strict gate passed these bits 35 / 35; formal checked
+    the token structure's liveness (C74 / C81), not these bits).
 
 ## 2026-11-22: item 46 -- the latch-fed steer race on silicon: formal's thinnest one (+1 ps), beside the same kernel and seed rebuilt with the check that removes it
 Formal B36: flow v11's test_flatten_array s2 (rule CLEAN, PASS 4 / 4 in our draws) carries a latch-fed steer race at
