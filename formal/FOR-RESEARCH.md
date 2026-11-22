@@ -22,10 +22,10 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   BDC_SHIFT_MASK, so those 21 routes are v13 without them, and the sdf check holds each rebuild to the route that
   ran. The parts with the knobs will get their own specs when they land.
 
-## C80. Flow v12 (your 10 % rule-E guard), the first 51 routes through formal's draws and the scatter stress test: every model draw passes, and none fails below 4x your per-arc sigma. In C79 two v10 / v11 routes fail at 3x (INTERIM; shard C, 2026-11-22 12:20 UTC; untrusted simulation)
+## C80. Flow v12 (your 10 % rule-E guard), the first 58 routes through formal's draws and the scatter stress test: every model draw passes, and none fails below 4x your per-arc sigma. In C79 two v10 / v11 routes fail at 3x (INTERIM; shard C, 2026-11-22 12:20 UTC; untrusted simulation)
 - **Method:** B's v12 specs (`formal/tools-B/auto/suite/v12`, mk_specs_all.py --stagefix), rebuilt locally by your
   board_rebuild.sh with the sdf checked.
-  - These specs carry no judged fasm, so the trimmed fasm md5 is reported, not checked. All 51 equal the md5 in B's
+  - These specs carry no judged fasm, so the trimmed fasm md5 is reported, not checked. All 58 equal the md5 in B's
     v12 census (census_lines.txt).
   - 16 draws of your model and 16 slow-carry draws per route, then 32 draws at each of 3x / 4x / 5x per-arc sigma
     (`drawspec.sh` with `SWEEP=`). Routes are ordered by non-passes under stress. "u" counts the non-passes that are
@@ -42,6 +42,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   | fold64_s2 | 2cb9e521 / 658b126e | 16+16 / 32 | 0 | 0 | 2 (2u) |
   | if_convert_s1 (memory) | d8bc2924 / 455272f4 | 16+16 / 32 | 0 | 0 | 2 |
   | ipow_s2 | 18a66c31 / 6e2c5818 | 16+16 / 32 | 0 | 1 (1u) | 1 |
+  | simple_example_1_s1 (memory) | 5b20a707 / f281a7b2 | 16+16 / 32 | 0 | 0 | 2 |
   | cmpchain_s1 | 7c455271 / 8538189c | 16+16 / 32 | 0 | 0 | 1 |
   | factorial_s1 | 10c35c81 / 9968e547 | 16+16 / 32 | 0 | 0 | 1 |
   | test_bitint_s1 (memory) | 0fdde1af / bb98343c | 16+16 / 32 | 0 | 0 | 1 (1u) |
@@ -56,6 +57,8 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   | collatz_s2 | 75a7bdf5 / 596f74d1 | 16+16 / 32 | 0 | 0 | 0 |
   | countloop_s1 | e37af453 / 63208798 | 16+16 / 32 | 0 | 0 | 0 |
   | divmods_s1 | 07b0323e / 4783e508 | 16+16 / 32 | 0 | 0 | 0 |
+  | divmodu_s1 | ce811a4e / 94c23204 | 16+16 / 32 | 0 | 0 | 0 |
+  | divmodu_s2 | fff922f1 / bd31c2fd | 16+16 / 32 | 0 | 0 | 0 |
   | dot2_s1 (memory) | f5b576df / 61b43d34 | 16+16 / 32 | 0 | 0 | 0 |
   | factorial_s2 | b3157437 / 42cb3fb7 | 16+16 / 32 | 0 | 0 | 0 |
   | fill_s1 (memory) | 8f1ad745 / 93b737c4 | 16+16 / 32 | 0 | 0 | 0 |
@@ -74,6 +77,10 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   | nested_loop_s1 (memory) | 871e6d01 / f70bf2b2 | 16+16 / 32 | 0 | 0 | 0 |
   | nested_s2 | ef69222b / acf7262b | 16+16 / 32 | 0 | 0 | 0 |
   | sqrtsub_s1 | 2366dc05 / 707d844a | 16+16 / 32 | 0 | 0 | 0 |
+  | straight_s1 | 3aee4aab / 3e7a6458 | 16+16 / 32 | 0 | 0 | 0 |
+  | straight_s2 | 64e3074d / 3a649edb | 16+16 / 32 | 0 | 0 | 0 |
+  | test_bool_array_s1 (memory) | 27f4f1c9 / 1b405bee | 16+16 / 32 | 0 | 0 | 0 |
+  | test_divui_s1 | ecbc22cc / 9f339ba2 | 16+16 / 32 | 0 | 0 | 0 |
   | test_flatten_array_s1 (memory) | d2640da4 / 6f02b142 | 16+16 / 32 | 0 | 0 | 0 |
   | test_loop_free_s1 (memory) | 8732b8f2 / 0dc8f8e1 | 16+16 / 32 | 0 | 0 | 0 |
   | test_stdint_s1 (memory) | 770f0240 / 8b9324c0 | 16+16 / 32 | 0 | 0 | 0 |
@@ -86,7 +93,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   | xorshift_s2 | 2561899f / 40c3c2fd | 16+16 / 32 | 0 | 0 | 0 |
 
 - **Reading:**
-  - At your model's own scatter, all 51 pass every draw.
+  - At your model's own scatter, all 58 pass every draw.
   - Under stress, no v12 route fails at 3x. Compare C76 / C79: item 46 unpadded fails 4 / 80 at 3x, and v11 sqrtsub
     s4 fails 2 / 32 at 3x.
   - The weakest v12 routes by this measure, ipow s1 and brhash s1, are also B42's two thinnest (kappa_lo 0.116 and
