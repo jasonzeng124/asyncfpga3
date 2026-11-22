@@ -116,6 +116,7 @@
 | nested_loop_s3 | MEM | 0.123 (12 / 12) | ucond_br3 | none up to 0.20 | - | - |
 | nested_s4 |  | 0.124 (44 / 44) | ucond_br22 | none up to 0.20 | none to 0.25 | +486 / +1207 ps; kappa 0.20 ( c0:NO-VERDICT/9647468 c1:NO-VERDICT/2863654) |
 | if_convert_s3 | MEM | 0.126 (4 / 4) | ucond_br1 | none up to 0.20 | - | - |
+| stencil_2d_s3 | MEM | 0.126 (28 / 28) | ucond_br10 | none up to 0.20 | - | - |
 | collatz_s2 |  | 0.128 (12 / 12) | ucond_br6 | kappa 0.20 | x=0.25: RESULT | none |
 | mul_example_s3 | MEM | 0.129 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | varshift_s3 |  | 0.129 (20 / 20) | ucond_br7 | none up to 0.20 | none to 0.25 | none |

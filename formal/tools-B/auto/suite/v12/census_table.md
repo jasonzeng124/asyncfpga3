@@ -1,6 +1,7 @@
 | route | | min kappa_lo (bounded / steers) | weakest steer | its race-only adversary: first failure | xtol first failure | latch-fed race: ctl slack; first failure |
 |---|---|---|---|---|---|---|
 | brhash_s1 |  | 0.044 (24 / 24) | ucond_br7 | kappa 0.10 | x=0.15: MAXEV | none |
+| gather_s2 | MEM | 0.059 (14 / 14) | ucond_br4 | kappa 0.15 | - | - |
 | collatz_s1 |  | 0.064 (12 / 12) | ucond_br6 | kappa 0.15 | x=0.20: RESULT | none |
 | binary_search_s1 | MEM | 0.070 (32 / 32) | ucond_br4 | kappa 0.15 | - | - |
 | lfsrfind_s1 |  | 0.070 (18 / 18) | ucond_br5 | kappa 0.15 | x=0.20: RESULT | +189 / +524 ps; none up to 0.20 |
@@ -15,22 +16,27 @@
 | lfsrfind_s2 |  | 0.123 (18 / 18) | ucond_br5 | kappa 0.20 | x=0.25: RESULT | +342 / +883 ps; none up to 0.20 |
 | factorial_s1 |  | 0.128 (24 / 24) | ucond_br12 | kappa 0.20 | x=0.25: RESULT | +495 / +1297 ps; none up to 0.20 |
 | test_stdint_s1 | MEM | 0.128 (6 / 6) | ucond_br2 | kappa 0.20 | - | - |
+| xorshift_s2 |  | 0.138 (16 / 16) | ucond_br6 | none up to 0.20 | none to 0.25 | +251 / +679 ps; none up to 0.20 |
 | collatz64_s1 |  | 0.139 (12 / 12) | ucond_br4 | none up to 0.20 | none to 0.25 | none |
 | gather_s1 | MEM | 0.147 (14 / 14) | ucond_br2 | none up to 0.20 | - | - |
 | brhash_s2 |  | 0.150 (24 / 24) | ucond_br12 | none up to 0.20 | none to 0.25 | none |
 | fill_s1 | MEM | 0.150 (22 / 22) | ucond_br6 | none up to 0.20 | - | - |
 | xorshift_s1 |  | 0.150 (16 / 16) | ucond_br9 | none up to 0.20 | none to 0.25 | +508 / +1274 ps; none up to 0.20 |
 | fill_s2 | MEM | 0.151 (22 / 22) | ucond_br8 | none up to 0.20 | - | - |
+| fold64_s2 |  | 0.154 (20 / 20) | ucond_br5 | kappa 0.20 | x=0.25: RESULT | +287 / +738 ps; kappa 0.20 ( c0:NO-VERDICT/6853710 c1:OK/0) |
 | test_bitint_s1 | MEM | 0.161 (6 / 6) | ucond_br2 | none up to 0.20 | - | - |
 | fold64_s1 |  | 0.162 (20 / 20) | ucond_br3 | kappa 0.20 | x=0.25: RESULT | +750 / +1838 ps; none up to 0.20 |
 | ipow_s2 |  | 0.163 (16 / 16) | ucond_br9 | none up to 0.20 | none to 0.25 | +676 / +1369 ps; none up to 0.20 |
 | sqrtsub_s1 |  | 0.171 (16 / 16) | ucond_br3 | none up to 0.20 | none to 0.25 | +1772 / +4212 ps; none up to 0.20 |
+| twoloops_s2 |  | 0.172 (32 / 32) | ucond_br15 | none up to 0.20 | none to 0.25 | +383 / +988 ps; none up to 0.20 |
+| if_loop_2_s1 | MEM | 0.174 (14 / 14) | ucond_br4 | none up to 0.20 | - | - |
 | mul_example_s1 | MEM | 0.174 (4 / 4) | ucond_br1 | none up to 0.20 | - | - |
 | countloop_s1 |  | 0.180 (18 / 18) | ucond_br6 | none up to 0.20 | none to 0.25 | none |
 | stencil_2d_s1 | MEM | 0.187 (28 / 28) | ucond_br5 | none up to 0.20 | - | - |
 | horner_s1 |  | 0.189 (18 / 18) | ucond_br5 | none up to 0.20 | none to 0.25 | +596 / +1372 ps; none up to 0.20 |
 | if_loop_1_s1 | MEM | 0.192 (14 / 14) | ucond_br4 | none up to 0.20 | - | - |
 | nested_loop_s1 | MEM | 0.195 (12 / 12) | ucond_br7 | none up to 0.20 | - | - |
+| dot2_s2 | MEM | 0.196 (14 / 14) | ucond_br8 | none up to 0.20 | - | - |
 | vector_rescale_s1 | MEM | 0.204 (6 / 6) | ucond_br1 | none up to 0.20 | - | - |
 | test_loop_free_s1 | MEM | 0.205 (10 / 10) | ucond_br2 | none up to 0.20 | - | - |
 | varshift_s1 |  | 0.217 (20 / 20) | ucond_br6 | none up to 0.20 | none to 0.25 | none |
