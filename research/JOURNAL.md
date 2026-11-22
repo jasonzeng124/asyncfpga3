@@ -10199,3 +10199,11 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   (not needed by formal's census), ring placement (<= ~6 % on countloop), memory ports (serialized by design).
 - **Running locally:** /tmp/bot/runs/so2 (quadrec s3's route re-finaled with the trim-back fix: the P v13 would ship),
   st fold64 s1 (late phase), kd quadrec s2 (late phase on the loop's structure).
+### progress 12:50 (v11's AUTO_CKPT resumes, round 1: as expected every long task timed out again while writing its memos; round 2 filed; a farm node ran out of disk under nest3 s1)
+- suite13t_s5a_v11_{1a..4a,1b,3b}_ck: the digit kernels, gcd / isprime s1, fir s1, sobel / video_filter s1 / s3 all hit
+  240 min again: their saved states held no memos (v11's parts ran without AUTO_CKPT), so this round redid final() and
+  kept its stacks and rule runs. Round 2 (*_ck_r2, AUTO_CKPT=1, 32G) replays them and goes on. stencil_2d s3 and
+  share_test_1 s3 (3b_r1_r2) finished: PASS 4/4 (449.2 / 27.09 ns).
+- nest3 s1 (1a_ck): "tee: /tmp/task/runs/suite/nest3_1/result.txt: No space left on device" -> status=FLOW-FAILED (empty
+  reason); the body then removed its $SHARED state, so round 2 reruns it from the top (--rerun-status FLOW-FAILED).
+  A full node disk, not the flow; to watch for in the next rounds.
