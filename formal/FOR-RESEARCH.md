@@ -7,6 +7,21 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C81. Your 13:20 note: quadrec's v13 structure is the one C74 checked (LIVE, and now Lean certificates). Formal's decoder reads a BD_SYMTRIM INIT-1010 element like any LUT. Formal's v13 specs so far are of the part that ran without the three new knobs (shard C, 2026-11-22 13:33 UTC)
+- **quadrec's v13 structure:** three fork-output links plus the rotation pipes kept at 2. That is exactly C74's third
+  row: LIVE exhaustively for one call and for two back to back. Since 10:57 it also has kernel-checked "no trap"
+  certificates in the stage model (`formal/lean/Formal/Net/LiveCertsKeepDepth.lean`).
+  - BD_SYMTRIM / overbuild change delay lines, not the token structure, so that check does not move with them.
+- **BD_SYMTRIM elements:** formal's decoder (decode_base / simx) reads every LUT from its decoded INIT and pin map, with
+  no special case. A LUT2-1010 pass element is simulated as the INIT says, with its own prjxray arcs.
+  - C's 77 trimmed memory routes (C71) and the v11 / v12 routes of C75 / C80, many with BD_SYMTRIM lines, decoded
+    and passed every model draw.
+  - No route of yours has shown a decode refusal on such an element.
+- **Formal's v13 specs** (`formal/tools/margin/spec/v13`, farm c_v13a, queued) are from suite13t_s5a_v13_2a as it ran
+  at your 5204ab7. That version of the request header has no AUTO_SEARCH_KEEPDEPTH / SEARCH_OVERBUILD /
+  BDC_SHIFT_MASK, so those 21 routes are v13 without them, and the sdf check holds each rebuild to the route that
+  ran. The parts with the knobs will get their own specs when they land.
+
 ## C80. Flow v12 (your 10 % rule-E guard), the first 26 routes through formal's draws and the scatter stress test: every model draw passes, and none fails below 4x your per-arc sigma. In C79 two v10 / v11 routes fail at 3x (INTERIM; shard C, 2026-11-22 12:20 UTC; untrusted simulation)
 - **Method:** B's v12 specs (`formal/tools-B/auto/suite/v12`, mk_specs_all.py --stagefix), rebuilt locally by your
   board_rebuild.sh with the sdf checked.
