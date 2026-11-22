@@ -6,12 +6,14 @@
 | collatz_s1 |  | 0.064 (12 / 12) | ucond_br6 | kappa 0.15 | x=0.20: RESULT | none |
 | binary_search_s1 | MEM | 0.070 (32 / 32) | ucond_br4 | kappa 0.15 | - | - |
 | lfsrfind_s1 |  | 0.070 (18 / 18) | ucond_br5 | kappa 0.15 | x=0.20: RESULT | +189 / +524 ps; none up to 0.20 |
+| spmv_s1 | MEM | 0.071 (40 / 40) | ucond_br4 | none up to 0.20 | - | - |
 | memsum_s1 | MEM | 0.072 (14 / 14) | ucond_br8 | kappa 0.20 | - | - |
 | twoloops_s1 |  | 0.073 (32 / 32) | ucond_br15 | kappa 0.20 | x=0.25: MAXEV | +282 / +663 ps; none up to 0.20 |
 | collatz_s2 |  | 0.079 (12 / 12) | ucond_br6 | none up to 0.20 | none to 0.25 | none |
 | quadrec_s1 |  | 0.080 (28 / 28) | ucond_br8 | none up to 0.20 | none to 0.25 | none |
 | memsum_s2 | MEM | 0.081 (14 / 14) | ucond_br8 | none up to 0.20 | - | - |
 | cmpchain_s2 |  | 0.086 (32 / 32) | ucond_br13 | kappa 0.20 | x=0.25: RESULT | none |
+| iterative_sqrt_s1 |  | 0.087 (24 / 24) | ucond_br12 | none up to 0.20 | none to 0.25 | +507 / +1191 ps; none up to 0.20 |
 | if_convert_s1 | MEM | 0.094 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | test_memory_1_s1 | MEM | 0.101 (12 / 12) | ucond_br6 | none up to 0.20 | - | - |
 | image_resize_s1 | MEM | 0.103 (18 / 18) | ucond_br3 | kappa 0.15 | - | - |
@@ -22,12 +24,14 @@
 | factorial_s1 |  | 0.128 (24 / 24) | ucond_br12 | kappa 0.20 | x=0.25: RESULT | +495 / +1297 ps; none up to 0.20 |
 | test_stdint_s1 | MEM | 0.128 (6 / 6) | ucond_br2 | kappa 0.20 | - | - |
 | factorial_s2 |  | 0.129 (24 / 24) | ucond_br5 | kappa 0.20 | x=0.25: RESULT | +1695 / +3974 ps; none up to 0.20 |
+| fir_s1 | MEM | 0.130 (6 / 6) | ucond_br3 | kappa 0.20 | - | - |
 | nested_s2 |  | 0.135 (44 / 44) | ucond_br20 | none up to 0.20 | none to 0.25 | +797 / +1838 ps; none up to 0.20 |
 | branchloop_s1 |  | 0.136 (30 / 30) | ucond_br10 | kappa 0.20 | none to 0.25 | none |
 | xorshift_s2 |  | 0.138 (16 / 16) | ucond_br6 | none up to 0.20 | none to 0.25 | +251 / +679 ps; none up to 0.20 |
 | collatz64_s1 |  | 0.139 (12 / 12) | ucond_br4 | none up to 0.20 | none to 0.25 | none |
 | iterative_division_s1 |  | 0.140 (32 / 32) | ucond_br7 | none up to 0.20 | none to 0.25 | +1530 / +3608 ps; none up to 0.20 |
 | gather_s1 | MEM | 0.147 (14 / 14) | ucond_br2 | none up to 0.20 | - | - |
+| quadrec_s2 |  | 0.149 (28 / 28) | ucond_br11 | none up to 0.20 | none to 0.25 | none |
 | brhash_s2 |  | 0.150 (24 / 24) | ucond_br12 | none up to 0.20 | none to 0.25 | none |
 | fill_s1 | MEM | 0.150 (22 / 22) | ucond_br6 | none up to 0.20 | - | - |
 | xorshift_s1 |  | 0.150 (16 / 16) | ucond_br9 | none up to 0.20 | none to 0.25 | +508 / +1274 ps; none up to 0.20 |
@@ -39,6 +43,7 @@
 | ipow_s2 |  | 0.163 (16 / 16) | ucond_br9 | none up to 0.20 | none to 0.25 | +676 / +1369 ps; none up to 0.20 |
 | varshift_s2 |  | 0.168 (20 / 20) | ucond_br6 | none up to 0.20 | none to 0.25 | none |
 | sqrtsub_s1 |  | 0.171 (16 / 16) | ucond_br3 | none up to 0.20 | none to 0.25 | +1772 / +4212 ps; none up to 0.20 |
+| share_test_1_s1 | MEM | 0.172 (14 / 14) | ucond_br7 | none up to 0.20 | - | - |
 | twoloops_s2 |  | 0.172 (32 / 32) | ucond_br15 | none up to 0.20 | none to 0.25 | +383 / +988 ps; none up to 0.20 |
 | if_loop_2_s1 | MEM | 0.174 (14 / 14) | ucond_br4 | none up to 0.20 | - | - |
 | mul_example_s1 | MEM | 0.174 (4 / 4) | ucond_br1 | none up to 0.20 | - | - |
@@ -53,14 +58,18 @@
 | test_loop_free_s1 | MEM | 0.205 (10 / 10) | ucond_br2 | none up to 0.20 | - | - |
 | varshift_s1 |  | 0.217 (20 / 20) | ucond_br6 | none up to 0.20 | none to 0.25 | none |
 | nested_s1 |  | 0.221 (44 / 44) | ucond_br18 | none up to 0.20 | none to 0.25 | +1131 / +2641 ps; none up to 0.20 |
+| loop_path_s1 | MEM | 0.231 (4 / 4) | ucond_br1 | none up to 0.20 | - | - |
 | sumi3_mem_s1 | MEM | 0.233 (6 / 6) | ucond_br2 | none up to 0.20 | - | - |
 | single_loop_s1 | MEM | 0.240 (4 / 4) | ucond_br1 | none up to 0.20 | - | - |
+| share_test_2_s1 | MEM | 0.242 (6 / 6) | ucond_br2 | none up to 0.20 | - | - |
+| iir_s1 | MEM | 0.244 (10 / 10) | ucond_br5 | none up to 0.20 | - | - |
 | while_loop_3_s1 | MEM | 0.252 (8 / 8) | ucond_br1 | none up to 0.20 | - | - |
 | countloop_s2 |  | 0.256 (18 / 18) | ucond_br5 | none up to 0.20 | none to 0.25 | +406 / +1063 ps; none up to 0.20 |
 | sqrtsub_s2 |  | 0.256 (16 / 16) | ucond_br3 | none up to 0.20 | none to 0.25 | +3256 / +7209 ps; none up to 0.20 |
 | test_memory_2_s1 | MEM | 0.256 (12 / 12) | ucond_br4 | none up to 0.20 | - | - |
 | test_flatten_array_s1 | MEM | 0.295 (30 / 30) | ucond_br16 | none up to 0.20 | - | - |
 | divmods_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
+| divmods_s2 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | divmodu_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | divmodu_s2 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | simple_example_1_s1 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |
