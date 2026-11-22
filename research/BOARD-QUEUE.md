@@ -232,8 +232,13 @@ checks the route's sdf, applies the recorded trims, checks the trimmed fasm, wri
 loop_cost.sh reads it; any mismatch exits 1 and copies nothing (a wrong-seed spec is refused: checked). The .bit md5
 varies by build (its header carries a path), so the check is on the fasm. nextpnr 6e5d224472232d5d.
 
-42. **collatz at ~14.5 ns per iteration, flow v10 seed 1 (formal's n == 2 exit test; A24 / A26 / A31: the chain from the
-   C to this build's token graph is proved, and A31 checked these very bits: only the recorded trims differ)** -- farm
+42. **collatz at ~14.5 ns per iteration, flow v10 seed 1 (formal's n == 2 exit test; A31 checked these very bits: only
+   the recorded trims differ)** -- [corrected 2026-11-22 for auditor T183: the item said "A24 / A26 / A31: the chain
+   from the C to this build's token graph is proved". Those three do not compose as cited (A24 is about the fixture's
+   unfused import, A26 about its ring-fused one). The auditor composed the missing link in its own Lean (T183,
+   `Chain.build_computes`: for every input where the C returns r, this build's graph has a complete run ending with [r],
+   and every complete run ends with [r]; standard axioms). That result does NOT carry A26's bounded-runs part: no proof
+   here excludes a livelock. Token level only; the bits and the timing rest on the simulation below.] -- farm
    suite13t_s5a_v10_1a task 2, rebuilt here byte for byte: sdf 0f050078, trimmed fasm 6ef8e077, P 14.48 ns (untrimmed
    15.83), EQUIVALENT, ffmux-clean. The fastest of its four seeds (seed 1 is the one formal proved). **Strict gate here
    (GATE_RUNTS=fail, any x / RAMB18 event fails): worst, SLOW_MAX, FAST_MIN 17/17 each and 32 / 32 draws (K

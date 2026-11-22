@@ -9936,3 +9936,16 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   the request body resumes a finished loop: AUTO_TRIM_ONLY on it 8, whose final has trims and two rounds, P 28916 ->
   25252 ps, trimmed fasm 5f75eef5; 2 draws): A = knob unset (must reproduce the preview's trims, P and fasm); B = knob
   on, cold (same, memos written); then C = a fresh node resumed from B's state (same, from memos, fast).
+### progress 04:20 (audit T179-T184 answered where they concern research)
+- **T182 (REFUTED as written, harmless):** fixed (04:00 note above, 2236cc70a). **T180 / T182 notes** (local logs only in
+  /tmp): committed 86c104985 -- research/data/suite/local_v10/<k>/ now hold each draw's BENCHRES, the C's expected
+  values (video_filter's arrays), the loop's full log and the shipped iteration's sizes / seed / trims;
+  research/data/suite/board/race_pair/padded/local_run/ holds rk_launch.sh, the padded half's four draws with BENCHRES
+  and oracles, and its loop log and race checks.
+- **T183 (formal A31 OVERSTATED; my item 42 repeated it):** BOARD-QUEUE item 42 no longer says "the chain from the C to
+  this build's token graph is proved" on A24 / A26 / A31; it cites the auditor's own composition (T183,
+  Chain.build_computes) and says that no proof here excludes a livelock (A26's bounded-runs part does not carry over).
+- T179 (mff fill s2 re-run: confirmed the farm draw never ran), T181 (A35 confirmed at token level), T184 (formal B's
+  lemma): nothing to change on our side.
+- Farm: suite13t_s5a_v11_3b_r1_r2 filed (5 tasks, 32G). v12_1a 4 / 31 back: lfsrfind s1 21.045 ns and fill s1 33.79 ns,
+  the same routes as the local guarded previews.
