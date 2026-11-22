@@ -50,6 +50,8 @@ rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh
    with or right after item 44.
 3c''. **Item 46** (2026-11-22: the latch-fed steer race pair, formal's thinnest race beside its padded rebuild): any
    time after item 36.
+3c'''. **Item 47** (2026-11-22: quadrec with the compiler's storage search built as it modelled, 22.4 ns, beside flow
+   v10's 41.0 ns on the same seed; two short board runs and a latency comparison): any time after item 36.
 3d. **Optional for items 37-41 (2026-11-21, ~1 min each):** right after an item's build, before its loop_cost
    run, the same full-vector check items 42 / 43 have -- the kernel's own gate vectors through the gate's host program,
    judged by the gate's rules against the C. From cells/, with K and V = ipow / ipow17 (item 38), collatz / col18 (39),
@@ -97,6 +99,32 @@ negative control fails). Run it before the speed items.
    measured.tsv + raw/) back. Simulated: C32 is 11.1 ns at y = 0.2 and 15.5 ns at y = 1.0 (x 0.288), F16 16.2 / 21.3
    ns; at 1% ring scatter the fit resolves y to +-0.01-0.02. The two routes must agree with each other within their
    sigmas; if they do not, that is the finding.
+
+## 2026-11-22: item 47 -- the compiler's storage search, built as it modelled: quadrec at 22.4 ns beside flow v10's 41.0 ns on the same seed
+
+quadrec rotates four values each iteration. Flow v10's storage search predicted ~20 ns for three latches on fork outputs
+but built ~41 ns: bdc's token floor counted the new latches and lowered the three rotation pipes the search had kept
+(research/data/keepdepth/README.md). With AUTO_SEARCH_KEEPDEPTH (the base depths kept) and AUTO_SEARCH_OVERBUILD (the
+search's structure, when it does not converge, built overbuilt with BD_SYMTRIM and trimmed back), seed 3 ships at
+22.43 ns, rule CLEAN, PASS 4 / 4; both knobs are in flow v13. **Strict gate here (GATE_RUNTS=fail, any x fails): worst,
+SLOW_MAX, FAST_MIN and 32 draws (K 45301-45332): 35 / 35 PASS, 0 pulses under 1 ns, narrowest 2.9 ns**
+(research/data/keepdepth/quadrec_s3_v13local/strict_gate.txt, trimmed fasm 61902cb9). Formal C74 / C81: that token structure is live (Lean
+certificates). Both specs rebuild byte for byte (research/data/keepdepth/board/).
+
+47. **quadrec, the search built as modelled, beside flow v10's same seed** -- any time after item 36; two rebuilds
+    (~5 min each) and two short board runs. From the repo root:
+
+        cells/verify/toolchain.sh    # must pass (sha256 6e5d224472232d5d)
+        BQ_RUNS=~/runs/bq_qr BQ_OUT=~/runs/bq_qr_v10 research/tools/suite/board_suite.sh research/data/keepdepth/board/v10 2>&1 | tee ~/board_qr_v10.log; echo "exit $?"
+        BQ_RUNS=~/runs/bq_qr BQ_OUT=~/runs/bq_qr_v13 research/tools/suite/board_suite.sh research/data/keepdepth/board/v13local 2>&1 | tee ~/board_qr_v13.log; echo "exit $?"
+        python3 research/tools/suite/board_lat_cmp.py ~/runs/bq_qr_v10/quadrec/board.log ~/runs/bq_qr_v13/quadrec/board.log 0.75; echo "exit $?"
+
+    Pass: each `board_suite: 1 of 1 kernels PASS` (the gate's 10 vectors, every answer the C's), exit 0; and
+    board_lat_cmp `PASS` (the new route's summed per-call latency <= 0.75 x v10's), exit 0. In GLS on the same draw point
+    the ratio is 0.588 (9288 / 15792 ns); expect 0.55-0.65 on the board. **Reading it:** both correct and the ratio
+    holds -- the search's gain is real on silicon. Correct but ratio > 0.75 -- the event-graph model over-credits the
+    new latches on silicon (send both board.log files). The new route FAILS -- a defect in the new structure or in
+    BD_SYMTRIM's lines that GLS did not see: send both logs (formal's draws and our strict gate passed it).
 
 ## 2026-11-22: item 46 -- the latch-fed steer race on silicon: formal's thinnest one (+1 ps), beside the same kernel and seed rebuilt with the check that removes it
 Formal B36: flow v11's test_flatten_array s2 (rule CLEAN, PASS 4 / 4 in our draws) carries a latch-fed steer race at
