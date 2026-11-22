@@ -3708,3 +3708,5 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### 2026-11-22T11:03:55Z -- A37 progress: first tv_gate run on masked varshift FAILED in Lean (omega: the masked amount (x/2^27)%32 was never reduced to x/2^27). A hand-added step `simp (disch := omega) only [Nat.mod_eq_of_lt]` in auto_ops2_pre made the s1 file check (auto_computes, axioms propext/Classical.choice/Quot.sound). Step now part of shmask_patch.py; full tv_gate rerun + negative control SHMASK_CONTROL_MASK=15 running.
 
 ### 2026-11-22T11:06:07Z -- A37 DONE: varshift v13 memo graph (md5 281e44fb) imported with BDC_SHIFT_MASK=1 PROVED against the C (tv_gate s1; Formal/Rewrite/ShiftMask/AutoVarshiftSM.lean, check.sh OK, 895 decls). Negative control mask 15: autoproof counterexample (5,3): graph 1109380756 vs C 321222768. Trusts that shmask_patch mirrors compute.binary_expr at research 196de620f1. gcd not attempted (not proved unmasked either, A28).
+
+### 2026-11-22T11:36:04Z -- watch: research fa750b9d51 (auto_size.sh overbuild trim-back) nothing for formal; lock
