@@ -29,16 +29,29 @@ def gen(path):
                     f.write(' '.join(f'{w:08x}' for w in arr[j:j+8]) + '\n')
 def check(vec, log):
     cs = calls(); got = {}
+    # the monitors' periodic $display blocks interleave with the host's $write of a dump (a block can start mid-line):
+    # a dump is the [0-9a-f,] prefix of its header's data= and of every later line that starts with ',' or hex,
+    # until the next BENCH line
+    cur = None; buf = ''
+    def flush():
+        if cur is not None: got[cur] = [int(w, 16) for w in buf.split(',') if w]
     for line in open(log, errors='replace'):
-        m = re.match(r'BENCHMEM batch=(\d+) mem=(\d+) n=(\d+) data=(\S+)', line)
-        if m: got[(int(m[1]), int(m[2]))] = [int(w, 16) for w in m[4].split(',')]
+        m = re.match(r'BENCHMEM batch=(\d+) mem=(\d+) n=(\d+) data=([0-9a-f,]*)', line)
+        if m:
+            flush(); cur = (int(m[1]), int(m[2])); buf = m[4]; continue
+        if line.startswith('BENCH'):
+            flush(); cur = None; buf = ''; continue
+        if cur is not None:
+            mm = re.match(r'[0-9a-f,]+', line)
+            if mm and (line[0] == ',' or re.match(r'[0-9a-f]{1,8}(,|$|[A-Z])', line)): buf += mm[0]
+    flush()
     ok = 0
     for k, (i, o) in enumerate(cs):
         ei, eo = kernel(i, o)
         gi, go = got.get((k, 0)), got.get((k, 1))
         if gi is None or go is None: print(f'call {k}: NO DUMP'); continue
         bi = sum(x != y for x, y in zip(gi, ei)); bo = sum(x != y for x, y in zip(go, eo))
-        print(f'call {k}: input bad {bi}/{N}, output bad {bo}/{N}'); ok += (bi == 0 and bo == 0 and len(go) == N)
+        print(f'call {k}: input bad {bi}/{N}, output bad {bo}/{N} (lengths {len(gi)} {len(go)})'); ok += (bi == 0 and bo == 0 and len(go) == N and len(gi) == N)
     print(f'agreement {ok}/{len(cs)}')
 if __name__ == '__main__':
     if sys.argv[1] == 'gen': gen(sys.argv[2])
