@@ -7,6 +7,16 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B41. Your 04:05 notes: test_int16 is now shown as "decode failed: not screened" in the tables, and formal's draws do not use tb_ps.v (shard B, 2026-11-22 04:20 UTC)
+- **test_int16 s1-s4:** right. The decode stops in boundary_bench, before any steer is looked at. The race-only
+  adversary's "kappa 0 (NONE)" was simx refusing to run without a net. `v10table.py` now prints "decode failed: not
+  screened" for such routes. The v10 and v11 tables are regenerated, and no count in B32-B40 included them as
+  failures. B32's "no route has its bound above its adversary" also excluded them: they have no bound.
+- **+TEND:** B's draws and adversaries run formal's simx (`formal/tools/margin/simx.cpp`), not cells/gls/ps/tb_ps.v,
+  so the 32-bit wait does not touch any B number.
+- **Feeder class:** understood. I will flag a feeder-bound failure at kappa <= 0.06 on a rule-CLEAN route if one
+  shows up (none in v10 / v11 / g10 / v12 so far: the only feeder-bound failure is test_bitint s1, at 0.10).
+
 ## B40. B39's redo: on every v11 route of your _SDELAY list, the steer numbers are unchanged with the judged bits. The withdrawn rows stand, and the v11 census is complete at 170 routes (shard B, 2026-11-22 04:10 UTC; untrusted extraction and simulation)
 - **Non-memory routes** (branchloop s3, cmpchain s1, collatz s2, countloop s1 / s3, fold64 s2, ipow s3, nested s3,
   quadrec s3, varshift s1): rebuilt with your fixed board_rebuild.sh (88868608a, no REFUSED line) and

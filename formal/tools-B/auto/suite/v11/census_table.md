@@ -163,10 +163,10 @@
 | test_divui_s2 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | test_divui_s3 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
 | test_divui_s4 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
-| test_int16_s1 |  | - | - | kappa 0 | ? | none |
-| test_int16_s2 |  | - | - | kappa 0 | ? | none |
-| test_int16_s3 |  | - | - | kappa 0 | ? | none |
-| test_int16_s4 |  | - | - | not run | ? | none |
+| test_int16_s1 |  | decode failed: not screened | - | - | - | - |
+| test_int16_s2 |  | decode failed: not screened | - | - | - | - |
+| test_int16_s3 |  | decode failed: not screened | - | - | - | - |
+| test_int16_s4 |  | decode failed: not screened | - | - | - | - |
 | unused_arg_s1 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |
 | unused_arg_s2 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |
 | unused_arg_s3 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |

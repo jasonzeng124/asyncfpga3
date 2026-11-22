@@ -14,6 +14,8 @@ for f in sys.argv[1:]:
         adv = re.search(r"weakest-steer adversary first failure: (kappa [0-9.]+ \(([^)]*)\)|none up to [0-9.]+|[^|]*)", l)
         xt = re.search(r"first failure (x=[0-9.]+(: [A-Z]+)?|none to [0-9.]+)\s*\| output", l)
         ct = re.search(r"latch-fed race: (steer \S+ ctl slack ([^|]*?) \| first failure: ([^|]*)|none)", l)
+        if "Traceback" in l or "decode failed" in l:   # no decoded net: nothing was screened (2026-11-22: test_int16)
+            rows.append((nm, "MEM" if mem else "", "decode failed: not screened", "-", "-", "-", "-")); continue
         rb = re.search(r"rebuild: (.*)", l)
         if rb: rows.append((nm, "MEM" if mem else "", "rebuild: " + rb.group(1)[:60], "", "", "", "")); continue
         a = adv.group(1).strip() if adv else "-"
