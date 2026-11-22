@@ -10099,3 +10099,13 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   it fails it the way formal's adversary did. Supports v13's AUTO_RACE_KAPPA; item 46 is the silicon question.
   The auditor also accepted the TEND correction (the 20 / 30 ms bounds never fired).
 - Flow v12, 40 tasks back (parts 1a, 1b, 2a so far): all PASS on rule-CLEAN routes, 160 draws with no pulse under 1 ns.
+### progress 08:10 (AUTO_CKPT's new keys (rule() / draw() text in place of whole-file ids) re-checked end to end: H cold, I from H's state all from memos, identical; across unrelated commits)
+- H (TRIM-ONLY resume of the v13 preview's if_loop_2 s1 from B's state, whose memos carry the old keys): every memo
+  missed and ran for real, then gave the identical line (PASS 2/2, P 25252, untrimmed 28916, 3 trims, sdf 8bbdeafe,
+  lat med 2607 / sum 13308). I (from H's state, at a later HEAD with several journal / data commits in between): 2 rule
+  runs, 2 stacks, 2 draws from memos, 5 min, the identical line and draws.txt. So the farm parts that carry
+  AUTO_CKPT=1 (v12 2b-4b, v13, the v11 / v12 resumes filed today) get the keys as committed in e8e2349a7.
+- Also started: sqrtsub s1 under v13's environment with BD_DEFINES=-DBD_SYMTRIM on every route (/tmp/bot/runs/st):
+  can the cycle-scoped trim then shorten the link request lines a shipped route keeps (v10's 28-element folink)?
+  PREDICTION (written now): its shipped route's critical cycle has no link request line longer than the rule's
+  proposal on it; P below v10's 32.24 and v12's 20.12; every draw passes.
