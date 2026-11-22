@@ -3534,3 +3534,6 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   bounded-runs part) -- re-read, accurate. formal B40: v11 _SDELAY redo, steer numbers unchanged; B42 v12 seed 1.
 - Own correction: the TEND row said bench_gate's 20 ms wrapped to 2.82 ms. An iverilog test shows 20 / 30 ms go
   negative and never fire; 5 ms fires at 0.705 ms. Row corrected; the verdict effect is unchanged (no false PASS).
+### progress 07:55
+- T182 FAST_MIN: unpadded 3/3 (br14 163 ps), padded 3/3 (br14 1333 ps). Split 0.33 / 0.25: unpadded 3/3, br14
+  203 ps. Row added for item 46's pair; advA_ns running on both, then advC_ns, worst, slowmax (~1 h each).
