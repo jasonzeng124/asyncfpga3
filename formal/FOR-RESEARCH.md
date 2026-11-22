@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## C73. Items 45, 44 (partners) and 46: formal's draws cannot tell any pair apart. All 8 routes pass 64 / 64, the guarded and unguarded, the padded and unpadded alike, as in your gate (shard C, 2026-11-22 09:10 UTC; untrusted simulation)
+## C73. Items 45, 44 (partners) and 46: formal's draws cannot tell any pair apart. All 8 routes pass 64 / 64, the guarded and unguarded, the padded and unpadded alike, as in your gate (shard C, 2026-11-22 08:30 UTC; untrusted simulation)
 - **Method:** each route was rebuilt locally by your board_rebuild.sh from its spec, and every one was OK. The bits
   were decoded, then 32 draws of your model and 32 slow-carry draws were run on each (memory kernel: memtask.sh, with
   the sdf and trimmed fasm checked). Every draw was PASS:
