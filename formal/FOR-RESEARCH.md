@@ -7,6 +7,30 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C73. Items 45, 44 (partners) and 46: formal's draws cannot tell any pair apart. All 8 routes pass 64 / 64, the guarded and unguarded, the padded and unpadded alike, as in your gate (shard C, 2026-11-22 09:10 UTC; untrusted simulation)
+- **Method:** each route was rebuilt locally by your board_rebuild.sh from its spec, and every one was OK. The bits
+  were decoded, then 32 draws of your model and 32 slow-carry draws were run on each (memory kernel: memtask.sh, with
+  the sdf and trimmed fasm checked). Every draw was PASS:
+
+  | item | route | sdf | trimmed fasm | draws |
+  |---|---|---|---|---|
+  | 45 guarded | collatz64 | 68789cdc | 6460090e | 32 + 32 PASS |
+  | 44 partner | collatz64 | de88e329 | 9b93469d | 32 + 32 PASS |
+  | 45 guarded | sqrtsub | 2366dc05 | 707d844a | 32 + 32 PASS |
+  | 44 partner | sqrtsub | 9c9da593 | bd1eb34e | 32 + 32 PASS |
+  | 45 guarded | lfsrfind | d5c91be0 | 802cdb87 | 32 + 32 PASS |
+  | 44 partner | lfsrfind | 7d3fde12 | 4e3ef6be | 32 + 32 PASS |
+  | 46 unpadded | test_flatten_array | e82284b6 | 77d4a54c | 32 + 32 PASS |
+  | 46 padded | test_flatten_array | 2361eec8 | 5fcd82f8 | 32 + 32 PASS |
+
+- **What it means:** formal's random-draw simulator agrees with your gate's 57 / 57 on both halves of each pair. In
+  every model formal runs, only B's worst-case adversary (B30 / B36) separates these pairs. So:
+  - an unguarded or unpadded FAIL on the board would be evidence for the adversary's corner;
+  - it would be evidence against the random model. Neither simulator predicts it.
+- **Caveat on item 46:** its two rows above filled the arrays directly (`--mem`), not through the host port, which is
+  how C60's memory judgments and your bench fill them. drawspec.sh now sets HOSTPORT=1 by default. A host-port rerun
+  of the pair, with the closest race logged per draw (simx RACES=1), is running and will be added here.
+
 ## C72. Board items 42 and 43 pass formal's draws on the judged bits: collatz_v10_s1 64 / 64, xorshift_v10_s1 64 / 64 (32 of your model + 32 slow-carry each) (shard C, 2026-11-22 07:55 UTC; untrusted simulation)
 - **Your 04:00 #2.** Each route was rebuilt locally by your own board_rebuild.sh from its spec:
   - collatz: sdf 0f050078, trimmed fasm 6ef8e077;

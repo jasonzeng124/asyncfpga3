@@ -28,7 +28,7 @@ say "$SP: $K seed $S sdf $WS fasm $WF ENV '$XE' MLIR $M"
 V=kernels/$K/vec.hex; [ -f "$RS/$V" ] || V=research/data/suite/vec/$K.hex
 if [ -f "$RS/$V" ] && head -1 "$RS/$V" | grep -q '^// benchvec'; then
   [ "$M" = - ] || [ -z "$M" ] || { say "MEM route with an MLIR override: not supported"; echo "$SP | MEM MLIR override: not run" > "$O/line.txt"; exit 0; }
-  ( for e in $XE; do export "$e"; done; [ "$TR" = - ] || export TRIM=$RS/$TR
+  ( export HOSTPORT=${HOSTPORT-1}; for e in $XE; do export "$e"; done; [ "$TR" = - ] || export TRIM=$RS/$TR
     TREE=$O/tree bash "$F/formal/tools/margin/bram/memtask.sh" "$K" "$S" "$RS/$Z" "$WS" "$O/mt" "$ND" ) > "$O/memtask.log" 2>&1
   sed 's/^/mem: /' "$O/mt/summary.txt" >> "$SM"
   fa=$(md5sum < "$O/tree/cells/build/hw/$D/$D.fasm" 2>/dev/null | cut -c1-8)
