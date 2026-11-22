@@ -9989,3 +9989,12 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 - **Next:** AUTO_CKPT=1 into the waiting v12 (2a-4b) and v13 parts (results unchanged by construction), and v11 resume
   parts with it for the tasks no pending resume covers (digitdiv / digitsum s1-s4, fir s1-s2, gcd / isprime / nest3 s1,
   sobel / video_filter s1-s3).
+### progress 06:20 (AUTO_CKPT on the farm: the waiting v12 / v13 parts carry it; seven v11 resume parts with it for the 17 tasks nothing else resumes)
+- e51a78095: AUTO_CKPT=1 added to suite13t_s5a_v12_2b..4b and suite13t_s5a_v13_1a..4b before they were submitted
+  (v12_1a / 1b / 2a were already submitted with the old body; that file was left as it ran). /tmp/bot/scripts/add_ckpt.py:
+  the export line, memo files kept out of OUT/auto (they still go to $SHARED, where a resume reads them), a header note.
+- 3c05272682: suite13t_s5a_v11_{1a,2a,3a,4a,1b,2b,3b}_ck -- the v11 tasks that stopped at the
+  240-min limit and that no pending part resumes: gcd / isprime / nest3 s1, digitsum / digitdiv s1-s4, fir s1-s2,
+  sobel / video_filter s1-s3 (17 tasks, 4 cores, 32G, AUTO_CKPT=1). Their state has no memos yet (v11's parts ran
+  without the knob), so their first part redoes what it must and keeps it; the parts after that go on. One more round
+  of _ck parts will likely be needed for the digit kernels and sobel (final() alone > 4 h).
