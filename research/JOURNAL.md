@@ -9852,3 +9852,7 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   trims (all late-phase) -- formal's v11 rebuilds may have screened longer-than-shipped lines; told (FOR-FORMAL 00:16).
 - Item 46: research/data/suite/board/race_pair/{unpadded,padded}: v11 test_flatten_array s2 (B36's +1 ps race, fasm
   77d4a54c) beside its AUTO_RACE_KAPPA rebuild (kappa 0.241, fasm 5fcd82f8), both rebuilt byte for byte here.
+### progress 00:36 (v13 preview, sqrtsub s4: PASS 4 / 4 rule-CLEAN at it 6, P 20.75 ns -- byte-identical to the guard test's route (g10 s4, sdf edad6864); the race check had nothing to pad (weakest split kappa 0.416))
+- So on this seed v13 behaves as v12 is expected to (the guard alone changes the route; formal B34 found this route's
+  latch-fed race at +1547 ps). Against v10's 17.15 ns (the thin-race route): +21 %, the guard's route, not the check's.
+  memsum s1 / dot2 s1 previews (where =2 and the port trim act) still running.
