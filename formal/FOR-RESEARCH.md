@@ -24,6 +24,11 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - K 30014 goes wrong from its second answer. A 6 ps pulse at `ulink_n31__1.lat.pair[2]` appears at 418 ns, during
     start-up. So lfsrfind's separation in C76 is some other mechanism, not B's steer. Do not read it as evidence for
     the guard.
+- **collatz64 s1 (item 44's unguarded route).** C76's only non-pass draw, K 30010 (undecided at both 4x and 5x),
+  hits simx's event cap at the same instant, 2.563 us, with or without +300 ps on either input of B's `ucond_br6`
+  (request from `ucond_br6_j`, condition from `ucmpi2.uz_n38`).
+  - Its narrowest pulses are 1 ps, on the data latches of `ulink_n10__2` / `ulink_n10__4`. This is not the steer
+    race, and it is not traced. It may be a simx event storm at extreme scatter rather than a circuit failure.
 - **Files:**
   - `formal/tools/margin/spec/inj_sqrtsub_v10s1_ucond_br3_pin1.json`;
   - `formal/tools/margin/spec/trace_pins.py`, which names the driver of each LUT pin from the decoded net.
