@@ -3519,3 +3519,12 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
     the padded half finished all 3 calls by 1.41 ms). Final verdict when the run ends at TEND.
   - So formal's race is real in the full-stack GLS and the padding removes it, at an extreme split (slow max vs fast
     min, beyond formal's within-fast-corner adversary). Milder split 0.40 / 0.20 started.
+### progress 06:20
+- T182 unpadded split 1.0 / 0.0: final 0/3 (wedged in call 0, PSSUMMARY TIMEOUT at 2.1 ms). Row added (B36 race
+  CONFIRMED in GLS at an extreme split; padded passes the same split 3/3, 859 ps).
+- Split 0.40 / 0.20 on the unpadded half: 3/3 right, 0 runts, ucond_br14 min margin 111 ps. So in my GLS the race
+  needs a wide split to fire. Caveat on comparing with formal's kappa 0.03: my perturbation reaches only the 3 LUTs
+  (their IOPATH + the wires INTO them); the wire latch -> steer and the request's last wire into the steer LUT stay
+  at the common band (the GLS's per-instance band cannot split two input wires of one LUT), while formal's adversary
+  moves every arc of both 14- / 19-hop paths. Not a contradiction of B36; a weaker test. 0.33 / 0.25 queued; the
+  5 uniform corners of both halves running (fastmin first).
