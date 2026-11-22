@@ -5119,3 +5119,13 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
   DRAW_DOUT=23000); memory specs through memtask.sh. Local toolchain set up again (toolchain-cache 02809f4230dfd3a7,
   nextpnr 7c3bfb9c684a2551, toolchain.sh exit 0; apt libtcl8.6 / boost 1.83). Farm c_brd1 (items 42 / 43 / 45 / 46,
   64 + 64 draws) was picked up before a fix (a bare research checkout has no build/frontend): to be replaced.
+
+### progress 08:25 -- drawspec.sh checked locally; farm c_brd2 (board items) and c_v12a (37 v12 routes), 64 + 64 draws each
+- Local xorshift_v10_s1 (item 43): research's board_rebuild.sh OK (sdf fd959b30, trimmed fasm 78aa6ac3, bit e19acc9a),
+  decoded from the bits, 4 + 4 draws PASS. Needs XRAY_DB pointing at the prjxray-db root locally (the farm sets it), and a
+  pruned research worktree list when a lane directory is deleted.
+- drawspec.sh now also takes a spec in this checkout with FASM=00000000 (B's mk_specs_all.py output): the bit is made
+  from the trimmed fasm, whose md5 is reported. Local brhash v12 s1: trimmed fasm bd0a1a01 (= B42's), 4 + 4 PASS.
+- c_brd1 withdrawn (picked up before the build/frontend fix). c_brd2 = items 42 / 43, item 45's three guarded routes and
+  their item-44 partners, item 46's pair. c_v12a = all 37 specs in tools-B/auto/suite/v12 (its header says 32: B added
+  5 since). Both queued behind research's v12 / v13 suites. Draws are cheap here (~15 core-s each on xorshift).
