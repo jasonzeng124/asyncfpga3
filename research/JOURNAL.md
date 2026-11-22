@@ -10001,3 +10001,17 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 ### progress 06:14 (headings of this entry corrected to their commit times: they had been estimated, up to 25 min ahead)
 - Each "### progress HH:MM" above now carries the UTC time its commit went out (git log). From here on the time is
   read with date -u when the note is written, as PROGRAM's step 5 says.
+### progress 06:24 (AUTO_CKPT's second resume path checked: a loop killed mid-search and resumed from its state gives the uninterrupted run's result exactly)
+- Test D / E (countloop s1, v13's environment + AUTO_CKPT=1, 2 draws): D ran uninterrupted; D2 the same run killed at its
+  first search route; E = D2's state resumed as a farm part would be (fresh RUNS, no event-graph dirs, the body's
+  deletions). E's loop final(9) came entirely from memos (P 23987), its search read the restored graph, chose the same
+  structure and rebuilt the same routes (it 10 605d7b3b, it 11 e37af453). **E and D: the same line** -- PASS 2/2,
+  P 18762 ps (untrimmed 19398), 6 trims, sdf e37af453, it 11, lat_call_med 138 / sum 8022 ns, LUTs 1908.
+- With A / B / F / G (06:02): both resume paths the farm uses (a finished loop's AUTO_TRIM_ONLY, a loop resumed in
+  its search phase) reproduce the uninterrupted result. Also a data point: countloop s1 under v13 ships 18.76 ns
+  (v10 19.12, v11 23.17; one seed).
+- A bound from the same kernel (the placement lever, not pursued): on countloop s1's shipped v10 route (19.12 ns, a
+  2-token cycle of 38.2 ns) the cycle's 18 inter-cell hops cost 345-467 ps between adjacent slices and up to 1187 ps
+  across 27-30 rows (the compare's line end to the steers' joins). With every hop at the adjacent-slice cost the cycle
+  would lose at most ~2.4 ns, about 6 % of P -- consistent with the hand placement trials (fifteen levers 4 / 10) being
+  mixed by seed.
