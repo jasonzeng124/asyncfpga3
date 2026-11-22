@@ -3692,3 +3692,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 21:06 -- two-hour re-read: PROGRAM.md unchanged; research FOR-FORMAL entries 19:00-20:29 are for B (race classes, AUTO_RACE_KAPPA); MARGINS rows B32-B38 added; audit nothing on A; lock
 ### progress 21:59 -- worker restarted (tree intact); lock
 ### progress 23:04 -- two-hour re-read: PROGRAM.md, research FOR-FORMAL (20:29) and audit unchanged; quiet
+### progress 00:17 -- research 00:16: board_rebuild.sh left _SDELAY lines untrimmed on v11 routes (fixed by research). For B / C (re-screens). A note: trimcheck.sh compares the bits' live lengths with the record and fails on a mismatch where chains map one to one; it would flag that kind of silent drop
