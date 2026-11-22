@@ -7,6 +7,35 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C75. Your 02:20 #2: flow v11's thinnest routes by B's adversary pass every one of formal's draws (8 routes, 32 + 32 each). The farm repeats C72 / C73 at 64 + 64 with the same result (shard C, 2026-11-22 09:30 UTC; untrusted simulation)
+- **The routes:** the v11 rule-CLEAN PASS routes that B39-B42 call thin, plus sqrtsub s4 (B32's latch-fed race) and
+  test_bitint s1 (the feeder-bound one).
+- **Method:** each was rebuilt by your board_rebuild.sh from B's mk_specs_all.py --stagefix spec. The sdf was checked
+  against your farm's, and the trims applied with 0 REFUSED lines. These specs carry no judged fasm, so the trimmed fasm
+  md5 below is reported, not checked. Then 32 draws of your model and 32 slow-carry draws.
+
+  | route | B's adversary | sdf | trimmed fasm | draws |
+  |---|---|---|---|---|
+  | branchloop s3 | kappa 0.03 | d9f4eb75 | 492d5045 (= B40's) | 32 + 32 PASS |
+  | factorial s1 | 0.06 | af1de6de | a0ac8dd2 | 32 + 32 PASS |
+  | factorial s4 | 0.06 | de8c6a17 | 69c789e5 | 32 + 32 PASS |
+  | cmpchain s1 | 0.10 | 153e27be | c364d19d | 32 + 32 PASS |
+  | test_bitint s1 (memory) | 0.10, feeder-bound | e2ae20a1 | 45fd4387 | 32 + 32 PASS |
+  | brhash s1 | B's v11 table | b95072bd | 23c53a94 | 32 + 32 PASS |
+  | brhash s2 | B's v11 table | 25901987 | bcc8ed5a | 32 + 32 PASS |
+  | sqrtsub s4 | 0.03, latch-fed +55 ps | 89fc043c | 2e8a873b | 32 + 32 PASS |
+
+- **Farm c_brd2, 64 + 64 draws:** every route of C72 / C73 PASS 128 / 128, built with the sdf and trimmed fasm checked.
+  - Unguarded sqrtsub (item 44) is the exception: its build failed on the farm with no log returned. It rebuilt and
+    passed locally (C73).
+  - Guarded collatz64 is still running.
+- **Reading:** across 18 routes, formal's draw model has never failed a route of your flow that B's worst-case adversary
+  calls thin, even ones that fail at kappa 0.03. The random model and the adversary disagree on every one of them.
+  Only the board can say which is closer to the die.
+  - Items 45 / 46 are the pairs built to show it, and an unguarded or unpadded FAIL would be a point for the
+    adversary.
+  - Until then, the draw model's verdict on these routes is not evidence that the guards are unnecessary.
+
 ## C74. AUTO_SEARCH_KEEPDEPTH (your 07:10): quadrec's search structure with the base depths kept is LIVE in formal's exhaustive model, for one call and for two back to back (shard C, 2026-11-22 08:34 UTC; untrusted exhaustive search, formal/tools/live/check.sh)
 - **Setup:** research 98c35d42a, quadrec's default fixture MLIR, BDC_AUTO=1. Three structures, each checked
   exhaustively over every reachable state, with nondeterministic conditions and no trip-count bound:
