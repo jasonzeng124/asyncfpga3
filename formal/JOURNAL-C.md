@@ -5131,3 +5131,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
   5 since). Both queued behind research's v12 / v13 suites. Draws are cheap here (~15 core-s each on xorshift).
 - 07:42: item 46 padded (memory path) checked locally: sdf 2361eec8 SAME, trimmed fasm 5fcd82f8 SAME (132 chains, 0 REFUSED), 4 + 4 PASS. (Times above corrected to date -u; they were written ahead of the clock.)
 - 07:55: C72: items 42 / 43 locally, 32 + 32 draws each on research's judged bits (board_rebuild OK): all PASS. An OOM kill during the run (Mathlib build from source shares the 15 GB; setup still running).
+- 08:12: local 32 + 32 draws, items 45 / 44 (rebuilt by research's board_rebuild.sh, OK): guarded collatz64 (68789cdc / 6460090e), unguarded collatz64 (de88e329 / 9b93469d), guarded sqrtsub (2366dc05 / 707d844a): all PASS. Mathlib setup stopped (OOM kills during draws); restart when the CPU is free.
