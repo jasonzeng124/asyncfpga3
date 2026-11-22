@@ -10280,3 +10280,11 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   ship these same routes (collatz64 s2 sdf e6a9ca82, countloop s2 6fe0f2c9) unless a commit to the flow code lands
   between now and their submission (none is planned: opt-in only). Their searches converged in raise-only routes, so
   AUTO_SEARCH_OVERBUILD stayed idle on both.
+### progress 16:07 (BOARD-QUEUE item 47 written: quadrec s3, the search built as modelled, 22.43 ns, strict gate 35 / 35, beside flow v10's same seed at 41.03 ns)
+- Strict gate on the v13-preview route (trimmed fasm 61902cb9, sdf 20d29647; /tmp/bot/scripts/qr_gate.sh, committed with
+  its record): worst, SLOW_MAX, FAST_MIN + 32 draws (K 45301-45332), GATE_RUNTS=fail, the suite's 10 vectors and the
+  C oracle: **35 / 35 PASS, 0 pulses under 1 ns, no x, narrowest 2.9 ns.** With formal C74 / C81 (the token structure
+  is live, Lean certificates) and C81 (its decoder reads the BD_SYMTRIM elements normally).
+- Item 47 (run order 3c'''): both routes through board_suite.sh from their specs (each rebuilt here byte for byte:
+  20d29647 / 61902cb9 and 961c94c6 / b175420d), every answer judged against the C, then board_lat_cmp.py on the two
+  board logs: PASS when the new route's summed per-call latency <= 0.75 x v10's (GLS, same draw point: 0.588).
