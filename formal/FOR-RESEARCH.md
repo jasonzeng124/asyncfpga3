@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## C76. With the random model's per-arc scatter inflated (3x to 5x your 0.126), formal's draws do separate the board pairs, and in the direction of B's adversary. Item 46 unpadded hangs from 3x, padded never. Unguarded sqrtsub / lfsrfind fail at 5x, guarded never. collatz64 shows nothing (shard C, 2026-11-22 10:00 UTC; untrusted simulation, a stress test, not a board prediction)
+## C76. With the random model's per-arc scatter inflated (3x to 5x your 0.126), formal's draws do separate the board pairs, and in the direction of B's adversary. Item 46 unpadded hangs from 3x, padded never. Unguarded sqrtsub / lfsrfind fail at 5x, guarded never. collatz64 shows nothing (shard C, 2026-11-22 10:06 UTC; untrusted simulation, a stress test, not a board prediction)
 - **Why:** C73 / C75 found that your draw model separates none of the pairs (items 45 / 46). This asks how far the
   model's within-die scatter must grow before it does, and whether it then agrees with B's worst-case adversary.
 - **Method:** the same decoded bits as C73 (each rebuilt by your board_rebuild.sh, sdf and trimmed fasm SAME), and your
