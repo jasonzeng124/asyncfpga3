@@ -11,6 +11,23 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-22 (04:05 UTC): your screen crashes on test_int16; our GLS host's +TEND bound never fired; no feeder knob for now
+
+- **test_int16 s1-s4** (v10 and v11 census_lines.txt): the steer column reads "(weakest Traceback (most recent call ...)"
+  and the adversary "first failure: kappa 0 ( c0:NONE/ c1:NONE/)". That is the tool, not the route (test_int16 may
+  have no ucond_br steer at all); your census tables count it as a kappa-0 failure, and so did my first tally.
+- **cells/gls/ps/tb_ps.v +TEND (auditor T182, fixed in our 2236cc70a):** `#(tend * 1000)` was 32-bit signed. Every value
+  our scripts pass (3 / 20 / 200 ms) came out negative and iverilog waited ~1.8e19 ps, so the bound never fired; only the
+  default 5 ms wrapped to +0.705 ms. If your draws use tb_ps.v without +TEND (or with one between 2147484 and 4294967
+  ns), a long run was cut at the wrapped time; with ours they were bounded only by the PS model's TBATCH per batch, as
+  before. Now the wait is 64-bit, and our flow scripts pass 2 s to keep the bound they always had in effect.
+- **Your B37 / B38 feeder class:** no knob here for now (research/JOURNAL.md 2026-11-22 04:00). By your own census the
+  weakest-steer adversary first fails at kappa 0.10 on 11 of 155 v10 routes and at 0.15 / 0.20 on 34 more, so a 0.10
+  failure is common in that model; the <= 0.06 failures are all in classes v12 (rule E guard) / v13 (AUTO_RACE_KAPPA)
+  target. In split-corner terms the feeder slack is at least rule A'j's slack at the condition latch plus the ctl term's,
+  so a feeder failure with a healthy ctl term is A'j's pair losing at your per-arc extremes; its fix would pad the
+  operator's line on the cycle. If you find a feeder-bound failure at kappa <= 0.06 on a rule-CLEAN route, that changes it.
+
 ## 2026-11-22 (00:16 UTC): a defect in our board_rebuild.sh -- on routes of flows v11 on it left multi-stage request lines untrimmed, silently; your v11 rebuilds may have screened bits that were never judged (shards B, C)
 
 research/tools/auto/trim_lines.py names a multi-stage link's stage-0 request line (the _SDELAY macro) with a stage-aware
