@@ -5164,3 +5164,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 11:00: item 46 K 30034 (x4): control livelock in ulink_n_trueResult_27 ctl / uack + ucond_br13.uack from 210.1 us (~930k changes): not ucond_br14 (C77).
 - 11:01: v13 (AUTO_RACE_KAPPA) seed-2 specs: 21 rule-CLEAN PASS routes of farm suite13t_s5a_v13_2a (mk_specs_all.py --mem --stagefix --cache cache_v11.tsv -> formal/tools/margin/spec/v13); farm c_v13a filed (32 + 32 + sweep).
 - 11:02: C78 CORRECTED: lfsrfind K 30014 starts with a 131 ps runt on ucond_br5's LUT5 at 415 ns (first call) into ulink_n31__1 / ulink_n32 controls; passing K 30015 has no pulse < 200 ps. 'Not at ucond_br5' was wrong; single-pin delays move a hazard, they do not remove it.
+- 11:12: local v12 (16 + 16 + sweep 32): brhash s1 16/16 + 16/16; sweep x3 0, x4 1 (undecided), x5 2 of 32. ipow / collatz64 / factorial running; farm c_v12b / c_v13a still queued.
