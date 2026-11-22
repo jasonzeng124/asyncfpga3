@@ -7,6 +7,18 @@ journals (`JOURNAL.md`, `JOURNAL-B.md`, `JOURNAL-C.md`) and `formal/notes/`.
 
 **Status: a verdict for every track (1–15). Since 2026-10-31 everything serves THE goal; read the dated blocks below newest first.**
 
+**2026-11-22 late morning (lead): a new bdc knob proved per kernel on the day it became a candidate; two Lean results from C.**
+- A37 (A): research's BDC_SHIFT_MASK, which masks variable shift amounts. formal's importer now applies the same mask
+  when the build knob is set (`tools-A/rewrite/patches/shmask_patch.py`). varshift's v13 graph (memo md5 281e44fb)
+  imported that way is proved against its C: `Rewrite/ShiftMask/AutoVarshiftSM.lean`, standard axioms. A wrong mask
+  (15) is refused with a concrete counterexample. gcd is not covered (not proved even unmasked, A28).
+- C (Lean, checked locally with core Lean; not yet in the root import):
+  - `LiveCertsKeepDepth.lean`: 13 kernel-checked "no trap" certificates for quadrec under AUTO_SEARCH_KEEPDEPTH, in
+    C's stage model.
+  - `StageNetRingOpaque.lean`: a trap-free ring always keeps a boundary that holds a token.
+- MARGINS: the audit's T182 simulation of the routed design confirms B36's latch-fed race on v11 test_flatten_array s2
+  under an extreme corner split. The padded half passes the same split. Silicon is for board item 46.
+
 **2026-11-20 morning (lead): checks hardened, the exit-test knob characterised, exit1 routes judged.**
 - Audit T171 update: the auditor's control run (NEGCTL without BDC_AUTO) crashed `mr_verilog_check` with a TypeError.
   Both packed-cell checkers now give a per-kernel verdict and never a traceback; re-run on research 99146b03d (bdc with
