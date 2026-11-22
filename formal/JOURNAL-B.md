@@ -5394,3 +5394,4 @@ on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
 ### progress 12:15 -- 2-hour re-read: PROGRAM unchanged; research FOR-FORMAL unchanged since 07:10; v11 212 / v12 62 screened; v12 cmpchain s1 (0.063) adversary 0.10 added to B42.
 ### progress 13:42 -- research 13:20: flow v13 (KEEPDEPTH, search overbuild with BD_SYMTRIM, SHIFT_MASK) and v13s (every route of 12 kernels with BD_SYMTRIM) queued; the screen loop (autoall2.sh) now also takes v13 / v13s parts as they land.
 ### progress 14:22 -- 2-hour re-read: PROGRAM unchanged; research FOR-FORMAL 13:20 (v13 noted). v13 parts landing: screening.
+### progress 14:53 -- v13's memory routes rebuilt DIFFERENT at first (dot2 s2, fill s2): v13's requests set BDC_MEM_FASTFALL=2 and BDC_SHIFT_MASK=1 request-wide, not in result lines. mk_specs_all takes MK_EXTRA_ENV; with them both rebuild SAME (dot2 s2 0.111, fill s2 0.112). No other DIFFERENT / rebuild failure in v10-v13 screens.
