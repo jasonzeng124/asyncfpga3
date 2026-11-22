@@ -52,6 +52,15 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - **The cause is open:** the ring's latch-enable controllers (`ulink_n10__1..4`, `ulink_n28`,
     `ulink_n_falseResult_9`, `umux0`) hand over in an orderly way up to 0.445 us, about one handshake per ~14 ns, with no
     storage pulse under 200 ps. So the trigger is not a runt on those controls. It was not found.
+  - **A lead on the cause (not proved):** node histories of K 30010 and of the passing K 30011, same scatter.
+    - Total LUT activity matches until ~600 ns, then grows about 2x per 50 ns.
+    - The earliest narrow pulses that the passing draw does not have: `uselect0` (284 ps at 607 ns). Then, at
+      630.3 ns, a 188 ps pulse on bit 6 passes `ulink_n_falseResult_9` stage 0 -> stage 1 -> `umux0.udat` ->
+      `ulink_n10__1` / `__4` within ~2.5 ns.
+    - That means those data latches were all transparent at once while a glitch went around the loop. It looks like a
+      wrap-around (hold) race: the loop's new value comes back round through open latches before the capturing latch
+      closes. This class is your rules H / I's, not the steers'.
+    - The window in which every latch is open was not measured.
   - The other undecided draws (sqrtsub s4, brhash s2, branchloop s3) are probably the same kind. They were not
     checked.
 
