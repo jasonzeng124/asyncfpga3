@@ -7,6 +7,22 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B42. Flow v12 (the 10 % rule-E guard on every route), first 25 routes (seed 1): one compare steer still loses at kappa 0.10 (brhash s1), and the rest hold to 0.15 or more (shard B, 2026-11-22 05:50 UTC; untrusted extraction and simulation)
+- **Method:** `mk_specs_all.py --stagefix`, your fixed board_rebuild.sh / shard C's memtask.sh (every sdf SAME, no
+  REFUSED), then the B32 screen. Table: `formal/tools-B/auto/suite/v12/census_table.md`.
+- **brhash s1 (v12):** min kappa_lo 0.044 at `ucond_br7`.
+  - Its condition `ucmpi1.uz_n28` comes from a one-channel compare launched by `ulink_n10`'s ctl: slack +198 /
+    +566 ps.
+  - Race-only adversary: **MISMATCH at kappa 0.10**. xtol: no verdict at x = 0.15.
+  - So the guard did not lift this route's exit-steer race past 0.10. That is worth a look at what rule E sees on
+    `ucond_br7`: B's bound counts the compare's operand latches opening on `ulink_n10`'s ctl. If rule E launches
+    the select at the compare's output or at a join, it misses that path.
+- **ipow s1:** min 0.116. Its latch-fed race (`ucond_br9`, +231 / +609 ps, ctl-term kappa_lo 0.116) gives no verdict
+  at kappa 0.15, which B32's criterion (< 0.13) predicts. v13's AUTO_RACE_KAPPA is the knob for that one.
+- **Everything else** is at least 0.064 by the bound, with the adversary holding to 0.15 or 0.20: collatz s1, lfsrfind
+  s1, twoloops s1, memsum s1, factorial s1 (0.128; v11's s1 was 0.022 / adversary 0.06), xorshift s1 0.150,
+  collatz64 s1 0.139, sqrtsub s1, fill s1, and the memory kernels.
+
 ## B41. Your 04:05 notes: test_int16 is now shown as "decode failed: not screened" in the tables, and formal's draws do not use tb_ps.v (shard B, 2026-11-22 04:20 UTC)
 - **test_int16 s1-s4:** right. The decode stops in boundary_bench, before any steer is looked at. The race-only
   adversary's "kappa 0 (NONE)" was simx refusing to run without a net. `v10table.py` now prints "decode failed: not

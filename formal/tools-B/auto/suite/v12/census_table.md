@@ -1,0 +1,27 @@
+| route | | min kappa_lo (bounded / steers) | weakest steer | its race-only adversary: first failure | xtol first failure | latch-fed race: ctl slack; first failure |
+|---|---|---|---|---|---|---|
+| brhash_s1 |  | 0.044 (24 / 24) | ucond_br7 | kappa 0.10 | x=0.15: MAXEV | none |
+| collatz_s1 |  | 0.064 (12 / 12) | ucond_br6 | kappa 0.15 | x=0.20: RESULT | none |
+| lfsrfind_s1 |  | 0.070 (18 / 18) | ucond_br5 | kappa 0.15 | x=0.20: RESULT | +189 / +524 ps; none up to 0.20 |
+| memsum_s1 | MEM | 0.072 (14 / 14) | ucond_br8 | kappa 0.20 | - | - |
+| twoloops_s1 |  | 0.073 (32 / 32) | ucond_br15 | kappa 0.20 | x=0.25: MAXEV | +282 / +663 ps; none up to 0.20 |
+| test_memory_1_s1 | MEM | 0.101 (12 / 12) | ucond_br6 | none up to 0.20 | - | - |
+| dot2_s1 | MEM | 0.114 (14 / 14) | ucond_br6 | none up to 0.20 | - | - |
+| ipow_s1 |  | 0.116 (16 / 16) | ucond_br9 | kappa 0.15 | x=0.25: MAXEV | +231 / +603 ps; kappa 0.15 ( c0:NO-VERDICT/13141229 c1:NO-VERDICT/6953114) |
+| factorial_s1 |  | 0.128 (24 / 24) | ucond_br12 | kappa 0.20 | x=0.25: RESULT | +495 / +1297 ps; none up to 0.20 |
+| collatz64_s1 |  | 0.139 (12 / 12) | ucond_br4 | none up to 0.20 | none to 0.25 | none |
+| fill_s1 | MEM | 0.150 (22 / 22) | ucond_br6 | none up to 0.20 | - | - |
+| xorshift_s1 |  | 0.150 (16 / 16) | ucond_br9 | none up to 0.20 | none to 0.25 | +508 / +1274 ps; none up to 0.20 |
+| test_bitint_s1 | MEM | 0.161 (6 / 6) | ucond_br2 | none up to 0.20 | - | - |
+| fold64_s1 |  | 0.162 (20 / 20) | ucond_br3 | kappa 0.20 | x=0.25: RESULT | +750 / +1838 ps; none up to 0.20 |
+| sqrtsub_s1 |  | 0.171 (16 / 16) | ucond_br3 | none up to 0.20 | none to 0.25 | +1772 / +4212 ps; none up to 0.20 |
+| countloop_s1 |  | 0.180 (18 / 18) | ucond_br6 | none up to 0.20 | none to 0.25 | none |
+| test_loop_free_s1 | MEM | 0.205 (10 / 10) | ucond_br2 | none up to 0.20 | - | - |
+| test_memory_2_s1 | MEM | 0.256 (12 / 12) | ucond_br4 | none up to 0.20 | - | - |
+| divmodu_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
+| simple_example_1_s1 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |
+| straight_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
+| test_bool_array_s1 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |
+| test_divui_s1 |  | - (0 / 0) | - | none up to 0.20 | none to 0.25 | none |
+| test_int16_s1 |  | decode failed: not screened | - | - | - | - |
+| unused_arg_s1 | MEM | - (0 / 0) | - | none up to 0.20 | - | - |
