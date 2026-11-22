@@ -3549,3 +3549,11 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
 - T182 advC_ns: unpadded 3/3 (br14 234 ps); padded line below. worst + slowmax remain.
 ### progress 12:22
 - T182: advC_ns padded 3/3 (br14 1796); worst: unpadded 3/3 (br14 214 ps), padded 3/3 (br14 1777, min 1336 ucond_br4). slowmax running.
+### progress 12:40
+- research d9720523af SIM-VS-BOARD row 3: records the split-adversary vs sampled-draws disagreement (formal B and the
+  audit's T182 split fail routes that the gate, formal C's draws and uniform GLS pass; items 44-46 measure it) --
+  accurate description of T182; it omits that the audit's milder splits (0.40 / 0.20, 0.33 / 0.25) pass. No row.
+- research 3ca99252b5: flow v13 now runs BDC_SHIFT_MASK=1 on the farm (masks a variable shift amount to log2(width)
+  bits) -- a semantic change. formal A37 proves varshift under it; gcd "by an argument, not Lean". T185 (subagent P)
+  launched: which kernels change, whether a defined C input can reach a shift >= width, A37's build / statement /
+  cfront shift semantics / fidelity.
