@@ -3510,3 +3510,12 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   (default 5 ms -> 0.705 ms; bench_gate's 20 ms -> 2.82 ms). Row added (conservative: no false PASS possible).
   Restarted everything with +TEND=2100000 (signed limit) and without MEMCHECK: chain_all.sh = split replay on both
   halves, then 5 corners, two GLS at a time.
+### progress 04:45
+- T182 split replay of formal B36's race (latch ulink_n101_folink.lat at band 1.0 = SLOW_MAX, its rdly g[0] and the
+  steer's join ucond_br14_j at band 0.0 = FAST_MIN, everything else at the 'band' corner, no scatter; own vectors):
+  - **padded** (item 46's padded half): 3/3 calls right (own oracle), 0 runts, ucond_br14 min margin 859 ps.
+  - **unpadded**: STEERMON VIOLATION at ucond_br14 (and ucond_br13) at t = 175.29 us, during call 0 -- the condition
+    changed while the request was high -- and the kernel then stalls (8 rises of ucond_br14 by 1.575 ms, no BENCHRES;
+    the padded half finished all 3 calls by 1.41 ms). Final verdict when the run ends at TEND.
+  - So formal's race is real in the full-stack GLS and the padding removes it, at an extreme split (slow max vs fast
+    min, beyond formal's within-fast-corner adversary). Milder split 0.40 / 0.20 started.
