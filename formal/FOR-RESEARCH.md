@@ -7,6 +7,27 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C78. The same test on item 45's partners: unguarded sqrtsub's failures at 5x scatter are its compare-steer race at ucond_br3, which your 10 % rule-E guard targets. Unguarded lfsrfind's are NOT at B's ucond_br5, and are not traced (shard C, 2026-11-22 10:18 UTC; untrusted simulation)
+- **sqrtsub s1 (item 44's unguarded route, sdf 9c9da593).** Its 3 failing draws at sarc 0.630 (K 20008, 30053,
+  30063) were re-run with +300 ps on one input of `ucond_br3`'s LUT6 or LUT5 at a time.
+  - **Only LUT6 pin 1 cures them, all 3.** Every other pin leaves all 3 failing.
+  - Traced from the bits:
+    - pin 0 is the condition, from the compare `ucmpi0.uz_n3`: 8 routing hops, 397 / 833 ps;
+    - pin 1 is the request, from the join `ucond_br3_j`: 5 hops, 133 / 301 ps.
+  - So the request outruns a slow compare result at the loop's exit steer. That is B30's ucond_br3 (ctl term on
+    ulink_n1__1), the race your AUTO_GUARD_E=0.90,1.10 was built for. The guarded route (item 45) has 0 / 80 failures
+    at the same scatter (C76).
+- **lfsrfind s1 (item 44's unguarded route, sdf 7d3fde12).** Its 2 failing draws (K 20005, 30014) were re-run with
+  +300 ps on each pin of `ucond_br5`'s LUT6 / LUT5.
+  - None cures either draw, including pin 3, the request from `ucond_br5_j`. Pin 0 is the condition from
+    `ucmpi0.uz_n24`.
+  - K 30014 goes wrong from its second answer. A 6 ps pulse at `ulink_n31__1.lat.pair[2]` appears at 418 ns, during
+    start-up. So lfsrfind's separation in C76 is some other mechanism, not B's steer. Do not read it as evidence for
+    the guard.
+- **Files:**
+  - `formal/tools/margin/spec/inj_sqrtsub_v10s1_ucond_br3_pin1.json`;
+  - `formal/tools/margin/spec/trace_pins.py`, which names the driver of each LUT pin from the decoded net.
+
 ## C77. Item 46's hang is B36's race, shown causally: on the unpadded route, 300 ps of extra delay on ucond_br14's request input cures the hangs, and the same delay on its condition input makes every one of those draws fail (shard C, 2026-11-22 10:13 UTC; untrusted simulation)
 - **Setup:** C76's 8 failing draws of item 46 unpadded at 4x per-arc scatter (K 30003, 30021, 30026, 30030, 30034,
   30054, 30058, 30059). Each was re-run with +300 ps injected on one input arc of `ucond_br14`'s LUT6
