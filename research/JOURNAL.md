@@ -10311,3 +10311,14 @@ Negative / bounded: a feeder-race knob (formal's own census: kappa 0.10 failures
 on countloop); memory ports (serialized by design, a cell redesign); BD_SYMTRIM everywhere on single seeds (no gain seen).
 Next: v13's results against v12 and its prediction (journal 12:5x "PREDICTION for flow v13's three added knobs");
 v13s against v13 pair by pair; v11 / v12 headlines when their resumes are in; item 47 on the board.
+### progress 16:09 (where v12 lost speed to v10: its eight slowest pairs, by cause -- three are the case v13's AUTO_SEARCH_OVERBUILD targets)
+| pair | v10 -> v12 P ns | what v12 shipped |
+|---|---|---|
+| quadrec s1 / s2 | 39.37 -> 55.05 / 39.48 -> 50.06 | the search's structure did not converge -> the late phase on the loop's structure |
+| if_loop_1 s1 | 26.13 -> 33.46 | the search's structure did not converge -> the loop's route |
+| branchloop s1, sqrtsub s2 | 14.28 -> 20.10, 21.66 -> 27.33 | late-phase routes (the guard's convergence cost) |
+| memsum s1 / s2 | 24.56 -> 30.19, 23.36 -> 28.68 | the search shipped, a different structure than v10's |
+| fold64 s1 | 21.35 -> 25.58 | the loop's route (churn) |
+- quadrec s2's v12 route is the late-phase route my local v13 + KEEPDEPTH run also shipped when its search failed (50.06
+  ns both). v13 adds AUTO_SEARCH_OVERBUILD for exactly the first two rows (quadrec s3 locally: 22.43 ns); memsum's
+  port lines get v13's BDC_MEM_FASTFALL=2 + AUTO_TRIM_PORTS (local previews 25.74 / dot2 25.01, 12:xx yesterday).
