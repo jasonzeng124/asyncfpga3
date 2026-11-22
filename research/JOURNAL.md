@@ -10127,3 +10127,20 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   it 10); final, then the search (where the knob acts), then the late phase if still not clean.
 - fold64 s1 (v10: 21.35 ns, 4.8 ns of it in link request lines the rule would shorten) under v13 + BD_SYMTRIM on every
   route: started, same question as sqrtsub s1's.
+### progress 10:04 (the quadrec runs: AUTO_SEARCH_KEEPDEPTH fired as designed, but the search's pinned structure did not converge in its four raise-only routes; AUTO_SEARCH_OVERBUILD (opt-in) added: the late phase's medicine for the search's own structure)
+- kd quadrec s1 / s3 (v13 + KEEPDEPTH): the search chose the same three fork-output links (predicted 19.8 / 20.3 ns from
+  40.4 / 44.0), the log names the three pipes kept at 2 stages, the structure built -- and its raise-only routes stayed
+  short (s1: 9, 11, 10 rows; s3: 5, 6, 4), as the loop's own finish phase often does. s2's search chose another
+  structure (26.7 ns predicted), 7 / 6 short. So the knob builds the right structure; convergence is the next gate.
+- In v10, 17 of the 132 searches that built a structure never reached a clean route (quadrec s4 predicted 2.28x,
+  collatz64 s2 1.17x, countloop s2 1.16x, the rest 1.06-1.11x). The late phase (overbuild +3 with BD_SYMTRIM, a route
+  clean when the trim alone makes it so) cleaned every loop it was tried on, but it only ever builds the loop's own
+  structure.
+- **auto_size.sh AUTO_SEARCH_OVERBUILD=M (opt-in, this commit):** when the search's raise-only routes find no clean route,
+  M more routes of the search's structure via late_switch (every sized line +H, BD_SYMTRIM, latch-fed race links
+  excepted), the trim check, the trim-back in final(); on failure every marker and trim record they left is removed so
+  a following late phase starts as before. Unset: nothing runs.
+- Test (local, next): quadrec s3 resumed from its state at the end of its finish phase (search lines and files removed),
+  v13 + KEEPDEPTH + AUTO_SEARCH_OVERBUILD=4 + AUTO_SEARCH_MAXIT=1 (one raise-only route, to get to the new part).
+  PREDICTION (written now): an overbuilt route of the pinned structure is clean as built or after its trim check within
+  2 routes; after the trim-back and the cycle trim P is 20-26 ns; every draw passes.

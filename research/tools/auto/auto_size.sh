@@ -1090,6 +1090,46 @@ PY
     if [ "$neg3" != 0 ] && [ "$nr3" = 0 ]; then break; fi
     j=$((j + 1))
   done
+  # AUTO_SEARCH_OVERBUILD=M (opt-in, 2026-11-22; needs AUTO_OVERBUILD=H, parked in LATE_OB under AUTO_LATE_AFTER_SEARCH;
+  # unset, nothing here runs): the search's structure gets what the late phase gives the loop's. When its raise-only
+  # routes found no clean route, M more routes of the SAME structure are built with BD_SYMTRIM and every sized line H
+  # longer (late_switch; the latch-fed race links excepted), a route counting clean when the trim step alone makes it so,
+  # the shipped one trimmed back first (final()). Why: in flow v10, 17 of the 132 searches that built a structure never
+  # reached a clean route in their raise-only routes, so their predicted gains were thrown away (quadrec s4 2.28x,
+  # collatz64 s2 1.17x, countloop s2 1.16x, 1.06-1.11x on the rest); with AUTO_SEARCH_KEEPDEPTH quadrec's structure is the
+  # 2x one and still did not converge in four raise-only routes (local, 2026-11-22). On failure every marker and trim
+  # record these routes left is removed, so the late phase that may follow starts as it would have without them.
+  if [ -z "$LC3" ] && [ -n "${AUTO_SEARCH_OVERBUILD:-}" ] && [ -n "${AUTO_OVERBUILD:-${LATE_OB:-}}" ]; then
+    local jb=$j jj kk sob=""
+    while [ "$jb" -gt "$i" ] && [ ! -s "$O/neg_$jb.txt" ]; do jb=$((jb - 1)); done   # the last route the search ruled
+    if [ "$jb" -gt "$i" ] && [ ! -f "$O/overbuild_from.txt" ]; then
+      AUTO_OVERBUILD=${AUTO_OVERBUILD:-$LATE_OB} AUTO_OVERBUILD_LATE=$AUTO_SEARCH_OVERBUILD late_switch "$jb" "$O/rule_$jb.vh" "$O/neg_$jb.txt"
+      echo "search: no clean route in its raise-only routes; the search's structure overbuilt (AUTO_SEARCH_OVERBUILD=$AUTO_SEARCH_OVERBUILD) from it $((jb + 1))" >> "$O/log.txt"
+      for kk in $(seq 1 "$AUTO_SEARCH_OVERBUILD"); do
+        jj=$((jb + kk))
+        build "$jj" "$O/sizes_$jj.vh" || { echo "search: BUILD FAILED it=$jj (overbuilt)" >> "$O/log.txt"; break; }
+        rule "$jj" "$O/sizes_$jj.vh" || { echo "search: RULE FAILED it=$jj (overbuilt)" >> "$O/log.txt"; break; }
+        [ -n "${AUTO_RACE_Z:-}" ] && { [ "$(nneg "$RUNS/ca/${N}_$jj/rule")" = 0 ] || [ "${AUTO_RACE_KEEP:-0}" = 1 ]; } && race_check "$jj"
+        st=$(python3 "$T/ratchet.py" "$O/sizes_$jj.vh" "$RUNS/ca/${N}_$jj/rule/sizes.vh" "$RUNS/ca/${N}_$jj/rule/negative_sized.tsv" \
+             "$O/sizes_$((jj + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}")
+        echo "search it $jj $(cat "$O/it_$jj.txt") | $(echo "$st" | head -1) (overbuilt, BD_SYMTRIM)" >> "$O/log.txt"
+        echo "$st" > "$O/search_ratchet_$jj.txt"
+        read -r _ nr3 _ _ _ neg3 _ nl3 _ _ <<< "$(echo "$st" | head -1)"
+        if [ "$neg3" != 0 ] && ! grep -q '^R	' "$RUNS/ca/${N}_$jj/rule/negative_sized.tsv" 2>/dev/null && trim_check "$jj"; then
+          neg3=0; echo "search it $jj clean after the trim step (AUTO_SEARCH_OVERBUILD)" >> "$O/log.txt"
+        fi
+        [ "$neg3" = 0 ] && { LC3=$jj; sob=1; break; }
+        [ "$nr3" = 0 ] && break
+      done
+      if [ -z "$sob" ]; then   # nothing shipped from these routes: leave no marker or trim record behind
+        for kk in $(seq $((jb + 1)) "$jj"); do rm -f "$O/trim_$kk.txt" "$O/trim_${kk}_"*.txt "$O/trim_${kk}.prev.txt" "$O/sizes_${kk}_trim"*.vh; done
+        rm -f "$O/overbuild_from.txt" "$O/symtrim_from.txt" "$O/overbuild_to.txt"; OB=""
+        echo "search: the overbuilt routes found no clean route either" >> "$O/log.txt"
+      else
+        j=$jj
+      fi
+    fi
+  fi
   if [ -z "$LC3" ]; then
     echo "search: no clean route with $XENV (last it $j): ships ${N}_$X" >> "$O/log.txt"; XENV=""; return 0; fi
   final "$LC3"
