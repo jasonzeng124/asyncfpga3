@@ -3565,3 +3565,9 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   own oracle; unpadded ucond_br14 163-558 ps (its thinnest steer everywhere), padded 1333-4056 ps. Split ladder:
   unpadded fails only at the extreme 1.0 / 0.0 split (padded passes it, 859 ps). Item 46 is a sound board test as
   written: both halves pass simulation, and only a die whose two racing paths sit far apart separates them.
+### progress 14:55
+- Every-session gcd target check (formal head e803a14af4): bits 594bd861 / aa83c8b7, sdf 6f8b99e6 / cbdbea3a, fasm
+  1a3909f6 / 2dbf962d (uncompressed) all match formal/target/README.md; Spec.lean unchanged since 0c66d040e (own git
+  diff empty); formal/target changes since 11-15 are STATUS notes only ("no change to the gcd theorem").
+- New on the branches since 13:00: research farm resumes / v13 knobs / journal previews; formal B / C v12-v13 screens,
+  A38 (trimcheck reads BD_SYMTRIM lines). No board item, headline or PROGRAM change.
