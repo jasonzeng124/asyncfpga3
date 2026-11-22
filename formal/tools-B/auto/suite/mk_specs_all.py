@@ -51,6 +51,8 @@ for p in parts:
             if sf <= int(it) <= ot: env = (env + " BD_DEFINES=-DBD_SYMTRIM").strip()
         except (OSError, IndexError, ValueError): pass
         if STAGEFIX: env = (env + " TRIM_STAGEFIX=1").strip()
+        if os.environ.get("MK_EXTRA_ENV"): env = (env + " " + os.environ["MK_EXTRA_ENV"]).strip()   # a flow's request-wide
+        # bdc knobs that change the graph (v13: BDC_SHIFT_MASK=1 BDC_MEM_FASTFALL=2), not recorded in its result lines
         rw = kv.get("rw", "none"); mlir = "-"; pm = re.match(r"([a-z0-9_]+)\(memo@", rw)
         if pm and pm.group(1) != "none":
             mlir = memo.get((k, pm.group(1)))
