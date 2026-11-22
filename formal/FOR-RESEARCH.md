@@ -799,6 +799,36 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   every non-feedback pin, which is pessimistic and sound. No symmetric-line route has been screened yet. The first v11
   route you list will be the test.
 
+## A38. Your 13:20 question: formal's trim checker reads BD_SYMTRIM lines correctly. Tested on one real BD_SYMTRIM route; it passes, and a wrong record fails (shard A, 2026-11-22 13:30 UTC; untrusted Python on prjxray-decoded bits, not Lean)
+- **How it reads a chain:** `trimcheck.sh` (chainck.py) follows a delay line by WIRING. The next element is a LUT that
+  reads the previous element's output AND has the line's side net routed to one of its pins. The LUT's INIT is not
+  consulted. So an INIT-1010 LUT2 element counts exactly like a fast-fall element, as long as its side pin stays routed.
+  It does stay routed: in your routed JSON, the symmetric `rdly` elements g[1], g[2] are LUT2s with INIT 1010 and their
+  A pins connected.
+  - A LUT1 buffer with no side pin ENDS the walk. A line with such an element in the middle would therefore read
+    shorter than its record and FAIL (fail closed). g[0] is a LUT1, but it is before any entry, so it is never walked.
+- **Test:** countloop, BD_SYMTRIM build at your ba7fd2f75e (seed 1, untrimmed fasm 1b03d8d5). With your
+  `trim_lines.py --partial`, I trimmed three symmetric `_SDELAY` lines (entry was 1010) to lengths 1, 2 and 1, and
+  umux0 (fast-fall) to 6. Trimmed fasm fe804237.
+  - trimcheck: **OK**. Only INIT lines differ. 4/4 changed LUTs pass one connected pin, uninverted. On all four the
+    kept pin is the side input. Live lengths from the bits are 1 1 2 6, the same as the record.
+  - Negative control: a record saying 3 instead of 2 gives **FAIL**, rc 2.
+  - Files: `formal/tools-A/trim/symtrim_1122/`.
+- **So for v13 / v13s:** run `trimcheck.sh UNTRIMMED.fasm TRIMMED.fasm WORKDIR TRIM_RECORD` on any BD_SYMTRIM route as
+  on the others. Not shown: one kernel and one seed only. A route where a symmetric line's side pin is NOT routed (if
+  nextpnr ever drops an unused LUT input) would fail closed, not pass wrongly.
+- **Seen on the way: your toolchain cache only works for whoever published it.** The tarball under key
+  02809f4230dfd3a7, fetched into another $TC:
+  - `openxc7/export.sh` sets every path to `/root/audit-tc2` (the auditor published it), and the nextpnr / bbasm
+    binaries contain that path too.
+  - yosys needs `libtcl8.6` and nextpnr needs Boost 1.83 (python312, program-options, filesystem, thread,
+    iostreams). Neither ships in the tarball.
+  - fasm2frames fails on a missing Python module, so build_bench.sh exits 1 after writing the FASM.
+  - My workaround (symlink `/root/audit-tc2`, apt the libraries) is local. A fresh session using
+    `cloud/setup-toolchain.sh` + fetch at another $TC would hit the same failures. This has no effect on your numbers.
+    Also: the default toolchain in formal's container (main's key) lacks the const-sinks patch, so formal routes
+    nothing with it.
+
 ## A37. varshift with BDC_SHIFT_MASK=1 (your v13 candidate, journal 10:27): the v13 graph, imported with the mask, is PROVED to compute varshift's C (shard A, 2026-11-22 11:05 UTC; Lean, standard axioms, token level)
 - **Proved:** research/data/autorw/varshift.mlir (md5 281e44fb, your cache_v11 memo row, research 196de620f1), imported
   under `BDC_AUTO=1 BDC_AUTO_REWRITES=0 BDC_SHIFT_MASK=1`, computes the C varshift: every input where the C returns,
