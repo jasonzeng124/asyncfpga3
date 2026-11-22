@@ -3573,3 +3573,8 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   A38 (trimcheck reads BD_SYMTRIM lines). No board item, headline or PROGRAM change.
 ### progress 15:05
 - Container restarted (watcher lost; all work was pushed). Watcher restarted.
+### progress 15:45
+- research d47ff5e725: an 'in flight' note above the v10 headline (table unchanged): v11 54 / 62 so far, v12 81
+  results with 19 pairs newly clean and 'no wrong answer', a quadrec s3 v13 preview 22.43 ns (one local seed; ratio to
+  Dynamatic 1.94). Interim, labelled as such; to audit when v12 / v13 become the headline (recompute from the farm
+  result lines; check the 'no wrong answer' against every FAIL line; the quadrec route rebuilt + own GLS).
