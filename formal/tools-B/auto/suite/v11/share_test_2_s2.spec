@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v11/share_test_2_s2_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/share_test_2_s2_trims.txt
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=f22326bc
 FASM=00000000

@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v11/while_loop_3_s1_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/while_loop_3_s1_trims.txt
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=a732a489
 FASM=00000000

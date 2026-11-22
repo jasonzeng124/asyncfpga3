@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v11/test_memory_2_s1_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/test_memory_2_s1_trims.txt
 MLIR=-
-ENV=BD_DEFINES=-DBD_SYMTRIM
+ENV=BD_DEFINES=-DBD_SYMTRIM TRIM_STAGEFIX=1
 SDF=5ee2feff
 FASM=00000000

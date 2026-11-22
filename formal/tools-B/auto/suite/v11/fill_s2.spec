@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v11/fill_s2_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/fill_s2_trims.txt
 MLIR=-
-ENV=BD_DEFINES=-DBD_SYMTRIM
+ENV=BD_DEFINES=-DBD_SYMTRIM TRIM_STAGEFIX=1
 SDF=2f775cbb
 FASM=00000000

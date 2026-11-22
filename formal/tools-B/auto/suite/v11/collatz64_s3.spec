@@ -5,6 +5,6 @@ SEED=3
 SIZES=formal/tools-B/auto/suite/v11/collatz64_s3_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/collatz64_s3_trims.txt
 MLIR=research/data/autorw/collatz64.mlir
-ENV=BDC_FORK_OUT_LINK=n19__0
+ENV=BDC_FORK_OUT_LINK=n19__0 TRIM_STAGEFIX=1
 SDF=f42e385c
 FASM=00000000

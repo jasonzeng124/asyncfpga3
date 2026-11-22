@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v11/twoloops_s1_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/twoloops_s1_trims.txt
 MLIR=research/data/autorw/twoloops.mlir
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=d4d19bb6
 FASM=00000000

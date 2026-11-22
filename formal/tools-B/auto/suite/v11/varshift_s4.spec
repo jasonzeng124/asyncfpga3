@@ -5,6 +5,6 @@ SEED=4
 SIZES=formal/tools-B/auto/suite/v11/varshift_s4_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/varshift_s4_trims.txt
 MLIR=research/data/autorw/varshift.mlir
-ENV=BDC_LINK_DEPTHS=ulink_n13__1=2 BDC_FORK_OUT_LINK=n15__0,n17__0
+ENV=BDC_LINK_DEPTHS=ulink_n13__1=2 BDC_FORK_OUT_LINK=n15__0,n17__0 TRIM_STAGEFIX=1
 SDF=80111746
 FASM=00000000

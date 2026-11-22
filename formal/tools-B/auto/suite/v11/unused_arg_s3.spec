@@ -5,6 +5,6 @@ SEED=3
 SIZES=formal/tools-B/auto/suite/v11/unused_arg_s3_sizes.vh
 TRIMS=-
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=68fab7f3
 FASM=00000000

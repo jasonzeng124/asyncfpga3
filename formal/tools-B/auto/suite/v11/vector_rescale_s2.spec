@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v11/vector_rescale_s2_sizes.vh
 TRIMS=-
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=deccae0d
 FASM=00000000

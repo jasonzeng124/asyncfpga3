@@ -5,6 +5,6 @@ SEED=3
 SIZES=formal/tools-B/auto/suite/v11/memsum_s3_sizes.vh
 TRIMS=-
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=0738c8bd
 FASM=00000000

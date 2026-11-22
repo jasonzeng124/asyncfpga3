@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v11/if_convert_s1_sizes.vh
 TRIMS=-
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=d8bc2924
 FASM=00000000

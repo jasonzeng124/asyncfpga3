@@ -5,6 +5,6 @@ SEED=4
 SIZES=formal/tools-B/auto/suite/v11/brhash_s4_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/brhash_s4_trims.txt
 MLIR=research/data/autorw/brhash.mlir
-ENV=BD_DEFINES=-DBD_SYMTRIM
+ENV=BD_DEFINES=-DBD_SYMTRIM TRIM_STAGEFIX=1
 SDF=e00a76ed
 FASM=00000000

@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v11/test_stdint_s2_sizes.vh
 TRIMS=-
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=34a478f7
 FASM=00000000

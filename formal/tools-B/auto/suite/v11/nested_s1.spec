@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v11/nested_s1_sizes.vh
 TRIMS=-
 MLIR=research/data/autorw/nested.mlir
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=25ffb3b4
 FASM=00000000

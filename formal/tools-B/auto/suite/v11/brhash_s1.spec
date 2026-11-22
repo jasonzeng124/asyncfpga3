@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v11/brhash_s1_sizes.vh
 TRIMS=-
 MLIR=research/data/autorw/brhash.mlir
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=b95072bd
 FASM=00000000

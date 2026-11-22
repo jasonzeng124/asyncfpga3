@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v11/while_loop_3_s2_sizes.vh
 TRIMS=-
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=c9f1d0a0
 FASM=00000000

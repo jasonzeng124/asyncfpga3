@@ -5,6 +5,6 @@ SEED=4
 SIZES=formal/tools-B/auto/suite/v11/horner_s4_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/horner_s4_trims.txt
 MLIR=research/data/autorw/horner.mlir
-ENV=BDC_FORK_OUT_LINK=n15__0,n27__3
+ENV=BDC_FORK_OUT_LINK=n15__0,n27__3 TRIM_STAGEFIX=1
 SDF=9e27eeaa
 FASM=00000000

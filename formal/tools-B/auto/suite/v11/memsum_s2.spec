@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v11/memsum_s2_sizes.vh
 TRIMS=-
 MLIR=-
-ENV=BDC_FORK_OUT_LINK=n11__0,n18__0,n35__3
+ENV=BDC_FORK_OUT_LINK=n11__0,n18__0,n35__3 TRIM_STAGEFIX=1
 SDF=d8efd9ad
 FASM=00000000

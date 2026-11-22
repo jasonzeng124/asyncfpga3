@@ -5,6 +5,6 @@ SEED=4
 SIZES=formal/tools-B/auto/suite/v11/dot2_s4_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/dot2_s4_trims.txt
 MLIR=-
-ENV=BDC_FORK_OUT_LINK=n11__0,n16__0
+ENV=BDC_FORK_OUT_LINK=n11__0,n16__0 TRIM_STAGEFIX=1
 SDF=908d874c
 FASM=00000000

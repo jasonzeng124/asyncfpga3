@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v11/lfsrfind_s1_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/lfsrfind_s1_trims.txt
 MLIR=-
-ENV=BDC_FORK_OUT_LINK=n18__0,n20__0,n24__0,n34__2,n51__0,n54
+ENV=BDC_FORK_OUT_LINK=n18__0,n20__0,n24__0,n34__2,n51__0,n54 TRIM_STAGEFIX=1
 SDF=7d3fde12
 FASM=00000000

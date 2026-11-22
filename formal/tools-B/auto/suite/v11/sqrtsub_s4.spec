@@ -5,6 +5,6 @@ SEED=4
 SIZES=formal/tools-B/auto/suite/v11/sqrtsub_s4_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/sqrtsub_s4_trims.txt
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=89fc043c
 FASM=00000000

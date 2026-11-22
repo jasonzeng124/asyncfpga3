@@ -5,6 +5,6 @@ SEED=3
 SIZES=formal/tools-B/auto/suite/v11/quadrec_s3_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/quadrec_s3_trims.txt
 MLIR=research/data/autorw/quadrec.mlir
-ENV=BD_DEFINES=-DBD_SYMTRIM
+ENV=BD_DEFINES=-DBD_SYMTRIM TRIM_STAGEFIX=1
 SDF=91a9fd59
 FASM=00000000

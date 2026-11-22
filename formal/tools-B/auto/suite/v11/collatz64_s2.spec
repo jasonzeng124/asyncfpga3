@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v11/collatz64_s2_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/collatz64_s2_trims.txt
 MLIR=research/data/autorw/collatz64.mlir
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=387e80a9
 FASM=00000000

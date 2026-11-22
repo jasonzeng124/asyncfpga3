@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v11/countloop_s2_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/countloop_s2_trims.txt
 MLIR=research/data/autorw/countloop.mlir
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=bf5ad639
 FASM=00000000

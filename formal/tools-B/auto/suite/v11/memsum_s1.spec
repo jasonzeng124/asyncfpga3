@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v11/memsum_s1_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/memsum_s1_trims.txt
 MLIR=-
-ENV=BD_DEFINES=-DBD_SYMTRIM
+ENV=BD_DEFINES=-DBD_SYMTRIM TRIM_STAGEFIX=1
 SDF=26ac1278
 FASM=00000000

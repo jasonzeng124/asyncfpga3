@@ -5,6 +5,6 @@ SEED=2
 SIZES=formal/tools-B/auto/suite/v11/mul_example_s2_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/mul_example_s2_trims.txt
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=b8e9c4ed
 FASM=00000000

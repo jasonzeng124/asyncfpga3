@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v11/sqrtsub_s1_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/sqrtsub_s1_trims.txt
 MLIR=-
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=9c9da593
 FASM=00000000

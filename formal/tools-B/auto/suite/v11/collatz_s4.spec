@@ -5,6 +5,6 @@ SEED=4
 SIZES=formal/tools-B/auto/suite/v11/collatz_s4_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/collatz_s4_trims.txt
 MLIR=research/data/autorw/collatz.mlir
-ENV=
+ENV=TRIM_STAGEFIX=1
 SDF=376b37b9
 FASM=00000000

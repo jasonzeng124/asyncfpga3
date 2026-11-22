@@ -5,6 +5,6 @@ SEED=4
 SIZES=formal/tools-B/auto/suite/v11/factorial_s4_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/factorial_s4_trims.txt
 MLIR=-
-ENV=BD_DEFINES=-DBD_SYMTRIM
+ENV=BD_DEFINES=-DBD_SYMTRIM TRIM_STAGEFIX=1
 SDF=de8c6a17
 FASM=00000000

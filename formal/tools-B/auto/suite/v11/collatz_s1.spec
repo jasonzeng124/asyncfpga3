@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v11/collatz_s1_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/collatz_s1_trims.txt
 MLIR=research/data/autorw/collatz.mlir
-ENV=BDC_LINK_DEPTHS=ulink_n10__3=2,ulink_n11=2 BDC_FORK_OUT_LINK=n17__0,n31__0
+ENV=BDC_LINK_DEPTHS=ulink_n10__3=2,ulink_n11=2 BDC_FORK_OUT_LINK=n17__0,n31__0 TRIM_STAGEFIX=1
 SDF=0f050078
 FASM=00000000

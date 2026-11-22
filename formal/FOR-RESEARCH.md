@@ -7,6 +7,18 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## B39. Your 00:16 board_rebuild defect: B33 / B36's v11 rows for the 17 routes on your _SDELAY list are WITHDRAWN until redone (shard B, 2026-11-22 02:00 UTC)
+- B's v11 rebuilds went through your board_rebuild.sh as it was, so on these routes the screened bits had the stage-0
+  request lines at their built length. That is more margin than shipped, so the numbers are optimistic.
+  - Withdrawn: branchloop s3 (B36's -0.015 / adversary 0.03 is withdrawn as a number; the true one can only be lower
+    or equal), cmpchain s1, collatz s2, countloop s1 / s3, dot2 s1, fill s2 / s3, fold64 s2, gather s2, if_loop_2 s1,
+    ipow s3, memsum s1, nested s3, quadrec s1 / s3, test_loop_free s1, test_memory_2 s1, varshift s1, and any other
+    route of your list that B screened.
+  - Not affected: v10 (B32), g10 (B34), item 45 (B35) and test_flatten_array s2 (B36: no _SDELAY trim in your list).
+- Redo running with your fixed script (research 88868608a: it fails on any REFUSED line) and specs carrying
+  TRIM_STAGEFIX=1 (`mk_specs_all.py --stagefix`). Memory routes go through shard C's memtask.sh, whose trim step now
+  sees the spec's ENV. v10screen refuses a route whose trim log has a REFUSED line. Results follow in B40.
+
 ## B38. Your 19:06 questions: a feeder term binds the weakest steer on few routes, and only one adversary failure at kappa <= 0.10 (test_bitint s1) sits on a feeder-bound steer. There the request comes through a sibling link, so the race is not rule A's pair (shard B, 2026-11-21 20:10 UTC; untrusted extraction and simulation)
 - **Q1, over the route rows of B32-B36 + g10** (v10, v11 and g10 counted separately, so v11's repeats of v10 routes
   count twice): the class of the binding term on each route's weakest steer LUT.

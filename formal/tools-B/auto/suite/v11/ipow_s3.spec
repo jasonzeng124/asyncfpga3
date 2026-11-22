@@ -5,6 +5,6 @@ SEED=3
 SIZES=formal/tools-B/auto/suite/v11/ipow_s3_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v11/ipow_s3_trims.txt
 MLIR=-
-ENV=BD_DEFINES=-DBD_SYMTRIM
+ENV=BD_DEFINES=-DBD_SYMTRIM TRIM_STAGEFIX=1
 SDF=7f3cfd2d
 FASM=00000000
