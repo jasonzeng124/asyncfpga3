@@ -10215,3 +10215,17 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   of those; where it ships, P below the loop's route by >= 5 %.
 - No kernel's status worse than v12's; no wrong answer; no pulse under 1 ns on a clean route.
 - Falsified if: quadrec ships the loop's structure on >= 2 seeds, or any wrong answer on a route these knobs changed.
+### progress 14:30 (quadrec s3, the route v13 would ship: re-finaled with the trim-back fix, P 22.43 ns (v10 41.03, Dynamatic 11.58: ratio 1.94, was 3.54); draws running; AUTO_SEARCH_OVERBUILD's resume gap closed)
+- /tmp/bot/runs/so2: the so run's finished state resumed as the farm resumes a finished loop (AUTO_TRIM_ONLY, the body's
+  deletions), at the fixed code: route it 12 rebuilt with its BD_SYMTRIM markers, sdf 20d29647 = the original; the
+  overbuild trim-back now ran (121 lines to max(need, size - 3): 121 + 33 + 11 + 4 chains over four steps):
+  P 25.98 -> 22.60 ns; then the cycle trim (round 1: 4 chains; round 2: 22.60 -> 22.43). **P 22.43 ns**, draws running.
+- a47c9c7ef (before v13's submission): a resume of an UNFINISHED loop whose state holds search_ob_from.txt (written when
+  AUTO_SEARCH_OVERBUILD's routes start, removed when they fail) removes the late-phase markers those routes left, so
+  the loop's replay does not read them and the rerun search starts clean; a finished loop's TRIM-ONLY resume keeps
+  them (it rebuilds the shipped route with them). Unit-tested both ways. Why: quadrec's tasks will likely hit the
+  farm's 240-min limit inside the search phase.
+- v13 previews (amended environment exactly): collatz64 s2 and countloop s2 -- both searches converged in raise-only
+  routes this time (21.51 / 20.61 ns untrimmed), so AUTO_SEARCH_OVERBUILD stayed idle; finals / draws running.
+- BD_SYMTRIM everywhere, fold64 s1: PASS 4/4 at 27.50 ns via its late phase (v10 21.35, v12 25.58): a second
+  single-seed point that does not favour the define; the v13s A/B decides.
