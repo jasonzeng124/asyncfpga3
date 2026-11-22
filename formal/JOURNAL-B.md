@@ -5381,3 +5381,4 @@ on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
 ### progress 20:20 -- B38 update: adversary aimed at item 44's feeder-bound steers: collatz64 s1 ucond_br7 (0.010) MISMATCH at 0.10 (rebuilt SAME after a stale-classes run; weaksweep now refuses stale classes), lfsrfind s1 ucond_br4 (0.031) MISMATCH at 0.10.
 ### progress 22:05 -- 2-hour re-read: PROGRAM unchanged; research FOR-FORMAL newest 20:29 (B38 read; item 44 names the three feeder steers; nothing asked); v11 111 routes screened (4a / 4b still on the farm), v12 not started on the farm.
 ### progress 23:16 -- v11 117 routes screened (4a / 4b still running on the farm); new thin: factorial s4 0.036 (adversary 0.06), memsum s4 0.017 (0.10), brhash s4 0.070 (0.10). Census table updated. v12 not started on the farm.
+### progress 00:12 -- 2-hour re-read: PROGRAM, research FOR-FORMAL (20:29), audit unchanged for B. Quiet: v11 4a / 4b and v12 still on the farm; autoall.sh keeps polling.
