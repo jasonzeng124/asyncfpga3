@@ -1,5 +1,9 @@
 #!/bin/bash
 #CLUSTER array=1-31 cores=2 mem=16G time=240
+# AUTO_CKPT=1 added 2026-11-22 before this part was submitted (research/JOURNAL.md 2026-11-22): final()'s full stacks
+# and trim-step rule runs and the draws are memoized by content in the task's auto/ files, so a resume (from $SHARED)
+# no longer redoes them; results are unchanged by construction (a memo is keyed by every input its run reads).
+# Memo files stay out of OUT/auto.
 # suite13t_s5a_v13_2b: seed 2, kernels 32-62 of KS
 # flow v13 = flow v12 + three opt-in knobs, all general (no kernel named), each measured first (research/JOURNAL.md
 # 2026-11-21 18:52 - 2026-11-22 00:02):
@@ -29,7 +33,7 @@ set -uo pipefail
 KS=(xorshift collatz collatz64 ipow gcd isprime straight countloop sqrtsub nest3 twoloops brhash lfsrfind quadrec horner fold64 varshift cmpchain nested branchloop digitsum digitdiv divmodu divmods test_divui memsum dot2 gather fill factorial iterative_division iterative_sqrt test_loop_free test_int16 test_bitint unused_arg if_loop_1 if_loop_2 sumi3_mem fir simple_example_1 while_loop_3 if_convert test_memory_1 test_memory_2 test_bool_array binary_search mul_example share_test_2 test_stdint spmv sobel test_flatten_array image_resize vector_rescale stencil_2d iir share_test_1 single_loop loop_path nested_loop video_filter)
 NK=${#KS[@]}
 K=${KS[$(( TASK - 1 + 31 ))]}; S=2
-export CA_JOBS=2 DRAW_JOBS=2 PNR_TIMEOUT=3600 BDC_AUTO_REWRITES=0 CA_BENCHCAP=1 AUTO_TRIM=1 AUTO_TRIM_SCOPE=cycle AUTO_RACE_Z=4.5 AUTO_PROVED_RW=cache AUTO_OVERBUILD=3 AUTO_OVERBUILD_LATE=4 TRIM_STAGEFIX=1 AUTO_RACE_KEEP=1 AUTO_PROVED_RW_CACHE=research/data/autorw/cache_v11.tsv AUTO_LATE_AFTER_SEARCH=1 AUTO_GUARD_E=0.90,1.10 AUTO_RACE_KAPPA=0.13 BDC_MEM_FASTFALL=2 AUTO_TRIM_PORTS=1
+export CA_JOBS=2 DRAW_JOBS=2 PNR_TIMEOUT=3600 BDC_AUTO_REWRITES=0 CA_BENCHCAP=1 AUTO_TRIM=1 AUTO_TRIM_SCOPE=cycle AUTO_RACE_Z=4.5 AUTO_PROVED_RW=cache AUTO_OVERBUILD=3 AUTO_OVERBUILD_LATE=4 TRIM_STAGEFIX=1 AUTO_RACE_KEEP=1 AUTO_PROVED_RW_CACHE=research/data/autorw/cache_v11.tsv AUTO_LATE_AFTER_SEARCH=1 AUTO_GUARD_E=0.90,1.10 AUTO_RACE_KAPPA=0.13 BDC_MEM_FASTFALL=2 AUTO_TRIM_PORTS=1 AUTO_CKPT=1
 echo "suite13t_s5a_v13 kernel $K seed $S (flow v13)" > "$OUT/task.txt"
 mkdir -p "$OUT/auto"
 # $SHARED state (added 2026-11-20 15:45 UTC, before this request started; the flow is unchanged): suite13t lost ~30 % of
@@ -52,6 +56,7 @@ if [ -f "$ST/sizes_1.vh" ]; then
 fi
 mkdir -p "$ST"
 save() { cp "$RUNS/auto/su_${K}_$S/"*.txt "$RUNS/auto/su_${K}_$S/"*.vh "$OUT/auto/" 2>/dev/null
+  rm -f "$OUT/auto/"stk_*.txt "$OUT/auto/"rck_*.txt "$OUT/auto/"dck_*.txt
   local f; for f in "$RUNS/auto/su_${K}_$S/"*.txt "$RUNS/auto/su_${K}_$S/"*.vh; do
     [ -s "$f" ] && cp "$f" "$ST/.part" 2>/dev/null && mv "$ST/.part" "$ST/${f##*/}"; done; }
 ( while sleep 300; do save; done ) & BG=$!
@@ -59,7 +64,7 @@ research/tools/suite/suite_one.sh "$K" "$S" 4 4 > "$OUT/summary.txt" 2>&1
 kill $BG 2>/dev/null; wait $BG 2>/dev/null
 cp "$RUNS/suite/${K}_$S/"*.txt "$OUT/" 2>/dev/null
 cp "$RUNS/auto/su_${K}_$S/"*.txt "$RUNS/auto/su_${K}_$S/"*.vh "$OUT/auto/" 2>/dev/null
-rm -f "$OUT/auto/"place_*.txt
+rm -f "$OUT/auto/"place_*.txt "$OUT/auto/"stk_*.txt "$OUT/auto/"rck_*.txt "$OUT/auto/"dck_*.txt
 cp "$RUNS/r/su_${K}_${S}_"*/fid/equiv.txt "$OUT/" 2>/dev/null
 it=$(grep -oP 'it=\K[0-9]+' "$OUT/result.txt" 2>/dev/null | head -1)
 for c in 0.20 0.31; do
