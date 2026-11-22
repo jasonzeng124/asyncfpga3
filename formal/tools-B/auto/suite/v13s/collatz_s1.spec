@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v13s/collatz_s1_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v13s/collatz_s1_trims.txt
 MLIR=research/data/autorw/collatz.mlir
-ENV=TRIM_STAGEFIX=1 BDC_SHIFT_MASK=1 BDC_MEM_FASTFALL=2
+ENV=TRIM_STAGEFIX=1 BDC_SHIFT_MASK=1 BDC_MEM_FASTFALL=2 BD_DEFINES=-DBD_SYMTRIM
 SDF=eb6cf551
 FASM=00000000

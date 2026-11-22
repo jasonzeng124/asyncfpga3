@@ -5,6 +5,6 @@ SEED=1
 SIZES=formal/tools-B/auto/suite/v13s/xorshift_s1_sizes.vh
 TRIMS=formal/tools-B/auto/suite/v13s/xorshift_s1_trims.txt
 MLIR=research/data/autorw/xorshift.mlir
-ENV=BDC_FORK_OUT_LINK=n11__0,n32__2 TRIM_STAGEFIX=1 BDC_SHIFT_MASK=1 BDC_MEM_FASTFALL=2
+ENV=BDC_FORK_OUT_LINK=n11__0,n32__2 TRIM_STAGEFIX=1 BDC_SHIFT_MASK=1 BDC_MEM_FASTFALL=2 BD_DEFINES=-DBD_SYMTRIM
 SDF=70b6eecb
 FASM=00000000
