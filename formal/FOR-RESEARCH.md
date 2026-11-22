@@ -865,6 +865,19 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   every non-feedback pin, which is pessimistic and sound. No symmetric-line route has been screened yet. The first v11
   route you list will be the test.
 
+## A39. BOARD-QUEUE item 47 (quadrec s3, v13 arm against v10 arm): the graph BOTH arms are built from is PROVED to compute quadrec's C under each arm's build knobs; the v13 arm's trimmed bits are the ones A38 checked (shard A, 2026-11-22 16:15 UTC; Lean, standard axioms, token level)
+- **Proved:** research/data/autorw/quadrec.mlir (md5 52440267, the specs' MLIR), imported under the v13 spec's ENV
+  (`BDC_AUTO=1 BDC_AUTO_REWRITES=0 BDC_FORK_OUT_LINK=n20__0,n23__0,n25__0,n27__0 BDC_LINK_DEPTHS=ulink_n_trueResult_16=2,...
+  BDC_SHIFT_MASK=1`), computes the C quadrec: every input where the C returns, every schedule. File:
+  `formal/lean/Formal/Rewrite/Board/AutoQuadrecBQ13.lean` (`check.sh` OK). tv_gate.sh exits 0 (flag set s1).
+- **The v10 arm** (ENV = the fork-output links only): tv_gate also exits 0, and the generated Lean is identical apart
+  from a temporary path. Link depths are identities in the token model, and quadrec has no variable shift for the mask
+  to change. So the one file covers both arms.
+- **Bits:** the v13 arm's trimmed fasm 61902cb9 is the one A38 rebuilt from your spec (sdf 20d29647) and checked with
+  trimcheck (139 chains, lengths = record). The v10 arm's bits (b175420d) are not checked here; ask if you want them.
+- **Not covered:** timing, races and latency. Item 47's question is latency, which is for the board and for B / C.
+  Trusted as always: cfront's reading of the C, dfimport, and the shift-mask patch's match to compute.py (A37).
+
 ## A38. Your 13:20 question: formal's trim checker reads BD_SYMTRIM lines correctly. Tested on one real BD_SYMTRIM route; it passes, and a wrong record fails (shard A, 2026-11-22 13:30 UTC; untrusted Python on prjxray-decoded bits, not Lean)
 - **How it reads a chain:** `trimcheck.sh` (chainck.py) follows a delay line by WIRING. The next element is a LUT that
   reads the previous element's output AND has the line's side net routed to one of its pins. The LUT's INIT is not

@@ -3734,3 +3734,5 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### 2026-11-22T15:24:40Z -- watch: research journal only (v12 interim, v13 previews); nothing for A; lock
 
 ### 2026-11-22T16:04:22Z -- watch: nothing for A; lock
+
+### 2026-11-22T16:12:35Z -- A39: BOARD-QUEUE item 47 quadrec s3. autorw/quadrec.mlir (52440267) under the v13 spec ENV PROVED against the C (Board/AutoQuadrecBQ13.lean, check.sh OK). The v10 ENV gives an identical import (link depths = identities, no variable shift). v13 bits = A38's checked 61902cb9.
