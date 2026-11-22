@@ -8,6 +8,8 @@ with MEM=1: v10screen.sh decodes them with shard C's margin/bram/memtask.sh and 
 import glob, os, re, shutil, sys
 MEM = "--mem" in sys.argv; argv = [a for a in sys.argv if a != "--mem"]
 CACHE = "research/data/autorw/cache.tsv"
+STAGEFIX = "--stagefix" in argv; argv = [a for a in argv if a != "--stagefix"]   # research 2026-11-22 00:16: flows v11 on
+# record stage-aware _SDELAY trims, which trim_lines.py names only with TRIM_STAGEFIX=1 in its environment
 if "--cache" in argv: i = argv.index("--cache"); CACHE = argv[i + 1]; del argv[i:i + 2]   # e.g. cache_v11.tsv for flow v11   # --mem: also memory kernels (benchvec vectors)
 RS, out, parts = argv[1], argv[2], argv[3:]
 memo = {}
@@ -48,6 +50,7 @@ for p in parts:
             ot = int(open(os.path.join(a, "overbuild_to.txt")).read().split()[0]) if os.path.exists(os.path.join(a, "overbuild_to.txt")) else 10 ** 6
             if sf <= int(it) <= ot: env = (env + " BD_DEFINES=-DBD_SYMTRIM").strip()
         except (OSError, IndexError, ValueError): pass
+        if STAGEFIX: env = (env + " TRIM_STAGEFIX=1").strip()
         rw = kv.get("rw", "none"); mlir = "-"; pm = re.match(r"([a-z0-9_]+)\(memo@", rw)
         if pm and pm.group(1) != "none":
             mlir = memo.get((k, pm.group(1)))

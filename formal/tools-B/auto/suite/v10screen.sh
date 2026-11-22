@@ -19,6 +19,8 @@ if [ "$(get MEM)" = 1 ]; then   # a memory kernel (benchvec vectors): shard C's 
   for e in $(get ENV); do export "$e"; done; TRx=$(get TRIMS); Zx=$(get SIZES)
   case $Zx in formal/*) Zx=$F/$Zx;; esac; case $TRx in formal/*) TRx=$F/$TRx;; esac
   ( [ "$TRx" = - ] || export TRIM=$TRx; TREE=$O/tree bash "$F/formal/tools/margin/bram/memtask.sh" "$K" "$S" "$Zx" "$(get SDF)" "$O/mt" 1 ) > "$O/memtask.txt" 2>&1
+  if grep -q REFUSED "$O/mt/trim.log" 2>/dev/null; then   # a recorded trim that maps to no chain: not the judged bits
+    echo "$NM | MEM | trim REFUSED ($(grep -c REFUSED "$O/mt/trim.log") lines): not the judged bits" | tee "$O/screen.txt"; exit 0; fi
   BDm=$O/tree/cells/build/hw/${K}_bench_gen
   fa=$(md5sum < "$BDm/${K}_bench_gen.fasm" 2>/dev/null | cut -c1-8)
   if [ -f "$O/mt/w/m/net.json" ]; then
