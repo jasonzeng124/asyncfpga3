@@ -3590,3 +3590,4 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
 - Provenance: the v13local route was made locally (AUTO_SEARCH_MAXIT=1 to reach the overbuilt routes quickly, then a
   manual AUTO_TRIM_ONLY re-final 'as a farm resume would'), not by the v13 farm run. The BDC_LINK_DEPTHS pins are the
   KEEPDEPTH knob's output (a structural rule; census over v10's 89 search structures: only quadrec's change).
+- 16:45 T186: 4 parallel GLS ran out of memory (one build killed); restarted as queue.sh, 2 at a time.
