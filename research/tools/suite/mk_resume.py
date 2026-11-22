@@ -7,7 +7,7 @@ checkout's results/) and list the tasks that ended without a result line: TIMEOU
 CANCELLED, or COMPLETED with no result.txt. Write research/cluster/requests/PART_NEW_SUFFIX.sh: the same body (so the
 same kernel and seed per task number, and the same $SHARED state directory), with
   * `#CLUSTER array=` the unfinished tasks only,
-  * cores=4 and DRAW_JOBS=4 (the four draws at once; CA_JOBS unchanged: the rule's results do not depend on it),
+  * cores=4 and DRAW_JOBS=4 (the four draws at once; CA_JOBS unchanged: the rule's results do not depend on it), mem=32G,
   * a header line naming what it resumes.
 A part with nothing unfinished gets no file. --rerun-status S1,S2 (2026-11-21): a task whose result line says
 status=S (e.g. PNR-TIMEOUT: nextpnr over PNR_TIMEOUT on a loaded node) counts as unfinished too; it has no $SHARED
@@ -73,7 +73,9 @@ def main():
             continue
         name = "%s_%s" % (part, suf)
         arr = ",".join(str(t) for t in tasks)
-        body = re.sub(r"^#CLUSTER .*$", "#CLUSTER array=%s cores=4 mem=16G time=240" % arr, src, count=1, flags=re.M)
+        # mem=32G (2026-11-22): four draws of a large kernel at once were OOM-killed at 16G (v10 nest3 s4); every resume part
+        # since has been raised to 32G by hand
+        body = re.sub(r"^#CLUSTER .*$", "#CLUSTER array=%s cores=4 mem=32G time=240" % arr, src, count=1, flags=re.M)
         body = body.replace("DRAW_JOBS=2", "DRAW_JOBS=4")
         hdr = ("# %s: resumes %s's %d task(s) that ended without a result line%s (%s), from their $SHARED state; the same\n"
                "# body otherwise (same kernel / seed per task number), 4 cores with the four draws at once.\n"
