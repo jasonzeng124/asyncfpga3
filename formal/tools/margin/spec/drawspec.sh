@@ -11,6 +11,15 @@ set -uo pipefail
 SP=$1; O=$(mkdir -p "$2" && readlink -f "$2"); ND=${3:-64}
 RS=${RS:-/home/user/rs}; export RS TC=${TC:-$HOME/dev2/lib/fpgatoolchain} DRAW_DOUT=${DRAW_DOUT:-23000}
 F=$(cd "$(dirname "$0")/../../../.." && pwd); HB=$F/formal/tools-B/auto
+# a spec in this checkout (formal/..., e.g. shard B's mk_specs_all.py output with FASM=00000000: no judged fasm, the
+# trimmed fasm's md5 is reported and the bit made here as tools-B v10screen.sh does): SIZES / TRIMS copied into $RS
+case $SP in formal/*)
+  mkdir -p "$RS/build/dspec"; A=$RS/build/dspec/$(basename "$SP")
+  sed -e "s#^SIZES=\(formal/.*\)#SIZES=$F/\1#" -e "s#^TRIMS=\(formal/.*\)#TRIMS=$F/\1#" "$F/$SP" > "$A"
+  for x in SIZES TRIMS; do v=$(sed -n "s/^$x=//p" "$A"); case $v in /*) cp "$v" "$RS/build/dspec/";; esac; done
+  sed -i -e "s#^SIZES=/.*/\([^/]*\)#SIZES=build/dspec/\1#" -e "s#^TRIMS=/.*/\([^/]*\)#TRIMS=build/dspec/\1#" "$A"
+  SP=build/dspec/$(basename "$SP");;
+esac
 SPEC=$RS/$SP; [ -f "$SPEC" ] || { echo "$SP | no such spec in RS" | tee "$O/line.txt"; exit 0; }
 get() { sed -n "s/^$1=//p" "$SPEC" | head -1; }
 K=$(get K); S=$(get SEED); Z=$(get SIZES); TR=$(get TRIMS); WS=$(get SDF); WF=$(get FASM); XE=$(get ENV); M=$(get MLIR)
@@ -33,8 +42,15 @@ export BQ_RUNS=$O/bq BQ_LANE=${BQ_LANE:-dsc}
 XZ=${XRAY_DB:-}; [ -n "$XZ" ] && [ -d "$XZ/zynq7" ] && XZ=$XZ/zynq7
 ( cd "$RS" && if [ -n "$XZ" ]; then export XRAY_DB=$XZ; fi; bash research/tools/suite/board_rebuild.sh "$SPEC" ) > "$O/rebuild.txt" 2>&1
 say "rebuild: $(tail -1 "$O/rebuild.txt")"
+HB2=$BQ_RUNS/hw/bq_${K}_$S
+if [ "$WF" = 00000000 ] && grep -q "trimmed fasm .* not 00000000" "$O/rebuild.txt"; then   # no judged fasm: make the bit here
+  P=xc7z010clg400-1; DB=$TC/openxc7/share/nextpnr/prjxray-db/zynq7; PX=$TC/openxc7-src/prjxray
+  PYTHONPATH="$PX:$TC/openxc7/lib/python" python3 "$PX/utils/fasm2frames.py" --db-root "$DB" --part "$P" "$HB2/$D.fasm" > "$HB2/$D.frames" 2> "$HB2/frames.log" &&
+  "$TC/openxc7/bin/xc7frames2bit" --part_file "$DB/$P/part.yaml" --part_name "$P" --frm_file "$HB2/$D.frames" --output_file "$HB2/$D.bit" > "$HB2/bit.log" 2>&1 &&
+  echo "OK -- sdf $(md5sum < "$HB2/$D.sdf" | cut -c1-8), trimmed fasm $(md5sum < "$HB2/$D.fasm" | cut -c1-8) (no judged fasm in the spec; bit made by drawspec)" >> "$O/rebuild.txt"
+fi
 grep -q "OK -- sdf" "$O/rebuild.txt" || { echo "$SP | rebuild refused: $(tail -1 "$O/rebuild.txt")" > "$O/line.txt"; exit 0; }
-HB2=$BQ_RUNS/hw/bq_${K}_$S; WT=$BQ_RUNS/wt/$BQ_LANE/cells/build; W=$O/hw; mkdir -p "$W/gen"
+WT=$BQ_RUNS/wt/$BQ_LANE/cells/build; W=$O/hw; mkdir -p "$W/gen"
 cp "$HB2/$D.bit" "$HB2/$D.fasm" "$HB2/$D.sdf" "$HB2/${D}_routed.json" "$W/"; cp "$WT/hw/$D/$D.json" "$W/"
 cp "$WT/gen/$D.v" "$WT/gen/${K}_kernel_bench.v" "$W/gen/"
 PREBUILT=$W bash "$HB/suite/task.sh" "$K" "$S" /dev/null - "$O/t" "$ND" > "$O/task.log" 2>&1
