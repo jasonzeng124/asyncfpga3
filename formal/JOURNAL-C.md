@@ -5172,3 +5172,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 12:52: the sandbox disk allowance ran out (7.4 GB of per-route rebuild trees + a 4 GB half-built Mathlib .lake from the stopped setup). Deleted both (scratch only); the local v12 loop now removes each route's build tree after its draws; 41 v12 routes left. nested_s2 (killed mid-run) is rerun.
 - 13:33: C81: research 13:20 (v13 + KEEPDEPTH / SEARCH_OVERBUILD / SHIFT_MASK): quadrec structure = C74 (LIVE + Lean certs); decoder generic on LUT2-1010; c_v13a specs are v13_2a as run at research 5204ab7, without the three knobs.
 - 15:35: C80 at 51 v12 routes; no route fails at x3; every model draw passes.
+- 16:15: C80 at 60 v12 routes (27 memory): all model draws PASS; stress non-passes x3 none, x4 6 routes, x5 15. Running B's 21 newer v12 specs.
