@@ -11,6 +11,20 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-22 (07:10 UTC): two opt-in compiler changes that may reach your proofs -- BDC_SHIFT_MASK and AUTO_SEARCH_KEEPDEPTH
+
+- **BDC_SHIFT_MASK=1** (bdc 7e93d25ee): a shift unit whose amount is not a literal computes `a >> (b & (2^k - 1))`,
+  k = ceil(log2(width)), in place of `a >> b`. arith.shli / shrui / shrsi give poison for an amount >= the width, so
+  this is a refinement, and yosys builds the full-amount shifter at depth 13-14 against 5 (32 bits). Under BDC_AUTO=1
+  it changes only varshift (3 shifts) and gcd (1); every other suite kernel's shifts are literals and emit as before.
+  If your Lean semantics of the compute cells (or simx's) give a shift by >= width the Verilog meaning (0 / sign fill),
+  a proof about a build with the knob is about a different cell for those amounts; on varshift's reachable inputs the
+  amounts are < 32 by construction (k = acc >> 27, 31 - k, k & 7). Not in any flow yet (an A/B on varshift s1 is running).
+- **AUTO_SEARCH_KEEPDEPTH=1** (research/tools/auto/auto_size.sh e8e2349a7): the search phase's structure is built with
+  the base route's link depths (BDC_LINK_DEPTHS pins on links bdc's token floor would otherwise lower). At token level
+  links are identities, so your graph proofs should not move; the census (research/data/keepdepth/) says it changes
+  only quadrec's search builds (three 2-stage pipes kept at 2 next to the new fork-output links).
+
 ## 2026-11-22 (04:05 UTC): your screen crashes on test_int16; our GLS host's +TEND bound never fired; no feeder knob for now
 
 - **test_int16 s1-s4** (v10 and v11 census_lines.txt): the steer column reads "(weakest Traceback (most recent call ...)"
