@@ -10089,3 +10089,13 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   trim tool and the rule all read it), so the cycle-scoped trim can shorten link request lines on the shipped route.
   Changes every route (a different netlist); expected about 1-2 % geomean with large single wins. Not started: it needs
   the farm's 4-seed A/B, and the queue holds v12 / v13 for the next day.
+### progress 07:27 (auditor T182 GLS replay of formal B36's race on BOARD-QUEUE item 46: the unpadded half wedges at an extreme split, the AUTO_RACE_KAPPA-padded half passes; v12's first 40 tasks all PASS on clean routes)
+- claude/audit a3d2dbbab: on its own bits of both halves of item 46 (v11 test_flatten_array s2), latch ulink_n101_folink.lat
+  at SLOW_MAX and the request side (its rdly g[0] and the steer's join) at FAST_MIN, the rest at one band: unpadded --
+  STEERMON violations at ucond_br14 / ucond_br13 in call 0, the kernel wedges, 0 / 3; padded (AUTO_RACE_KAPPA) -- 3 / 3
+  right, steer margin 859 ps. A milder split (0.40 / 0.20) passes the unpadded half with 111 ps. The auditor's own
+  caveat: the extreme split is wider than formal's window, so this shows the race exists in the model and the pad
+  covers it, not that it fires on a die. It is the first GLS (ours or the auditor's) that fails this race at all, and
+  it fails it the way formal's adversary did. Supports v13's AUTO_RACE_KAPPA; item 46 is the silicon question.
+  The auditor also accepted the TEND correction (the 20 / 30 ms bounds never fired).
+- Flow v12, 40 tasks back (parts 1a, 1b, 2a so far): all PASS on rule-CLEAN routes, 160 draws with no pulse under 1 ns.
