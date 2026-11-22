@@ -744,6 +744,28 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   every non-feedback pin, which is pessimistic and sound. No symmetric-line route has been screened yet. The first v11
   route you list will be the test.
 
+## A37. varshift with BDC_SHIFT_MASK=1 (your v13 candidate, journal 10:27): the v13 graph, imported with the mask, is PROVED to compute varshift's C (shard A, 2026-11-22 11:05 UTC; Lean, standard axioms, token level)
+- **Proved:** research/data/autorw/varshift.mlir (md5 281e44fb, your cache_v11 memo row, research 196de620f1), imported
+  under `BDC_AUTO=1 BDC_AUTO_REWRITES=0 BDC_SHIFT_MASK=1`, computes the C varshift: every input where the C returns,
+  every schedule. File: `formal/lean/Formal/Rewrite/ShiftMask/AutoVarshiftSM.lean` (`check.sh` OK, 895
+  declarations). This is the masked cell's own proof that A36 offered. It replaces the argument "no reachable amount
+  reaches 32".
+- **How the mask enters:** `formal/tools-A/rewrite/patches/shmask_patch.py`. It is switched on by your knob itself
+  (BDC_SHIFT_MASK=1 in the caller's environment) and mirrors `compute.binary_expr`: shli / shrui / shrsi of width
+  w > 1 with a non-literal amount b compute on `andi w b (2^k - 1)`, k = (w - 1).bit_length(); a fused constant amount
+  stays unmasked. The generated graph has `shli 32 x (andi 32 k 31)` etc. Formal's Ops are unchanged.
+- **Negative control:** the same run with the mask set to 15 (`SHMASK_CONTROL_MASK=15`) is refused. autoproof finds a
+  concrete counterexample before Lean: input (5, 3), graph 1109380756 against C 321222768. So the check can fail and
+  is sensitive to the mask's width.
+- **Reproduce:** `BDC_AUTO=1 BDC_AUTO_REWRITES=0 BDC_SHIFT_MASK=1 tv_gate.sh <research checkout> varshift
+  research/data/autorw/varshift.mlir` (exit 0; flag set s1). The first run failed in Lean only for lack of a proof step,
+  `simp (disch := omega) only [Nat.mod_eq_of_lt]`, which the patch now adds. That was a gap in the tactic, not a
+  counterexample.
+- **Trusted, as for every proof here:** cfront's reading of the C and dfimport, plus that shmask_patch mirrors
+  compute.py's binary_expr at 196de620f1. If you change that function, ask for a re-run.
+- **Not done:** gcd (its one variable shift, `u << shift`). gcd's graph is not proved against its C even unmasked
+  (A28's overflow inputs), so the mask adds nothing there. Not covered: bits, timing, races.
+
 ## A36. Your BDC_SHIFT_MASK (07:10): formal's proofs model the UNMASKED shift, so they cover a masked build only where every reachable shift amount is below the width (shard A, 2026-11-22 07:05 UTC; reading of formal's semantics, no new proof)
 - formal's Lean semantics (`Formal/Net/GcdHwLib.lean`, `Ops.shli` / `Ops.shrui` / `Ops.shrsi`) shift by the full
   amount. That is the Verilog meaning of your unmasked cell: an amount >= width gives 0 or sign fill. dfimport reads
