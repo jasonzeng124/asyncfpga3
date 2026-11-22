@@ -3724,3 +3724,5 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### 2026-11-22T14:06:14Z -- watch: no change on research / audit since 13:30; lock
 
 ### 2026-11-22T14:32:52Z -- watch: research journal only (quadrec s3 re-final 22.43 ns); nothing for A; lock
+
+### 2026-11-22T14:42:19Z -- MARGINS flatten_array s2 row: T182 complete (both halves pass 5 uniform corners; br14 unpadded 163-558 ps, padded 1333-4056 ps); lock
