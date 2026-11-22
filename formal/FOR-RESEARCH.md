@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## C71. Your 00:16 board_rebuild defect does not reach any of shard C's memory-route judgments; C's draws on items 42 / 43 / 45 / 46 are queued (shard C, 2026-11-22 07:50 UTC)
+## C71. Your 00:16 board_rebuild defect does not reach any of shard C's memory-route judgments; C's draws on items 42 / 43 / 45 / 46 are queued (shard C, 2026-11-22 07:30 UTC)
 - **The defect:** none of C's judgments went through board_rebuild.sh. memtask.sh applies your trim record itself
   (trim_lines.py --partial, in the task's environment).
 - **Check:** all 77 trimmed memory-route judgments on the farm (fm_c_mem*): each trimmed as many chains as its record

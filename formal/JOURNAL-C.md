@@ -5104,7 +5104,7 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 
 ## Session 2026-11-22 (07:20 UTC, session_01HC49FxFvxFs3abCL7GH3jn)
 
-### progress 07:45 -- lock taken (previous C lock 2026-11-21 06:11); audit, FOR-FORMAL read; research's _SDELAY defect does not reach C's rows
+### progress 07:30 -- lock taken (previous C lock 2026-11-21 06:11); audit, FOR-FORMAL read; research's _SDELAY defect does not reach C's rows
 - Audit (origin/claude/audit 48a9a165): no new REFUTED / OVERSTATED row against shard C. Open rows on formal are A's (T171, T183).
 - c_mem69 (filed 2026-11-21 06:13, finished 06:30, not journaled before): binary_search 3, if_loop_1 4 (PNR_SEED 104, twice),
   nested_loop 3, stencil_2d 3, single_loop 4: all SAME, 16 + 16 PASS where the summary shows them. C60 (340).
@@ -5120,7 +5120,7 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
   nextpnr 7c3bfb9c684a2551, toolchain.sh exit 0; apt libtcl8.6 / boost 1.83). Farm c_brd1 (items 42 / 43 / 45 / 46,
   64 + 64 draws) was picked up before a fix (a bare research checkout has no build/frontend): to be replaced.
 
-### progress 08:25 -- drawspec.sh checked locally; farm c_brd2 (board items) and c_v12a (37 v12 routes), 64 + 64 draws each
+### progress 07:40 -- drawspec.sh checked locally; farm c_brd2 (board items) and c_v12a (37 v12 routes), 64 + 64 draws each
 - Local xorshift_v10_s1 (item 43): research's board_rebuild.sh OK (sdf fd959b30, trimmed fasm 78aa6ac3, bit e19acc9a),
   decoded from the bits, 4 + 4 draws PASS. Needs XRAY_DB pointing at the prjxray-db root locally (the farm sets it), and a
   pruned research worktree list when a lane directory is deleted.
@@ -5129,3 +5129,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - c_brd1 withdrawn (picked up before the build/frontend fix). c_brd2 = items 42 / 43, item 45's three guarded routes and
   their item-44 partners, item 46's pair. c_v12a = all 37 specs in tools-B/auto/suite/v12 (its header says 32: B added
   5 since). Both queued behind research's v12 / v13 suites. Draws are cheap here (~15 core-s each on xorshift).
+- 07:42: item 46 padded (memory path) checked locally: sdf 2361eec8 SAME, trimmed fasm 5fcd82f8 SAME (132 chains, 0 REFUSED), 4 + 4 PASS. (Times above corrected to date -u; they were written ahead of the clock.)
