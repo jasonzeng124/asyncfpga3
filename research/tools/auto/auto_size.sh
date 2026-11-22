@@ -627,14 +627,18 @@ final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run
     # Why first, not last: sym2 ipow s1 (2026-11-21 00:40): with the cycle trim first, its one step (7 overbuilt cycle
     # lines at once) opened 2 constraints and was undone, and the route kept P 25.7 ns, all cycle lines +3 (v10: 19.9).
     local TB=""
-    if [ -n "${AUTO_OVERBUILD:-}" ] && [ "${AUTO_OVERBUILD_TRIMBACK:-1}" = 1 ] && [ ! -s "$O/trim_$i.txt" ]; then
+    # ${AUTO_OVERBUILD:-$LATE_OB}: a route AUTO_SEARCH_OVERBUILD built in AUTO_LATE_AFTER_SEARCH's first pass (where
+    # AUTO_OVERBUILD is parked in LATE_OB), and its AUTO_TRIM_ONLY resume, give the length back too. Without markers
+    # (overbuild_from.txt) nothing below runs, so this changes no other route.
+    local AOB=${AUTO_OVERBUILD:-${LATE_OB:-}}
+    if [ -n "$AOB" ] && [ "${AUTO_OVERBUILD_TRIMBACK:-1}" = 1 ] && [ ! -s "$O/trim_$i.txt" ]; then
       local sw ob
       sw=$(cat "$O/overbuild_from.txt" 2>/dev/null || grep -oP '^phase 2 \(raise-only\) from it \K[0-9]+' "$O/log.txt" | tail -1)
       ob=$O/trimmable_$((sw - 1)).txt
       if [ -n "$sw" ] && [ "$i" -ge "$sw" ] && [ -s "$ob" ] \
          && { [ ! -f "$O/overbuild_to.txt" ] || [ "$i" -le "$(cat "$O/overbuild_to.txt")" ]; }; then
         awk -F'\t' '$2 == "trimmable" {print $1}' "$ob" > "$O/trimback_allow_$i.txt"
-        python3 - "$O/sizes_$i.vh" "$AUTO_OVERBUILD" "$O/trimback_allow_$i.txt" > "$O/trimback_floor_$i.txt" <<'PY'
+        python3 - "$O/sizes_$i.vh" "$AOB" "$O/trimback_allow_$i.txt" > "$O/trimback_floor_$i.txt" <<'PY'
 import re, sys
 sz = {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(sys.argv[1])) if m}
 h = int(sys.argv[2])
@@ -643,7 +647,7 @@ for mac in (l.strip() for l in open(sys.argv[3]) if l.strip()):
         print("%s %d" % (mac, max(1, sz[mac] - h)))
 PY
         if [ -s "$O/trimback_allow_$i.txt" ]; then
-          echo "trim: it $i overbuild trim-back: $(grep -c . "$O/trimback_allow_$i.txt") line(s), floor = size - $AUTO_OVERBUILD" >> "$O/log.txt"
+          echo "trim: it $i overbuild trim-back: $(grep -c . "$O/trimback_allow_$i.txt") line(s), floor = size - $AOB" >> "$O/log.txt"
           TRIM_ALLOW=$O/trimback_allow_$i.txt TRIM_FLOOR=$O/trimback_floor_$i.txt trim_route "$i"
           TB=1
           l2run "$i" > "$O/final_${i}_tb.log" 2>&1
@@ -1132,9 +1136,7 @@ PY
   fi
   if [ -z "$LC3" ]; then
     echo "search: no clean route with $XENV (last it $j): ships ${N}_$X" >> "$O/log.txt"; XENV=""; return 0; fi
-  # a route from AUTO_SEARCH_OVERBUILD gives its extra length back first (final()'s trim-back reads AUTO_OVERBUILD, which
-  # AUTO_LATE_AFTER_SEARCH parks in LATE_OB during this pass)
-  if [ -n "${sob:-}" ]; then AUTO_OVERBUILD=${AUTO_OVERBUILD:-$LATE_OB} final "$LC3"; else final "$LC3"; fi
+  final "$LC3"   # final()'s trim-back reads ${AUTO_OVERBUILD:-$LATE_OB}, so an AUTO_SEARCH_OVERBUILD route gives its length back
   P0=$(grep -o 'P=[0-9]*' "$O/it_$X.txt" | head -1 | cut -d= -f2); P3=$(grep -o 'P=[0-9]*' "$O/it_$LC3.txt" | head -1 | cut -d= -f2)
   echo "search: ${N}_$LC3 ($XENV) P=${P3:-NA} vs ${N}_$X P=${P0:-NA}" >> "$O/log.txt"
   if [ -n "$P3" ] && { [ "$RC" != 0 ] || [ -z "$P0" ] || [ "$P3" -lt "$P0" ]; }; then
