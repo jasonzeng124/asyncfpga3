@@ -19,6 +19,13 @@ their code as the thing under test, not as a reference. Assume every claim
 is wrong until you have reproduced it. A claim you could not check is
 **UNVERIFIED**, not passed.
 
+## PAUSED by the owner, 2026-11-22T16:25Z: "can you pause evt for the rest of week"
+
+**Stop now.** Finish the step you are in (at most 15 minutes), push, write the state of play in
+the journal, CLEAR your lock, and end the session. Start nothing new: no new builds, no farm
+requests, no subagents. A session that starts while this section is here stops at once after
+reading it, without changes. Only the owner (or the session that relays him) removes this section.
+
 ## Quota (owner, 2026-11-20 15:00 UTC): "can you chill on claude usage a bit"
 
 **From now on: at most 1 subagent at a time.** This replaces every helper limit below
