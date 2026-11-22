@@ -9856,3 +9856,9 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
 - So on this seed v13 behaves as v12 is expected to (the guard alone changes the route; formal B34 found this route's
   latch-fed race at +1547 ps). Against v10's 17.15 ns (the thin-race route): +21 %, the guard's route, not the check's.
   memsum s1 / dot2 s1 previews (where =2 and the port trim act) still running.
+### progress 01:18 (v13 preview, memsum s1: PASS 4 / 4 rule-CLEAN, P 25.74 ns -- v12's preview 30.19 (-14.7 %), v10 24.56, v11 28.19; latency median 576 ns vs v12 672, v10 552)
+- The port is off the critical cycle (the loop's adders now: uaddi1 28 el, 10.9 ns); shipped trims: uandi0 15 and four
+  port lines (usetup 1 / 1, uco 11 / 10). Draws 5 / 5 calls each, narrowest pulse 4169 ps.
+- A cost of AUTO_RACE_KAPPA seen here: the search phase's structure (BDC_FORK_OUT_LINK=n18__0,n35__3) met a latch-fed race
+  at kappa 0.125 (z 10.1) on its first route, the pad and four more routes found no clean one, and the phase-2 route
+  shipped (v10's search shipped a 3-link structure at 24.56). One sample, a race just under the target.
