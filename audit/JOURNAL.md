@@ -3504,3 +3504,9 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   replay of formal B36's race (latch side band 1.0, rdly + join band 0.0, no scatter) -> unpadded's other 4 corners.
   Padded: 5 corners running (gls.sh).
 - T184: SteerSettleMulti.lean statement read (row); its build needs Mathlib (not built here).
+### progress 03:25
+- T182: the unpadded fastmin run stopped after call 0 (call 0 right, 0/512 bad both arrays; min steer 163 ps at
+  ucond_br14 -- the route's thinnest steer is formal's race). Cause: tb_ps.v's `#(tend*1000)` overflows 32 bits
+  (default 5 ms -> 0.705 ms; bench_gate's 20 ms -> 2.82 ms). Row added (conservative: no false PASS possible).
+  Restarted everything with +TEND=2100000 (signed limit) and without MEMCHECK: chain_all.sh = split replay on both
+  halves, then 5 corners, two GLS at a time.

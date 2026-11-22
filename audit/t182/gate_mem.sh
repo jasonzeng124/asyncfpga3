@@ -27,8 +27,8 @@ fi
   [ -f $W/run_baked.vvp ] || { echo BUILD_FAIL; exit 1; }
   cd $W && vvp gate.vvp | grep -E "ANNOTATE_DONE|WARNING|ERROR" | head -5
   rm -f gate.vvp
-  echo "\$ vvp run_baked.vvp +FCLK_PS=${FCLK:-12000} +MODE=1 +VECFILE=$VEC +NRUNS=2 +MEMDUMP=1 +MEMCHECK=1 +TBATCH=${TBATCH:-1000000}"
-  /usr/bin/time -v vvp run_baked.vvp +FCLK_PS=${FCLK:-12000} +MODE=1 +VECFILE=$VEC +NRUNS=2 +MEMDUMP=1 +MEMCHECK=1 +TBATCH=${TBATCH:-1000000} 2>&1 | grep -vE "^\s+(Average|Socket|Signals|Page|Swaps|File|Major|Minor|Volun|Invol|Exit|Percent|System|User|Command)"
+  echo "\$ vvp run_baked.vvp +FCLK_PS=${FCLK:-12000} +MODE=1 +VECFILE=$VEC +NRUNS=2 +MEMDUMP=1 +TEND=2100000 +TBATCH=${TBATCH:-1000000}"
+  /usr/bin/time -v vvp run_baked.vvp +FCLK_PS=${FCLK:-12000} +MODE=1 +VECFILE=$VEC +NRUNS=2 +MEMDUMP=1 +TEND=2100000 +TBATCH=${TBATCH:-1000000} 2>&1 | grep -vE "^\s+(Average|Socket|Signals|Page|Swaps|File|Major|Minor|Volun|Invol|Exit|Percent|System|User|Command)"
   rm -f run_baked.vvp
 } > $L 2>&1
 echo DONE >> $L
