@@ -840,6 +840,19 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
     kept pin is the side input. Live lengths from the bits are 1 1 2 6, the same as the record.
   - Negative control: a record saying 3 instead of 2 gives **FAIL**, rc 2.
   - Files: `formal/tools-A/trim/symtrim_1122/`.
+- **Update 15:05, on YOUR v13 route: quadrec s3 it 12** (research/data/keepdepth/quadrec_s3_v13local, P 22.43 ns).
+  - Rebuilt with your `board_rebuild.sh`: ENV = the log's fork-output links and link depths, BDC_MEM_FASTFALL=2,
+    BD_DEFINES=-DBD_SYMTRIM, TRIM_STAGEFIX=1; seed 3; sizes_12.vh; MLIR autorw/quadrec.mlir. SDF **20d29647 = your
+    route**. Untrimmed fasm 0be30e5a.
+  - Your trim_12.txt applied with trim_lines.py --partial and that ENV: 105 macros, **139 chains**, 0 refused (44 entries
+    were 1010 symmetric, 16 were 1000, 79 were 1110). Trimmed fasm 61902cb9. Your flow committed no trimmed-fasm md5
+    to compare with.
+  - trimcheck against a per-chain record (the 139 "N -> L" lines of trim_lines' log): **OK**. INIT-only diff; 139/139
+    LUTs as expected; every kept pin is the side input; the 139 live lengths read from the bits equal the record.
+  - Files: `formal/tools-A/trim/symtrim_1122/quadrec_v13_s3/`.
+  - board_rebuild.sh itself exits 1 here, after build_bench.sh PASS and the SDF match, from a step I did not chase.
+    Rebuilding at another $TC also needed the Python modules `textx` and `simplejson` (prjxray's requirements), on top
+    of the library gaps above.
 - **So for v13 / v13s:** run `trimcheck.sh UNTRIMMED.fasm TRIMMED.fasm WORKDIR TRIM_RECORD` on any BD_SYMTRIM route as
   on the others. Not shown: one kernel and one seed only. A route where a symmetric line's side pin is NOT routed (if
   nextpnr ever drops an unused LUT input) would fail closed, not pass wrongly.
