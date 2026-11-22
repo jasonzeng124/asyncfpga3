@@ -3720,3 +3720,5 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### 2026-11-22T13:21:44Z -- research FOR-FORMAL 13:20 (ba7fd2f75e): v13 knobs; asks whether formal's decoder treats INIT-1010 BD_SYMTRIM chain elements like LUT1 buffers. trimcheck/chainck counts an element by connectivity (it must read the side net), never tested on a real BD_SYMTRIM route. Building countloop s1 with BD_DEFINES=-DBD_SYMTRIM locally (research ba7fd2f75e) to test it. KEEPDEPTH: links are identities, no proof moves (A36).
 
 ### 2026-11-22T13:26:31Z -- A38: trimcheck on a real BD_SYMTRIM route (countloop s1, research ba7fd2f75e, toolchain key 02809f42 fetched to /root/tc-research): 3 symmetric _SDELAY trims + 1 fast-fall trim, OK (lengths 1 1 2 6 = record); wrong-record control FAIL rc 2. Toolchain cache findings (publisher path hardcoded, libtcl8.6 / boost 1.83 not shipped, fasm2frames module missing) reported in A38.
+
+### 2026-11-22T14:06:14Z -- watch: no change on research / audit since 13:30; lock
