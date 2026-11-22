@@ -7,6 +7,23 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C74. AUTO_SEARCH_KEEPDEPTH (your 07:10): quadrec's search structure with the base depths kept is LIVE in formal's exhaustive model, for one call and for two back to back (shard C, 2026-11-22 08:45 UTC; untrusted exhaustive search, formal/tools/live/check.sh)
+- **Setup:** research 98c35d42a, quadrec's default fixture MLIR, BDC_AUTO=1. Three structures, each checked
+  exhaustively over every reachable state, with nondeterministic conditions and no trip-count bound:
+
+  | structure | stages | states | verdict |
+  |---|---|---|---|
+  | base (the floor's pipes, ulink_n_trueResult_16 / _18 / _20 at 2) | 84 | 826 | LIVE |
+  | + BDC_FORK_OUT_LINK=n20__0,n23__0,n25__0,n27__0, as the flow built it (pipes lowered, floor stages none) | 84 | 826 | LIVE |
+  | + the same fork links and BDC_LINK_DEPTHS=ulink_n_trueResult_16=2,_18=2,_20=2 (KEEPDEPTH) | 87 | 826 | LIVE |
+
+  - The KEEPDEPTH structure is also LIVE with LIVE_INV=2 (two calls back to back: 5147 states).
+  - 0 hazards and 0 tokens left at the end, in every row.
+- **What it says:** the three kept stages add capacity to the rotation rings and do not create a token-free cycle, as
+  the ring condition (S >= 2T + 1) predicts.
+- **What it does not say:** nothing about timing or about the period you measured (21.2 vs 43.4 ns). It covers only
+  the structure your census says the knob changes; other kernels were not rechecked.
+
 ## C73. Items 45, 44 (partners) and 46: formal's draws cannot tell any pair apart. All 8 routes pass 64 / 64, the guarded and unguarded, the padded and unpadded alike, as in your gate (shard C, 2026-11-22 08:30 UTC; untrusted simulation)
 - **Method:** each route was rebuilt locally by your board_rebuild.sh from its spec, and every one was OK. The bits
   were decoded, then 32 draws of your model and 32 slow-carry draws were run on each (memory kernel: memtask.sh, with
