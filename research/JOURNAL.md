@@ -10288,3 +10288,26 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 - Item 47 (run order 3c'''): both routes through board_suite.sh from their specs (each rebuilt here byte for byte:
   20d29647 / 61902cb9 and 961c94c6 / b175420d), every answer judged against the C, then board_lat_cmp.py on the two
   board logs: PASS when the new route's summed per-call latency <= 0.75 x v10's (GLS, same draw point: 0.588).
+### progress 16:09 (SESSION SUMMARY -- the session's result in PROGRAM's format; updated at the end)
+Toolchain: patches 0d42657914fc25d3, nextpnr 6e5d224472232d5d (cells/verify/toolchain.sh at session start)   Seeds: local
+tests seed 1-3 as stated; farm parts seeds 1-4.
+Did: (1) **AUTO_CKPT** (opt-in): final()'s stacks, the trim steps' rule runs and the draws memoized by content, so a farm
+resume replays them -- tests A-I (unset identical; a TRIM-ONLY resume 3 min vs ~70; a resume killed mid-search gives
+the uninterrupted result; keys portable across nodes and commits); in every waiting v12 / v13 part and all resumes since.
+(2) **The search's structure built as modelled** (AUTO_SEARCH_KEEPDEPTH: bdc's token floor had lowered the pipes the
+search kept; quadrec's 2x prediction then built nothing; census: only quadrec on v10's 89 structures) and **made to
+converge** (AUTO_SEARCH_OVERBUILD: 17 of v10's 132 searches never converged): quadrec s3 PASS 4 / 4 at 22.43 ns
+(v10 41.03), strict gate 35 / 35, formal C74 / C81 live with Lean certificates -> BOARD-QUEUE item 47. (3)
+**BDC_SHIFT_MASK** (variable shifts on the amount's low bits; formal A37 / auditor T185 confirmed): varshift P -4.2 %,
+LUTs -14 %, latency -10 %. (2) and (3) and (1) added to flow v13 before its parts ran (v13_2a had already run: restored,
+re-filed as 2a_k). (4) v13s: v13 + BD_SYMTRIM everywhere, 12 kernels, the A/B for the link request lines the trim
+cannot move (median 1.1 % of P, sqrtsub s1 75 %). (5) Audit: T182 (the GLS host's TEND bound never fired; fixed with
+the flow's effective bound kept), T183 (item 42's chain claim), T180 / T182 notes (local evidence committed). (6) Farm:
+v11 resumes in three rounds, v12 resumes, all with AUTO_CKPT.
+Measured: quadrec s3 22.43 ns (v10 41.03, Dynamatic ratio 3.54 -> 1.94); varshift s1 25.81 vs 26.93 ns paired; v12
+interim 19 newly clean vs v10, P 1.05x, no wrong answer; v13 previews collatz64 s2 19.80 (v10 23.61), countloop s2 20.46.
+Does NOT show: anything on silicon; v13 / v13s at scale (queued); a second quadrec seed (running locally: so1).
+Negative / bounded: a feeder-race knob (formal's own census: kappa 0.10 failures are common); ring placement (<= ~6 %
+on countloop); memory ports (serialized by design, a cell redesign); BD_SYMTRIM everywhere on single seeds (no gain seen).
+Next: v13's results against v12 and its prediction (journal 12:5x "PREDICTION for flow v13's three added knobs");
+v13s against v13 pair by pair; v11 / v12 headlines when their resumes are in; item 47 on the board.
