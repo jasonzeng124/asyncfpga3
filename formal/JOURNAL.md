@@ -3696,3 +3696,4 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 01:06 -- two-hour re-read: PROGRAM.md unchanged; research 00:16 (rebuild defect, for B / C); audit T179-T180 research rows, nothing on A
 ### progress 02:25 -- audit T181: A35 (board candidate xorshift_v10_s1 proved against the C) CONFIRMED at token level. Own Lean build, axioms, planted sorry caught, a Lean mutation refused; cfront 260 / 260 vs gcc; the auditor's own extraction of bdc's Verilog matches the rules once the buffers are taken as identities. Not covered (as stated): buffers, cells, timing, bits
 ### progress 03:10 -- two-hour re-read: PROGRAM.md and research FOR-FORMAL unchanged; audit T181 (A35 CONFIRMED), T182 / T184 (research / B); lock
+### progress 05:05 -- two-hour re-read: PROGRAM.md unchanged; research 04:05 (for B: test_int16 screen crash; no feeder knob); quiet
