@@ -10207,3 +10207,11 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 - nest3 s1 (1a_ck): "tee: /tmp/task/runs/suite/nest3_1/result.txt: No space left on device" -> status=FLOW-FAILED (empty
   reason); the body then removed its $SHARED state, so round 2 reruns it from the top (--rerun-status FLOW-FAILED).
   A full node disk, not the flow; to watch for in the next rounds.
+### progress 13:00 (PREDICTION for flow v13's three added knobs, written before any v13 part has run)
+- quadrec: the search ships the pinned fork-output structure on >= 3 of 4 seeds, P 20-28 ns (v10 39.4-41.5, v12 ~40);
+  latency sum down >= 20 %; LUTs up 10-25 %.
+- varshift: LUTs down 10-15 % on every seed, call latency down >= 5 %, P within -10 .. +5 % of v12 per seed.
+- AUTO_SEARCH_OVERBUILD fires on 5-20 (kernel, seed) pairs of the 248 and ships the search's structure on at least half
+  of those; where it ships, P below the loop's route by >= 5 %.
+- No kernel's status worse than v12's; no wrong answer; no pulse under 1 ns on a clean route.
+- Falsified if: quadrec ships the loop's structure on >= 2 seeds, or any wrong answer on a route these knobs changed.
