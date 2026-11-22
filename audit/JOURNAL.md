@@ -3537,3 +3537,9 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
 ### progress 07:55
 - T182 FAST_MIN: unpadded 3/3 (br14 163 ps), padded 3/3 (br14 1333 ps). Split 0.33 / 0.25: unpadded 3/3, br14
   203 ps. Row added for item 46's pair; advA_ns running on both, then advC_ns, worst, slowmax (~1 h each).
+### progress 08:05
+- research 86c1049852 (item 46 padded half's local run, committed for T182): four draws 10201-10204, each PASS 1/1
+  on one call (research's seq vector), arrays checked against oracle_mem.sh, fasm_equiv EQUIVALENT, 0 runts -- read,
+  consistent with own T182. Minor wording mismatch: the loop log pads ULINK_N101_FOLINK 1 -> 3 at it 10, the item's
+  README says 1 -> 4; the shipped sizes (padded/test_flatten_array_sizes.vh) say 4 ('was 1'), and the route I simulate
+  has 4 rdly elements on that link -- the late phase presumably added one; not a safety question.
