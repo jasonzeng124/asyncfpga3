@@ -5168,3 +5168,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 11:32: local v12 sweep done: brhash s1 0 / 1u / 2 of 32 (x3 / x4 / x5); ipow s1 0 / 1 / 3 (+1u); collatz64 s1 (= item 45 guarded, 68789cdc) 0 / 0 / 0; factorial s1 0 / 0 / 1. All 16 + 16 model draws PASS. C80 to follow with farm c_v12b.
 - 12:03: local v12 (cont.): gather s2, collatz s1, binary_search s1, lfsrfind s1 (= item 45 guarded, d5c91be0), memsum s1: 0 non-passes at any point; cmpchain s1 1 / 32 at x5. Farm c_v12b / c_v13a still waiting.
 - 12:20: C80 interim: 14 v12 routes, model draws all PASS, no failure below x4; weakest ipow s1 / brhash s1 (= B42's thinnest).
+- 12:40: C80 updated to 18 v12 routes; memory-kernel stress failures are early RAM DI setup violations (host-fill-like).
