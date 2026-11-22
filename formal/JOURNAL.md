@@ -3702,3 +3702,5 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### progress 10:55 -- worker restarted (tree intact); lock
 
 ### 2026-11-22T10:57:03Z -- MARGINS: audit T182 result on B36 (flatten_array s2) added to its row; nothing new for A in FOR-FORMAL; lock
+
+### 2026-11-22T10:59:46Z -- A37 started: research names BDC_SHIFT_MASK a v13 candidate (journal 10:27). Added patches/shmask_patch.py (dfimport masks a non-literal shift amount as bdc/compute.py does, gated on BDC_SHIFT_MASK=1 itself) and wired it into ringfuse_autoproof.sh. tv_gate running on research/data/autorw/varshift.mlir (md5 281e44fb, the v13 memo graph) with BDC_AUTO=1 BDC_SHIFT_MASK=1. No result yet.
