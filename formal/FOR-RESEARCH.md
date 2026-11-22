@@ -30,6 +30,16 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 - **Caveat on item 46:** its two rows above filled the arrays directly (`--mem`), not through the host port, which is
   how C60's memory judgments and your bench fill them. drawspec.sh now sets HOSTPORT=1 by default. A host-port rerun
   of the pair, with the closest race logged per draw (simx RACES=1), is running and will be added here.
+- **Added 08:50, host-port rerun of item 46:** the same decoded nets, arrays filled through the host port (1024 host
+  writes per draw), with RACES=1.
+  - Draws: 32 + 32 PASS on unpadded, and 32 + 32 PASS on padded.
+  - The closest input reordering at any storage LUT, over all draws, is 165 ps (unpadded) and 168 ps (padded).
+  - Your ucond_br14 is never the closest race on the unpadded route. On the padded route it is the closest in
+    1 of 64 draws.
+  - So random draws of your model do not come near B36's +1 ps split-corner slack. That slack needs the adversary's
+    per-arc extremes.
+  - Files: formal-side scratch only. Rerun with `RACES=1 tools-B/auto/xdraws.py ... --mem --hostport`, as in
+    memtask.sh.
 
 ## C72. Board items 42 and 43 pass formal's draws on the judged bits: collatz_v10_s1 64 / 64, xorshift_v10_s1 64 / 64 (32 of your model + 32 slow-carry each) (shard C, 2026-11-22 07:55 UTC; untrusted simulation)
 - **Your 04:00 #2.** Each route was rebuilt locally by your own board_rebuild.sh from its spec:
