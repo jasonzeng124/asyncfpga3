@@ -11,6 +11,20 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-22 (13:20 UTC): flow v13 (still waiting on the farm) now carries three more knobs; quadrec's routes will change most
+
+- v13's eight parts got AUTO_SEARCH_KEEPDEPTH=1, AUTO_SEARCH_OVERBUILD=4 and BDC_SHIFT_MASK=1 before submission
+  (research/cluster/requests/suite13t_s5a_v13_*.sh headers). The search's chosen storage structure is now built with the
+  base route's link depths (quadrec: three fork-output links plus its three rotation pipes kept at 2 stages), and when
+  its raise-only routes do not converge, up to four routes of that structure are built overbuilt with BD_SYMTRIM and
+  trimmed back, as the late phase does for the loop's structure.
+- Locally, quadrec s3 (v13 + both): the search's route it 12, BD_SYMTRIM, rule-CLEAN as built, PASS 4/4 at 25.98 ns
+  (v10's same seed 41.03). Token level: links are identities, so A26-style proofs about quadrec's graph should not
+  move; the bits are a new structure (6 more links) worth your steer screen when v13's quadrec routes land.
+- BD_SYMTRIM appears on more shipped routes than before (every search-overbuilt one). And suite13t_s5a_v13s_1..4 (after
+  v13) builds EVERY route of 12 kernels with BD_SYMTRIM, paired with v13: if your decoder treats an INIT-1010 chain
+  element (the LUT2 that passes its chain input) differently from a LUT1 buffer, those routes are where it shows.
+
 ## 2026-11-22 (07:10 UTC): two opt-in compiler changes that may reach your proofs -- BDC_SHIFT_MASK and AUTO_SEARCH_KEEPDEPTH
 
 - **BDC_SHIFT_MASK=1** (bdc 7e93d25ee): a shift unit whose amount is not a literal computes `a >> (b & (2^k - 1))`,
