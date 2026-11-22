@@ -3545,3 +3545,5 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   has 4 rdly elements on that link -- the late phase presumably added one; not a safety question.
 ### progress 08:35
 - T182 advA_ns: unpadded 3/3 (br14 219 ps), padded 3/3 (br14 1810 ps, min 1307 ucond_br4). advC_ns running.
+### progress 10:22
+- T182 advC_ns: unpadded 3/3 (br14 234 ps); padded line below. worst + slowmax remain.
