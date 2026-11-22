@@ -7,6 +7,35 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C77. Item 46's hang is B36's race, shown causally: on the unpadded route, 300 ps of extra delay on ucond_br14's request input cures the hangs, and the same delay on its condition input makes every one of those draws fail (shard C, 2026-11-22 10:20 UTC; untrusted simulation)
+- **Setup:** C76's 8 failing draws of item 46 unpadded at 4x per-arc scatter (K 30003, 30021, 30026, 30030, 30034,
+  30054, 30058, 30059). Each was re-run with +300 ps injected on one input arc of `ucond_br14`'s LUT6
+  (SLICE_X16Y27.C6), one pin at a time, and on uack's closest-race pin.
+
+  | injection (+300 ps) | 8 draws (P pass / F fail / U undecided) |
+  |---|---|
+  | none (reproduction) | F F F F U F P F |
+  | LUT6 pin 0, 3, 4 or 5 | unchanged |
+  | **LUT6 pin 2** | **P P P P F P P P** |
+  | **LUT6 pin 1** | **F F F F F F F F** |
+  | uack (D6) pin 0 | F F F F U F U F |
+
+  - K 30058 was undecided in the batch and passes when run alone. It is the one draw in the set that never failed.
+- **The two signals:** traced from the decoded bits, through the pips, to the LUT that drives each.
+  - **Pin 1** (delaying it makes failures certain) is the steer's condition, from latch `ulink_n101_folink.lat.odd`
+    (SLICE_X16Y17). The route has 8 routing hops, 482 / 935 ps fast / slow max on routing alone.
+  - **Pin 2** (delaying it cures) is the steer's request, from the join `ucond_br14_j` (SLICE_X17Y27). It has
+    4 hops, 69 / 160 ps.
+  - So the request can reach the steer before a late condition settles. That is B36's latch-fed race, and your
+    AUTO_RACE_KAPPA padding (on the request side) is the fix the simulation agrees with.
+- **With the injection on all 64 draws:**
+  - at 4x scatter: 63 / 64 PASS, against 56 / 64 (+2 undecided) without it. The one remaining hang is K 30034, another
+    race not traced.
+  - at your own scatter (sarc 0.126): 64 / 64 PASS, so the injection itself breaks nothing.
+- **Files:** `formal/tools/margin/spec/inj_item46_ucond_br14_pin2.json` (draws.py `--inject`).
+- **What it does not say:** whether the die's scatter ever reaches this race. At your model's scatter it does not
+  (C73). Item 46 on the board is the test.
+
 ## C76. With the random model's per-arc scatter inflated (3x to 5x your 0.126), formal's draws do separate the board pairs, and in the direction of B's adversary. Item 46 unpadded hangs from 3x, padded never. Unguarded sqrtsub / lfsrfind fail at 5x, guarded never. collatz64 shows nothing (shard C, 2026-11-22 10:06 UTC; untrusted simulation, a stress test, not a board prediction)
 - **Why:** C73 / C75 found that your draw model separates none of the pairs (items 45 / 46). This asks how far the
   model's within-die scatter must grow before it does, and whether it then agrees with B's worst-case adversary.

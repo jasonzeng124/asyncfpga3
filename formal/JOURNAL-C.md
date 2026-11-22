@@ -5149,3 +5149,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
   (78 ps). Closest is not first or causal: not yet traced.
 - 64-draw points running (K 30001-30064): the pair at x2-x4, the item-45 pairs at x4-x5.
 - 10:06: C76 written: inflated per-arc scatter separates item 46 (x3: 4/80 vs 0; x4: 9/80 vs 0 hangs) and, weakly, item 45 at x5 (5/240 vs 0); closest races at ucond_br14 (46) and ucond_br3 (sqrtsub), not traced.
+- 10:13: C77: item 46's hang is causal at ucond_br14: +300 ps on its request pin (from ucond_br14_j) cures 7 of the 8 failing x4 draws (63/64 overall), +300 ps on its condition pin (latch ulink_n101_folink) fails all 8; other pins inert; 64/64 at sarc 0.126 with the injection.
