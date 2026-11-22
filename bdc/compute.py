@@ -56,6 +56,7 @@ of the toolchain already imposes:
 
 import argparse
 import os
+import re
 import sys
 
 BDC_FASTFALL = os.environ.get("BDC_FASTFALL", "1") == "1"
@@ -68,6 +69,25 @@ def request_delay(gate):
         return ("bd_delay_gated #(.N(DELAY)) udly "
                 f"(.a(either), .gate({gate}), .z(z_req));")
     return "bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));"
+
+# BDC_SHIFT_MASK=1 (opt-in, 2026-11-22; unset, every expression is the one it was): a variable shift uses only the
+# low ceil(log2(width)) bits of its amount, (b & (2^k - 1)). Why: arith.shli / shrui / shrsi return poison when the
+# amount is >= the width (C: undefined), so the masked shifter is a refinement of the operation, and yosys builds the
+# full-amount one as a far deeper circuit -- synth_xilinx, 32 bits: topological depth 13-14 and ~6x the LUT / MUXF
+# cells against depth 5 (64 bits: 13 against 7) -- which a matched delay line then covers on every iteration
+# (varshift's two variable shifters were 14.8 of its 27.6 ns cycle, flow v10 seed 1). A constant amount folds either
+# way. Dynamatic's own shift units take the full amount (data/verilog/arith/shrui.v: lhs >> rhs).
+SHIFT_MASK = os.environ.get("BDC_SHIFT_MASK", "0") == "1"
+SHIFTS = ("shli", "shrui", "shrsi")
+
+
+def binary_expr(op, a, b, width):
+    """BINARY[op] on operands a, b (Verilog text) of the given width; BDC_SHIFT_MASK masks a shift's amount."""
+    if SHIFT_MASK and op in SHIFTS and width > 1 and not re.fullmatch(r"\d*'[sS]?[hHdDbBoO][0-9a-fA-F_xXzZ]+", b.strip()):
+        k = (width - 1).bit_length()   # a literal amount (a fused region's constant) folds: left as it was
+        b = "(%s & %d'd%d)" % (b, width, (1 << k) - 1)
+    return BINARY[op].format(a=a, b=b)
+
 
 # Operations whose result is the full operand width, and the Verilog
 # expression that computes them.  `trunci`, `extui` and `extsi` are absent on
@@ -557,7 +577,7 @@ def emit_unit(op, width, pred=None):
         expr = "s_data[0] ? a_data : b_data"
         out_w, nin = width, 3
     elif op in BINARY:
-        expr = BINARY[op].format(a="a_data", b="b_data")
+        expr = binary_expr(op, "a_data", "b_data", width)
         out_w, nin = width, 2
     elif op in DIV:
         extra, expr = div_datapath(op, width, join="joined", ack="z_ack")

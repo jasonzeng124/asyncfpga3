@@ -1528,7 +1528,7 @@ def _fused_node_expr(op, width, pred, ports, uniq):
         expr = f"{ports['s']} ? {ports['a']} : {ports['b']}"
         out_w = width
     elif op in compute.BINARY:
-        expr = compute.BINARY[op].format(a=ports["a"], b=ports["b"])
+        expr = compute.binary_expr(op, ports["a"], ports["b"], width)
         out_w = width
     else:
         raise EmitError(f"BDC_OP_FUSION has no fused lowering for {op!r}")

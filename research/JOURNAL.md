@@ -10044,3 +10044,17 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   pipes (ulink_n_trueResult_16 / _18 / _20, 2 -> 1). So the knob changes quadrec's search builds and nothing else on
   v10's structures; if the local quadrec runs (v13 + the knob) converge clean and pass, it can join v13 before v13's
   parts are submitted at no risk to the other kernels.
+### progress 07:03 (variable shifts: bdc builds them with the full 32-bit amount, a depth-13 shifter; BDC_SHIFT_MASK=1 (opt-in) uses the amount's low bits, depth 5 -- changes varshift and gcd only; A/B on varshift s1 started)
+- **Why:** varshift s1 (v10, 27.63 ns; Dynamatic 12.48) spends 14.8 ns of its cycle in two shift operators' matched
+  lines (ushrsi0 19 elements 8.4 ns, uxori2 18 el 6.4 ns). bdc/compute.py lowers arith.shrui / shrsi / shli to
+  `a >> b` with b the full 32 bits, so yosys builds the shift-by-32-or-more case too. synth_xilinx on a lone 32-bit
+  shifter (/tmp/bot/shx): full amount topological depth 13-14 and ~6x the LUT / MUXF cells; amount & 31: depth 5;
+  64 bits: 13 vs 7. The MLIR ops return poison for an amount >= the width (C: undefined), so masking is a refinement.
+  Dynamatic's own units take the full amount too (data/verilog/arith/shrui.v: lhs >> rhs).
+- **bdc (this commit):** BDC_SHIFT_MASK=1 -- compute.binary_expr, used by the unit emitter and the fused-region emitter,
+  masks a non-literal amount to its low ceil(log2(width)) bits; a literal amount (a fused region's constant, e.g.
+  xorshift's 13 / 17 / 5) is left as it was. Unset: emitted Verilog byte-identical to HEAD's bdc on all 62 suite
+  kernels (BDC_AUTO=1). Set: only varshift (3 shifts) and gcd (1) change; every other kernel's shifts are literal.
+- **A/B running** (local, v13's environment + AUTO_CKPT, seed 1): varshift with and without the knob.
+  PREDICTION (written now): both rule-CLEAN and PASS; with the mask the two shift lines shorten by >= 5 elements each
+  and P drops by 10-25 % (v10 s1 27.63 ns); every draw passes.
