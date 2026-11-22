@@ -5398,3 +5398,4 @@ on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
 ### progress 15:06 -- v13s (every route with BD_SYMTRIM, request-wide) rebuilt DIFFERENT on 11 of 12 routes without BD_DEFINES=-DBD_SYMTRIM in ENV: redone with it (MK_EXTRA_ENV). v12 80 / v13 21 routes screened; nothing new below the B42 pair (brhash s1, cmpchain s1 at kappa 0.10).
 ### progress 15:59 -- B43: v13 (21) / v13s (20, all BD_SYMTRIM) screened SAME with request-wide knobs; no adversary failure below 0.15; research told its board specs need the request-wide knobs too.
 ### progress 16:19 -- 2-hour re-read: PROGRAM unchanged; research FOR-FORMAL 13:20 (answered in B43). Loop continues.
+### progress 18:27 -- 2-hour re-read: PROGRAM, research FOR-FORMAL (13:20), audit unchanged for B. Farm quiet: v11 222 / v12 82 / v13 21 / v13s 24 screened.
