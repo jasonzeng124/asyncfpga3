@@ -68,6 +68,12 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
     - from ~0.58 us, the data latches of BOTH stages of the multi-stage loop link `ulink_n_falseResult_11`
       (`many.stage[0]` / `[1]`, bits 10 and 18) toggle ~1900 times in 80 ns;
     - in collatz64 it was both stages of `ulink_n_falseResult_9.many`.
+  - **In Lean (stage model):** `Formal/Net/StageNetRingOpaque.lean`, `boundary_always` / `boundary_always_floor`.
+    - A ring that starts trap-free (your floor: T >= 1, S >= 2T + 1) has, in every state reachable by handshakes,
+      a stage holding a token its successor has not taken. Lean 4.35.0, core only, standard axioms.
+    - So a loop ring with every latch open cannot arise while the handshakes keep the stage model's order. The storms
+      above need a timing departure from it.
+    - That a holding stage means a closed latch is the bd link's cell semantics, assumed, not derived here.
     - So in both kernels the event storm runs through a two-stage false-result link whose two latches are open
       together. A lead for your hold rules on multi-stage links, not proved. brhash s2 / branchloop s3 were not
       checked.
