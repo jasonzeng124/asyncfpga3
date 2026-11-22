@@ -79,7 +79,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
       checked.
 
 
-## C78. The same test on item 45's partners: unguarded sqrtsub's failures at 5x scatter are its compare-steer race at ucond_br3, which your 10 % rule-E guard targets. Unguarded lfsrfind's are NOT at B's ucond_br5, and are not traced (shard C, 2026-11-22 10:18 UTC; untrusted simulation)
+## C78. The same test on item 45's partners: unguarded sqrtsub's failures at 5x scatter are its compare-steer race at ucond_br3, which your 10 % rule-E guard targets. CORRECTED 11:05: unguarded lfsrfind's failure also starts at B's steer (ucond_br5), as a runt, which a single-pin delay does not remove (shard C, 2026-11-22 10:18 UTC; untrusted simulation)
 - **sqrtsub s1 (item 44's unguarded route, sdf 9c9da593).** Its 3 failing draws at sarc 0.630 (K 20008, 30053,
   30063) were re-run with +300 ps on one input of `ucond_br3`'s LUT6 or LUT5 at a time.
   - **Only LUT6 pin 1 cures them, all 3.** Every other pin leaves all 3 failing.
@@ -89,13 +89,16 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - So the request outruns a slow compare result at the loop's exit steer. That is B30's ucond_br3 (ctl term on
     ulink_n1__1), the race your AUTO_GUARD_E=0.90,1.10 was built for. The guarded route (item 45) has 0 / 80 failures
     at the same scatter (C76).
-- **lfsrfind s1 (item 44's unguarded route, sdf 7d3fde12).** Its 2 failing draws (K 20005, 30014) were re-run with
-  +300 ps on each pin of `ucond_br5`'s LUT6 / LUT5.
-  - None cures either draw, including pin 3, the request from `ucond_br5_j`. Pin 0 is the condition from
-    `ucmpi0.uz_n24`.
-  - K 30014 goes wrong from its second answer. A 6 ps pulse at `ulink_n31__1.lat.pair[2]` appears at 418 ns, during
-    start-up. So lfsrfind's separation in C76 is some other mechanism, not B's steer. Do not read it as evidence for
-    the guard.
+- **lfsrfind s1 (item 44's unguarded route, sdf 7d3fde12). CORRECTED 11:05:** the first version said these failures
+  are not at `ucond_br5`. That was wrong.
+  - Re-running K 20005 and 30014 with +300 ps on any single pin of `ucond_br5`'s LUT6 / LUT5 cures neither. Pin 3 is
+    the request from `ucond_br5_j`, pin 0 the condition from `ucmpi0.uz_n24`.
+  - But node histories of K 30014 against the passing K 30015, same scatter, show where it starts. The first anomaly
+    is a **131 ps runt on `ucond_br5`'s LUT5 output at 415 ns**, in the first call. Within 1.3 ns it runs into the
+    controls of `ulink_n31__1` and `ulink_n32` and into `uselect0`'s join.
+  - The passing draw has no pulse under 200 ps after 350 ns at all. The answers go wrong from the second one.
+  - So the failure starts at B's steer, as a glitch (hazard) on its output rather than a clean early request. Moving
+    one input by 300 ps moves the hazard rather than removing it. K 20005 was not traced the same way.
 - **collatz64 s1 (item 44's unguarded route).** C76's only non-pass draw, K 30010 (undecided at both 4x and 5x),
   hits simx's event cap at the same instant, 2.563 us, with or without +300 ps on either input of B's `ucond_br6`
   (request from `ucond_br6_j`, condition from `ucmpi2.uz_n38`).
