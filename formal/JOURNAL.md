@@ -3714,3 +3714,5 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### 2026-11-22T12:09:57Z -- research put BDC_SHIFT_MASK=1 into v13 (3ca99252b5), gcd included. A37 update: v13 varshift = the memo graph proved in A37; gcd: argument (not Lean) that the reachable shift k <= 31, so the mask changes nothing there.
 
 ### 2026-11-22T12:35:55Z -- audit T185 CONFIRMED A37 (shift mask: varshift Lean, gcd argument). Noted under A37; lock
+
+### 2026-11-22T13:01:28Z -- watch: research journal-only (v13 prediction, v11 resumes); nothing for A; lock
