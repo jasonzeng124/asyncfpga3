@@ -1132,7 +1132,9 @@ PY
   fi
   if [ -z "$LC3" ]; then
     echo "search: no clean route with $XENV (last it $j): ships ${N}_$X" >> "$O/log.txt"; XENV=""; return 0; fi
-  final "$LC3"
+  # a route from AUTO_SEARCH_OVERBUILD gives its extra length back first (final()'s trim-back reads AUTO_OVERBUILD, which
+  # AUTO_LATE_AFTER_SEARCH parks in LATE_OB during this pass)
+  if [ -n "${sob:-}" ]; then AUTO_OVERBUILD=${AUTO_OVERBUILD:-$LATE_OB} final "$LC3"; else final "$LC3"; fi
   P0=$(grep -o 'P=[0-9]*' "$O/it_$X.txt" | head -1 | cut -d= -f2); P3=$(grep -o 'P=[0-9]*' "$O/it_$LC3.txt" | head -1 | cut -d= -f2)
   echo "search: ${N}_$LC3 ($XENV) P=${P3:-NA} vs ${N}_$X P=${P0:-NA}" >> "$O/log.txt"
   if [ -n "$P3" ] && { [ "$RC" != 0 ] || [ -z "$P0" ] || [ "$P3" -lt "$P0" ]; }; then
