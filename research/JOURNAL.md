@@ -10184,3 +10184,18 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   without overbuild markers changes). A re-final of this route with the fix is next, for the number v13 would ship.
 - One kernel, one seed: the farm's v13 is the measurement. The two knobs act only where a search picks a structure that
   bdc would lower (KEEPDEPTH: quadrec on v10's structures) or that does not converge (SEARCH_OVERBUILD: 17 of v10's 132).
+### progress 12:11 (STATE OF PLAY -- read this first if the session ends here)
+- **Farm queue (mine), in order:** v11 resumes (*_ck parts and r2 / r3 parts, AUTO_CKPT=1) running / waiting; v12: 1a /
+  1b / 2a done (all clean PASS), 2b..4b waiting (AUTO_CKPT=1), resumes v12_1a_r1 / 1b_r1 / 2a_r1 filed; **v13** (all
+  eight parts waiting) = v12 + AUTO_RACE_KAPPA + BDC_MEM_FASTFALL=2 + AUTO_TRIM_PORTS + AUTO_CKPT + **AUTO_SEARCH_KEEPDEPTH
+  + AUTO_SEARCH_OVERBUILD=4 + BDC_SHIFT_MASK** (added today before submission); **v13s_1..4** (v13 + BD_SYMTRIM on every
+  route, 12 kernels, paired with v13); then mff resumes, sibb. As parts end: mk_resume.py (32G default) and, where the
+  body lacks it, /tmp/bot/scripts/add_ckpt.py.
+- **Interim:** v11 54 / 62 (NO RESULT rows = the 240-min limit; AUTO_CKPT resumes running); v12 57 tasks so far, every
+  one PASS on a clean route, no pulse under 1 ns.
+- **This session's levers (all opt-in, each measured locally):** AUTO_CKPT (resumes replay: tests A-I), KEEPDEPTH +
+  SEARCH_OVERBUILD (quadrec s3: 25.98 ns PASS 4/4 vs v10's 41.03), SHIFT_MASK (varshift s1: P -4.2 %, LUTs -14 %,
+  latency -10 %), BD_SYMTRIM-everywhere (single seeds inconclusive -> v13s A/B). Negative / bounded: feeder-race knob
+  (not needed by formal's census), ring placement (<= ~6 % on countloop), memory ports (serialized by design).
+- **Running locally:** /tmp/bot/runs/so2 (quadrec s3's route re-finaled with the trim-back fix: the P v13 would ship),
+  st fold64 s1 (late phase), kd quadrec s2 (late phase on the loop's structure).
