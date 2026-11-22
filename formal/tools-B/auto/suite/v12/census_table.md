@@ -8,6 +8,7 @@
 | memsum_s1 | MEM | 0.072 (14 / 14) | ucond_br8 | kappa 0.20 | - | - |
 | twoloops_s1 |  | 0.073 (32 / 32) | ucond_br15 | kappa 0.20 | x=0.25: MAXEV | +282 / +663 ps; none up to 0.20 |
 | collatz_s2 |  | 0.079 (12 / 12) | ucond_br6 | none up to 0.20 | none to 0.25 | none |
+| memsum_s2 | MEM | 0.081 (14 / 14) | ucond_br8 | none up to 0.20 | - | - |
 | if_convert_s1 | MEM | 0.094 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | test_memory_1_s1 | MEM | 0.101 (12 / 12) | ucond_br6 | none up to 0.20 | - | - |
 | image_resize_s1 | MEM | 0.103 (18 / 18) | ucond_br3 | kappa 0.15 | - | - |
@@ -16,6 +17,8 @@
 | lfsrfind_s2 |  | 0.123 (18 / 18) | ucond_br5 | kappa 0.20 | x=0.25: RESULT | +342 / +883 ps; none up to 0.20 |
 | factorial_s1 |  | 0.128 (24 / 24) | ucond_br12 | kappa 0.20 | x=0.25: RESULT | +495 / +1297 ps; none up to 0.20 |
 | test_stdint_s1 | MEM | 0.128 (6 / 6) | ucond_br2 | kappa 0.20 | - | - |
+| factorial_s2 |  | 0.129 (24 / 24) | ucond_br5 | kappa 0.20 | x=0.25: RESULT | +1695 / +3974 ps; none up to 0.20 |
+| nested_s2 |  | 0.135 (44 / 44) | ucond_br20 | none up to 0.20 | none to 0.25 | +797 / +1838 ps; none up to 0.20 |
 | xorshift_s2 |  | 0.138 (16 / 16) | ucond_br6 | none up to 0.20 | none to 0.25 | +251 / +679 ps; none up to 0.20 |
 | collatz64_s1 |  | 0.139 (12 / 12) | ucond_br4 | none up to 0.20 | none to 0.25 | none |
 | gather_s1 | MEM | 0.147 (14 / 14) | ucond_br2 | none up to 0.20 | - | - |
@@ -38,6 +41,7 @@
 | horner_s1 |  | 0.189 (18 / 18) | ucond_br5 | none up to 0.20 | none to 0.25 | +596 / +1372 ps; none up to 0.20 |
 | if_loop_1_s1 | MEM | 0.192 (14 / 14) | ucond_br4 | none up to 0.20 | - | - |
 | nested_loop_s1 | MEM | 0.195 (12 / 12) | ucond_br7 | none up to 0.20 | - | - |
+| collatz64_s2 |  | 0.196 (12 / 12) | ucond_br7 | none up to 0.20 | none to 0.25 | none |
 | dot2_s2 | MEM | 0.196 (14 / 14) | ucond_br8 | none up to 0.20 | - | - |
 | vector_rescale_s1 | MEM | 0.204 (6 / 6) | ucond_br1 | none up to 0.20 | - | - |
 | test_loop_free_s1 | MEM | 0.205 (10 / 10) | ucond_br2 | none up to 0.20 | - | - |
