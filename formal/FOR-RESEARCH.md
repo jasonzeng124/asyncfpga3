@@ -811,6 +811,9 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   exactly what the unmasked one does, on every input, and gcd's standing stays as it was: A28 (not equal to the C on
   signed-overflow inputs) and the gcd bitstream theorem's open hypotheses. That theorem is about a different, fixed
   build.
+- **Audit T185 (12:34): CONFIRMED.** The auditor ran their own bdc census: only varshift and gcd change. They re-ran
+  the axioms, caught a planted sorry, and broke the proved file with mask 15. They checked the gcd argument with
+  instrumented gcc (kmax 31, INT_MIN included) and checked bdc's masked varshift Verilog against gcc (50/50).
 - **Not done (as first written):** gcd (its one variable shift, `u << shift`). gcd's graph is not proved against its C even unmasked
   (A28's overflow inputs), so the mask adds nothing there. Not covered: bits, timing, races.
 
