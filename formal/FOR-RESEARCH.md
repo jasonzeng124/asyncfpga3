@@ -396,6 +396,25 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
   - It is queued on the farm with 64 + 64 draws for items 42 and 43, item 45's three guarded routes and their
     unguarded item-44 partners, and item 46's pair. The results will come here.
 
+## B43. v13 and v13s, first routes: the screen reads BD_SYMTRIM-everywhere routes as built, and nothing in them loses below kappa 0.15. One warning: request-wide knobs that the result lines do not record must go into a rebuild spec (shard B, 2026-11-22 16:00 UTC; untrusted extraction and simulation)
+- **Coverage:** v13 21 routes and v13s 20 routes (every route BD_SYMTRIM), all rebuilt SAME.
+  - Tables: `formal/tools-B/auto/suite/v13/`, `.../v13s/census_table.md`.
+- **Your 13:20 question (INIT-1010 elements):** formal's decoder builds every LUT from its INIT in the bits, so a 1010
+  chain element is a LUT whose output follows its I0. steersafe's request walks go through such chains like any
+  forcing pin (B33 showed a trimmed 1100 entry being followed).
+- **v13s results:** min kappa_lo 0.061 (horner s2) to 0.293.
+  - Weakest-steer adversaries first fail at 0.15 (collatz s2 / s4) or later; most hold to 0.20.
+  - Every latch-fed race is +405 ps or more, with no failure to 0.20.
+- **v13:** min 0.079 (collatz s2). No adversary failure below 0.20.
+- **Warning, which may concern your mk_board_specs.py too:** v13 / v13s set request-wide bdc knobs in the request
+  header that no result line records:
+  - v13: `BDC_SHIFT_MASK=1 BDC_MEM_FASTFALL=2`;
+  - v13s: those plus `BD_DEFINES=-DBD_SYMTRIM`.
+  - Without them, B's rebuilds came out sdf DIFFERENT: v13 dot2 s2 / fill s2 (memory: MEM_FASTFALL), and 11 of 12
+    v13s routes (SYMTRIM). With them every one is SAME. board_rebuild's sdf check caught it.
+  - A board spec made from v13 / v13s farm saves needs them in ENV. `mk_specs_all.py` takes them through
+    MK_EXTRA_ENV.
+
 ## B42. Flow v12 (the 10 % rule-E guard on every route), first 25 routes (seed 1): one compare steer still loses at kappa 0.10 (brhash s1), and the rest hold to 0.15 or more (shard B, 2026-11-22 05:50 UTC; untrusted extraction and simulation)
 - **Method:** `mk_specs_all.py --stagefix`, your fixed board_rebuild.sh / shard C's memtask.sh (every sdf SAME, no
   REFUSED), then the B32 screen. Table: `formal/tools-B/auto/suite/v12/census_table.md`.

@@ -4,6 +4,8 @@
 | branchloop_s3 |  | -0.015 (30 / 30) | ucond_br8 | kappa 0.03 | x=0.08: MAXEV | none |
 | brhash_s2 |  | -0.012 (24 / 24) | ucond_br9 | kappa 0.10 | x=0.20: MAXEV | none |
 | lfsrfind_s1 |  | -0.008 (18 / 18) | ucond_br5 | kappa 0.06 | x=0.12: RESULT | +285 / +788 ps; none up to 0.20 |
+| digitdiv_s3 |  | -0.007 (16 / 16) | ucond_br7 | kappa 0.03 | x=0.08: MAXEV | none |
+| digitsum_s3 |  | -0.007 (16 / 16) | ucond_br7 | kappa 0.03 | x=0.08: MAXEV | none |
 | cmpchain_s3 |  | -0.006 (32 / 32) | ucond_br14 | kappa 0.10 | x=0.15: MAXEV | none |
 | test_stdint_s2 | MEM | -0.004 (6 / 6) | ucond_br1 | none up to 0.20 | - | - |
 | iterative_sqrt_s4 |  | 0.000 (24 / 24) | ucond_br13 | kappa 0.20 | x=0.20: RESULT | +113 / +232 ps; kappa 0.10 ( c0:MISMATCH/14011 c1:MISMATCH/7054) |
@@ -145,6 +147,7 @@
 | share_test_2_s2 | MEM | 0.152 (6 / 6) | ucond_br1 | none up to 0.20 | - | - |
 | test_memory_1_s2 | MEM | 0.153 (12 / 12) | ucond_br2 | none up to 0.20 | - | - |
 | test_stdint_s4 | MEM | 0.153 (6 / 6) | ucond_br2 | none up to 0.20 | - | - |
+| share_test_1_s4 | MEM | 0.154 (14 / 14) | ucond_br8 | none up to 0.20 | - | - |
 | while_loop_3_s4 | MEM | 0.155 (8 / 8) | ucond_br3 | none up to 0.20 | - | - |
 | loop_path_s3 | MEM | 0.156 (4 / 4) | ucond_br1 | none up to 0.20 | - | - |
 | test_bitint_s2 | MEM | 0.156 (6 / 6) | ucond_br2 | none up to 0.20 | - | - |
@@ -171,6 +174,7 @@
 | quadrec_s1 |  | 0.191 (28 / 28) | ucond_br10 | none up to 0.20 | none to 0.25 | none |
 | mul_example_s1 | MEM | 0.194 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
 | nested_loop_s2 | MEM | 0.202 (12 / 12) | ucond_br7 | none up to 0.20 | - | - |
+| image_resize_s4 | MEM | 0.203 (18 / 18) | ucond_br10 | none up to 0.20 | - | - |
 | sqrtsub_s2 |  | 0.207 (16 / 16) | ucond_br4 | none up to 0.20 | none to 0.25 | +1538 / +3709 ps; none up to 0.20 |
 | while_loop_3_s2 | MEM | 0.208 (8 / 8) | ucond_br3 | none up to 0.20 | - | - |
 | single_loop_s1 | MEM | 0.219 (4 / 4) | ucond_br2 | none up to 0.20 | - | - |
