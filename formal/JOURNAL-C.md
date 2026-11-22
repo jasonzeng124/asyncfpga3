@@ -5153,3 +5153,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 10:18: C78: sqrtsub unguarded 5x failures cured only by +300 ps on ucond_br3's request (from ucond_br3_j): the compare-steer race the guard targets. lfsrfind's are not at ucond_br5 (no pin cures; one corrupts at start-up, 418 ns).
 - 10:24: drawspec SWEEP= (C76's stress test as an option; checked locally on brhash v12 s1). c_v12a withdrawn before it started; c_v12b = 56 v12 specs, 32 + 32 draws + sweep x3/x4/x5 x 32. c_brd2 done (C75).
 - 10:27: collatz64 unguarded K 30010 (event cap at 2.563 us, x4 and x5) is unchanged by +300 ps on either ucond_br6 input: not B's steer; 1 ps pulses on ulink_n10__2 / __4 data latches; untraced (C78).
+- 10:43: C79: scatter sweep (32 draws, x3-x5): items 42 / 43 0 non-passes; v11 sqrtsub s4 weakest (2 / 7 / 8 of 32 at x3 / x4 / x5); request delay at ucond_br6 cures 3 of its 7 x4 non-passes; event-cap draws untraced.

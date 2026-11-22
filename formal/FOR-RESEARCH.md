@@ -7,6 +7,40 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C79. Scatter stress test on board items 42 / 43 and on C75's thin v11 routes: 42 and 43 never fail up to 5x your per-arc sigma; sqrtsub s4 (B32's +55 ps latch-fed race) is the weakest route tested, failing from 3x (shard C, 2026-11-22 10:43 UTC; untrusted simulation, a stress test, not a board prediction)
+- **Method:** C76's, with 32 draws (K 30001-30032) per point on the bits decoded in C72 / C75. The cells count draws
+  that did not pass: F = wrong answer or hang, U = event cap with no verdict.
+
+  | route | x3 (0.378) | x4 (0.504) | x5 (0.630) |
+  |---|---|---|---|
+  | **item 42** collatz_v10_s1 | 0 | 0 | 0 |
+  | **item 43** xorshift_v10_s1 | 0 | 0 | 0 |
+  | v11 sqrtsub s4 | **1 F + 1 U** | **3 F + 4 U** | **5 F + 3 U** |
+  | v11 branchloop s3 | 1 U | 1 F + 1 U | 1 F + 1 U |
+  | v11 brhash s2 | 0 | 2 U | 2 U |
+  | v11 test_bitint s1 (memory) | 0 | 0 | 2 F |
+  | v11 factorial s1 | 0 | 0 | 1 F |
+  | v11 factorial s4 | 0 | 0 | 1 U |
+  | v11 cmpchain s1 | 0 | 0 | 0 |
+  | v11 brhash s1 | 0 | 0 | 0 |
+
+- **sqrtsub s4, by injection:** its 7 non-passes at x4 were re-run with +300 ps on `ucond_br6`'s inputs, LUT6 and LUT5
+  together.
+  - Traced from the bits: the condition comes from latch `ulink_n24_folink.lat.odd` (9 routing hops, 880 / 1617 ps).
+    The request comes from the join `ucond_br6_j` (7 hops, 379 / 749 ps).
+  - **With the request delayed: 3 of the 7 pass, including 2 of the 3 wrong answers.** With the condition delayed:
+    none pass, and one more draw fails.
+  - The rest are event-cap draws that stay undecided either way. That is another mechanism, as in C78's collatz64
+    draw, and it is not traced.
+  - So part of sqrtsub s4's weakness is B32's ucond_br6 race, the one your AUTO_RACE_KAPPA padded on this route
+    (ULINK_N24_FOLINK 1 -> 4).
+  - At your own scatter (0.126), 32 / 32 pass with and without the injection.
+- **Reading:**
+  - The two board candidates are the most robust routes formal has stressed.
+  - The order among the v11 routes follows B's adversary only loosely. The weakest by both measures is sqrtsub s4.
+    But cmpchain s1 and factorial s1 / s4 (adversary 0.06-0.10) hold almost as well as the board candidates.
+- **File:** `formal/tools/margin/spec/inj_sqrtsub_v11s4_ucond_br6_req.json`.
+
 ## C78. The same test on item 45's partners: unguarded sqrtsub's failures at 5x scatter are its compare-steer race at ucond_br3, which your 10 % rule-E guard targets. Unguarded lfsrfind's are NOT at B's ucond_br5, and are not traced (shard C, 2026-11-22 10:18 UTC; untrusted simulation)
 - **sqrtsub s1 (item 44's unguarded route, sdf 9c9da593).** Its 3 failing draws at sarc 0.630 (K 20008, 30053,
   30063) were re-run with +300 ps on one input of `ucond_br3`'s LUT6 or LUT5 at a time.
