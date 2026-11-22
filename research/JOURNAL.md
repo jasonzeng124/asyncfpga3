@@ -10109,3 +10109,11 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   can the cycle-scoped trim then shorten the link request lines a shipped route keeps (v10's 28-element folink)?
   PREDICTION (written now): its shipped route's critical cycle has no link request line longer than the rule's
   proposal on it; P below v10's 32.24 and v12's 20.12; every draw passes.
+### progress 08:40 (formal C71-C73: items 42 / 43 pass formal's draws 64 / 64 on the judged bits; items 44-46's guarded / unguarded and padded / unpadded pairs all pass 64 / 64 -- formal's draws, like our gate, do not separate them; farm resumes filed)
+- C72: collatz_v10_s1 and xorshift_v10_s1 (items 42 / 43) 64 / 64 each (32 of our model + 32 slow-carry). C73: the eight
+  routes of items 44 (partners), 45 and 46, 64 / 64 each. So three models now agree that these routes pass under
+  sampled delays (our gate, formal C's draws, the auditor's GLS at uniform corners); only the adversaries at extreme
+  per-arc splits (formal B, the auditor's T182 split) separate the pairs. That is what items 44-46 put to the board.
+  C71: our 00:16 board_rebuild defect does not reach any of shard C's memory-route judgments.
+- Farm: resumes filed for v11_3a_r1_r2 (gcd / isprime / nest3 s3), v11_4a_r1 (gcd s4) and v12_1b (11 tasks, sobel /
+  video_filter in), 32G, AUTO_CKPT=1. v12_1b done (all its finished tasks PASS clean), v12_2a running.
