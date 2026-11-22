@@ -48,6 +48,8 @@ rejudge_2026-11-19_gate_strict.txt): items 38-41 at the worst corner and 3 fresh
    rebuilds and minutes of board time): any time after item 36.
 3c'. **Item 45** (the steer guard's silicon test: three guarded routes beside their unguarded partners in item 44):
    with or right after item 44.
+3c''. **Item 46** (2026-11-22: the latch-fed steer race pair, formal's thinnest race beside its padded rebuild): any
+   time after item 36.
 3d. **Optional for items 37-41 (2026-11-21, ~1 min each):** right after an item's build, before its loop_cost
    run, the same full-vector check items 42 / 43 have -- the kernel's own gate vectors through the gate's host program,
    judged by the gate's rules against the C. From cells/, with K and V = ipow / ipow17 (item 38), collatz / col18 (39),
@@ -95,6 +97,25 @@ negative control fails). Run it before the speed items.
    measured.tsv + raw/) back. Simulated: C32 is 11.1 ns at y = 0.2 and 15.5 ns at y = 1.0 (x 0.288), F16 16.2 / 21.3
    ns; at 1% ring scatter the fit resolves y to +-0.01-0.02. The two routes must agree with each other within their
    sigmas; if they do not, that is the finding.
+
+## 2026-11-22: item 46 -- the latch-fed steer race on silicon: formal's thinnest one (+1 ps), beside the same kernel and seed rebuilt with the check that removes it
+Formal B36: flow v11's test_flatten_array s2 (rule CLEAN, PASS 4 / 4 in our draws) carries a latch-fed steer race at
+ucond_br14 with a split-corner slack of +1 / +72 ps; formal's race-only adversary gets a wrong answer at kappa 0.03 (our
+draw model: 263 +- 56 ps). The same kernel and seed under flow v11 + AUTO_RACE_KAPPA=0.13 (flow v13's race check) pads
+that race (kappa 0.000 -> 0.241) and ships a late-phase route, rule CLEAN, PASS 4 / 4. research/data/suite/board/
+race_pair/ holds both specs (each rebuilt here byte for byte; its README has the details).
+
+46. **The latch-fed race pair** -- any time after item 36; two rebuilds (~5 min each) and two short board runs (a memory
+    kernel: its arrays go over JTAG word by word). From the repo root:
+
+        cells/verify/toolchain.sh    # must pass (sha256 6e5d224472232d5d)
+        BQ_RUNS=~/runs/bq_race_routes BQ_OUT=~/runs/bq_race_unpadded research/tools/suite/board_suite.sh research/data/suite/board/race_pair/unpadded 2>&1 | tee ~/board_race_unpadded.log; echo "exit $?"
+        BQ_RUNS=~/runs/bq_race_routes BQ_OUT=~/runs/bq_race_padded research/tools/suite/board_suite.sh research/data/suite/board/race_pair/padded 2>&1 | tee ~/board_race_padded.log; echo "exit $?"
+
+    Pass: each `board_suite: 1 of 1 kernels PASS`, exit 0. **Reading the pair:** both PASS -- the +1 ps split slack did
+    not bite on this die (formal's adversary pessimistic here, or the die not at its corner; no evidence for the check
+    from this board). Unpadded FAIL, padded PASS -- the strongest evidence for AUTO_RACE_KAPPA this project can get.
+    A padded FAIL -- a defect the check does not address: send both logs.
 
 ## 2026-11-21: item 45 -- the steer guard on silicon: three guarded routes whose unguarded partners are in item 44
 Formal B30 found that three of flow v10's rule-CLEAN routes -- collatz64, sqrtsub, lfsrfind, seed 1 each, all in item 44

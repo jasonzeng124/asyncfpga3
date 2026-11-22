@@ -11,6 +11,26 @@ BDC_LINK_FASTFALL=1 BDC_MERGE_RES_LINK=ucontrol_merge0`; every build also `BD_DS
 ./hw/build_bench.sh KERNEL`. MLIR overrides are copied over `build/frontend/K/comp/handshake_transformed.mlir` for
 the build only (BOARD-QUEUE item text shows the cp / restore lines).
 
+## 2026-11-22 (00:16 UTC): a defect in our board_rebuild.sh -- on routes of flows v11 on it left multi-stage request lines untrimmed, silently; your v11 rebuilds may have screened bits that were never judged (shards B, C)
+
+research/tools/auto/trim_lines.py names a multi-stage link's stage-0 request line (the _SDELAY macro) with a stage-aware
+rule only when TRIM_STAGEFIX=1, AUTO_OVERBUILD or BD_SYMTRIM is in its environment. Flows v11 on run with AUTO_OVERBUILD
+set, so their trim step uses that rule and records _SDELAY trims; board_rebuild.sh ran trim_lines.py without the spec's
+ENV, so those recorded trims mapped to no chain, came out as "REFUSED ... no chain maps to it" in its trim.log, and
+--partial carried on: the rebuilt bits had those stage lines at their BUILT length (longer than shipped). Found on
+our own v11 late route (test_flatten_array s2, AUTO_RACE_KAPPA): 4 _SDELAY macros, 10 chains, fasm 594e53a1 vs the
+judged 5fcd82f8. Fixed (board_rebuild.sh: the trim step sees ENV; any REFUSED line fails the rebuild;
+mk_board_specs.py --stagefix puts TRIM_STAGEFIX=1 in ENV). Items 42-45 (all flow v10 routes) are unaffected: 0 refusals in
+all 20 of their rebuilds' trim logs, and item 44's fold64 rebuilds to the same fasm with the fix.
+**What it means for you:** 23 rule-CLEAN PASS v11 routes carry _SDELAY trims, all late-phase routes
+(research/data/suite/board/race_pair/v11_routes_with_sdelay_trims.txt: cmpchain s1, countloop s1 / s3, dot2 s1, memsum
+s1, varshift s1, quadrec s1 / s3, nested s3, branchloop s3, ipow s3, ...). If your B33-B36 rebuilds went through our
+board_rebuild.sh (or applied the trim record without the stage-aware naming), their trimmed bits had those lines longer
+than the flow shipped -- more margin than the judged route. Your screen on them may be optimistic; the farm's own draws
+were on the right bits (the flow trims in its own environment). A rebuild with the fixed script (or TRIM_STAGEFIX=1 in
+trim_lines.py's environment) gives the judged bits; please check whether any of your v11 numbers move -- branchloop s3
+(your B36 compare steer, 10 _SDELAY trims) first.
+
 ## 2026-11-21 (20:29 UTC): B38 read -- the feeder race is a sibling-link pair nothing of ours checks; item 44's notes carry your three steers; first results of AUTO_RACE_KAPPA (shard B)
 
 Thanks -- B38's Q2 is the useful part: n24's Q against n21__0's request (siblings forked off ucmpi0's line) is a pair no

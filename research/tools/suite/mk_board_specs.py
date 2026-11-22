@@ -11,6 +11,8 @@ row's output file; rw=none: no override), and BD_DEFINES=-DBD_SYMTRIM for a rout
 (symtrim_from.txt <= I <= overbuild_to.txt, as auto_size.sh's build()). SDF = the result line's sdf; FASM = 00000000, a placeholder that
 board_rebuild.sh refuses (it prints the trimmed fasm's md5: --fill writes it in after a rebuild).
     --fill OUTDIR/K.spec MD5   writes the trimmed fasm md5 into one spec (after a rebuild that matched its SDF)
+    --stagefix                 routes of a flow that trimmed with TRIM_STAGEFIX=1 / AUTO_OVERBUILD (v11 on): ENV gets
+                               TRIM_STAGEFIX=1 for board_rebuild.sh's trim step
 Prints one line per kernel (spec written, or why not)."""
 import glob
 import os
@@ -35,6 +37,11 @@ def main():
     cache = os.path.join(R, "research/data/autorw/cache.tsv")
     if "--cache" in args:
         i = args.index("--cache"); cache = args[i + 1]; del args[i:i + 2]
+    # --stagefix (2026-11-22): the routes come from a flow that trimmed with trim_lines.py's stage-aware _SDELAY naming
+    # (TRIM_STAGEFIX=1 or AUTO_OVERBUILD in its environment: flows v11 on); ENV gets TRIM_STAGEFIX=1 so that
+    # board_rebuild.sh's trim step names those lines the same way (without it they are refused)
+    stagefix = "--stagefix" in args
+    args = [a for a in args if a != "--stagefix"]
     out, parts = args[0], args[1:]
     memo = {}
     for l in open(cache):
@@ -86,6 +93,8 @@ def main():
                 env = (env + " BD_DEFINES=-DBD_SYMTRIM").strip()
         except (OSError, IndexError, ValueError):
             pass
+        if stagefix:
+            env = (env + " TRIM_STAGEFIX=1").strip()
         rw = kv.get("rw", "none")
         mlir = "-"
         pm = re.match(r"([a-z0-9_]+)\(memo@", rw)

@@ -7,7 +7,8 @@
 #   K      the kernel                         SEED   the iteration's placer seed (the loop's seed_I.txt)
 #   SIZES  the iteration's sizes (repo path)  TRIMS  the route's recorded trims, MACRO=LEN per line (repo path; may be -)
 #   MLIR   formal's proved rewrite (repo path, the flow's AUTO_PROVED_RW memo output) or -
-#   ENV    the build's bdc knobs besides BDC_AUTO=1 (the loop's search structure, e.g. BDC_FORK_OUT_LINK=...)
+#   ENV    the build's bdc knobs besides BDC_AUTO=1 (the loop's search structure, e.g. BDC_FORK_OUT_LINK=...), and
+#          the trim step's naming (TRIM_STAGEFIX=1 / BD_DEFINES=-DBD_SYMTRIM for a route of flows v11 on)
 #   SDF    md5 (first 8) of the route's SDF   FASM   md5 (first 8) of the trimmed FASM (the bits the flow judged)
 # The build is the flow's own: research/tools/fifteen/lane2.sh with LANE_NORUN=1 (a private worktree at this checkout,
 # cells/hw/build_bench.sh with BD_DSP=1 BD_NO_TIGHTEN=1 BD_SIZES_GATE=0 BD_SIZES=SIZES, NEXTPNR_SEED=SEED,
@@ -35,8 +36,15 @@ sdf=$(md5sum < "$H/$D.sdf" | cut -c1-8)
 [ "$sdf" = "$WS" ] || { echo "board_rebuild: sdf $sdf, not $WS: NOT the route judged (do not use it)"; exit 1; }
 cp "$H/${D}_routed.json" "$H/${D}_routed.untrimmed.json"; cp "$H/$D.fasm" "$H/$D.untrimmed.fasm"
 if [ "$TR" != - ] && [ -n "$TR" ]; then
-  python3 research/tools/auto/trim_lines.py --partial "$H/${D}_routed.untrimmed.json" "$H/$D.untrimmed.fasm" \
+  # the trims see the spec's ENV, as the flow's trim step saw the flow's: trim_lines.py names a multi-stage link's
+  # _SDELAY line by the stage-aware rule only under TRIM_STAGEFIX=1 / AUTO_OVERBUILD / BD_SYMTRIM (flows v11 on), and
+  # without them those recorded trims map to no chain (2026-11-22: a v11 late route rebuilt here left 10 stage lines
+  # untrimmed -- bits that were never judged; items 42-45, all flow v10 routes, had no refusal)
+  env $XE python3 research/tools/auto/trim_lines.py --partial "$H/${D}_routed.untrimmed.json" "$H/$D.untrimmed.fasm" \
     "$H/${D}_routed.json" "$H/$D.fasm" $(cat "$R/$TR") > "$H/trim.log" 2>&1 || { echo "board_rebuild: trim FAILED (see $H/trim.log)"; exit 1; }
+  # every recorded trim was applied once on the judged route (the flow records only what it applied), so a refusal
+  # here means a different naming or a different route: never the judged bits
+  grep -q '^REFUSED' "$H/trim.log" && { echo "board_rebuild: $(grep -c '^REFUSED' "$H/trim.log") recorded trim(s) refused (see $H/trim.log): NOT the bits judged"; exit 1; }
 fi
 fa=$(md5sum < "$H/$D.fasm" | cut -c1-8)
 [ "$fa" = "$WF" ] || { echo "board_rebuild: trimmed fasm $fa, not $WF: NOT the bits judged (do not use them)"; exit 1; }

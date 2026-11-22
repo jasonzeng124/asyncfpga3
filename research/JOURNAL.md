@@ -9842,3 +9842,13 @@ Next: v10 table + the three local completions; v11 results -> headline and its r
   kernel in both: no steady loop period). Narrowest pulse 4582 ps. The knob's whole local record: fires on both of
   formal's thin routes with formal's numbers, the re-routes at kappa 0.43 / 0.24; under v10 it cost sqrtsub s4 its
   convergence, under v11 one route and 11.6 % latency on test_flatten_array s2.
+### progress 00:16 (a defect in board_rebuild.sh found and fixed: on routes of flows v11 on it silently left multi-stage request lines untrimmed; BOARD-QUEUE item 46 (the latch-fed race pair) filed; flow v13 filed 00:0x)
+- Found rebuilding the padded race route (v11 late phase): fasm 594e53a1, not the judged 5fcd82f8 -- 10 pipe-stage rdly
+  chains untrimmed. trim_lines.py names _SDELAY lines stage-aware only under TRIM_STAGEFIX=1 / AUTO_OVERBUILD / BD_SYMTRIM
+  (flows v11 on have AUTO_OVERBUILD); board_rebuild.sh ran it without the spec's ENV, the trims were REFUSED, --partial
+  went on. Fix: the trim step gets ENV; any REFUSED fails the rebuild; mk_board_specs.py --stagefix adds TRIM_STAGEFIX=1.
+  Checked: the padded spec now gives 5fcd82f8; item 44's fold64 the same fasm as before (e57823ec); items 42-45's 20
+  rebuild trim logs have 0 refusals (v10 routes: the old naming, as the flow used). 23 v11 rule-CLEAN routes have _SDELAY
+  trims (all late-phase) -- formal's v11 rebuilds may have screened longer-than-shipped lines; told (FOR-FORMAL 00:16).
+- Item 46: research/data/suite/board/race_pair/{unpadded,padded}: v11 test_flatten_array s2 (B36's +1 ps race, fasm
+  77d4a54c) beside its AUTO_RACE_KAPPA rebuild (kappa 0.241, fasm 5fcd82f8), both rebuilt byte for byte here.
