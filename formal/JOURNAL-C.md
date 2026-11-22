@@ -5137,3 +5137,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
 - 08:34: C74: research's AUTO_SEARCH_KEEPDEPTH on quadrec (fork links + kept pipes): LIVE exhaustively (826 states; 5147 with 2 calls). Mathlib setup restarted (setup2.log).
 - 08:55: v11 thin routes (B's specs), 32 + 32 local draws: branchloop s3 (492d5045 = B40's), factorial s1, factorial s4 PASS; 5 more running. Mathlib local build stopped for good (OOM at 15 GB); Lean goes through the farm.
 - 09:30: C75: 8 thin v11 routes 32 + 32 PASS (brhash s2 rerun after a mid-run edit of drawspec.sh broke it: never edit a script a run is reading); farm c_brd2 9 / 10 back, 128 / 128 each, unguarded sqrtsub's farm build failed (no log; drawspec now keeps it).
+- 09:38: scatter sweep (per-arc sigma x2..x5 of research's 0.126, 16 draws each) on the item 45 / 46 pairs: collatz64 both PASS 16 / 16 at every point so far. Negative control for the knob to follow.
