@@ -10058,3 +10058,20 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 - **A/B running** (local, v13's environment + AUTO_CKPT, seed 1): varshift with and without the knob.
   PREDICTION (written now): both rule-CLEAN and PASS; with the mask the two shift lines shorten by >= 5 elements each
   and P drops by 10-25 % (v10 s1 27.63 ns); every draw passes.
+### progress 07:03 (STATE OF PLAY -- read this first if the session ends here)
+- **Farm:** v11 resumes running / waiting (2a_r1_r2, 3a_r1_r2, 3b_r1_r2, 4a_r1; with AUTO_CKPT=1: 4b_r1 and the seven
+  *_ck parts for the 17 tasks nothing else covered). v12: 1a / 1b / 2a running (1a / 1b / 2a without AUTO_CKPT),
+  2b..4b waiting with AUTO_CKPT=1. v13 (all eight parts, AUTO_CKPT=1) waiting behind v12. mff resumes, sibb last.
+  As parts end: `python3 research/tools/suite/mk_resume.py --running-ok <results> r1 <part>` (now 32G by default;
+  the body carries AUTO_CKPT where the part had it).
+- **Interim:** v11 54 of 62 pass (8 NO RESULT, all the 240-min limit); v12's first 34 results: no wrong answer, P
+  1.014x v10 on different-route pairs, 4 newly clean.
+- **New this session (all opt-in, committed):** AUTO_CKPT (final()'s stacks / rule runs and the draws memoized by
+  content; tests A-G and D/E: resumes replay to the identical result), AUTO_SEARCH_KEEPDEPTH (the search's structure
+  built with the base link depths: quadrec 21.2 vs 43.4 ns untrimmed on one hand build; census: only quadrec is
+  affected), BDC_SHIFT_MASK (variable shift amount masked: depth 13 -> 5; only varshift / gcd change), tb_ps TEND fix
+  (audit T182), the local-run evidence for T180 / T182, item 42's wording (T183).
+- **Running locally:** /tmp/bot/runs/kd (quadrec s1-s3, v13 + KEEPDEPTH), /tmp/bot/runs/smA / smB (varshift s1, v13
+  with / without BDC_SHIFT_MASK), /tmp/bot/ckt/ckH (AUTO_CKPT key re-check; then ckI from its state).
+- **Decisions waiting on those:** KEEPDEPTH into the waiting v13 parts if quadrec converges clean and passes; SHIFT_MASK
+  into v13 / v14 if varshift improves and passes; a flow v14 otherwise (v13 + both + AUTO_CKPT).
