@@ -1,0 +1,75 @@
+MODE: default -- no BD_SIZES, no BD_NO_TIGHTEN; deriving tightened lengths by running verify/resize.sh fresh
+
+delays found in source: BD_SZ_UPORT_UMEM0_UCO BD_SZ_UPORT_UMEM0_USETUP BD_SZ_UPORT_UMEM1_UCO BD_SZ_UPORT_UMEM1_USETUP
+baseline (the placeholders): UPORT_UMEM0_UCO=12 UPORT_UMEM0_USETUP=8 UPORT_UMEM1_UCO=12 UPORT_UMEM1_USETUP=8
+baseline routes and passes.
+
+  UPORT_UMEM0_UCO      12 -> 8   REVERTED
+                                uport.umem0.uco: 8 links, ack trails the clock edge by 2280 ps, t_co 2454 -> margin -174 ps VIOLATION
+  UPORT_UMEM0_USETUP    8 -> 5   kept
+  UPORT_UMEM1_UCO      12 -> 6   REVERTED
+                                uport.umem1.uco: 6 links, ack trails the clock edge by 1822 ps, t_co 2454 -> margin -632 ps VIOLATION
+  UPORT_UMEM1_USETUP    8 -> 7   kept
+  -- sweep 1 done: UPORT_UMEM0_UCO=12 UPORT_UMEM0_USETUP=5 UPORT_UMEM1_UCO=12 UPORT_UMEM1_USETUP=7
+  UPORT_UMEM0_UCO      12 -> 8   REVERTED
+                                uport.umem0.uram: clk 3107 ps, latest payload ADDRARDADDR11 2949 ps, t_su 566 -> margin -408 ps VIOLATION
+  UPORT_UMEM1_UCO      12 -> 7   REVERTED
+                                uport.umem1.uco: 7 links, ack trails the clock edge by 1481 ps, t_co 2454 -> margin -973 ps VIOLATION
+  UPORT_UMEM1_USETUP    7 -> 6   REVERTED
+                                uport.umem0.uram: clk 3115 ps, latest payload DIADI9 2577 ps, t_su 737 -> margin -199 ps VIOLATION
+
+settled after 2 sweep(s), 8 place-and-route runs
+verified assignment: UPORT_UMEM0_UCO=12 UPORT_UMEM0_USETUP=5 UPORT_UMEM1_UCO=12 UPORT_UMEM1_USETUP=7
+written to build/pnr/bdcmemarb/resize/sizes.vh -- pass it back with BD_SIZES=build/pnr/bdcmemarb/resize/sizes.vh ./flow.sh
+
+Every length above was applied, re-routed and re-checked, not 
+extrapolated.  It is one build's answer and expires with the build.
+
+MODE: default -- verify/resize.sh settled; building with the derived lengths in build/pnr/bdcmemarb/resize/sizes.vh
+using the generated top build/gen/bdc_mem_arb_top.v (module bdc_mem_arb_top) -> build/pnr/bdcmemarb
+== synthesis ==
+        1   IBUF
+        3   LUT1
+       10   LUT2
+       15   LUT4
+        2   LUT5
+       63   LUT6
+       66   LUT6_2
+        1   OBUF
+        1   LUT2
+        3   LUT6
+        1   IBUF
+       41   LUT1
+       12   LUT2
+       58   LUT4
+        2   LUT5
+       72   LUT6
+       68   LUT6_2
+        1   OBUF
+        2   RAMB18E1
+yosys: 416 LUT cells (a LUT6_2 counts once -- it is one site)
+             64 latch LUT(s) across those banks, 2 of them grouped (3.1%)
+             0 group(s) also hold their select consumer's LUTs
+             2 fractured cpair controller(s) each drive two pipeline stages from one LUT6_2; only one stage's latch can share its SLICE, so 2 stage(s) are left out of any group by construction, not by omission
+
+== toolchain ==
+  ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+  ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+  ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+  ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+  binary  /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+  sha256  d216cb36a370f78a
+== place and route ==
+  "nextpnr-xilinx" -- Next Generation Place and Route (Version 0.9.1-17-g69119066)
+  Yosys 0.62 (git sha1 7326bb7d6, g++ 11.4.0-1ubuntu1~22.04 -fPIC -O3)
+routed.
+
+FASM:  254 occupied LUT sites, 132 BRAM lines
+fractured pairs held one site each (68 pair(s) checked)
+no global clock buffer in the bitstream, as required
+
+routed SDF written to build/pnr/bdcmemarb/soak.sdf -- run verify/tighten.py to size the
+matched delays against it.
+
+flow.sh PASS
+flow rc=0

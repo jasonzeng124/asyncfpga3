@@ -1,0 +1,40 @@
+corner_audit /tmp/bot/sa/muxsel/runs/neg/isp5_d100/seed1
+  corner: corner_sdf: /tmp/bot/sa/muxsel/runs/neg/isp5_d100/seed1/pnr/soak_xray.sdf -> ca/neg_d100_mx_0.20/soak.sdf
+            band 0.2, cells {'CARRY4': 1.0, 'SELMUX2_1': 1.0, 'SLICE_FFX': 1.0}, 446 instance(s) listed (0.2), all in the SDF
+            INTERCONNECT default (0.2)                        42608 arcs
+            INTERCONNECT into listed instance (0.2)             693 arcs
+            IOPATH CARRY4 (1)                                  2198 arcs
+            IOPATH SELMUX2_1 (1)                                900 arcs
+            IOPATH SLICE_FFX (1)                               1956 arcs
+            IOPATH default (0.2)                              66402 arcs
+            IOPATH listed instance (0.2)                        693 arcs
+            SETUPHOLD (FAST_MIN, as gen.py)                    9346 arcs
+  nextpnr: UNSTAMPED
+  guards: rule E/J 0.970*req vs 1.030*sel; rule A/F/H/I/K/L guard max(0.030*t_data, 50 ps); slack 0
+  rule A data launches from constant drivers: DROPPED (a constant never transitions)
+  audits exit: tighten 1, skew 1, arb_fork 0
+  per-link cost at this corner: c_lo 179 ps (cheapest link-to-link step on the route), lut_lo 61 ps; chain mean steps 179-543 ps
+  sizing rule: CA_SIZERULE=1 (sizerule1): chains and LUT/wire at one band 0.2, CARRY4/F7F8/FF at --cell; shortened lines priced at own mean step; selects sized by E/M; floor file none
+  rule E: BD_SKEW_STEER_SELF=1: a latch launch at a select gate whose request C-element carries the select's own channel request is bounded by that request (research/data/sizerule/steerE.md)
+  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); research/data/muxsel/)
+  join-aware: CA_JOINAWARE=1: 9 operator(s) sized at their data's captures (A'j: latch data vs its enable, select vs its gate's request; C-elements wait for their last input; join credit), their A' rows reported as 'a'; 1 kept on A' (rows 'j' say why)
+  WARNING chain(s) ['bridge_i.upsnk'] map to BD_SZ_BRIDGE_I_UPSNK, which sizes.vh does not set (kept, measured)
+
+NEGATIVE at this corner (50; rule D is a screen, listed but not gated):
+  rule E: BD_SKEW_MUXN=1: every bdc_muxnN's select decode sel[k] = ctl_req & (s == k) is a select gate too (its ctl_req pin against each index pin; tighten.py muxn_decode_sites(); research/data/muxsel/)
+  A      -5125  bridge_i.udut.umux13 1 links  from bridge_i.udut.ulink_n_trueResult_62.many.stage[1].u.ctl.u.u/O6: req 1923 (1x)  data 6843 (2x, bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23624)  guard 205  margin -5125
+  j      -5125  bridge_i.udut.umux13 joined: not applied, keeps A': its data reaches 6 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10725/D, $auto$ff.cc:337:slice$8960/D, umux13.uj0.u/A2)
+  a       -523  bridge_i.udut.umux13    1 links     61 ps   req  1228  peak  1701  guard   50  margin   -523   PAD to 4 -- VIOLATION
+  A   -5125  bridge_i.udut.umux13 1 links  from bridge_i.udut.ulink_n_trueResult_62.many.stage[1].u.ctl.u.u/O6: req 1923 (1x)  data 6843 (2x, bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23624)  guard 205  margin -5125
+  j   -5125  bridge_i.udut.umux13 joined: not applied, keeps A': its data reaches 6 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10725/D, $auto$ff.cc:337:slice$8960/D, umux13.uj0.u/A2)
+  a    -523  bridge_i.udut.umux13    1 links     61 ps   req  1228  peak  1701  guard   50  margin   -523   PAD to 4 -- VIOLATION
+  E    +122  bdc_muxn bridge_i.udut.umux13 req bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23626/A5 2045 ps (1 x) sel bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23626/A2 1807 ps (2 x) launch bridge_i.udut.ulink_n_index_71.many.stage[0].u.ctl.u.u/O6 tc 0 raw +238 guarded +122
+  E    +227  bdc_muxn bridge_i.udut.umux13 req bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23625/A3 2138 ps (1 x) sel bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23625/A1 1793 ps (2 x) launch bridge_i.udut.ulink_n_index_71.many.stage[0].u.ctl.u.u/O6 tc 0 raw +345 guarded +227
+  E    +229  bdc_muxn bridge_i.udut.umux13 req bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23627/A3 2141 ps (1 x) sel bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23627/A1 1793 ps (2 x) launch bridge_i.udut.ulink_n_index_71.many.stage[0].u.ctl.u.u/O6 tc 0 raw +348 guarded +229
+  E    +369  bdc_muxn bridge_i.udut.umux13 req bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23624/A4 2184 ps (1 x) sel bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23624/A3 1698 ps (2 x) launch bridge_i.udut.ulink_n_index_71.many.stage[0].u.ctl.u.u/O6 tc 0 raw +486 guarded +369
+  E    +465  bd_mux bridge_i.udut.umux0 req bridge_i.udut.umux0.uj1/A3 1358 ps (0 x) sel bridge_i.udut.umux0.uj1/A4 827 ps (1 x) launch bridge_i.udut.ulink_n29__0.ctl.u.u/O6 tc 0 raw +531 guarded +465
+  D    +707  bridge_i.udut.umux0 (bd_mux)     req  1358  sel   601  guard   50  margin    707   1 bd_delay element(s) (367 ps ea) of slack
+  E    +736  bd_mux bridge_i.udut.umux0 req bridge_i.udut.umux0.uj0/A3 1362 ps (0 x) sel bridge_i.udut.umux0.uj0/A5 568 ps (1 x) launch bridge_i.udut.ulink_n29__0.ctl.u.u/O6 tc 0 raw +794 guarded +736
+  A   +1506  bridge_i.udut.umux0 [peers no common source reaches: 32] 5 links  from bridge_i.udut.ulink_n16.many.stage[1].u.ctl.u.u/O6: req 2981 (1x)  data 1425 (1x, bridge_i.udut.umux0.udat.pair[12].u$LUT5)  guard 50  margin 1506
+  A   +2028  bridge_i.udut.umux0     5 links   1680 ps   req  2464  peak   386  guard   50  margin   2028   0 links -- the request already trails without help
+  F   +2179  bridge_i.udut.umux0.udly 5 links flushed 706 reusable 2935 guard 50 margin 2179

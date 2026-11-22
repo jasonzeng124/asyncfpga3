@@ -1,0 +1,32 @@
+build_bench.sh: MODE=tighten -- no BD_SIZES, no BD_NO_TIGHTEN; deriving per-route matched-delay sizes for gcd_bench_gen by running hw/tighten_loop.sh (rule A outer, rule E inner)
+== resuming from 51 accumulated size(s) ==
+== iteration 0: build with the sizes above (or none) ==
+   unsized: 51 delay-bearing cell(s), chain built 204.6 ns, route needs 170.2 ns
+        rule A violations: 2   (rule D screen, informational: 38)
+   WARNING: rule A already fails before any sizing
+== iteration 1: size from that route, rebuild, re-check ==
+   ratchet: UCONTROL_MERGE11 4->6, UMUX9 2->3  (51 cell(s))
+   sized (pass 1): 51 delay-bearing cell(s), chain built 205.6 ns, route needs 171.7 ns
+        rule A violations: 1   (rule D screen, informational: 38)
+   rejected: 1 cell(s) whose request no longer trails their
+   own datapath.  Re-sizing from this route (proposals go UP).
+       bridge_i.udut.ucontrol_merge10  4 links   1091 ps   req  1926  peak  1688  guard  337  margin    -99   PAD to 5 -- VIOLATION
+== iteration 2: size from that route, rebuild, re-check ==
+   ratchet: UCONTROL_MERGE10 4->5  (51 cell(s))
+   BUILD FAILED with these sizes -- not a candidate
+   (that is verify/converge.sh -- RULE E -- failing to settle,
+    not rule A.  Rule E pads select channels and its own
+    message says the margins are below this fabric's routing
+    noise, so it cannot hold a per-channel constant across
+    builds.  Re-run with BD_SKIP_RULE_E=1 to size rule A
+    without it, and pad selects separately afterwards.)
+       4275), while the same C node reaches its own delay chain in 639.
+       Two LUTs of one cell, two nanoseconds apart, on the critical path
+       of every transfer in the design.  Fix that and the select margin
+       stops being a search.
+
+RESULT: no sized build passed rule A on its own route.
+Shipping bdc/emit.py's estimate -- unmeasured, generous, and safe.
+
+final: no sizes applied -- kernel is at bdc/emit.py's estimate
+bitstream build/hw/gcd_bench_gen/gcd_bench_gen.bit

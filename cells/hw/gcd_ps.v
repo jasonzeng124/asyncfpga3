@@ -359,7 +359,15 @@ module gcd_ps_bridge (
   // wiring.
   bd_delay #(.N(2)) upsnk (.a(p_end_req), .z(p_end_ack));
 
+  // GCD_DUT_PARAMS: per-cell matched-delay sizes, defined only when
+  // hw/build_hw.sh is given BD_SIZES (as for gcd_hw/gcd_rig.v; macro names
+  // BD_SZ_BRIDGE_I_UDUT_<INST>).  Absent, the kernel builds at bdc/emit.py's
+  // own estimates.
+`ifdef GCD_DUT_PARAMS
+  bdc_gcd #(`GCD_DUT_PARAMS) udut (
+`else
   bdc_gcd udut (
+`endif
       .rst       (rst_pl),
       .a_req     (in_req[0]), .a_ack     (a_ack),     .a_data (a_data_reg),
       .b_req     (in_req[1]), .b_ack     (b_ack),     .b_data (b_data_reg),

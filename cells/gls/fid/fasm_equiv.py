@@ -1,0 +1,893 @@
+#!/usr/bin/env python3
+"""
+fasm_equiv.py -- is the netlist the board runs the netlist nextpnr meant?
+
+    fasm_equiv.py ROUTED.json FASM_ROUTED.json [ROUTES.tsv] [--max N]
+
+ROUTED.json is nextpnr's routed design (what gls/gen.py simulates);
+FASM_ROUTED.json and ROUTES.tsv come from fasm2net.py (the bits).  Both are
+bel-level, so everything is compared by bel name:
+
+  1. cell set      same bels, same cell type.  A JSON cell the bits do not
+                   configure is benign only if it is DEAD: no load, or
+                   every load dead, transitively (dead_cells; nextpnr keeps
+                   the unused outputs of a keep_hierarchy region, e.g. a
+                   LUT8 whose F8 nothing reads, and the FASM writer rightly
+                   gives its F7s/F8 no output-mux bit).
+  2. config        FF INIT and set/reset sense, CARRY4 carry-in, BUFG inversions
+  3. connectivity  every input pin: same driver (bel/pin, or the same constant).
+                   The two LUT bels of one position (A6LUT/A5LUT) share six
+                   physical pins, so pins are compared per LUT POSITION.
+                   A LUT pin the JSON ties to one constant and the bits to the
+                   other (nextpnr ties it to GND but never routes it, so the
+                   IMUX reads VCC through its default ppip) is HARMLESS, and
+                   counted as such, iff the bits' LUT function does not read
+                   that pin (both halves, the other pins at their own drivers);
+                   otherwise it is a hard difference.  A driver LUT whose
+                   output is the same for every value of its non-constant pins
+                   (nextpnr's GND feed-through LUT1 into an F7 data input) is
+                   compared as that constant, on each side by its own INIT and
+                   pins (lut_fold; listed as CONST_IN_LUT, not hidden).
+  4. LUT function  every LUT, evaluated over every assignment of the distinct
+                   nets on its pins, each side with ITS OWN pin map and constants
+                   -- JSON through gen.py's X_ORIG_PORT expansion (the logical
+                   function), FASM through the physical INIT.  This is "same
+                   function after pin permutation", and is where the lut-pinmap
+                   bug lives.
+  5. routing       per net, the set of pips as (src node, dst node) pairs: the
+                   JSON's ROUTING attribute against the pips the bits enable.
+                   JSON-only always-on ppips (no bits) whose every sink is a
+                   site pin read only by DEAD cells the bits do not configure
+                   are listed apart (the tail of a route into a dead mux's
+                   select, where the decoder, tracing from live sinks, stops).
+
+Exit status 0 only if every check is clean.  Nothing is skipped silently: an
+item a check cannot compare is counted as such.
+"""
+import argparse, collections, json, os, re, sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))          # cells/gls -> gen.py
+sys.path.insert(0, HERE)
+import gen                                          # noqa: E402  (expand_lut_init, TIE)
+import fasm2net                                     # noqa: E402
+
+CONST = {"PSEUDO_VCC": 1, "PSEUDO_GND": 0}
+FOLDED = []         # pins whose driver lut_const() folded to a constant (reported as CONST_LUT)
+FOLDED_IN = []      # pins whose driver lut_fold() folded to a constant (reported as CONST_IN_LUT)
+
+
+def load(path):
+    top = json.load(open(path))["modules"]["top"]
+    cells = top["cells"]
+    drv = {}
+    for cn, c in cells.items():
+        for p, bl in c["connections"].items():
+            if c.get("port_directions", {}).get(p) == "output" and bl:
+                drv[bl[0]] = (cn, p)
+    return top, cells, drv
+
+
+def bel(c, cn):
+    return c["attributes"].get("NEXTPNR_BEL", cn)
+
+
+def lutpos(b):
+    """SLICE_X1Y2/A6LUT -> SLICE_X1Y2/A (the physical LUT position)."""
+    m = re.match(r"(.*)/([A-D])[56]LUT$", b)
+    return "%s/%s" % m.groups() if m else None
+
+
+CONST_LUT = "driver is a LUT with a constant function (INIT all 0 or all 1), compared as that constant"
+
+
+def lut_const(c):
+    """0 / 1 if this cell is a LUT whose INIT is all zeros / all ones (its output is that constant whatever its
+    inputs: nextpnr can route GND out of an otherwise unused LUT, which the decoder sees as a LUT with INIT 0),
+    else None."""
+    if c.get("type") != "SLICE_LUTX":
+        return None
+    init = str(c.get("parameters", {}).get("INIT", ""))
+    if init and set(init) <= {"0"}:
+        return 0
+    if init and set(init) <= {"1"}:
+        return 1
+    # A LUT whose logical inputs the packer put on ONE physical pin can be constant although its INIT is not: a
+    # LUT2 f = I1 & ~I0 with I0 and I1 both on A1 (X_ORIG_PORT_A1 'I0I1 ', both on $PACKER_GND_NET in ipow's
+    # ushrsi0) is 0 for every input, and nextpnr's FASM writer correctly writes INIT 0.  Judge the function the
+    # physical pins compute (gen.py's expansion), not the INIT string.
+    if init and any(k.startswith("X_ORIG_PORT_A") for k in c.get("attributes", {})):
+        port = "O5" if "O5" in c.get("connections", {}) and "O6" not in c.get("connections", {}) else "O6"
+        t = gen.expand_lut_init(init, c["attributes"], port)
+        n = 64 if port == "O6" else 32
+        if t == 0:
+            return 0
+        if t == (1 << n) - 1:
+            return 1
+    return None
+
+
+CONST_IN_LUT = ("driver is a LUT whose output is constant given the constants on its own pins (nextpnr's "
+                "$PACKER_GND_NET/VCC feed-through LUT1), compared as that constant")
+
+
+def lut_fold(cells, drv, d):
+    """0 / 1 if the LUT output d = (cell, port) is the same for every value of its non-constant pins, with its
+    pins driven by a constant cell held at that constant; else None.  Unconnected pins and pins on a live net are
+    free (both values tried), so this never folds a LUT that reads a live signal.
+
+    Why: nextpnr feeds a constant into a MUXF7 data input (or a CARRY4 S) through a LUT1 buffer,
+    '$PACKER_GND_NET$LUT$n' (INIT 2, I0 on $PACKER_GND_NET).  When the GND fill (Arch::routeVcc) cannot reach
+    that LUT's pin, fixupRouting drops its X_ORIG_PORT and the FASM writer encodes INIT 0: the die computes 0,
+    the JSON computes a buffer of GND = 0.  Section 3 folded only the bits side (lut_const: INIT all 0) and so
+    reported a DRIVER DIFFERS between ('bel', the LUT) and ('const', 0) for one and the same value."""
+    cn, port = d
+    c = cells[cn]
+    if c.get("type") != "SLICE_LUTX" or port not in ("O5", "O6"):
+        return None
+    if not c.get("attributes", {}).get("X_ORIG_TYPE", "LUT").startswith("LUT"):
+        return None     # a LUTRAM / SRL: its INIT is only the initial content
+    init = str(c.get("parameters", {}).get("INIT", ""))
+    if not init or not set(init) <= {"0", "1"}:
+        return None
+    t = gen.expand_lut_init(init, c.get("attributes", {}), port)
+    n = 6 if port == "O6" else 5
+    fixed, free = {}, []
+    for i in range(n):
+        bl = c.get("connections", {}).get("A%d" % (i + 1))
+        x = drv.get(bl[0]) if bl else None
+        if x is not None and cells[x[0]]["type"] in CONST:
+            fixed[i] = CONST[cells[x[0]]["type"]]
+        else:
+            free.append(i)
+    outs = set()
+    for v in range(1 << len(free)):
+        a = sum(b << i for i, b in fixed.items()) | sum(((v >> j) & 1) << i for j, i in enumerate(free))
+        outs.add((t >> a) & 1)
+        if len(outs) > 1:
+            return None
+    return outs.pop()
+
+
+def pin_drivers(cells, drv, gen_ties, fold=None):
+    """-> {(bel or lut position, pin): driver} where driver is
+    ('bel', bel, pin) | ('const', v) | ('tie', v) (unconnected: gen.py's TIE).
+    fold (a dict, filled): for a pin driven by a LUT that lut_fold() finds constant, that constant.  The pin itself is
+    still reported as ('bel', ...): the fold is used only where the other side has a constant (main's comparison), so
+    two sides that name the same LUT still compare as the same bel (folding one side only turned those into
+    differences: ipow routes c3542c6d / 9a5c155d, F7BMUX/0 and CARRY4/DI json const vs bits LUT, 2026-11-18)."""
+    out = {}
+    belof = {cn: bel(c, cn) for cn, c in cells.items()}
+    for cn, c in cells.items():
+        t = c["type"]
+        if t in CONST or t == "PAD":
+            continue            # a pad is the port itself; its net has no driver on either side
+        b = belof[cn]
+        key = lutpos(b) or b
+        if t in (gen.DSP_T, gen.RAM_T):
+            continue            # compared in section 2b / 2c, pins the model reads only
+        for p, bl in c["connections"].items():
+            if c.get("port_directions", {}).get(p) not in ("input", "inout"):
+                continue
+            if bl:
+                d = drv.get(bl[0])
+                if d is None:
+                    v = ("undriven",)
+                elif cells[d[0]]["type"] in CONST:
+                    v = ("const", CONST[cells[d[0]]["type"]])
+                elif lut_const(cells[d[0]]) is not None:
+                    v = ("const", lut_const(cells[d[0]]))
+                    FOLDED.append("%s/%s <- %s" % (b, p, belof[d[0]]))
+                elif cells[d[0]]["type"] == "PAD":
+                    v = ("undriven",)       # fasm2net names the pad as the driver of its own net
+                else:
+                    v = ("bel", belof[d[0]], d[1])
+                    if fold is not None:
+                        fv = lut_fold(cells, drv, d)
+                        if fv is not None:
+                            fold[(key, p)] = fv
+            else:
+                continue
+            k = (key, p)
+            if k in out and out[k] != v:
+                out[k] = ("CONFLICT", out[k], v)
+            else:
+                out[k] = v
+    return out
+
+
+def lut_eval_inputs(cn, c, pd, gen_ties):
+    """Physical pin -> driver for one LUT cell, unconnected pins at gen's TIE."""
+    b = bel(c, cn)
+    key = lutpos(b)
+    m = {}
+    for i in range(1, 7):
+        d = pd.get((key, "A%d" % i))
+        if d is None:
+            d = ("tie", gen_ties.get(("SLICE_LUTX", "A%d" % i), 0))
+        m["A%d" % i] = d
+    return m
+
+
+def lut_table(c, out_port):
+    """Physical truth table, A1 = bit 0 (gen.py's expansion of the JSON;
+    for fasm2net's cells X_ORIG_PORT is the identity, so this is the INIT)."""
+    return gen.expand_lut_init(c["parameters"].get("INIT", "0"), c["attributes"], out_port)
+
+
+def lut_reads_pin(pos, pin, vals, cells_by_bel, pd):
+    """Does the bits' LUT function at LUT position `pos` (both its 6LUT and
+    5LUT bels) change when physical pin `pin` moves between the constants in
+    `vals`?  The other pins take their own bits-side drivers: constants fixed,
+    every distinct live net free over 0/1.  -> (reads?, which bels looked at)."""
+    site, L = pos.rsplit("/", 1)
+    i = int(pin[1]) - 1
+    seen = []
+    for b6 in ("6", "5"):
+        b = "%s/%s%sLUT" % (site, L, b6)
+        if b not in cells_by_bel:
+            continue
+        cn, c = cells_by_bel[b]
+        out = "O6" if b6 == "6" else "O5"
+        npins = 6 if out == "O6" else 5
+        seen.append(b)
+        if i >= npins:
+            continue                    # A6 is not an input of the O5 half
+        t = lut_table(c, out)
+        m = lut_eval_inputs(cn, c, pd, gen.TIE)
+        var = sorted({d for k2, d in list(m.items())[:npins]
+                      if k2 != pin and d[0] not in ("const", "tie")}, key=str)
+        for v in range(1 << len(var)):
+            env = {d: (v >> j) & 1 for j, d in enumerate(var)}
+            outs = set()
+            for pv in vals:
+                x = 0
+                for j in range(npins):
+                    d = m["A%d" % (j + 1)]
+                    bitv = pv if j == i else (d[1] if d[0] in ("const", "tie") else env[d])
+                    x |= bitv << j
+                outs.add((t >> x) & 1)
+            if len(outs) > 1:
+                return True, seen
+    return False, seen
+
+
+HARMLESS_CONST = ("HARMLESS: LUT pin on a different constant in the routed JSON than on the board "
+                  "(an IMUX nextpnr tied to GND but never routed reads VCC through its default "
+                  "ppip), and the bits' LUT function does not read that pin")
+
+# Slice logic: the only cells that can be dead (below).  Everything else -- pads, the PS7, clock buffers, BSCAN, DSP,
+# BRAM -- is always live, whatever reads it.
+DEAD_TYPES = ("SLICE_LUTX", "SELMUX2_1", "CARRY4", "SLICE_FFX")
+DEAD_LOADS = ("cell in routed JSON, not configured by the bits (DEAD: every load is a dead cell, transitively -- e.g. "
+              "an F7 whose only load is an F8 with no loads)")
+DEAD_TAIL = ("json-only always-on ppips (no bits) whose every sink is a pin of a DEAD cell (routing to an "
+             "unconfigured dead mux's select)")
+
+
+def json_loads(cells):
+    """cell -> the set of OTHER cells with an input/inout port on one of its output bits."""
+    users = collections.defaultdict(set)
+    for cn, c in cells.items():
+        for p, bl in c["connections"].items():
+            if c.get("port_directions", {}).get(p) in ("input", "inout"):
+                for b in bl:
+                    users[b].add(cn)
+    out = {}
+    for cn, c in cells.items():
+        s = set()
+        for p, bl in c["connections"].items():
+            if c.get("port_directions", {}).get(p) == "output":
+                for b in bl:
+                    s |= users[b]
+        s.discard(cn)
+        out[cn] = s
+    return out
+
+
+def dead_cells(cells, loads):
+    """Slice-logic cells of the routed JSON that nothing live reads: no load, or (to a fixpoint) every load dead.
+    nextpnr keeps dead cells -- a keep_hierarchy region's unused outputs (bdc's fused regions: a 64-bit shift of which
+    the kernel keeps 9 bits) stay in the routed JSON with their LUT7/LUT8 trees -- and its FASM writer gives a dead
+    F7/F8 no output-mux bit, which is right: on the die nothing reads it.  The decoder keeps only what a live sink
+    reads, so such a cell is JSON-only; an F7 whose only load is a dead F8 HAS a load, but not a live one.
+    A cycle of dead cells is not found (conservative: it stays a hard difference)."""
+    dead = set()
+    grew = True
+    while grew:
+        more = {cn for cn, c in cells.items() if cn not in dead and c["type"] in DEAD_TYPES and loads[cn] <= dead}
+        dead |= more
+        grew = bool(more)
+    return dead
+
+
+def can_read(c, pin):
+    """Can a cell of this kind read this slice site pin?  A plain LUT reads only A1..D6; the bypass pins AX..DX feed
+    the F7/F8 selects, the FFs' D, CARRY4 and LUTRAM; anything else: assume yes."""
+    if re.match(r"^[A-D][1-6]$", pin):
+        return c["type"] == "SLICE_LUTX"
+    if re.match(r"^[A-D]X$", pin):
+        return not (c["type"] == "SLICE_LUTX" and
+                    c.get("attributes", {}).get("X_ORIG_TYPE", "LUT").startswith("LUT"))
+    return True
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("routed")
+    ap.add_argument("fasm_routed")
+    ap.add_argument("routes", nargs="?")
+    ap.add_argument("stubs", nargs="?")
+    ap.add_argument("--max", type=int, default=12)
+    ap.add_argument("--out", help="also write the report here")
+    a = ap.parse_args()
+    R = []
+    say = R.append
+    bad = collections.Counter()
+    ex = collections.defaultdict(list)
+
+    def flag(kind, e):
+        bad[kind] += 1
+        if len(ex[kind]) < a.max:
+            ex[kind].append(e)
+
+    jt, jc, jd = load(a.routed)
+    ft, fc, fd = load(a.fasm_routed)
+    jb = {bel(c, cn): (cn, c) for cn, c in jc.items() if c["type"] not in CONST}
+    fb = {bel(c, cn): (cn, c) for cn, c in fc.items() if c["type"] not in CONST}
+
+    # ---- 1. cells
+    only_j = sorted(set(jb) - set(fb))
+    only_j_set = set(only_j)
+    only_f = sorted(set(fb) - set(jb))
+    say("1. CELLS  routed JSON %d bels, bitstream %d bels, common %d"
+        % (len(jb), len(fb), len(set(jb) & set(fb))))
+    jloads = json_loads(jc)
+    jdead = dead_cells(jc, jloads)
+    for b in only_j:
+        cn, c = jb[b]
+        loads = sum(1 for x in jc.values() for p, bl in x["connections"].items()
+                    if x.get("port_directions", {}).get(p) == "input" and bl and
+                    any(bl[0] == c["connections"].get(o, [None])[0]
+                        for o, d in c["port_directions"].items() if d == "output"))
+        if loads and cn in jdead:
+            flag(DEAD_LOADS, "%s %s %s <- loads %s" % (b, c["type"], cn[:60],
+                                                       ", ".join(sorted(bel(jc[x], x) for x in jloads[cn]))[:120]))
+            continue
+        flag("cell in routed JSON, not configured by the bits%s" % (" (it has NO loads)" if loads == 0 else " (HAS LOADS)"),
+             "%s %s %s" % (b, c["type"], cn[:80]))
+    for b in only_f:
+        if lut_const(fb[b][1]) is not None:
+            flag("bits-only LUT with a constant function (INIT all %d): a constant source, its loads compared "
+                 "as that constant" % lut_const(fb[b][1]), b)
+            continue
+        flag("cell configured by the bits, absent from routed JSON", "%s %s" % (b, fb[b][1]["type"]))
+    for b in sorted(set(jb) & set(fb)):
+        if jb[b][1]["type"] != fb[b][1]["type"]:
+            flag("cell type differs", "%s %s vs %s" % (b, jb[b][1]["type"], fb[b][1]["type"]))
+
+    # ---- 2. config
+    for b in sorted(set(jb) & set(fb)):
+        (jn, j), (fn, f) = jb[b], fb[b]
+        t = j["type"]
+        if t == "SLICE_FFX":
+            jl = j["attributes"].get("X_ORIG_TYPE") in ("LDCE", "LDPE")
+            fl = f["attributes"].get("X_ORIG_TYPE") in ("LDCE", "LDPE")
+            if jl != fl:
+                flag("FF/LATCH MODE DIFFERS", "%s json %s bits %s" % (
+                    b, j["attributes"].get("X_ORIG_TYPE"), f["attributes"].get("X_ORIG_TYPE")))
+            elif jl:
+                ginv = lambda c: int(str(c["parameters"].get("IS_CLK_INVERTED", "0")) or "0", 2) & 1
+                if ginv(j) != ginv(f):
+                    flag("LATCH GATE SENSE DIFFERS", "%s json IS_CLK_INVERTED=%d bits %d" % (b, ginv(j), ginv(f)))
+                if j["attributes"]["X_ORIG_TYPE"] != f["attributes"]["X_ORIG_TYPE"]:
+                    flag("LATCH CLEAR/PRESET DIFFERS", "%s json %s bits %s" % (
+                        b, j["attributes"]["X_ORIG_TYPE"], f["attributes"]["X_ORIG_TYPE"]))
+                continue
+            ji = int((j["parameters"].get("INIT", "0") or "0").replace("x", "0"), 2)
+            fi = int(f["parameters"]["INIT"], 2)
+            if ji != fi:
+                flag("FF INIT differs", "%s json %d bits %d" % (b, ji, fi))
+            js = 1 if j["attributes"].get("X_ORIG_PORT_SR") == "S" else 0
+            fs = 1 if f["attributes"].get("X_ORIG_PORT_SR") == "S" else 0
+            if js != fs:
+                flag("FF set/reset value differs (only matters if SR is used)", "%s json %d bits %d" % (b, js, fs))
+        elif t == "CARRY4":
+            jp = j["parameters"].get("PRECYINIT_CONST")
+            fp = f["parameters"].get("PRECYINIT_CONST")
+            jcin = bool(j["connections"].get("CIN"))
+            fcin = bool(f["connections"].get("CIN"))
+            jax = bool(j["connections"].get("CYINIT"))
+            fax = bool(f["connections"].get("CYINIT"))
+            if (jp, jcin, jax) != (fp, fcin, fax) and not (jp and not jcin and not jax and fp == jp):
+                flag("CARRY4 carry-in source differs", "%s json const=%s cin=%s ax=%s bits const=%s cin=%s ax=%s"
+                     % (b, jp, jcin, jax, fp, fcin, fax))
+        elif t in ("BUFGCTRL", "BSCAN"):
+            def norm(d):
+                o = {}
+                for k, v in d.items():
+                    iv = int(v, 2) if isinstance(v, str) and v and set(v) <= set("01") else v
+                    if iv:
+                        o[k] = iv
+                return o
+            if norm(j["parameters"]) != norm(f["parameters"]):
+                flag("%s parameters differ" % t, "%s json %s bits %s" % (b, j["parameters"], f["parameters"]))
+
+    ncfg = collections.Counter(jb[b][1]["type"] for b in set(jb) & set(fb)
+                               if jb[b][1]["type"] in ("SLICE_FFX", "CARRY4", "BUFGCTRL", "BSCAN"))
+    say("2. CONFIG  compared %s (FF INIT/set-reset, CARRY4 carry-in, BUFG/BSCAN parameters)"
+        % dict(sorted(ncfg.items())))
+
+    # ---- 2b. DSP48E1: the decoded control words and the pins the model reads
+    def dsp_words(c, drv, cells):
+        netv = {}
+        for cn2, c2 in cells.items():
+            if c2["type"] in CONST:
+                netv[c2["connections"]["Y"][0]] = CONST[c2["type"]]
+        params, attrs, conns = c.get("parameters", {}), c.get("attributes", {}), c["connections"]
+        vcc = set(attrs.get("DSP_VCC_PINS", "").split())
+        gnd = set(attrs.get("DSP_GND_PINS", "").split())
+
+        def pv(k, d=0):
+            v = params.get(k)
+            if v is None:
+                return d
+            return int(v, 2) if set(v) <= set("01") else v
+        out = {}
+        for g, w in (("OPMODE", 7), ("ALUMODE", 4), ("INMODE", 5), ("CARRYINSEL", 3), ("CARRYIN", 0)):
+            val = 0
+            for i in range(max(w, 1)):
+                pin = g if w == 0 else "%s%d" % (g, i)
+                bl = conns.get(pin)
+                if bl:
+                    v = netv.get(bl[0], "live")
+                elif pin in vcc:
+                    v = 1
+                elif pin in gnd:
+                    v = 0
+                else:
+                    v = "none"
+                if not isinstance(v, int):
+                    out[g] = "%s=%s" % (pin, v)
+                    break
+                inv = pv("IS_%s_INVERTED" % pin) if w == 0 else pv("IS_%s[%d]_INVERTED" % (g, i))
+                val |= (v ^ (int(inv) & 1)) << i
+            else:
+                out[g] = format(val, "0%db" % max(w, 1))
+        for k in ("AREG", "ACASCREG", "BREG", "BCASCREG", "CREG", "DREG", "ADREG", "MREG", "PREG",
+                  "INMODEREG", "OPMODEREG", "ALUMODEREG", "CARRYINREG", "CARRYINSELREG",
+                  "A_INPUT", "B_INPUT", "USE_DPORT", "USE_SIMD"):
+            out[k] = pv(k, "default")
+        return out
+    n_dsp = 0
+    for b in sorted(set(jb) & set(fb)):
+        (jn, j), (fn, f) = jb[b], fb[b]
+        if j["type"] != gen.DSP_T:
+            continue
+        n_dsp += 1
+        wj, wf = dsp_words(j, jd, jc), dsp_words(f, fd, fc)
+        for k in sorted(set(wj) | set(wf)):
+            if wj.get(k) != wf.get(k):
+                flag("DSP CONFIGURATION DIFFERS", "%s %s: json %s bits %s" % (b, k, wj.get(k), wf.get(k)))
+        if "FASM2NET_REFUSED" in f["attributes"]:
+            flag("DSP REFUSED by the bit decoder", "%s: %s" % (b, f["attributes"]["FASM2NET_REFUSED"]))
+        z = int(wj["OPMODE"], 2) >> 4 if set(str(wj["OPMODE"])) <= set("01") else 0
+        cas = wj.get("A_INPUT") == "CASCADE"
+        # S8 (dsp_model.py): the B cascade reads BCIN instead of B, the pre-adder reads D
+        bcas = wj.get("B_INPUT") == "CASCADE"
+        read = ["%s%d" % ("ACIN" if cas else "A", i) for i in range(25)] + \
+               ["%s%d" % ("BCIN" if bcas else "B", i) for i in range(18)] + \
+               (["PCIN%d" % i for i in range(48)] if z else []) + \
+               (["D%d" % i for i in range(25)] if wj.get("USE_DPORT") == "TRUE" else [])
+        # a registered DSP (S7): its clock and the CE/RST pins its registers read
+        read += gen.dsp_regs(j)[1]
+        bj = {cn: bel(c, cn) for cn, c in jc.items()}
+        bf = {cn: bel(c, cn) for cn, c in fc.items()}
+        for p in read:
+            def d(c, drv, cells, bm):
+                bl = c["connections"].get(p)
+                if not bl:
+                    return None
+                x = drv.get(bl[0])
+                if x is None:
+                    return ("undriven",)
+                if cells[x[0]]["type"] in CONST:
+                    return ("const", CONST[cells[x[0]]["type"]])
+                # a LUT with an all-0/all-1 INIT is that constant (nextpnr ties a DSP pin through an otherwise
+                # unused LUT; the decoder sees it as a bits-only INIT-0 LUT) -- the same fold section 3 applies
+                if lut_const(cells[x[0]]) is not None:
+                    FOLDED.append("%s/%s <- %s" % (b, p, bm[x[0]]))
+                    return ("const", lut_const(cells[x[0]]))
+                return (bm[x[0]], x[1])
+            if d(j, jd, jc, bj) != d(f, fd, fc, bf):
+                flag("DSP DATA PIN DRIVER DIFFERS", "%s/%s json %s bits %s"
+                     % (b, p, d(j, jd, jc, bj), d(f, fd, fc, bf)))
+    say("2b. DSP48E1  %d compared: control words (OPMODE/ALUMODE/INMODE/CARRYINSEL/CARRYIN), "
+        "register/input parameters, drivers of every data pin the modelled function reads" % n_dsp)
+
+    # ---- 2c. RAMB18E1: configuration, the EFFECTIVE control values (a pin's
+    # constant XOR its IS_*_INVERTED -- nextpnr turns a GND tie into VCC plus an
+    # inversion, so the two sides may spell one value two ways), and the driver
+    # of every pin prims.v reads.  Port B: only that it is off on both sides.
+    def ram_view(c, drv, cells, bm):
+        params, conns = c.get("parameters", {}), c["connections"]
+
+        def pv(k, d=0):
+            v = params.get(k)
+            if v is None:
+                return d
+            return int(v, 2) if isinstance(v, str) and v and set(v) <= set("01") else v
+
+        def src(p):
+            bl = conns.get(p)
+            if not bl:
+                return None
+            x = drv.get(bl[0])
+            if x is None:
+                return ("undriven",)
+            if cells[x[0]]["type"] in CONST:
+                return ("const", CONST[cells[x[0]]["type"]])
+            if lut_const(cells[x[0]]) is not None:
+                FOLDED.append("%s/%s <- %s" % (bel(c, ""), p, bm[x[0]]))
+                return ("const", lut_const(cells[x[0]]))
+            return (bm[x[0]], x[1])
+
+        def eff(p):
+            s = src(p)
+            if s is not None and s[0] == "const":
+                return ("const", s[1] ^ (int(pv("IS_%s_INVERTED" % p)) & 1))
+            return ("net", s, int(pv("IS_%s_INVERTED" % p)) & 1)
+        out = {k: pv(k, "default") for k in ("RAM_MODE", "READ_WIDTH_A", "WRITE_WIDTH_A", "READ_WIDTH_B",
+                                             "WRITE_WIDTH_B", "DOA_REG", "DOB_REG", "WRITE_MODE_A")}
+        out["INIT_A"], out["SRVAL_A"] = pv("INIT_A"), pv("SRVAL_A")
+        out["INIT content"] = sorted(k for k, v in params.items()
+                                     if re.match(r"^INITP?_[0-9A-F]{2}$", k) and str(v).strip("0"))
+        for p in ("CLKARDCLK", "ENARDEN", "RSTRAMARSTRAM", "ENBWREN"):
+            out[p] = eff(p)
+        for p in ["ADDRARDADDR%d" % i for i in range(14)] + ["DIADI%d" % i for i in range(16)] + \
+                 ["DIPADIP0", "DIPADIP1"] + ["WEA%d" % i for i in range(4)]:
+            out[p] = src(p)
+        return out
+    n_ram = 0
+    bj_ = {cn: bel(c, cn) for cn, c in jc.items()}
+    bf_ = {cn: bel(c, cn) for cn, c in fc.items()}
+    for b in sorted(set(jb) & set(fb)):
+        (jn, j), (fn, f) = jb[b], fb[b]
+        if j["type"] != gen.RAM_T:
+            continue
+        n_ram += 1
+        vj, vf = ram_view(j, jd, jc, bj_), ram_view(f, fd, fc, bf_)
+        for k in sorted(set(vj) | set(vf)):
+            if vj.get(k) != vf.get(k):
+                flag("RAMB18E1 DIFFERS", "%s %s: json %s bits %s" % (b, k, vj.get(k), vf.get(k)))
+        if "FASM2NET_REFUSED" in f["attributes"]:
+            flag("RAMB18E1 REFUSED by the bit decoder", "%s: %s" % (b, f["attributes"]["FASM2NET_REFUSED"]))
+    say("2c. RAMB18E1  %d compared: configuration (mode, widths, output register, write mode, INIT_A/SRVAL_A, "
+        "INIT content), effective CLK/EN/RST and port B enable, drivers of every ADDR/DI/DIP/WE pin" % n_ram)
+
+    # ---- 3. connectivity
+    jfold, ffold = {}, {}
+    jp = pin_drivers(jc, jd, gen.TIE, jfold)
+    fp = pin_drivers(fc, fd, gen.TIE, ffold)
+    common_pos = {lutpos(b) or b for b in set(jb) & set(fb)}
+    n_same = 0
+    for k in sorted(set(jp) | set(fp), key=str):
+        if k[0] not in common_pos:
+            continue
+        a_, b_ = jp.get(k), fp.get(k)
+        if a_ == b_:
+            n_same += 1
+            continue
+        # one side a LUT that is constant given its own constant pins, the other side that constant (nextpnr's GND
+        # feed-through LUT1 whose pin routeVcc missed: the FASM writes INIT 0, the JSON keeps a buffer of GND)
+        if a_ and b_ and a_[0] == "bel" and b_[0] == "const" and jfold.get(k) == b_[1]:
+            FOLDED_IN.append("%s/%s json %s.%s = %d" % (k[0], k[1], a_[1], a_[2], b_[1])); n_same += 1
+            continue
+        if a_ and b_ and b_[0] == "bel" and a_[0] == "const" and ffold.get(k) == a_[1]:
+            FOLDED_IN.append("%s/%s bits %s.%s = %d" % (k[0], k[1], b_[1], b_[2], a_[1])); n_same += 1
+            continue
+        if a_ is None and k[0].endswith("/BUFGCTRL") and k[1] == "I1":
+            # the I1 input mux's all-zero encoding IS a connection; fasm2net's
+            # check_bufg proves I1 is deselected, so it cannot reach O
+            flag("BUFGCTRL I1 unconnected in JSON, connected on the board by the "
+                 "mux's all-zero default (deselected)", "%s/%s <- %s" % (k[0], k[1], b_))
+            continue
+        if a_ is None and b_ is not None and b_[0] == "const":
+            # unconnected in JSON: gen.py ties it (TIE); the board has a constant.
+            t = fb[k[0]][1]["type"] if k[0] in fb else "SLICE_LUTX"
+            tie = gen.TIE.get((t, k[1]))
+            if tie == b_[1]:
+                flag("pin unconnected in routed JSON, same constant (%d) on the board as gen.py's tie"
+                     % b_[1], "%s/%s" % k)
+            elif t == "SLICE_LUTX":
+                flag("LUT pin unconnected in routed JSON, constant %d on the board, gen.py ties %s "
+                     "(harmless iff section 4 finds the function identical)" % (b_[1], tie), "%s/%s" % k)
+            else:
+                flag("PIN TIED DIFFERENTLY: gen.py ties %s, the board has %d" % (tie, b_[1]), "%s/%s" % k)
+            continue
+        if a_ is None and k[0].endswith("/BUFGCTRL") and k[1] == "I1":
+            # the I1 input mux's all-zero encoding IS a connection (to the same
+            # IMUX as I0 here); fasm2net's check_bufg proves I1 is deselected
+            flag("BUFGCTRL I1 unconnected in JSON, connected on the board by the "
+                 "mux's all-zero default (deselected)", "%s/%s <- %s" % (k[0], k[1], b_))
+            continue
+        if a_ is None:
+            flag("pin unconnected in routed JSON, DRIVEN on the board", "%s/%s <- %s" % (k[0], k[1], b_))
+            continue
+        if b_ is None and k[0].endswith("/PS7") and a_[0] == "const":
+            # a PS7 input nextpnr ties to a constant: the decoder models only
+            # gls/ps/ps7_pins.py's pins (fasm2net --ps7); the tie-off is inside
+            # the PS/PL interface and carries no PL bits
+            flag("PS7 input tied to a constant in JSON, not modelled (outside ps7_pins.py)",
+                 "%s/%s <- %s" % (k[0], k[1], a_))
+            continue
+        if b_ is None:
+            flag("pin connected in routed JSON, unconnected on the board", "%s/%s <- %s" % (k[0], k[1], a_))
+            continue
+        if a_[0] == "const" and b_[0] == "const" and re.search(r"/[A-D]$", k[0]) \
+                and re.match(r"^A[1-6]$", k[1]):
+            reads, seen = lut_reads_pin(k[0], k[1], (a_[1], b_[1]), fb, fp)
+            if not reads:
+                flag(HARMLESS_CONST, "%s/%s json %d bits %d (%s)" % (k[0], k[1], a_[1], b_[1],
+                                                                     ", ".join(seen) or "no LUT"))
+            else:
+                flag("LUT PIN ON A DIFFERENT CONSTANT AND THE LUT FUNCTION READS IT",
+                     "%s/%s json %d bits %d (%s)" % (k[0], k[1], a_[1], b_[1], ", ".join(seen)))
+            continue
+        flag("DRIVER DIFFERS", "%s/%s json %s bits %s" % (k[0], k[1], a_, b_))
+    for e in sorted(set(FOLDED)):
+        flag(CONST_LUT, e)
+    for e in sorted(set(FOLDED_IN)):
+        flag(CONST_IN_LUT, e)
+    say("3. CONNECTIVITY  %d pins with the same driver on both sides" % n_same)
+    # driver -> sink pairs, as sets
+    pairs = lambda pd: {(v, k) for k, v in pd.items() if k[0] in common_pos and v[0] in ("bel", "const")}
+    pj, pf = pairs(jp), pairs(fp)
+    say("   driver->sink pairs: json %d, bits %d, common %d" % (len(pj), len(pf), len(pj & pf)))
+
+    # ---- 4. LUT functions
+    n_lut = n_lut_ok = 0
+    for b in sorted(set(jb) & set(fb)):
+        (jn, j), (fn, f) = jb[b], fb[b]
+        if j["type"] != "SLICE_LUTX":
+            continue
+        n_lut += 1
+        out = "O6" if b.endswith("6LUT") else "O5"
+        tj, tf = lut_table(j, out), lut_table(f, out)
+        mj = lut_eval_inputs(jn, j, jp, gen.TIE)
+        mf = lut_eval_inputs(fn, f, fp, gen.TIE)
+        npins = 6 if out == "O6" else 5
+        var = sorted({d for m in (mj, mf) for d in list(m.values())[:npins]
+                      if d[0] not in ("const", "tie")}, key=str)
+        diff = []
+        for v in range(1 << len(var)):
+            env = {d: (v >> i) & 1 for i, d in enumerate(var)}
+
+            def addr(m):
+                x = 0
+                for i in range(npins):
+                    d = m["A%d" % (i + 1)]
+                    bitv = d[1] if d[0] in ("const", "tie") else env[d]
+                    x |= bitv << i
+                return x
+            oj, of = (tj >> addr(mj)) & 1, (tf >> addr(mf)) & 1
+            if oj != of:
+                diff.append(v)
+        if diff:
+            flag("LUT FUNCTION DIFFERS", "%s (%s) on %d of %d input assignments"
+                 % (b, jn[:60], len(diff), 1 << len(var)))
+        else:
+            n_lut_ok += 1
+    say("4. LUT FUNCTIONS  %d LUTs compared, %d identical over every input assignment" % (n_lut, n_lut_ok))
+
+    # ---- 5. routing, pip by pip
+    if a.routes:
+        fab = fasm2net.Fabric(fasm2net.DB_ROOT, fasm2net.PART)
+
+        def nd(tw):
+            t, _, w = tw.partition("/")
+            return fab.node(t, w)
+        # JSON: net -> set of (src node, dst node) for every routing pip
+        jpips = {}
+        jconst = set()
+        belof = {cn: bel(c, cn) for cn, c in jc.items()}
+        jtree = {}      # key -> raw wire -> raw wires it feeds (SITEWIRE entries included)
+        jraw = {}       # key -> (src node, dst node) -> raw dst wires
+        jbit = {}       # key -> the net's bit
+        for name, nn in jt["netnames"].items():
+            r = nn.get("attributes", {}).get("ROUTING")
+            if not r or len(nn["bits"]) != 1:
+                continue
+            d = jd.get(nn["bits"][0])
+            if d is None:
+                continue
+            key = ("const", CONST[jc[d[0]]["type"]]) if jc[d[0]]["type"] in CONST else \
+                ("const", lut_const(jc[d[0]])) if lut_const(jc[d[0]]) is not None else (belof[d[0]], d[1])
+            f = r.split(";")
+            s = jpips.setdefault(key, set())
+            tr = jtree.setdefault(key, collections.defaultdict(set))
+            rw = jraw.setdefault(key, collections.defaultdict(set))
+            jbit[key] = nn["bits"][0]
+            for i in range(0, len(f) - 2, 3):
+                pip = f[i + 1]
+                if not pip or "SITEPIP" in pip:
+                    continue
+                src, dst = pip.split("->")
+                tr[src].add(dst)
+                if "SITEWIRE" in pip:
+                    continue
+                s.add((nd(src), nd(dst)))
+                rw[(nd(src), nd(dst))].add(dst)
+        jusers = collections.defaultdict(list)      # bit -> cells with an input on it
+        for cn, c in jc.items():
+            for p, bl in c["connections"].items():
+                if c.get("port_directions", {}).get(p) in ("input", "inout"):
+                    for b_ in bl:
+                        jusers[b_].append(cn)
+
+        def nobits(p):
+            """(src node, dst node) is an always-on ppip of some tile: the bits cannot show it."""
+            sn, dn = p
+            for t, w in fab.nodes[dn]:
+                for s_ in fab.tt(fab.ttype[t])["always"].get(w, ()):
+                    if fab.node(t, s_) == sn:
+                        return True
+            return False
+
+        def dead_sitepin(key, sw):
+            """SITEWIRE/<site>/<pin> on this net: every cell of the net in that site that can read the pin is
+            dead in the JSON AND not configured by the bits (and there is one).  A dead cell the bits do configure
+            is a sink the decoder traces, so a route to it that the bits lack is a real difference."""
+            m = re.match(r"^SITEWIRE/([^/]+)/([^/]+)$", sw)
+            if not m:
+                return False
+            site, pin = m.groups()
+            rd = [cn for cn in jusers.get(jbit[key], ()) if belof[cn].startswith(site + "/") and can_read(jc[cn], pin)]
+            return bool(rd) and all(cn in jdead and belof[cn] in only_j_set for cn in rd)
+
+        def json_terminals(key, w0):
+            """The site pins (first SITEWIRE) and dangling wires the JSON route reaches from raw wire w0."""
+            tr, out, st, seen = jtree[key], set(), [w0], {w0}
+            while st:
+                w = st.pop()
+                if w.startswith("SITEWIRE/") or not tr.get(w):
+                    out.add(w)
+                    continue
+                for x in tr[w]:
+                    if x not in seen:
+                        seen.add(x)
+                        st.append(x)
+            return out
+        fpips = collections.defaultdict(set)
+        always = set()
+        for line in open(a.routes):
+            if line.startswith("#"):
+                continue
+            netn, sink, csrc, pips = (line.rstrip("\n").split("\t") + [""] * 4)[:4]
+            if netn.startswith("$const") or netn in ("$PACKER_VCC_NET", "$PACKER_GND_NET"):
+                key = ("const", 1 if netn in ("$const1", "$PACKER_VCC_NET") else 0)
+                if csrc == "default":
+                    continue        # no pip at all: an IMUX left alone reads VCC
+            else:
+                bb, _, pp = netn.rpartition("/")
+                key = (bb, pp)
+                if bb in fb and lut_const(fb[bb][1]) is not None:
+                    key = ("const", lut_const(fb[bb][1]))
+            for pid in pips.split():
+                t, d_, s_ = pid.split(".")
+                pr = (fab.node(t, s_), fab.node(t, d_))
+                fpips[key].add(pr)
+                if s_ in fab.tt(fab.ttype[t])["always"].get(d_, ()):
+                    always.add(pr)
+        stub = set()
+        if a.stubs:
+            for line in open(a.stubs):
+                if not line.startswith("#"):
+                    t, d_, s_ = line.split("\t")[0].split(".")
+                    stub.add((fab.node(t, s_), fab.node(t, d_)))
+        n_eq = n_ne = n_dead = n_const = 0
+        cw = {n for n in range(len(fab.nodes))
+              if any(w in fasm2net.CONST_WIRES for _, w in fab.nodes[n])}
+        for key in sorted(set(jpips) | set(fpips), key=str):
+            A, B = jpips.get(key, set()), fpips.get(key, set())
+            if key[0] == "const":
+                # A constant is a tie, and section 3 already compared every
+                # pin's constant.  Its pips cannot be compared from the bits:
+                # an IMUX with no pip set reads VCC through a "default" ppip
+                # that has no bits, so the bits do not say which pins nextpnr
+                # routed to VCC_WIRE and which it left alone.
+                n_const += 1
+                continue
+            if False:
+                # A constant reaches a pin through the tile's VCC_WIRE or, for an
+                # IMUX left alone, through its default ppip, which has no bits --
+                # the bits cannot say which nextpnr meant.  Compare the pips that
+                # do NOT start at a constant wire.
+                A = {p for p in A if p[0] not in cw}
+                B = {p for p in B if p[0] not in cw}
+            dead = (A - B) & stub
+            # a json-only pip whose far end feeds nothing but such dead pips is
+            # the head of the same dead route (e.g. the always-on CLBLL_L_C ->
+            # LOGIC_OUTS ppip, which has no bits and so is never a stub)
+            grew = True
+            while dead and grew:
+                feeds = collections.defaultdict(set)
+                for p in A:
+                    feeds[p[0]].add(p)
+                more = {p for p in (A - B) - dead if feeds[p[1]] and feeds[p[1]] <= dead}
+                grew = bool(more)
+                dead |= more
+            if dead:
+                n_dead += 1
+                flag("json pips that ARE in the bits but reach no live sink (routing to a dead bel)",
+                     "%s: %d pips, e.g. %s" % (key, len(dead), [(fab.node_name(x), fab.node_name(y))
+                                                               for x, y in list(dead)[:2]]))
+                A = A - dead
+            # json-only pips with no bits whose every sink is a pin of a DEAD cell: the tail of a route into the
+            # select of an F7/F8 nextpnr kept but nothing reads (dead_cells).  The bits cannot show an always-on
+            # ppip, and the decoder traces only from live sinks, so the route stops where it branches off a live
+            # one (BYP_ALT -> BYP_BOUNCE -> a live IMUX, and BYP_ALT -> BYP -> the dead mux's AX/BX/CX).
+            tail = set()
+            if key in jraw:
+                for p in A - B:
+                    if not nobits(p):
+                        continue
+                    terms = set()
+                    for w in jraw[key].get(p, ()):
+                        terms |= json_terminals(key, w)
+                    if terms and all(dead_sitepin(key, t_) for t_ in terms):
+                        tail.add(p)
+            if tail:
+                flag(DEAD_TAIL, "%s: %d pips, e.g. %s" % (key, len(tail), [(fab.node_name(x), fab.node_name(y))
+                                                                            for x, y in sorted(tail)[:2]]))
+                A = A - tail
+            ap = (B - A) & always
+            if ap:
+                flag("bits-only always-on ppip the JSON does not list (no bits: a fixed wire)",
+                     "%s: %s" % (key, [(fab.node_name(x), fab.node_name(y)) for x, y in list(ap)[:2]]))
+                B = B - ap
+            i1 = {p for p in B - A if re.search(r"BUFGCTRL\d+_I1$", fab.node_name(p[1]))}
+            if i1:
+                flag("bits-only pip into a deselected BUFGCTRL I1 (all-zero mux encoding)",
+                     "%s: %s" % (key, [(fab.node_name(x), fab.node_name(y)) for x, y in i1]))
+                B = B - i1
+            if A == B:
+                n_eq += 1
+            else:
+                n_ne += 1
+                flag("NET ROUTED DIFFERENTLY (pip sets differ)",
+                     "%s: %d pips json-only, %d bits-only, %d common; e.g. json-only %s bits-only %s"
+                     % (key, len(A - B), len(B - A), len(A & B),
+                        [(fab.node_name(x), fab.node_name(y)) for x, y in list(A - B)[:2]],
+                        [(fab.node_name(x), fab.node_name(y)) for x, y in list(B - A)[:2]]))
+        say("5. ROUTING  %d nets with identical pip sets, %d differ "
+            "(%d of the equal ones only after removing pips to dead bels); %d constant nets "
+            "compared by sink in 3, not by pip" % (n_eq, n_ne, n_dead, n_const))
+
+    say("")
+    say("DIFFERENCES (%d kinds):" % len(bad))
+    for k, v in sorted(bad.items()):
+        say("  %6d  %s" % (v, k))
+        for e in ex[k]:
+            say("            %s" % e)
+    txt = "\n".join(R)
+    print(txt)
+    if a.out:
+        open(a.out, "w").write(txt + "\n")
+    benign = ("cell in routed JSON, not configured by the bits (it has NO loads)", DEAD_LOADS, DEAD_TAIL,
+              "PS7 input tied to a constant in JSON, not modelled",
+              "json pips that ARE in the bits", "pin unconnected in routed JSON, same constant",
+              "LUT pin unconnected in routed JSON", "BUFGCTRL I1 unconnected in JSON",
+              "bits-only pip into a deselected BUFGCTRL I1", "bits-only always-on ppip",
+              HARMLESS_CONST, CONST_LUT, CONST_IN_LUT, "bits-only LUT with a constant function")
+    hard = [k for k in bad if not k.startswith(benign)]
+    say("VERDICT: %s" % ("EQUIVALENT (only the benign kinds above)" if not hard else
+                         "NOT EQUIVALENT: " + "; ".join(hard)))
+    print(R[-1])
+    if a.out:
+        open(a.out, "a").write(R[-1] + "\n")
+    sys.exit(1 if hard else 0)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,21 @@
+--- cells/gls/fid/soak_fid.py	2026-11-05 09:58:53.287449983 +0000
++++ /tmp/claude-0/-home-user-asyncfpga3/5430fd50-f33d-52a5-8a52-f19d5b6000df/scratchpad/envd/soak_fid_envd.py	2026-11-07 11:03:15.982912114 +0000
+@@ -24,7 +24,7 @@
+ import argparse, json, os, re, shutil, subprocess, sys
+ from pathlib import Path
+ 
+-HERE = Path(__file__).resolve().parent
++HERE = Path("/home/user/asyncfpga3/cells/gls/fid")
+ GLS = HERE.parent
+ CELLS = GLS.parent
+ sys.path.insert(0, str(CELLS.parent / "bdc"))
+@@ -153,7 +153,8 @@
+                 verdict(False, ["SOAK all FAIL: harness aliases independently driven ports"])
+             driven.add(bit)
+             value = f"{port}[{i}]" if port.endswith("_data") else port
+-            connection.append(f"wire drive_{bit} = {value};")
++            dly = int(os.environ.get("SOAK_ENV_DELAY", "0")) if port != "rst" else 0
++            connection.append(f"wire #{dly} drive_{bit} = {value};" if dly else f"wire drive_{bit} = {value};")
+             connection.append(f"initial force dut.n{bit} = drive_{bit};")
+     for port in observe:
+         bits = signals[port]

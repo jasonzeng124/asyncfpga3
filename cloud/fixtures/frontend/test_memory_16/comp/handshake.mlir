@@ -1,0 +1,56 @@
+module {
+  handshake.func @test_memory_16(%arg0: memref<4xi32>, %arg1: memref<4xi32>, %arg2: !handshake.control<>, %arg3: !handshake.control<>, %arg4: !handshake.control<>, ...) -> (!handshake.control<>, !handshake.control<>, !handshake.control<>) attributes {argNames = ["a", "b", "a_start", "b_start", "start"], resNames = ["a_end", "b_end", "end"]} {
+    %0:2 = lsq[%arg1 : memref<4xi32>] (%arg3, %result, %addressResult, %result_2, %addressResult_4, %dataResult_5, %result_18)  {groupSizes = [1 : i32, 1 : i32], handshake.name = "lsq0"} : (!handshake.control<>, !handshake.control<>, !handshake.channel<i32>, !handshake.control<>, !handshake.channel<i32>, !handshake.channel<i32>, !handshake.control<>) -> (!handshake.channel<i32>, !handshake.control<>)
+    %1:2 = lsq[%arg0 : memref<4xi32>] (%arg2, %result_6, %addressResult_8, %result_10, %addressResult_12, %dataResult_13, %result_18)  {groupSizes = [1 : i32, 1 : i32], handshake.name = "lsq1"} : (!handshake.control<>, !handshake.control<>, !handshake.channel<i32>, !handshake.control<>, !handshake.channel<i32>, !handshake.channel<i32>, !handshake.control<>) -> (!handshake.channel<i32>, !handshake.control<>)
+    %2 = constant %arg4 {handshake.bb = 0 : ui32, handshake.name = "constant0", value = 0 : i32} : <>, <i32>
+    %3 = br %2 {handshake.bb = 0 : ui32, handshake.name = "br3"} : <i32>
+    %4 = br %arg4 {handshake.bb = 0 : ui32, handshake.name = "br4"} : <>
+    %5 = mux %index [%3, %trueResult_14] {handshake.bb = 1 : ui32, handshake.name = "mux0"} : <i1>, [<i32>, <i32>] to <i32>
+    %result, %index = control_merge [%4, %trueResult_16]  {handshake.bb = 1 : ui32, handshake.name = "control_merge0"} : [<>, <>] to <>, <i1>
+    %6 = source {handshake.bb = 1 : ui32, handshake.name = "source0"} : <>
+    %7 = constant %6 {handshake.bb = 1 : ui32, handshake.name = "constant5", value = 5 : i32} : <>, <i32>
+    %8 = extui %5 {handshake.bb = 1 : ui32, handshake.name = "extui0"} : <i32> to <i64>
+    %9 = trunci %8 {handshake.bb = 1 : ui32, handshake.name = "index_cast0"} : <i64> to <i32>
+    %addressResult, %dataResult = load[%9] %0#0 {handshake.bb = 1 : ui32, handshake.deps = #handshake<deps[{dstAccess : "store1", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "load0"} : <i32>, <i32>, <i32>, <i32>
+    %10 = cmpi sgt, %dataResult, %7 {handshake.bb = 1 : ui32, handshake.name = "cmpi0"} : <i32>
+    %trueResult, %falseResult = cond_br %10, %5 {handshake.bb = 1 : ui32, handshake.name = "cond_br2"} : <i1>, <i32>
+    %trueResult_0, %falseResult_1 = cond_br %10, %result {handshake.bb = 1 : ui32, handshake.name = "cond_br3"} : <i1>, <>
+    %11 = merge %trueResult {handshake.bb = 2 : ui32, handshake.name = "merge0"} : <i32>
+    %result_2, %index_3 = control_merge [%trueResult_0]  {handshake.bb = 2 : ui32, handshake.name = "control_merge1"} : [<>] to <>, <i1>
+    %12 = constant %result_2 {handshake.bb = 2 : ui32, handshake.name = "constant6", value = 0 : i32} : <>, <i32>
+    %13 = extui %11 {handshake.bb = 2 : ui32, handshake.name = "extui1"} : <i32> to <i64>
+    %14 = trunci %13 {handshake.bb = 2 : ui32, handshake.name = "index_cast1"} : <i64> to <i32>
+    %addressResult_4, %dataResult_5 = store[%14] %12 {handshake.bb = 2 : ui32, handshake.deps = #handshake<deps[{dstAccess : "load0", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store1"} : <i32>, <i32>, <i32>, <i32>
+    %15 = br %12 {handshake.bb = 2 : ui32, handshake.name = "br5"} : <i32>
+    %16 = br %11 {handshake.bb = 2 : ui32, handshake.name = "br6"} : <i32>
+    %17 = br %result_2 {handshake.bb = 2 : ui32, handshake.name = "br7"} : <>
+    %18 = merge %falseResult {handshake.bb = 3 : ui32, handshake.name = "merge1"} : <i32>
+    %result_6, %index_7 = control_merge [%falseResult_1]  {handshake.bb = 3 : ui32, handshake.name = "control_merge2"} : [<>] to <>, <i1>
+    %19 = source {handshake.bb = 3 : ui32, handshake.name = "source1"} : <>
+    %20 = constant %19 {handshake.bb = 3 : ui32, handshake.name = "constant7", value = -1 : i32} : <>, <i32>
+    %21 = extui %18 {handshake.bb = 3 : ui32, handshake.name = "extui2"} : <i32> to <i64>
+    %22 = trunci %21 {handshake.bb = 3 : ui32, handshake.name = "index_cast2"} : <i64> to <i32>
+    %addressResult_8, %dataResult_9 = load[%22] %1#0 {handshake.bb = 3 : ui32, handshake.deps = #handshake<deps[{dstAccess : "store3", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "load2"} : <i32>, <i32>, <i32>, <i32>
+    %23 = addi %dataResult_9, %20 {handshake.bb = 3 : ui32, handshake.name = "addi0"} : <i32>
+    %24 = br %23 {handshake.bb = 3 : ui32, handshake.name = "br8"} : <i32>
+    %25 = br %18 {handshake.bb = 3 : ui32, handshake.name = "br9"} : <i32>
+    %26 = br %result_6 {handshake.bb = 3 : ui32, handshake.name = "br10"} : <>
+    %27 = mux %index_11 [%15, %24] {handshake.bb = 4 : ui32, handshake.name = "mux1"} : <i1>, [<i32>, <i32>] to <i32>
+    %28 = mux %index_11 [%16, %25] {handshake.bb = 4 : ui32, handshake.name = "mux2"} : <i1>, [<i32>, <i32>] to <i32>
+    %result_10, %index_11 = control_merge [%17, %26]  {handshake.bb = 4 : ui32, handshake.name = "control_merge3"} : [<>, <>] to <>, <i1>
+    %29 = source {handshake.bb = 4 : ui32, handshake.name = "source2"} : <>
+    %30 = constant %29 {handshake.bb = 4 : ui32, handshake.name = "constant8", value = 4 : i32} : <>, <i32>
+    %31 = source {handshake.bb = 4 : ui32, handshake.name = "source3"} : <>
+    %32 = constant %31 {handshake.bb = 4 : ui32, handshake.name = "constant9", value = 1 : i32} : <>, <i32>
+    %33 = extui %28 {handshake.bb = 4 : ui32, handshake.name = "extui3"} : <i32> to <i64>
+    %34 = trunci %33 {handshake.bb = 4 : ui32, handshake.name = "index_cast3"} : <i64> to <i32>
+    %addressResult_12, %dataResult_13 = store[%34] %27 {handshake.bb = 4 : ui32, handshake.deps = #handshake<deps[{dstAccess : "load2", loopDepth : 0, distance : 0, isActive : true}]>, handshake.name = "store3"} : <i32>, <i32>, <i32>, <i32>
+    %35 = addi %28, %32 {handshake.bb = 4 : ui32, handshake.name = "addi1"} : <i32>
+    %36 = cmpi ult, %35, %30 {handshake.bb = 4 : ui32, handshake.name = "cmpi1"} : <i32>
+    %trueResult_14, %falseResult_15 = cond_br %36, %35 {handshake.bb = 4 : ui32, handshake.name = "cond_br4"} : <i1>, <i32>
+    %trueResult_16, %falseResult_17 = cond_br %36, %result_10 {handshake.bb = 4 : ui32, handshake.name = "cond_br5"} : <i1>, <>
+    %result_18, %index_19 = control_merge [%falseResult_17]  {handshake.bb = 5 : ui32, handshake.name = "control_merge4"} : [<>] to <>, <i1>
+    end {handshake.bb = 5 : ui32, handshake.name = "end0"} %1#1, %0#1, %arg4 : <>, <>, <>
+  }
+}
+

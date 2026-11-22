@@ -1,0 +1,1193 @@
+#!/usr/bin/env bash
+# auto_size.sh LANE NAME KERNEL SEED VEC [MAXIT] -- BDC_AUTO=1 with its sizes chosen by the flow: nothing per kernel
+# (PROGRAM "General first", owner 2026-11-17: no sizes file, no factor, no instance name).
+#
+#   iteration 0  build with every matched delay at bdc/emit.py's estimate (est_sizes.py: the kernel's own defaults)
+#                times AUTO_START_SCALE (0.3; see below);
+#                corner_audit.py CA_SIZERULE=1 on that route proposes every line (the one sizing rule: chain and
+#                LUT / wire at one band, CARRY4 / F7F8 / FF at SLOW_MAX, the measured-residual guards, a shortened line
+#                priced at its own mean step, selects sized by rules E / M like any line).
+#   iteration i  build with the sizes S_i, run the same rule on the new route.  The route is CLEAN when no sized kernel
+#                constraint is below slack on it as built (negative_sized.tsv empty).  S_{i+1} = ratchet.py(S_i,
+#                proposal_i): a line the rule ever asked to lengthen is pinned at max(S_i, proposal_i), every other line
+#                follows the proposal (shorter included).  The loop goes on while a clean route's proposal still
+#                shortens a line, and stops at MAXIT, or when a negative route has no line the rule could lengthen.
+#                It ships the LAST CLEAN route (else the last route, NOT CLEAN).
+#   The rule runs with BD_SKEW_AND_JOIN=1: a bd_ctree C-element fires on its LAST input, as built (audit T93: the
+#   OR seeding made ucond_br6_j fire on its first request); the hand recipes' farm requests used it too.
+#
+# Why a loop: sizes belong to one route, and the route built from them is a different one (cells/hw/tighten_loop.sh's
+# header: a 24-element line re-placed as 8 elements got 27 % cheaper per element, so a proposal priced on the long line
+# under-delivers, in the short direction).  CA_SIZERULE prices a shortened line at its own mean step on purpose (the
+# default price, the route's single cheapest hop, is the 1.6-2x term in research/data/sizerule/README.md), so this
+# re-check of the route actually built is what makes it safe.  Why the pinning: without it the loop oscillates
+# (tighten_loop.sh, measured: shortened, found short, padded, shortened again); a pinned line cannot be shortened again.
+# Why not pin every line (the first version): the first proposal is made on the estimates route, the most spread-out
+# route the loop sees, and pinning it everywhere kept its pessimism (ratchet.py's header).
+# Every iteration is a lane2.sh build with LANE_NORUN=1 (the route and its prjxray SDF, which is all the rule reads);
+# the full stack (bits-decoded netlist, equivalence, fid run, event-graph period P) runs once, on the route kept
+# (lane2_run.sh).  CA_JOBS=N (environment) runs corner_audit's per-line sensitivity workers N at a time.
+#
+# AUTO_RESUME=DIR (environment) continues a loop another run left unfinished (a farm task stopped at its time limit):
+# DIR holds that run's $RUNS/auto/NAME files as the farm returns them (*.txt, *.vh: log.txt, sizes_I.vh, pinned.txt,
+# ratchet_I.txt, rule_I.vh, neg_I.txt). The loop goes on from the last iteration whose ratchet step was written, in the
+# phase the log names, replaying that iteration's stop / phase decision; a route it needs again (the one it ships) is
+# rebuilt from its sizes with the same seed, which gives the same route (checked: the sdf md5 must match it_I.txt).
+# Unset: the loop as before (it also saves rule_I.vh and neg_I.txt, the rule's proposal and negatives, for a resume).
+#
+# AUTO_NEAR_PS=PS (opt-in; unset = as before): in the finish phase (raise-only) every line the rule keeps at its size with
+# fewer than PS ps left at a corner gets the headroom element too, not only the lines that are short (ratchet.py --near).
+#
+# AUTO_FINISH_SEEDS=K (opt-in; unset or 1 = as before): in the finish phase, a route the rule finds NOT clean is drawn
+# again from the same sizes on up to K-1 more placer seeds (S + 1000 j, j = 1..K-1, lanes L"s"j, routes NAME_I"s"j, one
+# attempt each: a missed bench clock is a failed draw), the rule run on each in turn; the first one it finds clean is
+# ADOPTED as route I: its hw / r / ca directories become NAME_I (the seed-S route is kept as NAME_I"s"0), its it / ca /
+# rule / neg / lines files become iteration I's, seed_I.txt holds its seed (final() and a resume rebuild exactly it), and
+# the loop ships it as it would a clean seed-S route. If none is clean, the loop goes on from the seed-S route, exactly
+# as without the knob (the same next sizes, so the same later routes). AUTO_FINISH_JOBS=J builds J of them at once
+# (default 1). log.txt gets one "alt it I seed S' ..." line per draw and an "adopt it I ..." line.
+# Why (subagent converge, research/data/converge/notes.txt): on the farm's loops 95 % of the rows short on a finish route
+# are on constraints and lines no earlier finish route had short (2255 of 2367; on 2 of 383 routes was every short row a
+# recurrence), so more headroom on the raised lines (AUTO_HEADROOM, AUTO_NEAR_PS) cannot reach them. On local loops that
+# kept every route's corner_audit report, a re-route moves a constraint's margin by sd ~0.5 ns with none of its lines
+# changed, and the rows that open on a raise-only route had a median 474 ps the route before; at identical sizes three
+# seeds' short sets barely overlap. A finish route is a fresh draw of those margins: this takes more draws per step,
+# with no padding, where a slack covering the scatter would pad every line (corner_audit --slack 1000 on xorshift s1's
+# route 5: 100 -> 186 kernel delay elements). AUTO_FINISH=N (more raise-only steps) is the other lever; both were run
+# locally on farm loops resumed at their finish phase (notes.txt) and at scale by research/cluster/requests/finseeds1.sh.
+#
+# AUTO_SHIP_LEAST=1 (opt-in; unset = as before: the last route): when no route was clean, the loop ships the LEAST SHORT
+# route it built (it >= 1, from neg_I.txt): the smallest total miss (per short constraint its worst corner's deficit,
+# summed), then the fewest short constraints, then the later route. result.txt names it ("shipped it=X", which
+# research/tools/suite/suite_one.sh reads), with the last route's numbers beside it; final() rebuilds it from sizes_X and
+# seed_X if this run did not build it. Why (research/data/converge/notes.txt, asked by the research bot after farm
+# ringfuse1 task 31: ipow s7 shipped it 7 with 8 constraints short by up to 1019 ps, where it 6 had two, -84 / -18 ps,
+# and it 7 fails draw 10707): each finish route is a fresh draw, so the last one is no better than any other; on 64 of
+# the farm's 135 NOT CLEAN loops an earlier finish route had a smaller total miss (median 343 vs 1081 ps).
+#
+# Writes $RUNS/auto/NAME/{sizes_I.vh, it_I.txt, ca_I.txt, result.txt}.  result.txt: "CLEAN it=I route=NAME_I P=.."
+# or "NOT CLEAN after MAXIT".  The shipped route's files are $RUNS/hw/NAME_I, $RUNS/r/NAME_I (lane2.sh).
+set -uo pipefail
+ARGS=("$@")
+L=$1; N=$2; K=$3; S=$4; VEC=$5; MAXIT=${6:-4}
+# AUTO_LATE_AFTER_SEARCH=1 (opt-in, 2026-11-21; with AUTO_OVERBUILD_LATE / AUTO_OVERBUILD; unset, nothing changes): the late
+# overbuild phase only when the SEARCH phase has not made the route clean either.  This run first goes v10's way (the
+# finish phase, final, the search) with the late phase held back; a NOT CLEAN result (RC 2: the finish phase exhausted)
+# re-enters this script on its own state (AUTO_RESUME=its dir) with the late phase on, which then starts where flow v11's
+# would have (the resume path's late_switch).  Why: v11 runs the late phase before the search and skips the search for
+# its route, so on the kernels v10's search rescued it ships a slower route (seed 1: countloop 19.12 -> 23.17 ns, memsum
+# 24.56 -> 28.19, dot2 27.43 -> 29.26; research/JOURNAL.md 2026-11-21 11:56).  A resumed task whose log already says
+# "late-after-search:" goes straight to the late phase.
+LATE_OB=""; LATE_M=""
+if [ "${AUTO_LATE_AFTER_SEARCH:-0}" = 1 ] && [ -n "${AUTO_OVERBUILD_LATE:-}" ] && [ -z "${AUTO_LATE_PASS:-}" ]; then
+  if grep -q '^late-after-search:' "${AUTO_RESUME:-/nonexistent}/log.txt" 2>/dev/null; then
+    AUTO_LATE_PASS=1
+  else
+    LATE_OB=${AUTO_OVERBUILD:-}; LATE_M=$AUTO_OVERBUILD_LATE; unset AUTO_OVERBUILD AUTO_OVERBUILD_LATE
+  fi
+fi
+R=$(cd "$(dirname "$0")/../../.." && pwd); RUNS=${RUNS:-/home/user/runs}; export RUNS
+LANE=$R/research/tools/fifteen/lane2.sh; T=$R/research/tools/auto
+O=$RUNS/auto/$N; mkdir -p "$O"
+RES=""
+XENV=""   # the structure AUTO_SEARCH=1 chose (BDC_LINK_DEPTHS=...); empty unless its phase picked an edit
+# AUTO_AUTONAME=1 (opt-in; default: AUTO_PLACE_KEEP's value; unset / 0, the builds are what they were): every route of
+# the loop is built with BD_AUTONAME=1 (cells/hw/build_bench.sh: yosys autoname, so a cell keeps its name from one
+# route to the next, which AUTO_PLACE_KEEP's matching needs; research/data/placekeep/README.md).
+ANENV=""; [ "${AUTO_AUTONAME:-${AUTO_PLACE_KEEP:-0}}" = 1 ] && ANENV="BD_AUTONAME=1"
+if [ -n "${AUTO_RESUME:-}" ] && [ -f "$AUTO_RESUME/sizes_1.vh" ]; then
+  RES=$(cd "$AUTO_RESUME" && pwd)
+  [ "$RES" = "$(cd "$O" && pwd)" ] || cp "$RES"/*.txt "$RES"/*.vh "$O/" 2>/dev/null
+  # AUTO_SEARCH_OVERBUILD: a run stopped inside the search's overbuilt routes (search_ob_from.txt, written when they
+  # start; removed when they fail) left the late phase's markers behind. Unless the loop had finished (an AUTO_TRIM_ONLY
+  # resume, which rebuilds the shipped route with them), they go: the loop's replay must not read them, and the search
+  # phase, which a resume runs again, starts from its raise-only routes as before.
+  if [ -f "$O/search_ob_from.txt" ] && ! grep -qE '^(CLEAN|NOT CLEAN)' "$RES/result.txt" 2>/dev/null; then
+    rm -f "$O/overbuild_from.txt" "$O/symtrim_from.txt" "$O/overbuild_to.txt" "$O/search_ob_from.txt"
+    echo "resume: removed the markers of an interrupted AUTO_SEARCH_OVERBUILD" >> "$O/log.txt"
+  fi
+fi
+: > "$O/result.txt"
+D=${K}_bench_gen
+# AUTO_OVERBUILD=H (opt-in; unset, nothing changes) builds the finish phase's routes long and ships them trimmed, so it
+# implies the trim step: a route that is clean only after its trims must not ship untrimmed.
+[ -n "${AUTO_OVERBUILD:-}" ] && AUTO_TRIM=1
+rule() {   # rule I SIZES: corner_audit CA_SIZERULE=1 on route NAME_I as built with SIZES
+  local i=$1 Z=$2 NI=${N}_$1; local HW=$RUNS/hw/$NI RD=$RUNS/r/$NI CA=$RUNS/ca/$NI
+  rm -rf "$CA"; mkdir -p "$CA/seed1/pnr"
+  ln -sf "$RD/xray.sdf" "$CA/seed1/pnr/soak_xray.sdf"; ln -sf "$HW/${D}_routed.json" "$CA/seed1/pnr/soak_routed.json"
+  cp "$Z" "$CA/seed1/pnr/sizes.vh"
+  # The rule at the delay model's worst vertices (AUTO_RULE_CORNERS, default "0.20 0.31": the band of everything but the
+  # delay chains, the chains at 0.20, CARRY4 / F7F8 / FF at SLOW_MAX), merged per line by the max (merge_rules.py).
+  # Why two: bench_gate.sh's draws -- the judge -- take the chains and the rest independently from [0.20, 0.31]; a
+  # race's margin is linear in the two bands, the chains sit on the request side (worst at 0.20), the rest on both
+  # sides (worst at either end).  One band for both (CA_SIZERULE's own default, 0.21) sized xorshift seed 8's entry
+  # compare UCMPI0 at 5, and the draw with chains 0.212 / rest 0.277 got the zero-trip call wrong (farm suite1).
+  # CA_FAST=1 (default here since 2026-11-18 23:35 UTC; CA_FAST=0 the old path): corner_audit runs its audits once and
+  # forks every per-line sensitivity run from the base (research/tools/ca_fast.py, subagent loopfast): the rule step
+  # 8-10x faster (gcd ~34x), every output file byte-identical to the old path on xorshift, collatz, ipow, gather,
+  # collatz64, dot2, iterative_sqrt, quadrec routes (research/tools/auto/ca_fast_e2e.sh) and the gcd / isprime it-0
+  # proposals equal to the farm's old-rule ones (research/data/loopfast/).
+  # BD_RAM_GUARD_PS=400 (default here since 2026-11-19; subagent ifloop, research/data/suite/ifloop.md): rule B (a RAM's
+  # setup: the host's or a store's WE / DI against the manufactured clock, sized by bd_mem's USETUP line) had no scatter
+  # guard; on if_loop_1 seed 1 it passed the host fill's WE at +79 ps and 2 of 4 draws failed (the draws' within-die
+  # scatter moves that race by ~112 ps, one sigma). 400 ps = 3x the largest spread measured on any memory route's worst
+  # race. It only lengthens a setup line, which sits outside the kernel's loop on a host access.
+  # PYTHONHASHSEED pinned (default 1): the rule iterates Python sets of pin names (find_chains), so the greedy shrink's
+  # order among lines of equal length, and with it a proposal, could depend on the hash seed (loopfast, 2026-11-18).
+  # CA_JOINAWARE=1 (default here; research/data/sizerule/joinaware.md): rule A' checks an operator's data where it is
+  # captured, with a sibling's request credited at a shared join (formal B2 / B3: the incrementer paid for a capture
+  # that does not happen). xorshift seed 1's final route, both corners: 103 -> 89 links (UADDI0 7 -> 1).
+  # BD_SKEW_STEER_SELF=1 (default here; research/data/sizerule/steerE.md): at a steer whose C-element join carries the
+  # select's own channel request, rule E from a latch launch is bounded by that request; the row that held xorshift's
+  # loop test UCMPI1 at 17-19 was a lap through the steer's own select and a sibling's acknowledge (17 -> 8; a build at
+  # those sizes 16.62 ns vs 21.08, 4/4 draws).
+  # BD_SKEW_E_JOIN=1 (opt-in, default OFF; research/data/sizerule/ejoin.md): rule E credits a C-element on the request
+  # path with its other inputs' arrivals, case by case on what made the launch fire (BD_SKEW_E_JOIN_DEPTH causes back,
+  # default 1).  Passed through from the environment; unset, the rule is byte-identical.
+  # BD_SKEW_MUXN=1 (default ON in this loop since 2026-11-19 05:47 UTC; BD_SKEW_MUXN= turns it off; research/data/muxsel/notes.txt): rule E also checks every bdc_muxnN's select decode
+  # sel[k] = ctl_req & (s == k) (its ctl_req pin against each index pin), which no rule measured, so the select link's DELAY
+  # that guards it was "on no measured constraint: kept" (cmpchain: shrunk to 1, runts on the decode outputs in GLS).
+  # AUTO_GUARD_E=LO,HI (opt-in, 2026-11-21; unset: corner_audit's own 0.97 / 1.03, the rule byte-identical): rule E / J's
+  # guard (the request x LO against the select x HI at every steer / select gate). Why: formal's B24 steer screen calls a
+  # route fine only with no pulses at a path error of x <= 0.10; flow v10's collatz64 s1 (rule CLEAN) had them at 0.08
+  # (research/JOURNAL.md 2026-11-21 04:17). 0.90,1.10 makes the rule check that tolerance itself, on its own bands.
+  local GE=""; [ -n "${AUTO_GUARD_E:-}" ] && GE="--guard-lo ${AUTO_GUARD_E%,*} --guard-hi ${AUTO_GUARD_E#*,}"
+  local c; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
+    BD_SKEW_MUXN=${BD_SKEW_MUXN-1} BD_SKEW_E_JOIN=${BD_SKEW_E_JOIN:-} BD_SKEW_E_JOIN_DEPTH=${BD_SKEW_E_JOIN_DEPTH:-1} \
+    PYTHONHASHSEED=${PYTHONHASHSEED:-1} CA_FAST=${CA_FAST:-1} BD_RAM_GUARD_PS=${BD_RAM_GUARD_PS:-400} \
+    BD_SKEW_STEER_SELF=${BD_SKEW_STEER_SELF:-1} CA_JOINAWARE=${CA_JOINAWARE:-1} BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 \
+      python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
+        --band "$c" --inst-rx '\.chain\.g\[\d+\]\.u$:0.20' $GE --out "$CA/rule_$c" > "$O/ca_${i}_$c.txt" 2>&1 &
+  done; wait
+  local dirs=(); for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
+    [ -f "$CA/rule_$c/sizes.vh" ] && [ -f "$CA/rule_$c/negative_sized.tsv" ] || return 1; dirs+=("$CA/rule_$c"); done
+  python3 "$T/merge_rules.py" "$CA/rule" "${dirs[@]}" && grep -h '^proposal' "$O/ca_${i}_"*.txt > "$O/ca_$i.txt"
+  [ -f "$CA/rule/sizes.vh" ] && [ -f "$CA/rule/negative_sized.tsv" ] || return 1
+  cp "$CA/rule/sizes.vh" "$O/rule_$i.vh"; cp "$CA/rule/negative_sized.tsv" "$O/neg_$i.txt"   # for AUTO_RESUME
+  for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do cp "$CA/rule_$c/lines.tsv" "$O/lines_${i}_$c.txt" 2>/dev/null; done
+}
+near_args() {  # near_args I: AUTO_NEAR_PS (opt-in): the finish phase also pads every line with < AUTO_NEAR_PS ps left
+  [ -n "${AUTO_NEAR_PS:-}" ] || return 0
+  local c l=""; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do l="$l${l:+,}$O/lines_${1}_$c.txt"; done
+  echo "--near $AUTO_NEAR_PS $l"
+}
+place_dump() {  # place_dump I: route I's placement, one "cell<TAB>bel" per line (AUTO_PLACE_KEEP)
+  python3 - "$RUNS/hw/${N}_$1/${D}_routed.json" > "$O/place_$1.txt" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+for m in d["modules"].values():
+    cs = m.get("cells", {})
+    if any("NEXTPNR_BEL" in c.get("attributes", {}) for c in cs.values()):
+        for n, c in sorted(cs.items()):
+            b = c.get("attributes", {}).get("NEXTPNR_BEL")
+            if b:
+                print("%s\t%s" % (n, b))
+        break
+PY
+}
+build() {  # build I SIZES: the route and its prjxray SDF only (LANE_NORUN=1); final() runs the full stack on the kept one
+  # A route whose BENCH side (the PS-clocked harness, not the kernel) misses build_bench.sh's 83 MHz target is refused
+  # by build_bench.sh ("TIMING FAILED"), and with NEXTPNR_SEED pinned it gets one attempt, so one such route used to
+  # end the whole loop (farm: quadrec s2 at it 5, varshift s4 at it 3, the stores subagent's fill s1 at it 2). Now
+  # that iteration is built again on seed S + 100, then S + 200 (AUTO_SEED_TRIES, default 3 attempts); only a missed
+  # bench clock is retried. The seed each iteration was built with is in seed_I.txt (a resume rebuilds with it; a
+  # board item names it). Without such a miss nothing changes: every iteration is built on S, as before.
+  local i=$1 Z=$2 a s HWI=$RUNS/hw/${N}_$1 PF="" pfa
+  local s0; s0=$(cat "$O/seed_$i.txt" 2>/dev/null || echo "$S")
+  # AUTO_PLACE_KEEP=1 (opt-in; unset, nothing below changes a build): a FINISH-phase route keeps the placement of the
+  # route before it (cells/hw/build_bench.sh BD_PLACE_FROM; only the cells a raised line adds are placed). Why: a
+  # fresh re-route moves every margin by ~0.5 ns (sd) where no line changed (research/data/converge/notes.txt), and the
+  # raise-only steps chase those fresh misses; test_bool_array s1 it 5 -> 6: 6051 of 6136 cells moved for 3 new LUTs.
+  # placefrom_I.txt names the route kept (a rebuild on resume uses it again); place_I.txt is route I's placement
+  # (cell, bel), written for every route the loop builds while the knob is on. A bench clock missed with the kept
+  # placement is retried fresh on the next seed (and placefrom_I.txt removed), as before.
+  # The previous route's routed JSON when it is on this disk (place_from.py's matching needs its connectivity and LUT
+  # pins), else its place_J.txt (cell / bel only: a resume elsewhere; names alone match less).
+  local j=""
+  if [ -f "$O/placefrom_$i.txt" ]; then j=$(cat "$O/placefrom_$i.txt")
+  elif [ "${AUTO_PLACE_KEEP:-0}" = 1 ] && [ "${ph:-1}" = 2 ] && [ "$i" -ge 1 ]; then j=$((i - 1)); fi
+  if [ -n "$j" ]; then
+    [ -f "$O/place_$j.txt" ] || { [ -f "$RUNS/hw/${N}_$j/${D}_routed.json" ] && place_dump "$j"; }
+    if [ -f "$RUNS/hw/${N}_$j/${D}_routed.json" ]; then PF=$RUNS/hw/${N}_$j/${D}_routed.json
+    elif [ -f "$O/place_$j.txt" ]; then PF=$O/place_$j.txt; fi
+    [ -n "$PF" ] && echo "$j" > "$O/placefrom_$i.txt"
+  fi
+  rm -rf "$HWI" "$RUNS/r/${N}_$i"   # a failed build must not leave an older route's files looking like this one's
+  if [ -n "$PF" ]; then   # the kept placement, on the iteration's seed; any failure: built fresh below, as without it
+    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s0" "$VEC" BDC_AUTO=1 ${XENV:-} ${ANENV} BD_PLACE_FROM="$PF" > "$O/it_$i.log" 2>&1
+    tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
+    if [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$HWI/${D}_routed.json" ]; then
+      echo "$s0" > "$O/seed_$i.txt"; place_dump "$i"
+      echo "it $i: placement kept from it $(cat "$O/placefrom_$i.txt") ($(grep -o 'place_from: bound [0-9]* of [0-9]* cells.*) from' "$HWI/build.log" 2>/dev/null | head -1 | sed 's/ from$//'))" >> "$O/log.txt"
+      return 0
+    fi
+    echo "it $i: the kept placement failed ($(grep -m1 -E 'ERROR|FAILED' "$HWI/build.log" 2>/dev/null | cut -c1-120)); built fresh" >> "$O/log.txt"
+    rm -f "$O/placefrom_$i.txt"; rm -rf "$HWI" "$RUNS/r/${N}_$i"
+  fi
+  # AUTO_OVERBUILD_LATE (opt-in): the late finish phase's routes are built with BD_SYMTRIM (symtrim_from.txt: its first)
+  local SYMD=""
+  if [ -f "$O/symtrim_from.txt" ] && [ "$i" -ge "$(cat "$O/symtrim_from.txt")" ] \
+     && { [ ! -f "$O/overbuild_to.txt" ] || [ "$i" -le "$(cat "$O/overbuild_to.txt")" ]; }; then
+    SYMD="BD_DEFINES=${BD_DEFINES:+$BD_DEFINES }-DBD_SYMTRIM"
+  fi
+  for a in $(seq 0 $(( ${AUTO_SEED_TRIES:-3} - 1 ))); do
+    s=$s0; [ "$a" -gt 0 ] && s=$((S + 100 * a)); [ "$a" -gt 0 ] && [ "$s" = "$s0" ] && s=$((S + 100 * (a + 1)))
+    [ "$a" -gt 0 ] && rm -rf "$HWI" "$RUNS/r/${N}_$i"
+    LANE_NORUN=1 "$LANE" "$L" "${N}_$i" "$K" "$Z" "$s" "$VEC" BDC_AUTO=1 ${XENV:-} ${ANENV} ${SYMD:+"$SYMD"} > "$O/it_$i.log" 2>&1
+    tail -1 "$O/it_$i.log" > "$O/it_$i.txt"
+    if [ -f "$RUNS/r/${N}_$i/xray.sdf" ] && [ -f "$HWI/${D}_routed.json" ]; then
+      echo "$s" > "$O/seed_$i.txt"; [ "${AUTO_PLACE_KEEP:-0}" = 1 ] && place_dump "$i"
+      return 0
+    fi
+    grep -q "TIMING FAILED" "$HWI/build.log" 2>/dev/null || return 1
+    echo "it $i: seed $s missed the bench clock ($(grep -o 'TIMING FAILED: [0-9.]* MHz' "$HWI/build.log" | head -1)); next seed" >> "$O/log.txt"
+  done
+  return 1
+}
+mkbit() {  # mkbit HWDIR: the bitstream from HWDIR/D.fasm, as cells/hw/build_bench.sh makes it
+  local P=xc7z010clg400-1 DB=${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7/share/nextpnr/prjxray-db/zynq7
+  local PX=${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7-src/prjxray
+  PYTHONPATH="$PX:${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7/lib/python${PYTHONPATH:+:$PYTHONPATH}" \
+    python3 "$PX/utils/fasm2frames.py" --db-root "$DB" --part "$P" "$1/$D.fasm" > "$1/$D.frames" 2> "$1/frames.log" &&
+  "${TC:-$HOME/dev2/lib/fpgatoolchain}/openxc7/bin/xc7frames2bit" --part_file "$DB/$P/part.yaml" --part_name "$P" \
+    --frm_file "$1/$D.frames" --output_file "$1/$D.bit" > "$1/bit.log" 2>&1
+}
+# AUTO_CKPT=1 (opt-in, 2026-11-22; unset, l2run / cycd / rule_memo run exactly the commands they stand for): final()'s
+# work survives a resume. A farm task stopped at its 240-min limit inside final() redid all of it when resumed -- the
+# untrimmed stack, every trim step's rule run, every round's stack -- so the slowest kernels never reached their draws
+# (digitsum / digitdiv / sobel / video_filter, research/JOURNAL.md 2026-11-21 09:01; on digitsum s2 one trim step's
+# rule run took 43-73 min, five of them before the second round). With the knob, two kinds of run are memoized by
+# CONTENT in $O, as *.txt files, which a farm task's save loop already copies to $SHARED every 5 min:
+#   * a full stack (lane2_run.sh) and its cycle decomposition -- key: md5 of the route's FASM, routed JSON, kernel
+#     Verilog, prjxray SDF and the period vector (all lane2_run.sh's result depends on; its ENV arguments are only
+#     recorded) and the stack tools' committed git ids; stk_KEY_{line,cyc,bench,equiv}.txt. Only a stack that ended
+#     with a numeric P and a bits verdict is kept (one cut short, e.g. by an out-of-memory kill, runs again);
+#   * a trim step's rule run (rule_memo) -- key: md5 of the routed JSON, the SDF, the sizes it reads, every CA_ / BD_ /
+#     AUTO_GUARD_E / AUTO_RULE_CORNERS / PYTHONHASHSEED variable of the environment and the rule's committed git ids;
+#     rck_KEY_{rule,neg}.txt and rck_KEY_dep_<corner>.txt (the reports' constraint / "depends on" line pairs, all the
+#     step's partial retry reads).
+# research/tools/suite/suite_one.sh does the same for each draw (dck_*.txt). A resumed final() re-derives the same trims
+# (each step is a deterministic function of those inputs) and finds every stack and rule run it already paid for. A
+# memo is written only after its run finished, by rename. The key covers what the run reads, so another route, other
+# sizes or another rule setting misses and runs for real: a memo can make a resume faster, never different. A stack
+# memo also restores what the stack leaves for later steps: the event graph's files (graphs/N_I, which the search
+# phase reads), the BENCHRES lines of r/N_I/run.log (suite_one.sh's latency) and fid/equiv.txt. The git ids are of
+# committed content: a local run with uncommitted changes to those tools must not reuse an older memo, and a commit
+# to one of them between two parts of a farm run makes the later part miss. This script enters a rule key only as
+# the text of rule() (declare -f), so a commit elsewhere in it does not.
+ck_tools() {  # ck_tools PATH...: the committed git object ids of the tools a memo depends on ("?" outside git)
+  local p; for p in "$@"; do git -C "$R" rev-parse "HEAD:$p" 2>/dev/null || echo "?"; done
+}
+ck_put() {  # ck_put SRC DEST: SRC copied to DEST by rename, so a memo is never seen half-written
+  cp "$1" "$2.part.$$" 2>/dev/null && mv -f "$2.part.$$" "$2"
+}
+stk_key() {  # stk_key I: content key of route N_I's full stack
+  local H=$RUNS/hw/${N}_$1
+  { cat "$H/$D.fasm" "$H/${D}_routed.json" "$H/${K}_kernel_bench.v" "$RUNS/r/${N}_$1/xray.sdf" "$VEC" 2>/dev/null
+    ck_tools research/tools/eventgraph research/tools/fifteen/lane2_run.sh research/tools/ffmux_scan.py cells/gls; } \
+    | md5sum | cut -c1-16
+}
+l2run() {  # l2run I: lane2_run.sh's full stack on route N_I (its own output); AUTO_CKPT=1: memoized (see above)
+  [ "${AUTO_CKPT:-0}" = 1 ] || { "$R/research/tools/fifteen/lane2_run.sh" "${N}_$1" "$K" "$VEC" BDC_AUTO=1 ${XENV:-}; return; }
+  local i=$1 key rc RD=$RUNS/r/${N}_$1 tmp=$O/.l2run.$$; key=$(stk_key "$i")
+  local G=$R/research/data/eventgraph/graphs/${N}_$1 f
+  if [ -s "$O/stk_${key}_line.txt" ]; then
+    mkdir -p "$RD/fid" "$G"; cp "$O/stk_${key}_bench.txt" "$RD/run.log" 2>/dev/null; cp "$O/stk_${key}_equiv.txt" "$RD/fid/equiv.txt" 2>/dev/null
+    # the event graph's files as the stack left them (the search phase reads them: search.py on graphs/N_I)
+    for f in nodes.tsv arcs.tsv check.txt provenance.txt build.txt; do
+      rm -f "$G/$f"; cp "$O/stk_${key}_g_$f.txt" "$G/$f" 2>/dev/null; done
+    cp "$RUNS/hw/${N}_$i/${K}_kernel_bench.v" "$G/kernel.v" 2>/dev/null; sed 's/sig=[0-9a-f]* //' "$RD/run.log" > "$G/benchres.txt" 2>/dev/null
+    echo "ckpt: it $i stack from memo $key" >> "$O/log.txt"
+    echo "auto_size: AUTO_CKPT stack memo $key (route ${N}_$i)"; cat "$O/stk_${key}_line.txt"; return 0
+  fi
+  "$R/research/tools/fifteen/lane2_run.sh" "${N}_$i" "$K" "$VEC" BDC_AUTO=1 ${XENV:-} > "$tmp" 2>&1; rc=$?
+  cat "$tmp"
+  if [ "$rc" = 0 ] && tail -1 "$tmp" | grep -qE ' P=[0-9]+ .*VERDICT: (NOT )?EQUIVALENT'; then
+    python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$i" > "$tmp.cyc" 2>&1
+    ck_put "$tmp.cyc" "$O/stk_${key}_cyc.txt"
+    grep BENCHRES "$RD/run.log" > "$tmp.bench" 2>/dev/null; ck_put "$tmp.bench" "$O/stk_${key}_bench.txt"
+    [ -f "$RD/fid/equiv.txt" ] && ck_put "$RD/fid/equiv.txt" "$O/stk_${key}_equiv.txt"
+    for f in nodes.tsv arcs.tsv check.txt provenance.txt build.txt; do
+      [ -f "$G/$f" ] && ck_put "$G/$f" "$O/stk_${key}_g_$f.txt"; done
+    tail -1 "$tmp" > "$tmp.line"; ck_put "$tmp.line" "$O/stk_${key}_line.txt"   # last: the memo's mark
+    echo "ckpt: it $i stack memo $key written" >> "$O/log.txt"
+  fi
+  rm -f "$tmp" "$tmp.cyc" "$tmp.bench" "$tmp.line"; return $rc
+}
+cycd() {  # cycd I: cycdecomp.py on route N_I's event graph (its own output); AUTO_CKPT=1: the stack memo's copy
+  if [ "${AUTO_CKPT:-0}" = 1 ]; then
+    local key; key=$(stk_key "$1")
+    if [ -s "$O/stk_${key}_cyc.txt" ]; then cat "$O/stk_${key}_cyc.txt"; return 0; fi
+  fi
+  python3 "$R/research/tools/eventgraph/cycdecomp.py" "$R/research/data/eventgraph/graphs/${N}_$1"
+}
+rck_key() {  # rck_key I SIZES: content key of a trim step's rule run on route N_I with SIZES
+  local H=$RUNS/hw/${N}_$1
+  { cat "$H/${D}_routed.json" "$RUNS/r/${N}_$1/xray.sdf" "$2" 2>/dev/null
+    env | grep -E '^(CA_|BD_|AUTO_GUARD_E=|AUTO_RULE_CORNERS=|PYTHONHASHSEED=)' | sort
+    ck_tools research/tools/corner_audit.py research/tools/ca_fast.py research/tools/auto/merge_rules.py cells/verify
+    declare -f rule; } \
+    | md5sum | cut -c1-16
+}
+rule_memo() {  # rule_memo I SIZES: rule() for a trim step; AUTO_CKPT=1: memoized with what the step reads of it
+  [ "${AUTO_CKPT:-0}" = 1 ] || { rule "$@"; return; }
+  local i=$1 key c CA=$RUNS/ca/${N}_$1; key=$(rck_key "$i" "$2")
+  if [ -s "$O/rck_${key}_rule.txt" ] && [ -s "$O/rck_${key}_neg.txt" ]; then
+    cp "$O/rck_${key}_rule.txt" "$O/rule_$i.vh"; cp "$O/rck_${key}_neg.txt" "$O/neg_$i.txt"
+    rm -rf "$CA"; for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do mkdir -p "$CA/rule_$c"
+      cp "$O/rck_${key}_dep_$c.txt" "$CA/rule_$c/report.txt" 2>/dev/null; done
+    echo "ckpt: rule $i from memo $key" >> "$O/log.txt"; return 0
+  fi
+  rule "$@" || return 1
+  for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do   # the line pairs the partial retry reads: a row, then its "depends on:"
+    awk 'NR > 1 && /depends on:/ {print prev; print} {prev = $0}' "$CA/rule_$c/report.txt" > "$O/.dep.$$" 2>/dev/null
+    ck_put "$O/.dep.$$" "$O/rck_${key}_dep_$c.txt"; rm -f "$O/.dep.$$"
+  done
+  ck_put "$O/neg_$i.txt" "$O/rck_${key}_neg.txt"
+  ck_put "$O/rule_$i.vh" "$O/rck_${key}_rule.txt"   # last: the memo's mark
+}
+neg_keys() {  # neg_keys FILE: "key worst" per short constraint (a rule's neg file), the worst corner's margin
+  awk -F'\t' 'NR > 1 && NF >= 3 { if (!($3 in m) || $2 < m[$3]) m[$3] = $2 } END { for (k in m) print k "\t" m[k] }' "$1" 2>/dev/null | sort
+}
+trim_record() {  # trim_record SIZES RECORD LOG: trim_lines.py's moves into the effective sizes and the MACRO=LEN record
+  python3 - "$1" "$2" "$3" <<'PY'
+import re, sys
+cur, rec, log = sys.argv[1:4]
+got = {}
+for l in open(log):
+    m = re.match(r"trim (\S+) \S+: (\d+) -> (\d+)", l)
+    if m:
+        got.setdefault(m.group(1), set()).add(int(m.group(3)))
+refused = {m.group(1) for m in (re.match(r"REFUSED (\S+?):", l) for l in open(log)) if m}
+new = {k: v.pop() for k, v in got.items() if len(v) == 1 and k not in refused}
+lines = open(cur).read().splitlines()
+out = []
+for l in lines:
+    m = re.match(r"`define\s+(\S+)\s+(\d+)", l)
+    out.append("`define %s %d" % (m.group(1), new[m.group(1)]) if m and m.group(1) in new else l)
+open(cur, "w").write("\n".join(out) + "\n")
+r = {}
+for l in open(rec).read().split():
+    a, b = l.split("="); r[a] = b
+for k, v in new.items():
+    r[k] = str(v)
+open(rec, "w").write("".join("%s=%s\n" % kv for kv in sorted(r.items())))
+PY
+}
+trim_route() {  # trim_route I (AUTO_TRIM=1): the shipped route's lines shortened to what THIS route needs, by LUT INIT only
+  # research/data/trim/README.md: a line of LUT2 elements can be made any length 1..N after routing (trim_lines.py),
+  # so the rule's proposal on the route itself is applied with no re-place and no re-route, and checked on the same
+  # route (the rule reads trimmed lines). Each step: rule -> proposal -> trim every line it moves (shorter, or longer
+  # within the line's built length) -> bits -> rule; a step whose short constraints include one the route did not have
+  # before, or whose total miss is larger, is reverted (keeping the lines those rows do not depend on, once per step).
+  # AUTO_TRIM_MAX steps (default 6). The proposal is the rule's trim mode (AUTO_TRIM_PLAN=ca, see below): exact per
+  # entry, so a step normally opens nothing. With AUTO_TRIM_PLAN=0, AUTO_TRIM_DAMP=1 (default) shortens each line by half
+  # its gap to the rebuild proposal (at least one element), because that proposal prices a removed element at the
+  # line's mean step while a trimmed line is entered through the side net and loses more (xorshift s1 it 9: the full
+  # proposal opened 16 short constraints, 1458 ps, once the rule read trimmed lines correctly).
+  # $O/trim_I.txt records the final MACRO=LEN; a rebuild of route I (resume, a board item) re-applies it.
+  local i=$1 H=$RUNS/hw/${N}_$1 k Z cur prev_keys prev_tot keys tot t retried="" CA_LAST=""
+  [ -f "$H/${D}_routed.json" ] || return 0
+  if [ ! -f "$H/${D}_routed.untrimmed.json" ]; then
+    cp "$H/${D}_routed.json" "$H/${D}_routed.untrimmed.json"; cp "$H/$D.fasm" "$H/$D.untrimmed.fasm"; cp "$H/$D.bit" "$H/$D.untrimmed.bit"
+  fi
+  if [ -z "${TRIM_CONTINUE:-}" ] && [ -f "$O/trim_$i.txt" ] && [ -s "$O/trim_$i.txt" ]; then   # a rebuild: re-apply the recorded trims
+    python3 "$T/trim_lines.py" --partial "$H/${D}_routed.untrimmed.json" "$H/$D.untrimmed.fasm" "$H/${D}_routed.json" "$H/$D.fasm" \
+      $(cat "$O/trim_$i.txt") > "$O/trim_${i}_reapply.log" 2>&1 && mkbit "$H"
+    echo "trim: it $i re-applied $(wc -l < "$O/trim_$i.txt") recorded trim(s)" >> "$O/log.txt"; return 0
+  fi
+  cur=$O/sizes_${i}_trim.vh
+  if [ -z "${TRIM_CONTINUE:-}" ]; then cp "$O/sizes_$i.vh" "$cur"; : > "$O/trim_$i.txt"; fi   # TRIM_CONTINUE: from the trims made
+  prev_keys=""; prev_tot=""
+  for k in $(seq 1 $(( ${AUTO_TRIM_MAX:-6} + 2 ))); do   # past AUTO_TRIM_MAX a pass only checks (a partial retry may need one)
+    rm -rf "$RUNS/hw/${N}_${i}t$k" "$RUNS/r/${N}_${i}t$k"
+    ln -s "$H" "$RUNS/hw/${N}_${i}t$k"; ln -s "$RUNS/r/${N}_$i" "$RUNS/r/${N}_${i}t$k"
+    if [ "${AUTO_TRIM_PLAN:-ca}" = ca ]; then CA_TRIM=1 rule_memo "${i}t$k" "$cur"; else rule_memo "${i}t$k" "$cur"; fi ||
+      { echo "trim: it $i step $k: RULE FAILED" >> "$O/log.txt"; break; }
+    CA_LAST=$RUNS/ca/${N}_${i}t$k
+    keys=$(neg_keys "$O/neg_${i}t$k.txt" | cut -f1); tot=$(neg_keys "$O/neg_${i}t$k.txt" | awk -F'\t' '{s -= $2} END {print s + 0}')
+    if [ -n "$prev_tot" ]; then   # the step before was applied: did it open anything?
+      local newk; newk=$(comm -13 <(echo "$prev_keys") <(echo "$keys") | grep .)
+      if [ -n "$newk" ] || [ "$tot" -gt "$prev_tot" ]; then
+        cp "$H/${D}_routed.prev.json" "$H/${D}_routed.json"; cp "$H/$D.prev.fasm" "$H/$D.fasm"; cp "$H/$D.prev.bit" "$H/$D.bit"
+        cp "$O/sizes_${i}_trim.prev.vh" "$cur"; cp "$O/trim_${i}.prev.txt" "$O/trim_$i.txt"
+        # once per step: keep the trims of every line the newly short constraints do not depend on (each row's
+        # "depends on" in the rule's report), and try again; else the whole step stays reverted
+        local tred=""
+        if [ -z "$retried" ] && [ -n "$newk" ]; then
+          tred=$(python3 - "$t" "$CA_LAST" <<'PY'
+import re, sys
+step = dict(x.split("=") for x in sys.argv[1].split())
+labels = set()
+for k in sys.stdin.read().split("\n"):
+    if k.strip():
+        labels.add(k.split()[1] if len(k.split()) > 1 else k)
+deps = set()
+for c in ("0.20", "0.31"):
+    try:
+        lines = open("%s/rule_%s/report.txt" % (sys.argv[2], c)).read().splitlines()
+    except OSError:
+        continue
+    for j, l in enumerate(lines):
+        f = l.split()
+        if len(f) >= 3 and f[2] in labels and j + 1 < len(lines) and "depends on:" in lines[j + 1]:
+            deps |= {"BD_SZ_" + m.group(1) for m in re.finditer(r"(\w+)\(-", lines[j + 1])}
+keep = {k: v for k, v in step.items() if k not in deps}
+print(" ".join("%s=%s" % kv for kv in sorted(keep.items())) if keep and len(keep) < len(step) else "")
+PY
+<<< "$newk")
+        fi
+        if [ -n "$tred" ]; then
+          retried=1; t=$tred
+          python3 "$T/trim_lines.py" --partial "$H/${D}_routed.prev.json" "$H/$D.prev.fasm" "$H/${D}_routed.json" "$H/$D.fasm" $t \
+            > "$O/trim_${i}_${k}r.log" 2>&1 && mkbit "$H" || { echo "trim: it $i: partial retry FAILED" >> "$O/log.txt"; break; }
+          trim_record "$cur" "$O/trim_$i.txt" "$O/trim_${i}_${k}r.log"
+          echo "trim: it $i step $((k - 1)) opened $(echo "$newk" | grep -c .) constraint(s): kept $(echo $t | wc -w) of its line(s), the rest reverted" >> "$O/log.txt"
+          continue
+        fi
+        echo "trim: it $i step $((k - 1)) reverted (short: $(echo $keys | wc -w) constraint(s), $tot ps; before: $prev_tot ps)" >> "$O/log.txt"
+        keys=$prev_keys; tot=$prev_tot   # the state left applied is the step before
+        break
+      fi
+    fi
+    retried=""
+    prev_keys=$keys; prev_tot=$tot
+    [ "$k" -gt "${AUTO_TRIM_MAX:-6}" ] && { echo "trim: it $i: $(echo $keys | wc -w) short, $tot ps after the last step" >> "$O/log.txt"; break; }
+    # the trims. AUTO_TRIM_PLAN=ca (default): the rule's own proposal made in its trim mode (corner_audit CA_TRIM=1:
+    # each line priced at its new entry exactly -- input wire, the anchor the entry skips, the chain after it -- and
+    # verified with the entry moved in the timing graph as trim_lines.py moves it; on xorshift s1 it 9 every margin
+    # it predicted matched the trimmed route's within 2 ps), applied in full. AUTO_TRIM_PLAN=1: trim_plan.py (a linear
+    # charge; it opened 12 constraints there). AUTO_TRIM_PLAN=0: the rule's rebuild proposal, damped (opened 14-16).
+    if [ "${AUTO_TRIM_PLAN:-ca}" = ca ]; then
+      t=$(python3 - "$cur" "$O/rule_${i}t$k.vh" <<'PY'
+import re, sys
+rd = lambda p: {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(p)) if m}
+a, b = rd(sys.argv[1]), rd(sys.argv[2])
+print(" ".join("%s=%d" % (k, v) for k, v in sorted(b.items()) if k in a and v != a[k]))
+PY
+)
+    elif [ "${AUTO_TRIM_PLAN:-ca}" = 1 ]; then
+      t=$(python3 "$T/trim_plan.py" "$CA_LAST" "$H/${D}_routed.json" 2> "$O/trim_${i}_${k}_plan.txt")
+    else
+    t=$(python3 - "$cur" "$O/rule_${i}t$k.vh" "${AUTO_TRIM_DAMP:-1}" <<'PY'
+import re, sys
+rd = lambda p: {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(p)) if m}
+a, b = rd(sys.argv[1]), rd(sys.argv[2])
+damp = sys.argv[3] == "1"     # AUTO_TRIM_DAMP: a shortening moves half the gap (at least one element); a raise, all
+out = []
+for k, v in sorted(b.items()):
+    if k in a and v != a[k]:
+        if damp and v < a[k]:
+            v = a[k] - max(1, (a[k] - v + 1) // 2)
+        out.append("%s=%d" % (k, v))
+print(" ".join(out))
+PY
+)
+    fi
+    # TRIM_ALLOW=FILE (AUTO_TRIM_SCOPE=cycle): only the lines listed there may move (the critical cycle's, cycle_macros.py)
+    if [ -n "${TRIM_ALLOW:-}" ] && [ -n "$t" ]; then
+      t=$(for x in $t; do grep -qxF "${x%%=*}" "$TRIM_ALLOW" && echo "$x"; done | tr '\n' ' ' | sed 's/ $//')
+    fi
+    # TRIM_FLOOR=FILE ("MACRO LEN" per line; AUTO_OVERBUILD's trim-back): no line goes below its floor -- a proposal under
+    # it becomes the floor, a line already there or longer is left alone unless the proposal pads it
+    if [ -n "${TRIM_FLOOR:-}" ] && [ -n "$t" ]; then
+      t=$(python3 - "$TRIM_FLOOR" "$cur" $t <<'PY'
+import re, sys
+fl = dict((l.split()[0], int(l.split()[1])) for l in open(sys.argv[1]) if l.strip())
+cur = {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(sys.argv[2])) if m}
+out = []
+for x in sys.argv[3:]:
+    mac, v = x.split("=")
+    v = max(int(v), fl.get(mac, 0))
+    if v != cur.get(mac):
+        out.append("%s=%d" % (mac, v))
+print(" ".join(out))
+PY
+)
+    fi
+    # a line race_pad.py raised (AUTO_RACE_Z: a latch-fed steer below its z) is never trimmed back below its size
+    if [ -s "$O/race_padded.txt" ] && [ -n "$t" ]; then
+      t=$(for x in $t; do grep -qxF "${x%%=*}" "$O/race_padded.txt" || echo "$x"; done | tr '\n' ' ' | sed 's/ $//')
+    fi
+    # AUTO_RACE_KEEP=1 (opt-in, 2026-11-20; unset, nothing changes): no latch-fed steer race's request line is ever
+    # shortened by a trim (a pad within its built length stays allowed).  Why: race_check measures the race on the route
+    # as built, and research/tools/race_find.py prices the link's request line from its first element, so a trim of
+    # that line (entered later) would ship a race nobody measured.  race_lines.txt: every race link race_check found.
+    if [ "${AUTO_RACE_KEEP:-0}" = 1 ] && [ -s "$O/race_lines.txt" ] && [ -n "$t" ]; then
+      t=$(for x in $t; do m=${x%%=*}; v=${x##*=}
+            c=$(awk -v m="$m" '$1 == "`define" && $2 == m {print $3}' "$cur")
+            if grep -qxF "$m" "$O/race_lines.txt" && [ -n "$c" ] && [ "$v" -lt "$c" ]; then continue; fi; echo "$x"
+          done | tr '\n' ' ' | sed 's/ $//')
+    fi
+    [ -n "$t" ] || { echo "trim: it $i step $k: the rule moves no line$([ -n "${TRIM_ALLOW:-}" ] && echo ' on the critical cycle') ($(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"; break; }
+    cp "$H/${D}_routed.json" "$H/${D}_routed.prev.json"; cp "$H/$D.fasm" "$H/$D.prev.fasm"; cp "$H/$D.bit" "$H/$D.prev.bit"
+    cp "$cur" "$O/sizes_${i}_trim.prev.vh"; cp "$O/trim_$i.txt" "$O/trim_${i}.prev.txt"
+    python3 "$T/trim_lines.py" --partial "$H/${D}_routed.prev.json" "$H/$D.prev.fasm" "$H/${D}_routed.json" "$H/$D.fasm" $t \
+      > "$O/trim_${i}_$k.log" 2>&1 || { echo "trim: it $i step $k: trim_lines FAILED" >> "$O/log.txt"; break; }
+    mkbit "$H" || { echo "trim: it $i step $k: bitstream FAILED" >> "$O/log.txt"
+      cp "$H/${D}_routed.prev.json" "$H/${D}_routed.json"; cp "$H/$D.prev.fasm" "$H/$D.fasm"; cp "$H/$D.prev.bit" "$H/$D.bit"; break; }
+    trim_record "$cur" "$O/trim_$i.txt" "$O/trim_${i}_$k.log"
+    echo "trim: it $i step $k: $(grep -c '^trim ' "$O/trim_${i}_$k.log") chain(s) moved, $(grep -c '^REFUSED' "$O/trim_${i}_$k.log") refused (before: $(echo $keys | wc -w) short, $tot ps)" >> "$O/log.txt"
+  done
+  # the state left applied: its short constraints and total miss (trim_check reads it); -1 if no rule ran
+  if [ -n "$prev_tot" ]; then echo "$(echo $keys | wc -w) $tot" > "$O/trim_${i}_final.txt"; else echo "-1 -1" > "$O/trim_${i}_final.txt"; fi
+}
+trim_check() {  # trim_check I (AUTO_OVERBUILD, finish phase): 0 if route I is made rule-clean by trims alone (the trim
+  # step run on it now: the rule's trim mode, every step verified); the route's bits are then put back untrimmed and the
+  # trims kept in trim_I.txt, which final() re-applies when the loop ships route I.  1 otherwise (trims kept recorded).
+  local i=$1 H=$RUNS/hw/${N}_$1 n
+  trim_route "$i"
+  n=$(awk '{print $1}' "$O/trim_${i}_final.txt" 2>/dev/null)
+  if [ -f "$H/${D}_routed.untrimmed.json" ]; then
+    cp "$H/${D}_routed.untrimmed.json" "$H/${D}_routed.json"; cp "$H/$D.untrimmed.fasm" "$H/$D.fasm"; cp "$H/$D.untrimmed.bit" "$H/$D.bit"
+  fi
+  echo "it $i trim check: ${n:-?} short after the trim step ($(grep -c . "$O/trim_$i.txt" 2>/dev/null) line(s) trimmed)" >> "$O/log.txt"
+  [ "${n:-1}" = 0 ]
+}
+overbuild_args() {  # overbuild_args I: AUTO_OVERBUILD=H (opt-in): at the switch to the finish phase every trimmable line
+  # of route I (trim_lines.py --list) is built H elements longer than max(sizes, proposal); see ratchet.py --overbuild
+  [ -n "${AUTO_OVERBUILD:-}" ] || return 0
+  [ -n "${AUTO_OVERBUILD_LATE:-}" ] && return 0   # late mode: the overbuild comes after v10's finish phase (late_switch)
+  python3 "$T/trim_lines.py" --list "$RUNS/hw/${N}_$1/${D}_routed.json" > "$O/trimmable_$1.txt" 2>/dev/null || return 0
+  echo "--overbuild $AUTO_OVERBUILD $O/trimmable_$1.txt"
+}
+late_switch() {  # late_switch I RULE_VH NEG_TSV (AUTO_OVERBUILD_LATE=M, opt-in; AUTO_OVERBUILD=H): v10's finish phase ended at
+  # route I not clean; M more finish routes follow, built with BD_SYMTRIM (every delay line trimmable, the symmetric ones
+  # included) and every line of route I's sizes with a length (>= 1) built H longer -- the latch-fed race links
+  # race_check found excepted (race_lines.txt: their request lines keep raise-only sizing, measured on every route) --
+  # a route counting clean when the trim step alone makes it so, the shipped one trimmed back first (final()).
+  # Why late: loops that converge in v10's own finish phase keep v10's routes and periods exactly; only the loops v10
+  # leaves NOT CLEAN take the overbuild (sym2 ipow s1: overbuild from the switch cost +16 % P where v10 converged).
+  local i=$1
+  python3 - "$O/sizes_$i.vh" "$O/race_lines.txt" > "$O/trimmable_$i.txt" <<'PY'
+import os, re, sys
+race = set(l.strip() for l in open(sys.argv[2]) if l.strip()) if os.path.exists(sys.argv[2]) else set()
+for l in open(sys.argv[1]):
+    m = re.match(r"`define\s+(\S+)\s+(\d+)", l)
+    if m and int(m.group(2)) >= 1 and m.group(1) not in race:
+        print("%s\ttrimmable\t%s" % (m.group(1), m.group(2)))
+PY
+  python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$2" "$3" "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only \
+    --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") --overbuild "$AUTO_OVERBUILD" "$O/trimmable_$i.txt" > /dev/null
+  echo "$((i + 1))" > "$O/overbuild_from.txt"; echo "$((i + 1))" > "$O/symtrim_from.txt"
+  OB=$((i + 1)); IMAX=$((i + AUTO_OVERBUILD_LATE)); echo "$IMAX" > "$O/overbuild_to.txt"
+  echo "phase 3 (late overbuild +$AUTO_OVERBUILD on $(grep -c . "$O/trimmable_$i.txt") line(s), BD_SYMTRIM) from it $((i + 1)), at most $AUTO_OVERBUILD_LATE route(s)" >> "$O/log.txt"
+}
+race_check() {  # race_check I (AUTO_RACE_Z): the latch-fed steer races of route I in the draw model (research/tools/
+  # race_find.py over xray_delay.py's corner table, 20 000 points per race); research/tools/auto/race_pad.py raises the
+  # link of every race below AUTO_RACE_Z sd in the rule's proposal and adds a negative row (the route is then not clean;
+  # ratchet.py pins the raise), and records the raised lines in race_padded.txt so the trim step leaves them alone.
+  local i=$1 HW=$RUNS/hw/${N}_$1 CA=$RUNS/ca/${N}_$1 RC=$O/race_$1 tc=${TC:-$HOME/dev2/lib/fpgatoolchain}
+  mkdir -p "$RC"
+  PYTHONPATH=$tc/openxc7-src/prjxray python3 "$R/cells/gls/fid/xray_delay.py" --routed "$HW/${D}_routed.json" \
+    --sdf "$HW/$D.sdf" --out "$RC/xray.sdf" --arcs "$RC/arcs.tsv" > "$RC/xray.log" 2>&1 || { echo "race: it $i: xray_delay FAILED" >> "$O/log.txt"; return 0; }
+  python3 "$R/research/tools/race_find.py" "$HW/${D}_routed.json" "$RC/arcs.tsv" "$RC/specs" 20000 > "$O/race_$i.txt" 2>&1
+  # AUTO_RACE_KAPPA=K (opt-in, 2026-11-21; formal B32 / B36; with AUTO_RACE_Z): the same races at formal's split corners
+  # (research/tools/race_kappa.py: the request at its arcs' minima, the condition at their maxima, one prjxray corner at
+  # a time); one below K pads its link by race_kappa's element estimate (>= 1) and adds an R row, as a race below Z does.
+  # Unset: nothing changes.
+  local KP=""
+  if [ -n "${AUTO_RACE_KAPPA:-}" ]; then
+    python3 "$R/research/tools/race_kappa.py" "$RC/arcs.tsv" "$RC/specs" "$AUTO_RACE_KAPPA" > "$O/racek_$i.txt" 2>&1 \
+      || echo "race: it $i: race_kappa FAILED" >> "$O/log.txt"
+    KP="--kappa $O/racek_$i.txt $AUTO_RACE_KAPPA"
+  fi
+  # the sizes route I was built with: sizes_I.vh, or the second argument (an AUTO_FINISH_SEEDS alternate route IsJ is
+  # built from sizes_I.vh and has no sizes file of its own)
+  local s; s=$(python3 "$T/race_pad.py" "$O/race_$i.txt" "$AUTO_RACE_Z" "${2:-$O/sizes_$i.vh}" "$CA/rule/sizes.vh" "$CA/rule/negative_sized.tsv" $KP)
+  echo "it $i $s" >> "$O/log.txt"
+  echo "$s" | grep -o 'BD_SZ_[A-Z0-9_]* [0-9]*->' | awk '{print $1}' >> "$O/race_padded.txt"
+  if [ "${AUTO_RACE_KEEP:-0}" = 1 ]; then   # every race link's request line, short or not (trim_route leaves them alone)
+    { cat "$O/race_lines.txt" 2>/dev/null
+      grep -oE ' link [A-Za-z0-9_]+:' "$O/race_$i.txt" | awk '{sub(":", "", $2); print "BD_SZ_BRIDGE_I_UDUT_" toupper($2)}' || true
+    } | sort -u > "$O/race_lines.new"; mv "$O/race_lines.new" "$O/race_lines.txt"   # (no race on this route: no new line)
+  fi
+  cp "$CA/rule/sizes.vh" "$O/rule_$i.vh"; cp "$CA/rule/negative_sized.tsv" "$O/neg_$i.txt"   # as rule() keeps them
+  rm -f "$RC/xray.sdf"
+}
+final() {  # final I: the full stack (bits-decoded netlist, equivalence, fid run, event-graph P) on the route the loop keeps
+  local i=$1
+  if [ ! -f "$RUNS/r/${N}_$i/xray.sdf" ]; then   # AUTO_RESUME: the route was built by an earlier run; rebuild it
+    local want; want=$(awk '{print $2}' "$O/it_$i.txt" 2>/dev/null)
+    cp "$O/it_$i.txt" "$O/it_${i}_before_resume.txt" 2>/dev/null
+    build "$i" "$O/sizes_$i.vh" || { echo "BUILD FAILED it=$i (rebuild for the final stack)" | tee -a "$O/result.txt"; exit 1; }
+    local got; got=$(awk '{print $2}' "$O/it_$i.txt")
+    echo "resume: route ${N}_$i rebuilt, sdf $got (earlier run: ${want:-?})$([ -n "$want" ] && [ "$want" != "$got" ] && echo ' -- DIFFERENT ROUTE')" >> "$O/log.txt"
+  fi
+  if [ "${AUTO_TRIM:-0}" = 1 ]; then
+    # AUTO_TRIM_P0 (default 1 when AUTO_TRIM=1): the untrimmed route's own full stack first (it_I_untrimmed.txt: its P,
+    # its bits verdict), so every trimmed route carries its own paired before / after.  AUTO_TRIM_ONLY has the loop's.
+    if [ ! -f "$O/it_${i}_untrimmed.txt" ] && [ "${AUTO_TRIM_P0:-1}" = 1 ]; then
+      l2run "$i" > "$O/final_${i}_untrimmed.log" 2>&1
+      tail -1 "$O/final_${i}_untrimmed.log" > "$O/it_${i}_untrimmed.txt"
+      echo "final it $i untrimmed $(cat "$O/it_${i}_untrimmed.txt")" >> "$O/log.txt"
+      # where the untrimmed route's critical cycle goes (chain / wire between cells / cell logic, per instance)
+      cycd "$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
+    fi
+    # AUTO_OVERBUILD (opt-in): an overbuilt finish route gives back its extra length FIRST.  Every line the switch built H
+    # longer (trimmable_<switch>.txt) is trimmed to max(the rule's need on this route, its size minus H) -- the length the
+    # finish phase would have built without overbuild -- and the route is re-timed; the usual trim step (the cycle scope's
+    # rounds, or the whole route) then starts from there and from that route's own critical cycle.  So the extra
+    # elements buy a clean route and nothing else: no latency on a loop-free kernel, no margin kept off the cycle, and
+    # the cycle's lines back where v10 would have them before the cycle's own trims.  The trim step's checks stand.
+    # Not after a trim check (the route was made clean by trims to the rule's need already: trim_I.txt holds them).
+    # Why first, not last: sym2 ipow s1 (2026-11-21 00:40): with the cycle trim first, its one step (7 overbuilt cycle
+    # lines at once) opened 2 constraints and was undone, and the route kept P 25.7 ns, all cycle lines +3 (v10: 19.9).
+    local TB=""
+    # ${AUTO_OVERBUILD:-$LATE_OB}: a route AUTO_SEARCH_OVERBUILD built in AUTO_LATE_AFTER_SEARCH's first pass (where
+    # AUTO_OVERBUILD is parked in LATE_OB), and its AUTO_TRIM_ONLY resume, give the length back too. Without markers
+    # (overbuild_from.txt) nothing below runs, so this changes no other route.
+    local AOB=${AUTO_OVERBUILD:-${LATE_OB:-}}
+    if [ -n "$AOB" ] && [ "${AUTO_OVERBUILD_TRIMBACK:-1}" = 1 ] && [ ! -s "$O/trim_$i.txt" ]; then
+      local sw ob
+      sw=$(cat "$O/overbuild_from.txt" 2>/dev/null || grep -oP '^phase 2 \(raise-only\) from it \K[0-9]+' "$O/log.txt" | tail -1)
+      ob=$O/trimmable_$((sw - 1)).txt
+      if [ -n "$sw" ] && [ "$i" -ge "$sw" ] && [ -s "$ob" ] \
+         && { [ ! -f "$O/overbuild_to.txt" ] || [ "$i" -le "$(cat "$O/overbuild_to.txt")" ]; }; then
+        awk -F'\t' '$2 == "trimmable" {print $1}' "$ob" > "$O/trimback_allow_$i.txt"
+        python3 - "$O/sizes_$i.vh" "$AOB" "$O/trimback_allow_$i.txt" > "$O/trimback_floor_$i.txt" <<'PY'
+import re, sys
+sz = {m.group(1): int(m.group(2)) for m in (re.match(r"`define\s+(\S+)\s+(\d+)", l) for l in open(sys.argv[1])) if m}
+h = int(sys.argv[2])
+for mac in (l.strip() for l in open(sys.argv[3]) if l.strip()):
+    if mac in sz:
+        print("%s %d" % (mac, max(1, sz[mac] - h)))
+PY
+        if [ -s "$O/trimback_allow_$i.txt" ]; then
+          echo "trim: it $i overbuild trim-back: $(grep -c . "$O/trimback_allow_$i.txt") line(s), floor = size - $AOB" >> "$O/log.txt"
+          TRIM_ALLOW=$O/trimback_allow_$i.txt TRIM_FLOOR=$O/trimback_floor_$i.txt trim_route "$i"
+          TB=1
+          l2run "$i" > "$O/final_${i}_tb.log" 2>&1
+          tail -1 "$O/final_${i}_tb.log" > "$O/it_${i}_tb.txt"
+          cycd "$i" > "$O/cyc_${i}_tb.txt" 2>&1
+          echo "final it $i after the trim-back $(cat "$O/it_${i}_tb.txt")" >> "$O/log.txt"
+        fi
+      fi
+    fi
+    if [ "${AUTO_TRIM_SCOPE:-all}" = cycle ]; then
+      # AUTO_TRIM_SCOPE=cycle (opt-in, 2026-11-20; formal B25): trim only the lines of instances on the critical cycle
+      # (cycdecomp of the route as it stands), then re-time the trimmed route and let the NEW critical cycle's lines move
+      # too, up to AUTO_TRIM_ROUNDS rounds (default 3), until the cycle brings no new line.  A line off every cycle the
+      # trims expose keeps its built length: shortening it cannot lower the period and spends a race's margin.
+      local r rr
+      if [ ! -s "$O/cyc_${i}_untrimmed.txt" ]; then   # AUTO_TRIM_ONLY copies the loop's line: time the untrimmed route here
+        l2run "$i" > "$O/final_${i}_untrimmed.log" 2>&1
+        tail -1 "$O/final_${i}_untrimmed.log" > "$O/it_${i}_untrimmed.txt"
+        echo "final it $i untrimmed $(cat "$O/it_${i}_untrimmed.txt")" >> "$O/log.txt"
+        cycd "$i" > "$O/cyc_${i}_untrimmed.txt" 2>&1
+      fi
+      local cyc0=$O/cyc_${i}_untrimmed.txt; [ -n "$TB" ] && [ -s "$O/cyc_${i}_tb.txt" ] && cyc0=$O/cyc_${i}_tb.txt
+      # AUTO_TRIM_PORTS=1 (opt-in, 2026-11-21; unset, nothing changes): a memory port on the cycle brings its own lines
+      # (umemN's usetup / uco: no "_UPORT" in their macro names), those trim_lines.py can shorten (cycle_macros.py --ports)
+      local PT=""
+      if [ "${AUTO_TRIM_PORTS:-0}" = 1 ]; then
+        python3 "$T/trim_lines.py" --list "$RUNS/hw/${N}_$i/${D}_routed.json" > "$O/trimlist_$i.txt" 2>/dev/null \
+          && PT="--ports $O/trimlist_$i.txt"
+      fi
+      python3 "$T/cycle_macros.py" "$cyc0" "$O/sizes_$i.vh" $PT > "$O/trim_allow_$i.txt"
+      echo "trim: it $i scope cycle, round 1: $(grep -c . "$O/trim_allow_$i.txt") line(s) on the untrimmed cycle" >> "$O/log.txt"
+      # Each round is kept only if the period it leaves is lower than the one before it (re-timed by the next round's
+      # full stack); a round that buys nothing is reverted, its trims undone (xorshift s1: round 2 moved 3 lines of its
+      # new cycle and P stayed 17588 ps).  snap / unsnap hold the bits, the routed JSON and the record before a round.
+      local H=$RUNS/hw/${N}_$i pprev pnow
+      pprev=$(grep -o 'P=[0-9]*' "$O/it_${i}_untrimmed.txt" | head -1 | cut -d= -f2)
+      [ -n "$TB" ] && pprev=$(grep -o 'P=[0-9]*' "$O/it_${i}_tb.txt" | head -1 | cut -d= -f2)
+      snap() { cp "$H/${D}_routed.json" "$O/snap_$i.json"; cp "$H/$D.fasm" "$O/snap_$i.fasm"; cp "$H/$D.bit" "$O/snap_$i.bit"
+        cp "$O/trim_$i.txt" "$O/snap_${i}_trim.txt" 2>/dev/null || : > "$O/snap_${i}_trim.txt"
+        cp "$O/sizes_${i}_trim.vh" "$O/snap_${i}_sizes.vh" 2>/dev/null || cp "$O/sizes_$i.vh" "$O/snap_${i}_sizes.vh"; }
+      unsnap() { cp "$O/snap_$i.json" "$H/${D}_routed.json"; cp "$O/snap_$i.fasm" "$H/$D.fasm"; cp "$O/snap_$i.bit" "$H/$D.bit"
+        cp "$O/snap_${i}_trim.txt" "$O/trim_$i.txt"; cp "$O/snap_${i}_sizes.vh" "$O/sizes_${i}_trim.vh"; }
+      snap
+      TRIM_ALLOW=$O/trim_allow_$i.txt TRIM_CONTINUE=$TB trim_route "$i"
+      for r in $(seq 2 $(( ${AUTO_TRIM_ROUNDS:-3} + 1 ))); do   # the last pass only times the last round
+        cmp -s "$O/trim_$i.txt" "$O/snap_${i}_trim.txt" && break   # the round moved nothing: nothing to time
+        l2run "$i" > "$O/final_${i}_r$r.log" 2>&1
+        cycd "$i" > "$O/cyc_${i}_r$r.txt" 2>&1
+        pnow=$(tail -1 "$O/final_${i}_r$r.log" | grep -o 'P=[0-9]*' | cut -d= -f2)
+        echo "trim: it $i round $r: P=${pnow:-?} (before the round: ${pprev:-?})" >> "$O/log.txt"
+        if [ -n "$pnow" ] && [ -n "$pprev" ] && [ "$pnow" -ge "$pprev" ]; then
+          unsnap; echo "trim: it $i round $((r - 1)) bought nothing: its trims reverted" >> "$O/log.txt"; break
+        fi
+        pprev=$pnow
+        [ "$r" -le "${AUTO_TRIM_ROUNDS:-3}" ] || break
+        rr=$(python3 "$T/cycle_macros.py" "$O/cyc_${i}_r$r.txt" "$O/sizes_$i.vh" $PT | grep -vxF -f "$O/trim_allow_$i.txt")
+        [ -n "$rr" ] || { echo "trim: it $i round $r: the cycle brings no new line" >> "$O/log.txt"; break; }
+        echo "$rr" >> "$O/trim_allow_$i.txt"
+        echo "trim: it $i round $r: $(echo "$rr" | grep -c .) new line(s) on the cycle" >> "$O/log.txt"
+        snap
+        TRIM_ALLOW=$O/trim_allow_$i.txt TRIM_CONTINUE=1 trim_route "$i"
+      done
+    else
+      TRIM_CONTINUE=$TB trim_route "$i"
+    fi
+  fi
+  l2run "$i" > "$O/final_$i.log" 2>&1
+  [ "${AUTO_TRIM:-0}" = 1 ] && cycd "$i" > "$O/cyc_$i.txt" 2>&1
+  tail -1 "$O/final_$i.log" > "$O/it_$i.txt"
+  echo "final it $i $(cat "$O/it_$i.txt")" >> "$O/log.txt"
+}
+nneg() {  # nneg DIR: the rule's negative rows on a route (auto_size's clean test: none)
+  tail -n +2 "$1/negative_sized.tsv" 2>/dev/null | grep -c .
+}
+alt_build() {  # alt_build I J SEED (AUTO_FINISH_SEEDS): sizes_I on SEED as route N_IsJ in lane LsJ; one attempt
+  local NA=${N}_$1s$2
+  rm -rf "$RUNS/hw/$NA" "$RUNS/r/$NA"
+  LANE_NORUN=1 "$LANE" "${L}s$2" "$NA" "$K" "$O/sizes_$1.vh" "$3" "$VEC" BDC_AUTO=1 ${XENV:-} ${ANENV} > "$O/it_$1s$2.log" 2>&1
+  tail -1 "$O/it_$1s$2.log" > "$O/it_$1s$2.txt"
+}
+adopt() {  # adopt I J SEED (AUTO_FINISH_SEEDS): route N_IsJ becomes route N_I; the seed-S route is kept as N_Is0
+  local i=$1 j=$2 d f c
+  for d in hw r ca; do
+    rm -rf "$RUNS/$d/${N}_${i}s0"
+    [ -e "$RUNS/$d/${N}_$i" ] && mv "$RUNS/$d/${N}_$i" "$RUNS/$d/${N}_${i}s0"
+    mv "$RUNS/$d/${N}_${i}s$j" "$RUNS/$d/${N}_$i"
+  done
+  for d in "${i}s0" "$i"; do   # the rule's links into its route, renamed with it
+    [ -d "$RUNS/ca/${N}_$d/seed1/pnr" ] || continue
+    ln -sfn "$RUNS/r/${N}_$d/xray.sdf" "$RUNS/ca/${N}_$d/seed1/pnr/soak_xray.sdf"
+    ln -sfn "$RUNS/hw/${N}_$d/${D}_routed.json" "$RUNS/ca/${N}_$d/seed1/pnr/soak_routed.json"
+  done
+  for f in it_$i.txt it_$i.log seed_$i.txt ca_$i.txt rule_$i.vh neg_$i.txt; do
+    [ -f "$O/$f" ] && mv "$O/$f" "$O/${f/_$i./_${i}s0.}"
+  done
+  for c in ${AUTO_RULE_CORNERS:-0.20 0.31}; do
+    for f in ca lines; do [ -f "$O/${f}_${i}_$c.txt" ] && mv "$O/${f}_${i}_$c.txt" "$O/${f}_${i}s0_$c.txt"
+      cp "$O/${f}_${i}s${j}_$c.txt" "$O/${f}_${i}_$c.txt" 2>/dev/null; done
+  done
+  for f in it_$i.txt it_$i.log ca_$i.txt rule_$i.vh neg_$i.txt; do cp "$O/${f/_$i./_${i}s$j.}" "$O/$f" 2>/dev/null; done
+  sed -i "1s/^${N}_${i}s$j /${N}_$i /" "$O/it_$i.txt"   # lane2's line names the route as it now is
+  echo "$3" > "$O/seed_$i.txt"
+  echo "adopt it $i seed $3: route ${N}_${i}s$j is ${N}_$i (the seed-$S route kept as ${N}_${i}s0)" >> "$O/log.txt"
+}
+least_short() {  # least_short LAST (AUTO_SHIP_LEAST): "I TOTAL_PS N" of the least short route it 1..LAST built (neg_I.txt)
+  python3 - "$O" "$1" <<'PY'
+import os, sys
+O, last = sys.argv[1], int(sys.argv[2])
+best = None
+for i in range(1, last + 1):
+    p = os.path.join(O, "neg_%d.txt" % i)
+    if not os.path.exists(p):
+        continue
+    d = {}
+    for ln in open(p):
+        f = ln.rstrip("\n").split("\t")
+        if len(f) >= 3 and f[0] != "rule":
+            d[f[2]] = min(d.get(f[2], 0), int(f[1]))
+    key = (-sum(d.values()), len(d), -i)
+    if best is None or key < best:
+        best = key
+print("%d %d %d" % (-best[2], best[0], best[1]) if best else "%d -1 -1" % last)
+PY
+}
+least_short_one() {  # least_short_one I: "I TOTAL_PS N" of route I alone
+  python3 - "$O/neg_$1.txt" "$1" <<'PY'
+import os, sys
+d = {}
+if os.path.exists(sys.argv[1]):
+    for ln in open(sys.argv[1]):
+        f = ln.rstrip("\n").split("\t")
+        if len(f) >= 3 and f[0] != "rule":
+            d[f[2]] = min(d.get(f[2], 0), int(f[1]))
+print("%s %d %d" % (sys.argv[2], -sum(d.values()), len(d)))
+PY
+}
+finish_draws() {  # finish_draws I (AUTO_FINISH_SEEDS, finish phase): route I not clean -> sizes_I on more seeds
+  local i=$1 j=1 k s n b
+  [ "$(nneg "$RUNS/ca/${N}_$i/rule")" -gt 0 ] || return 0
+  while [ "$j" -lt "$AUTO_FINISH_SEEDS" ]; do
+    b=""; while [ "$(echo $b | wc -w)" -lt "${AUTO_FINISH_JOBS:-1}" ] && [ "$j" -lt "$AUTO_FINISH_SEEDS" ]; do b="$b $j"; j=$((j + 1)); done
+    for k in $b; do alt_build "$i" "$k" $((S + 1000 * k)) & done; wait
+    for k in $b; do
+      s=$((S + 1000 * k))
+      if [ ! -f "$RUNS/r/${N}_${i}s$k/xray.sdf" ] || [ ! -f "$RUNS/hw/${N}_${i}s$k/${D}_routed.json" ]; then
+        echo "alt it $i seed $s: no route ($(cat "$O/it_${i}s$k.txt" 2>/dev/null))" >> "$O/log.txt"; continue; fi
+      rule "${i}s$k" "$O/sizes_$i.vh" || { echo "alt it $i seed $s: RULE FAILED" >> "$O/log.txt"; continue; }
+      n=$(nneg "$RUNS/ca/${N}_${i}s$k/rule")
+      # AUTO_RACE_Z: an alternate route the rule finds clean passes the same latch-fed race check before it can be
+      # adopted (a race below Z adds its row, so the route is not clean; the loop's own sizes do not take its pad)
+      if [ "$n" = 0 ] && [ -n "${AUTO_RACE_Z:-}" ]; then race_check "${i}s$k" "$O/sizes_$i.vh"; n=$(nneg "$RUNS/ca/${N}_${i}s$k/rule"); fi
+      echo "alt it $i seed $s $(cat "$O/it_${i}s$k.txt") | negative $n" >> "$O/log.txt"
+      if [ "$n" = 0 ]; then adopt "$i" "$k" "$s"; return 0; fi
+    done
+  done
+}
+# AUTO_TRIM_ONLY=1 (opt-in, with AUTO_RESUME=DIR holding a FINISHED loop's files, e.g. a farm task's auto/; unset, nothing
+# here runs): no loop and no search -- the route that loop shipped (its result.txt: "CLEAN it=I", "shipped it=I", else the
+# last route) is rebuilt from its own sizes, seed and structure (structure.env when the search phase shipped it), checked
+# to be the same route (its sdf md5 against the loop's it_I.txt; a different route stops here), then trimmed exactly as
+# the flow's AUTO_TRIM=1 step trims a route it ships (trim_route, the rule's trim mode by default) and given the full
+# stack.  result.txt gets the loop's own line back, so suite_one.sh judges route I, now trimmed, on the same draw points
+# the loop's own run used: a paired measurement of the trim step, the route itself unchanged.  it_I_untrimmed.txt keeps
+# the loop's stack line.  Why: research/data/trim/README.md -- a trim changes LUT INITs only, so its effect can be measured
+# on routes the farm already built and judged, without a re-route's scatter (hundreds of ps) in the comparison.
+if [ "${AUTO_TRIM_ONLY:-0}" = 1 ]; then
+  [ -n "$RES" ] && [ -f "$RES/result.txt" ] || { echo "TRIM-ONLY FAILED (AUTO_RESUME=DIR with a finished loop's files needed)" | tee -a "$O/result.txt"; exit 1; }
+  last=$(grep -E '^(CLEAN|NOT CLEAN)' "$RES/result.txt" | tail -1)
+  [ -n "$last" ] || { echo "TRIM-ONLY FAILED (no finished loop in $RES)" | tee -a "$O/result.txt"; exit 1; }
+  X=$(echo "$last" | grep -o 'shipped it=[0-9]*' | head -1 | cut -d= -f2)
+  [ -n "$X" ] || X=$(echo "$last" | sed -n 's/^CLEAN it=\([0-9]*\).*/\1/p')
+  [ -n "$X" ] || X=$(echo "$last" | sed -n 's/^NOT CLEAN after \([0-9]*\).*/\1/p')
+  [ -n "$X" ] || X=$(echo "$last" | sed -n 's/^NOT CLEAN it=\([0-9]*\).*/\1/p')
+  [ -n "$X" ] && [ -f "$O/sizes_$X.vh" ] || { echo "TRIM-ONLY FAILED (no shipped iteration / sizes_$X.vh in $RES)" | tee -a "$O/result.txt"; exit 1; }
+  if echo "$last" | grep -q '; search '; then   # the search phase's structure: structure.env, else the line itself
+    # (a farm task returns only *.txt / *.vh, so structure.env does not come back; the line says "(last it J; search ENV)")
+    if [ -f "$O/structure.env" ]; then XENV=$(cat "$O/structure.env"); else XENV=$(echo "$last" | sed -n 's/.*; search \([^)]*\)).*/\1/p'); fi
+  fi
+  echo "auto_size $N TRIM-ONLY it $X from $RES ${XENV:+($XENV) }$(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" >> "$O/log.txt"
+  cp "$O/it_$X.txt" "$O/it_${X}_untrimmed.txt"
+  want=$(awk '{print $2}' "$O/it_${X}_untrimmed.txt")
+  build "$X" "$O/sizes_$X.vh" || { echo "TRIM-ONLY FAILED (rebuild of it $X)" | tee -a "$O/result.txt"; exit 1; }
+  got=$(awk '{print $2}' "$O/it_$X.txt")
+  if [ "$got" != "$want" ]; then
+    echo "trim-only: route ${N}_$X rebuilt as sdf $got, the loop's was $want -- DIFFERENT ROUTE, not trimmed" >> "$O/log.txt"
+    echo "TRIM-ONLY FAILED (DIFFERENT ROUTE: sdf $got, the loop's $want)" | tee -a "$O/result.txt"; exit 1
+  fi
+  echo "trim-only: route ${N}_$X rebuilt, sdf $got (the loop's)" >> "$O/log.txt"
+  AUTO_TRIM=1 final "$X"
+  echo "$last" | tee -a "$O/result.txt"
+  exit 0
+fi
+if [ -n "$RES" ]; then
+  echo "auto_size $N RESUMED from $RES $(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" >> "$O/log.txt"
+else
+  echo "auto_size $N kernel $K seed $S maxit $MAXIT $(date -u +%FT%TZ) head $(git -C "$R" rev-parse --short HEAD)" > "$O/log.txt"
+fi
+# The start: bdc/emit.py's estimates ("deliberately generous", bdc/compute.py) times AUTO_START_SCALE (default 0.3, one
+# number for every kernel: it moves only where the loop starts; the rule on each route sets the sizes).  Why: on the
+# first kernels the estimates are 4-5x the sizes the loop ends at (seed 1: xorshift 511 -> 106 links, collatz 493 ->
+# ~100, collatz64 647 -> ~130); the route built at them is the most spread-out the loop sees, its long wires stand in
+# for data the compact routes must cover (collatz64's 3n + 1: proposed 4 elements there, needed 20 on the next route),
+# and on 2 cores it can take over an hour to route (farm suite1: collatz seeds 3 and 4 hit PNR_TIMEOUT 3600 at it 0).
+# AUTO_START_SCALE=1 starts at the estimates (the first version).
+# bd_mem's two lines (USETUP, UCO: the RAM's address setup and clock-to-out / address hold, bdc/mem.py) are NOT scaled
+# (AUTO_START_ONLY, a shrink_sizes.py --only regex): the rule cannot size them -- corner_audit names the chain
+# <port>_uport.umem<k>.uco (BD_SZ_..._UPORT_UMEM0_UCO), emit.py's macro is BD_SZ_..._UMEM0_UCO ("sizes.vh does not
+# set (kept, measured)") -- so a scaled value was never raised again: every memory kernel shipped DSETUP 3 / DCO 4
+# (estimates 8 / 12), and on test_bitint seed 1 the rule's C check read -1.2 .. -1.9 ns on both RAMs, "STILL SHORT",
+# on every route of the loop (suitew, 2026-11-18).
+if [ -z "$RES" ]; then
+SC=${AUTO_START_SCALE:-0.3}; ONLY=${AUTO_START_ONLY:-'^(?!.*_UMEM[0-9]+_(USETUP|UCO)$)'}
+EM=$O/emit; mkdir -p "$EM"   # the estimates: the same two steps as cells/hw/build_bench.sh with BDC_AUTO=1
+# (on the MLIR the builds read: lane2.sh's MLIR_OVERRIDE when set -- 2026-11-20: without it a rewritten graph's new
+# fused cells had no macro here and kept emit.py's generous defaults, xorshift's uaddi0 at 24 elements, collatz's
+# uselect0 at 86, so the loop never sized them)
+python3 "$R/bdc/auto.py" "$R/${MLIR_OVERRIDE:-build/frontend/$K/comp/handshake_transformed.mlir}" "$EM/auto.mlir" > "$EM/auto.log" 2>&1 \
+  && BDC_AUTO=1 python3 "$R/bdc/emit.py" "$EM/auto.mlir" --no-top -o "$EM/kernel.v" >> "$EM/auto.log" 2>&1 \
+  && python3 "$T/est_sizes.py" "$EM/kernel.v" "$K" > "$O/sizes_est.vh" \
+  || { echo "BUILD FAILED it=0 (emit: $(tail -1 "$EM/auto.log"))" | tee -a "$O/result.txt"; exit 1; }
+if [ "$SC" = 1 ]; then cp "$O/sizes_est.vh" "$O/sizes_0.vh"
+else python3 "$R/research/tools/shrink_sizes.py" "$O/sizes_est.vh" "$SC" "$O/sizes_0.vh" --only "$ONLY" > /dev/null; fi
+build 0 "$O/sizes_0.vh" || { echo "BUILD FAILED it=0" | tee -a "$O/result.txt"; exit 1; }
+echo "it 0 $(cat "$O/it_0.txt") lines $(grep -c '^`define' "$O/sizes_0.vh")" >> "$O/log.txt"
+rule 0 "$O/sizes_0.vh" || { echo "RULE FAILED it=0" | tee -a "$O/result.txt"; exit 1; }
+if ! grep -q '^`define' "$O/sizes_est.vh"; then
+  # Nothing to size: the kernel has no matched delay (est_sizes.py; test_int16, a constant joined with the call's end
+  # token).  Every further route would be the same circuit, so the route built at it 0 is the one judged: CLEAN when
+  # the rule finds no negative kernel constraint on it, else NOT CLEAN with no line that could fix it.
+  neg=$(tail -n +2 "$RUNS/ca/${N}_0/rule/negative_sized.tsv" | grep -c .)
+  echo "it 0 rule: nothing to size (no matched delay); $neg negative rows" >> "$O/log.txt"
+  final 0; cp "$O/sizes_0.vh" "$O/sizes_final.vh"
+  if [ "$neg" = 0 ]; then
+    echo "CLEAN it=0 route=${N}_0 (nothing to size) $(cat "$O/it_0.txt")" | tee -a "$O/result.txt"; exit 0
+  fi
+  echo "NOT CLEAN it=0: $neg negative, none fixable by a line (nothing to size; route ${N}_0) $(cat "$O/it_0.txt")" \
+    | tee -a "$O/result.txt"; exit 3
+fi
+cp "$RUNS/ca/${N}_0/rule/sizes.vh" "$O/sizes_1.vh"
+echo "it 0 rule: $(grep -c . "$RUNS/ca/${N}_0/rule/negative_sized.tsv") negative rows (incl. header); $(grep '^proposal' "$O/ca_0.txt")" >> "$O/log.txt"
+fi
+[ -n "$RES" ] || rm -f "$O/pinned.txt"
+# The finish phase's budget is 6 routes since 2026-11-19 (was 3; subagent converge, research/data/converge/notes.txt):
+# a re-route moves every margin by ~0.5 ns (sd), and 95 % of the rows short on a finish route were not short before, so
+# only more raise-only routes on the loop's own seed help -- one more made 4 of 5 low-row loops clean. AUTO_FINISH=3 is
+# the old budget.
+LC=""; FIN=${AUTO_FINISH:-6}
+# Phase 1 (i = 1..MAXIT): the pinning ratchet; go on while a clean route still shortens a line.
+# Phase 2, only when no route was clean by MAXIT (i = MAXIT+1..MAXIT+FIN): raise-only (every line max(S, proposal)), so
+# no lowering opens new misses, until a route is clean.  Why: the loop used to ship its last route NOT CLEAN, and
+# formal B7 found a wrong answer on such a route exactly at the race the rule flagged (suite1 xorshift seed 3: entry
+# compare UCMPI0 6, the rule's raise to 7 never built; slow-carry draw 5104 returns 0x92d78cb6 on the zero-trip call).
+i=0; ph=1; STOP=""
+if [ -n "$RES" ]; then
+  # the last iteration whose ratchet step was written; the phase the log names; then that iteration's decision again
+  for f in "$O"/ratchet_*.txt; do [ -f "$f" ] || continue; k=${f##*/ratchet_}; k=${k%.txt}
+    case $k in *[!0-9]*) continue;; esac; [ "$k" -gt "$i" ] && i=$k; done
+  grep -q '^phase 2 (raise-only) from it' "$O/log.txt" && { ph=2; IMAX=$((MAXIT + FIN)); }
+  [ -f "$O/overbuild_from.txt" ] && OB=$(cat "$O/overbuild_from.txt")
+  if [ -n "${OB:-}" ] && [ -f "$O/overbuild_to.txt" ]; then IMAX=$(cat "$O/overbuild_to.txt"); fi
+  for k in $(seq 1 "$i"); do
+    [ -f "$O/ratchet_$k.txt" ] || continue
+    read -r _ _ _ _ _ ng _ _ _ _ <<< "$(head -1 "$O/ratchet_$k.txt")"; [ "$ng" = 0 ] && LC=$k
+  done
+  if [ "$i" -ge 1 ] && [ -f "$O/pinned_$i.txt" ]; then cp "$O/pinned_$i.txt" "$O/pinned.txt"
+  elif [ "$i" -ge 1 ]; then echo "resume: no pinned_$i.txt (an older run): pinned.txt as copied, possibly later than it $i" >> "$O/log.txt"
+  else : > "$O/pinned.txt"; fi
+  echo "resume: last ratchet it $i, phase $ph, last clean ${LC:-none}" >> "$O/log.txt"
+  if [ "$i" -ge 1 ]; then
+    read -r _ nr _ _ _ neg _ nl _ _ <<< "$(head -1 "$O/ratchet_$i.txt")"
+    if [ "$neg" = 0 ] && { [ "$nl" = 0 ] || [ "$ph" = 2 ]; }; then STOP=1
+    elif [ "$neg" != 0 ] && [ "$nr" = 0 ]; then STOP=1
+    elif [ "$ph" = 1 ] && [ "$i" -ge "$MAXIT" ]; then
+      if [ -n "$LC" ] || [ "$FIN" -le 0 ]; then STOP=1
+      elif [ ! -f "$O/rule_$i.vh" ]; then STOP=1; echo "resume: phase 2 due but no rule_$i.vh to switch with" >> "$O/log.txt"
+      else
+        ph=2; IMAX=$((MAXIT + FIN))
+        python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$O/rule_$i.vh" "$O/neg_$i.txt" \
+           "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") $(overbuild_args "$i") > /dev/null
+        obs=""; [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${AUTO_OVERBUILD_LATE:-}" ] && obs=" (overbuild +$AUTO_OVERBUILD on trimmable lines)"
+        echo "phase 2 (raise-only) from it $((i + 1))$obs" >> "$O/log.txt"
+        [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${AUTO_OVERBUILD_LATE:-}" ] && { OB=$((i + 1)); echo "$OB" > "$O/overbuild_from.txt"; }
+      fi
+    elif [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then
+      if [ -n "${AUTO_OVERBUILD_LATE:-}" ] && [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${OB:-}" ] && [ -f "$O/rule_$i.vh" ]; then
+        late_switch "$i" "$O/rule_$i.vh" "$O/neg_$i.txt"
+      else STOP=1; fi
+    fi
+  fi
+  [ -f "$O/sizes_$((i + 1)).vh" ] || STOP=1
+fi
+while [ -z "$STOP" ]; do
+  i=$((i + 1))
+  build "$i" "$O/sizes_$i.vh" || { echo "BUILD FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
+  rule "$i" "$O/sizes_$i.vh" || { echo "RULE FAILED it=$i" | tee -a "$O/result.txt"; exit 1; }
+  # AUTO_RACE_Z=Z (opt-in, 2026-11-20; formal B21 / B28): a route the rule finds clean is also checked for the latch-fed
+  # steer races (race_find.py: the draw model's margin per race); one below Z sd pads its link and the route is not clean
+  # With AUTO_OVERBUILD and AUTO_RACE_KEEP (opt-in) a finish route is race-checked even when the rule finds it short as
+  # built: the trim step may make it clean (below), and its races are then the as-built ones (their lines kept).
+  [ -n "${AUTO_RACE_Z:-}" ] && { [ "$(nneg "$RUNS/ca/${N}_$i/rule")" = 0 ] || { [ -n "${OB:-}" ] && [ "$i" -ge "$OB" ] \
+    && [ "${AUTO_RACE_KEEP:-0}" = 1 ]; }; } && race_check "$i"
+  # AUTO_FINISH_SEEDS (opt-in): a finish route that is not clean is drawn again on more seeds; a clean one is adopted
+  [ "$ph" = 2 ] && [ "${AUTO_FINISH_SEEDS:-1}" -gt 1 ] && finish_draws "$i"
+  # phase 2 raises with one element of headroom: each re-route moves the small margins by a few hundred ps (local v4
+  # xorshift seed 8: 5, 3, 4 constraints short at -5..-278 ps on three raise-only routes), about one element
+  ro=""; [ "$ph" = 2 ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1} $(near_args "$i")"
+  # it 1 is a recalibration: the start's proposal under-delivers on the compact route it produces (xorshift seed 2,
+  # flow v5: 50 constraints short at it 1), so its raises are not oscillation; pinning them kept UCMPI1 at 15 for good
+  # (the loop ended at 129 links / 23.0 ns where v2 had 103 / 16.7). Pinning starts at it 2.
+  [ "$i" = 1 ] && [ "$ph" = 1 ] && ro="--nopin"
+  st=$(python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
+       "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" $ro)
+  echo "it $i $(cat "$O/it_$i.txt") | $(echo "$st" | head -1)${ro:+ ($ro)}" >> "$O/log.txt"
+  read -r _ nr _ _ _ neg _ nl _ _ <<< "$(echo "$st" | head -1)"
+  # AUTO_OVERBUILD (opt-in; needs AUTO_TRIM=1 to ship the trims): a finish route the rule finds short as built is clean
+  # if the trim step alone makes it so (the trims are recorded; final() applies them to the route it ships)
+  # A route with a latch-fed race below AUTO_RACE_Z (an "R" row, race_pad.py) is not clean, whatever the trims do.
+  if [ "$neg" != 0 ] && [ -n "${OB:-}" ] && [ "$i" -ge "$OB" ] \
+     && ! grep -q '^R	' "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" 2>/dev/null && trim_check "$i"; then
+    neg=0; echo "it $i clean after the trim step (AUTO_OVERBUILD)" >> "$O/log.txt"
+  fi
+  brk=""
+  if [ "$neg" = 0 ]; then LC=$i; { [ "$nl" = 0 ] || [ "$ph" = 2 ]; } && brk=1; fi   # clean: done, or go on while it shortens
+  if [ -z "$brk" ] && [ "$neg" != 0 ] && [ "$nr" = 0 ]; then brk=1; fi        # negative and nothing the rule can lengthen
+  if [ -z "$brk" ] && [ "$ph" = 1 ] && [ "$i" -ge "$MAXIT" ]; then
+    if [ -n "$LC" ] || [ "$FIN" -le 0 ]; then brk=1
+    else
+      ph=2; IMAX=$((MAXIT + FIN))
+      # the next sizes without the lowering phase 1's last ratchet did
+      python3 "$T/ratchet.py" "$O/sizes_$i.vh" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv" \
+         "$O/sizes_$((i + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}" $(near_args "$i") $(overbuild_args "$i") > /dev/null
+      obs=""; [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${AUTO_OVERBUILD_LATE:-}" ] && obs=" (overbuild +$AUTO_OVERBUILD on trimmable lines)"
+      echo "phase 2 (raise-only) from it $((i + 1))$obs" >> "$O/log.txt"
+      [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${AUTO_OVERBUILD_LATE:-}" ] && { OB=$((i + 1)); echo "$OB" > "$O/overbuild_from.txt"; }
+    fi
+  elif [ -z "$brk" ] && [ "$ph" = 2 ] && [ "$i" -ge "$IMAX" ]; then
+    if [ -n "${AUTO_OVERBUILD_LATE:-}" ] && [ -n "${AUTO_OVERBUILD:-}" ] && [ -z "${OB:-}" ]; then
+      late_switch "$i" "$RUNS/ca/${N}_$i/rule/sizes.vh" "$RUNS/ca/${N}_$i/rule/negative_sized.tsv"
+    else brk=1; fi
+  fi
+  # ratchet_I.txt LAST: its presence says iteration I is complete (sizes_I+1, the pins, a phase switch) for AUTO_RESUME
+  cp "$O/pinned.txt" "$O/pinned_$i.txt" 2>/dev/null || : > "$O/pinned_$i.txt"
+  echo "$st" > "$O/ratchet_$i.txt"
+  [ -n "$brk" ] && break
+done
+# Phase 3 (AUTO_SEARCH=1, opt-in; unset, nothing below runs and the loop ships as before): the event graph's storage
+# search inside the flow (PROGRAM "General first" 1: "where the latches go and how deep the links are (the event graph's
+# search, run inside the flow)"; research/data/auto/README.md: "Not done: the search inside the flow").  final() has
+# built the timed event graph of the route the loop ships (its P); research/tools/eventgraph/search.py --depth-only
+# takes, greedily, each BDC_LINK_DEPTHS +1 that graph predicts to gain >= 300 ps.  Nothing is named by hand: the search
+# names links from the measured graph of this kernel's own route.  Why: the one structural difference between the hand
+# xorshift recipe (board item 37, 16.76 ns) and the automatic one is ulink_n_trueResult_8 at 2 stages (x's back edge),
+# left out of bdc/auto.py because a static rule for it would also hit collatz (+675 ps there); the search picks exactly
+# it on every automatic xorshift route it was run on (research/data/auto/xorgap.md).  If it picks an edit, the loop goes
+# on with that structure from the shipped sizes (a new line -- a deepened link's SDELAY -- starts as every line did, at
+# emit.py's estimate x AUTO_START_SCALE) for at most AUTO_SEARCH_MAXIT routes (default 4), RAISE-ONLY with one element
+# of headroom (phase 2's step): the shipped sizes were clean on the old structure, the new stage only adds storage, and
+# on xorshift the first route with p8 was 1-3 rows short of the rule (seeds 1 / 3 / 4) at P 17.02 / 18.87 / 15.84 ns
+# (v6: 19.80 / 22.47 / 19.43).  AUTO_SEARCH_RESIZE=1 instead re-sizes the new structure as the loop does (pins EMPTY,
+# a no-pin recalibration first, then the pinning ratchet, the last two raise-only; at most 6 routes by default): it
+# lowered UCMPI1 14 -> 8 on seed 3 but did not settle (seed 1: 1, 9, 23 rows short on its first three routes; seed 4:
+# 3, 9, 47), the oscillation research/tools/auto's loop already has.  The last clean route gets the full stack; the
+# flow ships it if its measured P is below the first route's (or the first was not clean); else the first route, as
+# without the search.  log.txt has both.
+search_phase() {
+  local G=$R/research/data/eventgraph/graphs/${N}_$X EM3=$O/emit3 k=0 j LC3="" ro st nr3 neg3 nl3 P0 P3
+  local RS=${AUTO_SEARCH_RESIZE:-0}; local M3=${AUTO_SEARCH_MAXIT:-$([ "$RS" = 1 ] && echo 6 || echo 4)} SC3=${AUTO_START_SCALE:-0.3} ONLY3=${AUTO_START_ONLY:-'^(?!.*_UMEM[0-9]+_(USETUP|UCO)$)'}
+  if ! grep -q "period P = [0-9]" "$G/check.txt" 2>/dev/null; then
+    echo "search: no event graph for route ${N}_$X: skipped" >> "$O/log.txt"; return 0; fi
+  # AUTO_SEARCH_ARGS (default --depth-only): the search's candidates. "--all-sites --buildable-only --wire 1000" adds a
+  # latch on any fork output and on any merge output / result branch (search.py --all-sites, subagent graphsearch:
+  # research/data/eventgraph/search_all.md); its ENV names every link of each knob it sets, rules F / M's included.
+  python3 "$R/research/tools/eventgraph/search.py" "$G" "$O/sizes_$X.vh" ${AUTO_SEARCH_ARGS:---all-sites --buildable-only --wire 1000} \
+    > "$O/search.txt" 2>&1
+  XENV=$(sed -n 's/^ENV //p' "$O/search.txt")
+  echo "search on ${N}_$X: $(grep -E '^(base|chosen)' "$O/search.txt" | tr '\n' ' ')" >> "$O/log.txt"
+  [ -n "$XENV" ] || return 0
+  mkdir -p "$EM3"
+  python3 "$R/bdc/auto.py" "$R/${MLIR_OVERRIDE:-build/frontend/$K/comp/handshake_transformed.mlir}" "$EM3/auto.mlir" > "$EM3/log" 2>&1 \
+    && env $XENV BDC_AUTO=1 python3 "$R/bdc/emit.py" "$EM3/auto.mlir" --no-top -o "$EM3/kernel.v" >> "$EM3/log" 2>&1 \
+    && python3 "$T/est_sizes.py" "$EM3/kernel.v" "$K" > "$EM3/est.vh" \
+    && python3 "$R/research/tools/shrink_sizes.py" "$EM3/est.vh" "$SC3" "$EM3/start.vh" --only "$ONLY3" > /dev/null \
+    || { echo "search: emit with $XENV failed ($(tail -1 "$EM3/log")): skipped" >> "$O/log.txt"; XENV=""; return 0; }
+  # AUTO_SEARCH_KEEPDEPTH=1 (opt-in, 2026-11-22; unset, nothing here runs): the structure built is the one the search
+  # modelled. search.py prices its new links on the base route's graph, every other link at its depth there; bdc then
+  # recomputes the ring floor (bdc/emit.py ring_depths, the token floor) with the new links counted as storage, and may
+  # make other links SHALLOWER -- quadrec: the three 2-stage pipes on its rotation back edges became 1-stage links, so
+  # the build held exactly the floor's storage and the predicted 2x (40 -> 20 ns) came out as nothing (built / predicted
+  # 1.96-2.17 on all three v10 searches; every other kernel 0.88-1.22). With the knob every link the new structure
+  # would make shallower than the base route keeps its base depth (BDC_LINK_DEPTHS, which may only raise a depth above
+  # the floor), merged into the search's ENV, and the structure is emitted again. Rebuilt by hand on v10's quadrec s3
+  # route: untrimmed P 21199 ps against the search's model 20924 (without the pins: 43402).
+  if [ "${AUTO_SEARCH_KEEPDEPTH:-0}" = 1 ]; then
+    local KD
+    KD=$(python3 - "$RUNS/hw/${N}_$X/${K}_kernel_bench.v" "$EM3/kernel.v" "$XENV" <<'PY'
+import re, sys
+def depths(p):
+    v = open(p).read(); out = {}
+    for m in re.finditer(r"\n\s*(bd_link|bd_pipe)\s*(#\((.*?)\))?\s*(ulink_\w+)\s*\(", v, re.S):
+        n = re.search(r"\.N\((\d+)\)", m.group(3) or "") if m.group(1) == "bd_pipe" else None
+        out[m.group(4)] = int(n.group(1)) if n else 1
+    return out
+base, new = depths(sys.argv[1]), depths(sys.argv[2])
+env = dict(x.split("=", 1) for x in sys.argv[3].split() if "=" in x)
+have = dict(y.split("=") for y in env.get("BDC_LINK_DEPTHS", "").split(",") if "=" in y)
+keep = {l: d for l, d in base.items() if l in new and new[l] < d}
+if not keep:
+    sys.exit(0)
+for l, d in keep.items():
+    have[l] = str(max(d, int(have.get(l, 0))))
+env["BDC_LINK_DEPTHS"] = ",".join("%s=%s" % kv for kv in sorted(have.items()))
+print(" ".join("%s=%s" % kv for kv in env.items()) + "\t" + " ".join("%s:%d->%d" % (l, new[l], d) for l, d in sorted(keep.items())))
+PY
+)
+    if [ -n "$KD" ]; then
+      XENV=${KD%%$'\t'*}
+      echo "search: AUTO_SEARCH_KEEPDEPTH: ${KD#*$'\t'} (base depth kept)" >> "$O/log.txt"
+      env $XENV BDC_AUTO=1 python3 "$R/bdc/emit.py" "$EM3/auto.mlir" --no-top -o "$EM3/kernel.v" >> "$EM3/log" 2>&1 \
+        && python3 "$T/est_sizes.py" "$EM3/kernel.v" "$K" > "$EM3/est.vh" \
+        && python3 "$R/research/tools/shrink_sizes.py" "$EM3/est.vh" "$SC3" "$EM3/start.vh" --only "$ONLY3" > /dev/null \
+        || { echo "search: emit with $XENV failed ($(tail -1 "$EM3/log")): skipped" >> "$O/log.txt"; XENV=""; return 0; }
+    fi
+  fi
+  j=$((i + 1)); [ -f "$O/sizes_$j.vh" ] && mv "$O/sizes_$j.vh" "$O/sizes_${j}_unbuilt.vh"
+  { cat "$O/sizes_$X.vh"
+    grep '^`define' "$EM3/start.vh" | while read -r _ m v _; do
+      grep -q "^\`define $m " "$O/sizes_$X.vh" || echo "\`define $m $v   // new line ($XENV, estimate x $SC3)"; done
+  } > "$O/sizes_$j.vh"
+  echo "search: $XENV from it $j ($(grep -c 'new line' "$O/sizes_$j.vh") new line(s))$([ "$RS" = 1 ] && echo '; pins reset' || echo '; raise-only')" >> "$O/log.txt"
+  if [ "$RS" = 1 ]; then cp "$O/pinned.txt" "$O/pinned_before_search.txt" 2>/dev/null; : > "$O/pinned.txt"; fi
+  while [ "$k" -lt "$M3" ]; do
+    k=$((k + 1))
+    build "$j" "$O/sizes_$j.vh" || { echo "search: BUILD FAILED it=$j" >> "$O/log.txt"; break; }
+    rule "$j" "$O/sizes_$j.vh" || { echo "search: RULE FAILED it=$j" >> "$O/log.txt"; break; }
+    [ -n "${AUTO_RACE_Z:-}" ] && [ "$(nneg "$RUNS/ca/${N}_$j/rule")" = 0 ] && race_check "$j"   # as in the main loop
+    ro="--raise-only --headroom ${AUTO_HEADROOM:-1}"
+    if [ "$RS" = 1 ]; then ro=""; [ "$k" = 1 ] && ro="--nopin"; [ "$k" -gt $((M3 - 2)) ] && ro="--raise-only --headroom ${AUTO_HEADROOM:-1}"; fi
+    st=$(python3 "$T/ratchet.py" "$O/sizes_$j.vh" "$RUNS/ca/${N}_$j/rule/sizes.vh" "$RUNS/ca/${N}_$j/rule/negative_sized.tsv" \
+         "$O/sizes_$((j + 1)).vh" "$O/pinned.txt" $ro)
+    echo "search it $j $(cat "$O/it_$j.txt") | $(echo "$st" | head -1)${ro:+ ($ro)}" >> "$O/log.txt"
+    echo "$st" > "$O/search_ratchet_$j.txt"
+    read -r _ nr3 _ _ _ neg3 _ nl3 _ _ <<< "$(echo "$st" | head -1)"
+    if [ "$neg3" = 0 ]; then LC3=$j; { [ "$nl3" = 0 ] || [ "${ro#--raise}" != "$ro" ]; } && break; fi
+    if [ "$neg3" != 0 ] && [ "$nr3" = 0 ]; then break; fi
+    j=$((j + 1))
+  done
+  # AUTO_SEARCH_OVERBUILD=M (opt-in, 2026-11-22; needs AUTO_OVERBUILD=H, parked in LATE_OB under AUTO_LATE_AFTER_SEARCH;
+  # unset, nothing here runs): the search's structure gets what the late phase gives the loop's. When its raise-only
+  # routes found no clean route, M more routes of the SAME structure are built with BD_SYMTRIM and every sized line H
+  # longer (late_switch; the latch-fed race links excepted), a route counting clean when the trim step alone makes it so,
+  # the shipped one trimmed back first (final()). Why: in flow v10, 17 of the 132 searches that built a structure never
+  # reached a clean route in their raise-only routes, so their predicted gains were thrown away (quadrec s4 2.28x,
+  # collatz64 s2 1.17x, countloop s2 1.16x, 1.06-1.11x on the rest); with AUTO_SEARCH_KEEPDEPTH quadrec's structure is the
+  # 2x one and still did not converge in four raise-only routes (local, 2026-11-22). On failure every marker and trim
+  # record these routes left is removed, so the late phase that may follow starts as it would have without them.
+  if [ -z "$LC3" ] && [ -n "${AUTO_SEARCH_OVERBUILD:-}" ] && [ -n "${AUTO_OVERBUILD:-${LATE_OB:-}}" ]; then
+    local jb=$j jj kk sob=""
+    while [ "$jb" -gt "$i" ] && [ ! -s "$O/neg_$jb.txt" ]; do jb=$((jb - 1)); done   # the last route the search ruled
+    if [ "$jb" -gt "$i" ] && [ ! -f "$O/overbuild_from.txt" ]; then
+      AUTO_OVERBUILD=${AUTO_OVERBUILD:-$LATE_OB} AUTO_OVERBUILD_LATE=$AUTO_SEARCH_OVERBUILD late_switch "$jb" "$O/rule_$jb.vh" "$O/neg_$jb.txt"
+      echo "$((jb + 1))" > "$O/search_ob_from.txt"   # a resume of an unfinished loop removes these markers (top of script)
+      echo "search: no clean route in its raise-only routes; the search's structure overbuilt (AUTO_SEARCH_OVERBUILD=$AUTO_SEARCH_OVERBUILD) from it $((jb + 1))" >> "$O/log.txt"
+      for kk in $(seq 1 "$AUTO_SEARCH_OVERBUILD"); do
+        jj=$((jb + kk))
+        build "$jj" "$O/sizes_$jj.vh" || { echo "search: BUILD FAILED it=$jj (overbuilt)" >> "$O/log.txt"; break; }
+        rule "$jj" "$O/sizes_$jj.vh" || { echo "search: RULE FAILED it=$jj (overbuilt)" >> "$O/log.txt"; break; }
+        [ -n "${AUTO_RACE_Z:-}" ] && { [ "$(nneg "$RUNS/ca/${N}_$jj/rule")" = 0 ] || [ "${AUTO_RACE_KEEP:-0}" = 1 ]; } && race_check "$jj"
+        st=$(python3 "$T/ratchet.py" "$O/sizes_$jj.vh" "$RUNS/ca/${N}_$jj/rule/sizes.vh" "$RUNS/ca/${N}_$jj/rule/negative_sized.tsv" \
+             "$O/sizes_$((jj + 1)).vh" "$O/pinned.txt" --raise-only --headroom "${AUTO_HEADROOM:-1}")
+        echo "search it $jj $(cat "$O/it_$jj.txt") | $(echo "$st" | head -1) (overbuilt, BD_SYMTRIM)" >> "$O/log.txt"
+        echo "$st" > "$O/search_ratchet_$jj.txt"
+        read -r _ nr3 _ _ _ neg3 _ nl3 _ _ <<< "$(echo "$st" | head -1)"
+        if [ "$neg3" != 0 ] && ! grep -q '^R	' "$RUNS/ca/${N}_$jj/rule/negative_sized.tsv" 2>/dev/null && trim_check "$jj"; then
+          neg3=0; echo "search it $jj clean after the trim step (AUTO_SEARCH_OVERBUILD)" >> "$O/log.txt"
+        fi
+        [ "$neg3" = 0 ] && { LC3=$jj; sob=1; break; }
+        [ "$nr3" = 0 ] && break
+      done
+      if [ -z "$sob" ]; then   # nothing shipped from these routes: leave no marker or trim record behind
+        for kk in $(seq $((jb + 1)) "$jj"); do rm -f "$O/trim_$kk.txt" "$O/trim_${kk}_"*.txt "$O/trim_${kk}.prev.txt" "$O/sizes_${kk}_trim"*.vh; done
+        rm -f "$O/overbuild_from.txt" "$O/symtrim_from.txt" "$O/overbuild_to.txt" "$O/search_ob_from.txt"; OB=""
+        echo "search: the overbuilt routes found no clean route either" >> "$O/log.txt"
+      else
+        j=$jj
+      fi
+    fi
+  fi
+  if [ -z "$LC3" ]; then
+    echo "search: no clean route with $XENV (last it $j): ships ${N}_$X" >> "$O/log.txt"; XENV=""; return 0; fi
+  final "$LC3"   # final()'s trim-back reads ${AUTO_OVERBUILD:-$LATE_OB}, so an AUTO_SEARCH_OVERBUILD route gives its length back
+  P0=$(grep -o 'P=[0-9]*' "$O/it_$X.txt" | head -1 | cut -d= -f2); P3=$(grep -o 'P=[0-9]*' "$O/it_$LC3.txt" | head -1 | cut -d= -f2)
+  echo "search: ${N}_$LC3 ($XENV) P=${P3:-NA} vs ${N}_$X P=${P0:-NA}" >> "$O/log.txt"
+  if [ -n "$P3" ] && { [ "$RC" != 0 ] || [ -z "$P0" ] || [ "$P3" -lt "$P0" ]; }; then
+    cp "$O/sizes_$LC3.vh" "$O/sizes_final.vh"; echo "$XENV" > "$O/structure.env"
+    RES3="CLEAN it=$LC3 route=${N}_$LC3 (last it $j; search $XENV) $(cat "$O/it_$LC3.txt")"; RC=0
+  else
+    echo "search: ships ${N}_$X (P not lower)" >> "$O/log.txt"; XENV=""
+  fi
+}
+if [ -n "$LC" ]; then
+  final "$LC"; cp "$O/sizes_$LC.vh" "$O/sizes_final.vh"; X=$LC; RC=0
+  RES3="CLEAN it=$LC route=${N}_$LC (last it $i) $(cat "$O/it_$LC.txt")"
+else
+  X=$i; SH=""
+  if [ "${AUTO_SHIP_LEAST:-1}" = 1 ]; then   # the least short route, not the last (default since 2026-11-19; =0 the last)
+    read -r X tm nk <<< "$(least_short "$i")"; read -r _ tl kl <<< "$(least_short_one "$i")"
+    SH="; shipped it=$X, the least short: $tm ps over $nk constraint(s) (last route: $tl ps over $kl)"
+    echo "least short: it $X ($tm ps over $nk constraint(s)); last it $i ($tl ps over $kl)" >> "$O/log.txt"
+  fi
+  final "$X"; cp "$O/sizes_$X.vh" "$O/sizes_final.vh"
+  if [ "$nr" = 0 ]; then RC=3
+    RES3="NOT CLEAN it=$i: $neg negative, none fixable by a line (route ${N}_$i$SH) $(cat "$O/it_$X.txt")"
+  else RC=2
+    RES3="NOT CLEAN after $i (last route ${N}_$i$SH; next sizes sizes_$((i + 1)).vh) $(cat "$O/it_$X.txt")"
+  fi
+fi
+# Flow v7 (2026-11-19): the search phase is ON by default (AUTO_SEARCH=0 turns it off), with graphsearch's all-sites
+# candidates (AUTO_SEARCH_ARGS default "--all-sites --buildable-only --wire 1000"; "--depth-only" was xorgap's first
+# form). PROGRAM General-first item 1 asks for exactly this: "where the latches go and how deep the links are (the event
+# graph's search, run inside the flow)". It can only ship a route that is rule-CLEAN and measured faster than the
+# loop's own; otherwise the loop's route ships unchanged. Farm nsearch1 (no-list flow, 18 finished loops): countloop
+# 26.60 -> 20.92, 22.15 -> 21.37, 25.80 -> 20.45 ns (s4 unchanged); xorshift / collatz unchanged (their cycles sit at
+# the rising-only floor, which storage cannot move); every draw passing.
+if [ -n "${AUTO_OVERBUILD_LATE:-}" ] && [ -n "${OB:-}" ] && [ "$X" -ge "$OB" ]; then
+  echo "search: skipped (the shipped route it $X is from the late overbuild phase)" >> "$O/log.txt"
+else
+  [ "${AUTO_SEARCH:-1}" = 1 ] && search_phase
+fi
+if [ -n "$LATE_M" ] && [ "$RC" = 2 ]; then
+  echo "late-after-search: NOT CLEAN after the finish phase and the search (shipped it $X); the late phase from it $i" >> "$O/log.txt"
+  export AUTO_LATE_PASS=1 AUTO_RESUME="$O" AUTO_OVERBUILD="$LATE_OB" AUTO_OVERBUILD_LATE="$LATE_M"
+  exec bash "$0" "${ARGS[@]}"
+fi
+echo "$RES3" | tee -a "$O/result.txt"
+exit "$RC"

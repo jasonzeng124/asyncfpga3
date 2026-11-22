@@ -172,13 +172,13 @@ that stops checking out. It terminates because lengths only decrease and are
 bounded below by zero. On this design:
 
 ```
-baseline (placeholders)   UDEC=4 UMERGE=4 UMUX=4 UMEM_USETUP=8 UMEM_UCO=12
-verified assignment       UDEC=1 UMERGE=4 UMUX=4 UMEM_USETUP=5 UMEM_UCO=12
-                          3 sweeps, 13 place-and-route runs
+baseline (placeholders)   UDEC=4 UMERGE=6 UMUX=4 UMEM_USETUP=8 UMEM_UCO=12
+verified assignment       UDEC=16 UMERGE=4 UMUX=2 UMEM_USETUP=2 UMEM_UCO=9
+                          4 sweeps, 25 place-and-route runs
 ```
 
-**Two of the five lines could be tightened at all; eleven of thirteen proposals
-were reverted.** That is the result worth keeping: on this fabric and this
+**Four of the five lines could be tightened at all; seventeen of twenty-four
+proposals were reverted.** That is the result worth keeping: on this fabric and this
 router, a matched delay cannot be shaved close to its measured requirement,
 because the act of shaving it perturbs placement by more than the margin the
 measurement claimed. Budget matched delays conservatively and do not expect
@@ -201,8 +201,8 @@ placeholder build and you always know which design you just checked.
 | `bd_latch_rst #(W)` | `bd_latch.v` | 1 LUT/bit | Storage — resettable |
 | `bd_delay #(N)` | `bd_latch.v` | N LUTs | Matched delay |
 | `bd_datamux #(W)` | `bd_latch.v` | ½ LUT/bit | packing table |
-| `bd_link_ctl` `bd_link_pair` | `bd_link.v` | ½ LUT/stage | Pipeline link |
-| `bd_link #(W)` `bd_pipe #(W,N)` | `bd_link.v` | ½ + W/2 per stage | Controller family |
+| `bd_link_ctl` | `bd_link.v` | 1 LUT/stage | Pipeline link |
+| `bd_link #(W,DELAY,DACK)` `bd_pipe #(W,N,DELAY,SDELAY,DACK)` | `bd_link.v` | 1 + W/2 per stage, plus its delay lines | Controller family |
 | `bd_fork #(N)` `bd_join #(N)` | `bd_ctl.v` | 1 LUT to fan-in 4 | Duals |
 | `bd_steer` | `bd_ctl.v` | 2 LUTs | Steer |
 | `bd_bd2dr` | `bd_ctl.v` | 1 LUT | Protocol converters |
@@ -261,11 +261,17 @@ and each is measured by a bench rather than argued.
    a sizing error: `req_out` is the C-element node itself while `data_out` is
    that node through a latch. Measured at 152 ps for one stage and 441 ps for
    four — the lead grows with depth, because filling an empty pipe sets off a
-   control wave that hops faster than the data wave ripples. Harmless inside
-   the library (every consumer is a transparent latch that closes a phase
-   later, which is the entire argument for the hold window ending at `ack↓`)
-   and a real violation at any edge-sampling boundary. `DELAY` pads `req_out`
-   alone; it defaults to 0, the review's exact cost.
+   control wave that hops faster than the data wave ripples. A real violation
+   at any edge-sampling boundary (`DELAY` pads `req_out`; default 0, the
+   review's exact cost) — and, it turned out, inside a pipe being filled
+   behind a fast source: the closing wave gains on the data wave at every
+   stage, so `bd_pipe` now carries a one-element `SDELAY` request line on each
+   internal boundary (rule I sizes it post-route). The mirror image is on the
+   acknowledge: the node reaches its last latch enable ~1 ns after its first
+   on a routed 32-bit link, while `ack_in` is already telling the sender to
+   release. `DACK` holds the *fall* of `ack_in` back (rule H sizes it); the
+   rise is untouched. Routed GLS of the fused xorshift kernel corrupted two
+   bits of token 1 before this and passes after it.
 
 Two smaller inconsistencies inside the review itself, resolved in favour of the
 majority reading and noted here rather than in the RTL:
@@ -302,7 +308,7 @@ Two things it got right:
 - **The cost is real, and it is a pretty result.** `L` and `R` touch
   `{Rin, L, R, Aout, rst}` — five pins, one fractured LUT6_2 a stage — and the
   constant that falls out is `64'h0000_C0FC_0000_8E8E`, **bit for bit the
-  constant `bd_link_pair` uses for two adjacent simple stages**. Same function,
+  constant the since-removed `bd_link_pair` used for two adjacent simple stages**. Same function,
   pins renamed: `(req_in, ci, cj, c_next) ↔ (Rin, L, R, Aout)`. Same control
   silicon, half the storage per token.
 

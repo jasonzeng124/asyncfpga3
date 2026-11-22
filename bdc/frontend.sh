@@ -87,6 +87,14 @@ fi
 # vendored tree. Same-named directory in kernels/ shadows the shipped one.
 SRC_DIR="$PWD/kernels/$KERNEL"
 [ -d "$SRC_DIR" ] || SRC_DIR="$DYN/integration-test/$KERNEL"
+# Two of the shipped directories are groups, not tests: integration-test/memory/ holds 23 tests
+# (memory/test_memory_1/test_memory_1.c, ...) and sharing/ holds 2. When neither place above has the name, take the
+# ONE group member of that name; none or several and the error below stands. Names that resolved before resolve
+# exactly as before (research/data/suite/dyn/README.md).
+if [ ! -d "$SRC_DIR" ]; then
+  NESTED=( "$DYN"/integration-test/*/"$KERNEL"/"$KERNEL".c )
+  if [ "${#NESTED[@]}" -eq 1 ] && [ -f "${NESTED[0]}" ]; then SRC_DIR="$(dirname "${NESTED[0]}")"; fi
+fi
 SRC_C="$SRC_DIR/$KERNEL.c"
 [ -f "$SRC_C" ] || { echo "no such kernel source: $SRC_C"; exit 2; }
 echo "== $KERNEL: source $SRC_C =="
@@ -174,6 +182,69 @@ echo "== $KERNEL: 4/8 opt canonicalization passes =="
   > "$COMP/clang.opt.ll" \
   || fail "opt canonicalization passes"
 require_nonempty "$COMP/clang.opt.ll" "opt canonicalization passes"
+
+# ---------------------------------------------------------------------------
+# Step 4b (opt-in, BDC_FE_EXITCOND=1; owner 2026-11-14, research/PROGRAM.md):
+# LLVM's own exit-test rewrite. indvars turns `i + 1 < n` into `i + 1 != n`
+# (with its own proof of the loop invariant), but only when a data layout
+# names a legal integer width -- and step 3 strips it, so in step 4 it never
+# fires. Here: one more indvars (+ simplifycfg to fold the preheader / LCSSA
+# blocks the loop pass manager inserts) on step 4's output, with a data layout
+# whose ONLY native width is 32 bits (nothing gets widened to i64), then the
+# data layout is stripped again for step 6. Unset: this step does not run and
+# every file is what it was.
+# Checked with system LLVM 18 on kernels/*: xorshift's loop test becomes
+# `icmp ne`; collatz, collatz64, ipow unchanged; isprime: a one-input phi
+# folded, the inner increment loses nuw/nsw, an exit phi's operands reorder.
+# ---------------------------------------------------------------------------
+if [ "${BDC_FE_EXITCOND:-0}" = 1 ]; then
+  echo "== $KERNEL: 4b/8 indvars exit-test rewrite (BDC_FE_EXITCOND=1) =="
+  { echo 'target datalayout = "e-n32"'; cat "$COMP/clang.opt.ll"; } \
+    | "$OPT" -S -passes="function(loop(indvars)),simplifycfg" \
+    | sed "s/^target datalayout = .*$//" > "$COMP/clang.opt.iv.ll" \
+    || fail "indvars exit-test rewrite"
+  require_nonempty "$COMP/clang.opt.iv.ll" "indvars exit-test rewrite"
+  mv "$COMP/clang.opt.iv.ll" "$COMP/clang.opt.ll"
+fi
+
+# ---------------------------------------------------------------------------
+# Step 4c (ON by default since 2026-11-18 21:50 UTC; BDC_FE_UREM=0 turns it off; PROGRAM lead 4, subagent divmod):
+# unsigned remainder as x - (x / y) * y. Dynamatic's handshake dialect has
+# divsi, remsi and divui but no remui (HandshakeArithOps.td), so
+# lower-cf-to-handshake stops at every C `%` on unsigned operands ("failed to
+# legalize operation 'arith.remui'"). Each `%r = urem iN %x, %y` becomes
+#     %bdc.urem.q.r = udiv iN %x, %y
+#     %bdc.urem.m.r = mul iN %bdc.urem.q.r, %y
+#     %r            = sub iN %x, %bdc.urem.m.r
+# (exact in arithmetic mod 2^N for y != 0; y = 0 is UB for urem and udiv alike),
+# then early-cse merges the new udiv with an existing `x / y` (digitsum's
+# `v % b` and `v / b` become ONE divider). LLVM's own div-rem-pairs pass does
+# the pair case but inserts `freeze`, which translate-llvm-to-std crashes on;
+# and this runs after step 4 because instcombine there would fold the
+# expansion back into urem. A urem line of any other shape (metadata, vector
+# types) is left alone and the step fails loudly. The step runs only when the
+# KERNEL's own function has a urem: early-cse works on the whole module, and on
+# polyn_mult (whose only urems are in main, which step 7 drops) it changed the
+# kernel's own loads (checked 2026-11-18: with this test, all 108 other
+# fixtures come out byte-identical with the knob on). In a kernel that has a
+# urem, early-cse may merge other repeated expressions too. Why on by default:
+# it changes only a kernel whose own function has a urem (which otherwise does
+# not compile), every committed fixture comes out byte-identical with it on
+# (111 / 111), and a fixture built with an opt-in knob would be a setting chosen
+# for one kernel, which the automatic path must not carry (owner, auditor T156).
+# BDC_FE_UREM=0: this step does not run (the old behaviour).
+# ---------------------------------------------------------------------------
+if [ "${BDC_FE_UREM:-1}" = 1 ] && awk -v k="@$KERNEL(" 'index($0, "define") == 1 && index($0, k) { f = 1 }
+     f && / = urem / { found = 1 } f && /^}/ { f = 0 } END { exit !found }' "$COMP/clang.opt.ll"; then
+  echo "== $KERNEL: 4c/8 urem -> udiv, mul, sub + early-cse (BDC_FE_UREM=1) =="
+  sed -E 's/^([[:space:]]*)%([-a-zA-Z$._0-9]+) = urem (i[0-9]+) ([^,]+), ([^,]+)$/\1%bdc.urem.q.\2 = udiv \3 \4, \5\n\1%bdc.urem.m.\2 = mul \3 %bdc.urem.q.\2, \5\n\1%\2 = sub \3 \4, %bdc.urem.m.\2/' \
+    "$COMP/clang.opt.ll" > "$COMP/clang.opt.urem.ll" || fail "urem rewrite"
+  ! grep -q ' = urem ' "$COMP/clang.opt.urem.ll" || fail "urem rewrite (a urem of an unexpected shape is left)"
+  "$OPT" -S -passes=early-cse "$COMP/clang.opt.urem.ll" > "$COMP/clang.opt.cse.ll" || fail "early-cse after urem rewrite"
+  require_nonempty "$COMP/clang.opt.cse.ll" "early-cse after urem rewrite"
+  mv "$COMP/clang.opt.cse.ll" "$COMP/clang.opt.ll"
+  rm -f "$COMP/clang.opt.urem.ll"
+fi
 
 # ---------------------------------------------------------------------------
 # Step 5 -- memory dependence analysis. Attaches !dest.ops metadata to

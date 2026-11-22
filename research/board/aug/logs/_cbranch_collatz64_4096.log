@@ -1,0 +1,27 @@
+FPGA0_CLK_CTRL=0x00100a00 -> DIVISOR0=10 DIVISOR1=1 -> FCLK0 nominal 100.0 MHz
+targets:
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Suspended)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z010
+CPU0 caught in BootROM: Stopped: (Suspended), pc: 00006088 (attempt 0, poll 0)
+programming build/hw/collatz64_bench_gen/collatz64_bench_gen.bit ...
+FPGA done.
+SLCR: FCLK0 set (100 MHz nominal), level shifters on, PL resets released.
+CTRL  after config: 0x00000004 (expect 0x4: rst=1)
+META  : 0x00014040 (nargs<<16 | arg0_w<<8 | argN_w)
+liveness pre-check PASS
+manual 4-phase smoke (collatz64): op0=12 op1=18 -> ODATA=176 (no oracle asserted for this kernel)
+
+=== (a) FIXED-mode repeatability: op0=4096 op1=0, N=200 ===
+  completed=200 latmin=142 latmax=143 cyc  prepcyc=3200  odata=12 sig=0x00000404 mism_st=2
+  NOTE: latmin != latmax on identical inputs -- real silicon jitter (not necessarily a bug; report the spread, do not assert equality the way sim did)
+FIXED-mode repeatability check PASS (no mismatch across 200 identical-input runs)
+SIG oracle PASS (0x00000404 matches the expected result fold)
+
+=== (r) repeat the SAME batch 3 times, no reprogramming ===
+rep	cycles	prepcyc	latmin	latmax	sig
+0	30152	3200	142	143	0x00000404
+1	30156	3200	142	143	0x00000404
+2	30142	3200	142	143	0x00000404
+=== (r) done: 3 batches, oracle asserted on each ===

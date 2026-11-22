@@ -1,0 +1,27 @@
+# Negative control (CA_BENCHCAP=1 must be able to fail): isprime seed 1 it 5 (su_isprime_1_5; nextpnr 6e5d224472232d5d, NEXTPNR_SEED 1),
+# soak_xray.sdf copied and ONE arc lengthened by DELTA ps (all of min:typ:max, rise and fall): umux13's data LUT $23629/O6 ->
+# $24110/A4 (the LUT in front of result_hold[0]'s D; result_hold is the bench's capture of out0).  corner_audit --no-size, corner 0.20,
+# auto_size.sh's environment (scratch ca_run.sh).  Unmodified route: A'j umux13 +18687 (data 1912 at result_hold[0]/D, request at sync_o_req[0]/D 1656 + 19000).
+# Predicted from the rule's arithmetic (margin = 20656 - (1912 + DELTA) - max(0.03 (1912 + DELTA), 50)): +1177 / -1398 / -7063.
+
+== DELTA 17000 (CA_BENCHCAP=1)
+  A   +1177  bridge_i.udut.umux13 1 links joined: 2 capture(s); worst clocked $auto$ff.cc:337:slice$8960  launch ulink_n_trueResult_14.many.stage[1].u.ctl.u.u: data 18912 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > ulink_n_trueResult_14.many.stage[1].u.lat.odd.u) at $auto$ff.cc:337:slice$8960/D  capture 20656 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > umux13.uj2.u) at $auto$ff.cc:337:slice$10763/D  guard 567  margin 1177  (own-request bound 1177)  [bench: 2 clocked capture(s), event = request's entry into the clock domain + 19000 ps; 4 own-join input(s), not data]
+
+== DELTA 19500 (CA_BENCHCAP=1)
+  A      -1398  bridge_i.udut.umux13 1 links joined: 2 capture(s); worst clocked $auto$ff.cc:337:slice$8960  launch ulink_n_trueResult_14.many.stage[1].u.ctl.u.u: data 21412 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > ulink_n_trueResult_14.many.stage[1].u.lat.odd.u) at $auto$ff.cc:337:slice$8960/D  capture 20656 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > umux13.uj2.u) at $auto$ff.cc:337:slice$10763/D  guard 642  margin -1398  (own-request bound -1398)  [bench: 2 clocked capture(s), event = request's entry into the clock domain + 19000 ps; 4 own-join input(s), not data]
+  A   -1398  bridge_i.udut.umux13 1 links joined: 2 capture(s); worst clocked $auto$ff.cc:337:slice$8960  launch ulink_n_trueResult_14.many.stage[1].u.ctl.u.u: data 21412 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > ulink_n_trueResult_14.many.stage[1].u.lat.odd.u) at $auto$ff.cc:337:slice$8960/D  capture 20656 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > umux13.uj2.u) at $auto$ff.cc:337:slice$10763/D  guard 642  margin -1398  (own-request bound -1398)  [bench: 2 clocked capture(s), event = request's entry into the clock domain + 19000 ps; 4 own-join input(s), not data]
+
+== DELTA 25000 (CA_BENCHCAP=1)
+  A      -7063  bridge_i.udut.umux13 1 links joined: 2 capture(s); worst clocked $auto$ff.cc:337:slice$8960  launch ulink_n_trueResult_14.many.stage[1].u.ctl.u.u: data 26912 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > ulink_n_trueResult_14.many.stage[1].u.lat.odd.u) at $auto$ff.cc:337:slice$8960/D  capture 20656 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > umux13.uj2.u) at $auto$ff.cc:337:slice$10763/D  guard 807  margin -7063  (own-request bound -7063)  [bench: 2 clocked capture(s), event = request's entry into the clock domain + 19000 ps; 4 own-join input(s), not data]
+  A   -7063  bridge_i.udut.umux13 1 links joined: 2 capture(s); worst clocked $auto$ff.cc:337:slice$8960  launch ulink_n_trueResult_14.many.stage[1].u.ctl.u.u: data 26912 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > ulink_n_trueResult_14.many.stage[1].u.lat.odd.u) at $auto$ff.cc:337:slice$8960/D  capture 20656 (1x: ulink_n_trueResult_14.many.stage[1].u.ctl.u.u > umux13.uj2.u) at $auto$ff.cc:337:slice$10763/D  guard 807  margin -7063  (own-request bound -7063)  [bench: 2 clocked capture(s), event = request's entry into the clock domain + 19000 ps; 4 own-join input(s), not data]
+
+== DELTA 25000_unset (CA_BENCHCAP unset: the rule as shipped)
+  j      -5125  bridge_i.udut.umux13 joined: not applied, keeps A': its data reaches 6 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10725/D, $auto$ff.cc:337:slice$8960/D, umux13.uj0.u/A2)
+  j   -5125  bridge_i.udut.umux13 joined: not applied, keeps A': its data reaches 6 input(s) that are not a latch's data or a select ($auto$ff.cc:337:slice$10725/D, $auto$ff.cc:337:slice$8960/D, umux13.uj0.u/A2)
+
+# the shipped rule's sized row on the +25000 route is A' at umux13, unchanged from the unmodified route (-5125, the lap through the
+# bench's acknowledge): it never measures the data's path into the bench, so a result 25 ns late at result_hold is invisible to it.
+  A      -5125  bridge_i.udut.umux13 1 links  from bridge_i.udut.ulink_n_trueResult_62.many.stage[1].u.ctl.u.u/O6: req 1923 (1x)  data 6843 (2x, bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23624)  guard 205  margin -5125
+  A   -5125  bridge_i.udut.umux13 1 links  from bridge_i.udut.ulink_n_trueResult_62.many.stage[1].u.ctl.u.u/O6: req 1923 (1x)  data 6843 (2x, bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23624)  guard 205  margin -5125
+  (unmodified route, loopfast rule_0.20)   A      -5125  bridge_i.udut.umux13 1 links  from bridge_i.udut.ulink_n_trueResult_62.many.stage[1].u.ctl.u.u/O6: req 1923 (1x)  data 6843 (2x, bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23624)  guard 205  margin -5125
+  (unmodified route, loopfast rule_0.20)   A   -5125  bridge_i.udut.umux13 1 links  from bridge_i.udut.ulink_n_trueResult_62.many.stage[1].u.ctl.u.u/O6: req 1923 (1x)  data 6843 (2x, bridge_i.udut.umux13.$abc$23623$auto$blifparse.cc:557:parse_blif$23624)  guard 205  margin -5125

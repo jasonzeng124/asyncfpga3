@@ -1,0 +1,399 @@
+diff --git a/bdc/emit.py b/bdc/emit.py
+index 2d35aaad8..cb7494e24 100644
+--- a/bdc/emit.py
++++ b/bdc/emit.py
+@@ -837,6 +837,92 @@ def _auto_apply(func):
+           f"const data {int(BDC_CONST_DATA)}; ring counts olinks {int(RING_COUNT_OLINKS)}", file=sys.stderr)
+ 
+ 
++# BDC_RING_PLACE=1 (only with BDC_AUTO=1; opt-in, default off: unset, nothing below runs and the output is
++# byte-identical): a placement constraint for every loop ring, derived from the graph, with no instance named
++# (PROGRAM "General first" item 6; research/data/suite/ringplace.md).  The rings are the token floor's (token_graph()):
++# the closed walks of the marked graph on the channels, forward along a channel and back along its acknowledge,
++# turning at joins and forks, with every loop's entry and exit channels cut.  A strongly connected component of that
++# walk graph that holds a back edge is a loop ring (one without is a fork / join diamond of code that runs once per
++# call); rings that share a node are one group.  A group's instances: its nodes' (fused cells included) and the links
++# on its channels.  A loop's directed cycles alone are not enough: xorshift's rounds (mux1, the xors, cond_br7) and its
++# counter (the compare, the steers, the merge) are two directed components, and the critical cycle of its routes runs
++# through both, joined by the select link n12__1 and by acknowledges.  The constraint goes on the kernel module as one
++# attribute,
++#     (* BDC_RING_PLACE = "w=K;<instances of group 0>;<instances of group 1>;..." *)
++# which survives synthesis (the module is keep_hierarchy) and which cells/hw/rloc_stamp.py turns into PLACE_WEIGHT K
++# (patches/nextpnr-xilinx-place-weight.patch) on every handshake net that lies in one group: a net touching a control
++# LUT of a group's instance, other than a delay chain's interior, and no control LUT outside that group.  A matched
++# delay's own links stay at weight 1: weighting them would shorten the delay itself, which the rules size and which a
++# placement change must not shorten (CLAUDE.md "Never shorten a delay to hit a speed target").
++# BDC_RING_PLACE_WEIGHT=K (default 8) sets K.
++RING_PLACE = _auto.AUTO and os.environ.get("BDC_RING_PLACE", "0") == "1"
++RING_PLACE_WEIGHT = int(os.environ.get("BDC_RING_PLACE_WEIGHT", "8"))
++_RP_INST = re.compile(r"^\s+[A-Za-z_]\w*\s*(?:#\(.*\))?\s*([A-Za-z_]\w*)\s*\($")
++
++
++def ring_place_groups(func, linked, depth, exclude, lines, starts, fusion=None):
++    """[[instance, ...] per ring group], from the kernel module's emitted lines.
++
++    `starts` is [(node index or None, first line)] in emission order: the lines from one start to the next were
++    written for that node (None: emit_links(), whose instances are the links).  An instance named ulink_<channel>
++    or ulink_<channel>_folink belongs to the group of its channel, or to none (an entry or exit channel); any other
++    instance to its node's group (a fused cell: any member's)."""
++    try:
++        from . import slack
++    except ImportError:
++        import slack
++    chans, out = token_graph(func, linked, depth, exclude)
++    adj = {s: {t for t, _w in nxt} for s, nxt in enumerate(out)}
++    rings = []
++    for comp in slack.tarjan_scc(list(range(len(out))), adj):
++        js = {s // 2 for s in comp}
++        if slack._is_cycle(comp, adj) and any(chans[j][5] for j in js):
++            rings.append(js)
++    up = list(range(len(rings)))
++
++    def find(x):
++        while up[x] != x:
++            up[x] = up[up[x]]
++            x = up[x]
++        return x
++
++    first = {}
++    for k, js in enumerate(rings):
++        for j in js:
++            for v in chans[j][1:3]:
++                if v in first:
++                    up[find(k)] = find(first[v])
++                else:
++                    first[v] = k
++    node_grp = {v: find(k) for v, k in first.items()}
++    chan_grp = {vname(chans[j][0]): find(k) for k, js in enumerate(rings) for j in js}
++    members = {}
++    if fusion is not None:
++        for anchor, region in fusion.anchor_region.items():
++            members[anchor] = region.node_ids
++    groups = collections.defaultdict(list)
++    bounds = list(starts) + [(None, len(lines))]
++    for (node, s0), (_, s1) in zip(bounds, bounds[1:]):
++        for line in lines[s0:s1]:
++            m = _RP_INST.match(line)
++            if not m:
++                continue
++            inst = m.group(1)
++            if inst.startswith("ulink_"):
++                ch = inst[len("ulink_"):]
++                ch = ch[:-len("_folink")] if ch.endswith("_folink") else ch
++                if ch in chan_grp:
++                    groups[chan_grp[ch]].append(inst)
++                continue
++            if node is None:
++                continue
++            k = next((node_grp[v] for v in members.get(node, [node]) if v in node_grp), None)
++            if k is not None:
++                groups[k].append(inst)
++    order = sorted(groups, key=lambda k: min(v for v, g in node_grp.items() if g == k))
++    return [sorted(set(groups[k])) for k in order]
++
++
+ class _UnionFind:
+     """Union-find with a hard cap on merged component size."""
+ 
+@@ -3435,7 +3521,9 @@ def emit_func(func, table=None):
+                             f"to {v!r}; the net name mapping is not injective")
+         seen[v] = ssa
+ 
++    starts = []   # (node, first line it wrote): BDC_RING_PLACE's map from instances to nodes
+     for i, node in enumerate(func.nodes):
++        starts.append((i, len(e.lines)))
+         if e.fusion is not None and i in e.fusion.skip:
+             # Absorbed (source, constant) pair, or a fused region member
+             # other than its anchor -- not individually lowered, but still
+@@ -3450,11 +3538,21 @@ def emit_func(func, table=None):
+             continue
+         e.lower(node, i)
+ 
++    starts.append((None, len(e.lines)))
+     if e.linked:
+         e.emit("    // Storage.  See link_sites() for the policy and for what")
+         e.emit("    // went wrong without it.")
+         e.emit_links()
+ 
++    ring_attr = []
++    if RING_PLACE:
++        groups = ring_place_groups(func, e.linked, e.depth, e.mem_absorbed, e.lines, starts, e.fusion)
++        print(f"emit: ring place: {func.name}: {len(groups)} ring(s), instances per ring "
++              f"{[len(g) for g in groups]}, weight {RING_PLACE_WEIGHT}", file=sys.stderr)
++        if groups:
++            ring_attr = [f'(* BDC_RING_PLACE = "w={RING_PLACE_WEIGHT};' + ";".join(" ".join(g) for g in groups)
++                         + '" *)']
++
+     # Ports.  Arguments are driven from outside, results drive outward.
+     ports = ["    input  wire             rst"]
+     for arg in func.args:
+@@ -3622,7 +3720,9 @@ def emit_func(func, table=None):
+             bridge.append(f"    assign {v}_data = {b}_data;")
+ 
+     body = "\n".join(
+-        [f"(* keep_hierarchy *)",
++        # BDC_RING_PLACE's attribute shares the keep_hierarchy line: no line below it moves, so every `src` that
++        # yosys writes into the netlist is the flag-off build's, and the netlists differ only by the weights.
++        [" ".join([f"(* keep_hierarchy *)"] + ring_attr),
+          f"module bdc_{func.name}{param_clause} (",
+          ",\n".join(ports) + ");",
+          "",
+diff --git a/cells/hw/build_bench.sh b/cells/hw/build_bench.sh
+index 7f576f528..463cb5350 100755
+--- a/cells/hw/build_bench.sh
++++ b/cells/hw/build_bench.sh
+@@ -370,6 +370,15 @@ if [ "$BD_RLOC" != none ]; then
+     mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
+     grep -E "group|link" "$OUT/rloc.log" | tail -3
+ fi
++# bdc's ring placement (BDC_AUTO=1 BDC_RING_PLACE=1, bdc/emit.py): the kernel carries a BDC_RING_PLACE attribute that
++# rloc_stamp.py turns into PLACE_WEIGHT on the rings' handshake nets.  A kernel that asked for it and got no weighted
++# net would route exactly like the flag-off build and be reported as the B arm of an A/B: refuse it.
++if grep -q "BDC_RING_PLACE" "build/gen/${KERNEL}_kernel_bench.v"; then
++    if [ "$BD_RLOC" = none ] || ! grep -qE "^ring_place .* [1-9][0-9]* handshake net\(s\) weighted" "$OUT/rloc.log"; then
++        echo "RING PLACE NOT APPLIED (BD_RLOC=$BD_RLOC; rloc.log: $(grep -m1 ring_place "$OUT/rloc.log" 2>/dev/null))"
++        exit 1
++    fi
++fi
+ 
+ last=$(grep -n "^=== $TOP ===" "$OUT/synth.log" | tail -1 | cut -d: -f1)
+ tail -n +"$last" "$OUT/synth.log" | grep -E "^\s+[0-9]+\s+(LUT|FD|BUFG|BSCAN|IBUF|OBUF|CARRY)" || true
+diff --git a/cells/hw/rloc_stamp.py b/cells/hw/rloc_stamp.py
+index a959d0115..185bc7b80 100644
+--- a/cells/hw/rloc_stamp.py
++++ b/cells/hw/rloc_stamp.py
+@@ -413,6 +413,83 @@ def weight_control_nets(mods, weight, report, only=None):
+     return n_nets
+ 
+ 
++RING_ATTR = "BDC_RING_PLACE"
++
++
++def ring_place(mods, report):
++    """BDC_RING_PLACE (bdc/emit.py, BDC_AUTO=1 BDC_RING_PLACE=1): PLACE_WEIGHT on every handshake net of a ring.
++
++    The kernel module carries `w=K;<instances of group 0>;<instances of group 1>;...` (the loop rings of the token
++    floor's walk graph, see emit.py).  A control LUT belongs to a group when its kernel instance does: a cell of the
++    kernel module named `<inst>.<...>` (a library cell flattened into it), or any cell of a generated submodule
++    instantiated as `<inst>` (a fused operator, an arbitrated merge).  A net is weighted K when a control LUT of a
++    group other than a delay chain's interior link touches it and no control LUT outside that group does (reset
++    excluded): the hops between a ring's stages and inside them, not its entry or exit, not a matched delay's own
++    chain (weighting that would shorten the delay itself).  The attribute is removed, so the netlist nextpnr reads
++    differs from the flag-off one only by these PLACE_WEIGHT attributes.  A submodule instantiated more than once is
++    not entered (one netname cannot weight one instance's net): its cells count as outside every group and the
++    report says so.  Returns the number of nets weighted."""
++    n_nets = 0
++    for kname, km in sorted(mods.items()):
++        spec = km.get("attributes", {}).pop(RING_ATTR, None)
++        if spec is None:
++            continue
++        parts = [p for p in str(spec).split(";") if p.strip()]
++        weight = int(parts[0].split("=", 1)[1])
++        grp = {u: k for k, p in enumerate(parts[1:]) for u in p.split()}
++        counts, _top = instantiation_counts(mods)
++        if counts.get(kname, 0) != 1:
++            print(f"WARNING: ring_place: {kname} is instantiated {counts.get(kname, 0)} times; not weighted")
++            continue
++        unit_of_type = {}
++        shared = []
++        for cname, c in km.get("cells", {}).items():
++            if is_user_module(mods, c["type"]):
++                if counts.get(c["type"], 0) == 1:
++                    unit_of_type[c["type"]] = cname
++                elif cname in grp:
++                    shared.append(cname)
++        leaves, rst = flatten(mods, kname, counts)
++        rings, inside, outside, site = defaultdict(set), set(), set(), {}
++        n_cells = 0
++        for mname, cname, c, conns in leaves:
++            if not is_control_cell(cname, c):
++                continue
++            unit = cname.split(".")[0] if mname == kname else unit_of_type.get(mname)
++            k = grp.get(unit)
++            interior = ".chain.g[" in cname
++            n_cells += k is not None and not interior
++            for p, gids in conns.items():
++                for b, g in zip(c["connections"][p], gids):
++                    if g is None or g in rst:
++                        continue
++                    if k is None:
++                        outside.add(g)
++                        continue
++                    rings[g].add(k)
++                    if not interior:
++                        inside.add(g)
++                        site.setdefault(g, (mname, b))
++        for g in sorted(inside - outside, key=str):
++            if len(rings[g]) != 1:
++                continue
++            mname, b = site[g]
++            netnames = mods[mname].setdefault("netnames", {})
++            single = [n for n, nn in netnames.items() if nn["bits"] == [b]]
++            if single:
++                target = netnames[sorted(single)[0]]
++            else:
++                target = {"hide_name": 1, "bits": [b], "attributes": {}}
++                netnames[f"$bd_ring_place${b}"] = target
++            target.setdefault("attributes", {})[WEIGHT_ATTR] = weight
++            n_nets += 1
++        if report:
++            print(f"ring_place {kname}: {len(parts) - 1} ring group(s), {len(grp)} instance(s), {n_cells} control "
++                  f"LUT(s); {n_nets} handshake net(s) weighted x{weight}"
++                  + (f"; shared submodule(s) not entered: {sorted(shared)}" if shared else ""))
++    return n_nets
++
++
+ def is_user_module(mods, t):
+     """A module of the design proper, not a cells_sim primitive model."""
+     m = mods.get(t)
+@@ -1468,6 +1545,8 @@ def main():
+     ok = True
+     if weight > 1:
+         weight_control_nets(d["modules"], weight, report, only)
++    # bdc's BDC_RING_PLACE attribute (BDC_AUTO=1 BDC_RING_PLACE=1), when the kernel carries one; none, nothing changes
++    ring_place(d["modules"], report)
+     if variant != "none":
+         n_groups, n_cands = stamp(d["modules"], variant, report)
+         # Zero groups is fatal ONLY when there was something to group.  A
+diff --git a/research/cluster/requests/ringplace1.sh b/research/cluster/requests/ringplace1.sh
+new file mode 100644
+index 000000000..ac7e28074
+--- /dev/null
++++ b/research/cluster/requests/ringplace1.sh
+@@ -0,0 +1,23 @@
++#!/bin/bash
++#CLUSTER array=1-32 cores=2 mem=16G time=240
++# ringplace1: PROGRAM "General first" item 6 as a rule -- bdc's ring placement (BDC_AUTO=1 BDC_RING_PLACE=1: PLACE_WEIGHT
++# x8 on every loop ring's handshake nets, the rings from the token floor's walk graph; research/data/suite/ringplace.md)
++# against the same build without it, placement the only variable: suite4's final sizes (flow v3) and suite4's seeds,
++# xorshift / collatz / collatz64 / ipow x seeds 1-8 (task = 8 * kernel + seed; research/data/suite/farm/ringplace1.txt).
++# Per task (research/tools/suite/ringplace_ab.sh): both arms built and run (P from the timed event graph, the critical
++# cycle's wire share from cycle_wire.py), A's sdf checked against suite4's; on B the static rule at A's sizes and 2
++# draws (K = 40000 + 100 S + j); on A the same draws where suite4 never judged the route (xorshift 7, collatz 1,
++# collatz64 6 / 7 have no final sizes and take the kernel's board candidate's; collatz64 8 timed out before its draws),
++# and every point B fails.
++# PREDICTION (local: xorshift s8 / s1, collatz s6 / s3, see ringplace.md): the median paired dP within +-0.5 ns of zero
++# (the hand weightings, levers 4 / 10 / 10b, moved P by -1.9 to +1.3 ns per seed with no sign); B's inter-unit wire on
++# the critical cycle lower than A's on most seeds, its delay-chain and intra-unit wire not; draws pass where the rule
++# stays clean on B.
++set -uo pipefail
++read -r K S Z NDA NDB REF <<< "$(sed -n "${TASK}p" research/data/suite/farm/ringplace1.txt)"
++export PNR_TIMEOUT=3600 CA_JOBS=1 DRAW_JOBS=2
++echo "ringplace1 kernel $K seed $S sizes $Z" > "$OUT/task.txt"
++research/tools/suite/ringplace_ab.sh "$K" "$S" "$Z" "$NDA" "$NDB" "$REF" > "$OUT/summary.txt" 2>&1
++cp "$RUNS/ringplace/${K}_$S/"*.txt "$RUNS/ringplace/${K}_$S/"*.tsv "$OUT/" 2>/dev/null
++cat "$OUT/result.txt" >> "$OUT/task.txt" 2>/dev/null
++exit 0
+diff --git a/research/tools/fifteen/lane2.sh b/research/tools/fifteen/lane2.sh
+index 4ddfc98ef..61a7456f0 100755
+--- a/research/tools/fifteen/lane2.sh
++++ b/research/tools/fifteen/lane2.sh
+@@ -34,6 +34,7 @@ case $Z in /*) ZP=$Z;; *) ZP=$WT/$Z;; esac   # an absolute SIZES_VH is used in p
+ fi
+ B=$WT/cells/build/hw/${K}_bench_gen
+ cp "$B/${K}_bench_gen".{bit,sdf,fasm} "$B/${K}_bench_gen_routed.json" "$WT/cells/build/gen/${K}_kernel_bench.v" "$HW/"
++cp "$B/rloc.log" "$HW/" 2>/dev/null || :   # what rloc_stamp.py stamped (RLOC groups; BDC_RING_PLACE's weighted nets)
+ flock -u 9   # the worktree is free for the next build; the run reads only HW
+ if [ "${LANE_NORUN:-0}" = 1 ]; then   # no full stack: only the prjxray SDF that corner_audit reads (auto_size.sh's
+   # intermediate routes; lane2_run.sh runs the full stack on the route the loop keeps)
+diff --git a/research/tools/suite/ringplace_ab.sh b/research/tools/suite/ringplace_ab.sh
+new file mode 100644
+index 000000000..1c8dfe4d3
+--- /dev/null
++++ b/research/tools/suite/ringplace_ab.sh
+@@ -0,0 +1,95 @@
++#!/usr/bin/env bash
++# ringplace_ab.sh KERNEL SEED SIZES_VH [NDA] [NDB] [SUITE4_SDF] -- research/data/suite/ringplace.md's A/B on one placer
++# seed: the same sizes, the same seed, placement the only variable.
++#   A  lane2.sh BDC_AUTO=1                      (with a suite4 route's own sizes and seed: suite4's route, byte for byte)
++#   B  lane2.sh BDC_AUTO=1 BDC_RING_PLACE=1     (bdc's ring placement: PLACE_WEIGHT on every loop ring's handshake nets)
++# Both arms: the full stack and the timed event graph (P), research/tools/eventgraph/cycle_wire.py (the critical
++# cycle's wire share), fasm_equiv and ffmux_scan.  B: the static rule (corner_audit CA_SIZERULE=1 at the draw model's two
++# worst vertices, as research/tools/auto/auto_size.sh runs it) on the route as built with A's sizes, then NDB draws
++# (bench_gate.sh draw:K, K = 40000 + 100 * SEED + j).  A: NDA draws at the same K (suite4 judged its own routes 8 / 8 at
++# K = 10000 + ...; NDA > 0 where it did not), and every K that fails on B is also drawn on A (is it the placement or
++# the model point?).  SUITE4_SDF (optional): the md5 prefix of suite4's route for this seed; the result says whether A
++# reproduced it.  Expected values come from the C (the kernel's oracle), never from a run.
++# Writes $RUNS/ringplace/KERNEL_SEED/{result.txt, line_[AB].txt, wire_[AB].txt, rule_B.txt, draw_*.txt, ...}.
++set -uo pipefail
++K=$1; S=$2; Z=$(readlink -f "$3"); NDA=${4:-0}; NDB=${5:-2}; REF=${6:--}
++R=$(cd "$(dirname "$0")/../../.." && pwd); RUNS=${RUNS:-/home/user/runs}; export RUNS
++export PNR_TIMEOUT=${PNR_TIMEOUT:-3600}
++O=$RUNS/ringplace/${K}_$S; mkdir -p "$O"; D=${K}_bench_gen
++case $K in
++  xorshift) V=research/data/eventgraph/gate/xor19.hex; PV=research/data/fifteen/vec_xorshift.hex; OR="research/tools/fifteen/kernel_oracle.sh xorshift";;
++  collatz) V=research/data/eventgraph/gate/col18.hex; PV=research/data/fifteen/vec_collatz.hex; OR="research/tools/fifteen/kernel_oracle.sh collatz";;
++  collatz64) V=research/data/eventgraph/gate/c6419.hex; PV=research/data/fifteen/vec_c64_871.hex; OR="research/tools/fifteen/kernel_oracle.sh collatz64";;
++  ipow) V=research/data/eventgraph/gate/ipow17.hex; PV=research/data/fifteen/vec_ipow.hex; OR="research/tools/fifteen/kernel_oracle.sh ipow";;
++  *) echo "$K $S status=NO-VECTORS (ringplace_ab.sh knows the four suite4 kernels)" | tee "$O/result.txt"; exit 0;;
++esac
++fin() { echo "$K $S $*" | tee "$O/result.txt"; exit 0; }
++( cd "$R" && $OR < "$V" ) > "$O/exp.txt" 2> "$O/oracle.err" || fin "status=NO-ORACLE"
++[ "$(grep -c . "$O/exp.txt")" = "$(grep -c . "$R/$V")" ] || fin "status=NO-ORACLE (line count)"
++
++arm() {   # arm A|B: the build, the full stack, the wire share
++  local a=$1 N=rp$1_${K}_$S env="BDC_AUTO=1"
++  [ "$a" = B ] && env="BDC_AUTO=1 BDC_RING_PLACE=1"
++  "$R/research/tools/fifteen/lane2.sh" "rp$a" "$N" "$K" "$Z" "$S" "$R/$PV" $env > "$O/build_$a.log" 2>&1
++  tail -1 "$O/build_$a.log" > "$O/line_$a.txt"
++  python3 "$R/research/tools/eventgraph/cycle_wire.py" "$R/research/data/eventgraph/graphs/$N" > "$O/wire_$a.txt" 2>&1
++  cp "$RUNS/hw/$N/rloc.log" "$O/rloc_$a.txt" 2>/dev/null
++  for f in check.txt arcs.tsv nodes.tsv; do cp "$R/research/data/eventgraph/graphs/$N/$f" "$O/${a}_$f" 2>/dev/null; done
++}
++arm A & arm B & wait
++
++field() { grep -o "$2=[^ ]*" "$O/$1" 2>/dev/null | head -1 | cut -d= -f2; }
++summ() {  # summ A|B: sdf P wire% inter-unit wire, bits
++  local L; L=$(cat "$O/line_$1.txt" 2>/dev/null)
++  local eq; eq=$(echo "$L" | grep -q 'NOT EQUIVALENT' && echo NOT-EQUIVALENT || (echo "$L" | grep -q 'EQUIVALENT' && echo EQUIVALENT || echo EQUIV?))
++  local ff; ff=$(echo "$L" | grep -q 'FFMUX-FLAG' && echo FFMUX-FLAG || echo ffmux-clean)
++  echo "sdf=$(echo "$L" | awk '{print $2}') P=$(echo "$L" | grep -o 'P=[0-9A-Z]*' | cut -d= -f2) wire%=$(field wire_$1.txt 'wire%') inter=$(grep -o 'inter=[0-9]*([0-9]*)' "$O/wire_$1.txt" | cut -d= -f2) $eq $ff"
++}
++SA=$(summ A); SB=$(summ B)
++PA=$(echo "$SA" | grep -o ' P=[0-9]*' | cut -d= -f2); PB=$(echo "$SB" | grep -o ' P=[0-9]*' | cut -d= -f2)
++dP=NA; [ -n "$PA" ] && [ -n "$PB" ] && dP=$((PB - PA))
++same=""; [ "$REF" != - ] && { [ "$(echo "$SA" | grep -o 'sdf=[0-9a-f]*' | cut -d= -f2)" = "$REF" ] && same=" A=suite4-route" || same=" A!=suite4-route($REF)"; }
++
++# the static rule on B's route at A's sizes (auto_size.sh's rule(), both corners merged): CLEAN or how many rows short
++rule() {
++  local NI=rpB_${K}_$S; local HW=$RUNS/hw/$NI RD=$RUNS/r/$NI CA=$RUNS/ca/$NI
++  [ -f "$RD/xray.sdf" ] || { echo "rule=NA"; return; }
++  rm -rf "$CA"; mkdir -p "$CA/seed1/pnr"
++  ln -sf "$RD/xray.sdf" "$CA/seed1/pnr/soak_xray.sdf"; ln -sf "$HW/${D}_routed.json" "$CA/seed1/pnr/soak_routed.json"
++  cp "$Z" "$CA/seed1/pnr/sizes.vh"
++  local c dirs=()
++  for c in 0.20 0.31; do
++    BD_SKEW_STEER_SELF=1 CA_JOINAWARE=1 BD_SKEW_AND_JOIN=1 CA_SIZERULE=1 \
++      python3 "$R/research/tools/corner_audit.py" "$CA/seed1" --prefix bridge_i.udut. \
++        --band "$c" --inst-rx '\.chain\.g\[\d+\]\.u$:0.20' --out "$CA/rule_$c" > "$O/rule_B_$c.txt" 2>&1 &
++  done; wait
++  for c in 0.20 0.31; do [ -f "$CA/rule_$c/negative_sized.tsv" ] || { echo "rule=FAILED"; return; }; dirs+=("$CA/rule_$c"); done
++  python3 "$R/research/tools/auto/merge_rules.py" "$CA/rule" "${dirs[@]}" > /dev/null 2>&1
++  [ -f "$CA/rule/negative_sized.tsv" ] || { echo "rule=FAILED"; return; }
++  cp "$CA/rule/negative_sized.tsv" "$O/rule_B_negative.tsv"
++  local neg; neg=$(tail -n +2 "$CA/rule/negative_sized.tsv" | grep -c .)
++  [ "$neg" = 0 ] && echo "rule=clean" || echo "rule=not-clean($neg)"
++}
++RB=$(rule)
++
++draw() {  # draw A|B K
++  local a=$1 k=$2 N=rp$1_${K}_$S; local HW=$RUNS/hw/$N RD=$RUNS/r/$N W=$RUNS/g/rp$1_${K}_$S/d$2
++  mkdir -p "$W"; cp "$RD/xray.sdf" "$W/xray.sdf" 2>/dev/null
++  local g; g=$("$R/research/tools/eventgraph/bench_gate.sh" "$HW" "$D" "$W" "$R/$V" "$O/exp.txt" "draw:$k" 2>&1 | tail -1)
++  echo "$a draw $k $(cut -d' ' -f3-8 "$W/draw_$k.txt" 2>/dev/null) :: ${g:-none}" > "$O/draw_${a}_$k.txt"
++  rm -rf "$W/draw_$k"
++}
++board() { echo "$1" | grep -q ' EQUIVALENT ffmux-clean'; }
++ks=(); for j in $(seq 1 "$NDB"); do ks+=($((40000 + 100 * S + j))); done
++# B's draws two at a time, then A at the same points (NDA of them, plus every point B failed)
++if board "$SB"; then
++  for k in ${ks[@]+"${ks[@]}"}; do draw B "$k" & while [ "$(jobs -rp | wc -l)" -ge 2 ]; do sleep 5; done; done; wait
++fi
++ka=(); for j in $(seq 1 "$NDA"); do ka+=($((40000 + 100 * S + j))); done
++for k in ${ks[@]+"${ks[@]}"}; do grep -q ":: PASS " "$O/draw_B_$k.txt" 2>/dev/null || ka+=("$k"); done
++if board "$SA" && [ "${#ka[@]}" -gt 0 ]; then
++  for k in $(printf '%s\n' "${ka[@]}" | sort -u); do draw A "$k" & while [ "$(jobs -rp | wc -l)" -ge 2 ]; do sleep 5; done; done; wait
++fi
++cnt() { local a=$1 n=0 p=0 f; for f in "$O"/draw_${a}_*.txt; do [ -f "$f" ] || continue; n=$((n + 1)); grep -q ":: PASS " "$f" && p=$((p + 1)); done; echo "$p/$n"; }
++cat "$O"/draw_*.txt > "$O/draws.txt" 2>/dev/null
++fin "dP=$dP | A $SA draws=$(cnt A)$same | B $SB $RB draws=$(cnt B)"

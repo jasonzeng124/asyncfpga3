@@ -1,0 +1,196 @@
+diff --git a/cells/flow.sh b/cells/flow.sh
+index 1766a3a..5ebbb91 100755
+--- a/cells/flow.sh
++++ b/cells/flow.sh
+@@ -334,11 +334,13 @@ BD_ROW_BANK_ROWS=${BD_ROW_BANK_ROWS:-2}
+ # verify/arb_fork.py (rule J) is the check it serves: its guardband scales with
+ # how far A0 travels to its two sinks.  Off by default; unset, the command
+ # below is the one this script always ran.
++# BD_RLOC_STEERJ=1: also put each bd_steer's LUTs and its join (<steer>_j) in
++# one SLICE (rloc_stamp.py --steer-join-groups).  Off by default.
+ if [ "$BD_RLOC" != none ]; then
+     python3 hw/rloc_stamp.py $OUT/soak.json $OUT/soak.rloc.json \
+         --variant "$BD_RLOC" --place-weight "$BD_PLACE_WEIGHT" \
+         --column-rows "$BD_COLUMN_ROWS" --row-bank-rows "$BD_ROW_BANK_ROWS" \
+-        ${BD_RLOC_ARB:+--arb-groups} --report > $OUT/rloc.log 2>&1 || {
++        ${BD_RLOC_ARB:+--arb-groups} ${BD_RLOC_STEERJ:+--steer-join-groups} --report > $OUT/rloc.log 2>&1 || {
+             echo "RLOC STAMP FAILED"; cat $OUT/rloc.log; exit 1; }
+     mv $OUT/soak.rloc.json $OUT/soak.json
+     grep -E "group|link" $OUT/rloc.log | tail -3
+diff --git a/cells/hw/build_hw.sh b/cells/hw/build_hw.sh
+index 1e815c6..511a3f8 100755
+--- a/cells/hw/build_hw.sh
++++ b/cells/hw/build_hw.sh
+@@ -313,10 +313,12 @@ BD_PLACE_WEIGHT=${BD_PLACE_WEIGHT:-1}
+ BD_COLUMN_ROWS=${BD_COLUMN_ROWS:-9}
+ # BD_RLOC_ARB=1: also put each bd_arbiter's four LUT sites in one SLICE
+ # (rloc_stamp.py --arb-groups; verify/arb_fork.py is the check it serves).
++# BD_RLOC_STEERJ=1: also put each bd_steer's LUTs and its join (<steer>_j) in
++# one SLICE (rloc_stamp.py --steer-join-groups).  Off by default.
+ if [ "$BD_RLOC" != none ]; then
+     python3 "$(dirname "$0")/rloc_stamp.py" "$OUT/$TOP.json" "$OUT/$TOP.rloc.json" \
+         --variant "$BD_RLOC" --place-weight "$BD_PLACE_WEIGHT" \
+-        --column-rows "$BD_COLUMN_ROWS" ${BD_RLOC_ARB:+--arb-groups} --report > "$OUT/rloc.log" 2>&1 || {
++        --column-rows "$BD_COLUMN_ROWS" ${BD_RLOC_ARB:+--arb-groups} ${BD_RLOC_STEERJ:+--steer-join-groups} --report > "$OUT/rloc.log" 2>&1 || {
+             echo "RLOC STAMP FAILED"; cat "$OUT/rloc.log"; exit 1; }
+     mv "$OUT/$TOP.rloc.json" "$OUT/$TOP.json"
+     grep -E "group|link" "$OUT/rloc.log" | tail -3
+diff --git a/cells/hw/rloc_stamp.py b/cells/hw/rloc_stamp.py
+index be493a2..7d6e186 100644
+--- a/cells/hw/rloc_stamp.py
++++ b/cells/hw/rloc_stamp.py
+@@ -1423,6 +1423,76 @@ def stamp_arbiters(mods, report):
+                   f"group to do it")
+     return n_arb
+ 
++# Every bd_steer's LUTs -- the steer itself (<steer>.u, a LUT6_2 driving both
++# branches' requests) and its acknowledge (<steer>.uack) -- together with the
++# join that builds its request (<steer>_j.*, bdc/emit.py names it after the
++# steer), as one group.  The join's output is the steer's request pin and
++# nothing else reads it, yet the placer is free to put the two tiles apart: on
++# gcd_hw's R5 route (2026-10-26, research/tools/rtz) the single net
++# ucond_br45_j -> ucond_br45 cost 1.77 ns on both edges of every ctz-loop
++# iteration, ~5% of a lap.  Opt-in (--steer-join-groups); like the arbiter
++# groups it takes precedence over any group a spine variant already put these
++# LUTs in.  A group of more than four LUT sites would spill into a second
++# tile and is skipped, and so is a steer in a module instantiated more than
++# once (its group string would fuse instances).
++RE_STEER_ACK = re.compile(r"^(?P<s>(?:.*\.)?[A-Za-z0-9_]+)\.uack$")
++
++
++def steer_join_sites(cells):
++    out = []
++    for cname in cells:
++        m = RE_STEER_ACK.match(cname)
++        if not m:
++            continue
++        s = m.group("s")
++        if s + ".u" not in cells:
++            continue
++        members = sorted(c for c in cells
++                         if (c.startswith(s + ".") or c.startswith(s + "_j."))
++                         and cells[c]["type"] in LUT_TYPES)
++        if not any(c.startswith(s + "_j.") for c in members):
++            continue
++        out.append((s, members))
++    return sorted(out)
++
++
++def stamp_steer_joins(mods, report):
++    counts, top = instantiation_counts(mods)
++    if top is None:
++        return 0
++    n_grp = n_cells = n_taken = n_big = n_shared = 0
++    for mname, m in sorted(mods.items()):
++        cells = m.get("cells", {})
++        sites = steer_join_sites(cells)
++        if not sites:
++            continue
++        if counts.get(mname, 0) != 1:
++            n_shared += len(sites)
++            continue
++        scope = "" if mname == top else re.sub(r"[^A-Za-z0-9_]", "_", mname) + "__"
++        for s, members in sites:
++            if len(members) > 4:
++                n_big += 1
++                continue
++            for x in members:
++                attrs = cells[x].get("attributes", {})
++                if ATTR in attrs:
++                    n_taken += 1
++                    for k in (ATTR, SLOT_ATTR, COL_ATTR):
++                        attrs.pop(k, None)
++            g = "bdsj_" + scope + re.sub(r"[^A-Za-z0-9_]", "_", s)
++            for x in members:
++                cells[x].setdefault("attributes", {})[ATTR] = g
++            n_grp += 1
++            n_cells += len(members)
++    if report:
++        print(f"             {n_grp} bd_steer(s) grouped with their join "
++              f"({n_cells} LUT cells); {n_big} skipped as wider than one SLICE, "
++              f"{n_shared} skipped in shared modules, {n_taken} LUT(s) taken "
++              f"out of another group")
++    return n_grp
++
++
+ def main():
+     args = sys.argv[1:]
+     variant = "v1"
+@@ -1446,6 +1516,7 @@ def main():
+         del args[i:i + 2]
+     report = "--report" in args
+     arb_groups = "--arb-groups" in args
++    steer_groups = "--steer-join-groups" in args
+     args = [a for a in args if not a.startswith("-")]
+     if len(args) != 2 or variant not in VARIANTS:
+         print(__doc__)
+@@ -1464,6 +1535,8 @@ def main():
+         ok = n_groups > 0 or not has_link_structures(d["modules"])
+         if arb_groups:
+             stamp_arbiters(d["modules"], report)
++        if steer_groups:
++            stamp_steer_joins(d["modules"], report)
+     with open(args[1], "w") as f:
+         json.dump(d, f)
+     # A silent no-op used to exit 0 and only be noticed once rule E failed on
+diff --git a/cells/verify/test_rloc_stamp.py b/cells/verify/test_rloc_stamp.py
+index c8c9a0f..1fcd6e9 100644
+--- a/cells/verify/test_rloc_stamp.py
++++ b/cells/verify/test_rloc_stamp.py
+@@ -510,3 +510,56 @@ def test_without_arb_groups_no_arbiter_is_grouped():
+     rloc_stamp.stamp(mods, "v8", report=False)
+     assert arb_groups(mods) == {}
+     assert set(mods) == {"top", "amerge2"}  # nothing copied either
++
++
++# --- --steer-join-groups: stamp_steer_joins() -------------------------------
++
++def steer_cells(name, join_luts=1):
++    cells = {f"{name}.u": lut([1, 2, 3], [4, 5]),
++             f"{name}.uack": lut([6, 7], [8], "LUT2")}
++    for i in range(join_luts):
++        cells[f"{name}_j.u.genblk1.g{2 + i}.u.u"] = lut([9 + i, 10 + i], [3], "LUT6")
++    cells[f"{name}_j"] = {"type": "$scopeinfo", "port_directions": {}, "connections": {}}
++    return cells
++
++
++def test_steer_and_its_join_share_one_group():
++    cells = {**steer_cells("ucond_br45"), **steer_cells("ucond_br7"),
++             "unrelated": lut([1], [2], "LUT2")}
++    mods = {"top": {"attributes": {"top": "1"}, "cells": cells}}
++    assert rloc_stamp.stamp_steer_joins(mods, report=False) == 2
++    g = cells["ucond_br45.u"]["attributes"][rloc_stamp.ATTR]
++    assert g == "bdsj_ucond_br45"
++    for c in ("ucond_br45.uack", "ucond_br45_j.u.genblk1.g2.u.u"):
++        assert cells[c]["attributes"][rloc_stamp.ATTR] == g
++    assert cells["ucond_br7.u"]["attributes"][rloc_stamp.ATTR] == "bdsj_ucond_br7"
++    assert "attributes" not in cells["unrelated"]
++    assert "attributes" not in cells["ucond_br45_j"]     # not a LUT
++
++
++def test_steer_join_wider_than_a_slice_or_shared_is_skipped():
++    wide = steer_cells("uwide", join_luts=3)            # 5 LUTs
++    mods = {"top": {"attributes": {"top": "1"},
++                    "cells": {**wide, "um0": inst("m"), "um1": inst("m")}},
++            "m": {"attributes": {}, "cells": steer_cells("ushared")}}
++    assert rloc_stamp.stamp_steer_joins(mods, report=False) == 0
++    for c in list(wide) + list(mods["m"]["cells"]):
++        cell = wide.get(c) or mods["m"]["cells"][c]
++        assert rloc_stamp.ATTR not in cell.get("attributes", {})
++
++
++def test_steer_join_takes_its_luts_out_of_a_spine_group():
++    cells = steer_cells("ucond_br3")
++    cells["ucond_br3.u"]["attributes"] = {rloc_stamp.ATTR: "bdspine_x",
++                                          rloc_stamp.SLOT_ATTR: 4}
++    mods = {"top": {"attributes": {"top": "1"}, "cells": cells}}
++    rloc_stamp.stamp_steer_joins(mods, report=False)
++    assert cells["ucond_br3.u"]["attributes"] == {rloc_stamp.ATTR: "bdsj_ucond_br3"}
++
++
++def test_without_steer_join_groups_nothing_is_stamped():
++    cells = steer_cells("ucond_br45")
++    mods = {"top": {"attributes": {"top": "1"}, "cells": cells}}
++    rloc_stamp.stamp(mods, "v4", report=False)
++    assert not any(c.get("attributes", {}).get(rloc_stamp.ATTR, "").startswith("bdsj_")
++                   for c in cells.values())

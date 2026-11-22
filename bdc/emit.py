@@ -45,6 +45,7 @@ Usage:
 """
 
 import argparse
+import collections
 import heapq
 import json
 import os
@@ -59,6 +60,75 @@ import mem  # noqa: E402
 # condition or a mux control).  Overridable so the value can be swept against
 # real hardware instead of argued about: BDC_SELECT_PAD=32 python3 bdc/emit.py ...
 SELECT_PAD = int(os.environ.get("BDC_SELECT_PAD", "4"))
+# Placeholder for a link's acknowledge-fall delay (bd_link.v DACK).  Rule H in
+# verify/tighten.py sizes it per route; generous so the placeholder build
+# passes and the search only ever shrinks.
+ACK_PAD = int(os.environ.get("BDC_ACK_PAD", "6"))
+# Placeholder for the request line between two stages of a bd_pipe (SDELAY),
+# rule I's knob; the same generous-then-shrink arrangement.
+STAGE_PAD = int(os.environ.get("BDC_STAGE_PAD", "3"))
+# BDC_MERGE_OUT_LINK=inst[,inst...] (empty by default; the shipped build is byte-identical without it): put one
+# bd_link stage between the named arbitrated control_merge (bdc_amerge) and the fork that splits its output into
+# result and index, latching the index (and the result's data, if any).  A MEASUREMENT knob for the owner's
+# second-latch lead (research/data/itercost/second_latch): the arbiter's output request is its granted input's, so it
+# cannot return to zero before that input does; storage on its OUTPUT is the test of whether that is what keeps the
+# loop counter ring changing polarity at the merge.  The index is a select, so the link's request delay defaults to
+# SELECT_PAD, its acknowledge delay to ACK_PAD (macros DELAY_<INST>_OLINK / _OLINK_UACK; tighten/size them as usual).
+MERGE_OUT_LINK = set(filter(None, os.environ.get("BDC_MERGE_OUT_LINK", "").split(",")))
+# BDC_MERGE_RES_LINK=inst[,inst...] (empty by default; byte-identical without it): one bd_link on the RESULT branch of
+# the named arbitrated merge's output fork (between `<inst>_f` and the result's consumer).  A MEASUREMENT knob for
+# PROGRAM.md's 15 ns lead (research/data/fifteen): on xorshift that fork's acknowledge waits for the loop-control steer,
+# which waits for the whole counter computation, so the select token's return-to-zero is coupled to the counter's
+# rising pass; the timed event graph predicts this one latch removes every polarity change from the critical cycle.
+# Request delay DELAY_<INST>_RLINK (default STAGE_PAD), acknowledge delay 0 for a control token (ACK_PAD otherwise).
+MERGE_RES_LINK = set(filter(None, os.environ.get("BDC_MERGE_RES_LINK", "").split(",")))
+# BDC_RING_COUNT_OLINKS=1 (off by default; byte-identical without it): ring_depths() counts the storage stage that
+# BDC_MERGE_OUT_LINK puts on both of a merge's outputs and BDC_MERGE_RES_LINK on its result, so a ring that gets its
+# floor of RING_MIN_STAGES from those links no longer needs a deeper bd_pipe elsewhere on it (research/data/fifteen).
+RING_COUNT_OLINKS = os.environ.get("BDC_RING_COUNT_OLINKS", "0") == "1"
+# BDC_FORK_OUT_LINK=chan[,chan...] (empty by default; byte-identical without it): one bd_link on the named OUTPUT channel
+# of a fork (the channel's Verilog base name, e.g. n11__0), between the fork and that output's consumer.  A measurement
+# knob for research/data/fifteen: a fork's acknowledge waits for all its consumers, so a consumer that joins with a slow
+# token (a loop steer waiting for the loop compare) couples the fork's return-to-zero to that token; the latch decouples
+# it.  Request delay DELAY_ULINK_<CHAN>_FOLINK (default STAGE_PAD), acknowledge delay ACK_PAD for data (0 for control).
+FORK_OUT_LINK = set(filter(None, os.environ.get("BDC_FORK_OUT_LINK", "").split(",")))
+# BDC_FORK_OUT_FASTFALL=1 (off by default; byte-identical without it): RFAST on every BDC_FORK_OUT_LINK link (the fast
+# request fall BDC_LINK_FASTFALL gives bare links; rtl/bd_link.v RFAST, audited by verify/tighten.py rule F).  Separate
+# from BDC_LINK_FASTFALL so builds made before it keep their emitted text.  research/data/fifteen lever 9: on xorshift
+# without the merge olink, the rounds ring's latch on n11__0 binds through its slow request fall.
+FORK_OUT_FASTFALL = os.environ.get("BDC_FORK_OUT_FASTFALL", "0") == "1"
+# BDC_MERGE_RES_DEPTH=N (default 1; byte-identical at 1): the BDC_MERGE_RES_LINK stage is a bd_pipe of N stages
+# (SDELAY DELAY_<INST>_RLINK_SDELAY, default STAGE_PAD).  research/data/fifteen lever 9: without the merge olink, the
+# arbiter's output return-to-zero waits for the result latch's, which waits for the loop steer; a second stage lets the
+# first empty while the steer holds the second.
+MERGE_RES_DEPTH = int(os.environ.get("BDC_MERGE_RES_DEPTH", "1"))
+# BDC_SPLIT_SOURCES=1 (off by default; byte-identical without it): a `source` whose token is FORKED to several constants
+# (Dynamatic shares one source between the literals of a block: collatz's source2 -> fork5 -> {true, 1 -> fork6 -> five
+# readers}) is replaced by one source + constant per reader, so each literal has one reader and compute_fusion folds it
+# into its fused region like every unshared literal (no channel, no join input).  Why: the shared fork cannot take the
+# next token before EVERY reader has acknowledged, so the readers' return-to-zero is coupled across the loop body;
+# research/data/eventgraph/search_all.md (subagent graphsearch): the critical cycle runs through such a fork on 7 of 11
+# automatic collatz / ipow / collatz64 routes (0.5-2.9 ns of the period in the timed event graph).  Only where it is the
+# same function: every reader is a fused-able op with another operand that is NOT a source's literal (so it fires once
+# per arrival of that operand, and an infinite stream of one value in place of another infinite stream of the same value
+# changes nothing it computes), or a sink (dropped with its literal: a lone source -> sink pair would oscillate).  A tree
+# with any other reader is left as it is.  split_shared_sources() below.
+SPLIT_SOURCES = os.environ.get("BDC_SPLIT_SOURCES", "0") == "1"
+# BDC_NO_LINK=ulink_<chan>[,...] (empty by default; byte-identical without it): drop the named links from the link set
+# before ring_depths() runs, so a ring that needs storage still gets it (ring_depths deepens another link on it, or
+# refuses).  A measurement knob for research/data/fifteen: a rule-1 (measurability) link on a loop's ring costs a
+# C-element and its request delay every iteration; without it verify/tighten.py loses that start point, and the full
+# gate, not the rules, decides whether the design is still correct.
+NO_LINK = set(filter(None, os.environ.get("BDC_NO_LINK", "").split(",")))
+# BDC_SPEC_INC=inst:k:nshort[,...] (empty by default; byte-identical without it): speculative completion on a fused
+# `addi x, 1` unit (research/data/fifteen/speculative.md, Nowick 1996).  The unit gets a second, short request line
+# (DELAY_SHORT, sizes key BD_SZ_<INST>_SHORT, default nshort) beside the full one, and a LUT3 picks the long line when
+# the low k bits of x are all ones (this increment carries past bit k) or all zeros (the previous one did, and the
+# carry chain still has to discharge): abort = &x[k-1:0] | ~|x[k-1:0].  Both lines fall fast from the join.
+SPEC_INC = {}
+for _item in filter(None, os.environ.get("BDC_SPEC_INC", "").split(",")):
+    _i, _k, _n = _item.split(":")
+    SPEC_INC[_i] = (int(_k), int(_n))
 
 def load_select_pads():
     """Per-instance select padding, in bd_delay elements, from a JSON file.
@@ -101,6 +171,31 @@ class EmitError(Exception):
 # the probe-port block in emit_func for what a probe is and is not.
 PROBE = [p for p in os.environ.get("BDC_PROBE", "").split(",") if p]
 
+# --host-mem / BDC_HOST_MEM=1: a HOST PORT on every memory, so a test harness
+# can fill an array before a call and read it back after one (suiteb,
+# 2026-11-17; research/data/suite/bench/README.md).  Off, nothing changes: the
+# output is byte-identical to before this existed, and so it is for any kernel
+# without a memref argument even when it is on.  On, each mem_controller's
+# plain port gets ONE MORE one-hot slot, the last one, wired to six new kernel
+# ports per memref argument, in signature order:
+#
+#     <m>_host_req  in     <m>_host_addr[AW-1:0]  in    <m>_host_we  in
+#     <m>_host_ack  out    <m>_host_wdata[DW-1:0] in    <m>_host_rdata[DW-1:0] out
+#
+# It is the bdc_memport's own slot protocol and nothing else: four-phase on
+# req/ack, addr/wdata/we bundled by req, rdata valid while ack is high.  The
+# ack is the port's SHARED acknowledge, so the host sees the kernel's accesses
+# too -- which is how it can wait for the port to be quiet before it asks.
+# No new cell and no arbiter: the one-hot obligation the plain port puts on
+# its caller is discharged by the harness, which only drives this slot while
+# the kernel is between calls (cells/hw/gen_bench.py refuses a host access
+# while a batch is running or the kernel is held in reset).  The port's
+# simulation check still fires if anyone breaks that.
+HOST_MEM = os.environ.get("BDC_HOST_MEM", "0") == "1"
+# BDC_MEM_NOCAP=1: a load on an arbitrated port WITHOUT its capture latch (bdc/mem.py CAPTURE) -- the negative
+# control of the load-first lowering (_resolve_mem_accessors), never for a build anyone believes.
+MEM_NOCAP = os.environ.get("BDC_MEM_NOCAP", "0") == "1"
+
 
 # Verilog keywords that a Dynamatic argName/resName can collide with.  `end`
 # is not hypothetical: it is the resName of every kernel's completion channel.
@@ -110,6 +205,14 @@ RESERVED = {
     "endmodule", "case", "default", "function", "task", "and", "or", "not",
     "buf", "xor", "nand", "nor", "xnor", "if", "else", "for", "while",
 }
+
+
+def host_base(func, memref_ssa):
+    """The port base of a memref argument's host port (HOST_MEM): `<m>_host`."""
+    for arg in func.args:
+        if arg.ssa_name == memref_ssa:
+            return portname(arg.name) + "_host"
+    raise EmitError(f"memref %{memref_ssa} is not an argument of @{func.name}")
 
 
 def vname(ssa):
@@ -240,7 +343,12 @@ def result_channels(node, operand_ch):
     if op == "cmpi":
         return [(1, False)]
     if op in ("addi", "subi", "muli", "andi", "ori", "xori",
-              "shli", "shrsi", "shrui"):
+              "shli", "shrsi", "shrui") or op in compute.MINMAX:
+        return [operand_ch[0]]
+    if op in compute.DIV:
+        # divui / divsi / remsi (and remui, which Dynamatic's dialect lacks): the dividend's width, as for the
+        # other binary ops (HandshakeArithOps.td fixes all three at i32; bdc/compute.py div_datapath is
+        # width-generic).
         return [operand_ch[0]]
     if op == "select":
         return [operand_ch[1]]
@@ -280,6 +388,10 @@ def result_channels(node, operand_ch):
             raise EmitError(f"{op} type clause {node.type_sig!r} has "
                             f"{len(atoms)} atom(s), expected 4 (addr-in, "
                             f"data-in, addr-out, data-out)")
+        if (op == "store" and len(node.results) == 3
+                and node.results[2].endswith(STORE_DONE_SFX)):
+            # store_completion_rewrite's third result: the access completing.
+            return atoms[2:4] + [CONTROL]
         if len(node.results) != 2:
             raise EmitError(f"{op} at line {node.src_line} has "
                             f"{len(node.results)} result(s), expected 2 "
@@ -475,7 +587,7 @@ module bdc_amerge{n}_{width} #(parameter DELAY = 4)
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(r0), .O(either));
-    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+    {compute.request_delay("r0")}
 
     // g1 is read so the arbiter's own output cannot be optimised away; the
     // grants are a fractured pair and deleting one changes the cell that
@@ -561,7 +673,7 @@ module bdc_muxn{n}_{width} #(parameter DELAY = 4)
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(|j), .O(either));
-    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+    {compute.request_delay("|j")}
 
 {acks}
 
@@ -617,7 +729,7 @@ endmodule
 DELAY_BEARING = {
     "addi", "subi", "muli", "cmpi", "andi", "ori", "xori",
     "shli", "shrsi", "shrui", "select", "mux",
-}
+} | set(compute.DIV) | compute.MINMAX
 
 
 # ---------------------------------------------------------------------------
@@ -687,7 +799,10 @@ BDC_OP_FUSION = _fusion_env == "1"
 
 # Ops safe to fuse across: DELAY_BEARING minus "mux" -- see the block comment
 # above for why "mux" is excluded.
-FUSABLE_OPS = DELAY_BEARING - {"mux"}
+FUSABLE_OPS = DELAY_BEARING - {"mux"} - set(compute.DIV)
+# The dividers (compute.DIV) are not fused either: a fused region writes each op as one expression
+# (_fused_node_expr), a divider is ~W*W/2 primitives of its own (compute.div_datapath), and its own matched delay
+# dwarfs whatever a region would save.  So a divider stays one unit, with its own link in front (DELAY_BEARING).
 
 # Channel-position map for each fusable op.  Exactly _bind_compute's mapping,
 # duplicated here (rather than imported from it) because fusion analysis has
@@ -697,17 +812,95 @@ _FUSABLE_CHANS = {
     for op in FUSABLE_OPS
 }
 
-# How many arithmetic ops one fused cell may absorb.  A FIXED bound, not a
-# measured one: link_sites()'s docstring already names "storage where the
-# uncut combinational depth exceeds a threshold" as an alternative to rule 1
-# and rejects it for needing a route to decide -- but cells/verify/converge.sh
-# and resize.sh already ARE that iterate-until-it-passes loop, so the
-# objection is against building an unbounded fuser with no way to size its
-# own delay, not against a bound at all.  This pass does not build that
-# feedback loop; it picks a small conservative bound instead and leaves
-# closing it on measurement for later.  4 covers every region actually seen
-# in xorshift and collatz (2 ops each) with room to spare.
-MAX_FUSE_NODES = 4
+BDC_FORK_FUSION = os.environ.get("BDC_FORK_FUSION", "1") == "1"
+
+# BDC_CONST_DATA=1 (OFF by default; the shipped build is byte-identical without it): a fused region reads an
+# external operand whose value is a KNOWN constant -- a `constant` node's result, or a fork output whose input is
+# one -- as a literal in its datapath, while the channel itself stays: its link, its request in the region's
+# bd_join, its acknowledge.  Only the data wire is replaced by the value that wire always carries, so the handshake
+# is unchanged and the result is the same function.  Why: constant absorption (compute_fusion) only folds a
+# constant fired by a bare `source` with one reader; collatz's shift-by-one (`constant4`, fired by the loop's control
+# and forked five ways) is left as a 32-bit data channel, so `n << e1` and `n >>> e3` are synthesised as barrel
+# shifters and their matched delays are sized to them (research/data/itercost: 14.6-16.3 ns of excess delay per
+# iteration on collatz's critical cycle).
+BDC_CONST_DATA = os.environ.get("BDC_CONST_DATA", "0") == "1"
+MAX_FUSE_NODES = int(os.environ.get("BDC_MAX_FUSE_NODES", "4"))
+# BDC_RING_FUSE=1 (OFF by default; unset, compute_fusion and the emitted Verilog are byte-identical): fusion goes on
+# through a fork that splits a region's result between a fusable reader and anything else -- the shape of every loop's
+# update and test, `x' = f(x); c = test(x'); steer(c, x')`, where today the fork between f and the test stops fusion
+# (a region may have only one result) and leaves a rule-1 link, a bd_join, a uor and a second matched delay on the
+# loop's ring (research/data/ringfuse/README.md: countloop, xorshift, collatz, ipow all have it).  The merged region
+# is one cell with one join over its external inputs, one matched delay covering the whole merged datapath, and as
+# many results as leave it: one request (the delay's) split by a bd_fork, each result its slice of the data.  Taken
+# only where it cannot deadlock (_ring_merge: every member in one basic block, and no path from a result back into the
+# region that does not cross a mux / merge / control_merge, i.e. an iteration boundary) and the merged region has at
+# most BDC_RING_FUSE_MAX members (default 8).  Nothing is keyed on a kernel: the pass matches the fork shape anywhere.
+# BDC_RING_FUSE=2: the same merge, and one bd_link on every result of a multi-result cell that has no storage yet
+# (a BDC_FORK_OUT_LINK on it).  Why: the merge takes off the ring the link that stood between the update and the test,
+# and with it the decoupling it gave -- the fused cell cannot take its next inputs until every steer its test feeds
+# has acknowledged.  Measured on the first fused routes (countloop / xorshift / collatz seed 1, flow v7): the rising
+# floor fell to 16.9 / 16.8 ns but return-to-zero came onto the cycle (P 24.9 / 21.4 / 29.0), and the flow's storage
+# search found, at zero extra wire, the 1-bit link on the test's output the single best stage on all three
+# (-> 20.9 / 18.7 / 22.2 ns predicted).  =2 builds that link from the start, so the loop sizes the structure it ships.
+# Default under BDC_AUTO=1 since 2026-11-19 (flow v8): "2" (farm ringfuse1, the whole automatic flow, 8 seeds x
+# xorshift / collatz / countloop / ipow against the same seeds without it: faster on 19 of 29 paired seeds, median
+# -1.27 ns; xorshift 8 / 8, -1.87; collatz 5 / 8, -1.17; countloop and ipow neutral; every draw passing on the shipped
+# routes but one NOT CLEAN last route, which the loop's least-short rule now avoids). Without BDC_AUTO, or with
+# BDC_RING_FUSE=0, the pass is off and the output is what it was.
+_RING_FUSE_DEFAULT = "2" if os.environ.get("BDC_AUTO", "0") == "1" else "0"
+RING_FUSE = os.environ.get("BDC_RING_FUSE", _RING_FUSE_DEFAULT) in ("1", "2")
+RING_FUSE_LINK = os.environ.get("BDC_RING_FUSE", _RING_FUSE_DEFAULT) == "2"
+RING_FUSE_MAX = int(os.environ.get("BDC_RING_FUSE_MAX", "8"))
+# BDC_SIBLING_FUSE=1 (opt-in, 2026-11-20; needs BDC_RING_FUSE for multi-result cells; unset, compute_fusion and the
+# emitted Verilog are byte-identical): a fork whose every output feeds a fusable op, in two or more regions, merges
+# those regions into ONE multi-result cell -- one join over their external inputs (the fork's operand read once), one
+# matched delay covering the merged datapath, whose branches now run side by side.  The shape is a loop's update and
+# its test both reading the loop value, which formal's proved plain loop-test move produces (`i + 1 < n` ->
+# `i < n - 1`, research/data/autorw/): without this the increment and the test stay two cells with a fork and links
+# between them; with it the cell's line covers max(add, compare) instead of the two carry chains in series.  The same
+# conditions as BDC_RING_FUSE (one basic block, at most BDC_RING_FUSE_MAX members, no same-firing path out of the merged
+# region and back into it).
+SIBLING_FUSE = os.environ.get("BDC_SIBLING_FUSE", "0") == "1"
+# BDC_RING_FUSE_NEGCTL=1: the NEGATIVE CONTROL of the pass (never for a build): a multi-result region drives every
+# result after the first with the first result's low bits, so a wrong slice is visible in simcheck / memtb.
+RING_FUSE_NEGCTL = os.environ.get("BDC_RING_FUSE_NEGCTL", "0") == "1"
+BDC_FASTFALL = compute.BDC_FASTFALL
+# Opt-in, default off: a fast fall on every bare bd_link's request line (RFAST)
+# and every bd_mux's output delay (FASTFALL).  Off emits the same text as
+# before, byte for byte.  rtl/bd_link.v RFAST says why it is safe and where it
+# is not (bd_pipe, bd_mem); verify/tighten.py rule F audits the drain.
+BDC_LINK_FASTFALL = os.environ.get("BDC_LINK_FASTFALL", "0") == "1"
+
+# BDC_AUTO=1 (off by default; unset, nothing below runs and the output is byte-identical): the hand recipes' general
+# knobs on, and their instance-named ones replaced by rules over the graph (bdc/auto.py; research/data/auto/README.md).
+# A knob set explicitly in the environment wins over what AUTO would choose.  Per function, in Emitter.__init__:
+# BDC_MERGE_OUT_LINK + BDC_MERGE_RES_LINK on every loop-header arbitrated control_merge (rule M), BDC_FORK_OUT_LINK on
+# every fork output that feeds its loop steer while a sibling feeds that steer's test (rule F), BDC_LINK_FASTFALL where
+# the function has no memory port (fast fall is not audited there).  Here: BDC_CONST_DATA and BDC_RING_COUNT_OLINKS.
+import auto as _auto  # noqa: E402
+_ENV_MO, _ENV_MR, _ENV_FO = set(MERGE_OUT_LINK), set(MERGE_RES_LINK), set(FORK_OUT_LINK)
+if _auto.AUTO:
+    if "BDC_CONST_DATA" not in os.environ:
+        BDC_CONST_DATA = True
+    if "BDC_RING_COUNT_OLINKS" not in os.environ:
+        RING_COUNT_OLINKS = True
+
+
+def _auto_apply(func):
+    """BDC_AUTO's per-function choices, written into the module knobs the emitter already reads."""
+    global MERGE_OUT_LINK, MERGE_RES_LINK, FORK_OUT_LINK, BDC_LINK_FASTFALL
+    hdr = _auto.loop_header_merges(func, instname)
+    if "BDC_MERGE_OUT_LINK" not in os.environ:
+        MERGE_OUT_LINK = _ENV_MO | hdr
+    if "BDC_MERGE_RES_LINK" not in os.environ:
+        MERGE_RES_LINK = _ENV_MR | hdr
+    if "BDC_FORK_OUT_LINK" not in os.environ:
+        FORK_OUT_LINK = _ENV_FO | _auto.steer_fork_outputs(func, vname)
+    if "BDC_LINK_FASTFALL" not in os.environ:
+        BDC_LINK_FASTFALL = not _auto.has_memory(func)
+    print(f"auto: {func.name}: merge out/res links {sorted(MERGE_OUT_LINK)} / {sorted(MERGE_RES_LINK)}; "
+          f"fork out links {sorted(FORK_OUT_LINK)}; link fast fall {int(BDC_LINK_FASTFALL)}; "
+          f"const data {int(BDC_CONST_DATA)}; ring counts olinks {int(RING_COUNT_OLINKS)}", file=sys.stderr)
 
 
 class _UnionFind:
@@ -756,6 +949,9 @@ class Region:
         self.ext_inputs = []
         self.const_of = {}
         self.ref = {}
+        # BDC_RING_FUSE only: [(ssa value, member that computes it), ...] when the region has more than one result
+        # (or its one result is a fork output); None for every region built the original way.
+        self.outputs = None
 
 
 class FusionPlan:
@@ -777,7 +973,7 @@ class FusionPlan:
         self.dead_values = set()
 
 
-def _topo_order(nodes, members, value_producer, member_set):
+def _topo_order(nodes, members, value_producer, member_set, aliases):
     """`members`, ordered so every node follows every in-region producer of
     its operands.  A plain DFS postorder: fusable regions cannot contain a
     cycle (a cycle needs a mux/control_merge to close, and those are never
@@ -786,7 +982,7 @@ def _topo_order(nodes, members, value_producer, member_set):
     for i in members:
         d = []
         for opnd in nodes[i].operands:
-            p = value_producer.get(opnd)
+            p = value_producer.get(aliases.get(opnd, opnd))
             if p in member_set:
                 d.append(p)
         deps[i] = d
@@ -805,10 +1001,16 @@ def _topo_order(nodes, members, value_producer, member_set):
     return order
 
 
-def _build_region(func, members, value_producer, value_consumers, const_of):
+def _build_region(func, members, value_producer, value_consumers, const_of,
+                  aliases=None, known=None, leaving=None):
+    """`leaving` (BDC_RING_FUSE only; None otherwise, and then nothing below differs from the original): {member:
+    [fork outputs that leave the region carrying that member's result]} for the forks _ring_merge absorbed in part.
+    With it the region may have several results (Region.outputs)."""
+    aliases = aliases or {}
     nodes = func.nodes
     member_set = set(members)
-    region = Region(_topo_order(nodes, members, value_producer, member_set))
+    region = Region(_topo_order(nodes, members, value_producer, member_set,
+                               aliases))
 
     # --handshake-materialize guarantees one consumer per SSA value (see this
     # file's own header), and every FUSABLE_OPS node has exactly one result
@@ -833,14 +1035,29 @@ def _build_region(func, members, value_producer, value_consumers, const_of):
         eaters = value_consumers.get(nodes[i].results[0], [])
         if not eaters or any(c not in member_set for c in eaters):
             sinks.append(i)
-    if len(sinks) != 1:
+    if leaving is not None:
+        outs = [(nodes[i].results[0], i) for i in sinks]
+        for i in region.node_ids:
+            outs.extend((v, i) for v in leaving.get(i, []))
+        if not outs:
+            raise EmitError(f"BDC_RING_FUSE: fused region {[nodes[i].op for i in region.node_ids]} has no result")
+        if len(outs) == 1 and outs[0][0] == nodes[outs[0][1]].results[0]:
+            sinks = [outs[0][1]]          # one result, a member's own: the original single-result region
+        else:
+            region.outputs = outs
+            region.anchor = region.node_ids[-1]
+            sinks = None
+    if sinks is None:
+        pass
+    elif len(sinks) != 1:
         raise EmitError(
             f"BDC_OP_FUSION: fused region "
             f"{[nodes[i].op for i in region.node_ids]} has {len(sinks)} "
             f"external result(s), expected exactly 1 -- the single-consumer "
             f"guarantee --handshake-materialize gives every value does not "
             f"hold here, and fusion cannot assume a single external output")
-    region.anchor = sinks[0]
+    if sinks is not None:
+        region.anchor = sinks[0]
 
     region.const_of = {(i, port): v for (i, port), v in const_of.items()
                         if i in member_set}
@@ -852,7 +1069,7 @@ def _build_region(func, members, value_producer, value_consumers, const_of):
             if (i, port) in region.const_of:
                 region.ref[(i, port)] = ("const", region.const_of[(i, port)])
                 continue
-            opnd = n.operands[pos]
+            opnd = aliases.get(n.operands[pos], n.operands[pos])
             p = value_producer.get(opnd)
             if p in member_set:
                 region.ref[(i, port)] = ("wire", p)
@@ -861,6 +1078,10 @@ def _build_region(func, members, value_producer, value_consumers, const_of):
                 ext_index[opnd] = len(region.ext_inputs)
                 region.ext_inputs.append(opnd)
             region.ref[(i, port)] = ("ext", ext_index[opnd])
+            if known and opnd in known:
+                # BDC_CONST_DATA: the channel stays an external input (joined, linked, acknowledged); only its data
+                # wire is read as the literal it always carries.
+                region.ref[(i, port)] = ("const", known[opnd])
 
     if not region.ext_inputs:
         # Every operand of every node in this region folded to a literal, so
@@ -879,11 +1100,212 @@ def _build_region(func, members, value_producer, value_consumers, const_of):
     return region
 
 
-def compute_fusion(func):
+def _absorb_forks(nodes, uf, value_producer, value_consumers, max_nodes):
+    """Contract forks whose entire fanout reconverges in one arithmetic region."""
+    owners = {}
+    pending = {i for i, n in enumerate(nodes) if n.op == "fork"}
+
+    def owner(i):
+        if i in uf.parent:
+            return uf.find(i)
+        if i in owners:
+            return uf.find(owners[i])
+        return None
+
+    changed = True
+    while changed:
+        changed = False
+        for i in sorted(pending):
+            n = nodes[i]
+            if len(n.operands) != 1 or not n.results:
+                continue
+            if value_consumers.get(n.operands[0]) != [i]:
+                continue
+            consumers = [value_consumers.get(r, []) for r in n.results]
+            if any(len(cs) != 1 for cs in consumers):
+                continue
+            targets = {owner(cs[0]) for cs in consumers}
+            if None in targets or len(targets) != 1:
+                continue
+            target = targets.pop()
+            source = owner(value_producer.get(n.operands[0]))
+            if source == target:
+                continue
+            owners[i] = target
+            pending.remove(i)
+            changed = True
+            if source is not None:
+                uf.union_if(source, target, max_nodes)
+
+    aliases = {r: nodes[i].operands[0] for i in owners for r in nodes[i].results}
+    for value in aliases:
+        src = aliases[value]
+        while src in aliases:
+            src = aliases[src]
+        aliases[value] = src
+    return owners, aliases
+
+
+# An iteration boundary for _ring_merge's deadlock check: a token that enters one of these leaves it as part of the
+# next firing of a loop header (or of a branch join) -- never as an input of the firing that produced it.
+_ITER_BOUNDARY = ("mux", "merge", "control_merge")
+
+
+def _ring_bb(node):
+    """A node's basic block (handshake.bb), parsed (a TypedLiteral) or plain; None when it has none."""
+    v = node.attrs.get("handshake.bb")
+    return getattr(v, "value", v)
+
+
+def _sibling_merge(nodes, uf, value_producer, value_consumers, cap):
+    """BDC_SIBLING_FUSE: union the regions fed by one fork when ALL the fork's outputs go to fusable nodes (one each) in
+    two or more regions, the fork's operand comes from outside them, and the merge is safe by _ring_merge's three
+    conditions.  Run before _absorb_forks, which then absorbs the fork (its whole fanout now reconverges in one region).
+    Returns the roots of the merged regions (their emission takes the multi-result path)."""
+    roots_out = set()
+    for fi, f in enumerate(nodes):
+        if f.op != "fork" or len(f.operands) != 1 or len(f.results) < 2:
+            continue
+        cons = [value_consumers.get(r, []) for r in f.results]
+        if any(len(c) != 1 for c in cons) or any(c[0] not in uf.parent for c in cons):
+            continue
+        roots = {uf.find(c[0]) for c in cons}
+        if len(roots) < 2:
+            continue
+        p = value_producer.get(f.operands[0])
+        if p is not None and p in uf.parent and uf.find(p) in roots:
+            continue
+        members = {i for i in uf.parent if uf.find(i) in roots}
+        if len(members) > cap:
+            continue
+        if len({_ring_bb(nodes[i]) for i in members} | {_ring_bb(f)}) != 1 or _ring_bb(f) is None:
+            continue
+        region = members | {fi}
+        start = set()
+        for i in region:
+            for r in nodes[i].results:
+                for c in value_consumers.get(r, []):
+                    if c not in region:
+                        start.add(c)
+        seen, stack, cyclic = set(), list(start), False
+        while stack and not cyclic:
+            x = stack.pop()
+            if x in seen:
+                continue
+            seen.add(x)
+            if nodes[x].op in _ITER_BOUNDARY:
+                continue
+            for r in nodes[x].results:
+                for c in value_consumers.get(r, []):
+                    if c in region:
+                        cyclic = True
+                        break
+                    stack.append(c)
+                if cyclic:
+                    break
+        if cyclic:
+            continue
+        rl = sorted(roots)
+        ok = True
+        for t in rl[1:]:
+            if not uf.union_if(rl[0], t, cap):
+                ok = False
+        if ok:
+            roots_out.add(uf.find(rl[0]))
+    return {uf.find(r) for r in roots_out}
+
+
+def _ring_merge(nodes, uf, value_producer, value_consumers, fork_owners, cap):
+    """BDC_RING_FUSE: merge a region with the fusable readers of a fork that splits its result, the fork's other
+    outputs becoming results of the merged region.  `value_consumers` is the ORIGINAL map (every reader of every value,
+    forks included).  Returns ({fork index: [its outputs that leave the merged region]}, {fork output read inside: the
+    fork's operand}).  Fully absorbed forks (_absorb_forks, `fork_owners`) are not touched.
+
+    A merge is refused unless (1) every member of the merged region and the fork sit in one basic block, (2) it has at
+    most `cap` members, and (3) no path leaves the merged region and comes back into it without crossing an
+    iteration boundary (_ITER_BOUNDARY).  (3) is the deadlock condition: the merged region fires only when ALL its
+    external inputs have arrived, so an input that waits for one of its own results in the same firing never comes.
+    Through a mux / merge / control_merge the path continues in a later firing (the loop header's next iteration, or a
+    branch join's), which is the loop the region is on, not a deadlock: inside one basic block a path can only reach a
+    member again through the block's own header.  Checked over the whole graph, not assumed."""
+    partial, alias = {}, {}
+    absorbed_by = {}                              # fork index -> uf node it belongs to (fully or partly absorbed)
+    for i, t in fork_owners.items():
+        absorbed_by[i] = t
+
+    def root(i):
+        if i in uf.parent:
+            return uf.find(i)
+        if i in absorbed_by:
+            return uf.find(absorbed_by[i])
+        return None
+
+    for fi, f in enumerate(nodes):
+        if f.op != "fork" or fi in fork_owners or fi in partial or len(f.operands) != 1 or not f.results:
+            continue
+        p = value_producer.get(f.operands[0])
+        if p is None or p not in uf.parent or value_consumers.get(f.operands[0]) != [fi]:
+            continue
+        cons = [value_consumers.get(r, []) for r in f.results]
+        if any(len(c) != 1 for c in cons) or any(c[0] in absorbed_by for c in cons):
+            continue
+        rp = uf.find(p)
+        targets = {uf.find(c[0]) for c in cons if c[0] in uf.parent and uf.find(c[0]) != rp}
+        if not targets:
+            continue
+        roots = targets | {rp}
+        members = {i for i in uf.parent if uf.find(i) in roots}
+        if len(members) > cap:
+            continue
+        if len({_ring_bb(nodes[i]) for i in members} | {_ring_bb(f)}) != 1 or _ring_bb(f) is None:
+            continue
+        inside_forks = {i for i, t in absorbed_by.items() if uf.find(t) in roots} | {fi}
+        region = members | inside_forks
+        # (3): every reader outside the merged region of a value made inside it, then forward through readers,
+        # stopping at iteration boundaries; reaching the region again is a same-firing cycle.
+        start = set()
+        for i in region:
+            for r in nodes[i].results:
+                for c in value_consumers.get(r, []):
+                    if c not in region:
+                        start.add(c)
+        seen, stack, cyclic = set(), list(start), False
+        while stack and not cyclic:
+            x = stack.pop()
+            if x in seen:
+                continue
+            seen.add(x)
+            if nodes[x].op in _ITER_BOUNDARY:
+                continue
+            for r in nodes[x].results:
+                for c in value_consumers.get(r, []):
+                    if c in region:
+                        cyclic = True
+                        break
+                    stack.append(c)
+                if cyclic:
+                    break
+        if cyclic:
+            continue
+        for t in targets:
+            uf.union_if(rp, t, cap)
+        partial[fi] = [r for r, c in zip(f.results, cons) if root(c[0]) != uf.find(rp)]
+        for r, c in zip(f.results, cons):
+            if root(c[0]) == uf.find(rp):
+                alias[r] = f.operands[0]
+        absorbed_by[fi] = p
+    return partial, alias
+
+
+def compute_fusion(func, *, forks=None, max_nodes=None):
     """BDC_OP_FUSION's whole analysis: which nodes fuse, which constants
     fold.  Pure graph analysis -- no widths needed, so this can run before
     Emitter._resolve_widths, and does not depend on the Emitter at all.
     """
+    forks = BDC_FORK_FUSION if forks is None else forks
+    max_nodes = MAX_FUSE_NODES if max_nodes is None else max_nodes
+    if max_nodes < 1:
+        raise EmitError("BDC_MAX_FUSE_NODES must be at least 1")
     nodes = func.nodes
     value_producer = {}
     for i, n in enumerate(nodes):
@@ -939,6 +1361,8 @@ def compute_fusion(func):
         ctl_producer = value_producer.get(n.operands[0])
         if ctl_producer is None or nodes[ctl_producer].op != "source":
             continue
+        if value_consumers.get(n.operands[0]) != [i]:
+            continue
         value = n.attrs.get("value")
         raw = getattr(value, "value", value)
         if not isinstance(raw, int):
@@ -964,25 +1388,98 @@ def compute_fusion(func):
                 edges.append((opnd, p, i))
     edges.sort(key=lambda e: e[0])
     for _, p, c in edges:
-        uf.union_if(p, c, MAX_FUSE_NODES)
+        uf.union_if(p, c, max_nodes)
+
+    orig_consumers = value_consumers
+    sibling_roots = set()
+    if SIBLING_FUSE and RING_FUSE:
+        sibling_roots = _sibling_merge(nodes, uf, value_producer, value_consumers, RING_FUSE_MAX)
+    fork_owners, aliases = {}, {}
+    if forks:
+        fork_owners, aliases = _absorb_forks(
+            nodes, uf, value_producer, value_consumers, max_nodes)
+        value_consumers = {}
+        for i, n in enumerate(nodes):
+            if i in fork_owners:
+                continue
+            for opnd in n.operands:
+                value = aliases.get(opnd, opnd)
+                value_consumers.setdefault(value, []).append(i)
+
+    partial = {}
+    if RING_FUSE:
+        partial, palias = _ring_merge(nodes, uf, value_producer, orig_consumers, fork_owners, RING_FUSE_MAX)
+        if partial:
+            aliases = dict(aliases)
+            aliases.update(palias)
+            value_consumers = {}
+            for i, n in enumerate(nodes):
+                if i in fork_owners or i in partial:
+                    continue
+                for opnd in n.operands:
+                    value = aliases.get(opnd, opnd)
+                    value_consumers.setdefault(value, []).append(i)
 
     groups = {}
     for i in fusable:
         groups.setdefault(uf.find(i), []).append(i)
 
+    known = {}
+    if BDC_CONST_DATA:
+        changed = True
+        while changed:
+            changed = False
+            for n in nodes:
+                if n.op == "constant" and n.results[0] not in known:
+                    value = n.attrs.get("value")
+                    raw = getattr(value, "value", value)
+                    if isinstance(raw, int) and not isinstance(raw, bool):
+                        known[n.results[0]] = raw; changed = True
+                elif n.op == "fork" and n.operands and n.operands[0] in known:
+                    for r in n.results:
+                        if r not in known:
+                            known[r] = known[n.operands[0]]; changed = True
     plan = FusionPlan()
-    plan.skip |= absorbed
+    plan.skip |= absorbed | fork_owners.keys()
+    leaving_of = {}                       # BDC_RING_FUSE: region root -> {member: [fork outputs leaving with its result]}
+    for fi, leave in partial.items():
+        p = value_producer[nodes[fi].operands[0]]
+        leaving_of.setdefault(uf.find(p), {}).setdefault(p, []).extend(leave)
+    for r in sibling_roots:                # BDC_SIBLING_FUSE: several members' own results leave the merged region
+        leaving_of.setdefault(uf.find(r), {})
     for members in groups.values():
-        region = _build_region(func, members, value_producer, value_consumers,
-                                const_of)
+        leaving = leaving_of.get(uf.find(members[0]))
+        if leaving is None:
+            region = _build_region(func, members, value_producer, value_consumers,
+                                    const_of, aliases, known)
+        else:
+            region = _build_region(func, members, value_producer, value_consumers,
+                                    const_of, aliases, known, leaving=leaving)
+        if region.outputs is not None:
+            outv = {v for v, _ in region.outputs}
+            for i in region.node_ids:
+                plan.region_of[i] = region
+                if i != region.anchor:
+                    plan.skip.add(i)
+                if nodes[i].results[0] not in outv:
+                    plan.dead_values.add(nodes[i].results[0])
+            plan.anchor_region[region.anchor] = region
+            continue
         for i in region.node_ids:
             plan.region_of[i] = region
             if i != region.anchor:
                 plan.skip.add(i)
                 plan.dead_values.add(nodes[i].results[0])
         plan.anchor_region[region.anchor] = region
+    for fi, leave in partial.items():
+        plan.region_of[fi] = plan.region_of[value_producer[nodes[fi].operands[0]]]
+        plan.skip.add(fi)
+        plan.dead_values.update(r for r in nodes[fi].results if r not in leave)
     for i in absorbed:
         plan.dead_values.add(nodes[i].results[0])
+    for i, target in fork_owners.items():
+        plan.region_of[i] = plan.region_of[uf.find(target)]
+        plan.dead_values.update(nodes[i].results)
     return plan
 
 
@@ -1031,7 +1528,7 @@ def _fused_node_expr(op, width, pred, ports, uniq):
         expr = f"{ports['s']} ? {ports['a']} : {ports['b']}"
         out_w = width
     elif op in compute.BINARY:
-        expr = compute.BINARY[op].format(a=ports["a"], b=ports["b"])
+        expr = compute.binary_expr(op, ports["a"], ports["b"], width)
         out_w = width
     else:
         raise EmitError(f"BDC_OP_FUSION has no fused lowering for {op!r}")
@@ -1196,6 +1693,10 @@ def cycle_sites(func, already, exclude=frozenset()):
 # pass a token through but cannot hold one, so it adds no stages.  Measured
 # directly on the mux -> steer -> storage -> mux ring: one and two stages dead,
 # three and up live, with the mux and steer contributing nothing.
+#
+# That is the ONE-token case.  A cycle that threads T back edges carries T tokens and needs 2T + 1, and two paths
+# between one fork and one join that carry different numbers of tokens need storage too: token_floor() below, which
+# runs after ring_depths() and adds only where this floor of three is not enough.
 RING_MIN_STAGES = 3
 
 _INF = float("inf")
@@ -1238,12 +1739,20 @@ def ring_depths(func, linked, exclude=frozenset()):
     edges = [e for e in edges if e.value not in exclude]
     n = len(func.nodes)
     depth = {ssa: 1 for ssa in linked}
+    extra = collections.defaultdict(int)          # storage that is not a link site (BDC_RING_COUNT_OLINKS)
+    if RING_COUNT_OLINKS:
+        for i, node in enumerate(func.nodes):
+            nm = instname(node, i)
+            if len(node.results) == 2 and nm in MERGE_OUT_LINK:
+                for r in node.results: extra[r] += 1
+            if len(node.results) == 2 and nm in MERGE_RES_LINK:
+                extra[node.results[0]] += MERGE_RES_DEPTH
 
     def lightest_cycle():
         """(weight, [edges round it]) for the lightest cycle, or None."""
         out = {v: [] for v in range(n)}
         for e in edges:
-            out[e.producer].append((e.consumer, depth.get(e.value, 0), e))
+            out[e.producer].append((e.consumer, depth.get(e.value, 0) + extra.get(e.value, 0), e))
 
         def dijkstra(src):
             dist = {src: 0}
@@ -1302,6 +1811,333 @@ def ring_depths(func, linked, exclude=frozenset()):
             func.nodes[e.consumer].op not in HEADER_OPS, str(e.value)))
         depth[cand[0].value] += RING_MIN_STAGES - weight
     raise EmitError(f"{func.name}: ring depth did not converge")
+
+
+# ---------------------------------------------------------------------------
+# The token floor: RING_MIN_STAGES for a cycle that carries more than one token, and for two paths that carry
+# different numbers of tokens between one fork and one join.  A correctness rule, on by default (BDC_TOKEN_FLOOR=0
+# turns it off, for negative controls only).  research/data/suite/ringfloor.md has the measurements.
+#
+# THE MODEL.  A storage stage (bd_link, each stage of a bd_pipe, a merge's olink / rlink, a fork output link) is a
+# Muller half buffer, c = C(req_in, ~c_next).  Everything else on a ring is a rendezvous with no storage: a join
+# (bd_join, a mux's select with its data, a cond_br's condition with its data, a compute cell's operands) is a
+# C-element on the requests; a fork is a C-element on the acknowledges; a steer is two AND gates.  So stage t rises
+# when every stage feeding it has risen and every stage it feeds has fallen, and falls in the dual case.  While a loop
+# iterates (each mux taking its back edge, each loop steer continuing) that is a marked graph on the stage
+# transitions: per stage edge s -> t, the arcs s+ -> t+ and s- -> t- (data forward) and t+ -> s-, t- -> s+ (the
+# acknowledge back).  A marked graph is live iff every one of its cycles holds a token, and a cycle's token count never
+# changes, so it can be read off one state.
+#
+# TOKENS.  Take the state at an iteration boundary: one loop-carried value resting on each back edge (a data input of a
+# mux / merge / control_merge fed from the same or a later basic block), that stage high and its neighbours low, every
+# other stage low.  Per stage edge s -> t exactly one arc holds a token: an acknowledge arc when c_s == c_t, a data arc
+# when they differ, and a resting value makes exactly the two stage edges around it differ.  A marked-graph cycle is a
+# closed walk over stage edges, each taken with the data (it uses the acknowledge arcs: one token per stage, minus two
+# per value resting there) or against it (the data arcs: two per resting value).  With d = the back edges a stage edge
+# crosses (0 or 1), its token count is
+#     sum over edges walked with the data of (1 - 2d)  +  sum over edges walked against it of 2d,
+# which has to be >= 1.
+#
+# WHAT THAT SAYS.  (1) A directed cycle with S stages that threads T back edges (T tokens) needs S >= 2T + 1: two
+# stages per token, plus one to move into.  T = 1 is RING_MIN_STAGES = 3.  kernels/quadrec's a <- b <- c <- d <-
+# t(a, b, c, d) ring threads four back edges and had 6 stages; it needs 9.  (2) Two paths from one fork to one join,
+# Q crossing K more back edges than P, need 2K stages on Q between the fork and the join (the stage after the join is
+# shared by both and is the slot the tokens move into; that is the +1 at a join turnaround below).  This one no cycle
+# count sees.  quadrec's loop-condition fork feeds every loop steer, so d -> c (cond_br13 -> a link -> mux4 -> fork5 ->
+# cond_br12) and the condition's direct wire to cond_br12 are such a pair with K = 1: with ONE stage on that back
+# edge the condition fork cannot return to zero until the next condition token has arrived, and it deadlocks with
+# every cycle at 2T + 1 (measured: ring_tokens.py reads +1 and simcheck still hangs).  The fix is two stages on each
+# rotation back edge, which is also enough for the ring (4 x 2 + 1 = 9 with the link in front of the adder).
+#
+# THE WALK, on the node graph (the stage-level walk turns at the stage after a join and the stage before a fork; the
+# shared piece in between cancels, except the stage after a join, which counts once: +1).  A state is (channel,
+# direction).  Forward along a channel costs stages - 2 x tokens; backward costs 2 x tokens.  Through a node: forward
+# from an input to an output, backward from an output to an input; a JOIN turnaround (forward in on one input, back out
+# on another) only between inputs that are joined -- not two data inputs of a mux, not two inputs of a merge or
+# control_merge (one of them fires); a FORK turnaround (back in on one output, forward out on another) only between
+# outputs that leave together -- a fork's, a control_merge's result and index -- not a cond_br's two branches.
+# Memory ops are passed through and never turned at (not modelled).  A back edge counts only on a cycle (a mux fed from
+# its own basic block in loop-free code is not one).  A loop's ENTRY channels (the inputs of its header muxes / merges /
+# control_merges that are not back edges) and EXIT channels (the other branch of every steer on the loop's condition --
+# the condition whose steer feeds a back edge, traced back through forks) are not walked, for every loop at once: they
+# belong to other modes of the circuit than the iterating one, and a walk that mixes modes is no cycle of any one
+# marked graph.  Everything else is walked, across strongly connected components: a loop's body is often several
+# (quadrec's rotation is one, its loop-control ring another; the condition fork that feeds every steer joins them in
+# one direction only), and the walk that deadlocked quadrec runs through both.  So an inner loop is seen iterating, or
+# skipped (its guard's other branch), never passed through in one trip.
+#
+# THE FLOOR.  Find a walk with token count <= 0 (Bellman-Ford on weights scaled so that "<= 0" is "< 0"), add one
+# stage to a link it walks forward -- a back edge first (the token's own channel, and the only link some of these
+# walks have), then the link with the fewest stages, then by name -- and repeat.  It runs after ring_depths() and
+# only ever adds, so a function where every walk already holds a token emits exactly what it did before.
+TOKEN_FLOOR = os.environ.get("BDC_TOKEN_FLOOR", "1") != "0"
+# THE PASS-THROUGH MODES (research/data/suite/hangs.md).  The walks above see each loop iterating; an inner loop is never
+# walked through its entry and exit, so the circuit between an inner loop's last trip and its next entry -- the outer
+# loop's own ring -- was never checked.  For every loop P with a loop nested in it, the floor also walks the graph with
+# P iterating and every loop nested in P passed through in one trip (token_graph's `mode`).  A back edge is read from
+# where its value comes from, through casts (Dynamatic puts the extui of a loop's initial value in the loop's own header
+# block, which made matrix's entry channels look like back edges).  BDC_TOKEN_FLOOR_PASS=0 drops the modes (negative
+# controls only).
+TOKEN_FLOOR_PASS = os.environ.get("BDC_TOKEN_FLOOR_PASS", "1") != "0"
+_TF_PASS_ONLY = ("load", "store", "mem_controller", "lsq")
+_TF_CAST = ("extui", "extsi", "trunci")
+
+
+def _bb(node):
+    v = node.attrs.get("handshake.bb")
+    try:
+        return int(v.value) if v is not None else -1
+    except (AttributeError, ValueError):
+        return -1
+
+
+def _tf_structure(func, exclude=frozenset()):
+    """The loop structure the token floor's walks read: (every, base_skip, loops).
+
+    every = [(value, producer, consumer, operand, tokens)] for every channel not in `exclude`; base_skip = the entry and
+    exit channels of every loop, as (value, consumer, operand) -- the original walk graph walks everything else;
+    loops = {header block: {"back", "entry", "exit": sets of (value, consumer, operand), "latch": block}}, one per loop
+    (Dynamatic gives each loop one header block and numbers a loop's blocks contiguously, so loop L is nested in loop P
+    when P's header block < L's and L's latch block <= P's)."""
+    try:
+        from . import slack
+    except ImportError:
+        import slack
+    nodes = func.nodes
+    edges, _adj = slack.build_node_graph(func)
+    adj = collections.defaultdict(set)
+    for e in edges:
+        if e.value not in exclude:
+            adj[e.producer].add(e.consumer)
+    comp = {}
+    for k, scc in enumerate(slack.tarjan_scc(list(range(len(nodes))), adj)):
+        if slack._is_cycle(scc, adj):
+            for v in scc:
+                comp[v] = k
+    producer = {r: i for i, n in enumerate(nodes) for r in n.results}
+    passthru = ("extui", "extsi", "trunci", "br")
+
+    def root(v):                                  # a steer's condition, back through forks and pass-throughs
+        while v in producer and nodes[producer[v]].op in ("fork", "lazy_fork") + passthru \
+                and nodes[producer[v]].operands:
+            v = nodes[producer[v]].operands[0]
+        return v
+
+    def obb(n):                                   # the block a value comes from: a cast's is its operand's
+        while n.op in _TF_CAST and n.operands and n.operands[0] in producer:
+            n = nodes[producer[n.operands[0]]]
+        return _bb(n)
+
+    every = []                                    # (value, producer, consumer, operand, tokens)
+    for i, node in enumerate(nodes):
+        for r in node.results:
+            if r in exclude:
+                continue
+            for (c, k) in func.consumers.get(r, []):
+                cn = nodes[c]
+                tok = int(((cn.op == "mux" and k >= 1) or cn.op in ("merge", "control_merge"))
+                          and 0 <= _bb(cn) <= obb(node) and i in comp and comp.get(c) == comp[i])
+                every.append((r, i, c, k, tok))
+    headers = {c for (_r, _i, c, _k, t) in every if t}
+    skip = set()                                  # the loops' entry and exit channels, as (value, consumer, operand)
+    cont = collections.defaultdict(set)           # loop condition (root) -> the steer result index that continues
+    loops = {}
+    cond_loop = {}                                # loop condition (root) -> the loop's header block
+    for (r, i, c, k, t) in every:
+        cn = nodes[c]
+        if not t and c in headers and ((cn.op == "mux" and k >= 1) or cn.op in ("merge", "control_merge")):
+            skip.add((r, c, k))                   # entry
+        if t:                                     # the steer this back edge leaves, through pass-throughs
+            lp = loops.setdefault(_bb(cn), {"back": set(), "entry": set(), "exit": set(), "hdr": set(), "latch": -1})
+            lp["back"].add((r, c, k))
+            lp["hdr"].add(c)
+            v, p = r, i
+            while nodes[p].op in passthru and nodes[p].operands and nodes[p].operands[0] in producer:
+                v = nodes[p].operands[0]
+                p = producer[v]
+            lp["latch"] = max(lp["latch"], _bb(nodes[p]))
+            if nodes[p].op == "cond_br":
+                cont[root(nodes[p].operands[0])].add(nodes[p].results.index(v))
+                cond_loop.setdefault(root(nodes[p].operands[0]), _bb(cn))
+    for (r, i, c, k, t) in every:
+        cn = nodes[c]
+        if not t and ((cn.op == "mux" and k >= 1) or cn.op in ("merge", "control_merge")):
+            for lp in loops.values():
+                if c in lp["hdr"]:
+                    lp["entry"].add((r, c, k))
+    for i, node in enumerate(nodes):              # exit: every steer on a loop's condition, its other branch
+        if node.op != "cond_br":
+            continue
+        d = cont.get(root(node.operands[0]))
+        if d is None or len(d) != 1:
+            continue
+        other = node.results[1 - next(iter(d))]
+        for (c2, k2) in func.consumers.get(other, []):
+            skip.add((other, c2, k2))
+            hb = cond_loop.get(root(node.operands[0]))
+            if hb in loops:
+                loops[hb]["exit"].add((other, c2, k2))
+    return every, skip, loops
+
+
+def _tf_nested(loops, p):
+    """The header blocks of the loops nested (at any depth) in loop p."""
+    return {h for h, lp in loops.items()
+            if h != p and h > p and lp["latch"] >= 0 and lp["latch"] <= loops[p]["latch"]}
+
+
+def tf_pass_modes(func, exclude=frozenset()):
+    """The token floor's pass-through modes: the header block of every loop that has a loop nested in it."""
+    _every, _skip, loops = _tf_structure(func, exclude)
+    return sorted(h for h in loops if _tf_nested(loops, h))
+
+
+def token_graph(func, linked, depth, exclude=frozenset(), mode=None):
+    """The walk graph of the token floor (see the block above).
+
+    Returns (chans, out): chans[i] = (value, producer, consumer, operand, stages, tokens) for every channel walked
+    (all but memory-absorbed ones and the loops' entry and exit channels); out[s] = [(s2, weight)] for states
+    s = 2 * i (channel i walked forward) and 2 * i + 1 (backward).
+
+    mode = None: every loop iterating (the walks above).  mode = the header block of a loop P: P iterates and every
+    loop nested in P passes through in one trip -- its entry and exit channels are walked (no tokens: no value rests
+    on them at P's iteration boundary) and its back edges are not -- while every other loop is walked as in mode None.
+    That is the circuit between an inner loop's last trip and its next entry, which mode None never walks: matrix's
+    inner loop exits, the middle loop's back edge returns to its header, and the inner loop's next entry (its initial
+    values, through the header muxes, whose selects come from the inner header's control_merge) has to wait for the
+    inner header's previous output to return to zero (research/data/suite/hangs.md)."""
+    nodes = func.nodes
+    every, skip, loops = _tf_structure(func, exclude)
+    if mode is not None:
+        inner = _tf_nested(loops, mode)
+        skip = set()
+        for h, lp in loops.items():
+            if h in inner:
+                skip |= lp["back"]
+            else:
+                skip |= lp["entry"] | lp["exit"]
+    two_in = {i for i, n in enumerate(nodes) if n.op == "control_merge" and len(n.operands) >= 2}
+    olink = {i: 1 for i in two_in if instname(nodes[i], i) in MERGE_OUT_LINK}
+    chans, ins, outs = [], collections.defaultdict(list), collections.defaultdict(list)
+    for (r, i, c, k, tok) in every:
+        if (r, c, k) in skip:
+            continue
+        node = nodes[i]
+        st = depth.get(r, 1) if r in linked else 0
+        if node.op in ("fork", "lazy_fork") and vname(r) in FORK_OUT_LINK:
+            st += 1
+        if i in two_in and r == node.results[0] and instname(node, i) in MERGE_RES_LINK:
+            st += MERGE_RES_DEPTH
+        j = len(chans)
+        chans.append((r, i, c, k, st, tok))
+        outs[i].append(j)
+        ins[c].append(j)
+
+    def joined(node, k1, k2):
+        if node.op in _TF_PASS_ONLY or node.op in ("merge", "control_merge"):
+            return False
+        if node.op == "mux":
+            return (k1 == 0) != (k2 == 0)
+        return True
+
+    def together(node):
+        return node.op in ("fork", "lazy_fork", "control_merge")
+
+    out = [[] for _ in range(2 * len(chans))]
+    for j, (r, p, c, k, st, tok) in enumerate(chans):
+        cn, pn = func.nodes[c], func.nodes[p]
+        # forward on j, arriving at c through operand k
+        for j2 in outs[c]:
+            out[2 * j].append((2 * j2, chans[j2][4] - 2 * chans[j2][5] + olink.get(c, 0)))
+        for j2 in ins[c]:
+            if j2 != j and joined(cn, k, chans[j2][3]):
+                out[2 * j].append((2 * j2 + 1, 1 + 2 * chans[j2][5]))
+        # backward on j, arriving at p through its result r
+        for j2 in ins[p]:
+            out[2 * j + 1].append((2 * j2 + 1, 2 * chans[j2][5]))
+        if together(pn) and pn.op not in _TF_PASS_ONLY:
+            for j2 in outs[p]:
+                if j2 != j:
+                    out[2 * j + 1].append((2 * j2, chans[j2][4] - 2 * chans[j2][5]))
+    return chans, out
+
+
+def short_walk(chans, out):
+    """A closed walk whose token count is <= 0, as (count, [states]), or None.  Bellman-Ford (queue form) on
+    weight * M - 1, M = states + 1: a simple cycle of n <= states steps is negative there iff its count is <= 0."""
+    n = len(out)
+    if n == 0:
+        return None
+    m = n + 1
+    dist, pred, steps = [0] * n, [-1] * n, [0] * n
+    queue, inq = collections.deque(range(n)), [True] * n
+    hit = None
+    while queue and hit is None:
+        u = queue.popleft()
+        inq[u] = False
+        du = dist[u]
+        for v, w in out[u]:
+            nd = du + w * m - 1
+            if nd < dist[v]:
+                dist[v], pred[v], steps[v] = nd, u, steps[u] + 1
+                if steps[v] >= n:
+                    hit = v
+                    break
+                if not inq[v]:
+                    inq[v] = True
+                    queue.append(v)
+    if hit is None:
+        return None
+    for _ in range(n):            # walk back onto the cycle itself
+        hit = pred[hit]
+    cyc, at = [hit], pred[hit]
+    while at != hit:
+        cyc.append(at)
+        at = pred[at]
+    cyc.reverse()
+    total = 0
+    for i, u in enumerate(cyc):
+        v = cyc[(i + 1) % len(cyc)]
+        total += min(w for v2, w in out[u] if v2 == v)
+    return total, cyc
+
+
+def token_floor(func, linked, depth, exclude=frozenset(), forbid=frozenset()):
+    """Deepen links until every walk holds a token (the block above).  A short walk that walks no linked channel
+    forward gets a new link (one stage) on one of its forward channels, chosen the same way (a back edge first, then by
+    name), never on a channel in `forbid` (no net there: fused away, absorbed into a memory station, BDC_NO_LINK).
+    Returns [(value, new depth)] in the order the stages were added; changes `linked` and `depth` in place.  Nothing
+    to add, nothing changes."""
+    added = []
+    modes = [None] + (tf_pass_modes(func, exclude) if TOKEN_FLOOR_PASS else [])
+    for _ in range(4 * len(func.nodes) + 16):
+        for mode in modes:
+            chans, out = token_graph(func, linked, depth, exclude, mode=mode)
+            found = short_walk(chans, out)
+            if found is not None:
+                break
+        if found is None:
+            return added
+        count, cyc = found
+        fwd = {chans[s // 2][0] for s in cyc if s % 2 == 0}
+        tok = {}
+        for (r, _p, _c, _k, _s, t) in chans:
+            tok[r] = max(tok.get(r, 0), t)
+        cand = sorted((v for v in fwd if v in linked), key=lambda v: (-tok[v], depth.get(v, 1), str(v)))
+        if not cand:
+            new = sorted((v for v in fwd if v not in forbid and v not in exclude), key=lambda v: (-tok[v], str(v)))
+            if not new:
+                raise EmitError(
+                    f"{func.name}: a walk through "
+                    f"{sorted({instname(func.nodes[chans[s // 2][2]], chans[s // 2][2]) for s in cyc})} holds "
+                    f"{count} token(s) and has no channel walked forward that can take storage")
+            linked.add(new[0])
+            depth[new[0]] = 1
+            added.append((new[0], 1))
+            continue
+        depth[cand[0]] = depth.get(cand[0], 1) + 1
+        added.append((cand[0], depth[cand[0]]))
+    raise EmitError(f"{func.name}: the token floor did not converge")
 
 
 def select_channels(func):
@@ -1433,6 +2269,536 @@ def _apply_ring_pad(func, linked, depth):
 
 
 # ---------------------------------------------------------------------------
+# Slack stages: an EMPTY stage behind every feed-forward link.
+#
+# A bd_link is a half buffer.  Its C node cannot rise again until the stage
+# after it has taken the token AND its own request has returned to zero, so
+# the cycle it sits on runs through the logic on BOTH sides of it: with cone A
+# feeding link L feeding cone B, L's period is about fwd(A) + fwd(B) + the
+# handshake.  Fusion made that the bottleneck.  It shrank xorshift to two
+# cones and two links, and the routed fast-source interval (7.4 ns) came out
+# ABOVE the routed latency (6.8 ns): the pipe was slower than the same logic
+# with no storage in it at all, because every token has to clear both cones
+# before the next may enter the first.
+#
+# One empty stage between the cones splits that cycle in two -- fwd(A) + eps
+# and eps + fwd(B) -- so the interval drops toward the slower cone alone.  The
+# stage costs W/2 latch LUTs, one control LUT and one forward hop of latency,
+# and needs no logic of its own; the SDELAY rule-I check covers its request.
+#
+# Only where there IS logic on both sides.  A link fed straight from a port
+# (or by nothing but forks and buffers from one) has fwd(A) = whatever the
+# environment takes to answer an ack, which the design cannot shorten and
+# which a stage cannot overlap with anything; routed, xorshift cap 8 (one
+# cone, one link on the input) with a stage there went 6.3 -> 7.7 ns interval
+# and 4.1 -> 5.5 ns latency.  Same for a link that feeds a port with no logic
+# after it.  And only on links that are NOT on a cycle: a loop's ring carries
+# one token per iteration round its loop-carried dependency, so its
+# throughput IS its latency and an extra stage on it is pure cost;
+# ring_depths() already puts exactly the depth a ring needs and no more.
+#
+# BDC_SLACK_STAGES=N is how many stages to add (default 1; 0 turns it off).
+SLACK_STAGES = int(os.environ.get("BDC_SLACK_STAGES", "1"))
+
+
+def _logic_before(func, value, linked, producer):
+    """Is a matched-delay cell upstream of `value` with no link in between?"""
+    seen, stack = set(), [value]
+    while stack:
+        v = stack.pop()
+        if v in seen or v not in producer:
+            continue
+        seen.add(v)
+        node = func.nodes[producer[v]]
+        if node.op in DELAY_BEARING:
+            return True
+        stack.extend(o for o in node.operands if o not in linked)
+    return False
+
+
+def _logic_after(func, value, linked):
+    """Is a matched-delay cell downstream of `value` with no link in between?"""
+    seen, stack = set(), [value]
+    while stack:
+        v = stack.pop()
+        if v in seen:
+            continue
+        seen.add(v)
+        for ci, _operand in func.consumers.get(v, []):
+            node = func.nodes[ci]
+            if node.op in DELAY_BEARING:
+                return True
+            stack.extend(r for r in node.results if r not in linked)
+    return False
+
+
+def slack_sites(func, linked, exclude=frozenset()):
+    """The linked channels that sit between two pieces of logic and on no
+    cycle, as a set of SSA names."""
+    try:
+        from . import slack
+    except ImportError:
+        import slack
+    edges, adj = slack.build_node_graph(func)
+    ids = list(range(len(func.nodes)))
+    comp = {}
+    for k, scc in enumerate(slack.tarjan_scc(ids, adj)):
+        if slack._is_cycle(scc, adj):
+            for v in scc:
+                comp[v] = k
+    cyclic = {e.value for e in edges
+              if e.producer in comp and comp[e.producer] == comp.get(e.consumer)}
+    producer = {r: i for i, n in enumerate(func.nodes) for r in n.results}
+    return {v for v in linked
+            if v not in cyclic and v not in exclude
+            and _logic_before(func, v, linked, producer)
+            and _logic_after(func, v, linked)}
+
+
+def _apply_slack_stages(func, linked, depth, exclude=frozenset()):
+    if SLACK_STAGES <= 0:
+        return set()
+    sites = slack_sites(func, linked, exclude)
+    for ssa in sites:
+        depth[ssa] = depth.get(ssa, 1) + SLACK_STAGES
+    return sites
+
+
+# Per-link stage counts, for slack-matching experiments: BDC_LINK_DEPTHS=
+# "ulink_n_v9=2,ulink_n_x=3".  A depth may only be raised -- ring_depths()'s
+# answer is a floor the design does not work under.
+LINK_DEPTHS = {}
+for _item in filter(None, os.environ.get("BDC_LINK_DEPTHS", "").split(",")):
+    _k, _, _v = _item.partition("=")
+    LINK_DEPTHS[_k.strip()] = int(_v)
+
+
+def _apply_link_depths(func, linked, depth, floor):
+    for ssa in linked:
+        want = LINK_DEPTHS.get(f"ulink_{vname(ssa)}")
+        if want is None:
+            continue
+        if want < floor.get(ssa, 1):
+            raise EmitError(f"{func.name}: BDC_LINK_DEPTHS asks for {want} "
+                            f"stage(s) on ulink_{vname(ssa)}, under the "
+                            f"{floor[ssa]} its rings need")
+        depth[ssa] = want
+
+
+# ---------------------------------------------------------------------------
+# Results no call bounds: joined with the control results the call does bound
+#
+# A `source` offers a token forever (cells/rtl/bd_end.v: req = ~ack).  Inside a function that is harmless wherever an
+# op joins the source's token with one that came from an argument -- the literal operand of an addi waits for the
+# other operand, so it fires once per call.  It is not harmless where a source's tokens reach a function RESULT
+# without any such join: bdc lowered `end` to wires, so that port produced tokens with no call at all.  Two of
+# Dynamatic's tests do it (kernels/SUITE.md, suitew item 2): test_int16 (`return -1`: out0 = constant(source), 94162
+# tokens in 400 us for one start) and unused_arg (the frontend drops the unread memref `a` and drives its memEnd,
+# a_end, from a source: with the bench's acknowledge delay that is a ring oscillator, which the rule refuses as a
+# combinational cycle with no storage).
+#
+# What Dynamatic means.  Its `end` is the function's terminator, its operands ARE the results, and it has no RTL (wires
+# in its export); a source-fed result is simply valid on every clock.  Its testbench (tools/hls-verifier, HlsTb.cpp)
+# sends start once and takes the call's outputs TOGETHER: one tb_join over the valid of every result and every control
+# output (memory ends, end), whose ready goes back to all of them.  So a source-fed result is consumed exactly once per
+# call, when the call's other outputs are there.  bdc's bench takes each output alone (out0 is captured as the call's
+# completion, `end` and every <m>_end go to their own sinks), so the join has to be in the circuit: a result no call
+# bounds is joined (bd_join, a C-element with reset) with a copy (bd_fork) of every CONTROL result the call does bound
+# -- `end` and each memory's end.  Not start alone: Dynamatic's `end` IS start (in all 104 fixtures that parse it is the
+# start argument through forks only), so joined with it alone a source-fed out0 would tell the bench "done" at the
+# call's start, while its loops may still be running (gaussian's out0, a folded constant, is that shape); a memory's end
+# comes after the exit block's control token (its ctrlEnd).  Not the data result: the bench takes it on its own, and a
+# control result's timing beyond once per call does not matter to the bench.  Data, if any, is wired through: it is
+# valid from the result's own request until its acknowledge, which is the joined channel's acknowledge, so the bundling
+# holds with no delay (a constant is valid forever).  The bd_src now sits behind a consumer that resets
+# (COMPILER-PLAN.md asks that of it).
+#
+# "No call bounds" is decided on tokens, not on reachability: a source reaches a result in 103 of the 104 fixtures
+# that parse (every literal operand of every kernel), and nearly all of those are bounded by the op the literal
+# feeds.  free_running() is the least fixpoint of: a source is free; a fork / constant / br / reshape / load is free
+# when its (first) operand is (a load fires once per address); a join of channels (every compute op, the dividers bdc
+# does not lower yet included, cmpi, select, cond_br, join, store, mem_controller) when ALL its operands are; a merge /
+# control_merge when ANY is (one free input floods it); a mux when its select and any data input are.  Function
+# arguments are never free.  An op not in that table with a free operand stops the emitter (do not assume).
+#
+# BDC_CALL_JOIN=0 restores the old wiring, byte for byte (the negative control).  A kernel with no free result emits
+# exactly what it did before either way.
+CALL_JOIN = os.environ.get("BDC_CALL_JOIN", "1") != "0"
+_CJ_FIRST = ("constant", "fork", "lazy_fork", "br", "buffer", "trunci", "extui", "extsi", "load")
+_CJ_ALL = ("join", "cond_br", "select", "cmpi", "addi", "subi", "muli", "andi", "ori", "xori", "shli", "shrsi",
+           "shrui", "divsi", "divui", "remsi", "remui", "minui", "maxui", "minsi", "maxsi", "store", "mem_controller")
+_CJ_ANY = ("merge", "control_merge")
+
+
+def free_running(func):
+    """The SSA values whose tokens no call bounds (see the block comment above)."""
+    free = set()
+    changed = True
+    while changed:
+        changed = False
+        for node in func.nodes:
+            if not node.results or node.results[0] in free:
+                continue
+            f = [o in free for o in node.operands]
+            if node.op == "source":
+                hit = True
+            elif node.op in _CJ_FIRST:
+                hit = bool(f) and f[0]
+            elif node.op in _CJ_ALL:
+                hit = bool(f) and all(f)
+            elif node.op in _CJ_ANY:
+                hit = any(f)
+            elif node.op == "mux":
+                hit = bool(f) and f[0] and any(f[1:])
+            elif any(f):
+                raise EmitError(f"line {node.src_line}: {node.op!r} reads a channel no call bounds (a source's) and "
+                                f"free_running() has no rule for it -- add one, do not assume")
+            else:
+                hit = False
+            if hit:
+                free.update(node.results)
+                changed = True
+    return free
+
+
+def call_join_plan(func, end_node):
+    """([indices of the control results the call bounds], [indices of the results no call bounds]), or None when
+    every result is bounded."""
+    free = free_running(func)
+    joined = [i for i, v in enumerate(end_node.operands) if v in free]
+    if not joined:
+        return None
+    tied = [i for i, (r, v) in enumerate(zip(func.results, end_node.operands)) if r.is_control and v not in free]
+    if not tied:
+        raise EmitError(f"@{func.name}: result(s) {[func.results[i].name for i in joined]} take tokens from a source "
+                        f"with no call bounding them, and no control result is bounded by the call to join them with")
+    return tied, joined
+
+
+# Stores: the completion obligation (research/data/suite/stores.md)
+#
+# WHAT DYNAMATIC PROMISES.  A controller that owns a store (dynamatic's
+# mem_controller_loadless.v + mc_control in data/verilog/support/mc_support.v)
+# raises memEnd only when (1) ctrlEnd has arrived -- no more accesses will
+# come, (2) remainingStores == 0 and (3) no count token is being presented
+# this cycle.  remainingStores is a clocked up/down counter: every basic block
+# that holds stores sends the controller one COUNT token per execution,
+# carrying how many stores that execution will make (the `constant` operands
+# in the accessor list), and every store the controller performs subtracts
+# one.  The function's `end` then waits for every memEnd.  So: the call
+# returns only after every store it made has reached the RAM.
+#
+# WHY NOT A COUNTER HERE.  There is no clock to run one on.  An asynchronous
+# up/down counter needs an arbitrated merge of the +k and -1 streams (they
+# arrive concurrently), an accumulator ring and a steer -- and it would still
+# be wrong: the count token of a block's LAST execution and ctrlEnd leave the
+# same control fork on different paths, so nothing makes the count arrive
+# first, and a count still in flight when ctrlEnd finds the counter at 0 lets
+# memEnd fire early.  Dynamatic carries that race in clocked form (ctrl_ready
+# is tied to 1; nothing orders count tokens against ctrlEnd).
+#
+# WHAT IS BUILT INSTEAD: THE STORE'S COMPLETION JOINS THE CONTROL FLOW.  A
+# basic block executes every op in it exactly once per execution, so each
+# execution of block B makes exactly one completion (the station's z: the RAM
+# answered) per store in B.  Join those completions into B's OUTGOING control
+# token -- the control-typed operand of B's terminator (br / cond_br) -- and
+# the successor block cannot start until B's stores have landed.  Control is
+# a single token passing from block to block, so every block execution lies
+# on the causal chain that ends at the exit block, whose control is ctrlEnd:
+# ctrlEnd is therefore after every store of the call, by construction and not
+# by a race, and memEnd = join(memStart held, ctrlEnd) -- the load-only
+# lowering, unchanged -- is correct.  The exit block has no terminator; a
+# store there is joined into its own controller's ctrlEnd instead.
+#
+# The count tokens carry nothing this does not already know: checked here,
+# each is a compile-time constant equal to its block's number of stores on
+# that controller (one count per block, none for a block without stores), and
+# then sunk at the controller (bd_snk), so their producers are not stalled.
+#
+# The rewrite is done on the graph (a `join` node, a third result on each
+# store), BEFORE every analysis, so link_sites / ring_depths / token_floor see
+# the new edges and the new cycles through the stores.
+#
+# Its cost: a block's successor waits for the block's stores, so control can
+# no longer run ahead of them.  Its by-product: every access of the next block
+# execution whose operands depend on that execution's control token (its
+# control_merge / merge firing) is after this execution's stores.  Neither is
+# Dynamatic's behaviour (Dynamatic lets control run ahead and needs an LSQ
+# where accesses may alias across iterations); stores.md says what is shown.
+#
+# And the function's results: bdc's `end` drives each result port straight
+# from its operand, so a kernel's out0 could leave before its memEnd.  For a
+# function with a store, _op_end joins every operand first (Dynamatic's end:
+# the call returns when all of them have arrived).
+#
+# Nothing here runs for a function without a store: its graph and its Verilog
+# are what they were.
+
+STORE_DONE_SFX = "_stdone"
+
+# BDC_STORE_NOJOIN=1 -- THE ORDERING NEGATIVE CONTROL (research/data/suite/stores.md): the plan is made and checked,
+# the count tokens are sunk and the end join is built, but no completion join is inserted and every store's z is tied
+# off as before: memEnd = join(memStart held, ctrlEnd) with nothing ordering ctrlEnd after the stores.  Exists so the
+# ordering check (tb_store1.v's store count at out0) can be seen to fail.  Never set it for anything that will be
+# believed.
+STORE_NOJOIN = os.environ.get("BDC_STORE_NOJOIN", "0") == "1"
+
+
+def _rebuild_index(func):
+    """func.producer / func.consumers after func.nodes changed: the parser's
+    own two passes (hs/parse.py _Parser._resolve), so a rewritten function
+    looks exactly like one that was parsed that way."""
+    producer = {k: v for k, v in func.producer.items()
+                if isinstance(v, parse.ArgSource)}
+    for ni, n in enumerate(func.nodes):
+        for ri, name in enumerate(n.results):
+            producer[name] = parse.ResultSource(ni, ri)
+    for name in list(producer.keys()):
+        if "#" not in name:
+            producer.setdefault(f"{name}#0", producer[name])
+    consumers = {}
+    for ni, n in enumerate(func.nodes):
+        for oi, ref in enumerate(n.operands):
+            if ref not in producer:
+                raise EmitError(f"{func.name}: operand %{ref} of {n.op!r} "
+                                f"(line {n.src_line}) has no producer after "
+                                f"the store-completion rewrite")
+            consumers.setdefault(ref, []).append((ni, oi))
+    func.producer, func.consumers = producer, consumers
+
+
+def _replace_operand(node, old, new):
+    hits = 0
+    for item in node.arg_items:
+        if isinstance(item, parse.OperandSegment):
+            for sub in item.items:
+                if isinstance(sub, parse.OperandItem) and sub.value == old:
+                    sub.value = new
+                    hits += 1
+    if hits != 1:
+        raise EmitError(f"{node.op} at line {node.src_line}: operand %{old} "
+                        f"appears {hits} times, expected once")
+
+
+def _const_value(node):
+    v = node.attrs.get("value")
+    return getattr(v, "value", v)
+
+
+def split_shared_sources(func):
+    """BDC_SPLIT_SOURCES (see the knob): every source tree (a source, the forks of its token, the constants it fires, the
+    forks of their values) with more than one reader becomes one source + constant per reader.  Returns
+    [(source name, [reader names])] for the trees rewritten; [] (graph untouched) when there is none.  Idempotent."""
+    plan = getattr(func, "_bdc_split_plan", None)
+    if plan is not None:
+        return plan
+    nodes = func.nodes
+    cons = collections.defaultdict(list)
+    for i, n in enumerate(nodes):
+        for k, o in enumerate(n.operands):
+            cons[o].append((i, k))
+    # every value a source tree carries (a source's token, a fork of it, a constant it fires, a fork of that)
+    lit = set()
+    for i, n in enumerate(nodes):
+        if n.op == "source":
+            todo = [n.results[0]]
+            while todo:
+                v = todo.pop()
+                if v in lit:
+                    continue
+                lit.add(v)
+                for (ci, _k) in cons.get(v, []):
+                    if nodes[ci].op in ("fork", "constant"):
+                        todo += nodes[ci].results
+    taken = {r for n in nodes for r in n.results} | {a.ssa_name for a in func.args}
+    hnames = {n.attrs.get("handshake.name") for n in nodes}
+    drop, new_nodes, plan = set(), [], []
+    for si, src in enumerate(nodes):
+        if src.op != "source":
+            continue
+        tree, leaves, ok = {si}, [], True
+        todo = [(src.results[0], None)]          # (value, the constant node it carries, or None for the bare token)
+        while todo and ok:
+            v, c = todo.pop()
+            for (ci, k) in cons.get(v, []):
+                n = nodes[ci]
+                if n.op == "fork":
+                    tree.add(ci); todo += [(r, c) for r in n.results]
+                elif n.op == "constant" and c is None:
+                    tree.add(ci); todo.append((n.results[0], ci))
+                elif n.op == "sink":
+                    tree.add(ci)
+                elif (c is not None and n.op in FUSABLE_OPS and n.operands.count(v) == 1
+                      and any(o not in lit for o in n.operands)):
+                    leaves.append((ci, v, c))
+                else:
+                    ok = False
+                    break
+        if not ok or not any(nodes[t].op == "fork" for t in tree) or not leaves:
+            continue
+        for j, (ci, v, c) in enumerate(leaves):
+            cn = nodes[c]
+            sres, cres = f"{src.results[0]}_ss{j}", f"{cn.results[0]}_ss{j}"
+            sname = f"{src.attrs.get('handshake.name', 'source')}_ss{j}"
+            cname = f"{cn.attrs.get('handshake.name', 'constant')}_ss{j}"
+            if {sres, cres} & taken or {sname, cname} & hnames:
+                raise EmitError(f"{func.name}: BDC_SPLIT_SOURCES: name {sres} / {cres} / {sname} / {cname} is taken")
+            taken |= {sres, cres}; hnames |= {sname, cname}
+            sattrs = dict(src.attrs); sattrs["handshake.name"] = sname
+            if "handshake.bb" in nodes[ci].attrs:
+                sattrs["handshake.bb"] = nodes[ci].attrs["handshake.bb"]
+            cattrs = dict(cn.attrs); cattrs["handshake.name"] = cname
+            if "handshake.bb" in nodes[ci].attrs:
+                cattrs["handshake.bb"] = nodes[ci].attrs["handshake.bb"]
+            new_nodes.append(parse.Node(op="source", arg_items=[], results=[sres], attrs=sattrs,
+                                        src_line=src.src_line, type_sig=src.type_sig))
+            new_nodes.append(parse.Node(
+                op="constant", arg_items=[parse.OperandSegment(wrap="", items=[parse.OperandItem(value=sres)])],
+                results=[cres], attrs=cattrs, src_line=cn.src_line, type_sig=cn.type_sig))
+            _replace_operand(nodes[ci], v, cres)
+        drop |= tree
+        plan.append((src.attrs.get("handshake.name"), [nodes[ci].attrs.get("handshake.name") for ci, _v, _c in leaves]))
+    if plan:
+        func.nodes[:] = [n for i, n in enumerate(nodes) if i not in drop] + new_nodes
+        _rebuild_index(func)
+    func._bdc_split_plan = plan
+    return plan
+
+
+def store_completion_rewrite(func):
+    """Join every store's completion into its block's outgoing control token
+    (see the block comment above).  Returns the plan, a list of
+    (bb, join SSA, host node op, [store names]); [] for a function without a
+    store, whose graph is left untouched.  Idempotent per Func object."""
+    plan = getattr(func, "_bdc_store_plan", None)
+    if plan is not None:
+        return plan
+    nodes = func.nodes
+    producer = {}
+    for i, n in enumerate(nodes):
+        for r in n.results:
+            producer[r] = i
+
+    per_mc = []
+    for mi, mc in enumerate(nodes):
+        if mc.op != "mem_controller" or len(mc.operands) < 3:
+            continue
+        stores, counts = [], collections.defaultdict(list)
+        for v in mc.operands[2:-1]:
+            p = producer.get(v)
+            if p is None:
+                continue                  # _resolve_mem_accessors names it
+            if nodes[p].op == "store" and p not in stores:
+                stores.append(p)
+            elif nodes[p].op == "constant":
+                counts[_bb(nodes[p])].append(nodes[p])
+        if not stores:
+            continue
+        want = collections.Counter(_bb(nodes[s]) for s in stores)
+        got = {}
+        for bb, cs in counts.items():
+            if len(cs) != 1:
+                raise EmitError(
+                    f"mem_controller at line {mc.src_line}: {len(cs)} store-"
+                    f"count constants for block {bb}, expected one")
+            got[bb] = _const_value(cs[0])
+        if got != dict(want):
+            raise EmitError(
+                f"mem_controller at line {mc.src_line}: its store-count "
+                f"tokens {dict(sorted(got.items()))} (block: value) are not "
+                f"one per block equal to that block's stores on it "
+                f"{dict(sorted(want.items()))}. The completion join counts "
+                f"one store per store op per block execution; a count that "
+                f"says otherwise is a shape it does not know")
+        per_mc.append((mi, stores))
+    if not per_mc:
+        func._bdc_store_plan = []
+        return []
+    if STORE_NOJOIN:
+        plan = [(-1, None, "nojoin", [nodes[s].attrs.get("handshake.name") for _, ss in per_mc for s in ss])]
+        func._bdc_store_plan = plan
+        return plan
+
+    taken = set(producer) | {a.ssa_name for a in func.args}
+    hnames = {n.attrs.get("handshake.name") for n in nodes}
+    done_of = {}
+    by_bb = collections.defaultdict(list)          # bb -> [(mc, store)]
+    for mi, stores in per_mc:
+        for s in stores:
+            st = nodes[s]
+            if len(st.results) != 2:
+                raise EmitError(f"store at line {st.src_line} has "
+                                f"{len(st.results)} result(s), expected 2 "
+                                f"(addressResult, dataResult)")
+            d = st.results[0] + STORE_DONE_SFX
+            if d in taken:
+                raise EmitError(f"store at line {st.src_line}: completion "
+                                f"name %{d} is already taken")
+            st.results.append(d)
+            taken.add(d)
+            done_of[s] = d
+            bb = _bb(st)
+            if bb < 0:
+                raise EmitError(f"store at line {st.src_line} has no "
+                                f"handshake.bb: its block is unknown")
+            by_bb[bb].append((mi, s))
+
+    new_nodes, plan = [], []
+    for bb in sorted(by_bb):
+        terms = [i for i, n in enumerate(nodes)
+                 if n.op in ("br", "cond_br") and _bb(n) == bb
+                 and _atoms(n.type_sig)[-1] == CONTROL]
+        sites = []
+        if len(terms) == 1:
+            t = nodes[terms[0]]
+            sites.append((t, t.operands[-1], sorted(s for _, s in by_bb[bb]),
+                          f"stdone_join_bb{bb}"))
+        elif not terms:
+            # The exit block: nothing follows it but `end`.  Its stores join
+            # their own controller's ctrlEnd, which must come from this block.
+            for mi in sorted({m for m, _ in by_bb[bb]}):
+                mc = nodes[mi]
+                old = mc.operands[-1]
+                p = producer.get(old)
+                if p is None or _bb(nodes[p]) != bb:
+                    raise EmitError(
+                        f"mem_controller at line {mc.src_line}: block {bb} "
+                        f"holds a store and has no control terminator, but "
+                        f"the controller's ctrlEnd %{old} does not come from "
+                        f"block {bb} -- no edge to order the store before")
+                mname = re.sub(r"[^A-Za-z0-9_]", "_",
+                               str(mc.attrs.get("handshake.name") or f"mc{mi}"))
+                sites.append((mc, old, sorted(s for m, s in by_bb[bb] if m == mi),
+                              f"stdone_join_{mname}"))
+        else:
+            raise EmitError(
+                f"block {bb} holds a store and has {len(terms)} control "
+                f"terminators ({[nodes[i].attrs.get('handshake.name') for i in terms]}); "
+                f"the completion join needs exactly one outgoing control token")
+        for host, old, ss, hname in sites:
+            if hname in taken or hname in hnames:
+                raise EmitError(f"{func.name}: name {hname!r} is already taken")
+            ops = [old] + [done_of[s] for s in ss]
+            items = [parse.OperandSegment(wrap="", items=[parse.OperandItem(value=v)],
+                                          trailing_comma=k < len(ops) - 1)
+                     for k, v in enumerate(ops)]
+            new_nodes.append(parse.Node(
+                op="join", arg_items=items, results=[hname],
+                attrs={"handshake.bb": nodes[ss[0]].attrs.get("handshake.bb"),
+                       "handshake.name": hname},
+                src_line=nodes[ss[0]].src_line,
+                type_sig=", ".join(["<>"] * len(ops))))
+            _replace_operand(host, old, hname)
+            taken.add(hname)
+            plan.append((bb, hname, host.op,
+                         [nodes[s].attrs.get("handshake.name") for s in ss]))
+    func.nodes.extend(new_nodes)
+    _rebuild_index(func)
+    func._bdc_store_plan = plan
+    return plan
+
+
+# ---------------------------------------------------------------------------
 # The emitter
 
 class Emitter:
@@ -1442,9 +2808,21 @@ class Emitter:
         self.ch = {}        # ssa name -> (width, is_control)
         self.memrefs = {}   # ssa name -> (aw, dw), disjoint from self.ch --
                              # a memref never gets _req/_ack/_data nets
+        self.host_wired = set()   # memrefs whose host port a controller drives (HOST_MEM)
         self.lines = []
         self.delays = []    # (instance, default) in emission order
         self.units = {}     # module name -> source text, for generated cells
+        # Stores: each block's outgoing control waits for its stores (see
+        # store_completion_rewrite).  First, so that every analysis below --
+        # AUTO's rules included -- sees the graph that is built.  [] and no
+        # change at all for a function without a store.
+        self.store_plan = store_completion_rewrite(func)
+        if SPLIT_SOURCES:
+            for sname, readers in split_shared_sources(func):
+                print(f"emit: split sources: {func.name}: {sname} -> one source per literal of {readers}",
+                      file=sys.stderr)
+        if _auto.AUTO:
+            _auto_apply(func)
         self._resolve_widths()
         # Which load/store/mem_controller SSA results round-trip entirely
         # inside a station -- no net -- and how each accessor and controller
@@ -1481,10 +2859,32 @@ class Emitter:
                     f"{sorted(leaked)}, which BDC_OP_FUSION folded into a "
                     f"fused cell with no channel left there -- this loop "
                     f"shape is not safe to fuse this way")
+        if NO_LINK:
+            gone = {v for v in self.linked if f"ulink_{vname(v)}" in NO_LINK}
+            if len(gone) != len(NO_LINK):
+                raise EmitError(f"{func.name}: BDC_NO_LINK names links that do not exist: "
+                                f"{sorted(NO_LINK - {f'ulink_{vname(v)}' for v in gone})}")
+            self.linked = set(self.linked) - gone
         # ...and how many stages each of those links is, which is 1 everywhere
         # except on the short cycles that would otherwise sit under the floor.
         self.depth = ring_depths(func, self.linked, exclude=self.mem_absorbed)
+        # ...and deeper where a cycle carries more than one token, or two paths between one fork and one join carry
+        # different numbers (token_floor()).  Adds nothing where every walk already holds a token.
+        self.token_floor = []
+        if TOKEN_FLOOR:
+            forbid = set(self.mem_absorbed) | {v for v in self.ch if f"ulink_{vname(v)}" in NO_LINK}
+            if self.fusion is not None:
+                forbid |= set(self.fusion.dead_values)
+            self.linked = set(self.linked)
+            self.token_floor = token_floor(func, self.linked, self.depth, exclude=self.mem_absorbed, forbid=forbid)
+            for v, n in self.token_floor:
+                print(f"emit: token floor: {func.name}: ulink_{vname(v)} -> {n} stage(s)", file=sys.stderr)
+        floor = dict(self.depth)
         _apply_ring_pad(func, self.linked, self.depth)
+        # ...plus one empty stage on every feed-forward link, for throughput.
+        self.slack_stages = _apply_slack_stages(func, self.linked, self.depth,
+                                                exclude=self.mem_absorbed)
+        _apply_link_depths(func, self.linked, self.depth, floor)
         # Channels read as a SELECT rather than as ordinary data.  These are
         # the boundaries where a link's request may not outrun its own value.
         self.selects = select_channels(func)
@@ -1619,7 +3019,7 @@ class Emitter:
             # per-basic-block store-count constant (mem_controller_loadless's
             # `remainingStores` increment in dynamatic's mc_support.v); skip
             # those, they name no accessor.
-            ordered, seen = [], set()
+            ordered, seen, counts = [], set(), []
             for v in ops[2:-1]:
                 p = producer.get(v)
                 if p is None:
@@ -1628,6 +3028,9 @@ class Emitter:
                         f"{v!r} has no producer in this function")
                 pop = nodes[p].op
                 if pop == "constant":
+                    # A block's store count: sunk at the controller (see
+                    # store_completion_rewrite, which checked its value).
+                    counts.append(v)
                     continue
                 if pop not in ("load", "store"):
                     raise EmitError(
@@ -1651,18 +3054,36 @@ class Emitter:
                     f"bd_arbiter arbitrates exactly two requesters) is "
                     f"implemented")
             arb = n == 2
-            if arb and nodes[ordered[0]].op != "store":
+            # LOAD FIRST (LS, LL; mc:load1st, research/data/suite/dyn/README.md).  The program-order token is the
+            # first accessor's z, as for a store first -- but a load's z already feeds its consumer, so it is FORKED:
+            # the consumer and the second accessor's c both get the request, and the load's z_ack is their
+            # C-element (bd_fork), so the load's operands are not released before the second accessor has taken
+            # its token.  And every load on this port CAPTURES its word (bdc/mem.py CAPTURE): the second accessor
+            # may clock the RAM -- a store writes, WRITE_FIRST rewrites DOADO -- while the load's consumers still
+            # read the data, which z_data = p_rdata alone would not survive.  BDC_MEM_NOCAP=1 (a negative control,
+            # never for a build anyone believes) leaves the latch out.
+            load_first = arb and nodes[ordered[0]].op == "load"
+            # The token is one per execution of the first accessor, consumed by one execution of the second: that
+            # is program order only when both run once per execution of ONE block.  Accessors in different blocks
+            # (binary_search's two loops, iir's load before its loop) execute different numbers of times -- a
+            # chain across them deadlocks on the first token the second never takes.  There, as in Dynamatic's own
+            # mem_controller (an arbiter, no order), the dataflow orders them and nothing else: both stations are
+            # plain, each load captures its word.
+            # Two LOADS of one block are chained too, though nothing they read changes: unchained, both request the
+            # port in the same instant on every execution, and every one of those ties is a runt at bd_arbiter's
+            # decision node (bd_arb.v: metastability is NOT excluded there, at an unmeasured rate).  Measured:
+            # test_bool_array unchained, routed seed 1, worst corner: FAIL 1/4 (a wrong result, runs disagreeing,
+            # the host's later accesses disturbed) where RTL passed 4/4.  The chain makes the two requests
+            # sequential by construction, as for LS.  (sobel's default-flow deadlock is the same with or without it.)
+            chained = arb and (not load_first or _bb(nodes[ordered[0]]) == _bb(nodes[ordered[1]]))
+
+            if arb and nodes[ordered[0]].op == "store" and len(nodes[ordered[0]].results) == 3:
                 raise EmitError(
-                    f"mem_controller at line {node.src_line}: the first "
-                    f"accessor in program order is "
-                    f"{nodes[ordered[0]].op!r}, not 'store'. The program-"
-                    f"order token chain reuses the FIRST accessor's own "
-                    f"z_req/z_ack as the second accessor's c token (bdc/"
-                    f"mem.py: \"a store's completion channel IS the next "
-                    f"access's token\") because a store's z has no other "
-                    f"consumer; a load's z already feeds a real downstream "
-                    f"channel, and chaining it too needs a fork this design "
-                    f"does not build")
+                    f"mem_controller at line {node.src_line}: a store chained "
+                    f"before a load on an arbitrated port. Its completion "
+                    f"would have to reach both the load's program-order token "
+                    f"and its block's completion join (store_completion_"
+                    f"rewrite): a fork that is not built or verified")
 
             mc_inst = instname(node, mc_idx)
             memend = node.results[-1]
@@ -1714,7 +3135,7 @@ class Emitter:
             accessors_desc = []
             for k, acc_idx in enumerate(ordered):
                 acc = nodes[acc_idx]
-                seq = arb and k > 0
+                seq = chained and k > 0
                 addr_res = acc.results[0]
                 info = {
                     "aw": aw, "dw": dw, "seq": seq, "slot": k,
@@ -1726,16 +3147,24 @@ class Emitter:
                     "p_we": f"{mc_inst}_s{k}_we",
                     "p_rdata": f"{mc_inst}_rdata",
                 }
-                if arb and k == 0:
+                if chained and k == 0 and load_first:
+                    info["z_fork"] = (tok_req, tok_ack)   # _op_load: z -> {its consumer, the token}
+                elif arb and k == 0 and not load_first:
                     info["z_req_net"] = tok_req
                     info["z_ack_net"] = tok_ack
+                if arb and acc.op == "load":
+                    info["cap"] = not MEM_NOCAP
                 if seq:
                     info["c_req"] = tok_req
                     info["c_ack"] = tok_ack
                 self.accessor_info[addr_res] = info
                 self.mem_absorbed.add(acc.results[0])
                 if acc.op == "store":
-                    if len(acc.results) != 2:
+                    # A third result is store_completion_rewrite's completion
+                    # channel: a real channel, not absorbed.
+                    if not (len(acc.results) == 2 or (
+                            len(acc.results) == 3
+                            and acc.results[2].endswith(STORE_DONE_SFX))):
                         raise EmitError(
                             f"store at line {acc.src_line} has "
                             f"{len(acc.results)} result(s), expected 2 "
@@ -1744,9 +3173,10 @@ class Emitter:
                 accessors_desc.append((acc.op, addr_res))
 
             self.mc_info[memend] = {
-                "aw": aw, "dw": dw, "slots": n, "arb": arb,
+                "aw": aw, "dw": dw, "slots": n, "arb": arb, "chained": chained,
                 "inst": mc_inst, "accessors": accessors_desc,
                 "memstart": memstart, "ctrlend": ctrlend,
+                "memref": memref_ssa, "counts": counts,
             }
 
     def width(self, ssa):
@@ -1863,11 +3293,17 @@ class Emitter:
             pad = SELECT_PAD * n if ssa in self.selects else 0
             pad = self.select_pads.get(inst, pad)
             d = self.delay(inst, pad)
+            # A control channel's link latches a constant: nothing to hold.
+            a = self.delay(f"{inst}_uack", 0 if self.is_control(ssa) else ACK_PAD)
             if n > 1:
+                # The request line on each internal stage boundary: rule I.
+                s = self.delay(f"{inst}_sdelay", STAGE_PAD)
                 self.emit(f"    bd_pipe #(.W({max(w, 1)}), .N({n}), "
-                          f".DELAY({d})) {inst} (")
+                          f".DELAY({d}), .SDELAY({s}), .DACK({a})) {inst} (")
             else:
-                self.emit(f"    bd_link #(.W({max(w, 1)}), .DELAY({d})) {inst} (")
+                rf = ", .RFAST(1)" if BDC_LINK_FASTFALL else ""
+                self.emit(f"    bd_link #(.W({max(w, 1)}), .DELAY({d}), "
+                          f".DACK({a}){rf}) {inst} (")
             self.emit(f"        .rst(rst),")
             self.emit(f"        .req_in({self.oreq(ssa)}), .ack_in({self.oack(ssa)}), "
                       f".data_in({self.odata(ssa)}),")
@@ -2008,37 +3444,94 @@ class Emitter:
         self.emit(f"    wire {m_req}, {m_ack};")
         if not self.is_control(res):
             self.emit(f"    wire [{max(w, 1) - 1}:0] {inst}_data;")
+        olink = inst in MERGE_OUT_LINK
+        z_req, z_ack, z_dat, z_idx = m_req, m_ack, inst + '_data', f"{self.odata(idx)}[{iw - 1}:0]"
+        if olink:
+            z_req, z_ack, z_idx = f"{inst}_lreq", f"{inst}_lack", f"{inst}_lidx"
+            self.emit(f"    wire {z_req}, {z_ack};")
+            self.emit(f"    wire [{iw - 1}:0] {z_idx};")
+            if w and not self.is_control(res):
+                z_dat = f"{inst}_ldata"
+                self.emit(f"    wire [{max(w, 1) - 1}:0] {z_dat};")
         self.emit(f"    bdc_amerge{n}_{w} #(.DELAY({d})) {inst} (")
         self.emit(f"        .rst(rst),")
         for k, o in enumerate(ops):
             self.emit(f"        .in{k}_req({self.req(o)}), "
                       f".in{k}_ack({self.ack(o)}), .in{k}_data({self.data(o)}),")
-        self.emit(f"        .z_req({m_req}), .z_ack({m_ack}), "
-                  f".z_data({inst + '_data' if w else ''}), "
-                  f".index({self.odata(idx)}[{iw - 1}:0]));")
+        self.emit(f"        .z_req({z_req}), .z_ack({z_ack}), "
+                  f".z_data({z_dat if w else ''}), "
+                  f".index({z_idx}));")
+        if olink:
+            wd = w if (w and not self.is_control(res)) else 0
+            ld = self.delay(f"{inst}_olink", SELECT_PAD)
+            la = self.delay(f"{inst}_olink_uack", ACK_PAD)
+            din = f"{{{z_dat}, {z_idx}}}" if wd else z_idx
+            dout = f"{{{inst}_data, {self.odata(idx)}[{iw - 1}:0]}}" if wd else f"{self.odata(idx)}[{iw - 1}:0]"
+            self.emit(f"    bd_link #(.W({iw + wd}), .DELAY({ld}), .DACK({la})) {inst}_olink (")
+            self.emit(f"        .rst(rst),")
+            self.emit(f"        .req_in({z_req}), .ack_in({z_ack}), .data_in({din}),")
+            self.emit(f"        .req_out({m_req}), .ack_out({m_ack}), .data_out({dout}));")
         if self.width(idx) > iw:
             self.emit(f"    assign {self.odata(idx)}"
                       f"[{self.width(idx) - 1}:{iw}] = "
                       f"{self.width(idx) - iw}'d0;")
+        rlink = inst in MERGE_RES_LINK
+        r_req, r_ack = self.oreq(res), self.oack(res)
+        if rlink:
+            r_req, r_ack = f"{inst}_rreq", f"{inst}_rack"
+            self.emit(f"    wire {r_req}, {r_ack};")
         self.emit(f"    bd_fork #(.N(2)) {inst}_f (")
         self.emit(f"        .rst(rst), .req({m_req}), .ack({m_ack}),")
-        self.emit(f"        .req_out({{{self.oreq(idx)}, {self.oreq(res)}}}),")
-        self.emit(f"        .ack_in({{{self.oack(idx)}, {self.oack(res)}}}));")
-        if not self.is_control(res):
+        self.emit(f"        .req_out({{{self.oreq(idx)}, {r_req}}}),")
+        self.emit(f"        .ack_in({{{self.oack(idx)}, {r_ack}}}));")
+        if rlink:
+            ctl = self.is_control(res)
+            rd = self.delay(f"{inst}_rlink", STAGE_PAD)
+            ra = self.delay(f"{inst}_rlink_uack", 0 if ctl else ACK_PAD)
+            rw = 1 if ctl else max(w, 1)
+            rin = "1'b0" if ctl else f"{inst}_data"
+            rout = "" if ctl else self.odata(res)
+            if MERGE_RES_DEPTH > 1:
+                rs = self.delay(f"{inst}_rlink_sdelay", STAGE_PAD)
+                self.emit(f"    bd_pipe #(.W({rw}), .N({MERGE_RES_DEPTH}), .DELAY({rd}), .SDELAY({rs}), "
+                          f".DACK({ra})) {inst}_rlink (")
+            else:
+                self.emit(f"    bd_link #(.W({rw}), .DELAY({rd}), .DACK({ra})) {inst}_rlink (")
+            self.emit(f"        .rst(rst),")
+            self.emit(f"        .req_in({r_req}), .ack_in({r_ack}), .data_in({rin}),")
+            self.emit(f"        .req_out({self.oreq(res)}), .ack_out({self.oack(res)}), .data_out({rout}));")
+        elif not self.is_control(res):
             self.emit(f"    assign {self.odata(res)} = {inst}_data;")
 
     def _op_fork(self, node, inst):
         x = node.operands[0]
         n = len(node.results)
-        reqs = ", ".join(self.oreq(r) for r in reversed(node.results))
-        acks = ", ".join(self.oack(r) for r in reversed(node.results))
+        fl = {r for r in node.results if vname(r) in FORK_OUT_LINK}
+        rq = {r: (f"{vname(r)}_freq" if r in fl else self.oreq(r)) for r in node.results}
+        ak = {r: (f"{vname(r)}_fack" if r in fl else self.oack(r)) for r in node.results}
+        for r in node.results:
+            if r in fl:
+                self.emit(f"    wire {rq[r]}, {ak[r]};")
+        reqs = ", ".join(rq[r] for r in reversed(node.results))
+        acks = ", ".join(ak[r] for r in reversed(node.results))
         self.emit(f"    bd_fork #(.N({n})) {inst} (")
         self.emit(f"        .rst(rst), .req({self.req(x)}), .ack({self.ack(x)}),")
         self.emit(f"        .req_out({{{reqs}}}), .ack_in({{{acks}}}));")
         # Data is broadcast, which is wiring -- bd_fork routes the handshake
         # and nothing else.
         for r in node.results:
-            if not self.is_control(r):
+            if r in fl:
+                ctl = self.is_control(r)
+                li = f"ulink_{vname(r)}_folink"
+                d = self.delay(li, STAGE_PAD)
+                a = self.delay(f"{li}_uack", 0 if ctl else ACK_PAD)
+                w = 1 if ctl else max(self.width(r), 1)
+                rf = ", .RFAST(1)" if FORK_OUT_FASTFALL else ""
+                self.emit(f"    bd_link #(.W({w}), .DELAY({d}), .DACK({a}){rf}) {li} (")
+                self.emit(f"        .rst(rst),")
+                self.emit(f"        .req_in({rq[r]}), .ack_in({ak[r]}), .data_in({chr(39).join(['1', 'b0']) if ctl else self.data(x)}),")
+                self.emit(f"        .req_out({self.oreq(r)}), .ack_out({self.oack(r)}), .data_out({'' if ctl else self.odata(r)}));")
+            elif not self.is_control(r):
                 self.emit(f"    assign {self.odata(r)} = {self.data(x)};")
 
     _op_lazy_fork = _op_fork
@@ -2084,7 +3577,8 @@ class Emitter:
         d = self.delay(inst, compute.CELL_DELAY["wide"])
         if n == 2:
             # s = 0 picks x, so x is input 0 -- the order the index counts in.
-            self.emit(f"    bd_mux #(.W({max(w, 1)}), .DELAY({d})) {inst} (")
+            ff = ", .FASTFALL(1)" if BDC_LINK_FASTFALL else ""
+            self.emit(f"    bd_mux #(.W({max(w, 1)}), .DELAY({d}){ff}) {inst} (")
             self.emit(f"        .rst(rst),")
             self.emit(f"        .x_req({self.req(ins[0])}), "
                       f".x_ack({self.ack(ins[0])}), .x_data({self.data(ins[0])}),")
@@ -2143,17 +3637,90 @@ class Emitter:
         self.emit(f"    assign {self.ack(ctl)} = {self.oack(z)};")
 
     def _op_end(self, node, inst):
-        """The function's results, which are ports, not cells."""
+        """The function's results, which are ports, not cells -- except a result no call bounds, which is joined with
+        a copy of every control result the call does bound (see free_running() and the block comment above it)."""
         if len(node.operands) != len(self.func.results):
             raise EmitError(
                 f"end at line {node.src_line} has {len(node.operands)} "
                 f"operand(s) for {len(self.func.results)} function result(s)")
-        for res, src in zip(self.func.results, node.operands):
-            base = portname(res.name)
-            self.emit(f"    assign {base}_req = {self.req(src)};")
-            self.emit(f"    assign {self.ack(src)} = {base}_ack;")
+        plan = call_join_plan(self.func, node) if CALL_JOIN else None
+        if plan is not None and self.store_plan:
+            raise EmitError(f"@{self.func.name}: a function with a store and a result no call bounds -- the stores' "
+                            f"completion join and the call join are not combined yet (research/data/suite/stores.md)")
+        tied, joined = plan if plan is not None else ([], [])
+        base = [portname(r.name) for r in self.func.results]
+        if plan is not None:
+            fb = ", ".join(base[i] for i in joined)
+            what = "this result" if len(joined) == 1 else "these results"
+            self.emit(f"    // {fb}: no call bounds {what} (a source's tokens, joined with no argument's): "
+                      f"joined with a")
+            self.emit(f"    // copy of every control result the call bounds ({', '.join(base[t] for t in tied)}), so "
+                      f"each leaves once per call, with them.")
+            # One fork per bounded control result: copy 0 to its port, copy j + 1 to free result j's join.
+            for t in tied:
+                tok = node.operands[t]
+                cp = [f"{inst}_{base[t]}_c{j}" for j in range(len(joined))]
+                self.emit(f"    wire {', '.join(f'{c}_req, {c}_ack' for c in cp)};")
+                reqs = ", ".join([f"{c}_req" for c in reversed(cp)] + [f"{base[t]}_req"])
+                acks = ", ".join([f"{c}_ack" for c in reversed(cp)] + [f"{base[t]}_ack"])
+                self.emit(f"    bd_fork #(.N({len(joined) + 1})) {inst}_ufork_{base[t]} (")
+                self.emit(f"        .rst(rst), .req({self.req(tok)}), .ack({self.ack(tok)}),")
+                self.emit(f"        .req_out({{{reqs}}}), .ack_in({{{acks}}}));")
+            for j, i in enumerate(joined):
+                src = node.operands[i]
+                cp = [f"{inst}_{base[t]}_c{j}" for t in tied]
+                reqs = ", ".join([f"{c}_req" for c in reversed(cp)] + [self.req(src)])
+                acks = ", ".join([f"{c}_ack" for c in reversed(cp)] + [self.ack(src)])
+                self.emit(f"    bd_join #(.N({len(tied) + 1})) {inst}_ujoin_{base[i]} (")
+                self.emit(f"        .rst(rst), .req_in({{{reqs}}}), .ack_out({{{acks}}}),")
+                self.emit(f"        .req({base[i]}_req), .ack({base[i]}_ack));")
+                if not self.is_control(src):
+                    self.emit(f"    assign {base[i]}_data = {self.data(src)};")
+        skip = set(joined) | set(tied)
+        if self.store_plan:
+            # A function with a store returns its data results only together
+            # with the memEnd of every controller that has a store (Dynamatic's
+            # end waits for all of them): out0 and memEnd otherwise travel
+            # independent paths, and a caller (the bench) that takes out0 as
+            # the call's completion would read the array, or start the next
+            # call, with a store still in flight.  One join over those
+            # operands, one fork to their ports; the data is bundled by the
+            # join's request, which rises after the data's own.
+            #
+            # Only those.  The other control results stay direct, because one
+            # of them is typically the start token passed straight through
+            # (single_loop: `end ... %0#1`), and holding it would hold the
+            # start fork's acknowledge -- and with it the loop header's
+            # return to zero -- until the call ends: a deadlock (measured,
+            # cells/sim RTL of fill, before this was narrowed).
+            stends = {m for m, i in self.mc_info.items()
+                      if any(k == "store" for k, _ in i["accessors"])}
+            sel = [i for i, s_ in enumerate(node.operands)
+                   if not self.is_control(s_) or s_ in stends]
+            if len(sel) >= 2:
+                n = len(sel)
+                reqs = ", ".join(self.req(node.operands[i]) for i in reversed(sel))
+                acks = ", ".join(self.ack(node.operands[i]) for i in reversed(sel))
+                preqs = ", ".join(f"{base[i]}_req" for i in reversed(sel))
+                packs = ", ".join(f"{base[i]}_ack" for i in reversed(sel))
+                self.emit(f"    wire {inst}_all_req, {inst}_all_ack;")
+                self.emit(f"    bd_join #(.N({n})) {inst}_ujoin (")
+                self.emit(f"        .rst(rst), .req_in({{{reqs}}}), .ack_out({{{acks}}}),")
+                self.emit(f"        .req({inst}_all_req), .ack({inst}_all_ack));")
+                self.emit(f"    bd_fork #(.N({n})) {inst}_ufork (")
+                self.emit(f"        .rst(rst), .req({inst}_all_req), .ack({inst}_all_ack),")
+                self.emit(f"        .req_out({{{preqs}}}), .ack_in({{{packs}}}));")
+                for i in sel:
+                    if not self.is_control(node.operands[i]):
+                        self.emit(f"    assign {base[i]}_data = {self.data(node.operands[i])};")
+                skip.update(sel)
+        for i, (res, src) in enumerate(zip(self.func.results, node.operands)):
+            if i in skip:
+                continue
+            self.emit(f"    assign {base[i]}_req = {self.req(src)};")
+            self.emit(f"    assign {self.ack(src)} = {base[i]}_ack;")
             if not self.is_control(src):
-                self.emit(f"    assign {base}_data = {self.data(src)};")
+                self.emit(f"    assign {base[i]}_data = {self.data(src)};")
 
     # -- memory --------------------------------------------------------
 
@@ -2165,6 +3732,11 @@ class Emitter:
         controller's side and is never referenced here -- it exists only so
         the pre-pass could verify the round trip holds.
         """
+        if BDC_LINK_FASTFALL:
+            raise EmitError("BDC_LINK_FASTFALL=1 is not audited for a kernel "
+                            "with memory: bd_mem samples its request edges, "
+                            "and a fast-falling request shortens the RAM "
+                            "clock's low phase (rtl/bd_link.v RFAST)")
         if len(node.operands) != 2:
             raise EmitError(
                 f"load at line {node.src_line} has {len(node.operands)} "
@@ -2173,8 +3745,19 @@ class Emitter:
         addr_res, z = node.results
         info = self.accessor_info[addr_res]
         aw, dw, seq = info["aw"], info["dw"], info["seq"]
-        name = mem.unit_name("load", aw, dw, seq=seq)
-        self.units.setdefault(name, mem.emit_unit("load", aw, dw, seq=seq))
+        cap = info.get("cap", False)
+        name = mem.unit_name("load", aw, dw, seq=seq, cap=cap)
+        self.units.setdefault(name, mem.emit_unit("load", aw, dw, seq=seq, cap=cap))
+        zr, za = self.oreq(z), self.oack(z)
+        if "z_fork" in info:
+            # The first accessor of a load-first port: its z is also the second accessor's program-order token
+            # (see _resolve_mem_accessors).  The data is broadcast; the request is forked; the load sees the
+            # C-element of both acknowledges.
+            tok_req, tok_ack = info["z_fork"]
+            zr, za = f"{inst}_zf_req", f"{inst}_zf_ack"
+            self.emit(f"    wire {zr}, {za};")
+            self.emit(f"    bd_fork #(.N(2)) {inst}_uztok (.rst(rst), .req({zr}), .ack({za}),")
+            self.emit(f"        .req_out({{{tok_req}, {self.oreq(z)}}}), .ack_in({{{tok_ack}, {self.oack(z)}}}));")
         self.emit(f"    {name} {inst} (")
         self.emit(f"        .rst(rst),")
         if seq:
@@ -2182,7 +3765,7 @@ class Emitter:
                       f".c_ack({info['c_ack']}),")
         self.emit(f"        .a_req({self.req(addr)}), .a_ack({self.ack(addr)}), "
                   f".a_data({self.data(addr)}),")
-        self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
+        self.emit(f"        .z_req({zr}), .z_ack({za}), "
                   f".z_data({self.odata_out(z)}),")
         self.emit(f"        .p_req({info['p_req']}), .p_ack({info['p_ack']}), "
                   f".p_addr({info['p_addr']}),")
@@ -2200,20 +3783,35 @@ class Emitter:
         nothing downstream needs to know a store finished, so z is tied off
         exactly as bd_snk would (cells/rtl/bd_end.v: assign ack = req).
         """
+        if BDC_LINK_FASTFALL:
+            raise EmitError("BDC_LINK_FASTFALL=1 is not audited for a kernel "
+                            "with memory: bd_mem samples its request edges, "
+                            "and a fast-falling request shortens the RAM "
+                            "clock's low phase (rtl/bd_link.v RFAST)")
         if len(node.operands) != 2:
             raise EmitError(
                 f"store at line {node.src_line} has {len(node.operands)} "
                 f"operand(s), expected 2 (address, value)")
         addr, val = node.operands
-        addr_res, _data_res = node.results
+        addr_res = node.results[0]
+        # store_completion_rewrite's third result: z IS the completion
+        # channel, into the block's completion join (see that function).
+        done = node.results[2] if len(node.results) == 3 else None
         info = self.accessor_info[addr_res]
         aw, dw, seq = info["aw"], info["dw"], info["seq"]
         name = mem.unit_name("store", aw, dw, seq=seq)
         self.units.setdefault(name, mem.emit_unit("store", aw, dw, seq=seq))
         chained = "z_req_net" in info
-        z_req_net = info["z_req_net"] if chained else f"{inst}_z_req"
-        z_ack_net = info["z_ack_net"] if chained else f"{inst}_z_ack"
-        if not chained:
+        if chained and done is not None:
+            raise EmitError(f"store at line {node.src_line}: chained and "
+                            f"joined at once (_resolve_mem_accessors refuses "
+                            f"this shape)")
+        if done is not None:
+            z_req_net, z_ack_net = self.oreq(done), self.oack(done)
+        else:
+            z_req_net = info["z_req_net"] if chained else f"{inst}_z_req"
+            z_ack_net = info["z_ack_net"] if chained else f"{inst}_z_ack"
+        if not chained and done is None:
             self.emit(f"    wire {z_req_net}, {z_ack_net};")
         self.emit(f"    {name} {inst} (")
         self.emit(f"        .rst(rst),")
@@ -2229,7 +3827,7 @@ class Emitter:
                   f".p_addr({info['p_addr']}),")
         self.emit(f"        .p_wdata({info['p_wdata']}), .p_we({info['p_we']}), "
                   f".p_rdata({info['p_rdata']}));")
-        if not chained:
+        if not chained and done is None:
             self.emit(f"    assign {z_ack_net} = {z_req_net};")
 
     def _op_mem_controller(self, node, inst):
@@ -2242,6 +3840,11 @@ class Emitter:
         -- and where it deliberately stops rather than invent an unreviewed
         completion counter.
         """
+        if BDC_LINK_FASTFALL:
+            raise EmitError("BDC_LINK_FASTFALL=1 is not audited for a kernel "
+                            "with memory: bd_mem samples its request edges, "
+                            "and a fast-falling request shortens the RAM "
+                            "clock's low phase (rtl/bd_link.v RFAST)")
         memend = node.results[-1]
         info = self.mc_info[memend]
         if info["inst"] != inst:
@@ -2252,8 +3855,24 @@ class Emitter:
         aw, dw, n, arb = info["aw"], info["dw"], info["slots"], info["arb"]
         accessors = info["accessors"]
 
-        pname = f"bdc_memport{'_arb' if arb else ''}_{aw}_{dw}_{n}"
-        self.units.setdefault(pname, mem.emit_port(aw, dw, slots=n, arb=arb))
+        # HOST_MEM: one more slot, the last, wired to the kernel's
+        # <m>_host_* ports (see HOST_MEM at the top of this file).  The
+        # kernel's own slots keep their numbers, so its stations, its wires
+        # and its BD_SZ keys are exactly what they were.
+        host = None
+        if HOST_MEM:
+            # On an arbitrated port (2 accessors) the host slot stands outside bd_arbiter (bdc/mem.py HOST ARB:
+            # never live while a kernel slot is -- the bench's obligation, as on the plain port).
+            host = host_base(self.func, info["memref"])
+            self.host_wired.add(info["memref"])
+        nport = n + (1 if host else 0)
+
+        if arb and host:
+            pname = f"bdc_memport_arb_host_{aw}_{dw}_{nport}"
+            self.units.setdefault(pname, mem.emit_port(aw, dw, slots=nport, arb=True, host=True))
+        else:
+            pname = f"bdc_memport{'_arb' if arb else ''}_{aw}_{dw}_{nport}"
+            self.units.setdefault(pname, mem.emit_port(aw, dw, slots=nport, arb=arb))
 
         # ONE PAIR OF DELAYS PER RAM -- mem.py's own header: each bd_mem in
         # a gang is placed and routed separately, so rule B and rule C
@@ -2275,7 +3894,7 @@ class Emitter:
             self.emit(f"    wire [{aw1 - 1}:0] {inst}_s{k}_addr;")
             self.emit(f"    wire [{dw1 - 1}:0] {inst}_s{k}_wdata;")
         self.emit(f"    wire [{dw1 - 1}:0] {inst}_rdata;")
-        if arb:
+        if arb and info.get("chained", True):
             # The token wire a chained store's z becomes -- see _op_store.
             # Declared here, not there: Verilog wires are order-free and
             # this is the one place that always runs for an arbitrated
@@ -2285,7 +3904,9 @@ class Emitter:
 
         def cat(sig):
             names = [f"{inst}_s{k}_{sig}" for k in range(n)]
-            return names[0] if n == 1 else "{" + ", ".join(reversed(names)) + "}"
+            if host:
+                names.append(f"{host}_{sig}")
+            return names[0] if len(names) == 1 else "{" + ", ".join(reversed(names)) + "}"
 
         ack_port = f".s_ack({cat('ack')})" if arb else f".p_ack({inst}_s0_ack)"
         self.emit(f"    {pname} #({', '.join(parms)}) {inst}_uport (")
@@ -2294,6 +3915,15 @@ class Emitter:
                   f".s_wdata({cat('wdata')}),")
         self.emit(f"        .s_we({cat('we')}), {ack_port}, "
                   f".p_rdata({inst}_rdata));")
+        if host and arb:
+            # The arbitrated port hands the host slot its own acknowledge (s_ack[2], in cat('ack') above).
+            self.emit(f"    assign {host}_rdata = {inst}_rdata;")
+        elif host:
+            # The plain port's acknowledge and read data are shared by every
+            # slot; the kernel's stations gate them with their own `joined`,
+            # so an idle station ignores a host access (bdc/mem.py: done).
+            self.emit(f"    assign {host}_ack = {inst}_s0_ack;")
+            self.emit(f"    assign {host}_rdata = {inst}_rdata;")
 
         # memStart / ctrlEnd / memEnd.
         #
@@ -2322,23 +3952,19 @@ class Emitter:
         # IDLE-reset behaviour the real FSM has, and functionally identical
         # to mem_controller_storeless's own accepted limitation.
         #
-        # For a store-having controller this same shortcut would be
-        # genuinely, silently WRONG -- it omits remainingStores == 0, so
-        # memEnd could fire while a promised-but-not-yet-completed store is
-        # still in flight.  An async up/down counter correct under that
-        # race is out of scope here: STOP rather than invent an unreviewed
-        # mechanism under a completion signal.
-        has_store = any(kind == "store" for kind, _ in accessors)
-        if has_store:
-            raise EmitError(
-                f"mem_controller at line {node.src_line} has a store "
-                f"accessor. Its real memEnd (dynamatic's "
-                f"mem_controller_loadless.v) requires remainingStores == 0, "
-                f"an asynchronous up/down completion counter this backend "
-                f"does not build; wiring memEnd without it would silently "
-                f"let it fire while a store is still in flight. Not "
-                f"implemented -- see _op_mem_controller's memStart/ctrlEnd/"
-                f"memEnd comment in bdc/emit.py.")
+        # For a store-having controller this same shortcut is correct only
+        # because store_completion_rewrite has made ctrlEnd itself arrive
+        # after every store of the call: each block's outgoing control token
+        # (or, in the exit block, this controller's ctrlEnd) is joined with
+        # the completions of that block's stores.  remainingStores == 0 is
+        # then implied by ctrlEnd, by construction rather than by a counter
+        # racing it.  The per-block store-count tokens carry nothing more
+        # (their values were checked there) and are sunk here, so their
+        # producers are not stalled.
+        for k, c in enumerate(info.get("counts", ())):
+            self.emit(f"    bd_snk #(.W({max(self.width(c), 1)})) {inst}_ucount{k} (")
+            self.emit(f"        .req({self.req(c)}), .ack({self.ack(c)}), "
+                      f".data({self.data(c)}));")
 
         memstart, ctrlend = info["memstart"], info["ctrlend"]
         hold = f"{inst}_started"
@@ -2418,8 +4044,15 @@ class Emitter:
                   f"(anchor line {anchor.src_line})")
         name, default = self._emit_fused_module(region, inst)
         d = self.delay(inst, default)
+        if region.outputs is not None:
+            self._lower_fused_multi(region, inst, name, d)
+            return
         z = anchor.results[0]
-        self.emit(f"    {name} #(.DELAY({d})) {inst} (")
+        if inst in SPEC_INC:
+            ds = self.delay(inst + "_short", SPEC_INC[inst][1])
+            self.emit(f"    {name} #(.DELAY({d}), .DELAY_SHORT({ds})) {inst} (")
+        else:
+            self.emit(f"    {name} #(.DELAY({d})) {inst} (")
         self.emit(f"        .rst(rst),")
         for k, ssa in enumerate(region.ext_inputs):
             p = f"e{k}"
@@ -2427,6 +4060,56 @@ class Emitter:
                       f".{p}_ack({self.ack(ssa)}), .{p}_data({self.data(ssa)}),")
         self.emit(f"        .z_req({self.oreq(z)}), .z_ack({self.oack(z)}), "
                   f".z_data({self.odata_out(z)}));")
+        self.emit()
+
+    def _lower_fused_multi(self, region, inst, name, d):
+        """BDC_RING_FUSE: a region with several results (Region.outputs).  The cell has one output channel `<inst>_z*`
+        whose data is every result side by side (the first output in the low bits); a bd_fork `<inst>_fo` splits its
+        request into one channel per result, each taking its slice of the data -- the same split _op_fork makes for
+        a fork, BDC_FORK_OUT_LINK included, so a result that rule F (or the flow's storage search) links gets its link.
+        Not `<inst>_f`: that suffix is a control_merge's result fork to research/tools/eventgraph (whatif.py,
+        search.py), which would name a stage on a result BDC_MERGE_RES_LINK=<inst>, a knob nothing here reads."""
+        outs = region.outputs
+        widths = [max(self.width(v), 1) for v, _ in outs]
+        zr, za, zd = f"{inst}_zreq", f"{inst}_zack", f"{inst}_zdata"
+        self.emit(f"    wire {zr}, {za};")
+        self.emit(f"    wire [{sum(widths) - 1}:0] {zd};")
+        if inst in SPEC_INC:
+            raise EmitError(f"BDC_SPEC_INC={inst}: not on a multi-result region (BDC_RING_FUSE)")
+        self.emit(f"    {name} #(.DELAY({d})) {inst} (")
+        self.emit(f"        .rst(rst),")
+        for k, ssa in enumerate(region.ext_inputs):
+            p = f"e{k}"
+            self.emit(f"        .{p}_req({self.req(ssa)}), "
+                      f".{p}_ack({self.ack(ssa)}), .{p}_data({self.data(ssa)}),")
+        self.emit(f"        .z_req({zr}), .z_ack({za}), .z_data({zd}));")
+        vals = [v for v, _ in outs]
+        fl = {v for v in vals if vname(v) in FORK_OUT_LINK or (RING_FUSE_LINK and v not in self.linked)}
+        rq = {v: (f"{vname(v)}_freq" if v in fl else self.oreq(v)) for v in vals}
+        ak = {v: (f"{vname(v)}_fack" if v in fl else self.oack(v)) for v in vals}
+        for v in vals:
+            if v in fl:
+                self.emit(f"    wire {rq[v]}, {ak[v]};")
+        reqs = ", ".join(rq[v] for v in reversed(vals))
+        acks = ", ".join(ak[v] for v in reversed(vals))
+        self.emit(f"    bd_fork #(.N({len(vals)})) {inst}_fo (")
+        self.emit(f"        .rst(rst), .req({zr}), .ack({za}),")
+        self.emit(f"        .req_out({{{reqs}}}), .ack_in({{{acks}}}));")
+        lo = 0
+        for v, w in zip(vals, widths):
+            sl = f"{zd}[{lo + w - 1}:{lo}]"
+            lo += w
+            if v in fl:
+                li = f"ulink_{vname(v)}_folink"
+                dl = self.delay(li, STAGE_PAD)
+                a = self.delay(f"{li}_uack", ACK_PAD)
+                rf = ", .RFAST(1)" if FORK_OUT_FASTFALL else ""
+                self.emit(f"    bd_link #(.W({w}), .DELAY({dl}), .DACK({a}){rf}) {li} (")
+                self.emit(f"        .rst(rst),")
+                self.emit(f"        .req_in({rq[v]}), .ack_in({ak[v]}), .data_in({sl}),")
+                self.emit(f"        .req_out({self.oreq(v)}), .ack_out({self.oack(v)}), .data_out({self.odata_out(v)}));")
+            elif not self.is_control(v):
+                self.emit(f"    assign {self.odata(v)} = {sl};")
         self.emit()
 
     def _emit_fused_module(self, region, inst):
@@ -2480,6 +4163,26 @@ class Emitter:
         anchor = nodes[region.anchor]
         out_w = 1 if anchor.op == "cmpi" else self.width(
             anchor.operands[_FUSABLE_CHANS[anchor.op]["a"]])
+        z_expr = node_wire[region.anchor]
+        if region.outputs is not None:
+            # BDC_RING_FUSE: every result side by side, the first in the low bits (_lower_fused_multi slices them)
+            parts = [node_wire[i] for _, i in region.outputs]
+            if RING_FUSE_NEGCTL:
+                # the negative control: every result after the first carries the first one's value instead (its low
+                # bits, or zero-extended), so a consumer of any later result reads the wrong data
+                w0 = max(self.width(region.outputs[0][0]), 1)
+                bad = [parts[0]]
+                for v, _ in region.outputs[1:]:
+                    wk = max(self.width(v), 1)
+                    if wk == w0:
+                        bad.append(parts[0])
+                    elif wk < w0:
+                        bad.append(f"{parts[0]}[{wk - 1}:0]")
+                    else:
+                        bad.append(f"{{{{{wk - w0}{{1'b0}}}}, {parts[0]}}}")
+                parts = bad
+            out_w = sum(max(self.width(v), 1) for v, _ in region.outputs)
+            z_expr = "{" + ", ".join(reversed(parts)) + "}"
 
         ext_w = [self.width(ssa) for ssa in region.ext_inputs]
         decls = []
@@ -2494,6 +4197,22 @@ class Emitter:
                                   for k in reversed(range(len(ext_w)))) + "}"
 
         chain = " -> ".join(nodes[i].op for i in region.node_ids)
+        reqline = compute.request_delay("joined")
+        extra_param = ""
+        if inst in SPEC_INC:
+            k, nshort = SPEC_INC[inst]
+            if [nodes[i].op for i in region.node_ids] != ["addi"] or len(ext_w) != 1:
+                raise EmitError(f"BDC_SPEC_INC={inst}: needs a single-op addi region with one external operand "
+                                f"(got {chain}, {len(ext_w)} operands)")
+            kk = k - 1
+            extra_param = f", parameter DELAY_SHORT = {nshort}"
+            reqline = (f"""wire z_long, z_short;
+    bd_delay_gated #(.N(DELAY)) udly (.a(either), .gate(joined), .z(z_long));
+    bd_delay_gated #(.N(DELAY_SHORT)) udly_s (.a(either), .gate(joined), .z(z_short));
+    // speculative completion (BDC_SPEC_INC): long line only when x's low {k} bits are all ones (this carry runs
+    // past bit {k}) or all zeros (the previous increment's carry is still discharging)
+    wire spec_abort = (&e0_data[{kk}:0]) | ~(|e0_data[{kk}:0]);
+    (* keep *) LUT3 #(.INIT(8'hE4)) uspec (.I0(spec_abort), .I1(z_short), .I2(z_long), .O(z_req));""")
         text = f"""
 // Fused region: {chain}.  Generated by bdc/emit.py under BDC_OP_FUSION --
 // do not edit.  One keep_hierarchy boundary, one bd_join, one matched delay
@@ -2501,7 +4220,7 @@ class Emitter:
 // FUSABLE_OPS in bdc/emit.py for why this does not cost auditability.
 `default_nettype none
 (* keep_hierarchy *)
-module {name} #(parameter DELAY = {default_total})
+module {name} #(parameter DELAY = {default_total}{extra_param})
     (input  wire             rst,
 {chr(10).join(decls)}
      output wire             z_req,
@@ -2520,13 +4239,13 @@ module {name} #(parameter DELAY = {default_total})
 
     wire either;
     (* keep *) LUT1 #(.INIT(2'h2)) uor (.I0(joined), .O(either));
-    bd_delay #(.N(DELAY)) udly (.a(either), .z(z_req));
+    {reqline}
 
     // The datapath.  yosys picks the implementation, across the WHOLE
     // region at once; the matched delay above is what makes whatever it
     // picks safe.
 {chr(10).join(body_lines)}
-    assign z_data = {node_wire[region.anchor]};
+    assign z_data = {z_expr};
 endmodule
 `default_nettype wire
 """
@@ -2545,7 +4264,7 @@ def _bind_compute(op):
 
 
 for _op in ("addi", "subi", "muli", "cmpi", "andi", "ori", "xori",
-            "shli", "shrsi", "shrui", "select"):
+            "shli", "shrsi", "shrui", "select") + tuple(sorted(compute.DIV)) + tuple(sorted(compute.MINMAX)):
     setattr(Emitter, f"_op_{_op}", _bind_compute(_op))
 
 
@@ -2606,6 +4325,33 @@ def emit_func(func, table=None):
         ports.append(f"    input  wire             {b}_ack")
         if not res.is_control:
             ports.append(f"    output wire [{res.width - 1}:0]     {b}_data")
+
+    # ---- host memory ports (HOST_MEM; see its note at the top of this file) --
+    # One set per memref argument, in signature order, after every channel, so
+    # nothing a caller already connects by position moves.
+    if HOST_MEM:
+        taken = {portname(a.name) for a in func.args} | {portname(r.name) for r in func.results}
+        for arg in func.args:
+            if arg.ssa_name not in e.memrefs:
+                continue
+            aw, dw = e.memrefs[arg.ssa_name]
+            b = host_base(func, arg.ssa_name)
+            if b in taken:
+                raise EmitError(f"--host-mem: the host port of memref {arg.name!r} would be named "
+                                f"{b!r}, which is already a channel of @{func.name}")
+            ports += [f"    input  wire             {b}_req",
+                      f"    output wire             {b}_ack",
+                      f"    input  wire [{aw - 1}:0]     {b}_addr",
+                      f"    input  wire [{dw - 1}:0]     {b}_wdata",
+                      f"    input  wire             {b}_we",
+                      f"    output wire [{dw - 1}:0]     {b}_rdata"]
+            if arg.ssa_name not in e.host_wired:
+                # No mem_controller reads or writes this memref, so there is no
+                # RAM behind its host port: complete every handshake at once and
+                # read zero, which is what the kernel itself would see.
+                e.emit(f"    // {arg.name}: no mem_controller uses this memref; its host port has no RAM.")
+                e.emit(f"    assign {b}_ack = {b}_req;")
+                e.emit(f"    assign {b}_rdata = {dw}'b0;")
 
     # ---- probe ports -------------------------------------------------------
     # BDC_PROBE=<chan>[,<chan>...] brings an INTERNAL channel out of the kernel
@@ -2820,6 +4566,15 @@ def emit_top(func, delays, inst="uut"):
         obs.append(f"{b}_req")
         if not res.is_control:
             obs.append(f"^{b}_data")
+    if HOST_MEM:
+        # The host ports are idle here: this top never fills a memory.
+        for a in func.args:
+            m = re.fullmatch(r"memref<(\d+)x[iu](\d+)>", a.raw) if a.raw.startswith("memref") else None
+            if m:
+                b = host_base(func, a.ssa_name)
+                aw = max(1, (int(m.group(1)) - 1).bit_length())
+                conns.append(f"        .{b}_req(1'b0), .{b}_addr({aw}'b0), "
+                             f".{b}_wdata({m.group(2)}'b0), .{b}_we(1'b0),")
     conns[-1] = conns[-1].rstrip(",")
 
     decls = []
@@ -2850,6 +4605,15 @@ def emit_top(func, delays, inst="uut"):
  `include "sizes.vh"
 `endif
 {defines}
+// The spine's own ack-fall hold (bd_link.v DACK), sized by rule H like any
+// other -- its data is constant, but the audit cannot know that.
+`ifndef BD_SZ_UPIPE_UACK
+ `define BD_SZ_UPIPE_UACK {ACK_PAD}
+`endif
+// ... and its stage-to-stage request pad (bd_link.v SDELAY), sized by rule I.
+`ifndef BD_SZ_UPIPE_SDELAY
+ `define BD_SZ_UPIPE_SDELAY {STAGE_PAD}
+`endif
 
 `default_nettype none
 module {name}_top (input wire pin_in, output wire pin_out);
@@ -2865,7 +4629,8 @@ module {name}_top (input wire pin_in, output wire pin_out);
     wire        spine;
     bd_delay #(.N(3)) uspin (.a(p_ack_in), .z(spine));
 
-    bd_pipe #(.W({nb}), .N(4)) upipe (
+    bd_pipe #(.W({nb}), .N(4), .SDELAY(`BD_SZ_UPIPE_SDELAY),
+              .DACK(`BD_SZ_UPIPE_UACK)) upipe (
         .rst(rst),
         .req_in(~spine), .ack_in(p_ack_in),
         .data_in({{{nb - 1}'h{seed:x}, pin_in}}),
@@ -2888,6 +4653,78 @@ endmodule
 """
 
 
+# BDC_LINK_RST=1 (opt-in, research/data/suite/hangs.md; unset, the output is byte-identical): every link's data latch is
+# defined at reset.  bd_link's latch (bd_latch) has no reset, so it powers up at whatever value the die gives it and the
+# gate starts it at X; a value read before the first token has passed is then undefined (the automatic ipow seed-4
+# route's first call: an exit test read X from the e >> 1 latches and the X stayed in the C-elements).  The reset value
+# is a polarity, not a new primitive (CLAUDE.md): bd_latch_rst with RESET_VALUE 0, in a link composed here from the
+# same frozen cells and instance names as bd_link (bd_link_ctl ctl, bd_delay rdly / uack) so every matched delay and
+# every rule's chain keeps its name.  Cost: one LUT per latch bit instead of one per two (bd_latch packs a pair).
+LINK_RST = os.environ.get("BDC_LINK_RST", "0") == "1"
+LINK_RST_UNITS = """
+module bdc_link_rst #(parameter W = 8, parameter integer DELAY = 0, parameter integer DACK = 0,
+                      parameter BROAD = 1, parameter integer LDN = 0, parameter RFAST = 0)
+    (input  wire             rst,
+     input  wire             req_in,
+     output wire             ack_in,
+     input  wire [W-1:0]     data_in,
+     output wire             req_out,
+     input  wire             ack_out,
+     output wire [W-1:0]     data_out);
+    wire c;
+    bd_link_ctl ctl (.req_in(req_in), .c_next(ack_out), .rst(rst), .c(c));
+    bd_latch_rst #(.W(W), .RESET_VALUE(64'd0)) lat (.d(data_in), .en(c), .rst(rst), .q(data_out));
+    bd_delay #(.N(DELAY), .FASTFALL(RFAST)) rdly (.a(c), .z(req_out));
+    bd_delay #(.N(DACK), .FASTRISE(1)) uack (.a(c), .z(ack_in));
+endmodule
+
+module bdc_pipe_rst #(parameter W = 8, parameter N = 2, parameter integer DELAY = 0,
+                      parameter integer SDELAY = 1, parameter integer DACK = 0, parameter BROAD = 1)
+    (input  wire             rst,
+     input  wire             req_in,
+     output wire             ack_in,
+     input  wire [W-1:0]     data_in,
+     output wire             req_out,
+     input  wire             ack_out,
+     output wire [W-1:0]     data_out);
+    genvar i;
+    generate
+    if (N == 1) begin : one
+        bdc_link_rst #(.W(W), .DELAY(DELAY), .DACK(DACK), .BROAD(BROAD)) u (
+            .rst(rst), .req_in(req_in), .ack_in(ack_in), .data_in(data_in),
+            .req_out(req_out), .ack_out(ack_out), .data_out(data_out));
+    end else begin : many
+        wire [N:0] r, a;
+        wire [W*(N+1)-1:0] dat;
+        assign r[0] = req_in;
+        assign ack_in = a[0];
+        assign a[N] = ack_out;
+        assign req_out = r[N];
+        assign dat[W-1:0] = data_in;
+        assign data_out = dat[W*N +: W];
+        for (i = 0; i < N; i = i + 1) begin : stage
+            bdc_link_rst #(.W(W), .DELAY(i + 1 == N ? DELAY : SDELAY),
+                           .DACK(DACK), .BROAD(i + 1 == N ? BROAD : 0)) u (
+                .rst(rst),
+                .req_in(r[i]), .ack_in(a[i]), .data_in(dat[W*i +: W]),
+                .req_out(r[i+1]), .ack_out(a[i+1]),
+                .data_out(dat[W*(i+1) +: W]));
+        end
+    end
+    endgenerate
+endmodule
+"""
+
+
+def _link_rst(text):
+    """BDC_LINK_RST: every bd_link / bd_pipe instance becomes its reset-latch twin."""
+    for m in re.finditer(r"\bbd_(?:link|pipe) #\(\.W\((\d+)\)", text):
+        if int(m.group(1)) > 64:
+            raise EmitError(f"BDC_LINK_RST: a {m.group(1)}-bit link (bd_latch_rst's RESET_VALUE holds 64 bits)")
+    text = re.sub(r"\bbd_link #\(", "bdc_link_rst #(", text)
+    return re.sub(r"\bbd_pipe #\(", "bdc_pipe_rst #(", text)
+
+
 def generate(path, table=None, top=True):
     """One .mlir file -> one Verilog string containing everything it needs."""
     funcs = [f for f in parse.parse_module(open(path).read(), filename=path)
@@ -2900,6 +4737,10 @@ def generate(path, table=None, top=True):
     parts = ["// Generated by bdc/emit.py from " + path,
              "// DO NOT EDIT -- regenerate instead.",
              "`default_nettype none"]
+    if LINK_RST:
+        units = {k: _link_rst(v) for k, v in units.items()}
+        units["bdc_link_rst"] = LINK_RST_UNITS
+        body = _link_rst(body)
     parts.extend(units[k] for k in sorted(units))
     parts.append(body)
     parts.append("`default_nettype wire")
@@ -2918,10 +4759,18 @@ def main():
                     help="bring these internal channels out as read-only "
                          "probe ports (names as they appear in the emitted "
                          "Verilog, e.g. n136_u); also settable as BDC_PROBE")
+    ap.add_argument("--host-mem", action="store_true",
+                    help="give every memory a host port: one more one-hot slot "
+                         "on its bdc_memport, wired to <memref>_host_* kernel "
+                         "ports (a no-op for a kernel without memref "
+                         "arguments); also settable as BDC_HOST_MEM=1")
     args = ap.parse_args()
 
     if args.probe:
         PROBE[:] = [p for p in args.probe.split(",") if p]
+    if args.host_mem:
+        global HOST_MEM
+        HOST_MEM = True
 
     text, func, delays = generate(args.mlir, top=not args.no_top)
     if args.out:

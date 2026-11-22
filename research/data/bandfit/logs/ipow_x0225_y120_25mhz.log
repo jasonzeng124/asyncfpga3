@@ -1,0 +1,27 @@
+# STOPPED by hand at 19:17 (coordinator: stop): batch 0 HANG after 240 us (completed 0, odata x, fsm X3); LATMON n=1 17 ns
+# during the AXI set-up, n=2 359 ns at 251 us. The bench's own logic is scaled by y too: kernel vs bench not separated.
+# run1.sh ipow x=0.225 y=12.0 vec=ipow_25mhz.hex fclk_ps=40000 build 171s run 405s host node3627
+# design:    ipow_bench_gen (host ps7_bench.v)
+# routed.json md5 73882a41e6a40409cf7e893bb5f7b3cd  <- /tmp/bot/sa/bandfit/runs/bandfit/hw/ipow_bench_gen/ipow_bench_gen_routed.json
+# routed.sdf  md5 a83635a6c2d24a1ac23932d8e31fe52a  <- /tmp/bot/sa/bandfit/runs/bandfit/hw/ipow_bench_gen/xray.sdf, column band
+# delays:    scatter 0 region 0 seed 1 mode arc logn 0
+# model:     fid
+# netlist:   bit (fasm2net --ps7 from 6dbf3fae); VERDICT: EQUIVALENT (only the benign kinds above)
+# nextpnr d216cb36a370f78a  /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+#   ok      nextpnr-xilinx-lut-pinmap.patch        131 LUTs written into the bitstream with permuted pins
+#   ok      nextpnr-xilinx-dsp-areg.patch          DSP cascade register mode encoded wrong
+#   ok      nextpnr-xilinx-dsp-constpins.patch     8 DSP48E1 pins with no route got no bit (INMODE gated A to zero)
+#   ok      nextpnr-xilinx-rloc-group.patch        RLOC_GROUP relative placement (bd_link C node next to its latch)
+#   binary  /home/jayjay/dev2/lib/fpgatoolchain/openxc7/bin/nextpnr-xilinx
+#   sha256  d216cb36a370f78a
+# GLS_SDF_BAND_CELL: {'CARRY4': 12.0, 'SELMUX2_1': 12.0, 'SLICE_FFX': 12.0} (IOPATH arcs moved: CARRY4 1438, SELMUX2_1 1650, SLICE_FFX 1956)
+# IOPATH  claimed 143179 -> emitted 143179 (incl. 43465 icbuf)
+# WARNING: /tmp/bot/sa/bandfit/repo/cells/gls/ps/ps7_bench.v:255: $readmemh(/tmp/bot/sa/bandfit/repo/research/data/bandfit/vec/ipow_25mhz.hex): Not enough words in the file for the requested range [0:511].
+LATMON n=1 lat_ps=17069 t=5480687
+BENCHRES batch=0 fclk_ps=40000 mode=1 op0=00000003 op1=00000007 n=2 completed=0 cycles=5955 prepcyc=16 latmin=4294967295 latmax=0 sig=00000000 odata=xxxxxxxx mism_st=0 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=000000X3 t=245460946 HANG
+LATMON n=2 lat_ps=359492 t=251223110
+LATMON n=3 lat_ps=359700 t=252583318
+BENCHRES batch=1 fclk_ps=40000 mode=1 op0=00000003 op1=0000003f n=2 completed=2 cycles=36 prepcyc=32 latmin=13 latmax=13 sig=867d3afd odata=7dd4e9ab mism_st=2 ill=00000000 ill_tr=0:0->0 ill_rtz=0 ill_cycles=0 fsm=00000f00 t=255460946 DONE
+LATMON n=4 lat_ps=480260 t=259903878
+LATMON n=5 lat_ps=480260 t=261383878
+lat_mon: in_req SLICE_X8Y44/BFF/Q, out0_req SLICE_X16Y26/A6LUT/O6 -> mon_gen.v
