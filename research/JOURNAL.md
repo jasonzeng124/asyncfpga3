@@ -10144,3 +10144,12 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   v13 + KEEPDEPTH + AUTO_SEARCH_OVERBUILD=4 + AUTO_SEARCH_MAXIT=1 (one raise-only route, to get to the new part).
   PREDICTION (written now): an overbuilt route of the pinned structure is clean as built or after its trim check within
   2 routes; after the trim-back and the cycle trim P is 20-26 ns; every draw passes.
+### progress 10:07 (BD_SYMTRIM on every route, sqrtsub s1: PASS 4/4 at 21.79 ns, rule-CLEAN -- inconclusive against v12's 20.12 on the same seed; the search-overbuild test resumed from quadrec s3's state)
+- st sqrtsub s1 (v13 + BD_DEFINES=-DBD_SYMTRIM on every route): PASS 4/4, rule CLEAN it 7, P 21.79 ns (untrimmed 24.95),
+  4 trims incl. one link request line (ulink_n14__0 -> 1, possible only with the define), call latency median 120 ns;
+  v10's same seed 32.24 ns (the 28-element folink), v12's 20.12 (the guard already changed the loop's trajectory). One
+  seed cannot separate the define's effect from that: the farm's paired A/B (v13 vs v13 + the define, every kernel or the
+  25 with link-line potential, 4 seeds) is the measurement; not filed yet (the queue holds v12 / v13 until tomorrow).
+- AUTO_SEARCH_OVERBUILD test (/tmp/bot/runs/so): quadrec s3's state at the end of its finish phase, resumed at
+  39e7147d9 with KEEPDEPTH + AUTO_SEARCH_OVERBUILD=4 + AUTO_SEARCH_MAXIT=1; the resume replays final(10) from memos.
+  kd quadrec s1 / s3 stopped (their searches failed; the late phase on the loop's structure is v13's own behaviour).
