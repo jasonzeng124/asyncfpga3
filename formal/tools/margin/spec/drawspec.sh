@@ -32,8 +32,8 @@ if [ -f "$RS/$V" ] && head -1 "$RS/$V" | grep -q '^// benchvec'; then
     TREE=$O/tree bash "$F/formal/tools/margin/bram/memtask.sh" "$K" "$S" "$RS/$Z" "$WS" "$O/mt" "$ND" ) > "$O/memtask.log" 2>&1
   sed 's/^/mem: /' "$O/mt/summary.txt" >> "$SM"
   fa=$(md5sum < "$O/tree/cells/build/hw/$D/$D.fasm" 2>/dev/null | cut -c1-8)
-  rf=$(grep -c '^REFUSED' "$O/mt/trim.log" 2>/dev/null); say "trimmed fasm $fa (spec $WF) $([ "$fa" = "$WF" ] && echo SAME || echo DIFFERENT); trim REFUSED lines ${rf:-0}"
-  echo "$SP | MEM | $(grep -o 'sdf [0-9a-f]* (research [0-9a-f]*) [A-Z]*' "$O/mt/summary.txt" | head -1) | fasm $fa $([ "$fa" = "$WF" ] && echo SAME || echo DIFFERENT) | $(grep -o 'draws K.*pass fraction [0-9.]*' "$O/mt/summary.txt" | sed 's/draws K [0-9.]*//' | tr '\n' ';')" > "$O/line.txt"
+  rf=$(grep -c '^REFUSED' "$O/mt/trim.log" 2>/dev/null); say "trimmed fasm $fa (spec $WF) $([ "$WF" = 00000000 ] && echo "(no judged fasm)" || { [ "$fa" = "$WF" ] && echo SAME || echo DIFFERENT; }); trim REFUSED lines ${rf:-0}"
+  echo "$SP | MEM | $(grep -o 'sdf [0-9a-f]* (research [0-9a-f]*) [A-Z]*' "$O/mt/summary.txt" | head -1) | fasm $fa $([ "$WF" = 00000000 ] && echo "(no judged fasm)" || { [ "$fa" = "$WF" ] && echo SAME || echo DIFFERENT; }) | $(grep -o 'draws K.*pass fraction [0-9.]*' "$O/mt/summary.txt" | sed 's/draws K [0-9.]*//' | tr '\n' ';')" > "$O/line.txt"
   cat "$O/line.txt"; exit 0
 fi
 export BQ_RUNS=$O/bq BQ_LANE=${BQ_LANE:-dsc}
