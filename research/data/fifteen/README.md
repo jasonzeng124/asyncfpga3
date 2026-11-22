@@ -1,3 +1,12 @@
+**In flight (2026-11-22 15:40 UTC; the table below is still flow v10's, the last flow whose parts are all in):** flow v11
+54 of 62 pass so far (8 NO RESULT, all the 240-min limit, now resuming with AUTO_CKPT, which keeps final()'s work
+across farm parts); flow v12 (v11 + the 10 % rule-E guard + the late phase only after the search) 81 results so far:
+19 (kernel, seed) pairs newly clean against v10, none lost, no wrong answer, P 1.05x v10 on different-route pairs clean
+in both; flow v13 queued with, among others, the search's structure built as it modelled (AUTO_SEARCH_KEEPDEPTH) and
+made to converge (AUTO_SEARCH_OVERBUILD) -- quadrec seed 3 previewed locally at 22.43 ns against v10's 41.03 (PASS
+4 / 4, rule CLEAN; Dynamatic 11.58: ratio 1.94, was 3.54; research/data/keepdepth/) -- and variable shifts built on
+the amount's low bits (BDC_SHIFT_MASK: varshift's area -14 %, research/data/shiftmask/). research/JOURNAL.md 2026-11-22.
+
 **THE AUTOMATIC COLUMN, flow v10 (farm suite13t_s5a_v10_* with all its resume parts; regenerated 2026-11-21 21:29 UTC at
 origin/claude/cluster 61ebe31582, with three tasks finished locally).** One switch, BDC_AUTO=1, no list of kernels: flow v9 + the trim step (suite13t, the previous
 headline below) and three general changes -- the trim limited to the route's critical cycle (AUTO_TRIM_SCOPE=cycle,
