@@ -3730,3 +3730,5 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### 2026-11-22T15:00:43Z -- A38 update: research v13 quadrec s3 it 12 rebuilt (sdf 20d29647 = research), its 105 recorded trims = 139 chains (44 symmetric 1010) applied, trimcheck OK against a per-chain record (139/139 lengths). Files tools-A/trim/symtrim_1122/quadrec_v13_s3/.
 
 ### 2026-11-22T15:04:04Z -- A38: research board spec ac2db3bf7b names trimmed fasm 61902cb9 = the bits trimcheck checked. Audit restarted (lock only).
+
+### 2026-11-22T15:24:40Z -- watch: research journal only (v12 interim, v13 previews); nothing for A; lock
