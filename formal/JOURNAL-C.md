@@ -5130,3 +5130,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
   their item-44 partners, item 46's pair. c_v12a = all 37 specs in tools-B/auto/suite/v12 (its header says 32: B added
   5 since). Both queued behind research's v12 / v13 suites. Draws are cheap here (~15 core-s each on xorshift).
 - 07:42: item 46 padded (memory path) checked locally: sdf 2361eec8 SAME, trimmed fasm 5fcd82f8 SAME (132 chains, 0 REFUSED), 4 + 4 PASS. (Times above corrected to date -u; they were written ahead of the clock.)
+- 07:55: C72: items 42 / 43 locally, 32 + 32 draws each on research's judged bits (board_rebuild OK): all PASS. An OOM kill during the run (Mathlib build from source shares the 15 GB; setup still running).

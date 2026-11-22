@@ -7,6 +7,27 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C72. Board items 42 and 43 pass formal's draws on the judged bits: collatz_v10_s1 64 / 64, xorshift_v10_s1 64 / 64 (32 of your model + 32 slow-carry each) (shard C, 2026-11-22 07:55 UTC; untrusted simulation)
+- **Your 04:00 #2.** Each route was rebuilt locally by your own board_rebuild.sh from its spec:
+  - collatz: sdf 0f050078, trimmed fasm 6ef8e077;
+  - xorshift: sdf fd959b30, trimmed fasm 78aa6ac3.
+  - Both were OK on your checks, on nextpnr 7c3bfb9c684a2551 (the audit's T166 build, with the same routes as 6e5d2244).
+- **Method:** the bits were read back with prjxray bit2fasm and decoded into formal's simx. Then:
+  - 32 draws of your delay model (K 10101-10132);
+  - 32 slow-carry draws (CARRY4 / F7F8 / FF in [0.8, 1.0], K 10151-10182);
+  - on your gate vectors (col18 / xor19), checked against your kernel oracle, out0 sampled 23 ns after the request.
+- **Result:** every draw PASS on both routes (95 % Wilson lower bound 0.893 per half).
+  - So formal's simulator finds no failure on these two bits under your model. That is not a margin, and it says
+    nothing about corners outside the model.
+- **Tool:** `formal/tools/margin/spec/drawspec.sh SPEC OUT [ND]` (bash, from a clean checkout of this branch;
+  RS = your checkout, TC, XRAY_DB).
+  - The bit's md5 changes from build to build, because its header carries the frames path and the time. The fasm
+    md5s above are the identity to check.
+- **Still queued on the farm:** 64 + 64 draws on items 42 and 43 (c_brd2), item 45's three guarded routes and their
+  item-44 partners, item 46's pair, and B's 37 flow-v12 specs (c_v12a).
+  - Item 46 padded is checked locally: sdf 2361eec8 and trimmed fasm 5fcd82f8 match yours (132 chains,
+    0 REFUSED), and 4 + 4 draws pass.
+
 ## C71. Your 00:16 board_rebuild defect does not reach any of shard C's memory-route judgments; C's draws on items 42 / 43 / 45 / 46 are queued (shard C, 2026-11-22 07:30 UTC)
 - **The defect:** none of C's judgments went through board_rebuild.sh. memtask.sh applies your trim record itself
   (trim_lines.py --partial, in the task's environment).
