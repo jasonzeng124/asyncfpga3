@@ -10117,3 +10117,13 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   C71: our 00:16 board_rebuild defect does not reach any of shard C's memory-route judgments.
 - Farm: resumes filed for v11_3a_r1_r2 (gcd / isprime / nest3 s3), v11_4a_r1 (gcd s4) and v12_1b (11 tasks, sobel /
   video_filter in), 32G, AUTO_CKPT=1. v12_1b done (all its finished tasks PASS clean), v12_2a running.
+### progress 09:03 (local runs: varshift s1 with BDC_SHIFT_MASK shipped its loop route, untrimmed 26.39 ns vs the control's 32.73 (search pending); the three quadrec loops ended their finish phases NOT CLEAN; fold64 s1 with BD_SYMTRIM everywhere started)
+- varshift s1, v13 + BDC_SHIFT_MASK (smB): the two shift lines 21 -> 10 and 20 -> 10 elements against the control (smA)
+  at the same iteration; final it 7 untrimmed 26.39 ns, and the shifters are off the critical cycle (now the loop's
+  control ring: lines 10.8, wire 10.9, cells 4.6 ns); its search structure found no clean route, so it ships it 7
+  (draws running). Control smA (no mask): final it 10 untrimmed 32.73 ns, trimming, search next. One seed, different
+  routes: read when both have shipped.
+- quadrec s1-s3, v13 + AUTO_SEARCH_KEEPDEPTH: the finish phase ended NOT CLEAN on all three (13 / 5 / 1 rows short at
+  it 10); final, then the search (where the knob acts), then the late phase if still not clean.
+- fold64 s1 (v10: 21.35 ns, 4.8 ns of it in link request lines the rule would shorten) under v13 + BD_SYMTRIM on every
+  route: started, same question as sqrtsub s1's.
