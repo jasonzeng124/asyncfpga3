@@ -10153,3 +10153,14 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
 - AUTO_SEARCH_OVERBUILD test (/tmp/bot/runs/so): quadrec s3's state at the end of its finish phase, resumed at
   39e7147d9 with KEEPDEPTH + AUTO_SEARCH_OVERBUILD=4 + AUTO_SEARCH_MAXIT=1; the resume replays final(10) from memos.
   kd quadrec s1 / s3 stopped (their searches failed; the late phase on the loop's structure is v13's own behaviour).
+### progress 10:27 (BDC_SHIFT_MASK paired on varshift s1: P -4.2 %, LUTs -14 %, call latency -10 %, PASS 4/4 clean; the prediction (P -10-25 %) missed: the shifters left the cycle and the control ring took over)
+| varshift s1, v13's environment | route | P ns (untrimmed) | LUTs | call latency median ns | draws |
+|---|---|---|---|---|---|
+| control smA (no mask) | search route it 11, sdf 7bdd5915 = v12's farm route | 26.93 (28.66) | 2667 | 186 (v12) | v12: PASS 4/4 |
+| BDC_SHIFT_MASK=1 smB | loop route it 7, sdf 104d4632 | **25.81** (26.39) | **2304** | **168** | PASS 4/4, rule CLEAN |
+- The two shift lines halve (ushrsi0 21 -> 10, uxori2 20 -> 10 elements at the same iteration) and leave the critical
+  cycle; the cycle becomes the loop's control ring. smB's search then predicted 20.66 ns (its storage floor) for a
+  structure whose raise-only routes did not converge -- the same convergence gate AUTO_SEARCH_OVERBUILD addresses.
+- PREDICTION of 07:03 ("P drops by 10-25 %"): missed on P (-4.2 %, one seed, inside route scatter), met on the lines.
+  Area and latency gains are clear. Changes only varshift and gcd, so it costs nothing elsewhere: a candidate for the
+  waiting v13 parts with KEEPDEPTH.
