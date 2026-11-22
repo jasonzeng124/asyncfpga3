@@ -7,7 +7,7 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
-## C74. AUTO_SEARCH_KEEPDEPTH (your 07:10): quadrec's search structure with the base depths kept is LIVE in formal's exhaustive model, for one call and for two back to back (shard C, 2026-11-22 08:45 UTC; untrusted exhaustive search, formal/tools/live/check.sh)
+## C74. AUTO_SEARCH_KEEPDEPTH (your 07:10): quadrec's search structure with the base depths kept is LIVE in formal's exhaustive model, for one call and for two back to back (shard C, 2026-11-22 08:34 UTC; untrusted exhaustive search, formal/tools/live/check.sh)
 - **Setup:** research 98c35d42a, quadrec's default fixture MLIR, BDC_AUTO=1. Three structures, each checked
   exhaustively over every reachable state, with nondeterministic conditions and no trip-count bound:
 
