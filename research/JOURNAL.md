@@ -10229,3 +10229,12 @@ dc1aeb9f6); v12_1b..4b, v13_1a..4b, sibb waiting. The v12 / v13 code freeze hold
   routes this time (21.51 / 20.61 ns untrimmed), so AUTO_SEARCH_OVERBUILD stayed idle; finals / draws running.
 - BD_SYMTRIM everywhere, fold64 s1: PASS 4/4 at 27.50 ns via its late phase (v10 21.35, v12 25.58): a second
   single-seed point that does not favour the define; the v13s A/B decides.
+### progress 14:31 (CORRECTION: suite13t_s5a_v13_2a was submitted at 05:04 UTC and had finished (11:58) before I amended v13 -- it ran as v13 was first filed; its file restored; the amended flow gets seed 2 / kernels 1-31 from a new part 2a_k)
+- At 06:03 and 12:13 I amended "all eight waiting" v13 parts after checking the status of v13_1a only. v13_2a had been
+  submitted at 05:04 (commit 5204ab7ab; the farm does not take parts in name order -- the v13s A/B also started ahead
+  of v12_2b) and finished at 11:58 with v13's original environment (no AUTO_CKPT, no KEEPDEPTH / SEARCH_OVERBUILD /
+  SHIFT_MASK). Its request file is restored to the version that ran (git show 5204ab7ab:...), so the repo matches.
+- Consequence: v13_2a's 31 results are flow v13 as first filed on seed 2, kernels 1-31 -- usable as such (v12 + the race
+  check + mem fast fall =2 + port trims, against v12's same pairs). suite13t_s5a_v13_2a_k (new) runs the amended flow on
+  those 31 pairs, with its own state directory (state_v13k) so 2a's leftover states are not resumed under another flow.
+- Lesson kept: before amending waiting parts, read every part's status file, not one.
