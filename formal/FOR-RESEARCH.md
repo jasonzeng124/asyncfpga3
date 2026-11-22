@@ -7,6 +7,48 @@ rule-by-rule list is `formal/out/FOR-RESEARCH.md`.
 
 
 
+## C76. With the random model's per-arc scatter inflated (3x to 5x your 0.126), formal's draws do separate the board pairs, and in the direction of B's adversary. Item 46 unpadded hangs from 3x, padded never. Unguarded sqrtsub / lfsrfind fail at 5x, guarded never. collatz64 shows nothing (shard C, 2026-11-22 10:00 UTC; untrusted simulation, a stress test, not a board prediction)
+- **Why:** C73 / C75 found that your draw model separates none of the pairs (items 45 / 46). This asks how far the
+  model's within-die scatter must grow before it does, and whether it then agrees with B's worst-case adversary.
+- **Method:** the same decoded bits as C73 (each rebuilt by your board_rebuild.sh, sdf and trimmed fasm SAME), and your
+  draw model with only the per-arc lognormal sigma changed (draws.py `--sarc`). Memory kernels are filled through the
+  host port; out0 is sampled 23 ns after the request. Two seed sets were pooled: 16 draws (K 20001-) and 64 draws
+  (K 30001-) per point.
+
+  | pair | sarc x2 (0.252) | x3 (0.378) | x4 (0.504) | x5 (0.630) |
+  |---|---|---|---|---|
+  | 46 unpadded test_flatten_array | 0 / 80 | **4 / 80 hang** | **9 / 80 hang** (+3 undecided) | 2 / 16 hang (+3 und.) |
+  | 46 padded | 0 / 80 | 0 / 80 | 0 hangs; 3 / 80 host-fill RAM setup violations | 0 hangs; 2 / 16 host-fill violations |
+  | 44 sqrtsub s1 (unguarded) | 0 / 16 | 0 / 16 | 0 / 80 | **3 / 80** (stops after 6 of 13 answers) |
+  | 45 sqrtsub (guarded) | 0 / 16 | 0 / 16 | 0 / 80 | 0 / 80 |
+  | 44 lfsrfind s1 (unguarded) | 0 / 16 | 0 / 16 | 0 / 80 | **2 / 80** (wrong answers) |
+  | 45 lfsrfind (guarded) | 0 / 16 | 0 / 16 | 0 / 80 | 0 / 80 |
+  | 44 collatz64 s1 (unguarded) | 0 / 16 | 0 / 16 | 0 / 80 (1 undecided: event cap) | 0 / 80 (1 undecided: event cap) |
+  | 45 collatz64 (guarded) | 0 / 16 | 0 / 16 | 0 / 80 | 0 / 80 |
+
+  - The undecided collatz64 draws hit simx's event cap with no verdict. A livelock is possible, but none was traced.
+- **How strong the separation is** (one-sided Fisher, failures vs none):
+  - item 46 at x4: 9 / 80 vs 0 / 80, p ~ 0.002;
+  - item 46 at x3: 4 / 80 vs 0 / 80, p ~ 0.06;
+  - item 45 pooled at x5: 5 / 240 vs 0 / 240, p ~ 0.03;
+  - each item-45 pair alone is not significant.
+- **Where the failures sit.** Closest races logged by simx RACES=1 in failing draws; closest is not proved causal, and
+  none is traced to a path yet:
+  - item 46 unpadded hang (K 20015, x3): storage reorderings at umux8.uxa / uya (1-2 ps); feeding-storage at
+    **ucond_br14.uack (3 ps)** and ucond_br14's LUT6 (78 ps). ucond_br14 is B36's latch-fed steer.
+  - sqrtsub unguarded (K 30053 / 30063, x5): storage at ulink_n_index_15's stage controls and umux0 / 1 / 2;
+    feeding-storage includes **ucond_br3** (155 / 65 ps), which is B30's weakest steer on that route.
+  - item 46 padded's failures at x4-x5 are RAM setup violations in simx's host-port fill. That is the harness's
+    write timing, not the kernel.
+- **What this does and does not say:**
+  - Your per-pip sigma 0.126 was fitted to the August ring data. x3 is far outside anything measured, so none of these
+    rates predicts the board.
+  - What it shows is order: as random scatter grows, the routes B's adversary calls thin fail first, and their
+    guarded / padded partners hold longer.
+  - So the random model and the adversary disagree on how likely a failure is, not on which route is weaker.
+- **Reproduce:** the drawspec.sh output of C73, then `tools-B/auto/xdraws.py ... --sarc 0.378 --draws 64 --seed0 30001`
+  (`--mem ... --hostport` for memory kernels).
+
 ## C75. Your 02:20 #2: flow v11's thinnest routes by B's adversary pass every one of formal's draws (8 routes, 32 + 32 each). The farm repeats C72 / C73 at 64 + 64 with the same result (shard C, 2026-11-22 09:30 UTC; untrusted simulation)
 - **The routes:** the v11 rule-CLEAN PASS routes that B39-B42 call thin, plus sqrtsub s4 (B32's latch-fed race) and
   test_bitint s1 (the feeder-bound one).

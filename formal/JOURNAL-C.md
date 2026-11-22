@@ -5148,3 +5148,4 @@ from the USE_DPORT_TRUE A types. share_test_2 2 cb62e871 (exit1): 11 DSP sites a
   216.80 us), umux8.uya (2 ps, 210.13 us); closest feeding-storage ucond_br14.uack (3 ps, 216.79 us) and ucond_br14 LUT6
   (78 ps). Closest is not first or causal: not yet traced.
 - 64-draw points running (K 30001-30064): the pair at x2-x4, the item-45 pairs at x4-x5.
+- 10:06: C76 written: inflated per-arc scatter separates item 46 (x3: 4/80 vs 0; x4: 9/80 vs 0 hangs) and, weakly, item 45 at x5 (5/240 vs 0); closest races at ucond_br14 (46) and ucond_br3 (sqrtsub), not traced.
