@@ -3485,3 +3485,10 @@ subagent at a time (owner 2026-11-20; overrides the task prompt's 2). Heads: res
   prefill) and own oracle from the C (t182/vec_oracle.py; self-test: a 1-word flip fails 0/3), own steer monitors
   (ucond_br14 reported separately), 5 corners. My earlier "own GLS can't run memory kernels" (T179) was my gate.sh
   lacking the v2 plusargs; ps7_bench.v has had them since c6f46890bb.
+### progress 02:35
+- T181 done (subagent N): A35 CONFIRMED at token level (row). Graph = emitted Verilog for this build by own extraction
+  (37/37, buffers as identities); formal's pipeline itself never reads the Verilog (Verilog-only mutations invisible).
+  Axioms and the Lean mutation re-run / re-read by me; small evidence copied to audit/t181/.
+- T182: item 46 rebuilds CONFIRMED (both sdf / fasm; old-script control 594e53a1 with 4 REFUSED). GLS: unpadded
+  fastmin simulating; padded 5 corners running. Next: split-band replay of formal B36's ucond_br14 race (split.sh:
+  latch side slow, rdly + join fast).
