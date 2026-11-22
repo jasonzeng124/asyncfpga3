@@ -3722,3 +3722,5 @@ Asked C to rerun steercorners at chains / rest {0.365, 0.49}.
 ### 2026-11-22T13:26:31Z -- A38: trimcheck on a real BD_SYMTRIM route (countloop s1, research ba7fd2f75e, toolchain key 02809f42 fetched to /root/tc-research): 3 symmetric _SDELAY trims + 1 fast-fall trim, OK (lengths 1 1 2 6 = record); wrong-record control FAIL rc 2. Toolchain cache findings (publisher path hardcoded, libtcl8.6 / boost 1.83 not shipped, fasm2frames module missing) reported in A38.
 
 ### 2026-11-22T14:06:14Z -- watch: no change on research / audit since 13:30; lock
+
+### 2026-11-22T14:32:52Z -- watch: research journal only (quadrec s3 re-final 22.43 ns); nothing for A; lock
