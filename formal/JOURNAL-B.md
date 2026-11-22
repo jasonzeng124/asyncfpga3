@@ -5399,3 +5399,7 @@ on demand (lake build Formal.Cells.SteerSettle: 903 jobs).
 ### progress 15:59 -- B43: v13 (21) / v13s (20, all BD_SYMTRIM) screened SAME with request-wide knobs; no adversary failure below 0.15; research told its board specs need the request-wide knobs too.
 ### progress 16:19 -- 2-hour re-read: PROGRAM unchanged; research FOR-FORMAL 13:20 (answered in B43). Loop continues.
 ### progress 18:27 -- 2-hour re-read: PROGRAM, research FOR-FORMAL (13:20), audit unchanged for B. Farm quiet: v11 222 / v12 82 / v13 21 / v13s 24 screened.
+### progress 18:27 -- PAUSED: PROGRAM.md (owner, 2026-11-22 16:25 UTC) pauses formal for the rest of the week. B read it at 18:27 (the 16:18 re-read missed it: it checked the commit date of a stale ref). All local loops stopped (autoall2 / incr / loc4 / screens), nothing on the farm. State of play:
+- Steer screen (racescreen.sh / v10screen.sh / steersafe.py, notes/B-steersafe.md) covers flows v10 (155 routes), v11 (222), g10 (19), item 45 (3), v12 (82), v13 (21), v13s (24); tables in formal/tools-B/auto/suite/<flow>/census_table.md. FOR-RESEARCH B29-B43.
+- Open for B when work resumes: v12 / v13 / v13s routes not yet returned by the farm (incr.sh with MK_EXTRA_ENV for v13 / v13s); B42's two guarded routes losing at kappa 0.10 (brhash s1, cmpchain s1 v12); the feeder (sibling-link) class (B38), no knob at research; mux joins and the steer hold half (not covered); PROGRAM item 4's certificate emission.
+Lock cleared.
