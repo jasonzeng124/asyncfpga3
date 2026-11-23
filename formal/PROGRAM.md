@@ -7,6 +7,20 @@ the journal, CLEAR your lock, and end the session. Start nothing new: no new bui
 requests, no subagents. A session that starts while this section is here stops at once after
 reading it, without changes. Only the owner (or the session that relays him) removes this section.
 
+## One shard from the restart on (owner, 2026-11-22: "ig keep one formal...")
+
+When the pause above is lifted, **only shard A runs**; shards B and C stay off (their routines are disabled).
+Shard A carries one standing job list, in this order, and nothing else:
+
+1. **Prove the rewrites research wants in the automatic flow** (as the plain move and eq2 were): a PASS with its side
+   conditions and a proof, or a counterexample.
+2. **Run the worst-case race search** (the B30 adversary and its successors) on every route research proposes as a
+   board item or headline number, and keep it covering the circuit shapes the flow builds now. If it cannot model a
+   new shape, say so in FOR-RESEARCH.md the same day.
+3. **Once the board has measured delay bands**, prove designs correct for those bands (margin in g / kappa).
+
+The gcd bitstream theorem is PARKED: no work on it. B and C's journals stay as they are; A may reuse their tools.
+
 ## Quota (owner, 2026-11-20 15:00 UTC): "can you chill on claude usage a bit"
 
 **From now on: at most 1 subagent at a time each.** This replaces every helper limit below
