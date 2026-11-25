@@ -1,0 +1,58 @@
+R1d, shard C helper, 2026-11-09.  UNTRUSTED Python.  Pair (12,18).  Copied from /tmp/claude-0/r1c (paths rewritten);
+r1c results kept as RESULTS_r1c.txt.  Same flags as r1c fin: ARTFIX=1 ARTFIX2=1 REL=1 RELD=99 RELK=16 RELTRY=64 SEPIV1=1.
+Final: `<flags> NPASS=10 TAG=_hold python3 rundatal.py <c>` -> datal_c<c>_hold.{log,pkl}.  Roots: anal2.py c pkl (new).
+
+New in datal.py (env switches, default on):
+  JOINTIME   join_pool takes the earliest common causal successors of the pin starts BY TIME (et-sorted), not the
+             first 8 in topological order.  X22Y81.B5's re-open claim now starts at J = X27Y80.D6(0)@869883 (c=1).
+  TAFTER     a latch T phase prefers an end event causally after its own start (T->U needs Sep(T.A -> T.B)).
+  RESTART    if a latch claim is truncated before the needed end, and the consumer needs it only after the truncation
+             event, build a second claim of Q that starts with a T phase at the needed time (or just before the last
+             close read); its D claims are asked from there, so their windows start at a join after the disturbance.
+             Kept only if it ends later and adds no failing obligation.  Key (Q,'R',trunc event,phase).
+  HOLDRETRY  if U->H fails because D's claim (asked only HOLDX=20 ns past the close) ends at an event not after the
+             close, re-ask D's claims for 80 ns / 320 ns / D's whole stable interval; keep if U->H passes AND U's
+             CovTime start (U.A = T.A, U.a = T.a + hi_fb) holds against the new D claims (both Seps recorded).
+  KEEPTRIAL  rejected trials (ANCHOR, RESTART) no longer roll back PEND/SEPNEED of sub-claims they built (those stay
+             in memo and may be reused; r1c dropped their loop covers and Seps).
+
+Failing guards of 264 (GuardTime fails; no claim depends on a failing obligation in any run):
+                                                    c=1   c=0
+  r1c fin (reference)                                43    46
+  _jt   JOINTIME only (pass 0, killed)               43    46
+  _seg  JOINTIME+TAFTER+RESTART                      43    46   c=1 root moved to X30Y65.A5 U->H (see below)
+  _hold + HOLDRETRY (FINAL)                           4    46   converged: c=1 pass 2, c=0 pass 8
+  _hold_nojt (c=1, JOINTIME=0)                        4     -   ANCHOR fires, U'->T truncates, RESTART (19x) repairs
+lchk FINAL: upFormB 0 / sepFormB 0 failures; claim-building Seps 938 (c=1) / 960 (c=0), needbad 0; GuardTime
+  recomputed from the emitted tables agrees 264/264.  c=1 Up 340, Sep 61539; c=0 Up 365, Sep 64346.
+
+What still fails (FINAL):
+  c=1 4 / c=0 4   arbiter-area latches X36Y63.B6, X36Y68.B6 (x2), X37Y47.B6: U->H, D end (X3xYxx.C6/D6(0)) causally
+                  before the close read (unchanged from r1c).
+  c=0 42          bank latches X30Y75.C6 (30) / X31Y76.A5 (12) U'->T at re-open X30Y76.A6(2)@403827: U'.B =
+                  X39Y65.B6(0)@370348 (rb, the root of the B chain in race/), propagated around the datapath loop
+                  X24Y76.D5 -> X22Y80.B5 -> X23Y86.B5 -> X27Y86.B6 .. X26Y76.A6 -> X27Y65.C6 -> X31Y64.B6 -> X30Y75.C6 ->
+                  X28Y67.C6 -> X24Y76.D5 by loop covers (previous-pass windows).  X23Y86.B5 (transparent across B)
+                  restart is rejected at c=0 because its cone closes this loop: the fixpoint starts from, and keeps,
+                  the rb end.  Needs an optimistic (post-join) initial window for loop covers; not done.
+  c=1 intermediate (_seg): X30Y65.A5 U->H, close X30Y64.A6(1)@901679 vs D end X30Y76.A6(2)@933518 (unordered both
+                  corners).  Not a race: D (X33Y75.D5) does not change there; D's claim only ended at the bank latch's
+                  next re-open because it was asked 20 ns past the close.  HOLDRETRY fixes it (329 retries accepted).
+
+Lean shape (no new Lean; TimedOccU GateProof/ChainOK, TimedOccX Claim/CovTime/GuardTime):
+  D = X22Y81.B5 has TWO independent Claims in cl, never chained to each other (ChainOK w1->w2 would need Sep(J -> B)):
+    w1 = <D, v, some X22Y79.A6(0), 1424, some B=X27Y80.A6(2), 978>   GateProof (cov: X22Y79.D5, X27Y80.B6 old)
+    w2 = <D, v, some J=X27Y80.D6(0), 1302, none, 0>                    GateProof (cov: X22Y87.D5, X27Y80.B6 new)
+    w2's CovTime starts: Sep(X22Y87.A6(0) -> J) = 849 (needed 849), Sep(X27Y80.A6(2) -> J) = 2793 (needed 175).
+  Reader Q = X25Y76.B5, one claim cQ (hGC disjunct 2): ChainOK Sep cQ [T, U, H, U', T', U, H]:
+    T, U: cov D = .cl w1;  H: en .ex (closed), D X, fb .cl cQ -- H covers D's gap;  U', T': cov D = .cl w2.
+    U->H:  H.a <= U.b + Sep(close X24Y77.A6(1) -> U.B = B);
+    H->U': U'.a <= H.b + Sep(U'.A = J -> H.B = O = X24Y77.A6(2)): Sep 7325, needed 1685 (margin 5640);
+    U' CovTime vs w2: Sep(J -> J) = 0 (form i).  The chain over Q has no gap; only D's claims do.
+  The guard reads only cQ (GuardTime on cQ.A/cQ.B); w1/w2 appear only as covers of different phases.
+  RESTART is the same idea for a latch transparent across the gap: a second claim cQ2 of Q = ChainOK [T(A = join), U,
+  H, ..] referenced (.cl) only by consumers asked after the gap.  HOLDRETRY: U's cov of D is a longer claim w' (same
+  start), U.A = T.A, CovTime start checked against w'.
+Caveat (pre-existing): loop covers via previous-pass windows are never CovTime-checked; sound only at a fixpoint
+  (both FINAL runs converged; r1c fin c=0 had not: 35 windows changed at its last pass).  U's CovTime start for D
+  pins covered only in U (not T) is still unchecked except in HOLDRETRY.

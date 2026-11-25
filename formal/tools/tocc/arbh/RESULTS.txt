@@ -1,0 +1,45 @@
+ARBH study (shard C helper, 2026-11-09; UNTRUSTED Python). Tools copied from /tmp/claude-0/race (paths -> /tmp/claude-0/arbh).
+Question: U->H failures of latches X36Y63.B6, X36Y68.B6 (x2), X37Y47.B6 (D = X39Y53.B6 = X38Y51.A6 | X38Y53.A6) in r1d FINAL:
+a real hold race, or a missing ordering/claim argument?
+
+VERDICT: not a race, and no missing ordering either.  It is a claim-builder artefact (shard B's LGTOPOFF bug, never ported
+into r1d's datal.py).  The latch is the guard's own data node, so r1d's guard-optimal end choice (GTOP, len(INSTACK)==1)
+also chose the end of the latch's INTERNAL U-phase D window, and it picked the guard reader's earlier event
+(U.B = X36Y63.C6(0)@617510, X36Y68.C6(0)@617374, X36Y68.D6(0)@769069, X37Y47.C6(0)@618123; c=1).  HOLDRETRY could not
+repair this, because GTOP is still active when it rebuilds the window.
+Fix (dl/datal_lg.py = r1d datal.py + B's 5-line LGTOPOFF wrapper at latch_claim; same FINAL flags, NPASS=10, TAG=_lg):
+  c=1: 4 -> 0 failing guards of 264 (converged at pass 2; lchk: GuardTime with emitted tables 0 failed, upFormB/sepFormB 0).
+  c=0: 46 -> 42 at passes 0-1 (the 4 are gone; the 42 left are r1d's bank-latch U'->T class). Run stopped after pass 1, not converged.
+  U->H obligations of the targets (c=1, uhmarg.py) are exactly the static margins below (6804/5633/7000/5829/6582/5411).
+
+1. Events (arbh1.py, arbh2.py, arbh3.py, arbh4.py; mid runs hist_c*.pkl, (12,18)).
+   Every close of each enable (A6(1) and A6(3)) is held until the next open, and D's next change is CAUSALLY AFTER the close.
+   So the nearest common ancestor is the close itself.  There is no concurrent branch, and the order cannot flip at kappa = 0.
+   Path (c=1, close(1) of X36Y63): X36Y63.A6(1) -> X36Y58.A..D6 -> X37Y58.A6 -> X37Y58.B6 -> J = X37Y55.C6(1) -> X38Y53.B6(1)
+     -> X38Y51.B6(0) -> X38Y51.A6(0) [-> D].  X36Y68 goes through X36Y57.*/X37Y57.*, X37Y47 through X36Y56.*/X37Y56.*,
+     and X36Y69 through X36Y55.*/X37Y55.B6.  close(3): the same path to J(3), then X38Y53.B6(3) -> X38Y53.A6(1).
+   J = X37Y55.C6 has ONE alternative {X37Y58.B6, X37Y57.B6, X37Y56.B6, X37Y55.B6}: a completion join of all four latch
+   groups' closes.  The arbiter-0 grant releases (X38Y53.B6 -> D inputs) wait for it.
+   Sep(close->J) c1/c0: X36Y63 3398/1354, X36Y68 3509/1404, X37Y47 3215/1270, X36Y69 3738/1476.
+   Sep(J -> X38Y51.A6(0)) 2007/780;  Sep(J -> X38Y53.A6(1)) 1189/465.
+   Hold margin = Sep(close->Din) + lo(Din->D) + lo(D->Q) - hi(en->Q):
+     c=1: X36Y63 6804 / 5633, X36Y68 7000 / 5829, X37Y47 6582 / 5411   (close(1) / close(3))
+     c=0: X36Y63 2703 / 2232, X36Y68 2801 / 2330, X37Y47 2611 / 2140
+   Flip kappa (all lo x(1-k), hi x(1+k); Sep scales exactly): 0.877-0.906, i.e. far above 0.44.
+   Only side issue: at close(3), D is 1 through an OR hand-over: X38Y53.A6(0) rises, then X38Y51.A6(1) falls.  The fall is
+   unordered with the close, but it is masked: Sep(X38Y53.A6(0) -> X38Y51.A6(1)) 1362/573, + lo 848/348 - hi 611/239
+   = margin 1599/682, flip kappa 0.567/0.588.  The builder covers this with a comb-segment chain (no failing segment).
+2. Adversarial sims (hbatch.py -> hbatch.log; simk.py + pin-level hiP/loP and allfastk; hchk.py; specs arbh5.py -> advspec_c*.json):
+   advH = gates strictly between the closes and D's input events (30 gates incl. J, X38Y5x, D) and the latches' D pins at
+   (1-k)lo, enable->latch pins at (1+k)hi;  advA = every pin (1-k)lo except enable->latch pins (1+k)hi;
+   advO = hand-over adversary (D<-X38Y53.A6 and gate X38Y53.A6 hi, X38Y52.D6/X38Y51.A6 and D<-X38Y51.A6 lo).
+   Pairs (12,18), (17,5), (1071,462), (0x49e9c618,0x35bf992e) x c in {0,1} x {mid, advH, advA, advO} x k in {0, 0.44}: 56 runs.
+   All: gcd right, hazchk 0, exact event counts equal to mid, D change counts equal to mid (no hand-over glitch),
+   held values of X36Y63/X36Y68/X37Y47/X36Y69.B6 equal to mid in every closed phase, no hold violation.
+   Smallest simulated hold slack (D change read - close read): 4042 ps (c=0, advA, k=0.44); 7443 ps at k=0.
+   Because no latch's held value or history changes, readers (data LUTs; control readers X36Y63.C6, X36Y68.C6/D6, X37Y47.C6,
+   which hazchk covers) see the same values as at mid.
+3. For the claim builder: U->H needs Sep(close -> U.B) with U.B = D's next input event.  Form ii/iii chain:
+   close -> (group ack X37Y5x.B6) -> J = X37Y55.C6 (single-alternative join) -> X38Y53.B6 -> {X38Y51.B6 -> X38Y51.A6 | X38Y53.A6}.
+   No Up bound or arbiter fact is needed.  Port B's LGTOPOFF (or exclude latch-internal windows from GTOP) into C's datal.py.
+Files: arbh1-5.py, uhmarg.py, hchk.py, hbatch.py/.log, simk.py, runs/, dl/datal_lg.py, dl/datal_c1_lg.{log,pkl}, dl/datal_c0_lg.log.

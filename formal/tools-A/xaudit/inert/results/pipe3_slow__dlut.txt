@@ -1,0 +1,62 @@
+xaudit: designs/pipe3.json top pipe3: 47 wires, 40 gates (11 LUT outputs, 29 routed arcs), 9 storage nodes (LUTs with own feedback)
+bands: 1 step = 10 ps; LUT (99, 121) ps, route (360, 440) ps, own feedback (270, 330) ps (defaults unless overridden: 0 cell, 0 arc entries); pads (1, 1) steps
+inertial (widen): reject window LUT delay, route 0 ps, own feedback as route (0 cell, 0 arc entries); pads transport. Sound by SoundInertial (gate hi widened to max hi (lo + ceil(rho/unit) - 1))
+  widened 11 of 40 gates, by up to 8 steps; e.g. [stage[0].u.ctl.u/O [9,13]->[9,21] (rho 121 ps), stage[0].u.lat.pair[0].u/O6 [9,13]->[9,21] (rho 121 ps), stage[0].u.lat.pair[0].u/O5 [9,13]->[9,21] (rho 121 ps), stage[0].u.rdly.chain.g[0].u/O [9,13]->[9,21] (rho 121 ps), stage[1].u.ctl.u/O [9,13]->[9,21] (rho 121 ps)]
+inputs: [ack_out, data_in[0], data_in[1], req_in, rst]
+
+TIMED (XSim: Fast.auditF, = XSim.val by auditF_eq; horizon 2400 steps = 24000 ps; power-up all X)
+  end state: FIXED POINT (inputs constant from 19000 ps, last 45 rows equal): binary values hold forever (settled_forever)
+  STORAGE stage[0].u.ctl.u/O (wire 10 'stage[0].u.c'): final 0, 0 flagged
+    X [0, 210] ps: power-up, resolved at 220 ps
+    X [3450, 3640] ps: transition 0 -> 1 (200 ps of timing uncertainty)
+    X [5450, 5640] ps: transition 1 -> 0 (200 ps of timing uncertainty)
+    X [12450, 12640] ps: transition 0 -> 1 (200 ps of timing uncertainty)
+    X [14450, 14640] ps: transition 1 -> 0 (200 ps of timing uncertainty)
+  STORAGE stage[0].u.lat.pair[0].u/O6 (wire 18 'stage[0].u.lat.q[1]'): final 1, 0 flagged
+    X [0, 4290] ps: power-up, resolved at 4300 ps
+    X [12900, 13290] ps: transition 0 -> 1 (400 ps of timing uncertainty)
+  STORAGE stage[0].u.lat.pair[0].u/O5 (wire 15 'stage[0].u.lat.q[0]'): final 0, 0 flagged
+    X [0, 4290] ps: power-up, resolved at 4300 ps
+    X [12900, 13290] ps: transition 1 -> 0 (400 ps of timing uncertainty)
+  STORAGE stage[1].u.ctl.u/O (wire 8 'stage[1].u.c'): final 0, 0 flagged
+    X [0, 210] ps: power-up, resolved at 220 ps
+    X [4350, 4940] ps: transition 0 -> 1 (600 ps of timing uncertainty)
+    X [6350, 6940] ps: transition 1 -> 0 (600 ps of timing uncertainty)
+    X [13350, 13940] ps: transition 0 -> 1 (600 ps of timing uncertainty)
+    X [15350, 15940] ps: transition 1 -> 0 (600 ps of timing uncertainty)
+  STORAGE stage[1].u.lat.pair[0].u/O6 (wire 32 'stage[1].u.lat.q[1]'): final 1, 0 flagged
+    X [0, 5590] ps: power-up, resolved at 5600 ps
+    X [13800, 14590] ps: transition 0 -> 1 (800 ps of timing uncertainty)
+  STORAGE stage[1].u.lat.pair[0].u/O5 (wire 29 'stage[1].u.lat.q[0]'): final 0, 0 flagged
+    X [0, 5590] ps: power-up, resolved at 5600 ps
+    X [13800, 14590] ps: transition 1 -> 0 (800 ps of timing uncertainty)
+  STORAGE stage[2].u.ctl.u/O (wire 23 'stage[2].u.c'): final 0, 0 flagged
+    X [0, 210] ps: power-up, resolved at 220 ps
+    X [5250, 6240] ps: transition 0 -> 1 (1000 ps of timing uncertainty)
+    X [9450, 9640] ps: transition 1 -> 0 (200 ps of timing uncertainty)
+    X [14250, 15240] ps: transition 0 -> 1 (1000 ps of timing uncertainty)
+    X [17450, 17640] ps: transition 1 -> 0 (200 ps of timing uncertainty)
+  STORAGE stage[2].u.lat.pair[0].u/O6 (wire 45 'stage[2].u.lat.q[1]'): final 1, 0 flagged
+    X [0, 6890] ps: power-up, resolved at 6900 ps
+    X [14700, 15890] ps: transition 0 -> 1 (1200 ps of timing uncertainty)
+  STORAGE stage[2].u.lat.pair[0].u/O5 (wire 42 'stage[2].u.lat.q[0]'): final 0, 0 flagged
+    X [0, 6890] ps: power-up, resolved at 6900 ps
+    X [14700, 15890] ps: transition 1 -> 0 (1200 ps of timing uncertainty)
+
+UNTIMED (Eichelberger A/B, Formal.Core.Ternary; any gate and wire delays)
+  phase 0 @ 0 ps: inputs held at init (power-up X state): 0 of 9 storage nodes flagged
+  phase 1 @ 2000 ps: inputs [rst-]: 0 of 9 storage nodes flagged
+  phase 2 @ 3000 ps: inputs [req_in+]: 3 of 9 storage nodes flagged
+    stage[0].u.ctl.u/O: start 0 A X B X: NO SETTLE (B = X: final value not determined)
+    stage[1].u.ctl.u/O: start 0 A X B X: NO SETTLE (B = X: final value not determined)
+    stage[2].u.ctl.u/O: start 0 A X B X: NO SETTLE (B = X: final value not determined)
+  phase 3 @ 5000 ps: inputs [req_in-]: 0 of 9 storage nodes flagged
+  phase 4 @ 8000 ps: inputs [data_in[0]-, data_in[1]+]: 0 of 9 storage nodes flagged
+  phase 5 @ 9000 ps: inputs [ack_out+]: 0 of 9 storage nodes flagged
+  phase 6 @ 11000 ps: inputs [ack_out-]: 0 of 9 storage nodes flagged
+  phase 7 @ 12000 ps: inputs [req_in+]: 0 of 9 storage nodes flagged
+  phase 8 @ 14000 ps: inputs [req_in-]: 0 of 9 storage nodes flagged
+  phase 9 @ 17000 ps: inputs [ack_out+]: 0 of 9 storage nodes flagged
+  phase 10 @ 19000 ps: inputs [ack_out-]: 0 of 9 storage nodes flagged
+
+SUMMARY: timed: 0 flagged X windows on 9 storage nodes; untimed: 3 flagged (node, phase) pairs

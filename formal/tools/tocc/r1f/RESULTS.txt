@@ -1,0 +1,31 @@
+R1f, shard C helper, 2026-11-09 (UNTRUSTED Python).  Copy of r1e (+ arbh tools).  Pair (12,18).  Scripts r1f1-4.py.
+Question: why X35Y91.B6 / X34Y91.C5 (+ sibling X35Y91.B5) U->H ends at their own enable open X34Y92.A6(0) at c=0 only.
+
+1. Facts.  X34Y92.A6 (result-register enable) opens once / closes once (c0 321592/331299; c1 731163/754533).  D never
+   changes in simulation.  The claim end that matters is the re-open X34Y76.A6(2) of the upstream latch X35Y76.C6
+   (feeds both D's).  It is causally AFTER the close in both corners: nearest common ancestor = the close itself.
+   Sep(close -> X34Y76.A6(2)) 1923 (c0) / 4820 (c1).  Hold margin = Sep + lo(path to D) - hi(en->Q):
+     X35Y91.B6  2552 (c0) / 6428 (c1), flip kappa 0.795 / 0.805;  X34Y91.C5  2771 / 6944, kappa 0.861 / 0.866
+     (next source X34Y87.A6(2): 3624 / 8938).  The hold is real and robust; not a race -> no adversarial sim (task 3) run.
+2. Artefact (code path).  _window_end() for COMB claims (no AFTER, no GTOP) ranks end candidates by absolute time
+   et[B]+b, with the meet pool = latest common causal ancestors of the pins' end events.  At c=0 (from pass 3, via
+   previous-pass windows) the D comb X35Y79.B6 of the upstream latch X35Y76.C6 picked B = X34Y92.A6(0) (the result
+   latch's OPEN, a common ancestor of its pins' ends), b ~68 ns.  That open precedes X35Y76.C6's own close
+   X34Y76.A6(1)@328717, so X35Y76.C6's U->H fails (Sep(close->open) = none), it is truncated, and its end
+   "open + 68.8 ns" propagates to X32Y92.D6 / X34Y89.D6 / X37Y72.F8 -> the result latches, whose U->H then needs
+   Sep(close -> own open): impossible.  At c=1 the same comb picked an end after the close (X36Y69.A6(2)).
+   HOLDRETRY/RESTART rebuild with the same end choice, so never succeed.
+   Fix (datal.py, diff r1f_fix.diff; flags CTXAFTER=1 UPMOVE=1):
+   CTXAFTER: a claim built under a latch's consumer anchors (CTX = its open/close) prefers ends causally after the
+     latest anchor (score (leqP(close,B), et+b); meet pool filtered likewise).  Only the choice among candidates that
+     pass CovTime end changes; every Sep used is still sneed-recorded.
+   UPMOVE: CTXAFTER alone (run _ctxa) gave 42 failing but exposed X26Y76.C5 U' feedback CovTime -332 (78 guards depend
+     on it): U'.A was its D cover's start, earlier than every chain phase.  UPMOVE moves such a U' start to the preceding
+     H's start (the close), a = max(fhi + H.a, D-cover CovTime starts); verify_chain re-checks it (applied 3x).
+   c=0 run _ctxb (FINAL flags + both): 78 -> 42 failing of 264, converged pass 8; every obligation 0 failures, guards
+   depending on a failing obligation 0; lchk: upFormB/sepFormB 0, claim Seps 899 failing 0, GuardTime recomputed 42
+   (mismatch 0).  Target latches' U->H now pass: margins 51507 / 51586 / 52234 (U.B = X27Y80.A6(2)).
+   Remaining 42: roots X24Y76.D5 (U'->T, 30) and X25Y76.B6 (T->U, 10), c1.B = X27Y80.A6(2)@377006 = the select-latch
+   re-open of the RACE study (benign A/B race; RACE's fix: cut D's claim at B, restart at join X27Y80.D6(0)); 2 others
+   comb root X37Y68.B6.  NOT run: c=1 regression with the fix (killed for memory/budget).
+Files: datal.py (patched), datal_orig.py, r1f_fix.diff, datal_c0_ctxa/_ctxb.{log,pkl}, r1f1-4.py.

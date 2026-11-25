@@ -114,8 +114,13 @@ every operand the board got wrong), and the bdc compiler.
 
 ## nextpnr-xilinx-rloc-group.patch
 
-Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `xilinx/pack.cc` and
-`xilinx/pack.h`.
+Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `xilinx/pack.cc`,
+`xilinx/pack.h` and `xilinx/arch_place.cc`.  The `arch_place.cc` hunk is
+the fork's post-placement repair (`fixupPlacement`, which moves a cluster
+whose root the placer left on a 5LUT slot) learning that a cluster's children
+carry x/y offsets too: computing every member's bel from the root's tile
+alone put two members of a column on one bel and tripped `bindBel`'s
+assertion on the first multi-tile group.
 
 **Relative placement from a netlist attribute.**  Not a bug fix -- a missing
 feature, and upstream-able as it stands because nothing in it knows what this
@@ -124,12 +129,18 @@ project's cells are.
 Cells carrying the same string value for the `RLOC_GROUP` attribute are tied
 into one cluster: same tile, consecutive logic slots.  The cluster as a whole
 is unconstrained and floats over the whole device, so this is Vivado's
-`RLOC`/`H_SET` idea and **not** a `LOC` or a pinned BEL.  A group may name at
-most four logic slots on xc7 (one SLICE; eight on xcup), a fractured `LUT6_2`
-pair counting as one.  A group naming more than that, or containing a
-BEL-pinned or absolutely-z-constrained cell, is dropped **whole** with a
-warning -- a half-applied relative-placement constraint measures as a success
-on the members that did get it.
+`RLOC`/`H_SET` idea and **not** a `LOC` or a pinned BEL.  Four logic slots on
+xc7 (one SLICE; eight on xcup) fill one tile, a fractured `LUT6_2` pair
+counting as one; a group naming more is laid out as a **column**, one row of
+slots per tile, the rows stacked alternately above and below the root's
+(dy = 0, +1, -1, +2, -2, ...) so the root sits mid-column, up to as many
+tiles as the tallest unbroken run of logic tiles in the device's grid (25 on
+xc7z010, a clock region; it was a constant nine until 2026-09-20, which cut a
+pipeline of more than three W=32 stages into separately floating segments).  A group needing more than that, or containing a BEL-pinned or
+absolutely-z-constrained cell, is dropped **whole** with a warning -- a
+half-applied relative-placement constraint measures as a success on the
+members that did get it.  The column is what lets `rloc_stamp.py`'s `v3`/`v4`
+name a whole W=32 latch bank (17 slots, 5 tiles) or a matched delay chain.
 
 Why it is needed.  A wirelength-minimising placer with no timing constraint to
 contradict it puts two cells of one logical macro nanoseconds apart when one of
@@ -159,8 +170,148 @@ the placement moves -- so LUT sites are unchanged (6635 on gcd, 1449 on ipow),
 CLB tiles spread by about 1%, and place-and-route wall time varies less between
 variants than it does between runs of the same variant.
 
-Fingerprint for `cells/verify/toolchain.sh`, checked BOTH ways against an
-unpatched binary (present 1x patched, 0x unpatched) -- add it when the binary
-is installed, not before:
+**Slot-ordered and multi-column groups** (`RLOC_SLOT`, `RLOC_COL`).  A member
+carrying an integer `RLOC_SLOT` is laid at that slot -- row `slot/8`, logic
+slot `slot%8` on xc7 -- instead of in name order, so a front end can lay a
+group out in the order its transitions travel and leave gaps.  `RLOC_COL`
+(default 0) puts a member in a neighbouring logic column of the same rows.
+Logic columns are not evenly spaced on the die (CLB pairs sit back to back,
+interconnect and BRAM/DSP columns come between), so the grid offset of column
+`c` is read from the device: the spacing pattern the most consecutive logic
+columns share (the log line `RLOC_COL offsets {...} hold at N of M logic
+columns`), and anchors where it does not hold are illegal for the cluster
+exactly as a column straddling a row without logic is.  Duplicate slots in one
+column are a front-end bug and are warned about, that column then packing
+densely rather than the group being dropped.  All three attributes are copied
+from a `LUT6_2` to both halves the packer splits it into, so a fractured pair
+still spends one slot.  This is what `rloc_stamp.py` `v5`..`v9` build their
+control spine and side columns from; `cells/hw/README.md` has the measurements.
+
+Fingerprints for `cells/verify/toolchain.sh`, each checked BOTH ways (present
+in the patched binary, 0x unpatched; the second also 0x in a binary carrying
+only the single-tile revision of this patch, the third 0x in one carrying only
+the column revision) -- add them when the binary is installed, not before:
 
     "Packing RLOC_GROUP relative-placement clusters|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP relative placement (bd_link C node next to its latch)"
+    "tallest logic column on this device|nextpnr-xilinx-rloc-group.patch|RLOC_GROUP columns as tall as the device (whole latch bank, delay chain, a whole pipeline)"
+    "RLOC_COL offsets|nextpnr-xilinx-rloc-group.patch|RLOC_SLOT/RLOC_COL slot-ordered, multi-column groups (spine v5+)"
+
+## nextpnr-xilinx-place-weight.patch
+
+Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `common/place_common.{cc,h}`,
+`common/placer1.cc` and `common/placer_heap.cc`.  Independent of the rloc
+patch; nothing in it is specific to this project.
+
+**Per-net placement weight from a netlist attribute.**  A net carrying an
+integer `PLACE_WEIGHT` (clamped to 1..1000, 1 when absent) has its wirelength
+term multiplied by it in both placers: HeAP's solver weights and its HPWL
+report, and placer1's per-net bounding-box cost.  Why: classic STA sees a
+handshake ring as a combinational loop and `--ignore-loops` cuts it, so no net
+in the ring is ever critical and every one of them is placed by the same
+wirelength objective as a data bit with thirty siblings.  The weight is how
+`cells/flow.sh` (`BD_PLACE_WEIGHT`, via `rloc_stamp.py weight_control_nets`)
+tells the placer which nets are the cycle: req/ack/C-node nets, not reset and
+not the bundled data.  The stamper decides what a control net is; the patch
+only reads the number.
+
+Fingerprint, 0x in every binary without this patch (the string is new):
+
+    "carry PLACE_WEIGHT|nextpnr-xilinx-place-weight.patch|PLACE_WEIGHT net weighting in both placers"
+
+## nextpnr-xilinx-ff-timing.patch
+
+Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `xilinx/python/parse_sdf.py`,
+`xilinx/python/nextpnr_structs.py`, `xilinx/arch.{h,cc}`.  Independent of the
+other patches; nothing in it is specific to this project.  **Needs the chipdb
+regenerated** (`bbaexport.py` + `bbasm`) as well as the binary rebuilt -- the
+checks live in the `.bin`.
+
+**Slice flip-flops had placeholder timing: 100 ps clock-to-Q, 100 ps setup,
+100 ps hold, for every FF on every device.**  `getPortClockingInfo` never read
+the chipdb.  Two halves to the fix:
+
+1. The chipdb importer only understood `(SETUPHOLD ...)` records, and prjxray
+   emits `(SETUP ...)` and `(HOLD ...)` separately, so no FF check ever reached
+   the `.bin` (the SETUPHOLD/WIDTH branches were also dead code that would have
+   appended a *list* to the check table).  The importer now keeps both forms.
+2. `getPortClockingInfo` looks the FF up in the slice's timing instance:
+   variant `REG_INIT_FF` for AFF..DFF (`BEL_FF`), `FF_INIT` for the 5FFs
+   (`BEL_FF2`); `CLK->Q` from the IOPATH, `DIN`/`CE` setup and hold from the
+   checks.  On xc7z010-1 that is CK->Q 303..362 ps, setup -45..-60 ps (yes,
+   negative, at the FF's own pin), hold 225..262 ps.
+
+Why it matters here: every routed number for a design with FFs -- the
+synchronous reference in `cells/verify/sync_ref/`, the two-phase FF link (`rtl/bd_mlink.v`) -- used to be
+2.5x optimistic on CK->Q and 2.5x optimistic on hold.  The sync reference's
+`Fmax` moved from 467 to 434 MHz on the same route; the FF link's hold audit
+had 100 ps where the device wants 241.
+
+Fingerprint, 0x in every binary without this patch (the string is new to the
+binary; it already existed in the chipdb as a variant name):
+
+    "REG_INIT_FF|nextpnr-xilinx-ff-timing.patch|slice FF CK->Q/setup/hold from the chipdb, not 100 ps placeholders"
+
+Stale chipdb: a `.bin` built before the importer fix still routes and still
+writes an SDF, but every FF `SETUPHOLD` in it reads `(100:100:100)`.
+`cells/flow.sh` fails the route when it sees that.
+
+## nextpnr-xilinx-lut-perm-sink.patch
+
+Base: `nextpnr-xilinx` at `bfdeaf7c`.  Applies to `xilinx/arch_place.cc`
+(`fixupRouting`).  Independent of the other patches; nothing in it is specific
+to this project.
+
+**Every SDF `INTERCONNECT` into a LUT input that the router reached through a
+permutation pip was the placer's distance estimate, not the routed delay.  On
+this project's routes that was 6 arcs in 10, and 0 ps for every same-slice
+arc -- C-element feedback, latch feedback, the hop between two links of a
+matched delay chain.**
+
+The arch models the LUT input crossbar as `PIP_LUT_PERMUTATION` pseudo-pips
+(tile pin `D5` -> site wire `D3`, say), so the router may bring a net in on
+any pin and the INIT is permuted to match.  `fixupRouting` then renames the
+cell's ports after the tile pins the nets actually arrived on, so the JSON
+and the bitstream agree.  What it did not do is tell the timing side: after
+the rename, `getNetinfoSinkWire()` maps port `A5` to bel pin `A5` to site wire
+`D5`, and the routed net never visits `D5` -- it ends on `D3`.
+`Context::getNetinfoRouteDelay` walks the route back from the sink wire it is
+given, fails to find it in the net, and quietly returns `predictDelay()`:
+
+    same slice, same LUT pair       0 ps
+    same tile, other pair         150 ps
+    other tile                    450 + 90*|dy| + 45*|dx| ps
+
+which is exactly the histogram of the old SDF (375 of 1637 arcs at 0, then
+540, 630, 585, 900, 495 ...).  Identity-pin sinks got the real routed sum;
+the other 658 pins got the estimate.  The router itself was fine -- during
+routing the ports still had their logical names and the sinks were the right
+site wires -- so the routes are good and only their reported delays were
+wrong.  Post-route STA and the SDF both read through the same call, so the
+sync reference's `Fmax` and every routed-GLS number were built on it.
+
+The fix is one line per LUT half: when `fixupRouting` renames a port for the
+tile pin, record the site pin it actually landed on in `cell->pins`, which is
+the map `getNetinfoSinkWire()` already consults.  Nothing else reads that map
+for LUTs (a checksum does), and the JSON/FASM writers are untouched.  The
+routed count is logged (`Recorded N permuted LUT input pins as routed sink
+wires`, N counting a fractured LUT6_2 twice).
+
+Same route (`fb-gated2-v9r25`, fusion on cap 4), same JSON, SDF regenerated
+by the two binaries:
+
+| | before | after |
+|---|---|---|
+| arcs at 0 ps | 375 | 1 (the OBUF pad) |
+| same-slice O6 -> A hop | 0 | 295 |
+| next-tile hop (dy=1) | 540 | 426..444, 576 |
+| `stage[0].ctl.u.u/O6 -> A5` (C-element feedback) | 0 | 295 |
+
+Consequence for this project: every routed latency/interval reported before
+this patch was optimistic, and the matched delays were sized against an SDF
+that undercounted the very hops the chains are made of.  `cells/flow.sh`
+refuses an SDF with a zero-delay inter-cell arc; `README.md` has the
+re-measured numbers.
+
+Fingerprint, 0x in every binary without this patch (the string is new):
+
+    "permuted LUT input pins as routed sink wires|nextpnr-xilinx-lut-perm-sink.patch|SDF INTERCONNECT to a permuted LUT pin was the placer's estimate (0 ps in-slice), not the route"

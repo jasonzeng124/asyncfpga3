@@ -1,0 +1,69 @@
+witness   (route slow): RESULT MISMATCH: want [2, 21] got [2]
+reference (all fast)  : RESULT OK: want [2, 21] got [2, 21]
+first nodes to diverge (any gate): INT_L_X12Y55/WR1END_S1_0(pip)@14*, CLBLL_R_X11Y55/CLBLL_EL1BEG2(pip)@14*, INT_L_X12Y54/WR1END_S1_0(pip)@14*, CLBLL_L_X2Y49/CLBLL_WL1END2(pip)@14*, INT_L_X2Y49/WL1END2(pip)@14*, INT_L_X2Y55/WR1END_S1_0(pip)@14*   (* = an adversary arc)
+  diverges: SLICE_X38Y22.A6        at 492648 ps
+  diverges: SLICE_X32Y59.A6        at 492758 ps
+  diverges: SLICE_X38Y49.D6        at 492778 ps
+  diverges: SLICE_X27Y80.A6        at 492869 ps
+  diverges: SLICE_X36Y21.A6        at 492974 ps
+  diverges: SLICE_X32Y59.C6        at 493093 ps
+  diverges: SLICE_X40Y49.D6        at 493100 ps
+  diverges: SLICE_X39Y41.C6        at 493243 ps
+
+CAPTURE: SLICE_X17Y31.D6 (SLICE_X17Y31.DLUT.O6) first differs at 1618931 ps
+RACE (capture) at SLICE_X17Y31.D6: data pin 4 arrives 1616902 ps (reference) and must beat the enable pin 3 closing the latch at 1618931 ps (setup 2029 ps in the reference); the witness's data misses it
+  (path A below is the REFERENCE run's critical data path into that pin; the cone adversary slows every data path, so the one that loses in the witness can be another, longer one inside the cone)
+  A (CLBLM_L_X12Y31/CLBLM_L_D5@1616871) ancestors: 9234 flips, 1181 LUT flips; latest LUT flips: SLICE_X17Y31.B6@1616856, SLICE_X16Y31.B6@1616757, SLICE_X16Y31.A6@1616708, SLICE_X39Y20.B6@1616424, SLICE_X38Y20.A6@1616348, SLICE_X38Y20.D6@1616245
+  B (CLBLM_L_X12Y31/CLBLM_L_D4@1618879) ancestors: 8430 flips, 1077 LUT flips; latest LUT flips: SLICE_X17Y31.C6@1618864, SLICE_X21Y32.D6@1618761, SLICE_X21Y32.C6@1618694, SLICE_X21Y32.B6@1618648, SLICE_X21Y32.A6@1618530, SLICE_X20Y32.C6@1618455
+SPLIT (common launch): CLBLM_L_X12Y31/CLBLM_LOGIC_OUTS12 flips at 1616708 ps; driven by the cell SLICE_X16Y31.A6 bridge_i.udut.ucontrol_merge12.uarb2.ustate$LUT6
+
+PATH A (must arrive FIRST; the adversary slowed it): split -> SLICE_X17Y31.D6 pin 4
+  path A: 13 arcs (3 cells, 10 routing)
+    SLICE_X16Y31.B6              pin 4  lut6  fast [87, 108]  slow [211, 261]  bridge_i.udut.ucontrol_merge12.uarb2.ugrant$LUT6
+    SLICE_X17Y31.B6              pin 1  lut6  fast [215, 268]  slow [508, 630]  bridge_i.udut.ucontrol_merge12.$abc$8045$auto$blifparse.cc:557:parse_blif$8047
+    SLICE_X17Y31.D6              pin 4  lut6  fast [78, 98]  slow [191, 237]  bridge_i.udut.ulink_n_index_97.many.stage[0].u.lat.pair[0].u$LUT6
+    cell  total: fast [380, 474] mid 427   slow [910, 1128] mid 1019
+    route total: fast [114, 141] mid 128   slow [342, 414] mid 378
+PATH B (overtook it in the witness): split -> SLICE_X17Y31.D6 pin 3
+  path B: 149 arcs (28 cells, 121 routing)
+    SLICE_X16Y31.A5              pin 4  lut5  fast [86, 108]  slow [195, 242]  bridge_i.udut.ucontrol_merge12.uarb2.ustate$LUT5
+    SLICE_X16Y28.B6              pin 0  lut6  fast [220, 274]  slow [520, 645]  bridge_i.udut.ucontrol_merge12.uor
+    SLICE_X20Y33.A6              pin 0  lut6  fast [225, 281]  slow [528, 655]  bridge_i.udut.ucontrol_merge12.udly.chain.g[0].u
+    SLICE_X20Y32.D6              pin 0  lut6  fast [190, 282]  slow [405, 664]  bridge_i.udut.ucontrol_merge12.udly.chain.g[1].u
+    SLICE_X20Y34.A6              pin 3  lut6  fast [136, 169]  slow [344, 427]  bridge_i.udut.ucontrol_merge12.udly.chain.g[2].u
+    SLICE_X20Y34.B6              pin 4  lut6  fast [87, 108]  slow [211, 261]  bridge_i.udut.ucontrol_merge12.udly.chain.g[3].u
+    SLICE_X20Y34.C6              pin 4  lut6  fast [85, 106]  slow [207, 257]  bridge_i.udut.ucontrol_merge12.udly.chain.g[4].u
+    SLICE_X20Y34.D6              pin 0  lut6  fast [190, 282]  slow [405, 664]  bridge_i.udut.ucontrol_merge12.udly.chain.g[5].u
+    SLICE_X21Y34.A6              pin 1  lut6  fast [215, 268]  slow [509, 631]  bridge_i.udut.ucontrol_merge12.udly.chain.g[6].u
+    SLICE_X21Y34.B6              pin 4  lut6  fast [79, 99]  slow [193, 240]  bridge_i.udut.ucontrol_merge12.udly.chain.g[7].u
+    SLICE_X21Y34.C6              pin 4  lut6  fast [78, 98]  slow [192, 238]  bridge_i.udut.ucontrol_merge12.udly.chain.g[8].u
+    SLICE_X21Y34.D6              pin 3  lut6  fast [133, 165]  slow [329, 408]  bridge_i.udut.ucontrol_merge12.udly.chain.g[9].u
+    SLICE_X20Y33.B6              pin 0  lut6  fast [220, 274]  slow [520, 645]  bridge_i.udut.ucontrol_merge12.udly.chain.g[10].u
+    SLICE_X20Y33.C6              pin 4  lut6  fast [85, 106]  slow [207, 257]  bridge_i.udut.ucontrol_merge12.udly.chain.g[11].u
+    SLICE_X20Y33.D6              pin 0  lut6  fast [190, 282]  slow [405, 664]  bridge_i.udut.ucontrol_merge12.udly.chain.g[12].u
+    SLICE_X21Y33.A6              pin 1  lut6  fast [215, 268]  slow [509, 631]  bridge_i.udut.ucontrol_merge12.udly.chain.g[13].u
+    SLICE_X21Y33.B6              pin 4  lut6  fast [79, 99]  slow [193, 240]  bridge_i.udut.ucontrol_merge12.udly.chain.g[14].u
+    SLICE_X21Y33.C6              pin 4  lut6  fast [78, 98]  slow [192, 238]  bridge_i.udut.ucontrol_merge12.udly.chain.g[15].u
+    SLICE_X21Y33.D6              pin 0  lut6  fast [219, 272]  slow [521, 646]  bridge_i.udut.ucontrol_merge12.udly.chain.g[16].u
+    SLICE_X20Y32.A6              pin 0  lut6  fast [225, 281]  slow [528, 655]  bridge_i.udut.ucontrol_merge12.udly.chain.g[17].u
+    SLICE_X20Y32.B6              pin 4  lut6  fast [87, 108]  slow [211, 261]  bridge_i.udut.ucontrol_merge12.udly.chain.g[18].u
+    SLICE_X20Y32.C6              pin 4  lut6  fast [85, 106]  slow [207, 257]  bridge_i.udut.ucontrol_merge12.udly.chain.g[19].u
+    SLICE_X21Y32.A6              pin 2  lut6  fast [152, 189]  slow [378, 468]  bridge_i.udut.ucontrol_merge12.udly.chain.g[20].u
+    SLICE_X21Y32.B6              pin 0  lut6  fast [216, 269]  slow [517, 642]  bridge_i.udut.ucontrol_merge12.udly.chain.g[21].u
+    SLICE_X21Y32.C6              pin 4  lut6  fast [78, 98]  slow [192, 238]  bridge_i.udut.ucontrol_merge12.udly.chain.g[22].u
+    SLICE_X21Y32.D6              pin 3  lut6  fast [133, 165]  slow [329, 408]  bridge_i.udut.ucontrol_merge12.udly.chain.g[23].u
+    SLICE_X17Y31.C6              pin 2  lut6  fast [155, 193]  slow [383, 475]  bridge_i.udut.ulink_n_index_97.many.stage[0].u.ctl.u.u
+    SLICE_X17Y31.D6              pin 3  lut6  fast [133, 165]  slow [329, 408]  bridge_i.udut.ulink_n_index_97.many.stage[0].u.lat.pair[0].u$LUT6
+    cell  total: fast [4074, 5213] mid 4644   slow [9659, 12465] mid 11062
+    route total: fast [1564, 2043] mid 1804   slow [4427, 5477] mid 4952
+
+SLACK (path B - path A; positive = the required order holds):
+  fast-corner band midpoint                A     554  B    6447  slack   +5892 ps = +10.75 x median error (8.5 % of 6447) = +1.94 x worst short-ring error (47 %)
+  slow-corner band midpoint                A    1397  B   16014  slack  +14617 ps = +10.74 x median error (8.5 % of 16014) = +1.94 x worst short-ring error (47 %)
+  worst in-band (A fast max, B fast min)   A     615  B    5638  slack   +5023 ps = +10.48 x median error (8.5 % of 5638) = +1.90 x worst short-ring error (47 %)
+NEXTPNR SDF (nominal; from the cell driving the split):
+  path A: cells 372 + routing 885 = 1257 ps
+  path B: cells 3464 + routing 9864 = 13328 ps
+  slack +12071 ps = +10.66 x median error (8.5 % of 13328 ps) = +1.93 x worst short-ring error (47 %)
+  (the ring data also fit measured = 0.938 x SDF + 988 ps per ring period: a ~1 ns constant the SDF does not charge;
+   whether it falls on one of these two paths and not the other is not known)

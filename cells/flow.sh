@@ -34,7 +34,7 @@ set -eu
 
 cd "$(dirname "$0")"
 
-TC=${TC:-/home/jayjay/dev2/lib/fpgatoolchain}
+TC=${TC:-$HOME/dev2/lib/fpgatoolchain}
 YOSYS=$TC/openxc7/bin/yosys
 NEXTPNR=$TC/openxc7/bin/nextpnr-xilinx
 CHIPDB=$TC/openxc7/xc7z010clg400.bin
@@ -275,10 +275,13 @@ fi
 DSPOPT="-nodsp"
 [ "${BD_DSP:-1}" = "1" ] && DSPOPT=""
 
+# BD_SYN_DEFS: -D flags for the library RTL, e.g. -DBD_LINK_DC selects the
+# decoupled link controller (rtl/bd_link.v).  The GLS harnesses read the routed
+# netlist, so they need nothing.
 echo "== synthesis =="
 "$YOSYS" -p "
 read_verilog -lib -specify $CELLS_SIM
-read_verilog $SIZES rtl/*.v $TOP_V
+read_verilog $SIZES ${BD_SYN_DEFS:-} rtl/*.v $TOP_V
 synth_xilinx -family xc7 -flatten $DSPOPT -nosrl -nolutram -nobram -noclkbuf -top $TOP_M
 write_json $OUT/soak.json
 stat
@@ -301,13 +304,41 @@ echo "yosys: $lut_cells LUT cells (a LUT6_2 counts once -- it is one site)"
 # while passing on every kernel, which is a difference in the FLOW rather than
 # in the design.  soak_top's own storage is a bd_pipe (verify/soak_top.v's
 # `upipe`), not a bd_link, and it is not named `ulink_...` the way a compiled
-# kernel's is -- hw/rloc_stamp.py's controller regex keys off the `ctl.u.u` /
-# `many.cpair[N].u.u` / `many.codd.u.u` suffix alone for exactly this reason.
-# The cluster floats; nothing is pinned.  BD_RLOC=none turns it off.
-BD_RLOC=${BD_RLOC:-v2}
+# kernel's is -- hw/rloc_stamp.py's controller regex keys off the `ctl.u.u`
+# suffix alone for exactly this reason.
+# The cluster floats; nothing is pinned.  BD_RLOC=none turns it off; v2 is
+# the variant on record before 2026-09-19, v4 the one before 2026-09-20
+# (bdc/fusion_bench.py's table and hw/README.md say what each bought).
+# BD_PLACE_WEIGHT=K (default 1 = off): every handshake net counts K-fold in
+# the placer's wirelength.  On v4 placement K=8 moved the routed interval by
+# under a tenth and cost one tighten pass in three seeds; the spine variants
+# (v5+) carry the cycle in the group itself, so it is left off.
+# BD_COLUMN_ROWS=N: how many tiles tall a spine segment (and its side
+# columns) may be.  9 was the limit the rloc-group patch imposed until
+# 2026-09-20; it is now the tallest unbroken run of logic tiles in the
+# device's grid (25 on xc7z010 -- nextpnr's grid breaks a logic column at
+# every clock-region boundary), and a value that holds the whole design keeps
+# every stage-to-stage hop inside one rigid group instead of across a segment
+# break the placer decides.  Ask for more than the device has and nextpnr
+# drops the group, which the flow reports as RLOC STAMP/pnr.log noise, not a
+# silent fallback.
+BD_RLOC=${BD_RLOC:-v8}
+BD_PLACE_WEIGHT=${BD_PLACE_WEIGHT:-1}
+BD_COLUMN_ROWS=${BD_COLUMN_ROWS:-9}
+# v9: how many tile rows of latch-bank halves stack on each side of a shared
+# control row -- two W=32 banks by default; three puts a third C node in the
+# row at the price of a farther enable for one half of each bank.
+BD_ROW_BANK_ROWS=${BD_ROW_BANK_ROWS:-2}
+# BD_RLOC_ARB=1: also put each bd_arbiter's four LUT sites in one SLICE
+# (rloc_stamp.py --arb-groups), as hw/build_hw.sh does under the same name.
+# verify/arb_fork.py (rule J) is the check it serves: its guardband scales with
+# how far A0 travels to its two sinks.  Off by default; unset, the command
+# below is the one this script always ran.
 if [ "$BD_RLOC" != none ]; then
     python3 hw/rloc_stamp.py $OUT/soak.json $OUT/soak.rloc.json \
-        --variant "$BD_RLOC" --report > $OUT/rloc.log 2>&1 || {
+        --variant "$BD_RLOC" --place-weight "$BD_PLACE_WEIGHT" \
+        --column-rows "$BD_COLUMN_ROWS" --row-bank-rows "$BD_ROW_BANK_ROWS" \
+        ${BD_RLOC_ARB:+--arb-groups} --report > $OUT/rloc.log 2>&1 || {
             echo "RLOC STAMP FAILED"; cat $OUT/rloc.log; exit 1; }
     mv $OUT/soak.rloc.json $OUT/soak.json
     grep -E "group|link" $OUT/rloc.log | tail -3
@@ -361,13 +392,38 @@ if [ -n "${NEXTPNR_SEED:-}" ]; then
     echo "  seed $NEXTPNR_SEED -- this is a SAMPLE of the route, not the route"
 fi
 
+# BD_ROUTER picks nextpnr's router.  Nothing here has a clock, so neither
+# router is timing-driven: router2 (nextpnr's default) resolves congestion
+# against a bounding-box estimate and leaves a few nets on long detours;
+# router1 costs each arc by its delay.  On the same placement of
+# xorshift_round (fusion on, cap 4, RLOC v7) that is the difference between
+# the longest data wire of a stage being 1087 and 855 ps, and between
+# uxori_9's matched delay settling at 6 links and 3.  Medians are identical;
+# only the tails move, and the tails are what every rule here is sized by.
+BD_ROUTER=${BD_ROUTER:-router1}
+
 # --sdf is what verify/tighten.py reads: real per-net routed delays, which is
 # the only place the matched-delay lengths can come from.
 # shellcheck disable=SC2086
 "$NEXTPNR" --chipdb "$CHIPDB" --xdc $OUT/soak.xdc --ignore-loops $SEEDARG \
+           --router "$BD_ROUTER" \
            --json $OUT/soak.json --write $OUT/soak_routed.json \
            --sdf $OUT/soak.sdf --fasm $OUT/soak.fasm > $OUT/pnr.log 2>&1 \
     || { echo "PNR FAILED"; tail -40 $OUT/pnr.log; exit 1; }
+
+# A relative-placement group the packer could not honour (too tall for the
+# device, a slot clash) is dropped to the free placer with an Info line, and
+# the route then measures a design that is not the one hw/rloc_stamp.py
+# described.  That is a failed build, not a slower one.
+if [ "$BD_RLOC" != none ]; then
+    dropped=$(grep -oE "[0-9]+ group\(s\) dropped" $OUT/pnr.log | awk '{print $1}')
+    if [ -n "$dropped" ] && [ "$dropped" != 0 ]; then
+        echo "PNR DROPPED $dropped RLOC GROUP(S)"
+        grep -iE "RLOC|dropped|reject" $OUT/pnr.log | head -20
+        exit 1
+    fi
+    grep -E "group\(s\) dropped" $OUT/pnr.log | sed 's/^Info: *//'
+fi
 
 echo "routed."
 echo
@@ -394,6 +450,13 @@ echo "FASM:  $lut_sites occupied LUT sites, $brams BRAM lines"
 # fact held.  verify/fracture.py checks the claim instead of a proxy for it.
 python3 verify/fracture.py $OUT/soak_routed.json || exit 1
 
+# The bitstream says what the netlist says: every LUT site's INIT and every
+# DSP48E1 register/const-pin bit, read back out of the FASM.  Three of the
+# four worst bugs here were in fasm.cc and invisible to everything upstream
+# of it (patches/README.md); verify/fasm/check.sh is this check's negative
+# control.
+python3 verify/fasm_audit.py $OUT/soak_routed.json $OUT/soak.fasm --synth $OUT/soak.json || exit 1
+
 # A global buffer on the manufactured clock is the failure bd_mem's header is
 # about, and it is silent in simulation.  It is not silent here.
 if grep -qi "BUFGCTRL\|BUFG_" $OUT/soak.fasm; then
@@ -401,6 +464,25 @@ if grep -qi "BUFGCTRL\|BUFG_" $OUT/soak.fasm; then
     exit 1
 fi
 echo "no global clock buffer in the bitstream, as required"
+
+# The FF timing patch has two halves; the binary fingerprint above only sees
+# one.  A chipdb built before the importer fix leaves every flop at the 100 ps
+# placeholders, and the only place that shows is the SDF.
+if grep -q "SETUPHOLD" $OUT/soak.sdf && \
+   ! grep "SETUPHOLD" $OUT/soak.sdf | grep -qv "(100:100:100) (100:100:100)"; then
+    echo "FAIL: every FF SETUPHOLD in the SDF is the 100 ps placeholder -- the chipdb"
+    echo "      predates nextpnr-xilinx-ff-timing.patch; regenerate it (patches/README.md)"
+    exit 1
+fi
+
+# An INTERCONNECT of 0 ps between two cells is not a route: every routed arc
+# crosses at least one pip.  Zero is what the SDF writer emits when the sink
+# wire it is handed is not in the net (lut-perm-sink.patch), so any such arc
+# means the numbers downstream are placement estimates.  PAD arcs are the one
+# legitimate zero (the pad wire is the pin), and so is a LUT or F7 mux feeding
+# an F7/F8 mux data input in its own SLICE (a site wire, no pip); the check
+# reads the routed placement to tell that from a broken route.
+python3 verify/zero_arcs.py $OUT/soak.sdf $OUT/soak_routed.json || exit 1
 echo
 echo "routed SDF written to $OUT/soak.sdf -- run verify/tighten.py to size the"
 echo "matched delays against it."

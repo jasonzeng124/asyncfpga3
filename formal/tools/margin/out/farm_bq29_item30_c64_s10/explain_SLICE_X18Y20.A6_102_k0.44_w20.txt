@@ -1,0 +1,18 @@
+w=20: livelock (liveness; the run is checked up to its periodic window, its infinite extension by simx's periodicity check, untrusted): kappa 0.44  race SLICE_X18Y20.A6 pin 102 from SLICE_X19Y18.A6 (run at w=20) RESULT MISMATCH: want [111, 170, 350] got [] [livelock: eventually periodic, simx --periodic (untrusted)]
+witness   (route slow): RESULT MISMATCH: want [111, 170, 350] got []
+reference (all fast)  : RESULT OK: want [111, 170, 350] got [111, 170, 350]
+first nodes to diverge (any gate): CLBLM_L_X8Y53/CLBLM_SW2A3(pip)@19*, CLBLM_L_X8Y55/CLBLM_WL1END2(pip)@20*, INT_R_X5Y52/SL1END3(pip)@25*, BRKH_INT_X5Y49/BRKH_INT_NN2BEG3(pip)@28*, CLBLM_L_X8Y54/CLBLM_WW2END3(pip)@30*, BRKH_INT_X5Y49/BRKH_INT_NW6B3(pip)@36*   (* = an adversary arc)
+  diverges: SLICE_X16Y29.A6        at 404430 ps
+  diverges: SLICE_X16Y32.A6        at 404560 ps
+  diverges: SLICE_X18Y20.A6        at 404688 ps  <- the row's storage LUT
+  diverges: SLICE_X14Y33.A6        at 404767 ps
+  diverges: SLICE_X16Y34.A6        at 404960 ps
+  diverges: SLICE_X19Y19.C6        at 404960 ps
+  diverges: SLICE_X16Y23.A6        at 405231 ps
+  diverges: SLICE_X18Y27.A6        at 405245 ps
+
+CAPTURE: SLICE_X18Y20.A6 (SLICE_X18Y20.ALUT.O6) first differs at 404688 ps
+RACE at SLICE_X18Y20.A6: pin 2 (delayed 2891 ps by the adversary: reference arrival 404688, witness 407579) against pin 1 (arrival 400479)
+  trigger chains do not meet within 158 flips; using the cause DAG's latest common ancestor
+
+INCONSISTENT: with the reference's own delays path A (60 arcs, 1466 ps) arrives AFTER path B (4 arcs, 171 ps), but the reference is correct, so these chains are not the race. No slack is reported for this row.

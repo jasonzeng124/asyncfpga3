@@ -1,0 +1,12 @@
+Two-band (b_lut, b_route) coefficients on the decoded August board bitstreams (formal arcs; CARRY/F7 at 0.4, no effect).
+per-iteration (ns) = t0 + aL*b_lut + aR*b_route, from scale_net.py runs at (0,0), (b_lut 1), (b_route 1) via twoband.sh
+kernel     t0       aL       aR      board    LUT share   one-b
+collatz    50.35    72.29    37.17   92.73    0.660       0.387   (2,2:1 vs 32768,32768:15)
+collatz64  64.43    88.89    50.84   117.89   0.636       0.383   (2,2:1 vs 1073741824,1073741824:30)
+gcd(diff)  6305.1   8299.9   5306.1  11695    0.610       0.396   ((2^31-1,2^31-2) minus (1,1); board 12055-360)
+rings (128, ring_parts.json: period = 2[LF+RF] + 2(LS-LF) b_lut + 2(RS-RF) b_route): LUT share p05/p50/p95 0.624/0.690/0.770
+rings one-b p05/p50/p95 0.420/0.465/0.512
+rings alone LSQ (relative): b_lut 0.387 b_route 0.637, rms 3.0 %; bootstrap 90 %: b_lut 0.348-0.427, b_route 0.552-0.722
+kernels alone: b_lut 0.323 b_route 0.503 (near-collinear: a line, not a point)
+joint (kernels weighted as all rings): b_lut 0.575 b_route 0.092; ring rms 5.9 %, kernel errs +2.8/+2.0/-1.1 %
+kernel delay LUTs: LUT1 buffers (INIT 2'b10, A1 unconnected) -- symmetric chains. (An earlier line here called them FASTRISE ORs: withdrawn, misread INIT.)

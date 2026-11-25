@@ -1,0 +1,10 @@
+# dot2 seed 3, route su_dot2_3_11 (farm suite13t_s5a_v11_3a_r1/27): P=36721; rw=none(memo@5b4c68912)
+MEM=1
+K=dot2
+SEED=3
+SIZES=formal/tools-B/auto/suite/v11/dot2_s3_sizes.vh
+TRIMS=formal/tools-B/auto/suite/v11/dot2_s3_trims.txt
+MLIR=-
+ENV=BD_DEFINES=-DBD_SYMTRIM TRIM_STAGEFIX=1
+SDF=789d0683
+FASM=00000000

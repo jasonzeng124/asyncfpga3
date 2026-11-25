@@ -1,0 +1,110 @@
+# C-10l self-test: shared-prefix credit (`credit`) and C-element max nodes (`maxn`).
+# Graph: D=1 -> X=2 (the DACK ripple, lo 100) -> z pin 3; X -> fork 4 -> D's input 5 -> D;
+# X -> D's second input 6 (lo 400) -> D.  Late: two phases, switches at D's inputs.
+# Data from D: D->X [100,300], X->z [10,20] (latest 320); from X: [10,20] or [10,300].
+# expected:
+#   nocredit-fail   pverdict, ripple charged twice: (3,1) = 295 vs 320: FAIL -25
+#   credit-pass     X credited: B = 100000-320, A = 195-20: PASS 175
+#   credit-lie      same with potA(3,1) claimed 500: refuted, CERTBAD
+#   credit-or-fail  data from X latest 300, OR at D: A = 195-300: FAIL -105
+#   credit-max-pass same with D a max node over its two inputs: A = 515-300: PASS 215
+#   blocked0-pass   (below) phase-0-only blocking of the fork pin: PASS 215
+graph 6
+g 1 2 0 100 300 100 300 100 300 100 300 100 300 100 300
+g 2 3 0 10 20 10 20 10 20 10 20 10 20 10 20
+g 2 4 0 30 40 30 40 30 40 30 40 30 40 30 40
+g 4 5 0 50 60 50 60 50 60 50 60 50 60 50 60
+g 5 1 0 5 10 5 10 5 10 5 10 5 10 5 10
+g 2 6 0 400 400 400 400 400 400 400 400 400 400 400 400
+g 6 1 0 5 5 5 5 5 5 5 5 5 5 5 5
+inst nocredit-fail
+setup 0
+data 2
+arc 0 1 100 300
+arc 1 2 10 20
+late 0 1 1 0 0 0
+sw 5
+pair 2 3 1
+cap 295
+pot 2 0 100 3 0 110 4 0 130 5 0 180 5 1 180 1 1 185 2 1 285
+end
+inst credit-pass
+setup 0
+data 2
+arc 0 1 100 300
+arc 1 2 10 20
+late 0 1 1 0 0 0
+sw 5
+credit 2
+aarc 0 1 10 20
+xpair 2 1 3 1
+cap 100000
+pot 2 0 100
+acap 195
+apot 2 0 0 3 0 10 4 0 30 5 0 80 5 1 80 1 1 85 2 1 185
+end
+inst credit-lie
+setup 0
+data 2
+arc 0 1 100 300
+arc 1 2 10 20
+late 0 1 1 0 0 0
+sw 5
+credit 2
+aarc 0 1 10 20
+xpair 2 1 3 1
+cap 100000
+pot 2 0 100
+acap 195
+apot 2 0 0 3 0 10 4 0 30 5 0 80 5 1 80 1 1 85 2 1 185 3 1 500
+end
+inst credit-or-fail
+setup 0
+data 2
+arc 0 1 100 300
+arc 1 2 10 20
+late 0 1 1 0 0 0
+sw 5 6
+credit 2
+aarc 0 1 10 300
+xpair 2 1 3 1
+cap 100000
+pot 2 0 100
+acap 195
+apot 2 0 0 3 0 10 4 0 30 5 0 80 5 1 80 1 1 85 2 1 185
+end
+inst credit-max-pass
+setup 0
+data 2
+arc 0 1 100 300
+arc 1 2 10 20
+late 0 1 1 0 0 0
+sw 5 6
+credit 2
+aarc 0 1 10 300
+xpair 2 1 3 1
+maxn 1 1 5 1 6 1
+cap 100000
+pot 2 0 100
+acap 515
+apot 2 0 0 3 0 10 4 0 30 5 0 80 5 1 80 6 0 400 6 1 400 1 1 405 2 1 505
+end
+# blocked0-pass: as credit-or-fail, with the fork pin 4 blocked in phase 0 only
+# (blocked0): the loop through 4 is gone in phase 0, phase 1 is entered only at 6
+# (lo 400 from X): A = (6,1) 400 + 5 + 100 + 10 = 515 - 300: PASS 215
+inst blocked0-pass
+setup 0
+data 2
+arc 0 1 100 300
+arc 1 2 10 20
+late 0 1 1 0 0 0
+sw 5 6
+blocked0 4
+credit 2
+aarc 0 1 10 300
+xpair 2 1 3 1
+cap 100000
+pot 2 0 100
+acap 515
+apot 2 0 0 3 0 10 4 0 30 6 0 400 6 1 400 1 1 405 2 1 505
+end

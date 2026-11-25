@@ -1,0 +1,96 @@
+inc_cmp differential checks (2026-11-18, formal shard A helper).  Exactly what was run; raw logs under /tmp/claude-0/sub1/.
+ORIG = cloud/fixtures/frontend/K/comp/handshake_transformed.mlir (origin/claude/research 7197d85c2); RW = inc_cmp.py ORIG.
+
+A. bdc/simcheck.py --c-oracle --timeout-us 400 (research worktree 7197d85c2, iverilog 12.0 installed via apt), pre-route arc-timing RTL vs the C:
+   lfsrfind (the only scalar kernel with a rewrite): ORIG and RW, default and BDC_AUTO=1, kernels/lfsrfind/vec.hex 10/10 PASS each (4 runs);
+   edge file (seed 1 with key at step 0,1,2,127,128,254,255,256,257,1000; seed=key=0xffffffff; 0x80000000/0; seed 0xffff key at step 255/256) 14/14 PASS each (4 runs).
+B. memtb.py (pre-route RTL, BDC_HOST_MEM=1 bdc/emit.py, arrays through the host ports) vs research/tools/suite/oracle_mem.sh on the suite v2 vector files:
+   test_bitint_orig_a0 MEMTB SUMMARY pass (0 failure(s) of 6 calls) at 2402606 ps
+   test_bitint_orig_a1 MEMTB SUMMARY pass (0 failure(s) of 6 calls) at 2067878 ps
+   test_bitint_rw_a0 MEMTB SUMMARY pass (0 failure(s) of 6 calls) at 2402606 ps
+   test_bitint_rw_a1 MEMTB SUMMARY pass (0 failure(s) of 6 calls) at 2311826 ps
+   gather_orig_a0 MEMTB SUMMARY pass (0 failure(s) of 9 calls) at 10767846 ps
+   gather_orig_a1 MEMTB SUMMARY pass (0 failure(s) of 9 calls) at 9734606 ps
+   gather_rw_a0 MEMTB SUMMARY pass (0 failure(s) of 9 calls) at 10767846 ps
+   gather_rw_a1 MEMTB SUMMARY pass (0 failure(s) of 9 calls) at 10421774 ps
+   memsum_orig_a0 MEMTB SUMMARY pass (0 failure(s) of 5 calls) at 3549972 ps
+   memsum_orig_a1 MEMTB SUMMARY pass (0 failure(s) of 5 calls) at 3218806 ps
+   memsum_rw_a0 MEMTB SUMMARY pass (0 failure(s) of 5 calls) at 3549972 ps
+   memsum_rw_a1 MEMTB SUMMARY pass (0 failure(s) of 5 calls) at 3393670 ps
+   fir_orig_a0 MEMTB SUMMARY pass (0 failure(s) of 2 calls) at 88796094 ps
+   fir_orig_a1 MEMTB SUMMARY pass (0 failure(s) of 2 calls) at 72142258 ps
+   fir_rw_a0 MEMTB SUMMARY pass (0 failure(s) of 2 calls) at 88796094 ps
+   fir_rw_a1 MEMTB SUMMARY pass (0 failure(s) of 2 calls) at 85273114 ps
+   sumi3_mem_orig_a0 MEMTB SUMMARY pass (0 failure(s) of 3 calls) at 117430202 ps
+   sumi3_mem_orig_a1 MEMTB SUMMARY pass (0 failure(s) of 3 calls) at 100625264 ps
+   sumi3_mem_rw_a0 MEMTB SUMMARY pass (0 failure(s) of 3 calls) at 117430202 ps
+   sumi3_mem_rw_a1 MEMTB SUMMARY pass (0 failure(s) of 3 calls) at 112145732 ps
+   dot2_{orig,rw}_a{0,1} pass 8/8 each.  Negative control: dot2_rw_a0 with one expected value +1 -> MEMTB SUMMARY FAIL (1 of 8).
+C. hsinterp.py (token-level interpreter) vs the C oracles, ORIG and RW: test_bitint 6/6, dot2 8/8, gather 9/9, memsum 5/5, fir 2/2, sumi3_mem 3/3 (both);
+   interpreter validated on 16 scalar suite kernels vs oracle.sh (all vectors right): lfsrfind countloop sqrtsub nest3 twoloops brhash quadrec horner
+   fold64 varshift cmpchain nested branchloop factorial iterative_division straight.
+D. diffcheck.py ORIG RW (hsinterp; vectors: edge + random scalars, arrays all-0 / all-1s / small / in-range indices / random;
+   in-order schedule + 1 seeded random schedule; outputs, token counts and final memories compared), per rewritten kernel:
+   dot2 rc=0 DIFF-PASS dot2 12/12 vectors x 2 schedules
+   test_bitint rc=0 DIFF-PASS test_bitint 12/12 vectors x 2 schedules
+   gather rc=0 DIFF-PASS gather 12/12 vectors x 2 schedules
+   lfsrfind rc=0 DIFF-PASS lfsrfind 12/12 vectors x 2 schedules
+   binary_search rc=0 DIFF-PASS binary_search 12/12 vectors x 2 schedules
+   atax rc=0 DIFF-PASS atax 12/12 vectors x 2 schedules
+   covariance rc=3 UNSUPPORTED covariance: lsq[MC]
+   divergent_paths rc=0 DIFF-PASS divergent_paths 12/12 vectors x 2 schedules
+   bicg rc=0 DIFF-PASS bicg 12/12 vectors x 2 schedules
+   fir rc=0 DIFF-PASS fir 12/12 vectors x 2 schedules
+   gemver rc=3 UNSUPPORTED gemver: lsq[MC]
+   iir rc=0 DIFF-PASS iir 12/12 vectors x 2 schedules
+   image_resize rc=0 DIFF-PASS image_resize 12/12 vectors x 2 schedules
+   jacobi_1d_imper rc=0 DIFF-PASS jacobi_1d_imper 12/12 vectors x 2 schedules
+   kernel_2mm rc=0 DIFF-PASS kernel_2mm 12/12 vectors x 2 schedules
+   kernel_3mm rc=0 DIFF-PASS kernel_3mm 9/9 vectors x 2 schedules
+   kmp rc=0 DIFF-PASS kmp 3/3 vectors x 2 schedules
+   matrix_power rc=0 DIFF-PASS matrix_power 6/6 vectors x 2 schedules
+   matrix rc=2 INCONCLUSIVE matrix 0/1 agreed, 1 inconclusive (original schedule-dependent or limit)
+   memsum rc=0 DIFF-PASS memsum 6/6 vectors x 2 schedules
+   mul_example rc=0 DIFF-PASS mul_example 6/6 vectors x 2 schedules
+   nested_conditionals_1 rc=0 DIFF-PASS nested_conditionals_1 6/6 vectors x 2 schedules
+   nested_conditionals_2 rc=0 DIFF-PASS nested_conditionals_2 6/6 vectors x 2 schedules
+   matvec rc=0 DIFF-PASS matvec 5/5 vectors x 2 schedules
+   path_profiling rc=0 DIFF-PASS path_profiling 6/6 vectors x 2 schedules
+   polyn_mult rc=0 DIFF-PASS polyn_mult 2/2 vectors x 2 schedules
+   share_test_1 rc=0 DIFF-PASS share_test_1 6/6 vectors x 2 schedules
+   share_test_2 rc=0 DIFF-PASS share_test_2 6/6 vectors x 2 schedules
+   cnn rc=2 INCONCLUSIVE cnn 0/1 agreed, 1 inconclusive (original schedule-dependent or limit)
+   gaussian rc=124
+   sumi3_mem rc=0 DIFF-PASS sumi3_mem 6/6 vectors x 2 schedules
+   stencil_2d rc=0 DIFF-PASS stencil_2d 6/6 vectors x 2 schedules
+   test_constant_array rc=0 DIFF-PASS test_constant_array 6/6 vectors x 2 schedules
+   nested_loop rc=2 INCONCLUSIVE nested_loop 0/2 agreed, 2 inconclusive (original schedule-dependent or limit)
+   test_memory_11 rc=0 DIFF-PASS test_memory_11 6/6 vectors x 2 schedules
+   test_memory_12 rc=0 DIFF-PASS test_memory_12 6/6 vectors x 2 schedules
+   test_memory_13 rc=0 DIFF-PASS test_memory_13 6/6 vectors x 2 schedules
+   test_memory_14 rc=0 DIFF-PASS test_memory_14 6/6 vectors x 2 schedules
+   test_memory_15 rc=0 DIFF-PASS test_memory_15 6/6 vectors x 2 schedules
+   test_memory_16 rc=0 DIFF-PASS test_memory_16 6/6 vectors x 2 schedules
+   test_memory_17 rc=0 DIFF-PASS test_memory_17 6/6 vectors x 2 schedules
+   test_memory_18 rc=0 DIFF-PASS test_memory_18 6/6 vectors x 2 schedules
+   test_smallbound rc=0 DIFF-PASS test_smallbound 6/6 vectors x 2 schedules
+   test_stdint rc=0 DIFF-PASS test_stdint 6/6 vectors x 2 schedules
+   test_unroll rc=0 DIFF-PASS test_unroll 6/6 vectors x 2 schedules
+   test_flatten_array rc=0 DIFF-PASS test_flatten_array 6/6 vectors x 2 schedules
+   threshold rc=0 DIFF-PASS threshold 6/6 vectors x 2 schedules
+   vector_rescale rc=0 DIFF-PASS vector_rescale 6/6 vectors x 2 schedules
+   test_internal_array rc=0 DIFF-PASS test_internal_array 6/6 vectors x 2 schedules
+   wrap_if rc=0 DIFF-PASS wrap_if 6/6 vectors x 2 schedules
+   sobel rc=0 DIFF-PASS sobel 6/6 vectors x 2 schedules
+   video_filter rc=0 DIFF-PASS video_filter 6/6 vectors x 2 schedules
+   trisolv rc=2 INCONCLUSIVE trisolv 0/4 agreed, 4 inconclusive (original schedule-dependent or limit)
+   reruns of the slow ones, 1 vector (all-zero arrays: weak), in-order only, 60M-step limit:
+   matrix rc=0 DIFF-PASS matrix 1/1 vectors x 1 schedules
+   cnn rc=0 DIFF-PASS cnn 1/1 vectors x 1 schedules
+   trisolv rc=0 DIFF-PASS trisolv 1/1 vectors x 1 schedules
+   nested_loop rc=2 INCONCLUSIVE nested_loop 0/1 agreed, 1 inconclusive (original schedule-dependent or limit)
+   gaussian rc=124
+   (rc=124: killed by the timeout before one vector finished; INCONCLUSIVE = the ORIGINAL hit the step limit -- big loop nests, not schedule dependence.)
+E. test_inc_cmp.py on fir: 18/18 synthetic cases as expected (APPLY: ult, ule, ne, eq, ne add-on-right, forked source-fired bound (new constant),
+   control-fired bound in place, C=-2, k=1024; SKIP: C<k twice, wrap k=1025, k=0, k=-1, ult add-on-right, slt, ugt, forked control-fired bound).
+F. ssa_check.py: 108/108 RW files OK; inc_cmp on its own output applies 0 rewrites (idempotent); bdc emit default/AUTO: the same 11 of the 53 kernels emit for ORIG and RW.

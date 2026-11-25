@@ -1,0 +1,25 @@
+xevents2: ../tools/import/json/bd_c4.json top bd_c4: 20 wires, 13 gates
+bands: 1 step = 10 ps; environment answer band [1, 50] steps = [10, 500] ps (lo raised to 1 step)
+1 C-element stages recognised (InitOK on the bd_ce.v layout)
+  stage 0 u/O (wire 11 '$iopadmap$q'): 4-input C-element, reset value 0, bubbles on [], INIT 0xfffe8000; LUT [90,130] ps, own feedback [270,330] ps
+    I0 <- port a (environment: inverting channel from this stage, [10,500] ps); channel [380,950] ps, token 1
+      Back: walk empty walk (the pin closes on this stage); tokens 1 (need <= 1), fastest return 380 ps vs own feedback max 330 ps: margin 50 ps
+      BOUNDARY: margin = 40 ps (port route vs own feedback) + the environment's minimum answer time (10 ps assumed)
+    I1 <- port b (environment: inverting channel from this stage, [10,500] ps); channel [380,950] ps, token 1
+      Back: walk empty walk (the pin closes on this stage); tokens 1 (need <= 1), fastest return 380 ps vs own feedback max 330 ps: margin 50 ps
+      BOUNDARY: margin = 40 ps (port route vs own feedback) + the environment's minimum answer time (10 ps assumed)
+    I2 <- port c (environment: inverting channel from this stage, [10,500] ps); channel [380,950] ps, token 1
+      Back: walk empty walk (the pin closes on this stage); tokens 1 (need <= 1), fastest return 380 ps vs own feedback max 330 ps: margin 50 ps
+      BOUNDARY: margin = 40 ps (port route vs own feedback) + the environment's minimum answer time (10 ps assumed)
+    I3 <- port d (environment: inverting channel from this stage, [10,500] ps); channel [380,950] ps, token 1
+      Back: walk empty walk (the pin closes on this stage); tokens 1 (need <= 1), fastest return 380 ps vs own feedback max 330 ps: margin 50 ps
+      BOUNDARY: margin = 40 ps (port route vs own feedback) + the environment's minimum answer time (10 ps assumed)
+Recog2 on the netlist closed by 4 environment gate(s) (proved-decidable): true
+Back (every pin, proved-decidable): true
+EnvOK (environment gates are 1-input buffers/inverters): true
+counter graph: 4 simple cycles, 0 token-free
+per-window upper bounds (Events2Time.cycle_le, via `sound`; walk re-checked with walkOK):
+  stage 0: at most 1 event(s) in every window of 470 ps (walk 0.I3, checked true)
+  long-run UPPER rate (Events2Time.rate_upper via `sound`): 47·M t j ≤ 1·t + ρ_j + 47 steps, ρ = [0]: at most 1 event(s) per 470 ps per stage = critical cycle 470.0 ps/token; certificate checked true
+  long-run LOWER rate (liveness, Events2Time.rate_lower via `sound`): 1·t ≤ 108·M t j + π_j + 1·(T_rst + 44 + 108) steps, π = [0]: at least 1 event(s) per 1080 ps per stage = max cycle ratio 1080.0 ps/token; certificate checked true
+VERDICT: CLEAN FOREVER (Events2Main.sound): every behaviour of the parsed netlist (every delay in the bands, any power-up, reset released once), with every handshake port answered by its stage within [10, 500] ps (HYPOTHESIS: environment = [env:a, env:b, env:c, env:d]), has every C-element output = reset value flipped M t j times at every time: no X, no glitch, for all time. Period bounds above hold for the same M (certificates: upper true, lower true).

@@ -1,0 +1,79 @@
+ring_dec simcheck (2026-11-18, formal shard A helper). Exactly what was run; raw logs /tmp/claude-0/sub3/logs/<K>_<orig|rw>_<def|auto>_<suite|edge>.log
+Tree: a copy of the research worktree /tmp/claude-0/sub1/research (origin/claude/research 7197d85c2) at /tmp/claude-0/sub3/R (so simcheck's
+cells/build/kernelsim output stays out of research's worktree). Two LOCAL edits in that copy only (nothing in /home/user/asyncfpga3 or the sub1 worktree touched):
+  1. bdc/simcheck.py gen_testbench: one extra line after each vector's `join`: $display("  VECDONE <idx> at %0t", $time)  (timing only; checks unchanged).
+  2. research/tools/suite/oracle.sh line 30: the DOMAIN_RESTRICTIONS refusal is skipped when ORACLE_IGNORE_MASK is set (used for xorshift only).
+     Reason: oracle.sh refuses xorshift because the BOARD bench masks rounds & 0xFFF; simcheck drives the words unmasked, so the unmasked C is the
+     right reference for simcheck.  (simcheck's own REFS has ref_xorshift too, but the REFS path takes no --vecfile.)
+ORIG = cloud/fixtures/frontend/K/comp/handshake_transformed.mlir (copied to /tmp/claude-0/sub3/vec/orig_K.mlir)
+RW   = formal/tools-A/rewrite/out/K_rd.mlir (ring_dec.py output; copied to /tmp/claude-0/sub3/rw/K.mlir). All 5 RW differ from ORIG by the same 23-line ring_dec pattern.
+Command per run (/tmp/claude-0/sub3/run.sh K ver flow vf), cwd /tmp/claude-0/sub3/R:
+  [BDC_AUTO=1] [ORACLE_IGNORE_MASK=1 (xorshift)] python3 bdc/simcheck.py <mlir> --c-oracle --vecfile <hex> --timeout-us 2000
+Vector files: suite = kernels/K/vec.hex (countloop horner quadrec varshift); xorshift: research/data/eventgraph/gate/xor19.hex (19 vectors, rounds 0..1000; SUITE.md's xorshift file).
+  edge (countloop/horner/quadrec/varshift) /tmp/claude-0/sub3/vec/edge4.hex, 16 vectors (x n):
+    0 0 | 7fffffff 0 | 80000000 1 | ffffffff 1 | 1 2 | 80000000 2 | 7fffffff 3 | 12345678 -1 | ffffffff INT_MIN | 0 INT_MIN | 7fffffff INT_MIN+1 |
+    80000000 -2 | deadbeef 255 | 80000000 256 | 7fffffff 256 | ffffffff 254
+    (n = INT_MIN is the case where the ring's m = n-1 wraps to INT_MAX; n = INT_MAX itself is outside the declared range n <= 256 and was not run.)
+  edge xorshift /tmp/claude-0/sub3/vec/xorshift_edge.hex, 16 vectors (seed rounds):
+    0 0 | 0 5 | 1 0 | 1 1 | 80000000 1 | 7fffffff 2 | ffffffff 2 | 12345678 -1 | ffffffff INT_MIN | 92d68ca2 INT_MIN+1 | 80000000 -2 |
+    deadbeef 255 | 80000000 256 | 7fffffff 257 | ffffffff 4095 (0xfff, the bench mask max) | 13579bdf 2048
+BDC_AUTO note: simcheck calls emit.generate only; auto.rewrite_mlir (pre_dec/pre_eq2) is not called on this path, so no MLIR rewrite is applied
+  in either version (logs show no rewrite line). AUTO's emit knobs did apply; on every RW the AUTO line lists one fewer "fork out link"
+  (e.g. countloop ORIG ['n15__0','n22__0'], RW ['n15__0']): the forked addi result that ring_dec removes.
+
+RESULTS (pass = vectors passed / vectors; total = simulated time at $finish; per-iteration = (VECDONE[i]-VECDONE[i-1])/n on the n=256 vector)
+kernel    ver  flow  file  pass   total_ps       ns/iter(n=256)
+countloop orig def   suite 10/10  6820180        16.49  PASS
+countloop rw   def   suite 10/10  10283188       25.18  PASS
+countloop orig def   edge  16/16  17484292       16.49  PASS
+countloop rw   def   edge  16/16  26522284       25.18  PASS
+countloop orig auto  suite 10/10  5301136        12.51  PASS
+countloop rw   auto  suite 10/10  8708196        21.07  PASS
+countloop orig auto  edge  16/16  13402380       12.51  PASS
+countloop rw   auto  edge  16/16  22303728       21.07  PASS
+horner    orig def   suite 11/11  9225152        21.05  PASS
+horner    rw   def   suite 11/11  11047548       25.18  PASS
+horner    orig def   edge  16/16  22190508       21.05  PASS
+horner    rw   def   edge  16/16  26540140       25.18  PASS
+horner    orig auto  suite 11/11  8512028        19.29  PASS
+horner    rw   auto  suite 11/11  9356232        21.07  PASS
+horner    orig auto  edge  16/16  20395926       19.29  PASS
+horner    rw   auto  edge  16/16  22321584       21.07  PASS
+quadrec   orig def   suite 10/10  8592468        21.21  PASS
+quadrec   rw   def   suite 10/10  10713212       26.71  PASS
+quadrec   orig def   edge  16/16  22785836       21.21  PASS
+quadrec   rw   def   edge  16/16  28538820       26.71  PASS
+quadrec   orig auto  suite 10/10  8585962        21.20  PASS
+quadrec   rw   auto  suite 10/10  10009424       24.81  PASS
+quadrec   orig auto  edge  16/16  22779950       21.20  PASS
+quadrec   rw   auto  edge  16/16  26587064       24.81  PASS
+varshift  orig def   suite 10/10  13419820       32.45  PASS
+varshift  rw   def   suite 10/10  13497196       32.45  PASS
+varshift  orig def   edge  16/16  34041932       32.45  PASS
+varshift  rw   def   edge  16/16  34119308       32.45  PASS
+varshift  orig auto  suite 10/10  11437094       27.36  PASS
+varshift  rw   auto  suite 10/10  11514470       27.36  PASS
+varshift  orig auto  edge  16/16  28829042       27.36  PASS
+varshift  rw   auto  edge  16/16  28906418       27.36  PASS
+xorshift  orig def   suite 19/19  47424774       25.51  PASS
+xorshift  rw   def   suite 19/19  50736120       27.27  PASS
+xorshift  orig def   edge  16/16  176742642      25.51  PASS
+xorshift  rw   def   edge  16/16  189028302      27.27  PASS
+xorshift  orig auto  suite 19/19  38343460       20.54  PASS
+xorshift  rw   auto  suite 19/19  41733748       22.35  PASS
+xorshift  orig auto  edge  16/16  142272794      20.54  PASS
+xorshift  rw   auto  edge  16/16  154881088      22.35  PASS
+
+SUMMARY
+- 40/40 runs PASS (every vector, every output count); no FAIL in RW that is absent in ORIG; no FAIL at all.
+- quadrec default flow did NOT deadlock here, in either version (suite 10/10, edge 16/16, incl. n=256).
+- Speed (arc-timing pre-route RTL, ns per iteration ORIG -> RW): the rewrite is SLOWER or equal everywhere:
+    countloop def 16.49 -> 25.18 (+53%), auto 12.51 -> 21.07 (+68%)
+    horner    def 21.05 -> 25.18 (+20%), auto 19.29 -> 21.07 (+9%)
+    quadrec   def 21.21 -> 26.71 (+26%), auto 21.20 -> 24.81 (+17%)
+    varshift  def 32.45 -> 32.45 (=),     auto 27.36 -> 27.36 (=)   (ring not the critical cycle; +77 ns per run total)
+    xorshift  def 25.51 -> 27.27 (+7%),  auto 20.54 -> 22.35 (+9%)
+  Likely cause (from the MLIR diff, not measured per node): the loop test becomes cmpi slt -> xori -> xori (plus two cmpi eq) in series,
+  three handshake stages where ORIG had one, and the condition gates every cond_br/mux on the ring; the increment's removal from the test
+  path does not buy back that latency in this emitter's arc-timing model. Note RW countloop and horner both land on exactly 25.18 ns def / 21.07 auto,
+  consistent with the new test chain being the ring's critical cycle.

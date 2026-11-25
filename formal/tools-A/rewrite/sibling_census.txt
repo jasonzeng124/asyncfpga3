@@ -1,0 +1,111 @@
+BDC_SIBLING_FUSE=1 (research bdc at bdd39f660), shard A, 2026-11-20 12:46 UTC.
+1. fuse_check.py, A = BDC_AUTO=1,BDC_RING_FUSE=0 vs B = BDC_AUTO=1,BDC_SIBLING_FUSE=1 (fuse_census.sh).
+-- research/data/autorw (your plain_pass outputs):
+countloop                    fuse_check: PROVED -- /tmp/claude-0/sib/fx_autorw/countloop//comp/handshake_transformed.mlir [BDC_AUTO=1,BDC_SIBLING_FUSE=1] is equal to /tm
+horner                       fuse_check: PROVED -- /tmp/claude-0/sib/fx_autorw/horner//comp/handshake_transformed.mlir [BDC_AUTO=1,BDC_SIBLING_FUSE=1] is equal to /tmp/c
+quadrec                      fuse_check: PROVED -- /tmp/claude-0/sib/fx_autorw/quadrec//comp/handshake_transformed.mlir [BDC_AUTO=1,BDC_SIBLING_FUSE=1] is equal to /tmp/
+twoloops                     fuse_check: PROVED -- /tmp/claude-0/sib/fx_autorw/twoloops//comp/handshake_transformed.mlir [BDC_AUTO=1,BDC_SIBLING_FUSE=1] is equal to /tmp
+varshift                     fuse_check: PROVED -- /tmp/claude-0/sib/fx_autorw/varshift//comp/handshake_transformed.mlir [BDC_AUTO=1,BDC_SIBLING_FUSE=1] is equal to /tmp
+xorshift                     fuse_check: PROVED -- /tmp/claude-0/sib/fx_autorw/xorshift//comp/handshake_transformed.mlir [BDC_AUTO=1,BDC_SIBLING_FUSE=1] is equal to /tmp
+-- the 23 default fixtures the pass changes:
+branchloop                   fuse_check: REFUSED -- normal forms differ: rules: 69 vs 73
+countloop                    fuse_check: REFUSED -- normal forms differ: rules: 41 vs 41
+factorial                    fuse_check: REFUSED -- normal forms differ: rules: 55 vs 55
+fill                         dfimport failed
+gcd                          fuse_check: REFUSED -- normal forms differ: rules: 150 vs 155
+horner                       fuse_check: REFUSED -- normal forms differ: rules: 41 vs 41
+if_convert                   dfimport failed
+if_loop_1                    dfimport failed
+image_resize                 dfimport failed
+ipow                         fuse_check: REFUSED -- normal forms differ: rules: 37 vs 38
+isprime                      fuse_check: REFUSED -- normal forms differ: rules: 128 vs 128
+iterative_division           fuse_check: REFUSED -- normal forms differ: rules: 66 vs 70
+iterative_sqrt               fuse_check: PROVED UNDER THE WIDTH ASSUMPTION (every input token fits its declared width, Wi = [32, 0]; pass_forward_w / pass_backward_w) --
+nested                       fuse_check: REFUSED -- normal forms differ: rules: 84 vs 84
+nested_loop                  dfimport failed
+sobel                        dfimport failed
+sqrtsub                      fuse_check: REFUSED -- normal forms differ: rules: 39 vs 40
+stencil_2d                   dfimport failed
+straight                     fuse_check: PROVED -- /tmp/claude-0/sib/fx_def/straight//comp/handshake_transformed.mlir [BDC_AUTO=1,BDC_SIBLING_FUSE=1] is equal to /tmp/cl
+test_flatten_array           dfimport failed
+twoloops                     fuse_check: REFUSED -- normal forms differ: rules: 70 vs 69
+varshift                     fuse_check: REFUSED -- normal forms differ: rules: 44 vs 44
+video_filter                 dfimport failed
+   Controls on autorw xorshift: --ctl slice_low REFUSED rc 2, --ctl part_plus1 REFUSED rc 2.
+2. mr_verilog_check (layout) and mr_expr_check (values, iverilog, 200 vectors per cell), env BDC_AUTO=1,BDC_SIBLING_FUSE=1:
+-- mv_fx_autorw
+countloop                    OK (1 cell(s))
+horner                       OK (1 cell(s))
+quadrec                      OK (1 cell(s))
+twoloops                     OK (3 cell(s))
+varshift                     OK (1 cell(s))
+xorshift                     OK (1 cell(s))
+rc=0
+-- mv_fx_def
+branchloop                   OK (2 cell(s))
+countloop                    OK (1 cell(s))
+factorial                    OK (2 cell(s))
+fill                         import failed
+gcd                          OK (4 cell(s))
+horner                       OK (1 cell(s))
+if_convert                   import failed
+if_loop_1                    import failed
+image_resize                 import failed
+ipow                         OK (2 cell(s))
+isprime                      OK (1 cell(s))
+iterative_division           OK (2 cell(s))
+iterative_sqrt               OK (2 cell(s))
+nested                       OK (2 cell(s))
+nested_loop                  import failed
+sobel                        import failed
+sqrtsub                      OK (1 cell(s))
+stencil_2d                   import failed
+straight                     OK (1 cell(s))
+test_flatten_array           import failed
+twoloops                     OK (3 cell(s))
+varshift                     OK (1 cell(s))
+video_filter                 import failed
+rc=3
+-- me_fx_autorw
+countloop                    OK (1 cell(s), 200 vectors)
+horner                       OK (1 cell(s), 200 vectors)
+quadrec                      OK (1 cell(s), 200 vectors)
+twoloops                     OK (3 cell(s), 600 vectors)
+varshift                     OK (1 cell(s), 200 vectors)
+xorshift                     OK (1 cell(s), 200 vectors)
+rc=0
+-- me_fx_def
+branchloop                   OK (2 cell(s), 400 vectors)
+countloop                    OK (1 cell(s), 200 vectors)
+factorial                    OK (2 cell(s), 400 vectors)
+fill                         import failed
+gcd                          OK (4 cell(s), 800 vectors)
+horner                       OK (1 cell(s), 200 vectors)
+if_convert                   import failed
+if_loop_1                    import failed
+image_resize                 import failed
+ipow                         OK (2 cell(s), 400 vectors)
+isprime                      OK (1 cell(s), 200 vectors)
+iterative_division           OK (2 cell(s), 400 vectors)
+iterative_sqrt               OK (2 cell(s), 400 vectors)
+nested                       OK (2 cell(s), 400 vectors)
+nested_loop                  import failed
+sobel                        import failed
+sqrtsub                      OK (1 cell(s), 200 vectors)
+stencil_2d                   import failed
+straight                     OK (1 cell(s), 200 vectors)
+test_flatten_array           import failed
+twoloops                     OK (3 cell(s), 600 vectors)
+varshift                     OK (1 cell(s), 200 vectors)
+video_filter                 import failed
+rc=3
+3. autoproof against the C (ringfuse_autoproof.sh, BDC_AUTO=1 BDC_SIBLING_FUSE=1, NSUF=SF), Lean check.sh OK:
+   countloop, horner (no flags); varshift, ipow, nested (flag set 2 of exitcond_gate.sh); xorshift, collatz (not changed by the pass; same as ring fusion).
+   isprime: not proved (generated proofs fail; flag sets 1 / 2 do not generate) -- a tool limit, see 1 / 2 for its checks.
+4. Update 13:05: fuse_check pass 3 (sibling cells): sqrtsub PROVED UNDER THE WIDTH ASSUMPTION (Wi [32,0]), iterative_division
+   PROVED UNDER THE WIDTH ASSUMPTION (Wi [32,32,0]); controls slice_low / part_plus1 REFUSED on both. Still REFUSED (a part waits on
+   cell inputs it does not read; no local step can drop such a wait): countloop horner nested varshift twoloops isprime branchloop
+   factorial gcd ipow. sibling_rsim.py (rule-level random schedules, Lean Rule.fire semantics): all 10 agree on chOut; part_plus1 caught.
+5. 13:11: twoloops, branchloop PROVED against the C under BDC_SIBLING_FUSE=1 (flag set 2); left unproved: isprime, factorial, gcd.
+6. 13:47: research/data/autorw collatz / collatz64 (eq2 outputs, in research's suite13t_s5b_sib set A): BDC_SIBLING_FUSE=1 changes nothing -- emit.py output byte-identical with and without it, fuse_check: same rules as BDC_RING_FUSE=0, no multi-result cell.
+7. 14:00: isprime (AP_XINV hint d <= n, AP_OPSX4, CF_W64, ...) and factorial (CF_PPIF, CF_STRLIT, CF_DEFINE) PROVED against the C under BDC_SIBLING_FUSE=1; 13 / 14 importable changed kernels proved; gcd not (no C; fuse_check refuses on the wait).

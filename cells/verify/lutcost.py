@@ -25,7 +25,7 @@ point of the number being what it is.
 import os, re, subprocess, sys, tempfile, pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-TC   = pathlib.Path(os.environ.get("TC", "/home/jayjay/dev2/lib/fpgatoolchain"))
+TC   = pathlib.Path(os.environ.get("TC", os.path.expanduser("~/dev2/lib/fpgatoolchain")))
 YOSYS = TC / "openxc7/bin/yosys"
 CELLS_SIM = TC / "openxc7/share/yosys/xilinx/cells_sim.v"
 
@@ -66,17 +66,16 @@ CASES = [
      "bd_datamux #(.W(8)) u (.a(a), .b(b), .s(s), .z(z));"),
     ("delay4",  4, "input a, output z", "bd_delay #(.N(4)) u (.a(a), .z(z));"),
 
-    # ---- the pipeline: half a LUT of control per stage, half a LUT per bit
-    ("link_pair", 1, "input rst, input req_in, input c_next, output ci, output cj",
-     "bd_link_pair u (.req_in(req_in), .c_next(c_next), .rst(rst), .ci(ci), .cj(cj));"),
+    # ---- the pipeline: one LUT of control per stage, half a LUT per bit
     # one stage: 1 controller + 8/2 latch bits
     ("link8", 5,
      "input rst, input req_in, output ack_in, input [7:0] data_in,"
      " output req_out, input ack_out, output [7:0] data_out",
      "bd_link #(.W(8)) u (.rst(rst), .req_in(req_in), .ack_in(ack_in),"
      " .data_in(data_in), .req_out(req_out), .ack_out(ack_out), .data_out(data_out));"),
-    # four stages: 2 controller LUTs + 4*4 latch = 18
-    ("pipe8x4", 18,
+    # four stages: 4 controllers + 3 one-element internal request lines
+    # (bd_link.v SDELAY, the stage-close rule) + 4*4 latch = 23
+    ("pipe8x4", 23,
      "input rst, input req_in, output ack_in, input [7:0] data_in,"
      " output req_out, input ack_out, output [7:0] data_out",
      "bd_pipe #(.W(8), .N(4)) u (.rst(rst), .req_in(req_in), .ack_in(ack_in),"

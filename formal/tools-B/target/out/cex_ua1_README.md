@@ -1,0 +1,51 @@
+# Candidate counterexample (simulation, UNTRUSTED): arbiter 0's acknowledge C-element latches a runt
+
+Netlist: the decoded target as committed in Lean (formal/lean/Formal/Target/Net/*.lean, generator md5
+of A's net 7c41591d), rebuilt as JSON by `tools-B/target/lean2json.py`. Simulator: shard A's sim.py
+(copied as `tools-B/target/simb.py`, + `--posmap`/`--kappa`). Transport, one fixed delay per pin arc.
+
+Delay assignment (Spec `Adm` with g = 1, κ = KAPPA, corner c = 0.5): every arc at the middle of its
+corner window, except the gates in `cex_ua1_posmap.json` (value -1: fast end
+max((1-κ)·lerp(FAST_MIN, SLOW_MIN, c), FAST_MIN); value 2: slow end min((1+κ)·lerp(FAST_MAX, SLOW_MAX, c),
+SLOW_MAX)): the causal path from ua1's rise to its g-pin fall (fast) and ua1's feedback route + ua1
+itself (slow). ua1 = SLICE_X2Y18.DLUT.O6 (table = C(A0, g) with reset).
+
+Reproduce (sequential env, rig vector (12, 18)):
+
+    python3 tools-B/target/lean2json.py formal/lean/Formal/Target/Net net.json arbs.json
+    python3 tools-B/target/simb.py net.json formal/tools-A/target/out/boundary_03e82630.json \
+        --pairs 0xC,0x12 --corner 0.5 --kappa 0.215 --tmax 620000 \
+        --posmap formal/tools-B/target/out/cex_ua1_posmap.json --dump d.json
+
+Observed: κ <= 0.21: ua1 rises once at ~600.99 ns and holds (clean). κ = 0.215: ua1 rises at 600.991 ns,
+falls at 601.885, rises at 601.892, ... (period 901 ps = the loop delay; high phase 894 ps; a 7 ps runt circulating in its feedback loop -- corrected 2026-11-02 per audit T6); by
+620 ns 5336 nodes toggle (some every ~5 ps); no out0 by 620 ns (correct run: out0 = 6 at 756 ns).
+κ = 0.22-0.3: same shape, longer runts. Mid-window everywhere (no posmap): correct, out0 = 6.
+
+## Sharper adversary (per-pin, `cex_ua1_posmap_pin.json`)
+Same client path at the fast end; ua1's feedback pin (A1) and A0 pin (A3) at the slow end, its g pin
+(A5) at the fast end ("gate:pin" keys; simb.py reads them). Corner 0.5: clean at κ = 0.155, ua1
+oscillates at κ = 0.158. Per-gate assignment (`cex_ua1_posmap.json`): corner 0.5 0.21/0.215,
+corner 0.2 0.2016/0.2062, corner 0.1 0.2859/0.2906; corners 0 and 1: no oscillation up to κ = 0.3
+(Adm clamps one window end to the global band there). Per-pin map over corners: JOURNAL-B.
+
+## Per-pin threshold over corners (tools-B/target/kmap.py, bisection resolution 0.005)
+| corner | clean at κ | ua1 oscillates at κ |
+|---|---|---|
+| 0.1 | 0.1594 | 0.1641 |
+| 0.2 | 0.1500 | 0.1547 |
+| 0.3 | 0.1500 | 0.1547 |
+| 0.4-0.7 | 0.1547 | 0.1594 |
+| 0.8 | 0.1734 | 0.1781 |
+| 0.9 | 0.2250 | 0.2297 |
+| 0.0, 1.0 | no oscillation up to 0.3 (per-gate map) | |
+Other rig vectors at κ = 0.16, corner 0.5: (0x30,0x12), (0x11,5), (0x24,0x3C) oscillate; (0x10000,0x1000),
+(0x18697,0x18697) do not exercise this handshake and are correct.
+Cross-check: tools-B/target/sim2.py (independent implementation) reproduces the κ = 0.215 run flip for flip
+after reset.
+
+## With the guard g (simb.py --g: global band [FAST_MIN/g, SLOW_MAX·g])
+Corner 0 (fast): g = 1 clean to κ = 0.3; g = 1.1, 1.15 clean at κ = 0.15; g >= 1.2 oscillates at κ = 0.16;
+g = 2: clean at κ = 0.145, oscillates at κ = 0.148 (the lowest found). Corner 1 (slow): clean at κ = 0.16
+for g = 1 .. 2. So g matters only where the κ-window reaches the global band (extreme corners); with
+κ = 0 the corner window lies inside the band and g has no effect at all.

@@ -1,0 +1,49 @@
+win2, shard C helper, 2026-11-15 (UNTRUSTED Python). STOPPED EARLY at the owner's request: NO check counts were measured.
+
+Goal: test whether THE target's main-loop window decomposition meets the structural every-word checks of
+Formal/Net/AO/Unroll*.lean (BackChain, PairChain, StChain, KindLStep, KindRT/KindSub/KindNe).
+
+What ran (scratch /tmp/claude-0/winchk; pickles deleted afterwards):
+  cview/lean2json.py lean/Formal/Target/NetPS -> 187258 nodes, 186873 gates, 68 env, 9 arbiters
+  build.py -> collapsed cone of 13601 logic gates
+  sim.py 1 603 445 -> tend 3057785, out [1] (correct)
+  PAIR=_603_445 datafast.py 1 -> 841 guards, 7 EnE left
+  PAIR=_603_445 ao.py 1 1 -> 25085 events (17768 with 1 alternative, 7317 with 2). Killed while still in round 0
+    (the TO-row / LCheck loop) after more than 15 min, so no ao pickle was produced and winchk.py never ran.
+  ao_patch.diff: the committed ao.py does NOT save VCP, OVER, xs, prev or s0, although win/win.py needs them and
+    win/RESULTS.txt says the run it describes saved them. That modified ao.py was never committed. This patch
+    restores those outputs, uses int16 vector clocks, and changes the paths.
+
+winchk.py: implemented, never run. What it encodes:
+  Word = prefix (index 0) + main-loop windows (head SLICE_X39Y21.C5, window = floor((VCP-1)/2), as in win.py).
+  Coordinates are window-relative as in Unroll.lean: rel = abs - off_i(node), and Lr = L - off_i(c), where
+  L = VC (CF order with RT edges). A variant lowers L by the minimum over readers of ao's OVER, because the Lean
+  uses ONE uL for all readers, while ao lowers L per reader.
+  BackChain (UnrollTime): w :: w' :: ks => (forall u k, k < w'.len u -> forall alt in w'.causes u k, forall q in alt,
+    -(w.len q.1) <= q.2). Checked on the physical alternatives only. RT reach is reported separately: it matters
+    for SepWin, not BackChain.
+  PairChain (UnrollAsm): forall a in Dv, c in Dv, 0 < w'.len a -> -(w.len c) <= w'.Lr a 0 c.
+    In absolute terms: VC[first a in i+1, c] >= off_i(c), over every (a, c) in some D(v).
+  StChain (UnrollData): w'.s0 u = xor (w.s0 u) (w.len u % 2 == 1). On one run this holds automatically, so the
+    real check is that s0 depends only on the kind, on nodes that lie in some D(v).
+  KindLStep (UnrollRest): has five disjuncts and is applied to wF (fc = alt ++ rt(e)). In absolute terms:
+    u = c; or the first window and L <= 0; or the previous event lies in window i or i-1 and L <= L(prev); or for
+    every fc alternative some q satisfies (q.1 = c and L <= idx q + 1) or (q lies in window >= i-1 and L <= L(q)).
+    An empty fc list makes the last disjunct hold vacuously. Variants: L = VC, L = lowered, and L = VC with entries
+    <= off_{i-1}(c) clamped to "none" (the candidate "pre-window fact" fix).
+  KindRT/KindSub/KindNe: fc = [alt ++ rt e]. KindSub holds by construction. KindRT needs ao's form-iv Sep >= 1 on
+    each RT edge.
+  Kind invariance of len, causes, fc, Lr and s0 per kind, under three alphabets: (m, exit);
+    + iterations 0 and 1 as their own kinds; + previous m.
+  Also an --inner option (head SLICE_X38Y51.B5).
+
+Expectations from reading the definitions against win/RESULTS.txt. These are NOT measured:
+  - BackChain: should fail only on rst causes (cause = reset, prefix, two or more windows back).
+    Fix: iterations 0/1 in prefix kinds, or a static pre-window rule for rst.
+  - RT edges from quiet nodes: these are fc only, so they do not touch BackChain. They also pass KindLStep through
+    its (q.1 = c, L <= idx+1) disjunct, which has no window limit. They break SepWin/TOWin for r = 2 instead.
+  - PairChain: at risk when c is quiet and a's first event in window i+1 does not depend causally on c's last event.
+  - KindLStep: at risk where a node's previous event lies two or more windows back (nodes quiet across a window).
+    The (prev, kind) dependence of L should also force previous-kind information into the kind.
+To finish: rebuild as above, then run ao.py 1 1 (expect more than 20 min for (603,445); (17,5) is smaller) and
+  winchk.py 1 _603_445 --inner.
